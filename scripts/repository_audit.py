@@ -12,7 +12,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "local-backend"
-EXPECTED_PLAN_NAME = "日语单项永久会员"
+EXPECTED_PLAN_NAME = "双语言双项永久会员"
+EXPECTED_BILINGUAL_ENTITLEMENTS = {
+    "language_english_access",
+    "language_japanese_access",
+    "language_all_access",
+}
 OLD_REPOSITORY_PATTERNS = (
     re.compile(r"WYJ0904/japanese"),
     re.compile(r"github\.com/WYJ0904/japanese"),
@@ -135,8 +140,10 @@ def main() -> int:
         errors.append("membership.py: japanese_lifetime display name changed")
     if japanese.get("price_cents") != 7000:
         errors.append("membership.py: japanese_lifetime price changed")
-    if tuple(japanese.get("entitlements", ())) != ("language_japanese_access",):
+    if set(japanese.get("entitlements", ())) != EXPECTED_BILINGUAL_ENTITLEMENTS:
         errors.append("membership.py: japanese_lifetime entitlements changed")
+    if "tools_access" in japanese.get("entitlements", ()):
+        errors.append("membership.py: japanese_lifetime unexpectedly grants tools access")
     historical = membership.MEMBERSHIP_PLANS.get("dual_language_lifetime", {})
     if historical.get("purchasable") is not False:
         errors.append("membership.py: historical dual_language_lifetime became purchasable")

@@ -79,7 +79,7 @@ button.primary {
 }
 
 button:disabled {
-  opacity: 0.55;
+  opacity: 1;
   cursor: wait;
 }
 
@@ -1881,7 +1881,7 @@ textarea {
 
 .plan-option:disabled {
   cursor: not-allowed;
-  opacity: 0.62;
+  opacity: 1;
 }
 
 .admin-current-memberships {
@@ -2547,7 +2547,7 @@ textarea {
 }
 
 .field-disabled {
-  opacity: 0.48;
+  opacity: 1;
 }
 
 .field-disabled input,
@@ -3113,7 +3113,7 @@ select:focus-visible {
 }
 
 button:disabled {
-  opacity: 0.46;
+  opacity: 1;
 }
 
 .status {

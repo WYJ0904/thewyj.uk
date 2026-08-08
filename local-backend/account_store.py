@@ -895,19 +895,26 @@ class AccountStore:
         if not row:
             return {}
         value = dict(row)
+        plan_code = value.get("plan_code", "")
+        plan = MEMBERSHIP_PLANS.get(plan_code, {})
+        plan_name = plan.get("name") or value.get("plan_name_snapshot", "") or plan_code
+        payment_note = value.get("payment_note", "")
+        if plan_code in {"japanese_lifetime", "dual_language_lifetime"}:
+            for stale_name in ("日语单项永久会员", "历史双语言双项永久会员"):
+                payment_note = payment_note.replace(stale_name, plan_name)
         return {
             "id": value.get("id", ""),
             "order_number": value.get("order_number", ""),
             "user_id": value.get("user_id", ""),
             "username": value.get("username", ""),
-            "plan_code": value.get("plan_code", ""),
-            "plan_name": value.get("plan_name_snapshot", "") or value.get("plan_code", ""),
+            "plan_code": plan_code,
+            "plan_name": plan_name,
             "amount_cents": int(value.get("amount_cents", 0) or 0),
             "currency": value.get("currency", "CNY"),
             "payment_method": value.get("payment_method", ""),
             "qr_resource_id": value.get("qr_resource_id", ""),
             "trial_language": value.get("trial_language", ""),
-            "payment_note": value.get("payment_note", ""),
+            "payment_note": payment_note,
             "status": value.get("status", ""),
             "requested_at": value.get("requested_at", ""),
             "expires_at": value.get("expires_at", ""),
@@ -1123,14 +1130,12 @@ class AccountStore:
             membership, selected = "lifetime", by_plan["legacy_all_lifetime"]
         elif "all_access_monthly" in by_plan:
             membership, selected = "monthly", by_plan["all_access_monthly"]
+        elif "japanese_lifetime" in by_plan:
+            membership, selected = "lifetime", by_plan["japanese_lifetime"]
         elif "dual_language_monthly" in by_plan:
             membership, selected = "monthly", by_plan["dual_language_monthly"]
         elif "legacy_all_monthly" in by_plan:
             membership, selected = "monthly", by_plan["legacy_all_monthly"]
-        elif "japanese_lifetime" in by_plan:
-            membership, selected = "trial_single_language", by_plan["japanese_lifetime"]
-            language = "japanese"
-            expires = "9999-12-31T23:59:59Z"
         elif "trial_single_language" in by_plan:
             membership, selected = "trial_single_language", by_plan["trial_single_language"]
             try:
@@ -1365,13 +1370,16 @@ class AccountStore:
                 start_value = membership_time_value(raw_start) if raw_start else now
                 if raw_start and not start_value:
                     raise AccountError("会员开始日期格式无效，请使用年/月/日", 400, "membership_start_invalid")
+                compatible_codes = ("japanese_lifetime", "dual_language_lifetime") if plan_code == "japanese_lifetime" else (plan_code,)
+                placeholders = ",".join("?" for _ in compatible_codes)
                 existing = connection.execute(
-                    """
+                    f"""
                     SELECT * FROM user_memberships
-                    WHERE user_id = ? AND plan_code = ?
-                    ORDER BY expires_at DESC, created_at DESC LIMIT 1
+                    WHERE user_id = ? AND plan_code IN ({placeholders})
+                    ORDER BY CASE WHEN plan_code = ? THEN 0 ELSE 1 END,
+                        expires_at DESC, created_at DESC LIMIT 1
                     """,
-                    (user_id, plan_code),
+                    (user_id, *compatible_codes, plan_code),
                 ).fetchone()
                 if plan_code == "trial_single_language":
                     if not language_value and existing:
@@ -1437,16 +1445,22 @@ class AccountStore:
                         ),
                     )
             elif action == "cancel":
-                connection.execute(
-                    "UPDATE user_memberships SET status = 'cancelled', updated_at = ? WHERE user_id = ? AND plan_code = ? AND status = 'active'",
-                    (now, user_id, plan_code),
-                )
+                if plan_code == "japanese_lifetime":
+                    connection.execute(
+                        "UPDATE user_memberships SET status = 'cancelled', updated_at = ? WHERE user_id = ? AND plan_code IN ('japanese_lifetime', 'dual_language_lifetime') AND status = 'active'",
+                        (now, user_id),
+                    )
+                else:
+                    connection.execute(
+                        "UPDATE user_memberships SET status = 'cancelled', updated_at = ? WHERE user_id = ? AND plan_code = ? AND status = 'active'",
+                        (now, user_id, plan_code),
+                    )
             elif action == "cancel_all":
                 if preserve_japanese:
                     connection.execute(
                         """
                         UPDATE user_memberships SET status = 'cancelled', updated_at = ?
-                        WHERE user_id = ? AND status = 'active' AND plan_code != 'japanese_lifetime'
+                        WHERE user_id = ? AND status = 'active' AND plan_code NOT IN ('japanese_lifetime', 'dual_language_lifetime')
                         """,
                         (now, user_id),
                     )

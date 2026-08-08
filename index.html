@@ -6,9 +6,9 @@
     <meta name="theme-color" content="#ffffff" />
     <title>WYJ的网站</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260803-clean-product-design" />
-    <link rel="stylesheet" href="/styles.css?v=20260803-clean-product-design" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260803-clean-product-design" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260809-dashboard-membership-rejudge" />
+    <link rel="stylesheet" href="/styles.css?v=20260809-dashboard-membership-rejudge" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260809-dashboard-membership-rejudge" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 WYJ的网站" aria-hidden="false">
@@ -47,20 +47,79 @@
         </details>
       </nav>
       <section class="module-picker hidden" id="modulePicker" aria-labelledby="modulePickerTitle" aria-hidden="true">
-        <header class="project-brand">
-          <img src="/icon-192.png" alt="WYJ的网站 Logo" />
-          <div><p class="section-kicker">学习与工具</p><h1 id="modulePickerTitle">选择功能</h1><p id="moduleMembershipStatus">普通注册用户</p><p class="module-access-message hidden" id="moduleAccessMessage" aria-live="polite"></p></div>
+        <header class="dashboard-header">
+          <div>
+            <p class="section-kicker">个人首页</p>
+            <h1 id="modulePickerTitle"><span id="dashboardGreeting">欢迎回来</span></h1>
+            <p id="moduleMembershipStatus">普通注册用户</p>
+          </div>
+          <button class="button-secondary" id="dashboardMembershipBtn" type="button">查看会员与权益</button>
         </header>
-        <div class="module-grid" aria-label="选择网站功能">
-          <button class="module-card" type="button" data-module="language">
+        <p class="module-access-message hidden" id="moduleAccessMessage" aria-live="polite"></p>
+
+        <section class="dashboard-section" aria-labelledby="dashboardEntryTitle">
+          <div class="dashboard-section-heading"><div><h2 id="dashboardEntryTitle">继续学习和使用工具</h2><p>选择一个入口即可继续。</p></div><button class="button-ghost dashboard-language-index" type="button" data-module="language">查看语言项目</button></div>
+          <div class="module-grid dashboard-entry-grid" aria-label="主要功能入口">
+          <button class="module-card" type="button" data-dashboard-project="english">
             <span class="module-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H4Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v17a3 3 0 0 1 3-3h3Z"/></svg></span>
-            <span><strong>语言测试</strong><small>英语、日语、错题、成就与学习统计</small></span>
+            <span><strong>英语测试</strong><small>进入英语词表、答题、错题与统计</small></span>
+          </button>
+          <button class="module-card" type="button" data-dashboard-project="japanese">
+            <span class="module-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H4Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v17a3 3 0 0 1 3-3h3Z"/></svg></span>
+            <span><strong>日语测试</strong><small>进入日语词表、假名标音、答题与错题</small></span>
           </button>
           <button class="module-card" type="button" data-module="tools">
             <span class="module-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
             <span><strong>在线工具箱</strong><small>文本、文件、图片、随机与临时分享</small></span>
             <em id="toolsMemberBadge">会员功能</em>
           </button>
+          </div>
+        </section>
+
+        <section class="dashboard-section" aria-labelledby="dashboardOverviewTitle">
+          <div class="dashboard-section-heading"><div><h2 id="dashboardOverviewTitle">今日概览</h2><p>学习进度和账户权益摘要。</p></div></div>
+          <div class="dashboard-metric-grid">
+            <article class="dashboard-metric"><span>当前有效会员</span><strong id="dashboardMembershipName">普通用户</strong><small id="dashboardMembershipExpiry">无到期时间</small></article>
+            <article class="dashboard-metric"><span>合并权益</span><strong id="dashboardEntitlements">基础功能</strong><small>多个有效会员的权益会自动合并</small></article>
+            <article class="dashboard-metric"><span>连续学习</span><strong><b id="dashboardStreak">0</b> 天</strong><small>按本机完成记录计算</small></article>
+            <article class="dashboard-metric"><span>当前错题</span><strong><b id="dashboardWrongCount">0</b> 个</strong><small>英语和日语历史错题总数</small></article>
+          </div>
+        </section>
+
+        <div class="dashboard-columns">
+          <section class="dashboard-section dashboard-panel" aria-labelledby="dashboardLearningTitle">
+            <div class="dashboard-section-heading"><div><h2 id="dashboardLearningTitle">学习摘要</h2><p id="dashboardLatestResult">完成第一轮测试后显示结果。</p></div></div>
+            <div class="dashboard-goal-list">
+              <div><span>英语今日目标</span><strong id="dashboardEnglishGoal">0 / 20 题</strong></div>
+              <div><span>日语今日目标</span><strong id="dashboardJapaneseGoal">0 / 20 题</strong></div>
+            </div>
+            <div class="dashboard-resume hidden" id="dashboardResumeSection">
+              <h3>未完成的测试</h3>
+              <div class="action-row compact"><button class="hidden" id="dashboardResumeEnglish" type="button" data-dashboard-resume="english">继续英语测试</button><button class="hidden" id="dashboardResumeJapanese" type="button" data-dashboard-resume="japanese">继续日语测试</button></div>
+            </div>
+          </section>
+
+          <section class="dashboard-section dashboard-panel" aria-labelledby="dashboardToolsTitle">
+            <div class="dashboard-section-heading"><div><h2 id="dashboardToolsTitle">常用工具</h2><p>只显示收藏和最近使用的工具。</p></div></div>
+            <div class="dashboard-tool-shelf"><h3>收藏</h3><div id="dashboardFavoriteTools"><p class="dashboard-empty">还没有收藏工具。</p></div></div>
+            <div class="dashboard-tool-shelf"><h3>最近使用</h3><div id="dashboardRecentTools"><p class="dashboard-empty">还没有使用记录。</p></div></div>
+          </section>
+        </div>
+
+        <div class="dashboard-columns dashboard-columns-secondary">
+          <section class="dashboard-section dashboard-panel" aria-labelledby="dashboardUpdatesTitle">
+            <div class="dashboard-section-heading"><div><h2 id="dashboardUpdatesTitle">最近更新</h2><p>2026/08/09</p></div></div>
+            <p>个人首页现可汇总学习进度、会员权益、错题和常用工具；错题支持按当前规则重新判定。</p>
+          </section>
+          <section class="dashboard-section dashboard-panel" aria-labelledby="dashboardServicesTitle">
+            <div class="dashboard-section-heading"><div><h2 id="dashboardServicesTitle">服务状态</h2><p>单项异常不会阻止本地功能使用。</p></div></div>
+            <dl class="dashboard-service-list">
+              <div><dt>账户 API</dt><dd id="dashboardAccountStatus">检测中</dd></div>
+              <div><dt>学习数据</dt><dd id="dashboardSyncStatus">本地可用</dd></div>
+              <div><dt>AI 判卷</dt><dd id="dashboardAiStatus">检测中</dd></div>
+              <div><dt>临时分享</dt><dd id="dashboardShareStatus">检测中</dd></div>
+            </dl>
+          </section>
         </div>
       </section>
       <section class="project-picker hidden" id="projectPicker" aria-labelledby="projectPickerTitle">
@@ -429,7 +488,7 @@
           <div class="payment-method-list" id="paymentMethodList" aria-live="polite"></div>
         </fieldset>
         <div class="purchase-summary" id="purchaseSummary">请选择套餐</div>
-        <p class="membership-warning">套餐按模块独立授权：双语言包月包含英语和日语测试，工具箱包月仅包含在线工具箱；需要两个模块时请选择全功能套餐。</p>
+        <p class="membership-warning">套餐按模块独立授权：双语言包月和 70 CNY 双语言双项永久会员包含英语、日语测试，不包含在线工具箱；工具箱包月仅包含在线工具箱。需要两个模块时请选择全功能套餐。</p>
         <div class="payment-order hidden" id="paymentOrderBox">
           <dl><dt>用户名</dt><dd id="paymentUsername">-</dd><dt>会员方案</dt><dd id="paymentPlan">-</dd><dt class="hidden" id="paymentLanguageTerm">所选语言</dt><dd class="hidden" id="paymentLanguage">-</dd><dt>支付方式</dt><dd id="paymentMethod">-</dd><dt>应付金额</dt><dd id="paymentAmount">-</dd><dt>订单编号</dt><dd><code id="paymentOrderNumber">-</code> <button id="copyOrderBtn" type="button">复制</button></dd><dt>付款备注</dt><dd><span id="paymentNote">-</span> <button id="copyPaymentNoteBtn" type="button">复制</button></dd><dt>订单状态</dt><dd id="paymentStatus">-</dd></dl>
           <div class="payment-qr-wrap hidden" id="paymentQrWrap">
@@ -490,7 +549,7 @@
           <div class="admin-current-memberships" id="adminCurrentMemberships"></div>
           <div class="admin-membership-grid">
             <label class="field-label"><span>操作</span><select id="adminMembershipAction"><option value="grant">开通或覆盖</option><option value="extend">续期一个月</option><option value="cancel">取消所选会员</option><option value="cancel_all">降级为普通用户</option></select></label>
-            <label class="field-label"><span>会员方案</span><select id="adminMembershipSelect"><option value="trial_single_language">单语言包月体验会员</option><option value="dual_language_monthly">双语言包月</option><option value="tools_monthly">工具箱包月会员</option><option value="all_access_monthly">全功能包月会员</option><option value="japanese_lifetime">日语单项永久会员</option><option value="all_access_lifetime">全功能永久会员</option><option value="dual_language_lifetime">历史双语言双项永久会员（仅管理已有权益）</option></select></label>
+            <label class="field-label"><span>会员方案</span><select id="adminMembershipSelect"><option value="trial_single_language">单语言包月体验会员</option><option value="dual_language_monthly">双语言包月</option><option value="tools_monthly">工具箱包月会员</option><option value="all_access_monthly">全功能包月会员</option><option value="japanese_lifetime">双语言双项永久会员</option><option value="all_access_lifetime">全功能永久会员</option></select></label>
             <label class="field-label hidden" id="adminTrialLanguageField"><span>体验语言</span><select id="adminTrialLanguageSelect"><option value="">请选择</option><option value="english">英语</option><option value="japanese">日语</option></select></label>
           </div>
           <div class="admin-date-grid">
@@ -498,7 +557,7 @@
             <label class="field-label" id="adminMembershipExpiresField"><span>截止日期</span><input id="adminMembershipExpires" inputmode="numeric" autocomplete="off" placeholder="例如 2026/08/11" /></label>
           </div>
           <label class="field-label"><span>操作备注</span><input id="adminMembershipNote" maxlength="500" placeholder="例如：微信订单已核对" /></label>
-          <label class="admin-checkbox"><input id="adminPreserveJapanese" type="checkbox" /> 降级时保留日语单项永久会员</label>
+          <label class="admin-checkbox"><input id="adminPreserveJapanese" type="checkbox" /> 降级时保留双语言双项永久会员</label>
           <p class="admin-date-help">支持“年/月/日”，分隔符可用 /、.、。、空格。开始时间采用保存时的时分秒；截止时间固定为当天 23:59:59。</p>
           <div class="admin-editor-save"><button class="primary" id="saveAdminMembershipBtn" type="button">保存会员设置</button></div>
           <div class="admin-entitlement-actions"><button id="adminDisableToolsBtn" type="button">仅取消工具权限</button><button id="adminEnableToolsBtn" type="button">恢复方案工具权限</button></div>
@@ -565,13 +624,14 @@
         <div>
           <h3></h3>
           <p></p>
+          <small class="wrong-rejudge-status" aria-live="polite"></small>
         </div>
-        <div class="wrong-item-actions"><strong></strong><button type="button">移除</button></div>
+        <div class="wrong-item-actions"><strong></strong><button class="wrong-rejudge-button" type="button">重新判定</button><button class="wrong-remove-button" type="button">移除</button></div>
       </article>
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/tools.js?v=20260803-clean-product-design"></script>
-    <script src="/app.js?v=20260803-clean-product-design"></script>
+    <script src="/tools.js?v=20260809-dashboard-membership-rejudge"></script>
+    <script src="/app.js?v=20260809-dashboard-membership-rejudge"></script>
   </body>
 </html>

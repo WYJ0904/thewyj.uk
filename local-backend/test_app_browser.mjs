@@ -23,10 +23,10 @@ fs.writeFileSync(wrongFile, JSON.stringify({
   version: 1,
   language: "english",
   currentWrongBook: {
-    hello: { last_answer: "hi", correct_answer: "你好", accepted: ["您好"], wrong_count: 1 },
+    hello: { last_answer: "你好", original_answer: "你好", correct_answer: "你好", accepted: ["您好"], wrong_count: 1 },
   },
   historyWrongBook: {
-    hello: { last_answer: "hi", correct_answer: "你好", accepted: ["您好"], wrong_count: 2 },
+    hello: { last_answer: "你好", original_answer: "你好", correct_answer: "你好", accepted: ["您好"], wrong_count: 2 },
   },
 }, null, 2), "utf8");
 
@@ -142,7 +142,10 @@ async function main() {
     if (message.method === "Runtime.exceptionThrown") runtimeErrors.push(message.params?.exceptionDetails?.text || "runtime exception");
     if (message.method === "Log.entryAdded" && ["error", "warning"].includes(message.params?.entry?.level)) {
       const value = message.params.entry.text || "browser log error";
-      if (!/^Failed to load resource: the server responded with a status of \d+/.test(value)) runtimeErrors.push(value);
+      const expectedCancellation = /^Failed to load resource: net::ERR_(?:ABORTED|CONNECTION_ABORTED)$/.test(value);
+      if (!expectedCancellation && !/^Failed to load resource: the server responded with a status of \d+/.test(value)) {
+        runtimeErrors.push(value);
+      }
     }
     if (message.method === "Network.responseReceived" && Number(message.params?.response?.status) >= 400) {
       networkHttpErrors.push({
@@ -182,6 +185,38 @@ async function main() {
     }
     return true;
   })()`);
+
+  const contrastRatio = async (selector, pseudo = "") => evaluate(`(() => {
+    const element = document.querySelector(${JSON.stringify(selector)});
+    if (!element) throw new Error('missing contrast target: ' + ${JSON.stringify(selector)});
+    const parse = (value) => (String(value).match(/[0-9.]+/g) || []).map(Number);
+    const luminance = (rgb) => {
+      const channels = rgb.slice(0, 3).map((part) => {
+        const value = part / 255;
+        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    };
+    const foreground = parse(getComputedStyle(element, ${JSON.stringify(pseudo || null)}).color);
+    let current = element;
+    let background = [255, 255, 255, 1];
+    while (current) {
+      const candidate = parse(getComputedStyle(current).backgroundColor);
+      if (candidate.length >= 3 && (candidate.length < 4 || candidate[3] > 0.98)) {
+        background = candidate;
+        break;
+      }
+      current = current.parentElement;
+    }
+    const fg = luminance(foreground);
+    const bg = luminance(background);
+    return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
+  })()`);
+
+  const assertReadable = async (selector, pseudo = "") => {
+    const ratio = await contrastRatio(selector, pseudo);
+    assert.ok(ratio >= 4.5, `${selector}${pseudo || ""} contrast ${ratio.toFixed(2)} is below WCAG AA`);
+  };
 
   const click = async (selector) => evaluate(`(() => {
     const element = document.querySelector(${JSON.stringify(selector)});
@@ -286,7 +321,7 @@ async function main() {
         const registration = await navigator.serviceWorker.ready;
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260803-clean-product-design');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260809-dashboard-membership-rejudge');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles) };
       })()`);
       assert.equal(pwa.active, true);
@@ -314,6 +349,31 @@ async function main() {
 
     const userSession = await evaluate("localStorage.getItem('wyjAccountSession')");
     const userMe = await api("/api/me", null, userSession);
+
+    await check("authenticated dashboard summary and responsive layout", async () => {
+      assert.ok((await evaluate("document.querySelector('#dashboardGreeting').textContent")).includes(USERNAME));
+      assert.equal(await evaluate("document.querySelectorAll('.dashboard-metric').length"), 4);
+      assert.equal(await evaluate("document.querySelectorAll('[data-dashboard-project]').length"), 2);
+      assert.match(await evaluate("document.querySelector('#dashboardAccountStatus').textContent"), /在线|离线/);
+      assert.ok((await evaluate("document.querySelector('#dashboardLatestResult').textContent")).length > 4);
+      await assertReadable("#dashboardMembershipName");
+      await assertReadable("#dashboardMembershipExpiry");
+      await assertReadable(".dashboard-empty");
+      await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+      const mobileDashboard = await evaluate(`({ viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth, cards: document.querySelectorAll('.dashboard-entry-grid .module-card').length })`);
+      assert.ok(mobileDashboard.scrollWidth <= mobileDashboard.viewport + 1, JSON.stringify(mobileDashboard));
+      assert.equal(mobileDashboard.cards, 3);
+      const mobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
+      fs.writeFileSync(path.join(TEST_ROOT, `dashboard-390-${RUN_ID}.png`), Buffer.from(mobileShot.data, "base64"));
+      await send("Emulation.setDeviceMetricsOverride", { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('.dashboard-entry-grid')).gridTemplateColumns.split(' ').length"), 3);
+      const wideShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
+      fs.writeFileSync(path.join(TEST_ROOT, `dashboard-1920-${RUN_ID}.png`), Buffer.from(wideShot.data, "base64"));
+      await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 768, deviceScaleFactor: 1, mobile: false });
+      const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
+      fs.writeFileSync(path.join(TEST_ROOT, `dashboard-1366-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
+      await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    });
 
     await check("offline state preserves the session and reconnects", async () => {
       await send("Network.emulateNetworkConditions", {
@@ -352,8 +412,10 @@ async function main() {
       assert.ok(plans.find((item) => item.code === "tools_monthly").text.includes("20"));
       assert.ok(plans.find((item) => item.code === "all_access_monthly").text.includes("30"));
       assert.ok(plans.find((item) => item.code === "japanese_lifetime").text.includes("70"));
-      assert.ok(plans.find((item) => item.code === "japanese_lifetime").text.includes("日语单项永久会员"));
+      assert.ok(plans.find((item) => item.code === "japanese_lifetime").text.includes("双语言双项永久会员"));
       assert.ok(plans.find((item) => item.code === "all_access_lifetime").text.includes("100"));
+      await assertReadable(".plan-option small");
+      await assertReadable(".membership-warning");
       assert.equal(await evaluate("document.querySelectorAll('#paymentMethodList input[name=\"paymentMethod\"]').length"), 2);
       await click('[data-plan="trial_single_language"]');
       assert.equal(await evaluate("document.querySelector('#trialLanguageField').classList.contains('hidden')"), false);
@@ -481,6 +543,31 @@ async function main() {
       await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0", 4_000, "wrong book clear");
       await setFiles("#wrongDataFileInput", [wrongFile]);
       await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 1", 6_000, "wrong data import");
+      await assertReadable(".wrong-rejudge-button");
+      await assertReadable("#wrongSearchInput", "::placeholder");
+      await evaluate(`(() => {
+        window.__rejudgeFetches = [];
+        if (!window.__rejudgeOriginalFetch) window.__rejudgeOriginalFetch = window.fetch;
+        window.fetch = (...args) => {
+          const url = String(args[0]?.url || args[0] || '');
+          const pathname = new URL(url, location.href).pathname;
+          if (pathname === '/api/quiz/start' || pathname === '/api/judge') {
+            window.__rejudgeFetches.push(pathname);
+          }
+          return window.__rejudgeOriginalFetch(...args);
+        };
+        return true;
+      })()`);
+      await evaluate("document.querySelector('.wrong-rejudge-button').click(); document.querySelector('.wrong-rejudge-button').click(); true");
+      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0", 6_000, "wrong answer rejudged and removed");
+      assert.ok((await evaluate("document.querySelector('#wrongActionMessage').textContent")).includes("新判定：正确"));
+      assert.equal(await evaluate("JSON.parse(localStorage.getItem(wrongRejudgeLogKey()) || '[]').length"), 1);
+      assert.deepEqual(
+        [...new Set(await evaluate("window.__rejudgeFetches"))].sort(),
+        ["/api/judge", "/api/quiz/start"],
+      );
+      await setFiles("#wrongDataFileInput", [wrongFile]);
+      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 1", 6_000, "wrong data reimport");
       await click("#reviewBtn");
       await waitFor("document.querySelector('#quizView').classList.contains('active')", 8_000, "offline review start");
       await setFields({ "#answerInput": "你好" });
@@ -503,6 +590,8 @@ async function main() {
       await click("#nextNowBtn");
       await waitFor("!document.querySelector('#roundSummaryModal')?.classList.contains('hidden')", 4_000, "dictation summary");
       assert.equal(await evaluate("document.querySelector('#roundAccuracy').textContent"), "正确率 100%");
+      await assertReadable(".round-summary-grid span");
+      await assertReadable(".round-summary-grid strong");
       await click("#roundSetupBtn");
       await click('[data-view="achievementsView"]');
       await waitFor("document.querySelectorAll('#achievementList .achievement-item').length === 25", 4_000, "achievement catalog");
@@ -531,6 +620,7 @@ async function main() {
       await setFields({ "#practiceModeSelect": "meaning", "#wordInput": "電話" });
       await click("#startBtn");
       await waitFor("document.querySelector('#quizView').classList.contains('active') && document.querySelector('#wordReading')?.textContent.length > 0", 180_000, "Japanese reading annotation");
+      await delay(300);
       assert.equal(await evaluate("document.querySelector('#wordText').textContent"), "電話");
       assert.equal(await evaluate("document.querySelector('#wordReading').textContent"), "でんわ");
       assert.ok((await evaluate("document.querySelector('#wordLabel').getAttribute('aria-label')")).includes("でんわ"));
@@ -620,22 +710,28 @@ async function main() {
       await click('[data-admin-view="adminUsersView"]');
       await setFields({ "#adminUserSearch": USERNAME });
       await waitFor("document.querySelectorAll('#adminUserList .admin-user-card').length === 1", 5_000, "admin user search");
+      await assertReadable(".admin-user-facts strong");
       await click("#adminUserList [data-admin-edit]");
       await waitFor("!document.querySelector('#adminEditModal')?.classList.contains('hidden')", 3_000, "admin editor");
       assert.deepEqual(
         await evaluate("[...document.querySelector('#adminMembershipSelect').options].map(option => option.value).filter(Boolean)"),
-        ["trial_single_language", "dual_language_monthly", "tools_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime", "dual_language_lifetime"],
+        ["trial_single_language", "dual_language_monthly", "tools_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
       );
       assert.ok((await evaluate("document.querySelector('#adminCurrentMemberships').textContent")).includes("全功能包月会员"));
+      await assertReadable(".admin-current-memberships article small");
       await setFields({ "#adminMembershipAction": "grant", "#adminMembershipSelect": "japanese_lifetime", "#adminMembershipStart": "2026.07.16", "#adminMembershipNote": "browser matrix" });
       await click("#saveAdminMembershipBtn");
       await click("#acceptConfirmBtn");
       await waitFor("document.querySelector('#adminEditMessage')?.textContent.includes('立即生效')", 12_000, "membership grant");
-      assert.ok((await evaluate("document.querySelector('#adminCurrentMemberships').textContent")).includes("日语单项永久会员"));
+      assert.ok((await evaluate("document.querySelector('#adminCurrentMemberships').textContent")).includes("双语言双项永久会员"));
+      let refreshed = await api("/api/me", null, userSession);
+      assert.ok(refreshed.account.entitlements.includes("language_english_access"));
+      assert.ok(refreshed.account.entitlements.includes("language_japanese_access"));
+      assert.ok(refreshed.account.entitlements.includes("language_all_access"));
       await click("#adminDisableToolsBtn");
       await click("#acceptConfirmBtn");
       await waitFor("document.querySelector('#adminEditMessage')?.textContent.includes('取消工具权限')", 10_000, "tools override off");
-      let refreshed = await api("/api/me", null, userSession);
+      refreshed = await api("/api/me", null, userSession);
       assert.equal(refreshed.account.tools_access, false);
       await click("#adminEnableToolsBtn");
       await click("#acceptConfirmBtn");
@@ -652,6 +748,8 @@ async function main() {
       await click('[data-admin-view="adminLoginView"]');
       assert.ok(Number(await evaluate("document.querySelectorAll('#adminLoginList .admin-login-card').length")) >= 1);
       assert.ok((await evaluate("document.querySelector('#adminLoginList').textContent")).includes("IP"));
+      await assertReadable(".admin-login-location");
+      await assertReadable(".admin-login-agent");
       await click('[data-admin-view="adminToolStatsView"]');
       assert.ok(Number(await evaluate("document.querySelectorAll('#adminToolStatsList .admin-log-card').length")) >= 1);
     });

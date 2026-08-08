@@ -368,15 +368,18 @@ class AccountStoreTests(unittest.TestCase):
         with self.assertRaises(AccountError):
             self.store.create_recharge_request(user, "monthly", "wechat")
 
-    def test_new_memberships_merge_entitlements_without_granting_tools_to_japanese(self):
+    def test_new_memberships_merge_entitlements_without_granting_tools_to_bilingual_lifetime(self):
         user = self.register()
         japanese = self.store.admin_manage_membership(
             self.admin, user["id"], "grant", "japanese_lifetime"
         )
         self.assertIn("language_japanese_access", japanese["entitlements"])
+        self.assertIn("language_english_access", japanese["entitlements"])
+        self.assertIn("language_all_access", japanese["entitlements"])
         self.assertNotIn("tools_access", japanese["entitlements"])
         self.assertIsNone(self.store.quiz_limit(self.store.get_user(user["id"]), "japanese"))
-        self.assertEqual(self.store.quiz_limit(self.store.get_user(user["id"]), "english"), 15)
+        self.assertIsNone(self.store.quiz_limit(self.store.get_user(user["id"]), "english"))
+        self.assertEqual(self.store.get_user(user["id"])["membership"], "lifetime")
 
         full = self.store.admin_manage_membership(
             self.admin, user["id"], "grant", "all_access_monthly"
@@ -389,6 +392,7 @@ class AccountStoreTests(unittest.TestCase):
         remaining = self.store.user_payload(self.store.get_user(user["id"]))
         self.assertNotIn("tools_access", remaining["entitlements"])
         self.assertIn("language_japanese_access", remaining["entitlements"])
+        self.assertIn("language_english_access", remaining["entitlements"])
 
     def test_tools_and_dual_language_monthly_plans_keep_rights_separate(self):
         tools_user = self.register("tools-only")
@@ -722,8 +726,8 @@ class AccountStoreTests(unittest.TestCase):
         self.assertEqual(len(active), 1)
         payload = self.store.user_payload(self.store.get_user(user["id"]))
         self.assertIn("language_japanese_access", payload["entitlements"])
-        self.assertNotIn("language_english_access", payload["entitlements"])
-        self.assertNotIn("language_all_access", payload["entitlements"])
+        self.assertIn("language_english_access", payload["entitlements"])
+        self.assertIn("language_all_access", payload["entitlements"])
         self.assertNotIn("tools_access", payload["entitlements"])
         with self.store.connect() as connection:
             fulfillments = connection.execute(
@@ -737,6 +741,36 @@ class AccountStoreTests(unittest.TestCase):
             ).fetchall()
         self.assertEqual(len(fulfillments), 2)
         self.assertEqual(len({row["user_membership_id"] for row in fulfillments}), 1)
+
+        restarted = AccountStore(self.store.database_path, self.text_path)
+        restarted_payload = restarted.user_payload(restarted.get_user(user["id"]))
+        self.assertIn("language_english_access", restarted_payload["entitlements"])
+        self.assertIn("language_japanese_access", restarted_payload["entitlements"])
+        self.assertNotIn("tools_access", restarted_payload["entitlements"])
+
+    def test_old_lifetime_payment_snapshot_uses_current_public_name_without_rewriting_db(self):
+        user = self.register("old-plan-name")
+        request, _created = self.store.create_recharge_request(
+            user, "japanese_lifetime", "wechat"
+        )
+        with self.store.connect() as connection:
+            connection.execute(
+                "UPDATE payment_requests SET plan_name_snapshot = ?, payment_note = ? WHERE id = ?",
+                (
+                    "日语单项永久会员",
+                    f"{user['username']} {request['order_number']} 日语单项永久会员",
+                    request["id"],
+                ),
+            )
+        public_request = self.store.list_user_payment_requests(user)[0]
+        self.assertEqual(public_request["plan_name"], "双语言双项永久会员")
+        self.assertIn("双语言双项永久会员", public_request["payment_note"])
+        with self.store.connect() as connection:
+            stored = connection.execute(
+                "SELECT plan_name_snapshot FROM payment_requests WHERE id = ?",
+                (request["id"],),
+            ).fetchone()
+        self.assertEqual(stored["plan_name_snapshot"], "日语单项永久会员")
 
     def test_payment_history_records_the_complete_state_machine(self):
         user = self.register("history-user")

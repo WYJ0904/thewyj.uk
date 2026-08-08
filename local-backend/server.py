@@ -1602,7 +1602,11 @@ def json_response(handler, status, data):
     handler.send_header("Cache-Control", "no-store")
     send_security_headers(handler)
     handler.end_headers()
-    handler.wfile.write(body)
+    try:
+        handler.wfile.write(body)
+    except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+        # The browser may intentionally cancel an in-flight request when a modal closes.
+        return
 
 
 def payment_qr_response(handler, content, content_type):
