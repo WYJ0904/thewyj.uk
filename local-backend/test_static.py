@@ -46,6 +46,8 @@ class StaticSiteTests(unittest.TestCase):
             "moduleAccessMessage", "paymentMethodList", "paymentMethod",
             "paymentQrWrap", "paymentQrImage", "paymentQrMessage", "aiSearchInput",
             "aiSearchResults", "cancelPaymentOrderBtn",
+            "membershipGoalField", "membershipGoalList", "membershipGoalHint",
+            "membershipPlanStep", "membershipPlanHeading",
             "navGuestActions", "navLoginBtn", "navRegisterBtn", "accountMenu",
             "dashboardGreeting", "dashboardMembershipName", "dashboardEntitlements",
             "dashboardStreak", "dashboardWrongCount", "dashboardLatestResult",
@@ -72,12 +74,12 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260809-language-state"
+        release_token = "20260809-membership-selection"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "tools.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}"', self.worker)
-        self.assertIn('const APP_VERSION = "2026-08-09-language-state"', self.app)
+        self.assertIn('const APP_VERSION = "2026-08-09-membership-selection"', self.app)
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
         self.assertIn('APP_BUILD = "2026-08-02-network-resilience"', server)
         self.assertIn('"/trial", "/changelog"', server)
@@ -445,6 +447,19 @@ class StaticSiteTests(unittest.TestCase):
             r"\.payment-qr-wrap img\s*\{[^}]*max-width:\s*100%",
         )
         self.assertIn("overflow-x: hidden", self.styles)
+
+    def test_membership_ui_filters_plans_by_purpose_without_replacing_server_checks(self):
+        goal_values = re.findall(r'data-membership-goal="([^"]+)"', self.html)
+        self.assertEqual(goal_values, ["english", "japanese", "bilingual", "tools", "all"])
+        self.assertIn("const MEMBERSHIP_GOALS = Object.freeze", self.app)
+        self.assertIn("function membershipGoalAllowsPlan", self.app)
+        self.assertIn("function membershipGoalForPlan", self.app)
+        self.assertIn('openMembershipModal({ goal: "tools" })', self.app)
+        self.assertGreaterEqual(
+            self.app.count("membershipGoalAllowsPlan(selectedMembershipGoal"), 3
+        )
+        self.assertIn('trial_language: selectedRechargePlan === "trial_single_language"', self.app)
+        self.assertIn('await api("/api/recharge/request"', self.app)
 
     def test_vocabulary_search_is_debounced_abortable_and_local_first(self):
         self.assertIn("function scheduleVocabularySearch()", self.app)

@@ -1360,6 +1360,12 @@ class AccountStore:
         language_value = str(trial_language or "").strip().lower()
         if action in {"grant", "extend", "cancel"} and plan_code not in MEMBERSHIP_PLANS:
             raise AccountError("会员方案无效", 400, "plan_invalid")
+        if action in {"grant", "extend"} and not MEMBERSHIP_PLANS[plan_code]["purchasable"]:
+            raise AccountError(
+                "该历史会员方案不能新开通，请选择当前在售方案",
+                400,
+                "plan_retired",
+            )
         before = self._public_snapshot(self.user_payload(target))
         now = iso_now()
         with self.lock, self.connect() as connection:

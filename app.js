@@ -1,4 +1,4 @@
-const APP_VERSION = "2026-08-09-language-state";
+const APP_VERSION = "2026-08-09-membership-selection";
 const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
 const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);
 const API_TIMEOUT_MS = 30000;
@@ -133,6 +133,7 @@ let aiAvailable = false;
 let pendingScreen = "auth";
 let pendingAuthMessage = "";
 let currentProject = "";
+let selectedMembershipGoal = "";
 let selectedRechargePlan = "";
 let currentPaymentOrder = null;
 let membershipPlans = [];
@@ -167,6 +168,43 @@ const trialState = {
   imageMode: "compress",
   quiz: null,
 };
+const MEMBERSHIP_PLAN_ORDER = Object.freeze([
+  "trial_single_language",
+  "dual_language_monthly",
+  "tools_monthly",
+  "all_access_monthly",
+  "japanese_lifetime",
+  "all_access_lifetime",
+]);
+const MEMBERSHIP_GOALS = Object.freeze({
+  english: {
+    label: "只学英语",
+    description: "显示英语单语言、双语言和全功能方案。",
+    trialLanguage: "english",
+    plans: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
+  },
+  japanese: {
+    label: "只学日语",
+    description: "显示日语单语言、双语言和全功能方案。",
+    trialLanguage: "japanese",
+    plans: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
+  },
+  bilingual: {
+    label: "英语和日语",
+    description: "只显示同时包含两种语言会员功能的方案。",
+    plans: ["dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
+  },
+  tools: {
+    label: "只用工具箱",
+    description: "显示工具箱包月和包含工具箱的全功能方案。",
+    plans: ["tools_monthly", "all_access_monthly", "all_access_lifetime"],
+  },
+  all: {
+    label: "语言和工具箱",
+    description: "只显示同时包含语言学习与在线工具箱的方案。",
+    plans: ["all_access_monthly", "all_access_lifetime"],
+  },
+});
 const rejudgeInFlight = new Set();
 const modalReturnFocus = new Map();
 const projectRuntime = {
@@ -1127,6 +1165,49 @@ function planDetails(plan) {
     : ["请选择套餐", "", ""];
 }
 
+function normalizedMembershipGoal(value) {
+  const goal = String(value || "").trim();
+  return Object.prototype.hasOwnProperty.call(MEMBERSHIP_GOALS, goal) ? goal : "";
+}
+
+function membershipGoalForPlan(planCode, trialLanguage = "") {
+  if (planCode === "trial_single_language") {
+    return trialLanguage === "japanese" ? "japanese" : "english";
+  }
+  if (planCode === "tools_monthly") return "tools";
+  if (["dual_language_monthly", "japanese_lifetime", "dual_language_lifetime"].includes(planCode)) return "bilingual";
+  if (["all_access_monthly", "all_access_lifetime", "legacy_all_monthly", "legacy_all_lifetime"].includes(planCode)) return "all";
+  return "";
+}
+
+function membershipGoalForCurrentContext() {
+  if (location.pathname.startsWith("/tools")) return "tools";
+  if (currentProject === "english" || state.quizLanguage === "english") return "english";
+  if (currentProject === "japanese" || state.quizLanguage === "japanese") return "japanese";
+  return "";
+}
+
+function membershipGoalAllowsPlan(goal, planCode) {
+  const config = MEMBERSHIP_GOALS[normalizedMembershipGoal(goal)];
+  return Boolean(config?.plans.includes(planCode));
+}
+
+function updateMembershipPurchaseSummary() {
+  const summary = $("purchaseSummary");
+  if (!summary) return;
+  const goal = MEMBERSHIP_GOALS[selectedMembershipGoal];
+  if (!goal) {
+    summary.textContent = "请先选择需要的功能";
+    return;
+  }
+  if (!selectedRechargePlan) {
+    summary.textContent = `已选择：${goal.label}。请选择适合的套餐。`;
+    return;
+  }
+  const [name, price, description] = planDetails(selectedRechargePlan);
+  summary.textContent = `${name} · ${price} · ${paymentMethodLabel(selectedPaymentMethod)} · ${description}`;
+}
+
 function paymentMethodLabel(value) {
   return paymentMethods.find((item) => item.code === value)?.name || {
     wechat: "微信支付",
@@ -1151,21 +1232,25 @@ function renderPaymentMethods() {
   list.querySelectorAll('input[name="paymentMethod"]').forEach((input) => {
     input.addEventListener("change", () => {
       selectedPaymentMethod = input.value;
-      const [name, price, description] = planDetails(selectedRechargePlan);
-      $("purchaseSummary").textContent = `${name} · ${price} · ${paymentMethodLabel(selectedPaymentMethod)} · ${description}`;
+      updateMembershipPurchaseSummary();
       $("submitRechargeBtn").disabled = !selectedRechargePlan || !selectedPaymentMethod;
     });
   });
 }
 
 function setPaymentControlsLocked(locked) {
+  document.querySelectorAll("[data-membership-goal]").forEach((button) => {
+    button.disabled = locked;
+  });
   document.querySelectorAll("[data-plan]").forEach((button) => {
     button.disabled = locked;
   });
   document.querySelectorAll('input[name="paymentMethod"]').forEach((input) => {
     input.disabled = locked;
   });
-  if ($("trialLanguageSelect")) $("trialLanguageSelect").disabled = locked;
+  if ($("trialLanguageSelect")) {
+    $("trialLanguageSelect").disabled = locked || selectedRechargePlan === "trial_single_language";
+  }
 }
 
 function releasePaymentQr() {
@@ -1273,16 +1358,77 @@ async function loadPaymentQr(record, modalSequence = membershipModalLoadSequence
   }
 }
 
+function renderMembershipGoals() {
+  document.querySelectorAll("[data-membership-goal]").forEach((button) => {
+    const selected = button.dataset.membershipGoal === selectedMembershipGoal;
+    button.classList.toggle("selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+  const config = MEMBERSHIP_GOALS[selectedMembershipGoal];
+  if ($("membershipGoalHint")) {
+    $("membershipGoalHint").textContent = config
+      ? `${config.label}：${config.description}`
+      : "先选择用途，页面只会显示适合该用途的套餐。";
+  }
+}
+
+function resetRechargeOrderUi() {
+  $("submitRechargeBtn").textContent = "确认订单并显示二维码";
+  $("confirmPaymentBtn").classList.add("hidden");
+  $("cancelPaymentOrderBtn").classList.add("hidden");
+  $("paymentOrderBox").classList.add("hidden");
+}
+
 function renderMembershipPlans() {
   const list = $("membershipPlanList");
+  const config = MEMBERSHIP_GOALS[selectedMembershipGoal];
+  $("membershipPlanStep")?.classList.toggle("hidden", !config);
   if (list) {
-    list.innerHTML = membershipPlans.map((item) => `<button class="plan-option" data-plan="${escapeHtml(item.code)}" type="button">
-      <strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.price)} ${escapeHtml(item.currency)}${item.duration_months ? "/月" : ""}</span><small>${escapeHtml(item.description)}</small>
-    </button>`).join("");
-    list.querySelectorAll("[data-plan]").forEach((button) => button.addEventListener("click", () => selectRechargePlan(button.dataset.plan)));
+    const visiblePlans = config
+      ? membershipPlans.filter((item) => config.plans.includes(item.code))
+      : [];
+    if (!config) {
+      list.innerHTML = "";
+    } else if (membershipPlans.length) {
+      list.innerHTML = visiblePlans.map((item) => `<button class="plan-option" data-plan="${escapeHtml(item.code)}" type="button" aria-pressed="${item.code === selectedRechargePlan}">
+        <strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.price)} ${escapeHtml(item.currency)}${item.duration_months ? "/月" : ""}</span><small>${escapeHtml(item.description)}</small>
+      </button>`).join("");
+      list.querySelectorAll("[data-plan]").forEach((button) => {
+        button.classList.toggle("selected", button.dataset.plan === selectedRechargePlan);
+        button.addEventListener("click", () => selectRechargePlan(button.dataset.plan));
+      });
+    }
   }
+  const singleLanguage = selectedRechargePlan === "trial_single_language";
+  $("trialLanguageField")?.classList.toggle("hidden", !singleLanguage);
+  if ($("trialLanguageSelect")) {
+    $("trialLanguageSelect").required = singleLanguage;
+    if (singleLanguage && config?.trialLanguage) $("trialLanguageSelect").value = config.trialLanguage;
+  }
+  $("paymentMethodField")?.classList.toggle("hidden", !selectedRechargePlan);
   renderPaymentMethods();
-  $("membershipPlanRecovery")?.classList.add("hidden");
+  updateMembershipPurchaseSummary();
+  $("submitRechargeBtn").disabled = !selectedRechargePlan || !selectedPaymentMethod;
+  setPaymentControlsLocked(Boolean(currentPaymentOrder && ["pending_payment", "user_paid", "processing"].includes(currentPaymentOrder.status)));
+  if (membershipPlans.length) $("membershipPlanRecovery")?.classList.add("hidden");
+}
+
+function selectMembershipGoal(goal, options = {}) {
+  const normalized = normalizedMembershipGoal(goal);
+  if (!options.preserveOrder) {
+    releasePaymentQr();
+    currentPaymentOrder = null;
+    resetRechargeOrderUi();
+  }
+  selectedMembershipGoal = normalized;
+  if (!options.preservePlan || !membershipGoalAllowsPlan(normalized, selectedRechargePlan)) {
+    selectedRechargePlan = "";
+  }
+  const trialLanguage = MEMBERSHIP_GOALS[normalized]?.trialLanguage;
+  if (trialLanguage && $("trialLanguageSelect")) $("trialLanguageSelect").value = trialLanguage;
+  renderMembershipGoals();
+  renderMembershipPlans();
+  if (!options.preserveOrder) $("rechargeMessage").textContent = "";
 }
 
 function showMembershipPlanRecovery(message) {
@@ -1309,10 +1455,9 @@ async function loadMembershipPlans(force = false, options = {}) {
     });
     if (!Array.isArray(data.plans) || !data.plans.length) throw new Error("服务器没有返回可购买的会员方案");
     paymentMethods = Array.isArray(data.payment_methods) ? data.payment_methods.filter((item) => ["wechat", "alipay"].includes(item.code)) : [];
-    const order = ["trial_single_language", "dual_language_monthly", "tools_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"];
     const rank = (code) => {
-      const index = order.indexOf(code);
-      return index < 0 ? order.length : index;
+      const index = MEMBERSHIP_PLAN_ORDER.indexOf(code);
+      return index < 0 ? MEMBERSHIP_PLAN_ORDER.length : index;
     };
     membershipPlans = [...data.plans].sort((left, right) => rank(left.code) - rank(right.code));
     renderMembershipPlans();
@@ -1336,7 +1481,9 @@ async function reloadMembershipPlans() {
   try {
     await loadMembershipPlans(true);
     selectRechargePlan("");
-    $("rechargeMessage").textContent = "套餐已重新加载，请选择方案。";
+    $("rechargeMessage").textContent = selectedMembershipGoal
+      ? "套餐已重新加载，请选择方案。"
+      : "套餐已重新加载，请先选择需要的功能。";
   } catch (error) {
     $("rechargeMessage").textContent = error.message;
   } finally {
@@ -1355,7 +1502,11 @@ async function openMembershipModal(options = {}) {
   const sequence = ++membershipModalLoadSequence;
   releasePaymentQr();
   currentPaymentOrder = null;
-  selectRechargePlan("");
+  selectedRechargePlan = "";
+  selectedMembershipGoal = normalizedMembershipGoal(options.goal);
+  resetRechargeOrderUi();
+  renderMembershipGoals();
+  renderMembershipPlans();
   $("rechargeMessage").textContent = "正在加载套餐与订单状态…";
   openModal("membershipModal");
   let openOrder = null;
@@ -1377,11 +1528,10 @@ async function openMembershipModal(options = {}) {
     closeModal("membershipModal", true);
     return;
   }
-  const planCode = openOrder?.plan_code || (selectedRechargePlan && membershipPlans.some((item) => item.code === selectedRechargePlan)
-    ? selectedRechargePlan
-    : "");
-  selectRechargePlan(planCode);
   if (openOrder) {
+    selectedMembershipGoal = membershipGoalAllowsPlan(selectedMembershipGoal, openOrder.plan_code)
+      ? selectedMembershipGoal
+      : membershipGoalForPlan(openOrder.plan_code, openOrder.trial_language);
     renderPaymentOrder(openOrder);
     $("rechargeMessage").textContent = {
       pending_payment: "订单金额和支付方式已锁定。请扫码付款，再点击“我已付款”。",
@@ -1391,30 +1541,28 @@ async function openMembershipModal(options = {}) {
   } else if (loadErrors.length) {
     $("rechargeMessage").textContent = `${[...new Set(loadErrors)].join("；")} 已加载的内容仍可使用。`;
   } else {
-    $("rechargeMessage").textContent = "请选择会员方案。";
+    $("rechargeMessage").textContent = selectedMembershipGoal
+      ? "请选择适合的会员方案。"
+      : "请先选择你需要的功能。";
   }
   return membershipPlans;
 }
 
-function selectRechargePlan(plan) {
-  releasePaymentQr();
-  selectedRechargePlan = plan;
-  currentPaymentOrder = null;
-  setPaymentControlsLocked(false);
-  document.querySelectorAll("[data-plan]").forEach((button) => {
-    button.classList.toggle("selected", button.dataset.plan === plan);
-  });
-  const isSingleLanguage = plan === "trial_single_language";
-  $("trialLanguageField")?.classList.toggle("hidden", !isSingleLanguage);
-  $("trialLanguageSelect").required = isSingleLanguage;
-  const [name, price, description] = planDetails(plan);
-  $("purchaseSummary").textContent = `${name} · ${price} · ${paymentMethodLabel(selectedPaymentMethod)} · ${description}`;
-  $("submitRechargeBtn").disabled = !plan || !selectedPaymentMethod;
-  $("submitRechargeBtn").textContent = "确认订单并显示二维码";
-  $("confirmPaymentBtn").classList.add("hidden");
-  $("cancelPaymentOrderBtn").classList.add("hidden");
-  $("paymentOrderBox").classList.add("hidden");
-  $("rechargeMessage").textContent = "";
+function selectRechargePlan(plan, options = {}) {
+  const planCode = String(plan || "").trim();
+  if (planCode && !selectedMembershipGoal) {
+    selectedMembershipGoal = membershipGoalForPlan(planCode, $("trialLanguageSelect")?.value);
+  }
+  if (planCode && membershipPlans.some((item) => item.code === planCode) && !membershipGoalAllowsPlan(selectedMembershipGoal, planCode)) return;
+  if (!options.preserveOrder) releasePaymentQr();
+  selectedRechargePlan = planCode;
+  if (!options.preserveOrder) {
+    currentPaymentOrder = null;
+    resetRechargeOrderUi();
+  }
+  renderMembershipGoals();
+  renderMembershipPlans();
+  if (!options.preserveOrder) $("rechargeMessage").textContent = "";
 }
 
 function paymentStatusLabel(status) {
@@ -1432,9 +1580,13 @@ function paymentStatusLabel(status) {
 function renderPaymentOrder(record) {
   if (!record) return;
   currentPaymentOrder = record;
+  selectedMembershipGoal = membershipGoalAllowsPlan(selectedMembershipGoal, record.plan_code)
+    ? selectedMembershipGoal
+    : membershipGoalForPlan(record.plan_code, record.trial_language);
   selectedRechargePlan = record.plan_code;
   selectedPaymentMethod = record.payment_method;
-  renderPaymentMethods();
+  renderMembershipGoals();
+  renderMembershipPlans();
   setPaymentControlsLocked(true);
   document.querySelectorAll("[data-plan]").forEach((button) => {
     button.classList.toggle("selected", button.dataset.plan === record.plan_code);
@@ -1498,8 +1650,12 @@ async function cancelRechargeOrder() {
   try {
     await api("/api/recharge/cancel", { request_id: currentPaymentOrder.id });
     const retainedPlan = currentPaymentOrder.plan_code;
+    const retainedGoal = membershipGoalAllowsPlan(selectedMembershipGoal, retainedPlan)
+      ? selectedMembershipGoal
+      : membershipGoalForPlan(retainedPlan, currentPaymentOrder.trial_language);
     releasePaymentQr();
     currentPaymentOrder = null;
+    selectedMembershipGoal = retainedGoal;
     selectRechargePlan(retainedPlan);
     $("rechargeMessage").textContent = "原订单已取消。现在可以更换套餐或支付方式并创建新订单。";
   } catch (error) {
@@ -2896,8 +3052,8 @@ async function showTools(path = "/tools", pushHistory = true) {
     showModulePicker(false, accessMessage);
     pushRoute("/select", true);
     if (error.code === "membership_required") {
-      $("rechargeMessage").textContent = "当前会员不包含在线工具箱，请选择全功能会员。";
-      await openMembershipModal();
+      $("rechargeMessage").textContent = "当前会员不包含在线工具箱，请选择工具箱或全功能会员。";
+      await openMembershipModal({ goal: "tools" });
     }
   }
 }
@@ -3648,7 +3804,7 @@ async function api(path, body = {}, options = {}) {
     }
     const error = new Error(data.error || "请求失败");
     error.code = data.code || "request_failed";
-    if (error.code === "membership_required") openMembershipModal();
+    if (error.code === "membership_required") openMembershipModal({ goal: membershipGoalForCurrentContext() });
     throw error;
   }
   return data;
@@ -3692,7 +3848,7 @@ function uploadApi(path, body = {}, options = {}) {
       const error = new Error(data.error || "请求失败");
       error.code = data.code || "request_failed";
       error.status = xhr.status;
-      if (error.code === "membership_required") openMembershipModal();
+      if (error.code === "membership_required") openMembershipModal({ goal: membershipGoalForCurrentContext() });
       reject(error);
     });
     xhr.onerror = () => finish(() => {
@@ -3806,7 +3962,7 @@ function updateStats() {
   const promptKey = `${state.quizLanguage}:${eligibleWords.length}`;
   if (exceeded && promptKey !== lastLimitPromptKey && !$("entryScreen")) {
     lastLimitPromptKey = promptKey;
-    openMembershipModal();
+    openMembershipModal({ goal: state.quizLanguage });
   }
 }
 
@@ -4518,7 +4674,7 @@ async function startQuiz(words, mode = "normal", options = {}) {
       if (mode === "normal" && !(await ensureJapaneseQuestionForms(quizWords))) return;
     } catch (error) {
       if (error.code === "membership_required") {
-        await openMembershipModal();
+        await openMembershipModal({ goal: language });
         $("rechargeMessage").textContent = error.message || "当前词表超过普通账户上限，请选择适合的会员方案。";
       } else {
         alert(error.message);
@@ -5742,6 +5898,9 @@ async function boot() {
   $("homeBtn").addEventListener("click", () => { closeAccountMenu(); showModulePicker(true); });
   $("adminBtn").addEventListener("click", () => { closeAccountMenu(); showAdminPanel(true); });
   $("logoutBtn").addEventListener("click", () => { closeAccountMenu(); logoutAccount(); });
+  document.querySelectorAll("[data-membership-goal]").forEach((button) => {
+    button.addEventListener("click", () => selectMembershipGoal(button.dataset.membershipGoal));
+  });
   $("submitRechargeBtn").addEventListener("click", submitRechargeRequest);
   $("confirmPaymentBtn").addEventListener("click", confirmRechargePayment);
   $("cancelPaymentOrderBtn").addEventListener("click", cancelRechargeOrder);

@@ -837,6 +837,27 @@ class AccountApiTests(unittest.TestCase):
         self.assertEqual(status, 400, legacy)
         self.assertEqual(legacy["code"], "plan_invalid")
 
+    def test_admin_api_rejects_new_hidden_memberships(self):
+        _, account, _session = self.new_user()
+        for action in ("grant", "extend"):
+            status, rejected = self.request(
+                "POST",
+                "/api/admin/membership/manage",
+                {
+                    "user_id": account["id"],
+                    "action": action,
+                    "plan_code": "dual_language_lifetime",
+                },
+                self.admin_session,
+            )
+            self.assertEqual(status, 400, rejected)
+            self.assertEqual(rejected["code"], "plan_retired")
+
+        status, users = self.request("GET", "/api/admin/users", session=self.admin_session)
+        self.assertEqual(status, 200, users)
+        target = next(item for item in users["users"] if item["id"] == account["id"])
+        self.assertEqual(target["memberships"], [])
+
     def test_payment_order_uses_server_locked_snapshots_and_public_fields(self):
         _, _, session = self.new_user()
         status, invalid = self.request(
