@@ -72,12 +72,12 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260809-public-trial"
+        release_token = "20260809-language-state"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "tools.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}"', self.worker)
-        self.assertIn('const APP_VERSION = "2026-08-09-public-trial"', self.app)
+        self.assertIn('const APP_VERSION = "2026-08-09-language-state"', self.app)
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
         self.assertIn('APP_BUILD = "2026-08-02-network-resilience"', server)
         self.assertIn('"/trial", "/changelog"', server)
@@ -122,18 +122,24 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('data-dashboard-project="english"', self.html)
         self.assertIn('data-dashboard-project="japanese"', self.html)
         self.assertIn('class="wrong-rejudge-button"', self.html)
+        self.assertIn('class="wrong-rejudge-form hidden"', self.html)
+        self.assertIn('class="wrong-rejudge-input"', self.html)
         self.assertIn("function renderDashboard()", self.app)
         self.assertIn("function rejudgeWrongAnswer(", self.app)
         self.assertIn('api("/api/quiz/start"', self.app)
         self.assertIn('api("/api/judge"', self.app)
         self.assertIn("wrongRejudgeLog:v1", self.app)
+        self.assertIn("const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);", self.app)
+        self.assertIn("pendingAdvance: state.pendingAdvance", self.app)
+        self.assertEqual(self.app.count("state.index += 1;"), 1)
+        self.assertNotIn("if (state.answerLocked && state.index < state.words.length - 1) state.index += 1", self.app)
         self.assertIn("getSummary", self.tools)
         self.assertIn("toolPreferences:v", self.tools)
 
         required_colors = {
             "--color-text": "#1f2937",
             "--color-text-secondary": "#475569",
-            "--color-text-muted": "#64748b",
+            "--color-text-muted": "#5b6878",
         }
         for token, color in required_colors.items():
             self.assertRegex(self.product_styles, rf"{re.escape(token)}:\s*{color}")
@@ -344,7 +350,9 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("function markBackendReachable", self.app)
         self.assertGreaterEqual(self.app.count("markBackendReachable(data)"), 3)
         skip_source = self.app.split("function skipWord()", 1)[1].split("async function submitAnswer", 1)[0]
-        self.assertLess(skip_source.index("clearAnswerValidation();"), skip_source.index("renderSkipResult();"))
+        self.assertLess(skip_source.index("clearAnswerValidation();"), skip_source.index("markWrong("))
+        self.assertLess(skip_source.index("markWrong("), skip_source.index("beginQuestionTransition("))
+        self.assertIn("resolveCurrentQuestionRubric(word)", skip_source)
         self.assertIn('showWrongActionMessage("PDF 已生成并开始下载。', self.app)
         self.assertIn('showModulePicker(false, "当前账户没有管理员权限，已返回功能选择。")', self.app)
         self.assertNotIn('alert("无管理员权限")', self.app)

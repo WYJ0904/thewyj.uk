@@ -230,6 +230,77 @@ async function main() {
     assert.ok(ratio >= 4.5, `${selector}${pseudo || ""} contrast ${ratio.toFixed(2)} is below WCAG AA`);
   };
 
+  const auditVisibleTextContrast = async (rootSelector) => evaluate(`(() => {
+    const root = document.querySelector(${JSON.stringify(rootSelector)});
+    if (!root) throw new Error('missing contrast root: ' + ${JSON.stringify(rootSelector)});
+    const parse = (value) => {
+      const parts = (String(value).match(/[0-9.]+/g) || []).map(Number);
+      return [parts[0] || 0, parts[1] || 0, parts[2] || 0, parts.length > 3 ? parts[3] : 1];
+    };
+    const blend = (top, bottom) => {
+      const alpha = Math.max(0, Math.min(1, top[3]));
+      return [
+        top[0] * alpha + bottom[0] * (1 - alpha),
+        top[1] * alpha + bottom[1] * (1 - alpha),
+        top[2] * alpha + bottom[2] * (1 - alpha),
+        1,
+      ];
+    };
+    const luminance = (rgba) => {
+      const channels = rgba.slice(0, 3).map((part) => {
+        const value = part / 255;
+        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    };
+    const backgroundFor = (element) => {
+      const chain = [];
+      for (let current = element; current; current = current.parentElement) chain.push(current);
+      let background = [255, 255, 255, 1];
+      chain.reverse().forEach((current) => {
+        background = blend(parse(getComputedStyle(current).backgroundColor), background);
+      });
+      return background;
+    };
+    const candidates = [...root.querySelectorAll('button,input,textarea,select,p,span,small,strong,h1,h2,h3,h4,label,td,th,dt,dd')];
+    const violations = [];
+    for (const element of candidates) {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      if (element.classList.contains('visually-hidden') || rect.width < 1 || rect.height < 1) continue;
+      let rendered = true;
+      for (let current = element; current && current !== root.parentElement; current = current.parentElement) {
+        const currentStyle = getComputedStyle(current);
+        if (current.hidden || currentStyle.display === 'none' || currentStyle.visibility === 'hidden' || Number(currentStyle.opacity) <= 0.01) {
+          rendered = false;
+          break;
+        }
+      }
+      if (!rendered || style.display === 'none' || style.visibility === 'hidden') continue;
+      const ownText = [...element.childNodes].some((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+      if (!ownText && !['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName)) continue;
+      const background = backgroundFor(element);
+      let foreground = blend(parse(style.color), background);
+      let opacity = 1;
+      for (let current = element; current && current !== root.parentElement; current = current.parentElement) {
+        opacity *= Number(getComputedStyle(current).opacity) || 0;
+      }
+      foreground = blend([foreground[0], foreground[1], foreground[2], opacity], background);
+      const fg = luminance(foreground);
+      const bg = luminance(background);
+      const ratio = (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
+      if (ratio < 4.5) violations.push({
+        selector: element.id ? '#' + element.id : element.className ? element.tagName.toLowerCase() + '.' + String(element.className).trim().replace(/\\s+/g, '.') : element.tagName.toLowerCase(),
+        text: (element.value || element.textContent || '').trim().slice(0, 40),
+        ratio: Number(ratio.toFixed(2)),
+        color: style.color,
+        background: getComputedStyle(element).backgroundColor,
+        opacity: Number(opacity.toFixed(2)),
+      });
+    }
+    return violations;
+  })()`);
+
   const click = async (selector) => evaluate(`(() => {
     const element = document.querySelector(${JSON.stringify(selector)});
     if (!element) throw new Error('missing button ${selector}');
@@ -237,6 +308,39 @@ async function main() {
     element.click();
     return true;
   })()`);
+
+  const tap = async (selector) => {
+    await evaluate(`(() => {
+      const element = document.querySelector(${JSON.stringify(selector)});
+      if (!element) throw new Error('missing touch target ${selector}');
+      if (element.disabled) throw new Error('disabled touch target ${selector}');
+      document.documentElement.style.setProperty('scroll-behavior', 'auto', 'important');
+      document.body.style.setProperty('scroll-behavior', 'auto', 'important');
+      element.scrollIntoView({ block: 'center', inline: 'center', behavior: 'auto' });
+      return true;
+    })()`);
+    await evaluate("new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+    await evaluate(`(() => {
+      const element = document.querySelector(${JSON.stringify(selector)});
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      if (style.display === 'none' || style.visibility === 'hidden' || rect.width < 1 || rect.height < 1) {
+        throw new Error('hidden touch target ${selector}');
+      }
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, width: rect.width, height: rect.height };
+    })()`);
+    await delay(400);
+    const settledPoint = await evaluate(`(() => {
+      const element = document.querySelector(${JSON.stringify(selector)});
+      const rect = element.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, width: rect.width, height: rect.height };
+    })()`);
+    await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: settledPoint.x, y: settledPoint.y });
+    await send("Input.dispatchMouseEvent", { type: "mousePressed", x: settledPoint.x, y: settledPoint.y, button: "left", buttons: 1, clickCount: 1 });
+    await delay(60);
+    await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: settledPoint.x, y: settledPoint.y, button: "left", buttons: 0, clickCount: 1 });
+    return settledPoint;
+  };
 
   const setFiles = async (selector, files) => {
     const result = await evaluate(`document.querySelector(${JSON.stringify(selector)})`, false);
@@ -335,7 +439,7 @@ async function main() {
         const registration = await navigator.serviceWorker.ready;
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260809-public-trial');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260809-language-state');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles) };
       })()`);
       assert.equal(pwa.active, true);
@@ -449,6 +553,8 @@ async function main() {
       await assertReadable("#dashboardMembershipName");
       await assertReadable("#dashboardMembershipExpiry");
       await assertReadable(".dashboard-empty");
+      await delay(240);
+      assert.deepEqual(await auditVisibleTextContrast("#modulePicker"), []);
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
       const mobileDashboard = await evaluate(`({ viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth, cards: document.querySelectorAll('.dashboard-entry-grid .module-card').length })`);
       assert.ok(mobileDashboard.scrollWidth <= mobileDashboard.viewport + 1, JSON.stringify(mobileDashboard));
@@ -506,6 +612,8 @@ async function main() {
       assert.ok(plans.find((item) => item.code === "all_access_lifetime").text.includes("100"));
       await assertReadable(".plan-option small");
       await assertReadable(".membership-warning");
+      await delay(240);
+      assert.deepEqual(await auditVisibleTextContrast("#membershipModal"), []);
       assert.equal(await evaluate("document.querySelectorAll('#paymentMethodList input[name=\"paymentMethod\"]').length"), 2);
       await click('[data-plan="trial_single_language"]');
       assert.equal(await evaluate("document.querySelector('#trialLanguageField').classList.contains('hidden')"), false);
@@ -635,8 +743,31 @@ async function main() {
       await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 1", 6_000, "wrong data import");
       await assertReadable(".wrong-rejudge-button");
       await assertReadable("#wrongSearchInput", "::placeholder");
+      await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+      await send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
+      const rejudgeButtonBox = await evaluate(`(() => {
+        const button = document.querySelector('.wrong-rejudge-button');
+        document.documentElement.style.setProperty('scroll-behavior', 'auto', 'important');
+        button.scrollIntoView({ block: 'center', behavior: 'auto' });
+        const rect = button.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, width: rect.width, height: rect.height, viewport: innerWidth, text: button.textContent.trim() };
+      })()`);
+      assert.equal(rejudgeButtonBox.text, "重新判定");
+      assert.ok(rejudgeButtonBox.left >= 0 && rejudgeButtonBox.right <= rejudgeButtonBox.viewport + 1, JSON.stringify(rejudgeButtonBox));
+      assert.ok(rejudgeButtonBox.width >= 100 && rejudgeButtonBox.height >= 44, JSON.stringify(rejudgeButtonBox));
       await evaluate(`(() => {
         window.__rejudgeFetches = [];
+        window.__rejudgeTouchTrace = [];
+        for (const eventName of ['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click']) {
+          document.addEventListener(eventName, (event) => {
+            window.__rejudgeTouchTrace.push({
+              type: event.type,
+              target: event.target?.className || event.target?.tagName || '',
+              x: Math.round(event.clientX ?? event.changedTouches?.[0]?.clientX ?? -1),
+              y: Math.round(event.clientY ?? event.changedTouches?.[0]?.clientY ?? -1),
+            });
+          }, { capture: true, once: false });
+        }
         if (!window.__rejudgeOriginalFetch) window.__rejudgeOriginalFetch = window.fetch;
         window.fetch = (...args) => {
           const url = String(args[0]?.url || args[0] || '');
@@ -648,14 +779,26 @@ async function main() {
         };
         return true;
       })()`);
-      await evaluate("document.querySelector('.wrong-rejudge-button').click(); document.querySelector('.wrong-rejudge-button').click(); true");
+      const rejudgeTapPoint = await tap(".wrong-rejudge-button");
+      await delay(250);
+      const rejudgeTouchResult = await evaluate(`(() => ({
+        open: !document.querySelector('.wrong-rejudge-form')?.classList.contains('hidden'),
+        expanded: document.querySelector('.wrong-rejudge-button')?.getAttribute('aria-expanded'),
+        hit: document.elementFromPoint(${rejudgeTapPoint.x}, ${rejudgeTapPoint.y})?.className || '',
+        trace: window.__rejudgeTouchTrace,
+      }))()`);
+      assert.ok(rejudgeTouchResult.open, `mobile rejudge form did not open: ${JSON.stringify(rejudgeTouchResult)}`);
+      await setFields({ ".wrong-rejudge-input": "你好" });
+      await tap(".wrong-rejudge-submit");
       await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0", 6_000, "wrong answer rejudged and removed");
-      assert.ok((await evaluate("document.querySelector('#wrongActionMessage').textContent")).includes("新判定：正确"));
+      assert.ok((await evaluate("document.querySelector('#wrongActionMessage').textContent")).includes("重新作答正确"));
       assert.equal(await evaluate("JSON.parse(localStorage.getItem(wrongRejudgeLogKey()) || '[]').length"), 1);
       assert.deepEqual(
         [...new Set(await evaluate("window.__rejudgeFetches"))].sort(),
         ["/api/judge", "/api/quiz/start"],
       );
+      await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+      await send("Emulation.setTouchEmulationEnabled", { enabled: false });
       await setFiles("#wrongDataFileInput", [wrongFile]);
       await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 1", 6_000, "wrong data reimport");
       await click("#reviewBtn");
@@ -667,6 +810,248 @@ async function main() {
       await waitFor("!document.querySelector('#roundSummaryModal')?.classList.contains('hidden')", 4_000, "review summary");
       assert.equal(await evaluate("document.querySelector('#roundCorrectCount').textContent"), "1");
       await click("#roundSetupBtn");
+    });
+
+    await check("mobile language question state and rejudge scenarios A-H", async () => {
+      await api("/api/admin/membership/manage", {
+        user_id: userMe.account.id,
+        action: "grant",
+        plan_code: "tools_monthly",
+        note: "isolated browser navigation matrix",
+      }, admin.session);
+      await useSession(userSession, "/language/english");
+      await waitFor("location.pathname === '/language/english' && !document.querySelector('#workspace')?.classList.contains('hidden')", 12_000, "mobile English workspace");
+      await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+      await send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
+      await send("Network.setUserAgentOverride", {
+        userAgent: "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36",
+        acceptLanguage: "zh-CN,zh;q=0.9,en;q=0.8",
+        platform: "Android",
+      });
+      await evaluate("window.__languageMatrixRandom = Math.random; Math.random = () => 0.999999; true");
+
+      const ensureEnglishProject = async () => {
+        if (await evaluate("location.pathname === '/tools'")) {
+          await tap("#leaveToolsBtn");
+          await waitFor("location.pathname === '/select'", 5_000, "leave tools");
+        }
+        if (await evaluate("location.pathname === '/select'")) {
+          await tap('[data-module="language"]');
+          await waitFor("location.pathname === '/language'", 5_000, "language picker from dashboard");
+        }
+        if (await evaluate("location.pathname === '/language'")) {
+          await tap('[data-project="english"]');
+        }
+        await waitFor("location.pathname === '/language/english' && !document.querySelector('#workspace')?.classList.contains('hidden')", 10_000, "English project restored");
+      };
+
+      const startMeaningRound = async (words) => {
+        await ensureEnglishProject();
+        if (!await evaluate("document.querySelector('#roundSummaryModal')?.classList.contains('hidden')")) await tap("#roundSetupBtn");
+        await tap('[data-view="setupView"]');
+        await setFields({ "#practiceModeSelect": "meaning", "#gradingModeSelect": "normal", "#wordInput": words.join("\n") });
+        await tap("#startBtn");
+        await delay(180);
+        if (!await evaluate("document.querySelector('#confirmModal')?.classList.contains('hidden')")) await tap("#acceptConfirmBtn");
+        await waitFor(`document.querySelector('#quizView')?.classList.contains('active') && document.querySelector('#progressLabel')?.textContent === '1/${words.length}' && !state.busy`, 20_000, `start ${words.length}-word round`);
+        return evaluate("[...state.words]");
+      };
+
+      const submitMeaning = async (answer, expectedTitle) => {
+        await setFields({ "#answerInput": answer });
+        await tap("#submitBtn");
+        await waitFor(`document.querySelector('#resultTitle')?.textContent === ${JSON.stringify(expectedTitle)} && state.pendingAdvance && !state.busy`, 15_000, `${expectedTitle} feedback`);
+      };
+
+      const reloadEnglishWorkspace = async () => {
+        await send("Page.reload", { ignoreCache: true });
+        await waitFor("document.querySelector('#appShell') && !document.querySelector('#entryScreen')", 8_000, "reload splash completion");
+        await waitFor("location.pathname === '/language/english' && !document.querySelector('#workspace')?.classList.contains('hidden')", 12_000, "English workspace after reload");
+      };
+
+      // A: a real wrong answer can be re-answered; an incorrect retry is idempotent and a correct retry persists.
+      await startMeaningRound(["amber", "birch", "cedar"]);
+      await submitMeaning("完全错误", "错误");
+      await tap('[data-view="wrongView"]');
+      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 1", 3_000, "scenario A wrong item");
+      const originalWrongCount = await evaluate("Number(document.querySelector('.wrong-item-actions strong').textContent.replace(/\\D/g, ''))");
+      const visibleRejudge = await tap(".wrong-rejudge-button");
+      assert.ok(visibleRejudge.height >= 44 && visibleRejudge.width >= 100, JSON.stringify(visibleRejudge));
+      await setFields({ ".wrong-rejudge-input": "仍然错误" });
+      await tap(".wrong-rejudge-submit");
+      await waitFor("document.querySelector('#wrongActionMessage')?.textContent.includes('仍不正确')", 12_000, "scenario A incorrect retry");
+      assert.equal(await evaluate("Number(document.querySelector('.wrong-item-actions strong').textContent.replace(/\\D/g, ''))"), originalWrongCount);
+      await tap(".wrong-rejudge-button");
+      await setFields({ ".wrong-rejudge-input": "测试释义" });
+      await tap(".wrong-rejudge-submit");
+      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0", 12_000, "scenario A correct retry removal");
+      assert.equal(await evaluate("Object.keys(state.currentWrongBook).length"), 0);
+      assert.equal(await evaluate("Object.keys(state.historyWrongBook).includes('amber')"), false);
+      await reloadEnglishWorkspace();
+      await tap('[data-view="wrongView"]');
+      assert.equal(await evaluate("Object.keys(state.currentWrongBook).includes('amber') || Object.keys(state.historyWrongBook).includes('amber')"), false);
+      await tap('[data-view="quizView"]');
+      if (await evaluate("Boolean(state.pendingAdvance)")) await tap("#nextNowBtn");
+      await waitFor("document.querySelector('#progressLabel')?.textContent === '2/3'", 5_000, "scenario A resumes question 2");
+
+      // B: the feedback remains visible for exactly the one authoritative transition window.
+      await startMeaningRound(["delta", "elm", "fir"]);
+      await submitMeaning("测试释义", "正确");
+      assert.equal(await evaluate("QUESTION_TRANSITION_MS"), 5333);
+      await tap('[data-view="wrongView"]');
+      await tap('[data-view="quizView"]');
+      const remaining = await evaluate("state.pendingAdvance.dueAt - Date.now()");
+      await delay(Math.max(0, remaining - 350));
+      assert.equal(await evaluate("document.querySelector('#progressLabel').textContent"), "1/3");
+      assert.equal(await evaluate("!document.querySelector('#resultPanel').classList.contains('hidden') && getComputedStyle(document.querySelector('#resultPanel')).opacity === '1'"), true);
+      await waitFor("document.querySelector('#progressLabel')?.textContent === '2/3'", 2_500, "scenario B timed question 2");
+      assert.equal(await evaluate("document.querySelector('#resultPanel').classList.contains('hidden')"), true);
+      assert.equal(await evaluate("state.pendingAdvance === null && state.answerLocked === false"), true);
+
+      // C: skipping uses the standard rubric, displays it, and supports a new correct answer.
+      await startMeaningRound(["garden", "harbor", "island"]);
+      await tap("#skipBtn");
+      await waitFor("document.querySelector('#resultTitle')?.textContent === '已跳过' && state.pendingAdvance && !state.busy", 15_000, "scenario C skip feedback");
+      const skippedFeedback = await evaluate("document.querySelector('#resultGloss').textContent");
+      assert.ok(skippedFeedback.includes("标准释义：测试释义"), skippedFeedback);
+      assert.ok(skippedFeedback.includes("已加入错题本"), skippedFeedback);
+      await tap('[data-view="wrongView"]');
+      const skippedCardText = await evaluate("document.querySelector('#wrongList .wrong-item p').textContent");
+      assert.equal(skippedCardText, "已跳过 · 标准：测试释义");
+      await tap(".wrong-rejudge-button");
+      await setFields({ ".wrong-rejudge-input": "测试释义" });
+      await tap(".wrong-rejudge-submit");
+      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0", 12_000, "scenario C skipped item removed");
+      assert.equal(await evaluate("state.roundSkipped"), 0);
+      assert.equal(await evaluate("state.score"), 1);
+      await tap('[data-view="quizView"]');
+      if (await evaluate("Boolean(state.pendingAdvance)")) await tap("#nextNowBtn");
+      await waitFor("document.querySelector('#progressLabel')?.textContent === '2/3'", 5_000, "scenario C resumes question 2");
+
+      // D: repeated inner views, dashboard, project picker, and tools never consume question 2.
+      await startMeaningRound(["jasmine", "kernel", "linen"]);
+      await submitMeaning("测试释义", "正确");
+      await tap('[data-view="wrongView"]');
+      await tap('[data-view="quizView"]');
+      await tap("#accountMenu summary");
+      await tap("#homeBtn");
+      await waitFor("location.pathname === '/select'", 5_000, "scenario D dashboard");
+      await tap('[data-module="language"]');
+      await tap('[data-project="english"]');
+      await waitFor("location.pathname === '/language/english'", 8_000, "scenario D first return");
+      assert.ok(Number((await evaluate("document.querySelector('#progressLabel').textContent")).split("/")[0]) <= 2);
+      await tap("#backProjectBtn");
+      await tap("#languageBackBtn");
+      await waitFor("location.pathname === '/select'", 5_000, "scenario D module picker");
+      await tap('[data-module="tools"]');
+      await waitFor("location.pathname === '/tools' && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 10_000, "scenario D tools");
+      await tap("#leaveToolsBtn");
+      await ensureEnglishProject();
+      if (await evaluate("Boolean(state.pendingAdvance)")) await tap("#nextNowBtn");
+      await waitFor("document.querySelector('#progressLabel')?.textContent === '2/3'", 5_000, "scenario D stable question 2");
+
+      // E/F: reload after leaving the feedback phase lands on question 2; repeated reloads keep the same word.
+      const eWords = await startMeaningRound(["mango", "nectar", "orbit"]);
+      const recordsBeforeE = await evaluate("state.studyRecords.length");
+      await submitMeaning("完全错误", "错误");
+      await tap('[data-view="wrongView"]');
+      await tap('[data-view="quizView"]');
+      await reloadEnglishWorkspace();
+      await waitFor("document.querySelector('#progressLabel')?.textContent === '2/3'", 8_000, "scenario E question 2 after reload");
+      const secondWord = await evaluate("state.words[1]");
+      assert.equal(secondWord, eWords[1]);
+      assert.equal(await evaluate("state.index"), 1);
+      assert.equal(await evaluate("state.studyRecords.length"), recordsBeforeE);
+      assert.equal(await evaluate(`Boolean(state.historyWrongBook[${JSON.stringify(eWords[1])}])`), false);
+      for (let refreshIndex = 0; refreshIndex < 3; refreshIndex += 1) {
+        await reloadEnglishWorkspace();
+        assert.equal(await evaluate("document.querySelector('#progressLabel').textContent"), "2/3");
+        assert.equal(await evaluate("state.words[state.index]"), secondWord);
+        assert.equal(await evaluate("state.index"), 1);
+      }
+
+      // G: an unanswered question survives inner and outer navigation without being marked wrong or skipped.
+      await tap('[data-view="wrongView"]');
+      await tap('[data-view="quizView"]');
+      await tap("#accountMenu summary");
+      await tap("#homeBtn");
+      await ensureEnglishProject();
+      assert.equal(await evaluate("document.querySelector('#progressLabel').textContent"), "2/3");
+      assert.equal(await evaluate("state.words[state.index]"), secondWord);
+      assert.equal(await evaluate(`Boolean(state.historyWrongBook[${JSON.stringify(secondWord)}])`), false);
+      assert.equal(await evaluate("state.roundSkipped"), 0);
+
+      // Contrast and mobile layout are checked on every language view, including disabled controls.
+      const contrastViolations = [];
+      for (const viewId of ["setupView", "quizView", "wrongView", "achievementsView", "studyView"]) {
+        await tap(`[data-view="${viewId}"]`);
+        await delay(240);
+        contrastViolations.push(...(await auditVisibleTextContrast("#projectApp")).map((item) => ({ viewId, ...item })));
+      }
+      assert.deepEqual(contrastViolations, [], JSON.stringify(contrastViolations, null, 2));
+      await tap('[data-view="quizView"]');
+      for (const selector of ["#skipBtn", "#nextNowBtn", "#answerInput"]) await assertReadable(selector);
+      await assertReadable("#answerInput", "::placeholder");
+      await tap('[data-view="wrongView"]');
+      await delay(240);
+      for (const selector of ["#exportBtn", "#exportHistoryBtn", "#exportWrongDataBtn", "#importWrongDataBtn", "#clearWrongBtn", "#clearHistoryBtn"]) await assertReadable(selector);
+      const mobileControlsShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      fs.writeFileSync(path.join(TEST_ROOT, `language-controls-390-${RUN_ID}.png`), Buffer.from(mobileControlsShot.data, "base64"));
+      await evaluate(`(() => {
+        document.querySelector('.wrong-item')?.scrollIntoView({ block: 'center', behavior: 'auto' });
+        return true;
+      })()`);
+      await delay(160);
+      const mobileWrongShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      fs.writeFileSync(path.join(TEST_ROOT, `language-wrong-390-${RUN_ID}.png`), Buffer.from(mobileWrongShot.data, "base64"));
+      for (const width of [360, 430]) {
+        await send("Emulation.setDeviceMetricsOverride", { width, height: 844, deviceScaleFactor: 2, mobile: true });
+        const bounds = await evaluate("({ viewport: innerWidth, documentWidth: document.documentElement.scrollWidth, bodyWidth: document.body.scrollWidth })");
+        assert.ok(bounds.documentWidth <= bounds.viewport + 1 && bounds.bodyWidth <= bounds.viewport + 1, `${width}px: ${JSON.stringify(bounds)}`);
+      }
+      await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+
+      // H: ten deliberate actions produce exactly ten consumed questions and exact statistics.
+      const hWords = await startMeaningRound(["apple", "book", "cat", "dog", "earth", "flower", "green", "house", "idea", "juice"]);
+      const seenWords = [];
+      for (let questionIndex = 0; questionIndex < hWords.length; questionIndex += 1) {
+        assert.equal(await evaluate("state.index"), questionIndex);
+        assert.equal(await evaluate("document.querySelector('#progressLabel').textContent"), `${questionIndex + 1}/10`);
+        seenWords.push(await evaluate("state.words[state.index]"));
+        if (questionIndex % 3 === 0) await submitMeaning("测试释义", "正确");
+        else if (questionIndex % 3 === 1) await submitMeaning("完全错误", "错误");
+        else {
+          await tap("#skipBtn");
+          await waitFor("document.querySelector('#resultTitle')?.textContent === '已跳过' && state.pendingAdvance && !state.busy", 15_000, `scenario H skip ${questionIndex + 1}`);
+        }
+        await tap("#nextNowBtn");
+        if (questionIndex < hWords.length - 1) {
+          await waitFor(`document.querySelector('#progressLabel')?.textContent === '${questionIndex + 2}/10'`, 4_000, `scenario H question ${questionIndex + 2}`);
+        }
+      }
+      await waitFor("!document.querySelector('#roundSummaryModal')?.classList.contains('hidden')", 5_000, "scenario H summary");
+      assert.equal(new Set(seenWords).size, 10);
+      assert.equal(await evaluate("document.querySelector('#roundCorrectCount').textContent"), "4");
+      assert.equal(await evaluate("document.querySelector('#roundWrongCount').textContent"), "3");
+      assert.equal(await evaluate("document.querySelector('#roundSkippedCount').textContent"), "3");
+      const finalStudyRecord = await evaluate("state.studyRecords[state.studyRecords.length - 1]");
+      assert.deepEqual(
+        { total: finalStudyRecord.total, correct: finalStudyRecord.correct, wrong: finalStudyRecord.wrong, skipped: finalStudyRecord.skipped },
+        { total: 10, correct: 4, wrong: 3, skipped: 3 },
+      );
+      assert.equal(await evaluate("Object.keys(activeWrongBook('current')).length"), 6);
+      assert.equal(await evaluate(`Boolean(state.historyWrongBook[${JSON.stringify(secondWord)}])`), false);
+      await tap("#roundWrongBtn");
+      await waitFor("document.querySelector('#wrongView')?.classList.contains('active')", 4_000, "scenario H wrong book");
+      assert.equal(await evaluate("document.querySelectorAll('#wrongList .wrong-item').length"), 6);
+
+      await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 768, deviceScaleFactor: 1, mobile: false });
+      await send("Emulation.setTouchEmulationEnabled", { enabled: false });
+      assert.deepEqual(await auditVisibleTextContrast("#projectApp"), []);
+      const desktopLanguageShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
+      fs.writeFileSync(path.join(TEST_ROOT, `language-wrong-1366-${RUN_ID}.png`), Buffer.from(desktopLanguageShot.data, "base64"));
+      await evaluate("Math.random = window.__languageMatrixRandom; delete window.__languageMatrixRandom; true");
+      await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
     });
 
     await check("English dictation, speech, achievements and study statistics", async () => {

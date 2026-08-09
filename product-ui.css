@@ -5,8 +5,8 @@
   --color-surface-subtle: #f8fafc;
   --color-text: #1f2937;
   --color-text-secondary: #475569;
-  --color-text-muted: #64748b;
-  --color-text-disabled: #64748b;
+  --color-text-muted: #5b6878;
+  --color-text-disabled: #475569;
   --color-border: #d8e1ea;
   --color-border-strong: #b8c5d1;
   --color-primary: #2563eb;
@@ -1448,6 +1448,11 @@ textarea::placeholder {
   color: var(--color-text-muted);
 }
 
+.project-app .back-project-button {
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+}
+
 .topbar-actions {
   display: flex;
   align-items: center;
@@ -1561,6 +1566,14 @@ textarea::placeholder {
   text-shadow: none;
 }
 
+.result-panel:not(.hidden):not(.grading),
+.result-panel.ai-review:not(.hidden):not(.grading) {
+  animation: none;
+  opacity: 1;
+  max-height: none;
+  overflow: visible;
+}
+
 .word-display {
   min-height: 180px;
 }
@@ -1594,6 +1607,44 @@ textarea::placeholder {
   box-shadow: none;
 }
 
+.project-app .secondary-row button,
+.project-app .action-row button:not(.primary):not(.danger-button),
+.project-app .word-quality-hint,
+.project-app .study-heading .meta-line,
+.project-app .achievement-head .meta-line {
+  color: var(--color-text-secondary);
+}
+
+.project-app .word-quality-hint.has-warning {
+  color: #7b4b0a;
+}
+
+.project-app .achievement-head > strong,
+.project-app .study-history-facts .study-history-accuracy {
+  color: var(--color-primary-strong);
+}
+
+.project-app #aiSuggestLanguage {
+  color: var(--color-primary-strong);
+}
+
+.project-app .achievement-tier {
+  color: var(--color-text-secondary) !important;
+}
+
+.project-app .achievement-item.unlocked .achievement-tier,
+.project-app .achievement-item.unlocked .achievement-status {
+  color: #166534 !important;
+}
+
+.project-app button:disabled,
+.project-app .secondary-row button:disabled,
+.project-app .action-row button:disabled {
+  color: var(--color-text-disabled);
+  background: #e2e8f0;
+  opacity: 1;
+}
+
 .wrong-item p,
 .wrong-rejudge-status {
   color: var(--color-text-secondary);
@@ -1606,9 +1657,23 @@ textarea::placeholder {
   line-height: 1.5;
 }
 
+.wrong-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px;
+  align-items: start;
+  gap: var(--space-4);
+}
+
+.wrong-item-copy {
+  min-width: 0;
+}
+
 .wrong-item-actions {
-  min-width: 132px;
+  display: grid;
+  grid-template-columns: 1fr;
+  min-width: 0;
   align-items: stretch;
+  gap: var(--space-2);
 }
 
 .wrong-item-actions .wrong-rejudge-button,
@@ -1618,6 +1683,35 @@ textarea::placeholder {
 
 .wrong-item-actions .wrong-remove-button {
   color: var(--color-error);
+}
+
+.wrong-rejudge-form {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.wrong-rejudge-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-text-secondary);
+}
+
+.wrong-rejudge-controls {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.wrong-rejudge-controls button {
+  min-width: 112px;
+}
+
+.result-gloss {
+  white-space: pre-line;
 }
 
 .achievement-item.unlocked {
@@ -2340,6 +2434,38 @@ progress {
 
   .word-display {
     min-height: 150px;
+  }
+
+  .wrong-item {
+    grid-template-columns: 1fr;
+  }
+
+  .wrong-item-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .wrong-item-actions strong {
+    grid-column: 1 / -1;
+  }
+
+  .wrong-item-actions .wrong-rejudge-button,
+  .wrong-item-actions .wrong-remove-button {
+    min-height: 44px;
+  }
+
+  .wrong-rejudge-form {
+    grid-template-columns: 1fr;
+  }
+
+  .wrong-rejudge-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wrong-rejudge-controls button {
+    min-width: 0;
+    width: 100%;
   }
 
   .auth-panel {

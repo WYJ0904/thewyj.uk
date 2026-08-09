@@ -1,7 +1,6 @@
-const APP_VERSION = "2026-08-09-public-trial";
-const NORMAL_RESULT_VISIBLE_MS = 8000;
-const AI_RESULT_VISIBLE_MS = 10000;
-const SKIP_RESULT_VISIBLE_MS = 5000;
+const APP_VERSION = "2026-08-09-language-state";
+const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
+const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);
 const API_TIMEOUT_MS = 30000;
 const AI_TIMEOUT_MS = 120000;
 const STATUS_TIMEOUT_MS = 8000;
@@ -248,6 +247,45 @@ function sanitizeStoredRubric(value, fallbackGloss = "", fallbackAccepted = []) 
   };
 }
 
+function sanitizeQuestionFeedback(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const type = value.type === "skipped" ? "skipped" : "answer";
+  return {
+    type,
+    correct: type === "skipped" ? false : Boolean(value.correct),
+    gloss: limitText(value.gloss) || "（未给出）",
+    accepted: sanitizeAccepted(value.accepted),
+    kind: value.kind === "dictation" ? "dictation" : "meaning",
+    ai_review: Boolean(value.ai_review),
+  };
+}
+
+function sanitizePendingAdvance(value, runtime = {}) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const questionIndex = Number.parseInt(value.questionIndex, 10);
+  const dueAt = Number(value.dueAt);
+  const words = Array.isArray(runtime.words) ? runtime.words : [];
+  const roundId = limitText(value.roundId, 100);
+  const expectedRoundId = limitText(runtime.roundId, 100);
+  const feedback = sanitizeQuestionFeedback(value.feedback);
+  if (
+    !feedback
+    || !Number.isInteger(questionIndex)
+    || questionIndex < 0
+    || questionIndex >= words.length
+    || !Number.isFinite(dueAt)
+    || dueAt <= 0
+    || (expectedRoundId && roundId !== expectedRoundId)
+  ) return null;
+  return {
+    id: limitText(value.id, 160) || `${roundId}:${questionIndex}:${Math.round(dueAt)}`,
+    roundId,
+    questionIndex,
+    dueAt,
+    feedback,
+  };
+}
+
 function sanitizeWrongBook(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const cleaned = {};
@@ -404,6 +442,7 @@ const state = {
   mode: "normal",
   busy: false,
   answerLocked: false,
+  pendingAdvance: null,
   roundActive: false,
   roundStartedAt: 0,
   roundId: "",
@@ -568,6 +607,7 @@ function resetLocalViewState() {
   state.quizSession = "";
   state.roundActive = false;
   state.answerLocked = false;
+  state.pendingAdvance = null;
   state.roundStartedAt = 0;
   state.roundId = "";
   if ($("profileInput")) $("profileInput").value = state.profile;
@@ -2122,6 +2162,7 @@ function clearSavedWordDrafts(account = state.account) {
   state.quizSession = "";
   state.roundActive = false;
   state.answerLocked = false;
+  state.pendingAdvance = null;
   state.roundStartedAt = 0;
   state.roundId = "";
   if ($("wordInput")) $("wordInput").value = "";
@@ -2184,6 +2225,7 @@ function saveProjectRuntime() {
     quizSession: state.quizSession,
     roundActive: state.roundActive,
     answerLocked: state.answerLocked,
+    pendingAdvance: state.pendingAdvance,
     roundStartedAt: state.roundStartedAt,
     roundId: state.roundId,
     lastRound: state.lastRound,
@@ -2221,11 +2263,14 @@ function loadProjectRuntime(language) {
   runtime.view = ["setupView", "quizView", "wrongView", "achievementsView", "studyView"].includes(runtime.view) ? runtime.view : "setupView";
   runtime.quizSession = limitText(runtime.quizSession, 160);
   runtime.roundActive = Boolean(runtime.roundActive && runtime.words.length);
-  runtime.answerLocked = Boolean(runtime.answerLocked && runtime.roundActive);
   runtime.roundStartedAt = runtime.roundActive && Number.isFinite(Number(runtime.roundStartedAt))
     ? Math.min(Date.now(), Math.max(0, Number(runtime.roundStartedAt)))
     : 0;
   runtime.roundId = limitText(runtime.roundId, 100) || (runtime.roundActive ? `${runtime.savedAt}-${language}` : "");
+  runtime.pendingAdvance = runtime.roundActive ? sanitizePendingAdvance(runtime.pendingAdvance, runtime) : null;
+  // Old runtimes only stored answerLocked and cannot prove which question was consumed.
+  // Keeping the current question is safer than silently skipping it.
+  runtime.answerLocked = Boolean(runtime.pendingAdvance);
   projectRuntime[language] = runtime;
   return runtime;
 }
@@ -2249,6 +2294,7 @@ function restoreProjectRuntime() {
     state.lastRound = null;
     state.roundActive = false;
     state.answerLocked = false;
+    state.pendingAdvance = null;
     state.roundStartedAt = 0;
     state.roundId = "";
     state.mode = "normal";
@@ -2264,21 +2310,20 @@ function restoreProjectRuntime() {
   state.lastRound = runtime.lastRound || null;
   state.roundActive = runtime.roundActive;
   state.answerLocked = runtime.answerLocked;
+  state.pendingAdvance = runtime.pendingAdvance;
   state.roundStartedAt = runtime.roundStartedAt;
   state.roundId = runtime.roundId;
   state.mode = runtime.mode;
   const view = runtime.view === "quizView" && !state.roundActive ? "setupView" : runtime.view;
+  if (state.roundActive) {
+    showWord({ preserveTransition: Boolean(state.pendingAdvance), focus: false });
+    if (state.pendingAdvance) renderQuestionFeedback(state.pendingAdvance.feedback);
+  }
   setView(view);
-  if (view === "quizView" && state.roundActive) {
-    if (state.answerLocked && state.index < state.words.length - 1) state.index += 1;
-    if (state.answerLocked && state.index >= state.words.length - 1 && runtime.index === state.words.length - 1) {
-      state.answerLocked = false;
-      const summary = finishRound();
-      setView(Object.keys(activeWrongBook("current")).length ? "wrongView" : "setupView");
-      showRoundSummary(summary);
-    } else {
-      state.answerLocked = false;
-      showWord();
+  if (state.roundActive) {
+    if (state.pendingAdvance) resumeQuestionTransition();
+    else {
+      setAnswerLocked(false);
       saveProjectRuntime();
     }
   }
@@ -3713,12 +3758,13 @@ function setView(id) {
   const leavingQuiz = id !== "quizView" && $("quizView")?.classList.contains("active");
   if (leavingQuiz) {
     if (judgeController) judgeController.abort();
-    clearNextTimer();
-    hideResultPanel();
-    setNextNowEnabled(false);
   }
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
   document.querySelectorAll(".tabs button").forEach((tab) => tab.classList.toggle("active", tab.dataset.view === id));
+  if (id === "quizView" && state.roundActive) {
+    if (state.pendingAdvance) resumeQuestionTransition();
+    else $("answerInput")?.focus();
+  }
   if (id === "wrongView") renderWrongBook();
   if (id === "achievementsView") renderAchievements();
   if (id === "studyView") renderStudyDashboard();
@@ -3818,11 +3864,7 @@ function hideResultPanel() {
   $("resultPanel").classList.add("hidden");
 }
 
-function resultVisibleMs(result = {}) {
-  return result.ai_review ? AI_RESULT_VISIBLE_MS : NORMAL_RESULT_VISIBLE_MS;
-}
-
-function scheduleResultHide(delayMs = NORMAL_RESULT_VISIBLE_MS) {
+function scheduleResultHide(delayMs = QUESTION_TRANSITION_MS) {
   if (resultHideTimer) clearTimeout(resultHideTimer);
   resultHideTimer = setTimeout(() => {
     resultHideTimer = null;
@@ -3830,13 +3872,63 @@ function scheduleResultHide(delayMs = NORMAL_RESULT_VISIBLE_MS) {
   }, delayMs);
 }
 
-function scheduleNext(delayMs) {
+function pendingAdvanceMatchesCurrentQuestion(pending = state.pendingAdvance) {
+  return Boolean(
+    pending
+    && state.roundActive
+    && pending.roundId === state.roundId
+    && pending.questionIndex === state.index,
+  );
+}
+
+function scheduleNext() {
   clearNextTimer();
+  if (!pendingAdvanceMatchesCurrentQuestion()) {
+    setNextNowEnabled(false);
+    return;
+  }
+  const pendingId = state.pendingAdvance.id;
+  const remainingMs = Math.max(0, state.pendingAdvance.dueAt - Date.now());
   setNextNowEnabled(true);
   nextTimer = setTimeout(() => {
     nextTimer = null;
-    nextWord();
-  }, delayMs);
+    nextWord(pendingId);
+  }, remainingMs);
+}
+
+function beginQuestionTransition(feedback) {
+  const cleanFeedback = sanitizeQuestionFeedback(feedback);
+  if (!cleanFeedback || !state.roundActive || state.pendingAdvance) return false;
+  const dueAt = Date.now() + QUESTION_TRANSITION_MS;
+  state.pendingAdvance = {
+    id: `${state.roundId}:${state.index}:${dueAt}`,
+    roundId: state.roundId,
+    questionIndex: state.index,
+    dueAt,
+    feedback: cleanFeedback,
+  };
+  setAnswerLocked(true);
+  renderQuestionFeedback(cleanFeedback);
+  saveProjectRuntime();
+  scheduleNext();
+  return true;
+}
+
+function resumeQuestionTransition() {
+  if (!state.pendingAdvance) return false;
+  if (!pendingAdvanceMatchesCurrentQuestion()) {
+    state.pendingAdvance = null;
+    setAnswerLocked(false);
+    clearNextTimer();
+    setNextNowEnabled(false);
+    hideResultPanel();
+    saveProjectRuntime();
+    return false;
+  }
+  renderQuestionFeedback(state.pendingAdvance.feedback);
+  if (state.pendingAdvance.dueAt <= Date.now()) nextWord(state.pendingAdvance.id);
+  else scheduleNext();
+  return true;
 }
 
 function isDictationMode() {
@@ -4457,6 +4549,7 @@ async function startQuiz(words, mode = "normal", options = {}) {
   state.mode = mode;
   state.roundActive = true;
   state.answerLocked = false;
+  state.pendingAdvance = null;
   state.roundStartedAt = Date.now();
   state.roundId = globalThis.crypto?.randomUUID?.() || `${state.roundStartedAt}-${language}-${Math.random().toString(36).slice(2, 10)}`;
   updateStats();
@@ -4465,8 +4558,9 @@ async function startQuiz(words, mode = "normal", options = {}) {
   saveProjectRuntime();
 }
 
-function showWord() {
+function showWord(options = {}) {
   if (!state.roundActive) return;
+  const preserveTransition = Boolean(options.preserveTransition && state.pendingAdvance);
   const word = state.words[state.index] || "-";
   const dictation = isDictationMode();
   const reading = !dictation && state.quizLanguage === "japanese" && hasJapaneseKanji(word)
@@ -4492,14 +4586,17 @@ function showWord() {
       : "输入听到的单词"
     : "中文意思";
   clearAnswerValidation();
-  setAnswerLocked(false);
+  setAnswerLocked(preserveTransition);
   $("speakBtn").classList.toggle("hidden", !dictation);
-  hideResultPanel();
-  clearNextTimer();
-  setNextNowEnabled(false);
+  if (!preserveTransition) {
+    hideResultPanel();
+    clearNextTimer();
+    setNextNowEnabled(false);
+  }
   $("acceptedChips").innerHTML = "";
-  $("answerInput").focus();
-  if (dictation) speakCurrentWord();
+  const quizVisible = $("quizView")?.classList.contains("active") && !$("workspace")?.classList.contains("hidden");
+  if (options.focus !== false && quizVisible && !preserveTransition) $("answerInput").focus();
+  if (dictation && !preserveTransition) speakCurrentWord();
 }
 
 function updateWrongEntry(book, word, answer, gloss, accepted, context = {}) {
@@ -4546,30 +4643,39 @@ function removeReviewedWord(word) {
   saveState();
 }
 
-function renderResult(result) {
+function questionFeedbackFromResult(result) {
+  return sanitizeQuestionFeedback({
+    type: "answer",
+    correct: result.correct,
+    gloss: result.gloss,
+    accepted: result.accepted,
+    kind: result.kind,
+    ai_review: result.ai_review,
+  });
+}
+
+function renderQuestionFeedback(feedback) {
+  const result = sanitizeQuestionFeedback(feedback);
+  if (!result) return;
+  if (resultHideTimer) {
+    clearTimeout(resultHideTimer);
+    resultHideTimer = null;
+  }
   $("resultPanel").classList.remove("hidden", "grading", "ai-review");
   void $("resultPanel").offsetWidth;
   $("resultPanel").classList.toggle("ai-review", Boolean(result.ai_review));
   $("resultTitle").className = `result-title ${result.correct ? "ok" : "bad"}`;
-  $("resultTitle").textContent = result.correct ? "正确" : "错误";
-  $("resultGloss").textContent = `${result.kind === "dictation" ? "正确答案" : "标准释义"}：${result.gloss || "（未给出）"}`;
+  $("resultTitle").textContent = result.type === "skipped" ? "已跳过" : result.correct ? "正确" : "错误";
+  const label = result.kind === "dictation" ? "正确答案" : "标准释义";
+  $("resultGloss").textContent = result.type === "skipped"
+    ? `${label}：${result.gloss}\n已加入错题本`
+    : `${label}：${result.gloss}`;
   $("acceptedChips").innerHTML = "";
   (result.accepted || []).slice(0, 12).forEach((item) => {
     const chip = document.createElement("span");
     chip.textContent = item;
     $("acceptedChips").appendChild(chip);
   });
-  scheduleResultHide(resultVisibleMs(result));
-}
-
-function renderSkipResult() {
-  $("resultPanel").classList.remove("hidden", "grading", "ai-review");
-  void $("resultPanel").offsetWidth;
-  $("resultTitle").className = "result-title bad";
-  $("resultTitle").textContent = "已跳过";
-  $("resultGloss").textContent = "已加入错题本";
-  $("acceptedChips").innerHTML = "";
-  scheduleResultHide(SKIP_RESULT_VISIBLE_MS);
 }
 
 function clearAnswerValidation() {
@@ -4585,16 +4691,16 @@ function clearAnswerValidation() {
   }
 }
 
-function showAnswerValidation() {
+function showAnswerValidation(customMessage = "") {
   const dictation = isDictationMode();
   const currentWord = state.words[state.index];
-  const text = !dictation
+  const text = customMessage || (!dictation
     ? "请输入中文意思"
     : state.quizLanguage === "japanese"
       ? japaneseDictationRequiresBoth(currentWord)
         ? "请输入汉字和假名，答案仍停留在本题"
         : "请输入听到的假名，答案仍停留在本题"
-      : "请输入听到的英语单词";
+      : "请输入听到的英语单词");
   const input = $("answerInput");
   const message = $("answerValidation");
   clearNextTimer();
@@ -4609,9 +4715,13 @@ function showAnswerValidation() {
   }
 }
 
-function nextWord() {
-  if (!state.roundActive) return;
+function nextWord(expectedPendingId = "") {
+  const pending = state.pendingAdvance;
+  if (!pendingAdvanceMatchesCurrentQuestion(pending)) return;
+  if (typeof expectedPendingId === "string" && expectedPendingId && pending.id !== expectedPendingId) return;
+  state.pendingAdvance = null;
   clearNextTimer();
+  hideResultPanel();
   setAnswerLocked(false);
   setNextNowEnabled(false);
   if (state.index < state.words.length - 1) {
@@ -4650,6 +4760,7 @@ function finishRound() {
   state.lastRound = summary;
   state.roundActive = false;
   state.answerLocked = false;
+  state.pendingAdvance = null;
   if (state.score === state.words.length) unlockAchievement("perfectRound");
   if (state.words.length >= 20) unlockAchievement("longRound");
   if (state.mode === "normal") {
@@ -4686,20 +4797,68 @@ async function retryLastRound() {
   await startQuiz(summary.words, summary.mode);
 }
 
-function skipWord() {
+async function resolveCurrentQuestionRubric(word) {
+  const cached = sanitizeStoredRubric(cachedRubric(word));
+  if (cached.gloss && !cached.gloss.startsWith("跳过：") && cached.gloss !== "（未给出释义）") return cached;
+
+  const reviewInfo = reviewEntryForWord(word);
+  if (hasUsableMeaning(reviewInfo)) {
+    return sanitizeStoredRubric(reviewInfo.rubric, reviewInfo.correct_answer, reviewInfo.accepted);
+  }
+  if (!backendAvailable || !state.session || !state.quizSession) {
+    throw new Error("暂时无法取得这道题的标准释义，请恢复网络后重试");
+  }
+  const data = await api("/api/rubric", { word, quiz_session: state.quizSession }, { timeoutMs: AI_TIMEOUT_MS });
+  const rubric = sanitizeStoredRubric(data.rubric);
+  if (!rubric.gloss || rubric.gloss === "（未给出释义）") throw new Error("服务暂未返回可用的标准释义，请稍后重试");
+  cacheRubric(word, rubric);
+  saveState();
+  return rubric;
+}
+
+async function requestMeaningJudgement({ word, answer, quizSession, rubric, gradingMode, language, controller = null }) {
+  return api("/api/judge", {
+    word,
+    answer,
+    quiz_session: quizSession,
+    rubric: rubric || null,
+    mode: gradingMode,
+    language,
+  }, { controller, timeoutMs: AI_TIMEOUT_MS });
+}
+
+async function skipWord() {
   if (state.busy || state.answerLocked || !state.roundActive) return;
 
   const word = state.words[state.index];
   if (!word) return;
   clearAnswerValidation();
-  state.roundSkipped += 1;
-  const rubric = cachedRubric(word);
-  markWrong(word, SKIPPED_ANSWER, rubric && rubric.gloss ? rubric.gloss : "跳过：未作答", rubric && rubric.accepted ? rubric.accepted : [], rubric);
-  setAnswerLocked(true);
-  renderSkipResult();
-  updateStats();
-  saveProjectRuntime();
-  scheduleNext(SKIP_RESULT_VISIBLE_MS);
+  const snapshot = { roundId: state.roundId, index: state.index, word, language: currentProject };
+  setBusy(true);
+  try {
+    const rubric = await resolveCurrentQuestionRubric(word);
+    const unchanged = state.roundActive
+      && state.roundId === snapshot.roundId
+      && state.index === snapshot.index
+      && state.words[state.index] === snapshot.word
+      && currentProject === snapshot.language
+      && !state.pendingAdvance;
+    if (!unchanged) return;
+    state.roundSkipped += 1;
+    markWrong(word, SKIPPED_ANSWER, rubric.gloss, rubric.accepted, rubric);
+    updateStats();
+    beginQuestionTransition({
+      type: "skipped",
+      gloss: rubric.gloss,
+      accepted: rubric.accepted,
+      kind: isDictationMode() ? "dictation" : "meaning",
+    });
+  } catch (error) {
+    showAnswerValidation(`无法跳过：${error.message}`);
+  } finally {
+    setBusy(false);
+    if (state.pendingAdvance) setNextNowEnabled(true);
+  }
 }
 
 async function submitAnswer(event) {
@@ -4732,16 +4891,14 @@ async function submitAnswer(event) {
       });
     }
     saveState();
-    setAnswerLocked(true);
-    renderResult({
+    const result = {
       correct: evaluation.correct,
       gloss: evaluation.expected,
       accepted: evaluation.guidance ? [evaluation.guidance] : [],
       kind: "dictation",
-    });
+    };
     updateStats();
-    saveProjectRuntime();
-    scheduleNext(NORMAL_RESULT_VISIBLE_MS);
+    beginQuestionTransition(questionFeedbackFromResult(result));
     return;
   }
 
@@ -4782,11 +4939,8 @@ async function submitAnswer(event) {
         markWrong(word, answer, result.gloss, result.accepted, result.rubric);
       }
       saveState();
-      setAnswerLocked(true);
-      renderResult(result);
       updateStats();
-      saveProjectRuntime();
-      scheduleNext(NORMAL_RESULT_VISIBLE_MS);
+      beginQuestionTransition(questionFeedbackFromResult(result));
     } catch (error) {
       $("resultPanel").classList.remove("grading", "ai-review", "hidden");
       $("resultTitle").className = "result-title bad";
@@ -4814,14 +4968,15 @@ async function submitAnswer(event) {
   $("cancelJudgeBtn").classList.remove("hidden");
 
   try {
-    const result = await api("/api/judge", {
+    const result = await requestMeaningJudgement({
       word,
       answer,
-      quiz_session: state.quizSession,
+      quizSession: state.quizSession,
       rubric: cachedRubric(word),
-      mode: state.gradingMode,
+      gradingMode: state.gradingMode,
       language: state.quizLanguage,
-    }, { controller: judgeController, timeoutMs: AI_TIMEOUT_MS });
+      controller: judgeController,
+    });
     if (result.rubric) cacheRubric(word, result.rubric);
 
     if (result.correct) {
@@ -4833,11 +4988,8 @@ async function submitAnswer(event) {
     }
 
     saveState();
-    setAnswerLocked(true);
-    renderResult(result);
     updateStats();
-    saveProjectRuntime();
-    scheduleNext(resultVisibleMs(result));
+    beginQuestionTransition(questionFeedbackFromResult(result));
   } catch (error) {
     if (error.name === "AbortError") {
       hideResultPanel();
@@ -4895,17 +5047,36 @@ function adjustStudyRecordAfterRejudge(info) {
   return true;
 }
 
-async function evaluateStoredWrongAnswer(word, info) {
-  const answer = limitText(info.original_answer || info.last_answer);
+function adjustActiveRoundAfterRejudge(word, info, result) {
+  if (!state.roundActive || !info?.round_id || info.round_id !== state.roundId) return false;
+  if (info.skipped) {
+    if (state.roundSkipped <= 0) return false;
+    state.roundSkipped -= 1;
+  }
+  state.score = Math.min(state.words.length, state.score + 1);
+  if (state.pendingAdvance?.roundId === state.roundId && state.pendingAdvance.questionIndex === state.index) {
+    state.pendingAdvance.feedback = sanitizeQuestionFeedback({
+      type: "answer",
+      correct: true,
+      gloss: result.gloss || info.correct_answer,
+      accepted: result.accepted || info.accepted,
+      kind: info.question_type === "dictation" ? "dictation" : "meaning",
+    });
+  }
+  updateStats();
+  saveProjectRuntime();
+  return true;
+}
+
+async function evaluateWrongRejudgeAnswer(word, answer, info) {
   const language = normalizeQuizLanguage(info.language) || (wordMatchesLanguage(word, "english") ? "english" : "japanese");
   const gradingMode = ["strict", "normal", "lenient"].includes(info.grading_mode) ? info.grading_mode : "normal";
-  if (!answer || info.skipped || answer === SKIPPED_ANSWER) {
-    return { correct: false, reason: "原答案为跳过或空答案，当前规则仍判为错误" };
-  }
   if (info.question_type === "dictation") {
     const evaluation = dictationEvaluation(word, answer, language);
     return {
       correct: evaluation.correct,
+      gloss: evaluation.expected,
+      accepted: evaluation.guidance ? [evaluation.guidance] : [],
       reason: evaluation.correct ? "按当前听写规则判定正确" : evaluation.guidance || "按当前听写规则仍不正确",
     };
   }
@@ -4915,16 +5086,18 @@ async function evaluateStoredWrongAnswer(word, info) {
     try {
       const authorization = await api("/api/quiz/start", { language, words: [word] });
       const storedRubric = sanitizeStoredRubric(info.rubric, info.correct_answer, info.accepted);
-      const result = await api("/api/judge", {
+      const result = await requestMeaningJudgement({
         word,
         answer,
-        quiz_session: authorization.quiz_session,
+        quizSession: authorization.quiz_session,
         rubric: storedRubric.gloss ? storedRubric : null,
-        mode: gradingMode,
+        gradingMode,
         language,
-      }, { timeoutMs: AI_TIMEOUT_MS });
+      });
       return {
         correct: Boolean(result.correct),
+        gloss: result.gloss || storedRubric.gloss,
+        accepted: result.accepted || storedRubric.accepted,
         reason: result.correct ? "按当前服务端判卷规则判定正确" : "按当前服务端判卷规则仍不正确",
       };
     } catch (error) {
@@ -4932,6 +5105,8 @@ async function evaluateStoredWrongAnswer(word, info) {
       const result = localResult();
       return {
         correct: result.correct,
+        gloss: result.gloss,
+        accepted: result.accepted,
         reason: `${result.correct ? "本地规则判定正确" : "本地规则仍判为错误"}（服务端暂不可用）`,
       };
     }
@@ -4940,26 +5115,38 @@ async function evaluateStoredWrongAnswer(word, info) {
   const result = localResult();
   return {
     correct: result.correct,
+    gloss: result.gloss,
+    accepted: result.accepted,
     reason: result.correct ? "按当前本地判卷规则判定正确" : "按当前本地判卷规则仍不正确",
   };
 }
 
-async function rejudgeWrongAnswer(word, scope, button, statusNode) {
+async function rejudgeWrongAnswer(word, scope, answer, controls) {
   const key = `${scope}:${word}`;
   if (rejudgeInFlight.has(key)) return;
   const source = scope === "history" ? state.historyWrongBook : state.currentWrongBook;
   const info = source[word];
   if (!info) return;
+  const cleanAnswer = limitText(answer, 240);
+  if (!cleanAnswer) {
+    controls.input.setAttribute("aria-invalid", "true");
+    controls.status.textContent = info.question_type === "dictation" ? "请输入听写答案" : "请输入中文意思";
+    controls.input.focus();
+    return;
+  }
   rejudgeInFlight.add(key);
-  button.disabled = true;
-  button.textContent = "判定中…";
-  statusNode.textContent = "正在按当前规则重新判定原答案…";
+  controls.input.removeAttribute("aria-invalid");
+  controls.submit.disabled = true;
+  controls.cancel.disabled = true;
+  controls.submit.textContent = "判定中…";
+  controls.status.textContent = "正在按正式答题规则判定新答案…";
   try {
-    const result = await evaluateStoredWrongAnswer(word, info);
+    const result = await evaluateWrongRejudgeAnswer(word, cleanAnswer, info);
     const checkedAt = new Date().toISOString();
     appendWrongRejudgeLog({
       word,
       original_answer: info.original_answer || info.last_answer || "",
+      submitted_answer: cleanAnswer,
       question_type: info.question_type,
       language: info.language,
       grading_mode: info.grading_mode,
@@ -4972,10 +5159,10 @@ async function rejudgeWrongAnswer(word, scope, button, statusNode) {
     if (result.correct) {
       delete state.currentWrongBook[word];
       delete state.historyWrongBook[word];
-      const adjusted = adjustStudyRecordAfterRejudge(info);
+      const adjusted = adjustActiveRoundAfterRejudge(word, info, result) || adjustStudyRecordAfterRejudge(info);
       saveWrongBooks();
       renderWrongBook();
-      showWrongActionMessage(`“${word}”原判定：错误；新判定：正确。已从错题本移除${adjusted ? "并校正对应测试统计" : ""}。`);
+      showWrongActionMessage(`“${word}”重新作答正确，已从错题本移除${adjusted ? "并校正对应测试统计" : ""}。`);
     } else {
       [state.currentWrongBook, state.historyWrongBook].forEach((book) => {
         if (!book[word]) return;
@@ -4988,16 +5175,17 @@ async function rejudgeWrongAnswer(word, scope, button, statusNode) {
       });
       saveWrongBooks();
       renderWrongBook();
-      showWrongActionMessage(`“${word}”原判定：错误；新判定：仍错误。错误次数未增加。`);
+      showWrongActionMessage(`“${word}”重新作答仍不正确，已保留在错题本；错误次数未增加。`);
     }
   } catch (error) {
-    statusNode.textContent = `重新判定失败：${error.message}`;
+    controls.status.textContent = `重新判定失败：${error.message}`;
     showWrongActionMessage(`“${word}”重新判定失败：${error.message}`, true);
   } finally {
     rejudgeInFlight.delete(key);
-    if (button.isConnected) {
-      button.disabled = false;
-      button.textContent = "重新判定";
+    if (controls.submit.isConnected) {
+      controls.submit.disabled = false;
+      controls.cancel.disabled = false;
+      controls.submit.textContent = "提交判定";
     }
   }
 }
@@ -5033,19 +5221,45 @@ function renderWrongBook() {
   }
 
   const template = $("wrongItemTemplate");
-  entries.forEach(([word, info]) => {
+  entries.forEach(([word, info], entryIndex) => {
     const node = template.content.cloneNode(true);
     node.querySelector("h3").textContent = word;
     node.querySelector("p").textContent = info.skipped
-      ? `跳过 · ${info.correct_answer || "未作答"}`
+      ? `已跳过 · 标准：${info.correct_answer || "（未给出）"}`
       : `你答：${info.last_answer || ""} · 标准：${info.correct_answer || ""}`;
     node.querySelector("strong").textContent = `${info.wrong_count || 0}次`;
     const rejudgeStatus = node.querySelector(".wrong-rejudge-status");
-    rejudgeStatus.textContent = info.rejudged_at
+    const persistedStatus = info.rejudged_at
       ? `原判定：错误 · 新判定：${info.rejudge_result === "correct" ? "正确" : "仍错误"}${info.rejudge_reason ? ` · ${info.rejudge_reason}` : ""}`
-      : "尚未重新判定";
-    node.querySelector(".wrong-rejudge-button").addEventListener("click", (event) => {
-      rejudgeWrongAnswer(word, scope, event.currentTarget, rejudgeStatus);
+      : "可重新作答；答错不会增加错误次数";
+    rejudgeStatus.textContent = persistedStatus;
+    const openButton = node.querySelector(".wrong-rejudge-button");
+    const form = node.querySelector(".wrong-rejudge-form");
+    const input = node.querySelector(".wrong-rejudge-input");
+    const submit = node.querySelector(".wrong-rejudge-submit");
+    const cancel = node.querySelector(".wrong-rejudge-cancel");
+    const formId = `wrongRejudgeForm-${scope}-${entryIndex}`;
+    form.id = formId;
+    openButton.setAttribute("aria-controls", formId);
+    openButton.setAttribute("aria-expanded", "false");
+    input.placeholder = info.question_type === "dictation" ? "输入新的听写答案" : "输入新的中文意思";
+    openButton.addEventListener("click", () => {
+      const opening = form.classList.contains("hidden");
+      form.classList.toggle("hidden", !opening);
+      openButton.setAttribute("aria-expanded", String(opening));
+      rejudgeStatus.textContent = opening ? "请输入新答案后提交判定" : persistedStatus;
+      if (opening) input.focus();
+    });
+    cancel.addEventListener("click", () => {
+      form.classList.add("hidden");
+      openButton.setAttribute("aria-expanded", "false");
+      input.removeAttribute("aria-invalid");
+      rejudgeStatus.textContent = persistedStatus;
+      openButton.focus();
+    });
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      rejudgeWrongAnswer(word, scope, input.value, { input, submit, cancel, status: rejudgeStatus });
     });
     node.querySelector(".wrong-remove-button").addEventListener("click", () => {
       askConfirmation(`确认从${scope === "history" ? "历史" : "本轮"}错题中移除“${word}”？`, () => {
@@ -5308,6 +5522,7 @@ function discardActiveRound() {
   state.mode = "normal";
   state.roundActive = false;
   state.answerLocked = false;
+  state.pendingAdvance = null;
   state.roundStartedAt = 0;
   state.roundId = "";
   updateQuestionControls();
@@ -5621,7 +5836,7 @@ async function boot() {
   $("wordFileInput").addEventListener("change", importWords);
   $("speakBtn").addEventListener("click", speakCurrentWord);
   $("skipBtn").addEventListener("click", skipWord);
-  $("nextNowBtn").addEventListener("click", nextWord);
+  $("nextNowBtn").addEventListener("click", () => nextWord());
   $("cancelJudgeBtn").addEventListener("click", () => {
     if (judgeController) judgeController.abort();
   });

@@ -6,9 +6,9 @@
     <meta name="theme-color" content="#ffffff" />
     <title>WYJ的网站</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260809-public-trial" />
-    <link rel="stylesheet" href="/styles.css?v=20260809-public-trial" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260809-public-trial" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260809-language-state" />
+    <link rel="stylesheet" href="/styles.css?v=20260809-language-state" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260809-language-state" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 WYJ的网站" aria-hidden="false">
@@ -739,17 +739,21 @@
 
     <template id="wrongItemTemplate">
       <article class="wrong-item">
-        <div>
+        <div class="wrong-item-copy">
           <h3></h3>
           <p></p>
           <small class="wrong-rejudge-status" aria-live="polite"></small>
         </div>
         <div class="wrong-item-actions"><strong></strong><button class="wrong-rejudge-button" type="button">重新判定</button><button class="wrong-remove-button" type="button">移除</button></div>
+        <form class="wrong-rejudge-form hidden">
+          <label><span>重新作答</span><input class="wrong-rejudge-input" maxlength="240" autocomplete="off" /></label>
+          <div class="wrong-rejudge-controls"><button class="primary wrong-rejudge-submit" type="submit">提交判定</button><button class="wrong-rejudge-cancel" type="button">取消</button></div>
+        </form>
       </article>
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/tools.js?v=20260809-public-trial"></script>
-    <script src="/app.js?v=20260809-public-trial"></script>
+    <script src="/tools.js?v=20260809-language-state"></script>
+    <script src="/app.js?v=20260809-language-state"></script>
   </body>
 </html>
