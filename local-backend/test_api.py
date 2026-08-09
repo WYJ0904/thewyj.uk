@@ -310,6 +310,25 @@ class AccountApiTests(unittest.TestCase):
         self.assertEqual(status, 403, data)
         self.assertEqual(data["code"], "membership_required")
 
+    def test_anonymous_trial_cannot_reach_account_or_member_apis(self):
+        requests = (
+            ("GET", "/api/tools/access", None),
+            ("POST", "/api/tools/recent", {"tool_id": "text-stats"}),
+            ("POST", "/api/temporary/text", {"content": "anonymous"}),
+            ("POST", "/api/recharge/request", {"plan": "tools_monthly"}),
+            (
+                "POST",
+                "/api/admin/membership/manage",
+                {"user_id": "anonymous", "action": "grant", "plan_code": "tools_monthly"},
+            ),
+            ("POST", "/api/quiz/start", {"language": "english", "words": ["hello"]}),
+        )
+        for method, path, payload in requests:
+            with self.subTest(path=path):
+                status, data = self.request(method, path, payload)
+                self.assertEqual(status, 401, data)
+                self.assertTrue(data.get("error"), data)
+
     def test_single_language_plan_is_public_and_recharge_requires_a_language(self):
         status, data = self.request("GET", "/api/membership/plans")
         self.assertEqual(status, 200, data)
@@ -762,15 +781,15 @@ class AccountApiTests(unittest.TestCase):
         self.assertEqual(by_code["dual_language_monthly"]["name"], "双语言包月")
         self.assertEqual(by_code["all_access_monthly"]["price_cents"], 3000)
         self.assertEqual(by_code["japanese_lifetime"]["price_cents"], 7000)
-        self.assertEqual(by_code["japanese_lifetime"]["name"], "日语单项永久会员")
+        self.assertEqual(by_code["japanese_lifetime"]["name"], "双语言双项永久会员")
         self.assertEqual(by_code["all_access_lifetime"]["price_cents"], 10000)
         self.assertIn("tools_access", by_code["tools_monthly"]["entitlements"])
         self.assertNotIn("language_all_access", by_code["tools_monthly"]["entitlements"])
         self.assertIn("language_all_access", by_code["dual_language_monthly"]["entitlements"])
         self.assertNotIn("tools_access", by_code["dual_language_monthly"]["entitlements"])
         self.assertIn("language_japanese_access", by_code["japanese_lifetime"]["entitlements"])
-        self.assertNotIn("language_english_access", by_code["japanese_lifetime"]["entitlements"])
-        self.assertNotIn("language_all_access", by_code["japanese_lifetime"]["entitlements"])
+        self.assertIn("language_english_access", by_code["japanese_lifetime"]["entitlements"])
+        self.assertIn("language_all_access", by_code["japanese_lifetime"]["entitlements"])
         self.assertNotIn("tools_access", by_code["japanese_lifetime"]["entitlements"])
         self.assertNotIn("dual_language_lifetime", by_code)
         self.assertEqual(

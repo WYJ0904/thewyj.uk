@@ -47,6 +47,11 @@ class StaticSiteTests(unittest.TestCase):
             "paymentQrWrap", "paymentQrImage", "paymentQrMessage", "aiSearchInput",
             "aiSearchResults", "cancelPaymentOrderBtn",
             "navGuestActions", "navLoginBtn", "navRegisterBtn", "accountMenu",
+            "dashboardGreeting", "dashboardMembershipName", "dashboardEntitlements",
+            "dashboardStreak", "dashboardWrongCount", "dashboardLatestResult",
+            "dashboardFavoriteTools", "dashboardRecentTools", "dashboardAccountStatus",
+            "publicHome", "changelogPage", "trialPage", "trialQuizPanel",
+            "trialTextPanel", "trialJsonPanel", "trialImagePanel",
         }
         self.assertEqual(sorted(required - html_ids), [])
 
@@ -67,14 +72,35 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260803-clean-product-design"
+        release_token = "20260809-language-state"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "tools.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}"', self.worker)
-        self.assertIn('const APP_VERSION = "2026-08-03-clean-product-design"', self.app)
+        self.assertIn('const APP_VERSION = "2026-08-09-language-state"', self.app)
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
         self.assertIn('APP_BUILD = "2026-08-02-network-resilience"', server)
+        self.assertIn('"/trial", "/changelog"', server)
+        self.assertEqual((ROOT / "_redirects").read_text(encoding="utf-8").strip(), "/* /index.html 200")
+
+    def test_public_home_and_trial_are_explicitly_limited(self):
+        for route in ('href="/"', 'href="/changelog"'):
+            self.assertIn(route, self.html)
+        self.assertIn('const register = path === "/register";', self.app)
+        self.assertIn('path: register ? "/register" : "/login"', self.app)
+        for trial_tool in ("quiz", "text", "json", "image-compress", "image-format"):
+            self.assertIn(f'data-trial-tool="{trial_tool}"', self.html)
+        self.assertIn('id="trialQuizCount" type="number" min="1" max="10"', self.html)
+        self.assertRegex(self.html, r'id="trialImageInput" type="file"(?![^>]*\bmultiple\b)')
+        self.assertIn("const TRIAL_MAX_QUESTIONS = 10;", self.app)
+        self.assertIn("const TRIAL_TOOL_IDS = new Set", self.app)
+        self.assertIn("function showPublicHome(", self.app)
+        self.assertIn("function showChangelog(", self.app)
+        self.assertIn("function showTrial(", self.app)
+        self.assertIn("function processTrialImage(", self.app)
+        self.assertNotIn('data-trial-tool="temporary', self.html)
+        self.assertNotIn('data-trial-tool="batch', self.html)
+        self.assertIn("匿名试用不保存服务器学习记录，也不能创建临时分享", self.html)
 
     def test_clean_product_design_contract(self):
         for legacy_markup in ("splash-door", "77 79 6A", "lock-mark", ">WORKSPACE<", ">LANGUAGE<"):
@@ -91,6 +117,51 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('data-site-nav="tools"', self.html)
         self.assertIn('class="auth-logo"', self.html)
         self.assertNotRegex(self.html, r">\s*[文+×↕]\s*<")
+
+    def test_dashboard_rejudge_and_readability_contract(self):
+        self.assertIn('data-dashboard-project="english"', self.html)
+        self.assertIn('data-dashboard-project="japanese"', self.html)
+        self.assertIn('class="wrong-rejudge-button"', self.html)
+        self.assertIn('class="wrong-rejudge-form hidden"', self.html)
+        self.assertIn('class="wrong-rejudge-input"', self.html)
+        self.assertIn("function renderDashboard()", self.app)
+        self.assertIn("function rejudgeWrongAnswer(", self.app)
+        self.assertIn('api("/api/quiz/start"', self.app)
+        self.assertIn('api("/api/judge"', self.app)
+        self.assertIn("wrongRejudgeLog:v1", self.app)
+        self.assertIn("const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);", self.app)
+        self.assertIn("pendingAdvance: state.pendingAdvance", self.app)
+        self.assertEqual(self.app.count("state.index += 1;"), 1)
+        self.assertNotIn("if (state.answerLocked && state.index < state.words.length - 1) state.index += 1", self.app)
+        self.assertIn("getSummary", self.tools)
+        self.assertIn("toolPreferences:v", self.tools)
+
+        required_colors = {
+            "--color-text": "#1f2937",
+            "--color-text-secondary": "#475569",
+            "--color-text-muted": "#5b6878",
+        }
+        for token, color in required_colors.items():
+            self.assertRegex(self.product_styles, rf"{re.escape(token)}:\s*{color}")
+        disabled = re.search(r"button:disabled\s*\{([^}]*)\}", self.product_styles, re.S)
+        self.assertIsNotNone(disabled)
+        self.assertRegex(disabled.group(1), r"opacity:\s*1")
+        self.assertRegex(self.product_styles, r"\.plan-option:disabled\s*\{[^}]*opacity:\s*1")
+        self.assertIn(".admin-login-location", self.product_styles)
+        self.assertIn(".admin-user-facts strong", self.product_styles)
+        self.assertIn(".admin-current-memberships > article small", self.product_styles)
+        self.assertIn(".plan-option small", self.product_styles)
+
+        def relative_luminance(color):
+            values = [int(color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
+            channels = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4 for value in values]
+            return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+
+        background = relative_luminance("#ffffff")
+        for color in required_colors.values():
+            foreground = relative_luminance(color)
+            ratio = (max(background, foreground) + 0.05) / (min(background, foreground) + 0.05)
+            self.assertGreaterEqual(ratio, 4.5, color)
 
     def test_tool_catalog_is_complete_and_unique(self):
         source = self.tools.split("const toolRows = {", 1)[1].split("const TOOLS =", 1)[0]
@@ -279,7 +350,9 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("function markBackendReachable", self.app)
         self.assertGreaterEqual(self.app.count("markBackendReachable(data)"), 3)
         skip_source = self.app.split("function skipWord()", 1)[1].split("async function submitAnswer", 1)[0]
-        self.assertLess(skip_source.index("clearAnswerValidation();"), skip_source.index("renderSkipResult();"))
+        self.assertLess(skip_source.index("clearAnswerValidation();"), skip_source.index("markWrong("))
+        self.assertLess(skip_source.index("markWrong("), skip_source.index("beginQuestionTransition("))
+        self.assertIn("resolveCurrentQuestionRubric(word)", skip_source)
         self.assertIn('showWrongActionMessage("PDF 已生成并开始下载。', self.app)
         self.assertIn('showModulePicker(false, "当前账户没有管理员权限，已返回功能选择。")', self.app)
         self.assertNotIn('alert("无管理员权限")', self.app)

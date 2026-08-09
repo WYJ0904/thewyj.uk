@@ -270,6 +270,7 @@
 
   let bridge = null;
   let preferences = { favorites: [], recent: [], configs: [] };
+  let loadedPreferencesKey = "";
   let currentCategory = "all";
   let currentTool = null;
   let currentDownload = null;
@@ -278,11 +279,74 @@
   const TEMP_FILE_MAX_BYTES = 20 * 1024 * 1024;
   const ROOM_POLL_BASE_MS = 4000;
   const ROOM_POLL_MAX_MS = 30000;
+  const TOOL_PREFERENCES_CACHE_VERSION = 1;
 
   const byId = (id) => document.getElementById(id);
   const categoryFor = (tool) => CATEGORY_MAP.get(tool.category);
   const favoriteFor = (toolId) => preferences.favorites.find((item) => item.tool_id === toolId);
   const configsFor = (toolId) => preferences.configs.filter((item) => item.tool_id === toolId);
+
+  function normalizePreferences(value) {
+    const source = value && typeof value === "object" ? value : {};
+    const cleanItems = (items, limit) => Array.isArray(items)
+      ? items.filter((item) => item && TOOL_MAP.has(String(item.tool_id || ""))).slice(0, limit)
+      : [];
+    return {
+      favorites: cleanItems(source.favorites, 100),
+      recent: cleanItems(source.recent, 50),
+      configs: Array.isArray(source.configs) ? source.configs.slice(0, 200) : [],
+    };
+  }
+
+  function preferencesCacheKey() {
+    return `toolPreferences:v${TOOL_PREFERENCES_CACHE_VERSION}:${bridge?.accountId?.() || "guest"}`;
+  }
+
+  function readCachedPreferences() {
+    try {
+      return normalizePreferences(JSON.parse(localStorage.getItem(preferencesCacheKey()) || "{}"));
+    } catch (_) {
+      return { favorites: [], recent: [], configs: [] };
+    }
+  }
+
+  function ensureAccountPreferences() {
+    const key = preferencesCacheKey();
+    if (loadedPreferencesKey === key) return;
+    preferences = readCachedPreferences();
+    loadedPreferencesKey = key;
+  }
+
+  function persistPreferences() {
+    try {
+      localStorage.setItem(preferencesCacheKey(), JSON.stringify(preferences));
+      loadedPreferencesKey = preferencesCacheKey();
+    } catch (_) {
+      // Private browsing can reject writes; the current page still keeps its in-memory copy.
+    }
+    bridge?.onPreferencesChanged?.();
+  }
+
+  function getSummary() {
+    ensureAccountPreferences();
+    const mapItems = (items) => items.map((item) => {
+      const tool = TOOL_MAP.get(item.tool_id);
+      return { ...item, name: tool?.name || item.tool_id };
+    }).filter((item) => item.tool_id);
+    return {
+      favorites: mapItems(preferences.favorites),
+      recent: mapItems(preferences.recent),
+    };
+  }
+
+  function recordRecentLocally(toolId) {
+    preferences.recent = [
+      { tool_id: toolId, used_at: new Date().toISOString() },
+      ...preferences.recent.filter((item) => item.tool_id !== toolId),
+    ].slice(0, 50);
+    persistPreferences();
+    renderShelves();
+  }
 
   function setMessage(message, error = false) {
     const target = byId("toolWorkbenchMessage");
@@ -389,16 +453,19 @@
     }
   }
 
-  async function loadPreferences() {
+  async function loadPreferences(options = {}) {
+    ensureAccountPreferences();
     try {
       const data = await bridge.apiGet("/api/tools/preferences");
-      preferences = { favorites: data.favorites || [], recent: data.recent || [], configs: data.configs || [] };
+      preferences = normalizePreferences(data);
+      persistPreferences();
     } catch (error) {
-      if (error.code === "membership_required") throw error;
-      preferences = { favorites: [], recent: [], configs: [] };
+      if (error.code === "membership_required" && !options.allowCached) throw error;
+      preferences = readCachedPreferences();
     }
     renderShelves();
     renderCatalog();
+    bridge?.onPreferencesChanged?.();
   }
 
   async function toggleFavorite(toolId, forcePinned = null) {
@@ -883,6 +950,7 @@
     byId("toolWorkbench").setAttribute("aria-hidden", "false");
     renderCurrentTool();
     if (pushRoute) bridge.navigate(`/tools/${tool.id}`);
+    recordRecentLocally(tool.id);
     bridge.api("/api/tools/recent", { tool_id: tool.id }).then(loadPreferences).catch(() => {});
   }
 
@@ -897,15 +965,24 @@
     if (pushRoute) bridge.navigate("/tools");
   }
 
-  async function show(path = "/tools") {
-    const access = await bridge.apiGet("/api/tools/access");
-    const summary = access.account?.membership_summary || {};
-    byId("toolsMembershipStatus").textContent = summary.permanent ? `${summary.name} · 永久有效` : `${summary.name}${summary.expires_at ? ` · 到期 ${bridge.formatDate(summary.expires_at)}` : ""}`;
+  async function show(path = "/tools", options = {}) {
+    const access = options.access || (options.offline ? null : await bridge.apiGet("/api/tools/access"));
+    const account = access?.account || bridge.account?.() || {};
+    const summary = account.membership_summary || {};
+    const membershipText = summary.permanent ? `${summary.name} · 永久有效` : `${summary.name || "工具箱会员"}${summary.expires_at ? ` · 到期 ${bridge.formatDate(summary.expires_at)}` : ""}`;
+    byId("toolsMembershipStatus").textContent = options.offline ? `${membershipText} · 离线本地模式` : membershipText;
     byId("toolsPanel").classList.remove("hidden");
     byId("toolsPanel").setAttribute("aria-hidden", "false");
     renderCategories();
     renderCatalog();
-    await loadPreferences();
+    if (options.offline) {
+      preferences = readCachedPreferences();
+      renderShelves();
+      renderCatalog();
+      bridge?.onPreferencesChanged?.();
+    } else {
+      await loadPreferences({ allowCached: true });
+    }
     const match = path.match(/^\/tools\/([a-z0-9_-]+)$/);
     if (match && TOOL_MAP.has(match[1])) await openTool(match[1], false);
     else closeWorkbench(false);
@@ -920,8 +997,10 @@
 
   function init(context) {
     bridge = context;
+    ensureAccountPreferences();
     renderCategories();
     renderCatalog();
+    bridge?.onPreferencesChanged?.();
     byId("toolSearchInput")?.addEventListener("input", () => { currentCategory = "all"; renderCategories(); renderCatalog(); });
     byId("closeToolWorkbenchBtn")?.addEventListener("click", () => closeWorkbench(true));
     byId("favoriteToolBtn")?.addEventListener("click", () => currentTool && toggleFavorite(currentTool.id));
@@ -937,7 +1016,7 @@
     });
   }
 
-  window.WYJTools = { init, show, hide, openTool, closeWorkbench, searchTools, tools: TOOLS, test: { buildWifiPayload, buildVcardPayload } };
+  window.WYJTools = { init, show, hide, openTool, closeWorkbench, searchTools, getSummary, tools: TOOLS, test: { buildWifiPayload, buildVcardPayload } };
 
   function uint32(value) {
     return new Uint8Array([value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255]);
