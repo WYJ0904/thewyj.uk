@@ -6,9 +6,9 @@
     <meta name="theme-color" content="#ffffff" />
     <title>WYJ的网站</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260809-dashboard-membership-rejudge" />
-    <link rel="stylesheet" href="/styles.css?v=20260809-dashboard-membership-rejudge" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260809-dashboard-membership-rejudge" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260809-public-trial" />
+    <link rel="stylesheet" href="/styles.css?v=20260809-public-trial" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260809-public-trial" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 WYJ的网站" aria-hidden="false">
@@ -29,7 +29,7 @@
           <a href="/" data-site-nav="home" id="navHomeLink"><span id="navHomeLabel">首页</span></a>
           <a href="/language" data-site-nav="language">语言学习</a>
           <a href="/tools" data-site-nav="tools">在线工具</a>
-          <a href="https://github.com/WYJ0904/thewyj.uk/commits/main/" target="_blank" rel="noopener noreferrer">更新日志</a>
+          <a href="/changelog" data-site-nav="changelog">更新日志</a>
         </div>
         <div class="site-nav-actions" id="navGuestActions">
           <button class="button-ghost" id="navLoginBtn" type="button">登录</button>
@@ -46,6 +46,124 @@
           </div>
         </details>
       </nav>
+
+      <section class="public-home hidden" id="publicHome" aria-labelledby="publicHomeTitle" aria-hidden="true">
+        <section class="public-intro">
+          <div class="public-intro-copy">
+            <p class="section-kicker">语言学习与浏览器工具</p>
+            <h1 id="publicHomeTitle">WYJ的网站</h1>
+            <p class="public-lead">练习英语和日语词汇，处理日常文本、文件与图片。免费试用内容直接在浏览器运行，登录后可保存学习记录并使用账户权益。</p>
+            <div class="public-actions">
+              <button class="primary" id="publicTrialBtn" type="button">开始免费试用</button>
+              <button class="button-secondary" id="publicRegisterBtn" type="button">创建账户</button>
+            </div>
+            <ul class="public-trust-list" aria-label="服务特点">
+              <li>试用无需注册</li>
+              <li>文件默认不上传</li>
+              <li>无第三方追踪</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="public-section" aria-labelledby="publicLearningTitle">
+          <header class="public-section-heading"><p class="section-kicker">语言学习</p><h2 id="publicLearningTitle">从词表到错题复习</h2><p>正式账户提供词表、释义与听写、日语假名标音、错题本、统计、成就和 AI 判卷。</p></header>
+          <div class="public-card-grid public-card-grid-two">
+            <article class="public-feature-card"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H4Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v17a3 3 0 0 1 3-3h3Z"/></svg></span><div><h3>英语学习</h3><p>导入自己的词表，练习释义与听写，并集中复习错误内容。</p></div></article>
+            <article class="public-feature-card"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><div><h3>日语学习</h3><p>支持汉字或假名输入，自动显示读音，并按日语规则完成测试。</p></div></article>
+          </div>
+          <button class="button-secondary public-section-action" id="publicLanguageTrialBtn" type="button">试做最多 10 题</button>
+        </section>
+
+        <section class="public-section" aria-labelledby="publicToolsTitle">
+          <header class="public-section-heading"><p class="section-kicker">在线工具</p><h2 id="publicToolsTitle">常用处理集中在一个地方</h2><p>正式工具箱覆盖五个分类；免费试用开放四项单次、本地处理工具。</p></header>
+          <div class="public-card-grid public-tool-category-grid">
+            <article class="public-feature-card"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 6h16M4 12h12M4 18h8"/></svg></span><div><h3>文本处理</h3><p>统计、清理、转换、提取和 JSON 工具。</p></div></article>
+            <article class="public-feature-card"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/></svg></span><div><h3>文件处理</h3><p>哈希、格式转换、分割、合并与打包。</p></div></article>
+            <article class="public-feature-card"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="9" r="1.5"/><path d="m5 17 4-4 3 3 2-2 5 5"/></svg></span><div><h3>图片与设计</h3><p>压缩、转换、裁剪、隐私处理与设计辅助。</p></div></article>
+            <article class="public-feature-card"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 4h6v6H4zM14 14h6v6h-6zM15 4h5v5M4 15h5v5"/><path d="m10 7 4 10"/></svg></span><div><h3>随机生成器</h3><p>密码、UUID、抽签、分组、骰子和随机决定。</p></div></article>
+            <article class="public-feature-card"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div><h3>临时工具</h3><p>会员可创建有期限和次数限制的分享内容。</p></div></article>
+          </div>
+          <button class="button-secondary public-section-action" id="publicToolsTrialBtn" type="button">试用本地工具</button>
+        </section>
+
+        <section class="public-privacy-band" aria-labelledby="publicPrivacyTitle">
+          <div><p class="section-kicker">隐私与本地处理</p><h2 id="publicPrivacyTitle">试用文本和图片留在当前浏览器</h2><p>文本统计、JSON、单张图片压缩和格式转换不上传服务器。匿名试用不保存服务器学习记录，也不能创建临时分享。</p></div>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/></svg>
+        </section>
+
+        <section class="public-section" aria-labelledby="publicPlansTitle">
+          <header class="public-section-heading"><p class="section-kicker">账户与套餐</p><h2 id="publicPlansTitle">按需要选择学习或工具权益</h2><p>提供单语言、双语言、工具箱与全功能方案。付款和开通仍沿用登录后的管理员人工确认流程。</p></header>
+          <div class="public-card-grid public-card-grid-three">
+            <article class="public-plan-card"><h3>免费体验</h3><p>无需注册，开放五项明确试用功能。</p></article>
+            <article class="public-plan-card"><h3>按模块订阅</h3><p>可分别选择语言学习、工具箱或组合套餐。</p></article>
+            <article class="public-plan-card"><h3>永久权益</h3><p>提供双语言和全功能永久方案。</p></article>
+          </div>
+          <div class="public-actions"><button class="primary" id="publicPlansBtn" type="button">登录后查看套餐</button><button class="button-ghost" id="publicChangelogBtn" type="button">查看更新日志</button></div>
+        </section>
+      </section>
+
+      <section class="public-page hidden" id="changelogPage" aria-labelledby="changelogTitle" aria-hidden="true">
+        <header class="public-page-header"><p class="section-kicker">更新日志</p><h1 id="changelogTitle">近期改进</h1><p>这里只展示影响使用体验的主要变化，完整提交记录可在 GitHub 查看。</p></header>
+        <div class="changelog-list">
+          <article><time datetime="2026-08-09">2026/08/09</time><h2>个人首页与错题重新判定</h2><p>登录后首页集中显示学习、会员和服务摘要；错题可按当前规则重新判定。</p></article>
+          <article><time datetime="2026-08-02">2026/08/02</time><h2>连接恢复与缓存加固</h2><p>完善请求超时、有限重试、网络切换恢复、Tunnel 健康判断和旧缓存更新。</p></article>
+          <article><time datetime="2026-07-28">2026/07/28</time><h2>会员与在线工具箱</h2><p>统一套餐权益，完善充值审批，并提供文本、文件、图片、随机和临时工具。</p></article>
+        </div>
+        <div class="public-actions"><button class="primary" id="changelogTrialBtn" type="button">免费试用</button><a class="button-link button-secondary" href="https://github.com/WYJ0904/thewyj.uk/commits/main/" target="_blank" rel="noopener noreferrer">完整提交记录</a></div>
+      </section>
+
+      <section class="trial-page hidden" id="trialPage" aria-labelledby="trialPageTitle" aria-hidden="true">
+        <header class="public-page-header trial-header"><p class="section-kicker">免费试用</p><h1 id="trialPageTitle">先用一遍，再决定是否注册</h1><p>下列功能均在当前浏览器处理，不保存匿名学习记录，不开放临时分享、批量处理、配置保存或会员功能。</p></header>
+        <div class="trial-tool-grid" role="list" aria-label="免费试用功能">
+          <button class="trial-tool-card active" type="button" data-trial-tool="quiz" aria-pressed="true"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H4Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v17a3 3 0 0 1 3-3h3Z"/></svg></span><span><strong>语言小测</strong><small>英语或日语，最多 10 题</small></span></button>
+          <button class="trial-tool-card" type="button" data-trial-tool="text" aria-pressed="false"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 6h16M4 12h12M4 18h8"/></svg></span><span><strong>文本统计</strong><small>字符、词、行、段落和阅读时间</small></span></button>
+          <button class="trial-tool-card" type="button" data-trial-tool="json" aria-pressed="false"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M8 4c-2 0-3 1-3 3v2c0 1-.5 2-2 2 1.5 0 2 1 2 2v4c0 2 1 3 3 3M16 4c2 0 3 1 3 3v2c0 1 .5 2 2 2-1.5 0-2 1-2 2v4c0 2-1 3-3 3"/></svg></span><span><strong>JSON 工具</strong><small>格式化并检查是否合法</small></span></button>
+          <button class="trial-tool-card" type="button" data-trial-tool="image-compress" aria-pressed="false"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m8 9 3 3-3 3M16 9l-3 3 3 3"/></svg></span><span><strong>单张图片压缩</strong><small>质量可调，生成本地下载</small></span></button>
+          <button class="trial-tool-card" type="button" data-trial-tool="image-format" aria-pressed="false"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 8h8M8 12h5M8 16h8"/></svg></span><span><strong>单张格式转换</strong><small>PNG、JPG 与 WebP</small></span></button>
+        </div>
+
+        <section class="trial-workbench" id="trialQuizPanel" data-trial-panel="quiz" aria-labelledby="trialQuizTitle">
+          <div class="trial-workbench-heading"><div><h2 id="trialQuizTitle">语言小测</h2><p>题目和答案来自内置演示词表，不调用判卷 API。</p></div><span class="status-badge">最多 10 题</span></div>
+          <div class="trial-quiz-setup" id="trialQuizSetup">
+            <label><span>选择语言</span><select id="trialQuizLanguage"><option value="english">英语</option><option value="japanese">日语</option></select></label>
+            <label><span>题目数量</span><input id="trialQuizCount" type="number" min="1" max="10" value="5" inputmode="numeric" /></label>
+            <button class="primary" id="trialQuizStartBtn" type="button">开始测试</button>
+          </div>
+          <div class="trial-quiz-run hidden" id="trialQuizRun">
+            <div class="trial-quiz-meta"><span id="trialQuizProgress">1 / 5</span><span id="trialQuizScore">答对 0</span></div>
+            <p class="trial-quiz-instruction" id="trialQuizInstruction">请写出对应单词</p>
+            <strong class="trial-quiz-prompt" id="trialQuizPrompt"></strong>
+            <form class="trial-answer-form" id="trialQuizAnswerForm"><label class="sr-only" for="trialQuizAnswer">答案</label><input id="trialQuizAnswer" autocomplete="off" maxlength="80" placeholder="输入答案" required /><button class="primary" id="trialQuizSubmitBtn" type="submit">提交</button></form>
+            <p class="trial-message" id="trialQuizMessage" aria-live="polite"></p>
+            <button class="button-secondary hidden" id="trialQuizNextBtn" type="button">下一题</button>
+          </div>
+          <div class="trial-summary hidden" id="trialQuizSummary"><h3>本次试用完成</h3><strong id="trialQuizFinalScore">0 / 5</strong><p>匿名成绩不会保存到服务器。注册后可使用自己的词表、错题本与学习统计。</p><div class="public-actions"><button class="primary" id="trialQuizRegisterBtn" type="button">注册并开始正式学习</button><button class="button-secondary" id="trialQuizRestartBtn" type="button">再试一次</button></div></div>
+        </section>
+
+        <section class="trial-workbench hidden" id="trialTextPanel" data-trial-panel="text" aria-labelledby="trialTextTitle">
+          <div class="trial-workbench-heading"><div><h2 id="trialTextTitle">文本统计</h2><p>输入内容后即时统计，最多 200,000 个字符。</p></div><span class="local-only-badge">仅本机</span></div>
+          <label class="trial-large-field"><span>文本内容</span><textarea id="trialTextInput" maxlength="200000" placeholder="在这里输入或粘贴文本"></textarea></label>
+          <dl class="trial-stat-grid"><div><dt>字符</dt><dd id="trialTextCharacters">0</dd></div><div><dt>单词</dt><dd id="trialTextWords">0</dd></div><div><dt>行</dt><dd id="trialTextLines">0</dd></div><div><dt>段落</dt><dd id="trialTextParagraphs">0</dd></div><div><dt>阅读时间</dt><dd id="trialTextReading">0 分钟</dd></div></dl>
+        </section>
+
+        <section class="trial-workbench hidden" id="trialJsonPanel" data-trial-panel="json" aria-labelledby="trialJsonTitle">
+          <div class="trial-workbench-heading"><div><h2 id="trialJsonTitle">JSON 格式化和校验</h2><p>内容只在浏览器中解析，不发送到服务器。</p></div><span class="local-only-badge">仅本机</span></div>
+          <label class="trial-large-field"><span>JSON 内容</span><textarea id="trialJsonInput" maxlength="200000" spellcheck="false" placeholder='例如：{"name":"WYJ"}'></textarea></label>
+          <div class="action-row"><button class="primary" id="trialJsonFormatBtn" type="button">格式化</button><button class="button-secondary" id="trialJsonValidateBtn" type="button">仅校验</button><button class="button-ghost" id="trialJsonClearBtn" type="button">清空</button></div>
+          <p class="trial-message" id="trialJsonMessage" aria-live="polite"></p><pre class="trial-json-output hidden" id="trialJsonOutput" tabindex="0"></pre>
+        </section>
+
+        <section class="trial-workbench hidden" id="trialImagePanel" data-trial-panel="image" aria-labelledby="trialImageTitle">
+          <div class="trial-workbench-heading"><div><h2 id="trialImageTitle">单张图片压缩</h2><p id="trialImageDescription">调整质量后生成一个新的本地图片文件。</p></div><span class="local-only-badge">仅本机</span></div>
+          <div class="trial-image-fields"><label><span>选择图片</span><input id="trialImageInput" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" /></label><label id="trialImageQualityField"><span>输出质量 <output id="trialImageQualityValue">82%</output></span><input id="trialImageQuality" type="range" min="20" max="95" value="82" /></label><label class="hidden" id="trialImageFormatField"><span>目标格式</span><select id="trialImageFormat"><option value="image/png">PNG</option><option value="image/jpeg">JPG</option><option value="image/webp">WebP</option></select></label></div>
+          <button class="primary" id="trialImageProcessBtn" type="button">压缩图片</button><p class="trial-message" id="trialImageMessage" aria-live="polite"></p>
+          <div class="trial-image-result hidden" id="trialImageResult"><img id="trialImagePreview" alt="处理后的图片预览" /><div><p id="trialImageDetails"></p><a class="button-link button-secondary" id="trialImageDownload" download>下载处理结果</a></div></div>
+          <p class="local-processing-note">仅支持单张 PNG、JPG 或 WebP，文件不超过 12 MB、像素不超过 2000 万。不会上传，也不会保存到服务器。</p>
+        </section>
+
+        <footer class="trial-footer"><p>需要保存词表、错题、统计或使用完整工具箱？</p><div class="public-actions"><button class="primary" id="trialRegisterBtn" type="button">创建账户</button><button class="button-ghost" id="trialHomeBtn" type="button">返回首页</button></div></footer>
+      </section>
+
       <section class="module-picker hidden" id="modulePicker" aria-labelledby="modulePickerTitle" aria-hidden="true">
         <header class="dashboard-header">
           <div>
@@ -631,7 +749,7 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/tools.js?v=20260809-dashboard-membership-rejudge"></script>
-    <script src="/app.js?v=20260809-dashboard-membership-rejudge"></script>
+    <script src="/tools.js?v=20260809-public-trial"></script>
+    <script src="/app.js?v=20260809-public-trial"></script>
   </body>
 </html>

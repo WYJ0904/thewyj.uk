@@ -50,6 +50,8 @@ class StaticSiteTests(unittest.TestCase):
             "dashboardGreeting", "dashboardMembershipName", "dashboardEntitlements",
             "dashboardStreak", "dashboardWrongCount", "dashboardLatestResult",
             "dashboardFavoriteTools", "dashboardRecentTools", "dashboardAccountStatus",
+            "publicHome", "changelogPage", "trialPage", "trialQuizPanel",
+            "trialTextPanel", "trialJsonPanel", "trialImagePanel",
         }
         self.assertEqual(sorted(required - html_ids), [])
 
@@ -70,14 +72,35 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260809-dashboard-membership-rejudge"
+        release_token = "20260809-public-trial"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "tools.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}"', self.worker)
-        self.assertIn('const APP_VERSION = "2026-08-09-dashboard-membership-rejudge"', self.app)
+        self.assertIn('const APP_VERSION = "2026-08-09-public-trial"', self.app)
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
         self.assertIn('APP_BUILD = "2026-08-02-network-resilience"', server)
+        self.assertIn('"/trial", "/changelog"', server)
+        self.assertEqual((ROOT / "_redirects").read_text(encoding="utf-8").strip(), "/* /index.html 200")
+
+    def test_public_home_and_trial_are_explicitly_limited(self):
+        for route in ('href="/"', 'href="/changelog"'):
+            self.assertIn(route, self.html)
+        self.assertIn('const register = path === "/register";', self.app)
+        self.assertIn('path: register ? "/register" : "/login"', self.app)
+        for trial_tool in ("quiz", "text", "json", "image-compress", "image-format"):
+            self.assertIn(f'data-trial-tool="{trial_tool}"', self.html)
+        self.assertIn('id="trialQuizCount" type="number" min="1" max="10"', self.html)
+        self.assertRegex(self.html, r'id="trialImageInput" type="file"(?![^>]*\bmultiple\b)')
+        self.assertIn("const TRIAL_MAX_QUESTIONS = 10;", self.app)
+        self.assertIn("const TRIAL_TOOL_IDS = new Set", self.app)
+        self.assertIn("function showPublicHome(", self.app)
+        self.assertIn("function showChangelog(", self.app)
+        self.assertIn("function showTrial(", self.app)
+        self.assertIn("function processTrialImage(", self.app)
+        self.assertNotIn('data-trial-tool="temporary', self.html)
+        self.assertNotIn('data-trial-tool="batch', self.html)
+        self.assertIn("匿名试用不保存服务器学习记录，也不能创建临时分享", self.html)
 
     def test_clean_product_design_contract(self):
         for legacy_markup in ("splash-door", "77 79 6A", "lock-mark", ">WORKSPACE<", ">LANGUAGE<"):

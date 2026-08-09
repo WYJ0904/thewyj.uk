@@ -1,4 +1,4 @@
-const APP_VERSION = "2026-08-09-dashboard-membership-rejudge";
+const APP_VERSION = "2026-08-09-public-trial";
 const NORMAL_RESULT_VISIBLE_MS = 8000;
 const AI_RESULT_VISIBLE_MS = 10000;
 const SKIP_RESULT_VISIBLE_MS = 5000;
@@ -30,6 +30,37 @@ const BUSINESS_TIME_ZONE = "Asia/Hong_Kong";
 const LANGUAGE_LABELS = {
   english: "英语",
   japanese: "日语",
+};
+const TRIAL_MAX_QUESTIONS = 10;
+const TRIAL_MAX_TEXT_CHARS = 200000;
+const TRIAL_MAX_IMAGE_BYTES = 12 * 1024 * 1024;
+const TRIAL_MAX_IMAGE_PIXELS = 20 * 1000 * 1000;
+const TRIAL_TOOL_IDS = new Set(["quiz", "text", "json", "image-compress", "image-format"]);
+const TRIAL_QUESTION_BANKS = {
+  english: [
+    { prompt: "你好", answers: ["hello"] },
+    { prompt: "世界", answers: ["world"] },
+    { prompt: "学习", answers: ["study", "learn"] },
+    { prompt: "朋友", answers: ["friend"] },
+    { prompt: "学校", answers: ["school"] },
+    { prompt: "水", answers: ["water"] },
+    { prompt: "书", answers: ["book"] },
+    { prompt: "时间", answers: ["time"] },
+    { prompt: "音乐", answers: ["music"] },
+    { prompt: "家庭", answers: ["family"] },
+  ],
+  japanese: [
+    { prompt: "水", answers: ["水", "みず"] },
+    { prompt: "电话", answers: ["電話", "でんわ"] },
+    { prompt: "学校", answers: ["学校", "がっこう"] },
+    { prompt: "朋友", answers: ["友達", "ともだち"] },
+    { prompt: "时间", answers: ["時間", "じかん"] },
+    { prompt: "音乐", answers: ["音楽", "おんがく"] },
+    { prompt: "家人", answers: ["家族", "かぞく"] },
+    { prompt: "雪", answers: ["雪", "ゆき"] },
+    { prompt: "花", answers: ["花", "はな"] },
+    { prompt: "词语", answers: ["言葉", "ことば"] },
+  ],
 };
 const PRACTICE_LABELS = {
   meaning: "释义",
@@ -131,6 +162,12 @@ let achievementFilter = "all";
 let achievementToastTimer = null;
 let achievementToastHideTimer = null;
 let wrongActionTimer = null;
+let trialImageObjectUrl = "";
+const trialState = {
+  tool: "quiz",
+  imageMode: "compress",
+  quiz: null,
+};
 const rejudgeInFlight = new Set();
 const modalReturnFocus = new Map();
 const projectRuntime = {
@@ -713,7 +750,7 @@ function accountWordLimit(language = state.quizLanguage) {
 }
 
 function renderAccountUi() {
-  const account = state.account;
+  const account = state.session && state.account ? state.account : null;
   const badge = $("accountBadge");
   if (!badge) return;
   const summary = accountMembershipSummary(account);
@@ -726,9 +763,13 @@ function renderAccountUi() {
     ? "language"
     : location.pathname.startsWith("/tools")
       ? "tools"
-      : ["/", "/select", "/login", "/register"].includes(location.pathname)
-        ? "home"
-        : "";
+      : location.pathname === "/trial"
+        ? (trialState.tool === "quiz" ? "language" : "tools")
+        : location.pathname === "/changelog"
+          ? "changelog"
+          : ["/", "/select", "/login", "/register"].includes(location.pathname)
+            ? "home"
+            : "";
   document.querySelectorAll(".site-nav-links [data-site-nav]").forEach((link) => {
     const active = link.dataset.siteNav === activeNavigation;
     link.classList.toggle("active", active);
@@ -2244,6 +2285,358 @@ function restoreProjectRuntime() {
   updateStats();
 }
 
+function releaseTrialImageOutput() {
+  if (trialImageObjectUrl) URL.revokeObjectURL(trialImageObjectUrl);
+  trialImageObjectUrl = "";
+  const result = $("trialImageResult");
+  const preview = $("trialImagePreview");
+  const download = $("trialImageDownload");
+  result?.classList.add("hidden");
+  if (preview) preview.removeAttribute("src");
+  if (download) download.removeAttribute("href");
+}
+
+function setTrialMessage(id, message = "", status = "") {
+  const node = $(id);
+  if (!node) return;
+  node.textContent = message;
+  node.classList.remove("is-error", "is-success");
+  if (status) node.classList.add(`is-${status}`);
+}
+
+function shuffledTrialQuestions(items) {
+  const result = [...items];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    let randomValue;
+    if (globalThis.crypto?.getRandomValues) {
+      const values = new Uint32Array(1);
+      globalThis.crypto.getRandomValues(values);
+      randomValue = values[0] / 0x100000000;
+    } else {
+      randomValue = Math.random();
+    }
+    const swapIndex = Math.floor(randomValue * (index + 1));
+    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+  }
+  return result;
+}
+
+function normalizeTrialAnswer(value, language) {
+  const compact = String(value || "").normalize("NFKC").trim().replace(/\s+/g, language === "english" ? " " : "");
+  return language === "japanese" ? normalizeKana(compact) : compact.toLocaleLowerCase("en");
+}
+
+function resetTrialQuiz() {
+  trialState.quiz = null;
+  $("trialQuizSetup")?.classList.remove("hidden");
+  $("trialQuizRun")?.classList.add("hidden");
+  $("trialQuizSummary")?.classList.add("hidden");
+  if ($("trialQuizAnswer")) $("trialQuizAnswer").value = "";
+  setTrialMessage("trialQuizMessage");
+}
+
+function renderTrialQuestion() {
+  const quiz = trialState.quiz;
+  if (!quiz || !quiz.questions[quiz.index]) return;
+  const item = quiz.questions[quiz.index];
+  $("trialQuizProgress").textContent = `${quiz.index + 1} / ${quiz.questions.length}`;
+  $("trialQuizScore").textContent = `答对 ${quiz.correct}`;
+  $("trialQuizInstruction").textContent = quiz.language === "japanese"
+    ? "请写出对应的日语词，汉字或假名均可"
+    : "请写出对应的英语单词";
+  $("trialQuizPrompt").textContent = item.prompt;
+  $("trialQuizAnswer").value = "";
+  $("trialQuizAnswer").disabled = false;
+  $("trialQuizSubmitBtn").disabled = false;
+  $("trialQuizNextBtn").classList.add("hidden");
+  setTrialMessage("trialQuizMessage");
+  $("trialQuizAnswer").focus();
+}
+
+function startTrialQuiz() {
+  const language = normalizeQuizLanguage($("trialQuizLanguage").value) || "english";
+  const rawCount = Number.parseInt($("trialQuizCount").value, 10);
+  const count = Math.max(1, Math.min(TRIAL_MAX_QUESTIONS, Number.isInteger(rawCount) ? rawCount : 5));
+  $("trialQuizCount").value = String(count);
+  trialState.quiz = {
+    language,
+    questions: shuffledTrialQuestions(TRIAL_QUESTION_BANKS[language]).slice(0, count),
+    index: 0,
+    correct: 0,
+    answered: false,
+  };
+  $("trialQuizSetup").classList.add("hidden");
+  $("trialQuizSummary").classList.add("hidden");
+  $("trialQuizRun").classList.remove("hidden");
+  renderTrialQuestion();
+}
+
+function submitTrialQuizAnswer(event) {
+  event?.preventDefault();
+  const quiz = trialState.quiz;
+  const item = quiz?.questions?.[quiz.index];
+  if (!quiz || !item || quiz.answered) return;
+  const answer = $("trialQuizAnswer").value.trim();
+  if (!answer) {
+    setTrialMessage("trialQuizMessage", "请输入答案后再提交。", "error");
+    $("trialQuizAnswer").focus();
+    return;
+  }
+  const normalized = normalizeTrialAnswer(answer, quiz.language);
+  const correct = item.answers.some((candidate) => normalizeTrialAnswer(candidate, quiz.language) === normalized);
+  if (correct) quiz.correct += 1;
+  quiz.answered = true;
+  $("trialQuizScore").textContent = `答对 ${quiz.correct}`;
+  $("trialQuizAnswer").disabled = true;
+  $("trialQuizSubmitBtn").disabled = true;
+  setTrialMessage(
+    "trialQuizMessage",
+    correct ? "回答正确。" : `本题答案：${item.answers.join(" / ")}`,
+    correct ? "success" : "error",
+  );
+  $("trialQuizNextBtn").textContent = quiz.index + 1 >= quiz.questions.length ? "查看结果" : "下一题";
+  $("trialQuizNextBtn").classList.remove("hidden");
+  $("trialQuizNextBtn").focus();
+}
+
+function nextTrialQuestion() {
+  const quiz = trialState.quiz;
+  if (!quiz?.answered) return;
+  if (quiz.index + 1 >= quiz.questions.length) {
+    $("trialQuizRun").classList.add("hidden");
+    $("trialQuizSummary").classList.remove("hidden");
+    $("trialQuizFinalScore").textContent = `${quiz.correct} / ${quiz.questions.length}`;
+    $("trialQuizRegisterBtn").focus();
+    return;
+  }
+  quiz.index += 1;
+  quiz.answered = false;
+  renderTrialQuestion();
+}
+
+function countTrialWords(text) {
+  if (!text.trim()) return 0;
+  try {
+    const segmenter = new Intl.Segmenter(undefined, { granularity: "word" });
+    return [...segmenter.segment(text)].filter((item) => item.isWordLike).length;
+  } catch (_) {
+    return (text.match(/[A-Za-z0-9]+|[\u3400-\u9fff\u3040-\u30ff]/gu) || []).length;
+  }
+}
+
+function updateTrialTextStats() {
+  const text = $("trialTextInput").value.slice(0, TRIAL_MAX_TEXT_CHARS);
+  if (text !== $("trialTextInput").value) $("trialTextInput").value = text;
+  const words = countTrialWords(text);
+  $("trialTextCharacters").textContent = String(Array.from(text).length);
+  $("trialTextWords").textContent = String(words);
+  $("trialTextLines").textContent = String(text ? text.split(/\r?\n/).length : 0);
+  $("trialTextParagraphs").textContent = String(text.trim() ? text.trim().split(/(?:\r?\n){2,}/).filter(Boolean).length : 0);
+  $("trialTextReading").textContent = `${words ? Math.max(1, Math.ceil(words / 220)) : 0} 分钟`;
+}
+
+function parseTrialJson() {
+  const input = $("trialJsonInput").value.trim();
+  if (!input) throw new Error("请先输入 JSON 内容");
+  if (input.length > TRIAL_MAX_TEXT_CHARS) throw new Error("JSON 内容超过 200,000 个字符");
+  return JSON.parse(input);
+}
+
+function formatTrialJson() {
+  try {
+    const parsed = parseTrialJson();
+    $("trialJsonOutput").textContent = JSON.stringify(parsed, null, 2);
+    $("trialJsonOutput").classList.remove("hidden");
+    setTrialMessage("trialJsonMessage", "JSON 合法，已在本机完成格式化。", "success");
+  } catch (error) {
+    $("trialJsonOutput").classList.add("hidden");
+    setTrialMessage("trialJsonMessage", `JSON 无效：${error.message}`, "error");
+  }
+}
+
+function validateTrialJson() {
+  try {
+    parseTrialJson();
+    $("trialJsonOutput").classList.add("hidden");
+    setTrialMessage("trialJsonMessage", "JSON 格式合法。", "success");
+  } catch (error) {
+    $("trialJsonOutput").classList.add("hidden");
+    setTrialMessage("trialJsonMessage", `JSON 无效：${error.message}`, "error");
+  }
+}
+
+function clearTrialJson() {
+  $("trialJsonInput").value = "";
+  $("trialJsonOutput").textContent = "";
+  $("trialJsonOutput").classList.add("hidden");
+  setTrialMessage("trialJsonMessage");
+  $("trialJsonInput").focus();
+}
+
+async function decodeTrialImage(file) {
+  if (typeof createImageBitmap === "function") {
+    try {
+      const bitmap = await createImageBitmap(file);
+      return { source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close?.() };
+    } catch (_) {
+      // Safari and some embedded browsers need the HTMLImageElement fallback.
+    }
+  }
+  const sourceUrl = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = () => reject(new Error("浏览器无法读取这张图片"));
+      image.src = sourceUrl;
+    });
+    return { source: image, width: image.naturalWidth, height: image.naturalHeight, close: () => {} };
+  } finally {
+    URL.revokeObjectURL(sourceUrl);
+  }
+}
+
+function canvasToTrialBlob(canvas, type, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("浏览器不支持所选输出格式")), type, quality);
+  });
+}
+
+function trialImageFileName(originalName, mimeType) {
+  const base = String(originalName || "image").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 80) || "image";
+  const extension = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" }[mimeType] || "png";
+  return `${base}-trial.${extension}`;
+}
+
+function formatTrialBytes(bytes) {
+  const value = Math.max(0, Number(bytes) || 0);
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+async function processTrialImage() {
+  const button = $("trialImageProcessBtn");
+  const file = $("trialImageInput").files?.[0];
+  const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
+  releaseTrialImageOutput();
+  setTrialMessage("trialImageMessage");
+  if (!file) {
+    setTrialMessage("trialImageMessage", "请先选择一张图片。", "error");
+    return;
+  }
+  if (!allowedTypes.has(file.type)) {
+    setTrialMessage("trialImageMessage", "仅支持 PNG、JPG 和 WebP 图片。", "error");
+    return;
+  }
+  if (file.size > TRIAL_MAX_IMAGE_BYTES) {
+    setTrialMessage("trialImageMessage", "图片超过 12 MB，请选择较小文件。", "error");
+    return;
+  }
+  button.disabled = true;
+  button.textContent = "处理中…";
+  let decoded;
+  try {
+    decoded = await decodeTrialImage(file);
+    if (!decoded.width || !decoded.height || decoded.width * decoded.height > TRIAL_MAX_IMAGE_PIXELS) {
+      throw new Error("图片像素超过 2000 万或尺寸无效");
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = decoded.width;
+    canvas.height = decoded.height;
+    const context = canvas.getContext("2d", { alpha: true });
+    if (!context) throw new Error("浏览器无法建立图片处理画布");
+    const requestedType = trialState.imageMode === "format"
+      ? $("trialImageFormat").value
+      : (file.type === "image/png" ? "image/webp" : file.type);
+    if (requestedType === "image/jpeg") {
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    context.drawImage(decoded.source, 0, 0, canvas.width, canvas.height);
+    const quality = Math.max(0.2, Math.min(0.95, Number($("trialImageQuality").value) / 100 || 0.82));
+    const blob = await canvasToTrialBlob(canvas, requestedType, quality);
+    trialImageObjectUrl = URL.createObjectURL(blob);
+    $("trialImagePreview").src = trialImageObjectUrl;
+    $("trialImageDownload").href = trialImageObjectUrl;
+    $("trialImageDownload").download = trialImageFileName(file.name, blob.type);
+    $("trialImageDetails").textContent = `${decoded.width} × ${decoded.height} · 原文件 ${formatTrialBytes(file.size)} · 输出 ${formatTrialBytes(blob.size)} · ${blob.type.replace("image/", "").toUpperCase()}`;
+    $("trialImageResult").classList.remove("hidden");
+    const larger = trialState.imageMode === "compress" && blob.size >= file.size;
+    setTrialMessage("trialImageMessage", larger ? "处理完成，但当前格式没有变小；可以调整质量或尝试格式转换。" : "处理完成，结果仅保存在当前浏览器内存中。", larger ? "" : "success");
+  } catch (error) {
+    setTrialMessage("trialImageMessage", error.message, "error");
+  } finally {
+    decoded?.close?.();
+    button.disabled = false;
+    button.textContent = trialState.imageMode === "format" ? "转换格式" : "压缩图片";
+  }
+}
+
+function setTrialTool(value) {
+  const tool = TRIAL_TOOL_IDS.has(value) ? value : "quiz";
+  trialState.tool = tool;
+  document.querySelectorAll("[data-trial-tool]").forEach((button) => {
+    const active = button.dataset.trialTool === tool;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  document.querySelectorAll("[data-trial-panel]").forEach((panel) => {
+    const panelName = tool.startsWith("image-") ? "image" : tool;
+    panel.classList.toggle("hidden", panel.dataset.trialPanel !== panelName);
+  });
+  if (tool.startsWith("image-")) {
+    trialState.imageMode = tool === "image-format" ? "format" : "compress";
+    $("trialImageTitle").textContent = trialState.imageMode === "format" ? "单张图片格式转换" : "单张图片压缩";
+    $("trialImageDescription").textContent = trialState.imageMode === "format"
+      ? "在 PNG、JPG 和 WebP 之间转换，结果只生成在本机。"
+      : "调整质量后生成一个新的本地图片文件。";
+    $("trialImageQualityField").classList.toggle("hidden", trialState.imageMode === "format");
+    $("trialImageFormatField").classList.toggle("hidden", trialState.imageMode !== "format");
+    $("trialImageProcessBtn").textContent = trialState.imageMode === "format" ? "转换格式" : "压缩图片";
+    releaseTrialImageOutput();
+    setTrialMessage("trialImageMessage");
+  }
+  renderAccountUi();
+}
+
+function showPublicHome(pushHistory = true) {
+  stopProjectActivity();
+  currentProject = "";
+  state.quizLanguage = "";
+  hidePrimaryScreens();
+  $("publicHome").classList.remove("hidden");
+  $("publicHome").setAttribute("aria-hidden", "false");
+  document.body.classList.remove("project-picker-active");
+  if (pushHistory) pushRoute("/");
+  renderAccountUi();
+}
+
+function showChangelog(pushHistory = true) {
+  stopProjectActivity();
+  currentProject = "";
+  state.quizLanguage = "";
+  hidePrimaryScreens();
+  $("changelogPage").classList.remove("hidden");
+  $("changelogPage").setAttribute("aria-hidden", "false");
+  document.body.classList.remove("project-picker-active");
+  if (pushHistory) pushRoute("/changelog");
+  renderAccountUi();
+}
+
+function showTrial(pushHistory = true, tool = "") {
+  stopProjectActivity();
+  currentProject = "";
+  state.quizLanguage = "";
+  hidePrimaryScreens();
+  $("trialPage").classList.remove("hidden");
+  $("trialPage").setAttribute("aria-hidden", "false");
+  document.body.classList.remove("project-picker-active");
+  setTrialTool(tool || trialState.tool);
+  if (pushHistory) pushRoute("/trial");
+  renderAccountUi();
+}
+
 function runSplashSequence(revealContent) {
   const screen = $("entryScreen");
   if (!screen) {
@@ -2291,12 +2684,14 @@ function pushRoute(path, replace = false) {
 }
 
 function hidePrimaryScreens() {
-  ["modulePicker", "projectPicker", "projectApp", "toolsPanel", "shareViewer", "adminPanel"].forEach((id) => {
+  const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
+  ["publicHome", "changelogPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "shareViewer", "adminPanel"].forEach((id) => {
     const element = $(id);
     if (!element) return;
     element.classList.add("hidden");
     element.setAttribute("aria-hidden", "true");
   });
+  if (leavingTrial) releaseTrialImageOutput();
   $("topbar")?.classList.add("hidden");
   $("authPanel")?.classList.add("hidden");
   $("workspace")?.classList.add("hidden");
@@ -2483,8 +2878,28 @@ async function routeCurrent() {
       return;
     }
     if (!state.session || !state.account) {
+      if (path === "/") {
+        showPublicHome(false);
+        return;
+      }
+      if (path === "/trial") {
+        showTrial(false);
+        return;
+      }
+      if (path === "/changelog") {
+        showChangelog(false);
+        return;
+      }
       const register = path === "/register";
       showAuth(pendingAuthMessage, { mode: register ? "register" : "login", path: register ? "/register" : "/login", replace: !["/login", "/register"].includes(path) });
+      return;
+    }
+    if (path === "/changelog") {
+      showChangelog(false);
+      return;
+    }
+    if (path === "/trial") {
+      showTrial(false);
       return;
     }
     if (["/", "/login", "/register", "/select"].includes(path)) {
@@ -5044,17 +5459,21 @@ async function navigateFromSiteNav(destination) {
   closeAccountMenu();
   if (destination === "home") {
     if (state.session && state.account) showModulePicker(true);
-    else showAuth("", { path: "/login" });
+    else showPublicHome(true);
+    return;
+  }
+  if (destination === "changelog") {
+    showChangelog(true);
     return;
   }
   if (destination === "language") {
     if (state.session && state.account) showProjectPicker(true);
-    else showAuth("请先登录后使用语言学习", { path: "/login" });
+    else showTrial(true, "quiz");
     return;
   }
   if (destination === "tools") {
     if (state.session && state.account) await showTools("/tools", true);
-    else showAuth("请先登录后使用在线工具", { path: "/login" });
+    else showTrial(true, "text");
   }
 }
 
@@ -5082,6 +5501,27 @@ async function boot() {
     event.preventDefault();
     await navigateFromSiteNav(link.dataset.siteNav);
   }));
+  $("publicTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
+  $("publicLanguageTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
+  $("publicToolsTrialBtn")?.addEventListener("click", () => showTrial(true, "text"));
+  $("publicRegisterBtn")?.addEventListener("click", () => showAuth("", { mode: "register", path: "/register" }));
+  $("publicPlansBtn")?.addEventListener("click", () => showAuth("登录后可查看实时套餐并提交充值申请", { mode: "login", path: "/login" }));
+  $("publicChangelogBtn")?.addEventListener("click", () => showChangelog(true));
+  $("changelogTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
+  $("trialHomeBtn")?.addEventListener("click", () => state.session && state.account ? showModulePicker(true) : showPublicHome(true));
+  ["trialRegisterBtn", "trialQuizRegisterBtn"].forEach((id) => $(id)?.addEventListener("click", () => showAuth("注册后可保存词表、错题和学习记录", { mode: "register", path: "/register" })));
+  document.querySelectorAll("[data-trial-tool]").forEach((button) => button.addEventListener("click", () => setTrialTool(button.dataset.trialTool)));
+  $("trialQuizStartBtn")?.addEventListener("click", startTrialQuiz);
+  $("trialQuizAnswerForm")?.addEventListener("submit", submitTrialQuizAnswer);
+  $("trialQuizNextBtn")?.addEventListener("click", nextTrialQuestion);
+  $("trialQuizRestartBtn")?.addEventListener("click", resetTrialQuiz);
+  $("trialTextInput")?.addEventListener("input", updateTrialTextStats);
+  $("trialJsonFormatBtn")?.addEventListener("click", formatTrialJson);
+  $("trialJsonValidateBtn")?.addEventListener("click", validateTrialJson);
+  $("trialJsonClearBtn")?.addEventListener("click", clearTrialJson);
+  $("trialImageQuality")?.addEventListener("input", () => { $("trialImageQualityValue").textContent = `${$("trialImageQuality").value}%`; });
+  $("trialImageInput")?.addEventListener("change", () => { releaseTrialImageOutput(); setTrialMessage("trialImageMessage"); });
+  $("trialImageProcessBtn")?.addEventListener("click", processTrialImage);
   $("membershipBtn").addEventListener("click", async () => { closeAccountMenu(); pushRoute("/recharge"); await openMembershipModal(); });
   $("accountBtn").addEventListener("click", () => { closeAccountMenu(); pushRoute("/account"); openModal("accountModal"); });
   $("homeBtn").addEventListener("click", () => { closeAccountMenu(); showModulePicker(true); });
@@ -5277,13 +5717,27 @@ async function boot() {
     if (document.visibilityState === "visible" && navigator.onLine !== false) refreshBackendState();
   }, BACKEND_REFRESH_INTERVAL_MS);
 
-  const initialPath = location.pathname;
+  const initialPath = location.pathname.replace(/\/+$/, "") || "/";
   const backendPromise = refreshBackendState();
   await runSplashSequence(() => {
     $("appShell").classList.remove("app-shell-pending");
     $("appShell").classList.add("app-shell-ready");
     $("appShell").setAttribute("aria-hidden", "false");
     if (initialPath.startsWith("/share/") && showShareRoute(initialPath)) return;
+    if (!state.session || !state.account) {
+      if (initialPath === "/") {
+        showPublicHome(false);
+        return;
+      }
+      if (initialPath === "/trial") {
+        showTrial(false);
+        return;
+      }
+      if (initialPath === "/changelog") {
+        showChangelog(false);
+        return;
+      }
+    }
     const shouldResumeWorkspace = Boolean(state.session && state.account);
     showAuth(state.session ? "正在验证登录状态…" : "", {
       mode: initialPath === "/register" ? "register" : "login",

@@ -1,17 +1,17 @@
-const CACHE = "wyj-shell-20260809-dashboard-membership-rejudge";
+const CACHE = "wyj-shell-20260809-public-trial";
 const NAVIGATION_TIMEOUT_MS = 5000;
 const ASSET_TIMEOUT_MS = 10000;
 const CORE_SHELL = [
   "/",
   "/index.html",
-  "/styles.css?v=20260809-dashboard-membership-rejudge",
-  "/product-ui.css?v=20260809-dashboard-membership-rejudge",
-  "/app.js?v=20260809-dashboard-membership-rejudge",
-  "/tools.js?v=20260809-dashboard-membership-rejudge",
+  "/styles.css?v=20260809-public-trial",
+  "/product-ui.css?v=20260809-public-trial",
+  "/app.js?v=20260809-public-trial",
+  "/tools.js?v=20260809-public-trial",
   "/vendor/qrcode.js?v=2.0.4",
   "/vendor/opencc-st-characters.txt",
   "/vendor/opencc-ts-characters.txt",
-  "/manifest.webmanifest?v=20260809-dashboard-membership-rejudge",
+  "/manifest.webmanifest?v=20260809-public-trial",
   "/icon-192.png",
   "/icon-512.png",
 ];

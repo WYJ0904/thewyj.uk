@@ -17,6 +17,7 @@ const USER_SECRET_NEW = "App-Matrix-New-2026!";
 fs.mkdirSync(DOWNLOAD_ROOT, { recursive: true });
 const wordsFile = path.join(TEST_ROOT, `app-words-${RUN_ID}.txt`);
 const wrongFile = path.join(TEST_ROOT, `app-wrong-${RUN_ID}.json`);
+const trialImageFile = path.join(TEST_ROOT, `app-trial-${RUN_ID}.png`);
 fs.writeFileSync(wordsFile, "hello\nworld\nstudy\n", "utf8");
 fs.writeFileSync(wrongFile, JSON.stringify({
   type: "vocab-wrong-book",
@@ -29,6 +30,10 @@ fs.writeFileSync(wrongFile, JSON.stringify({
     hello: { last_answer: "你好", original_answer: "你好", correct_answer: "你好", accepted: ["您好"], wrong_count: 2 },
   },
 }, null, 2), "utf8");
+fs.writeFileSync(
+  trialImageFile,
+  Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64"),
+);
 
 async function request(pathname, payload = null, token = "") {
   const response = await fetch(`${BASE_URL}${pathname}`, {
@@ -122,6 +127,7 @@ async function main() {
   const { client, send, targetId } = browser;
   const runtimeErrors = [];
   const networkHttpErrors = [];
+  const networkRequests = [];
   const dialogs = [];
   const checks = [];
   const admin = await api("/api/login", { username: "wyj", secret: ADMIN_SECRET });
@@ -151,6 +157,12 @@ async function main() {
       networkHttpErrors.push({
         status: Number(message.params.response.status),
         url: message.params.response.url,
+      });
+    }
+    if (message.method === "Network.requestWillBeSent") {
+      networkRequests.push({
+        method: message.params?.request?.method || "GET",
+        url: message.params?.request?.url || "",
       });
     }
     if (message.method === "Page.javascriptDialogOpening") {
@@ -313,26 +325,104 @@ async function main() {
       assert.equal(initial.legacyDoors, 0);
       assert.equal(initial.legacyBrandText, false);
       await waitFor("!document.querySelector('#entryScreen')", 6_000, "splash removal");
-      await waitFor("location.pathname === '/login' && !document.querySelector('#authPanel')?.classList.contains('hidden')", 8_000, "login route");
+      await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 8_000, "public home route");
       assert.equal(await evaluate("!document.querySelector('#accountBar').classList.contains('hidden')"), true);
       assert.equal(await evaluate("!document.querySelector('#navGuestActions').classList.contains('hidden')"), true);
       assert.equal(await evaluate("document.querySelector('#accountMenu').classList.contains('hidden')"), true);
+      assert.equal(await evaluate("document.querySelectorAll('#publicHome .public-feature-card').length"), 7);
+      assert.equal(await evaluate("document.querySelector('#publicHome').textContent.includes('无第三方追踪')"), true);
       const pwa = await evaluate(`(async () => {
         const registration = await navigator.serviceWorker.ready;
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260809-dashboard-membership-rejudge');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260809-public-trial');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles) };
       })()`);
       assert.equal(pwa.active, true);
       assert.equal(pwa.cachedLogo, true);
       assert.equal(pwa.cachedProductStyles, true);
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
-      fs.writeFileSync(path.join(TEST_ROOT, `desktop-app-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
+      fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
+    });
+
+    await check("limited anonymous trial stays local and protected routes remain locked", async () => {
+      await navigate(`/trial?app-matrix=${RUN_ID}`);
+      await waitFor("!document.querySelector('#entryScreen')", 6_000, "trial splash removal");
+      await waitFor("location.pathname === '/trial' && !document.querySelector('#trialPage')?.classList.contains('hidden')", 8_000, "trial route");
+      assert.equal(await evaluate("document.querySelectorAll('[data-trial-tool]').length"), 5);
+      assert.equal(await evaluate("document.querySelector('#trialImageInput').multiple"), false);
+      const requestStart = networkRequests.length;
+      const storageBefore = await evaluate(`JSON.stringify(Object.fromEntries(Object.entries(localStorage)))`);
+
+      await setFields({ "#trialQuizCount": 99, "#trialQuizLanguage": "english" });
+      await click("#trialQuizStartBtn");
+      await waitFor("document.querySelector('#trialQuizProgress')?.textContent.includes('/ 10')", 3_000, "ten-question trial cap");
+      for (let index = 0; index < 10; index += 1) {
+        await setFields({ "#trialQuizAnswer": `wrong-${index}` });
+        await click("#trialQuizSubmitBtn");
+        await waitFor("!document.querySelector('#trialQuizNextBtn')?.classList.contains('hidden')", 2_000, "trial next button");
+        await click("#trialQuizNextBtn");
+      }
+      await waitFor("!document.querySelector('#trialQuizSummary')?.classList.contains('hidden')", 3_000, "trial completion summary");
+      assert.equal(await evaluate("document.querySelector('#trialQuizFinalScore').textContent"), "0 / 10");
+      assert.equal(await evaluate("document.querySelector('#trialQuizSummary').textContent.includes('注册后')"), true);
+
+      await click('[data-trial-tool="text"]');
+      await setFields({ "#trialTextInput": "hello world\n\n你好" });
+      assert.equal(await evaluate("document.querySelector('#trialTextCharacters').textContent"), "15");
+      assert.equal(await evaluate("document.querySelector('#trialTextLines').textContent"), "3");
+      assert.equal(await evaluate("document.querySelector('#trialTextParagraphs').textContent"), "2");
+
+      await click('[data-trial-tool="json"]');
+      await setFields({ "#trialJsonInput": '{"name":"WYJ","trial":true}' });
+      await click("#trialJsonFormatBtn");
+      assert.equal(await evaluate("document.querySelector('#trialJsonOutput').textContent.includes('\\n')"), true);
+      assert.equal(await evaluate("document.querySelector('#trialJsonMessage').textContent.includes('合法')"), true);
+      await setFields({ "#trialJsonInput": '{broken' });
+      await click("#trialJsonValidateBtn");
+      assert.equal(await evaluate("document.querySelector('#trialJsonMessage').classList.contains('is-error')"), true);
+
+      await click('[data-trial-tool="image-compress"]');
+      await setFiles("#trialImageInput", [trialImageFile]);
+      await click("#trialImageProcessBtn");
+      await waitFor("!document.querySelector('#trialImageResult')?.classList.contains('hidden')", 8_000, "local image compression");
+      assert.equal(await evaluate("document.querySelector('#trialImageDownload').href.startsWith('blob:')"), true);
+      await click('[data-trial-tool="image-format"]');
+      assert.equal(await evaluate("document.querySelector('[data-site-nav=tools]').getAttribute('aria-current')"), "page");
+      await setFields({ "#trialImageFormat": "image/png" });
+      await click("#trialImageProcessBtn");
+      await waitFor("!document.querySelector('#trialImageResult')?.classList.contains('hidden')", 8_000, "local image conversion");
+      assert.equal(await evaluate("document.querySelector('#trialImageDownload').download.endsWith('.png')"), true);
+
+      assert.equal(await evaluate(`JSON.stringify(Object.fromEntries(Object.entries(localStorage)))`), storageBefore);
+      const trialApiRequests = networkRequests.slice(requestStart).filter((item) => {
+        const pathname = new URL(item.url).pathname;
+        return ["/api/quiz/start", "/api/judge", "/api/tools/recent", "/api/temporary/text"].includes(pathname);
+      });
+      assert.deepEqual(trialApiRequests, []);
+
+      await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+      const mobileTrial = await evaluate(`({ viewport: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth })`);
+      assert.ok(mobileTrial.scrollWidth <= mobileTrial.viewport + 1, JSON.stringify(mobileTrial));
+      const trialShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      fs.writeFileSync(path.join(TEST_ROOT, `public-trial-390-${RUN_ID}.png`), Buffer.from(trialShot.data, "base64"));
+      await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+
+      await navigate(`/changelog?app-matrix=${RUN_ID}`);
+      await waitFor("!document.querySelector('#entryScreen')", 6_000, "changelog splash removal");
+      await waitFor("location.pathname === '/changelog' && !document.querySelector('#changelogPage')?.classList.contains('hidden')", 8_000, "changelog route");
+      assert.equal(await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"), 3);
+      for (const pathName of ["/tools", "/language", "/admin"]) {
+        await navigate(`${pathName}?app-matrix=${RUN_ID}`);
+        await waitFor("!document.querySelector('#entryScreen')", 6_000, `${pathName} splash removal`);
+        await waitFor("location.pathname === '/login' && !document.querySelector('#authPanel')?.classList.contains('hidden')", 8_000, `${pathName} login protection`);
+      }
     });
 
     await check("registration and login UI", async () => {
-      await click("#showRegisterBtn");
+      await navigate(`/register?app-matrix=${RUN_ID}`);
+      await waitFor("!document.querySelector('#entryScreen')", 6_000, "register splash removal");
+      await waitFor("location.pathname === '/register' && !document.querySelector('#registerForm')?.classList.contains('hidden')", 8_000, "register route");
       await setFields({
         "#registerUsernameInput": USERNAME,
         "#registerSecretInput": USER_SECRET,
