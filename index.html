@@ -6,9 +6,9 @@
     <meta name="theme-color" content="#ffffff" />
     <title>WYJ的网站</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260809-language-state" />
-    <link rel="stylesheet" href="/styles.css?v=20260809-language-state" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260809-language-state" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260809-membership-selection" />
+    <link rel="stylesheet" href="/styles.css?v=20260809-membership-selection" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260809-membership-selection" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 WYJ的网站" aria-hidden="false">
@@ -595,17 +595,31 @@
         <button class="modal-close" data-close-modal="membershipModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         <p class="section-kicker">会员服务</p>
         <h2 id="membershipTitle">会员充值</h2>
-        <div class="plan-grid" id="membershipPlanList" aria-live="polite"></div>
-        <div class="load-recovery hidden" id="membershipPlanRecovery">
-          <p id="membershipPlanError">会员方案暂时无法加载。</p>
-          <button id="retryMembershipPlansBtn" type="button">重新加载套餐</button>
-        </div>
-        <label class="field-label hidden" id="trialLanguageField"><span>选择单语言</span><select id="trialLanguageSelect"><option value="english">英语</option><option value="japanese">日语</option></select></label>
-        <fieldset class="payment-method-field" id="paymentMethodField">
-          <legend>选择支付方式</legend>
+        <fieldset class="membership-goal-field" id="membershipGoalField">
+          <legend>1. 选择你需要的功能</legend>
+          <div class="membership-goal-list" id="membershipGoalList">
+            <button class="membership-goal-option" data-membership-goal="english" type="button" aria-pressed="false"><strong>只学英语</strong><small>英语单语言或覆盖双语言的方案</small></button>
+            <button class="membership-goal-option" data-membership-goal="japanese" type="button" aria-pressed="false"><strong>只学日语</strong><small>日语单语言或覆盖双语言的方案</small></button>
+            <button class="membership-goal-option" data-membership-goal="bilingual" type="button" aria-pressed="false"><strong>英语和日语</strong><small>同时使用两种语言会员功能</small></button>
+            <button class="membership-goal-option" data-membership-goal="tools" type="button" aria-pressed="false"><strong>只用工具箱</strong><small>在线工具、批量处理和临时分享</small></button>
+            <button class="membership-goal-option" data-membership-goal="all" type="button" aria-pressed="false"><strong>语言和工具箱</strong><small>学习与工具全部高级功能</small></button>
+          </div>
+          <p class="membership-goal-hint" id="membershipGoalHint" aria-live="polite">先选择用途，页面只会显示适合该用途的套餐。</p>
+        </fieldset>
+        <section class="membership-plan-step hidden" id="membershipPlanStep" aria-labelledby="membershipPlanHeading">
+          <h3 class="membership-step-title" id="membershipPlanHeading">2. 选择套餐</h3>
+          <div class="plan-grid" id="membershipPlanList" aria-live="polite"></div>
+          <div class="load-recovery hidden" id="membershipPlanRecovery">
+            <p id="membershipPlanError">会员方案暂时无法加载。</p>
+            <button id="retryMembershipPlansBtn" type="button">重新加载套餐</button>
+          </div>
+          <label class="field-label hidden" id="trialLanguageField"><span>已选语言</span><select id="trialLanguageSelect"><option value="english">英语</option><option value="japanese">日语</option></select></label>
+        </section>
+        <fieldset class="payment-method-field hidden" id="paymentMethodField">
+          <legend>3. 选择支付方式</legend>
           <div class="payment-method-list" id="paymentMethodList" aria-live="polite"></div>
         </fieldset>
-        <div class="purchase-summary" id="purchaseSummary">请选择套餐</div>
+        <div class="purchase-summary" id="purchaseSummary">请先选择需要的功能</div>
         <p class="membership-warning">套餐按模块独立授权：双语言包月和 70 CNY 双语言双项永久会员包含英语、日语测试，不包含在线工具箱；工具箱包月仅包含在线工具箱。需要两个模块时请选择全功能套餐。</p>
         <div class="payment-order hidden" id="paymentOrderBox">
           <dl><dt>用户名</dt><dd id="paymentUsername">-</dd><dt>会员方案</dt><dd id="paymentPlan">-</dd><dt class="hidden" id="paymentLanguageTerm">所选语言</dt><dd class="hidden" id="paymentLanguage">-</dd><dt>支付方式</dt><dd id="paymentMethod">-</dd><dt>应付金额</dt><dd id="paymentAmount">-</dd><dt>订单编号</dt><dd><code id="paymentOrderNumber">-</code> <button id="copyOrderBtn" type="button">复制</button></dd><dt>付款备注</dt><dd><span id="paymentNote">-</span> <button id="copyPaymentNoteBtn" type="button">复制</button></dd><dt>订单状态</dt><dd id="paymentStatus">-</dd></dl>
@@ -753,7 +767,7 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/tools.js?v=20260809-language-state"></script>
-    <script src="/app.js?v=20260809-language-state"></script>
+    <script src="/tools.js?v=20260809-membership-selection"></script>
+    <script src="/app.js?v=20260809-membership-selection"></script>
   </body>
 </html>

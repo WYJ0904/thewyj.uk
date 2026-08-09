@@ -368,6 +368,69 @@ class AccountStoreTests(unittest.TestCase):
         with self.assertRaises(AccountError):
             self.store.create_recharge_request(user, "monthly", "wechat")
 
+    def test_all_six_purchasable_plans_require_manual_approval_and_grant_expected_rights(self):
+        cases = {
+            "trial_single_language": {
+                "language": "english",
+                "included": {"language_english_access"},
+                "excluded": {"language_japanese_access", "language_all_access", "tools_access"},
+            },
+            "dual_language_monthly": {
+                "included": {"language_english_access", "language_japanese_access", "language_all_access"},
+                "excluded": {"tools_access"},
+            },
+            "tools_monthly": {
+                "included": {"tools_access", "tools_batch_access", "temporary_share_access", "save_tool_config"},
+                "excluded": {"language_english_access", "language_japanese_access", "language_all_access"},
+            },
+            "all_access_monthly": {
+                "included": {"language_english_access", "language_japanese_access", "language_all_access", "tools_access"},
+                "excluded": set(),
+            },
+            "japanese_lifetime": {
+                "included": {"language_english_access", "language_japanese_access", "language_all_access"},
+                "excluded": {"tools_access"},
+            },
+            "all_access_lifetime": {
+                "included": {"language_english_access", "language_japanese_access", "language_all_access", "tools_access"},
+                "excluded": set(),
+            },
+        }
+        self.assertEqual(set(cases), {code for code, plan in MEMBERSHIP_PLANS.items() if plan["purchasable"]})
+
+        for index, (plan_code, expected) in enumerate(cases.items()):
+            with self.subTest(plan=plan_code):
+                user = self.register(f"plan-user-{index}")
+                request, created = self.store.create_recharge_request(
+                    user,
+                    plan_code,
+                    "wechat" if index % 2 == 0 else "alipay",
+                    expected.get("language", ""),
+                )
+                self.assertTrue(created)
+                self.assertEqual(request["amount_cents"], MEMBERSHIP_PLANS[plan_code]["price_cents"])
+                self.assertEqual(self.store.user_payload(self.store.get_user(user["id"]))["entitlements"], [])
+
+                confirmed = self.store.confirm_recharge_payment(user, request["id"])
+                self.assertEqual(confirmed["status"], "user_paid")
+                self.assertEqual(self.store.user_payload(self.store.get_user(user["id"]))["entitlements"], [])
+
+                status = self.store.process_recharge_request(self.admin, request["id"], "approve")
+                self.assertEqual(status, "approved")
+                payload = self.store.user_payload(self.store.get_user(user["id"]))
+                self.assertTrue(expected["included"].issubset(payload["entitlements"]))
+                self.assertTrue(expected["excluded"].isdisjoint(payload["entitlements"]))
+                active_codes = {item["plan_code"] for item in payload["memberships"] if item["status"] == "active"}
+                self.assertIn(plan_code, active_codes)
+                approved = next(
+                    item for item in self.store.list_recharge_requests(self.admin)
+                    if item["id"] == request["id"]
+                )
+                self.assertEqual(approved["status"], "approved")
+                self.assertEqual([item["to_status"] for item in approved["history"]], [
+                    "pending_payment", "user_paid", "processing", "approved",
+                ])
+
     def test_new_memberships_merge_entitlements_without_granting_tools_to_bilingual_lifetime(self):
         user = self.register()
         japanese = self.store.admin_manage_membership(
@@ -416,9 +479,18 @@ class AccountStoreTests(unittest.TestCase):
 
     def test_admin_membership_changes_survive_restarts_without_false_migration_failure(self):
         user = self.register("restart-membership")
-        self.store.admin_manage_membership(
-            self.admin, user["id"], "grant", "dual_language_lifetime"
-        )
+        now = iso_now()
+        with self.store.connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO user_memberships (
+                    id, user_id, plan_code, starts_at, expires_at, is_lifetime,
+                    status, source, source_ref, created_by, metadata_json, created_at, updated_at
+                ) VALUES (?, ?, 'dual_language_lifetime', ?, '', 1, 'active',
+                    'legacy_import', 'legacy-dual-record', 'migration', '{}', ?, ?)
+                """,
+                ("legacy-dual-membership", user["id"], now, now, now),
+            )
 
         restarted = AccountStore(self.store.database_path, self.text_path)
         payload = restarted.user_payload(restarted.get_user(user["id"]))
@@ -433,6 +505,32 @@ class AccountStoreTests(unittest.TestCase):
         payload = restarted_again.user_payload(restarted_again.get_user(user["id"]))
         self.assertEqual(payload["membership"], "free")
         self.assertNotIn("language_all_access", payload["entitlements"])
+
+    def test_retired_membership_cannot_be_granted_or_extended_but_can_be_cancelled(self):
+        user = self.register("retired-membership")
+        for action in ("grant", "extend"):
+            with self.assertRaises(AccountError) as raised:
+                self.store.admin_manage_membership(
+                    self.admin, user["id"], action, "dual_language_lifetime"
+                )
+            self.assertEqual(raised.exception.code, "plan_retired")
+
+        now = iso_now()
+        with self.store.connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO user_memberships (
+                    id, user_id, plan_code, starts_at, expires_at, is_lifetime,
+                    status, source, source_ref, created_by, metadata_json, created_at, updated_at
+                ) VALUES (?, ?, 'dual_language_lifetime', ?, '', 1, 'active',
+                    'legacy_import', 'retired-cancel-record', 'migration', '{}', ?, ?)
+                """,
+                ("retired-cancel-membership", user["id"], now, now, now),
+            )
+        cancelled = self.store.admin_manage_membership(
+            self.admin, user["id"], "cancel", "dual_language_lifetime"
+        )
+        self.assertNotIn("language_all_access", cancelled["entitlements"])
 
     def test_login_audit_is_bounded_protected_and_contains_no_secrets(self):
         user = self.register("audit-user", "AuditSecret1")

@@ -439,7 +439,7 @@ async function main() {
         const registration = await navigator.serviceWorker.ready;
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260809-language-state');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260809-membership-selection');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles) };
       })()`);
       assert.equal(pwa.active, true);
@@ -599,24 +599,48 @@ async function main() {
       await click('[data-module="tools"]');
       await waitFor("!document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, "membership modal");
       assert.equal(await evaluate("location.pathname"), "/select");
-      await waitFor("document.querySelectorAll('#membershipPlanList [data-plan]').length === 6", 12_000, "membership plans");
-      const plans = await evaluate(`[...document.querySelectorAll('#membershipPlanList [data-plan]')].map(node => ({ code: node.dataset.plan, text: node.textContent }))`);
-      assert.deepEqual(plans.map((item) => item.code), ["trial_single_language", "dual_language_monthly", "tools_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"]);
-      assert.ok(plans.find((item) => item.code === "trial_single_language").text.includes("8"));
-      assert.ok(plans.find((item) => item.code === "dual_language_monthly").text.includes("20"));
-      assert.ok(plans.find((item) => item.code === "dual_language_monthly").text.includes("双语言包月"));
-      assert.ok(plans.find((item) => item.code === "tools_monthly").text.includes("20"));
-      assert.ok(plans.find((item) => item.code === "all_access_monthly").text.includes("30"));
-      assert.ok(plans.find((item) => item.code === "japanese_lifetime").text.includes("70"));
-      assert.ok(plans.find((item) => item.code === "japanese_lifetime").text.includes("双语言双项永久会员"));
-      assert.ok(plans.find((item) => item.code === "all_access_lifetime").text.includes("100"));
+      await waitFor("selectedMembershipGoal === 'tools' && document.querySelectorAll('#membershipPlanList [data-plan]').length === 3", 12_000, "tool membership choices");
+      const expectedByGoal = {
+        english: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
+        japanese: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
+        bilingual: ["dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
+        tools: ["tools_monthly", "all_access_monthly", "all_access_lifetime"],
+        all: ["all_access_monthly", "all_access_lifetime"],
+      };
+      const planTextByCode = {};
+      const observedCodes = new Set();
+      for (const [goal, expectedCodes] of Object.entries(expectedByGoal)) {
+        await click(`[data-membership-goal="${goal}"]`);
+        await waitFor(`selectedMembershipGoal === ${JSON.stringify(goal)} && document.querySelectorAll('#membershipPlanList [data-plan]').length === ${expectedCodes.length}`, 3_000, `${goal} membership choices`);
+        const plans = await evaluate(`[...document.querySelectorAll('#membershipPlanList [data-plan]')].map(node => ({ code: node.dataset.plan, text: node.textContent }))`);
+        assert.deepEqual(plans.map((item) => item.code), expectedCodes);
+        plans.forEach((item) => {
+          observedCodes.add(item.code);
+          planTextByCode[item.code] = item.text;
+        });
+      }
+      assert.deepEqual([...observedCodes].sort(), ["all_access_lifetime", "all_access_monthly", "dual_language_monthly", "japanese_lifetime", "tools_monthly", "trial_single_language"]);
+      assert.ok(planTextByCode.trial_single_language.includes("8"));
+      assert.ok(planTextByCode.dual_language_monthly.includes("20"));
+      assert.ok(planTextByCode.dual_language_monthly.includes("双语言包月"));
+      assert.ok(planTextByCode.tools_monthly.includes("20"));
+      assert.ok(planTextByCode.all_access_monthly.includes("30"));
+      assert.ok(planTextByCode.japanese_lifetime.includes("70"));
+      assert.ok(planTextByCode.japanese_lifetime.includes("双语言双项永久会员"));
+      assert.ok(planTextByCode.all_access_lifetime.includes("100"));
       await assertReadable(".plan-option small");
+      await assertReadable(".membership-goal-option small");
       await assertReadable(".membership-warning");
       await delay(240);
       assert.deepEqual(await auditVisibleTextContrast("#membershipModal"), []);
-      assert.equal(await evaluate("document.querySelectorAll('#paymentMethodList input[name=\"paymentMethod\"]').length"), 2);
+      assert.equal(await evaluate("document.querySelector('#paymentMethodField').classList.contains('hidden')"), true);
+      await click('[data-membership-goal="english"]');
       await click('[data-plan="trial_single_language"]');
       assert.equal(await evaluate("document.querySelector('#trialLanguageField').classList.contains('hidden')"), false);
+      assert.equal(await evaluate("document.querySelector('#trialLanguageSelect').value"), "english");
+      assert.equal(await evaluate("document.querySelector('#trialLanguageSelect').disabled"), true);
+      assert.equal(await evaluate("document.querySelectorAll('#paymentMethodList input[name=\"paymentMethod\"]').length"), 2);
+      await click('[data-membership-goal="tools"]');
       await click('[data-plan="all_access_monthly"]');
       assert.ok((await evaluate("document.querySelector('#purchaseSummary').textContent")).includes("30 CNY"));
       await evaluate("window.__wyjOriginalImageDecode = HTMLImageElement.prototype.decode; HTMLImageElement.prototype.decode = undefined; true");
@@ -637,6 +661,8 @@ async function main() {
       assert.ok(mobilePayment.scrollWidth <= mobilePayment.viewport + 1, JSON.stringify(mobilePayment));
       assert.ok(mobilePayment.modalWidth <= mobilePayment.viewport, JSON.stringify(mobilePayment));
       assert.ok(mobilePayment.qrRight <= mobilePayment.viewport + 1, JSON.stringify(mobilePayment));
+      const mobileMembershipShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      fs.writeFileSync(path.join(TEST_ROOT, `membership-390-${RUN_ID}.png`), Buffer.from(mobileMembershipShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       await click("#confirmPaymentBtn");
       await waitFor("document.querySelector('#paymentStatus')?.textContent.includes('等待确认')", 12_000, "payment confirmation");
@@ -645,6 +671,9 @@ async function main() {
       await evaluate("HTMLImageElement.prototype.decode = window.__wyjOriginalImageDecode; delete window.__wyjOriginalImageDecode; true");
       await evaluate("location.href = '/tools'; true");
       await waitFor("location.pathname === '/select' && !document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, "direct tools guard");
+      await waitFor("!document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, "open payment order restored");
+      assert.equal(await evaluate("selectedMembershipGoal"), "tools");
+      assert.equal(await evaluate("document.querySelector('#paymentOrderBox').classList.contains('hidden')"), false);
       await click('[data-close-modal="membershipModal"]');
     });
 
