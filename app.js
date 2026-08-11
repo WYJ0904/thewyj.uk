@@ -1,4 +1,4 @@
-const APP_VERSION = "2026-08-09-rejudge-modal";
+const APP_VERSION = "2026-08-11-payment-state";
 const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
 const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);
 const API_TIMEOUT_MS = 30000;
@@ -1228,14 +1228,24 @@ function updateMembershipPurchaseSummary() {
     return;
   }
   const [name, price, description] = planDetails(selectedRechargePlan);
-  summary.textContent = `${name} · ${price} · ${paymentMethodLabel(selectedPaymentMethod)} · ${description}`;
+  const method = normalizedPaymentMethod(selectedPaymentMethod);
+  summary.textContent = `${name} · ${price} · ${method ? paymentMethodLabel(method) : "请选择支付方式"} · ${description}`;
+}
+
+function normalizedPaymentMethod(value) {
+  const method = String(value || "").trim().toLowerCase();
+  const allowed = paymentMethods.length
+    ? paymentMethods.map((item) => item.code)
+    : ["wechat", "alipay"];
+  return allowed.includes(method) ? method : "";
 }
 
 function paymentMethodLabel(value) {
-  return paymentMethods.find((item) => item.code === value)?.name || {
+  const method = normalizedPaymentMethod(value);
+  return paymentMethods.find((item) => item.code === method)?.name || {
     wechat: "微信支付",
     alipay: "支付宝",
-  }[value] || value || "未选择";
+  }[method] || "未选择";
 }
 
 function renderPaymentMethods() {
@@ -1245,18 +1255,19 @@ function renderPaymentMethods() {
     { code: "wechat", name: "微信支付" },
     { code: "alipay", name: "支付宝" },
   ];
-  if (!methods.some((item) => item.code === selectedPaymentMethod)) {
-    selectedPaymentMethod = methods[0]?.code || "";
-  }
+  selectedPaymentMethod = normalizedPaymentMethod(selectedPaymentMethod);
   list.innerHTML = methods.map((item) => `<label>
     <input type="radio" name="paymentMethod" value="${escapeHtml(item.code)}" ${item.code === selectedPaymentMethod ? "checked" : ""} />
     <span>${escapeHtml(item.name)}</span>
   </label>`).join("");
   list.querySelectorAll('input[name="paymentMethod"]').forEach((input) => {
     input.addEventListener("change", () => {
-      selectedPaymentMethod = input.value;
+      selectedPaymentMethod = normalizedPaymentMethod(input.value);
       updateMembershipPurchaseSummary();
       $("submitRechargeBtn").disabled = !selectedRechargePlan || !selectedPaymentMethod;
+      $("rechargeMessage").textContent = selectedPaymentMethod
+        ? `已选择${paymentMethodLabel(selectedPaymentMethod)}，确认套餐后即可创建订单。`
+        : "请先选择微信支付或支付宝。";
     });
   });
 }
@@ -1331,6 +1342,10 @@ function waitForImageReady(image, signal, timeoutMs = 4000) {
 async function loadPaymentQr(record, modalSequence = membershipModalLoadSequence) {
   releasePaymentQr();
   if (!record?.id || !["pending_payment", "user_paid", "processing"].includes(record.status)) return;
+  if (!normalizedPaymentMethod(record.payment_method)) {
+    $("rechargeMessage").textContent = "该订单没有有效支付方式，不能加载二维码。请取消后重新创建订单。";
+    return;
+  }
   if ($("membershipModal")?.classList.contains("hidden")) return;
   const wrap = $("paymentQrWrap");
   const image = $("paymentQrImage");
@@ -1441,6 +1456,7 @@ function selectMembershipGoal(goal, options = {}) {
   if (!options.preserveOrder) {
     releasePaymentQr();
     currentPaymentOrder = null;
+    selectedPaymentMethod = "";
     resetRechargeOrderUi();
   }
   selectedMembershipGoal = normalized;
@@ -1526,6 +1542,7 @@ async function openMembershipModal(options = {}) {
   releasePaymentQr();
   currentPaymentOrder = null;
   selectedRechargePlan = "";
+  selectedPaymentMethod = "";
   selectedMembershipGoal = normalizedMembershipGoal(options.goal);
   resetRechargeOrderUi();
   renderMembershipGoals();
@@ -1543,7 +1560,12 @@ async function openMembershipModal(options = {}) {
     loadErrors.push(plansResult.reason?.message || "会员方案加载失败");
   }
   if (ordersResult.status === "fulfilled") {
-    openOrder = (ordersResult.value.requests || []).find((item) => ["pending_payment", "user_paid", "processing"].includes(item.status)) || null;
+    const restoredOrder = (ordersResult.value.requests || []).find((item) => ["pending_payment", "user_paid", "processing"].includes(item.status)) || null;
+    if (restoredOrder && normalizedPaymentMethod(restoredOrder.payment_method)) {
+      openOrder = restoredOrder;
+    } else if (restoredOrder) {
+      loadErrors.push("未完成订单缺少有效支付方式，服务器将关闭该旧订单，请重新创建");
+    }
   } else if (ordersResult.reason?.name !== "AbortError") {
     loadErrors.push(ordersResult.reason?.message || "订单状态加载失败");
   }
@@ -1578,6 +1600,7 @@ function selectRechargePlan(plan, options = {}) {
   }
   if (planCode && membershipPlans.some((item) => item.code === planCode) && !membershipGoalAllowsPlan(selectedMembershipGoal, planCode)) return;
   if (!options.preserveOrder) releasePaymentQr();
+  if (!options.preserveOrder && planCode !== selectedRechargePlan) selectedPaymentMethod = "";
   selectedRechargePlan = planCode;
   if (!options.preserveOrder) {
     currentPaymentOrder = null;
@@ -1602,12 +1625,22 @@ function paymentStatusLabel(status) {
 
 function renderPaymentOrder(record) {
   if (!record) return;
+  const orderPaymentMethod = normalizedPaymentMethod(record.payment_method);
+  if (!orderPaymentMethod) {
+    releasePaymentQr();
+    currentPaymentOrder = null;
+    selectedPaymentMethod = "";
+    resetRechargeOrderUi();
+    renderMembershipPlans();
+    $("rechargeMessage").textContent = "该旧订单没有有效支付方式，不能恢复或确认付款。请重新创建订单。";
+    return;
+  }
   currentPaymentOrder = record;
   selectedMembershipGoal = membershipGoalAllowsPlan(selectedMembershipGoal, record.plan_code)
     ? selectedMembershipGoal
     : membershipGoalForPlan(record.plan_code, record.trial_language);
   selectedRechargePlan = record.plan_code;
-  selectedPaymentMethod = record.payment_method;
+  selectedPaymentMethod = orderPaymentMethod;
   renderMembershipGoals();
   renderMembershipPlans();
   setPaymentControlsLocked(true);
@@ -1622,12 +1655,12 @@ function renderPaymentOrder(record) {
   $("paymentLanguage").classList.toggle("hidden", !languageLabel);
   $("paymentLanguage").textContent = languageLabel || "-";
   if (languageLabel) $("trialLanguageSelect").value = record.trial_language;
-  $("paymentMethod").textContent = paymentMethodLabel(record.payment_method);
+  $("paymentMethod").textContent = paymentMethodLabel(orderPaymentMethod);
   $("paymentAmount").textContent = `${(Number(record.amount_cents || 0) / 100).toFixed(2)} ${record.currency || "CNY"}`;
   $("paymentOrderNumber").textContent = record.order_number || "-";
   $("paymentNote").textContent = record.payment_note || "-";
   $("paymentStatus").textContent = paymentStatusLabel(record.status);
-  $("paymentQrLabel").textContent = `请使用${paymentMethodLabel(record.payment_method)}扫码付款`;
+  $("paymentQrLabel").textContent = `请使用${paymentMethodLabel(orderPaymentMethod)}扫码付款`;
   $("paymentOrderBox").classList.remove("hidden");
   $("confirmPaymentBtn").classList.toggle("hidden", record.status !== "pending_payment");
   $("cancelPaymentOrderBtn").classList.toggle("hidden", record.status !== "pending_payment");
@@ -1647,14 +1680,27 @@ async function submitRechargeRequest() {
     return;
   }
   const button = $("submitRechargeBtn");
-  if (button.disabled || !selectedRechargePlan) return;
+  if (currentPaymentOrder && ["pending_payment", "user_paid", "processing"].includes(currentPaymentOrder.status)) return;
+  if (!selectedRechargePlan) {
+    $("rechargeMessage").textContent = "请先选择会员套餐。";
+    return;
+  }
+  const paymentMethod = normalizedPaymentMethod(selectedPaymentMethod);
+  if (!paymentMethod) {
+    $("rechargeMessage").textContent = "请先选择微信支付或支付宝。";
+    $("paymentMethodField")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    return;
+  }
   button.disabled = true;
   try {
     const data = await api("/api/recharge/request", {
       plan: selectedRechargePlan,
-      payment_method: selectedPaymentMethod,
+      payment_method: paymentMethod,
       trial_language: selectedRechargePlan === "trial_single_language" ? $("trialLanguageSelect").value : "",
     });
+    if (normalizedPaymentMethod(data.request?.payment_method) !== paymentMethod) {
+      throw new Error("订单支付方式保存失败，请刷新订单状态后重试");
+    }
     renderPaymentOrder(data.request);
     $("rechargeMessage").textContent = data.created
       ? "订单已生成并锁定。请核对二维码、金额与备注，付款后再点“我已付款”。"
@@ -1689,7 +1735,11 @@ async function cancelRechargeOrder() {
 }
 
 async function confirmRechargePayment() {
-  if (!currentPaymentOrder?.id) return;
+  if (!currentPaymentOrder?.id || currentPaymentOrder.status !== "pending_payment") return;
+  if (!normalizedPaymentMethod(currentPaymentOrder.payment_method)) {
+    $("rechargeMessage").textContent = "订单没有有效支付方式，不能通知管理员。请取消后重新创建订单。";
+    return;
+  }
   const button = $("confirmPaymentBtn");
   button.disabled = true;
   try {

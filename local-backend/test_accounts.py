@@ -212,6 +212,90 @@ class AccountStoreTests(unittest.TestCase):
             self.assertNotIn("contact", payload)
             self.assertNotIn("handled_by", payload)
 
+    def test_each_payment_method_persists_until_explicit_confirmation(self):
+        for method in ("wechat", "alipay"):
+            with self.subTest(method=method):
+                user = self.register(f"persist-{method}")
+                request, created = self.store.create_recharge_request(
+                    user, "tools_monthly", method
+                )
+                self.assertTrue(created)
+                self.assertEqual(request["payment_method"], method)
+                self.assertEqual(request["status"], "pending_payment")
+                self.assertEqual(request["user_confirmed_at"], "")
+
+                restarted = AccountStore(self.store.database_path, self.text_path)
+                restored_user = restarted.get_user(user["id"])
+                restored = next(
+                    item
+                    for item in restarted.list_user_payment_requests(restored_user)
+                    if item["id"] == request["id"]
+                )
+                self.assertEqual(restored["payment_method"], method)
+                self.assertEqual(restored["status"], "pending_payment")
+                self.assertEqual(
+                    restored["qr_resource_id"],
+                    f"qr-v1:{method}:tools_monthly",
+                )
+
+                confirmed = restarted.confirm_recharge_payment(
+                    restored_user, restored["id"]
+                )
+                self.assertEqual(confirmed["status"], "user_paid")
+                self.assertTrue(confirmed["user_confirmed_at"])
+
+    def test_payment_consistency_migration_closes_invalid_legacy_open_order(self):
+        user = self.register("legacy-missing-method")
+        request, _created = self.store.create_recharge_request(
+            user, "all_access_monthly", "wechat"
+        )
+        self.store.confirm_recharge_payment(user, request["id"])
+        with self.store.connect() as connection:
+            connection.execute(
+                "UPDATE payment_requests SET payment_method = '', qr_resource_id = '' WHERE id = ?",
+                (request["id"],),
+            )
+            connection.execute(
+                "DELETE FROM schema_migrations WHERE version = ?",
+                ("005_payment_method_consistency",),
+            )
+
+        restarted = AccountStore(self.store.database_path, self.text_path)
+        restored_user = restarted.get_user(user["id"])
+        restored = next(
+            item
+            for item in restarted.list_user_payment_requests(restored_user)
+            if item["id"] == request["id"]
+        )
+        self.assertEqual(restored["status"], "cancelled")
+        self.assertEqual(restored["payment_method"], "")
+        replacement, created = restarted.create_recharge_request(
+            restored_user, "all_access_monthly", "alipay"
+        )
+        self.assertTrue(created)
+        self.assertEqual(replacement["payment_method"], "alipay")
+        self.assertEqual(replacement["status"], "pending_payment")
+        with restarted.connect() as connection:
+            events = connection.execute(
+                "SELECT COUNT(*) FROM payment_request_events WHERE id = ?",
+                (f"migration-005-payment-{request['id']}",),
+            ).fetchone()[0]
+        self.assertEqual(events, 1)
+
+    def test_payment_confirmation_rejects_corrupted_method_binding(self):
+        user = self.register("corrupt-payment")
+        request, _created = self.store.create_recharge_request(
+            user, "tools_monthly", "wechat"
+        )
+        with self.store.connect() as connection:
+            connection.execute(
+                "UPDATE payment_requests SET payment_method = '', qr_resource_id = '' WHERE id = ?",
+                (request["id"],),
+            )
+        with self.assertRaises(AccountError) as invalid:
+            self.store.confirm_recharge_payment(user, request["id"])
+        self.assertEqual(invalid.exception.code, "payment_method_invalid")
+
     def test_cancelled_membership_can_be_granted_again_without_duplicate_record(self):
         user = self.register()
         self.store.admin_manage_membership(

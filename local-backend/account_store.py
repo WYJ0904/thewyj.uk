@@ -167,6 +167,7 @@ class AccountStore:
         self._backup_before_membership_migration()
         self._backup_before_single_language_migration()
         self._backup_before_payment_migration()
+        self._backup_before_payment_method_consistency_migration()
         self.initialize()
 
     def _backup_before_membership_migration(self):
@@ -257,6 +258,39 @@ class AccountStore:
                 applied = source.execute(
                     "SELECT 1 FROM schema_migrations WHERE version = ?",
                     ("004_payment_flow",),
+                ).fetchone()
+                if applied:
+                    return
+                with closing(sqlite3.connect(str(backup_path), timeout=15)) as destination:
+                    source.backup(destination)
+        except sqlite3.Error:
+            try:
+                backup_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
+
+    def _backup_before_payment_method_consistency_migration(self):
+        if not self.database_path.exists() or self.database_path.stat().st_size == 0:
+            return
+        backup_path = self.database_path.with_name(
+            f"{self.database_path.stem}.pre-payment-method-005.sqlite3"
+        )
+        if backup_path.exists():
+            return
+        try:
+            with closing(sqlite3.connect(str(self.database_path), timeout=15)) as source:
+                tables = {
+                    row[0]
+                    for row in source.execute(
+                        "SELECT name FROM sqlite_master WHERE type = 'table'"
+                    ).fetchall()
+                }
+                if "payment_requests" not in tables or "schema_migrations" not in tables:
+                    return
+                applied = source.execute(
+                    "SELECT 1 FROM schema_migrations WHERE version = ?",
+                    ("005_payment_method_consistency",),
                 ).fetchone()
                 if applied:
                     return
@@ -377,6 +411,11 @@ class AccountStore:
                 connection,
                 "004_payment_flow",
                 "004_payment_flow_up.sql",
+            )
+            self._apply_migration(
+                connection,
+                "005_payment_method_consistency",
+                "005_payment_method_consistency_up.sql",
             )
             self._seed_membership_plans(connection, now)
             self._migrate_legacy_memberships(connection, now)
@@ -1769,6 +1808,21 @@ class AccountStore:
         } else 503
         return AccountError(str(exc), status, exc.code)
 
+    @classmethod
+    def _validated_payment_request_method(cls, request):
+        try:
+            method = normalize_payment_method(request["payment_method"])
+            expected_resource_id = qr_resource_id_for(method, request["plan_code"])
+        except PaymentAssetError as exc:
+            raise cls._payment_asset_account_error(exc) from exc
+        if request["qr_resource_id"] != expected_resource_id:
+            raise AccountError(
+                "订单支付方式与二维码不一致，请取消订单后重新创建",
+                409,
+                "payment_qr_mismatch",
+            )
+        return method
+
     def create_recharge_request(self, user, plan, payment_method="", trial_language=""):
         if not user or user["deleted"] or user["banned"]:
             raise AccountError("账户不可用", 403, "account_unavailable")
@@ -1874,6 +1928,7 @@ class AccountStore:
             ).fetchone()
             if not request:
                 raise AccountError("充值订单不存在", 404, "payment_not_found")
+            self._validated_payment_request_method(request)
             if request["status"] == "user_paid":
                 return self.payment_request_payload(request)
             if request["status"] != "pending_payment":
@@ -1950,13 +2005,7 @@ class AccountStore:
                 raise AccountError("充值订单不存在", 404, "payment_not_found")
             if request["status"] not in PAYMENT_QR_STATUSES:
                 raise AccountError("该订单当前不能查看收款二维码", 409, "payment_qr_status_invalid")
-            try:
-                method = normalize_payment_method(request["payment_method"])
-                expected_id = qr_resource_id_for(method, request["plan_code"])
-            except PaymentAssetError as exc:
-                raise self._payment_asset_account_error(exc) from exc
-            if request["qr_resource_id"] != expected_id:
-                raise AccountError("订单二维码资源不匹配", 409, "payment_qr_mismatch")
+            self._validated_payment_request_method(request)
             return self.payment_request_payload(request)
 
     def list_user_payment_requests(self, user):

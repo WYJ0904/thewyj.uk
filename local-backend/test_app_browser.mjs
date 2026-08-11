@@ -454,7 +454,7 @@ async function main() {
         const registration = await navigator.serviceWorker.ready;
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260809-rejudge-modal');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260811-payment-state');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles) };
       })()`);
       assert.equal(pwa.active, true);
@@ -658,13 +658,20 @@ async function main() {
       await click('[data-membership-goal="tools"]');
       await click('[data-plan="all_access_monthly"]');
       assert.ok((await evaluate("document.querySelector('#purchaseSummary').textContent")).includes("30 CNY"));
+      assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').disabled"), true);
+      await click('#paymentMethodList input[value="wechat"]');
       await evaluate("window.__wyjOriginalImageDecode = HTMLImageElement.prototype.decode; HTMLImageElement.prototype.decode = undefined; true");
       await click("#submitRechargeBtn");
       await waitFor("!document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, "payment order");
       assert.ok((await evaluate("document.querySelector('#paymentAmount').textContent")).includes("30.00 CNY"));
       assert.ok((await evaluate("document.querySelector('#paymentNote').textContent")).includes(USERNAME));
       assert.equal(await evaluate("document.querySelector('#paymentMethodList input:checked')?.value"), "wechat");
-      assert.ok((await evaluate("document.querySelector('#paymentMethod').textContent.trim()")).length > 1);
+      assert.equal(await evaluate("document.querySelector('#paymentMethod').textContent.trim()"), "微信支付");
+      assert.equal(await evaluate("document.querySelector('#paymentStatus').textContent.trim()"), "等待付款");
+      assert.equal(await evaluate("document.querySelector('#paymentQrLabel').textContent.trim()"), "请使用微信支付扫码付款");
+      assert.equal(await evaluate("document.querySelector('#confirmPaymentBtn').classList.contains('hidden')"), false);
+      assert.equal(await evaluate("document.querySelector('#confirmPaymentBtn').disabled"), false);
+      assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').textContent.includes('等待管理员')"), false);
       await waitFor("document.querySelector('#paymentQrImage')?.src.startsWith('blob:')", 12_000, "protected payment QR");
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
       const mobilePayment = await evaluate(`({
@@ -690,6 +697,50 @@ async function main() {
       assert.equal(await evaluate("selectedMembershipGoal"), "tools");
       assert.equal(await evaluate("document.querySelector('#paymentOrderBox').classList.contains('hidden')"), false);
       await click('[data-close-modal="membershipModal"]');
+    });
+
+    await check("WeChat and Alipay order state survives a full page reload", async () => {
+      const labels = { wechat: "微信支付", alipay: "支付宝" };
+      for (const method of ["wechat", "alipay"]) {
+        const paymentUser = await createUser(`pay${method}`);
+        await useSession(paymentUser.session, "/recharge");
+        await waitFor("!document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, `${method} recharge modal`);
+        await click('[data-membership-goal="tools"]');
+        await waitFor("document.querySelector('#membershipPlanList [data-plan=\"tools_monthly\"]')", 8_000, `${method} tools plan`);
+        await click('[data-plan="tools_monthly"]');
+        assert.equal(await evaluate("selectedPaymentMethod"), "");
+        assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').disabled"), true);
+        await click(`#paymentMethodList input[value="${method}"]`);
+        assert.equal(await evaluate("selectedPaymentMethod"), method);
+        assert.ok((await evaluate("document.querySelector('#purchaseSummary').textContent")).includes(labels[method]));
+        await click("#submitRechargeBtn");
+        await waitFor("currentPaymentOrder?.status === 'pending_payment' && !document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, `${method} pending payment order`);
+        assert.equal(await evaluate("currentPaymentOrder.payment_method"), method);
+        assert.equal(await evaluate("document.querySelector('#paymentMethod').textContent.trim()"), labels[method]);
+        assert.equal(await evaluate("document.querySelector('#paymentStatus').textContent.trim()"), "等待付款");
+        assert.equal(await evaluate("document.querySelector('#paymentQrLabel').textContent.trim()"), `请使用${labels[method]}扫码付款`);
+        assert.equal(await evaluate("document.querySelector('#confirmPaymentBtn').classList.contains('hidden')"), false);
+        assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').textContent.includes('等待管理员')"), false);
+        await waitFor("document.querySelector('#paymentQrImage')?.src.startsWith('blob:')", 12_000, `${method} payment QR`);
+
+        await navigate(`/recharge?payment-method=${method}&run=${RUN_ID}`);
+        await waitFor("!document.querySelector('#entryScreen')", 6_000, `${method} recharge reload splash`);
+        await waitFor("currentPaymentOrder?.status === 'pending_payment' && !document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, `${method} restored order`);
+        assert.equal(await evaluate("selectedPaymentMethod"), method);
+        assert.equal(await evaluate("document.querySelector('#paymentMethodList input:checked')?.value"), method);
+        assert.equal(await evaluate("document.querySelector('#paymentMethod').textContent.trim()"), labels[method]);
+        assert.equal(await evaluate("document.querySelector('#paymentStatus').textContent.trim()"), "等待付款");
+        assert.equal(await evaluate("document.querySelector('#paymentQrLabel').textContent.trim()"), `请使用${labels[method]}扫码付款`);
+        assert.equal(await evaluate("document.querySelector('#confirmPaymentBtn').classList.contains('hidden')"), false);
+        assert.equal(await evaluate("document.querySelector('#confirmPaymentBtn').disabled"), false);
+        assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').textContent.includes('等待管理员')"), false);
+        await waitFor("document.querySelector('#paymentQrImage')?.src.startsWith('blob:')", 12_000, `${method} restored payment QR`);
+        await click("#cancelPaymentOrderBtn");
+        await waitFor("!currentPaymentOrder && document.querySelector('#paymentOrderBox').classList.contains('hidden')", 8_000, `${method} order cancellation`);
+        await click('[data-close-modal="membershipModal"]');
+      }
+      await useSession(userSession, "/select");
+      await waitFor("!document.querySelector('#modulePicker')?.classList.contains('hidden')", 8_000, "main user dashboard restored");
     });
 
     await check("word import, export, shuffle and clear", async () => {

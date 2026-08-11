@@ -218,7 +218,8 @@ function Write-LauncherErrorReport {
         "temporary_store.py",
         "vocabulary_index.py",
         "run.ps1",
-        "migrations\004_payment_flow_up.sql"
+        "migrations\004_payment_flow_up.sql",
+        "migrations\005_payment_method_consistency_up.sql"
     )) {
         $present = $script:BackendRoot -and (Test-Path -LiteralPath (Join-Path $script:BackendRoot $relativePath) -PathType Leaf)
         $report.Add(("[{0}] {1}" -f $(if ($present) { "存在" } else { "缺失" }), $relativePath))
@@ -1317,7 +1318,8 @@ function Test-SourceLayout {
         "migrations\001_entitlements_up.sql",
         "migrations\002_single_language_orders_up.sql",
         "migrations\003_login_audit_up.sql",
-        "migrations\004_payment_flow_up.sql"
+        "migrations\004_payment_flow_up.sql",
+        "migrations\005_payment_method_consistency_up.sql"
     )
     foreach ($relativePath in $required) {
         $path = Join-Path $BackendSourceRoot $relativePath

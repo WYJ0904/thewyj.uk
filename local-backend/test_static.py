@@ -74,12 +74,12 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260809-rejudge-modal"
+        release_token = "20260811-payment-state"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "tools.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}"', self.worker)
-        self.assertIn('const APP_VERSION = "2026-08-09-rejudge-modal"', self.app)
+        self.assertIn('const APP_VERSION = "2026-08-11-payment-state"', self.app)
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
         self.assertIn('APP_BUILD = "2026-08-02-network-resilience"', server)
         self.assertIn('"/trial", "/changelog"', server)
@@ -273,6 +273,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("002_single_language_orders_up.sql", launcher)
         self.assertIn("003_login_audit_up.sql", launcher)
         self.assertIn("004_payment_flow_up.sql", launcher)
+        self.assertIn("005_payment_method_consistency_up.sql", launcher)
         self.assertIn('$LauncherVersion = "11.0.0"', launcher)
         self.assertIn("WYJ Website Launcher 11.0.0", launcher_cmd)
         self.assertIn("Repair-TunnelOriginAddress", launcher)
@@ -508,6 +509,8 @@ class StaticSiteTests(unittest.TestCase):
         downgrade_three = (migrations / "003_login_audit_down.sql").read_text(encoding="utf-8")
         upgrade_four = (migrations / "004_payment_flow_up.sql").read_text(encoding="utf-8")
         downgrade_four = (migrations / "004_payment_flow_down.sql").read_text(encoding="utf-8")
+        upgrade_five = (migrations / "005_payment_method_consistency_up.sql").read_text(encoding="utf-8")
+        downgrade_five = (migrations / "005_payment_method_consistency_down.sql").read_text(encoding="utf-8")
         connection = sqlite3.connect(":memory:")
         try:
             connection.executescript(before)
@@ -543,6 +546,13 @@ class StaticSiteTests(unittest.TestCase):
             }
             self.assertIn("payment_request_events", tables)
             self.assertIn("payment_fulfillments", tables)
+            connection.executescript(upgrade_five)
+            connection.executescript(upgrade_five)
+            payment_consistency_applied = connection.execute(
+                "SELECT COUNT(*) FROM schema_migrations WHERE version = '005_payment_method_consistency'"
+            ).fetchone()[0]
+            self.assertEqual(payment_consistency_applied, 1)
+            connection.executescript(downgrade_five)
             connection.executescript(downgrade_four)
             payment_columns = {
                 row[1] for row in connection.execute("PRAGMA table_info(payment_requests)")

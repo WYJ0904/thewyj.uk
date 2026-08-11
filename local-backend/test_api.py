@@ -758,6 +758,42 @@ class AccountApiTests(unittest.TestCase):
         self.assertEqual(status, 200, tools)
         self.assertTrue(tools["account"]["tools_access"])
 
+    def test_wechat_and_alipay_orders_restore_before_user_confirmation(self):
+        for method in ("wechat", "alipay"):
+            with self.subTest(method=method):
+                _, _, session = self.new_user()
+                status, created = self.request(
+                    "POST",
+                    "/api/recharge/request",
+                    {"plan": "tools_monthly", "payment_method": method},
+                    session,
+                )
+                self.assertEqual(status, 201, created)
+                order = created["request"]
+                self.assertEqual(order["payment_method"], method)
+                self.assertEqual(order["status"], "pending_payment")
+                self.assertEqual(order["user_confirmed_at"], "")
+
+                status, mine = self.request("GET", "/api/recharge/mine", session=session)
+                self.assertEqual(status, 200, mine)
+                restored = next(item for item in mine["requests"] if item["id"] == order["id"])
+                self.assertEqual(restored["payment_method"], method)
+                self.assertEqual(restored["status"], "pending_payment")
+                self.assertEqual(
+                    restored["qr_resource_id"],
+                    f"qr-v1:{method}:tools_monthly",
+                )
+
+                status, confirmed = self.request(
+                    "POST",
+                    "/api/recharge/confirm",
+                    {"request_id": order["id"]},
+                    session,
+                )
+                self.assertEqual(status, 200, confirmed)
+                self.assertEqual(confirmed["request"]["payment_method"], method)
+                self.assertEqual(confirmed["request"]["status"], "user_paid")
+
     def test_admin_self_protection(self):
         status, admin = self.request("GET", "/api/me", session=self.admin_session)
         admin_id = admin["account"]["id"]

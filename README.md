@@ -201,6 +201,8 @@ MD5、SHA-1、SHA-256、SHA-512、文件信息、CSV/JSON 互转、文本编码�
 - `local-backend/migrations/003_login_audit_down.sql`：只回滚登录审计表
 - `local-backend/migrations/004_payment_flow_up.sql`：支付方式、锁定快照、过期/处理状态、状态历史和唯一履约
 - `local-backend/migrations/004_payment_flow_down.sql`：删除支付历史/履约表并无损重建旧版订单列；`processing` 回退为 `user_paid`，`cancelled`/`expired` 回退为 `rejected`
+- `local-backend/migrations/005_payment_method_consistency_up.sql`：关闭升级前遗留的无支付方式开放订单，保留订单和状态事件并允许用户重新创建
+- `local-backend/migrations/005_payment_method_consistency_down.sql`：在没有其他开放订单时恢复由 005 关闭的订单状态
 
 第一次对老数据库执行迁移前会使用 SQLite backup API 创建一次性备份：
 
@@ -208,6 +210,7 @@ MD5、SHA-1、SHA-256、SHA-512、文件信息、CSV/JSON 互转、文本编码�
 data\users.pre-entitlements-001.sqlite3
 data\users.pre-single-language-002.sqlite3
 data\users.pre-payment-004.sqlite3
+data\users.pre-payment-method-005.sqlite3
 ```
 
 迁移由 `schema_migrations` 控制并可安全重启。支付履约对订单 ID 和 `source_ref=payment:<payment_request_id>` 都有唯一索引，防止重复增加期限。每个结构阶段只创建一次迁移前备份；备份可能仍含旧版明文密码，必须只保存在本机受保护目录，不能上传或提交。
