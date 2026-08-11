@@ -221,6 +221,7 @@ function Write-LauncherErrorReport {
         "migrations\004_payment_flow_up.sql",
         "migrations\005_payment_method_consistency_up.sql",
         "migrations\006_feedback_voting_up.sql"
+        "migrations\007_learning_sync_up.sql"
     )) {
         $present = $script:BackendRoot -and (Test-Path -LiteralPath (Join-Path $script:BackendRoot $relativePath) -PathType Leaf)
         $report.Add(("[{0}] {1}" -f $(if ($present) { "存在" } else { "缺失" }), $relativePath))
@@ -1322,6 +1323,7 @@ function Test-SourceLayout {
         "migrations\004_payment_flow_up.sql",
         "migrations\005_payment_method_consistency_up.sql",
         "migrations\006_feedback_voting_up.sql"
+        "migrations\007_learning_sync_up.sql"
     )
     foreach ($relativePath in $required) {
         $path = Join-Path $BackendSourceRoot $relativePath

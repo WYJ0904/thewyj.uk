@@ -1,4 +1,4 @@
-const APP_VERSION = "2026-08-11-feedback-voting";
+const APP_VERSION = "2026-08-11-learning-sync";
 const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
 const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);
 const API_TIMEOUT_MS = 30000;
@@ -234,6 +234,17 @@ const projectRuntime = {
 const BACKEND_CONFIG_MESSAGE = "服务器代理尚未配置，请设置 Cloudflare Pages 的 LOCAL_API_BASE。";
 const BACKEND_NETWORK_MESSAGE = "暂时无法连接服务器，请检查网络后重试；微信中可关闭页面再重新打开。";
 let backendFailureMessage = BACKEND_NETWORK_MESSAGE;
+let learningSyncManager = null;
+let learningSyncAccountId = "";
+let applyingLearningSync = false;
+let learningSyncRenderQueued = false;
+let learningSyncStatus = {
+  status: "synced",
+  label: "已同步",
+  detail: "",
+  pending: 0,
+  server_version: 0,
+};
 
 const restoredSession = localStorage.getItem("wyjAccountSession") || sessionStorage.getItem("vocabSession") || "";
 if (restoredSession) safeStorageSet(localStorage, "wyjAccountSession", restoredSession);
@@ -546,6 +557,409 @@ function studyGoalKey(language = state.quizLanguage, account = state.account, pr
   return `studyGoal:v${STUDY_DATA_VERSION}:${accountStorageId(account)}:${profileStorageName(profile)}:${language}`;
 }
 
+function projectPreferencesKey(language, account = state.account) {
+  return `learningPreferences:v1:${accountStorageId(account)}:${language}`;
+}
+
+function accountAiSuggestionSettingsKey(language, account = state.account) {
+  return `aiSuggestSettings:v2:${accountStorageId(account)}:${language}`;
+}
+
+function learningSyncApi() {
+  return window.WYJLearningSync || null;
+}
+
+function learningSyncRecordId(kind, ...components) {
+  return learningSyncApi()?.makeRecordId(kind, components) || "";
+}
+
+function learningSyncGroupPrefix(kind, ...components) {
+  const id = learningSyncRecordId(kind, ...components);
+  return id ? `${id}|` : "";
+}
+
+function learningSyncTimestamp(value) {
+  const parsed = new Date(value || "");
+  return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+}
+
+function learningSyncRecord(dataType, kind, components, payload, updatedAt = "") {
+  return {
+    data_type: dataType,
+    record_id: learningSyncRecordId(kind, ...components),
+    payload,
+    updated_at: learningSyncTimestamp(updatedAt),
+    deleted: false,
+  };
+}
+
+function decodeProfileStorageName(value) {
+  try {
+    return sanitizeProfile(decodeURIComponent(value));
+  } catch (_) {
+    return sanitizeProfile(value);
+  }
+}
+
+function savedProjectPreferences(language, account = state.account) {
+  const scoped = loadJson(projectPreferencesKey(language, account), null);
+  if (scoped && typeof scoped === "object" && !Array.isArray(scoped)) {
+    return {
+      gradingMode: ["strict", "normal", "lenient"].includes(scoped.gradingMode) ? scoped.gradingMode : "normal",
+      practiceMode: normalizePracticeMode(scoped.practiceMode),
+    };
+  }
+  return {
+    gradingMode: ["strict", "normal", "lenient"].includes(localStorage.getItem(`gradingMode:${language}`))
+      ? localStorage.getItem(`gradingMode:${language}`)
+      : "normal",
+    practiceMode: normalizePracticeMode(localStorage.getItem(`practiceMode:${language}`)),
+  };
+}
+
+function savedAiSuggestionSettings(language, account = state.account) {
+  const scoped = loadJson(accountAiSuggestionSettingsKey(language, account), null);
+  if (scoped && typeof scoped === "object" && !Array.isArray(scoped)) return scoped;
+  return loadJson(`aiSuggestSettings:${language}`, {});
+}
+
+function collectLegacyLearningSyncRecords(account = state.account) {
+  if (!account?.id || !learningSyncApi()) return [];
+  const records = [];
+  const encodedAccount = accountStorageId(account);
+  const keys = [];
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (key) keys.push(key);
+  }
+
+  const wrongPrefix = `wrongBook:v${ACCOUNT_DATA_VERSION}:${encodedAccount}:`;
+  const achievementPrefix = `achievements:v${ACCOUNT_DATA_VERSION}:${encodedAccount}:`;
+  const historyPrefix = `studyHistory:v${STUDY_DATA_VERSION}:${encodedAccount}:`;
+  const goalPrefix = `studyGoal:v${STUDY_DATA_VERSION}:${encodedAccount}:`;
+  keys.forEach((key) => {
+    if (key.startsWith(wrongPrefix)) {
+      const remainder = key.slice(wrongPrefix.length);
+      const separator = remainder.indexOf(":");
+      const scope = remainder.slice(0, separator);
+      const profile = decodeProfileStorageName(remainder.slice(separator + 1));
+      if (!["current", "history"].includes(scope) || separator < 1) return;
+      Object.entries(sanitizeWrongBook(loadJson(key, {}))).forEach(([word, info]) => {
+        records.push(learningSyncRecord(
+          "wrong_book",
+          "wrong",
+          [profile, scope, word],
+          info,
+          info.last_time,
+        ));
+      });
+      return;
+    }
+    if (key.startsWith(achievementPrefix)) {
+      const profile = decodeProfileStorageName(key.slice(achievementPrefix.length));
+      Object.entries(loadJson(key, {})).forEach(([achievementId, unlockedAt]) => {
+        if (!achievementId || !unlockedAt) return;
+        records.push(learningSyncRecord(
+          "achievement",
+          "achievement",
+          [profile, achievementId],
+          { unlocked_at: String(unlockedAt) },
+          unlockedAt,
+        ));
+      });
+      return;
+    }
+    if (key.startsWith(historyPrefix)) {
+      const profile = decodeProfileStorageName(key.slice(historyPrefix.length));
+      sanitizeStudyRecords(loadJson(key, [])).forEach((record) => {
+        records.push(learningSyncRecord(
+          "test_history",
+          "history",
+          [profile, record.id],
+          record,
+          record.finishedAt,
+        ));
+      });
+      return;
+    }
+    if (key.startsWith(goalPrefix)) {
+      const remainder = key.slice(goalPrefix.length);
+      const separator = remainder.lastIndexOf(":");
+      const profile = decodeProfileStorageName(remainder.slice(0, separator));
+      const language = remainder.slice(separator + 1);
+      const goal = Number.parseInt(localStorage.getItem(key), 10);
+      if (separator > 0 && LANGUAGE_LABELS[language] && Number.isInteger(goal) && goal >= 1 && goal <= 500) {
+        records.push(learningSyncRecord("daily_goal", "goal", [profile, language], { goal }));
+      }
+    }
+  });
+
+  Object.keys(LANGUAGE_LABELS).forEach((language) => {
+    records.push(learningSyncRecord("language_settings", "settings", [language], {
+      ...savedProjectPreferences(language, account),
+      aiSuggestion: savedAiSuggestionSettings(language, account),
+    }));
+  });
+  records.push(learningSyncRecord("learning_config", "config", ["active_profile"], {
+    profile: sanitizeProfile(localStorage.getItem(accountProfileKey(account)) || DEFAULT_PROFILE),
+  }));
+  return records.filter((record) => record.record_id);
+}
+
+function scheduleLearningSyncRender() {
+  if (learningSyncRenderQueued) return;
+  learningSyncRenderQueued = true;
+  queueMicrotask(() => {
+    learningSyncRenderQueued = false;
+    renderDashboard();
+    if ($("wrongView")?.classList.contains("active")) renderWrongBook();
+    if ($("achievementsView")?.classList.contains("active")) renderAchievements();
+    if ($("studyView")?.classList.contains("active")) renderStudyDashboard();
+  });
+}
+
+function applyLearningSyncRecord(record) {
+  if (!state.account?.id || learningSyncAccountId !== String(state.account.id)) return;
+  const parsed = learningSyncApi()?.parseRecordId(record.record_id);
+  if (!parsed) return;
+  const [first, second, third] = parsed.components;
+  applyingLearningSync = true;
+  try {
+    if (record.data_type === "wrong_book" && parsed.kind === "wrong" && first && ["current", "history"].includes(second) && third) {
+      const key = wrongBookKey(second, state.account, first);
+      const book = sanitizeWrongBook(loadJson(key, {}));
+      if (record.deleted) delete book[third];
+      else {
+        const cleaned = sanitizeWrongBook({ [third]: record.payload });
+        if (cleaned[third]) book[third] = cleaned[third];
+      }
+      safeStorageSet(localStorage, key, JSON.stringify(book));
+      if (first === state.profile) {
+        if (second === "history") state.historyWrongBook = book;
+        else state.currentWrongBook = book;
+      }
+    } else if (record.data_type === "achievement" && parsed.kind === "achievement" && first && second && !record.deleted) {
+      const key = achievementKey(state.account, first);
+      const achievements = loadJson(key, {});
+      if (!achievements[second]) achievements[second] = String(record.payload.unlocked_at || new Date().toLocaleString());
+      safeStorageSet(localStorage, key, JSON.stringify(achievements));
+      if (first === state.profile) state.achievements = achievements;
+    } else if (record.data_type === "test_history" && parsed.kind === "history" && first && second) {
+      const key = studyHistoryKey(state.account, first);
+      const history = sanitizeStudyRecords(loadJson(key, [])).filter((item) => item.id !== second);
+      if (!record.deleted) history.push(record.payload);
+      const cleaned = sanitizeStudyRecords(history);
+      safeStorageSet(localStorage, key, JSON.stringify(cleaned));
+      if (first === state.profile) state.studyRecords = cleaned;
+    } else if (record.data_type === "daily_goal" && parsed.kind === "goal" && first && LANGUAGE_LABELS[second]) {
+      const key = studyGoalKey(second, state.account, first);
+      if (record.deleted) localStorage.removeItem(key);
+      else {
+        const goal = Math.max(1, Math.min(500, Number.parseInt(record.payload.goal, 10) || 20));
+        safeStorageSet(localStorage, key, String(goal));
+      }
+    } else if (record.data_type === "language_settings" && parsed.kind === "settings" && LANGUAGE_LABELS[first]) {
+      if (record.deleted) {
+        localStorage.removeItem(projectPreferencesKey(first));
+        localStorage.removeItem(accountAiSuggestionSettingsKey(first));
+      } else {
+        const settings = {
+          gradingMode: ["strict", "normal", "lenient"].includes(record.payload.gradingMode)
+            ? record.payload.gradingMode
+            : "normal",
+          practiceMode: normalizePracticeMode(record.payload.practiceMode),
+        };
+        safeStorageSet(localStorage, projectPreferencesKey(first), JSON.stringify(settings));
+        const aiSuggestion = record.payload.aiSuggestion && typeof record.payload.aiSuggestion === "object"
+          ? record.payload.aiSuggestion
+          : {};
+        safeStorageSet(localStorage, accountAiSuggestionSettingsKey(first), JSON.stringify(aiSuggestion));
+        if (first === state.quizLanguage && !state.roundActive) {
+          state.gradingMode = settings.gradingMode;
+          state.practiceMode = settings.practiceMode;
+          if ($("gradingModeSelect")) $("gradingModeSelect").value = settings.gradingMode;
+          updatePracticeUi();
+          updateAiSuggestionControls();
+        }
+      }
+    } else if (record.data_type === "learning_config" && parsed.kind === "config" && first === "active_profile" && !record.deleted) {
+      safeStorageSet(localStorage, accountProfileKey(), sanitizeProfile(record.payload.profile));
+    }
+  } finally {
+    applyingLearningSync = false;
+  }
+  scheduleLearningSyncRender();
+}
+
+function updateLearningSyncStatus(status) {
+  learningSyncStatus = { ...learningSyncStatus, ...status };
+  const button = $("learningSyncNowBtn");
+  if (button) button.disabled = status.status === "syncing";
+  const detail = $("learningSyncDetail");
+  if (detail) {
+    detail.textContent = status.detail || (status.pending ? `${status.pending} 项本地变更等待上传` : `服务器版本 ${status.server_version || 0}`);
+  }
+  if (state.account) renderLearningSyncDashboardStatus();
+}
+
+function renderLearningSyncDashboardStatus() {
+  if (storageWriteFailed) {
+    setDashboardService("dashboardSyncStatus", "浏览器存储受限", "is-warning");
+    return;
+  }
+  const status = learningSyncStatus.status;
+  const style = status === "synced" || status === "merged"
+    ? "is-online"
+    : status === "failed"
+      ? "is-offline"
+      : "is-warning";
+  setDashboardService("dashboardSyncStatus", learningSyncStatus.label || "本地可用", style);
+}
+
+function ensureLearningSyncManager() {
+  if (learningSyncManager || !learningSyncApi()) return learningSyncManager;
+  learningSyncManager = new learningSyncApi().LearningSyncManager({
+    storage: localStorage,
+    onlineSource: window,
+    crypto: window.crypto,
+    transport: (payload) => api("/api/learning/sync", payload, { timeoutMs: 15000 }),
+    applyRecord: applyLearningSyncRecord,
+    onStatus: updateLearningSyncStatus,
+  });
+  return learningSyncManager;
+}
+
+function startLearningDataSync() {
+  if (!state.account?.id || !state.session) return;
+  const accountId = String(state.account.id);
+  if (learningSyncAccountId === accountId && learningSyncManager?.state) return;
+  const manager = ensureLearningSyncManager();
+  if (!manager) return;
+  learningSyncAccountId = accountId;
+  try {
+    manager.start({
+      accountId,
+      clientVersion: APP_VERSION,
+      legacyRecords: collectLegacyLearningSyncRecords(state.account),
+    });
+  } catch (error) {
+    updateLearningSyncStatus({ status: "failed", label: "同步失败", detail: error.message, pending: 0 });
+  }
+}
+
+function stopLearningDataSync() {
+  learningSyncAccountId = "";
+  learningSyncManager?.stop();
+  learningSyncStatus = { status: "synced", label: "已同步", detail: "", pending: 0, server_version: 0 };
+}
+
+function canQueueLearningSync() {
+  return Boolean(
+    !applyingLearningSync
+    && state.account?.id
+    && learningSyncManager?.state
+    && learningSyncAccountId === String(state.account.id),
+  );
+}
+
+function queueWrongBooksForSync() {
+  if (!canQueueLearningSync()) return;
+  [["current", state.currentWrongBook], ["history", state.historyWrongBook]].forEach(([scope, book]) => {
+    const records = Object.entries(sanitizeWrongBook(book)).map(([word, info]) => learningSyncRecord(
+      "wrong_book",
+      "wrong",
+      [state.profile, scope, word],
+      info,
+      info.last_time,
+    ));
+    learningSyncManager.replaceGroup(
+      "wrong_book",
+      learningSyncGroupPrefix("wrong", state.profile, scope),
+      records,
+    );
+  });
+}
+
+function queueAchievementsForSync() {
+  if (!canQueueLearningSync()) return;
+  Object.entries(state.achievements).forEach(([achievementId, unlockedAt]) => {
+    if (!achievementId || !unlockedAt) return;
+    learningSyncManager.upsert(learningSyncRecord(
+      "achievement",
+      "achievement",
+      [state.profile, achievementId],
+      { unlocked_at: String(unlockedAt) },
+      unlockedAt,
+    ));
+  });
+}
+
+function queueStudyRecordsForSync() {
+  if (!canQueueLearningSync()) return;
+  const records = sanitizeStudyRecords(state.studyRecords).map((record) => learningSyncRecord(
+    "test_history",
+    "history",
+    [state.profile, record.id],
+    record,
+    record.finishedAt,
+  ));
+  learningSyncManager.replaceGroup(
+    "test_history",
+    learningSyncGroupPrefix("history", state.profile),
+    records,
+  );
+}
+
+function queueStudyGoalForSync(language = state.quizLanguage, profile = state.profile) {
+  if (!canQueueLearningSync() || !LANGUAGE_LABELS[language]) return;
+  const goal = Number.parseInt(localStorage.getItem(studyGoalKey(language, state.account, profile)), 10);
+  if (!Number.isInteger(goal) || goal < 1 || goal > 500) return;
+  learningSyncManager.upsert(learningSyncRecord("daily_goal", "goal", [profile, language], { goal }));
+}
+
+function queueLanguageSettingsForSync(language = state.quizLanguage) {
+  if (!canQueueLearningSync() || !LANGUAGE_LABELS[language]) return;
+  learningSyncManager.upsert(learningSyncRecord("language_settings", "settings", [language], {
+    ...savedProjectPreferences(language),
+    aiSuggestion: savedAiSuggestionSettings(language),
+  }));
+}
+
+function queueActiveProfileForSync() {
+  if (!canQueueLearningSync()) return;
+  learningSyncManager.upsert(learningSyncRecord("learning_config", "config", ["active_profile"], {
+    profile: state.profile,
+  }));
+}
+
+async function syncLearningDataNow() {
+  if (!learningSyncManager?.state) return;
+  await learningSyncManager.syncNow();
+}
+
+function exportLearningSyncBackup() {
+  if (!learningSyncManager?.state) return;
+  try {
+    downloadText(`wyj-learning-data-${Date.now()}.json`, learningSyncManager.exportBackup(), "application/json;charset=utf-8");
+  } catch (error) {
+    alert(`学习数据导出失败：${error.message}`);
+  }
+}
+
+async function importLearningSyncBackup(event) {
+  const file = event.target.files?.[0];
+  if (!file || !learningSyncManager?.state) return;
+  try {
+    if (file.size > (learningSyncApi()?.MAX_BACKUP_BYTES || 5 * 1024 * 1024)) throw new Error("学习数据备份不能超过 5 MB");
+    const result = learningSyncManager.importBackup(await file.text());
+    alert(`学习数据已导入 ${result.imported} 项，忽略 ${result.ignored} 项旧记录。`);
+  } catch (error) {
+    alert(`学习数据导入失败：${error.message}`);
+  } finally {
+    event.target.value = "";
+  }
+}
+
 function sanitizeStudyRecords(value) {
   if (!Array.isArray(value)) return [];
   return value.slice(-MAX_STUDY_RECORDS).map((record) => {
@@ -587,6 +1001,7 @@ function saveStudyRecords() {
   if (!state.account?.id) return;
   state.studyRecords = sanitizeStudyRecords(state.studyRecords);
   safeStorageSet(localStorage, studyHistoryKey(), JSON.stringify(state.studyRecords));
+  queueStudyRecordsForSync();
   renderDashboard();
 }
 
@@ -686,6 +1101,7 @@ function saveWrongBooks() {
   if (!state.account?.id) return;
   safeStorageSet(localStorage, wrongBookKey("current"), JSON.stringify(state.currentWrongBook));
   safeStorageSet(localStorage, wrongBookKey("history"), JSON.stringify(state.historyWrongBook));
+  queueWrongBooksForSync();
   renderDashboard();
 }
 
@@ -700,27 +1116,36 @@ function loadAchievements() {
 function saveAchievements() {
   if (!state.account?.id) return;
   safeStorageSet(localStorage, achievementKey(), JSON.stringify(state.achievements));
+  queueAchievementsForSync();
 }
 
 function loadProjectPreferences(language) {
   if (!LANGUAGE_LABELS[language]) return;
-  const grading = localStorage.getItem(`gradingMode:${language}`);
-  state.gradingMode = ["strict", "normal", "lenient"].includes(grading) ? grading : "normal";
-  state.practiceMode = normalizePracticeMode(localStorage.getItem(`practiceMode:${language}`));
+  const preferences = savedProjectPreferences(language);
+  state.gradingMode = preferences.gradingMode;
+  state.practiceMode = preferences.practiceMode;
+  safeStorageSet(localStorage, projectPreferencesKey(language), JSON.stringify(preferences));
   if ($("gradingModeSelect")) $("gradingModeSelect").value = state.gradingMode;
   updatePracticeUi();
 }
 
 function saveProjectPreferences() {
   if (!LANGUAGE_LABELS[state.quizLanguage]) return;
+  const preferences = {
+    gradingMode: state.gradingMode,
+    practiceMode: state.practiceMode,
+  };
+  safeStorageSet(localStorage, projectPreferencesKey(state.quizLanguage), JSON.stringify(preferences));
   safeStorageSet(localStorage, `gradingMode:${state.quizLanguage}`, state.gradingMode);
   safeStorageSet(localStorage, `practiceMode:${state.quizLanguage}`, state.practiceMode);
+  queueLanguageSettingsForSync(state.quizLanguage);
 }
 
 function saveState() {
   safeStorageSet(localStorage, "vocabAppVersion", APP_VERSION);
   safeStorageSet(localStorage, "vocabProfile", state.profile);
   if (state.account?.id) safeStorageSet(localStorage, accountProfileKey(), state.profile);
+  queueActiveProfileForSync();
   safeStorageSet(localStorage, "gradingMode", state.gradingMode);
   safeStorageSet(localStorage, "practiceMode", state.practiceMode);
   safeStorageSet(localStorage, "quizLanguage", state.quizLanguage);
@@ -750,6 +1175,7 @@ function setActiveWrongBook(scope, book) {
 }
 
 function clearSession() {
+  stopLearningDataSync();
   releasePaymentQr();
   cancelVocabularySearch();
   state.session = "";
@@ -831,7 +1257,11 @@ function applyAccount(account) {
   state.account = account || null;
   if (state.account) safeStorageSet(localStorage, "wyjAccountCache", JSON.stringify(state.account));
   else localStorage.removeItem("wyjAccountCache");
-  if (state.account && previousAccountId !== nextAccountId) loadAccountLocalState();
+  if (state.account && previousAccountId !== nextAccountId) {
+    loadAccountLocalState();
+    startLearningDataSync();
+  }
+  if (state.account && !learningSyncAccountId) startLearningDataSync();
   if (!state.account && previousAccountId) resetLocalViewState();
   renderAccountUi();
   updateStats();
@@ -1064,7 +1494,7 @@ function renderDashboard() {
   renderLatestUpdate();
 
   setDashboardService("dashboardAccountStatus", backendAvailable ? "在线" : "离线", backendAvailable ? "is-online" : "is-offline");
-  setDashboardService("dashboardSyncStatus", storageWriteFailed ? "浏览器存储受限" : "本地可用", storageWriteFailed ? "is-warning" : "is-online");
+  renderLearningSyncDashboardStatus();
   setDashboardService("dashboardAiStatus", aiAvailable ? "可用" : "未连接", aiAvailable ? "is-online" : "is-warning");
   const canShare = isSuperAdmin(account) || hasAccountEntitlement("temporary_share_access", account);
   setDashboardService(
@@ -2713,10 +3143,13 @@ function clearAccountLocalData(account = state.account) {
     `studyGoal:v${STUDY_DATA_VERSION}:${accountId}:`,
     `wrongRejudgeLog:v1:${accountId}:`,
     `toolPreferences:v1:${accountId}`,
+    `learningPreferences:v1:${accountId}:`,
+    `aiSuggestSettings:v2:${accountId}:`,
   ];
   const exactLocalKeys = [
     `vocabProfile:v${ACCOUNT_DATA_VERSION}:${accountId}`,
     `accountLocalDataMigrated:v${ACCOUNT_DATA_VERSION}:${accountId}`,
+    `wyjLearningSync:v1:${encodeURIComponent(String(account.id))}`,
   ];
   const localKeys = [];
   for (let index = 0; index < localStorage.length; index += 1) {
@@ -3548,7 +3981,9 @@ function updateLanguageUi() {
 }
 
 function aiSuggestionSettingsKey(language = state.quizLanguage) {
-  return `aiSuggestSettings:${language}`;
+  return state.account?.id
+    ? accountAiSuggestionSettingsKey(language)
+    : `aiSuggestSettings:${language}`;
 }
 
 function saveAiSuggestionSettings() {
@@ -3556,7 +3991,10 @@ function saveAiSuggestionSettings() {
   const level = $("aiLevelSelect")?.value || "";
   const count = Number($("aiSuggestCount")?.value);
   const mode = $("aiSuggestMode")?.value === "append" ? "append" : "replace";
-  safeStorageSet(localStorage, aiSuggestionSettingsKey(), JSON.stringify({ level, count, mode }));
+  const settings = { level, count, mode };
+  safeStorageSet(localStorage, aiSuggestionSettingsKey(), JSON.stringify(settings));
+  safeStorageSet(localStorage, `aiSuggestSettings:${state.quizLanguage}`, JSON.stringify(settings));
+  queueLanguageSettingsForSync(state.quizLanguage);
 }
 
 function updateAiSuggestionControls() {
@@ -3566,7 +4004,7 @@ function updateAiSuggestionControls() {
   if (!levelSelect || !countInput || !VOCABULARY_LEVEL_OPTIONS[language]) return;
   const previousLanguage = levelSelect.dataset.language || "";
   const previousLevel = previousLanguage === language ? levelSelect.value : "";
-  const saved = previousLanguage === language ? null : loadJson(aiSuggestionSettingsKey(language), {});
+  const saved = previousLanguage === language ? null : savedAiSuggestionSettings(language);
   levelSelect.replaceChildren();
   VOCABULARY_LEVEL_OPTIONS[language].forEach(([value, label]) => {
     const option = document.createElement("option");
@@ -3844,6 +4282,7 @@ function saveStudyGoal() {
   const goal = Math.max(1, Math.min(500, Number.parseInt(input.value, 10) || 20));
   input.value = String(goal);
   safeStorageSet(localStorage, studyGoalKey(), String(goal));
+  queueStudyGoalForSync();
   renderStudyDashboard();
   renderDashboard();
 }
@@ -6239,7 +6678,10 @@ async function navigateFromSiteNav(destination) {
 }
 
 async function boot() {
-  if (state.account?.id) loadAccountLocalState();
+  if (state.account?.id) {
+    loadAccountLocalState();
+    startLearningDataSync();
+  }
   else resetLocalViewState();
   state.quizLanguage = "";
 
@@ -6271,6 +6713,10 @@ async function boot() {
   $("publicChangelogBtn")?.addEventListener("click", () => showChangelog(true));
   $("changelogTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
   $("dashboardChangelogBtn")?.addEventListener("click", () => showChangelog(true));
+  $("learningSyncNowBtn")?.addEventListener("click", syncLearningDataNow);
+  $("learningSyncExportBtn")?.addEventListener("click", exportLearningSyncBackup);
+  $("learningSyncImportBtn")?.addEventListener("click", () => $("learningSyncFileInput")?.click());
+  $("learningSyncFileInput")?.addEventListener("change", importLearningSyncBackup);
   $("dismissVersionNoticeBtn")?.addEventListener("click", dismissVersionNotice);
   $("viewVersionDetailsBtn")?.addEventListener("click", () => { dismissVersionNotice(); showChangelog(true); });
   $("trialHomeBtn")?.addEventListener("click", () => state.session && state.account ? showModulePicker(true) : showPublicHome(true));

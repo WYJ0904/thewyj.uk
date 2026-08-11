@@ -1467,6 +1467,28 @@ textarea::placeholder {
   color: var(--color-error);
 }
 
+.dashboard-sync-actions {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.dashboard-sync-actions .action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dashboard-sync-actions button {
+  min-height: 40px;
+}
+
+.dashboard-sync-actions p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
 .dashboard-resume {
   margin-top: var(--space-5);
   padding: var(--space-4);

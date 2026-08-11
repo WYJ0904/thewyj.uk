@@ -31,6 +31,7 @@ class StaticSiteTests(unittest.TestCase):
         cls.product_styles = (ROOT / "product-ui.css").read_text(encoding="utf-8")
         cls.worker = (ROOT / "sw.js").read_text(encoding="utf-8")
         cls.changelog = (ROOT / "changelog.js").read_text(encoding="utf-8")
+        cls.learning_sync = (ROOT / "learning-sync.js").read_text(encoding="utf-8")
 
     def test_html_ids_are_unique_and_app_references_exist(self):
         parser = IdCollector()
@@ -81,14 +82,14 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260811-feedback-voting"
-        for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "app.js"):
+        release_token = "20260811-learning-sync"
+        for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}"', self.worker)
-        self.assertIn('const APP_VERSION = "2026-08-11-feedback-voting"', self.app)
+        self.assertIn('const APP_VERSION = "2026-08-11-learning-sync"', self.app)
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
-        self.assertIn('APP_BUILD = "2026-08-11-feedback-voting"', server)
+        self.assertIn('APP_BUILD = "2026-08-11-learning-sync"', server)
         self.assertIn('"/trial", "/changelog"', server)
         self.assertEqual((ROOT / "_redirects").read_text(encoding="utf-8").strip(), "/* /index.html 200")
 
@@ -115,7 +116,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("globalThis.WYJ_CHANGELOG", self.changelog)
         for field in ("version", "build", "date", "features", "improvements", "fixes", "security"):
             self.assertRegex(self.changelog, rf"\b{field}:\s*")
-        self.assertIn("2026-08-11-feedback-voting", self.changelog)
+        self.assertIn("2026-08-11-learning-sync", self.changelog)
         self.assertIn("function renderChangelog()", self.app)
         self.assertIn("function maybeShowVersionNotice()", self.app)
         self.assertIn("function submitFeedback(", self.app)
@@ -126,6 +127,25 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('/api/admin/feedback', self.app)
         self.assertIn("反馈正文和提交者不会公开", self.html)
         self.assertIn("不会上传你在工具中处理的原始文本", self.html)
+
+    def test_learning_sync_is_incremental_local_first_and_excludes_active_questions(self):
+        for element_id in (
+            "dashboardSyncStatus",
+            "learningSyncNowBtn",
+            "learningSyncExportBtn",
+            "learningSyncImportBtn",
+            "learningSyncFileInput",
+            "learningSyncDetail",
+        ):
+            self.assertIn(f'id="{element_id}"', self.html)
+        self.assertIn('api("/api/learning/sync"', self.app)
+        self.assertIn("base_server_version", self.learning_sync)
+        self.assertIn("server_version", self.learning_sync)
+        self.assertIn("deleted", self.learning_sync)
+        self.assertIn("validateBackup", self.learning_sync)
+        self.assertNotIn("vocabRuntime", self.learning_sync)
+        self.assertNotIn("sessionStorage", self.learning_sync)
+        self.assertNotIn("rubricCache", self.learning_sync)
 
     def test_clean_product_design_contract(self):
         for legacy_markup in ("splash-door", "77 79 6A", "lock-mark", ">WORKSPACE<", ">LANGUAGE<"):
@@ -537,6 +557,8 @@ class StaticSiteTests(unittest.TestCase):
         downgrade_five = (migrations / "005_payment_method_consistency_down.sql").read_text(encoding="utf-8")
         upgrade_six = (migrations / "006_feedback_voting_up.sql").read_text(encoding="utf-8")
         downgrade_six = (migrations / "006_feedback_voting_down.sql").read_text(encoding="utf-8")
+        upgrade_seven = (migrations / "007_learning_sync_up.sql").read_text(encoding="utf-8")
+        downgrade_seven = (migrations / "007_learning_sync_down.sql").read_text(encoding="utf-8")
         connection = sqlite3.connect(":memory:")
         try:
             connection.executescript(before)
@@ -595,6 +617,26 @@ class StaticSiteTests(unittest.TestCase):
                 {"feedback_type", "title", "content", "status", "admin_note", "merged_into_id"}
                 .issubset(feedback_columns)
             )
+            connection.executescript(upgrade_seven)
+            connection.executescript(upgrade_seven)
+            learning_sync_applied = connection.execute(
+                "SELECT COUNT(*) FROM schema_migrations WHERE version = '007_learning_sync'"
+            ).fetchone()[0]
+            self.assertEqual(learning_sync_applied, 1)
+            learning_tables = {
+                row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+            }
+            self.assertTrue(
+                {"learning_sync_records", "learning_sync_heads", "learning_sync_changes"}
+                .issubset(learning_tables)
+            )
+            connection.executescript(downgrade_seven)
+            learning_tables = {
+                row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+            }
+            self.assertNotIn("learning_sync_records", learning_tables)
+            self.assertNotIn("learning_sync_heads", learning_tables)
+            self.assertNotIn("learning_sync_changes", learning_tables)
             connection.executescript(downgrade_six)
             feedback_tables = {
                 row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")

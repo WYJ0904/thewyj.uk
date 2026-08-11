@@ -220,6 +220,8 @@ MD5、SHA-1、SHA-256、SHA-512、文件信息、CSV/JSON 互转、文本编码�
 - `local-backend/migrations/005_payment_method_consistency_down.sql`：在没有其他开放订单时恢复由 005 关闭的订单状态
 - `local-backend/migrations/006_feedback_voting_up.sql`：新增用户反馈和一人一票的功能建议投票表
 - `local-backend/migrations/006_feedback_voting_down.sql`：回滚反馈和投票表，不影响用户、会员、订单或学习数据
+- `local-backend/migrations/007_learning_sync_up.sql`：新增按用户、数据类型和稳定 ID 保存的增量学习记录、版本头与变更流
+- `local-backend/migrations/007_learning_sync_down.sql`：只回滚学习同步表，不删除浏览器本地数据或既有账户数据
 
 第一次对老数据库执行迁移前会使用 SQLite backup API 创建一次性备份：
 
@@ -229,11 +231,12 @@ data\users.pre-single-language-002.sqlite3
 data\users.pre-payment-004.sqlite3
 data\users.pre-payment-method-005.sqlite3
 data\users.pre-feedback-006.sqlite3
+data\users.pre-learning-sync-007.sqlite3
 ```
 
 迁移由 `schema_migrations` 控制并可安全重启。支付履约对订单 ID 和 `source_ref=payment:<payment_request_id>` 都有唯一索引，防止重复增加期限。每个结构阶段只创建一次迁移前备份；备份可能仍含旧版明文密码，必须只保存在本机受保护目录，不能上传或提交。
 
-新增表包括 `membership_plans`、`user_memberships`、`membership_entitlements`、`user_entitlement_overrides`、`payment_requests`、`admin_audit_logs`、`login_audit_logs`、`tool_favorites`、`tool_recent_usage`、`saved_tool_configs` 及五类临时数据表。原 `users`、`sessions` 和 `recharge_requests` 表保留。
+新增表包括 `membership_plans`、`user_memberships`、`membership_entitlements`、`user_entitlement_overrides`、`payment_requests`、`admin_audit_logs`、`login_audit_logs`、`tool_favorites`、`tool_recent_usage`、`saved_tool_configs`、`learning_sync_records`、`learning_sync_heads`、`learning_sync_changes` 及五类临时数据表。原 `users`、`sessions` 和 `recharge_requests` 表保留。
 
 回滚前必须停止服务并另外备份当前数据库。只回退本次支付改版时可执行 `004_payment_flow_down.sql`，但会删除新增的支付状态历史与履约表，因此优先恢复 `users.pre-payment-004.sqlite3`。完整回退旧权益系统时才使用早期备份或更早的 down SQL。
 
@@ -250,9 +253,16 @@ data\users.pre-feedback-006.sqlite3
 - `vocabRuntime:v1:<accountId>:<language>`：未完成测试，仅当前浏览器会话
 - `wrongRejudgeLog:v1:<accountId>:<profile>`：错题重新判定审计记录，不重复累计统计
 - `toolPreferences:v1:<accountId>`：最近一次已验证的工具权益、收藏和最近使用摘要
-- `gradingMode:<language>`、`practiceMode:<language>`、`aiSuggestSettings:<language>`：语言独立设置
+- `learningPreferences:v1:<accountId>:<language>`、`aiSuggestSettings:v2:<accountId>:<language>`：按账号和语言隔离的判卷、练习和选词设置；首次使用会兼容读取旧键
+- `wyjLearningSync:v1:<accountId>`：仅包含允许同步的逐记录索引、tombstone、待上传标记和服务器版本，不包含会话或整个 `localStorage`
 
 登录、退出和注册时会清理待测试词表，避免显示上一账户的单词；错题、成就、统计和设置不会因此被删除。
+
+### 学习数据跨设备同步
+
+登录后，错题、成就、测试历史（学习统计由此重算）、每日目标、英语/日语设置、判卷偏好和当前使用者配置会先写入浏览器，再通过 `POST /api/learning/sync` 按稳定 ID 增量同步。进行中的具体题目保存在 `sessionStorage` 的 `vocabRuntime:*`，默认不上传，也不会因为服务器离线而阻止测试。
+
+同步状态会显示“已同步”“等待同步”“同步失败”或“已合并”。个人首页提供“立即同步”和账号绑定的 JSON 导入/导出；导入会检查格式版本、账号 ID、记录类型、数量、大小和重复 ID。错题冲突保留最大错误次数并合并释义，成就只增加，历史按 ID 去重，目标和设置取较新的记录。删除会上传 tombstone，未见过该删除版本的旧设备不能恢复记录。服务端每个账号维护独立同步版本，单次最多 200 项、拉取最多 500 项，且按数据类型设有总量限制。
 
 当前错题和历史错题都支持“重新判定”。系统保留原题、原答案、题型、语言、判卷模式、评分依据和轮次 ID，并复用当前判卷接口；判对后从当前与历史错题中移除，并在能匹配原轮次时修正统计，判错只更新结果而不重复增加错题或错误次数。重复点击同一条记录会复用同一审计项。
 
@@ -360,6 +370,7 @@ node --check app.js
 node --check tools.js
 node --check sw.js
 node --check "functions/api/[[path]].js"
+node local-backend/test_learning_sync_js.mjs
 node local-backend/test_tools_js.mjs
 node local-backend/test_proxy_js.mjs
 ```
@@ -382,7 +393,7 @@ node local-backend/test_app_browser.mjs
 node local-backend/test_tools_browser.mjs
 ```
 
-当前 Python 自动化套件共 152 项，另有 27 项 JavaScript 工具自检和 4 项 Pages 代理韧性检查。`test_app_browser.mjs` 使用真实 Chrome 覆盖 20 条完整用户流程，其中包含 390px 手机视口下的错题重新判定、统一反馈计时、A-H 切页/刷新状态完整性、WCAG AA 对比度回归、结构化更新日志、私有反馈提交、管理员反馈处理与功能投票；`test_tools_browser.mjs` 会自行准备隔离样本，并逐项运行 103 个工具（文本 29、文件 17、图片 30、随机 22、临时 5）及实际下载。覆盖公开首页、更新日志、有限匿名试用、受保护路由、注册登录、个人首页本地摘要与服务状态、断网后会话保留与自动恢复、微信 WebView 兼容、登录位置审计、会话摘要迁移、封禁、管理员安全重置密钥、用户自助改密、密钥与哈希防泄露、老会员迁移、六种在售方案、支付方式锁定、私有二维码鉴权、完整支付状态机、微信与支付宝订单刷新恢复、原子审批与唯一履约、包月续期与永久会员幂等、权益隔离与合并、过期降级、管理员审计、反馈隐私与投票去重、错题实际重新判定与幂等审计、本地优先分级搜索、NFKC/大小写/假名归一化、英语词形匹配、稳定排序、TTL/LRU 缓存、完整排除词缓存键、工具权限、收藏/历史/配置、20 MB 临时文件往返、双客户端留言自动同步、文件签名、跨站拒绝、限流、AI 兜底选词、日语汉字自动标音、纯假名直接出题、汉字与假名听写判卷、错题 PDF、HTML ID、PWA 缓存、390/1366/1920 像素布局与关键文字对比度、CSV 引号换行、MD5、颜色转换、JPEG 元数据清理、Wi-Fi/联系人二维码和 OpenCC 词典完整性。额外压力矩阵验证 300 次状态请求、200 次并发工具写入和 24 次并发 PDF 导出均为 0 错误。
+当前 Python 自动化套件共 159 项，另有学习同步客户端协议测试、27 项 JavaScript 工具自检和 4 项 Pages 代理韧性检查。`test_app_browser.mjs` 使用真实 Chrome 覆盖 21 条完整用户流程，其中包含学习数据离线排队、恢复连接、第二设备目标合并、账号绑定备份校验，以及 390px 手机视口下的错题重新判定、统一反馈计时、A-H 切页/刷新状态完整性、WCAG AA 对比度回归、结构化更新日志、私有反馈提交、管理员反馈处理与功能投票；`test_tools_browser.mjs` 会自行准备隔离样本，并逐项运行 103 个工具（文本 29、文件 17、图片 30、随机 22、临时 5）及实际下载。覆盖公开首页、更新日志、有限匿名试用、受保护路由、注册登录、个人首页本地摘要与服务状态、断网后会话保留与自动恢复、微信 WebView 兼容、登录位置审计、会话摘要迁移、封禁、管理员安全重置密钥、用户自助改密、密钥与哈希防泄露、老会员迁移、六种在售方案、支付方式锁定、私有二维码鉴权、完整支付状态机、微信与支付宝订单刷新恢复、原子审批与唯一履约、包月续期与永久会员幂等、权益隔离与合并、过期降级、管理员审计、反馈隐私与投票去重、错题实际重新判定与幂等审计、本地优先分级搜索、NFKC/大小写/假名归一化、英语词形匹配、稳定排序、TTL/LRU 缓存、完整排除词缓存键、工具权限、收藏/历史/配置、20 MB 临时文件往返、双客户端留言自动同步、文件签名、跨站拒绝、限流、AI 兜底选词、日语汉字自动标音、纯假名直接出题、汉字与假名听写判卷、错题 PDF、HTML ID、PWA 缓存、390/1366/1920 像素布局与关键文字对比度、CSV 引号换行、MD5、颜色转换、JPEG 元数据清理、Wi-Fi/联系人二维码和 OpenCC 词典完整性。额外压力矩阵验证 300 次状态请求、200 次并发工具写入和 24 次并发 PDF 导出均为 0 错误。
 
 ## Cloudflare Pages 配置
 

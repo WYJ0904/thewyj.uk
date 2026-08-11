@@ -1188,6 +1188,234 @@ class AccountStoreTests(unittest.TestCase):
         AccountStore(database, text_path)
         self.assertEqual(backup.read_bytes(), backup_bytes)
 
+    def test_learning_sync_merges_two_devices_and_preserves_tombstones(self):
+        user = self.register("sync-user")
+        base_time = (utc_now() - timedelta(minutes=10)).isoformat().replace("+00:00", "Z")
+        later_time = (utc_now() - timedelta(minutes=5)).isoformat().replace("+00:00", "Z")
+        latest_time = iso_now()
+        wrong_id = "v1|wrong|cHJvZmls|aGlzdG9yeQ|d29yZA"
+
+        first = self.store.sync_learning_data(user, {
+            "schema_version": 1,
+            "client_id": "client-device-a",
+            "client_version": "test-a",
+            "since_version": 0,
+            "changes": [{
+                "data_type": "wrong_book",
+                "record_id": wrong_id,
+                "payload": {"wrong_count": 1, "accepted": ["电话"], "correct_answer": "电话"},
+                "updated_at": base_time,
+                "deleted": False,
+                "base_server_version": 0,
+            }],
+        })
+        first_version = first["results"][0]["server_version"]
+
+        second = self.store.sync_learning_data(user, {
+            "schema_version": 1,
+            "client_id": "client-device-b",
+            "client_version": "test-b",
+            "since_version": 0,
+            "changes": [{
+                "data_type": "wrong_book",
+                "record_id": wrong_id,
+                "payload": {"wrong_count": 4, "accepted": ["电话机"], "last_answer": "手机"},
+                "updated_at": later_time,
+                "deleted": False,
+                "base_server_version": 0,
+            }],
+        })
+        merged = second["results"][0]
+        self.assertEqual(merged["payload"]["wrong_count"], 4)
+        self.assertEqual(set(merged["payload"]["accepted"]), {"电话", "电话机"})
+        self.assertEqual(merged["payload"]["correct_answer"], "电话")
+        self.assertGreaterEqual(second["merged_count"], 1)
+
+        stale_delete = self.store.sync_learning_data(user, {
+            "schema_version": 1,
+            "client_id": "client-device-a",
+            "client_version": "test-a",
+            "since_version": first_version,
+            "changes": [{
+                "data_type": "wrong_book",
+                "record_id": wrong_id,
+                "payload": {},
+                "updated_at": latest_time,
+                "deleted": True,
+                "base_server_version": first_version,
+            }],
+        })
+        self.assertFalse(stale_delete["results"][0]["deleted"])
+
+        current_version = stale_delete["results"][0]["server_version"]
+        deleted = self.store.sync_learning_data(user, {
+            "schema_version": 1,
+            "client_id": "client-device-b",
+            "client_version": "test-b",
+            "since_version": current_version,
+            "changes": [{
+                "data_type": "wrong_book",
+                "record_id": wrong_id,
+                "payload": {},
+                "updated_at": latest_time,
+                "deleted": True,
+                "base_server_version": current_version,
+            }],
+        })
+        tombstone = deleted["results"][0]
+        self.assertTrue(tombstone["deleted"])
+
+        stale_restore = self.store.sync_learning_data(user, {
+            "schema_version": 1,
+            "client_id": "client-device-a",
+            "client_version": "test-a",
+            "since_version": first_version,
+            "changes": [{
+                "data_type": "wrong_book",
+                "record_id": wrong_id,
+                "payload": {"wrong_count": 99, "correct_answer": "旧设备"},
+                "updated_at": latest_time,
+                "deleted": False,
+                "base_server_version": first_version,
+            }],
+        })
+        self.assertTrue(stale_restore["results"][0]["deleted"])
+
+    def test_learning_sync_achievement_history_latest_and_user_isolation(self):
+        first_user = self.register("sync-first")
+        second_user = self.register("sync-second")
+        older = (utc_now() - timedelta(minutes=2)).isoformat().replace("+00:00", "Z")
+        newer = iso_now()
+        records = [
+            ("achievement", "v1|achievement|cHJvZmls|Zmlyc3Q", {"unlocked_at": older, "points": 1}),
+            ("test_history", "v1|history|cHJvZmls|cm91bmQtMQ", {"id": "round-1", "total": 10, "correct": 7}),
+            ("daily_goal", "v1|goal|cHJvZmls|ZW5nbGlzaA", {"goal": 20}),
+        ]
+        initial = self.store.sync_learning_data(first_user, {
+            "schema_version": 1,
+            "client_id": "client-primary",
+            "client_version": "test-primary",
+            "since_version": 0,
+            "changes": [{
+                "data_type": data_type,
+                "record_id": record_id,
+                "payload": payload,
+                "updated_at": older,
+                "deleted": False,
+                "base_server_version": 0,
+            } for data_type, record_id, payload in records],
+        })
+        versions = {
+            (item["data_type"], item["record_id"]): item["server_version"]
+            for item in initial["results"]
+        }
+        updated = self.store.sync_learning_data(first_user, {
+            "schema_version": 1,
+            "client_id": "client-secondary",
+            "client_version": "test-secondary",
+            "since_version": 0,
+            "changes": [
+                {
+                    "data_type": "achievement",
+                    "record_id": records[0][1],
+                    "payload": {"points": 5, "badges": ["steady"]},
+                    "updated_at": newer,
+                    "deleted": False,
+                    "base_server_version": 0,
+                },
+                {
+                    "data_type": "test_history",
+                    "record_id": records[1][1],
+                    "payload": {"id": "round-1", "total": 10, "correct": 9},
+                    "updated_at": newer,
+                    "deleted": False,
+                    "base_server_version": versions[("test_history", records[1][1])],
+                },
+                {
+                    "data_type": "daily_goal",
+                    "record_id": records[2][1],
+                    "payload": {"goal": 35},
+                    "updated_at": newer,
+                    "deleted": False,
+                    "base_server_version": versions[("daily_goal", records[2][1])],
+                },
+            ],
+        })
+        by_type = {item["data_type"]: item for item in updated["results"]}
+        self.assertEqual(by_type["achievement"]["payload"]["points"], 5)
+        self.assertEqual(by_type["achievement"]["payload"]["unlocked_at"], older)
+        self.assertEqual(by_type["test_history"]["payload"]["correct"], 9)
+        self.assertEqual(by_type["daily_goal"]["payload"]["goal"], 35)
+        with self.store.connect() as connection:
+            history_count = connection.execute(
+                "SELECT COUNT(*) FROM learning_sync_records WHERE user_id = ? AND data_type = 'test_history'",
+                (first_user["id"],),
+            ).fetchone()[0]
+        self.assertEqual(history_count, 1)
+        isolated = self.store.sync_learning_data(second_user, {
+            "schema_version": 1,
+            "client_id": "client-other-user",
+            "client_version": "test-other",
+            "since_version": 0,
+            "changes": [],
+        })
+        self.assertEqual(isolated["changes"], [])
+        self.assertEqual(isolated["server_version"], 0)
+
+    def test_learning_sync_unknown_tombstones_respect_record_limits(self):
+        user = self.register("sync-tombstone-limit")
+        payload = {
+            "schema_version": 1,
+            "client_id": "client-tombstone-limit",
+            "client_version": "test-limit",
+            "since_version": 0,
+            "changes": [{
+                "data_type": "wrong_book",
+                "record_id": "v1|wrong|cHJvZmls|aGlzdG9yeQ|Zmlyc3Q",
+                "payload": {},
+                "updated_at": iso_now(),
+                "deleted": True,
+                "base_server_version": 0,
+            }],
+        }
+        with mock.patch.dict("account_store.LEARNING_SYNC_TYPE_LIMITS", {"wrong_book": 1}, clear=False):
+            first = self.store.sync_learning_data(user, payload)
+            self.assertTrue(first["results"][0]["deleted"])
+            payload["changes"][0]["record_id"] = "v1|wrong|cHJvZmls|aGlzdG9yeQ|c2Vjb25k"
+            with self.assertRaises(AccountError) as raised:
+                self.store.sync_learning_data(user, payload)
+        self.assertEqual(raised.exception.code, "learning_sync_type_limit")
+
+    def test_learning_sync_migration_is_backed_up_once(self):
+        root = Path(self.temporary.name) / "learning-sync-v7"
+        database = root / "data" / "users.sqlite3"
+        text_path = root / "users.txt"
+        database.parent.mkdir(parents=True)
+        migrations = Path(__file__).with_name("migrations")
+        with closing(sqlite3.connect(database)) as connection:
+            connection.executescript((migrations / "pre-001-schema.sql").read_text(encoding="utf-8"))
+            for migration in (
+                "001_entitlements_up.sql",
+                "002_single_language_orders_up.sql",
+                "003_login_audit_up.sql",
+                "004_payment_flow_up.sql",
+                "005_payment_method_consistency_up.sql",
+                "006_feedback_voting_up.sql",
+            ):
+                connection.executescript((migrations / migration).read_text(encoding="utf-8"))
+        migrated = AccountStore(database, text_path)
+        backup = database.with_name("users.pre-learning-sync-007.sqlite3")
+        self.assertTrue(backup.exists())
+        with closing(sqlite3.connect(backup)) as connection:
+            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+        self.assertNotIn("learning_sync_records", tables)
+        with migrated.connect() as connection:
+            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+        self.assertTrue({"learning_sync_records", "learning_sync_heads", "learning_sync_changes"}.issubset(tables))
+        backup_bytes = backup.read_bytes()
+        AccountStore(database, text_path)
+        self.assertEqual(backup.read_bytes(), backup_bytes)
+
 
 if __name__ == "__main__":
     unittest.main()

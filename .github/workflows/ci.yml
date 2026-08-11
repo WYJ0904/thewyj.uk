@@ -101,9 +101,11 @@ jobs:
           {
             node --check app.js
             node --check tools.js
+            node --check learning-sync.js
             node --check sw.js
             node --check "functions/api/[[path]].js"
             node --check local-backend/test_tools_js.mjs
+            node --check local-backend/test_learning_sync_js.mjs
             node --check local-backend/test_proxy_js.mjs
             node --check local-backend/test_app_browser.mjs
             node --check local-backend/test_tools_browser.mjs
@@ -113,6 +115,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_tools_js.mjs 2>&1 | tee artifacts/javascript-tools.log
+
+      - name: Test learning data sync client
+        run: |
+          set -euo pipefail
+          node local-backend/test_learning_sync_js.mjs 2>&1 | tee artifacts/learning-sync-client.log
 
       - name: Test Pages API proxy
         run: |

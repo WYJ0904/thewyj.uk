@@ -1,6 +1,16 @@
 (() => {
   const entries = [
     {
+      version: "2026.08.11.1",
+      build: "2026-08-11-learning-sync",
+      date: "2026-08-11",
+      title: "学习数据跨设备同步",
+      features: ["错题、成就、测试历史、每日目标和语言设置支持按账号增量同步。"],
+      improvements: ["学习操作保持本地优先，并提供立即同步与 JSON 备份。"],
+      fixes: ["删除记录通过 tombstone 防止旧设备重新恢复。"],
+      security: ["同步接口按会话隔离账号，并限制记录类型、数量和大小。"],
+    },
+    {
       version: "2026.08.11",
       build: "2026-08-11-feedback-voting",
       date: "2026-08-11",

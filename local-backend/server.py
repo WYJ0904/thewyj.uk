@@ -37,7 +37,7 @@ SETTINGS_PATH = DATA_DIR / "settings.json"
 ERROR_LOG_PATH = DATA_DIR / "server-error.log"
 USERS_DB_PATH = Path(os.environ.get("VOCAB_USERS_DB", str(DATA_DIR / "users.sqlite3")))
 USERS_TEXT_PATH = Path(os.environ.get("VOCAB_USERS_TXT", str(BASE_DIR / "users.txt")))
-APP_BUILD = "2026-08-11-feedback-voting"
+APP_BUILD = "2026-08-11-learning-sync"
 MAX_JSON_BYTES = int(os.environ.get("VOCAB_MAX_JSON_BYTES", str(512 * 1024)))
 DEFAULT_MAX_TEMP_FILE_JSON_BYTES = ((MAX_TEMP_FILE_BYTES + 2) // 3) * 4 + 128 * 1024
 MAX_TEMP_FILE_JSON_BYTES = int(os.environ.get("VOCAB_MAX_TEMP_FILE_JSON_BYTES", str(DEFAULT_MAX_TEMP_FILE_JSON_BYTES)))
@@ -60,6 +60,8 @@ FEEDBACK_VOTE_MAX_REQUESTS = 30
 FEEDBACK_READ_WINDOW_SEC = 60
 FEEDBACK_READ_MAX_REQUESTS = 120
 FEEDBACK_ADMIN_MAX_REQUESTS = 120
+LEARNING_SYNC_RATE_WINDOW_SEC = 60
+LEARNING_SYNC_MAX_REQUESTS = 30
 SESSION_TTL_SEC = int(os.environ.get("VOCAB_SESSION_TTL_SEC", str(12 * 60 * 60)))
 SESSION_MAX_ITEMS = max(10, int(os.environ.get("VOCAB_SESSION_MAX_ITEMS", "100")))
 
@@ -80,6 +82,7 @@ LOGIN_FAILURES = {}
 REGISTER_ATTEMPTS = {}
 TEMP_REQUESTS = {}
 FEEDBACK_REQUESTS = {}
+LEARNING_SYNC_REQUESTS = {}
 QUIZ_RUNS = {}
 VOCABULARY_SOURCE_CACHE = OrderedDict()
 JAPANESE_FORM_CACHE = {}
@@ -423,6 +426,34 @@ def feedback_limited(handler, user_id, scope):
                     FEEDBACK_REQUESTS[current_key] = values
                 else:
                     FEEDBACK_REQUESTS.pop(current_key, None)
+        return False
+
+
+def learning_sync_limited(handler, user_id):
+    now = time.time()
+    key = (request_client_key(handler), str(user_id or ""))
+    with STATE_LOCK:
+        active = [
+            item
+            for item in LEARNING_SYNC_REQUESTS.get(key, [])
+            if now - item < LEARNING_SYNC_RATE_WINDOW_SEC
+        ]
+        if len(active) >= LEARNING_SYNC_MAX_REQUESTS:
+            LEARNING_SYNC_REQUESTS[key] = active
+            return True
+        active.append(now)
+        LEARNING_SYNC_REQUESTS[key] = active
+        if len(LEARNING_SYNC_REQUESTS) > 2000:
+            for current_key in list(LEARNING_SYNC_REQUESTS):
+                values = [
+                    item
+                    for item in LEARNING_SYNC_REQUESTS[current_key]
+                    if now - item < LEARNING_SYNC_RATE_WINDOW_SEC
+                ]
+                if values:
+                    LEARNING_SYNC_REQUESTS[current_key] = values
+                else:
+                    LEARNING_SYNC_REQUESTS.pop(current_key, None)
         return False
 
 
@@ -2578,6 +2609,17 @@ class VocabHandler(BaseHTTPRequestHandler):
                     payload.get("voted"),
                 )
                 json_response(self, HTTPStatus.OK, {"ok": True, "suggestion": record})
+                return
+
+            if request_path == "/api/learning/sync":
+                if learning_sync_limited(self, self.account_user["id"]):
+                    raise AccountError(
+                        "学习数据同步过于频繁，请稍后再试",
+                        429,
+                        "learning_sync_rate_limited",
+                    )
+                result = ACCOUNT_STORE.sync_learning_data(self.account_user, self.read_json())
+                json_response(self, HTTPStatus.OK, {"ok": True, **result})
                 return
 
             if request_path.startswith("/api/tools/"):

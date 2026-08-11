@@ -454,19 +454,21 @@ async function main() {
         const registration = await navigator.serviceWorker.ready;
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260811-feedback-voting');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260811-feedback-voting');
-        return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog) };
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260811-learning-sync');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260811-learning-sync');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260811-learning-sync');
+        return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync) };
       })()`);
       assert.equal(pwa.active, true);
       assert.equal(pwa.cachedLogo, true);
       assert.equal(pwa.cachedProductStyles, true);
       assert.equal(pwa.cachedChangelog, true);
+      assert.equal(pwa.cachedLearningSync, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.11");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.11.1");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-11-feedback-voting");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-11-learning-sync");
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
     });
@@ -537,9 +539,9 @@ async function main() {
       await navigate(`/changelog?app-matrix=${RUN_ID}`);
       await waitFor("!document.querySelector('#entryScreen')", 6_000, "changelog splash removal");
       await waitFor("location.pathname === '/changelog' && !document.querySelector('#changelogPage')?.classList.contains('hidden')", 8_000, "changelog route");
-      assert.equal(await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"), 4);
+      assert.equal(await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"), 5);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.11");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.11.1");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
@@ -596,6 +598,85 @@ async function main() {
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `dashboard-1366-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    });
+
+    await check("learning data sync is local-first and receives a second-device update", async () => {
+      await waitFor(
+        "/已同步|已合并/.test(document.querySelector('#dashboardSyncStatus')?.textContent || '')",
+        15_000,
+        "initial learning sync",
+      );
+      assert.equal(await evaluate("document.querySelector('#learningSyncNowBtn').offsetParent !== null"), true);
+      assert.equal(await evaluate("document.querySelector('#learningSyncExportBtn').offsetParent !== null"), true);
+      assert.equal(await evaluate("document.querySelector('#learningSyncImportBtn').offsetParent !== null"), true);
+
+      await send("Network.emulateNetworkConditions", {
+        offline: true,
+        latency: 0,
+        downloadThroughput: 0,
+        uploadThroughput: 0,
+      });
+      await evaluate(`(() => {
+        localStorage.setItem(studyGoalKey('english'), '31');
+        queueStudyGoalForSync('english');
+        renderDashboard();
+        return true;
+      })()`);
+      assert.equal(await evaluate("localStorage.getItem(studyGoalKey('english'))"), "31");
+      assert.equal(await evaluate("document.querySelector('#dashboardSyncStatus').textContent"), "等待同步");
+      const offlineResult = await evaluate("learningSyncManager.syncNow()");
+      assert.equal(offlineResult.offline, true);
+
+      await send("Network.emulateNetworkConditions", {
+        offline: false,
+        latency: 0,
+        downloadThroughput: -1,
+        uploadThroughput: -1,
+      });
+      await evaluate("learningSyncManager.syncNow()");
+      await waitFor(
+        "learningSyncManager.dirtyRecords().length === 0 && /已同步|已合并/.test(document.querySelector('#dashboardSyncStatus')?.textContent || '')",
+        15_000,
+        "pending learning data upload",
+      );
+
+      const secondDeviceRecordId = await evaluate("window.WYJLearningSync.makeRecordId('goal', [state.profile, 'english'])");
+      const secondDevice = await api("/api/learning/sync", {
+        schema_version: 1,
+        client_id: "browser-matrix-device-b",
+        client_version: "browser-matrix",
+        since_version: 0,
+        changes: [{
+          data_type: "daily_goal",
+          record_id: secondDeviceRecordId,
+          payload: { goal: 47 },
+          updated_at: new Date(Date.now() + 1000).toISOString(),
+          deleted: false,
+          base_server_version: 0,
+        }],
+      }, userSession);
+      assert.equal(secondDevice.results[0].payload.goal, 47);
+      await evaluate("learningSyncManager.syncNow()");
+      await waitFor("localStorage.getItem(studyGoalKey('english')) === '47'", 10_000, "second-device daily goal");
+      assert.equal(await evaluate("learningSyncManager.dirtyRecords().length"), 0);
+
+      const backupName = await verifyDownload("#learningSyncExportBtn", 10_000, ".json");
+      const backupText = fs.readFileSync(path.join(DOWNLOAD_ROOT, backupName), "utf8");
+      const backup = JSON.parse(backupText);
+      assert.equal(backup.account_id, userMe.account.id);
+      assert.equal(backup.type, "wyj-learning-data-backup");
+      assert.equal(backupText.includes("vocabRuntime"), false);
+      const mismatch = await evaluate(`(() => {
+        const backup = JSON.parse(learningSyncManager.exportBackup());
+        backup.account_id = 'another-account';
+        try {
+          learningSyncManager.importBackup(JSON.stringify(backup));
+          return '';
+        } catch (error) {
+          return error.message;
+        }
+      })()`);
+      assert.match(mismatch, /不属于当前登录账号/);
     });
 
     await check("authenticated feedback submission is private and mobile-safe", async () => {
