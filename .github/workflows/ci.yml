@@ -57,6 +57,11 @@ jobs:
           cd local-backend
           python -m unittest discover -p "test_*.py" -v 2>&1 | tee ../artifacts/python-unittest.log
 
+      - name: Test CI service readiness helper
+        run: |
+          set -euo pipefail
+          python -m unittest scripts.test_wait_for_http_services -v 2>&1 | tee artifacts/ci-readiness.log
+
       - name: Upload Python reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -306,33 +311,17 @@ jobs:
             2>&1 < /dev/null &
           echo "$!" > "artifacts/chrome-${{ matrix.suite }}.pid"
 
-          python - <<'PY'
-          import json
-          import time
-          import urllib.request
-
-          endpoints = (
-              ("AI fixture", "http://127.0.0.1:11435/api/tags"),
-              ("backend", "http://127.0.0.1:8892/api/status"),
-              ("chrome", "http://127.0.0.1:9223/json/version"),
-          )
-          deadline = time.monotonic() + 30
-          pending = dict(endpoints)
-          while pending and time.monotonic() < deadline:
-              for name, url in tuple(pending.items()):
-                  try:
-                      with urllib.request.urlopen(url, timeout=1) as response:
-                          payload = json.loads(response.read().decode("utf-8"))
-                          if response.status == 200 and payload:
-                              pending.pop(name)
-                  except Exception:
-                      pass
-              if pending:
-                  time.sleep(0.25)
-          if pending:
-              raise SystemExit("Services did not become ready: " + ", ".join(sorted(pending)))
-          print("Isolated backend and Chrome are ready.")
-          PY
+          python scripts/wait_for_http_services.py \
+            --timeout 90 \
+            --service "AI fixture=http://127.0.0.1:11435/api/tags" \
+            --pid-file "AI fixture=artifacts/ollama-fixture-${{ matrix.suite }}.pid" \
+            --log-file "AI fixture=artifacts/ollama-fixture-${{ matrix.suite }}.log" \
+            --service "backend=http://127.0.0.1:8892/api/status" \
+            --pid-file "backend=artifacts/backend-${{ matrix.suite }}.pid" \
+            --log-file "backend=artifacts/backend-${{ matrix.suite }}.log" \
+            --service "chrome=http://127.0.0.1:9223/json/version" \
+            --pid-file "chrome=artifacts/chrome-${{ matrix.suite }}.pid" \
+            --log-file "chrome=artifacts/chrome-${{ matrix.suite }}.log"
 
       - name: Run real browser flow
         env:
