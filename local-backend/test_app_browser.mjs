@@ -415,10 +415,22 @@ async function main() {
         const entry = document.querySelector('#entryScreen');
         const shell = document.querySelector('#appShell');
         const image = document.querySelector('.entry-logo');
+        const entryStyle = getComputedStyle(entry);
+        const entryRect = entry.getBoundingClientRect();
         const imageStyle = getComputedStyle(image);
         return {
-          entryVisible: getComputedStyle(entry).display !== 'none',
-          shellHidden: shell.getAttribute('aria-hidden') === 'true' && shell.classList.contains('app-shell-pending'),
+          entryVisible: entryStyle.display !== 'none',
+          shellProtected: (
+            (shell.getAttribute('aria-hidden') === 'true' && shell.classList.contains('app-shell-pending'))
+            || (
+              entryStyle.position === 'fixed'
+              && entryRect.left <= 0
+              && entryRect.top <= 0
+              && entryRect.right >= innerWidth
+              && entryRect.bottom >= innerHeight
+              && Number.parseInt(entryStyle.zIndex || '0', 10) >= 9000
+            )
+          ),
           imageReady: image.complete && image.naturalWidth > 0,
           objectFit: imageStyle.objectFit,
           legacyDoors: document.querySelectorAll('.splash-door').length,
@@ -426,7 +438,7 @@ async function main() {
         };
       })()`);
       assert.equal(initial.entryVisible, true);
-      assert.equal(initial.shellHidden, true);
+      assert.equal(initial.shellProtected, true);
       assert.equal(initial.imageReady, true);
       assert.equal(initial.objectFit, "contain");
       assert.equal(initial.legacyDoors, 0);
