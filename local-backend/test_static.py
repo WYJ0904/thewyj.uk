@@ -30,6 +30,7 @@ class StaticSiteTests(unittest.TestCase):
         cls.styles = (ROOT / "styles.css").read_text(encoding="utf-8")
         cls.product_styles = (ROOT / "product-ui.css").read_text(encoding="utf-8")
         cls.worker = (ROOT / "sw.js").read_text(encoding="utf-8")
+        cls.changelog = (ROOT / "changelog.js").read_text(encoding="utf-8")
 
     def test_html_ids_are_unique_and_app_references_exist(self):
         parser = IdCollector()
@@ -54,6 +55,12 @@ class StaticSiteTests(unittest.TestCase):
             "dashboardFavoriteTools", "dashboardRecentTools", "dashboardAccountStatus",
             "publicHome", "changelogPage", "trialPage", "trialQuizPanel",
             "trialTextPanel", "trialJsonPanel", "trialImagePanel",
+            "siteVersionLabel", "versionNotice", "versionNoticeTitle", "versionNoticeMessage",
+            "changelogList", "changelogCurrentVersion", "feedbackBtn", "feedbackModal",
+            "feedbackForm", "feedbackType", "feedbackTitleInput", "feedbackContent",
+            "feedbackToolId", "feedbackErrorCode", "myFeedbackList", "featureVotingList",
+            "adminFeedbackTab", "adminFeedbackView", "adminFeedbackSearch",
+            "adminFeedbackType", "adminFeedbackStatus", "adminFeedbackList",
         }
         self.assertEqual(sorted(required - html_ids), [])
 
@@ -74,14 +81,14 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260809-membership-selection"
-        for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "tools.js", "app.js"):
+        release_token = "20260811-feedback-voting"
+        for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}"', self.worker)
-        self.assertIn('const APP_VERSION = "2026-08-09-membership-selection"', self.app)
+        self.assertIn('const APP_VERSION = "2026-08-11-feedback-voting"', self.app)
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
-        self.assertIn('APP_BUILD = "2026-08-02-network-resilience"', server)
+        self.assertIn('APP_BUILD = "2026-08-11-feedback-voting"', server)
         self.assertIn('"/trial", "/changelog"', server)
         self.assertEqual((ROOT / "_redirects").read_text(encoding="utf-8").strip(), "/* /index.html 200")
 
@@ -103,6 +110,22 @@ class StaticSiteTests(unittest.TestCase):
         self.assertNotIn('data-trial-tool="temporary', self.html)
         self.assertNotIn('data-trial-tool="batch', self.html)
         self.assertIn("匿名试用不保存服务器学习记录，也不能创建临时分享", self.html)
+
+    def test_changelog_feedback_and_voting_contract(self):
+        self.assertIn("globalThis.WYJ_CHANGELOG", self.changelog)
+        for field in ("version", "build", "date", "features", "improvements", "fixes", "security"):
+            self.assertRegex(self.changelog, rf"\b{field}:\s*")
+        self.assertIn("2026-08-11-feedback-voting", self.changelog)
+        self.assertIn("function renderChangelog()", self.app)
+        self.assertIn("function maybeShowVersionNotice()", self.app)
+        self.assertIn("function submitFeedback(", self.app)
+        self.assertIn("function voteForFeature(", self.app)
+        self.assertIn('api("/api/feedback"', self.app)
+        self.assertIn('apiGet("/api/feedback/mine")', self.app)
+        self.assertIn('apiGet("/api/feedback/voting")', self.app)
+        self.assertIn('/api/admin/feedback', self.app)
+        self.assertIn("反馈正文和提交者不会公开", self.html)
+        self.assertIn("不会上传你在工具中处理的原始文本", self.html)
 
     def test_clean_product_design_contract(self):
         for legacy_markup in ("splash-door", "77 79 6A", "lock-mark", ">WORKSPACE<", ">LANGUAGE<"):
@@ -128,6 +151,13 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('class="wrong-rejudge-input"', self.html)
         self.assertIn("function renderDashboard()", self.app)
         self.assertIn("function rejudgeWrongAnswer(", self.app)
+        self.assertIn('id="rejudgeResultModal" data-confirm-only', self.html)
+        self.assertIn('role="alertdialog"', self.html)
+        self.assertIn("function showRejudgeResultModal(", self.app)
+        rejudge_source = self.app.split("async function rejudgeWrongAnswer(", 1)[1].split("\n}\n\nfunction renderWrongBook", 1)[0]
+        self.assertEqual(rejudge_source.count("showRejudgeResultModal("), 3)
+        self.assertNotIn("showWrongActionMessage(", rejudge_source)
+        self.assertNotIn("controls.status.textContent = `重新判定失败", rejudge_source)
         self.assertIn('api("/api/quiz/start"', self.app)
         self.assertIn('api("/api/judge"', self.app)
         self.assertIn("wrongRejudgeLog:v1", self.app)
@@ -266,6 +296,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("002_single_language_orders_up.sql", launcher)
         self.assertIn("003_login_audit_up.sql", launcher)
         self.assertIn("004_payment_flow_up.sql", launcher)
+        self.assertIn("005_payment_method_consistency_up.sql", launcher)
+        self.assertIn("006_feedback_voting_up.sql", launcher)
         self.assertIn('$LauncherVersion = "11.0.0"', launcher)
         self.assertIn("WYJ Website Launcher 11.0.0", launcher_cmd)
         self.assertIn("Repair-TunnelOriginAddress", launcher)
@@ -501,6 +533,10 @@ class StaticSiteTests(unittest.TestCase):
         downgrade_three = (migrations / "003_login_audit_down.sql").read_text(encoding="utf-8")
         upgrade_four = (migrations / "004_payment_flow_up.sql").read_text(encoding="utf-8")
         downgrade_four = (migrations / "004_payment_flow_down.sql").read_text(encoding="utf-8")
+        upgrade_five = (migrations / "005_payment_method_consistency_up.sql").read_text(encoding="utf-8")
+        downgrade_five = (migrations / "005_payment_method_consistency_down.sql").read_text(encoding="utf-8")
+        upgrade_six = (migrations / "006_feedback_voting_up.sql").read_text(encoding="utf-8")
+        downgrade_six = (migrations / "006_feedback_voting_down.sql").read_text(encoding="utf-8")
         connection = sqlite3.connect(":memory:")
         try:
             connection.executescript(before)
@@ -536,6 +572,36 @@ class StaticSiteTests(unittest.TestCase):
             }
             self.assertIn("payment_request_events", tables)
             self.assertIn("payment_fulfillments", tables)
+            connection.executescript(upgrade_five)
+            connection.executescript(upgrade_five)
+            payment_consistency_applied = connection.execute(
+                "SELECT COUNT(*) FROM schema_migrations WHERE version = '005_payment_method_consistency'"
+            ).fetchone()[0]
+            self.assertEqual(payment_consistency_applied, 1)
+            connection.executescript(upgrade_six)
+            connection.executescript(upgrade_six)
+            feedback_applied = connection.execute(
+                "SELECT COUNT(*) FROM schema_migrations WHERE version = '006_feedback_voting'"
+            ).fetchone()[0]
+            self.assertEqual(feedback_applied, 1)
+            feedback_tables = {
+                row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+            }
+            self.assertTrue({"feedback_items", "feedback_votes"}.issubset(feedback_tables))
+            feedback_columns = {
+                row[1] for row in connection.execute("PRAGMA table_info(feedback_items)")
+            }
+            self.assertTrue(
+                {"feedback_type", "title", "content", "status", "admin_note", "merged_into_id"}
+                .issubset(feedback_columns)
+            )
+            connection.executescript(downgrade_six)
+            feedback_tables = {
+                row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+            }
+            self.assertNotIn("feedback_items", feedback_tables)
+            self.assertNotIn("feedback_votes", feedback_tables)
+            connection.executescript(downgrade_five)
             connection.executescript(downgrade_four)
             payment_columns = {
                 row[1] for row in connection.execute("PRAGMA table_info(payment_requests)")

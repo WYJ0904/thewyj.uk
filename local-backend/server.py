@@ -37,7 +37,7 @@ SETTINGS_PATH = DATA_DIR / "settings.json"
 ERROR_LOG_PATH = DATA_DIR / "server-error.log"
 USERS_DB_PATH = Path(os.environ.get("VOCAB_USERS_DB", str(DATA_DIR / "users.sqlite3")))
 USERS_TEXT_PATH = Path(os.environ.get("VOCAB_USERS_TXT", str(BASE_DIR / "users.txt")))
-APP_BUILD = "2026-08-02-network-resilience"
+APP_BUILD = "2026-08-11-feedback-voting"
 MAX_JSON_BYTES = int(os.environ.get("VOCAB_MAX_JSON_BYTES", str(512 * 1024)))
 DEFAULT_MAX_TEMP_FILE_JSON_BYTES = ((MAX_TEMP_FILE_BYTES + 2) // 3) * 4 + 128 * 1024
 MAX_TEMP_FILE_JSON_BYTES = int(os.environ.get("VOCAB_MAX_TEMP_FILE_JSON_BYTES", str(DEFAULT_MAX_TEMP_FILE_JSON_BYTES)))
@@ -53,6 +53,13 @@ TEMP_RATE_WINDOW_SEC = 60
 TEMP_RATE_MAX_REQUESTS = 60
 TEMP_READ_MAX_REQUESTS = 20
 TEMP_ROOM_MAX_REQUESTS = 180
+FEEDBACK_RATE_WINDOW_SEC = 10 * 60
+FEEDBACK_SUBMIT_MAX_REQUESTS = 5
+FEEDBACK_VOTE_WINDOW_SEC = 60
+FEEDBACK_VOTE_MAX_REQUESTS = 30
+FEEDBACK_READ_WINDOW_SEC = 60
+FEEDBACK_READ_MAX_REQUESTS = 120
+FEEDBACK_ADMIN_MAX_REQUESTS = 120
 SESSION_TTL_SEC = int(os.environ.get("VOCAB_SESSION_TTL_SEC", str(12 * 60 * 60)))
 SESSION_MAX_ITEMS = max(10, int(os.environ.get("VOCAB_SESSION_MAX_ITEMS", "100")))
 
@@ -72,6 +79,7 @@ SESSIONS = {}
 LOGIN_FAILURES = {}
 REGISTER_ATTEMPTS = {}
 TEMP_REQUESTS = {}
+FEEDBACK_REQUESTS = {}
 QUIZ_RUNS = {}
 VOCABULARY_SOURCE_CACHE = OrderedDict()
 JAPANESE_FORM_CACHE = {}
@@ -385,6 +393,45 @@ def temporary_limited(handler, scope="write"):
                 else:
                     TEMP_REQUESTS.pop(current_key, None)
         return False
+
+
+def feedback_limited(handler, user_id, scope):
+    now = time.time()
+    scope = str(scope or "read")
+    window, maximum = {
+        "submit": (FEEDBACK_RATE_WINDOW_SEC, FEEDBACK_SUBMIT_MAX_REQUESTS),
+        "vote": (FEEDBACK_VOTE_WINDOW_SEC, FEEDBACK_VOTE_MAX_REQUESTS),
+        "admin": (FEEDBACK_READ_WINDOW_SEC, FEEDBACK_ADMIN_MAX_REQUESTS),
+    }.get(scope, (FEEDBACK_READ_WINDOW_SEC, FEEDBACK_READ_MAX_REQUESTS))
+    key = (request_client_key(handler), str(user_id or ""), scope)
+    with STATE_LOCK:
+        active = [item for item in FEEDBACK_REQUESTS.get(key, []) if now - item < window]
+        if len(active) >= maximum:
+            FEEDBACK_REQUESTS[key] = active
+            return True
+        active.append(now)
+        FEEDBACK_REQUESTS[key] = active
+        if len(FEEDBACK_REQUESTS) > 2000:
+            for current_key in list(FEEDBACK_REQUESTS):
+                current_scope = current_key[2]
+                current_window = {
+                    "submit": FEEDBACK_RATE_WINDOW_SEC,
+                    "vote": FEEDBACK_VOTE_WINDOW_SEC,
+                }.get(current_scope, FEEDBACK_READ_WINDOW_SEC)
+                values = [item for item in FEEDBACK_REQUESTS[current_key] if now - item < current_window]
+                if values:
+                    FEEDBACK_REQUESTS[current_key] = values
+                else:
+                    FEEDBACK_REQUESTS.pop(current_key, None)
+        return False
+
+
+def require_json_fields(payload, allowed, code="request_fields_forbidden"):
+    if not isinstance(payload, dict):
+        raise AccountError("请求格式无效", 400, "request_invalid")
+    if set(payload) - set(allowed):
+        raise AccountError("请求包含不允许提交的字段", 400, code)
+    return payload
 
 
 def same_origin_request(handler):
@@ -2181,6 +2228,30 @@ class VocabHandler(BaseHTTPRequestHandler):
                 )
                 return
 
+            if path == "/api/feedback/mine":
+                if not self.require_session():
+                    return
+                if feedback_limited(self, self.account_user["id"], "read"):
+                    raise AccountError("反馈查询过于频繁，请稍后再试", 429, "feedback_rate_limited")
+                json_response(
+                    self,
+                    HTTPStatus.OK,
+                    {"ok": True, "feedback": ACCOUNT_STORE.list_user_feedback(self.account_user)},
+                )
+                return
+
+            if path == "/api/feedback/voting":
+                if not self.require_session():
+                    return
+                if feedback_limited(self, self.account_user["id"], "read"):
+                    raise AccountError("功能投票查询过于频繁，请稍后再试", 429, "feedback_rate_limited")
+                json_response(
+                    self,
+                    HTTPStatus.OK,
+                    {"ok": True, "suggestions": ACCOUNT_STORE.list_feature_votes(self.account_user)},
+                )
+                return
+
             if path == "/api/recharge/qr":
                 if not self.require_session():
                     return
@@ -2255,6 +2326,27 @@ class VocabHandler(BaseHTTPRequestHandler):
                     self,
                     HTTPStatus.OK,
                     {"ok": True, "tools": ACCOUNT_STORE.admin_tool_usage_stats(self.account_user)},
+                )
+                return
+
+            if path == "/api/admin/feedback":
+                if not self.require_super_admin():
+                    return
+                if feedback_limited(self, self.account_user["id"], "admin"):
+                    raise AccountError("反馈后台查询过于频繁，请稍后再试", 429, "feedback_rate_limited")
+                query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
+                json_response(
+                    self,
+                    HTTPStatus.OK,
+                    {
+                        "ok": True,
+                        "feedback": ACCOUNT_STORE.admin_list_feedback(
+                            self.account_user,
+                            query.get("query", [""])[0],
+                            query.get("status", [""])[0],
+                            query.get("type", [""])[0],
+                        ),
+                    },
                 )
                 return
         except AccountError as exc:
@@ -2464,6 +2556,30 @@ class VocabHandler(BaseHTTPRequestHandler):
                 json_response(self, HTTPStatus.OK, {"ok": True, "request": record})
                 return
 
+            if request_path == "/api/feedback":
+                if feedback_limited(self, self.account_user["id"], "submit"):
+                    raise AccountError("反馈提交过于频繁，请稍后再试", 429, "feedback_rate_limited")
+                payload = self.read_json()
+                record = ACCOUNT_STORE.create_feedback(self.account_user, payload)
+                json_response(self, HTTPStatus.CREATED, {"ok": True, "feedback": record})
+                return
+
+            if request_path == "/api/feedback/vote":
+                if feedback_limited(self, self.account_user["id"], "vote"):
+                    raise AccountError("投票操作过于频繁，请稍后再试", 429, "feedback_rate_limited")
+                payload = require_json_fields(
+                    self.read_json(),
+                    {"feedback_id", "voted"},
+                    "feedback_vote_fields_forbidden",
+                )
+                record = ACCOUNT_STORE.set_feedback_vote(
+                    self.account_user,
+                    payload.get("feedback_id"),
+                    payload.get("voted"),
+                )
+                json_response(self, HTTPStatus.OK, {"ok": True, "suggestion": record})
+                return
+
             if request_path.startswith("/api/tools/"):
                 if not ACCOUNT_STORE.has_entitlement(self.account_user, "tools_access"):
                     raise AccountError("当前会员不包含在线工具箱", 403, "membership_required")
@@ -2658,6 +2774,8 @@ class VocabHandler(BaseHTTPRequestHandler):
                 if not ACCOUNT_STORE.is_super_admin(self.account_user):
                     raise AccountError("无管理员权限", 403, "forbidden")
                 payload = self.read_json()
+                if not isinstance(payload, dict):
+                    raise AccountError("请求格式无效", 400, "request_invalid")
                 user_id = str(payload.get("user_id", ""))
                 if request_path == "/api/admin/membership/manage":
                     user = ACCOUNT_STORE.admin_manage_membership(
@@ -2718,6 +2836,24 @@ class VocabHandler(BaseHTTPRequestHandler):
                         payload.get("admin_note"),
                     )
                     json_response(self, HTTPStatus.OK, {"ok": True, "status": status})
+                    return
+                if request_path == "/api/admin/feedback/update":
+                    if feedback_limited(self, self.account_user["id"], "admin"):
+                        raise AccountError("反馈后台操作过于频繁，请稍后再试", 429, "feedback_rate_limited")
+                    require_json_fields(
+                        payload,
+                        {"feedback_id", "action", "status", "admin_note", "merged_into_id"},
+                        "feedback_admin_fields_forbidden",
+                    )
+                    record = ACCOUNT_STORE.admin_update_feedback(
+                        self.account_user,
+                        payload.get("feedback_id"),
+                        payload.get("action"),
+                        payload.get("status"),
+                        payload.get("admin_note"),
+                        payload.get("merged_into_id"),
+                    )
+                    json_response(self, HTTPStatus.OK, {"ok": True, "feedback": record})
                     return
                 raise AccountError("管理员接口不存在", 404, "admin_endpoint_not_found")
 

@@ -145,7 +145,10 @@ async function main() {
 
   client.listeners.add((message) => {
     if (message.sessionId && message.sessionId !== browser.sessionId) return;
-    if (message.method === "Runtime.exceptionThrown") runtimeErrors.push(message.params?.exceptionDetails?.text || "runtime exception");
+    if (message.method === "Runtime.exceptionThrown") {
+      const details = message.params?.exceptionDetails;
+      runtimeErrors.push(details?.exception?.description || details?.text || "runtime exception");
+    }
     if (message.method === "Log.entryAdded" && ["error", "warning"].includes(message.params?.entry?.level)) {
       const value = message.params.entry.text || "browser log error";
       const expectedCancellation = /^Failed to load resource: net::ERR_(?:ABORTED|CONNECTION_ABORTED)$/.test(value);
@@ -412,10 +415,22 @@ async function main() {
         const entry = document.querySelector('#entryScreen');
         const shell = document.querySelector('#appShell');
         const image = document.querySelector('.entry-logo');
+        const entryStyle = getComputedStyle(entry);
+        const entryRect = entry.getBoundingClientRect();
         const imageStyle = getComputedStyle(image);
         return {
-          entryVisible: getComputedStyle(entry).display !== 'none',
-          shellHidden: shell.getAttribute('aria-hidden') === 'true' && shell.classList.contains('app-shell-pending'),
+          entryVisible: entryStyle.display !== 'none',
+          shellProtected: (
+            (shell.getAttribute('aria-hidden') === 'true' && shell.classList.contains('app-shell-pending'))
+            || (
+              entryStyle.position === 'fixed'
+              && entryRect.left <= 0
+              && entryRect.top <= 0
+              && entryRect.right >= innerWidth
+              && entryRect.bottom >= innerHeight
+              && Number.parseInt(entryStyle.zIndex || '0', 10) >= 9000
+            )
+          ),
           imageReady: image.complete && image.naturalWidth > 0,
           objectFit: imageStyle.objectFit,
           legacyDoors: document.querySelectorAll('.splash-door').length,
@@ -423,7 +438,7 @@ async function main() {
         };
       })()`);
       assert.equal(initial.entryVisible, true);
-      assert.equal(initial.shellHidden, true);
+      assert.equal(initial.shellProtected, true);
       assert.equal(initial.imageReady, true);
       assert.equal(initial.objectFit, "contain");
       assert.equal(initial.legacyDoors, 0);
@@ -439,12 +454,19 @@ async function main() {
         const registration = await navigator.serviceWorker.ready;
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260809-membership-selection');
-        return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles) };
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260811-feedback-voting');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260811-feedback-voting');
+        return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog) };
       })()`);
       assert.equal(pwa.active, true);
       assert.equal(pwa.cachedLogo, true);
       assert.equal(pwa.cachedProductStyles, true);
+      assert.equal(pwa.cachedChangelog, true);
+      await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.11");
+      await click("#dismissVersionNoticeBtn");
+      assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-11-feedback-voting");
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
     });
@@ -515,7 +537,10 @@ async function main() {
       await navigate(`/changelog?app-matrix=${RUN_ID}`);
       await waitFor("!document.querySelector('#entryScreen')", 6_000, "changelog splash removal");
       await waitFor("location.pathname === '/changelog' && !document.querySelector('#changelogPage')?.classList.contains('hidden')", 8_000, "changelog route");
-      assert.equal(await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"), 3);
+      assert.equal(await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"), 4);
+      assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.11");
+      assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
         await waitFor("!document.querySelector('#entryScreen')", 6_000, `${pathName} splash removal`);
@@ -543,6 +568,8 @@ async function main() {
 
     const userSession = await evaluate("localStorage.getItem('wyjAccountSession')");
     const userMe = await api("/api/me", null, userSession);
+    const browserFeedbackTitle = `Browser feedback ${RUN_ID}`;
+    let browserFeedbackId = "";
 
     await check("authenticated dashboard summary and responsive layout", async () => {
       assert.ok((await evaluate("document.querySelector('#dashboardGreeting').textContent")).includes(USERNAME));
@@ -568,6 +595,44 @@ async function main() {
       await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 768, deviceScaleFactor: 1, mobile: false });
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `dashboard-1366-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
+      await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    });
+
+    await check("authenticated feedback submission is private and mobile-safe", async () => {
+      await click("#accountMenu summary");
+      await waitFor("!document.querySelector('#feedbackBtn')?.classList.contains('hidden')", 2_000, "feedback account action");
+      await click("#feedbackBtn");
+      await waitFor("!document.querySelector('#feedbackModal')?.classList.contains('hidden')", 3_000, "feedback modal");
+      await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+      await delay(300);
+      const mobileFeedback = await evaluate(`({
+        viewport: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        tabs: document.querySelectorAll('.feedback-tabs button').length,
+        submitHeight: document.querySelector('#submitFeedbackBtn').getBoundingClientRect().height,
+      })`);
+      assert.ok(mobileFeedback.scrollWidth <= mobileFeedback.viewport + 1, JSON.stringify(mobileFeedback));
+      assert.equal(mobileFeedback.tabs, 3);
+      assert.ok(mobileFeedback.submitHeight >= 44, JSON.stringify(mobileFeedback));
+      await setFields({
+        "#feedbackType": "feature_suggestion",
+        "#feedbackTitleInput": browserFeedbackTitle,
+        "#feedbackContent": "Please add a compact browser-tested review filter.",
+        "#feedbackIncludeRoute": true,
+        "#feedbackIncludeVersion": true,
+        "#feedbackIncludeBrowser": true,
+      });
+      await click("#submitFeedbackBtn");
+      await waitFor("document.querySelector('#feedbackMineView')?.classList.contains('active') && document.querySelector('#myFeedbackList')?.textContent.includes(" + JSON.stringify(browserFeedbackTitle) + ")", 12_000, "submitted feedback in own list");
+      const mine = await api("/api/feedback/mine", null, userSession);
+      const created = mine.feedback.find((item) => item.title === browserFeedbackTitle);
+      assert.ok(created, JSON.stringify(mine));
+      browserFeedbackId = created.id;
+      assert.equal(created.route, "/select");
+      assert.equal(created.app_version, "2026-08-11-feedback-voting");
+      const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      fs.writeFileSync(path.join(TEST_ROOT, `feedback-390-${RUN_ID}.png`), Buffer.from(shot.data, "base64"));
+      await click('[data-close-modal="feedbackModal"]');
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
     });
 
@@ -643,13 +708,20 @@ async function main() {
       await click('[data-membership-goal="tools"]');
       await click('[data-plan="all_access_monthly"]');
       assert.ok((await evaluate("document.querySelector('#purchaseSummary').textContent")).includes("30 CNY"));
+      assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').disabled"), true);
+      await click('#paymentMethodList input[value="wechat"]');
       await evaluate("window.__wyjOriginalImageDecode = HTMLImageElement.prototype.decode; HTMLImageElement.prototype.decode = undefined; true");
       await click("#submitRechargeBtn");
       await waitFor("!document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, "payment order");
       assert.ok((await evaluate("document.querySelector('#paymentAmount').textContent")).includes("30.00 CNY"));
       assert.ok((await evaluate("document.querySelector('#paymentNote').textContent")).includes(USERNAME));
       assert.equal(await evaluate("document.querySelector('#paymentMethodList input:checked')?.value"), "wechat");
-      assert.ok((await evaluate("document.querySelector('#paymentMethod').textContent.trim()")).length > 1);
+      assert.equal(await evaluate("document.querySelector('#paymentMethod').textContent.trim()"), "微信支付");
+      assert.equal(await evaluate("document.querySelector('#paymentStatus').textContent.trim()"), "等待付款");
+      assert.equal(await evaluate("document.querySelector('#paymentQrLabel').textContent.trim()"), "请使用微信支付扫码付款");
+      assert.equal(await evaluate("document.querySelector('#confirmPaymentBtn').classList.contains('hidden')"), false);
+      assert.equal(await evaluate("document.querySelector('#confirmPaymentBtn').disabled"), false);
+      assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').textContent.includes('等待管理员')"), false);
       await waitFor("document.querySelector('#paymentQrImage')?.src.startsWith('blob:')", 12_000, "protected payment QR");
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
       const mobilePayment = await evaluate(`({
@@ -675,6 +747,50 @@ async function main() {
       assert.equal(await evaluate("selectedMembershipGoal"), "tools");
       assert.equal(await evaluate("document.querySelector('#paymentOrderBox').classList.contains('hidden')"), false);
       await click('[data-close-modal="membershipModal"]');
+    });
+
+    await check("WeChat and Alipay order state survives a full page reload", async () => {
+      const labels = { wechat: "微信支付", alipay: "支付宝" };
+      for (const method of ["wechat", "alipay"]) {
+        const paymentUser = await createUser(`pay${method}`);
+        await useSession(paymentUser.session, "/recharge");
+        await waitFor("!document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, `${method} recharge modal`);
+        await click('[data-membership-goal="tools"]');
+        await waitFor("document.querySelector('#membershipPlanList [data-plan=\"tools_monthly\"]')", 8_000, `${method} tools plan`);
+        await click('[data-plan="tools_monthly"]');
+        assert.equal(await evaluate("selectedPaymentMethod"), "");
+        assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').disabled"), true);
+        await click(`#paymentMethodList input[value="${method}"]`);
+        assert.equal(await evaluate("selectedPaymentMethod"), method);
+        assert.ok((await evaluate("document.querySelector('#purchaseSummary').textContent")).includes(labels[method]));
+        await click("#submitRechargeBtn");
+        await waitFor("currentPaymentOrder?.status === 'pending_payment' && !document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, `${method} pending payment order`);
+        assert.equal(await evaluate("currentPaymentOrder.payment_method"), method);
+        assert.equal(await evaluate("document.querySelector('#paymentMethod').textContent.trim()"), labels[method]);
+        assert.equal(await evaluate("document.querySelector('#paymentStatus').textContent.trim()"), "等待付款");
+        assert.equal(await evaluate("document.querySelector('#paymentQrLabel').textContent.trim()"), `请使用${labels[method]}扫码付款`);
+        assert.equal(await evaluate("document.querySelector('#confirmPaymentBtn').classList.contains('hidden')"), false);
+        assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').textContent.includes('等待管理员')"), false);
+        await waitFor("document.querySelector('#paymentQrImage')?.src.startsWith('blob:')", 12_000, `${method} payment QR`);
+
+        await navigate(`/recharge?payment-method=${method}&run=${RUN_ID}`);
+        await waitFor("!document.querySelector('#entryScreen')", 6_000, `${method} recharge reload splash`);
+        await waitFor("currentPaymentOrder?.status === 'pending_payment' && !document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, `${method} restored order`);
+        assert.equal(await evaluate("selectedPaymentMethod"), method);
+        assert.equal(await evaluate("document.querySelector('#paymentMethodList input:checked')?.value"), method);
+        assert.equal(await evaluate("document.querySelector('#paymentMethod').textContent.trim()"), labels[method]);
+        assert.equal(await evaluate("document.querySelector('#paymentStatus').textContent.trim()"), "等待付款");
+        assert.equal(await evaluate("document.querySelector('#paymentQrLabel').textContent.trim()"), `请使用${labels[method]}扫码付款`);
+        assert.equal(await evaluate("document.querySelector('#confirmPaymentBtn').classList.contains('hidden')"), false);
+        assert.equal(await evaluate("document.querySelector('#confirmPaymentBtn').disabled"), false);
+        assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').textContent.includes('等待管理员')"), false);
+        await waitFor("document.querySelector('#paymentQrImage')?.src.startsWith('blob:')", 12_000, `${method} restored payment QR`);
+        await click("#cancelPaymentOrderBtn");
+        await waitFor("!currentPaymentOrder && document.querySelector('#paymentOrderBox').classList.contains('hidden')", 8_000, `${method} order cancellation`);
+        await click('[data-close-modal="membershipModal"]');
+      }
+      await useSession(userSession, "/select");
+      await waitFor("!document.querySelector('#modulePicker')?.classList.contains('hidden')", 8_000, "main user dashboard restored");
     });
 
     await check("word import, export, shuffle and clear", async () => {
@@ -820,7 +936,42 @@ async function main() {
       await setFields({ ".wrong-rejudge-input": "你好" });
       await tap(".wrong-rejudge-submit");
       await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0", 6_000, "wrong answer rejudged and removed");
-      assert.ok((await evaluate("document.querySelector('#wrongActionMessage').textContent")).includes("重新作答正确"));
+      await waitFor("!document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定正确'", 4_000, "correct rejudge result modal");
+      await evaluate(`(() => {
+        document.querySelector('#rejudgeResultModal').click();
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        return true;
+      })()`);
+      await delay(240);
+      assert.equal(await evaluate("document.querySelector('#rejudgeResultModal').classList.contains('hidden')"), false);
+      const rejudgeModalState = await evaluate(`(() => {
+        const layer = document.querySelector('#rejudgeResultModal');
+        const panel = document.querySelector('#rejudgeResultPanel');
+        const layerStyle = getComputedStyle(layer);
+        const rect = panel.getBoundingClientRect();
+        return {
+          ariaHidden: layer.getAttribute('aria-hidden'),
+          position: layerStyle.position,
+          zIndex: Number(layerStyle.zIndex),
+          title: document.querySelector('#rejudgeResultTitle').textContent,
+          message: document.querySelector('#rejudgeResultMessage').textContent,
+          top: rect.top,
+          bottom: rect.bottom,
+          viewportHeight: innerHeight,
+          scrollY,
+        };
+      })()`);
+      assert.equal(rejudgeModalState.ariaHidden, "false");
+      assert.equal(rejudgeModalState.position, "fixed");
+      assert.ok(rejudgeModalState.zIndex >= 9000, JSON.stringify(rejudgeModalState));
+      assert.ok(rejudgeModalState.top >= 0 && rejudgeModalState.bottom <= rejudgeModalState.viewportHeight + 1, JSON.stringify(rejudgeModalState));
+      assert.ok(rejudgeModalState.message.includes("已从错题本移除"), rejudgeModalState.message);
+      assert.ok(!(await evaluate("document.querySelector('#wrongActionMessage').textContent")).includes("重新作答正确"));
+      const rejudgeModalShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      fs.writeFileSync(path.join(TEST_ROOT, `rejudge-result-modal-390-${RUN_ID}.png`), Buffer.from(rejudgeModalShot.data, "base64"));
+      await tap("#rejudgeResultConfirmBtn");
+      await waitFor("document.querySelector('#rejudgeResultModal')?.classList.contains('hidden')", 2_000, "correct rejudge modal close");
+      assert.ok(Math.abs((await evaluate("scrollY")) - rejudgeModalState.scrollY) <= 1, `scroll changed after modal close: ${JSON.stringify(rejudgeModalState)}`);
       assert.equal(await evaluate("JSON.parse(localStorage.getItem(wrongRejudgeLogKey()) || '[]').length"), 1);
       assert.deepEqual(
         [...new Set(await evaluate("window.__rejudgeFetches"))].sort(),
@@ -830,6 +981,49 @@ async function main() {
       await send("Emulation.setTouchEmulationEnabled", { enabled: false });
       await setFiles("#wrongDataFileInput", [wrongFile]);
       await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 1", 6_000, "wrong data reimport");
+      await evaluate(`(() => {
+        for (const book of [state.currentWrongBook, state.historyWrongBook]) {
+          if (!book.hello) continue;
+          book.hello.correct_answer = '';
+          book.hello.accepted = [];
+          book.hello.rubric = { gloss: '', accepted: [], language: 'english', notes: '' };
+        }
+        renderWrongBook();
+        window.__rejudgeFailureOriginalFetch = window.fetch;
+        window.fetch = (...args) => {
+          const url = String(args[0]?.url || args[0] || '');
+          if (new URL(url, location.href).pathname === '/api/quiz/start') {
+            return Promise.resolve(new Response(JSON.stringify({ error: '模拟网络连接失败' }), {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' },
+            }));
+          }
+          return window.__rejudgeFailureOriginalFetch(...args);
+        };
+        return true;
+      })()`);
+      await click(".wrong-rejudge-button");
+      await setFields({ ".wrong-rejudge-input": "你好" });
+      try {
+        await click(".wrong-rejudge-submit");
+        await waitFor("!document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定失败'", 4_000, "failed rejudge result modal");
+        const failedRejudge = await evaluate(`({
+          message: document.querySelector('#rejudgeResultMessage').textContent,
+          count: document.querySelectorAll('#wrongList .wrong-item').length,
+          inlineStatus: document.querySelector('.wrong-rejudge-status').textContent,
+          pageMessage: document.querySelector('#wrongActionMessage').textContent,
+        })`);
+        assert.ok(failedRejudge.message.includes("模拟网络连接失败"), JSON.stringify(failedRejudge));
+        assert.equal(failedRejudge.count, 1);
+        assert.ok(!failedRejudge.inlineStatus.includes("失败"), JSON.stringify(failedRejudge));
+        assert.ok(!failedRejudge.pageMessage.includes("重新判定失败"), JSON.stringify(failedRejudge));
+        await click("#rejudgeResultConfirmBtn");
+        await waitFor("document.querySelector('#rejudgeResultModal')?.classList.contains('hidden')", 2_000, "failed rejudge modal close");
+      } finally {
+        await evaluate("window.fetch = window.__rejudgeFailureOriginalFetch; delete window.__rejudgeFailureOriginalFetch; true");
+      }
+      await setFiles("#wrongDataFileInput", [wrongFile]);
+      await waitFor("state.currentWrongBook.hello?.correct_answer === '你好'", 4_000, "restore imported rubric after network failure");
       await click("#reviewBtn");
       await waitFor("document.querySelector('#quizView').classList.contains('active')", 8_000, "offline review start");
       await setFields({ "#answerInput": "你好" });
@@ -908,12 +1102,17 @@ async function main() {
       assert.ok(visibleRejudge.height >= 44 && visibleRejudge.width >= 100, JSON.stringify(visibleRejudge));
       await setFields({ ".wrong-rejudge-input": "仍然错误" });
       await tap(".wrong-rejudge-submit");
-      await waitFor("document.querySelector('#wrongActionMessage')?.textContent.includes('仍不正确')", 12_000, "scenario A incorrect retry");
+      await waitFor("!document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定仍不正确'", 12_000, "scenario A incorrect retry modal");
+      assert.ok((await evaluate("document.querySelector('#rejudgeResultMessage').textContent")).includes("错误次数未增加"));
+      assert.equal(await evaluate("document.querySelector('.wrong-rejudge-status').textContent"), "可重新作答；答错不会增加错误次数");
+      assert.ok(!(await evaluate("document.querySelector('#wrongActionMessage').textContent")).includes("仍不正确"));
+      await tap("#rejudgeResultConfirmBtn");
       assert.equal(await evaluate("Number(document.querySelector('.wrong-item-actions strong').textContent.replace(/\\D/g, ''))"), originalWrongCount);
       await tap(".wrong-rejudge-button");
       await setFields({ ".wrong-rejudge-input": "测试释义" });
       await tap(".wrong-rejudge-submit");
-      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0", 12_000, "scenario A correct retry removal");
+      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0 && !document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定正确'", 12_000, "scenario A correct retry removal modal");
+      await tap("#rejudgeResultConfirmBtn");
       assert.equal(await evaluate("Object.keys(state.currentWrongBook).length"), 0);
       assert.equal(await evaluate("Object.keys(state.historyWrongBook).includes('amber')"), false);
       await reloadEnglishWorkspace();
@@ -950,12 +1149,19 @@ async function main() {
       await tap(".wrong-rejudge-button");
       await setFields({ ".wrong-rejudge-input": "测试释义" });
       await tap(".wrong-rejudge-submit");
-      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0", 12_000, "scenario C skipped item removed");
+      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0 && !document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定正确'", 12_000, "scenario C skipped item removed modal");
+      assert.ok((await evaluate("document.querySelector('#rejudgeResultMessage').textContent")).includes("已从错题本移除"));
+      await tap("#rejudgeResultConfirmBtn");
       assert.equal(await evaluate("state.roundSkipped"), 0);
       assert.equal(await evaluate("state.score"), 1);
       await tap('[data-view="quizView"]');
-      if (await evaluate("Boolean(state.pendingAdvance)")) await tap("#nextNowBtn");
-      await waitFor("document.querySelector('#progressLabel')?.textContent === '2/3'", 5_000, "scenario C resumes question 2");
+      const canAdvanceSkippedQuestionNow = await evaluate(`(() => {
+        const button = document.querySelector('#nextNowBtn');
+        const rect = button?.getBoundingClientRect();
+        return Boolean(state.pendingAdvance) && !button?.disabled && rect?.width > 0 && rect?.height > 0;
+      })()`);
+      if (canAdvanceSkippedQuestionNow) await tap("#nextNowBtn");
+      await waitFor("document.querySelector('#progressLabel')?.textContent === '2/3'", 7_000, "scenario C resumes question 2");
 
       // D: repeated inner views, dashboard, project picker, and tools never consume question 2.
       await startMeaningRound(["jasmine", "kernel", "linen"]);
@@ -1256,6 +1462,19 @@ async function main() {
       await assertReadable(".admin-login-agent");
       await click('[data-admin-view="adminToolStatsView"]');
       assert.ok(Number(await evaluate("document.querySelectorAll('#adminToolStatsList .admin-log-card').length")) >= 1);
+      await click('[data-admin-view="adminFeedbackView"]');
+      await setFields({ "#adminFeedbackSearch": browserFeedbackTitle });
+      await waitFor("document.querySelectorAll('#adminFeedbackList .admin-feedback-card').length === 1", 8_000, "admin feedback search");
+      assert.ok((await evaluate("document.querySelector('#adminFeedbackList').textContent")).includes(browserFeedbackTitle));
+      assert.ok((await evaluate("document.querySelector('#adminFeedbackList').textContent")).includes(USERNAME));
+      await setFields({
+        "#adminFeedbackList [data-feedback-admin-status]": "accepted",
+        "#adminFeedbackList [data-feedback-admin-note]": "Accepted in browser regression",
+      });
+      await click("#adminFeedbackList [data-feedback-admin-save]");
+      await waitFor(`adminFeedback.some((item) => item.id === ${JSON.stringify(browserFeedbackId)} && item.status === 'accepted' && item.admin_note === 'Accepted in browser regression')`, 12_000, "admin feedback accepted");
+      await click('[data-admin-view="adminAuditView"]');
+      await waitFor("document.querySelector('#adminAuditList')?.textContent.includes('feedback_update')", 5_000, "feedback audit record");
     });
 
     await check("administrator ban, force logout, secret reset and delete", async () => {
@@ -1322,6 +1541,25 @@ async function main() {
       await click("#acceptConfirmBtn");
       await waitFor("document.querySelector('#adminEditModal')?.classList.contains('hidden')", 8_000, "delete complete");
       assert.equal((await request("/api/login", { username: deleteUser.username, secret: deleteUser.secret })).status, 403);
+    });
+
+    await check("accepted feature voting can be added and cancelled", async () => {
+      await useSession(userSession, "/select");
+      await click("#accountMenu summary");
+      await click("#feedbackBtn");
+      await waitFor("!document.querySelector('#feedbackModal')?.classList.contains('hidden')", 3_000, "feedback modal for voting");
+      await click('[data-feedback-view="feedbackVotingView"]');
+      await waitFor(`document.querySelector('#featureVotingList')?.textContent.includes(${JSON.stringify(browserFeedbackTitle)})`, 8_000, "accepted feature in voting list");
+      const voteCard = `#featureVotingList [data-feedback-id="${browserFeedbackId}"]`;
+      assert.equal(await evaluate(`document.querySelector(${JSON.stringify(voteCard)}).textContent.includes(${JSON.stringify(USERNAME)})`), false);
+      assert.equal(await evaluate(`document.querySelector(${JSON.stringify(voteCard)}).textContent.includes('Please add')`), false);
+      await click(`${voteCard} [data-feedback-vote]`);
+      await waitFor(`document.querySelector(${JSON.stringify(`${voteCard} [data-feedback-vote]`)})?.getAttribute('aria-pressed') === 'true'`, 8_000, "feature vote added");
+      assert.ok((await evaluate(`document.querySelector(${JSON.stringify(voteCard)}).textContent`)).includes("1 票"));
+      await click(`${voteCard} [data-feedback-vote]`);
+      await waitFor(`document.querySelector(${JSON.stringify(`${voteCard} [data-feedback-vote]`)})?.getAttribute('aria-pressed') === 'false'`, 8_000, "feature vote cancelled");
+      assert.ok((await evaluate(`document.querySelector(${JSON.stringify(voteCard)}).textContent`)).includes("0 票"));
+      await click('[data-close-modal="feedbackModal"]');
     });
 
     await check("full member toolbox, AI vocabulary and account secret/logout draft cleanup", async () => {

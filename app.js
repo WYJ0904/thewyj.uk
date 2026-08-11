@@ -1,4 +1,4 @@
-const APP_VERSION = "2026-08-09-membership-selection";
+const APP_VERSION = "2026-08-11-feedback-voting";
 const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
 const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);
 const API_TIMEOUT_MS = 30000;
@@ -35,6 +35,22 @@ const TRIAL_MAX_TEXT_CHARS = 200000;
 const TRIAL_MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 const TRIAL_MAX_IMAGE_PIXELS = 20 * 1000 * 1000;
 const TRIAL_TOOL_IDS = new Set(["quiz", "text", "json", "image-compress", "image-format"]);
+const CHANGELOG_SEEN_KEY = "wyjChangelogSeenVersion:v1";
+const FEEDBACK_TYPE_LABELS = Object.freeze({
+  feature_suggestion: "功能建议",
+  tool_error: "工具报错",
+  page_issue: "页面问题",
+  account_issue: "账户问题",
+  new_tool: "新工具建议",
+  other: "其他反馈",
+});
+const FEEDBACK_STATUS_LABELS = Object.freeze({
+  pending: "待处理",
+  viewed: "已查看",
+  accepted: "已采纳",
+  completed: "已完成",
+  rejected: "已拒绝",
+});
 const TRIAL_QUESTION_BANKS = {
   english: [
     { prompt: "你好", answers: ["hello"] },
@@ -150,7 +166,10 @@ let vocabularySearchSequence = 0;
 let toolsInitialized = false;
 let routeBusy = false;
 let adminUsers = [];
+let adminFeedback = [];
 let adminLoadSequence = 0;
+let feedbackLoadSequence = 0;
+let adminFeedbackSearchTimer = null;
 let confirmAction = null;
 let lastLimitPromptKey = "";
 let projectRuntimeNeedsRestore = false;
@@ -207,6 +226,7 @@ const MEMBERSHIP_GOALS = Object.freeze({
 });
 const rejudgeInFlight = new Set();
 const modalReturnFocus = new Map();
+let rejudgeResultScrollPosition = null;
 const projectRuntime = {
   english: null,
   japanese: null,
@@ -856,6 +876,7 @@ function renderAccountUi() {
   });
   badge.textContent = account ? `${account.username} · ${summary.name}` : "未登录";
   $("membershipBtn")?.classList.toggle("hidden", !account);
+  $("feedbackBtn")?.classList.toggle("hidden", !account);
   $("accountBtn")?.classList.toggle("hidden", !account);
   $("logoutBtn")?.classList.toggle("hidden", !account);
   $("adminBtn")?.classList.toggle("hidden", !isSuperAdmin(account));
@@ -951,6 +972,60 @@ function renderDashboardToolShelf(id, items, emptyMessage) {
   });
 }
 
+function changelogEntries() {
+  return Array.isArray(window.WYJ_CHANGELOG) ? window.WYJ_CHANGELOG : [];
+}
+
+function latestChangelog() {
+  return changelogEntries()[0] || null;
+}
+
+function changelogSectionMarkup(label, items) {
+  if (!Array.isArray(items) || !items.length) return "";
+  return `<section><h3>${escapeHtml(label)}</h3><ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>`;
+}
+
+function renderChangelog() {
+  const list = $("changelogList");
+  const entries = changelogEntries();
+  if (!list) return;
+  list.innerHTML = entries.map((entry) => `<article>
+    <header class="changelog-entry-header"><time datetime="${escapeHtml(entry.date)}">${escapeHtml(String(entry.date || "").replaceAll("-", "/"))}</time><span>v${escapeHtml(entry.version)}</span></header>
+    <div class="changelog-entry-content"><h2>${escapeHtml(entry.title)}</h2><div class="changelog-sections">
+      ${changelogSectionMarkup("新功能", entry.features)}
+      ${changelogSectionMarkup("优化", entry.improvements)}
+      ${changelogSectionMarkup("修复", entry.fixes)}
+      ${changelogSectionMarkup("安全更新", entry.security)}
+    </div></div>
+  </article>`).join("") || '<p class="dashboard-empty">暂无更新记录。</p>';
+  const latest = latestChangelog();
+  if ($("changelogCurrentVersion")) $("changelogCurrentVersion").textContent = latest ? `v${latest.version}` : APP_VERSION;
+  if ($("siteVersionLabel")) $("siteVersionLabel").textContent = latest ? `v${latest.version}` : APP_VERSION;
+}
+
+function renderLatestUpdate() {
+  const latest = latestChangelog();
+  if (!latest) return;
+  if ($("dashboardUpdateDate")) $("dashboardUpdateDate").textContent = `${latest.date.replaceAll("-", "/")} · v${latest.version}`;
+  const highlights = [latest.features?.[0], latest.improvements?.[0], latest.fixes?.[0]].filter(Boolean);
+  if ($("dashboardUpdateSummary")) $("dashboardUpdateSummary").textContent = highlights.join(" ") || latest.title;
+}
+
+function maybeShowVersionNotice() {
+  const latest = latestChangelog();
+  const notice = $("versionNotice");
+  if (!latest || !notice || localStorage.getItem(CHANGELOG_SEEN_KEY) === latest.build) return;
+  $("versionNoticeTitle").textContent = `已更新至 v${latest.version}`;
+  $("versionNoticeMessage").textContent = latest.title;
+  notice.classList.remove("hidden");
+}
+
+function dismissVersionNotice() {
+  const latest = latestChangelog();
+  if (latest) safeStorageSet(localStorage, CHANGELOG_SEEN_KEY, latest.build);
+  $("versionNotice")?.classList.add("hidden");
+}
+
 function renderDashboard() {
   if (!$('modulePicker') || !state.account) return;
   const account = state.account;
@@ -986,6 +1061,7 @@ function renderDashboard() {
   const toolSummary = window.WYJTools?.getSummary?.() || { favorites: [], recent: [] };
   renderDashboardToolShelf("dashboardFavoriteTools", toolSummary.favorites || [], "还没有收藏工具。");
   renderDashboardToolShelf("dashboardRecentTools", toolSummary.recent || [], "还没有使用记录。");
+  renderLatestUpdate();
 
   setDashboardService("dashboardAccountStatus", backendAvailable ? "在线" : "离线", backendAvailable ? "is-online" : "is-offline");
   setDashboardService("dashboardSyncStatus", storageWriteFailed ? "浏览器存储受限" : "本地可用", storageWriteFailed ? "is-warning" : "is-online");
@@ -996,6 +1072,135 @@ function renderDashboard() {
     canShare ? (backendAvailable ? "可用" : "离线") : "未开通",
     canShare && backendAvailable ? "is-online" : canShare ? "is-offline" : "is-warning",
   );
+}
+
+function feedbackTypeLabel(value) {
+  return FEEDBACK_TYPE_LABELS[value] || value || "其他反馈";
+}
+
+function feedbackStatusLabel(value) {
+  return FEEDBACK_STATUS_LABELS[value] || value || "待处理";
+}
+
+function feedbackMetadata(item) {
+  return [
+    item.route ? `页面 ${item.route}` : "",
+    item.tool_id ? `工具 ${item.tool_id}` : "",
+    item.app_version ? `版本 ${item.app_version}` : "",
+    item.error_code ? `错误代码 ${item.error_code}` : "",
+  ].filter(Boolean).join(" · ");
+}
+
+function renderMyFeedback(items) {
+  const list = $("myFeedbackList");
+  if (!list) return;
+  list.innerHTML = (items || []).map((item) => `<article class="feedback-card">
+    <header><div><span class="feedback-type">${escapeHtml(feedbackTypeLabel(item.type))}</span><h3>${escapeHtml(item.title)}</h3></div><span class="status-badge feedback-status" data-status="${escapeHtml(item.status)}">${escapeHtml(feedbackStatusLabel(item.status))}</span></header>
+    <p class="feedback-card-content">${escapeHtml(item.content)}</p>
+    ${feedbackMetadata(item) ? `<p class="feedback-card-meta">${escapeHtml(feedbackMetadata(item))}</p>` : ""}
+    <footer><time>${escapeHtml(formatLocalDateTime(item.created_at, "未知"))}</time>${item.merged_into_id ? `<span>已合并至 ${escapeHtml(item.merged_into_id)}</span>` : ""}${["feature_suggestion", "new_tool"].includes(item.type) ? `<span>${escapeHtml(item.vote_count)} 票</span>` : ""}</footer>
+  </article>`).join("") || '<p class="dashboard-empty">你还没有提交反馈。</p>';
+}
+
+function renderFeatureVoting(items) {
+  const list = $("featureVotingList");
+  if (!list) return;
+  list.innerHTML = (items || []).map((item) => `<article class="feedback-card feedback-vote-card" data-feedback-id="${escapeHtml(item.id)}">
+    <div><span class="feedback-type">${escapeHtml(feedbackTypeLabel(item.type))}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(feedbackStatusLabel(item.status))} · ${escapeHtml(item.vote_count)} 票</p></div>
+    <button class="${item.voted ? "button-secondary active" : "button-secondary"}" type="button" data-feedback-vote aria-pressed="${String(Boolean(item.voted))}">${item.voted ? "取消投票" : "投一票"}</button>
+  </article>`).join("") || '<p class="dashboard-empty">暂时没有开放投票的建议。建议需经管理员采纳后才会显示，提交者和反馈正文不会公开。</p>';
+  list.querySelectorAll("[data-feedback-vote]").forEach((button) => button.addEventListener("click", () => voteForFeature(button.closest("[data-feedback-id]").dataset.feedbackId, button.getAttribute("aria-pressed") !== "true")));
+}
+
+function showFeedbackView(viewId) {
+  document.querySelectorAll("[data-feedback-view]").forEach((button) => {
+    const active = button.dataset.feedbackView === viewId;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  document.querySelectorAll(".feedback-view").forEach((view) => view.classList.toggle("active", view.id === viewId));
+}
+
+async function loadMyFeedback() {
+  const sequence = ++feedbackLoadSequence;
+  $("myFeedbackList").innerHTML = '<p class="dashboard-empty">正在加载你的反馈…</p>';
+  try {
+    const data = await apiGet("/api/feedback/mine");
+    if (sequence !== feedbackLoadSequence) return;
+    renderMyFeedback(data.feedback || []);
+  } catch (error) {
+    if (sequence !== feedbackLoadSequence) return;
+    $("myFeedbackList").innerHTML = `<p class="dashboard-empty">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+async function loadFeatureVoting() {
+  $("featureVotingList").innerHTML = '<p class="dashboard-empty">正在加载功能建议…</p>';
+  try {
+    const data = await apiGet("/api/feedback/voting");
+    renderFeatureVoting(data.suggestions || []);
+  } catch (error) {
+    $("featureVotingList").innerHTML = `<p class="dashboard-empty">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+async function openFeedbackModal() {
+  closeAccountMenu();
+  if (!state.session || !state.account) {
+    showAuth("登录后才能提交和查看自己的反馈", { mode: "login", path: "/login" });
+    return;
+  }
+  $("feedbackMessage").textContent = "";
+  showFeedbackView("feedbackSubmitView");
+  openModal("feedbackModal");
+  await Promise.allSettled([loadMyFeedback(), loadFeatureVoting()]);
+}
+
+async function submitFeedback(event) {
+  event.preventDefault();
+  const button = $("submitFeedbackBtn");
+  if (button.disabled) return;
+  button.disabled = true;
+  $("feedbackMessage").textContent = "";
+  try {
+    await api("/api/feedback", {
+      type: $("feedbackType").value,
+      title: $("feedbackTitleInput").value.trim(),
+      content: $("feedbackContent").value.trim(),
+      route: $("feedbackIncludeRoute").checked ? location.pathname : "",
+      tool_id: $("feedbackToolId").value.trim().toLowerCase(),
+      app_version: $("feedbackIncludeVersion").checked ? APP_VERSION : "",
+      browser_info: $("feedbackIncludeBrowser").checked ? navigator.userAgent.slice(0, 240) : "",
+      error_code: $("feedbackErrorCode").value.trim(),
+    });
+    $("feedbackTitleInput").value = "";
+    $("feedbackContent").value = "";
+    $("feedbackToolId").value = "";
+    $("feedbackErrorCode").value = "";
+    $("feedbackMessage").textContent = "反馈已提交，管理员处理后会更新状态。";
+    await loadMyFeedback();
+    showFeedbackView("feedbackMineView");
+  } catch (error) {
+    $("feedbackMessage").textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function voteForFeature(feedbackId, voted) {
+  const card = [...document.querySelectorAll("[data-feedback-id]")]
+    .find((item) => item.dataset.feedbackId === feedbackId);
+  const button = card?.querySelector("[data-feedback-vote]");
+  if (button) button.disabled = true;
+  try {
+    await api("/api/feedback/vote", { feedback_id: feedbackId, voted });
+    await Promise.allSettled([loadFeatureVoting(), loadMyFeedback()]);
+    $("feedbackMessage").textContent = voted ? "投票已记录。" : "已取消投票。";
+  } catch (error) {
+    $("feedbackMessage").textContent = error.message;
+  } finally {
+    if (button?.isConnected) button.disabled = false;
+  }
 }
 
 async function requestJsonGet(path, options = {}) {
@@ -1165,6 +1370,28 @@ function planDetails(plan) {
     : ["请选择套餐", "", ""];
 }
 
+function showRejudgeResultModal(title, message, tone = "info") {
+  const modal = $("rejudgeResultModal");
+  const panel = $("rejudgeResultPanel");
+  if (!modal || !panel) return;
+  rejudgeResultScrollPosition = { left: window.scrollX, top: window.scrollY };
+  $("rejudgeResultTitle").textContent = title;
+  $("rejudgeResultMessage").textContent = message;
+  panel.dataset.tone = ["success", "warning", "error"].includes(tone) ? tone : "info";
+  openModal("rejudgeResultModal");
+}
+
+function closeRejudgeResultModal() {
+  const position = rejudgeResultScrollPosition;
+  rejudgeResultScrollPosition = null;
+  closeModal("rejudgeResultModal", true);
+  if (!position) return;
+  window.requestAnimationFrame(() => {
+    window.scrollTo(position.left, position.top);
+    window.requestAnimationFrame(() => window.scrollTo(position.left, position.top));
+  });
+}
+
 function normalizedMembershipGoal(value) {
   const goal = String(value || "").trim();
   return Object.prototype.hasOwnProperty.call(MEMBERSHIP_GOALS, goal) ? goal : "";
@@ -1205,14 +1432,24 @@ function updateMembershipPurchaseSummary() {
     return;
   }
   const [name, price, description] = planDetails(selectedRechargePlan);
-  summary.textContent = `${name} · ${price} · ${paymentMethodLabel(selectedPaymentMethod)} · ${description}`;
+  const method = normalizedPaymentMethod(selectedPaymentMethod);
+  summary.textContent = `${name} · ${price} · ${method ? paymentMethodLabel(method) : "请选择支付方式"} · ${description}`;
+}
+
+function normalizedPaymentMethod(value) {
+  const method = String(value || "").trim().toLowerCase();
+  const allowed = paymentMethods.length
+    ? paymentMethods.map((item) => item.code)
+    : ["wechat", "alipay"];
+  return allowed.includes(method) ? method : "";
 }
 
 function paymentMethodLabel(value) {
-  return paymentMethods.find((item) => item.code === value)?.name || {
+  const method = normalizedPaymentMethod(value);
+  return paymentMethods.find((item) => item.code === method)?.name || {
     wechat: "微信支付",
     alipay: "支付宝",
-  }[value] || value || "未选择";
+  }[method] || "未选择";
 }
 
 function renderPaymentMethods() {
@@ -1222,18 +1459,19 @@ function renderPaymentMethods() {
     { code: "wechat", name: "微信支付" },
     { code: "alipay", name: "支付宝" },
   ];
-  if (!methods.some((item) => item.code === selectedPaymentMethod)) {
-    selectedPaymentMethod = methods[0]?.code || "";
-  }
+  selectedPaymentMethod = normalizedPaymentMethod(selectedPaymentMethod);
   list.innerHTML = methods.map((item) => `<label>
     <input type="radio" name="paymentMethod" value="${escapeHtml(item.code)}" ${item.code === selectedPaymentMethod ? "checked" : ""} />
     <span>${escapeHtml(item.name)}</span>
   </label>`).join("");
   list.querySelectorAll('input[name="paymentMethod"]').forEach((input) => {
     input.addEventListener("change", () => {
-      selectedPaymentMethod = input.value;
+      selectedPaymentMethod = normalizedPaymentMethod(input.value);
       updateMembershipPurchaseSummary();
       $("submitRechargeBtn").disabled = !selectedRechargePlan || !selectedPaymentMethod;
+      $("rechargeMessage").textContent = selectedPaymentMethod
+        ? `已选择${paymentMethodLabel(selectedPaymentMethod)}，确认套餐后即可创建订单。`
+        : "请先选择微信支付或支付宝。";
     });
   });
 }
@@ -1308,6 +1546,10 @@ function waitForImageReady(image, signal, timeoutMs = 4000) {
 async function loadPaymentQr(record, modalSequence = membershipModalLoadSequence) {
   releasePaymentQr();
   if (!record?.id || !["pending_payment", "user_paid", "processing"].includes(record.status)) return;
+  if (!normalizedPaymentMethod(record.payment_method)) {
+    $("rechargeMessage").textContent = "该订单没有有效支付方式，不能加载二维码。请取消后重新创建订单。";
+    return;
+  }
   if ($("membershipModal")?.classList.contains("hidden")) return;
   const wrap = $("paymentQrWrap");
   const image = $("paymentQrImage");
@@ -1418,6 +1660,7 @@ function selectMembershipGoal(goal, options = {}) {
   if (!options.preserveOrder) {
     releasePaymentQr();
     currentPaymentOrder = null;
+    selectedPaymentMethod = "";
     resetRechargeOrderUi();
   }
   selectedMembershipGoal = normalized;
@@ -1503,6 +1746,7 @@ async function openMembershipModal(options = {}) {
   releasePaymentQr();
   currentPaymentOrder = null;
   selectedRechargePlan = "";
+  selectedPaymentMethod = "";
   selectedMembershipGoal = normalizedMembershipGoal(options.goal);
   resetRechargeOrderUi();
   renderMembershipGoals();
@@ -1520,7 +1764,12 @@ async function openMembershipModal(options = {}) {
     loadErrors.push(plansResult.reason?.message || "会员方案加载失败");
   }
   if (ordersResult.status === "fulfilled") {
-    openOrder = (ordersResult.value.requests || []).find((item) => ["pending_payment", "user_paid", "processing"].includes(item.status)) || null;
+    const restoredOrder = (ordersResult.value.requests || []).find((item) => ["pending_payment", "user_paid", "processing"].includes(item.status)) || null;
+    if (restoredOrder && normalizedPaymentMethod(restoredOrder.payment_method)) {
+      openOrder = restoredOrder;
+    } else if (restoredOrder) {
+      loadErrors.push("未完成订单缺少有效支付方式，服务器将关闭该旧订单，请重新创建");
+    }
   } else if (ordersResult.reason?.name !== "AbortError") {
     loadErrors.push(ordersResult.reason?.message || "订单状态加载失败");
   }
@@ -1555,6 +1804,7 @@ function selectRechargePlan(plan, options = {}) {
   }
   if (planCode && membershipPlans.some((item) => item.code === planCode) && !membershipGoalAllowsPlan(selectedMembershipGoal, planCode)) return;
   if (!options.preserveOrder) releasePaymentQr();
+  if (!options.preserveOrder && planCode !== selectedRechargePlan) selectedPaymentMethod = "";
   selectedRechargePlan = planCode;
   if (!options.preserveOrder) {
     currentPaymentOrder = null;
@@ -1579,12 +1829,22 @@ function paymentStatusLabel(status) {
 
 function renderPaymentOrder(record) {
   if (!record) return;
+  const orderPaymentMethod = normalizedPaymentMethod(record.payment_method);
+  if (!orderPaymentMethod) {
+    releasePaymentQr();
+    currentPaymentOrder = null;
+    selectedPaymentMethod = "";
+    resetRechargeOrderUi();
+    renderMembershipPlans();
+    $("rechargeMessage").textContent = "该旧订单没有有效支付方式，不能恢复或确认付款。请重新创建订单。";
+    return;
+  }
   currentPaymentOrder = record;
   selectedMembershipGoal = membershipGoalAllowsPlan(selectedMembershipGoal, record.plan_code)
     ? selectedMembershipGoal
     : membershipGoalForPlan(record.plan_code, record.trial_language);
   selectedRechargePlan = record.plan_code;
-  selectedPaymentMethod = record.payment_method;
+  selectedPaymentMethod = orderPaymentMethod;
   renderMembershipGoals();
   renderMembershipPlans();
   setPaymentControlsLocked(true);
@@ -1599,12 +1859,12 @@ function renderPaymentOrder(record) {
   $("paymentLanguage").classList.toggle("hidden", !languageLabel);
   $("paymentLanguage").textContent = languageLabel || "-";
   if (languageLabel) $("trialLanguageSelect").value = record.trial_language;
-  $("paymentMethod").textContent = paymentMethodLabel(record.payment_method);
+  $("paymentMethod").textContent = paymentMethodLabel(orderPaymentMethod);
   $("paymentAmount").textContent = `${(Number(record.amount_cents || 0) / 100).toFixed(2)} ${record.currency || "CNY"}`;
   $("paymentOrderNumber").textContent = record.order_number || "-";
   $("paymentNote").textContent = record.payment_note || "-";
   $("paymentStatus").textContent = paymentStatusLabel(record.status);
-  $("paymentQrLabel").textContent = `请使用${paymentMethodLabel(record.payment_method)}扫码付款`;
+  $("paymentQrLabel").textContent = `请使用${paymentMethodLabel(orderPaymentMethod)}扫码付款`;
   $("paymentOrderBox").classList.remove("hidden");
   $("confirmPaymentBtn").classList.toggle("hidden", record.status !== "pending_payment");
   $("cancelPaymentOrderBtn").classList.toggle("hidden", record.status !== "pending_payment");
@@ -1624,14 +1884,27 @@ async function submitRechargeRequest() {
     return;
   }
   const button = $("submitRechargeBtn");
-  if (button.disabled || !selectedRechargePlan) return;
+  if (currentPaymentOrder && ["pending_payment", "user_paid", "processing"].includes(currentPaymentOrder.status)) return;
+  if (!selectedRechargePlan) {
+    $("rechargeMessage").textContent = "请先选择会员套餐。";
+    return;
+  }
+  const paymentMethod = normalizedPaymentMethod(selectedPaymentMethod);
+  if (!paymentMethod) {
+    $("rechargeMessage").textContent = "请先选择微信支付或支付宝。";
+    $("paymentMethodField")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    return;
+  }
   button.disabled = true;
   try {
     const data = await api("/api/recharge/request", {
       plan: selectedRechargePlan,
-      payment_method: selectedPaymentMethod,
+      payment_method: paymentMethod,
       trial_language: selectedRechargePlan === "trial_single_language" ? $("trialLanguageSelect").value : "",
     });
+    if (normalizedPaymentMethod(data.request?.payment_method) !== paymentMethod) {
+      throw new Error("订单支付方式保存失败，请刷新订单状态后重试");
+    }
     renderPaymentOrder(data.request);
     $("rechargeMessage").textContent = data.created
       ? "订单已生成并锁定。请核对二维码、金额与备注，付款后再点“我已付款”。"
@@ -1666,7 +1939,11 @@ async function cancelRechargeOrder() {
 }
 
 async function confirmRechargePayment() {
-  if (!currentPaymentOrder?.id) return;
+  if (!currentPaymentOrder?.id || currentPaymentOrder.status !== "pending_payment") return;
+  if (!normalizedPaymentMethod(currentPaymentOrder.payment_method)) {
+    $("rechargeMessage").textContent = "订单没有有效支付方式，不能通知管理员。请取消后重新创建订单。";
+    return;
+  }
   const button = $("confirmPaymentBtn");
   button.disabled = true;
   try {
@@ -2020,6 +2297,106 @@ function renderAdminToolStats(tools) {
   list.innerHTML = (tools || []).map((item) => `<article class="admin-log-card"><div><strong>${escapeHtml(item.tool_id)}</strong><span>${escapeHtml(item.uses || 0)} 次 · ${escapeHtml(item.users || 0)} 人</span></div><p>最近使用：${escapeHtml(formatLocalDateTime(item.last_used_at, "无"))}</p></article>`).join("") || "<p>暂无工具使用记录</p>";
 }
 
+function adminFeedbackQueryPath() {
+  const params = new URLSearchParams();
+  const query = $("adminFeedbackSearch")?.value.trim() || "";
+  const type = $("adminFeedbackType")?.value || "";
+  const status = $("adminFeedbackStatus")?.value || "";
+  if (query) params.set("query", query);
+  if (type) params.set("type", type);
+  if (status) params.set("status", status);
+  const suffix = params.toString();
+  return `/api/admin/feedback${suffix ? `?${suffix}` : ""}`;
+}
+
+function adminFeedbackStatusOptions(selected) {
+  return Object.entries(FEEDBACK_STATUS_LABELS).map(([value, label]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`).join("");
+}
+
+function renderAdminFeedback(items = null) {
+  if (Array.isArray(items)) adminFeedback = items;
+  const list = $("adminFeedbackList");
+  if (!list) return;
+  list.innerHTML = adminFeedback.map((item) => `<article class="admin-feedback-card" data-admin-feedback-id="${escapeHtml(item.id)}">
+    <header><div><span class="feedback-type">${escapeHtml(feedbackTypeLabel(item.type))}</span><h3>${escapeHtml(item.title)}</h3></div><div class="admin-feedback-summary"><span>${escapeHtml(item.vote_count)} 票</span><span>${escapeHtml(feedbackStatusLabel(item.status))}</span></div></header>
+    <p class="admin-feedback-author">${escapeHtml(item.username)} · ${escapeHtml(formatLocalDateTime(item.created_at, "未知"))} · ${escapeHtml(item.id)}</p>
+    <p class="admin-feedback-content">${escapeHtml(item.content)}</p>
+    ${feedbackMetadata(item) ? `<p class="admin-feedback-meta">${escapeHtml(feedbackMetadata(item))}</p>` : ""}
+    ${item.browser_info ? `<p class="admin-feedback-meta">浏览器：${escapeHtml(item.browser_info)}</p>` : ""}
+    ${item.merged_into_id ? `<p class="admin-feedback-meta">已合并至：${escapeHtml(item.merged_into_id)}</p>` : ""}
+    <div class="admin-feedback-controls">
+      <label><span>状态</span><select data-feedback-admin-status>${adminFeedbackStatusOptions(item.status)}</select></label>
+      <label class="admin-feedback-note"><span>管理员备注</span><textarea data-feedback-admin-note maxlength="1000" placeholder="内部处理备注">${escapeHtml(item.admin_note || "")}</textarea></label>
+      <button class="primary" data-feedback-admin-save type="button">保存状态与备注</button>
+    </div>
+    <div class="admin-feedback-merge">
+      <label><span>合并到建议 ID</span><input data-feedback-merge-target maxlength="64" placeholder="目标反馈 ID" /></label>
+      <button data-feedback-admin-merge type="button" ${["feature_suggestion", "new_tool"].includes(item.type) ? "" : "disabled"}>合并重复建议</button>
+      <button class="danger-button" data-feedback-admin-delete type="button">删除垃圾反馈</button>
+    </div>
+  </article>`).join("") || '<p class="admin-empty-state">没有符合条件的反馈。</p>';
+  list.querySelectorAll("[data-feedback-admin-save]").forEach((button) => button.addEventListener("click", () => adminFeedbackAction(button.closest("[data-admin-feedback-id]"), "update")));
+  list.querySelectorAll("[data-feedback-admin-merge]").forEach((button) => button.addEventListener("click", () => adminFeedbackAction(button.closest("[data-admin-feedback-id]"), "merge")));
+  list.querySelectorAll("[data-feedback-admin-delete]").forEach((button) => button.addEventListener("click", () => adminFeedbackAction(button.closest("[data-admin-feedback-id]"), "delete_spam")));
+}
+
+async function loadAdminFeedback() {
+  if (!isSuperAdmin()) return;
+  const list = $("adminFeedbackList");
+  if (list) list.setAttribute("aria-busy", "true");
+  try {
+    const data = await apiGet(adminFeedbackQueryPath());
+    renderAdminFeedback(data.feedback || []);
+    $("adminError").textContent = "";
+  } catch (error) {
+    $("adminError").textContent = error.message;
+    if (list && !adminFeedback.length) list.innerHTML = `<p class="admin-empty-state">${escapeHtml(error.message)}</p>`;
+  } finally {
+    if (list) list.setAttribute("aria-busy", "false");
+  }
+}
+
+async function applyAdminFeedbackAction(card, action) {
+  const feedbackId = card.dataset.adminFeedbackId;
+  const payload = {
+    feedback_id: feedbackId,
+    action,
+    status: card.querySelector("[data-feedback-admin-status]").value,
+    admin_note: card.querySelector("[data-feedback-admin-note]").value.trim(),
+    merged_into_id: card.querySelector("[data-feedback-merge-target]").value.trim(),
+  };
+  await api("/api/admin/feedback/update", payload);
+  const [feedbackResult, auditResult] = await Promise.allSettled([
+    apiGet(adminFeedbackQueryPath()),
+    apiGet("/api/admin/audit"),
+  ]);
+  if (feedbackResult.status === "fulfilled") renderAdminFeedback(feedbackResult.value.feedback || []);
+  if (auditResult.status === "fulfilled") renderAdminAudit(auditResult.value.logs || []);
+  $("adminError").textContent = feedbackResult.status === "rejected" ? feedbackResult.reason.message : "";
+}
+
+function adminFeedbackAction(card, action) {
+  const feedbackId = card.dataset.adminFeedbackId;
+  if (action === "merge" && !card.querySelector("[data-feedback-merge-target]").value.trim()) {
+    $("adminError").textContent = "请先填写要合并到的建议 ID。";
+    return;
+  }
+  if (action === "update") {
+    applyAdminFeedbackAction(card, action).catch((error) => { $("adminError").textContent = error.message; });
+    return;
+  }
+  const message = action === "merge"
+    ? `确认合并反馈 ${feedbackId}？投票会去重后转移到目标建议。`
+    : `确认永久删除垃圾反馈 ${feedbackId}？此操作会记录审计。`;
+  askConfirmation(message, async () => {
+    try {
+      await applyAdminFeedbackAction(card, action);
+    } catch (error) {
+      $("adminError").textContent = error.message;
+    }
+  });
+}
+
 async function loadAdminData() {
   if (!isSuperAdmin()) return;
   const sequence = ++adminLoadSequence;
@@ -2038,6 +2415,7 @@ async function loadAdminData() {
     { label: "审计日志", path: "/api/admin/audit", target: "adminAuditList", apply: (data) => renderAdminAudit(data.logs) },
     { label: "登录记录", path: "/api/admin/login-logs", target: "adminLoginList", apply: (data) => renderAdminLoginLogs(data.logs) },
     { label: "工具统计", path: "/api/admin/tool-stats", target: "adminToolStatsList", apply: (data) => renderAdminToolStats(data.tools) },
+    { label: "反馈与投票", path: adminFeedbackQueryPath(), target: "adminFeedbackList", apply: (data) => renderAdminFeedback(data.feedback) },
   ];
   try {
     const results = await Promise.allSettled(requests.map((request) => apiGet(request.path)));
@@ -2821,6 +3199,7 @@ function showChangelog(pushHistory = true) {
   $("changelogPage").classList.remove("hidden");
   $("changelogPage").setAttribute("aria-hidden", "false");
   document.body.classList.remove("project-picker-active");
+  renderChangelog();
   if (pushHistory) pushRoute("/changelog");
   renderAccountUi();
 }
@@ -5291,6 +5670,7 @@ async function rejudgeWrongAnswer(word, scope, answer, controls) {
     return;
   }
   rejudgeInFlight.add(key);
+  const idleStatus = controls.status.textContent;
   controls.input.removeAttribute("aria-invalid");
   controls.submit.disabled = true;
   controls.cancel.disabled = true;
@@ -5318,7 +5698,11 @@ async function rejudgeWrongAnswer(word, scope, answer, controls) {
       const adjusted = adjustActiveRoundAfterRejudge(word, info, result) || adjustStudyRecordAfterRejudge(info);
       saveWrongBooks();
       renderWrongBook();
-      showWrongActionMessage(`“${word}”重新作答正确，已从错题本移除${adjusted ? "并校正对应测试统计" : ""}。`);
+      showRejudgeResultModal(
+        "重新判定正确",
+        `“${word}”重新作答正确，已从错题本移除${adjusted ? "并校正对应测试统计" : ""}。`,
+        "success",
+      );
     } else {
       [state.currentWrongBook, state.historyWrongBook].forEach((book) => {
         if (!book[word]) return;
@@ -5331,11 +5715,19 @@ async function rejudgeWrongAnswer(word, scope, answer, controls) {
       });
       saveWrongBooks();
       renderWrongBook();
-      showWrongActionMessage(`“${word}”重新作答仍不正确，已保留在错题本；错误次数未增加。`);
+      showRejudgeResultModal(
+        "重新判定仍不正确",
+        `“${word}”已保留在错题本；错误次数未增加。`,
+        "warning",
+      );
     }
   } catch (error) {
-    controls.status.textContent = `重新判定失败：${error.message}`;
-    showWrongActionMessage(`“${word}”重新判定失败：${error.message}`, true);
+    controls.status.textContent = idleStatus;
+    showRejudgeResultModal(
+      "重新判定失败",
+      `“${word}”重新判定失败：${error.message || "请检查网络后重试"}`,
+      "error",
+    );
   } finally {
     rejudgeInFlight.delete(key);
     if (controls.submit.isConnected) {
@@ -5385,9 +5777,7 @@ function renderWrongBook() {
       : `你答：${info.last_answer || ""} · 标准：${info.correct_answer || ""}`;
     node.querySelector("strong").textContent = `${info.wrong_count || 0}次`;
     const rejudgeStatus = node.querySelector(".wrong-rejudge-status");
-    const persistedStatus = info.rejudged_at
-      ? `原判定：错误 · 新判定：${info.rejudge_result === "correct" ? "正确" : "仍错误"}${info.rejudge_reason ? ` · ${info.rejudge_reason}` : ""}`
-      : "可重新作答；答错不会增加错误次数";
+    const persistedStatus = "可重新作答；答错不会增加错误次数";
     rejudgeStatus.textContent = persistedStatus;
     const openButton = node.querySelector(".wrong-rejudge-button");
     const form = node.querySelector(".wrong-rejudge-form");
@@ -5860,6 +6250,7 @@ async function boot() {
   $("practiceModeSelect").value = state.practiceMode;
   updateLanguageUi();
   updatePracticeUi();
+  renderChangelog();
   renderAccountUi();
 
   $("loginForm").addEventListener("submit", login);
@@ -5879,6 +6270,9 @@ async function boot() {
   $("publicPlansBtn")?.addEventListener("click", () => showAuth("登录后可查看实时套餐并提交充值申请", { mode: "login", path: "/login" }));
   $("publicChangelogBtn")?.addEventListener("click", () => showChangelog(true));
   $("changelogTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
+  $("dashboardChangelogBtn")?.addEventListener("click", () => showChangelog(true));
+  $("dismissVersionNoticeBtn")?.addEventListener("click", dismissVersionNotice);
+  $("viewVersionDetailsBtn")?.addEventListener("click", () => { dismissVersionNotice(); showChangelog(true); });
   $("trialHomeBtn")?.addEventListener("click", () => state.session && state.account ? showModulePicker(true) : showPublicHome(true));
   ["trialRegisterBtn", "trialQuizRegisterBtn"].forEach((id) => $(id)?.addEventListener("click", () => showAuth("注册后可保存词表、错题和学习记录", { mode: "register", path: "/register" })));
   document.querySelectorAll("[data-trial-tool]").forEach((button) => button.addEventListener("click", () => setTrialTool(button.dataset.trialTool)));
@@ -5894,6 +6288,7 @@ async function boot() {
   $("trialImageInput")?.addEventListener("change", () => { releaseTrialImageOutput(); setTrialMessage("trialImageMessage"); });
   $("trialImageProcessBtn")?.addEventListener("click", processTrialImage);
   $("membershipBtn").addEventListener("click", async () => { closeAccountMenu(); pushRoute("/recharge"); await openMembershipModal(); });
+  $("feedbackBtn").addEventListener("click", openFeedbackModal);
   $("accountBtn").addEventListener("click", () => { closeAccountMenu(); pushRoute("/account"); openModal("accountModal"); });
   $("homeBtn").addEventListener("click", () => { closeAccountMenu(); showModulePicker(true); });
   $("adminBtn").addEventListener("click", () => { closeAccountMenu(); showAdminPanel(true); });
@@ -5909,7 +6304,7 @@ async function boot() {
   $("copyPaymentNoteBtn").addEventListener("click", () => copyTextWithFeedback(currentPaymentOrder?.payment_note || "", $("copyPaymentNoteBtn")));
   document.querySelectorAll("[data-close-modal]").forEach((button) => button.addEventListener("click", () => closeModal(button.dataset.closeModal)));
   document.querySelectorAll(".modal-layer").forEach((modal) => modal.addEventListener("click", (event) => {
-    if (event.target === modal) closeModal(modal.id);
+    if (event.target === modal && !modal.hasAttribute("data-confirm-only")) closeModal(modal.id);
   }));
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
@@ -5917,6 +6312,10 @@ async function boot() {
     const modal = openModals[openModals.length - 1];
     if (!modal) {
       closeAccountMenu();
+      return;
+    }
+    if (modal.hasAttribute("data-confirm-only")) {
+      modal.querySelector("button")?.focus();
       return;
     }
     if (modal.id === "confirmModal") confirmAction = null;
@@ -5932,6 +6331,10 @@ async function boot() {
   $("generateOwnSecretBtn").addEventListener("click", generateOwnSecret);
   $("openDeleteAccountBtn").addEventListener("click", () => openModal("deleteAccountModal"));
   $("deleteAccountForm").addEventListener("submit", deleteOwnAccount);
+  $("feedbackForm").addEventListener("submit", submitFeedback);
+  document.querySelectorAll("[data-feedback-view]").forEach((button) => button.addEventListener("click", () => showFeedbackView(button.dataset.feedbackView)));
+  $("refreshMyFeedbackBtn").addEventListener("click", loadMyFeedback);
+  $("refreshVotingBtn").addEventListener("click", loadFeatureVoting);
   $("refreshAdminBtn").addEventListener("click", loadAdminData);
   $("leaveAdminBtn").addEventListener("click", leaveAdminPanel);
   $("adminUserSearch").addEventListener("input", () => renderAdminUsers());
@@ -5942,7 +6345,13 @@ async function boot() {
       item.setAttribute("aria-selected", String(active));
     });
     document.querySelectorAll(".admin-view").forEach((view) => view.classList.toggle("active", view.id === button.dataset.adminView));
+    if (button.dataset.adminView === "adminFeedbackView") loadAdminFeedback();
   }));
+  $("adminFeedbackSearch").addEventListener("input", () => {
+    window.clearTimeout(adminFeedbackSearchTimer);
+    adminFeedbackSearchTimer = window.setTimeout(loadAdminFeedback, 250);
+  });
+  ["adminFeedbackType", "adminFeedbackStatus"].forEach((id) => $(id).addEventListener("change", loadAdminFeedback));
   $("saveAdminMembershipBtn").addEventListener("click", saveAdminMembership);
   $("adminMembershipSelect").addEventListener("change", () => updateAdminMembershipFields(true));
   $("adminMembershipAction").addEventListener("change", () => updateAdminMembershipFields(true));
@@ -5958,6 +6367,7 @@ async function boot() {
   $("adminDeleteUserBtn").addEventListener("click", () => adminUserAction("delete"));
   $("cancelConfirmBtn").addEventListener("click", () => { confirmAction = null; closeModal("confirmModal"); });
   $("acceptConfirmBtn").addEventListener("click", runConfirmedAction);
+  $("rejudgeResultConfirmBtn").addEventListener("click", closeRejudgeResultModal);
   $("roundRetryBtn").addEventListener("click", retryLastRound);
   $("roundWrongBtn").addEventListener("click", () => {
     closeModal("roundSummaryModal", true);
@@ -6122,6 +6532,7 @@ async function boot() {
   });
   await backendPromise;
   await routeCurrent();
+  maybeShowVersionNotice();
 }
 
 boot();

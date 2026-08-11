@@ -212,6 +212,90 @@ class AccountStoreTests(unittest.TestCase):
             self.assertNotIn("contact", payload)
             self.assertNotIn("handled_by", payload)
 
+    def test_each_payment_method_persists_until_explicit_confirmation(self):
+        for method in ("wechat", "alipay"):
+            with self.subTest(method=method):
+                user = self.register(f"persist-{method}")
+                request, created = self.store.create_recharge_request(
+                    user, "tools_monthly", method
+                )
+                self.assertTrue(created)
+                self.assertEqual(request["payment_method"], method)
+                self.assertEqual(request["status"], "pending_payment")
+                self.assertEqual(request["user_confirmed_at"], "")
+
+                restarted = AccountStore(self.store.database_path, self.text_path)
+                restored_user = restarted.get_user(user["id"])
+                restored = next(
+                    item
+                    for item in restarted.list_user_payment_requests(restored_user)
+                    if item["id"] == request["id"]
+                )
+                self.assertEqual(restored["payment_method"], method)
+                self.assertEqual(restored["status"], "pending_payment")
+                self.assertEqual(
+                    restored["qr_resource_id"],
+                    f"qr-v1:{method}:tools_monthly",
+                )
+
+                confirmed = restarted.confirm_recharge_payment(
+                    restored_user, restored["id"]
+                )
+                self.assertEqual(confirmed["status"], "user_paid")
+                self.assertTrue(confirmed["user_confirmed_at"])
+
+    def test_payment_consistency_migration_closes_invalid_legacy_open_order(self):
+        user = self.register("legacy-missing-method")
+        request, _created = self.store.create_recharge_request(
+            user, "all_access_monthly", "wechat"
+        )
+        self.store.confirm_recharge_payment(user, request["id"])
+        with self.store.connect() as connection:
+            connection.execute(
+                "UPDATE payment_requests SET payment_method = '', qr_resource_id = '' WHERE id = ?",
+                (request["id"],),
+            )
+            connection.execute(
+                "DELETE FROM schema_migrations WHERE version = ?",
+                ("005_payment_method_consistency",),
+            )
+
+        restarted = AccountStore(self.store.database_path, self.text_path)
+        restored_user = restarted.get_user(user["id"])
+        restored = next(
+            item
+            for item in restarted.list_user_payment_requests(restored_user)
+            if item["id"] == request["id"]
+        )
+        self.assertEqual(restored["status"], "cancelled")
+        self.assertEqual(restored["payment_method"], "")
+        replacement, created = restarted.create_recharge_request(
+            restored_user, "all_access_monthly", "alipay"
+        )
+        self.assertTrue(created)
+        self.assertEqual(replacement["payment_method"], "alipay")
+        self.assertEqual(replacement["status"], "pending_payment")
+        with restarted.connect() as connection:
+            events = connection.execute(
+                "SELECT COUNT(*) FROM payment_request_events WHERE id = ?",
+                (f"migration-005-payment-{request['id']}",),
+            ).fetchone()[0]
+        self.assertEqual(events, 1)
+
+    def test_payment_confirmation_rejects_corrupted_method_binding(self):
+        user = self.register("corrupt-payment")
+        request, _created = self.store.create_recharge_request(
+            user, "tools_monthly", "wechat"
+        )
+        with self.store.connect() as connection:
+            connection.execute(
+                "UPDATE payment_requests SET payment_method = '', qr_resource_id = '' WHERE id = ?",
+                (request["id"],),
+            )
+        with self.assertRaises(AccountError) as invalid:
+            self.store.confirm_recharge_payment(user, request["id"])
+        self.assertEqual(invalid.exception.code, "payment_method_invalid")
+
     def test_cancelled_membership_can_be_granted_again_without_duplicate_record(self):
         user = self.register()
         self.store.admin_manage_membership(
@@ -942,6 +1026,164 @@ class AccountStoreTests(unittest.TestCase):
             }
         self.assertIn("payment_method", columns)
         self.assertIn("payment_fulfillments", tables)
+        backup_bytes = backup.read_bytes()
+        AccountStore(database, text_path)
+        self.assertEqual(backup.read_bytes(), backup_bytes)
+
+    def test_feedback_is_private_validated_and_vote_is_one_per_user(self):
+        first = self.register("feedback-first")
+        second = self.register("feedback-second")
+        created = self.store.create_feedback(
+            first,
+            {
+                "type": "feature_suggestion",
+                "title": "Add a compact review mode",
+                "content": "Please add a compact review mode for small screens.",
+                "route": "/language/english",
+                "tool_id": "",
+                "app_version": "2026.08.11",
+                "browser_info": "TestBrowser/1.0",
+                "error_code": "",
+            },
+        )
+        self.assertEqual([item["id"] for item in self.store.list_user_feedback(first)], [created["id"]])
+        self.assertEqual(self.store.list_user_feedback(second), [])
+
+        with self.assertRaises(AccountError) as unknown_field:
+            self.store.create_feedback(
+                first,
+                {
+                    "type": "other",
+                    "title": "Unexpected field",
+                    "content": "This must be rejected.",
+                    "session": "must-not-be-collected",
+                },
+            )
+        self.assertEqual(unknown_field.exception.code, "feedback_fields_forbidden")
+        with self.assertRaises(AccountError) as sensitive_content:
+            self.store.create_feedback(
+                first,
+                {
+                    "type": "account_issue",
+                    "title": "Sensitive content",
+                    "content": "password=SecretValue123",
+                },
+            )
+        self.assertEqual(sensitive_content.exception.code, "feedback_sensitive_data")
+
+        for local_path in (
+            "C:" + "\\" + "Users" + "\\someone\\Desktop\\private.txt",
+            "/" + "home" + "/someone/private.txt",
+            "/" + "Users" + "/someone/private.txt",
+        ):
+            with self.subTest(local_path=local_path), self.assertRaises(AccountError) as local_path_error:
+                self.store.create_feedback(
+                    first,
+                    {
+                        "type": "page_issue",
+                        "title": "Local path",
+                        "content": local_path,
+                    },
+                )
+            self.assertEqual(local_path_error.exception.code, "feedback_sensitive_data")
+
+        accepted = self.store.admin_update_feedback(
+            self.admin,
+            created["id"],
+            "update",
+            status="accepted",
+            admin_note="Accepted for planning",
+        )
+        self.assertEqual(accepted["status"], "accepted")
+        suggestions = self.store.list_feature_votes(second)
+        self.assertEqual([item["id"] for item in suggestions], [created["id"]])
+        self.assertNotIn("content", suggestions[0])
+        self.assertNotIn("username", suggestions[0])
+
+        first_vote = self.store.set_feedback_vote(second, created["id"], True)
+        repeated_vote = self.store.set_feedback_vote(second, created["id"], True)
+        self.assertEqual(first_vote["vote_count"], 1)
+        self.assertEqual(repeated_vote["vote_count"], 1)
+        self.assertTrue(repeated_vote["voted"])
+        cancelled = self.store.set_feedback_vote(second, created["id"], False)
+        self.assertEqual(cancelled["vote_count"], 0)
+        self.assertFalse(cancelled["voted"])
+
+    def test_feedback_admin_merge_delete_and_audit(self):
+        first = self.register("feedback-merge-a")
+        second = self.register("feedback-merge-b")
+        source = self.store.create_feedback(
+            first,
+            {"type": "new_tool", "title": "CSV preview", "content": "Add a CSV preview tool."},
+        )
+        destination = self.store.create_feedback(
+            second,
+            {"type": "feature_suggestion", "title": "Table preview", "content": "Preview tabular files."},
+        )
+        self.store.admin_update_feedback(self.admin, source["id"], "update", status="accepted")
+        self.store.admin_update_feedback(self.admin, destination["id"], "update", status="accepted")
+        self.store.set_feedback_vote(first, source["id"], True)
+        self.store.set_feedback_vote(first, destination["id"], True)
+        self.store.set_feedback_vote(second, source["id"], True)
+
+        merged = self.store.admin_update_feedback(
+            self.admin,
+            source["id"],
+            "merge",
+            admin_note="Duplicate suggestion",
+            merged_into_id=destination["id"],
+        )
+        self.assertEqual(merged["status"], "rejected")
+        self.assertEqual(merged["merged_into_id"], destination["id"])
+        voting = self.store.list_feature_votes(first)
+        target = next(item for item in voting if item["id"] == destination["id"])
+        self.assertEqual(target["vote_count"], 2)
+
+        deleted = self.store.admin_update_feedback(
+            self.admin,
+            source["id"],
+            "delete_spam",
+        )
+        self.assertTrue(deleted["deleted"])
+        actions = [item["action"] for item in self.store.list_audit_logs(self.admin)]
+        self.assertIn("feedback_update", actions)
+        self.assertIn("feedback_merge", actions)
+        self.assertIn("feedback_delete_spam", actions)
+        with self.assertRaises(AccountError):
+            self.store.admin_list_feedback(first)
+
+    def test_feedback_migration_is_backed_up_once(self):
+        root = Path(self.temporary.name) / "feedback-v6"
+        database = root / "data" / "users.sqlite3"
+        text_path = root / "users.txt"
+        database.parent.mkdir(parents=True)
+        migrations = Path(__file__).with_name("migrations")
+        with closing(sqlite3.connect(database)) as connection:
+            connection.executescript((migrations / "pre-001-schema.sql").read_text(encoding="utf-8"))
+            for migration in (
+                "001_entitlements_up.sql",
+                "002_single_language_orders_up.sql",
+                "003_login_audit_up.sql",
+                "004_payment_flow_up.sql",
+                "005_payment_method_consistency_up.sql",
+            ):
+                connection.executescript((migrations / migration).read_text(encoding="utf-8"))
+        migrated = AccountStore(database, text_path)
+        backup = database.with_name("users.pre-feedback-006.sqlite3")
+        self.assertTrue(backup.exists())
+        with closing(sqlite3.connect(backup)) as connection:
+            tables = {
+                row[0]
+                for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+            }
+        self.assertNotIn("feedback_items", tables)
+        with migrated.connect() as connection:
+            tables = {
+                row[0]
+                for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+            }
+        self.assertIn("feedback_items", tables)
+        self.assertIn("feedback_votes", tables)
         backup_bytes = backup.read_bytes()
         AccountStore(database, text_path)
         self.assertEqual(backup.read_bytes(), backup_bytes)
