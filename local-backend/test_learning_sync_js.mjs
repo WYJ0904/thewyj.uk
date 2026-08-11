@@ -273,7 +273,35 @@ assert.equal(preservedRestore.deleted, false);
 assert.equal(preservedRestore.payload.correct_answer, "重新导入");
 assert.equal(preservedRestore.dirty, true);
 
+let stoppedSignal = null;
+let releaseStoppedSync;
+const stoppedTransport = new Promise((resolve) => { releaseStoppedSync = resolve; });
+const stoppable = new sync.LearningSyncManager({
+  storage: new MemoryStorage(),
+  onlineSource: new OnlineSource(true),
+  crypto: globalThis.crypto,
+  transport: (_payload, options) => {
+    stoppedSignal = options.signal;
+    return stoppedTransport;
+  },
+});
+stoppable.start({ accountId: "stop-in-flight", clientVersion: "test-client" });
+stoppable.stop(false);
+stoppable.upsert({
+  data_type: "daily_goal",
+  record_id: sync.makeRecordId("goal", ["默认", "english"]),
+  payload: { goal: 22 },
+});
+const stoppedOperation = stoppable.syncNow();
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert.equal(stoppedSignal?.aborted, false);
+stoppable.stop();
+assert.equal(stoppedSignal?.aborted, true);
+releaseStoppedSync({ schema_version: sync.SCHEMA_VERSION, results: [], changes: [], next_since_version: 0, has_more: false });
+assert.equal((await stoppedOperation).cancelled, true);
+
 manager.destroy();
 staleDevice.destroy();
 inFlightDelete.destroy();
+stoppable.destroy();
 console.log("learning sync JS tests passed (local-first, backup validation, in-flight delete/restore safety)");

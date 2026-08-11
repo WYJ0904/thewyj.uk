@@ -123,6 +123,7 @@ async function connectBrowser() {
 
 async function main() {
   assert.ok(ADMIN_SECRET, "WYJ_TEST_ADMIN_SECRET is required for the isolated browser test server");
+  const admin = await api("/api/login", { username: "wyj", secret: ADMIN_SECRET });
   const browser = await connectBrowser();
   const { client, send, targetId } = browser;
   const runtimeErrors = [];
@@ -130,7 +131,6 @@ async function main() {
   const networkRequests = [];
   const dialogs = [];
   const checks = [];
-  const admin = await api("/api/login", { username: "wyj", secret: ADMIN_SECRET });
   await send("Storage.clearDataForOrigin", { origin: BASE_URL, storageTypes: "all" });
   await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 

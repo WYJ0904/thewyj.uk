@@ -285,6 +285,7 @@
       this.clientId = "";
       this.state = null;
       this.syncPromise = null;
+      this.syncController = null;
       this.timer = null;
       this.retryCount = 0;
       this.status = "synced";
@@ -319,6 +320,8 @@
     stop(clearIdentity = true) {
       this.generation += 1;
       clearTimeout(this.timer);
+      this.syncController?.abort();
+      this.syncController = null;
       this.timer = null;
       this.syncPromise = null;
       this.retryCount = 0;
@@ -518,6 +521,8 @@
         return { ok: false, offline: true };
       }
       const syncGeneration = this.generation;
+      const syncController = typeof AbortController === "function" ? new AbortController() : null;
+      this.syncController = syncController;
       const operation = (async () => {
         this.emitStatus("syncing");
         let mergedCount = 0;
@@ -531,7 +536,7 @@
             client_version: this.clientVersion,
             since_version: this.state.server_version || 0,
             changes: batch.map((item) => item.change),
-          });
+          }, syncController ? { signal: syncController.signal } : {});
           if (syncGeneration !== this.generation) return { ok: false, cancelled: true };
           if (!response || response.schema_version !== SCHEMA_VERSION) throw new Error("服务器同步响应版本无效");
           const remoteByKey = new Map();
@@ -567,6 +572,7 @@
       this.syncPromise = operation;
       operation.finally(() => {
         if (this.syncPromise === operation) this.syncPromise = null;
+        if (this.syncController === syncController) this.syncController = null;
       });
       return operation;
     }

@@ -830,7 +830,10 @@ function ensureLearningSyncManager() {
     storage: localStorage,
     onlineSource: window,
     crypto: window.crypto,
-    transport: (payload) => api("/api/learning/sync", payload, { timeoutMs: 15000 }),
+    transport: (payload, options = {}) => api("/api/learning/sync", payload, {
+      timeoutMs: 15000,
+      signal: options.signal,
+    }),
     applyRecord: applyLearningSyncRecord,
     onStatus: updateLearningSyncStatus,
   });
@@ -1790,6 +1793,7 @@ async function registerAccount(event) {
 async function logoutAccount() {
   const session = state.session;
   const account = state.account;
+  stopLearningDataSync();
   try {
     if (session) await api("/api/logout");
   } catch (_) {
@@ -2431,6 +2435,7 @@ async function deleteOwnAccount(event) {
   event.preventDefault();
   const button = $("confirmDeleteAccountBtn");
   button.disabled = true;
+  stopLearningDataSync();
   try {
     const deletedAccount = state.account;
     await api("/api/account/delete", { secret: $("deleteSecretInput").value });
@@ -2441,6 +2446,7 @@ async function deleteOwnAccount(event) {
     showAuth("账户已注销", { path: "/login", replace: true });
     alert("账户已永久注销");
   } catch (error) {
+    startLearningDataSync();
     $("accountMessage").textContent = error.message;
     closeModal("deleteAccountModal");
   } finally {
@@ -4612,6 +4618,7 @@ async function api(path, body = {}, options = {}) {
         },
         body: JSON.stringify(body),
         controller: options.controller,
+        signal: options.signal,
       },
       options.timeoutMs || API_TIMEOUT_MS,
     );
