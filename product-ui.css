@@ -201,6 +201,10 @@ button:disabled {
   opacity: 1;
 }
 
+html {
+  scroll-padding-top: calc(80px + env(safe-area-inset-top));
+}
+
 .plan-option:disabled {
   opacity: 1;
 }
@@ -1467,6 +1471,28 @@ textarea::placeholder {
   color: var(--color-error);
 }
 
+.dashboard-sync-actions {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.dashboard-sync-actions .action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dashboard-sync-actions button {
+  min-height: 40px;
+}
+
+.dashboard-sync-actions p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
 .dashboard-resume {
   margin-top: var(--space-5);
   padding: var(--space-4);
@@ -1803,6 +1829,7 @@ textarea::placeholder {
   gap: var(--space-3);
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
+  scroll-margin-top: calc(80px + env(safe-area-inset-top));
 }
 
 .wrong-rejudge-form label {
@@ -1818,6 +1845,7 @@ textarea::placeholder {
 
 .wrong-rejudge-controls button {
   min-width: 112px;
+  scroll-margin-top: calc(80px + env(safe-area-inset-top));
 }
 
 .result-gloss {
@@ -1892,6 +1920,17 @@ textarea::placeholder {
 
 .tool-search input {
   min-height: 48px;
+}
+
+.tool-search > span,
+.tool-form label > span,
+#toolWorkbenchDescription {
+  color: var(--color-text-secondary);
+}
+
+#toolWorkbenchCategory {
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 .tool-category-grid {
@@ -2618,6 +2657,10 @@ progress {
 }
 
 @media (max-width: 760px) {
+  html {
+    scroll-padding-top: calc(184px + env(safe-area-inset-top));
+  }
+
   .site-nav {
     grid-template-columns: minmax(0, 1fr) auto;
     padding-bottom: 8px;
@@ -2642,6 +2685,15 @@ progress {
 
   .site-nav-actions {
     justify-self: end;
+  }
+
+  .workspace > .tabs {
+    position: sticky;
+    top: calc(116px + env(safe-area-inset-top));
+    z-index: 700;
+    padding: 4px;
+    background: var(--color-surface);
+    box-shadow: 0 1px 0 var(--color-border);
   }
 
   .module-picker,

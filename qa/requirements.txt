@@ -1,0 +1,4 @@
+opencv-python-headless>=4.10,<5
+Pillow>=10,<13
+pypdf>=5,<7
+vobject>=0.9.9,<1

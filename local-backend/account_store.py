@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import json
+import math
 import os
 import re
 import secrets
@@ -74,6 +75,30 @@ FEEDBACK_SENSITIVE_PATTERN = re.compile(
     r"\bsk-[A-Za-z0-9_-]{12,}|\b(?:session|token|password)\s*[:=]\s*\S{6,})",
     re.IGNORECASE,
 )
+LEARNING_SYNC_SCHEMA_VERSION = 1
+LEARNING_SYNC_TYPES = {
+    "wrong_book",
+    "achievement",
+    "test_history",
+    "daily_goal",
+    "language_settings",
+    "learning_config",
+}
+LEARNING_SYNC_TYPE_LIMITS = {
+    "wrong_book": 2000,
+    "achievement": 500,
+    "test_history": 5000,
+    "daily_goal": 200,
+    "language_settings": 20,
+    "learning_config": 500,
+}
+LEARNING_SYNC_MAX_CHANGES = 200
+LEARNING_SYNC_PULL_LIMIT = 500
+LEARNING_SYNC_MAX_RECORD_ID = 700
+LEARNING_SYNC_MAX_PAYLOAD_BYTES = 384 * 1024
+LEARNING_SYNC_MAX_TOTAL_RECORDS = sum(LEARNING_SYNC_TYPE_LIMITS.values())
+LEARNING_SYNC_CLIENT_PATTERN = re.compile(r"^[A-Za-z0-9._~:-]{8,80}$")
+LEARNING_SYNC_RECORD_PATTERN = re.compile(r"^[A-Za-z0-9._~|:-]{1,700}$")
 
 
 def utc_now():
@@ -198,6 +223,7 @@ class AccountStore:
         self._backup_before_payment_migration()
         self._backup_before_payment_method_consistency_migration()
         self._backup_before_feedback_migration()
+        self._backup_before_learning_sync_migration()
         self.initialize()
 
     def _backup_before_membership_migration(self):
@@ -366,6 +392,39 @@ class AccountStore:
                 pass
             raise
 
+    def _backup_before_learning_sync_migration(self):
+        if not self.database_path.exists() or self.database_path.stat().st_size == 0:
+            return
+        backup_path = self.database_path.with_name(
+            f"{self.database_path.stem}.pre-learning-sync-007.sqlite3"
+        )
+        if backup_path.exists():
+            return
+        try:
+            with closing(sqlite3.connect(str(self.database_path), timeout=15)) as source:
+                tables = {
+                    row[0]
+                    for row in source.execute(
+                        "SELECT name FROM sqlite_master WHERE type = 'table'"
+                    ).fetchall()
+                }
+                if "users" not in tables or "schema_migrations" not in tables:
+                    return
+                applied = source.execute(
+                    "SELECT 1 FROM schema_migrations WHERE version = ?",
+                    ("007_learning_sync",),
+                ).fetchone()
+                if applied:
+                    return
+                with closing(sqlite3.connect(str(backup_path), timeout=15)) as destination:
+                    source.backup(destination)
+        except sqlite3.Error:
+            try:
+                backup_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
+
     @contextmanager
     def connect(self):
         connection = sqlite3.connect(str(self.database_path), timeout=15)
@@ -484,6 +543,11 @@ class AccountStore:
                 connection,
                 "006_feedback_voting",
                 "006_feedback_voting_up.sql",
+            )
+            self._apply_migration(
+                connection,
+                "007_learning_sync",
+                "007_learning_sync_up.sql",
             )
             self._seed_membership_plans(connection, now)
             self._migrate_legacy_memberships(connection, now)
@@ -2687,6 +2751,464 @@ class AccountStore:
         if should_sync:
             self._sync_after_write()
         return status
+
+    @staticmethod
+    def _learning_sync_json(value):
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+
+    @classmethod
+    def _validate_learning_sync_value(cls, value, depth=0):
+        if depth > 8:
+            raise AccountError("学习数据嵌套层级过深", 400, "learning_sync_payload_invalid")
+        if value is None or isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            if isinstance(value, float) and not math.isfinite(value):
+                raise AccountError("学习数据包含无效数字", 400, "learning_sync_payload_invalid")
+            return value
+        if isinstance(value, str):
+            if len(value) > 120_000:
+                raise AccountError("单项学习数据文本过长", 413, "learning_sync_record_too_large")
+            return value
+        if isinstance(value, list):
+            if len(value) > 2000:
+                raise AccountError("单项学习数据列表过长", 413, "learning_sync_record_too_large")
+            return [cls._validate_learning_sync_value(item, depth + 1) for item in value]
+        if isinstance(value, dict):
+            if len(value) > 300:
+                raise AccountError("单项学习数据字段过多", 413, "learning_sync_record_too_large")
+            cleaned = {}
+            for key, item in value.items():
+                key_text = str(key)
+                if not key_text or len(key_text) > 100:
+                    raise AccountError("学习数据字段名称无效", 400, "learning_sync_payload_invalid")
+                cleaned[key_text] = cls._validate_learning_sync_value(item, depth + 1)
+            return cleaned
+        raise AccountError("学习数据包含不支持的类型", 400, "learning_sync_payload_invalid")
+
+    @classmethod
+    def _validated_learning_sync_request(cls, payload):
+        if not isinstance(payload, dict):
+            raise AccountError("同步请求格式无效", 400, "learning_sync_request_invalid")
+        allowed = {"schema_version", "client_id", "client_version", "since_version", "changes"}
+        if set(payload) - allowed:
+            raise AccountError("同步请求包含不允许的字段", 400, "learning_sync_fields_forbidden")
+        schema_version = payload.get("schema_version")
+        if isinstance(schema_version, bool) or schema_version != LEARNING_SYNC_SCHEMA_VERSION:
+            raise AccountError("学习数据版本不受支持", 409, "learning_sync_schema_unsupported")
+        client_id = str(payload.get("client_id") or "").strip()
+        if not LEARNING_SYNC_CLIENT_PATTERN.fullmatch(client_id):
+            raise AccountError("同步客户端标识无效", 400, "learning_sync_client_invalid")
+        client_version = str(payload.get("client_version") or "").strip()
+        if not client_version or len(client_version) > 80:
+            raise AccountError("客户端版本无效", 400, "learning_sync_client_version_invalid")
+        since_version = payload.get("since_version", 0)
+        if isinstance(since_version, bool) or not isinstance(since_version, int) or since_version < 0:
+            raise AccountError("服务器同步版本无效", 400, "learning_sync_version_invalid")
+        changes = payload.get("changes", [])
+        if not isinstance(changes, list) or len(changes) > LEARNING_SYNC_MAX_CHANGES:
+            raise AccountError("单次同步记录数量超出限制", 413, "learning_sync_changes_limit")
+
+        cleaned_changes = []
+        identities = set()
+        maximum_time = utc_now() + timedelta(minutes=5)
+        for raw in changes:
+            if not isinstance(raw, dict):
+                raise AccountError("同步记录格式无效", 400, "learning_sync_change_invalid")
+            allowed_change = {
+                "data_type",
+                "record_id",
+                "payload",
+                "updated_at",
+                "deleted",
+                "base_server_version",
+            }
+            if set(raw) - allowed_change:
+                raise AccountError("同步记录包含不允许的字段", 400, "learning_sync_change_fields_forbidden")
+            data_type = str(raw.get("data_type") or "").strip()
+            if data_type not in LEARNING_SYNC_TYPES:
+                raise AccountError("学习数据类型无效", 400, "learning_sync_type_invalid")
+            record_id = str(raw.get("record_id") or "").strip()
+            if (
+                len(record_id) > LEARNING_SYNC_MAX_RECORD_ID
+                or not LEARNING_SYNC_RECORD_PATTERN.fullmatch(record_id)
+            ):
+                raise AccountError("学习记录标识无效", 400, "learning_sync_record_id_invalid")
+            identity = (data_type, record_id)
+            if identity in identities:
+                raise AccountError("单次请求包含重复学习记录", 400, "learning_sync_duplicate_change")
+            identities.add(identity)
+            updated_time = parse_time(raw.get("updated_at"))
+            if not updated_time or updated_time > maximum_time:
+                raise AccountError("学习记录更新时间无效", 400, "learning_sync_updated_at_invalid")
+            deleted = raw.get("deleted", False)
+            if not isinstance(deleted, bool):
+                raise AccountError("学习记录删除状态无效", 400, "learning_sync_deleted_invalid")
+            if data_type == "achievement" and deleted:
+                raise AccountError("成就记录只能增加", 400, "learning_sync_achievement_monotonic")
+            base_server_version = raw.get("base_server_version", 0)
+            if (
+                isinstance(base_server_version, bool)
+                or not isinstance(base_server_version, int)
+                or base_server_version < 0
+            ):
+                raise AccountError("学习记录基础版本无效", 400, "learning_sync_base_version_invalid")
+            raw_payload = raw.get("payload", {})
+            if not isinstance(raw_payload, dict):
+                raise AccountError("学习记录内容必须是对象", 400, "learning_sync_payload_invalid")
+            record_payload = {} if deleted else cls._validate_learning_sync_value(raw_payload)
+            encoded = cls._learning_sync_json(record_payload).encode("utf-8")
+            if len(encoded) > LEARNING_SYNC_MAX_PAYLOAD_BYTES:
+                raise AccountError("单项学习数据超出大小限制", 413, "learning_sync_record_too_large")
+            cleaned_changes.append(
+                {
+                    "data_type": data_type,
+                    "record_id": record_id,
+                    "payload": record_payload,
+                    "updated_at": updated_time.replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+                    "deleted": deleted,
+                    "base_server_version": base_server_version,
+                    "client_id": client_id,
+                    "client_version": client_version,
+                }
+            )
+        return {
+            "schema_version": schema_version,
+            "client_id": client_id,
+            "client_version": client_version,
+            "since_version": since_version,
+            "changes": cleaned_changes,
+        }
+
+    @staticmethod
+    def _learning_sync_row_payload(row):
+        try:
+            value = json.loads(row["payload_json"] or "{}")
+            return value if isinstance(value, dict) else {}
+        except (json.JSONDecodeError, TypeError):
+            return {}
+
+    @classmethod
+    def _learning_sync_record_payload(cls, row):
+        keys = set(row.keys())
+        version = row["user_version"] if "user_version" in keys else row["server_version"]
+        server_updated_at = row["created_at"] if "user_version" in keys else row["server_updated_at"]
+        return {
+            "data_type": row["data_type"],
+            "record_id": row["record_id"],
+            "payload": {} if row["deleted"] else cls._learning_sync_row_payload(row),
+            "updated_at": row["updated_at"],
+            "deleted": bool(row["deleted"]),
+            "client_id": row["client_id"],
+            "client_version": row["client_version"],
+            "server_version": int(version),
+            "server_updated_at": server_updated_at,
+        }
+
+    @classmethod
+    def _merge_monotonic_value(cls, current, incoming):
+        if isinstance(current, bool) and isinstance(incoming, bool):
+            return current or incoming
+        if (
+            isinstance(current, (int, float))
+            and not isinstance(current, bool)
+            and isinstance(incoming, (int, float))
+            and not isinstance(incoming, bool)
+        ):
+            return max(current, incoming)
+        if isinstance(current, dict) and isinstance(incoming, dict):
+            merged = dict(current)
+            for key, value in incoming.items():
+                merged[key] = cls._merge_monotonic_value(merged[key], value) if key in merged else value
+            return merged
+        if isinstance(current, list) and isinstance(incoming, list):
+            values = []
+            seen = set()
+            for item in [*current, *incoming]:
+                marker = cls._learning_sync_json(item)
+                if marker not in seen:
+                    seen.add(marker)
+                    values.append(item)
+            return values[:2000]
+        return current if current not in (None, "") else incoming
+
+    @classmethod
+    def _merge_wrong_payload(cls, current, incoming, incoming_newer):
+        merged = {**current, **incoming} if incoming_newer else {**incoming, **current}
+        merged["wrong_count"] = max(
+            int(current.get("wrong_count") or 0),
+            int(incoming.get("wrong_count") or 0),
+        )
+        accepted = []
+        seen = set()
+        for item in [*(current.get("accepted") or []), *(incoming.get("accepted") or [])]:
+            text = str(item or "").strip()
+            marker = text.casefold()
+            if text and marker not in seen:
+                seen.add(marker)
+                accepted.append(text)
+        if accepted:
+            merged["accepted"] = accepted[:50]
+        current_rubric = current.get("rubric") if isinstance(current.get("rubric"), dict) else {}
+        incoming_rubric = incoming.get("rubric") if isinstance(incoming.get("rubric"), dict) else {}
+        if current_rubric or incoming_rubric:
+            merged["rubric"] = (
+                {**current_rubric, **incoming_rubric}
+                if incoming_newer
+                else {**incoming_rubric, **current_rubric}
+            )
+            rubric_accepted = []
+            rubric_seen = set()
+            for item in [
+                *(current_rubric.get("accepted") or []),
+                *(incoming_rubric.get("accepted") or []),
+            ]:
+                text = str(item or "").strip()
+                marker = text.casefold()
+                if text and marker not in rubric_seen:
+                    rubric_seen.add(marker)
+                    rubric_accepted.append(text)
+            if rubric_accepted:
+                merged["rubric"]["accepted"] = rubric_accepted[:50]
+        return merged
+
+    @staticmethod
+    def _learning_sync_incoming_is_newer(existing, incoming):
+        existing_time = parse_time(existing["updated_at"]) or datetime.min.replace(tzinfo=timezone.utc)
+        incoming_time = parse_time(incoming["updated_at"]) or datetime.min.replace(tzinfo=timezone.utc)
+        if incoming_time != existing_time:
+            return incoming_time > existing_time
+        return incoming["client_id"] > str(existing["client_id"] or "")
+
+    @classmethod
+    def _merge_learning_sync_record(cls, existing, incoming):
+        if existing is None:
+            return dict(incoming), True, False
+        existing_payload = cls._learning_sync_row_payload(existing)
+        existing_output = cls._learning_sync_record_payload(existing)
+        incoming_newer = cls._learning_sync_incoming_is_newer(existing, incoming)
+        base_is_current = incoming["base_server_version"] >= int(existing["server_version"])
+
+        if incoming["deleted"]:
+            if not base_is_current:
+                return existing_output, False, True
+            canonical = dict(incoming)
+            canonical["payload"] = {}
+            return canonical, not bool(existing["deleted"]), not base_is_current
+
+        if existing["deleted"]:
+            if not base_is_current or not incoming_newer:
+                return existing_output, False, True
+            return dict(incoming), True, False
+
+        data_type = incoming["data_type"]
+        if data_type == "achievement":
+            payload = cls._merge_monotonic_value(existing_payload, incoming["payload"])
+            newer = incoming_newer
+        elif data_type == "wrong_book":
+            payload = cls._merge_wrong_payload(existing_payload, incoming["payload"], incoming_newer)
+            newer = incoming_newer
+        else:
+            if not incoming_newer:
+                return existing_output, False, existing_payload != incoming["payload"]
+            payload = incoming["payload"]
+            newer = True
+
+        canonical = dict(incoming)
+        canonical["payload"] = payload
+        if data_type in {"achievement", "wrong_book"}:
+            existing_time = parse_time(existing["updated_at"])
+            incoming_time = parse_time(incoming["updated_at"])
+            if existing_time and incoming_time and existing_time > incoming_time:
+                canonical["updated_at"] = existing["updated_at"]
+                canonical["client_id"] = existing["client_id"]
+                canonical["client_version"] = existing["client_version"]
+            elif not newer and existing_time == incoming_time:
+                canonical["client_id"] = existing["client_id"]
+                canonical["client_version"] = existing["client_version"]
+        same = (
+            not existing["deleted"]
+            and existing_payload == canonical["payload"]
+            and existing["updated_at"] == canonical["updated_at"]
+            and existing["client_id"] == canonical["client_id"]
+            and existing["client_version"] == canonical["client_version"]
+        )
+        merged = (
+            incoming["base_server_version"] < int(existing["server_version"])
+            or canonical["payload"] != incoming["payload"]
+        )
+        return canonical, not same, merged
+
+    @classmethod
+    def _write_learning_sync_record(cls, connection, user_id, record, existing=None):
+        now = iso_now()
+        connection.execute(
+            """
+            INSERT INTO learning_sync_heads(user_id, version, updated_at)
+            VALUES (?, 0, ?)
+            ON CONFLICT(user_id) DO NOTHING
+            """,
+            (user_id, now),
+        )
+        connection.execute(
+            "UPDATE learning_sync_heads SET version = version + 1, updated_at = ? WHERE user_id = ?",
+            (now, user_id),
+        )
+        version = connection.execute(
+            "SELECT version FROM learning_sync_heads WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()["version"]
+        payload_json = cls._learning_sync_json({} if record["deleted"] else record["payload"])
+        connection.execute(
+            """
+            INSERT INTO learning_sync_changes (
+                user_id, user_version, data_type, record_id, payload_json, updated_at,
+                deleted, client_id, client_version, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                user_id,
+                version,
+                record["data_type"],
+                record["record_id"],
+                payload_json,
+                record["updated_at"],
+                int(record["deleted"]),
+                record["client_id"],
+                record["client_version"],
+                now,
+            ),
+        )
+        created_at = existing["created_at"] if existing is not None else now
+        connection.execute(
+            """
+            INSERT INTO learning_sync_records (
+                user_id, data_type, record_id, payload_json, updated_at, deleted,
+                client_id, client_version, server_version, created_at, server_updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(user_id, data_type, record_id) DO UPDATE SET
+                payload_json = excluded.payload_json,
+                updated_at = excluded.updated_at,
+                deleted = excluded.deleted,
+                client_id = excluded.client_id,
+                client_version = excluded.client_version,
+                server_version = excluded.server_version,
+                server_updated_at = excluded.server_updated_at
+            """,
+            (
+                user_id,
+                record["data_type"],
+                record["record_id"],
+                payload_json,
+                record["updated_at"],
+                int(record["deleted"]),
+                record["client_id"],
+                record["client_version"],
+                version,
+                created_at,
+                now,
+            ),
+        )
+        return connection.execute(
+            """
+            SELECT * FROM learning_sync_records
+            WHERE user_id = ? AND data_type = ? AND record_id = ?
+            """,
+            (user_id, record["data_type"], record["record_id"]),
+        ).fetchone()
+
+    def sync_learning_data(self, user, payload):
+        if not user or user["deleted"] or user["banned"]:
+            raise AccountError("账户不可用", 403, "account_unavailable")
+        request = self._validated_learning_sync_request(payload)
+        user_id = user["id"]
+        results = []
+        merged_count = 0
+        accepted_count = 0
+        with self.lock, self.connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            for incoming in request["changes"]:
+                existing = connection.execute(
+                    """
+                    SELECT * FROM learning_sync_records
+                    WHERE user_id = ? AND data_type = ? AND record_id = ?
+                    """,
+                    (user_id, incoming["data_type"], incoming["record_id"]),
+                ).fetchone()
+                canonical, changed, merged = self._merge_learning_sync_record(existing, incoming)
+                if changed and existing is None:
+                    type_count = connection.execute(
+                        """
+                        SELECT COUNT(*) FROM learning_sync_records
+                        WHERE user_id = ? AND data_type = ?
+                        """,
+                        (user_id, incoming["data_type"]),
+                    ).fetchone()[0]
+                    total_count = connection.execute(
+                        "SELECT COUNT(*) FROM learning_sync_records WHERE user_id = ?",
+                        (user_id,),
+                    ).fetchone()[0]
+                    if type_count >= LEARNING_SYNC_TYPE_LIMITS[incoming["data_type"]]:
+                        raise AccountError("该类学习记录数量超出限制", 413, "learning_sync_type_limit")
+                    if total_count >= LEARNING_SYNC_MAX_TOTAL_RECORDS:
+                        raise AccountError("学习记录总数超出限制", 413, "learning_sync_total_limit")
+                elif changed and not canonical["deleted"] and existing["deleted"]:
+                    active_type_count = connection.execute(
+                        """
+                        SELECT COUNT(*) FROM learning_sync_records
+                        WHERE user_id = ? AND data_type = ? AND deleted = 0
+                        """,
+                        (user_id, incoming["data_type"]),
+                    ).fetchone()[0]
+                    if active_type_count >= LEARNING_SYNC_TYPE_LIMITS[incoming["data_type"]]:
+                        raise AccountError("该类学习记录数量超出限制", 413, "learning_sync_type_limit")
+                if changed:
+                    row = self._write_learning_sync_record(connection, user_id, canonical, existing)
+                    accepted_count += 1
+                else:
+                    row = existing
+                if row is not None:
+                    results.append(self._learning_sync_record_payload(row))
+                if merged:
+                    merged_count += 1
+
+            head = connection.execute(
+                "SELECT version FROM learning_sync_heads WHERE user_id = ?",
+                (user_id,),
+            ).fetchone()
+            server_version = int(head["version"]) if head else 0
+            since_version = request["since_version"]
+            reset_required = since_version > server_version
+            if reset_required:
+                since_version = 0
+            rows = connection.execute(
+                """
+                SELECT * FROM learning_sync_changes
+                WHERE user_id = ? AND user_version > ?
+                ORDER BY user_version ASC
+                LIMIT ?
+                """,
+                (user_id, since_version, LEARNING_SYNC_PULL_LIMIT + 1),
+            ).fetchall()
+            has_more = len(rows) > LEARNING_SYNC_PULL_LIMIT
+            visible_rows = rows[:LEARNING_SYNC_PULL_LIMIT]
+            changes = [self._learning_sync_record_payload(row) for row in visible_rows]
+            next_since_version = (
+                int(visible_rows[-1]["user_version"])
+                if has_more and visible_rows
+                else server_version
+            )
+        return {
+            "schema_version": LEARNING_SYNC_SCHEMA_VERSION,
+            "server_version": server_version,
+            "next_since_version": next_since_version,
+            "has_more": has_more,
+            "reset_required": reset_required,
+            "accepted_count": accepted_count,
+            "merged_count": merged_count,
+            "results": results,
+            "changes": changes,
+        }
 
     @staticmethod
     def _validate_tool_id(tool_id):

@@ -47,7 +47,7 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts
           {
-            python -m compileall -q local-backend scripts
+            python -m compileall -q local-backend scripts qa
             echo "Python syntax check passed."
           } 2>&1 | tee artifacts/python-syntax.log
 
@@ -101,9 +101,11 @@ jobs:
           {
             node --check app.js
             node --check tools.js
+            node --check learning-sync.js
             node --check sw.js
             node --check "functions/api/[[path]].js"
             node --check local-backend/test_tools_js.mjs
+            node --check local-backend/test_learning_sync_js.mjs
             node --check local-backend/test_proxy_js.mjs
             node --check local-backend/test_app_browser.mjs
             node --check local-backend/test_tools_browser.mjs
@@ -113,6 +115,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_tools_js.mjs 2>&1 | tee artifacts/javascript-tools.log
+
+      - name: Test learning data sync client
+        run: |
+          set -euo pipefail
+          node local-backend/test_learning_sync_js.mjs 2>&1 | tee artifacts/learning-sync-client.log
 
       - name: Test Pages API proxy
         run: |
@@ -124,6 +131,11 @@ jobs:
           set -euo pipefail
           cd local-backend
           python -m unittest test_static.py -v 2>&1 | tee ../artifacts/static-site.log
+
+      - name: Check full functional audit coverage
+        run: |
+          set -euo pipefail
+          python scripts/functional_audit_gate.py 2>&1 | tee artifacts/functional-audit-gate.log
 
       - name: Upload JavaScript and static reports
         if: always()
@@ -213,6 +225,12 @@ jobs:
           key: ${{ runner.os }}-browser-downloads-${{ hashFiles('**/requirements*.txt', '**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-browser-downloads-
+
+      - name: Install independent toolbox artifact validators
+        if: matrix.suite == 'toolbox'
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -r qa/requirements.txt
 
       - name: Prepare isolated browser data
         run: |
@@ -317,6 +335,8 @@ jobs:
           PY
 
       - name: Run real browser flow
+        env:
+          WYJ_TEST_PYTHON: python
         run: |
           set -euo pipefail
           node "${{ matrix.script }}" 2>&1 | tee "artifacts/browser-${{ matrix.suite }}.log"
@@ -338,5 +358,7 @@ jobs:
           path: |
             artifacts/
             .tool-e2e/*.png
+            .tool-e2e/qr-*.gif
+            .tool-e2e/tool-artifacts-*.json
           if-no-files-found: warn
           retention-days: 7

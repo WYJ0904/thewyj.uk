@@ -110,27 +110,34 @@ async function connectBrowser() {
   const version = await fetch(`${CDP_URL}/json/version`).then((response) => response.json());
   const client = new CdpClient(version.webSocketDebuggerUrl);
   await client.connect();
-  const target = await client.send("Target.createTarget", { url: "about:blank" });
+  const context = await client.send("Target.createBrowserContext");
+  const browserContextId = context.browserContextId;
+  const target = await client.send("Target.createTarget", { url: "about:blank", browserContextId });
   const attached = await client.send("Target.attachToTarget", { targetId: target.targetId, flatten: true });
   const sessionId = attached.sessionId;
   const send = (method, params = {}) => client.send(method, params, sessionId);
   await Promise.all([send("Page.enable"), send("DOM.enable"), send("Runtime.enable"), send("Log.enable"), send("Network.enable")]);
   await send("Network.setCacheDisabled", { cacheDisabled: true });
-  await send("Network.setBypassServiceWorker", { bypass: true });
-  await client.send("Browser.setDownloadBehavior", { behavior: "allow", downloadPath: DOWNLOAD_ROOT, eventsEnabled: true });
-  return { client, targetId: target.targetId, sessionId, send };
+  await send("Network.setBypassServiceWorker", { bypass: false });
+  await client.send("Browser.setDownloadBehavior", {
+    behavior: "allow",
+    downloadPath: DOWNLOAD_ROOT,
+    eventsEnabled: true,
+    browserContextId,
+  });
+  return { client, browserContextId, targetId: target.targetId, sessionId, send };
 }
 
 async function main() {
   assert.ok(ADMIN_SECRET, "WYJ_TEST_ADMIN_SECRET is required for the isolated browser test server");
+  const admin = await api("/api/login", { username: "wyj", secret: ADMIN_SECRET });
   const browser = await connectBrowser();
-  const { client, send, targetId } = browser;
+  const { client, browserContextId, send, targetId } = browser;
   const runtimeErrors = [];
   const networkHttpErrors = [];
   const networkRequests = [];
   const dialogs = [];
   const checks = [];
-  const admin = await api("/api/login", { username: "wyj", secret: ADMIN_SECRET });
   await send("Storage.clearDataForOrigin", { origin: BASE_URL, storageTypes: "all" });
   await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 
@@ -336,7 +343,21 @@ async function main() {
     const settledPoint = await evaluate(`(() => {
       const element = document.querySelector(${JSON.stringify(selector)});
       const rect = element.getBoundingClientRect();
-      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, width: rect.width, height: rect.height };
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const hit = document.elementFromPoint(x, y);
+      if (hit !== element && !element.contains(hit)) {
+        const hitRect = hit?.getBoundingClientRect?.();
+        const navRect = document.querySelector('#accountBar')?.getBoundingClientRect?.();
+        throw new Error('covered touch target ${selector}: ' + JSON.stringify({
+          hit: hit?.id || hit?.className || hit?.tagName || 'none',
+          target: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom },
+          hitRect: hitRect ? { left: hitRect.left, top: hitRect.top, right: hitRect.right, bottom: hitRect.bottom } : null,
+          navRect: navRect ? { left: navRect.left, top: navRect.top, right: navRect.right, bottom: navRect.bottom } : null,
+          viewport: { width: innerWidth, height: innerHeight, scrollY },
+        }));
+      }
+      return { x, y, width: rect.width, height: rect.height };
     })()`);
     await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: settledPoint.x, y: settledPoint.y });
     await send("Input.dispatchMouseEvent", { type: "mousePressed", x: settledPoint.x, y: settledPoint.y, button: "left", buttons: 1, clickCount: 1 });
@@ -402,8 +423,30 @@ async function main() {
       checks.push({ name, status: "passed", milliseconds });
       console.error(`[app-matrix] PASS ${name} (${milliseconds} ms)`);
     } catch (error) {
-      console.error(`[app-matrix] FAIL ${name}: ${error.message}`);
-      throw error;
+      const diagnostic = await evaluate(`({
+        pathname: location.pathname,
+        loginError: document.querySelector('#loginError')?.textContent || '',
+        modulePickerHidden: document.querySelector('#modulePicker')?.classList.contains('hidden'),
+        authPanelHidden: document.querySelector('#authPanel')?.classList.contains('hidden'),
+        sessionLength: (localStorage.getItem('wyjAccountSession') || '').length,
+        accountCached: Boolean(localStorage.getItem('wyjAccountCache')),
+        syncStatus: document.querySelector('#learningSyncStatus')?.textContent || '',
+        syncDetail: document.querySelector('#learningSyncDetail')?.textContent || '',
+        wrongCount: document.querySelectorAll('#wrongList .wrong-item').length,
+        wrongText: (document.querySelector('#wrongList')?.textContent || '').slice(0, 300),
+        rejudgeStatus: document.querySelector('.wrong-rejudge-status')?.textContent || '',
+        rejudgeModal: document.querySelector('#rejudgeResultTitle')?.textContent || '',
+        rejudgeMessage: document.querySelector('#rejudgeResultMessage')?.textContent || '',
+        currentWrong: state?.currentWrongBook?.hello || null,
+        historyWrong: state?.historyWrongBook?.hello || null,
+        syncWrong: Object.values(learningSyncManager?.state?.records || {}).filter((item) => item.record_id?.includes('hello')),
+        rejudgeFetches: window.__rejudgeFetches || [],
+        activeWrongRejudgeKey,
+        learningSyncWrongRenderPending,
+      })`).catch(() => ({}));
+      const detail = `${error.message}; diagnostic=${JSON.stringify(diagnostic)}; runtime=${JSON.stringify(runtimeErrors.slice(-4))}; http=${JSON.stringify(networkHttpErrors.slice(-6))}`;
+      console.error(`[app-matrix] FAIL ${name}: ${detail}`);
+      throw new Error(detail, { cause: error });
     }
   };
 
@@ -451,22 +494,27 @@ async function main() {
       assert.equal(await evaluate("document.querySelectorAll('#publicHome .public-feature-card').length"), 7);
       assert.equal(await evaluate("document.querySelector('#publicHome').textContent.includes('无第三方追踪')"), true);
       const pwa = await evaluate(`(async () => {
-        const registration = await navigator.serviceWorker.ready;
+        const registration = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('service worker readiness timeout')), 10_000)),
+        ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260811-feedback-voting');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260811-feedback-voting');
-        return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog) };
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260811-functional-audit');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260811-functional-audit');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260811-functional-audit');
+        return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync) };
       })()`);
       assert.equal(pwa.active, true);
       assert.equal(pwa.cachedLogo, true);
       assert.equal(pwa.cachedProductStyles, true);
       assert.equal(pwa.cachedChangelog, true);
+      assert.equal(pwa.cachedLearningSync, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.11");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.11.2");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-11-feedback-voting");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-11-functional-audit");
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
     });
@@ -537,9 +585,9 @@ async function main() {
       await navigate(`/changelog?app-matrix=${RUN_ID}`);
       await waitFor("!document.querySelector('#entryScreen')", 6_000, "changelog splash removal");
       await waitFor("location.pathname === '/changelog' && !document.querySelector('#changelogPage')?.classList.contains('hidden')", 8_000, "changelog route");
-      assert.equal(await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"), 4);
+      assert.equal(await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"), 6);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.11");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.11.2");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
@@ -598,6 +646,85 @@ async function main() {
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
     });
 
+    await check("learning data sync is local-first and receives a second-device update", async () => {
+      await waitFor(
+        "/已同步|已合并/.test(document.querySelector('#dashboardSyncStatus')?.textContent || '')",
+        15_000,
+        "initial learning sync",
+      );
+      assert.equal(await evaluate("document.querySelector('#learningSyncNowBtn').offsetParent !== null"), true);
+      assert.equal(await evaluate("document.querySelector('#learningSyncExportBtn').offsetParent !== null"), true);
+      assert.equal(await evaluate("document.querySelector('#learningSyncImportBtn').offsetParent !== null"), true);
+
+      await send("Network.emulateNetworkConditions", {
+        offline: true,
+        latency: 0,
+        downloadThroughput: 0,
+        uploadThroughput: 0,
+      });
+      await evaluate(`(() => {
+        localStorage.setItem(studyGoalKey('english'), '31');
+        queueStudyGoalForSync('english');
+        renderDashboard();
+        return true;
+      })()`);
+      assert.equal(await evaluate("localStorage.getItem(studyGoalKey('english'))"), "31");
+      assert.equal(await evaluate("document.querySelector('#dashboardSyncStatus').textContent"), "等待同步");
+      const offlineResult = await evaluate("learningSyncManager.syncNow()");
+      assert.equal(offlineResult.offline, true);
+
+      await send("Network.emulateNetworkConditions", {
+        offline: false,
+        latency: 0,
+        downloadThroughput: -1,
+        uploadThroughput: -1,
+      });
+      await evaluate("learningSyncManager.syncNow()");
+      await waitFor(
+        "learningSyncManager.dirtyRecords().length === 0 && /已同步|已合并/.test(document.querySelector('#dashboardSyncStatus')?.textContent || '')",
+        15_000,
+        "pending learning data upload",
+      );
+
+      const secondDeviceRecordId = await evaluate("window.WYJLearningSync.makeRecordId('goal', [state.profile, 'english'])");
+      const secondDevice = await api("/api/learning/sync", {
+        schema_version: 1,
+        client_id: "browser-matrix-device-b",
+        client_version: "browser-matrix",
+        since_version: 0,
+        changes: [{
+          data_type: "daily_goal",
+          record_id: secondDeviceRecordId,
+          payload: { goal: 47 },
+          updated_at: new Date(Date.now() + 1000).toISOString(),
+          deleted: false,
+          base_server_version: 0,
+        }],
+      }, userSession);
+      assert.equal(secondDevice.results[0].payload.goal, 47);
+      await evaluate("learningSyncManager.syncNow()");
+      await waitFor("localStorage.getItem(studyGoalKey('english')) === '47'", 10_000, "second-device daily goal");
+      assert.equal(await evaluate("learningSyncManager.dirtyRecords().length"), 0);
+
+      const backupName = await verifyDownload("#learningSyncExportBtn", 10_000, ".json");
+      const backupText = fs.readFileSync(path.join(DOWNLOAD_ROOT, backupName), "utf8");
+      const backup = JSON.parse(backupText);
+      assert.equal(backup.account_id, userMe.account.id);
+      assert.equal(backup.type, "wyj-learning-data-backup");
+      assert.equal(backupText.includes("vocabRuntime"), false);
+      const mismatch = await evaluate(`(() => {
+        const backup = JSON.parse(learningSyncManager.exportBackup());
+        backup.account_id = 'another-account';
+        try {
+          learningSyncManager.importBackup(JSON.stringify(backup));
+          return '';
+        } catch (error) {
+          return error.message;
+        }
+      })()`);
+      assert.match(mismatch, /不属于当前登录账号/);
+    });
+
     await check("authenticated feedback submission is private and mobile-safe", async () => {
       await click("#accountMenu summary");
       await waitFor("!document.querySelector('#feedbackBtn')?.classList.contains('hidden')", 2_000, "feedback account action");
@@ -629,7 +756,7 @@ async function main() {
       assert.ok(created, JSON.stringify(mine));
       browserFeedbackId = created.id;
       assert.equal(created.route, "/select");
-      assert.equal(created.app_version, "2026-08-11-feedback-voting");
+      assert.equal(created.app_version, await evaluate("APP_VERSION"));
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       fs.writeFileSync(path.join(TEST_ROOT, `feedback-390-${RUN_ID}.png`), Buffer.from(shot.data, "base64"));
       await click('[data-close-modal="feedbackModal"]');
@@ -1659,6 +1786,7 @@ async function main() {
     console.log(JSON.stringify(result, null, 2));
   } finally {
     await client.send("Target.closeTarget", { targetId }).catch(() => {});
+    await client.send("Target.disposeBrowserContext", { browserContextId }).catch(() => {});
     client.close();
   }
 }

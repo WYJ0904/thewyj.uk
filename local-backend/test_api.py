@@ -61,6 +61,7 @@ class AccountApiTests(unittest.TestCase):
         # to the scenario so the full suite cannot exhaust a later test's fixture.
         server.REGISTER_ATTEMPTS.clear()
         server.FEEDBACK_REQUESTS.clear()
+        server.LEARNING_SYNC_REQUESTS.clear()
 
     @classmethod
     def request(cls, method, path, payload=None, session="", extra_headers=None):
@@ -1515,6 +1516,85 @@ class AccountApiTests(unittest.TestCase):
         )
         self.assertEqual(status, 403, data)
         self.assertEqual(data["code"], "origin_forbidden")
+
+    def test_learning_sync_api_requires_session_and_isolates_users(self):
+        _, _, first_session = self.new_user()
+        _, _, second_session = self.new_user()
+        record_id = "v1|history|cHJvZmls|cm91bmQtYXBp"
+        payload = {
+            "schema_version": 1,
+            "client_id": "client-api-first",
+            "client_version": "api-test",
+            "since_version": 0,
+            "changes": [{
+                "data_type": "test_history",
+                "record_id": record_id,
+                "payload": {"id": "round-api", "total": 5, "correct": 4},
+                "updated_at": "2026-08-11T00:00:00Z",
+                "deleted": False,
+                "base_server_version": 0,
+            }],
+        }
+        status, unauthenticated = self.request("POST", "/api/learning/sync", payload)
+        self.assertEqual(status, 401, unauthenticated)
+        status, synced = self.request("POST", "/api/learning/sync", payload, first_session)
+        self.assertEqual(status, 200, synced)
+        self.assertEqual(synced["results"][0]["record_id"], record_id)
+        status, isolated = self.request(
+            "POST",
+            "/api/learning/sync",
+            {**payload, "client_id": "client-api-second", "changes": []},
+            second_session,
+        )
+        self.assertEqual(status, 200, isolated)
+        self.assertEqual(isolated["changes"], [])
+        self.assertEqual(isolated["server_version"], 0)
+
+    def test_learning_sync_api_validates_fields_sizes_and_rate(self):
+        _, _, session = self.new_user()
+        base = {
+            "schema_version": 1,
+            "client_id": "client-api-limits",
+            "client_version": "api-test",
+            "since_version": 0,
+            "changes": [],
+        }
+        status, forbidden = self.request(
+            "POST",
+            "/api/learning/sync",
+            {**base, "session": "must-not-be-accepted"},
+            session,
+        )
+        self.assertEqual(status, 400, forbidden)
+        self.assertEqual(forbidden["code"], "learning_sync_fields_forbidden")
+
+        server.LEARNING_SYNC_REQUESTS.clear()
+        oversized = {
+            **base,
+            "changes": [{
+                "data_type": "learning_config",
+                "record_id": "v1|config|bGFyZ2U",
+                "payload": {"text": "x" * 120_001},
+                "updated_at": "2026-08-11T00:00:00Z",
+                "deleted": False,
+                "base_server_version": 0,
+            }],
+        }
+        status, too_large = self.request("POST", "/api/learning/sync", oversized, session)
+        self.assertEqual(status, 413, too_large)
+        self.assertEqual(too_large["code"], "learning_sync_record_too_large")
+
+        server.LEARNING_SYNC_REQUESTS.clear()
+        try:
+            with mock.patch.object(server, "LEARNING_SYNC_MAX_REQUESTS", 2):
+                for _ in range(2):
+                    status, result = self.request("POST", "/api/learning/sync", base, session)
+                    self.assertEqual(status, 200, result)
+                status, limited = self.request("POST", "/api/learning/sync", base, session)
+                self.assertEqual(status, 429, limited)
+                self.assertEqual(limited["code"], "learning_sync_rate_limited")
+        finally:
+            server.LEARNING_SYNC_REQUESTS.clear()
 
 
 if __name__ == "__main__":

@@ -6,9 +6,9 @@
     <meta name="theme-color" content="#ffffff" />
     <title>WYJ的网站</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260811-feedback-voting" />
-    <link rel="stylesheet" href="/styles.css?v=20260811-feedback-voting" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260811-feedback-voting" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260811-functional-audit" />
+    <link rel="stylesheet" href="/styles.css?v=20260811-functional-audit" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260811-functional-audit" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 WYJ的网站" aria-hidden="false">
@@ -241,6 +241,15 @@
               <div><dt>AI 判卷</dt><dd id="dashboardAiStatus">检测中</dd></div>
               <div><dt>临时分享</dt><dd id="dashboardShareStatus">检测中</dd></div>
             </dl>
+            <div class="dashboard-sync-actions" aria-label="学习数据同步与备份">
+              <div class="action-row compact">
+                <button class="button-secondary" id="learningSyncNowBtn" type="button">立即同步</button>
+                <button class="button-ghost" id="learningSyncExportBtn" type="button">导出 JSON</button>
+                <button class="button-ghost" id="learningSyncImportBtn" type="button">导入 JSON</button>
+              </div>
+              <input class="hidden" id="learningSyncFileInput" type="file" accept="application/json,.json" />
+              <p id="learningSyncDetail" aria-live="polite">本地修改会在联网后自动同步。</p>
+            </div>
           </section>
         </div>
       </section>
@@ -819,8 +828,9 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20260811-feedback-voting"></script>
-    <script src="/tools.js?v=20260811-feedback-voting"></script>
-    <script src="/app.js?v=20260811-feedback-voting"></script>
+    <script src="/changelog.js?v=20260811-functional-audit"></script>
+    <script src="/tools.js?v=20260811-functional-audit"></script>
+    <script src="/learning-sync.js?v=20260811-functional-audit"></script>
+    <script src="/app.js?v=20260811-functional-audit"></script>
   </body>
 </html>

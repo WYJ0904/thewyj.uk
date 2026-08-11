@@ -1,19 +1,43 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const AUDIT_MATRIX = JSON.parse(fs.readFileSync(path.join(ROOT, "qa", "functional-audit.json"), "utf8"));
+const REQUIRED_TOOL_MODES = new Set(Object.entries(AUDIT_MATRIX.tool_modes)
+  .flatMap(([group, values]) => values.map((value) => `${group}.${value}`)));
+const coveredToolModes = new Set();
 const BASE_URL = process.env.WYJ_TEST_BASE || "http://127.0.0.1:8892";
 const CDP_URL = process.env.WYJ_CDP_URL || "http://127.0.0.1:9223";
 const ADMIN_SECRET = process.env.WYJ_TEST_ADMIN_SECRET || "";
 const TEST_ROOT = path.join(ROOT, ".tool-e2e");
 const RUN_ID = Date.now().toString(36);
 const DOWNLOAD_ROOT = path.join(TEST_ROOT, `downloads-${RUN_ID}`);
+const ARTIFACT_MANIFEST_PATH = path.join(TEST_ROOT, `tool-artifacts-${RUN_ID}.json`);
 const USERNAME = `toolmatrix${RUN_ID}`.slice(0, 32);
 const USER_SECRET = "Tool-Matrix-User-2026!";
+const artifactManifest = {
+  schema_version: 1,
+  run_id: RUN_ID,
+  files: {},
+  images: {},
+  qrs: [],
+  temporary_files: [],
+};
 
 fs.mkdirSync(DOWNLOAD_ROOT, { recursive: true });
+
+function coverMode(mode) {
+  assert.ok(REQUIRED_TOOL_MODES.has(mode), `unknown QA mode: ${mode}`);
+  coveredToolModes.add(mode);
+}
+
+function fileSha256(filePath) {
+  return createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+}
 
 function prepareFixtures() {
   const write = (name, content) => fs.writeFileSync(path.join(TEST_ROOT, name), content);
@@ -25,6 +49,9 @@ function prepareFixtures() {
   write("objects.json", JSON.stringify([{ name: "Alice", age: 18 }, { name: "Bob", age: 20 }]));
   write("array1.json", JSON.stringify([1, 2]));
   write("array2.json", JSON.stringify([3]));
+  write("sample-gbk.txt", Buffer.from("d6d0cec4", "hex"));
+  write("sample-big5.txt", Buffer.from("a4a4a4e5", "hex"));
+  write("sample-shift-jis.txt", Buffer.from("93fa967b8cea", "hex"));
   write("twenty-megabytes.txt", Buffer.alloc(20 * 1024 * 1024, 0x41));
   fs.copyFileSync(path.join(ROOT, "icon-192.png"), path.join(TEST_ROOT, "sample.png"));
   fs.copyFileSync(path.join(ROOT, "icon-512.png"), path.join(TEST_ROOT, "sample2.png"));
@@ -46,6 +73,9 @@ const samples = {
   objects: sample("objects.json"),
   array1: sample("array1.json"),
   array2: sample("array2.json"),
+  gbk: sample("sample-gbk.txt"),
+  big5: sample("sample-big5.txt"),
+  shiftJis: sample("sample-shift-jis.txt"),
   png: sample("sample.png"),
   png2: sample("sample2.png"),
   jpeg: sample("sample.jpg"),
@@ -134,7 +164,9 @@ async function connectBrowser() {
   const version = await fetch(`${CDP_URL}/json/version`).then((response) => response.json());
   const client = new CdpClient(version.webSocketDebuggerUrl);
   await client.connect();
-  const target = await client.send("Target.createTarget", { url: "about:blank" });
+  const context = await client.send("Target.createBrowserContext");
+  const browserContextId = context.browserContextId;
+  const target = await client.send("Target.createTarget", { url: "about:blank", browserContextId });
   const attached = await client.send("Target.attachToTarget", { targetId: target.targetId, flatten: true });
   const sessionId = attached.sessionId;
   const send = (method, params = {}) => client.send(method, params, sessionId);
@@ -143,20 +175,24 @@ async function connectBrowser() {
     send("DOM.enable"),
     send("Runtime.enable"),
     send("Log.enable"),
+    send("Network.enable"),
   ]);
+  await send("Network.setCacheDisabled", { cacheDisabled: true });
+  await send("Storage.clearDataForOrigin", { origin: BASE_URL, storageTypes: "all" });
   await client.send("Browser.setDownloadBehavior", {
     behavior: "allow",
     downloadPath: DOWNLOAD_ROOT,
     eventsEnabled: true,
+    browserContextId,
   });
-  return { client, targetId: target.targetId, sessionId, send };
+  return { client, browserContextId, targetId: target.targetId, sessionId, send };
 }
 
 async function main() {
   assert.ok(ADMIN_SECRET, "WYJ_TEST_ADMIN_SECRET is required for the isolated browser test server");
   const member = await createMember();
   const browser = await connectBrowser();
-  const { client, send, targetId } = browser;
+  const { client, browserContextId, send, targetId } = browser;
   const runtimeErrors = [];
   client.listeners.add((message) => {
     if (message.sessionId && message.sessionId !== browser.sessionId) return;
@@ -222,6 +258,76 @@ async function main() {
     await evaluate(`document.querySelector(${JSON.stringify(selector)}).dispatchEvent(new Event('change', { bubbles: true }))`);
   };
 
+  const auditVisibleTextContrast = async (rootSelector) => evaluate(`(() => {
+    const root = document.querySelector(${JSON.stringify(rootSelector)});
+    if (!root) throw new Error('missing contrast root: ' + ${JSON.stringify(rootSelector)});
+    const parse = (value) => {
+      const parts = (String(value).match(/[0-9.]+/g) || []).map(Number);
+      return [parts[0] || 0, parts[1] || 0, parts[2] || 0, parts.length > 3 ? parts[3] : 1];
+    };
+    const blend = (top, bottom) => {
+      const alpha = Math.max(0, Math.min(1, top[3]));
+      return [
+        top[0] * alpha + bottom[0] * (1 - alpha),
+        top[1] * alpha + bottom[1] * (1 - alpha),
+        top[2] * alpha + bottom[2] * (1 - alpha),
+        1,
+      ];
+    };
+    const luminance = (rgba) => {
+      const channels = rgba.slice(0, 3).map((part) => {
+        const value = part / 255;
+        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    };
+    const backgroundFor = (element) => {
+      const chain = [];
+      for (let current = element; current; current = current.parentElement) chain.push(current);
+      let background = [255, 255, 255, 1];
+      chain.reverse().forEach((current) => {
+        background = blend(parse(getComputedStyle(current).backgroundColor), background);
+      });
+      return background;
+    };
+    const candidates = [...root.querySelectorAll('button,input,textarea,select,p,span,small,strong,h1,h2,h3,h4,label,output,code')];
+    const violations = [];
+    for (const element of candidates) {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      if (element.classList.contains('visually-hidden') || rect.width < 1 || rect.height < 1) continue;
+      let rendered = true;
+      for (let current = element; current && current !== root.parentElement; current = current.parentElement) {
+        const currentStyle = getComputedStyle(current);
+        if (current.hidden || currentStyle.display === 'none' || currentStyle.visibility === 'hidden' || Number(currentStyle.opacity) <= 0.01) {
+          rendered = false;
+          break;
+        }
+      }
+      if (!rendered || style.display === 'none' || style.visibility === 'hidden') continue;
+      const ownText = [...element.childNodes].some((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+      if (!ownText && !['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName)) continue;
+      const background = backgroundFor(element);
+      let foreground = blend(parse(style.color), background);
+      let opacity = 1;
+      for (let current = element; current && current !== root.parentElement; current = current.parentElement) {
+        opacity *= Number(getComputedStyle(current).opacity) || 0;
+      }
+      foreground = blend([foreground[0], foreground[1], foreground[2], opacity], background);
+      const ratio = (Math.max(luminance(foreground), luminance(background)) + 0.05)
+        / (Math.min(luminance(foreground), luminance(background)) + 0.05);
+      if (ratio < 4.5) violations.push({
+        selector: element.id ? '#' + element.id : element.className ? element.tagName.toLowerCase() + '.' + String(element.className).trim().replace(/\\s+/g, '.') : element.tagName.toLowerCase(),
+        text: (element.value || element.textContent || '').trim().slice(0, 40),
+        ratio: Number(ratio.toFixed(2)),
+        color: style.color,
+        background: style.backgroundColor,
+        opacity: Number(opacity.toFixed(2)),
+      });
+    }
+    return violations;
+  })()`);
+
   const openTool = async (id) => {
     await evaluate(`window.WYJTools.openTool(${JSON.stringify(id)}, false)`);
     await waitFor(`document.querySelector('#toolWorkbenchTitle')?.textContent === window.WYJTools.tools.find(item => item.id === ${JSON.stringify(id)})?.name`, 5_000, `tool ${id}`);
@@ -249,16 +355,47 @@ async function main() {
   };
 
   const downloadedFiles = () => new Set(fs.readdirSync(DOWNLOAD_ROOT));
-  const verifyDownload = async (selector) => {
-    const before = downloadedFiles();
+  const downloadSnapshot = () => new Map(fs.readdirSync(DOWNLOAD_ROOT)
+    .filter((name) => !name.endsWith(".crdownload"))
+    .map((name) => {
+      const stats = fs.statSync(path.join(DOWNLOAD_ROOT, name));
+      return [name, `${stats.size}:${stats.mtimeMs}`];
+    }));
+  const verifyDownload = async (selector, timeout = 10_000) => {
+    const before = downloadSnapshot();
     await click(selector);
-    const deadline = Date.now() + 10_000;
+    const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
-      const after = downloadedFiles();
-      if ([...after].some((name) => !before.has(name) && !name.endsWith(".crdownload"))) return;
+      const after = downloadSnapshot();
+      const completed = [...after].find(([name, signature]) => before.get(name) !== signature)?.[0];
+      if (completed) return path.join(DOWNLOAD_ROOT, completed);
       await delay(100);
     }
     throw new Error(`download did not finish for ${selector}`);
+  };
+
+  const preserveDownload = (downloadPath, label) => {
+    const safeLabel = label.replace(/[^a-z0-9._-]+/gi, "-");
+    const extension = path.extname(downloadPath);
+    const preservedPath = path.join(DOWNLOAD_ROOT, `verified-${safeLabel}${extension}`);
+    fs.copyFileSync(downloadPath, preservedPath);
+    return preservedPath;
+  };
+
+  const captureQr = async (label, kind) => {
+    await waitFor("document.querySelector('.temporary-qr-output img')?.src.startsWith('data:image/')", 8_000, `${label} QR image`);
+    const captured = await evaluate(`(() => {
+      const image = document.querySelector('.temporary-qr-output img');
+      const code = document.querySelector('#temporaryResult code');
+      return { src: image?.src || '', payload: code?.textContent || '' };
+    })()`);
+    const match = captured.src.match(/^data:([^;,]+);base64,(.+)$/);
+    assert.ok(match, `${label} QR did not produce a base64 image`);
+    const extension = match[1] === "image/gif" ? "gif" : match[1] === "image/png" ? "png" : "bin";
+    const filePath = path.join(TEST_ROOT, `qr-${RUN_ID}-${label}.${extension}`);
+    fs.writeFileSync(filePath, Buffer.from(match[2], "base64"));
+    artifactManifest.qrs.push({ label, kind, path: filePath, expected_payload: captured.payload });
+    return captured.payload;
   };
 
   const results = [];
@@ -276,6 +413,11 @@ async function main() {
     await waitFor("document.querySelector('#usernameInput')", 12_000, "login page");
     await evaluate(`localStorage.setItem('wyjAccountSession', ${JSON.stringify(member.session)}); location.href = '/tools?tool-matrix=1'; true`);
     await waitFor("window.WYJTools?.tools?.length === 103 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox dashboard");
+    await evaluate(`(() => {
+      const notice = document.querySelector('#versionNotice');
+      if (notice && !notice.classList.contains('hidden')) document.querySelector('#dismissVersionNoticeBtn')?.click();
+      return true;
+    })()`);
 
     const catalog = await evaluate("window.WYJTools.tools.map(({id,name,description,category}) => ({id,name,description,category}))");
     assert.equal(catalog.length, 103);
@@ -342,6 +484,50 @@ async function main() {
       });
     }
 
+    const verifyTextMode = async (toolId, fields, expected) => {
+      await openTool(toolId);
+      await setFields(fields);
+      await click("#runTextToolBtn");
+      await waitFor("!document.querySelector('#runTextToolBtn')?.disabled", 20_000, `${toolId} mode completion`);
+      assert.equal((await readState()).textOutput, expected, `${toolId} mode ${JSON.stringify(fields)}`);
+    };
+    await verifyTextMode("letter-case", { "#textToolInput": "Ab cD", "#textToolOption": "upper" }, "AB CD");
+    coverMode("text.letter-case.upper");
+    await verifyTextMode("letter-case", { "#textToolInput": "Ab cD", "#textToolOption": "lower" }, "ab cd");
+    coverMode("text.letter-case.lower");
+    await verifyTextMode("letter-case", { "#textToolInput": "hELLO wORLD", "#textToolOption": "title" }, "Hello World");
+    coverMode("text.letter-case.title");
+    await verifyTextMode("regex-replace", { "#textToolInput": "A a", "#textToolParameter": "a", "#textToolSecondary": "X", "#textToolOption": "g" }, "A X");
+    coverMode("text.regex-replace.g");
+    await verifyTextMode("regex-replace", { "#textToolInput": "A a", "#textToolParameter": "a", "#textToolSecondary": "X", "#textToolOption": "gi" }, "X X");
+    coverMode("text.regex-replace.gi");
+    await verifyTextMode("regex-replace", { "#textToolInput": "a\nb\na", "#textToolParameter": "^a", "#textToolSecondary": "X", "#textToolOption": "gm" }, "X\nb\nX");
+    coverMode("text.regex-replace.gm");
+    await verifyTextMode("sort-lines", { "#textToolInput": "10\n2\n1", "#textToolOption": "asc" }, "1\n2\n10");
+    coverMode("text.sort-lines.asc");
+    await verifyTextMode("sort-lines", { "#textToolInput": "10\n2\n1", "#textToolOption": "desc" }, "10\n2\n1");
+    coverMode("text.sort-lines.desc");
+    await verifyTextMode("base64", { "#textToolInput": "你好 WYJ", "#textToolOption": "encode" }, "5L2g5aW9IFdZSg==");
+    coverMode("text.base64.encode");
+    await verifyTextMode("base64", { "#textToolInput": "5L2g5aW9IFdZSg==", "#textToolOption": "decode" }, "你好 WYJ");
+    coverMode("text.base64.decode");
+    await verifyTextMode("url-code", { "#textToolInput": "a b/中", "#textToolOption": "encode" }, "a%20b%2F%E4%B8%AD");
+    coverMode("text.url-code.encode");
+    await verifyTextMode("url-code", { "#textToolInput": "a%20b%2F%E4%B8%AD", "#textToolOption": "decode" }, "a b/中");
+    coverMode("text.url-code.decode");
+    await verifyTextMode("html-entities", { "#textToolInput": "<b>&\"'", "#textToolOption": "encode" }, "&lt;b&gt;&amp;&quot;&#39;");
+    coverMode("text.html-entities.encode");
+    await verifyTextMode("html-entities", { "#textToolInput": "&lt;b&gt;&amp;&quot;&#39;", "#textToolOption": "decode" }, "<b>&\"'");
+    coverMode("text.html-entities.decode");
+    await verifyTextMode("unicode-code", { "#textToolInput": "A中😀", "#textToolOption": "encode" }, "\\u0041\\u4e2d\\u{1f600}");
+    coverMode("text.unicode-code.encode");
+    await verifyTextMode("unicode-code", { "#textToolInput": "\\u0041\\u4e2d\\u{1f600}", "#textToolOption": "decode" }, "A中😀");
+    coverMode("text.unicode-code.decode");
+    await verifyTextMode("chinese-convert", { "#textToolInput": "学习网站", "#textToolOption": "traditional" }, "學習網站");
+    coverMode("text.chinese-convert.traditional");
+    await verifyTextMode("chinese-convert", { "#textToolInput": "學習網站", "#textToolOption": "simple" }, "学习网站");
+    coverMode("text.chinese-convert.simple");
+
     const randomCases = {
       "random-integer": { fields: { "#randomMinimum": 5, "#randomMaximum": 5, "#randomCount": 3 }, check: (value) => value === "5\n5\n5" },
       "random-decimal": { fields: { "#randomMinimum": 1, "#randomMaximum": 1, "#randomPrecision": 3, "#randomCount": 2 }, check: (value) => value === "1.000\n1.000" },
@@ -384,6 +570,37 @@ async function main() {
       });
     }
 
+    const verifyPasswordSet = async (fields, pattern) => {
+      await openTool("random-password");
+      await setFields({
+        "#randomLength": 24,
+        "#passwordUpper": false,
+        "#passwordLower": false,
+        "#passwordDigits": false,
+        "#passwordSymbols": false,
+        ...fields,
+      });
+      await click("#runRandomToolBtn");
+      const value = (await readState()).randomOutput;
+      assert.equal(value.length, 24);
+      assert.match(value, pattern);
+    };
+    await verifyPasswordSet({ "#passwordUpper": true }, /^[A-Z]+$/);
+    coverMode("random.password-set.upper");
+    await verifyPasswordSet({ "#passwordLower": true }, /^[a-z]+$/);
+    coverMode("random.password-set.lower");
+    await verifyPasswordSet({ "#passwordDigits": true }, /^\d+$/);
+    coverMode("random.password-set.digits");
+    await verifyPasswordSet({ "#passwordSymbols": true }, /^[!@#$%^&*_=+\-]+$/);
+    coverMode("random.password-set.symbols");
+    await verifyPasswordSet({
+      "#passwordUpper": true,
+      "#passwordLower": true,
+      "#passwordDigits": true,
+      "#passwordSymbols": true,
+    }, /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/);
+    coverMode("random.password-set.combined");
+
     const fileInputs = {
       "file-md5": [samples.abc], "file-sha1": [samples.abc], "file-sha256": [samples.abc], "file-sha512": [samples.abc],
       "file-info": [samples.text], "csv-json": [samples.csv], "json-csv": [samples.objects], "text-encoding": [samples.text],
@@ -412,9 +629,32 @@ async function main() {
         if (tool.id === "json-array-merge") assert.ok(state.fileOutput.includes("3"));
         if (tool.id === "rename-preview") assert.ok(state.fileOutput.includes("renamed-001.txt"));
         assert.equal(state.fileDownloadEnabled, fileDownloads.has(tool.id), `${tool.id} download state`);
-        if (state.fileDownloadEnabled) await verifyDownload("#downloadFileToolBtn");
+        if (state.fileDownloadEnabled) {
+          artifactManifest.files[tool.id] = {
+            path: await verifyDownload("#downloadFileToolBtn"),
+            sources: fileInputs[tool.id],
+            parameter: ["text-split", "csv-split"].includes(tool.id) ? 1 : "",
+          };
+        }
       });
     }
+
+    const verifyEncodingMode = async (encoding, filePath, expected) => {
+      await openTool("text-encoding");
+      await setFields({ "#fileToolEncoding": encoding });
+      await setFiles("#fileToolInput", [filePath]);
+      await click("#runFileToolBtn");
+      const state = await waitForOperation("#runFileToolBtn", 20_000);
+      assert.equal(state.fileOutput, expected);
+    };
+    await verifyEncodingMode("utf-8", samples.text, "first line\nsecond line\nthird line\n");
+    coverMode("file.encoding.utf-8");
+    await verifyEncodingMode("gbk", samples.gbk, "中文");
+    coverMode("file.encoding.gbk");
+    await verifyEncodingMode("big5", samples.big5, "中文");
+    coverMode("file.encoding.big5");
+    await verifyEncodingMode("shift_jis", samples.shiftJis, "日本語");
+    coverMode("file.encoding.shift_jis");
 
     const imageNoFile = new Set(["color-convert", "gradient-generator", "gradient-css", "solid-image"]);
     const imageNoDownload = new Set(["color-convert", "gradient-css", "exif-view", "gps-warning", "color-extract"]);
@@ -435,9 +675,47 @@ async function main() {
         assert.ok(state.imageOutput && state.imageOutput !== "等待处理", `${tool.id} produced no result`);
         assert.equal(state.imageDownloadEnabled, !imageNoDownload.has(tool.id), `${tool.id} download state`);
         if (!imageNoPreview.has(tool.id)) assert.ok(state.previewCanvases > 0, `${tool.id} has no preview`);
-        if (state.imageDownloadEnabled) await verifyDownload("#downloadImageToolBtn");
+        if (state.imageDownloadEnabled) {
+          artifactManifest.images[tool.id] = {
+            path: preserveDownload(await verifyDownload("#downloadImageToolBtn"), tool.id),
+            source: ["exif-view", "exif-remove", "gps-warning"].includes(tool.id) ? samples.jpeg : samples.png,
+            overlay: tool.id === "image-watermark" ? samples.png2 : "",
+          };
+        }
       });
     }
+
+    const verifyImageMode = async (toolId, selector, value) => {
+      await openTool(toolId);
+      await setFiles("#imageToolInput", [samples.png]);
+      await setFields({ [selector]: value });
+      await click("#runImageToolBtn");
+      const state = await waitForOperation("#runImageToolBtn", 35_000);
+      assert.equal(state.imageDownloadEnabled, true);
+      assert.equal(state.previewCanvases, 1);
+      artifactManifest.images[`${toolId}:${value}`] = {
+        path: preserveDownload(await verifyDownload("#downloadImageToolBtn"), `${toolId}-${value}`),
+        source: samples.png,
+      };
+    };
+    await verifyImageMode("image-format", "#imageFormat", "image/jpeg");
+    coverMode("image.output-format.image/jpeg");
+    await verifyImageMode("image-format", "#imageFormat", "image/png");
+    coverMode("image.output-format.image/png");
+    await verifyImageMode("image-format", "#imageFormat", "image/webp");
+    coverMode("image.output-format.image/webp");
+    await verifyImageMode("image-rotate", "#imageAngle", "90");
+    coverMode("image.rotate.90");
+    await verifyImageMode("image-rotate", "#imageAngle", "180");
+    coverMode("image.rotate.180");
+    await verifyImageMode("image-rotate", "#imageAngle", "270");
+    coverMode("image.rotate.270");
+    await verifyImageMode("image-flip", "#imageFlip", "horizontal");
+    coverMode("image.flip.horizontal");
+    await verifyImageMode("image-flip", "#imageFlip", "vertical");
+    coverMode("image.flip.vertical");
+    await verifyImageMode("image-flip", "#imageFlip", "both");
+    coverMode("image.flip.both");
 
     await record("temporary", "temporary-text", async () => {
       await openTool("temporary-text");
@@ -448,6 +726,28 @@ async function main() {
       const id = state.temporaryCode.split("/").pop();
       const opened = await api("/api/share/text/read", { id, password: "" });
       assert.equal(opened.share.content, "temporary matrix text");
+      const openedAgain = await api("/api/share/text/read", { id, password: "" });
+      assert.equal(openedAgain.share.content, "temporary matrix text");
+      coverMode("temporary.password.none");
+      coverMode("temporary.destruction.preserve");
+
+      await setFields({
+        "#tempContent": "protected and disposable",
+        "#tempPassword": "Temporary-Test-2026!",
+        "#tempMaxViews": 3,
+        "#tempDestroy": true,
+      });
+      const previousShareUrl = state.temporaryCode;
+      await click("#createTempBtn");
+      await waitFor(`document.querySelector('#temporaryResult code')?.textContent.includes('/share/text/') && document.querySelector('#temporaryResult code')?.textContent !== ${JSON.stringify(previousShareUrl)}`, 10_000, "protected temporary text link");
+      const protectedState = await readState();
+      const protectedId = protectedState.temporaryCode.split("/").pop();
+      await api("/api/share/text/read", { id: protectedId, password: "wrong" }, "", [403]);
+      const protectedOpened = await api("/api/share/text/read", { id: protectedId, password: "Temporary-Test-2026!" });
+      assert.equal(protectedOpened.share.content, "protected and disposable");
+      await api("/api/share/text/read", { id: protectedId, password: "Temporary-Test-2026!" }, "", [404]);
+      coverMode("temporary.password.protected");
+      coverMode("temporary.destruction.destroy-after-read");
     });
 
     await record("temporary", "temporary-file", async () => {
@@ -456,11 +756,14 @@ async function main() {
       await click("#createTempBtn");
       await waitFor("document.querySelector('#temporaryResult code')?.textContent.includes('/share/file/')", 120_000, "20 MB temporary file link");
       const state = await readState();
-      const id = state.temporaryCode.split("/").pop();
-      const opened = await api("/api/share/file/read", { id, password: "" });
-      assert.equal(opened.file.file_name, "twenty-megabytes.txt");
-      assert.equal(opened.file.size_bytes, 20 * 1024 * 1024);
-      assert.equal(Buffer.from(opened.file.base64, "base64").length, 20 * 1024 * 1024);
+      await send("Page.navigate", { url: state.temporaryCode });
+      await waitFor("!document.querySelector('#shareViewer')?.classList.contains('hidden') && document.querySelector('#openShareBtn')", 12_000, "public temporary file viewer");
+      const downloaded = await verifyDownload("#openShareBtn", 120_000);
+      assert.equal(path.basename(downloaded), "twenty-megabytes.txt");
+      assert.equal(fileSha256(downloaded), fileSha256(samples.large), "temporary file SHA-256 mismatch");
+      artifactManifest.temporary_files.push({ original: samples.large, downloaded });
+      await send("Page.navigate", { url: `${BASE_URL}/tools` });
+      await waitFor("window.WYJTools?.tools?.length === 103 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox after public file download");
     });
 
     await record("temporary", "temporary-clipboard", async () => {
@@ -479,12 +782,37 @@ async function main() {
       await setFields({ "#qrText": "matrix qr" });
       await click("#createTempBtn");
       await waitFor("document.querySelector('#temporaryResult code')?.textContent === 'matrix qr'", 5_000, "text QR");
+      await captureQr("text", "text");
+      coverMode("temporary.qr-kind.text");
+      coverMode("temporary.qr-lifetime.static");
       await setFields({ "#qrKind": "url", "#qrUrl": "https://example.com/test" });
       await click("#createTempBtn");
       await waitFor("document.querySelector('#temporaryResult code')?.textContent.includes('https://example.com/test')", 5_000, "URL QR");
+      await captureQr("url", "url");
+      coverMode("temporary.qr-kind.url");
       await setFields({ "#qrKind": "wifi", "#qrWifiName": "WYJ-WIFI", "#qrWifiPassword": "password123" });
       await click("#createTempBtn");
       await waitFor("document.querySelector('#temporaryResult code')?.textContent.startsWith('WIFI:')", 5_000, "Wi-Fi QR");
+      await captureQr("wifi-wpa", "wifi");
+      coverMode("temporary.qr-kind.wifi");
+      coverMode("temporary.wifi-security.WPA");
+      coverMode("temporary.wifi-visibility.visible");
+      await setFields({ "#qrWifiHidden": true });
+      await click("#createTempBtn");
+      await waitFor("document.querySelector('#temporaryResult code')?.textContent.includes('H:true;;')", 5_000, "hidden Wi-Fi QR");
+      await captureQr("wifi-hidden", "wifi");
+      coverMode("temporary.wifi-visibility.hidden");
+      await setFields({ "#qrWifiHidden": false });
+      await setFields({ "#qrWifiSecurity": "WEP", "#qrWifiPassword": "abcde" });
+      await click("#createTempBtn");
+      await waitFor("document.querySelector('#temporaryResult code')?.textContent.startsWith('WIFI:T:WEP;')", 5_000, "WEP Wi-Fi QR");
+      await captureQr("wifi-wep", "wifi");
+      coverMode("temporary.wifi-security.WEP");
+      await setFields({ "#qrWifiSecurity": "nopass" });
+      await click("#createTempBtn");
+      await waitFor("document.querySelector('#temporaryResult code')?.textContent.startsWith('WIFI:T:nopass;')", 5_000, "open Wi-Fi QR");
+      await captureQr("wifi-open", "wifi");
+      coverMode("temporary.wifi-security.nopass");
       await setFields({
         "#qrKind": "contact", "#qrContactFamily": "王", "#qrContactGiven": "小明",
         "#qrContactPhone": "+86 13800000000", "#qrContactEmail": "wyj@example.com",
@@ -493,13 +821,17 @@ async function main() {
       });
       await click("#createTempBtn");
       await waitFor("document.querySelector('#temporaryResult code')?.textContent.includes('BEGIN:VCARD') && document.querySelector('#temporaryResult code')?.textContent.includes('TEL;TYPE=CELL') && document.querySelector('#temporaryResult code')?.textContent.includes('URL:https://thewyj.uk/contact')", 5_000, "full contact QR");
+      await captureQr("contact", "contact");
+      coverMode("temporary.qr-kind.contact");
       await setFields({ "#qrKind": "text", "#qrText": "dynamic qr", "#qrDynamic": true });
       await click("#createTempBtn");
       await waitFor("document.querySelector('#temporaryResult code')?.textContent.includes('/share/qr/')", 10_000, "dynamic QR");
+      await captureQr("dynamic", "dynamic");
       const state = await readState();
       const id = state.temporaryCode.split("/").pop();
       const opened = await api("/api/share/text/read", { id, password: "" });
       assert.equal(opened.share.content, "dynamic qr");
+      coverMode("temporary.qr-lifetime.dynamic");
     });
 
     await record("temporary", "temporary-room", async () => {
@@ -542,9 +874,73 @@ async function main() {
     await click("[data-delete-config]");
     await waitFor("!document.querySelector('[data-load-config]')", 10_000, "config deletion");
 
+    await click("#closeToolWorkbenchBtn");
+    await waitFor("!document.querySelector('#toolsDashboard')?.classList.contains('hidden')", 5_000, "tool dashboard");
+    await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+    await send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
+    const mobileDashboard = await evaluate(`(() => {
+      const search = document.querySelector('#toolSearchInput').getBoundingClientRect();
+      const firstCard = document.querySelector('#toolCatalog button, #toolCatalog .tool-card')?.getBoundingClientRect();
+      return {
+        viewport: innerWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        bodyWidth: document.body.scrollWidth,
+        searchHeight: search.height,
+        firstCardRight: firstCard?.right || 0,
+      };
+    })()`);
+    assert.ok(mobileDashboard.documentWidth <= mobileDashboard.viewport + 1, JSON.stringify(mobileDashboard));
+    assert.ok(mobileDashboard.bodyWidth <= mobileDashboard.viewport + 1, JSON.stringify(mobileDashboard));
+    assert.ok(mobileDashboard.searchHeight >= 44, JSON.stringify(mobileDashboard));
+    assert.ok(mobileDashboard.firstCardRight <= mobileDashboard.viewport + 1, JSON.stringify(mobileDashboard));
+    assert.deepEqual(await auditVisibleTextContrast("#toolsPanel"), [], "tool dashboard has WCAG AA contrast violations");
+    const mobileDashboardShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+    fs.writeFileSync(path.join(TEST_ROOT, `tools-dashboard-390-${RUN_ID}.png`), Buffer.from(mobileDashboardShot.data, "base64"));
+
+    await openTool("image-compress");
+    await evaluate("document.querySelector('#toolWorkbench').scrollIntoView({ block: 'start', behavior: 'auto' })");
+    const mobileWorkbench = await evaluate(`(() => {
+      const workbench = document.querySelector('#toolWorkbench').getBoundingClientRect();
+      const runButton = document.querySelector('#runImageToolBtn').getBoundingClientRect();
+      return {
+        viewport: innerWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        bodyWidth: document.body.scrollWidth,
+        workbenchLeft: workbench.left,
+        workbenchRight: workbench.right,
+        runButtonHeight: runButton.height,
+      };
+    })()`);
+    assert.ok(mobileWorkbench.documentWidth <= mobileWorkbench.viewport + 1, JSON.stringify(mobileWorkbench));
+    assert.ok(mobileWorkbench.bodyWidth <= mobileWorkbench.viewport + 1, JSON.stringify(mobileWorkbench));
+    assert.ok(mobileWorkbench.workbenchLeft >= 0 && mobileWorkbench.workbenchRight <= mobileWorkbench.viewport + 1, JSON.stringify(mobileWorkbench));
+    assert.ok(mobileWorkbench.runButtonHeight >= 44, JSON.stringify(mobileWorkbench));
+    assert.deepEqual(await auditVisibleTextContrast("#toolWorkbench"), [], "tool workbench has WCAG AA contrast violations");
+    const mobileWorkbenchShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+    fs.writeFileSync(path.join(TEST_ROOT, `tools-workbench-390-${RUN_ID}.png`), Buffer.from(mobileWorkbenchShot.data, "base64"));
+    await send("Emulation.clearDeviceMetricsOverride");
+    await send("Emulation.setTouchEmulationEnabled", { enabled: false });
+
+    fs.writeFileSync(ARTIFACT_MANIFEST_PATH, JSON.stringify(artifactManifest, null, 2));
+    const python = process.env.WYJ_TEST_PYTHON || (process.platform === "win32" ? "python" : "python3");
+    const verifier = spawnSync(python, [path.join(ROOT, "qa", "verify_tool_artifacts.py"), ARTIFACT_MANIFEST_PATH], {
+      cwd: ROOT,
+      encoding: "utf8",
+      env: process.env,
+      timeout: 120_000,
+    });
+    if (verifier.stdout) process.stdout.write(verifier.stdout);
+    if (verifier.stderr) process.stderr.write(verifier.stderr);
+    assert.equal(verifier.status, 0, `independent artifact verifier failed (${verifier.error?.message || verifier.signal || verifier.status})`);
+
     const testedIds = new Set(results.map((result) => result.id));
     assert.deepEqual([...testedIds].sort(), catalog.map((tool) => tool.id).sort(), "not every catalog tool was exercised");
     const failures = results.filter((result) => result.status === "failed");
+    assert.deepEqual(
+      [...coveredToolModes].sort(),
+      [...REQUIRED_TOOL_MODES].sort(),
+      `not every declared tool mode was exercised; failures=${JSON.stringify(failures)}`,
+    );
     const summary = Object.fromEntries(["text", "file", "image", "random", "temporary"].map((category) => {
       const categoryResults = results.filter((result) => result.category === category);
       return [category, { total: categoryResults.length, passed: categoryResults.filter((result) => result.status === "passed").length }];
@@ -557,12 +953,14 @@ async function main() {
       failures,
       runtimeErrors,
       downloads: fs.readdirSync(DOWNLOAD_ROOT).filter((name) => !name.endsWith(".crdownload")).length,
+      auditedModes: coveredToolModes.size,
     }, null, 2));
 
     assert.deepEqual(failures, [], "tool matrix failures");
     assert.deepEqual(runtimeErrors, [], "browser runtime errors");
   } finally {
     await client.send("Target.closeTarget", { targetId }).catch(() => {});
+    await client.send("Target.disposeBrowserContext", { browserContextId }).catch(() => {});
     client.close();
   }
 }
