@@ -6,9 +6,9 @@
     <meta name="theme-color" content="#ffffff" />
     <title>WYJ的网站</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260809-membership-selection" />
-    <link rel="stylesheet" href="/styles.css?v=20260809-membership-selection" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260809-membership-selection" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260809-rejudge-modal" />
+    <link rel="stylesheet" href="/styles.css?v=20260809-rejudge-modal" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260809-rejudge-modal" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 WYJ的网站" aria-hidden="false">
@@ -751,6 +751,15 @@
       </section>
     </div>
 
+    <div class="modal-layer rejudge-result-modal hidden" id="rejudgeResultModal" data-confirm-only aria-hidden="true">
+      <section class="modal-panel rejudge-result-panel" id="rejudgeResultPanel" data-tone="info" role="alertdialog" aria-modal="true" aria-labelledby="rejudgeResultTitle" aria-describedby="rejudgeResultMessage">
+        <p class="section-kicker">错题重新判定</p>
+        <h2 id="rejudgeResultTitle">重新判定结果</h2>
+        <p class="rejudge-result-message" id="rejudgeResultMessage"></p>
+        <div class="action-row rejudge-result-actions"><button class="primary" id="rejudgeResultConfirmBtn" type="button">确定</button></div>
+      </section>
+    </div>
+
     <template id="wrongItemTemplate">
       <article class="wrong-item">
         <div class="wrong-item-copy">
@@ -767,7 +776,7 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/tools.js?v=20260809-membership-selection"></script>
-    <script src="/app.js?v=20260809-membership-selection"></script>
+    <script src="/tools.js?v=20260809-rejudge-modal"></script>
+    <script src="/app.js?v=20260809-rejudge-modal"></script>
   </body>
 </html>

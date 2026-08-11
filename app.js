@@ -1,4 +1,4 @@
-const APP_VERSION = "2026-08-09-membership-selection";
+const APP_VERSION = "2026-08-09-rejudge-modal";
 const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
 const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);
 const API_TIMEOUT_MS = 30000;
@@ -207,6 +207,7 @@ const MEMBERSHIP_GOALS = Object.freeze({
 });
 const rejudgeInFlight = new Set();
 const modalReturnFocus = new Map();
+let rejudgeResultScrollPosition = null;
 const projectRuntime = {
   english: null,
   japanese: null,
@@ -1163,6 +1164,28 @@ function planDetails(plan) {
   return item
     ? [item.name, `${item.price} ${item.currency}`, item.description]
     : ["请选择套餐", "", ""];
+}
+
+function showRejudgeResultModal(title, message, tone = "info") {
+  const modal = $("rejudgeResultModal");
+  const panel = $("rejudgeResultPanel");
+  if (!modal || !panel) return;
+  rejudgeResultScrollPosition = { left: window.scrollX, top: window.scrollY };
+  $("rejudgeResultTitle").textContent = title;
+  $("rejudgeResultMessage").textContent = message;
+  panel.dataset.tone = ["success", "warning", "error"].includes(tone) ? tone : "info";
+  openModal("rejudgeResultModal");
+}
+
+function closeRejudgeResultModal() {
+  const position = rejudgeResultScrollPosition;
+  rejudgeResultScrollPosition = null;
+  closeModal("rejudgeResultModal", true);
+  if (!position) return;
+  window.requestAnimationFrame(() => {
+    window.scrollTo(position.left, position.top);
+    window.requestAnimationFrame(() => window.scrollTo(position.left, position.top));
+  });
 }
 
 function normalizedMembershipGoal(value) {
@@ -5291,6 +5314,7 @@ async function rejudgeWrongAnswer(word, scope, answer, controls) {
     return;
   }
   rejudgeInFlight.add(key);
+  const idleStatus = controls.status.textContent;
   controls.input.removeAttribute("aria-invalid");
   controls.submit.disabled = true;
   controls.cancel.disabled = true;
@@ -5318,7 +5342,11 @@ async function rejudgeWrongAnswer(word, scope, answer, controls) {
       const adjusted = adjustActiveRoundAfterRejudge(word, info, result) || adjustStudyRecordAfterRejudge(info);
       saveWrongBooks();
       renderWrongBook();
-      showWrongActionMessage(`“${word}”重新作答正确，已从错题本移除${adjusted ? "并校正对应测试统计" : ""}。`);
+      showRejudgeResultModal(
+        "重新判定正确",
+        `“${word}”重新作答正确，已从错题本移除${adjusted ? "并校正对应测试统计" : ""}。`,
+        "success",
+      );
     } else {
       [state.currentWrongBook, state.historyWrongBook].forEach((book) => {
         if (!book[word]) return;
@@ -5331,11 +5359,19 @@ async function rejudgeWrongAnswer(word, scope, answer, controls) {
       });
       saveWrongBooks();
       renderWrongBook();
-      showWrongActionMessage(`“${word}”重新作答仍不正确，已保留在错题本；错误次数未增加。`);
+      showRejudgeResultModal(
+        "重新判定仍不正确",
+        `“${word}”已保留在错题本；错误次数未增加。`,
+        "warning",
+      );
     }
   } catch (error) {
-    controls.status.textContent = `重新判定失败：${error.message}`;
-    showWrongActionMessage(`“${word}”重新判定失败：${error.message}`, true);
+    controls.status.textContent = idleStatus;
+    showRejudgeResultModal(
+      "重新判定失败",
+      `“${word}”重新判定失败：${error.message || "请检查网络后重试"}`,
+      "error",
+    );
   } finally {
     rejudgeInFlight.delete(key);
     if (controls.submit.isConnected) {
@@ -5385,9 +5421,7 @@ function renderWrongBook() {
       : `你答：${info.last_answer || ""} · 标准：${info.correct_answer || ""}`;
     node.querySelector("strong").textContent = `${info.wrong_count || 0}次`;
     const rejudgeStatus = node.querySelector(".wrong-rejudge-status");
-    const persistedStatus = info.rejudged_at
-      ? `原判定：错误 · 新判定：${info.rejudge_result === "correct" ? "正确" : "仍错误"}${info.rejudge_reason ? ` · ${info.rejudge_reason}` : ""}`
-      : "可重新作答；答错不会增加错误次数";
+    const persistedStatus = "可重新作答；答错不会增加错误次数";
     rejudgeStatus.textContent = persistedStatus;
     const openButton = node.querySelector(".wrong-rejudge-button");
     const form = node.querySelector(".wrong-rejudge-form");
@@ -5909,7 +5943,7 @@ async function boot() {
   $("copyPaymentNoteBtn").addEventListener("click", () => copyTextWithFeedback(currentPaymentOrder?.payment_note || "", $("copyPaymentNoteBtn")));
   document.querySelectorAll("[data-close-modal]").forEach((button) => button.addEventListener("click", () => closeModal(button.dataset.closeModal)));
   document.querySelectorAll(".modal-layer").forEach((modal) => modal.addEventListener("click", (event) => {
-    if (event.target === modal) closeModal(modal.id);
+    if (event.target === modal && !modal.hasAttribute("data-confirm-only")) closeModal(modal.id);
   }));
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
@@ -5917,6 +5951,10 @@ async function boot() {
     const modal = openModals[openModals.length - 1];
     if (!modal) {
       closeAccountMenu();
+      return;
+    }
+    if (modal.hasAttribute("data-confirm-only")) {
+      modal.querySelector("button")?.focus();
       return;
     }
     if (modal.id === "confirmModal") confirmAction = null;
@@ -5958,6 +5996,7 @@ async function boot() {
   $("adminDeleteUserBtn").addEventListener("click", () => adminUserAction("delete"));
   $("cancelConfirmBtn").addEventListener("click", () => { confirmAction = null; closeModal("confirmModal"); });
   $("acceptConfirmBtn").addEventListener("click", runConfirmedAction);
+  $("rejudgeResultConfirmBtn").addEventListener("click", closeRejudgeResultModal);
   $("roundRetryBtn").addEventListener("click", retryLastRound);
   $("roundWrongBtn").addEventListener("click", () => {
     closeModal("roundSummaryModal", true);

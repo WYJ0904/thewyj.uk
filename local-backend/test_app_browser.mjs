@@ -145,7 +145,10 @@ async function main() {
 
   client.listeners.add((message) => {
     if (message.sessionId && message.sessionId !== browser.sessionId) return;
-    if (message.method === "Runtime.exceptionThrown") runtimeErrors.push(message.params?.exceptionDetails?.text || "runtime exception");
+    if (message.method === "Runtime.exceptionThrown") {
+      const details = message.params?.exceptionDetails;
+      runtimeErrors.push(details?.exception?.description || details?.text || "runtime exception");
+    }
     if (message.method === "Log.entryAdded" && ["error", "warning"].includes(message.params?.entry?.level)) {
       const value = message.params.entry.text || "browser log error";
       const expectedCancellation = /^Failed to load resource: net::ERR_(?:ABORTED|CONNECTION_ABORTED)$/.test(value);
@@ -412,10 +415,22 @@ async function main() {
         const entry = document.querySelector('#entryScreen');
         const shell = document.querySelector('#appShell');
         const image = document.querySelector('.entry-logo');
+        const entryStyle = getComputedStyle(entry);
+        const entryRect = entry.getBoundingClientRect();
         const imageStyle = getComputedStyle(image);
         return {
-          entryVisible: getComputedStyle(entry).display !== 'none',
-          shellHidden: shell.getAttribute('aria-hidden') === 'true' && shell.classList.contains('app-shell-pending'),
+          entryVisible: entryStyle.display !== 'none',
+          shellProtected: (
+            (shell.getAttribute('aria-hidden') === 'true' && shell.classList.contains('app-shell-pending'))
+            || (
+              entryStyle.position === 'fixed'
+              && entryRect.left <= 0
+              && entryRect.top <= 0
+              && entryRect.right >= innerWidth
+              && entryRect.bottom >= innerHeight
+              && Number.parseInt(entryStyle.zIndex || '0', 10) >= 9000
+            )
+          ),
           imageReady: image.complete && image.naturalWidth > 0,
           objectFit: imageStyle.objectFit,
           legacyDoors: document.querySelectorAll('.splash-door').length,
@@ -423,7 +438,7 @@ async function main() {
         };
       })()`);
       assert.equal(initial.entryVisible, true);
-      assert.equal(initial.shellHidden, true);
+      assert.equal(initial.shellProtected, true);
       assert.equal(initial.imageReady, true);
       assert.equal(initial.objectFit, "contain");
       assert.equal(initial.legacyDoors, 0);
@@ -439,7 +454,7 @@ async function main() {
         const registration = await navigator.serviceWorker.ready;
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260809-membership-selection');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260809-rejudge-modal');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles) };
       })()`);
       assert.equal(pwa.active, true);
@@ -820,7 +835,42 @@ async function main() {
       await setFields({ ".wrong-rejudge-input": "你好" });
       await tap(".wrong-rejudge-submit");
       await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0", 6_000, "wrong answer rejudged and removed");
-      assert.ok((await evaluate("document.querySelector('#wrongActionMessage').textContent")).includes("重新作答正确"));
+      await waitFor("!document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定正确'", 4_000, "correct rejudge result modal");
+      await evaluate(`(() => {
+        document.querySelector('#rejudgeResultModal').click();
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        return true;
+      })()`);
+      await delay(240);
+      assert.equal(await evaluate("document.querySelector('#rejudgeResultModal').classList.contains('hidden')"), false);
+      const rejudgeModalState = await evaluate(`(() => {
+        const layer = document.querySelector('#rejudgeResultModal');
+        const panel = document.querySelector('#rejudgeResultPanel');
+        const layerStyle = getComputedStyle(layer);
+        const rect = panel.getBoundingClientRect();
+        return {
+          ariaHidden: layer.getAttribute('aria-hidden'),
+          position: layerStyle.position,
+          zIndex: Number(layerStyle.zIndex),
+          title: document.querySelector('#rejudgeResultTitle').textContent,
+          message: document.querySelector('#rejudgeResultMessage').textContent,
+          top: rect.top,
+          bottom: rect.bottom,
+          viewportHeight: innerHeight,
+          scrollY,
+        };
+      })()`);
+      assert.equal(rejudgeModalState.ariaHidden, "false");
+      assert.equal(rejudgeModalState.position, "fixed");
+      assert.ok(rejudgeModalState.zIndex >= 9000, JSON.stringify(rejudgeModalState));
+      assert.ok(rejudgeModalState.top >= 0 && rejudgeModalState.bottom <= rejudgeModalState.viewportHeight + 1, JSON.stringify(rejudgeModalState));
+      assert.ok(rejudgeModalState.message.includes("已从错题本移除"), rejudgeModalState.message);
+      assert.ok(!(await evaluate("document.querySelector('#wrongActionMessage').textContent")).includes("重新作答正确"));
+      const rejudgeModalShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      fs.writeFileSync(path.join(TEST_ROOT, `rejudge-result-modal-390-${RUN_ID}.png`), Buffer.from(rejudgeModalShot.data, "base64"));
+      await tap("#rejudgeResultConfirmBtn");
+      await waitFor("document.querySelector('#rejudgeResultModal')?.classList.contains('hidden')", 2_000, "correct rejudge modal close");
+      assert.ok(Math.abs((await evaluate("scrollY")) - rejudgeModalState.scrollY) <= 1, `scroll changed after modal close: ${JSON.stringify(rejudgeModalState)}`);
       assert.equal(await evaluate("JSON.parse(localStorage.getItem(wrongRejudgeLogKey()) || '[]').length"), 1);
       assert.deepEqual(
         [...new Set(await evaluate("window.__rejudgeFetches"))].sort(),
@@ -830,6 +880,49 @@ async function main() {
       await send("Emulation.setTouchEmulationEnabled", { enabled: false });
       await setFiles("#wrongDataFileInput", [wrongFile]);
       await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 1", 6_000, "wrong data reimport");
+      await evaluate(`(() => {
+        for (const book of [state.currentWrongBook, state.historyWrongBook]) {
+          if (!book.hello) continue;
+          book.hello.correct_answer = '';
+          book.hello.accepted = [];
+          book.hello.rubric = { gloss: '', accepted: [], language: 'english', notes: '' };
+        }
+        renderWrongBook();
+        window.__rejudgeFailureOriginalFetch = window.fetch;
+        window.fetch = (...args) => {
+          const url = String(args[0]?.url || args[0] || '');
+          if (new URL(url, location.href).pathname === '/api/quiz/start') {
+            return Promise.resolve(new Response(JSON.stringify({ error: '模拟网络连接失败' }), {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' },
+            }));
+          }
+          return window.__rejudgeFailureOriginalFetch(...args);
+        };
+        return true;
+      })()`);
+      await click(".wrong-rejudge-button");
+      await setFields({ ".wrong-rejudge-input": "你好" });
+      try {
+        await click(".wrong-rejudge-submit");
+        await waitFor("!document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定失败'", 4_000, "failed rejudge result modal");
+        const failedRejudge = await evaluate(`({
+          message: document.querySelector('#rejudgeResultMessage').textContent,
+          count: document.querySelectorAll('#wrongList .wrong-item').length,
+          inlineStatus: document.querySelector('.wrong-rejudge-status').textContent,
+          pageMessage: document.querySelector('#wrongActionMessage').textContent,
+        })`);
+        assert.ok(failedRejudge.message.includes("模拟网络连接失败"), JSON.stringify(failedRejudge));
+        assert.equal(failedRejudge.count, 1);
+        assert.ok(!failedRejudge.inlineStatus.includes("失败"), JSON.stringify(failedRejudge));
+        assert.ok(!failedRejudge.pageMessage.includes("重新判定失败"), JSON.stringify(failedRejudge));
+        await click("#rejudgeResultConfirmBtn");
+        await waitFor("document.querySelector('#rejudgeResultModal')?.classList.contains('hidden')", 2_000, "failed rejudge modal close");
+      } finally {
+        await evaluate("window.fetch = window.__rejudgeFailureOriginalFetch; delete window.__rejudgeFailureOriginalFetch; true");
+      }
+      await setFiles("#wrongDataFileInput", [wrongFile]);
+      await waitFor("state.currentWrongBook.hello?.correct_answer === '你好'", 4_000, "restore imported rubric after network failure");
       await click("#reviewBtn");
       await waitFor("document.querySelector('#quizView').classList.contains('active')", 8_000, "offline review start");
       await setFields({ "#answerInput": "你好" });
@@ -908,12 +1001,17 @@ async function main() {
       assert.ok(visibleRejudge.height >= 44 && visibleRejudge.width >= 100, JSON.stringify(visibleRejudge));
       await setFields({ ".wrong-rejudge-input": "仍然错误" });
       await tap(".wrong-rejudge-submit");
-      await waitFor("document.querySelector('#wrongActionMessage')?.textContent.includes('仍不正确')", 12_000, "scenario A incorrect retry");
+      await waitFor("!document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定仍不正确'", 12_000, "scenario A incorrect retry modal");
+      assert.ok((await evaluate("document.querySelector('#rejudgeResultMessage').textContent")).includes("错误次数未增加"));
+      assert.equal(await evaluate("document.querySelector('.wrong-rejudge-status').textContent"), "可重新作答；答错不会增加错误次数");
+      assert.ok(!(await evaluate("document.querySelector('#wrongActionMessage').textContent")).includes("仍不正确"));
+      await tap("#rejudgeResultConfirmBtn");
       assert.equal(await evaluate("Number(document.querySelector('.wrong-item-actions strong').textContent.replace(/\\D/g, ''))"), originalWrongCount);
       await tap(".wrong-rejudge-button");
       await setFields({ ".wrong-rejudge-input": "测试释义" });
       await tap(".wrong-rejudge-submit");
-      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0", 12_000, "scenario A correct retry removal");
+      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0 && !document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定正确'", 12_000, "scenario A correct retry removal modal");
+      await tap("#rejudgeResultConfirmBtn");
       assert.equal(await evaluate("Object.keys(state.currentWrongBook).length"), 0);
       assert.equal(await evaluate("Object.keys(state.historyWrongBook).includes('amber')"), false);
       await reloadEnglishWorkspace();
@@ -950,12 +1048,19 @@ async function main() {
       await tap(".wrong-rejudge-button");
       await setFields({ ".wrong-rejudge-input": "测试释义" });
       await tap(".wrong-rejudge-submit");
-      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0", 12_000, "scenario C skipped item removed");
+      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0 && !document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定正确'", 12_000, "scenario C skipped item removed modal");
+      assert.ok((await evaluate("document.querySelector('#rejudgeResultMessage').textContent")).includes("已从错题本移除"));
+      await tap("#rejudgeResultConfirmBtn");
       assert.equal(await evaluate("state.roundSkipped"), 0);
       assert.equal(await evaluate("state.score"), 1);
       await tap('[data-view="quizView"]');
-      if (await evaluate("Boolean(state.pendingAdvance)")) await tap("#nextNowBtn");
-      await waitFor("document.querySelector('#progressLabel')?.textContent === '2/3'", 5_000, "scenario C resumes question 2");
+      const canAdvanceSkippedQuestionNow = await evaluate(`(() => {
+        const button = document.querySelector('#nextNowBtn');
+        const rect = button?.getBoundingClientRect();
+        return Boolean(state.pendingAdvance) && !button?.disabled && rect?.width > 0 && rect?.height > 0;
+      })()`);
+      if (canAdvanceSkippedQuestionNow) await tap("#nextNowBtn");
+      await waitFor("document.querySelector('#progressLabel')?.textContent === '2/3'", 7_000, "scenario C resumes question 2");
 
       // D: repeated inner views, dashboard, project picker, and tools never consume question 2.
       await startMeaningRound(["jasmine", "kernel", "linen"]);

@@ -74,12 +74,12 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260809-membership-selection"
+        release_token = "20260809-rejudge-modal"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "tools.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}"', self.worker)
-        self.assertIn('const APP_VERSION = "2026-08-09-membership-selection"', self.app)
+        self.assertIn('const APP_VERSION = "2026-08-09-rejudge-modal"', self.app)
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
         self.assertIn('APP_BUILD = "2026-08-02-network-resilience"', server)
         self.assertIn('"/trial", "/changelog"', server)
@@ -128,6 +128,13 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('class="wrong-rejudge-input"', self.html)
         self.assertIn("function renderDashboard()", self.app)
         self.assertIn("function rejudgeWrongAnswer(", self.app)
+        self.assertIn('id="rejudgeResultModal" data-confirm-only', self.html)
+        self.assertIn('role="alertdialog"', self.html)
+        self.assertIn("function showRejudgeResultModal(", self.app)
+        rejudge_source = self.app.split("async function rejudgeWrongAnswer(", 1)[1].split("\n}\n\nfunction renderWrongBook", 1)[0]
+        self.assertEqual(rejudge_source.count("showRejudgeResultModal("), 3)
+        self.assertNotIn("showWrongActionMessage(", rejudge_source)
+        self.assertNotIn("controls.status.textContent = `重新判定失败", rejudge_source)
         self.assertIn('api("/api/quiz/start"', self.app)
         self.assertIn('api("/api/judge"', self.app)
         self.assertIn("wrongRejudgeLog:v1", self.app)
