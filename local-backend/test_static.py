@@ -82,14 +82,14 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260811-learning-sync"
+        release_token = "20260811-functional-audit"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}"', self.worker)
-        self.assertIn('const APP_VERSION = "2026-08-11-learning-sync"', self.app)
+        self.assertIn('const APP_VERSION = "2026-08-11-functional-audit"', self.app)
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
-        self.assertIn('APP_BUILD = "2026-08-11-learning-sync"', server)
+        self.assertIn('APP_BUILD = "2026-08-11-functional-audit"', server)
         self.assertIn('"/trial", "/changelog"', server)
         self.assertEqual((ROOT / "_redirects").read_text(encoding="utf-8").strip(), "/* /index.html 200")
 
@@ -116,7 +116,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("globalThis.WYJ_CHANGELOG", self.changelog)
         for field in ("version", "build", "date", "features", "improvements", "fixes", "security"):
             self.assertRegex(self.changelog, rf"\b{field}:\s*")
-        self.assertIn("2026-08-11-learning-sync", self.changelog)
+        self.assertIn("2026-08-11-functional-audit", self.changelog)
         self.assertIn("function renderChangelog()", self.app)
         self.assertIn("function maybeShowVersionNotice()", self.app)
         self.assertIn("function submitFeedback(", self.app)

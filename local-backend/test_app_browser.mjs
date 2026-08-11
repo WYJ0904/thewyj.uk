@@ -110,22 +110,29 @@ async function connectBrowser() {
   const version = await fetch(`${CDP_URL}/json/version`).then((response) => response.json());
   const client = new CdpClient(version.webSocketDebuggerUrl);
   await client.connect();
-  const target = await client.send("Target.createTarget", { url: "about:blank" });
+  const context = await client.send("Target.createBrowserContext");
+  const browserContextId = context.browserContextId;
+  const target = await client.send("Target.createTarget", { url: "about:blank", browserContextId });
   const attached = await client.send("Target.attachToTarget", { targetId: target.targetId, flatten: true });
   const sessionId = attached.sessionId;
   const send = (method, params = {}) => client.send(method, params, sessionId);
   await Promise.all([send("Page.enable"), send("DOM.enable"), send("Runtime.enable"), send("Log.enable"), send("Network.enable")]);
   await send("Network.setCacheDisabled", { cacheDisabled: true });
-  await send("Network.setBypassServiceWorker", { bypass: true });
-  await client.send("Browser.setDownloadBehavior", { behavior: "allow", downloadPath: DOWNLOAD_ROOT, eventsEnabled: true });
-  return { client, targetId: target.targetId, sessionId, send };
+  await send("Network.setBypassServiceWorker", { bypass: false });
+  await client.send("Browser.setDownloadBehavior", {
+    behavior: "allow",
+    downloadPath: DOWNLOAD_ROOT,
+    eventsEnabled: true,
+    browserContextId,
+  });
+  return { client, browserContextId, targetId: target.targetId, sessionId, send };
 }
 
 async function main() {
   assert.ok(ADMIN_SECRET, "WYJ_TEST_ADMIN_SECRET is required for the isolated browser test server");
   const admin = await api("/api/login", { username: "wyj", secret: ADMIN_SECRET });
   const browser = await connectBrowser();
-  const { client, send, targetId } = browser;
+  const { client, browserContextId, send, targetId } = browser;
   const runtimeErrors = [];
   const networkHttpErrors = [];
   const networkRequests = [];
@@ -487,12 +494,15 @@ async function main() {
       assert.equal(await evaluate("document.querySelectorAll('#publicHome .public-feature-card').length"), 7);
       assert.equal(await evaluate("document.querySelector('#publicHome').textContent.includes('无第三方追踪')"), true);
       const pwa = await evaluate(`(async () => {
-        const registration = await navigator.serviceWorker.ready;
+        const registration = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('service worker readiness timeout')), 10_000)),
+        ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260811-learning-sync');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260811-learning-sync');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260811-learning-sync');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260811-functional-audit');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260811-functional-audit');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260811-functional-audit');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync) };
       })()`);
       assert.equal(pwa.active, true);
@@ -501,10 +511,10 @@ async function main() {
       assert.equal(pwa.cachedChangelog, true);
       assert.equal(pwa.cachedLearningSync, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.11.1");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.11.2");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-11-learning-sync");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-11-functional-audit");
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
     });
@@ -575,9 +585,9 @@ async function main() {
       await navigate(`/changelog?app-matrix=${RUN_ID}`);
       await waitFor("!document.querySelector('#entryScreen')", 6_000, "changelog splash removal");
       await waitFor("location.pathname === '/changelog' && !document.querySelector('#changelogPage')?.classList.contains('hidden')", 8_000, "changelog route");
-      assert.equal(await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"), 5);
+      assert.equal(await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"), 6);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.11.1");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.11.2");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
@@ -1776,6 +1786,7 @@ async function main() {
     console.log(JSON.stringify(result, null, 2));
   } finally {
     await client.send("Target.closeTarget", { targetId }).catch(() => {});
+    await client.send("Target.disposeBrowserContext", { browserContextId }).catch(() => {});
     client.close();
   }
 }

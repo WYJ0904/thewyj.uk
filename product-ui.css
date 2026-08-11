@@ -1922,6 +1922,17 @@ textarea::placeholder {
   min-height: 48px;
 }
 
+.tool-search > span,
+.tool-form label > span,
+#toolWorkbenchDescription {
+  color: var(--color-text-secondary);
+}
+
+#toolWorkbenchCategory {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
 .tool-category-grid {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-3);

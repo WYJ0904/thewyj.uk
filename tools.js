@@ -1255,7 +1255,13 @@
     }
     if (["txt-merge", "csv-merge", "json-array-merge"].includes(tool.id)) {
       const texts = await Promise.all(files.map((file) => decodeLocalText(file, encoding)));
-      if (tool.id === "txt-merge") return { text: texts.join("\n"), blob: new Blob([texts.join("\n")], { type: "text/plain;charset=utf-8" }), name: `merged-${Date.now()}.txt` };
+      if (tool.id === "txt-merge") {
+        const output = texts.reduce((merged, text, index) => {
+          const separator = index > 0 && merged && text && !merged.endsWith("\n") && !text.startsWith("\n") ? "\n" : "";
+          return `${merged}${separator}${text}`;
+        }, "");
+        return { text: output, blob: new Blob([output], { type: "text/plain;charset=utf-8" }), name: `merged-${Date.now()}.txt` };
+      }
       if (tool.id === "csv-merge") {
         const tables = texts.map((text, index) => validateCsvTable(parseCsv(text), files[index].name));
         const header = tables[0][0].map((cell) => String(cell).trim());
@@ -1297,7 +1303,8 @@
           entries.push({ name: `part-${String(entries.length + 1).padStart(3, "0")}.csv`, data: new TextEncoder().encode(`\ufeff${output}`) });
         }
       } else {
-        const lines = text.replace(/\r\n?/g, "\n").split("\n");
+        const lines = text ? text.replace(/\r\n?/g, "\n").split("\n") : [];
+        if (lines[lines.length - 1] === "") lines.pop();
         for (let index = 0; index < lines.length; index += size) {
           entries.push({ name: `part-${String(entries.length + 1).padStart(3, "0")}.txt`, data: new TextEncoder().encode(lines.slice(index, index + size).join("\n")) });
         }
@@ -1736,6 +1743,8 @@
       const fallback = document.createElement("p"); fallback.textContent = "二维码组件未加载，请复制链接"; target.appendChild(fallback); return;
     }
     try {
+      const utf8Encoder = window.qrcode.stringToBytesFuncs?.["UTF-8"];
+      if (utf8Encoder) window.qrcode.stringToBytes = utf8Encoder;
       const qr = window.qrcode(0, "M"); qr.addData(String(value)); qr.make();
       const image = document.createElement("img"); image.src = qr.createDataURL(6, 12); image.alt = "分享二维码"; target.appendChild(image);
       const download = document.createElement("a"); download.href = image.src; download.download = `qr-${Date.now()}.gif`; download.textContent = "下载二维码"; target.appendChild(download);

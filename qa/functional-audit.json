@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "routes": [
+    { "id": "public-home", "path": "/", "access": "public" },
+    { "id": "login", "path": "/login", "access": "public" },
+    { "id": "register", "path": "/register", "access": "public" },
+    { "id": "trial", "path": "/trial", "access": "public-limited" },
+    { "id": "changelog", "path": "/changelog", "access": "public" },
+    { "id": "dashboard", "path": "/select", "access": "authenticated" },
+    { "id": "language-picker", "path": "/language", "access": "authenticated" },
+    { "id": "english-learning", "path": "/language/english", "access": "authenticated" },
+    { "id": "japanese-learning", "path": "/language/japanese", "access": "authenticated" },
+    { "id": "toolbox", "path": "/tools", "access": "tools-entitlement" },
+    { "id": "tool", "path": "/tools/:tool_id", "access": "tools-entitlement" },
+    { "id": "account", "path": "/account", "access": "authenticated" },
+    { "id": "recharge", "path": "/recharge", "access": "authenticated" },
+    { "id": "admin", "path": "/admin", "access": "administrator" },
+    { "id": "share-text", "path": "/share/text/:id", "access": "public-token" },
+    { "id": "share-file", "path": "/share/file/:id", "access": "public-token" },
+    { "id": "share-clipboard", "path": "/share/clipboard/:code", "access": "public-token" },
+    { "id": "share-qr", "path": "/share/qr/:id", "access": "public-token" },
+    { "id": "share-room", "path": "/share/room/:id", "access": "public-token" }
+  ],
+  "browser_flows": [
+    "brief branded startup and unauthenticated navigation",
+    "limited anonymous trial stays local and protected routes remain locked",
+    "registration and login UI",
+    "authenticated dashboard summary and responsive layout",
+    "learning data sync is local-first and receives a second-device update",
+    "authenticated feedback submission is private and mobile-safe",
+    "offline state preserves the session and reconnects",
+    "locked toolbox, direct-route guard and membership plans",
+    "WeChat and Alipay order state survives a full page reload",
+    "word import, export, shuffle and clear",
+    "free limit, empty answer and skipped wrong-book flow",
+    "wrong search, JSON/PDF export, import and offline review",
+    "mobile language question state and rejudge scenarios A-H",
+    "English dictation, speech, achievements and study statistics",
+    "Japanese kanji/kana resolution and both-form dictation",
+    "administrator recharge approval, membership editor and entitlement override",
+    "administrator ban, force logout, secret reset and delete",
+    "accepted feature voting can be added and cancelled",
+    "full member toolbox, AI vocabulary and account secret/logout draft cleanup",
+    "self-service account deletion",
+    "mobile layout and reduced-motion startup"
+  ],
+  "tool_catalog": {
+    "text": [
+      "text-stats", "dedupe-lines", "remove-empty-lines", "collapse-spaces", "letter-case",
+      "camel-case", "pascal-case", "snake-case", "kebab-case", "line-prefix", "line-suffix",
+      "line-numbers", "find-replace", "regex-replace", "sort-lines", "shuffle-lines", "text-diff",
+      "extract-email", "extract-url", "extract-ip", "extract-number-date", "base64", "url-code",
+      "html-entities", "unicode-code", "json-format", "json-minify", "json-validate", "chinese-convert"
+    ],
+    "file": [
+      "file-md5", "file-sha1", "file-sha256", "file-sha512", "file-info", "csv-json", "json-csv",
+      "text-encoding", "text-split", "csv-split", "txt-merge", "csv-merge", "json-array-merge",
+      "images-pdf", "rename-preview", "files-zip", "batch-zip"
+    ],
+    "image": [
+      "image-compress", "image-batch-compress", "image-format", "image-resize", "image-scale",
+      "image-crop", "crop-square", "crop-four-three", "crop-sixteen-nine", "image-rotate",
+      "image-flip", "image-rounded", "image-avatar", "text-watermark", "image-watermark",
+      "tile-watermark", "image-mosaic", "image-blur", "image-redact", "image-pdf", "exif-view",
+      "exif-remove", "gps-warning", "color-extract", "color-convert", "gradient-generator",
+      "gradient-css", "solid-image", "favicon-generator", "multi-icon-zip"
+    ],
+    "random": [
+      "random-integer", "random-decimal", "random-string", "random-password", "random-uuid",
+      "random-draw", "random-groups", "random-wheel", "weighted-wheel", "random-date", "random-time",
+      "random-color", "random-palette", "coin-flip", "dice-d4", "dice-d6", "dice-d8", "dice-d10",
+      "dice-d12", "dice-d20", "custom-dice", "random-decision"
+    ],
+    "temporary": [
+      "temporary-text", "temporary-file", "temporary-clipboard", "temporary-qr", "temporary-room"
+    ]
+  },
+  "tool_modes": {
+    "text.letter-case": ["upper", "lower", "title"],
+    "text.regex-replace": ["g", "gi", "gm"],
+    "text.sort-lines": ["asc", "desc"],
+    "text.base64": ["encode", "decode"],
+    "text.url-code": ["encode", "decode"],
+    "text.html-entities": ["encode", "decode"],
+    "text.unicode-code": ["encode", "decode"],
+    "text.chinese-convert": ["traditional", "simple"],
+    "file.encoding": ["utf-8", "gbk", "big5", "shift_jis"],
+    "image.output-format": ["image/jpeg", "image/png", "image/webp"],
+    "image.rotate": ["90", "180", "270"],
+    "image.flip": ["horizontal", "vertical", "both"],
+    "random.password-set": ["upper", "lower", "digits", "symbols", "combined"],
+    "temporary.qr-kind": ["text", "url", "wifi", "contact"],
+    "temporary.qr-lifetime": ["static", "dynamic"],
+    "temporary.wifi-security": ["WPA", "WEP", "nopass"],
+    "temporary.wifi-visibility": ["visible", "hidden"],
+    "temporary.password": ["none", "protected"],
+    "temporary.destruction": ["preserve", "destroy-after-read"]
+  },
+  "tool_checkbox_controls": [
+    "passwordUpper", "passwordLower", "passwordDigits", "passwordSymbols",
+    "tempDestroy", "qrWifiHidden", "qrDynamic"
+  ],
+  "application_modes": {
+    "quiz.language": ["english", "japanese"],
+    "quiz.practice": ["meaning", "dictation"],
+    "quiz.grading": ["normal", "strict", "lenient", "ai"],
+    "trial.tool": ["quiz", "text", "json", "image-compress", "image-format"],
+    "payment.method": ["wechat", "alipay"],
+    "membership.plan": [
+      "trial_single_language", "dual_language_monthly", "tools_monthly",
+      "all_access_monthly", "japanese_lifetime", "all_access_lifetime"
+    ],
+    "feedback.type": [
+      "feature_suggestion", "tool_error", "page_issue", "account_issue", "new_tool", "other"
+    ],
+    "feedback.status": ["pending", "viewed", "accepted", "completed", "rejected"],
+    "learning-sync.status": ["synced", "pending", "failed", "merged"],
+    "tool-preference": ["favorite", "pinned", "recent", "saved-config"]
+  }
+}

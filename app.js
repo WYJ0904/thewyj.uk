@@ -1,4 +1,4 @@
-const APP_VERSION = "2026-08-11-learning-sync";
+const APP_VERSION = "2026-08-11-functional-audit";
 const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
 const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);
 const API_TIMEOUT_MS = 30000;
