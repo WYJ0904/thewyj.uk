@@ -45,6 +45,35 @@ PAYMENT_QR_STATUSES = {"pending_payment", "user_paid", "processing"}
 PAYMENT_ORDER_TTL_HOURS = 24
 LOGIN_AUDIT_RETENTION_DAYS = 90
 LOGIN_AUDIT_MAX_RECORDS = 5000
+FEEDBACK_TYPES = {
+    "feature_suggestion",
+    "tool_error",
+    "page_issue",
+    "account_issue",
+    "new_tool",
+    "other",
+}
+FEEDBACK_PUBLIC_TYPES = {"feature_suggestion", "new_tool"}
+FEEDBACK_STATUSES = {"pending", "viewed", "accepted", "completed", "rejected"}
+FEEDBACK_ALLOWED_FIELDS = {
+    "type",
+    "title",
+    "content",
+    "route",
+    "tool_id",
+    "app_version",
+    "browser_info",
+    "error_code",
+}
+PRIVATE_POSIX_PATH_PATTERN = "/" + r"(?:Users|home)/[^/\s]+/"
+FEEDBACK_SENSITIVE_PATTERN = re.compile(
+    r"(?:[A-Za-z]:\\(?:Users|Documents|Desktop)\\|file://|"
+    + PRIVATE_POSIX_PATH_PATTERN
+    + r"|"
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----|\bBearer\s+[A-Za-z0-9._~-]{10,}|"
+    r"\bsk-[A-Za-z0-9_-]{12,}|\b(?:session|token|password)\s*[:=]\s*\S{6,})",
+    re.IGNORECASE,
+)
 
 
 def utc_now():
@@ -168,6 +197,7 @@ class AccountStore:
         self._backup_before_single_language_migration()
         self._backup_before_payment_migration()
         self._backup_before_payment_method_consistency_migration()
+        self._backup_before_feedback_migration()
         self.initialize()
 
     def _backup_before_membership_migration(self):
@@ -303,6 +333,39 @@ class AccountStore:
                 pass
             raise
 
+    def _backup_before_feedback_migration(self):
+        if not self.database_path.exists() or self.database_path.stat().st_size == 0:
+            return
+        backup_path = self.database_path.with_name(
+            f"{self.database_path.stem}.pre-feedback-006.sqlite3"
+        )
+        if backup_path.exists():
+            return
+        try:
+            with closing(sqlite3.connect(str(self.database_path), timeout=15)) as source:
+                tables = {
+                    row[0]
+                    for row in source.execute(
+                        "SELECT name FROM sqlite_master WHERE type = 'table'"
+                    ).fetchall()
+                }
+                if "users" not in tables or "schema_migrations" not in tables:
+                    return
+                applied = source.execute(
+                    "SELECT 1 FROM schema_migrations WHERE version = ?",
+                    ("006_feedback_voting",),
+                ).fetchone()
+                if applied:
+                    return
+                with closing(sqlite3.connect(str(backup_path), timeout=15)) as destination:
+                    source.backup(destination)
+        except sqlite3.Error:
+            try:
+                backup_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
+
     @contextmanager
     def connect(self):
         connection = sqlite3.connect(str(self.database_path), timeout=15)
@@ -416,6 +479,11 @@ class AccountStore:
                 connection,
                 "005_payment_method_consistency",
                 "005_payment_method_consistency_up.sql",
+            )
+            self._apply_migration(
+                connection,
+                "006_feedback_voting",
+                "006_feedback_voting_up.sql",
             )
             self._seed_membership_plans(connection, now)
             self._migrate_legacy_memberships(connection, now)
@@ -1374,6 +1442,375 @@ class AccountStore:
                 (safe_limit,),
             ).fetchall()
         return [dict(row) for row in rows]
+
+    @staticmethod
+    def _feedback_field(value, field, maximum, required=False, single_line=False):
+        text = str(value or "").strip()
+        if required and not text:
+            raise AccountError(f"{field}不能为空", 400, "feedback_field_required")
+        if len(text) > maximum:
+            raise AccountError(f"{field}最多 {maximum} 个字符", 400, "feedback_field_too_long")
+        if re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", text):
+            raise AccountError(f"{field}包含无效控制字符", 400, "feedback_field_invalid")
+        if single_line:
+            text = re.sub(r"\s+", " ", text)
+        return text
+
+    @classmethod
+    def _validated_feedback_input(cls, payload):
+        if not isinstance(payload, dict):
+            raise AccountError("反馈格式无效", 400, "feedback_invalid")
+        unexpected = set(payload) - FEEDBACK_ALLOWED_FIELDS
+        if unexpected:
+            raise AccountError("反馈包含不允许提交的字段", 400, "feedback_fields_forbidden")
+        feedback_type = str(payload.get("type") or "").strip()
+        if feedback_type not in FEEDBACK_TYPES:
+            raise AccountError("反馈类型无效", 400, "feedback_type_invalid")
+        result = {
+            "feedback_type": feedback_type,
+            "title": cls._feedback_field(payload.get("title"), "标题", 120, True, True),
+            "content": cls._feedback_field(payload.get("content"), "反馈内容", 2000, True),
+            "route": cls._feedback_field(payload.get("route"), "当前页面", 180, False, True),
+            "tool_id": cls._feedback_field(payload.get("tool_id"), "工具 ID", 80, False, True),
+            "app_version": cls._feedback_field(payload.get("app_version"), "应用版本", 80, False, True),
+            "browser_info": cls._feedback_field(payload.get("browser_info"), "浏览器信息", 240, False, True),
+            "error_code": cls._feedback_field(payload.get("error_code"), "错误代码", 80, False, True),
+        }
+        if result["route"] and (not result["route"].startswith("/") or "://" in result["route"]):
+            raise AccountError("当前页面必须是站内路径", 400, "feedback_route_invalid")
+        if result["tool_id"] and not re.fullmatch(r"[a-z0-9][a-z0-9._:-]{0,79}", result["tool_id"]):
+            raise AccountError("工具 ID 格式无效", 400, "feedback_tool_invalid")
+        if result["app_version"] and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,79}", result["app_version"]):
+            raise AccountError("应用版本格式无效", 400, "feedback_version_invalid")
+        if result["error_code"] and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,79}", result["error_code"]):
+            raise AccountError("错误代码格式无效", 400, "feedback_error_code_invalid")
+        combined = "\n".join(result.values())
+        if FEEDBACK_SENSITIVE_PATTERN.search(combined) or re.search(
+            r"(?<!\d)(?:\d[ -]?){13,19}(?!\d)", combined
+        ):
+            raise AccountError(
+                "反馈不能包含密钥、令牌、支付信息或本机文件路径",
+                400,
+                "feedback_sensitive_data",
+            )
+        return result
+
+    @staticmethod
+    def _feedback_payload(row, include_content=True, include_admin=False):
+        item = dict(row)
+        payload = {
+            "id": item.get("id", ""),
+            "type": item.get("feedback_type", ""),
+            "title": item.get("title", ""),
+            "status": item.get("status", "pending"),
+            "merged_into_id": item.get("merged_into_id", ""),
+            "vote_count": int(item.get("vote_count") or 0),
+            "voted": bool(item.get("own_vote")),
+            "created_at": item.get("created_at", ""),
+            "updated_at": item.get("updated_at", ""),
+        }
+        if include_content:
+            payload.update(
+                {
+                    "content": item.get("content", ""),
+                    "route": item.get("route", ""),
+                    "tool_id": item.get("tool_id", ""),
+                    "app_version": item.get("app_version", ""),
+                    "browser_info": item.get("browser_info", ""),
+                    "error_code": item.get("error_code", ""),
+                }
+            )
+        if include_admin:
+            payload.update(
+                {
+                    "user_id": item.get("user_id", ""),
+                    "username": item.get("username", ""),
+                    "admin_note": item.get("admin_note", ""),
+                }
+            )
+        return payload
+
+    @staticmethod
+    def _feedback_audit_snapshot(row):
+        item = dict(row)
+        return {
+            "id": item.get("id", ""),
+            "type": item.get("feedback_type", ""),
+            "status": item.get("status", ""),
+            "merged_into_id": item.get("merged_into_id", ""),
+            "admin_note": item.get("admin_note", ""),
+        }
+
+    def create_feedback(self, user, payload):
+        values = self._validated_feedback_input(payload)
+        feedback_id = str(uuid.uuid4())
+        now = iso_now()
+        with self.lock, self.connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO feedback_items (
+                    id, user_id, username, feedback_type, title, content,
+                    route, tool_id, app_version, browser_info, error_code,
+                    status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+                """,
+                (
+                    feedback_id,
+                    user["id"],
+                    user["username"],
+                    values["feedback_type"],
+                    values["title"],
+                    values["content"],
+                    values["route"],
+                    values["tool_id"],
+                    values["app_version"],
+                    values["browser_info"],
+                    values["error_code"],
+                    now,
+                    now,
+                ),
+            )
+            row = connection.execute(
+                """
+                SELECT item.*, 0 AS vote_count, 0 AS own_vote
+                FROM feedback_items AS item WHERE item.id = ?
+                """,
+                (feedback_id,),
+            ).fetchone()
+        return self._feedback_payload(row)
+
+    def list_user_feedback(self, user, limit=100):
+        safe_limit = max(1, min(int(limit or 100), 200))
+        with self.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT item.*,
+                       (SELECT COUNT(*) FROM feedback_votes AS vote
+                        WHERE vote.feedback_id = item.id) AS vote_count,
+                       EXISTS(SELECT 1 FROM feedback_votes AS own
+                              WHERE own.feedback_id = item.id AND own.user_id = ?) AS own_vote
+                FROM feedback_items AS item
+                WHERE item.user_id = ?
+                ORDER BY item.created_at DESC, item.rowid DESC LIMIT ?
+                """,
+                (user["id"], user["id"], safe_limit),
+            ).fetchall()
+        return [self._feedback_payload(row) for row in rows]
+
+    def list_feature_votes(self, user, limit=100):
+        safe_limit = max(1, min(int(limit or 100), 200))
+        with self.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT item.*,
+                       (SELECT COUNT(*) FROM feedback_votes AS vote
+                        WHERE vote.feedback_id = item.id) AS vote_count,
+                       EXISTS(SELECT 1 FROM feedback_votes AS own
+                              WHERE own.feedback_id = item.id AND own.user_id = ?) AS own_vote
+                FROM feedback_items AS item
+                WHERE item.feedback_type IN ('feature_suggestion', 'new_tool')
+                  AND item.status IN ('accepted', 'completed')
+                  AND item.merged_into_id = ''
+                ORDER BY vote_count DESC, item.updated_at DESC, item.rowid DESC
+                LIMIT ?
+                """,
+                (user["id"], safe_limit),
+            ).fetchall()
+        return [self._feedback_payload(row, include_content=False) for row in rows]
+
+    def set_feedback_vote(self, user, feedback_id, voted=True):
+        target_id = str(feedback_id or "").strip()
+        if not target_id:
+            raise AccountError("缺少功能建议 ID", 400, "feedback_id_required")
+        if not isinstance(voted, bool):
+            raise AccountError("投票状态无效", 400, "feedback_vote_invalid")
+        with self.lock, self.connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM feedback_items WHERE id = ?",
+                (target_id,),
+            ).fetchone()
+            if (
+                not row
+                or row["feedback_type"] not in FEEDBACK_PUBLIC_TYPES
+                or row["status"] not in {"accepted", "completed"}
+                or row["merged_into_id"]
+            ):
+                raise AccountError("该建议暂不开放投票", 404, "feedback_vote_unavailable")
+            if voted:
+                connection.execute(
+                    """
+                    INSERT OR IGNORE INTO feedback_votes(feedback_id, user_id, created_at)
+                    VALUES (?, ?, ?)
+                    """,
+                    (target_id, user["id"], iso_now()),
+                )
+            else:
+                connection.execute(
+                    "DELETE FROM feedback_votes WHERE feedback_id = ? AND user_id = ?",
+                    (target_id, user["id"]),
+                )
+            result = connection.execute(
+                """
+                SELECT item.*,
+                       (SELECT COUNT(*) FROM feedback_votes AS vote
+                        WHERE vote.feedback_id = item.id) AS vote_count,
+                       EXISTS(SELECT 1 FROM feedback_votes AS own
+                              WHERE own.feedback_id = item.id AND own.user_id = ?) AS own_vote
+                FROM feedback_items AS item WHERE item.id = ?
+                """,
+                (user["id"], target_id),
+            ).fetchone()
+        return self._feedback_payload(result, include_content=False)
+
+    def admin_list_feedback(self, actor, query="", status="", feedback_type="", limit=200):
+        if not self.is_super_admin(actor):
+            raise AccountError("无管理员权限", 403, "forbidden")
+        safe_query = self._feedback_field(query, "搜索内容", 80, False, True)
+        safe_status = str(status or "").strip()
+        safe_type = str(feedback_type or "").strip()
+        if safe_status and safe_status not in FEEDBACK_STATUSES:
+            raise AccountError("反馈状态无效", 400, "feedback_status_invalid")
+        if safe_type and safe_type not in FEEDBACK_TYPES:
+            raise AccountError("反馈类型无效", 400, "feedback_type_invalid")
+        safe_limit = max(1, min(int(limit or 200), 500))
+        clauses = []
+        parameters = []
+        if safe_query:
+            pattern = f"%{safe_query}%"
+            clauses.append("(item.title LIKE ? OR item.username LIKE ? OR item.id LIKE ?)")
+            parameters.extend((pattern, pattern, pattern))
+        if safe_status:
+            clauses.append("item.status = ?")
+            parameters.append(safe_status)
+        if safe_type:
+            clauses.append("item.feedback_type = ?")
+            parameters.append(safe_type)
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        parameters.append(safe_limit)
+        with self.connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT item.*,
+                       (SELECT COUNT(*) FROM feedback_votes AS vote
+                        WHERE vote.feedback_id = item.id) AS vote_count,
+                       0 AS own_vote
+                FROM feedback_items AS item
+                {where}
+                ORDER BY item.updated_at DESC, item.rowid DESC LIMIT ?
+                """,
+                tuple(parameters),
+            ).fetchall()
+        return [self._feedback_payload(row, include_content=True, include_admin=True) for row in rows]
+
+    def admin_update_feedback(
+        self,
+        actor,
+        feedback_id,
+        action,
+        status="",
+        admin_note="",
+        merged_into_id="",
+    ):
+        if not self.is_super_admin(actor):
+            raise AccountError("无管理员权限", 403, "forbidden")
+        target_id = str(feedback_id or "").strip()
+        operation = str(action or "update").strip()
+        note = self._feedback_field(admin_note, "管理员备注", 1000, False)
+        if FEEDBACK_SENSITIVE_PATTERN.search(note):
+            raise AccountError("管理员备注不能包含密钥、令牌或本机路径", 400, "feedback_sensitive_data")
+        with self.lock, self.connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM feedback_items WHERE id = ?",
+                (target_id,),
+            ).fetchone()
+            if not row:
+                raise AccountError("反馈不存在", 404, "feedback_not_found")
+            target_user = {"id": row["user_id"], "username": row["username"]}
+            before = self._feedback_audit_snapshot(row)
+            now = iso_now()
+            if operation == "update":
+                next_status = str(status or row["status"]).strip()
+                if next_status not in FEEDBACK_STATUSES:
+                    raise AccountError("反馈状态无效", 400, "feedback_status_invalid")
+                connection.execute(
+                    """
+                    UPDATE feedback_items SET status = ?, admin_note = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (next_status, note, now, target_id),
+                )
+                audit_action = "feedback_update"
+                audit_note = f"状态：{next_status}"
+            elif operation == "merge":
+                merge_target = str(merged_into_id or "").strip()
+                if not merge_target or merge_target == target_id:
+                    raise AccountError("请选择另一个建议作为合并目标", 400, "feedback_merge_invalid")
+                destination = connection.execute(
+                    "SELECT * FROM feedback_items WHERE id = ?",
+                    (merge_target,),
+                ).fetchone()
+                if (
+                    not destination
+                    or row["feedback_type"] not in FEEDBACK_PUBLIC_TYPES
+                    or destination["feedback_type"] not in FEEDBACK_PUBLIC_TYPES
+                ):
+                    raise AccountError("只能合并功能建议或新工具建议", 400, "feedback_merge_invalid")
+                connection.execute(
+                    """
+                    INSERT OR IGNORE INTO feedback_votes(feedback_id, user_id, created_at)
+                    SELECT ?, user_id, created_at FROM feedback_votes WHERE feedback_id = ?
+                    """,
+                    (merge_target, target_id),
+                )
+                connection.execute("DELETE FROM feedback_votes WHERE feedback_id = ?", (target_id,))
+                connection.execute(
+                    """
+                    UPDATE feedback_items
+                    SET status = 'rejected', admin_note = ?, merged_into_id = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (note, merge_target, now, target_id),
+                )
+                audit_action = "feedback_merge"
+                audit_note = f"合并至 {merge_target}"
+            elif operation == "delete_spam":
+                connection.execute("DELETE FROM feedback_items WHERE id = ?", (target_id,))
+                self._audit(
+                    connection,
+                    actor,
+                    "feedback_delete_spam",
+                    target=target_user,
+                    before=before,
+                    after={"id": target_id, "deleted": True},
+                    note="删除垃圾反馈",
+                )
+                return {"id": target_id, "deleted": True}
+            else:
+                raise AccountError("反馈操作无效", 400, "feedback_action_invalid")
+            updated = connection.execute(
+                "SELECT * FROM feedback_items WHERE id = ?",
+                (target_id,),
+            ).fetchone()
+            self._audit(
+                connection,
+                actor,
+                audit_action,
+                target=target_user,
+                before=before,
+                after=self._feedback_audit_snapshot(updated),
+                note=audit_note,
+            )
+            result = connection.execute(
+                """
+                SELECT item.*,
+                       (SELECT COUNT(*) FROM feedback_votes AS vote
+                        WHERE vote.feedback_id = item.id) AS vote_count,
+                       0 AS own_vote
+                FROM feedback_items AS item WHERE item.id = ?
+                """,
+                (target_id,),
+            ).fetchone()
+        return self._feedback_payload(result, include_content=True, include_admin=True)
 
     def admin_manage_membership(
         self,

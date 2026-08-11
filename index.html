@@ -6,9 +6,9 @@
     <meta name="theme-color" content="#ffffff" />
     <title>WYJ的网站</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260811-payment-state" />
-    <link rel="stylesheet" href="/styles.css?v=20260811-payment-state" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260811-payment-state" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260811-feedback-voting" />
+    <link rel="stylesheet" href="/styles.css?v=20260811-feedback-voting" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260811-feedback-voting" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 WYJ的网站" aria-hidden="false">
@@ -23,7 +23,7 @@
       <nav class="site-nav" id="accountBar" aria-label="主导航">
         <a class="site-brand" href="/" data-site-nav="home" aria-label="WYJ的网站首页">
           <img src="/icon-192.png" alt="" />
-          <span>WYJ的网站</span>
+          <span class="site-brand-copy"><strong>WYJ的网站</strong><small id="siteVersionLabel">v2026.08.11</small></span>
         </a>
         <div class="site-nav-links">
           <a href="/" data-site-nav="home" id="navHomeLink"><span id="navHomeLabel">首页</span></a>
@@ -40,12 +40,19 @@
           <div class="account-menu-popover" role="menu">
             <button class="hidden" id="homeBtn" type="button" role="menuitem">个人首页</button>
             <button id="membershipBtn" type="button" role="menuitem">会员与充值</button>
+            <button class="hidden" id="feedbackBtn" type="button" role="menuitem">反馈与功能投票</button>
             <button class="hidden" id="accountBtn" type="button" role="menuitem">账户设置</button>
             <button class="hidden" id="adminBtn" type="button" role="menuitem">管理后台</button>
             <button class="hidden danger-text" id="logoutBtn" type="button" role="menuitem">退出登录</button>
           </div>
         </details>
       </nav>
+
+      <aside class="version-notice hidden" id="versionNotice" role="status" aria-live="polite">
+        <div><strong id="versionNoticeTitle">网站已更新</strong><p id="versionNoticeMessage"></p></div>
+        <button class="button-ghost" id="viewVersionDetailsBtn" type="button">查看详情</button>
+        <button class="version-notice-close" id="dismissVersionNoticeBtn" type="button" aria-label="关闭新版本提示" title="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      </aside>
 
       <section class="public-home hidden" id="publicHome" aria-labelledby="publicHomeTitle" aria-hidden="true">
         <section class="public-intro">
@@ -103,12 +110,8 @@
       </section>
 
       <section class="public-page hidden" id="changelogPage" aria-labelledby="changelogTitle" aria-hidden="true">
-        <header class="public-page-header"><p class="section-kicker">更新日志</p><h1 id="changelogTitle">近期改进</h1><p>这里只展示影响使用体验的主要变化，完整提交记录可在 GitHub 查看。</p></header>
-        <div class="changelog-list">
-          <article><time datetime="2026-08-09">2026/08/09</time><h2>个人首页与错题重新判定</h2><p>登录后首页集中显示学习、会员和服务摘要；错题可按当前规则重新判定。</p></article>
-          <article><time datetime="2026-08-02">2026/08/02</time><h2>连接恢复与缓存加固</h2><p>完善请求超时、有限重试、网络切换恢复、Tunnel 健康判断和旧缓存更新。</p></article>
-          <article><time datetime="2026-07-28">2026/07/28</time><h2>会员与在线工具箱</h2><p>统一套餐权益，完善充值审批，并提供文本、文件、图片、随机和临时工具。</p></article>
-        </div>
+        <header class="public-page-header"><p class="section-kicker">更新日志</p><h1 id="changelogTitle">近期改进</h1><p>按版本记录新功能、优化、修复和安全更新。当前版本：<strong id="changelogCurrentVersion">v2026.08.11</strong></p></header>
+        <div class="changelog-list" id="changelogList" aria-live="polite"></div>
         <div class="public-actions"><button class="primary" id="changelogTrialBtn" type="button">免费试用</button><a class="button-link button-secondary" href="https://github.com/WYJ0904/thewyj.uk/commits/main/" target="_blank" rel="noopener noreferrer">完整提交记录</a></div>
       </section>
 
@@ -226,8 +229,9 @@
 
         <div class="dashboard-columns dashboard-columns-secondary">
           <section class="dashboard-section dashboard-panel" aria-labelledby="dashboardUpdatesTitle">
-            <div class="dashboard-section-heading"><div><h2 id="dashboardUpdatesTitle">最近更新</h2><p>2026/08/09</p></div></div>
-            <p>个人首页现可汇总学习进度、会员权益、错题和常用工具；错题支持按当前规则重新判定。</p>
+            <div class="dashboard-section-heading"><div><h2 id="dashboardUpdatesTitle">最近更新</h2><p id="dashboardUpdateDate">等待版本信息</p></div></div>
+            <p id="dashboardUpdateSummary">正在读取最近更新。</p>
+            <button class="button-ghost dashboard-update-link" id="dashboardChangelogBtn" type="button">查看完整更新日志</button>
           </section>
           <section class="dashboard-section dashboard-panel" aria-labelledby="dashboardServicesTitle">
             <div class="dashboard-section-heading"><div><h2 id="dashboardServicesTitle">服务状态</h2><p>单项异常不会阻止本地功能使用。</p></div></div>
@@ -570,6 +574,7 @@
           <button id="adminAuditTab" data-admin-view="adminAuditView" type="button" role="tab" aria-controls="adminAuditView" aria-selected="false">审计日志</button>
           <button id="adminLoginTab" data-admin-view="adminLoginView" type="button" role="tab" aria-controls="adminLoginView" aria-selected="false">登录记录</button>
           <button id="adminToolStatsTab" data-admin-view="adminToolStatsView" type="button" role="tab" aria-controls="adminToolStatsView" aria-selected="false">工具统计</button>
+          <button id="adminFeedbackTab" data-admin-view="adminFeedbackView" type="button" role="tab" aria-controls="adminFeedbackView" aria-selected="false">反馈与投票</button>
         </div>
         <section class="admin-view active" id="adminUsersView" role="tabpanel" aria-labelledby="adminUsersTab">
           <div class="admin-toolbar">
@@ -584,6 +589,14 @@
         <section class="admin-view" id="adminAuditView" role="tabpanel" aria-labelledby="adminAuditTab"><div class="admin-user-list" id="adminAuditList"></div></section>
         <section class="admin-view" id="adminLoginView" role="tabpanel" aria-labelledby="adminLoginTab"><div class="admin-user-list" id="adminLoginList"></div></section>
         <section class="admin-view" id="adminToolStatsView" role="tabpanel" aria-labelledby="adminToolStatsTab"><div class="admin-user-list" id="adminToolStatsList"></div></section>
+        <section class="admin-view" id="adminFeedbackView" role="tabpanel" aria-labelledby="adminFeedbackTab">
+          <div class="admin-toolbar admin-feedback-toolbar">
+            <label class="admin-search" for="adminFeedbackSearch"><span>搜索反馈</span><input id="adminFeedbackSearch" type="search" maxlength="80" autocomplete="off" placeholder="标题、用户名或反馈 ID" /></label>
+            <label><span>类型</span><select id="adminFeedbackType"><option value="">全部类型</option><option value="feature_suggestion">功能建议</option><option value="tool_error">工具报错</option><option value="page_issue">页面问题</option><option value="account_issue">账户问题</option><option value="new_tool">新工具建议</option><option value="other">其他反馈</option></select></label>
+            <label><span>状态</span><select id="adminFeedbackStatus"><option value="">全部状态</option><option value="pending">待处理</option><option value="viewed">已查看</option><option value="accepted">已采纳</option><option value="completed">已完成</option><option value="rejected">已拒绝</option></select></label>
+          </div>
+          <div class="admin-user-list" id="adminFeedbackList"></div>
+        </section>
         <p class="error" id="adminError" aria-live="polite"></p>
       </section>
     </main>
@@ -751,6 +764,36 @@
       </section>
     </div>
 
+    <div class="modal-layer hidden" id="feedbackModal" aria-hidden="true">
+      <section class="modal-panel feedback-panel" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
+        <button class="modal-close" data-close-modal="feedbackModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        <p class="section-kicker">帮助我们改进</p>
+        <h2 id="feedbackTitle">反馈与功能投票</h2>
+        <div class="feedback-tabs" role="tablist" aria-label="反馈视图">
+          <button class="active" type="button" data-feedback-view="feedbackSubmitView" role="tab" aria-selected="true">提交反馈</button>
+          <button type="button" data-feedback-view="feedbackMineView" role="tab" aria-selected="false">我的反馈</button>
+          <button type="button" data-feedback-view="feedbackVotingView" role="tab" aria-selected="false">功能投票</button>
+        </div>
+        <section class="feedback-view active" id="feedbackSubmitView" role="tabpanel">
+          <form class="stack-form feedback-form" id="feedbackForm">
+            <div class="feedback-field-grid">
+              <label class="field-label"><span>反馈类型</span><select id="feedbackType" required><option value="feature_suggestion">功能建议</option><option value="tool_error">工具报错</option><option value="page_issue">页面问题</option><option value="account_issue">账户问题</option><option value="new_tool">新工具建议</option><option value="other">其他反馈</option></select></label>
+              <label class="field-label"><span>工具 ID（可选）</span><input id="feedbackToolId" maxlength="80" pattern="[a-z0-9][a-z0-9._:-]{0,79}" placeholder="例如 text-stats" /></label>
+            </div>
+            <label class="field-label"><span>标题</span><input id="feedbackTitleInput" maxlength="120" required placeholder="用一句话说明问题或建议" /></label>
+            <label class="field-label"><span>详细说明</span><textarea id="feedbackContent" maxlength="2000" required placeholder="请说明期望、复现步骤或看到的现象，不要粘贴密码、令牌、支付信息、文件内容或完整调用栈。"></textarea></label>
+            <label class="field-label"><span>客户端错误代码（可选）</span><input id="feedbackErrorCode" maxlength="80" pattern="[A-Za-z0-9][A-Za-z0-9._:-]{0,79}" placeholder="例如 request_timeout" /></label>
+            <fieldset class="feedback-context-options"><legend>可选附带信息</legend><label><input id="feedbackIncludeRoute" type="checkbox" checked /> 当前站内路由</label><label><input id="feedbackIncludeVersion" type="checkbox" checked /> 应用版本</label><label><input id="feedbackIncludeBrowser" type="checkbox" /> 浏览器基本信息</label></fieldset>
+            <p class="feedback-privacy-note">不会上传你在工具中处理的原始文本、图片或文件，也不会收集密码、会话令牌、支付信息、完整调用栈或本机路径。</p>
+            <button class="primary" id="submitFeedbackBtn" type="submit">提交反馈</button>
+          </form>
+        </section>
+        <section class="feedback-view" id="feedbackMineView" role="tabpanel"><div class="feedback-view-heading"><h3>我的反馈</h3><button id="refreshMyFeedbackBtn" type="button">刷新</button></div><div class="feedback-list" id="myFeedbackList"><p class="dashboard-empty">尚未加载。</p></div></section>
+        <section class="feedback-view" id="feedbackVotingView" role="tabpanel"><div class="feedback-view-heading"><div><h3>功能投票</h3><p>这里只显示管理员已采纳的建议标题；每人每项一票，可以取消。反馈正文和提交者不会公开。</p></div><button id="refreshVotingBtn" type="button">刷新</button></div><div class="feedback-list" id="featureVotingList"><p class="dashboard-empty">尚未加载。</p></div></section>
+        <p class="meta-line" id="feedbackMessage" aria-live="polite"></p>
+      </section>
+    </div>
+
     <div class="modal-layer rejudge-result-modal hidden" id="rejudgeResultModal" data-confirm-only aria-hidden="true">
       <section class="modal-panel rejudge-result-panel" id="rejudgeResultPanel" data-tone="info" role="alertdialog" aria-modal="true" aria-labelledby="rejudgeResultTitle" aria-describedby="rejudgeResultMessage">
         <p class="section-kicker">错题重新判定</p>
@@ -776,7 +819,8 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/tools.js?v=20260811-payment-state"></script>
-    <script src="/app.js?v=20260811-payment-state"></script>
+    <script src="/changelog.js?v=20260811-feedback-voting"></script>
+    <script src="/tools.js?v=20260811-feedback-voting"></script>
+    <script src="/app.js?v=20260811-feedback-voting"></script>
   </body>
 </html>

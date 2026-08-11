@@ -184,6 +184,21 @@ MD5、SHA-1、SHA-256、SHA-512、文件信息、CSV/JSON 互转、文本编码�
 
 临时数据每 60 秒清理一次，也会在读取前清理。临时文件最大 20 MB；允许 TXT、CSV、JSON、PDF、PNG、JPG、WebP、GIF 和 ZIP。服务端同时校验安全文件名、扩展名、MIME 和文件签名，Pages Function 为 JSON/Base64 开销保留 28 MB 请求体上限。
 
+## 更新日志、反馈与功能投票
+
+`/changelog` 继续使用原有公开路由，内容来自根目录的 `changelog.js`。每条记录包含 `version`、`build`、`date`、`features`、`improvements`、`fixes` 和 `security`；个人首页只显示最新摘要。浏览器使用 `wyjChangelogSeenVersion:v1` 记录用户已经关闭的最新版本提示，新版本只在当前浏览器第一次打开时提示一次。
+
+登录用户可以通过账户菜单提交功能建议、工具报错、页面问题、账户问题、新工具建议或其他反馈，并查看自己的反馈。以下接口均要求有效会话：
+
+- `POST /api/feedback`：提交反馈；10 分钟内每个账户和客户端最多 5 次
+- `GET /api/feedback/mine`：只返回当前用户自己的反馈
+- `GET /api/feedback/voting`：只公开管理员已采纳或已完成的建议标题、状态和票数，不公开提交者与正文
+- `POST /api/feedback/vote`：同一用户对同一建议最多一票，可取消；每分钟最多 30 次操作
+- `GET /api/admin/feedback`：管理员搜索并按类型、状态筛选
+- `POST /api/admin/feedback/update`：管理员更新状态/备注、合并重复建议或删除垃圾反馈
+
+普通用户不能读取其他用户的反馈，管理员接口还会执行服务端超级管理员校验。所有 SQL 值均使用参数绑定；提交字段使用白名单和长度限制，并拒绝会话令牌、密码、私钥、支付卡号和本机路径等明显敏感内容。可选浏览器信息最长 240 字符且默认不勾选；系统不会自动附带工具中的原始文本、图片、文件、完整调用栈或支付信息。管理员的更新、合并和删除操作会写入既有 `admin_audit_logs`，审计快照不保存反馈正文。
+
 ## 数据库与迁移
 
 运行数据库默认位于后端工作目录的 `data/users.sqlite3`，用户镜像为同一工作目录下的 `users.txt`；生产环境可用 `VOCAB_USERS_DB` 与 `VOCAB_USERS_TXT` 显式指定。不要在文档、日志或公开响应中记录实际绝对路径。
@@ -203,6 +218,8 @@ MD5、SHA-1、SHA-256、SHA-512、文件信息、CSV/JSON 互转、文本编码�
 - `local-backend/migrations/004_payment_flow_down.sql`：删除支付历史/履约表并无损重建旧版订单列；`processing` 回退为 `user_paid`，`cancelled`/`expired` 回退为 `rejected`
 - `local-backend/migrations/005_payment_method_consistency_up.sql`：关闭升级前遗留的无支付方式开放订单，保留订单和状态事件并允许用户重新创建
 - `local-backend/migrations/005_payment_method_consistency_down.sql`：在没有其他开放订单时恢复由 005 关闭的订单状态
+- `local-backend/migrations/006_feedback_voting_up.sql`：新增用户反馈和一人一票的功能建议投票表
+- `local-backend/migrations/006_feedback_voting_down.sql`：回滚反馈和投票表，不影响用户、会员、订单或学习数据
 
 第一次对老数据库执行迁移前会使用 SQLite backup API 创建一次性备份：
 
@@ -211,6 +228,7 @@ data\users.pre-entitlements-001.sqlite3
 data\users.pre-single-language-002.sqlite3
 data\users.pre-payment-004.sqlite3
 data\users.pre-payment-method-005.sqlite3
+data\users.pre-feedback-006.sqlite3
 ```
 
 迁移由 `schema_migrations` 控制并可安全重启。支付履约对订单 ID 和 `source_ref=payment:<payment_request_id>` 都有唯一索引，防止重复增加期限。每个结构阶段只创建一次迁移前备份；备份可能仍含旧版明文密码，必须只保存在本机受保护目录，不能上传或提交。
@@ -364,7 +382,7 @@ node local-backend/test_app_browser.mjs
 node local-backend/test_tools_browser.mjs
 ```
 
-当前 Python 自动化套件共 142 项，另有 27 项 JavaScript 工具自检和 4 项 Pages 代理韧性检查。`test_app_browser.mjs` 使用真实 Chrome 覆盖 17 条完整用户流程，其中包含 390px 手机视口下的错题重新判定、统一反馈计时、A-H 切页/刷新状态完整性与 WCAG AA 对比度回归；`test_tools_browser.mjs` 会自行准备隔离样本，并逐项运行 103 个工具（文本 29、文件 17、图片 30、随机 22、临时 5）及实际下载。覆盖公开首页、更新日志、有限匿名试用、受保护路由、注册登录、个人首页本地摘要与服务状态、断网后会话保留与自动恢复、微信 WebView 兼容、登录位置审计、会话摘要迁移、封禁、管理员安全重置密钥、用户自助改密、密钥与哈希防泄露、老会员迁移、六种在售方案、支付方式锁定、私有二维码鉴权、完整支付状态机、原子审批与唯一履约、包月续期与永久会员幂等、权益隔离与合并、过期降级、管理员审计、错题实际重新判定与幂等审计、本地优先分级搜索、NFKC/大小写/假名归一化、英语词形匹配、稳定排序、TTL/LRU 缓存、完整排除词缓存键、工具权限、收藏/历史/配置、20 MB 临时文件往返、双客户端留言自动同步、文件签名、跨站拒绝、限流、AI 兜底选词、日语汉字自动标音、纯假名直接出题、汉字与假名听写判卷、错题 PDF、HTML ID、PWA 缓存、390/1366/1920 像素布局与关键文字对比度、CSV 引号换行、MD5、颜色转换、JPEG 元数据清理、Wi-Fi/联系人二维码和 OpenCC 词典完整性。额外压力矩阵验证 300 次状态请求、200 次并发工具写入和 24 次并发 PDF 导出均为 0 错误。
+当前 Python 自动化套件共 152 项，另有 27 项 JavaScript 工具自检和 4 项 Pages 代理韧性检查。`test_app_browser.mjs` 使用真实 Chrome 覆盖 20 条完整用户流程，其中包含 390px 手机视口下的错题重新判定、统一反馈计时、A-H 切页/刷新状态完整性、WCAG AA 对比度回归、结构化更新日志、私有反馈提交、管理员反馈处理与功能投票；`test_tools_browser.mjs` 会自行准备隔离样本，并逐项运行 103 个工具（文本 29、文件 17、图片 30、随机 22、临时 5）及实际下载。覆盖公开首页、更新日志、有限匿名试用、受保护路由、注册登录、个人首页本地摘要与服务状态、断网后会话保留与自动恢复、微信 WebView 兼容、登录位置审计、会话摘要迁移、封禁、管理员安全重置密钥、用户自助改密、密钥与哈希防泄露、老会员迁移、六种在售方案、支付方式锁定、私有二维码鉴权、完整支付状态机、微信与支付宝订单刷新恢复、原子审批与唯一履约、包月续期与永久会员幂等、权益隔离与合并、过期降级、管理员审计、反馈隐私与投票去重、错题实际重新判定与幂等审计、本地优先分级搜索、NFKC/大小写/假名归一化、英语词形匹配、稳定排序、TTL/LRU 缓存、完整排除词缓存键、工具权限、收藏/历史/配置、20 MB 临时文件往返、双客户端留言自动同步、文件签名、跨站拒绝、限流、AI 兜底选词、日语汉字自动标音、纯假名直接出题、汉字与假名听写判卷、错题 PDF、HTML ID、PWA 缓存、390/1366/1920 像素布局与关键文字对比度、CSV 引号换行、MD5、颜色转换、JPEG 元数据清理、Wi-Fi/联系人二维码和 OpenCC 词典完整性。额外压力矩阵验证 300 次状态请求、200 次并发工具写入和 24 次并发 PDF 导出均为 0 错误。
 
 ## Cloudflare Pages 配置
 

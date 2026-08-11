@@ -454,12 +454,19 @@ async function main() {
         const registration = await navigator.serviceWorker.ready;
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260811-payment-state');
-        return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles) };
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260811-feedback-voting');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260811-feedback-voting');
+        return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog) };
       })()`);
       assert.equal(pwa.active, true);
       assert.equal(pwa.cachedLogo, true);
       assert.equal(pwa.cachedProductStyles, true);
+      assert.equal(pwa.cachedChangelog, true);
+      await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.11");
+      await click("#dismissVersionNoticeBtn");
+      assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-11-feedback-voting");
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
     });
@@ -530,7 +537,10 @@ async function main() {
       await navigate(`/changelog?app-matrix=${RUN_ID}`);
       await waitFor("!document.querySelector('#entryScreen')", 6_000, "changelog splash removal");
       await waitFor("location.pathname === '/changelog' && !document.querySelector('#changelogPage')?.classList.contains('hidden')", 8_000, "changelog route");
-      assert.equal(await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"), 3);
+      assert.equal(await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"), 4);
+      assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.11");
+      assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
         await waitFor("!document.querySelector('#entryScreen')", 6_000, `${pathName} splash removal`);
@@ -558,6 +568,8 @@ async function main() {
 
     const userSession = await evaluate("localStorage.getItem('wyjAccountSession')");
     const userMe = await api("/api/me", null, userSession);
+    const browserFeedbackTitle = `Browser feedback ${RUN_ID}`;
+    let browserFeedbackId = "";
 
     await check("authenticated dashboard summary and responsive layout", async () => {
       assert.ok((await evaluate("document.querySelector('#dashboardGreeting').textContent")).includes(USERNAME));
@@ -583,6 +595,44 @@ async function main() {
       await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 768, deviceScaleFactor: 1, mobile: false });
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `dashboard-1366-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
+      await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    });
+
+    await check("authenticated feedback submission is private and mobile-safe", async () => {
+      await click("#accountMenu summary");
+      await waitFor("!document.querySelector('#feedbackBtn')?.classList.contains('hidden')", 2_000, "feedback account action");
+      await click("#feedbackBtn");
+      await waitFor("!document.querySelector('#feedbackModal')?.classList.contains('hidden')", 3_000, "feedback modal");
+      await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+      await delay(300);
+      const mobileFeedback = await evaluate(`({
+        viewport: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        tabs: document.querySelectorAll('.feedback-tabs button').length,
+        submitHeight: document.querySelector('#submitFeedbackBtn').getBoundingClientRect().height,
+      })`);
+      assert.ok(mobileFeedback.scrollWidth <= mobileFeedback.viewport + 1, JSON.stringify(mobileFeedback));
+      assert.equal(mobileFeedback.tabs, 3);
+      assert.ok(mobileFeedback.submitHeight >= 44, JSON.stringify(mobileFeedback));
+      await setFields({
+        "#feedbackType": "feature_suggestion",
+        "#feedbackTitleInput": browserFeedbackTitle,
+        "#feedbackContent": "Please add a compact browser-tested review filter.",
+        "#feedbackIncludeRoute": true,
+        "#feedbackIncludeVersion": true,
+        "#feedbackIncludeBrowser": true,
+      });
+      await click("#submitFeedbackBtn");
+      await waitFor("document.querySelector('#feedbackMineView')?.classList.contains('active') && document.querySelector('#myFeedbackList')?.textContent.includes(" + JSON.stringify(browserFeedbackTitle) + ")", 12_000, "submitted feedback in own list");
+      const mine = await api("/api/feedback/mine", null, userSession);
+      const created = mine.feedback.find((item) => item.title === browserFeedbackTitle);
+      assert.ok(created, JSON.stringify(mine));
+      browserFeedbackId = created.id;
+      assert.equal(created.route, "/select");
+      assert.equal(created.app_version, "2026-08-11-feedback-voting");
+      const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      fs.writeFileSync(path.join(TEST_ROOT, `feedback-390-${RUN_ID}.png`), Buffer.from(shot.data, "base64"));
+      await click('[data-close-modal="feedbackModal"]');
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
     });
 
@@ -1412,6 +1462,19 @@ async function main() {
       await assertReadable(".admin-login-agent");
       await click('[data-admin-view="adminToolStatsView"]');
       assert.ok(Number(await evaluate("document.querySelectorAll('#adminToolStatsList .admin-log-card').length")) >= 1);
+      await click('[data-admin-view="adminFeedbackView"]');
+      await setFields({ "#adminFeedbackSearch": browserFeedbackTitle });
+      await waitFor("document.querySelectorAll('#adminFeedbackList .admin-feedback-card').length === 1", 8_000, "admin feedback search");
+      assert.ok((await evaluate("document.querySelector('#adminFeedbackList').textContent")).includes(browserFeedbackTitle));
+      assert.ok((await evaluate("document.querySelector('#adminFeedbackList').textContent")).includes(USERNAME));
+      await setFields({
+        "#adminFeedbackList [data-feedback-admin-status]": "accepted",
+        "#adminFeedbackList [data-feedback-admin-note]": "Accepted in browser regression",
+      });
+      await click("#adminFeedbackList [data-feedback-admin-save]");
+      await waitFor(`adminFeedback.some((item) => item.id === ${JSON.stringify(browserFeedbackId)} && item.status === 'accepted' && item.admin_note === 'Accepted in browser regression')`, 12_000, "admin feedback accepted");
+      await click('[data-admin-view="adminAuditView"]');
+      await waitFor("document.querySelector('#adminAuditList')?.textContent.includes('feedback_update')", 5_000, "feedback audit record");
     });
 
     await check("administrator ban, force logout, secret reset and delete", async () => {
@@ -1478,6 +1541,25 @@ async function main() {
       await click("#acceptConfirmBtn");
       await waitFor("document.querySelector('#adminEditModal')?.classList.contains('hidden')", 8_000, "delete complete");
       assert.equal((await request("/api/login", { username: deleteUser.username, secret: deleteUser.secret })).status, 403);
+    });
+
+    await check("accepted feature voting can be added and cancelled", async () => {
+      await useSession(userSession, "/select");
+      await click("#accountMenu summary");
+      await click("#feedbackBtn");
+      await waitFor("!document.querySelector('#feedbackModal')?.classList.contains('hidden')", 3_000, "feedback modal for voting");
+      await click('[data-feedback-view="feedbackVotingView"]');
+      await waitFor(`document.querySelector('#featureVotingList')?.textContent.includes(${JSON.stringify(browserFeedbackTitle)})`, 8_000, "accepted feature in voting list");
+      const voteCard = `#featureVotingList [data-feedback-id="${browserFeedbackId}"]`;
+      assert.equal(await evaluate(`document.querySelector(${JSON.stringify(voteCard)}).textContent.includes(${JSON.stringify(USERNAME)})`), false);
+      assert.equal(await evaluate(`document.querySelector(${JSON.stringify(voteCard)}).textContent.includes('Please add')`), false);
+      await click(`${voteCard} [data-feedback-vote]`);
+      await waitFor(`document.querySelector(${JSON.stringify(`${voteCard} [data-feedback-vote]`)})?.getAttribute('aria-pressed') === 'true'`, 8_000, "feature vote added");
+      assert.ok((await evaluate(`document.querySelector(${JSON.stringify(voteCard)}).textContent`)).includes("1 票"));
+      await click(`${voteCard} [data-feedback-vote]`);
+      await waitFor(`document.querySelector(${JSON.stringify(`${voteCard} [data-feedback-vote]`)})?.getAttribute('aria-pressed') === 'false'`, 8_000, "feature vote cancelled");
+      assert.ok((await evaluate(`document.querySelector(${JSON.stringify(voteCard)}).textContent`)).includes("0 票"));
+      await click('[data-close-modal="feedbackModal"]');
     });
 
     await check("full member toolbox, AI vocabulary and account secret/logout draft cleanup", async () => {

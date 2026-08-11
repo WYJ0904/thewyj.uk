@@ -56,6 +56,12 @@ class AccountApiTests(unittest.TestCase):
         cls.thread.join(timeout=5)
         TEMPORARY.cleanup()
 
+    def setUp(self):
+        # Each unittest simulates a fresh client window. Keep rate-limit state local
+        # to the scenario so the full suite cannot exhaust a later test's fixture.
+        server.REGISTER_ATTEMPTS.clear()
+        server.FEEDBACK_REQUESTS.clear()
+
     @classmethod
     def request(cls, method, path, payload=None, session="", extra_headers=None):
         headers = {"Content-Type": "application/json"}
@@ -1355,6 +1361,150 @@ class AccountApiTests(unittest.TestCase):
         self.assertEqual(len({message["id"] for message in messages}), len(messages))
         timestamps = [message["created_at"] for message in messages]
         self.assertEqual(timestamps, sorted(timestamps))
+
+    def test_feedback_api_is_private_and_feature_votes_are_anonymous(self):
+        first_name, _, first_session = self.new_user()
+        _, _, second_session = self.new_user()
+        payload = {
+            "type": "feature_suggestion",
+            "title": "API feedback board",
+            "content": "Add a compact filter to the feedback board.",
+            "route": "/select",
+            "tool_id": "",
+            "app_version": "2026.08.11",
+            "browser_info": "TestBrowser/1.0",
+            "error_code": "",
+        }
+        status, anonymous = self.request("POST", "/api/feedback", payload)
+        self.assertEqual(status, 401, anonymous)
+        status, created = self.request("POST", "/api/feedback", payload, first_session)
+        self.assertEqual(status, 201, created)
+        feedback_id = created["feedback"]["id"]
+
+        status, first_items = self.request("GET", "/api/feedback/mine", session=first_session)
+        self.assertEqual(status, 200, first_items)
+        self.assertEqual([item["id"] for item in first_items["feedback"]], [feedback_id])
+        status, second_items = self.request("GET", "/api/feedback/mine", session=second_session)
+        self.assertEqual(status, 200, second_items)
+        self.assertEqual(second_items["feedback"], [])
+        status, forbidden = self.request("GET", "/api/admin/feedback", session=first_session)
+        self.assertEqual(status, 403, forbidden)
+
+        status, admin_items = self.request(
+            "GET",
+            "/api/admin/feedback?query=API%20feedback&type=feature_suggestion&status=pending",
+            session=self.admin_session,
+        )
+        self.assertEqual(status, 200, admin_items)
+        item = next(entry for entry in admin_items["feedback"] if entry["id"] == feedback_id)
+        self.assertEqual(item["username"], first_name)
+        status, updated = self.request(
+            "POST",
+            "/api/admin/feedback/update",
+            {
+                "feedback_id": feedback_id,
+                "action": "update",
+                "status": "accepted",
+                "admin_note": "Accepted by API regression test",
+            },
+            self.admin_session,
+        )
+        self.assertEqual(status, 200, updated)
+
+        status, voting = self.request("GET", "/api/feedback/voting", session=second_session)
+        self.assertEqual(status, 200, voting)
+        suggestion = next(entry for entry in voting["suggestions"] if entry["id"] == feedback_id)
+        self.assertNotIn("content", suggestion)
+        self.assertNotIn("username", suggestion)
+        for _ in range(2):
+            status, voted = self.request(
+                "POST",
+                "/api/feedback/vote",
+                {"feedback_id": feedback_id, "voted": True},
+                second_session,
+            )
+            self.assertEqual(status, 200, voted)
+            self.assertEqual(voted["suggestion"]["vote_count"], 1)
+            self.assertTrue(voted["suggestion"]["voted"])
+        status, cancelled = self.request(
+            "POST",
+            "/api/feedback/vote",
+            {"feedback_id": feedback_id, "voted": False},
+            second_session,
+        )
+        self.assertEqual(status, 200, cancelled)
+        self.assertEqual(cancelled["suggestion"]["vote_count"], 0)
+        self.assertFalse(cancelled["suggestion"]["voted"])
+        status, extra_vote_field = self.request(
+            "POST",
+            "/api/feedback/vote",
+            {"feedback_id": feedback_id, "voted": True, "content": "must not be accepted"},
+            second_session,
+        )
+        self.assertEqual(status, 400, extra_vote_field)
+        self.assertEqual(extra_vote_field["code"], "feedback_vote_fields_forbidden")
+
+        status, audits = self.request("GET", "/api/admin/audit", session=self.admin_session)
+        self.assertEqual(status, 200, audits)
+        self.assertTrue(any(entry["action"] == "feedback_update" for entry in audits["logs"]))
+
+    def test_feedback_api_rejects_sensitive_fields_and_rate_limits_submissions(self):
+        _, _, session = self.new_user()
+        status, forbidden = self.request(
+            "POST",
+            "/api/feedback",
+            {
+                "type": "other",
+                "title": "Forbidden field",
+                "content": "This payload must be rejected.",
+                "payment_info": "not allowed",
+            },
+            session,
+        )
+        self.assertEqual(status, 400, forbidden)
+        self.assertEqual(forbidden["code"], "feedback_fields_forbidden")
+        status, sensitive = self.request(
+            "POST",
+            "/api/feedback",
+            {
+                "type": "account_issue",
+                "title": "Sensitive value",
+                "content": "token=VerySensitiveToken123",
+            },
+            session,
+        )
+        self.assertEqual(status, 400, sensitive)
+        self.assertEqual(sensitive["code"], "feedback_sensitive_data")
+
+        server.FEEDBACK_REQUESTS.clear()
+        try:
+            with mock.patch.object(server, "FEEDBACK_SUBMIT_MAX_REQUESTS", 2):
+                for index in range(2):
+                    status, created = self.request(
+                        "POST",
+                        "/api/feedback",
+                        {
+                            "type": "other",
+                            "title": f"Rate test {index}",
+                            "content": "A bounded feedback submission.",
+                        },
+                        session,
+                    )
+                    self.assertEqual(status, 201, created)
+                status, limited = self.request(
+                    "POST",
+                    "/api/feedback",
+                    {
+                        "type": "other",
+                        "title": "Rate test blocked",
+                        "content": "This request should be rate limited.",
+                    },
+                    session,
+                )
+                self.assertEqual(status, 429, limited)
+                self.assertEqual(limited["code"], "feedback_rate_limited")
+        finally:
+            server.FEEDBACK_REQUESTS.clear()
 
     def test_cross_origin_post_is_rejected(self):
         status, data = self.request(
