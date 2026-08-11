@@ -468,7 +468,20 @@
         && !local.deleted
         && remote.deleted
         && Number(local.server_version || 0) < Number(remote.server_version || 0);
-      if (local && !unseenRemoteDeletion && (changedDuringRequest || unsentLocal)) {
+      if (local && changedDuringRequest) {
+        const mergeable = remote.data_type === "wrong_book" || remote.data_type === "achievement";
+        next = {
+          ...local,
+          payload: local.deleted
+            ? {}
+            : mergeable && !remote.deleted
+              ? mergePayload(remote.data_type, remote.payload, local.payload, true)
+              : local.payload,
+          deleted: local.deleted,
+          server_version: Math.max(local.server_version || 0, remote.server_version || 0),
+          dirty: true,
+        };
+      } else if (local && !unseenRemoteDeletion && unsentLocal) {
         const localNewer = compareRecords(local, remote) > 0;
         if (remote.data_type === "wrong_book" || remote.data_type === "achievement") {
           const payload = remote.deleted

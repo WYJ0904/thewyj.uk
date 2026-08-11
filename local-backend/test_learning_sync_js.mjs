@@ -208,6 +208,72 @@ const deletionWinner = staleDevice.state.records[sync.recordKey("wrong_book", st
 assert.equal(deletionWinner.deleted, true);
 assert.equal(deletionWinner.dirty, false);
 
+const inFlightDelete = new sync.LearningSyncManager({
+  storage: new MemoryStorage(),
+  onlineSource: new OnlineSource(false),
+  crypto: globalThis.crypto,
+  transport: serverFixture(),
+});
+inFlightDelete.start({ accountId: "in-flight-delete", clientVersion: "test-client" });
+inFlightDelete.stop(false);
+const inFlightWrongId = sync.makeRecordId("wrong", ["默认", "history", "hello"]);
+const submittedRecord = inFlightDelete.upsert({
+  data_type: "wrong_book",
+  record_id: inFlightWrongId,
+  payload: { wrong_count: 1, correct_answer: "你好" },
+  updated_at: new Date().toISOString(),
+});
+inFlightDelete.upsert({
+  data_type: "wrong_book",
+  record_id: inFlightWrongId,
+  payload: {},
+  deleted: true,
+  updated_at: new Date(Date.now() + 1000).toISOString(),
+});
+inFlightDelete.applyServerRecord({
+  data_type: "wrong_book",
+  record_id: inFlightWrongId,
+  payload: { wrong_count: 1, correct_answer: "你好" },
+  updated_at: submittedRecord.updated_at,
+  deleted: false,
+  client_id: "same-device-old-request",
+  client_version: "test-client",
+  server_version: 4,
+}, new Map([[sync.recordKey("wrong_book", inFlightWrongId), submittedRecord.revision]]));
+const preservedDelete = inFlightDelete.state.records[sync.recordKey("wrong_book", inFlightWrongId)];
+assert.equal(preservedDelete.deleted, true);
+assert.equal(preservedDelete.dirty, true);
+
+const submittedDelete = inFlightDelete.upsert({
+  data_type: "wrong_book",
+  record_id: inFlightWrongId,
+  payload: {},
+  deleted: true,
+  updated_at: new Date(Date.now() + 2000).toISOString(),
+});
+inFlightDelete.upsert({
+  data_type: "wrong_book",
+  record_id: inFlightWrongId,
+  payload: { wrong_count: 2, correct_answer: "重新导入" },
+  deleted: false,
+  updated_at: new Date(Date.now() + 3000).toISOString(),
+});
+inFlightDelete.applyServerRecord({
+  data_type: "wrong_book",
+  record_id: inFlightWrongId,
+  payload: {},
+  updated_at: new Date(Date.now() + 60_000).toISOString(),
+  deleted: true,
+  client_id: "same-device-old-delete",
+  client_version: "test-client",
+  server_version: 5,
+}, new Map([[sync.recordKey("wrong_book", inFlightWrongId), submittedDelete.revision]]));
+const preservedRestore = inFlightDelete.state.records[sync.recordKey("wrong_book", inFlightWrongId)];
+assert.equal(preservedRestore.deleted, false);
+assert.equal(preservedRestore.payload.correct_answer, "重新导入");
+assert.equal(preservedRestore.dirty, true);
+
 manager.destroy();
 staleDevice.destroy();
-console.log("learning sync JS tests passed (local-first, backup validation, tombstone safety)");
+inFlightDelete.destroy();
+console.log("learning sync JS tests passed (local-first, backup validation, in-flight delete/restore safety)");

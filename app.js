@@ -238,6 +238,8 @@ let learningSyncManager = null;
 let learningSyncAccountId = "";
 let applyingLearningSync = false;
 let learningSyncRenderQueued = false;
+let learningSyncWrongRenderPending = false;
+let activeWrongRejudgeKey = "";
 let learningSyncStatus = {
   status: "synced",
   label: "已同步",
@@ -712,7 +714,11 @@ function scheduleLearningSyncRender() {
   queueMicrotask(() => {
     learningSyncRenderQueued = false;
     renderDashboard();
-    if ($("wrongView")?.classList.contains("active")) renderWrongBook();
+    if ($("wrongView")?.classList.contains("active")) {
+      const editingWrongAnswer = $("wrongList")?.querySelector(".wrong-rejudge-form:not(.hidden)");
+      if (activeWrongRejudgeKey || editingWrongAnswer) learningSyncWrongRenderPending = true;
+      else renderWrongBook();
+    }
     if ($("achievementsView")?.classList.contains("active")) renderAchievements();
     if ($("studyView")?.classList.contains("active")) renderStudyDashboard();
   });
@@ -817,8 +823,10 @@ function renderLearningSyncDashboardStatus() {
 }
 
 function ensureLearningSyncManager() {
-  if (learningSyncManager || !learningSyncApi()) return learningSyncManager;
-  learningSyncManager = new learningSyncApi().LearningSyncManager({
+  if (learningSyncManager) return learningSyncManager;
+  const SyncManager = learningSyncApi()?.LearningSyncManager;
+  if (typeof SyncManager !== "function") return null;
+  learningSyncManager = new SyncManager({
     storage: localStorage,
     onlineSource: window,
     crypto: window.crypto,
@@ -833,16 +841,17 @@ function startLearningDataSync() {
   if (!state.account?.id || !state.session) return;
   const accountId = String(state.account.id);
   if (learningSyncAccountId === accountId && learningSyncManager?.state) return;
-  const manager = ensureLearningSyncManager();
-  if (!manager) return;
-  learningSyncAccountId = accountId;
   try {
+    const manager = ensureLearningSyncManager();
+    if (!manager) return;
+    learningSyncAccountId = accountId;
     manager.start({
       accountId,
       clientVersion: APP_VERSION,
       legacyRecords: collectLegacyLearningSyncRecords(state.account),
     });
   } catch (error) {
+    learningSyncAccountId = "";
     updateLearningSyncStatus({ status: "failed", label: "同步失败", detail: error.message, pending: 0 });
   }
 }
@@ -4739,7 +4748,7 @@ function setView(id) {
     if (state.pendingAdvance) resumeQuestionTransition();
     else $("answerInput")?.focus();
   }
-  if (id === "wrongView") renderWrongBook();
+  if (id === "wrongView") renderWrongBook({ force: true });
   if (id === "achievementsView") renderAchievements();
   if (id === "studyView") renderStudyDashboard();
   if (currentProject && state.roundActive) saveProjectRuntime();
@@ -5987,7 +5996,7 @@ function setWrongScope(scope) {
   $("currentWrongTab").classList.toggle("active", state.wrongScope === "current");
   $("historyWrongTab").classList.toggle("active", state.wrongScope === "history");
   showWrongActionMessage("");
-  renderWrongBook();
+  renderWrongBook({ force: true });
 }
 
 function showWrongActionMessage(message, isError = false) {
@@ -6136,7 +6145,7 @@ async function rejudgeWrongAnswer(word, scope, answer, controls) {
       delete state.historyWrongBook[word];
       const adjusted = adjustActiveRoundAfterRejudge(word, info, result) || adjustStudyRecordAfterRejudge(info);
       saveWrongBooks();
-      renderWrongBook();
+      renderWrongBook({ force: true });
       showRejudgeResultModal(
         "重新判定正确",
         `“${word}”重新作答正确，已从错题本移除${adjusted ? "并校正对应测试统计" : ""}。`,
@@ -6153,7 +6162,7 @@ async function rejudgeWrongAnswer(word, scope, answer, controls) {
         } })[word];
       });
       saveWrongBooks();
-      renderWrongBook();
+      renderWrongBook({ force: true });
       showRejudgeResultModal(
         "重新判定仍不正确",
         `“${word}”已保留在错题本；错误次数未增加。`,
@@ -6177,8 +6186,15 @@ async function rejudgeWrongAnswer(word, scope, answer, controls) {
   }
 }
 
-function renderWrongBook() {
+function renderWrongBook(options = {}) {
   const list = $("wrongList");
+  const editingWrongAnswer = list.querySelector(".wrong-rejudge-form:not(.hidden)");
+  if (!options.force && (activeWrongRejudgeKey || editingWrongAnswer)) {
+    learningSyncWrongRenderPending = true;
+    return false;
+  }
+  learningSyncWrongRenderPending = false;
+  activeWrongRejudgeKey = "";
   list.innerHTML = "";
   const currentCount = Object.keys(activeWrongBook("current")).length;
   const historyCount = Object.keys(activeWrongBook("history")).length;
@@ -6210,6 +6226,7 @@ function renderWrongBook() {
   const template = $("wrongItemTemplate");
   entries.forEach(([word, info], entryIndex) => {
     const node = template.content.cloneNode(true);
+    node.querySelector(".wrong-item").dataset.word = word;
     node.querySelector("h3").textContent = word;
     node.querySelector("p").textContent = info.skipped
       ? `已跳过 · 标准：${info.correct_answer || "（未给出）"}`
@@ -6224,23 +6241,44 @@ function renderWrongBook() {
     const submit = node.querySelector(".wrong-rejudge-submit");
     const cancel = node.querySelector(".wrong-rejudge-cancel");
     const formId = `wrongRejudgeForm-${scope}-${entryIndex}`;
+    const interactionKey = `${scope}:${word}`;
+    let openingGuardTimer = null;
     form.id = formId;
     openButton.setAttribute("aria-controls", formId);
     openButton.setAttribute("aria-expanded", "false");
     input.placeholder = info.question_type === "dictation" ? "输入新的听写答案" : "输入新的中文意思";
+    const guardOpeningInteraction = () => {
+      activeWrongRejudgeKey = interactionKey;
+      window.clearTimeout(openingGuardTimer);
+      openingGuardTimer = window.setTimeout(() => {
+        if (form.classList.contains("hidden") && activeWrongRejudgeKey === interactionKey) {
+          activeWrongRejudgeKey = "";
+          if (learningSyncWrongRenderPending) queueMicrotask(renderWrongBook);
+        }
+      }, 1000);
+    };
+    openButton.addEventListener("pointerdown", guardOpeningInteraction, { passive: true });
+    openButton.addEventListener("mousedown", guardOpeningInteraction, { passive: true });
     openButton.addEventListener("click", () => {
+      window.clearTimeout(openingGuardTimer);
       const opening = form.classList.contains("hidden");
       form.classList.toggle("hidden", !opening);
+      activeWrongRejudgeKey = opening ? interactionKey : "";
       openButton.setAttribute("aria-expanded", String(opening));
       rejudgeStatus.textContent = opening ? "请输入新答案后提交判定" : persistedStatus;
       if (opening) input.focus();
     });
     cancel.addEventListener("click", () => {
       form.classList.add("hidden");
+      activeWrongRejudgeKey = "";
       openButton.setAttribute("aria-expanded", "false");
       input.removeAttribute("aria-invalid");
       rejudgeStatus.textContent = persistedStatus;
-      openButton.focus();
+      if (learningSyncWrongRenderPending) {
+        queueMicrotask(renderWrongBook);
+      } else {
+        openButton.focus();
+      }
     });
     form.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -6251,18 +6289,19 @@ function renderWrongBook() {
         const target = scope === "history" ? state.historyWrongBook : state.currentWrongBook;
         delete target[word];
         saveState();
-        renderWrongBook();
+        renderWrongBook({ force: true });
       });
     });
     list.appendChild(node);
   });
   updateStats();
+  return true;
 }
 
 function startWrongReview(scope) {
   const words = Object.keys(activeWrongBook(scope));
   if (!words.length) {
-    renderWrongBook();
+    renderWrongBook({ force: true });
     return;
   }
   startQuiz(words, scope === "history" ? "review-history" : "review-current");
@@ -6400,7 +6439,7 @@ async function importWrongData(event) {
     saveState();
     updateLanguageUi();
     updateStats();
-    renderWrongBook();
+    renderWrongBook({ force: true });
     $("offlineReviewBtn").classList.toggle("hidden", !hasLocalReviewData());
     alert(`错题数据导入完成：历史错题 ${Object.keys(state.historyWrongBook).length} 个。可以直接进入本地复习。`);
   } catch (error) {
@@ -6444,7 +6483,7 @@ function confirmClearWrongBook(scope) {
     if (history) state.historyWrongBook = removeLanguageFromWrongBook(state.historyWrongBook);
     else state.currentWrongBook = removeLanguageFromWrongBook(state.currentWrongBook);
     saveState();
-    renderWrongBook();
+    renderWrongBook({ force: true });
   });
 }
 
@@ -6536,7 +6575,7 @@ function changeProfile(value, options = {}) {
   loadCurrentWordDraft();
   saveState();
   updateStats();
-  if ($("wrongView").classList.contains("active")) renderWrongBook();
+  if ($("wrongView").classList.contains("active")) renderWrongBook({ force: true });
   if ($("achievementsView").classList.contains("active")) renderAchievements();
   if ($("studyView").classList.contains("active")) renderStudyDashboard();
 }
@@ -6870,7 +6909,7 @@ async function boot() {
   $("clearStudyBtn").addEventListener("click", confirmClearStudyRecords);
   $("currentWrongTab").addEventListener("click", () => setWrongScope("current"));
   $("historyWrongTab").addEventListener("click", () => setWrongScope("history"));
-  $("wrongSearchInput").addEventListener("input", renderWrongBook);
+  $("wrongSearchInput").addEventListener("input", () => renderWrongBook({ force: true }));
   $("wordInput").addEventListener("input", () => {
     saveCurrentWordDraft();
     updateStats();
@@ -6913,7 +6952,7 @@ async function boot() {
 
   saveState();
   updateStats();
-  renderWrongBook();
+  renderWrongBook({ force: true });
   renderAchievements();
 
   if (window.WYJTools && !toolsInitialized) {

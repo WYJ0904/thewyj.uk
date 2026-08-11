@@ -336,7 +336,21 @@ async function main() {
     const settledPoint = await evaluate(`(() => {
       const element = document.querySelector(${JSON.stringify(selector)});
       const rect = element.getBoundingClientRect();
-      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, width: rect.width, height: rect.height };
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const hit = document.elementFromPoint(x, y);
+      if (hit !== element && !element.contains(hit)) {
+        const hitRect = hit?.getBoundingClientRect?.();
+        const navRect = document.querySelector('#accountBar')?.getBoundingClientRect?.();
+        throw new Error('covered touch target ${selector}: ' + JSON.stringify({
+          hit: hit?.id || hit?.className || hit?.tagName || 'none',
+          target: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom },
+          hitRect: hitRect ? { left: hitRect.left, top: hitRect.top, right: hitRect.right, bottom: hitRect.bottom } : null,
+          navRect: navRect ? { left: navRect.left, top: navRect.top, right: navRect.right, bottom: navRect.bottom } : null,
+          viewport: { width: innerWidth, height: innerHeight, scrollY },
+        }));
+      }
+      return { x, y, width: rect.width, height: rect.height };
     })()`);
     await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: settledPoint.x, y: settledPoint.y });
     await send("Input.dispatchMouseEvent", { type: "mousePressed", x: settledPoint.x, y: settledPoint.y, button: "left", buttons: 1, clickCount: 1 });
@@ -402,8 +416,30 @@ async function main() {
       checks.push({ name, status: "passed", milliseconds });
       console.error(`[app-matrix] PASS ${name} (${milliseconds} ms)`);
     } catch (error) {
-      console.error(`[app-matrix] FAIL ${name}: ${error.message}`);
-      throw error;
+      const diagnostic = await evaluate(`({
+        pathname: location.pathname,
+        loginError: document.querySelector('#loginError')?.textContent || '',
+        modulePickerHidden: document.querySelector('#modulePicker')?.classList.contains('hidden'),
+        authPanelHidden: document.querySelector('#authPanel')?.classList.contains('hidden'),
+        sessionLength: (localStorage.getItem('wyjAccountSession') || '').length,
+        accountCached: Boolean(localStorage.getItem('wyjAccountCache')),
+        syncStatus: document.querySelector('#learningSyncStatus')?.textContent || '',
+        syncDetail: document.querySelector('#learningSyncDetail')?.textContent || '',
+        wrongCount: document.querySelectorAll('#wrongList .wrong-item').length,
+        wrongText: (document.querySelector('#wrongList')?.textContent || '').slice(0, 300),
+        rejudgeStatus: document.querySelector('.wrong-rejudge-status')?.textContent || '',
+        rejudgeModal: document.querySelector('#rejudgeResultTitle')?.textContent || '',
+        rejudgeMessage: document.querySelector('#rejudgeResultMessage')?.textContent || '',
+        currentWrong: state?.currentWrongBook?.hello || null,
+        historyWrong: state?.historyWrongBook?.hello || null,
+        syncWrong: Object.values(learningSyncManager?.state?.records || {}).filter((item) => item.record_id?.includes('hello')),
+        rejudgeFetches: window.__rejudgeFetches || [],
+        activeWrongRejudgeKey,
+        learningSyncWrongRenderPending,
+      })`).catch(() => ({}));
+      const detail = `${error.message}; diagnostic=${JSON.stringify(diagnostic)}; runtime=${JSON.stringify(runtimeErrors.slice(-4))}; http=${JSON.stringify(networkHttpErrors.slice(-6))}`;
+      console.error(`[app-matrix] FAIL ${name}: ${detail}`);
+      throw new Error(detail, { cause: error });
     }
   };
 
@@ -710,7 +746,7 @@ async function main() {
       assert.ok(created, JSON.stringify(mine));
       browserFeedbackId = created.id;
       assert.equal(created.route, "/select");
-      assert.equal(created.app_version, "2026-08-11-feedback-voting");
+      assert.equal(created.app_version, await evaluate("APP_VERSION"));
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       fs.writeFileSync(path.join(TEST_ROOT, `feedback-390-${RUN_ID}.png`), Buffer.from(shot.data, "base64"));
       await click('[data-close-modal="feedbackModal"]');
