@@ -16,8 +16,9 @@ const NO_BODY_METHODS = new Set(["GET", "HEAD"]);
 const RETRYABLE_STATUS = new Set([502, 503, 504, 530]);
 const MAX_PROXY_BODY_BYTES = 600 * 1024;
 const MAX_TEMP_FILE_BYTES = 30 * 1024 * 1024;
-const LEGACY_MAX_TEMP_FILE_PROXY_BODY_BYTES = 28 * 1024 * 1024;
-const MAX_TEMP_FILE_PROXY_BODY_BYTES = Math.max(LEGACY_MAX_TEMP_FILE_PROXY_BODY_BYTES, 42 * 1024 * 1024);
+const MAX_TEMP_FILE_PROXY_BODY_BYTES = 28 * 1024 * 1024;
+const MAX_TEMP_VIDEO_PROXY_BODY_BYTES = 42 * 1024 * 1024;
+const MAX_TEMP_UPLOAD_PROXY_BODY_BYTES = Math.max(MAX_TEMP_FILE_PROXY_BODY_BYTES, MAX_TEMP_VIDEO_PROXY_BODY_BYTES);
 const IDEMPOTENT_RETRY_BASE_DELAYS_MS = [0, 250, 900];
 const UPSTREAM_GET_TIMEOUT_MS = 10000;
 const UPSTREAM_DEFAULT_TIMEOUT_MS = 30000;
@@ -324,7 +325,7 @@ export async function onRequest(context) {
     return handleTemporaryFileDownload(context, bases);
   }
 
-  const maxBodyBytes = requestPath === "/api/temporary/file" ? MAX_TEMP_FILE_PROXY_BODY_BYTES : MAX_PROXY_BODY_BYTES;
+  const maxBodyBytes = requestPath === "/api/temporary/file" ? MAX_TEMP_UPLOAD_PROXY_BODY_BYTES : MAX_PROXY_BODY_BYTES;
   const declaredLength = Number(request.headers.get("Content-Length") || 0);
   if (declaredLength > maxBodyBytes) {
     return json({ ok: false, error: requestPath === "/api/temporary/file" ? "请求内容过大，视频最大支持 30 MB，其他临时文件仍为 20 MB。" : "请求内容过大。" }, 413);
