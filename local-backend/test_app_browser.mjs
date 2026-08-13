@@ -137,6 +137,8 @@ async function main() {
   const networkHttpErrors = [];
   const networkRequests = [];
   const networkRequestChecks = new Map();
+  const networkRequestsInFlight = new Map();
+  const expectedSessionInvalidationSyncRequests = new Set();
   const dialogs = [];
   const checks = [];
   let activeCheckName = "";
@@ -170,14 +172,20 @@ async function main() {
         status: Number(message.params.response.status),
         url: message.params.response.url,
         check: networkRequestChecks.get(message.params.requestId) || "",
+        expectedSessionInvalidation: expectedSessionInvalidationSyncRequests.has(message.params.requestId),
       });
     }
     if (message.method === "Network.requestWillBeSent") {
+      const requestUrl = message.params?.request?.url || "";
       networkRequestChecks.set(message.params.requestId, activeCheckName);
+      networkRequestsInFlight.set(message.params.requestId, requestUrl);
       networkRequests.push({
         method: message.params?.request?.method || "GET",
-        url: message.params?.request?.url || "",
+        url: requestUrl,
       });
+    }
+    if (message.method === "Network.loadingFinished" || message.method === "Network.loadingFailed") {
+      networkRequestsInFlight.delete(message.params.requestId);
     }
     if (message.method === "Page.javascriptDialogOpening") {
       dialogs.push(message.params.message || "");
@@ -197,6 +205,18 @@ async function main() {
       await delay(80);
     }
     throw new Error(`timeout waiting for ${description}${lastError ? `: ${lastError}` : ""}`);
+  };
+
+  const expectSessionInvalidationSync = () => {
+    for (const [requestId, requestUrl] of networkRequestsInFlight) {
+      try {
+        if (new URL(requestUrl).pathname === "/api/learning/sync") {
+          expectedSessionInvalidationSyncRequests.add(requestId);
+        }
+      } catch (_) {
+        // Non-HTTP browser requests cannot be learning sync calls.
+      }
+    }
   };
 
   const setFields = async (fields) => evaluate(`(() => {
@@ -1734,6 +1754,7 @@ async function main() {
       await waitFor("!document.querySelector('#accountModal')?.classList.contains('hidden')", 3_000, "account modal");
       assert.ok((await evaluate("document.querySelector('#accountDetails').textContent")).includes(USERNAME));
       await setFields({ "#currentSecretInput": USER_SECRET, "#newSecretInput": USER_SECRET_NEW, "#newSecretConfirmInput": USER_SECRET_NEW });
+      expectSessionInvalidationSync();
       await click("#changeSecretForm button[type=submit]");
       await waitFor("document.querySelector('#accountMessage')?.textContent.includes('密钥已修改')", 10_000, "own secret change");
       await waitFor("location.pathname === '/login'", 5_000, "logout after secret change");
@@ -1748,6 +1769,7 @@ async function main() {
       await click("#openDeleteAccountBtn");
       await waitFor("!document.querySelector('#deleteAccountModal')?.classList.contains('hidden')", 3_000, "delete confirmation");
       await setFields({ "#deleteSecretInput": disposable.secret });
+      expectSessionInvalidationSync();
       await click("#confirmDeleteAccountBtn");
       await waitFor("location.pathname === '/login'", 10_000, "self deletion");
       assert.equal((await request("/api/login", { username: disposable.username, secret: disposable.secret })).status, 403);
@@ -1787,7 +1809,7 @@ async function main() {
       const expectedPermissionDenial = item.status === 403 && expectedDeniedPaths.has(pathname);
       const expectedDeletedAccountSyncCancellation = item.status === 401
         && pathname === "/api/learning/sync"
-        && item.check === "self-service account deletion";
+        && item.expectedSessionInvalidation;
       return !expectedPermissionDenial && !expectedDeletedAccountSyncCancellation;
     });
     assert.deepEqual(unexpectedHttpErrors, [], `unexpected browser HTTP errors: ${JSON.stringify(networkHttpErrors)}`);
