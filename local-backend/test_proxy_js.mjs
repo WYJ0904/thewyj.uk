@@ -82,10 +82,71 @@ await withMockFetch((_url, init) => new Promise((_resolve, reject) => {
   completed += 1;
 });
 
+await withMockFetch(async (url) => {
+  const host = new URL(url).host;
+  globalThis.__healthCalls.push(host);
+  return new Response("{}", {
+    status: host === "primary.example" ? 503 : 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}, async () => {
+  globalThis.__healthCalls = [];
+  const selected = await __testing.selectHealthyBase([
+    new URL("https://primary.example"),
+    new URL("https://fallback.example"),
+  ]);
+  assert.equal(selected.host, "fallback.example");
+  assert.deepEqual(globalThis.__healthCalls, ["primary.example", "fallback.example"]);
+  delete globalThis.__healthCalls;
+  completed += 1;
+});
+
+assert.equal(Buffer.from(__testing.base64Bytes(Buffer.from("temporary file").toString("base64"))).toString(), "temporary file");
+completed += 1;
+
+await withMockFetch(async (url, init) => {
+  globalThis.__downloadCalls.push({ url: String(url), method: init.method, body: init.body });
+  return new Response(JSON.stringify({
+    ok: true,
+    file: {
+      id: "share-1",
+      file_name: "示例.mp4",
+      mime_type: "video/mp4",
+      size_bytes: 5,
+      download_count: 1,
+      destroyed: false,
+      base64: Buffer.from("hello").toString("base64"),
+    },
+  }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}, async () => {
+  globalThis.__downloadCalls = [];
+  const response = await onRequest({
+    env: { LOCAL_API_BASE: "https://primary.example" },
+    request: new Request("https://thewyj.uk/api/share/file/download", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ id: "share-1", password: "" }),
+    }),
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Content-Type"), "video/mp4");
+  assert.match(response.headers.get("Content-Disposition") || "", /^attachment;/);
+  assert.equal(await response.text(), "hello");
+  assert.equal(globalThis.__downloadCalls.length, 1, "one click must issue exactly one backend file read");
+  assert.equal(new URL(globalThis.__downloadCalls[0].url).pathname, "/api/share/file/read");
+  assert.equal(globalThis.__downloadCalls[0].method, "POST");
+  delete globalThis.__downloadCalls;
+  completed += 1;
+});
+
 assert.equal(__testing.upstreamTimeoutFor("/api/status", "GET"), 10000);
 assert.equal(__testing.upstreamTimeoutFor("/api/recharge/request", "POST"), 30000);
 assert.equal(__testing.upstreamTimeoutFor("/api/vocabulary/suggest", "POST"), 245000);
 assert.equal(__testing.upstreamTimeoutFor("/api/temporary/file", "POST"), 185000);
+assert.equal(__testing.upstreamTimeoutFor("/api/share/file/download", "POST"), 185000);
 completed += 1;
 
 console.log(`Proxy resilience checks passed: ${completed}`);
