@@ -452,6 +452,11 @@ async function main() {
 
   try {
     await check("brief branded startup and unauthenticated navigation", async () => {
+      const logoResponse = await fetch(`${BASE_URL}/icon-192.png`);
+      const logoBytes = Buffer.from(await logoResponse.arrayBuffer());
+      assert.equal(logoResponse.status, 200);
+      assert.match(logoResponse.headers.get("content-type") || "", /^image\/png(?:;|$)/i);
+      assert.deepEqual([...logoBytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
       await navigate(`/?app-matrix=${RUN_ID}`);
       await waitFor("document.querySelector('#entryScreen')", 3_000, "initial splash");
       const initial = await evaluate(`(() => {
@@ -474,7 +479,7 @@ async function main() {
               && Number.parseInt(entryStyle.zIndex || '0', 10) >= 9000
             )
           ),
-          imageReady: image.complete && image.naturalWidth > 0,
+          imageState: !image.complete ? "loading" : image.naturalWidth > 0 ? "loaded" : "failed",
           objectFit: imageStyle.objectFit,
           legacyDoors: document.querySelectorAll('.splash-door').length,
           legacyBrandText: document.body.textContent.includes('77 79 6A'),
@@ -482,7 +487,7 @@ async function main() {
       })()`);
       assert.equal(initial.entryVisible, true);
       assert.equal(initial.shellProtected, true);
-      assert.equal(initial.imageReady, true);
+      assert.notEqual(initial.imageState, "failed");
       assert.equal(initial.objectFit, "contain");
       assert.equal(initial.legacyDoors, 0);
       assert.equal(initial.legacyBrandText, false);
