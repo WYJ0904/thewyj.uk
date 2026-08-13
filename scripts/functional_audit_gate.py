@@ -62,9 +62,9 @@ def object_block(source: str, declaration: str, next_declaration: str) -> str:
 
 
 def route_manifest_from_source(source: str) -> list[str]:
-    match = re.search(r"const APP_ROUTE_MANIFEST = Object\.freeze\(\[(.*?)\]\);", source, re.S)
+    match = re.search(r"(?:export\s+)?const APP_ROUTE_MANIFEST = Object\.freeze\(\[(.*?)\]\);", source, re.S)
     if not match:
-        fail("app.js route manifest could not be located")
+        fail("application route manifest could not be located")
     return re.findall(r'"([^"\n]+)"', match.group(1))
 
 
@@ -88,6 +88,7 @@ def main() -> int:
     matrix = json.loads(MATRIX_PATH.read_text(encoding="utf-8"))
     tools_source = (ROOT / "tools.js").read_text(encoding="utf-8")
     app_source = (ROOT / "app.js").read_text(encoding="utf-8")
+    router_source = (ROOT / "js" / "core" / "router.js").read_text(encoding="utf-8")
     html_source = (ROOT / "index.html").read_text(encoding="utf-8")
     workflow_source = (ROOT / "workflows.js").read_text(encoding="utf-8")
     app_test_source = (ROOT / "local-backend" / "test_app_browser.mjs").read_text(encoding="utf-8")
@@ -153,7 +154,7 @@ def main() -> int:
     if unrepresented_options:
         fail(f"tool select options absent from the QA mode matrix: {unrepresented_options}")
 
-    source_routes = route_manifest_from_source(app_source)
+    source_routes = route_manifest_from_source(router_source)
     expected_routes = [route["path"] for route in matrix.get("routes", [])]
     if source_routes != expected_routes:
         fail(f"source route manifest and QA routes differ; source={source_routes}, matrix={expected_routes}")

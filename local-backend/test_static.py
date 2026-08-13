@@ -26,6 +26,11 @@ class StaticSiteTests(unittest.TestCase):
     def setUpClass(cls):
         cls.html = (ROOT / "index.html").read_text(encoding="utf-8")
         cls.app = (ROOT / "app.js").read_text(encoding="utf-8")
+        cls.core = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted((ROOT / "js" / "core").glob("*.js"))
+        )
+        cls.frontend = cls.app + "\n" + cls.core
         cls.tools = (ROOT / "tools.js").read_text(encoding="utf-8")
         cls.workflows = (ROOT / "workflows.js").read_text(encoding="utf-8")
         cls.styles = (ROOT / "styles.css").read_text(encoding="utf-8")
@@ -92,7 +97,10 @@ class StaticSiteTests(unittest.TestCase):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}"', self.worker)
-        self.assertIn('const APP_VERSION = "2026-08-11-tool-workflows"', self.app)
+        self.assertIn('export const APP_VERSION = "2026-08-11-tool-workflows"', self.core)
+        for module in ("api", "config", "router", "session", "storage", "ui"):
+            self.assertIn(f'/js/core/{module}.js', self.worker)
+        self.assertIn('type="module" src="/app.js?v=20260811-tool-workflows"', self.html)
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
         self.assertIn('APP_BUILD = "2026-08-11-tool-workflows"', server)
         self.assertIn('"/trial", "/changelog"', server)
@@ -285,7 +293,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("MAX_JSON_BYTES = int(os.environ.get(\"VOCAB_MAX_JSON_BYTES\", str(512 * 1024)))", server)
         self.assertIn("DEFAULT_MAX_TEMP_FILE_JSON_BYTES = ((MAX_TEMP_FILE_BYTES + 2) // 3) * 4 + 128 * 1024", server)
         self.assertIn('request_path == "/api/temporary/file"', server)
-        self.assertIn("function uploadApi", self.app)
+        self.assertIn("function uploadApi", self.core)
         self.assertIn('bridge.uploadApi("/api/temporary/file"', self.tools)
         self.assertIn("timeoutMs: 180000", self.tools)
 
@@ -421,7 +429,7 @@ class StaticSiteTests(unittest.TestCase):
 
     def test_quality_regressions_have_explicit_guards(self):
         self.assertIn("function markBackendReachable", self.app)
-        self.assertGreaterEqual(self.app.count("markBackendReachable(data)"), 3)
+        self.assertGreaterEqual(self.core.count("markBackendReachable(data)"), 3)
         skip_source = self.app.split("function skipWord()", 1)[1].split("async function submitAnswer", 1)[0]
         self.assertLess(skip_source.index("clearAnswerValidation();"), skip_source.index("markWrong("))
         self.assertLess(skip_source.index("markWrong("), skip_source.index("beginQuestionTransition("))
@@ -455,14 +463,14 @@ class StaticSiteTests(unittest.TestCase):
     def test_remote_data_loading_has_retry_and_partial_recovery(self):
         self.assertIn('id="membershipPlanRecovery"', self.html)
         self.assertIn('id="retryMembershipPlansBtn"', self.html)
-        self.assertIn("GET_RETRYABLE_STATUS", self.app)
-        self.assertIn("requestJsonGet", self.app)
+        self.assertIn("GET_RETRYABLE_STATUS", self.core)
+        self.assertIn("requestJsonGet", self.core)
         self.assertIn("Promise.allSettled(requests.map", self.app)
         self.assertIn("已加载的内容会保留，请点击刷新重试", self.app)
         self.assertNotIn("loadMembershipPlans().catch(() => {});", self.app)
         self.assertIn("membershipModalController?.abort()", self.app)
         self.assertIn("Promise.allSettled([", self.app)
-        self.assertIn("function retryDelayWithJitter", self.app)
+        self.assertIn("function retryDelayWithJitter", self.core)
         self.assertIn('window.addEventListener("offline"', self.app)
         self.assertIn('window.addEventListener("pageshow"', self.app)
         self.assertIn("async function fetchWithDeadline", self.worker)

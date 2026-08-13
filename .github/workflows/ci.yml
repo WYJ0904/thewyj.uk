@@ -105,12 +105,14 @@ jobs:
           mkdir -p artifacts
           {
             node --check app.js
+            while IFS= read -r module; do node --check "$module"; done < <(find js -type f -name '*.js' -print | sort)
             node --check tools.js
             node --check workflows.js
             node --check learning-sync.js
             node --check sw.js
             node --check "functions/api/[[path]].js"
             node --check local-backend/test_tools_js.mjs
+            node --check local-backend/test_core_js.mjs
             node --check local-backend/test_workflows_js.mjs
             node --check local-backend/test_learning_sync_js.mjs
             node --check local-backend/test_proxy_js.mjs
@@ -122,6 +124,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_tools_js.mjs 2>&1 | tee artifacts/javascript-tools.log
+
+      - name: Test core JavaScript modules
+        run: |
+          set -euo pipefail
+          node local-backend/test_core_js.mjs 2>&1 | tee artifacts/javascript-core.log
 
       - name: Test configurable tool workflows
         run: |

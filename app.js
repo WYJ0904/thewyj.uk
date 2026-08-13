@@ -1,19 +1,28 @@
-const APP_VERSION = "2026-08-11-tool-workflows";
-const APP_ROUTE_MANIFEST = Object.freeze([
-  "/", "/login", "/register", "/trial", "/changelog", "/select", "/language",
-  "/language/english", "/language/japanese", "/tools", "/tools/:tool_id", "/tools/workflows",
-  "/account", "/recharge", "/admin", "/share/text/:id", "/share/file/:id",
-  "/share/clipboard/:code", "/share/qr/:id", "/share/room/:id",
-]);
+import {
+  AI_TIMEOUT_MS,
+  API_GET_TIMEOUT_MS,
+  API_TIMEOUT_MS,
+  APP_VERSION,
+  BACKEND_CONFIG_MESSAGE,
+  BACKEND_NETWORK_MESSAGE,
+  BACKEND_REFRESH_INTERVAL_MS,
+  BUSINESS_TIME_ZONE,
+  PDF_TIMEOUT_MS,
+  STATUS_RETRY_BASE_DELAYS_MS,
+  STATUS_TIMEOUT_MS,
+} from "./js/core/config.js";
+import { createApiClient, fetchWithTimeout, retryDelayWithJitter, waitForDelay } from "./js/core/api.js";
+import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js";
+import {
+  clearAccountSessionStorage,
+  persistAccountSession,
+  restoreAccountSession,
+} from "./js/core/session.js";
+import { hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js";
+
 const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
 const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);
-const API_TIMEOUT_MS = 30000;
-const AI_TIMEOUT_MS = 120000;
-const STATUS_TIMEOUT_MS = 8000;
-const STATUS_RETRY_BASE_DELAYS_MS = [0, 650, 1800];
-const API_GET_TIMEOUT_MS = 10000;
-const GET_RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504, 530]);
-const PDF_TIMEOUT_MS = 120000;
 const MAX_WRONG_BOOK_ITEMS = 250;
 const MAX_ACCEPTED_ANSWERS = 14;
 const MAX_RUBRIC_CACHE_ITEMS = 500;
@@ -23,7 +32,6 @@ const MAX_REJUDGE_LOG_ITEMS = 200;
 const MAX_WORD_IMPORT_BYTES = 1024 * 1024;
 const MAX_WORD_INPUT_CHARS = 120000;
 const PROJECT_RUNTIME_MAX_AGE_MS = 100 * 60 * 1000;
-const BACKEND_REFRESH_INTERVAL_MS = 60 * 1000;
 const JAPANESE_READING_CACHE_KEY = "japaneseReadingCache:v1";
 const JAPANESE_WRITTEN_FORM_CACHE_KEY = "japaneseWrittenFormCache:v1";
 const ACCOUNT_DATA_VERSION = 2;
@@ -31,7 +39,6 @@ const STUDY_DATA_VERSION = 1;
 const WRONG_BOOK_EXPORT_TYPE = "vocab-wrong-book";
 const WRONG_BOOK_EXPORT_VERSION = 1;
 const DEFAULT_PROFILE = "我";
-const BUSINESS_TIME_ZONE = "Asia/Hong_Kong";
 const LANGUAGE_LABELS = {
   english: "英语",
   japanese: "日语",
@@ -145,8 +152,6 @@ const ACHIEVEMENTS = [
   { id: "goalDays3", category: "坚持", tier: "gold", title: "目标常客", desc: "累计 3 天达到当日学习目标。", metric: "goalDays", goal: 3 },
 ];
 
-const $ = (id) => document.getElementById(id);
-
 let resultHideTimer = null;
 let nextTimer = null;
 let judgeController = null;
@@ -182,7 +187,6 @@ let projectRuntimeNeedsRestore = false;
 let backendStatusPromise = null;
 let backendRefreshPromise = null;
 let backendRecoveryTimer = null;
-let storageWriteFailed = false;
 let achievementFilter = "all";
 let achievementToastTimer = null;
 let achievementToastHideTimer = null;
@@ -237,8 +241,6 @@ const projectRuntime = {
   english: null,
   japanese: null,
 };
-const BACKEND_CONFIG_MESSAGE = "服务器代理尚未配置，请设置 Cloudflare Pages 的 LOCAL_API_BASE。";
-const BACKEND_NETWORK_MESSAGE = "暂时无法连接服务器，请检查网络后重试；微信中可关闭页面再重新打开。";
 let backendFailureMessage = BACKEND_NETWORK_MESSAGE;
 let learningSyncManager = null;
 let learningSyncAccountId = "";
@@ -254,28 +256,8 @@ let learningSyncStatus = {
   server_version: 0,
 };
 
-const restoredSession = localStorage.getItem("wyjAccountSession") || sessionStorage.getItem("vocabSession") || "";
-if (restoredSession) safeStorageSet(localStorage, "wyjAccountSession", restoredSession);
-sessionStorage.removeItem("vocabSession");
-localStorage.removeItem("vocabSession");
-
-function loadJson(key, fallback) {
-  try {
-    return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
-  } catch (_) {
-    return fallback;
-  }
-}
-
-function safeStorageSet(storage, key, value) {
-  try {
-    storage.setItem(key, String(value));
-    return true;
-  } catch (_) {
-    storageWriteFailed = true;
-    return false;
-  }
-}
+const restoredSession = restoreAccountSession();
+const { pushRoute } = createRouter({ onRouteChange: () => renderAccountUi() });
 
 function migrateProjectPreferences() {
   const legacyGrading = ["strict", "normal", "lenient"].includes(localStorage.getItem("gradingMode"))
@@ -815,7 +797,7 @@ function updateLearningSyncStatus(status) {
 }
 
 function renderLearningSyncDashboardStatus() {
-  if (storageWriteFailed) {
+  if (hasStorageWriteFailure()) {
     setDashboardService("dashboardSyncStatus", "浏览器存储受限", "is-warning");
     return;
   }
@@ -1199,10 +1181,7 @@ function clearSession() {
   state.session = "";
   state.account = null;
   state.quizSession = "";
-  sessionStorage.removeItem("vocabSession");
-  localStorage.removeItem("vocabSession");
-  localStorage.removeItem("wyjAccountSession");
-  localStorage.removeItem("wyjAccountCache");
+  clearAccountSessionStorage();
   ["secretInput", "registerSecretInput", "registerConfirmInput", "currentSecretInput", "newSecretInput", "newSecretConfirmInput", "deleteSecretInput", "adminNewSecretInput"].forEach((id) => {
     const input = $(id);
     if (input) input.value = "";
@@ -1649,65 +1628,6 @@ async function voteForFeature(feedbackId, voted) {
   } finally {
     if (button?.isConnected) button.disabled = false;
   }
-}
-
-async function requestJsonGet(path, options = {}) {
-  const authenticated = options.authenticated === true;
-  let lastError = new Error(BACKEND_NETWORK_MESSAGE);
-  for (let attempt = 0; attempt < STATUS_RETRY_BASE_DELAYS_MS.length; attempt += 1) {
-    const delay = retryDelayWithJitter(STATUS_RETRY_BASE_DELAYS_MS[attempt]);
-    if (delay) await waitForDelay(delay, options.controller?.signal);
-    let response;
-    try {
-      response = await fetchWithTimeout(path, {
-        method: "GET",
-        cache: "no-store",
-        credentials: "same-origin",
-        headers: authenticated ? { "X-Session-Token": state.session } : {},
-        controller: options.controller,
-      }, options.timeoutMs || API_GET_TIMEOUT_MS);
-    } catch (networkError) {
-      if (networkError?.name === "AbortError") throw networkError;
-      backendAvailable = false;
-      backendFailureMessage = backendErrorMessage(networkError);
-      lastError = new Error(backendFailureMessage);
-      if (attempt < STATUS_RETRY_BASE_DELAYS_MS.length - 1) continue;
-      throw lastError;
-    }
-
-    const data = await response.json().catch(() => ({}));
-    if (response.ok) {
-      backendAvailable = true;
-      return data;
-    }
-    if (authenticated && response.status === 401) {
-      clearSession();
-      showAuth("登录已失效，请重新登录", { replace: true });
-      const error = new Error("登录已失效，请重新登录");
-      error.code = "session_expired";
-      throw error;
-    }
-    if (GET_RETRYABLE_STATUS.has(response.status) && attempt < STATUS_RETRY_BASE_DELAYS_MS.length - 1) {
-      lastError = new Error("服务器正在恢复，请稍候…");
-      lastError.status = response.status;
-      continue;
-    }
-    const configuredWrong = String(data.error || "").includes("LOCAL_API_BASE");
-    const message = configuredWrong
-      ? BACKEND_CONFIG_MESSAGE
-      : GET_RETRYABLE_STATUS.has(response.status)
-        ? backendErrorMessage({ status: response.status })
-        : data.error || `请求失败（HTTP ${response.status}）`;
-    const error = new Error(message);
-    error.code = data.code || "request_failed";
-    error.status = response.status;
-    throw error;
-  }
-  throw lastError;
-}
-
-async function apiGet(path, options = {}) {
-  return requestJsonGet(path, { ...options, authenticated: true });
 }
 
 function openModal(id) {
@@ -2460,42 +2380,6 @@ async function deleteOwnAccount(event) {
   }
 }
 
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>'"]/g, (char) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;",
-  }[char]));
-}
-
-async function writeClipboardText(value) {
-  if (navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(String(value));
-      return true;
-    } catch (_) {
-      // Embedded browsers may expose the API but reject it; fall back below.
-    }
-  }
-
-  const helper = document.createElement("textarea");
-  helper.value = String(value);
-  helper.setAttribute("readonly", "");
-  helper.style.position = "fixed";
-  helper.style.opacity = "0";
-  helper.style.pointerEvents = "none";
-  document.body.appendChild(helper);
-  helper.focus();
-  helper.select();
-  let copied = false;
-  try {
-    copied = document.execCommand("copy");
-  } catch (_) {
-    copied = false;
-  } finally {
-    helper.remove();
-  }
-  return copied;
-}
-
 async function copyTextWithFeedback(value, button) {
   if (!button) return false;
   const originalLabel = button.dataset.copyLabel || button.textContent;
@@ -2614,23 +2498,6 @@ function generateOwnSecret() {
 
 function adminUserById(id) {
   return adminUsers.find((user) => user.id === id);
-}
-
-function formatLocalDateTime(value, fallback = "无") {
-  if (!value) return fallback;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  const parts = Object.fromEntries(new Intl.DateTimeFormat("zh-CN", {
-    timeZone: BUSINESS_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date).map((part) => [part.type, part.value]));
-  return `${parts.year}/${parts.month}/${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
 }
 
 function rechargeStatusLabel(status) {
@@ -3710,13 +3577,6 @@ function showLanguageGate() {
   showProjectPicker();
 }
 
-function pushRoute(path, replace = false) {
-  const target = String(path || "/");
-  if (location.pathname === target) return;
-  history[replace ? "replaceState" : "pushState"]({}, "", target);
-  renderAccountUi();
-}
-
 function hidePrimaryScreens() {
   const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
   ["publicHome", "changelogPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "shareViewer", "adminPanel"].forEach((id) => {
@@ -4476,63 +4336,6 @@ function confirmClearStudyRecords() {
   });
 }
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
-  const { controller: suppliedController, signal: suppliedSignal, ...requestOptions } = options;
-  const externalSignal = suppliedController?.signal || suppliedSignal || null;
-  const controller = new AbortController();
-  let timedOut = false;
-  const abortFromExternal = () => controller.abort();
-  if (externalSignal?.aborted) controller.abort();
-  else externalSignal?.addEventListener("abort", abortFromExternal, { once: true });
-  const timeout = setTimeout(() => {
-    timedOut = true;
-    controller.abort();
-  }, timeoutMs);
-
-  try {
-    return await fetch(url, { ...requestOptions, signal: controller.signal });
-  } catch (error) {
-    if (error.name === "AbortError") {
-      const wrapped = new Error(timedOut ? "请求超时，请稍后重试" : "请求已取消");
-      wrapped.name = timedOut ? "TimeoutError" : "AbortError";
-      wrapped.code = timedOut ? "request_timeout" : "request_aborted";
-      throw wrapped;
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-    externalSignal?.removeEventListener("abort", abortFromExternal);
-  }
-}
-
-function retryDelayWithJitter(baseMilliseconds) {
-  if (!baseMilliseconds) return 0;
-  const jitter = Math.floor(Math.random() * Math.max(80, baseMilliseconds * 0.35));
-  return baseMilliseconds + jitter;
-}
-
-function waitForDelay(milliseconds, signal = null) {
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) {
-      const error = new Error("请求已取消");
-      error.name = "AbortError";
-      reject(error);
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      signal?.removeEventListener("abort", abort);
-      resolve();
-    }, milliseconds);
-    const abort = () => {
-      window.clearTimeout(timer);
-      const error = new Error("请求已取消");
-      error.name = "AbortError";
-      reject(error);
-    };
-    signal?.addEventListener("abort", abort, { once: true });
-  });
-}
-
 function backendErrorMessage(error) {
   const detail = String(error?.message || "");
   if (detail.includes("LOCAL_API_BASE")) return BACKEND_CONFIG_MESSAGE;
@@ -4548,6 +4351,22 @@ function backendErrorMessage(error) {
   }
   return BACKEND_NETWORK_MESSAGE;
 }
+
+const { api, apiGet, publicApi, requestJsonGet, uploadApi } = createApiClient({
+  getSession: () => state.session,
+  backendErrorMessage,
+  markBackendReachable,
+  markGetReachable: () => { backendAvailable = true; },
+  markNetworkFailure: (message, source) => {
+    backendAvailable = false;
+    if (source !== "upload") backendFailureMessage = message;
+  },
+  handleSessionExpired: (options = {}) => {
+    clearSession();
+    showAuth("登录已失效，请重新登录", options);
+  },
+  handleMembershipRequired: () => openMembershipModal({ goal: membershipGoalForCurrentContext() }),
+});
 
 function applyBackendStatus(data) {
   markBackendReachable(data);
@@ -4610,145 +4429,6 @@ async function ensureBackendConnection() {
   }
 }
 
-async function api(path, body = {}, options = {}) {
-  let response;
-  try {
-    response = await fetchWithTimeout(
-      path,
-      {
-        method: "POST",
-        cache: "no-store",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Session-Token": state.session,
-        },
-        body: JSON.stringify(body),
-        controller: options.controller,
-        signal: options.signal,
-      },
-      options.timeoutMs || API_TIMEOUT_MS,
-    );
-  } catch (error) {
-    if (error.name === "AbortError") throw error;
-    backendAvailable = false;
-    backendFailureMessage = backendErrorMessage(error);
-    throw new Error(backendFailureMessage);
-  }
-  const data = await response.json().catch(() => ({}));
-  if (response.ok || response.status < 500) markBackendReachable(data);
-  if (!response.ok) {
-    if (response.status === 401) {
-      clearSession();
-      showAuth("登录已失效，请重新登录");
-      throw new Error("登录已失效，请重新登录");
-    }
-    const error = new Error(data.error || "请求失败");
-    error.code = data.code || "request_failed";
-    if (error.code === "membership_required") openMembershipModal({ goal: membershipGoalForCurrentContext() });
-    throw error;
-  }
-  return data;
-}
-
-
-function uploadApi(path, body = {}, options = {}) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    const controller = options.controller || new AbortController();
-    const abortRequest = () => xhr.abort();
-    let completed = false;
-    const finish = (callback) => {
-      if (completed) return;
-      completed = true;
-      controller.signal.removeEventListener("abort", abortRequest);
-      callback();
-    };
-    xhr.open("POST", path, true);
-    xhr.timeout = options.timeoutMs || 180000;
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.setRequestHeader("X-Session-Token", state.session);
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable && typeof options.onProgress === "function") {
-        options.onProgress(Math.max(0, Math.min(1, event.loaded / event.total)), event.loaded, event.total);
-      }
-    };
-    xhr.onload = () => finish(() => {
-      let data = {};
-      try { data = JSON.parse(xhr.responseText || "{}"); } catch (_error) { data = {}; }
-      if (xhr.status < 500) markBackendReachable(data);
-      if (xhr.status >= 200 && xhr.status < 300) {
-        if (typeof options.onProgress === "function") options.onProgress(1, 1, 1);
-        resolve(data);
-        return;
-      }
-      if (xhr.status === 401) {
-        clearSession();
-        showAuth("登录已失效，请重新登录");
-      }
-      const error = new Error(data.error || "请求失败");
-      error.code = data.code || "request_failed";
-      error.status = xhr.status;
-      if (error.code === "membership_required") openMembershipModal({ goal: membershipGoalForCurrentContext() });
-      reject(error);
-    });
-    xhr.onerror = () => finish(() => {
-      backendAvailable = false;
-      const error = new Error(backendErrorMessage(new Error("network error")));
-      error.code = "network_error";
-      reject(error);
-    });
-    xhr.ontimeout = () => finish(() => {
-      const error = new Error("上传超时，请检查网络后重试");
-      error.code = "upload_timeout";
-      reject(error);
-    });
-    xhr.onabort = () => finish(() => {
-      const error = new Error("上传已取消");
-      error.name = "AbortError";
-      error.code = "upload_cancelled";
-      reject(error);
-    });
-    if (controller.signal.aborted) {
-      xhr.abort();
-      return;
-    }
-    controller.signal.addEventListener("abort", abortRequest, { once: true });
-    try {
-      xhr.send(JSON.stringify(body));
-    } catch (error) {
-      finish(() => reject(error));
-    }
-  });
-}
-
-async function publicApi(path, body = {}, options = {}) {
-  let response;
-  try {
-    response = await fetchWithTimeout(
-      path,
-      {
-        method: "POST",
-        cache: "no-store",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        controller: options.controller,
-      },
-      options.timeoutMs || API_TIMEOUT_MS,
-    );
-  } catch (error) {
-    if (error.name === "AbortError") throw error;
-    throw new Error(backendErrorMessage(error));
-  }
-  const data = await response.json().catch(() => ({}));
-  if (response.ok || response.status < 500) markBackendReachable(data);
-  if (!response.ok) {
-    const error = new Error(data.error || "请求失败");
-    error.code = data.code || "request_failed";
-    throw error;
-  }
-  return data;
-}
-
 function setView(id) {
   if (id === "quizView" && !state.roundActive) id = "setupView";
   const leavingQuiz = id !== "quizView" && $("quizView")?.classList.contains("active");
@@ -4786,12 +4466,12 @@ function updateStats() {
     const ignored = [];
     if (analysis.duplicates) ignored.push(`${analysis.duplicates} 个重复词`);
     if (analysis.invalid.length) ignored.push(`${analysis.invalid.length} 个其他语言或无效词`);
-    $("wordQualityHint").textContent = storageWriteFailed
+    $("wordQualityHint").textContent = hasStorageWriteFailure()
       ? "浏览器存储空间不足，本次更改可能无法在刷新后保留"
       : ignored.length
         ? `可测试 ${eligibleWords.length} 个，开始时将忽略${ignored.join("、")}`
         : eligibleWords.length ? `已识别 ${eligibleWords.length} 个可测试词` : "";
-    $("wordQualityHint").classList.toggle("has-warning", storageWriteFailed || ignored.length > 0);
+    $("wordQualityHint").classList.toggle("has-warning", hasStorageWriteFailure() || ignored.length > 0);
   }
   const quizTab = document.querySelector('[data-view="quizView"]');
   if (quizTab) {
@@ -6609,7 +6289,7 @@ async function login(event) {
       secret: $("secretInput").value,
     });
     state.session = data.session;
-    safeStorageSet(localStorage, "wyjAccountSession", state.session);
+    persistAccountSession(state.session);
     applyAccount(data.account);
     $("secretInput").value = "";
     clearSavedWordDrafts(data.account);
