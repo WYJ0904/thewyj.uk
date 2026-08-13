@@ -20,14 +20,60 @@ import {
 } from "./js/core/session.js";
 import { hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js";
 import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js";
+import {
+  calculateStudyStreak,
+  formatDuration,
+  localDayKey,
+  sanitizeStudyRecords,
+  studyDaySeries,
+} from "./js/language/history.js";
+import {
+  DEFAULT_PROFILE,
+  LANGUAGE_LABELS,
+  analyzeWordList,
+  evaluateDictation,
+  evaluateLocalMeaning,
+  filterWordsByLanguage,
+  formatJapaneseDictationAnswer as formatJapaneseDictationAnswerModel,
+  formatWordsForInput,
+  hasJapaneseKanji,
+  japaneseDictationRequiresBoth as japaneseDictationRequiresBothModel,
+  japaneseReadingFor as japaneseReadingForModel,
+  japaneseWrittenFormFor as japaneseWrittenFormForModel,
+  limitText,
+  normalizeDictationAnswer as normalizeDictationAnswerModel,
+  normalizeJapaneseReading,
+  normalizeKana,
+  normalizeMeaning,
+  normalizePracticeMode,
+  normalizeQuizLanguage,
+  parseWordTextModel,
+  practiceModeLabel,
+  profileStorageName,
+  quizLanguageLabel,
+  sanitizeAccepted,
+  sanitizeJapaneseReadings,
+  sanitizeJapaneseWrittenForms,
+  sanitizePendingAdvance,
+  sanitizeProfile,
+  sanitizeQuestionFeedback,
+  sanitizeStoredRubric,
+  trimRubricCache,
+  wordIdentity,
+  wordMatchesLanguage,
+} from "./js/language/quiz.js";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js";
+import {
+  filterWrongBookByLanguage as filterWrongBookByLanguageModel,
+  mergeWrongBooks,
+  removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
+  sanitizeWrongBook,
+  updateWrongEntry as updateWrongEntryModel,
+} from "./js/language/wrong-book.js";
 
 const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
 const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);
-const MAX_WRONG_BOOK_ITEMS = 250;
-const MAX_ACCEPTED_ANSWERS = 14;
-const MAX_RUBRIC_CACHE_ITEMS = 500;
-const MAX_JAPANESE_READING_CACHE_ITEMS = 2000;
-const MAX_STUDY_RECORDS = 500;
 const MAX_REJUDGE_LOG_ITEMS = 200;
 const MAX_WORD_IMPORT_BYTES = 1024 * 1024;
 const MAX_WORD_INPUT_CHARS = 120000;
@@ -38,11 +84,6 @@ const ACCOUNT_DATA_VERSION = 2;
 const STUDY_DATA_VERSION = 1;
 const WRONG_BOOK_EXPORT_TYPE = "vocab-wrong-book";
 const WRONG_BOOK_EXPORT_VERSION = 1;
-const DEFAULT_PROFILE = "我";
-const LANGUAGE_LABELS = {
-  english: "英语",
-  japanese: "日语",
-};
 const TRIAL_MAX_QUESTIONS = 10;
 const TRIAL_MAX_TEXT_CHARS = 200000;
 const TRIAL_MAX_IMAGE_BYTES = 12 * 1024 * 1024;
@@ -90,10 +131,6 @@ const TRIAL_QUESTION_BANKS = {
     { prompt: "词语", answers: ["言葉", "ことば"] },
   ],
 };
-const PRACTICE_LABELS = {
-  meaning: "释义",
-  dictation: "听写",
-};
 const VOCABULARY_LEVEL_OPTIONS = {
   japanese: [
     ["n5", "JLPT N5"],
@@ -118,39 +155,6 @@ const VOCABULARY_LEVEL_OPTIONS = {
   ],
 };
 const SKIPPED_ANSWER = "（跳过）";
-const ACHIEVEMENT_TIERS = {
-  bronze: { label: "初阶", points: 10 },
-  silver: { label: "进阶", points: 25 },
-  gold: { label: "高阶", points: 50 },
-  platinum: { label: "卓越", points: 100 },
-};
-const ACHIEVEMENTS = [
-  { id: "firstQuiz", category: "入门", tier: "bronze", title: "开测", desc: "完成一次词表测试。", metric: "rounds", goal: 1 },
-  { id: "firstCorrect", category: "入门", tier: "bronze", title: "第一题正确", desc: "累计答对 1 题。", metric: "correct", goal: 1 },
-  { id: "firstDictation", category: "探索", tier: "bronze", title: "听写启动", desc: "完成一次听写练习。", metric: "dictationRounds", goal: 1 },
-  { id: "skipSaved", category: "入门", tier: "bronze", title: "跳过也记录", desc: "跳过的词已进入错题本。", metric: "skipped", goal: 1 },
-  { id: "wrongTen", category: "工具", tier: "silver", title: "错题收藏家", desc: "历史错题达到 10 个。", metric: "wrongWords", goal: 10 },
-  { id: "perfectRound", category: "能力", tier: "silver", title: "满分一轮", desc: "完成一轮满分测试。", metric: "perfectRounds", goal: 1 },
-  { id: "firstPdf", category: "工具", tier: "silver", title: "练习册生成", desc: "导出一次 PDF 错题本。" },
-  { id: "longRound", category: "坚持", tier: "silver", title: "长跑", desc: "完成一轮 20 题以上的测试。", metric: "longRounds", goal: 1 },
-  { id: "rounds5", category: "坚持", tier: "bronze", title: "渐入佳境", desc: "累计完成 5 轮练习。", metric: "rounds", goal: 5 },
-  { id: "rounds25", category: "坚持", tier: "silver", title: "稳定节奏", desc: "累计完成 25 轮练习。", metric: "rounds", goal: 25 },
-  { id: "rounds100", category: "坚持", tier: "platinum", title: "百炼成章", desc: "累计完成 100 轮练习。", metric: "rounds", goal: 100 },
-  { id: "words50", category: "坚持", tier: "bronze", title: "五十步", desc: "累计完成 50 道题。", metric: "words", goal: 50 },
-  { id: "words500", category: "坚持", tier: "silver", title: "五百题", desc: "累计完成 500 道题。", metric: "words", goal: 500 },
-  { id: "words2000", category: "坚持", tier: "gold", title: "两千里", desc: "累计完成 2000 道题。", metric: "words", goal: 2000 },
-  { id: "correct100", category: "能力", tier: "bronze", title: "百题正确", desc: "累计答对 100 道题。", metric: "correct", goal: 100 },
-  { id: "correct1000", category: "能力", tier: "gold", title: "千题正确", desc: "累计答对 1000 道题。", metric: "correct", goal: 1000 },
-  { id: "streak3", category: "坚持", tier: "bronze", title: "三日不辍", desc: "最长连续学习 3 天。", metric: "longestStreak", goal: 3 },
-  { id: "streak7", category: "坚持", tier: "silver", title: "一周坚持", desc: "最长连续学习 7 天。", metric: "longestStreak", goal: 7 },
-  { id: "streak30", category: "坚持", tier: "gold", title: "月度恒心", desc: "最长连续学习 30 天。", metric: "longestStreak", goal: 30 },
-  { id: "perfect3", category: "能力", tier: "gold", title: "三连满分", desc: "累计完成 3 轮满分练习。", metric: "perfectRounds", goal: 3 },
-  { id: "dictation10", category: "探索", tier: "silver", title: "听辨熟手", desc: "累计完成 10 轮听写。", metric: "dictationRounds", goal: 10 },
-  { id: "review10", category: "探索", tier: "silver", title: "回炉有方", desc: "累计完成 10 轮错题复习。", metric: "reviewRounds", goal: 10 },
-  { id: "bilingual", category: "探索", tier: "silver", title: "双语启程", desc: "英语和日语各完成至少 1 轮。", metric: "bilingualRounds", goal: 1 },
-  { id: "highAccuracy5", category: "能力", tier: "gold", title: "稳定高分", desc: "完成 5 轮至少 10 题且正确率不低于 90% 的练习。", metric: "highAccuracyRounds", goal: 5 },
-  { id: "goalDays3", category: "坚持", tier: "gold", title: "目标常客", desc: "累计 3 天达到当日学习目标。", metric: "goalDays", goal: 3 },
-];
 
 let resultHideTimer = null;
 let nextTimer = null;
@@ -258,6 +262,7 @@ let learningSyncStatus = {
 
 const restoredSession = restoreAccountSession();
 const { pushRoute } = createRouter({ onRouteChange: () => renderAccountUi() });
+const learningSyncAdapter = createLearningSyncAdapter(() => window.WYJLearningSync);
 
 function migrateProjectPreferences() {
   const legacyGrading = ["strict", "normal", "lenient"].includes(localStorage.getItem("gradingMode"))
@@ -276,213 +281,12 @@ function migrateProjectPreferences() {
 
 migrateProjectPreferences();
 
-function limitText(value, maxLength = 500) {
-  return String(value || "").trim().slice(0, maxLength);
-}
-
-function sanitizeAccepted(values) {
-  if (!Array.isArray(values)) return [];
-  const seen = new Set();
-  const result = [];
-  values.slice(0, MAX_ACCEPTED_ANSWERS).forEach((item) => {
-    const value = limitText(item);
-    const key = normalizeMeaning(value);
-    if (value && key && !seen.has(key)) {
-      seen.add(key);
-      result.push(value);
-    }
-  });
-  return result;
-}
-
-function sanitizeStoredRubric(value, fallbackGloss = "", fallbackAccepted = []) {
-  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
-  return {
-    language: limitText(source.language, 40),
-    gloss: limitText(source.gloss || fallbackGloss),
-    accepted: sanitizeAccepted(source.accepted || fallbackAccepted),
-    notes: limitText(source.notes),
-    reading: limitText(source.reading, 80),
-  };
-}
-
-function sanitizeQuestionFeedback(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const type = value.type === "skipped" ? "skipped" : "answer";
-  return {
-    type,
-    correct: type === "skipped" ? false : Boolean(value.correct),
-    gloss: limitText(value.gloss) || "（未给出）",
-    accepted: sanitizeAccepted(value.accepted),
-    kind: value.kind === "dictation" ? "dictation" : "meaning",
-    ai_review: Boolean(value.ai_review),
-  };
-}
-
-function sanitizePendingAdvance(value, runtime = {}) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const questionIndex = Number.parseInt(value.questionIndex, 10);
-  const dueAt = Number(value.dueAt);
-  const words = Array.isArray(runtime.words) ? runtime.words : [];
-  const roundId = limitText(value.roundId, 100);
-  const expectedRoundId = limitText(runtime.roundId, 100);
-  const feedback = sanitizeQuestionFeedback(value.feedback);
-  if (
-    !feedback
-    || !Number.isInteger(questionIndex)
-    || questionIndex < 0
-    || questionIndex >= words.length
-    || !Number.isFinite(dueAt)
-    || dueAt <= 0
-    || (expectedRoundId && roundId !== expectedRoundId)
-  ) return null;
-  return {
-    id: limitText(value.id, 160) || `${roundId}:${questionIndex}:${Math.round(dueAt)}`,
-    roundId,
-    questionIndex,
-    dueAt,
-    feedback,
-  };
-}
-
-function sanitizeWrongBook(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const cleaned = {};
-  Object.entries(value)
-    .slice(-MAX_WRONG_BOOK_ITEMS)
-    .forEach(([word, info]) => {
-      if (!info || typeof info !== "object" || Array.isArray(info)) return;
-      const key = limitText(word, 240);
-      if (!key) return;
-      const count = Number.parseInt(info.wrong_count, 10);
-      const language = normalizeQuizLanguage(info.language) || (wordMatchesLanguage(key, "english") ? "english" : "japanese");
-      const questionType = info.question_type === "dictation" ? "dictation" : "meaning";
-      const gradingMode = ["strict", "normal", "lenient"].includes(info.grading_mode) ? info.grading_mode : "normal";
-      const correctAnswer = limitText(info.correct_answer);
-      const accepted = sanitizeAccepted(info.accepted);
-      cleaned[key] = {
-        wrong_count: Number.isFinite(count) ? Math.max(0, Math.min(9999, count)) : 0,
-        last_answer: limitText(info.last_answer),
-        original_answer: limitText(info.original_answer || info.last_answer),
-        correct_answer: correctAnswer,
-        accepted,
-        skipped: Boolean(info.skipped),
-        last_time: limitText(info.last_time, 80),
-        question_type: questionType,
-        language,
-        grading_mode: gradingMode,
-        round_id: limitText(info.round_id, 100),
-        rubric: sanitizeStoredRubric(info.rubric, correctAnswer, accepted),
-        rejudged_at: limitText(info.rejudged_at, 80),
-        rejudge_result: ["correct", "incorrect"].includes(info.rejudge_result) ? info.rejudge_result : "",
-        rejudge_reason: limitText(info.rejudge_reason),
-      };
-    });
-  return cleaned;
-}
-
-function mergeWrongBooks(current, incoming) {
-  const merged = { ...sanitizeWrongBook(current) };
-  Object.entries(sanitizeWrongBook(incoming)).forEach(([word, info]) => {
-    const previous = merged[word] || {};
-    delete merged[word];
-    merged[word] = {
-      ...previous,
-      ...info,
-      wrong_count: Math.max(previous.wrong_count || 0, info.wrong_count || 0),
-      correct_answer: info.correct_answer || previous.correct_answer || "",
-      accepted: info.accepted.length ? info.accepted : previous.accepted || [],
-    };
-  });
-  return sanitizeWrongBook(merged);
-}
-
-function trimRubricCache(cache) {
-  if (!cache || typeof cache !== "object" || Array.isArray(cache)) return {};
-  return Object.fromEntries(Object.entries(cache).slice(-MAX_RUBRIC_CACHE_ITEMS));
-}
-
-function normalizeJapaneseReading(value) {
-  return String(value || "").normalize("NFKC").replace(/\s+/g, "").trim();
-}
-
-function isJapaneseReading(value) {
-  return /^[\u3040-\u30ff\u31f0-\u31ffー・]+$/u.test(normalizeJapaneseReading(value));
-}
-
-function sanitizeJapaneseReadings(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const cleaned = {};
-  Object.entries(value).forEach(([word, reading]) => {
-    const cleanWord = limitText(word, 64);
-    const cleanReading = normalizeJapaneseReading(reading).slice(0, 64);
-    if (cleanWord && isJapaneseReading(cleanReading)) cleaned[cleanWord] = cleanReading;
-  });
-  return Object.fromEntries(Object.entries(cleaned).slice(-MAX_JAPANESE_READING_CACHE_ITEMS));
-}
-
-function sanitizeJapaneseWrittenForms(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const cleaned = {};
-  Object.entries(value).forEach(([word, written]) => {
-    const cleanWord = limitText(word, 64);
-    const cleanWritten = limitText(written, 64);
-    if (
-      cleanWord
-      && cleanWritten
-      && /^[\u3040-\u30ff\u31f0-\u31ff\u3400-\u9fff々〆ヶー・]+$/u.test(cleanWord)
-      && /^[\u3040-\u30ff\u31f0-\u31ff\u3400-\u9fff々〆ヶー・]+$/u.test(cleanWritten)
-    ) cleaned[cleanWord] = cleanWritten;
-  });
-  return Object.fromEntries(Object.entries(cleaned).slice(-MAX_JAPANESE_READING_CACHE_ITEMS));
-}
-
-function sanitizeProfile(value) {
-  const cleaned = String(value || "").trim().slice(0, 30);
-  return cleaned || DEFAULT_PROFILE;
-}
-
-function profileStorageName(profile) {
-  return encodeURIComponent(sanitizeProfile(profile));
-}
-
-function normalizeQuizLanguage(value) {
-  if (value === "english" || value === "japanese") return value;
-  return "";
-}
-
-function quizLanguageLabel(language) {
-  return LANGUAGE_LABELS[language] || "未选语言";
-}
-
-function normalizePracticeMode(value) {
-  if (value === "dictation") return "dictation";
-  return "meaning";
-}
-
-function practiceModeLabel(mode) {
-  return PRACTICE_LABELS[mode] || "释义";
-}
-
-function wordMatchesLanguage(word, language) {
-  const value = String(word || "").trim();
-  if (!value) return false;
-  if (language === "english") return /^[A-Za-z][A-Za-z'-]*$/.test(value);
-  if (language === "japanese") return /[\u3040-\u30ff\u3400-\u9fff々〆ヶ]/u.test(value);
-  return true;
-}
-
-function filterWordsByLanguage(words, language) {
-  return words.filter((word) => wordMatchesLanguage(word, language));
-}
-
 function filterWrongBookByLanguage(book, language = state.quizLanguage) {
-  if (!language) return {};
-  return Object.fromEntries(Object.entries(book || {}).filter(([word]) => wordMatchesLanguage(word, language)));
+  return filterWrongBookByLanguageModel(book, language);
 }
 
 function removeLanguageFromWrongBook(book, language = state.quizLanguage) {
-  return Object.fromEntries(Object.entries(book || {}).filter(([word]) => !wordMatchesLanguage(word, language)));
+  return removeLanguageFromWrongBookModel(book, language);
 }
 
 const state = {
@@ -556,39 +360,23 @@ function accountAiSuggestionSettingsKey(language, account = state.account) {
 }
 
 function learningSyncApi() {
-  return window.WYJLearningSync || null;
+  return learningSyncAdapter.api();
 }
 
 function learningSyncRecordId(kind, ...components) {
-  return learningSyncApi()?.makeRecordId(kind, components) || "";
+  return learningSyncAdapter.recordId(kind, ...components);
 }
 
 function learningSyncGroupPrefix(kind, ...components) {
-  const id = learningSyncRecordId(kind, ...components);
-  return id ? `${id}|` : "";
-}
-
-function learningSyncTimestamp(value) {
-  const parsed = new Date(value || "");
-  return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+  return learningSyncAdapter.groupPrefix(kind, ...components);
 }
 
 function learningSyncRecord(dataType, kind, components, payload, updatedAt = "") {
-  return {
-    data_type: dataType,
-    record_id: learningSyncRecordId(kind, ...components),
-    payload,
-    updated_at: learningSyncTimestamp(updatedAt),
-    deleted: false,
-  };
+  return learningSyncAdapter.record(dataType, kind, components, payload, updatedAt);
 }
 
 function decodeProfileStorageName(value) {
-  try {
-    return sanitizeProfile(decodeURIComponent(value));
-  } catch (_) {
-    return sanitizeProfile(value);
-  }
+  return learningSyncAdapter.decodeProfile(value);
 }
 
 function savedProjectPreferences(language, account = state.account) {
@@ -958,35 +746,6 @@ async function importLearningSyncBackup(event) {
   } finally {
     event.target.value = "";
   }
-}
-
-function sanitizeStudyRecords(value) {
-  if (!Array.isArray(value)) return [];
-  return value.slice(-MAX_STUDY_RECORDS).map((record) => {
-    if (!record || typeof record !== "object") return null;
-    const language = normalizeQuizLanguage(record.language);
-    const parsedTotal = Number.parseInt(record.total, 10) || 0;
-    if (parsedTotal < 1) return null;
-    const total = Math.min(500, parsedTotal);
-    const correct = Math.max(0, Math.min(total, Number.parseInt(record.correct, 10) || 0));
-    const skipped = Math.max(0, Math.min(total - correct, Number.parseInt(record.skipped, 10) || 0));
-    const wrong = Math.max(0, total - correct - skipped);
-    const finishedAt = new Date(record.finishedAt || record.finished_at || "");
-    if (!language || !Number.isFinite(finishedAt.getTime())) return null;
-    return {
-      id: limitText(record.id, 100) || `${finishedAt.getTime()}-${language}`,
-      finishedAt: finishedAt.toISOString(),
-      language,
-      practiceMode: normalizePracticeMode(record.practiceMode),
-      mode: ["normal", "review-current", "review-history"].includes(record.mode) ? record.mode : "normal",
-      total,
-      correct,
-      wrong,
-      skipped,
-      accuracy: Math.round((correct / total) * 100),
-      durationSec: Math.max(0, Math.min(24 * 60 * 60, Number.parseInt(record.durationSec, 10) || 0)),
-    };
-  }).filter(Boolean);
 }
 
 function loadStudyRecords() {
@@ -3964,71 +3723,11 @@ function showAchievementToast(message) {
   }, 3200);
 }
 
-function calculateLongestStudyStreak(records) {
-  const dayNumbers = [...new Set(records.map((record) => localDayKey(record.finishedAt)).filter(Boolean))]
-    .map((key) => {
-      const [year, month, day] = key.split("-").map(Number);
-      return Math.floor(Date.UTC(year, month - 1, day) / 86400000);
-    })
-    .sort((left, right) => left - right);
-  let longest = 0;
-  let current = 0;
-  let previous = null;
-  dayNumbers.forEach((day) => {
-    current = previous !== null && day === previous + 1 ? current + 1 : 1;
-    longest = Math.max(longest, current);
-    previous = day;
-  });
-  return longest;
-}
-
 function achievementMetrics() {
-  const records = state.studyRecords;
-  const languageRounds = { english: 0, japanese: 0 };
-  const totals = records.reduce((result, record) => {
-    result.rounds += 1;
-    result.words += record.total;
-    result.correct += record.correct;
-    result.skipped += record.skipped;
-    if (record.correct === record.total) result.perfectRounds += 1;
-    if (record.total >= 20) result.longRounds += 1;
-    if (record.practiceMode === "dictation") result.dictationRounds += 1;
-    if (record.mode.startsWith("review-")) result.reviewRounds += 1;
-    if (record.total >= 10 && record.accuracy >= 90) result.highAccuracyRounds += 1;
-    languageRounds[record.language] += 1;
-    return result;
-  }, {
-    rounds: 0,
-    words: 0,
-    correct: 0,
-    skipped: 0,
-    perfectRounds: 0,
-    longRounds: 0,
-    dictationRounds: 0,
-    reviewRounds: 0,
-    highAccuracyRounds: 0,
-  });
-  totals.wrongWords = Object.keys(state.historyWrongBook).length;
-  totals.longestStreak = calculateLongestStudyStreak(records);
-  totals.bilingualRounds = Math.min(languageRounds.english, languageRounds.japanese);
-
-  const dailyTotals = new Map();
-  records.forEach((record) => {
-    const day = localDayKey(record.finishedAt);
-    const key = `${day}:${record.language}`;
-    dailyTotals.set(key, (dailyTotals.get(key) || 0) + record.total);
-  });
-  const completedGoalDays = new Set();
-  dailyTotals.forEach((total, key) => {
-    const separator = key.lastIndexOf(":");
-    const day = key.slice(0, separator);
-    const language = key.slice(separator + 1);
+  return calculateAchievementMetrics(state.studyRecords, state.historyWrongBook, (language) => {
     const storedGoal = Number.parseInt(localStorage.getItem(studyGoalKey(language)), 10);
-    const goal = Number.isInteger(storedGoal) && storedGoal >= 1 && storedGoal <= 500 ? storedGoal : 20;
-    if (total >= goal) completedGoalDays.add(day);
+    return Number.isInteger(storedGoal) && storedGoal >= 1 && storedGoal <= 500 ? storedGoal : 20;
   });
-  totals.goalDays = completedGoalDays.size;
-  return totals;
 }
 
 function evaluateAchievements(notify = false) {
@@ -4127,25 +3826,6 @@ function renderAchievements() {
   }
 }
 
-function localDayKey(value = new Date()) {
-  const date = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(date.getTime())) return "";
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function studyDaySeries(days = 7) {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  return Array.from({ length: days }, (_, index) => {
-    const date = new Date(start);
-    date.setDate(start.getDate() - (days - index - 1));
-    return { date, key: localDayKey(date), total: 0, correct: 0, rounds: 0 };
-  });
-}
-
 function currentStudyRecords() {
   return state.studyRecords
     .filter((record) => record.language === state.quizLanguage)
@@ -4166,30 +3846,6 @@ function saveStudyGoal() {
   queueStudyGoalForSync();
   renderStudyDashboard();
   renderDashboard();
-}
-
-function formatDuration(seconds) {
-  const value = Math.max(0, Number.parseInt(seconds, 10) || 0);
-  if (value < 60) return `${value}秒`;
-  const minutes = Math.floor(value / 60);
-  const remainder = value % 60;
-  if (minutes < 60) return remainder ? `${minutes}分${remainder}秒` : `${minutes}分钟`;
-  const hours = Math.floor(minutes / 60);
-  const restMinutes = minutes % 60;
-  return restMinutes ? `${hours}小时${restMinutes}分` : `${hours}小时`;
-}
-
-function calculateStudyStreak(records) {
-  const studiedDays = new Set(records.map((record) => localDayKey(record.finishedAt)).filter(Boolean));
-  const cursor = new Date();
-  cursor.setHours(0, 0, 0, 0);
-  if (!studiedDays.has(localDayKey(cursor))) cursor.setDate(cursor.getDate() - 1);
-  let streak = 0;
-  while (streak < 3660 && studiedDays.has(localDayKey(cursor))) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return streak;
 }
 
 function recordStudyRound(summary) {
@@ -4626,20 +4282,7 @@ function speakCurrentWord() {
 }
 
 function normalizeDictationAnswer(value) {
-  const normalized = String(value || "").normalize("NFKC").trim();
-  if (state.quizLanguage === "english") return normalized.toLowerCase().replace(/\s+/g, " ");
-  return normalized.replace(/\s+/g, "");
-}
-
-function hasJapaneseKanji(value) {
-  return /[\u3400-\u9fff々〆ヶ]/u.test(String(value || ""));
-}
-
-function normalizeKana(value) {
-  return [...normalizeJapaneseReading(value)].map((character) => {
-    const code = character.charCodeAt(0);
-    return code >= 0x30a1 && code <= 0x30f6 ? String.fromCharCode(code - 0x60) : character;
-  }).join("");
+  return normalizeDictationAnswerModel(value, state.quizLanguage);
 }
 
 function rememberJapaneseVocabularyData(readings, writtenForms = {}, persist = true) {
@@ -4665,122 +4308,70 @@ function rememberJapaneseReadings(readings, persist = true) {
 }
 
 function japaneseReadingFor(word) {
-  const cleanWord = String(word || "").trim();
-  if (state.japaneseReadings[cleanWord]) return state.japaneseReadings[cleanWord];
-  return isJapaneseReading(cleanWord) ? normalizeJapaneseReading(cleanWord) : "";
+  return japaneseReadingForModel(word, state.japaneseReadings);
 }
 
 function japaneseWrittenFormFor(word) {
-  const cleanWord = String(word || "").trim();
-  return state.japaneseWrittenForms[cleanWord] || cleanWord;
+  return japaneseWrittenFormForModel(word, state.japaneseWrittenForms);
 }
 
 function japaneseDictationRequiresBoth(word) {
-  const written = japaneseWrittenFormFor(word);
-  const reading = japaneseReadingFor(word);
-  return Boolean(hasJapaneseKanji(written) && reading && normalizeKana(written) !== normalizeKana(reading));
+  return japaneseDictationRequiresBothModel(word, state.japaneseReadings, state.japaneseWrittenForms);
 }
 
 function formatJapaneseDictationAnswer(word) {
-  const written = japaneseWrittenFormFor(word);
-  const reading = japaneseReadingFor(word);
-  return japaneseDictationRequiresBoth(word) ? `${written} / ${reading}` : (written || reading || word);
+  return formatJapaneseDictationAnswerModel(word, state.japaneseReadings, state.japaneseWrittenForms);
+}
+
+function installLocalTestBindings() {
+  const isLoopback = ["127.0.0.1", "localhost", "::1"].includes(location.hostname);
+  if (!isLoopback || globalThis.__WYJ_TEST_MODE__ !== true) return;
+
+  const values = {
+    APP_VERSION: () => APP_VERSION,
+    QUESTION_TRANSITION_MS: () => QUESTION_TRANSITION_MS,
+    activeWrongRejudgeKey: () => activeWrongRejudgeKey,
+    adminFeedback: () => adminFeedback,
+    backendAvailable: () => backendAvailable,
+    currentPaymentOrder: () => currentPaymentOrder,
+    currentProject: () => currentProject,
+    learningSyncManager: () => learningSyncManager,
+    learningSyncStatus: () => learningSyncStatus,
+    learningSyncWrongRenderPending: () => learningSyncWrongRenderPending,
+    paymentQrObjectUrl: () => paymentQrObjectUrl,
+    pendingScreen: () => pendingScreen,
+    selectedMembershipGoal: () => selectedMembershipGoal,
+    selectedPaymentMethod: () => selectedPaymentMethod,
+    state: () => state,
+  };
+  const functions = {
+    activeWrongBook,
+    formatJapaneseDictationAnswer,
+    japaneseReadingFor,
+    japaneseWrittenFormFor,
+    queueStudyGoalForSync,
+    rememberJapaneseVocabularyData,
+    renderDashboard,
+    renderWrongBook,
+    shuffle,
+    studyGoalKey,
+    wrongRejudgeLogKey,
+  };
+
+  Object.entries(values).forEach(([name, read]) => {
+    Object.defineProperty(globalThis, name, { configurable: true, get: read });
+  });
+  Object.entries(functions).forEach(([name, value]) => {
+    Object.defineProperty(globalThis, name, { configurable: true, value });
+  });
 }
 
 function dictationEvaluation(word, answer, language = state.quizLanguage) {
-  const expectedWord = normalizeDictationAnswer(word);
-  const student = normalizeDictationAnswer(answer);
-  if (language !== "japanese") {
-    return {
-      correct: expectedWord === student,
-      expected: word,
-      guidance: "",
-    };
-  }
-
-  const written = japaneseWrittenFormFor(word);
-  const reading = japaneseReadingFor(word);
-  if (!reading || !written) {
-    return {
-      correct: false,
-      expected: word,
-      guidance: "未能取得该词的完整写法，请返回词表后重试",
-    };
-  }
-
-  const compact = student.replace(/[\/、，,；;：:|｜=＝·・]/g, "");
-  const normalizedCompact = normalizeKana(compact);
-  const normalizedWritten = normalizeKana(normalizeDictationAnswer(written));
-  const normalizedReading = normalizeKana(reading);
-  const requiresBoth = japaneseDictationRequiresBoth(word);
-  const correct = requiresBoth
-    ? normalizedCompact === `${normalizedWritten}${normalizedReading}`
-      || normalizedCompact === `${normalizedReading}${normalizedWritten}`
-    : [expectedWord, normalizedWritten, normalizedReading]
-      .map((item) => normalizeKana(item))
-      .includes(normalizedCompact);
-  const guidance = correct
-    ? ""
-    : requiresBoth
-      ? `请同时填写汉字“${written}”和假名“${reading}”`
-      : `正确写法是“${written || reading || word}”`;
-
-  return {
-    correct,
-    expected: formatJapaneseDictationAnswer(word),
-    guidance,
-  };
-}
-
-function normalizeMeaning(value) {
-  return String(value || "")
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(/\s+/g, "")
-    .replace(/[，。！？、；：,.!?;:（）()\[\]{}<>《》"“”‘’·•/\\|]/g, "");
-}
-
-function splitMeanings(value) {
-  return String(value || "")
-    .split(/[\/、，,；;：:|]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function semanticMeaningForms(value) {
-  const forms = new Set([normalizeMeaning(value)]);
-  let changed = true;
-  while (changed) {
-    changed = false;
-    [...forms].forEach((form) => {
-      const additions = [];
-      if (form.length > 1 && "的地得".includes(form[form.length - 1])) additions.push(form.slice(0, -1));
-      if (form.length >= 3 && form.startsWith("有")) additions.push(form.slice(1));
-      if (form.length >= 3 && form.endsWith("性")) additions.push(form.slice(0, -1));
-      additions.forEach((item) => {
-        if (item && !forms.has(item)) {
-          forms.add(item);
-          changed = true;
-        }
-      });
-    });
-  }
-  forms.delete("");
-  return forms;
-}
-
-function meaningBigrams(value) {
-  const normalized = normalizeMeaning(value);
-  if (normalized.length < 2) return normalized ? new Set([normalized]) : new Set();
-  return new Set(Array.from({ length: normalized.length - 1 }, (_, index) => normalized.slice(index, index + 2)));
-}
-
-function meaningSimilarity(left, right) {
-  const a = meaningBigrams(left);
-  const b = meaningBigrams(right);
-  if (!a.size || !b.size) return 0;
-  const intersection = [...a].filter((item) => b.has(item)).length;
-  return intersection / new Set([...a, ...b]).size;
+  return evaluateDictation(word, answer, {
+    language,
+    readings: state.japaneseReadings,
+    writtenForms: state.japaneseWrittenForms,
+  });
 }
 
 function reviewEntryForWord(word) {
@@ -4809,106 +4400,22 @@ function hasUsableMeaning(info) {
 }
 
 function localReviewResult(word, answer, info, options = {}) {
-  const gloss = limitText(info && info.correct_answer) || "（未给出释义）";
-  const accepted = sanitizeAccepted(info && info.accepted);
-  const language = normalizeQuizLanguage(options.language) || state.quizLanguage;
-  const gradingMode = ["strict", "normal", "lenient"].includes(options.gradingMode)
-    ? options.gradingMode
-    : state.gradingMode;
-  const pool = [...new Set([gloss, ...accepted].flatMap(splitMeanings))];
-  const student = normalizeMeaning(answer);
-  let correct = false;
-
-  if (student) {
-    const studentForms = semanticMeaningForms(student);
-    correct = pool.some((item) => {
-      const expected = normalizeMeaning(item);
-      if (!expected) return false;
-      const expectedForms = semanticMeaningForms(expected);
-      if ([...studentForms].some((form) => expectedForms.has(form))) return true;
-      if (gradingMode === "strict") return false;
-      if (student.length >= 3 && expected.length >= 3 && (student.includes(expected) || expected.includes(student))) return true;
-      return Math.min(student.length, expected.length) >= 3 && meaningSimilarity(student, expected) >= 0.67;
-    });
-  }
-
-  return {
-    correct,
-    gloss,
-    accepted,
-    rubric: { language: quizLanguageLabel(language), gloss, accepted, notes: "本地错题复习" },
-    kind: "local-review",
-    ai_review: false,
-    grading_mode: gradingMode,
-    word,
-    answer,
-  };
+  return evaluateLocalMeaning(word, answer, info, {
+    language: normalizeQuizLanguage(options.language) || state.quizLanguage,
+    gradingMode: ["strict", "normal", "lenient"].includes(options.gradingMode)
+      ? options.gradingMode
+      : state.gradingMode,
+  });
 }
 
 function parseWordText(value, captureReadings = true) {
-  const words = [];
-  const readings = {};
-  const writtenForms = {};
-  String(value || "").split(/\r?\n/).forEach((rawLine) => {
-    const line = rawLine.trim();
-    if (!line) return;
-    const pair = state.quizLanguage === "japanese"
-      ? line.match(/^(.+?)\s*[|｜=＝]\s*([^|｜=＝]+)$/u)
-      : null;
-    if (pair) {
-      const word = pair[1].trim();
-      const reading = normalizeJapaneseReading(pair[2]);
-      if (wordMatchesLanguage(word, "japanese") && isJapaneseReading(reading)) {
-        words.push(word);
-        readings[word] = reading;
-        writtenForms[word] = word;
-        return;
-      }
-    }
-    line.split(/[\s,，、;；]+/).map((word) => word.trim()).filter(Boolean).forEach((word) => words.push(word));
-  });
-  if (captureReadings) rememberJapaneseVocabularyData(readings, writtenForms);
-  return words;
+  const parsed = parseWordTextModel(value, state.quizLanguage);
+  if (captureReadings) rememberJapaneseVocabularyData(parsed.readings, parsed.writtenForms);
+  return parsed.words;
 }
 
 function parseWords() {
   return parseWordText($("wordInput").value);
-}
-
-function wordIdentity(word, language = state.quizLanguage) {
-  const normalized = String(word || "").normalize("NFKC").trim();
-  return language === "english" ? normalized.toLocaleLowerCase("en") : normalized;
-}
-
-function analyzeWordList(words, language = state.quizLanguage) {
-  const valid = [];
-  const invalid = [];
-  const seen = new Set();
-  let duplicates = 0;
-  (Array.isArray(words) ? words : []).forEach((item) => {
-    const word = limitText(item, 240);
-    if (!word) return;
-    if (language && !wordMatchesLanguage(word, language)) {
-      invalid.push(word);
-      return;
-    }
-    const key = wordIdentity(word, language);
-    if (seen.has(key)) {
-      duplicates += 1;
-      return;
-    }
-    seen.add(key);
-    valid.push(word);
-  });
-  return { valid, invalid, duplicates };
-}
-
-function formatWordInputEntry(word) {
-  return word;
-}
-
-function formatWordsForInput(words) {
-  return words.map(formatWordInputEntry).join("\n");
 }
 
 function cancelVocabularySearch() {
@@ -5276,25 +4783,14 @@ function showWord(options = {}) {
 }
 
 function updateWrongEntry(book, word, answer, gloss, accepted, context = {}) {
-  const current = book[word] || { wrong_count: 0 };
-  delete book[word];
-  book[word] = {
-    wrong_count: (current.wrong_count || 0) + 1,
-    last_answer: answer,
-    original_answer: answer,
-    correct_answer: gloss,
-    accepted: accepted || [],
+  return updateWrongEntryModel(book, word, answer, gloss, accepted, {
+    ...context,
     skipped: answer === SKIPPED_ANSWER,
-    last_time: new Date().toLocaleString(),
-    question_type: context.questionType === "dictation" ? "dictation" : "meaning",
     language: normalizeQuizLanguage(context.language) || state.quizLanguage,
-    grading_mode: ["strict", "normal", "lenient"].includes(context.gradingMode) ? context.gradingMode : state.gradingMode,
-    round_id: limitText(context.roundId, 100),
-    rubric: sanitizeStoredRubric(context.rubric, gloss, accepted),
-    rejudged_at: "",
-    rejudge_result: "",
-    rejudge_reason: "",
-  };
+    gradingMode: ["strict", "normal", "lenient"].includes(context.gradingMode)
+      ? context.gradingMode
+      : state.gradingMode,
+  });
 }
 
 function markWrong(word, answer, gloss, accepted, rubric = null) {
@@ -6410,6 +5906,7 @@ async function navigateFromSiteNav(destination) {
 }
 
 async function boot() {
+  installLocalTestBindings();
   if (state.account?.id) {
     loadAccountLocalState();
     startLearningDataSync();
