@@ -106,10 +106,12 @@ jobs:
           {
             node --check app.js
             node --check tools.js
+            node --check workflows.js
             node --check learning-sync.js
             node --check sw.js
             node --check "functions/api/[[path]].js"
             node --check local-backend/test_tools_js.mjs
+            node --check local-backend/test_workflows_js.mjs
             node --check local-backend/test_learning_sync_js.mjs
             node --check local-backend/test_proxy_js.mjs
             node --check local-backend/test_app_browser.mjs
@@ -120,6 +122,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_tools_js.mjs 2>&1 | tee artifacts/javascript-tools.log
+
+      - name: Test configurable tool workflows
+        run: |
+          set -euo pipefail
+          node local-backend/test_workflows_js.mjs 2>&1 | tee artifacts/javascript-workflows.log
 
       - name: Test learning data sync client
         run: |
@@ -349,5 +356,6 @@ jobs:
             .tool-e2e/*.png
             .tool-e2e/qr-*.gif
             .tool-e2e/tool-artifacts-*.json
+            .tool-e2e/downloads-*/**
           if-no-files-found: warn
           retention-days: 7

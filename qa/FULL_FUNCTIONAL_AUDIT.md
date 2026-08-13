@@ -21,7 +21,7 @@
 | 公开 | `/`, `/login`, `/register`, `/trial`, `/changelog` | 无需登录；试用有明确限制 | 导航、登录注册、更新提示、五种本地试用、刷新恢复 |
 | 个人 | `/select`, `/account`, `/recharge` | 登录用户 | 控制台摘要、账户改密、六种套餐、微信/支付宝订单恢复 |
 | 学习 | `/language`, `/language/english`, `/language/japanese` | 登录用户与对应权益 | 词表、测试、判卷、跳过、错题、重新判定、历史、PDF、统计、成就、同步 |
-| 工具 | `/tools`, `/tools/:tool_id` | 服务端 `tools_access` | 搜索、分类、收藏、最近、固定、配置及 103 个工具 |
+| 工具 | `/tools`, `/tools/:tool_id`, `/tools/workflows` | 服务端 `tools_access` | 搜索、分类、收藏、最近、固定、配置、103 个工具及可配置工作流 |
 | 管理 | `/admin` | 服务端管理员校验 | 用户、会员、订单、登录记录、反馈、投票、审计日志 |
 | 分享 | `/share/text/:id`, `/share/file/:id`, `/share/clipboard/:code`, `/share/qr/:id`, `/share/room/:id` | 不可预测令牌或连接码 | 密码、次数、销毁、过期、下载、房间同步 |
 
@@ -81,13 +81,24 @@
 
 二维码拆分为文本、URL、Wi-Fi（WPA/WEP/无密码、可见/隐藏网络）、联系人、动态链接；临时内容分别验证无密码/有密码、保留/读取后销毁、次数限制、过期和公开分享页。留言房间验证创建、打开、发送、轮询去重、密码、上限和清空。
 
+## 工具工作流
+
+- 显式能力目录：`text-encoding`、`remove-empty-lines`、`dedupe-lines`、`sort-lines`、`csv-json`、`json-csv`、`text-split`、`image-resize`、`image-format`、`text-watermark`、`exif-remove`、`files-zip`。
+- 模板：`image-publish`、`image-batch`、`text-clean`、`csv-roundtrip`。
+- 编辑器：新建、命名、添加、复制、删除、启用/停用、按钮排序、拖拽排序、复制工作流、导入/导出 JSON、本地与云端保存。
+- 运行器：单一运行锁、等待/运行/成功/跳过/失败/取消状态、每步耗时、最终产物、`AbortController` 取消、批量逐项失败隔离。
+- 权限：运行检查 `tools_access`，批量检查 `tools_batch_access`，云端保存检查 `save_tool_config`；离线仅接受同账号 24 小时内的有效工具权益缓存。
+- 限制：Schema v1、48 KB JSON、20 步、50 个本地/云端工作流、50 个文件、20 张批量图片、50 MB 总输入；未知字段、重复 ID、类型断链和伪造权益一律拒绝。
+- 真实产物：文本与 CSV 必须逐值一致；WebP 必须重开验证尺寸、格式、水印像素和无 EXIF；批量 ZIP 必须重开验证成员数、唯一文件名和每张图片。
+
 ## 自动覆盖门禁
 
-1. `functional-audit.json` 的工具 ID 必须与 `tools.js` 完全相同，不能多、不能少。
+1. `functional-audit.json` 的路由必须与 `app.js` 的源路由清单双向完全一致，工具 ID 必须与 `tools.js` 完全相同。
 2. 21 条应用浏览器流程名称必须与 `test_app_browser.mjs` 完全相同。
 3. 工具内部所有选项必须在 `test_tools_browser.mjs` 运行时登记并与清单完全相同。
 4. 核心路由、六种套餐、两种支付、反馈类型/状态和学习模式必须仍存在于源码。
-5. 任一目录项或模式新增却未补 QA 清单和测试时，CI 失败。
+5. 12 个工作流能力、4 个模板、7 种类型和 27 个工作流浏览器行为必须与 `workflows.js` 及真实浏览器标记一致。
+6. 任一路由、目录项、模式或工作流能力新增却未补 QA 清单和测试时，CI 失败。
 
 ## 人工视觉检查
 

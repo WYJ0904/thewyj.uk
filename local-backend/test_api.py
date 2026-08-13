@@ -63,6 +63,30 @@ class AccountApiTests(unittest.TestCase):
         server.FEEDBACK_REQUESTS.clear()
         server.LEARNING_SYNC_REQUESTS.clear()
 
+    @staticmethod
+    def workflow_config(name="API 文本工作流"):
+        return {
+            "schema_version": 1,
+            "id": "wf_apitest0001",
+            "name": name,
+            "created_at": "2026-08-11T00:00:00Z",
+            "updated_at": "2026-08-11T00:00:00Z",
+            "steps": [
+                {
+                    "id": "step_decode0001",
+                    "tool_id": "text-encoding",
+                    "enabled": True,
+                    "config": {"encoding": "utf-8"},
+                },
+                {
+                    "id": "step_dedupe0001",
+                    "tool_id": "dedupe-lines",
+                    "enabled": True,
+                    "config": {},
+                },
+            ],
+        }
+
     @classmethod
     def request(cls, method, path, payload=None, session="", extra_headers=None):
         headers = {"Content-Type": "application/json"}
@@ -1130,6 +1154,75 @@ class AccountApiTests(unittest.TestCase):
         self.assertNotIn("tools_access", me["account"]["entitlements"])
         status, _ = self.request("GET", "/api/tools/access", session=session)
         self.assertEqual(status, 403)
+
+    def test_workflow_cloud_configs_require_server_entitlements_and_valid_schema(self):
+        _, account, session = self.new_user()
+        workflow = self.workflow_config()
+        request = {"tool_id": "workflow", "name": workflow["name"], "config": workflow}
+
+        status, denied = self.request("POST", "/api/tools/config/save", request, session)
+        self.assertEqual(status, 403, denied)
+
+        status, granted = self.request(
+            "POST",
+            "/api/admin/membership/manage",
+            {"user_id": account["id"], "action": "grant", "plan_code": "tools_monthly"},
+            self.admin_session,
+        )
+        self.assertEqual(status, 200, granted)
+        status, saved = self.request("POST", "/api/tools/config/save", request, session)
+        self.assertEqual(status, 200, saved)
+        config_id = saved["id"]
+
+        status, preferences = self.request("GET", "/api/tools/preferences", session=session)
+        self.assertEqual(status, 200, preferences)
+        stored = next(item for item in preferences["configs"] if item["id"] == config_id)
+        self.assertEqual(stored["tool_id"], "workflow")
+        self.assertEqual(stored["config"], workflow)
+
+        invalid = self.workflow_config("伪造权限工作流")
+        invalid["entitlements"] = ["tools_batch_access"]
+        status, rejected = self.request(
+            "POST",
+            "/api/tools/config/save",
+            {"tool_id": "workflow", "name": invalid["name"], "config": invalid},
+            session,
+        )
+        self.assertEqual(status, 400, rejected)
+        self.assertEqual(rejected["code"], "workflow_fields_invalid")
+
+        status, override = self.request(
+            "POST",
+            "/api/admin/entitlement",
+            {
+                "user_id": account["id"],
+                "entitlement": "save_tool_config",
+                "allowed": False,
+                "note": "workflow permission regression",
+            },
+            self.admin_session,
+        )
+        self.assertEqual(status, 200, override)
+        status, denied = self.request("POST", "/api/tools/config/save", request, session)
+        self.assertEqual(status, 403, denied)
+        status, denied = self.request(
+            "POST", "/api/tools/config/delete", {"id": config_id}, session
+        )
+        self.assertEqual(status, 403, denied)
+
+        status, _ = self.request(
+            "POST",
+            "/api/admin/entitlement",
+            {"user_id": account["id"], "entitlement": "save_tool_config", "allowed": None},
+            self.admin_session,
+        )
+        self.assertEqual(status, 200)
+        status, deleted = self.request(
+            "POST", "/api/tools/config/delete", {"id": config_id}, session
+        )
+        self.assertEqual(status, 200, deleted)
+        status, preferences = self.request("GET", "/api/tools/preferences", session=session)
+        self.assertFalse(any(item["id"] == config_id for item in preferences["configs"]))
 
     def test_new_twenty_cny_monthly_plans_are_enforced_by_api(self):
         _, account, session = self.new_user()

@@ -9,7 +9,11 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const AUDIT_MATRIX = JSON.parse(fs.readFileSync(path.join(ROOT, "qa", "functional-audit.json"), "utf8"));
 const REQUIRED_TOOL_MODES = new Set(Object.entries(AUDIT_MATRIX.tool_modes)
   .flatMap(([group, values]) => values.map((value) => `${group}.${value}`)));
+const REQUIRED_WORKFLOW_FLOWS = new Set(AUDIT_MATRIX.workflow_flows || []);
+const REQUIRED_WORKFLOW_CAPABILITIES = new Set(AUDIT_MATRIX.workflow_capabilities?.registry || []);
 const coveredToolModes = new Set();
+const coveredWorkflowFlows = new Set();
+const coveredWorkflowCapabilities = new Set();
 const BASE_URL = process.env.WYJ_TEST_BASE || "http://127.0.0.1:8892";
 const CDP_URL = process.env.WYJ_CDP_URL || "http://127.0.0.1:9223";
 const ADMIN_SECRET = process.env.WYJ_TEST_ADMIN_SECRET || "";
@@ -26,6 +30,7 @@ const artifactManifest = {
   images: {},
   qrs: [],
   temporary_files: [],
+  workflows: {},
 };
 
 fs.mkdirSync(DOWNLOAD_ROOT, { recursive: true });
@@ -33,6 +38,11 @@ fs.mkdirSync(DOWNLOAD_ROOT, { recursive: true });
 function coverMode(mode) {
   assert.ok(REQUIRED_TOOL_MODES.has(mode), `unknown QA mode: ${mode}`);
   coveredToolModes.add(mode);
+}
+
+function coverWorkflow(flow) {
+  assert.ok(REQUIRED_WORKFLOW_FLOWS.has(flow), `unknown QA workflow flow: ${flow}`);
+  coveredWorkflowFlows.add(flow);
 }
 
 function fileSha256(filePath) {
@@ -43,6 +53,7 @@ function prepareFixtures() {
   const write = (name, content) => fs.writeFileSync(path.join(TEST_ROOT, name), content);
   write("abc.txt", "abc");
   write("sample.txt", "first line\nsecond line\nthird line\n");
+  write("workflow-text.txt", "beta\n\nalpha\nbeta\n");
   write("sample2.txt", "fourth line\nfifth line\n");
   write("data.csv", "name,age\nAlice,18\nBob,20\n");
   write("data2.csv", "name,age\nCarol,22\n");
@@ -55,6 +66,10 @@ function prepareFixtures() {
   write("twenty-megabytes.txt", Buffer.alloc(20 * 1024 * 1024, 0x41));
   fs.copyFileSync(path.join(ROOT, "icon-192.png"), path.join(TEST_ROOT, "sample.png"));
   fs.copyFileSync(path.join(ROOT, "icon-512.png"), path.join(TEST_ROOT, "sample2.png"));
+  write("workflow-broken.png", "this is not an image");
+  for (let index = 0; index < 20; index += 1) {
+    fs.copyFileSync(path.join(ROOT, "icon-512.png"), path.join(TEST_ROOT, `workflow-cancel-${String(index + 1).padStart(2, "0")}.png`));
+  }
   write("sample.jpg", Buffer.from(
     "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAX/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAEf/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABBQJ//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPwF//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPwF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQAGPwJ//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPyF//9oADAMBAAIAAwAAABD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/EB//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAECAQE/EB//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/EB//2Q==",
     "base64",
@@ -67,6 +82,7 @@ const sample = (name) => path.join(TEST_ROOT, name);
 const samples = {
   abc: sample("abc.txt"),
   text: sample("sample.txt"),
+  workflowText: sample("workflow-text.txt"),
   text2: sample("sample2.txt"),
   csv: sample("data.csv"),
   csv2: sample("data2.csv"),
@@ -78,12 +94,15 @@ const samples = {
   shiftJis: sample("sample-shift-jis.txt"),
   png: sample("sample.png"),
   png2: sample("sample2.png"),
+  brokenPng: sample("workflow-broken.png"),
+  cancelImages: Array.from({ length: 20 }, (_, index) => sample(`workflow-cancel-${String(index + 1).padStart(2, "0")}.png`)),
   jpeg: sample("sample.jpg"),
   large: sample("twenty-megabytes.txt"),
 };
 
 for (const [name, filePath] of Object.entries(samples)) {
-  assert.ok(fs.existsSync(filePath), `missing ${name} sample: ${filePath}`);
+  const paths = Array.isArray(filePath) ? filePath : [filePath];
+  assert.ok(paths.every((value) => fs.existsSync(value)), `missing ${name} sample: ${paths.join(", ")}`);
 }
 
 async function api(pathname, payload = null, token = "", expected = [200]) {
@@ -196,7 +215,18 @@ async function main() {
   const runtimeErrors = [];
   client.listeners.add((message) => {
     if (message.sessionId && message.sessionId !== browser.sessionId) return;
-    if (message.method === "Runtime.exceptionThrown") runtimeErrors.push(message.params?.exceptionDetails?.text || "runtime exception");
+    if (message.method === "Runtime.exceptionThrown") {
+      const details = message.params?.exceptionDetails || {};
+      const frame = details.stackTrace?.callFrames?.[0];
+      const description = details.exception?.description
+        || (details.exception?.value === undefined ? "" : String(details.exception.value))
+        || details.text
+        || "runtime exception";
+      const location = frame
+        ? `${frame.url || details.url || "<anonymous>"}:${frame.lineNumber + 1}:${frame.columnNumber + 1}`
+        : `${details.url || "<anonymous>"}:${Number(details.lineNumber || 0) + 1}:${Number(details.columnNumber || 0) + 1}`;
+      runtimeErrors.push(`${description} @ ${location}`);
+    }
     if (message.method === "Log.entryAdded" && ["error", "warning"].includes(message.params?.entry?.level)) {
       runtimeErrors.push(message.params.entry.text);
     }
@@ -365,10 +395,21 @@ async function main() {
     const before = downloadSnapshot();
     await click(selector);
     const deadline = Date.now() + timeout;
+    let stableChanged = null;
     while (Date.now() < deadline) {
       const after = downloadSnapshot();
-      const completed = [...after].find(([name, signature]) => before.get(name) !== signature)?.[0];
-      if (completed) return path.join(DOWNLOAD_ROOT, completed);
+      const created = [...after]
+        .filter(([name]) => !before.has(name))
+        .sort((left, right) => fs.statSync(path.join(DOWNLOAD_ROOT, right[0])).mtimeMs - fs.statSync(path.join(DOWNLOAD_ROOT, left[0])).mtimeMs)[0];
+      if (created) return path.join(DOWNLOAD_ROOT, created[0]);
+      const changed = [...after].find(([name, signature]) => before.get(name) !== signature);
+      if (changed) {
+        if (stableChanged?.name === changed[0] && stableChanged.signature === changed[1]) {
+          if (Date.now() - stableChanged.since >= 750) return path.join(DOWNLOAD_ROOT, changed[0]);
+        } else {
+          stableChanged = { name: changed[0], signature: changed[1], since: Date.now() };
+        }
+      }
       await delay(100);
     }
     throw new Error(`download did not finish for ${selector}`);
@@ -396,6 +437,59 @@ async function main() {
     fs.writeFileSync(filePath, Buffer.from(match[2], "base64"));
     artifactManifest.qrs.push({ label, kind, path: filePath, expected_payload: captured.payload });
     return captured.payload;
+  };
+
+  const selectWorkflowTemplate = async (templateId) => {
+    await click(`[data-workflow-template="${templateId}"]`);
+    await waitFor(
+      `window.WYJWorkflows.test.selectedWorkflow()?.name === window.WYJWorkflows.templates.find(item => item.id === ${JSON.stringify(templateId)})?.name`,
+      5_000,
+      `workflow template ${templateId}`,
+    );
+  };
+
+  const setWorkflowStepConfig = async (toolId, key, value, occurrence = 0) => evaluate(`(() => {
+    const workflow = window.WYJWorkflows.test.selectedWorkflow();
+    const step = workflow.steps.filter(item => item.tool_id === ${JSON.stringify(toolId)})[${occurrence}];
+    if (!step) throw new Error('missing workflow step ${toolId}');
+    const field = document.querySelector('[data-step-id="' + step.id + '"] [data-step-config="${key}"]');
+    if (!field) throw new Error('missing workflow config ${toolId}.${key}');
+    field.value = ${JSON.stringify(String(value))};
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+
+  const workflowState = () => evaluate(`(() => ({
+    selected: window.WYJWorkflows.test.selectedWorkflow(),
+    workflows: window.WYJWorkflows.test.workflows(),
+    running: window.WYJWorkflows.test.isRunning(),
+    runState: document.querySelector('#workflowRunState')?.textContent || '',
+    output: document.querySelector('#workflowResultText')?.value || '',
+    statuses: [...document.querySelectorAll('[data-workflow-step-status]')].map(item => ({ id: item.dataset.workflowStepStatus, status: item.dataset.status })),
+    items: [...document.querySelectorAll('#workflowItemResults > p')].map(item => ({ status: item.dataset.status, text: item.textContent.trim() })),
+  }))()`);
+
+  const runWorkflow = async (timeout = 30_000) => {
+    await evaluate(`(() => {
+      const state = document.querySelector('#workflowRunState');
+      state.textContent = '准备运行';
+      state.dataset.status = 'waiting';
+      return true;
+    })()`);
+    await click("#runWorkflowBtn");
+    await waitFor(
+      `['已完成', '失败', '已取消'].includes(document.querySelector('#workflowRunState')?.textContent || '') && !window.WYJWorkflows.test.isRunning()`,
+      timeout,
+      "workflow completion",
+    );
+    const state = await workflowState();
+    if (state.runState === "已完成") {
+      const statusById = new Map(state.statuses.map((item) => [item.id, item.status]));
+      state.selected.steps.forEach((step) => {
+        if (statusById.get(step.id) === "success") coveredWorkflowCapabilities.add(step.tool_id);
+      });
+    }
+    return state;
   };
 
   const results = [];
@@ -876,6 +970,226 @@ async function main() {
 
     await click("#closeToolWorkbenchBtn");
     await waitFor("!document.querySelector('#toolsDashboard')?.classList.contains('hidden')", 5_000, "tool dashboard");
+    await click("#openWorkflowBtn");
+    await waitFor("!document.querySelector('#workflowWorkspace')?.classList.contains('hidden') && document.querySelectorAll('[data-workflow-template]').length === 4", 8_000, "workflow workspace");
+    coverWorkflow("open-workspace");
+
+    await click("#createWorkflowBtn");
+    await waitFor("window.WYJWorkflows.test.selectedWorkflow()?.steps.length === 0", 5_000, "blank workflow");
+    coverWorkflow("create-workflow");
+    await setFields({ "#workflowToolSelect": "remove-empty-lines" });
+    await click("#addWorkflowStepBtn");
+    await waitFor("window.WYJWorkflows.test.selectedWorkflow()?.steps.length === 1", 5_000, "add workflow step");
+    coverWorkflow("add-step");
+    await click("#workflowStepList > li:first-child [data-step-duplicate]");
+    await waitFor("window.WYJWorkflows.test.selectedWorkflow()?.steps.length === 2", 5_000, "duplicate workflow step");
+    coverWorkflow("duplicate-step");
+    await click("#workflowStepList > li:nth-child(2) [data-step-enabled]");
+    assert.equal((await workflowState()).selected.steps[1].enabled, false);
+    coverWorkflow("enable-disable-step");
+
+    const beforeDragIds = (await workflowState()).selected.steps.map((step) => step.id);
+    await evaluate(`(() => {
+      const source = document.querySelector('#workflowStepList > li:first-child');
+      const target = document.querySelector('#workflowStepList > li:nth-child(2)');
+      source.dispatchEvent(new Event('dragstart', { bubbles: true }));
+      target.dispatchEvent(new Event('drop', { bubbles: true, cancelable: true }));
+      source.dispatchEvent(new Event('dragend', { bubbles: true }));
+      return true;
+    })()`);
+    assert.deepEqual((await workflowState()).selected.steps.map((step) => step.id), [...beforeDragIds].reverse());
+    coverWorkflow("reorder-drag");
+    await click("#workflowStepList > li:nth-child(2) [data-step-up]");
+    assert.deepEqual((await workflowState()).selected.steps.map((step) => step.id), beforeDragIds);
+    coverWorkflow("reorder-buttons");
+    await click("#workflowStepList > li:nth-child(2) [data-step-delete]");
+    await waitFor("window.WYJWorkflows.test.selectedWorkflow()?.steps.length === 1", 5_000, "delete workflow step");
+    coverWorkflow("delete-step");
+    const workflowCountBeforeDelete = (await workflowState()).workflows.length;
+    await click("#deleteWorkflowBtn");
+    await waitFor(`window.WYJWorkflows.test.workflows().length === ${workflowCountBeforeDelete - 1}`, 5_000, "delete workflow");
+    coverWorkflow("delete-workflow");
+
+    await selectWorkflowTemplate("text-clean");
+    coverWorkflow("template-text-clean");
+    await setFiles("#workflowFileInput", [samples.workflowText]);
+    let workflowResult = await runWorkflow();
+    assert.equal(workflowResult.runState, "已完成");
+    assert.equal(workflowResult.output, "alpha\nbeta");
+    assert.deepEqual(workflowResult.statuses.map((item) => item.status), ["success", "success", "success", "success"]);
+    coverWorkflow("run-statuses");
+    const textWorkflowDownload = preserveDownload(await verifyDownload("#downloadWorkflowResultBtn"), "workflow-text-clean");
+    artifactManifest.workflows.text_clean = { path: textWorkflowDownload, expected_text: "alpha\nbeta" };
+    coverWorkflow("download-result");
+
+    await setFields({ "#workflowNameInput": "Matrix 文本工作流" });
+    coverWorkflow("rename-workflow");
+    await click("#saveWorkflowBtn");
+    await waitFor("document.querySelector('#workflowSaveState')?.textContent === '已保存到本机并同步到云端'", 10_000, "workflow cloud save");
+    const cloudPreferences = await api("/api/tools/preferences", null, member.session);
+    const cloudWorkflow = cloudPreferences.configs.find((item) => item.tool_id === "workflow" && item.name === "Matrix 文本工作流");
+    assert.ok(cloudWorkflow, "saved workflow is absent from cloud preferences");
+    assert.equal(cloudWorkflow.config.name, "Matrix 文本工作流");
+    coverWorkflow("save-cloud");
+
+    const workflowExport = preserveDownload(await verifyDownload("#exportWorkflowBtn"), "workflow-export");
+    const exportedWorkflow = JSON.parse(fs.readFileSync(workflowExport, "utf8"));
+    assert.equal(exportedWorkflow.schema_version, 1);
+    assert.equal(exportedWorkflow.name, "Matrix 文本工作流");
+    const workflowCountBeforeImport = (await workflowState()).workflows.length;
+    await setFiles("#workflowImportInput", [workflowExport]);
+    await waitFor(`window.WYJWorkflows.test.workflows().length === ${workflowCountBeforeImport + 1}`, 5_000, "workflow import");
+    assert.match((await workflowState()).selected.name, /导入副本/);
+    coverWorkflow("import-export");
+    const workflowCountBeforeDuplicate = (await workflowState()).workflows.length;
+    await click("#duplicateWorkflowBtn");
+    await waitFor(`window.WYJWorkflows.test.workflows().length === ${workflowCountBeforeDuplicate + 1}`, 5_000, "duplicate workflow");
+    const duplicatedWorkflow = (await workflowState()).selected;
+    assert.match(duplicatedWorkflow.name, /副本/);
+    assert.notEqual(duplicatedWorkflow.id, exportedWorkflow.id);
+    assert.equal(new Set(duplicatedWorkflow.steps.map((step) => step.id)).size, duplicatedWorkflow.steps.length);
+    coverWorkflow("duplicate-workflow");
+
+    await selectWorkflowTemplate("csv-roundtrip");
+    coverWorkflow("template-csv-roundtrip");
+    await setFiles("#workflowFileInput", [samples.csv]);
+    workflowResult = await runWorkflow();
+    assert.equal(workflowResult.runState, "已完成");
+    assert.equal(workflowResult.output, "name,age\nAlice,18\nBob,20");
+    const csvWorkflowDownload = preserveDownload(await verifyDownload("#downloadWorkflowResultBtn"), "workflow-csv-roundtrip");
+    artifactManifest.workflows.csv_roundtrip = {
+      path: csvWorkflowDownload,
+      expected_rows: [["name", "age"], ["Alice", "18"], ["Bob", "20"]],
+    };
+
+    await click("#createWorkflowBtn");
+    await setFields({ "#workflowToolSelect": "text-encoding" });
+    await click("#addWorkflowStepBtn");
+    await setFields({ "#workflowToolSelect": "text-split" });
+    await click("#addWorkflowStepBtn");
+    await setWorkflowStepConfig("text-split", "lines", 2);
+    await setFiles("#workflowFileInput", [samples.text]);
+    workflowResult = await runWorkflow();
+    assert.equal(workflowResult.runState, "已完成");
+    const splitWorkflowDownload = preserveDownload(await verifyDownload("#downloadWorkflowResultBtn"), "workflow-text-split");
+    artifactManifest.workflows.text_split = {
+      path: splitWorkflowDownload,
+      expected_members: {
+        "part-001.txt": "first line\nsecond line",
+        "part-002.txt": "third line",
+      },
+    };
+
+    await selectWorkflowTemplate("image-publish");
+    coverWorkflow("template-image-publish");
+    await setWorkflowStepConfig("image-resize", "width", 96);
+    await setWorkflowStepConfig("image-resize", "height", 64);
+    await setWorkflowStepConfig("image-format", "format", "image/webp");
+    await setWorkflowStepConfig("image-format", "quality", 0.9);
+    await setWorkflowStepConfig("text-watermark", "text", "QA");
+    await setWorkflowStepConfig("text-watermark", "color", "#ff0000");
+    coverWorkflow("configure-steps");
+    await setFiles("#workflowFileInput", [samples.png]);
+    workflowResult = await runWorkflow(60_000);
+    assert.equal(workflowResult.runState, "已完成");
+    assert.equal(workflowResult.statuses.filter((item) => item.status === "success").length, 4);
+    assert.equal(await evaluate("document.querySelectorAll('#workflowResultPreview img').length"), 1);
+    const publishDownload = preserveDownload(await verifyDownload("#downloadWorkflowResultBtn"), "workflow-image-publish");
+    artifactManifest.workflows.image_publish = {
+      path: publishDownload,
+      format: "WEBP",
+      size: [96, 64],
+      watermark_color: "#ff0000",
+    };
+
+    await selectWorkflowTemplate("image-batch");
+    coverWorkflow("template-image-batch");
+    await setWorkflowStepConfig("image-resize", "width", 64);
+    await setWorkflowStepConfig("image-resize", "height", 64);
+    await setWorkflowStepConfig("image-format", "format", "image/webp");
+    await setWorkflowStepConfig("image-format", "quality", 0.9);
+    await setFields({ "#workflowBatchToggle": true });
+    await setFiles("#workflowFileInput", [samples.png, samples.png2]);
+    workflowResult = await runWorkflow(120_000);
+    assert.equal(workflowResult.runState, "已完成");
+    assert.equal(workflowResult.items.length, 2);
+    assert.ok(workflowResult.items.every((item) => item.status === "success"));
+    const batchDownload = preserveDownload(await verifyDownload("#downloadWorkflowResultBtn"), "workflow-image-batch");
+    artifactManifest.workflows.image_batch = {
+      path: batchDownload,
+      expected_count: 2,
+      format: "WEBP",
+      size: [64, 64],
+    };
+    coverWorkflow("batch-run");
+
+    await setFiles("#workflowFileInput", [samples.png, samples.brokenPng]);
+    workflowResult = await runWorkflow(120_000);
+    assert.equal(workflowResult.runState, "已完成");
+    assert.equal(workflowResult.items.filter((item) => item.status === "success").length, 1);
+    assert.equal(workflowResult.items.filter((item) => item.status === "failed").length, 1);
+    const isolatedBatchDownload = preserveDownload(await verifyDownload("#downloadWorkflowResultBtn"), "workflow-image-batch-isolated");
+    artifactManifest.workflows.image_batch_isolated = {
+      path: isolatedBatchDownload,
+      expected_count: 1,
+      format: "WEBP",
+      size: [64, 64],
+    };
+    coverWorkflow("batch-isolated-failure");
+
+    await setFiles("#workflowFileInput", samples.cancelImages);
+    await click("#runWorkflowBtn");
+    await waitFor("window.WYJWorkflows.test.isRunning() && !document.querySelector('#cancelWorkflowBtn')?.disabled", 5_000, "cancellable workflow");
+    await click("#cancelWorkflowBtn");
+    await waitFor("document.querySelector('#workflowRunState')?.textContent === '已取消' && !window.WYJWorkflows.test.isRunning()", 20_000, "workflow cancellation");
+    assert.ok((await workflowState()).statuses.some((item) => item.status === "cancelled"));
+    coverWorkflow("cancel-run");
+
+    await selectWorkflowTemplate("text-clean");
+    await send("Network.enable");
+    await send("Network.emulateNetworkConditions", { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0, connectionType: "none" });
+    try {
+      await evaluate("window.WYJTools.show('/tools/workflows', { offline: true })");
+      await waitFor("document.querySelector('#workflowAccessBadge')?.textContent === '离线本地运行'", 5_000, "offline workflow entitlement cache");
+      await setFiles("#workflowFileInput", [samples.workflowText]);
+      workflowResult = await runWorkflow();
+      assert.equal(workflowResult.output, "alpha\nbeta");
+      coverWorkflow("offline-local-run");
+    } finally {
+      await send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1, connectionType: "wifi" });
+    }
+
+    for (const [width, height] of [[1366, 768], [1920, 1080], [390, 844]]) {
+      await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: width === 390 ? 2 : 1, mobile: width === 390 });
+      if (width === 390) await send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
+      const layout = await evaluate(`(() => {
+        const workspace = document.querySelector('#workflowWorkspace').getBoundingClientRect();
+        const runButton = document.querySelector('#runWorkflowBtn').getBoundingClientRect();
+        return {
+          viewport: innerWidth,
+          documentWidth: document.documentElement.scrollWidth,
+          bodyWidth: document.body.scrollWidth,
+          workspaceLeft: workspace.left,
+          workspaceRight: workspace.right,
+          runButtonHeight: runButton.height,
+        };
+      })()`);
+      assert.ok(layout.documentWidth <= layout.viewport + 1, JSON.stringify(layout));
+      assert.ok(layout.bodyWidth <= layout.viewport + 1, JSON.stringify(layout));
+      assert.ok(layout.workspaceLeft >= 0 && layout.workspaceRight <= layout.viewport + 1, JSON.stringify(layout));
+      assert.ok(layout.runButtonHeight >= 44, JSON.stringify(layout));
+      assert.deepEqual(await auditVisibleTextContrast("#workflowWorkspace"), [], `workflow ${width}px contrast violations`);
+      const screenshot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      fs.writeFileSync(path.join(TEST_ROOT, `workflow-${width}-${RUN_ID}.png`), Buffer.from(screenshot.data, "base64"));
+    }
+    coverWorkflow("responsive-1366");
+    coverWorkflow("responsive-1920");
+    coverWorkflow("responsive-390");
+    await send("Emulation.clearDeviceMetricsOverride");
+    await send("Emulation.setTouchEmulationEnabled", { enabled: false });
+    await click("#closeWorkflowBtn");
+    await waitFor("!document.querySelector('#toolsDashboard')?.classList.contains('hidden')", 5_000, "tool dashboard after workflows");
+
     await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
     await send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
     const mobileDashboard = await evaluate(`(() => {
@@ -941,6 +1255,16 @@ async function main() {
       [...REQUIRED_TOOL_MODES].sort(),
       `not every declared tool mode was exercised; failures=${JSON.stringify(failures)}`,
     );
+    assert.deepEqual(
+      [...coveredWorkflowFlows].sort(),
+      [...REQUIRED_WORKFLOW_FLOWS].sort(),
+      "not every declared workflow flow was exercised",
+    );
+    assert.deepEqual(
+      [...coveredWorkflowCapabilities].sort(),
+      [...REQUIRED_WORKFLOW_CAPABILITIES].sort(),
+      "not every registered workflow capability completed in the browser",
+    );
     const summary = Object.fromEntries(["text", "file", "image", "random", "temporary"].map((category) => {
       const categoryResults = results.filter((result) => result.category === category);
       return [category, { total: categoryResults.length, passed: categoryResults.filter((result) => result.status === "passed").length }];
@@ -954,6 +1278,8 @@ async function main() {
       runtimeErrors,
       downloads: fs.readdirSync(DOWNLOAD_ROOT).filter((name) => !name.endsWith(".crdownload")).length,
       auditedModes: coveredToolModes.size,
+      auditedWorkflowFlows: coveredWorkflowFlows.size,
+      auditedWorkflowCapabilities: coveredWorkflowCapabilities.size,
     }, null, 2));
 
     assert.deepEqual(failures, [], "tool matrix failures");

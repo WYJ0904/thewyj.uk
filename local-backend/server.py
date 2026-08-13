@@ -37,7 +37,7 @@ SETTINGS_PATH = DATA_DIR / "settings.json"
 ERROR_LOG_PATH = DATA_DIR / "server-error.log"
 USERS_DB_PATH = Path(os.environ.get("VOCAB_USERS_DB", str(DATA_DIR / "users.sqlite3")))
 USERS_TEXT_PATH = Path(os.environ.get("VOCAB_USERS_TXT", str(BASE_DIR / "users.txt")))
-APP_BUILD = "2026-08-11-functional-audit"
+APP_BUILD = "2026-08-11-tool-workflows"
 MAX_JSON_BYTES = int(os.environ.get("VOCAB_MAX_JSON_BYTES", str(512 * 1024)))
 DEFAULT_MAX_TEMP_FILE_JSON_BYTES = ((MAX_TEMP_FILE_BYTES + 2) // 3) * 4 + 128 * 1024
 MAX_TEMP_FILE_JSON_BYTES = int(os.environ.get("VOCAB_MAX_TEMP_FILE_JSON_BYTES", str(DEFAULT_MAX_TEMP_FILE_JSON_BYTES)))
@@ -2656,6 +2656,8 @@ class VocabHandler(BaseHTTPRequestHandler):
                     json_response(self, HTTPStatus.OK, {"ok": True, "id": config_id})
                     return
                 if request_path == "/api/tools/config/delete":
+                    if not ACCOUNT_STORE.has_entitlement(self.account_user, "save_tool_config"):
+                        raise AccountError("当前会员不包含配置保存", 403, "membership_required")
                     ACCOUNT_STORE.delete_tool_config(self.account_user, payload.get("id"))
                     json_response(self, HTTPStatus.OK, {"ok": True})
                     return
