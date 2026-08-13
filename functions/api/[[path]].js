@@ -15,13 +15,19 @@ const HOP_BY_HOP_HEADERS = new Set([
 const NO_BODY_METHODS = new Set(["GET", "HEAD"]);
 const RETRYABLE_STATUS = new Set([502, 503, 504, 530]);
 const MAX_PROXY_BODY_BYTES = 600 * 1024;
-const MAX_TEMP_FILE_PROXY_BODY_BYTES = 28 * 1024 * 1024;
+const MAX_TEMP_FILE_BYTES = 30 * 1024 * 1024;
+const MAX_TEMP_FILE_PROXY_BODY_BYTES = 42 * 1024 * 1024;
 const IDEMPOTENT_RETRY_BASE_DELAYS_MS = [0, 250, 900];
 const UPSTREAM_GET_TIMEOUT_MS = 10000;
 const UPSTREAM_DEFAULT_TIMEOUT_MS = 30000;
 const UPSTREAM_AI_TIMEOUT_MS = 125000;
 const UPSTREAM_VOCABULARY_TIMEOUT_MS = 245000;
 const UPSTREAM_UPLOAD_TIMEOUT_MS = 185000;
+const UPSTREAM_PREFLIGHT_TIMEOUT_MS = 4500;
+const TEMP_FILE_PRESELECT_PATHS = new Set([
+  "/api/temporary/file",
+  "/api/share/file/read",
+]);
 const CLIENT_CONTEXT_HEADERS = new Set([
   "x-wyj-proxy",
   "x-wyj-client-ip",
@@ -38,6 +44,29 @@ function json(data, status = 200) {
       "Cache-Control": "no-store",
     },
   });
+}
+
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[char]));
+}
+
+function downloadError(message, status = 400) {
+  return new Response(
+    `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>下载失败</title></head><body data-download-error="true"><p>${escapeHtml(message || "下载失败")}</p></body></html>`,
+    {
+      status,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    },
+  );
 }
 
 function normalizeBase(value) {
@@ -66,6 +95,14 @@ function targetUrlFor(request, base) {
   const target = new URL(base.toString());
   target.pathname = joinPaths(base.pathname, incoming.pathname);
   target.search = incoming.search;
+  return target;
+}
+
+function targetPathFor(base, pathname) {
+  const target = new URL(base.toString());
+  target.pathname = joinPaths(base.pathname, pathname);
+  target.search = "";
+  target.hash = "";
   return target;
 }
 
@@ -130,7 +167,7 @@ function retryDelayWithJitter(baseMilliseconds) {
 
 function upstreamTimeoutFor(requestPath, method) {
   if (requestPath === "/api/vocabulary/suggest") return UPSTREAM_VOCABULARY_TIMEOUT_MS;
-  if (requestPath === "/api/temporary/file") return UPSTREAM_UPLOAD_TIMEOUT_MS;
+  if (["/api/temporary/file", "/api/share/file/download"].includes(requestPath)) return UPSTREAM_UPLOAD_TIMEOUT_MS;
   if (["/api/judge", "/api/rubric", "/api/japanese/readings", "/api/export-pdf"].includes(requestPath)) {
     return UPSTREAM_AI_TIMEOUT_MS;
   }
@@ -146,6 +183,119 @@ async function fetchWithTimeout(url, init, timeoutMs) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function probeBase(base) {
+  const target = targetPathFor(base, "/api/status");
+  try {
+    const response = await fetchWithTimeout(target.toString(), {
+      method: "GET",
+      redirect: "manual",
+      headers: { Accept: "application/json" },
+    }, UPSTREAM_PREFLIGHT_TIMEOUT_MS);
+    const usable = response.status < 500;
+    if (response.body) await response.body.cancel().catch(() => {});
+    return usable;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function selectHealthyBase(bases) {
+  if (bases.length <= 1) return bases[0];
+  for (const base of bases) {
+    if (await probeBase(base)) return base;
+  }
+  await sleep(250);
+  for (const base of bases) {
+    if (await probeBase(base)) return base;
+  }
+  return bases[0];
+}
+
+function base64Bytes(value) {
+  const encoded = String(value || "");
+  if (!encoded) return new Uint8Array();
+  const padding = encoded.endsWith("==") ? 2 : (encoded.endsWith("=") ? 1 : 0);
+  const outputLength = Math.floor(encoded.length / 4) * 3 - padding;
+  const output = new Uint8Array(outputLength);
+  const chunkSize = 4 * 1024 * 1024;
+  let outputOffset = 0;
+  for (let offset = 0; offset < encoded.length; offset += chunkSize) {
+    const end = Math.min(encoded.length, offset + chunkSize);
+    const binary = atob(encoded.slice(offset, end));
+    for (let index = 0; index < binary.length; index += 1) {
+      output[outputOffset++] = binary.charCodeAt(index);
+    }
+  }
+  return output;
+}
+
+function attachmentHeaders(file) {
+  const fileName = String(file?.file_name || "download").replace(/[\r\n]/g, "").slice(0, 120) || "download";
+  const fallback = fileName.replace(/[^\x20-\x7E]/g, "_").replace(/["\\]/g, "_") || "download";
+  return {
+    "Content-Type": String(file?.mime_type || "application/octet-stream"),
+    "Content-Disposition": `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+    "Cache-Control": "private, no-store, max-age=0",
+    "X-Content-Type-Options": "nosniff",
+  };
+}
+
+async function handleTemporaryFileDownload(context, bases) {
+  const { request } = context;
+  let form;
+  try {
+    form = await request.formData();
+  } catch (_) {
+    return downloadError("下载请求格式无效", 400);
+  }
+  const id = String(form.get("id") || "").trim();
+  const password = String(form.get("password") || "");
+  if (!id || id.length > 240 || password.length > 1000) {
+    return downloadError("下载参数无效", 400);
+  }
+
+  const base = await selectHealthyBase(bases);
+  const target = targetPathFor(base, "/api/share/file/read");
+  const headers = requestHeadersFor(request, request.cf || context.cf || {});
+  headers.set("Content-Type", "application/json; charset=utf-8");
+  headers.set("Accept", "application/json");
+
+  let upstream;
+  try {
+    upstream = await fetchWithTimeout(target.toString(), {
+      method: "POST",
+      headers,
+      redirect: "manual",
+      body: JSON.stringify({ id, password }),
+    }, UPSTREAM_UPLOAD_TIMEOUT_MS);
+  } catch (_) {
+    return downloadError("临时文件服务暂时不可达，请稍后重试", 502);
+  }
+
+  let payload;
+  try {
+    payload = await upstream.json();
+  } catch (_) {
+    return downloadError("临时文件服务返回了无效响应", 502);
+  }
+  if (!upstream.ok || !payload?.file?.base64) {
+    return downloadError(payload?.error || "文件不存在、已过期或密码错误", upstream.status || 400);
+  }
+
+  let bytes;
+  try {
+    bytes = base64Bytes(payload.file.base64);
+  } catch (_) {
+    return downloadError("文件内容解码失败，请重新下载", 502);
+  }
+  if (!bytes.byteLength || bytes.byteLength > MAX_TEMP_FILE_BYTES) {
+    return downloadError("文件内容大小无效", 502);
+  }
+  const headersOut = new Headers(attachmentHeaders(payload.file));
+  headersOut.set("Content-Length", String(bytes.byteLength));
+  return new Response(bytes, { status: 200, headers: headersOut });
 }
 
 export async function onRequest(context) {
@@ -169,20 +319,29 @@ export async function onRequest(context) {
   }
 
   const requestPath = new URL(request.url).pathname;
+  if (requestPath === "/api/share/file/download" && request.method.toUpperCase() === "POST") {
+    return handleTemporaryFileDownload(context, bases);
+  }
+
   const maxBodyBytes = requestPath === "/api/temporary/file" ? MAX_TEMP_FILE_PROXY_BODY_BYTES : MAX_PROXY_BODY_BYTES;
   const declaredLength = Number(request.headers.get("Content-Length") || 0);
   if (declaredLength > maxBodyBytes) {
-    return json({ ok: false, error: requestPath === "/api/temporary/file" ? "请求内容过大，临时文件最大支持 20 MB。" : "请求内容过大。" }, 413);
+    return json({ ok: false, error: requestPath === "/api/temporary/file" ? "请求内容过大，临时文件最大支持 30 MB。" : "请求内容过大。" }, 413);
   }
 
   const method = request.method.toUpperCase();
   const idempotent = NO_BODY_METHODS.has(method);
   const body = idempotent ? undefined : await request.arrayBuffer();
   if (body && body.byteLength > maxBodyBytes) {
-    return json({ ok: false, error: requestPath === "/api/temporary/file" ? "请求内容过大，临时文件最大支持 20 MB。" : "请求内容过大。" }, 413);
+    return json({ ok: false, error: requestPath === "/api/temporary/file" ? "请求内容过大，临时文件最大支持 30 MB。" : "请求内容过大。" }, 413);
   }
   const rounds = idempotent ? IDEMPOTENT_RETRY_BASE_DELAYS_MS : [0];
-  const candidateBases = idempotent ? bases : bases.slice(0, 1);
+  let candidateBases;
+  if (!idempotent && TEMP_FILE_PRESELECT_PATHS.has(requestPath)) {
+    candidateBases = [await selectHealthyBase(bases)];
+  } else {
+    candidateBases = idempotent ? bases : bases.slice(0, 1);
+  }
   const timeoutMs = upstreamTimeoutFor(requestPath, method);
   for (let round = 0; round < rounds.length; round += 1) {
     const delay = retryDelayWithJitter(rounds[round]);
@@ -230,4 +389,6 @@ export const __testing = {
   fetchWithTimeout,
   retryDelayWithJitter,
   upstreamTimeoutFor,
+  selectHealthyBase,
+  base64Bytes,
 };
