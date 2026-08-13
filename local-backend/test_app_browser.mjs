@@ -139,6 +139,7 @@ async function main() {
   const networkRequestChecks = new Map();
   const networkRequestsInFlight = new Map();
   const expectedSessionInvalidationSyncRequests = new Set();
+  let expectingSessionInvalidationSync = false;
   const dialogs = [];
   const checks = [];
   let activeCheckName = "";
@@ -179,6 +180,15 @@ async function main() {
       const requestUrl = message.params?.request?.url || "";
       networkRequestChecks.set(message.params.requestId, activeCheckName);
       networkRequestsInFlight.set(message.params.requestId, requestUrl);
+      if (expectingSessionInvalidationSync) {
+        try {
+          if (new URL(requestUrl).pathname === "/api/learning/sync") {
+            expectedSessionInvalidationSyncRequests.add(message.params.requestId);
+          }
+        } catch (_) {
+          // Non-HTTP browser requests cannot be learning sync calls.
+        }
+      }
       networkRequests.push({
         method: message.params?.request?.method || "GET",
         url: requestUrl,
@@ -208,6 +218,7 @@ async function main() {
   };
 
   const expectSessionInvalidationSync = () => {
+    expectingSessionInvalidationSync = true;
     for (const [requestId, requestUrl] of networkRequestsInFlight) {
       try {
         if (new URL(requestUrl).pathname === "/api/learning/sync") {
@@ -217,6 +228,10 @@ async function main() {
         // Non-HTTP browser requests cannot be learning sync calls.
       }
     }
+  };
+
+  const finishSessionInvalidationSync = () => {
+    expectingSessionInvalidationSync = false;
   };
 
   const setFields = async (fields) => evaluate(`(() => {
@@ -1755,9 +1770,13 @@ async function main() {
       assert.ok((await evaluate("document.querySelector('#accountDetails').textContent")).includes(USERNAME));
       await setFields({ "#currentSecretInput": USER_SECRET, "#newSecretInput": USER_SECRET_NEW, "#newSecretConfirmInput": USER_SECRET_NEW });
       expectSessionInvalidationSync();
-      await click("#changeSecretForm button[type=submit]");
-      await waitFor("document.querySelector('#accountMessage')?.textContent.includes('密钥已修改')", 10_000, "own secret change");
-      await waitFor("location.pathname === '/login'", 5_000, "logout after secret change");
+      try {
+        await click("#changeSecretForm button[type=submit]");
+        await waitFor("document.querySelector('#accountMessage')?.textContent.includes('密钥已修改')", 10_000, "own secret change");
+        await waitFor("location.pathname === '/login'", 5_000, "logout after secret change");
+      } finally {
+        finishSessionInvalidationSync();
+      }
       assert.equal((await request("/api/login", { username: USERNAME, secret: USER_SECRET })).status, 403);
       assert.equal((await request("/api/login", { username: USERNAME, secret: USER_SECRET_NEW })).status, 200);
     });
@@ -1770,8 +1789,12 @@ async function main() {
       await waitFor("!document.querySelector('#deleteAccountModal')?.classList.contains('hidden')", 3_000, "delete confirmation");
       await setFields({ "#deleteSecretInput": disposable.secret });
       expectSessionInvalidationSync();
-      await click("#confirmDeleteAccountBtn");
-      await waitFor("location.pathname === '/login'", 10_000, "self deletion");
+      try {
+        await click("#confirmDeleteAccountBtn");
+        await waitFor("location.pathname === '/login'", 10_000, "self deletion");
+      } finally {
+        finishSessionInvalidationSync();
+      }
       assert.equal((await request("/api/login", { username: disposable.username, secret: disposable.secret })).status, 403);
     });
 
