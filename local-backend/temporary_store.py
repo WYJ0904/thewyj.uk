@@ -16,6 +16,8 @@ from account_store import AccountError, hash_secret, iso_now, parse_time, utc_no
 
 MAX_TEMP_TEXT_BYTES = 100 * 1024
 MAX_TEMP_FILE_BYTES = 30 * 1024 * 1024
+LEGACY_MAX_TEMP_FILE_BYTES = 20 * 1024 * 1024
+VIDEO_FILE_EXTENSIONS = frozenset({".mp4", ".m4v", ".mov", ".webm"})
 MAX_ROOM_MESSAGE_BYTES = 4 * 1024
 MAX_TEMP_LIFETIME_MINUTES = 7 * 24 * 60
 ALLOWED_FILE_TYPES = {
@@ -216,8 +218,9 @@ class TemporaryStore:
         mime = str(mime_type or "application/octet-stream").lower().split(";", 1)[0]
         if extension not in ALLOWED_FILE_TYPES or mime not in ALLOWED_FILE_TYPES[extension]:
             raise AccountError("不支持该文件类型或类型与扩展名不匹配", 400, "file_type_invalid")
-        if len(content) > MAX_TEMP_FILE_BYTES:
-            raise AccountError(f"临时文件不能超过 {MAX_TEMP_FILE_BYTES // (1024 * 1024)} MB", 413, "file_too_large")
+        size_limit = MAX_TEMP_FILE_BYTES if extension in VIDEO_FILE_EXTENSIONS else LEGACY_MAX_TEMP_FILE_BYTES
+        if len(content) > size_limit:
+            raise AccountError(f"临时文件不能超过 {size_limit // (1024 * 1024)} MB", 413, "file_too_large")
         if not content:
             raise AccountError("文件不能为空", 400, "file_empty")
         if not TemporaryStore._content_matches_extension(extension, content):
