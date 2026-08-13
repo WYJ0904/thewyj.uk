@@ -114,6 +114,7 @@ jobs:
             node --check local-backend/test_tools_js.mjs
             node --check local-backend/test_core_js.mjs
             node --check local-backend/test_language_js.mjs
+            node --check local-backend/test_membership_js.mjs
             node --check local-backend/test_workflows_js.mjs
             node --check local-backend/test_learning_sync_js.mjs
             node --check local-backend/test_proxy_js.mjs
@@ -135,6 +136,12 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_language_js.mjs 2>&1 | tee artifacts/javascript-language.log
+
+      - name: Test membership and admin modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          node local-backend/test_membership_js.mjs 2>&1 | tee artifacts/javascript-membership.log
 
       - name: Test configurable tool workflows
         run: |

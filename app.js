@@ -71,6 +71,34 @@ import {
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
 } from "./js/language/wrong-book.js";
+import {
+  accountEntitlements as accountEntitlementsModel,
+  accountMembershipSummary as accountMembershipSummaryModel,
+  entitlementLabel,
+  hasAccountEntitlement as hasAccountEntitlementModel,
+  isSuperAdmin as isSuperAdminModel,
+  membershipLabel,
+} from "./js/membership/account.js";
+import {
+  MEMBERSHIP_GOALS,
+  MEMBERSHIP_PLAN_ORDER,
+  membershipGoalAllowsPlan,
+  membershipGoalForPlan,
+  normalizedMembershipGoal,
+  planDetails as planDetailsModel,
+} from "./js/membership/plans.js";
+import {
+  DEFAULT_PAYMENT_METHODS,
+  normalizedPaymentMethod as normalizedPaymentMethodModel,
+  paymentMethodLabel as paymentMethodLabelModel,
+  paymentStatusLabel,
+  rechargeStatusLabel,
+} from "./js/membership/recharge.js";
+import {
+  loginLocationLabel,
+  loginReasonLabel,
+  membershipDateValue as membershipDateValueModel,
+} from "./js/admin/formatters.js";
 
 const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
 const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);
@@ -201,43 +229,6 @@ const trialState = {
   imageMode: "compress",
   quiz: null,
 };
-const MEMBERSHIP_PLAN_ORDER = Object.freeze([
-  "trial_single_language",
-  "dual_language_monthly",
-  "tools_monthly",
-  "all_access_monthly",
-  "japanese_lifetime",
-  "all_access_lifetime",
-]);
-const MEMBERSHIP_GOALS = Object.freeze({
-  english: {
-    label: "只学英语",
-    description: "显示英语单语言、双语言和全功能方案。",
-    trialLanguage: "english",
-    plans: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
-  },
-  japanese: {
-    label: "只学日语",
-    description: "显示日语单语言、双语言和全功能方案。",
-    trialLanguage: "japanese",
-    plans: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
-  },
-  bilingual: {
-    label: "英语和日语",
-    description: "只显示同时包含两种语言会员功能的方案。",
-    plans: ["dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
-  },
-  tools: {
-    label: "只用工具箱",
-    description: "显示工具箱包月和包含工具箱的全功能方案。",
-    plans: ["tools_monthly", "all_access_monthly", "all_access_lifetime"],
-  },
-  all: {
-    label: "语言和工具箱",
-    description: "只显示同时包含语言学习与在线工具箱的方案。",
-    plans: ["all_access_monthly", "all_access_lifetime"],
-  },
-});
 const rejudgeInFlight = new Set();
 const modalReturnFocus = new Map();
 let rejudgeResultScrollPosition = null;
@@ -951,60 +942,20 @@ function clearSession() {
   renderAccountUi();
 }
 
-function membershipLabel(value) {
-  return {
-    free: "普通用户",
-    trial_single_language: "单语言包月体验会员",
-    monthly: "历史双语言包月会员",
-    lifetime: "历史双语言永久会员",
-    legacy_all_monthly: "历史双语言包月会员",
-    legacy_all_lifetime: "历史双语言永久会员",
-    japanese_lifetime: "双语言双项永久会员",
-    tools_monthly: "工具箱包月会员",
-    dual_language_monthly: "双语言包月",
-    dual_language_lifetime: "双语言双项永久会员",
-    all_access_monthly: "全功能包月会员",
-    all_access_lifetime: "全功能永久会员",
-    super_admin: "超级管理员",
-  }[value] || "普通用户";
-}
-
-function entitlementLabel(code) {
-  return {
-    language_japanese_access: "日语会员功能",
-    language_english_access: "英语会员功能",
-    language_all_access: "全部语言会员功能",
-    tools_access: "在线工具箱",
-    tools_batch_access: "批量处理",
-    temporary_share_access: "临时分享",
-    save_tool_config: "保存工具配置",
-    all_features_access: "全部高级功能",
-  }[code] || code;
-}
-
 function accountEntitlements(account = state.account) {
-  return new Set(Array.isArray(account?.entitlements) ? account.entitlements : []);
+  return accountEntitlementsModel(account);
 }
 
 function hasAccountEntitlement(code, account = state.account) {
-  return isSuperAdmin(account) || accountEntitlements(account).has(code);
+  return hasAccountEntitlementModel(code, account);
 }
 
 function accountMembershipSummary(account = state.account) {
-  if (!account) return { code: "free", name: "未登录", permanent: false, expires_at: "", tools_access: false };
-  return account.membership_summary || {
-    code: account.membership || "free",
-    name: membershipLabel(account.membership),
-    permanent: account.membership === "lifetime",
-    expires_at: account.membership_expires || "",
-    tools_access: Boolean(account.tools_access),
-  };
+  return accountMembershipSummaryModel(account);
 }
 
 function isSuperAdmin(account = state.account) {
-  return Boolean(
-    account && account.username === "wyj" && account.role === "super_admin" && account.is_super_admin === true,
-  );
+  return isSuperAdminModel(account);
 }
 
 function applyAccount(account) {
@@ -1492,10 +1443,7 @@ async function logoutAccount() {
 }
 
 function planDetails(plan) {
-  const item = membershipPlans.find((candidate) => candidate.code === plan);
-  return item
-    ? [item.name, `${item.price} ${item.currency}`, item.description]
-    : ["请选择套餐", "", ""];
+  return planDetailsModel(membershipPlans, plan);
 }
 
 function showRejudgeResultModal(title, message, tone = "info") {
@@ -1520,31 +1468,11 @@ function closeRejudgeResultModal() {
   });
 }
 
-function normalizedMembershipGoal(value) {
-  const goal = String(value || "").trim();
-  return Object.prototype.hasOwnProperty.call(MEMBERSHIP_GOALS, goal) ? goal : "";
-}
-
-function membershipGoalForPlan(planCode, trialLanguage = "") {
-  if (planCode === "trial_single_language") {
-    return trialLanguage === "japanese" ? "japanese" : "english";
-  }
-  if (planCode === "tools_monthly") return "tools";
-  if (["dual_language_monthly", "japanese_lifetime", "dual_language_lifetime"].includes(planCode)) return "bilingual";
-  if (["all_access_monthly", "all_access_lifetime", "legacy_all_monthly", "legacy_all_lifetime"].includes(planCode)) return "all";
-  return "";
-}
-
 function membershipGoalForCurrentContext() {
   if (location.pathname.startsWith("/tools")) return "tools";
   if (currentProject === "english" || state.quizLanguage === "english") return "english";
   if (currentProject === "japanese" || state.quizLanguage === "japanese") return "japanese";
   return "";
-}
-
-function membershipGoalAllowsPlan(goal, planCode) {
-  const config = MEMBERSHIP_GOALS[normalizedMembershipGoal(goal)];
-  return Boolean(config?.plans.includes(planCode));
 }
 
 function updateMembershipPurchaseSummary() {
@@ -1565,28 +1493,17 @@ function updateMembershipPurchaseSummary() {
 }
 
 function normalizedPaymentMethod(value) {
-  const method = String(value || "").trim().toLowerCase();
-  const allowed = paymentMethods.length
-    ? paymentMethods.map((item) => item.code)
-    : ["wechat", "alipay"];
-  return allowed.includes(method) ? method : "";
+  return normalizedPaymentMethodModel(value, paymentMethods);
 }
 
 function paymentMethodLabel(value) {
-  const method = normalizedPaymentMethod(value);
-  return paymentMethods.find((item) => item.code === method)?.name || {
-    wechat: "微信支付",
-    alipay: "支付宝",
-  }[method] || "未选择";
+  return paymentMethodLabelModel(value, paymentMethods);
 }
 
 function renderPaymentMethods() {
   const list = $("paymentMethodList");
   if (!list) return;
-  const methods = paymentMethods.length ? paymentMethods : [
-    { code: "wechat", name: "微信支付" },
-    { code: "alipay", name: "支付宝" },
-  ];
+  const methods = paymentMethods.length ? paymentMethods : DEFAULT_PAYMENT_METHODS;
   selectedPaymentMethod = normalizedPaymentMethod(selectedPaymentMethod);
   list.innerHTML = methods.map((item) => `<label>
     <input type="radio" name="paymentMethod" value="${escapeHtml(item.code)}" ${item.code === selectedPaymentMethod ? "checked" : ""} />
@@ -1943,18 +1860,6 @@ function selectRechargePlan(plan, options = {}) {
   if (!options.preserveOrder) $("rechargeMessage").textContent = "";
 }
 
-function paymentStatusLabel(status) {
-  return {
-    pending_payment: "等待付款",
-    user_paid: "已通知管理员，等待确认",
-    processing: "管理员核对中",
-    approved: "已开通",
-    rejected: "已拒绝",
-    expired: "订单已过期",
-    cancelled: "已取消",
-  }[status] || status || "未知";
-}
-
 function renderPaymentOrder(record) {
   if (!record) return;
   const orderPaymentMethod = normalizedPaymentMethod(record.payment_method);
@@ -2259,20 +2164,6 @@ function adminUserById(id) {
   return adminUsers.find((user) => user.id === id);
 }
 
-function rechargeStatusLabel(status) {
-  return {
-    pending: "待处理",
-    pending_payment: "等待用户付款",
-    user_paid: "用户已确认付款",
-    processing: "核对处理中",
-    activated: "已开通",
-    approved: "已开通",
-    rejected: "已拒绝",
-    expired: "已过期",
-    cancelled: "用户已取消",
-  }[status] || status || "未知";
-}
-
 function renderAdminUsers(users = null) {
   if (Array.isArray(users)) adminUsers = users;
   const list = $("adminUserList");
@@ -2336,23 +2227,6 @@ function renderAdminAudit(logs) {
     <p>管理员：${escapeHtml(log.actor_username || "-")} · 对象：${escapeHtml(log.target_username || "-")}</p>
     <p>${escapeHtml(log.note || "无备注")}</p>
   </article>`).join("") || "<p>暂无审计记录</p>";
-}
-
-function loginReasonLabel(reason) {
-  return {
-    success: "登录成功",
-    invalid_credentials: "用户名或密钥错误",
-    account_banned: "账户已封禁",
-    login_rate_limited: "请求过于频繁",
-  }[reason] || reason || "登录失败";
-}
-
-function loginLocationLabel(log) {
-  let country = String(log.country || "").toUpperCase();
-  if (/^[A-Z]{2}$/.test(country) && typeof Intl.DisplayNames === "function") {
-    try { country = new Intl.DisplayNames(["zh-CN"], { type: "region" }).of(country) || country; } catch (_) {}
-  }
-  return [...new Set([log.city, log.region, country].map((item) => String(item || "").trim()).filter(Boolean))].join(" / ") || "未知网络位置";
 }
 
 function renderAdminLoginLogs(logs) {
@@ -2559,9 +2433,7 @@ function localDateValue(date = new Date()) {
 }
 
 function membershipDateValue(value) {
-  if (!value) return "";
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? "" : localDateValue(parsed);
+  return membershipDateValueModel(value, localDateValue);
 }
 
 function updateAdminMembershipFields(fillDefaults = true) {

@@ -30,7 +30,11 @@ class StaticSiteTests(unittest.TestCase):
             path.read_text(encoding="utf-8")
             for path in sorted((ROOT / "js" / "core").glob("*.js"))
         )
-        cls.frontend = cls.app + "\n" + cls.core
+        cls.membership = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted((ROOT / "js" / "membership").glob("*.js"))
+        )
+        cls.frontend = cls.app + "\n" + cls.core + "\n" + cls.membership
         cls.tools = (ROOT / "tools.js").read_text(encoding="utf-8")
         cls.workflows = (ROOT / "workflows.js").read_text(encoding="utf-8")
         cls.styles = (ROOT / "styles.css").read_text(encoding="utf-8")
@@ -530,9 +534,9 @@ class StaticSiteTests(unittest.TestCase):
     def test_membership_ui_filters_plans_by_purpose_without_replacing_server_checks(self):
         goal_values = re.findall(r'data-membership-goal="([^"]+)"', self.html)
         self.assertEqual(goal_values, ["english", "japanese", "bilingual", "tools", "all"])
-        self.assertIn("const MEMBERSHIP_GOALS = Object.freeze", self.app)
-        self.assertIn("function membershipGoalAllowsPlan", self.app)
-        self.assertIn("function membershipGoalForPlan", self.app)
+        self.assertIn("const MEMBERSHIP_GOALS = Object.freeze", self.membership)
+        self.assertIn("function membershipGoalAllowsPlan", self.membership)
+        self.assertIn("function membershipGoalForPlan", self.membership)
         self.assertIn('openMembershipModal({ goal: "tools" })', self.app)
         self.assertGreaterEqual(
             self.app.count("membershipGoalAllowsPlan(selectedMembershipGoal"), 3
