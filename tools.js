@@ -1,25 +1,33 @@
+import {
+  CATEGORY_DEFINITIONS,
+  CATEGORY_MAP,
+  TOOL_MAP,
+  TOOLS,
+  iconSvg,
+  searchTools,
+} from "./js/tools/catalog.js";
+import { randomToolResult } from "./js/tools/random.js";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js";
+import {
+  csvString,
+  decodeLocalText,
+  digestFile,
+  joinBytes,
+  parseCsv,
+  validateCsvTable,
+  zipBlob,
+} from "./js/tools/file.js";
+import {
+  exifSummary,
+  parseColorValue,
+  rgbToHex,
+  rgbToHsl,
+  stripJpegMetadata,
+} from "./js/tools/image.js";
+import { runToolRenderer } from "./js/tools/runner.js";
 (() => {
   "use strict";
-
-  const CATEGORY_DEFINITIONS = [
-    { id: "text", name: "文本处理工具箱", description: "清理、转换、提取、编码与 JSON 处理" },
-    { id: "file", name: "文件处理中心", description: "哈希、转换、拆分、合并、PDF 与 ZIP" },
-    { id: "image", name: "图片与设计工具", description: "压缩、格式、尺寸、裁剪、水印与配色" },
-    { id: "random", name: "随机生成器中心", description: "安全密码、抽签、分组、颜色、日期与骰子" },
-    { id: "temporary", name: "临时工具", description: "临时文本、文件、剪贴板、二维码与留言房间" },
-  ];
-
-  const ICON_PATHS = {
-    text: '<path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
-    file: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
-    image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m4 17 5-5 4 4 2-2 5 5"/>',
-    random: '<path d="M4 7h3l10 10h3"/><path d="m17 14 3 3-3 3M4 17h3l3-3M14 10l3-3h3M17 4l3 3-3 3"/>',
-    temporary: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-    bookmark: '<path d="M7 4h10v16l-5-3-5 3z"/>',
-    delete: '<path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6M10 11v5m4-5v5"/>',
-  };
-
-  const iconSvg = (name, className = "ui-icon") => `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICON_PATHS[name] || ""}</svg>`;
 
   async function fetchStaticText(url, timeoutMs = 10000) {
     const controller = typeof AbortController === "undefined" ? null : new AbortController();
@@ -31,241 +39,6 @@
     } finally {
       if (timeout) window.clearTimeout(timeout);
     }
-  }
-
-  const toolRows = {
-    text: [
-      ["text-stats", "文本统计", "统计字符、单词、行数、段落和预计阅读时间。", "字数 计数 阅读时长"],
-      ["dedupe-lines", "删除重复行", "按首次出现顺序移除完全相同的行。", "去重 唯一行"],
-      ["remove-empty-lines", "删除空行", "清除空白行并保留有内容的行。", "空白行 清理"],
-      ["collapse-spaces", "合并多余空格", "把连续空格和制表符整理为单个空格。", "空白 压缩"],
-      ["letter-case", "大小写转换", "在全大写、全小写和标题格式之间切换。", "英文 字母"],
-      ["camel-case", "camelCase 转换", "把词组转换为首词小写的驼峰命名。", "驼峰 变量名"],
-      ["pascal-case", "PascalCase 转换", "把词组转换为每个单词首字母大写的命名。", "大驼峰 类名"],
-      ["snake-case", "snake_case 转换", "把词组转换为下划线连接的命名。", "下划线 变量名"],
-      ["kebab-case", "kebab-case 转换", "把词组转换为短横线连接的命名。", "短横线 css"],
-      ["line-prefix", "批量添加前缀", "在每一行开头批量加入指定内容。", "行首"],
-      ["line-suffix", "批量添加后缀", "在每一行末尾批量加入指定内容。", "行尾"],
-      ["line-numbers", "批量添加行号", "为每一行自动添加连续编号。", "编号 序号"],
-      ["find-replace", "查找和替换", "查找普通文本并批量替换为新内容。", "替换文字"],
-      ["regex-replace", "正则表达式替换", "使用正则表达式完成高级批量替换。", "regexp pattern"],
-      ["sort-lines", "文本排序", "按字母、数字或倒序重新排列文本行。", "排序 行"],
-      ["shuffle-lines", "文本随机排序", "随机打乱所有文本行的顺序。", "洗牌 打乱"],
-      ["text-diff", "文本差异对比", "逐行标出两段文本新增、删除和相同内容。", "比较 diff"],
-      ["extract-email", "提取邮箱", "从混合文本中识别并列出电子邮箱地址。", "邮件 email"],
-      ["extract-url", "提取 URL", "从文本中识别并列出 HTTP 或 HTTPS 链接。", "网址 链接"],
-      ["extract-ip", "提取 IP 地址", "从文本中提取格式有效的 IPv4 地址。", "ipv4 网络地址"],
-      ["extract-number-date", "提取数字和日期", "提取文本中的数字及常见日期格式。", "数值 时间"],
-      ["base64", "Base64 编码与解码", "在普通文本与 Base64 内容之间双向转换。", "编码 解码"],
-      ["url-code", "URL 编码与解码", "编码或还原网址参数中的特殊字符。", "uri 百分号"],
-      ["html-entities", "HTML 实体编码与解码", "转义或还原 HTML 中的特殊字符实体。", "网页 转义"],
-      ["unicode-code", "Unicode 转换", "在可读文字与 Unicode 转义序列之间转换。", "字符 转义"],
-      ["json-format", "JSON 格式化", "校验并缩进 JSON，便于阅读和排查。", "美化 pretty"],
-      ["json-minify", "JSON 压缩", "移除 JSON 中不必要的空白和换行。", "紧凑 minify"],
-      ["json-validate", "JSON 合法性检查", "检查 JSON 语法并定位无法解析的内容。", "校验 validate"],
-      ["chinese-convert", "简繁体转换", "使用本地 OpenCC 字符词典双向转换简体与繁体。", "简体 繁体 中文"],
-    ],
-    file: [
-      ["file-md5", "MD5 计算", "在本地计算文件的 MD5 校验值。", "哈希 hash 校验"],
-      ["file-sha1", "SHA-1 计算", "在本地计算文件的 SHA-1 校验值。", "哈希 hash 校验"],
-      ["file-sha256", "SHA-256 计算", "在本地计算文件的 SHA-256 校验值。", "哈希 hash 校验"],
-      ["file-sha512", "SHA-512 计算", "在本地计算文件的 SHA-512 校验值。", "哈希 hash 校验"],
-      ["file-info", "文件基本信息", "查看文件名、类型、大小和最后修改时间。", "属性 元数据"],
-      ["csv-json", "CSV 转 JSON", "把 CSV 表格解析为结构化 JSON 数组。", "表格 数据转换"],
-      ["json-csv", "JSON 转 CSV", "把对象数组转换为可下载的 CSV 表格。", "表格 数据转换"],
-      ["text-encoding", "文本编码转换", "读取常见文本编码并输出 UTF-8 文件。", "utf8 字符集"],
-      ["text-split", "文本文件分割", "按指定行数拆分大型文本文件。", "切分 txt"],
-      ["csv-split", "CSV 文件分割", "保留表头并按数据行数拆分 CSV。", "切分 表格"],
-      ["txt-merge", "TXT 文件合并", "按选择顺序合并多个 TXT 文件。", "拼接 文本"],
-      ["csv-merge", "CSV 文件合并", "合并表头一致的多个 CSV 文件。", "拼接 表格"],
-      ["json-array-merge", "JSON 数组合并", "把多个 JSON 数组合并为一个数组文件。", "拼接 数据"],
-      ["images-pdf", "多张图片转 PDF", "按选择顺序把多张图片生成多页 PDF。", "照片 文档"],
-      ["rename-preview", "批量重命名预览", "生成批量新文件名清单，不修改原文件。", "改名 文件名"],
-      ["files-zip", "文件打包为 ZIP", "把选中的文件在本地打包成一个 ZIP。", "压缩包 打包"],
-      ["batch-zip", "批量 ZIP 下载", "把多个文件整理打包后一次下载。", "压缩包 批量"],
-    ],
-    image: [
-      ["image-compress", "图片压缩", "调整格式和质量以减小单张图片体积。", "压图 质量"],
-      ["image-batch-compress", "批量图片压缩", "一次压缩多张图片并打包下载。", "压图 多图"],
-      ["image-format", "PNG、JPG、WebP 转换", "在 PNG、JPG 和 WebP 格式之间转换。", "格式 转图"],
-      ["image-resize", "图片尺寸调整", "按指定像素宽高重新生成图片。", "改尺寸 像素"],
-      ["image-scale", "按百分比缩放", "按百分比等比例放大或缩小图片。", "比例 缩图"],
-      ["image-crop", "图片裁剪", "按百分比坐标裁出指定矩形区域。", "剪裁 截取"],
-      ["crop-square", "1:1 裁剪", "从图片中央裁出正方形区域。", "方形 头像"],
-      ["crop-four-three", "4:3 裁剪", "从图片中央裁出 4:3 比例画面。", "四比三"],
-      ["crop-sixteen-nine", "16:9 裁剪", "从图片中央裁出 16:9 宽屏画面。", "宽屏 十六比九"],
-      ["image-rotate", "图片旋转", "把图片旋转 90、180 或 270 度。", "方向 转向"],
-      ["image-flip", "图片翻转", "按水平、垂直或双向镜像翻转图片。", "镜像"],
-      ["image-rounded", "图片圆角", "为图片四角添加可调透明圆角。", "圆角 半径"],
-      ["image-avatar", "圆形头像", "把图片中央区域裁成透明圆形头像。", "头像 圆图"],
-      ["text-watermark", "文本水印", "在图片右下角添加半透明文字水印。", "署名 版权"],
-      ["image-watermark", "图片水印", "在主图右下角叠加另一张图片。", "logo 叠图"],
-      ["tile-watermark", "平铺水印", "在整张图片上重复铺设文字水印。", "满屏 防盗图"],
-      ["image-mosaic", "马赛克", "为指定矩形区域添加像素化马赛克。", "打码 隐私"],
-      ["image-blur", "高斯模糊", "为整张图片添加可调强度模糊。", "虚化 blur"],
-      ["image-redact", "黑色遮挡", "用纯黑矩形永久遮挡指定区域。", "涂黑 隐私"],
-      ["image-pdf", "图片转 PDF", "把选中的图片按顺序生成 PDF 文档。", "照片 文档"],
-      ["exif-view", "EXIF 信息查看", "本地查看 JPEG 的相机、时间、方向和 GPS 标签。", "元数据 相机"],
-      ["exif-remove", "EXIF 信息删除", "清除图片元数据；JPEG 不重新压缩像素。", "隐私 清除"],
-      ["gps-warning", "GPS 隐私提醒", "检测 JPEG 中可能泄露位置的 GPS 标签。", "定位 经纬度"],
-      ["color-extract", "图片颜色提取", "从图片中提取最多八种主要颜色。", "配色 主色"],
-      ["color-convert", "HEX、RGB 和 HSL 取色", "输入任一 HEX、RGB 或 HSL 颜色并互相转换。", "颜色代码"],
-      ["gradient-generator", "渐变背景生成器", "生成指定尺寸、颜色和角度的渐变图片。", "背景 渐变图"],
-      ["gradient-css", "CSS 渐变代码生成", "预览渐变并生成可复制的 CSS 代码。", "linear-gradient 样式"],
-      ["solid-image", "纯色图片生成器", "生成指定尺寸和颜色的纯色 PNG。", "背景 色块"],
-      ["favicon-generator", "Favicon 生成器", "把图片缩放为适合网页图标的 32×32 PNG。", "网站图标 ico"],
-      ["multi-icon-zip", "多尺寸图标 ZIP 下载", "生成 16 到 512 像素的七种 PNG 图标。", "应用图标 icon"],
-    ],
-    random: [
-      ["random-integer", "随机数字", "在指定最小值和最大值之间生成整数。", "整数 数字"],
-      ["random-decimal", "随机小数", "在指定范围内生成随机小数。", "浮点 数字"],
-      ["random-string", "随机字符串", "按指定长度和字符集生成随机文本。", "字符 token"],
-      ["random-password", "安全密码生成器", "用安全随机数和可选字符类型生成高强度密码。", "口令 密钥"],
-      ["random-uuid", "UUID v4 生成器", "生成符合 UUID v4 格式的随机标识符。", "guid 标识"],
-      ["random-draw", "随机抽签", "从候选名单中公平抽取一个结果。", "抽奖 点名"],
-      ["random-groups", "随机分组", "把名单打乱后平均分配到多个小组。", "分队 分班"],
-      ["random-wheel", "随机转盘", "从多个选项中模拟转盘选出结果。", "轮盘 选择"],
-      ["weighted-wheel", "带权重转盘", "按照每个选项的权重概率抽取结果。", "概率 加权"],
-      ["random-date", "随机日期", "在指定起止日期之间随机选择一天。", "日历 日期"],
-      ["random-time", "随机时间", "随机生成一天中的小时、分钟和秒。", "时钟"],
-      ["random-color", "随机颜色", "生成一个随机 HEX 颜色值。", "取色 色值"],
-      ["random-palette", "随机调色板", "一次生成多种随机颜色组成的配色表。", "色板 配色"],
-      ["coin-flip", "抛硬币", "随机返回正面或反面。", "硬币 二选一"],
-      ["dice-d4", "D4 骰子", "投掷一枚四面骰子。", "桌游 骰子"],
-      ["dice-d6", "D6 骰子", "投掷一枚六面骰子。", "桌游 骰子"],
-      ["dice-d8", "D8 骰子", "投掷一枚八面骰子。", "桌游 骰子"],
-      ["dice-d10", "D10 骰子", "投掷一枚十面骰子。", "桌游 骰子"],
-      ["dice-d12", "D12 骰子", "投掷一枚十二面骰子。", "桌游 骰子"],
-      ["dice-d20", "D20 骰子", "投掷一枚二十面骰子。", "桌游 骰子"],
-      ["custom-dice", "自定义骰子", "设置面数后投掷自定义骰子。", "随机数 面数"],
-      ["random-decision", "随机决定器", "在多个方案之间随机帮你做决定。", "选择 困难"],
-    ],
-    temporary: [
-      ["temporary-text", "临时文本分享", "创建带密码、过期和访问次数限制的文本链接。", "阅后即焚 分享"],
-      ["temporary-file", "临时文件分享", "创建有期限和下载次数限制的文件链接。", "传文件 下载"],
-      ["temporary-clipboard", "临时剪贴板", "用六位连接码在设备间临时传递文本。", "跨设备 复制"],
-      ["temporary-qr", "临时二维码", "生成文本、网址、Wi-Fi、联系人或动态失效二维码。", "扫码 qr"],
-      ["temporary-room", "临时留言房间", "创建无公开列表、可加密码的限时留言房间。", "聊天室 留言"],
-    ],
-  };
-
-  const TOOLS = Object.entries(toolRows).flatMap(([category, rows]) => rows.map(([id, name, description, aliases = ""]) => ({
-    id, name, description, aliases, category,
-  })));
-  const TOOL_MAP = new Map(TOOLS.map((tool) => [tool.id, tool]));
-  const CATEGORY_MAP = new Map(CATEGORY_DEFINITIONS.map((category) => [category.id, category]));
-
-  function normalizeSearch(value) {
-    return String(value || "")
-      .normalize("NFKC")
-      .toLocaleLowerCase()
-      .replace(/[^\p{L}\p{N}]+/gu, " ")
-      .trim()
-      .replace(/\s+/g, " ");
-  }
-
-  function boundedEditDistance(left, right, limit = 2) {
-    if (Math.abs(left.length - right.length) > limit) return limit + 1;
-    let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
-    for (let leftIndex = 0; leftIndex < left.length; leftIndex += 1) {
-      const current = [leftIndex + 1];
-      let rowMinimum = current[0];
-      for (let rightIndex = 0; rightIndex < right.length; rightIndex += 1) {
-        const cost = left[leftIndex] === right[rightIndex] ? 0 : 1;
-        current.push(Math.min(
-          current[rightIndex] + 1,
-          previous[rightIndex + 1] + 1,
-          previous[rightIndex] + cost,
-        ));
-        rowMinimum = Math.min(rowMinimum, current[rightIndex + 1]);
-      }
-      if (rowMinimum > limit) return limit + 1;
-      previous = current;
-    }
-    return previous[right.length];
-  }
-
-  function isSubsequence(needle, haystack) {
-    if (!needle) return true;
-    let index = 0;
-    for (const character of haystack) {
-      if (character === needle[index]) index += 1;
-      if (index === needle.length) return true;
-    }
-    return false;
-  }
-
-  function isAdjacentTransposition(left, right) {
-    if (left.length !== right.length) return false;
-    const differences = [];
-    for (let index = 0; index < left.length; index += 1) {
-      if (left[index] !== right[index]) differences.push(index);
-    }
-    return differences.length === 2
-      && differences[1] === differences[0] + 1
-      && left[differences[0]] === right[differences[1]]
-      && left[differences[1]] === right[differences[0]];
-  }
-
-  TOOLS.forEach((tool) => {
-    const category = CATEGORY_MAP.get(tool.category);
-    tool.searchTerms = [tool.name, tool.description, tool.aliases, tool.id, category?.name || ""]
-      .map(normalizeSearch)
-      .filter(Boolean);
-    tool.searchText = tool.searchTerms.join(" ");
-  });
-
-  function fuzzyToolScore(tool, query) {
-    const normalizedQuery = normalizeSearch(query);
-    if (!normalizedQuery) return 1;
-    const queryTokens = normalizedQuery.split(" ").filter(Boolean);
-    let total = tool.searchText.includes(normalizedQuery) ? 100 : 0;
-    for (const token of queryTokens) {
-      const compactToken = token.replace(/\s/g, "");
-      let tokenScore = 0;
-      for (const term of tool.searchTerms) {
-        const compactTerm = term.replace(/\s/g, "");
-        if (term === token) tokenScore = Math.max(tokenScore, 90);
-        else if (term.startsWith(token)) tokenScore = Math.max(tokenScore, 72);
-        else if (term.includes(token) || compactTerm.includes(compactToken)) tokenScore = Math.max(tokenScore, 60);
-        for (const word of term.split(" ")) {
-          if (compactToken.length >= 2 && word.length <= compactToken.length + 3 && isSubsequence(compactToken, word)) {
-            tokenScore = Math.max(tokenScore, 38);
-          }
-          if (isAdjacentTransposition(compactToken, word)) tokenScore = Math.max(tokenScore, 64);
-          const limit = token.length >= 6 ? 2 : 1;
-          if (token.length >= 3 && boundedEditDistance(token, word, limit) <= limit) tokenScore = Math.max(tokenScore, 54);
-        }
-      }
-      if (!tokenScore) return 0;
-      total += tokenScore;
-    }
-    const primaryTerms = [tool.name, tool.id, tool.aliases]
-      .map(normalizeSearch)
-      .flatMap((term) => term.split(" "))
-      .filter(Boolean);
-    for (const token of queryTokens) {
-      if (primaryTerms.some((term) => term.includes(token))) total += 55;
-      else if (primaryTerms.some((term) => isAdjacentTransposition(token, term))) total += 72;
-      else {
-        const limit = token.length >= 6 ? 2 : 1;
-        if (token.length >= 3 && primaryTerms.some((term) => boundedEditDistance(token, term, limit) <= limit)) {
-          total += 45;
-        }
-      }
-    }
-    if (normalizeSearch(tool.name).includes(normalizedQuery)) total += 35;
-    return total;
-  }
-
-  function searchTools(query = "", category = "all") {
-    const candidates = TOOLS.filter((tool) => category === "all" || tool.category === category);
-    if (!normalizeSearch(query)) return candidates;
-    return candidates
-      .map((tool) => ({ tool, score: fuzzyToolScore(tool, query) }))
-      .filter((item) => item.score > 0)
-      .sort((left, right) => right.score - left.score || left.tool.name.localeCompare(right.tool.name, "zh-CN"))
-      .map((item) => item.tool);
   }
 
   let bridge = null;
@@ -545,194 +318,6 @@
     }));
   }
 
-  function textWords(text) {
-    return String(text || "").normalize("NFKC").trim().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-  }
-
-  function caseWords(text) {
-    return String(text || "").normalize("NFKC").replace(/([a-z0-9])([A-Z])/g, "$1 $2").split(/[^\p{L}\p{N}]+/u).filter(Boolean).map((word) => word.toLocaleLowerCase());
-  }
-
-  function utf8ToBase64(value) {
-    const bytes = new TextEncoder().encode(value);
-    let binary = "";
-    for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
-    return btoa(binary);
-  }
-
-  function base64ToUtf8(value) {
-    const binary = atob(String(value).replace(/\s+/g, ""));
-    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  }
-
-  const TRADITIONAL_PAIRS = [
-    ["后", "後"], ["发", "發"], ["里", "裡"], ["云", "雲"], ["台", "臺"], ["万", "萬"], ["与", "與"], ["专", "專"], ["业", "業"], ["东", "東"],
-    ["丝", "絲"], ["两", "兩"], ["严", "嚴"], ["丧", "喪"], ["个", "個"], ["丰", "豐"], ["临", "臨"], ["为", "為"], ["丽", "麗"], ["举", "舉"],
-    ["义", "義"], ["乌", "烏"], ["乐", "樂"], ["乔", "喬"], ["习", "習"], ["乡", "鄉"], ["书", "書"], ["买", "買"], ["乱", "亂"], ["争", "爭"],
-    ["于", "於"], ["亏", "虧"], ["亚", "亞"], ["产", "產"], ["亩", "畝"], ["亲", "親"], ["亿", "億"], ["仅", "僅"], ["从", "從"], ["仓", "倉"],
-    ["仪", "儀"], ["们", "們"], ["优", "優"], ["会", "會"], ["伞", "傘"], ["伟", "偉"], ["传", "傳"], ["伤", "傷"], ["伦", "倫"], ["体", "體"],
-    ["余", "餘"], ["佣", "傭"], ["侠", "俠"], ["侣", "侶"], ["侥", "僥"], ["侧", "側"], ["侦", "偵"], ["俭", "儉"], ["债", "債"], ["倾", "傾"],
-    ["偿", "償"], ["储", "儲"], ["儿", "兒"], ["兑", "兌"], ["党", "黨"], ["兰", "蘭"], ["关", "關"], ["兴", "興"], ["养", "養"], ["兽", "獸"],
-    ["内", "內"], ["冈", "岡"], ["册", "冊"], ["写", "寫"], ["军", "軍"], ["农", "農"], ["冲", "衝"], ["决", "決"], ["况", "況"], ["冻", "凍"],
-    ["净", "淨"], ["凉", "涼"], ["减", "減"], ["凑", "湊"], ["凤", "鳳"], ["凭", "憑"], ["凯", "凱"], ["击", "擊"], ["划", "劃"], ["刘", "劉"],
-    ["则", "則"], ["刚", "剛"], ["创", "創"], ["删", "刪"], ["别", "別"], ["刹", "剎"], ["制", "製"], ["剂", "劑"], ["剑", "劍"], ["剧", "劇"],
-    ["办", "辦"], ["务", "務"], ["动", "動"], ["励", "勵"], ["劲", "勁"], ["劳", "勞"], ["势", "勢"], ["勋", "勳"], ["匀", "勻"], ["区", "區"],
-    ["医", "醫"], ["华", "華"], ["协", "協"], ["单", "單"], ["卖", "賣"], ["卢", "盧"], ["卫", "衛"], ["却", "卻"], ["厅", "廳"], ["历", "歷"],
-    ["压", "壓"], ["县", "縣"], ["参", "參"], ["双", "雙"], ["变", "變"], ["叙", "敘"], ["叶", "葉"], ["号", "號"], ["叹", "嘆"], ["听", "聽"],
-    ["启", "啟"], ["吴", "吳"], ["员", "員"], ["呛", "嗆"], ["呜", "嗚"], ["咏", "詠"], ["咙", "嚨"], ["咸", "鹹"], ["响", "響"], ["哑", "啞"],
-    ["哗", "嘩"], ["唇", "脣"], ["唤", "喚"], ["啸", "嘯"], ["喷", "噴"], ["嘱", "囑"], ["团", "團"], ["园", "園"], ["围", "圍"], ["国", "國"],
-    ["图", "圖"], ["圆", "圓"], ["圣", "聖"], ["场", "場"], ["坏", "壞"], ["块", "塊"], ["坚", "堅"], ["坛", "壇"], ["坝", "壩"], ["坞", "塢"],
-    ["垄", "壟"], ["垒", "壘"], ["垫", "墊"], ["埙", "塤"], ["堕", "墮"], ["墙", "牆"], ["壮", "壯"], ["声", "聲"], ["壳", "殼"], ["处", "處"],
-    ["备", "備"], ["复", "復"], ["够", "夠"], ["头", "頭"], ["夹", "夾"], ["夺", "奪"], ["奋", "奮"], ["奖", "獎"], ["妇", "婦"], ["妈", "媽"],
-    ["妆", "妝"], ["姗", "姍"], ["娱", "娛"], ["婴", "嬰"], ["孙", "孫"], ["学", "學"], ["宁", "寧"], ["宝", "寶"], ["实", "實"], ["宠", "寵"],
-    ["审", "審"], ["宫", "宮"], ["宽", "寬"], ["宾", "賓"], ["对", "對"], ["寻", "尋"], ["导", "導"], ["寿", "壽"], ["将", "將"], ["尔", "爾"],
-    ["尘", "塵"], ["尝", "嘗"], ["层", "層"], ["属", "屬"], ["岁", "歲"], ["岂", "豈"], ["岛", "島"], ["岭", "嶺"], ["岳", "嶽"], ["峡", "峽"],
-    ["币", "幣"], ["帅", "帥"], ["师", "師"], ["帐", "帳"], ["帘", "簾"], ["带", "帶"], ["帮", "幫"], ["干", "幹"], ["并", "並"], ["广", "廣"],
-    ["庆", "慶"], ["庐", "廬"], ["库", "庫"], ["应", "應"], ["庙", "廟"], ["废", "廢"], ["开", "開"], ["异", "異"], ["弃", "棄"], ["张", "張"],
-    ["弥", "彌"], ["弯", "彎"], ["弹", "彈"], ["强", "強"], ["归", "歸"], ["录", "錄"], ["当", "當"], ["彻", "徹"], ["径", "徑"], ["忆", "憶"],
-  ];
-
-  let openCcMaps = null;
-  let openCcMapsPromise = null;
-
-  function fallbackChineseMaps() {
-    return {
-      traditional: new Map(TRADITIONAL_PAIRS),
-      simple: new Map(TRADITIONAL_PAIRS.map(([simple, traditional]) => [traditional, simple])),
-      source: "fallback",
-    };
-  }
-
-  function parseOpenCcCharacterDictionary(text) {
-    const map = new Map();
-    String(text || "").split(/\r?\n/).forEach((line) => {
-      const value = line.trim();
-      if (!value || value.startsWith("#")) return;
-      const [source, rawTargets] = value.split("\t", 2);
-      const target = String(rawTargets || "").trim().split(/\s+/)[0];
-      if (source && target) map.set(source, target);
-    });
-    return map;
-  }
-
-  function loadOpenCcMaps() {
-    if (openCcMaps) return Promise.resolve(openCcMaps);
-    if (!openCcMapsPromise) {
-      openCcMapsPromise = Promise.all([
-        fetchStaticText("/vendor/opencc-st-characters.txt"),
-        fetchStaticText("/vendor/opencc-ts-characters.txt"),
-      ]).then(([simplifiedToTraditional, traditionalToSimplified]) => {
-        const maps = {
-          traditional: parseOpenCcCharacterDictionary(simplifiedToTraditional),
-          simple: parseOpenCcCharacterDictionary(traditionalToSimplified),
-          source: "opencc",
-        };
-        if (maps.traditional.size < 3000 || maps.simple.size < 3000) throw new Error("OpenCC 字符词典不完整");
-        openCcMaps = maps;
-        return maps;
-      }).catch(() => {
-        openCcMaps = fallbackChineseMaps();
-        return openCcMaps;
-      });
-    }
-    return openCcMapsPromise;
-  }
-
-  function runTextOperation(toolId, input, secondary, parameter, option) {
-    const lines = input.replace(/\r\n?/g, "\n").split("\n");
-    if (toolId === "text-stats") {
-      const words = textWords(input).length;
-      const cjkCharacters = (input.match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu) || []).length;
-      const latinWords = textWords(input).filter((word) => !/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(word)).length;
-      const paragraphs = input.trim() ? input.trim().split(/\n\s*\n/).filter(Boolean).length : 0;
-      const readingMinutes = input.trim() ? Math.max(1, Math.ceil(latinWords / 220 + cjkCharacters / 400)) : 0;
-      return `字符（含空格）：${[...input].length}\n字符（不含空格）：${[...input.replace(/\s/g, "")].length}\n单词/连续词组：${words}\n中日韩字符：${cjkCharacters}\n行：${input ? lines.length : 0}\n段落：${paragraphs}\n预计阅读：${readingMinutes} 分钟`;
-    }
-    if (toolId === "dedupe-lines") return [...new Set(lines)].join("\n");
-    if (toolId === "remove-empty-lines") return lines.filter((line) => line.trim()).join("\n");
-    if (toolId === "collapse-spaces") return lines.map((line) => line.trim().replace(/[ \t\u3000]+/g, " ")).join("\n");
-    if (toolId === "letter-case") return option === "lower" ? input.toLocaleLowerCase() : option === "title" ? input.replace(/\p{L}+/gu, (word) => word[0].toLocaleUpperCase() + word.slice(1).toLocaleLowerCase()) : input.toLocaleUpperCase();
-    if (["camel-case", "pascal-case", "snake-case", "kebab-case"].includes(toolId)) {
-      const words = caseWords(input);
-      if (toolId === "snake-case") return words.join("_");
-      if (toolId === "kebab-case") return words.join("-");
-      const joined = words.map((word, index) => (toolId === "camel-case" && index === 0) ? word : word[0]?.toLocaleUpperCase() + word.slice(1)).join("");
-      return joined;
-    }
-    if (toolId === "line-prefix") return lines.map((line) => `${parameter}${line}`).join("\n");
-    if (toolId === "line-suffix") return lines.map((line) => `${line}${parameter}`).join("\n");
-    if (toolId === "line-numbers") return lines.map((line, index) => `${index + 1}${parameter || ". "}${line}`).join("\n");
-    if (toolId === "find-replace") return input.split(parameter).join(secondary);
-    if (toolId === "regex-replace") return input.replace(new RegExp(parameter, option || "g"), secondary);
-    if (toolId === "sort-lines") return [...lines].sort((a, b) => option === "desc" ? b.localeCompare(a, "zh-CN", { numeric: true }) : a.localeCompare(b, "zh-CN", { numeric: true })).join("\n");
-    if (toolId === "shuffle-lines") {
-      const result = [...lines];
-      for (let index = result.length - 1; index > 0; index -= 1) { const target = secureInt(0, index); [result[index], result[target]] = [result[target], result[index]]; }
-      return result.join("\n");
-    }
-    if (toolId === "text-diff") {
-      const right = secondary.replace(/\r\n?/g, "\n").split("\n");
-      const cells = (lines.length + 1) * (right.length + 1);
-      if (cells > 1_000_000) throw new Error("对比文本过长，请将两侧文本控制在约 1000 行以内");
-      const width = right.length + 1;
-      const matrix = new Uint16Array(cells);
-      for (let leftIndex = lines.length - 1; leftIndex >= 0; leftIndex -= 1) {
-        for (let rightIndex = right.length - 1; rightIndex >= 0; rightIndex -= 1) {
-          const offset = leftIndex * width + rightIndex;
-          matrix[offset] = lines[leftIndex] === right[rightIndex]
-            ? matrix[(leftIndex + 1) * width + rightIndex + 1] + 1
-            : Math.max(matrix[(leftIndex + 1) * width + rightIndex], matrix[leftIndex * width + rightIndex + 1]);
-        }
-      }
-      const result = [];
-      let leftIndex = 0;
-      let rightIndex = 0;
-      while (leftIndex < lines.length || rightIndex < right.length) {
-        if (leftIndex < lines.length && rightIndex < right.length && lines[leftIndex] === right[rightIndex]) {
-          result.push(`  ${lines[leftIndex]}`);
-          leftIndex += 1;
-          rightIndex += 1;
-        } else if (rightIndex < right.length && (leftIndex >= lines.length || matrix[leftIndex * width + rightIndex + 1] >= matrix[(leftIndex + 1) * width + rightIndex])) {
-          result.push(`+ ${right[rightIndex]}`);
-          rightIndex += 1;
-        } else {
-          result.push(`- ${lines[leftIndex]}`);
-          leftIndex += 1;
-        }
-      }
-      return result.join("\n");
-    }
-    const extractors = {
-      "extract-email": /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g,
-      "extract-url": /https?:\/\/[^\s<>'"]+/gi,
-      "extract-ip": /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g,
-      "extract-number-date": /(?:\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b)|(?:[-+]?\d+(?:\.\d+)?)/g,
-    };
-    if (extractors[toolId]) return [...new Set(input.match(extractors[toolId]) || [])].join("\n");
-    if (toolId === "base64") return option === "decode" ? base64ToUtf8(input) : utf8ToBase64(input);
-    if (toolId === "url-code") return option === "decode" ? decodeURIComponent(input) : encodeURIComponent(input);
-    if (toolId === "html-entities") {
-      if (option === "decode") { const area = document.createElement("textarea"); area.innerHTML = input; return area.value; }
-      return input.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
-    }
-    if (toolId === "unicode-code") {
-      if (option === "decode") return input.replace(/\\u\{([0-9a-f]+)\}|\\u([0-9a-f]{4})/gi, (_, wide, narrow) => String.fromCodePoint(parseInt(wide || narrow, 16)));
-      return [...input].map((char) => { const code = char.codePointAt(0); return code > 0xffff ? `\\u{${code.toString(16)}}` : `\\u${code.toString(16).padStart(4, "0")}`; }).join("");
-    }
-    if (toolId.startsWith("json-")) {
-      const parsed = JSON.parse(input);
-      if (toolId === "json-validate") return "JSON 合法\n根类型：" + (Array.isArray(parsed) ? "数组" : typeof parsed);
-      return JSON.stringify(parsed, null, toolId === "json-format" ? 2 : 0);
-    }
-    if (toolId === "chinese-convert") {
-      const maps = openCcMaps || fallbackChineseMaps();
-      const map = option === "traditional" ? maps.traditional : maps.simple;
-      return [...input].map((char) => map.get(char) || char).join("");
-    }
-    return input;
-  }
-
   function textToolFields(toolId) {
     const secondaryTools = new Set(["find-replace", "regex-replace", "text-diff"]);
     const parameterLabels = {
@@ -768,11 +353,11 @@
       try {
         if (tool.id === "chinese-convert") {
           setMessage("正在加载本地简繁词典…");
-          await loadOpenCcMaps();
+          await loadOpenCcMaps(fetchStaticText);
         }
         const output = runTextOperation(tool.id, byId("textToolInput").value, byId("textToolSecondary").value, byId("textToolParameter").value, byId("textToolOption")?.value || "");
         byId("textToolOutput").value = output;
-        setMessage(tool.id === "chinese-convert" && openCcMaps?.source !== "opencc" ? "官方词典不可用，已使用内置基础词典" : "处理完成");
+        setMessage(tool.id === "chinese-convert" && getOpenCcSource() !== "opencc" ? "官方词典不可用，已使用内置基础词典" : "处理完成");
       } catch (error) {
         setMessage(`处理失败：${error.message}`, true);
       } finally {
@@ -782,104 +367,6 @@
     byId("copyTextToolBtn").addEventListener("click", (event) => copyText(byId("textToolOutput").value, event.currentTarget));
     byId("downloadTextToolBtn").addEventListener("click", () => downloadText(`${tool.id}-${Date.now()}.txt`, byId("textToolOutput").value));
     bindConfigControls();
-  }
-
-  function randomUnit() {
-    const values = new Uint32Array(1);
-    crypto.getRandomValues(values);
-    return values[0] / 0x100000000;
-  }
-
-  function secureInt(minimum, maximum) {
-    const min = Math.ceil(Number(minimum));
-    const max = Math.floor(Number(maximum));
-    if (!Number.isFinite(min) || !Number.isFinite(max) || max < min) throw new Error("数值范围无效");
-    const range = max - min + 1;
-    if (range <= 0 || range > 0x100000000) throw new Error("数值范围过大");
-    const limit = Math.floor(0x100000000 / range) * range;
-    const values = new Uint32Array(1);
-    do { crypto.getRandomValues(values); } while (values[0] >= limit);
-    return min + (values[0] % range);
-  }
-
-  function randomColor() {
-    return `#${secureInt(0, 0xffffff).toString(16).padStart(6, "0")}`;
-  }
-
-  function secureUuid() {
-    if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
-    const bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-  }
-
-  function shuffled(items) {
-    const output = [...items];
-    for (let index = output.length - 1; index > 0; index -= 1) { const target = secureInt(0, index); [output[index], output[target]] = [output[target], output[index]]; }
-    return output;
-  }
-
-  function randomToolResult(toolId, values) {
-    const minimum = Number(values.minimum || 0);
-    const maximum = Number(values.maximum || 100);
-    const count = Math.max(1, Math.min(1000, Number(values.count || 1)));
-    const entries = String(values.entries || "").split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean);
-    if (toolId === "random-integer") return Array.from({ length: count }, () => secureInt(minimum, maximum)).join("\n");
-    if (toolId === "random-decimal") return Array.from({ length: count }, () => (minimum + randomUnit() * (maximum - minimum)).toFixed(Math.max(0, Math.min(12, Number(values.precision || 2))))).join("\n");
-    if (toolId === "random-string") {
-      const alphabet = [...new Set(String(values.alphabet || "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"))].join("");
-      if (!alphabet) throw new Error("字符集不能为空");
-      const length = Math.max(1, Math.min(4096, Number(values.length || 16)));
-      return Array.from({ length }, () => alphabet[secureInt(0, alphabet.length - 1)]).join("");
-    }
-    if (toolId === "random-password") {
-      const sets = [
-        values.passwordUpper !== false && "ABCDEFGHJKLMNPQRSTUVWXYZ",
-        values.passwordLower !== false && "abcdefghijkmnopqrstuvwxyz",
-        values.passwordDigits !== false && "23456789",
-        values.passwordSymbols !== false && "!@#$%^&*_-+=",
-      ].filter(Boolean);
-      if (!sets.length) throw new Error("请至少选择一种密码字符");
-      const length = Math.max(sets.length, Math.min(4096, Number(values.length || 20)));
-      const alphabet = sets.join("");
-      const characters = sets.map((set) => set[secureInt(0, set.length - 1)]);
-      while (characters.length < length) characters.push(alphabet[secureInt(0, alphabet.length - 1)]);
-      return shuffled(characters).join("");
-    }
-    if (toolId === "random-uuid") return Array.from({ length: count }, secureUuid).join("\n");
-    if (["random-draw", "random-wheel", "random-decision"].includes(toolId)) {
-      if (!entries.length) throw new Error("请至少输入一个选项");
-      return entries[secureInt(0, entries.length - 1)];
-    }
-    if (toolId === "weighted-wheel") {
-      const weighted = entries.map((line) => { const [name, rawWeight] = line.split("|"); return { name: name.trim(), weight: Math.max(0, Number(rawWeight || 1)) }; }).filter((item) => item.name && item.weight > 0);
-      const total = weighted.reduce((sum, item) => sum + item.weight, 0);
-      if (!total) throw new Error("请按“选项|权重”输入至少一项");
-      let target = randomUnit() * total;
-      return weighted.find((item) => (target -= item.weight) <= 0)?.name || weighted[weighted.length - 1].name;
-    }
-    if (toolId === "random-groups") {
-      if (!entries.length) throw new Error("请输入分组成员");
-      const groups = Array.from({ length: Math.max(1, Math.min(entries.length, Number(values.groups || 2))) }, () => []);
-      shuffled(entries).forEach((entry, index) => groups[index % groups.length].push(entry));
-      return groups.map((group, index) => `第 ${index + 1} 组\n${group.join("\n")}`).join("\n\n");
-    }
-    if (toolId === "random-date") {
-      const start = new Date(values.startDate || "2000-01-01").getTime();
-      const end = new Date(values.endDate || new Date().toISOString().slice(0, 10)).getTime();
-      if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) throw new Error("日期范围无效");
-      return new Date(start + Math.floor(randomUnit() * (end - start + 86400000))).toISOString().slice(0, 10);
-    }
-    if (toolId === "random-time") return `${String(secureInt(0, 23)).padStart(2, "0")}:${String(secureInt(0, 59)).padStart(2, "0")}:${String(secureInt(0, 59)).padStart(2, "0")}`;
-    if (toolId === "random-color") return randomColor();
-    if (toolId === "random-palette") return Array.from({ length: Math.max(2, Math.min(20, Number(values.count || 5))) }, randomColor).join("\n");
-    if (toolId === "coin-flip") return secureInt(0, 1) ? "正面" : "反面";
-    if (toolId.startsWith("dice-d")) return String(secureInt(1, Number(toolId.slice(6))));
-    if (toolId === "custom-dice") return String(secureInt(1, Math.max(2, Math.min(1_000_000, Number(values.sides || 6)))));
-    return "";
   }
 
   function renderRandomTool(tool) {
@@ -933,11 +420,13 @@
     byId("toolWorkbenchTitle").textContent = currentTool.name;
     byId("toolWorkbenchDescription").textContent = currentTool.description;
     setMessage("");
-    if (currentTool.category === "text") renderTextTool(currentTool);
-    else if (currentTool.category === "random") renderRandomTool(currentTool);
-    else if (currentTool.category === "file") renderFileTool(currentTool);
-    else if (currentTool.category === "image") renderImageTool(currentTool);
-    else renderTemporaryTool(currentTool);
+    runToolRenderer(currentTool, {
+      text: renderTextTool,
+      random: renderRandomTool,
+      file: renderFileTool,
+      image: renderImageTool,
+      temporary: renderTemporaryTool,
+    });
     updateWorkbenchActions();
   }
 
@@ -1029,160 +518,6 @@
   }
 
   window.WYJTools = { init, show, hide, openTool, closeWorkbench, searchTools, getSummary, tools: TOOLS, test: { buildWifiPayload, buildVcardPayload } };
-
-  function uint32(value) {
-    return new Uint8Array([value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255]);
-  }
-
-  function uint16(value) {
-    return new Uint8Array([value & 255, (value >>> 8) & 255]);
-  }
-
-  function joinBytes(parts) {
-    const size = parts.reduce((sum, part) => sum + part.length, 0);
-    const output = new Uint8Array(size);
-    let offset = 0;
-    parts.forEach((part) => { output.set(part, offset); offset += part.length; });
-    return output;
-  }
-
-  const CRC_TABLE = (() => {
-    const table = new Uint32Array(256);
-    for (let index = 0; index < 256; index += 1) {
-      let value = index;
-      for (let bit = 0; bit < 8; bit += 1) value = (value & 1) ? (0xedb88320 ^ (value >>> 1)) : (value >>> 1);
-      table[index] = value >>> 0;
-    }
-    return table;
-  })();
-
-  function crc32(bytes) {
-    let value = 0xffffffff;
-    for (const byte of bytes) value = CRC_TABLE[(value ^ byte) & 255] ^ (value >>> 8);
-    return (value ^ 0xffffffff) >>> 0;
-  }
-
-  function zipBlob(entries) {
-    const encoder = new TextEncoder();
-    const localParts = [];
-    const centralParts = [];
-    let offset = 0;
-    entries.forEach((entry) => {
-      const name = encoder.encode(String(entry.name).replace(/[\\/:*?"<>|]+/g, "_").slice(0, 180) || "file");
-      const data = entry.data instanceof Uint8Array ? entry.data : new Uint8Array(entry.data);
-      const crc = crc32(data);
-      const local = joinBytes([
-        new Uint8Array([0x50, 0x4b, 0x03, 0x04]), uint16(20), uint16(0x0800), uint16(0), uint16(0), uint16(0),
-        uint32(crc), uint32(data.length), uint32(data.length), uint16(name.length), uint16(0), name, data,
-      ]);
-      localParts.push(local);
-      centralParts.push(joinBytes([
-        new Uint8Array([0x50, 0x4b, 0x01, 0x02]), uint16(20), uint16(20), uint16(0x0800), uint16(0), uint16(0), uint16(0),
-        uint32(crc), uint32(data.length), uint32(data.length), uint16(name.length), uint16(0), uint16(0), uint16(0), uint16(0), uint32(0), uint32(offset), name,
-      ]));
-      offset += local.length;
-    });
-    const central = joinBytes(centralParts);
-    const end = joinBytes([
-      new Uint8Array([0x50, 0x4b, 0x05, 0x06]), uint16(0), uint16(0), uint16(entries.length), uint16(entries.length),
-      uint32(central.length), uint32(offset), uint16(0),
-    ]);
-    return new Blob([...localParts, central, end], { type: "application/zip" });
-  }
-
-  function parseCsv(text) {
-    const rows = [];
-    let row = [];
-    let field = "";
-    let quoted = false;
-    const source = String(text || "").replace(/^\ufeff/, "");
-    for (let index = 0; index < source.length; index += 1) {
-      const char = source[index];
-      if (quoted) {
-        if (char === '"' && source[index + 1] === '"') { field += '"'; index += 1; }
-        else if (char === '"') quoted = false;
-        else field += char;
-      } else if (char === '"' && !field) quoted = true;
-      else if (char === ",") { row.push(field); field = ""; }
-      else if (char === "\n") { row.push(field.replace(/\r$/, "")); rows.push(row); row = []; field = ""; }
-      else field += char;
-    }
-    row.push(field.replace(/\r$/, ""));
-    if (row.some((item) => item !== "") || rows.length === 0) rows.push(row);
-    return rows;
-  }
-
-  function csvCell(value) {
-    const text = String(value ?? "");
-    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-  }
-
-  function csvString(rows) {
-    return rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
-  }
-
-  async function decodeLocalText(file, encoding = "utf-8") {
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    try {
-      return new TextDecoder(encoding || "utf-8", { fatal: true }).decode(bytes);
-    } catch (error) {
-      if (error instanceof RangeError) throw new Error(`当前浏览器不支持 ${encoding} 编码`);
-      throw new Error(`${file.name} 不是有效的 ${String(encoding || "utf-8").toUpperCase()} 文本，请选择正确的源编码`);
-    }
-  }
-
-  function validateCsvTable(rows, fileName = "CSV 文件") {
-    if (!rows.length || (rows.length === 1 && rows[0].every((cell) => !cell))) throw new Error(`${fileName} 没有可处理的数据`);
-    const width = rows[0].length;
-    if (!width || rows[0].every((cell) => !String(cell).trim())) throw new Error(`${fileName} 缺少表头`);
-    const invalidRow = rows.findIndex((row) => row.length !== width);
-    if (invalidRow >= 0) throw new Error(`${fileName} 第 ${invalidRow + 1} 行列数与表头不一致`);
-    return rows;
-  }
-
-  function md5Bytes(input) {
-    const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
-    const length = bytes.length;
-    const paddedLength = (((length + 8) >>> 6) + 1) * 64;
-    const buffer = new Uint8Array(paddedLength);
-    buffer.set(bytes);
-    buffer[length] = 0x80;
-    const bitLength = length * 8;
-    for (let index = 0; index < 8; index += 1) buffer[paddedLength - 8 + index] = Math.floor(bitLength / (2 ** (8 * index))) & 255;
-    const view = new DataView(buffer.buffer);
-    let a0 = 0x67452301;
-    let b0 = 0xefcdab89;
-    let c0 = 0x98badcfe;
-    let d0 = 0x10325476;
-    const shifts = [7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
-    const constants = Array.from({ length: 64 }, (_, index) => Math.floor(Math.abs(Math.sin(index + 1)) * 0x100000000) >>> 0);
-    const rotate = (value, amount) => ((value << amount) | (value >>> (32 - amount))) >>> 0;
-    for (let offset = 0; offset < paddedLength; offset += 64) {
-      const words = Array.from({ length: 16 }, (_, index) => view.getUint32(offset + index * 4, true));
-      let a = a0; let b = b0; let c = c0; let d = d0;
-      for (let index = 0; index < 64; index += 1) {
-        let f; let g;
-        if (index < 16) { f = (b & c) | (~b & d); g = index; }
-        else if (index < 32) { f = (d & b) | (~d & c); g = (5 * index + 1) % 16; }
-        else if (index < 48) { f = b ^ c ^ d; g = (3 * index + 5) % 16; }
-        else { f = c ^ (b | ~d); g = (7 * index) % 16; }
-        const nextD = c;
-        c = b;
-        b = (b + rotate((a + f + constants[index] + words[g]) >>> 0, shifts[index])) >>> 0;
-        a = d;
-        d = nextD;
-      }
-      a0 = (a0 + a) >>> 0; b0 = (b0 + b) >>> 0; c0 = (c0 + c) >>> 0; d0 = (d0 + d) >>> 0;
-    }
-    return [a0, b0, c0, d0].map((value) => [0, 8, 16, 24].map((shift) => ((value >>> shift) & 255).toString(16).padStart(2, "0")).join("")).join("");
-  }
-
-  async function digestFile(file, algorithm) {
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    if (algorithm === "MD5") return md5Bytes(bytes);
-    const digest = new Uint8Array(await crypto.subtle.digest(algorithm, bytes));
-    return [...digest].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  }
 
   function pdfBytesFromJpegs(images) {
     const encoder = new TextEncoder();
@@ -1406,54 +741,6 @@
     };
   }
 
-  function colorRgb(hex) {
-    const normalized = String(hex || "").trim().replace(/^#/, "");
-    if (!/^[0-9a-f]{3}([0-9a-f]{3})?$/i.test(normalized)) throw new Error("请输入有效的 HEX 颜色");
-    const full = normalized.length === 3 ? [...normalized].map((char) => char + char).join("") : normalized;
-    return [0, 2, 4].map((index) => parseInt(full.slice(index, index + 2), 16));
-  }
-
-  function hslToRgb(hue, saturation, light) {
-    const h = ((Number(hue) % 360) + 360) % 360;
-    const s = Math.max(0, Math.min(100, Number(saturation))) / 100;
-    const l = Math.max(0, Math.min(100, Number(light))) / 100;
-    const chroma = (1 - Math.abs(2 * l - 1)) * s;
-    const section = h / 60;
-    const second = chroma * (1 - Math.abs((section % 2) - 1));
-    const [red, green, blue] = section < 1 ? [chroma, second, 0] : section < 2 ? [second, chroma, 0] : section < 3 ? [0, chroma, second] : section < 4 ? [0, second, chroma] : section < 5 ? [second, 0, chroma] : [chroma, 0, second];
-    const match = l - chroma / 2;
-    return [red, green, blue].map((value) => Math.round((value + match) * 255));
-  }
-
-  function parseColorValue(value) {
-    const input = String(value || "").trim();
-    if (/^#?[0-9a-f]{3}([0-9a-f]{3})?$/i.test(input)) return colorRgb(input);
-    const rgb = input.match(/^rgba?\(\s*([\d.]+)%?\s*[, ]\s*([\d.]+)%?\s*[, ]\s*([\d.]+)%?(?:\s*[,/]\s*[\d.]+%?)?\s*\)$/i);
-    if (rgb) {
-      const percent = /%/.test(input);
-      return rgb.slice(1, 4).map((item) => Math.round(Math.max(0, Math.min(percent ? 100 : 255, Number(item))) * (percent ? 2.55 : 1)));
-    }
-    const hsl = input.match(/^hsla?\(\s*([-\d.]+)(?:deg)?\s*[, ]\s*([\d.]+)%\s*[, ]\s*([\d.]+)%(?:\s*[,/]\s*[\d.]+%?)?\s*\)$/i);
-    if (hsl) return hslToRgb(hsl[1], hsl[2], hsl[3]);
-    throw new Error("请输入 HEX、RGB 或 HSL 颜色，例如 #246da8、rgb(36,109,168) 或 hsl(204,65%,40%)");
-  }
-
-  function rgbToHex(red, green, blue) {
-    return `#${[red, green, blue].map((value) => Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, "0")).join("")}`;
-  }
-
-  function rgbToHsl(red, green, blue) {
-    const values = [red, green, blue].map((value) => value / 255);
-    const max = Math.max(...values); const min = Math.min(...values);
-    const light = (max + min) / 2;
-    if (max === min) return [0, 0, Math.round(light * 100)];
-    const delta = max - min;
-    const saturation = delta / (1 - Math.abs(2 * light - 1));
-    let hue = max === values[0] ? ((values[1] - values[2]) / delta) % 6 : max === values[1] ? (values[2] - values[0]) / delta + 2 : (values[0] - values[1]) / delta + 4;
-    hue = Math.round(hue * 60); if (hue < 0) hue += 360;
-    return [hue, Math.round(saturation * 100), Math.round(light * 100)];
-  }
-
   async function imageCanvas(toolId, bitmap, values, overlayBitmap = null) {
     let sourceX = 0; let sourceY = 0; let sourceWidth = bitmap.width; let sourceHeight = bitmap.height;
     let width = bitmap.width; let height = bitmap.height;
@@ -1527,101 +814,6 @@
       const key = rgb.join(","); colors.set(key, (colors.get(key) || 0) + 1);
     }
     return [...colors.entries()].sort((a, b) => b[1] - a[1]).slice(0, count).map(([key]) => `#${key.split(",").map((value) => Number(value).toString(16).padStart(2, "0")).join("")}`);
-  }
-
-  function readExifField(bytes, view, tiffStart, entryOffset, littleEndian) {
-    if (entryOffset + 12 > bytes.length) return null;
-    const type = view.getUint16(entryOffset + 2, littleEndian);
-    const count = view.getUint32(entryOffset + 4, littleEndian);
-    const unitSize = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 7: 1, 9: 4, 10: 8 }[type] || 0;
-    const byteLength = count * unitSize;
-    if (!unitSize || !Number.isSafeInteger(byteLength) || byteLength > bytes.length) return null;
-    const dataOffset = byteLength <= 4 ? entryOffset + 8 : tiffStart + view.getUint32(entryOffset + 8, littleEndian);
-    if (dataOffset < 0 || dataOffset + byteLength > bytes.length) return null;
-    if (type === 2) return new TextDecoder("ascii").decode(bytes.slice(dataOffset, dataOffset + byteLength)).replace(/\0+$/, "").trim();
-    if (type === 3) return view.getUint16(dataOffset, littleEndian);
-    if (type === 4) return view.getUint32(dataOffset, littleEndian);
-    return null;
-  }
-
-  function parseExifIfd(bytes, view, tiffStart, relativeOffset, littleEndian) {
-    const start = tiffStart + Number(relativeOffset || 0);
-    if (start < 0 || start + 2 > bytes.length) return new Map();
-    const count = view.getUint16(start, littleEndian);
-    if (count > 512 || start + 2 + count * 12 > bytes.length) return new Map();
-    const fields = new Map();
-    for (let index = 0; index < count; index += 1) {
-      const entry = start + 2 + index * 12;
-      const tag = view.getUint16(entry, littleEndian);
-      const value = readExifField(bytes, view, tiffStart, entry, littleEndian);
-      if (value !== null && value !== "") fields.set(tag, value);
-    }
-    return fields;
-  }
-
-  function exifSummary(bytes) {
-    if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return "不是 JPEG 文件；当前查看器只解析 JPEG EXIF，图片仍然只在本机读取。";
-    let offset = 2;
-    let app1 = 0;
-    let fields = new Map();
-    let exifFields = new Map();
-    while (offset + 4 <= bytes.length && bytes[offset] === 0xff) {
-      const marker = bytes[offset + 1];
-      if (marker === 0xda || marker === 0xd9) break;
-      const length = (bytes[offset + 2] << 8) + bytes[offset + 3];
-      const segmentEnd = offset + 2 + length;
-      if (length < 2 || segmentEnd > bytes.length) break;
-      const payload = offset + 4;
-      if (marker === 0xe1) {
-        app1 += 1;
-        const exifHeader = bytes[payload] === 0x45 && bytes[payload + 1] === 0x78 && bytes[payload + 2] === 0x69 && bytes[payload + 3] === 0x66 && bytes[payload + 4] === 0 && bytes[payload + 5] === 0;
-        if (exifHeader) {
-          const tiffStart = payload + 6;
-          if (tiffStart + 8 <= segmentEnd) {
-            const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-            const littleEndian = bytes[tiffStart] === 0x49 && bytes[tiffStart + 1] === 0x49;
-            const bigEndian = bytes[tiffStart] === 0x4d && bytes[tiffStart + 1] === 0x4d;
-            if ((littleEndian || bigEndian) && view.getUint16(tiffStart + 2, littleEndian) === 42) {
-              fields = parseExifIfd(bytes, view, tiffStart, view.getUint32(tiffStart + 4, littleEndian), littleEndian);
-              if (fields.has(0x8769)) exifFields = parseExifIfd(bytes, view, tiffStart, fields.get(0x8769), littleEndian);
-            }
-          }
-        }
-      }
-      offset = segmentEnd;
-    }
-    const orientationNames = { 1: "正常", 2: "水平镜像", 3: "旋转 180°", 4: "垂直镜像", 5: "镜像并旋转 90°", 6: "旋转 90°", 7: "镜像并旋转 270°", 8: "旋转 270°" };
-    const details = [
-      `JPEG APP1 区块：${app1}`,
-      `相机厂商：${fields.get(0x010f) || "未记录"}`,
-      `相机型号：${fields.get(0x0110) || "未记录"}`,
-      `拍摄时间：${exifFields.get(0x9003) || fields.get(0x0132) || "未记录"}`,
-      `镜头型号：${exifFields.get(0xa434) || "未记录"}`,
-      `方向：${orientationNames[fields.get(0x0112)] || fields.get(0x0112) || "未记录"}`,
-      `图像尺寸：${exifFields.get(0xa002) && exifFields.get(0xa003) ? `${exifFields.get(0xa002)} × ${exifFields.get(0xa003)}` : "未记录"}`,
-      `GPS 标签：${fields.has(0x8825) ? "检测到，分享前建议移除" : "未检测到"}`,
-      "说明：仅在浏览器本地读取，不显示具体定位坐标。",
-    ];
-    return details.join("\n");
-  }
-
-  function stripJpegMetadata(bytes) {
-    if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return bytes;
-    const parts = [bytes.slice(0, 2)];
-    let offset = 2;
-    while (offset < bytes.length) {
-      if (bytes[offset] !== 0xff || offset + 1 >= bytes.length) { parts.push(bytes.slice(offset)); break; }
-      const marker = bytes[offset + 1];
-      if (marker === 0xda || marker === 0xd9) { parts.push(bytes.slice(offset)); break; }
-      if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) { parts.push(bytes.slice(offset, offset + 2)); offset += 2; continue; }
-      if (offset + 4 > bytes.length) break;
-      const length = (bytes[offset + 2] << 8) + bytes[offset + 3];
-      const segmentEnd = offset + 2 + length;
-      if (length < 2 || segmentEnd > bytes.length) { parts.push(bytes.slice(offset)); break; }
-      if (marker !== 0xe1 && marker !== 0xfe) parts.push(bytes.slice(offset, segmentEnd));
-      offset = segmentEnd;
-    }
-    return joinBytes(parts);
   }
 
   function imageFields(toolId) {
@@ -1952,76 +1144,6 @@
       <label class="tool-wide"><span>备注（可空）</span><textarea id="qrContactNote" data-config="contactNote" maxlength="500"></textarea></label>
     </div>`;
     return '<label class="tool-wide"><span>文本内容</span><textarea id="qrText" data-config="text" maxlength="3000"></textarea></label>';
-  }
-
-  function escapeWifiValue(value) {
-    return String(value ?? "").replace(/([\\;,:"])/g, "\\$1");
-  }
-
-  function buildWifiPayload({ name, security = "WPA", password = "", hidden = false } = {}) {
-    const ssid = String(name ?? "");
-    if (!ssid.trim()) throw new Error("请输入 Wi-Fi 网络名称");
-    if (/[\r\n\0]/.test(ssid)) throw new Error("Wi-Fi 网络名称不能包含换行或空字符");
-    if (new TextEncoder().encode(ssid).length > 32) throw new Error("Wi-Fi 网络名称不能超过 32 字节");
-    const type = String(security || "WPA");
-    if (!["WPA", "WEP", "nopass"].includes(type)) throw new Error("Wi-Fi 安全类型无效");
-    let secret = String(password ?? "");
-    if (/[\r\n\0]/.test(secret)) throw new Error("Wi-Fi 密码不能包含换行或空字符");
-    if (type === "nopass") secret = "";
-    if (type === "WPA" && !(/^([0-9a-fA-F]{64})$/.test(secret) || (Array.from(secret).length >= 8 && Array.from(secret).length <= 63))) {
-      throw new Error("WPA 密码需为 8–63 个字符，或 64 位十六进制密钥");
-    }
-    if (type === "WEP") {
-      const bytes = new TextEncoder().encode(secret).length;
-      if (!([5, 13].includes(bytes) || /^(?:[0-9a-fA-F]{10}|[0-9a-fA-F]{26})$/.test(secret))) {
-        throw new Error("WEP 密码需为 5 或 13 字节，或 10 或 26 位十六进制密钥");
-      }
-    }
-    return `WIFI:T:${type};S:${escapeWifiValue(ssid)};P:${escapeWifiValue(secret)};H:${hidden ? "true" : "false"};;`;
-  }
-
-  function escapeVcardValue(value) {
-    return String(value ?? "").replace(/\\/g, "\\\\").replace(/\r?\n/g, "\\n").replace(/([;,])/g, "\\$1");
-  }
-
-  function buildVcardPayload(values = {}) {
-    const family = String(values.family || "").trim();
-    const given = String(values.given || "").trim();
-    const display = String(values.display || "").trim();
-    const phone = String(values.phone || "").trim();
-    const email = String(values.email || "").trim();
-    const organization = String(values.organization || "").trim();
-    const title = String(values.title || "").trim();
-    const street = String(values.street || "").trim();
-    const city = String(values.city || "").trim();
-    const region = String(values.region || "").trim();
-    const postal = String(values.postal || "").trim();
-    const country = String(values.country || "").trim();
-    const website = String(values.website || "").trim();
-    const note = String(values.note || "").trim();
-    if (![family, given, display, phone, email, organization, title, street, city, region, postal, country, website, note].some(Boolean)) throw new Error("请至少填写一项联系人信息");
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("联系人邮箱格式不正确");
-    if (website) {
-      let parsed;
-      try { parsed = new URL(website); } catch (_error) { throw new Error("联系人网址格式不正确"); }
-      if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("联系人网址只支持 http 或 https");
-    }
-    const fullName = display || (family + given) || organization || phone || email;
-    const addressPresent = [street, city, region, postal, country].some(Boolean);
-    return [
-      "BEGIN:VCARD",
-      "VERSION:3.0",
-      `N:${escapeVcardValue(family)};${escapeVcardValue(given)};;;`,
-      `FN:${escapeVcardValue(fullName)}`,
-      phone && `TEL;TYPE=CELL:${escapeVcardValue(phone)}`,
-      email && `EMAIL;TYPE=INTERNET:${escapeVcardValue(email)}`,
-      organization && `ORG:${escapeVcardValue(organization)}`,
-      title && `TITLE:${escapeVcardValue(title)}`,
-      addressPresent && `ADR;TYPE=HOME:;;${escapeVcardValue(street)};${escapeVcardValue(city)};${escapeVcardValue(region)};${escapeVcardValue(postal)};${escapeVcardValue(country)}`,
-      website && `URL:${escapeVcardValue(website)}`,
-      note && `NOTE:${escapeVcardValue(note)}`,
-      "END:VCARD",
-    ].filter(Boolean).join("\r\n");
   }
 
   function temporaryQrContent(kind) {

@@ -21,11 +21,11 @@ def tool_catalog_from_source(source: str) -> dict[str, list[str]]:
     start = source.find("const toolRows = {")
     end = source.find("const TOOLS =", start)
     if start < 0 or end < 0:
-        fail("tools.js toolRows catalog could not be located")
+        fail("js/tools/catalog.js toolRows catalog could not be located")
     catalog: dict[str, list[str]] = {}
     category = ""
-    category_pattern = re.compile(r'^\s{4}(text|file|image|random|temporary):\s*\[$')
-    tool_pattern = re.compile(r'^\s{6}\["([a-z0-9-]+)"\s*,')
+    category_pattern = re.compile(r'^\s+(text|file|image|random|temporary):\s*\[$')
+    tool_pattern = re.compile(r'^\s+\["([a-z0-9-]+)"\s*,')
     for line in source[start:end].splitlines():
         category_match = category_pattern.match(line)
         if category_match:
@@ -87,6 +87,7 @@ def workflow_catalog_from_source(source: str) -> dict[str, list[str]]:
 def main() -> int:
     matrix = json.loads(MATRIX_PATH.read_text(encoding="utf-8"))
     tools_source = (ROOT / "tools.js").read_text(encoding="utf-8")
+    tool_catalog_source = (ROOT / "js" / "tools" / "catalog.js").read_text(encoding="utf-8")
     app_source = (ROOT / "app.js").read_text(encoding="utf-8")
     router_source = (ROOT / "js" / "core" / "router.js").read_text(encoding="utf-8")
     html_source = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -94,7 +95,7 @@ def main() -> int:
     app_test_source = (ROOT / "local-backend" / "test_app_browser.mjs").read_text(encoding="utf-8")
     tool_test_source = (ROOT / "local-backend" / "test_tools_browser.mjs").read_text(encoding="utf-8")
 
-    actual_catalog = tool_catalog_from_source(tools_source)
+    actual_catalog = tool_catalog_from_source(tool_catalog_source)
     expected_catalog = matrix.get("tool_catalog", {})
     if actual_catalog != expected_catalog:
         fail(

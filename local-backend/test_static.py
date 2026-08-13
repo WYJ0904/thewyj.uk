@@ -36,6 +36,12 @@ class StaticSiteTests(unittest.TestCase):
         )
         cls.frontend = cls.app + "\n" + cls.core + "\n" + cls.membership
         cls.tools = (ROOT / "tools.js").read_text(encoding="utf-8")
+        cls.tool_modules = {
+            path.stem: path.read_text(encoding="utf-8")
+            for path in sorted((ROOT / "js" / "tools").glob("*.js"))
+        }
+        cls.tools_bundle = cls.tools + "\n" + "\n".join(cls.tool_modules.values())
+        cls.tool_catalog = cls.tool_modules["catalog"]
         cls.workflows = (ROOT / "workflows.js").read_text(encoding="utf-8")
         cls.styles = (ROOT / "styles.css").read_text(encoding="utf-8")
         cls.product_styles = (ROOT / "product-ui.css").read_text(encoding="utf-8")
@@ -100,7 +106,7 @@ class StaticSiteTests(unittest.TestCase):
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
-        self.assertIn(f'const CACHE = "wyj-shell-{release_token}"', self.worker)
+        self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
         self.assertIn('export const APP_VERSION = "2026-08-11-tool-workflows"', self.core)
         for module in ("api", "config", "router", "session", "storage", "ui"):
             self.assertIn(f'/js/core/{module}.js', self.worker)
@@ -247,11 +253,11 @@ class StaticSiteTests(unittest.TestCase):
             self.assertGreaterEqual(ratio, 4.5, color)
 
     def test_tool_catalog_is_complete_and_unique(self):
-        source = self.tools.split("const toolRows = {", 1)[1].split("const TOOLS =", 1)[0]
+        source = self.tool_catalog.split("const toolRows = {", 1)[1].split("const TOOLS =", 1)[0]
         expected_counts = {"text": 29, "file": 17, "image": 30, "random": 22, "temporary": 5}
         all_ids = []
         for category, expected_count in expected_counts.items():
-            match = re.search(rf"\n    {category}: \[(.*?)\n    \],", source, re.S)
+            match = re.search(rf"\n\s+{category}: \[(.*?)\n\s+\],", source, re.S)
             self.assertIsNotNone(match, category)
             rows = re.findall(
                 r'\["([a-z0-9-]+)",\s*"([^"]+)",\s*"([^"]+)"(?:,\s*"([^"]*)")?\]',
@@ -263,28 +269,28 @@ class StaticSiteTests(unittest.TestCase):
             all_ids.extend(ids)
         self.assertEqual(len(all_ids), 103)
         self.assertEqual(len(set(all_ids)), 103)
-        self.assertIn("function fuzzyToolScore", self.tools)
-        self.assertIn("function boundedEditDistance", self.tools)
-        self.assertIn("searchTools", self.tools)
-        self.assertIn("isAdjacentTransposition(compactToken, word)", self.tools)
-        self.assertNotIn('category?.description || ""', self.tools)
+        self.assertIn("function fuzzyToolScore", self.tool_catalog)
+        self.assertIn("function boundedEditDistance", self.tool_catalog)
+        self.assertIn("searchTools", self.tool_catalog)
+        self.assertIn("isAdjacentTransposition(compactToken, word)", self.tool_catalog)
+        self.assertNotIn('category?.description || ""', self.tool_catalog)
 
     def test_tool_edge_cases_have_production_guards(self):
-        self.assertIn('new TextDecoder(encoding || "utf-8", { fatal: true })', self.tools)
-        self.assertIn("function validateCsvTable", self.tools)
+        self.assertIn('new TextDecoder(encoding || "utf-8", { fatal: true })', self.tools_bundle)
+        self.assertIn("function validateCsvTable", self.tools_bundle)
         self.assertIn("const rows = validateCsvTable(parseCsv(text), file.name)", self.tools)
         self.assertIn("的表头与第一个 CSV 文件不一致", self.tools)
         self.assertIn("CSV 表头存在重复字段", self.tools)
         self.assertIn("csvString([header, ...rows.slice(index, index + size)])", self.tools)
         self.assertIn('value="vertical">垂直翻转', self.tools)
-        self.assertIn("function parseColorValue", self.tools)
-        self.assertIn("function stripJpegMetadata", self.tools)
-        self.assertIn("相机型号", self.tools)
+        self.assertIn("function parseColorValue", self.tools_bundle)
+        self.assertIn("function stripJpegMetadata", self.tools_bundle)
+        self.assertIn("相机型号", self.tools_bundle)
         self.assertIn("function temporaryQrContent", self.tools)
-        self.assertIn("BEGIN:VCARD", self.tools)
-        self.assertIn("WIFI:T:", self.tools)
-        self.assertIn("请至少选择一种密码字符", self.tools)
-        self.assertIn("const matrix = new Uint16Array(cells)", self.tools)
+        self.assertIn("BEGIN:VCARD", self.tools_bundle)
+        self.assertIn("WIFI:T:", self.tools_bundle)
+        self.assertIn("请至少选择一种密码字符", self.tools_bundle)
+        self.assertIn("const matrix = new Uint16Array(cells)", self.tools_bundle)
 
     def test_temporary_file_limit_is_consistent_across_the_full_request_chain(self):
         proxy = (ROOT / "functions" / "api" / "[[path]].js").read_text(encoding="utf-8")
@@ -311,7 +317,7 @@ class StaticSiteTests(unittest.TestCase):
             content = path.read_bytes()
             self.assertGreater(len(content.splitlines()), 3000)
             self.assertEqual(hashlib.sha256(content).hexdigest(), checksum)
-            self.assertIn(f'fetchStaticText("/vendor/{name}")', self.tools)
+            self.assertIn(f'fetchStaticText("/vendor/{name}")', self.tools_bundle)
             self.assertIn(f'"/vendor/{name}"', self.worker)
         self.assertIn("OpenCC 1.4.1", (ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8"))
 
