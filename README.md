@@ -8,7 +8,7 @@
 
 ## 技术栈与部署结构
 
-- 前端：`index.html`、`styles.css`、`product-ui.css`、`app.js`、`tools.js`
+- 前端：`index.html`、`styles.css`、`product-ui.css`、原生 ES Module 入口 `app.js`、`tools.js` 与 `js/` 领域模块
 - PWA：`manifest.webmanifest`、`sw.js`
 - Pages Functions：`functions/api/[[path]].js`，把同源 `/api/*` 请求代理到固定 Tunnel
 - 后端：Python 3.8+ 标准库 `ThreadingHTTPServer`
@@ -18,6 +18,25 @@
 - 构建系统：无；不需要 npm、Vite、React、Vue 或 `node_modules`
 
 网站根目录保留 `index.html`，Cloudflare Pages 可直接发布仓库根目录。
+
+### 前端模块边界
+
+`app.js` 和 `tools.js` 是浏览器 bootstrap / compatibility entry：前者组装登录、路由和学习工作区，后者组装工具页面并继续公开既有的 `window.WYJTools`；`workflows.js` 继续公开既有的 `window.WYJWorkflows`。它们由 `index.html` 以原生 `<script type="module">` 加载，不需要打包器。
+
+```text
+js/
+  core/        API、配置、路由、会话、存储和通用 UI
+  language/    判题模型、错题、成就、历史与学习同步适配
+  membership/  套餐筛选、充值状态和账户权益摘要
+  admin/       管理后台纯格式化
+  tools/       103 项目录、runner、文本/文件/图片/随机/临时工具纯函数
+```
+
+依赖方向为 `core -> domain modules -> bootstrap/compatibility entry`。`core` 不依赖任何领域目录，领域模块只能依赖 `core` 或本领域模块；`scripts/check_js_module_graph.mjs` 在本地和 CI 中检查缺失模块、跨领域反向依赖和循环依赖。Service Worker 显式缓存所有模块，离线 shell 仍由 `sw.js` 提供。
+
+### 浏览器存储兼容
+
+本次模块化不改任何既有 `localStorage` / `sessionStorage` 键名、版本或数据结构。`qa/frontend-storage-contract.json` 记录账号会话、词表草稿、测试运行态、错题、成就、历史、每日目标、语言设置、日语读音缓存、工具偏好/工作流、更新日志和学习同步等稳定键族；`scripts/check_storage_contract.mjs` 会在 CI 中阻止无意改名。正在进行中的具体题目仍只保存在 `sessionStorage`，学习同步不会上传整份 `localStorage`。
 
 ## 页面流程与路由
 
@@ -155,7 +174,7 @@ pending_payment -> expired
 
 ## 在线工具箱
 
-工具箱共 103 项，目录和实现位于 `tools.js`。每项工具都有简短用途说明；搜索会同时匹配名称、说明、分类、别名和工具 ID，并支持部分关键词、顺序字符和少量拼写偏差。原始文本、图片和普通文件默认只在浏览器本地处理，不上传服务器；服务端默认只保存工具 ID、使用时间、收藏和用户主动保存的配置。
+工具箱共 103 项，目录和纯处理逻辑位于 `js/tools/`，页面编排和兼容入口保留在 `tools.js`。每项工具都有简短用途说明；搜索会同时匹配名称、说明、分类、别名和工具 ID，并支持部分关键词、顺序字符和少量拼写偏差。原始文本、图片和普通文件默认只在浏览器本地处理，不上传服务器；服务端默认只保存工具 ID、使用时间、收藏和用户主动保存的配置。
 
 ### 工具工作流
 
@@ -380,6 +399,9 @@ node --check tools.js
 node --check workflows.js
 node --check sw.js
 node --check "functions/api/[[path]].js"
+node scripts/check_js_module_graph.mjs
+node local-backend/test_module_graph_js.mjs
+node scripts/check_storage_contract.mjs
 python scripts/functional_audit_gate.py
 node local-backend/test_learning_sync_js.mjs
 node local-backend/test_tools_js.mjs
@@ -390,7 +412,7 @@ node local-backend/test_proxy_js.mjs
 `.github/workflows/ci.yml` 在推送到 `main`、所有 Pull Request 以及手动触发时运行。进入仓库的 **Actions -> Core CI -> Run workflow** 可手动执行。工作流分为：
 
 - `Python syntax and unittest`：Python 语法检查和完整 `unittest`；
-- `JavaScript and static site checks`：JavaScript 语法、工具与工作流测试、Pages 代理测试，以及 HTML、PWA 和目录覆盖检查；
+- `JavaScript and static site checks`：JavaScript 语法、ES Module 无环依赖、浏览器存储兼容、工具与工作流测试、Pages 代理测试，以及 HTML、PWA 和目录覆盖检查；
 - `Sensitive files and static naming`：检查敏感运行文件、凭据特征、旧仓库名和会员静态名称；
 - `Browser flow (application/toolbox)`：两个并行的真实无头 Chrome 流程，分别覆盖完整网站流程和 103 个在线工具。
 
@@ -405,7 +427,7 @@ node local-backend/test_app_browser.mjs
 node local-backend/test_tools_browser.mjs
 ```
 
-当前 Python 自动化套件共 164 项，另配有学习同步客户端协议测试、27 项 JavaScript 工具自检、11 组工作流核心自检和 4 项 Pages 代理韧性检查，以及 `qa/functional-audit.json` 驱动的全功能覆盖门禁。门禁必须精确覆盖 20 个路由、21 条应用流程、103 个工具、51 个工具子模式、7 个复选控制、12 个工作流能力和 27 个工作流浏览器行为；源码和 QA 清单任一方向出现缺项都会直接失败。
+当前 Python 自动化套件共 164 项，另配有学习同步客户端协议测试、38 项 JavaScript 工具模块自检、11 组工作流核心自检和 4 项 Pages 代理韧性检查，以及 `qa/functional-audit.json` 驱动的全功能覆盖门禁。门禁必须精确覆盖 20 个路由、21 条应用流程、103 个工具、51 个工具子模式、7 个复选控制、12 个工作流能力和 27 个工作流浏览器行为；源码和 QA 清单任一方向出现缺项都会直接失败。
 
 `test_app_browser.mjs` 使用真实 Chrome 覆盖 21 条完整用户流程，其中包含学习数据离线排队、恢复连接、第二设备目标合并、账号绑定备份校验，以及 390px 手机视口下的错题重新判定、统一反馈计时、A-H 切页/刷新状态完整性、WCAG AA 对比度回归、结构化更新日志、私有反馈提交、管理员反馈处理与功能投票。`test_tools_browser.mjs` 会为每次运行创建全新的浏览器上下文，逐项操作 103 个工具（文本 29、文件 17、图片 30、随机 22、临时 5）及 51 个子模式，并额外真实操作工作流创建、编辑、保存、导入导出、四个模板、批量失败隔离、取消、离线运行和 390/1366/1920 响应式布局。文件、图片、PDF、ZIP、二维码、vCard 和工作流产物不使用被测页面自行判定，而由 `qa/verify_tool_artifacts.py` 通过标准库、Pillow、pypdf、OpenCV 和 vobject 独立重新打开并验证语义；本地首次运行前执行 `python -m pip install -r qa/requirements.txt`。
 

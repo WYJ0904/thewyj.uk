@@ -120,7 +120,21 @@ jobs:
             node --check local-backend/test_proxy_js.mjs
             node --check local-backend/test_app_browser.mjs
             node --check local-backend/test_tools_browser.mjs
+            node --check local-backend/test_module_graph_js.mjs
+            node --check scripts/check_js_module_graph.mjs
+            node --check scripts/check_storage_contract.mjs
           } 2>&1 | tee artifacts/javascript-syntax.log
+
+      - name: Check ES module dependency graph
+        run: |
+          set -euo pipefail
+          node scripts/check_js_module_graph.mjs 2>&1 | tee artifacts/javascript-module-graph.log
+          node local-backend/test_module_graph_js.mjs 2>&1 | tee artifacts/javascript-module-graph-self-test.log
+
+      - name: Check frontend storage compatibility
+        run: |
+          set -euo pipefail
+          node scripts/check_storage_contract.mjs 2>&1 | tee artifacts/frontend-storage-contract.log
 
       - name: Test JavaScript tools
         run: |
