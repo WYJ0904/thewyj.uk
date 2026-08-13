@@ -15,7 +15,7 @@ from account_store import AccountError, hash_secret, iso_now, parse_time, utc_no
 
 
 MAX_TEMP_TEXT_BYTES = 100 * 1024
-MAX_TEMP_FILE_BYTES = 20 * 1024 * 1024
+MAX_TEMP_FILE_BYTES = 30 * 1024 * 1024
 MAX_ROOM_MESSAGE_BYTES = 4 * 1024
 MAX_TEMP_LIFETIME_MINUTES = 7 * 24 * 60
 ALLOWED_FILE_TYPES = {
@@ -29,6 +29,10 @@ ALLOWED_FILE_TYPES = {
     ".webp": {"image/webp"},
     ".gif": {"image/gif"},
     ".zip": {"application/zip", "application/x-zip-compressed"},
+    ".mp4": {"video/mp4", "application/mp4", "application/octet-stream"},
+    ".m4v": {"video/x-m4v", "video/mp4", "application/octet-stream"},
+    ".mov": {"video/quicktime", "application/octet-stream"},
+    ".webm": {"video/webm", "application/octet-stream"},
 }
 CODE_PEPPER = (
     os.environ.get("VOCAB_SHARE_HMAC_KEY", "").strip()
@@ -176,11 +180,14 @@ class TemporaryStore:
             ".jpeg": (b"\xff\xd8\xff",),
             ".gif": (b"GIF87a", b"GIF89a"),
             ".zip": (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"),
+            ".webm": (b"\x1aE\xdf\xa3",),
         }
         if extension in signatures:
             return any(content.startswith(signature) for signature in signatures[extension])
         if extension == ".webp":
             return len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WEBP"
+        if extension in {".mp4", ".m4v", ".mov"}:
+            return len(content) >= 12 and content[4:8] == b"ftyp"
         if extension in {".txt", ".csv", ".json"}:
             encodings = ("utf-8-sig", "utf-16") if content.startswith((b"\xff\xfe", b"\xfe\xff")) else ("utf-8-sig",)
             decoded = None
