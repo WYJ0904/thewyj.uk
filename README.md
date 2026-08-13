@@ -40,6 +40,7 @@
 - `/language`：语言项目选择
 - `/language/english`、`/language/japanese`：固定语言测试
 - `/tools`、`/tools/<tool-id>`：会员工具箱
+- `/tools/workflows`：可配置的本地优先工具工作流
 - `/account`、`/recharge`：账户与充值
 - `/admin`：超级管理员后台
 - `/share/<type>/<id>`：临时分享读取页
@@ -155,6 +156,14 @@ pending_payment -> expired
 ## 在线工具箱
 
 工具箱共 103 项，目录和实现位于 `tools.js`。每项工具都有简短用途说明；搜索会同时匹配名称、说明、分类、别名和工具 ID，并支持部分关键词、顺序字符和少量拼写偏差。原始文本、图片和普通文件默认只在浏览器本地处理，不上传服务器；服务端默认只保存工具 ID、使用时间、收藏和用户主动保存的配置。
+
+### 工具工作流
+
+`/tools/workflows` 可以把兼容工具按顺序组合成可重复运行的本地流程。当前显式注册 12 个能力：文本编码读取、删除空行、去重、排序、CSV/JSON 互转、文本分割、图片缩放、图片格式转换、文字水印、EXIF 清除和 ZIP 打包。内置“图片发布处理”“图片批量发布”“文本清理排序”“CSV 规范转换”四个模板，也可以新建、添加、拖拽/按钮排序、复制、启用/停用和删除步骤。
+
+工作流 JSON 使用 `schema_version: 1`、稳定工作流/步骤 ID、显式参数白名单和 `text-file`、`text`、`json`、`image`、`image-list`、`file-list`、`archive` 类型链；不执行表达式、脚本或动态代码。导入时检查未知字段、版本、重复 ID、步骤数量、参数范围、类型兼容和 48 KB 大小限制，权限不会写入或信任导入文件。单次仍沿用最多 50 个文件、50 MB，批量图片最多 20 张；批量项相互隔离，成功项仍可打包，失败项会单独显示。
+
+运行要求服务端最近确认的 `tools_access`，批量运行另需 `tools_batch_access`，云端配置另需 `save_tool_config`；前端提示之外，云端保存接口也会重新验证会员权益和工作流 Schema。草稿先按账号保存在 `wyjToolWorkflows:v1:<accountId>`；有保存权益时复用 `/api/tools/config/save`，以虚拟工具 ID `workflow` 单独存放。网络断开时只有同一账号在 24 小时内成功验证过工具权限，才允许继续执行纯本地步骤；原始文件和中间结果不会上传。
 
 ### 文本处理（29）
 
@@ -368,18 +377,20 @@ JavaScript 语法检查：
 ```powershell
 node --check app.js
 node --check tools.js
+node --check workflows.js
 node --check sw.js
 node --check "functions/api/[[path]].js"
 python scripts/functional_audit_gate.py
 node local-backend/test_learning_sync_js.mjs
 node local-backend/test_tools_js.mjs
+node local-backend/test_workflows_js.mjs
 node local-backend/test_proxy_js.mjs
 ```
 
 `.github/workflows/ci.yml` 在推送到 `main`、所有 Pull Request 以及手动触发时运行。进入仓库的 **Actions -> Core CI -> Run workflow** 可手动执行。工作流分为：
 
 - `Python syntax and unittest`：Python 语法检查和完整 `unittest`；
-- `JavaScript and static site checks`：JavaScript 语法、工具测试、Pages 代理测试，以及 HTML、PWA 和工具目录检查；
+- `JavaScript and static site checks`：JavaScript 语法、工具与工作流测试、Pages 代理测试，以及 HTML、PWA 和目录覆盖检查；
 - `Sensitive files and static naming`：检查敏感运行文件、凭据特征、旧仓库名和会员静态名称；
 - `Browser flow (application/toolbox)`：两个并行的真实无头 Chrome 流程，分别覆盖完整网站流程和 103 个在线工具。
 
@@ -394,9 +405,9 @@ node local-backend/test_app_browser.mjs
 node local-backend/test_tools_browser.mjs
 ```
 
-当前 Python 自动化套件共 159 项，另有学习同步客户端协议测试、27 项 JavaScript 工具自检、4 项 Pages 代理韧性检查，以及 `qa/functional-audit.json` 驱动的全功能覆盖门禁。门禁必须精确覆盖 19 个路由、21 条应用流程、103 个工具、51 个工具子模式和 7 个复选控制；源码新增用户入口或工具选项而未同步 QA 矩阵时会直接失败。
+当前 Python 自动化套件共 164 项，另配有学习同步客户端协议测试、27 项 JavaScript 工具自检、11 组工作流核心自检和 4 项 Pages 代理韧性检查，以及 `qa/functional-audit.json` 驱动的全功能覆盖门禁。门禁必须精确覆盖 20 个路由、21 条应用流程、103 个工具、51 个工具子模式、7 个复选控制、12 个工作流能力和 27 个工作流浏览器行为；源码和 QA 清单任一方向出现缺项都会直接失败。
 
-`test_app_browser.mjs` 使用真实 Chrome 覆盖 21 条完整用户流程，其中包含学习数据离线排队、恢复连接、第二设备目标合并、账号绑定备份校验，以及 390px 手机视口下的错题重新判定、统一反馈计时、A-H 切页/刷新状态完整性、WCAG AA 对比度回归、结构化更新日志、私有反馈提交、管理员反馈处理与功能投票。`test_tools_browser.mjs` 会为每次运行创建全新的浏览器上下文，逐项操作 103 个工具（文本 29、文件 17、图片 30、随机 22、临时 5）及 51 个子模式，并验证 73 个下载、11 类文件产物、34 类图片产物、8 类二维码和 20 MB 临时文件公开下载往返。文件、图片、PDF、ZIP、二维码和 vCard 不使用被测页面自行判定，而由 `qa/verify_tool_artifacts.py` 通过标准库、Pillow、pypdf、OpenCV 和 vobject 独立重新打开并验证语义；本地首次运行前执行 `python -m pip install -r qa/requirements.txt`。
+`test_app_browser.mjs` 使用真实 Chrome 覆盖 21 条完整用户流程，其中包含学习数据离线排队、恢复连接、第二设备目标合并、账号绑定备份校验，以及 390px 手机视口下的错题重新判定、统一反馈计时、A-H 切页/刷新状态完整性、WCAG AA 对比度回归、结构化更新日志、私有反馈提交、管理员反馈处理与功能投票。`test_tools_browser.mjs` 会为每次运行创建全新的浏览器上下文，逐项操作 103 个工具（文本 29、文件 17、图片 30、随机 22、临时 5）及 51 个子模式，并额外真实操作工作流创建、编辑、保存、导入导出、四个模板、批量失败隔离、取消、离线运行和 390/1366/1920 响应式布局。文件、图片、PDF、ZIP、二维码、vCard 和工作流产物不使用被测页面自行判定，而由 `qa/verify_tool_artifacts.py` 通过标准库、Pillow、pypdf、OpenCV 和 vobject 独立重新打开并验证语义；本地首次运行前执行 `python -m pip install -r qa/requirements.txt`。
 
 完整覆盖还包括公开首页、更新日志、有限匿名试用、受保护路由、注册登录、个人首页本地摘要与服务状态、断网后会话保留与自动恢复、微信 WebView 兼容、登录位置审计、会话摘要迁移、封禁、管理员安全重置密钥、用户自助改密、密钥与哈希防泄露、老会员迁移、六种在售方案、支付方式锁定、私有二维码鉴权、完整支付状态机、微信与支付宝订单刷新恢复、原子审批与唯一履约、包月续期与永久会员幂等、权益隔离与合并、过期降级、管理员审计、反馈隐私与投票去重、错题实际重新判定与幂等审计、本地优先分级搜索、NFKC/大小写/假名归一化、英语词形匹配、稳定排序、TTL/LRU 缓存、完整排除词缓存键、工具权限、收藏/历史/配置、双客户端留言自动同步、文件签名、跨站拒绝、限流、AI 兜底选词、日语汉字自动标音、纯假名直接出题、汉字与假名听写判卷、错题 PDF、HTML ID、PWA 缓存、390/1366/1920 像素布局与关键文字对比度、CSV 引号换行、MD5、颜色转换、JPEG 元数据清理、Wi-Fi/联系人二维码和 OpenCC 词典完整性。额外压力矩阵验证 300 次状态请求、200 次并发工具写入和 24 次并发 PDF 导出均为 0 错误。
 

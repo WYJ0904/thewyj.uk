@@ -34,6 +34,37 @@ class AccountStoreTests(unittest.TestCase):
     def register(self, username="user001", secret="ABC1234"):
         return self.store.register(username, secret)
 
+    @staticmethod
+    def workflow_config(name="文本整理工作流"):
+        timestamp = iso_now()
+        return {
+            "schema_version": 1,
+            "id": "wf_accounttest01",
+            "name": name,
+            "created_at": timestamp,
+            "updated_at": timestamp,
+            "steps": [
+                {
+                    "id": "step_decode01",
+                    "tool_id": "text-encoding",
+                    "enabled": True,
+                    "config": {"encoding": "utf-8"},
+                },
+                {
+                    "id": "step_emptylines01",
+                    "tool_id": "remove-empty-lines",
+                    "enabled": True,
+                    "config": {},
+                },
+                {
+                    "id": "step_sortlines01",
+                    "tool_id": "sort-lines",
+                    "enabled": True,
+                    "config": {"order": "asc"},
+                },
+            ],
+        }
+
     def test_fixed_admin_is_created_and_strict(self):
         self.assertTrue(self.store.is_super_admin(self.admin))
         token, user = self.store.login("wyj", ADMIN_SECRET)
@@ -560,6 +591,104 @@ class AccountStoreTests(unittest.TestCase):
         self.assertIsNone(self.store.quiz_limit(self.store.get_user(dual_user["id"]), "english"))
         self.assertIsNone(self.store.quiz_limit(self.store.get_user(dual_user["id"]), "japanese"))
         self.assertEqual(self.store.get_user(dual_user["id"])["membership"], "monthly")
+
+    def test_workflow_configs_are_strictly_validated_and_owned(self):
+        owner = self.register("workflow-owner")
+        other = self.register("workflow-other")
+        workflow = self.workflow_config()
+        config_id = self.store.save_tool_config(owner, "workflow", workflow["name"], workflow)
+
+        saved = next(item for item in self.store.list_tool_preferences(owner)["configs"] if item["id"] == config_id)
+        self.assertEqual(saved["tool_id"], "workflow")
+        self.assertEqual(saved["config"], workflow)
+
+        workflow["name"] = "更新后的工作流"
+        workflow["updated_at"] = iso_now()
+        self.assertEqual(
+            self.store.save_tool_config(owner, "workflow", workflow["name"], workflow, config_id),
+            config_id,
+        )
+
+        with self.assertRaises(AccountError) as cross_account_update:
+            self.store.save_tool_config(other, "workflow", workflow["name"], workflow, config_id)
+        self.assertEqual(cross_account_update.exception.code, "config_not_found")
+        self.store.delete_tool_config(other, config_id)
+        self.assertTrue(any(item["id"] == config_id for item in self.store.list_tool_preferences(owner)["configs"]))
+
+        ordinary_id = self.store.save_tool_config(owner, "json-format", "JSON", {"indent": 2})
+        with self.assertRaises(AccountError) as workflow_over_tool:
+            self.store.save_tool_config(owner, "workflow", workflow["name"], workflow, ordinary_id)
+        self.assertEqual(workflow_over_tool.exception.code, "workflow_config_collision")
+        with self.assertRaises(AccountError) as tool_over_workflow:
+            self.store.save_tool_config(owner, "json-format", "JSON", {"indent": 4}, config_id)
+        self.assertEqual(tool_over_workflow.exception.code, "workflow_config_collision")
+
+    def test_workflow_config_rejects_invalid_schema_types_and_limits(self):
+        user = self.register("workflow-invalid")
+
+        invalid_cases = []
+        unknown_field = self.workflow_config()
+        unknown_field["entitlements"] = ["tools_access"]
+        invalid_cases.append((unknown_field, "workflow_fields_invalid"))
+        wrong_version = self.workflow_config()
+        wrong_version["schema_version"] = 99
+        invalid_cases.append((wrong_version, "workflow_version_invalid"))
+        duplicate_step = self.workflow_config()
+        duplicate_step["steps"][1]["id"] = duplicate_step["steps"][0]["id"]
+        invalid_cases.append((duplicate_step, "workflow_step_id_invalid"))
+        incompatible = self.workflow_config()
+        incompatible["steps"][1] = {
+            "id": "step_badtype01",
+            "tool_id": "files-zip",
+            "enabled": True,
+            "config": {},
+        }
+        invalid_cases.append((incompatible, "workflow_type_mismatch"))
+        invalid_config = self.workflow_config()
+        invalid_config["steps"][2]["config"] = {"order": "sideways"}
+        invalid_cases.append((invalid_config, "workflow_config_invalid"))
+
+        for config, expected_code in invalid_cases:
+            with self.subTest(expected_code=expected_code), self.assertRaises(AccountError) as raised:
+                self.store.save_tool_config(user, "workflow", config["name"], config)
+            self.assertEqual(raised.exception.code, expected_code)
+
+        oversized = self.workflow_config("超大工作流")
+        oversized["steps"] = [{
+            "id": "step_watermark01",
+            "tool_id": "text-watermark",
+            "enabled": True,
+            "config": {"text": "水" * (49 * 1024), "color": "#112233"},
+        }]
+        with self.assertRaises(AccountError) as too_large:
+            self.store.save_tool_config(user, "workflow", oversized["name"], oversized)
+        self.assertEqual(too_large.exception.code, "workflow_too_large")
+
+        too_many_steps = self.workflow_config("步骤过多")
+        too_many_steps["steps"] = [
+            {
+                "id": f"step_limit{index:02d}",
+                "tool_id": "remove-empty-lines",
+                "enabled": False,
+                "config": {},
+            }
+            for index in range(21)
+        ]
+        with self.assertRaises(AccountError) as step_limit:
+            self.store.save_tool_config(user, "workflow", too_many_steps["name"], too_many_steps)
+        self.assertEqual(step_limit.exception.code, "workflow_steps_invalid")
+
+    def test_workflow_cloud_save_limit_is_enforced(self):
+        user = self.register("workflow-limit")
+        for index in range(50):
+            workflow = self.workflow_config(f"工作流 {index + 1}")
+            workflow["id"] = f"wf_limit{index:04d}"
+            self.store.save_tool_config(user, "workflow", workflow["name"], workflow)
+        overflow = self.workflow_config("工作流 51")
+        overflow["id"] = "wf_limit0051"
+        with self.assertRaises(AccountError) as raised:
+            self.store.save_tool_config(user, "workflow", overflow["name"], overflow)
+        self.assertEqual(raised.exception.code, "workflow_limit_reached")
 
     def test_admin_membership_changes_survive_restarts_without_false_migration_failure(self):
         user = self.register("restart-membership")

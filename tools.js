@@ -944,6 +944,7 @@
   async function openTool(toolId, pushRoute = true) {
     const tool = TOOL_MAP.get(toolId);
     if (!tool) return;
+    window.WYJWorkflows?.hide?.({ cancel: true });
     currentTool = tool;
     byId("toolsDashboard").classList.add("hidden");
     byId("toolWorkbench").classList.remove("hidden");
@@ -973,6 +974,15 @@
     byId("toolsMembershipStatus").textContent = options.offline ? `${membershipText} · 离线本地模式` : membershipText;
     byId("toolsPanel").classList.remove("hidden");
     byId("toolsPanel").setAttribute("aria-hidden", "false");
+    window.WYJWorkflows?.setAccess?.(options);
+    if (window.WYJWorkflows?.matches?.(path)) {
+      byId("toolsDashboard").classList.add("hidden");
+      byId("toolWorkbench").classList.add("hidden");
+      byId("toolWorkbench").setAttribute("aria-hidden", "true");
+      await window.WYJWorkflows.show(path, options);
+      return;
+    }
+    window.WYJWorkflows?.hide?.({ cancel: true });
     renderCategories();
     renderCatalog();
     if (options.offline) {
@@ -991,6 +1001,7 @@
   function hide() {
     stopRoomPolling();
     cancelActiveUpload(false);
+    window.WYJWorkflows?.hide?.({ cancel: true });
     byId("toolsPanel")?.classList.add("hidden");
     byId("toolsPanel")?.setAttribute("aria-hidden", "true");
   }
@@ -1014,6 +1025,7 @@
         setMessage(error.message, true);
       }
     });
+    window.WYJWorkflows?.init?.(context);
   }
 
   window.WYJTools = { init, show, hide, openTool, closeWorkbench, searchTools, getSummary, tools: TOOLS, test: { buildWifiPayload, buildVcardPayload } };
@@ -2368,4 +2380,17 @@
   }
 
   window.WYJTools.showShareViewer = showShareViewer;
+  window.WYJTools.primitives = Object.freeze({
+    runTextOperation,
+    parseCsv,
+    csvString,
+    validateCsvTable,
+    decodeLocalText,
+    zipBlob,
+    bitmapFromFile,
+    imageCanvas,
+    canvasBlob,
+    stripJpegMetadata,
+    releaseBitmap,
+  });
 })();

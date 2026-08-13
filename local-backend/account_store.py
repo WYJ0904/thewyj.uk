@@ -99,6 +99,39 @@ LEARNING_SYNC_MAX_PAYLOAD_BYTES = 384 * 1024
 LEARNING_SYNC_MAX_TOTAL_RECORDS = sum(LEARNING_SYNC_TYPE_LIMITS.values())
 LEARNING_SYNC_CLIENT_PATTERN = re.compile(r"^[A-Za-z0-9._~:-]{8,80}$")
 LEARNING_SYNC_RECORD_PATTERN = re.compile(r"^[A-Za-z0-9._~|:-]{1,700}$")
+WORKFLOW_SCHEMA_VERSION = 1
+WORKFLOW_MAX_BYTES = 48 * 1024
+WORKFLOW_MAX_STEPS = 20
+WORKFLOW_MAX_SAVED = 50
+WORKFLOW_ID_PATTERN = re.compile(r"^(?:wf|step)_[a-z0-9][a-z0-9_-]{5,63}$")
+WORKFLOW_TOOL_TYPES = {
+    "text-encoding": ({"text-file"}, {"text"}, False),
+    "remove-empty-lines": ({"text"}, {"text"}, False),
+    "dedupe-lines": ({"text"}, {"text"}, False),
+    "sort-lines": ({"text"}, {"text"}, False),
+    "csv-json": ({"text"}, {"json"}, False),
+    "json-csv": ({"json"}, {"text"}, False),
+    "text-split": ({"text"}, {"archive"}, False),
+    "image-resize": ({"image", "image-list"}, {"image", "image-list"}, True),
+    "image-format": ({"image", "image-list"}, {"image", "image-list"}, True),
+    "text-watermark": ({"image", "image-list"}, {"image", "image-list"}, True),
+    "exif-remove": ({"image", "image-list"}, {"image", "image-list"}, True),
+    "files-zip": ({"file-list", "image-list"}, {"archive"}, False),
+}
+WORKFLOW_CONFIG_KEYS = {
+    "text-encoding": {"encoding"},
+    "remove-empty-lines": set(),
+    "dedupe-lines": set(),
+    "sort-lines": {"order"},
+    "csv-json": set(),
+    "json-csv": set(),
+    "text-split": {"lines"},
+    "image-resize": {"width", "height"},
+    "image-format": {"format", "quality"},
+    "text-watermark": {"text", "color"},
+    "exif-remove": set(),
+    "files-zip": set(),
+}
 
 
 def utc_now():
@@ -3217,6 +3250,100 @@ class AccountStore:
             raise AccountError("工具标识无效", 400, "tool_id_invalid")
         return value
 
+    @staticmethod
+    def _validate_workflow_config(config):
+        if not isinstance(config, dict):
+            raise AccountError("工作流配置必须是对象", 400, "workflow_invalid")
+        if len(json.dumps(config, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > WORKFLOW_MAX_BYTES:
+            raise AccountError("工作流配置不能超过 48 KB", 413, "workflow_too_large")
+        allowed = {"schema_version", "id", "name", "created_at", "updated_at", "steps"}
+        if set(config) != allowed:
+            raise AccountError("工作流字段不完整或包含未知字段", 400, "workflow_fields_invalid")
+        if config.get("schema_version") != WORKFLOW_SCHEMA_VERSION:
+            raise AccountError("工作流版本不受支持", 400, "workflow_version_invalid")
+        workflow_id = str(config.get("id") or "")
+        if not WORKFLOW_ID_PATTERN.fullmatch(workflow_id) or not workflow_id.startswith("wf_"):
+            raise AccountError("工作流 ID 无效", 400, "workflow_id_invalid")
+        name = str(config.get("name") or "").strip()
+        if not name or len(name) > 80:
+            raise AccountError("工作流名称无效", 400, "workflow_name_invalid")
+        created_at = str(config.get("created_at") or "")
+        updated_at = str(config.get("updated_at") or "")
+        if not parse_time(created_at) or not parse_time(updated_at):
+            raise AccountError("工作流时间格式无效", 400, "workflow_time_invalid")
+        steps = config.get("steps")
+        if not isinstance(steps, list) or len(steps) > WORKFLOW_MAX_STEPS:
+            raise AccountError("工作流步骤数量无效", 400, "workflow_steps_invalid")
+
+        normalized_steps = []
+        seen_ids = set()
+        possible_types = None
+        for index, raw_step in enumerate(steps):
+            if not isinstance(raw_step, dict) or set(raw_step) != {"id", "tool_id", "enabled", "config"}:
+                raise AccountError(f"第 {index + 1} 步字段无效", 400, "workflow_step_fields_invalid")
+            step_id = str(raw_step.get("id") or "")
+            if not WORKFLOW_ID_PATTERN.fullmatch(step_id) or not step_id.startswith("step_") or step_id in seen_ids:
+                raise AccountError(f"第 {index + 1} 步 ID 无效或重复", 400, "workflow_step_id_invalid")
+            seen_ids.add(step_id)
+            tool_id = str(raw_step.get("tool_id") or "")
+            if tool_id not in WORKFLOW_TOOL_TYPES:
+                raise AccountError(f"第 {index + 1} 步工具未注册", 400, "workflow_tool_invalid")
+            enabled = raw_step.get("enabled")
+            if not isinstance(enabled, bool):
+                raise AccountError(f"第 {index + 1} 步启用状态无效", 400, "workflow_enabled_invalid")
+            raw_config = raw_step.get("config")
+            if not isinstance(raw_config, dict) or set(raw_config) != WORKFLOW_CONFIG_KEYS[tool_id]:
+                raise AccountError(f"第 {index + 1} 步参数无效", 400, "workflow_config_invalid")
+            clean = dict(raw_config)
+            if tool_id == "text-encoding" and clean["encoding"] not in {"utf-8", "gbk", "big5", "shift_jis"}:
+                raise AccountError("文本编码参数无效", 400, "workflow_config_invalid")
+            if tool_id == "sort-lines" and clean["order"] not in {"asc", "desc"}:
+                raise AccountError("排序参数无效", 400, "workflow_config_invalid")
+            if tool_id == "text-split" and (
+                isinstance(clean["lines"], bool) or not isinstance(clean["lines"], int) or not 1 <= clean["lines"] <= 100000
+            ):
+                raise AccountError("文本分割行数无效", 400, "workflow_config_invalid")
+            if tool_id == "image-resize" and any(
+                isinstance(clean[key], bool) or not isinstance(clean[key], int) or not 1 <= clean[key] <= 4096
+                for key in ("width", "height")
+            ):
+                raise AccountError("图片尺寸参数无效", 400, "workflow_config_invalid")
+            if tool_id == "image-format":
+                if clean["format"] not in {"image/png", "image/jpeg", "image/webp"}:
+                    raise AccountError("图片格式参数无效", 400, "workflow_config_invalid")
+                if isinstance(clean["quality"], bool) or not isinstance(clean["quality"], (int, float)) or not 0.1 <= clean["quality"] <= 1:
+                    raise AccountError("图片质量参数无效", 400, "workflow_config_invalid")
+            if tool_id == "text-watermark":
+                if not isinstance(clean["text"], str) or not 1 <= len(clean["text"]) <= 100:
+                    raise AccountError("水印文字参数无效", 400, "workflow_config_invalid")
+                if not isinstance(clean["color"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", clean["color"]):
+                    raise AccountError("水印颜色参数无效", 400, "workflow_config_invalid")
+
+            if enabled:
+                input_types, output_types, preserve_collection = WORKFLOW_TOOL_TYPES[tool_id]
+                compatible = set(input_types) if possible_types is None else possible_types & input_types
+                if not compatible:
+                    raise AccountError(f"第 {index + 1} 步与上一步类型不兼容", 400, "workflow_type_mismatch")
+                possible_types = (
+                    {"image-list" if item == "image-list" else "image" for item in compatible}
+                    if preserve_collection
+                    else set(output_types)
+                )
+            normalized_steps.append({"id": step_id, "tool_id": tool_id, "enabled": enabled, "config": clean})
+
+        normalized = {
+            "schema_version": WORKFLOW_SCHEMA_VERSION,
+            "id": workflow_id,
+            "name": name,
+            "created_at": created_at,
+            "updated_at": updated_at,
+            "steps": normalized_steps,
+        }
+        encoded = json.dumps(normalized, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        if len(encoded) > WORKFLOW_MAX_BYTES:
+            raise AccountError("工作流配置不能超过 48 KB", 413, "workflow_too_large")
+        return normalized
+
     def list_tool_preferences(self, user):
         with self.connect() as connection:
             favorites = [
@@ -3294,6 +3421,10 @@ class AccountStore:
         name = str(name or "").strip()[:80]
         if not name:
             raise AccountError("配置名称不能为空", 400, "config_name_required")
+        if tool_id == "workflow":
+            config = self._validate_workflow_config(config)
+            if config["name"] != name:
+                raise AccountError("工作流名称与配置名称不一致", 400, "workflow_name_mismatch")
         encoded = json.dumps(config if isinstance(config, (dict, list)) else {}, ensure_ascii=False, separators=(",", ":"))
         if len(encoded.encode("utf-8")) > 50 * 1024:
             raise AccountError("工具配置不能超过 50 KB", 413, "config_too_large")
@@ -3301,6 +3432,12 @@ class AccountStore:
         config_id = str(config_id or "").strip()
         with self.lock, self.connect() as connection:
             if config_id:
+                existing = connection.execute(
+                    "SELECT tool_id FROM saved_tool_configs WHERE id = ? AND user_id = ?",
+                    (config_id, user["id"]),
+                ).fetchone()
+                if existing and "workflow" in {tool_id, existing["tool_id"]} and existing["tool_id"] != tool_id:
+                    raise AccountError("工作流配置不能与其他工具配置互相覆盖", 409, "workflow_config_collision")
                 changed = connection.execute(
                     """
                     UPDATE saved_tool_configs SET tool_id = ?, name = ?, config_json = ?, updated_at = ?
@@ -3311,6 +3448,13 @@ class AccountStore:
                 if not changed:
                     raise AccountError("工具配置不存在", 404, "config_not_found")
             else:
+                if tool_id == "workflow":
+                    count = connection.execute(
+                        "SELECT COUNT(*) AS value FROM saved_tool_configs WHERE user_id = ? AND tool_id = 'workflow'",
+                        (user["id"],),
+                    ).fetchone()["value"]
+                    if count >= WORKFLOW_MAX_SAVED:
+                        raise AccountError("每个账号最多保存 50 个云端工作流", 409, "workflow_limit_reached")
                 config_id = str(uuid.uuid4())
                 connection.execute(
                     """

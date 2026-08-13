@@ -452,6 +452,11 @@ async function main() {
 
   try {
     await check("brief branded startup and unauthenticated navigation", async () => {
+      const logoResponse = await fetch(`${BASE_URL}/icon-192.png`);
+      const logoBytes = Buffer.from(await logoResponse.arrayBuffer());
+      assert.equal(logoResponse.status, 200);
+      assert.match(logoResponse.headers.get("content-type") || "", /^image\/png(?:;|$)/i);
+      assert.deepEqual([...logoBytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
       await navigate(`/?app-matrix=${RUN_ID}`);
       await waitFor("document.querySelector('#entryScreen')", 3_000, "initial splash");
       const initial = await evaluate(`(() => {
@@ -474,7 +479,7 @@ async function main() {
               && Number.parseInt(entryStyle.zIndex || '0', 10) >= 9000
             )
           ),
-          imageReady: image.complete && image.naturalWidth > 0,
+          imageState: !image.complete ? "loading" : image.naturalWidth > 0 ? "loaded" : "failed",
           objectFit: imageStyle.objectFit,
           legacyDoors: document.querySelectorAll('.splash-door').length,
           legacyBrandText: document.body.textContent.includes('77 79 6A'),
@@ -482,7 +487,7 @@ async function main() {
       })()`);
       assert.equal(initial.entryVisible, true);
       assert.equal(initial.shellProtected, true);
-      assert.equal(initial.imageReady, true);
+      assert.notEqual(initial.imageState, "failed");
       assert.equal(initial.objectFit, "contain");
       assert.equal(initial.legacyDoors, 0);
       assert.equal(initial.legacyBrandText, false);
@@ -500,21 +505,23 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260811-functional-audit');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260811-functional-audit');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260811-functional-audit');
-        return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync) };
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260811-tool-workflows');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260811-tool-workflows');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260811-tool-workflows');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260811-tool-workflows');
+        return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
       assert.equal(pwa.cachedLogo, true);
       assert.equal(pwa.cachedProductStyles, true);
       assert.equal(pwa.cachedChangelog, true);
       assert.equal(pwa.cachedLearningSync, true);
+      assert.equal(pwa.cachedWorkflows, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.11.2");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.11.3");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-11-functional-audit");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-11-tool-workflows");
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
     });
@@ -585,9 +592,10 @@ async function main() {
       await navigate(`/changelog?app-matrix=${RUN_ID}`);
       await waitFor("!document.querySelector('#entryScreen')", 6_000, "changelog splash removal");
       await waitFor("location.pathname === '/changelog' && !document.querySelector('#changelogPage')?.classList.contains('hidden')", 8_000, "changelog route");
-      assert.equal(await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"), 6);
+      assert.equal(await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"), 7);
+      assert.equal(await evaluate("document.querySelector('#changelogPage').textContent.includes('可配置工具工作流')"), true);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.11.2");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.11.3");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);

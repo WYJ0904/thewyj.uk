@@ -12,6 +12,7 @@
     { "id": "japanese-learning", "path": "/language/japanese", "access": "authenticated" },
     { "id": "toolbox", "path": "/tools", "access": "tools-entitlement" },
     { "id": "tool", "path": "/tools/:tool_id", "access": "tools-entitlement" },
+    { "id": "tool-workflows", "path": "/tools/workflows", "access": "tools-entitlement" },
     { "id": "account", "path": "/account", "access": "authenticated" },
     { "id": "recharge", "path": "/recharge", "access": "authenticated" },
     { "id": "admin", "path": "/admin", "access": "administrator" },
@@ -44,6 +45,44 @@
     "self-service account deletion",
     "mobile layout and reduced-motion startup"
   ],
+  "workflow_flows": [
+    "open-workspace",
+    "create-workflow",
+    "add-step",
+    "duplicate-step",
+    "enable-disable-step",
+    "reorder-drag",
+    "reorder-buttons",
+    "delete-step",
+    "delete-workflow",
+    "template-text-clean",
+    "run-statuses",
+    "download-result",
+    "rename-workflow",
+    "save-cloud",
+    "import-export",
+    "duplicate-workflow",
+    "template-csv-roundtrip",
+    "template-image-publish",
+    "configure-steps",
+    "template-image-batch",
+    "batch-run",
+    "batch-isolated-failure",
+    "cancel-run",
+    "offline-local-run",
+    "responsive-1366",
+    "responsive-1920",
+    "responsive-390"
+  ],
+  "workflow_capabilities": {
+    "registry": [
+      "text-encoding", "remove-empty-lines", "dedupe-lines", "sort-lines", "csv-json", "json-csv",
+      "text-split", "image-resize", "image-format", "text-watermark", "exif-remove", "files-zip"
+    ],
+    "templates": ["image-publish", "image-batch", "text-clean", "csv-roundtrip"],
+    "types": ["text-file", "text", "json", "image", "image-list", "file-list", "archive"],
+    "statuses": ["waiting", "running", "success", "skipped", "failed", "cancelled"]
+  },
   "tool_catalog": {
     "text": [
       "text-stats", "dedupe-lines", "remove-empty-lines", "collapse-spaces", "letter-case",

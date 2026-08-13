@@ -192,6 +192,54 @@ def verify_image_artifacts(entries: dict[str, dict]) -> int:
     return checked
 
 
+def verify_workflow_artifacts(entries: dict[str, dict]) -> int:
+    required = {
+        "text_clean", "csv_roundtrip", "text_split", "image_publish", "image_batch", "image_batch_isolated"
+    }
+    require(set(entries) == required, f"workflow artifacts are incomplete: {sorted(set(entries) ^ required)}")
+
+    text_item = entries["text_clean"]
+    require(
+        Path(text_item["path"]).read_text(encoding="utf-8") == text_item["expected_text"],
+        "text workflow semantic mismatch",
+    )
+
+    csv_item = entries["csv_roundtrip"]
+    require(read_csv_path(Path(csv_item["path"])) == csv_item["expected_rows"], "CSV workflow semantic mismatch")
+
+    split_item = entries["text_split"]
+    split_members = zip_contents(Path(split_item["path"]))
+    expected_members = {name: value.encode("utf-8") for name, value in split_item["expected_members"].items()}
+    require(split_members == expected_members, "text split workflow semantic mismatch")
+
+    publish_item = entries["image_publish"]
+    with Image.open(publish_item["path"]) as image:
+        image.load()
+        require(image.format == publish_item["format"], "image workflow format mismatch")
+        require(list(image.size) == publish_item["size"], "image workflow size mismatch")
+        require(not image.getexif(), "image workflow retained EXIF metadata")
+        pixels = np.asarray(image.convert("RGB"), dtype=np.int16)
+        red_dominant = (
+            (pixels[:, :, 0] > 100)
+            & (pixels[:, :, 0] - pixels[:, :, 1] > 35)
+            & (pixels[:, :, 0] - pixels[:, :, 2] > 35)
+        )
+        require(int(red_dominant.sum()) >= 2, "image workflow watermark color is absent")
+
+    for key in ("image_batch", "image_batch_isolated"):
+        item = entries[key]
+        members = zip_contents(Path(item["path"]))
+        require(len(members) == item["expected_count"], f"{key}: ZIP member count mismatch")
+        require(len(members) == len(set(members)), f"{key}: duplicate ZIP member names")
+        for name, data in members.items():
+            with Image.open(io.BytesIO(data)) as image:
+                image.load()
+                require(image.format == item["format"], f"{key}/{name}: format mismatch")
+                require(list(image.size) == item["size"], f"{key}/{name}: size mismatch")
+                require(not image.getexif(), f"{key}/{name}: EXIF metadata remains")
+    return len(entries)
+
+
 def decode_qr(path: Path) -> str:
     image = np.array(Image.open(path).convert("RGB"))
     value, points, _straight = cv2.QRCodeDetector().detectAndDecode(cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
@@ -227,6 +275,7 @@ def main() -> int:
     require(manifest.get("schema_version") == 1, "artifact manifest schema mismatch")
     file_count = verify_file_artifacts(manifest.get("files", {}))
     image_count = verify_image_artifacts(manifest.get("images", {}))
+    workflow_count = verify_workflow_artifacts(manifest.get("workflows", {}))
     qr_count = verify_qr_artifacts(manifest.get("qrs", []))
     temporary_count = 0
     for item in manifest.get("temporary_files", []):
@@ -236,6 +285,7 @@ def main() -> int:
     print(json.dumps({
         "file_artifacts": file_count,
         "image_artifacts": image_count,
+        "workflow_artifacts": workflow_count,
         "qr_artifacts": qr_count,
         "temporary_file_round_trips": temporary_count,
     }, ensure_ascii=False))

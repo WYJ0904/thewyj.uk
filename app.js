@@ -1,4 +1,10 @@
-const APP_VERSION = "2026-08-11-functional-audit";
+const APP_VERSION = "2026-08-11-tool-workflows";
+const APP_ROUTE_MANIFEST = Object.freeze([
+  "/", "/login", "/register", "/trial", "/changelog", "/select", "/language",
+  "/language/english", "/language/japanese", "/tools", "/tools/:tool_id", "/tools/workflows",
+  "/account", "/recharge", "/admin", "/share/text/:id", "/share/file/:id",
+  "/share/clipboard/:code", "/share/qr/:id", "/share/room/:id",
+]);
 const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
 const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);
 const API_TIMEOUT_MS = 30000;

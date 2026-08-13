@@ -27,6 +27,7 @@ class StaticSiteTests(unittest.TestCase):
         cls.html = (ROOT / "index.html").read_text(encoding="utf-8")
         cls.app = (ROOT / "app.js").read_text(encoding="utf-8")
         cls.tools = (ROOT / "tools.js").read_text(encoding="utf-8")
+        cls.workflows = (ROOT / "workflows.js").read_text(encoding="utf-8")
         cls.styles = (ROOT / "styles.css").read_text(encoding="utf-8")
         cls.product_styles = (ROOT / "product-ui.css").read_text(encoding="utf-8")
         cls.worker = (ROOT / "sw.js").read_text(encoding="utf-8")
@@ -62,6 +63,10 @@ class StaticSiteTests(unittest.TestCase):
             "feedbackToolId", "feedbackErrorCode", "myFeedbackList", "featureVotingList",
             "adminFeedbackTab", "adminFeedbackView", "adminFeedbackSearch",
             "adminFeedbackType", "adminFeedbackStatus", "adminFeedbackList",
+            "openWorkflowBtn", "workflowWorkspace", "workflowAccessBadge", "workflowList",
+            "workflowTemplateList", "workflowEditor", "workflowNameInput", "workflowStepList",
+            "workflowToolSelect", "workflowFileInput", "workflowBatchToggle", "workflowRunState",
+            "runWorkflowBtn", "cancelWorkflowBtn", "downloadWorkflowResultBtn", "copyWorkflowResultBtn",
         }
         self.assertEqual(sorted(required - html_ids), [])
 
@@ -82,14 +87,14 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260811-functional-audit"
-        for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "learning-sync.js", "app.js"):
+        release_token = "20260811-tool-workflows"
+        for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}"', self.worker)
-        self.assertIn('const APP_VERSION = "2026-08-11-functional-audit"', self.app)
+        self.assertIn('const APP_VERSION = "2026-08-11-tool-workflows"', self.app)
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
-        self.assertIn('APP_BUILD = "2026-08-11-functional-audit"', server)
+        self.assertIn('APP_BUILD = "2026-08-11-tool-workflows"', server)
         self.assertIn('"/trial", "/changelog"', server)
         self.assertEqual((ROOT / "_redirects").read_text(encoding="utf-8").strip(), "/* /index.html 200")
 
@@ -116,7 +121,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("globalThis.WYJ_CHANGELOG", self.changelog)
         for field in ("version", "build", "date", "features", "improvements", "fixes", "security"):
             self.assertRegex(self.changelog, rf"\b{field}:\s*")
-        self.assertIn("2026-08-11-functional-audit", self.changelog)
+        self.assertIn("2026-08-11-tool-workflows", self.changelog)
         self.assertIn("function renderChangelog()", self.app)
         self.assertIn("function maybeShowVersionNotice()", self.app)
         self.assertIn("function submitFeedback(", self.app)
@@ -127,6 +132,20 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('/api/admin/feedback', self.app)
         self.assertIn("反馈正文和提交者不会公开", self.html)
         self.assertIn("不会上传你在工具中处理的原始文本", self.html)
+
+    def test_tool_workflow_contract_is_explicit_and_local_first(self):
+        self.assertIn("const SCHEMA_VERSION = 1;", self.workflows)
+        self.assertIn("const CAPABILITY_REGISTRY = Object.freeze", self.workflows)
+        self.assertIn("const TEMPLATE_DEFINITIONS = Object.freeze", self.workflows)
+        self.assertIn('requirePermission("tools_access"', self.workflows)
+        self.assertIn('requirePermission("tools_batch_access"', self.workflows)
+        self.assertIn('hasEntitlement("save_tool_config")', self.workflows)
+        self.assertIn("tool_id: WORKFLOW_TOOL_ID", self.workflows)
+        self.assertIn("new AbortController()", self.workflows)
+        self.assertIn("MAX_IMAGES = 20", self.workflows)
+        self.assertIn("MAX_TOTAL_BYTES = 50 * 1024 * 1024", self.workflows)
+        self.assertNotIn("eval(", self.workflows)
+        self.assertNotIn("new Function", self.workflows)
 
     def test_learning_sync_is_incremental_local_first_and_excludes_active_questions(self):
         for element_id in (
