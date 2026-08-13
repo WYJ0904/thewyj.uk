@@ -1,4 +1,6 @@
-const TEMP_SHARE_MAX_BYTES = 30 * 1024 * 1024;
+const TEMP_SHARE_MAX_BYTES = 20 * 1024 * 1024;
+const TEMP_SHARE_VIDEO_MAX_BYTES = 30 * 1024 * 1024;
+const TEMP_SHARE_VIDEO_EXTENSIONS = new Set([".mp4", ".m4v", ".mov", ".webm"]);
 const TEMP_SHARE_VIDEO_ACCEPT = ".mp4,.m4v,.mov,.webm,video/mp4,video/webm,video/quicktime";
 let activeTemporaryUpload = null;
 
@@ -18,6 +20,18 @@ function shareViewerMessage(message) {
   if (target) target.textContent = message || "";
 }
 
+function temporaryFileExtension(file) {
+  const name = String(file?.name || "").toLowerCase();
+  const index = name.lastIndexOf(".");
+  return index >= 0 ? name.slice(index) : "";
+}
+
+function temporaryFileLimit(file) {
+  return TEMP_SHARE_VIDEO_EXTENSIONS.has(temporaryFileExtension(file))
+    ? TEMP_SHARE_VIDEO_MAX_BYTES
+    : TEMP_SHARE_MAX_BYTES;
+}
+
 function updateTemporaryFileUi() {
   const input = tempShareById("tempFileInput");
   if (input && input.dataset.videoShareFix !== "true") {
@@ -25,7 +39,7 @@ function updateTemporaryFileUi() {
     const existing = String(input.getAttribute("accept") || "").trim();
     input.setAttribute("accept", [existing, TEMP_SHARE_VIDEO_ACCEPT].filter(Boolean).join(","));
     const label = input.closest("label")?.querySelector("span");
-    if (label) label.textContent = "选择临时文件（最大 30 MB，支持常用视频）";
+    if (label) label.textContent = "选择临时文件（视频最大 30 MB，其他文件最大 20 MB）";
   }
 
   if (/^\/share\/file\/[^/?#]+/.test(location.pathname)) {
@@ -110,7 +124,8 @@ async function uploadTemporaryFile() {
   const input = tempShareById("tempFileInput");
   const file = input?.files?.[0];
   if (!file) throw new Error("请选择文件");
-  if (file.size > TEMP_SHARE_MAX_BYTES) throw new Error("临时文件不能超过 30 MB");
+  const sizeLimit = temporaryFileLimit(file);
+  if (file.size > sizeLimit) throw new Error(`该文件不能超过 ${sizeLimit / (1024 * 1024)} MB`);
   const session = localStorage.getItem("wyjAccountSession") || "";
   if (!session) throw new Error("登录状态已失效，请重新登录");
 
