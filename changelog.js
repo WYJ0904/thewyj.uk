@@ -79,4 +79,6 @@
     fixes: Object.freeze([...entry.fixes]),
     security: Object.freeze([...entry.security]),
   })));
+
+  import("/temporary-share-fix.js?v=20260813-temp-share").catch(() => {});
 })();
