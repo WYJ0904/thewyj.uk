@@ -136,8 +136,10 @@ async function main() {
   const runtimeErrors = [];
   const networkHttpErrors = [];
   const networkRequests = [];
+  const networkRequestChecks = new Map();
   const dialogs = [];
   const checks = [];
+  let activeCheckName = "";
   await send("Storage.clearDataForOrigin", { origin: BASE_URL, storageTypes: "all" });
   await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 
@@ -167,9 +169,11 @@ async function main() {
       networkHttpErrors.push({
         status: Number(message.params.response.status),
         url: message.params.response.url,
+        check: networkRequestChecks.get(message.params.requestId) || "",
       });
     }
     if (message.method === "Network.requestWillBeSent") {
+      networkRequestChecks.set(message.params.requestId, activeCheckName);
       networkRequests.push({
         method: message.params?.request?.method || "GET",
         url: message.params?.request?.url || "",
@@ -416,6 +420,7 @@ async function main() {
 
   const check = async (name, action) => {
     const started = Date.now();
+    activeCheckName = name;
     console.error(`[app-matrix] START ${name}`);
     try {
       await action();
@@ -447,6 +452,8 @@ async function main() {
       const detail = `${error.message}; diagnostic=${JSON.stringify(diagnostic)}; runtime=${JSON.stringify(runtimeErrors.slice(-4))}; http=${JSON.stringify(networkHttpErrors.slice(-6))}`;
       console.error(`[app-matrix] FAIL ${name}: ${detail}`);
       throw new Error(detail, { cause: error });
+    } finally {
+      if (activeCheckName === name) activeCheckName = "";
     }
   };
 
@@ -1777,7 +1784,11 @@ async function main() {
     const expectedDeniedPaths = new Set(["/api/tools/access", "/api/quiz/start"]);
     const unexpectedHttpErrors = networkHttpErrors.filter((item) => {
       const pathname = new URL(item.url).pathname;
-      return item.status !== 403 || !expectedDeniedPaths.has(pathname);
+      const expectedPermissionDenial = item.status === 403 && expectedDeniedPaths.has(pathname);
+      const expectedDeletedAccountSyncCancellation = item.status === 401
+        && pathname === "/api/learning/sync"
+        && item.check === "self-service account deletion";
+      return !expectedPermissionDenial && !expectedDeletedAccountSyncCancellation;
     });
     assert.deepEqual(unexpectedHttpErrors, [], `unexpected browser HTTP errors: ${JSON.stringify(networkHttpErrors)}`);
     assert.deepEqual(runtimeErrors, [], `browser runtime errors: ${JSON.stringify(runtimeErrors)}`);
