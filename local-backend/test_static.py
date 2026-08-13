@@ -26,7 +26,22 @@ class StaticSiteTests(unittest.TestCase):
     def setUpClass(cls):
         cls.html = (ROOT / "index.html").read_text(encoding="utf-8")
         cls.app = (ROOT / "app.js").read_text(encoding="utf-8")
+        cls.core = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted((ROOT / "js" / "core").glob("*.js"))
+        )
+        cls.membership = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted((ROOT / "js" / "membership").glob("*.js"))
+        )
+        cls.frontend = cls.app + "\n" + cls.core + "\n" + cls.membership
         cls.tools = (ROOT / "tools.js").read_text(encoding="utf-8")
+        cls.tool_modules = {
+            path.stem: path.read_text(encoding="utf-8")
+            for path in sorted((ROOT / "js" / "tools").glob("*.js"))
+        }
+        cls.tools_bundle = cls.tools + "\n" + "\n".join(cls.tool_modules.values())
+        cls.tool_catalog = cls.tool_modules["catalog"]
         cls.workflows = (ROOT / "workflows.js").read_text(encoding="utf-8")
         cls.styles = (ROOT / "styles.css").read_text(encoding="utf-8")
         cls.product_styles = (ROOT / "product-ui.css").read_text(encoding="utf-8")
@@ -91,8 +106,11 @@ class StaticSiteTests(unittest.TestCase):
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
-        self.assertIn(f'const CACHE = "wyj-shell-{release_token}"', self.worker)
-        self.assertIn('const APP_VERSION = "2026-08-11-tool-workflows"', self.app)
+        self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
+        self.assertIn('export const APP_VERSION = "2026-08-11-tool-workflows"', self.core)
+        for module in ("api", "config", "router", "session", "storage", "ui"):
+            self.assertIn(f'/js/core/{module}.js', self.worker)
+        self.assertIn('type="module" src="/app.js?v=20260811-tool-workflows"', self.html)
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
         self.assertIn('APP_BUILD = "2026-08-11-tool-workflows"', server)
         self.assertIn('"/trial", "/changelog"', server)
@@ -235,11 +253,11 @@ class StaticSiteTests(unittest.TestCase):
             self.assertGreaterEqual(ratio, 4.5, color)
 
     def test_tool_catalog_is_complete_and_unique(self):
-        source = self.tools.split("const toolRows = {", 1)[1].split("const TOOLS =", 1)[0]
+        source = self.tool_catalog.split("const toolRows = {", 1)[1].split("const TOOLS =", 1)[0]
         expected_counts = {"text": 29, "file": 17, "image": 30, "random": 22, "temporary": 5}
         all_ids = []
         for category, expected_count in expected_counts.items():
-            match = re.search(rf"\n    {category}: \[(.*?)\n    \],", source, re.S)
+            match = re.search(rf"\n\s+{category}: \[(.*?)\n\s+\],", source, re.S)
             self.assertIsNotNone(match, category)
             rows = re.findall(
                 r'\["([a-z0-9-]+)",\s*"([^"]+)",\s*"([^"]+)"(?:,\s*"([^"]*)")?\]',
@@ -251,28 +269,28 @@ class StaticSiteTests(unittest.TestCase):
             all_ids.extend(ids)
         self.assertEqual(len(all_ids), 103)
         self.assertEqual(len(set(all_ids)), 103)
-        self.assertIn("function fuzzyToolScore", self.tools)
-        self.assertIn("function boundedEditDistance", self.tools)
-        self.assertIn("searchTools", self.tools)
-        self.assertIn("isAdjacentTransposition(compactToken, word)", self.tools)
-        self.assertNotIn('category?.description || ""', self.tools)
+        self.assertIn("function fuzzyToolScore", self.tool_catalog)
+        self.assertIn("function boundedEditDistance", self.tool_catalog)
+        self.assertIn("searchTools", self.tool_catalog)
+        self.assertIn("isAdjacentTransposition(compactToken, word)", self.tool_catalog)
+        self.assertNotIn('category?.description || ""', self.tool_catalog)
 
     def test_tool_edge_cases_have_production_guards(self):
-        self.assertIn('new TextDecoder(encoding || "utf-8", { fatal: true })', self.tools)
-        self.assertIn("function validateCsvTable", self.tools)
+        self.assertIn('new TextDecoder(encoding || "utf-8", { fatal: true })', self.tools_bundle)
+        self.assertIn("function validateCsvTable", self.tools_bundle)
         self.assertIn("const rows = validateCsvTable(parseCsv(text), file.name)", self.tools)
         self.assertIn("的表头与第一个 CSV 文件不一致", self.tools)
         self.assertIn("CSV 表头存在重复字段", self.tools)
         self.assertIn("csvString([header, ...rows.slice(index, index + size)])", self.tools)
         self.assertIn('value="vertical">垂直翻转', self.tools)
-        self.assertIn("function parseColorValue", self.tools)
-        self.assertIn("function stripJpegMetadata", self.tools)
-        self.assertIn("相机型号", self.tools)
+        self.assertIn("function parseColorValue", self.tools_bundle)
+        self.assertIn("function stripJpegMetadata", self.tools_bundle)
+        self.assertIn("相机型号", self.tools_bundle)
         self.assertIn("function temporaryQrContent", self.tools)
-        self.assertIn("BEGIN:VCARD", self.tools)
-        self.assertIn("WIFI:T:", self.tools)
-        self.assertIn("请至少选择一种密码字符", self.tools)
-        self.assertIn("const matrix = new Uint16Array(cells)", self.tools)
+        self.assertIn("BEGIN:VCARD", self.tools_bundle)
+        self.assertIn("WIFI:T:", self.tools_bundle)
+        self.assertIn("请至少选择一种密码字符", self.tools_bundle)
+        self.assertIn("const matrix = new Uint16Array(cells)", self.tools_bundle)
 
     def test_temporary_file_limit_is_consistent_across_the_full_request_chain(self):
         proxy = (ROOT / "functions" / "api" / "[[path]].js").read_text(encoding="utf-8")
@@ -285,7 +303,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("MAX_JSON_BYTES = int(os.environ.get(\"VOCAB_MAX_JSON_BYTES\", str(512 * 1024)))", server)
         self.assertIn("DEFAULT_MAX_TEMP_FILE_JSON_BYTES = ((MAX_TEMP_FILE_BYTES + 2) // 3) * 4 + 128 * 1024", server)
         self.assertIn('request_path == "/api/temporary/file"', server)
-        self.assertIn("function uploadApi", self.app)
+        self.assertIn("function uploadApi", self.core)
         self.assertIn('bridge.uploadApi("/api/temporary/file"', self.tools)
         self.assertIn("timeoutMs: 180000", self.tools)
 
@@ -299,7 +317,7 @@ class StaticSiteTests(unittest.TestCase):
             content = path.read_bytes()
             self.assertGreater(len(content.splitlines()), 3000)
             self.assertEqual(hashlib.sha256(content).hexdigest(), checksum)
-            self.assertIn(f'fetchStaticText("/vendor/{name}")', self.tools)
+            self.assertIn(f'fetchStaticText("/vendor/{name}")', self.tools_bundle)
             self.assertIn(f'"/vendor/{name}"', self.worker)
         self.assertIn("OpenCC 1.4.1", (ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8"))
 
@@ -421,7 +439,7 @@ class StaticSiteTests(unittest.TestCase):
 
     def test_quality_regressions_have_explicit_guards(self):
         self.assertIn("function markBackendReachable", self.app)
-        self.assertGreaterEqual(self.app.count("markBackendReachable(data)"), 3)
+        self.assertGreaterEqual(self.core.count("markBackendReachable(data)"), 3)
         skip_source = self.app.split("function skipWord()", 1)[1].split("async function submitAnswer", 1)[0]
         self.assertLess(skip_source.index("clearAnswerValidation();"), skip_source.index("markWrong("))
         self.assertLess(skip_source.index("markWrong("), skip_source.index("beginQuestionTransition("))
@@ -455,14 +473,14 @@ class StaticSiteTests(unittest.TestCase):
     def test_remote_data_loading_has_retry_and_partial_recovery(self):
         self.assertIn('id="membershipPlanRecovery"', self.html)
         self.assertIn('id="retryMembershipPlansBtn"', self.html)
-        self.assertIn("GET_RETRYABLE_STATUS", self.app)
-        self.assertIn("requestJsonGet", self.app)
+        self.assertIn("GET_RETRYABLE_STATUS", self.core)
+        self.assertIn("requestJsonGet", self.core)
         self.assertIn("Promise.allSettled(requests.map", self.app)
         self.assertIn("已加载的内容会保留，请点击刷新重试", self.app)
         self.assertNotIn("loadMembershipPlans().catch(() => {});", self.app)
         self.assertIn("membershipModalController?.abort()", self.app)
         self.assertIn("Promise.allSettled([", self.app)
-        self.assertIn("function retryDelayWithJitter", self.app)
+        self.assertIn("function retryDelayWithJitter", self.core)
         self.assertIn('window.addEventListener("offline"', self.app)
         self.assertIn('window.addEventListener("pageshow"', self.app)
         self.assertIn("async function fetchWithDeadline", self.worker)
@@ -522,9 +540,9 @@ class StaticSiteTests(unittest.TestCase):
     def test_membership_ui_filters_plans_by_purpose_without_replacing_server_checks(self):
         goal_values = re.findall(r'data-membership-goal="([^"]+)"', self.html)
         self.assertEqual(goal_values, ["english", "japanese", "bilingual", "tools", "all"])
-        self.assertIn("const MEMBERSHIP_GOALS = Object.freeze", self.app)
-        self.assertIn("function membershipGoalAllowsPlan", self.app)
-        self.assertIn("function membershipGoalForPlan", self.app)
+        self.assertIn("const MEMBERSHIP_GOALS = Object.freeze", self.membership)
+        self.assertIn("function membershipGoalAllowsPlan", self.membership)
+        self.assertIn("function membershipGoalForPlan", self.membership)
         self.assertIn('openMembershipModal({ goal: "tools" })', self.app)
         self.assertGreaterEqual(
             self.app.count("membershipGoalAllowsPlan(selectedMembershipGoal"), 3

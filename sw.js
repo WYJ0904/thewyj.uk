@@ -1,4 +1,4 @@
-const CACHE = "wyj-shell-20260811-tool-workflows";
+const CACHE = "wyj-shell-20260811-tool-workflows-es-modules";
 const NAVIGATION_TIMEOUT_MS = 5000;
 const ASSET_TIMEOUT_MS = 10000;
 const CORE_SHELL = [
@@ -9,7 +9,29 @@ const CORE_SHELL = [
   "/changelog.js?v=20260811-tool-workflows",
   "/learning-sync.js?v=20260811-tool-workflows",
   "/app.js?v=20260811-tool-workflows",
+  "/js/core/api.js",
+  "/js/core/config.js",
+  "/js/core/router.js",
+  "/js/core/session.js",
+  "/js/core/storage.js",
+  "/js/core/ui.js",
+  "/js/language/achievements.js",
+  "/js/language/history.js",
+  "/js/language/quiz.js",
+  "/js/language/sync-adapter.js",
+  "/js/language/wrong-book.js",
+  "/js/membership/account.js",
+  "/js/membership/plans.js",
+  "/js/membership/recharge.js",
+  "/js/admin/formatters.js",
   "/tools.js?v=20260811-tool-workflows",
+  "/js/tools/catalog.js",
+  "/js/tools/file.js",
+  "/js/tools/image.js",
+  "/js/tools/random.js",
+  "/js/tools/runner.js",
+  "/js/tools/temporary.js",
+  "/js/tools/text.js",
   "/workflows.js?v=20260811-tool-workflows",
   "/vendor/qrcode.js?v=2.0.4",
   "/vendor/opencc-st-characters.txt",

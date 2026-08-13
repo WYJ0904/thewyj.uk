@@ -1,41 +1,117 @@
-const APP_VERSION = "2026-08-11-tool-workflows";
-const APP_ROUTE_MANIFEST = Object.freeze([
-  "/", "/login", "/register", "/trial", "/changelog", "/select", "/language",
-  "/language/english", "/language/japanese", "/tools", "/tools/:tool_id", "/tools/workflows",
-  "/account", "/recharge", "/admin", "/share/text/:id", "/share/file/:id",
-  "/share/clipboard/:code", "/share/qr/:id", "/share/room/:id",
-]);
+import {
+  AI_TIMEOUT_MS,
+  API_GET_TIMEOUT_MS,
+  API_TIMEOUT_MS,
+  APP_VERSION,
+  BACKEND_CONFIG_MESSAGE,
+  BACKEND_NETWORK_MESSAGE,
+  BACKEND_REFRESH_INTERVAL_MS,
+  BUSINESS_TIME_ZONE,
+  PDF_TIMEOUT_MS,
+  STATUS_RETRY_BASE_DELAYS_MS,
+  STATUS_TIMEOUT_MS,
+} from "./js/core/config.js";
+import { createApiClient, fetchWithTimeout, retryDelayWithJitter, waitForDelay } from "./js/core/api.js";
+import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js";
+import {
+  clearAccountSessionStorage,
+  persistAccountSession,
+  restoreAccountSession,
+} from "./js/core/session.js";
+import { hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js";
+import {
+  calculateStudyStreak,
+  formatDuration,
+  localDayKey,
+  sanitizeStudyRecords,
+  studyDaySeries,
+} from "./js/language/history.js";
+import {
+  DEFAULT_PROFILE,
+  LANGUAGE_LABELS,
+  analyzeWordList,
+  evaluateDictation,
+  evaluateLocalMeaning,
+  filterWordsByLanguage,
+  formatJapaneseDictationAnswer as formatJapaneseDictationAnswerModel,
+  formatWordsForInput,
+  hasJapaneseKanji,
+  japaneseDictationRequiresBoth as japaneseDictationRequiresBothModel,
+  japaneseReadingFor as japaneseReadingForModel,
+  japaneseWrittenFormFor as japaneseWrittenFormForModel,
+  limitText,
+  normalizeDictationAnswer as normalizeDictationAnswerModel,
+  normalizeJapaneseReading,
+  normalizeKana,
+  normalizeMeaning,
+  normalizePracticeMode,
+  normalizeQuizLanguage,
+  parseWordTextModel,
+  practiceModeLabel,
+  profileStorageName,
+  quizLanguageLabel,
+  sanitizeAccepted,
+  sanitizeJapaneseReadings,
+  sanitizeJapaneseWrittenForms,
+  sanitizePendingAdvance,
+  sanitizeProfile,
+  sanitizeQuestionFeedback,
+  sanitizeStoredRubric,
+  trimRubricCache,
+  wordIdentity,
+  wordMatchesLanguage,
+} from "./js/language/quiz.js";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js";
+import {
+  filterWrongBookByLanguage as filterWrongBookByLanguageModel,
+  mergeWrongBooks,
+  removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
+  sanitizeWrongBook,
+  updateWrongEntry as updateWrongEntryModel,
+} from "./js/language/wrong-book.js";
+import {
+  accountEntitlements as accountEntitlementsModel,
+  accountMembershipSummary as accountMembershipSummaryModel,
+  entitlementLabel,
+  hasAccountEntitlement as hasAccountEntitlementModel,
+  isSuperAdmin as isSuperAdminModel,
+  membershipLabel,
+} from "./js/membership/account.js";
+import {
+  MEMBERSHIP_GOALS,
+  MEMBERSHIP_PLAN_ORDER,
+  membershipGoalAllowsPlan,
+  membershipGoalForPlan,
+  normalizedMembershipGoal,
+  planDetails as planDetailsModel,
+} from "./js/membership/plans.js";
+import {
+  DEFAULT_PAYMENT_METHODS,
+  normalizedPaymentMethod as normalizedPaymentMethodModel,
+  paymentMethodLabel as paymentMethodLabelModel,
+  paymentStatusLabel,
+  rechargeStatusLabel,
+} from "./js/membership/recharge.js";
+import {
+  loginLocationLabel,
+  loginReasonLabel,
+  membershipDateValue as membershipDateValueModel,
+} from "./js/admin/formatters.js";
+
 const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
 const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);
-const API_TIMEOUT_MS = 30000;
-const AI_TIMEOUT_MS = 120000;
-const STATUS_TIMEOUT_MS = 8000;
-const STATUS_RETRY_BASE_DELAYS_MS = [0, 650, 1800];
-const API_GET_TIMEOUT_MS = 10000;
-const GET_RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504, 530]);
-const PDF_TIMEOUT_MS = 120000;
-const MAX_WRONG_BOOK_ITEMS = 250;
-const MAX_ACCEPTED_ANSWERS = 14;
-const MAX_RUBRIC_CACHE_ITEMS = 500;
-const MAX_JAPANESE_READING_CACHE_ITEMS = 2000;
-const MAX_STUDY_RECORDS = 500;
 const MAX_REJUDGE_LOG_ITEMS = 200;
 const MAX_WORD_IMPORT_BYTES = 1024 * 1024;
 const MAX_WORD_INPUT_CHARS = 120000;
 const PROJECT_RUNTIME_MAX_AGE_MS = 100 * 60 * 1000;
-const BACKEND_REFRESH_INTERVAL_MS = 60 * 1000;
 const JAPANESE_READING_CACHE_KEY = "japaneseReadingCache:v1";
 const JAPANESE_WRITTEN_FORM_CACHE_KEY = "japaneseWrittenFormCache:v1";
 const ACCOUNT_DATA_VERSION = 2;
 const STUDY_DATA_VERSION = 1;
 const WRONG_BOOK_EXPORT_TYPE = "vocab-wrong-book";
 const WRONG_BOOK_EXPORT_VERSION = 1;
-const DEFAULT_PROFILE = "我";
-const BUSINESS_TIME_ZONE = "Asia/Hong_Kong";
-const LANGUAGE_LABELS = {
-  english: "英语",
-  japanese: "日语",
-};
 const TRIAL_MAX_QUESTIONS = 10;
 const TRIAL_MAX_TEXT_CHARS = 200000;
 const TRIAL_MAX_IMAGE_BYTES = 12 * 1024 * 1024;
@@ -83,10 +159,6 @@ const TRIAL_QUESTION_BANKS = {
     { prompt: "词语", answers: ["言葉", "ことば"] },
   ],
 };
-const PRACTICE_LABELS = {
-  meaning: "释义",
-  dictation: "听写",
-};
 const VOCABULARY_LEVEL_OPTIONS = {
   japanese: [
     ["n5", "JLPT N5"],
@@ -111,41 +183,6 @@ const VOCABULARY_LEVEL_OPTIONS = {
   ],
 };
 const SKIPPED_ANSWER = "（跳过）";
-const ACHIEVEMENT_TIERS = {
-  bronze: { label: "初阶", points: 10 },
-  silver: { label: "进阶", points: 25 },
-  gold: { label: "高阶", points: 50 },
-  platinum: { label: "卓越", points: 100 },
-};
-const ACHIEVEMENTS = [
-  { id: "firstQuiz", category: "入门", tier: "bronze", title: "开测", desc: "完成一次词表测试。", metric: "rounds", goal: 1 },
-  { id: "firstCorrect", category: "入门", tier: "bronze", title: "第一题正确", desc: "累计答对 1 题。", metric: "correct", goal: 1 },
-  { id: "firstDictation", category: "探索", tier: "bronze", title: "听写启动", desc: "完成一次听写练习。", metric: "dictationRounds", goal: 1 },
-  { id: "skipSaved", category: "入门", tier: "bronze", title: "跳过也记录", desc: "跳过的词已进入错题本。", metric: "skipped", goal: 1 },
-  { id: "wrongTen", category: "工具", tier: "silver", title: "错题收藏家", desc: "历史错题达到 10 个。", metric: "wrongWords", goal: 10 },
-  { id: "perfectRound", category: "能力", tier: "silver", title: "满分一轮", desc: "完成一轮满分测试。", metric: "perfectRounds", goal: 1 },
-  { id: "firstPdf", category: "工具", tier: "silver", title: "练习册生成", desc: "导出一次 PDF 错题本。" },
-  { id: "longRound", category: "坚持", tier: "silver", title: "长跑", desc: "完成一轮 20 题以上的测试。", metric: "longRounds", goal: 1 },
-  { id: "rounds5", category: "坚持", tier: "bronze", title: "渐入佳境", desc: "累计完成 5 轮练习。", metric: "rounds", goal: 5 },
-  { id: "rounds25", category: "坚持", tier: "silver", title: "稳定节奏", desc: "累计完成 25 轮练习。", metric: "rounds", goal: 25 },
-  { id: "rounds100", category: "坚持", tier: "platinum", title: "百炼成章", desc: "累计完成 100 轮练习。", metric: "rounds", goal: 100 },
-  { id: "words50", category: "坚持", tier: "bronze", title: "五十步", desc: "累计完成 50 道题。", metric: "words", goal: 50 },
-  { id: "words500", category: "坚持", tier: "silver", title: "五百题", desc: "累计完成 500 道题。", metric: "words", goal: 500 },
-  { id: "words2000", category: "坚持", tier: "gold", title: "两千里", desc: "累计完成 2000 道题。", metric: "words", goal: 2000 },
-  { id: "correct100", category: "能力", tier: "bronze", title: "百题正确", desc: "累计答对 100 道题。", metric: "correct", goal: 100 },
-  { id: "correct1000", category: "能力", tier: "gold", title: "千题正确", desc: "累计答对 1000 道题。", metric: "correct", goal: 1000 },
-  { id: "streak3", category: "坚持", tier: "bronze", title: "三日不辍", desc: "最长连续学习 3 天。", metric: "longestStreak", goal: 3 },
-  { id: "streak7", category: "坚持", tier: "silver", title: "一周坚持", desc: "最长连续学习 7 天。", metric: "longestStreak", goal: 7 },
-  { id: "streak30", category: "坚持", tier: "gold", title: "月度恒心", desc: "最长连续学习 30 天。", metric: "longestStreak", goal: 30 },
-  { id: "perfect3", category: "能力", tier: "gold", title: "三连满分", desc: "累计完成 3 轮满分练习。", metric: "perfectRounds", goal: 3 },
-  { id: "dictation10", category: "探索", tier: "silver", title: "听辨熟手", desc: "累计完成 10 轮听写。", metric: "dictationRounds", goal: 10 },
-  { id: "review10", category: "探索", tier: "silver", title: "回炉有方", desc: "累计完成 10 轮错题复习。", metric: "reviewRounds", goal: 10 },
-  { id: "bilingual", category: "探索", tier: "silver", title: "双语启程", desc: "英语和日语各完成至少 1 轮。", metric: "bilingualRounds", goal: 1 },
-  { id: "highAccuracy5", category: "能力", tier: "gold", title: "稳定高分", desc: "完成 5 轮至少 10 题且正确率不低于 90% 的练习。", metric: "highAccuracyRounds", goal: 5 },
-  { id: "goalDays3", category: "坚持", tier: "gold", title: "目标常客", desc: "累计 3 天达到当日学习目标。", metric: "goalDays", goal: 3 },
-];
-
-const $ = (id) => document.getElementById(id);
 
 let resultHideTimer = null;
 let nextTimer = null;
@@ -182,7 +219,6 @@ let projectRuntimeNeedsRestore = false;
 let backendStatusPromise = null;
 let backendRefreshPromise = null;
 let backendRecoveryTimer = null;
-let storageWriteFailed = false;
 let achievementFilter = "all";
 let achievementToastTimer = null;
 let achievementToastHideTimer = null;
@@ -193,43 +229,6 @@ const trialState = {
   imageMode: "compress",
   quiz: null,
 };
-const MEMBERSHIP_PLAN_ORDER = Object.freeze([
-  "trial_single_language",
-  "dual_language_monthly",
-  "tools_monthly",
-  "all_access_monthly",
-  "japanese_lifetime",
-  "all_access_lifetime",
-]);
-const MEMBERSHIP_GOALS = Object.freeze({
-  english: {
-    label: "只学英语",
-    description: "显示英语单语言、双语言和全功能方案。",
-    trialLanguage: "english",
-    plans: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
-  },
-  japanese: {
-    label: "只学日语",
-    description: "显示日语单语言、双语言和全功能方案。",
-    trialLanguage: "japanese",
-    plans: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
-  },
-  bilingual: {
-    label: "英语和日语",
-    description: "只显示同时包含两种语言会员功能的方案。",
-    plans: ["dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
-  },
-  tools: {
-    label: "只用工具箱",
-    description: "显示工具箱包月和包含工具箱的全功能方案。",
-    plans: ["tools_monthly", "all_access_monthly", "all_access_lifetime"],
-  },
-  all: {
-    label: "语言和工具箱",
-    description: "只显示同时包含语言学习与在线工具箱的方案。",
-    plans: ["all_access_monthly", "all_access_lifetime"],
-  },
-});
 const rejudgeInFlight = new Set();
 const modalReturnFocus = new Map();
 let rejudgeResultScrollPosition = null;
@@ -237,8 +236,6 @@ const projectRuntime = {
   english: null,
   japanese: null,
 };
-const BACKEND_CONFIG_MESSAGE = "服务器代理尚未配置，请设置 Cloudflare Pages 的 LOCAL_API_BASE。";
-const BACKEND_NETWORK_MESSAGE = "暂时无法连接服务器，请检查网络后重试；微信中可关闭页面再重新打开。";
 let backendFailureMessage = BACKEND_NETWORK_MESSAGE;
 let learningSyncManager = null;
 let learningSyncAccountId = "";
@@ -254,28 +251,9 @@ let learningSyncStatus = {
   server_version: 0,
 };
 
-const restoredSession = localStorage.getItem("wyjAccountSession") || sessionStorage.getItem("vocabSession") || "";
-if (restoredSession) safeStorageSet(localStorage, "wyjAccountSession", restoredSession);
-sessionStorage.removeItem("vocabSession");
-localStorage.removeItem("vocabSession");
-
-function loadJson(key, fallback) {
-  try {
-    return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
-  } catch (_) {
-    return fallback;
-  }
-}
-
-function safeStorageSet(storage, key, value) {
-  try {
-    storage.setItem(key, String(value));
-    return true;
-  } catch (_) {
-    storageWriteFailed = true;
-    return false;
-  }
-}
+const restoredSession = restoreAccountSession();
+const { pushRoute } = createRouter({ onRouteChange: () => renderAccountUi() });
+const learningSyncAdapter = createLearningSyncAdapter(() => window.WYJLearningSync);
 
 function migrateProjectPreferences() {
   const legacyGrading = ["strict", "normal", "lenient"].includes(localStorage.getItem("gradingMode"))
@@ -294,213 +272,12 @@ function migrateProjectPreferences() {
 
 migrateProjectPreferences();
 
-function limitText(value, maxLength = 500) {
-  return String(value || "").trim().slice(0, maxLength);
-}
-
-function sanitizeAccepted(values) {
-  if (!Array.isArray(values)) return [];
-  const seen = new Set();
-  const result = [];
-  values.slice(0, MAX_ACCEPTED_ANSWERS).forEach((item) => {
-    const value = limitText(item);
-    const key = normalizeMeaning(value);
-    if (value && key && !seen.has(key)) {
-      seen.add(key);
-      result.push(value);
-    }
-  });
-  return result;
-}
-
-function sanitizeStoredRubric(value, fallbackGloss = "", fallbackAccepted = []) {
-  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
-  return {
-    language: limitText(source.language, 40),
-    gloss: limitText(source.gloss || fallbackGloss),
-    accepted: sanitizeAccepted(source.accepted || fallbackAccepted),
-    notes: limitText(source.notes),
-    reading: limitText(source.reading, 80),
-  };
-}
-
-function sanitizeQuestionFeedback(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const type = value.type === "skipped" ? "skipped" : "answer";
-  return {
-    type,
-    correct: type === "skipped" ? false : Boolean(value.correct),
-    gloss: limitText(value.gloss) || "（未给出）",
-    accepted: sanitizeAccepted(value.accepted),
-    kind: value.kind === "dictation" ? "dictation" : "meaning",
-    ai_review: Boolean(value.ai_review),
-  };
-}
-
-function sanitizePendingAdvance(value, runtime = {}) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const questionIndex = Number.parseInt(value.questionIndex, 10);
-  const dueAt = Number(value.dueAt);
-  const words = Array.isArray(runtime.words) ? runtime.words : [];
-  const roundId = limitText(value.roundId, 100);
-  const expectedRoundId = limitText(runtime.roundId, 100);
-  const feedback = sanitizeQuestionFeedback(value.feedback);
-  if (
-    !feedback
-    || !Number.isInteger(questionIndex)
-    || questionIndex < 0
-    || questionIndex >= words.length
-    || !Number.isFinite(dueAt)
-    || dueAt <= 0
-    || (expectedRoundId && roundId !== expectedRoundId)
-  ) return null;
-  return {
-    id: limitText(value.id, 160) || `${roundId}:${questionIndex}:${Math.round(dueAt)}`,
-    roundId,
-    questionIndex,
-    dueAt,
-    feedback,
-  };
-}
-
-function sanitizeWrongBook(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const cleaned = {};
-  Object.entries(value)
-    .slice(-MAX_WRONG_BOOK_ITEMS)
-    .forEach(([word, info]) => {
-      if (!info || typeof info !== "object" || Array.isArray(info)) return;
-      const key = limitText(word, 240);
-      if (!key) return;
-      const count = Number.parseInt(info.wrong_count, 10);
-      const language = normalizeQuizLanguage(info.language) || (wordMatchesLanguage(key, "english") ? "english" : "japanese");
-      const questionType = info.question_type === "dictation" ? "dictation" : "meaning";
-      const gradingMode = ["strict", "normal", "lenient"].includes(info.grading_mode) ? info.grading_mode : "normal";
-      const correctAnswer = limitText(info.correct_answer);
-      const accepted = sanitizeAccepted(info.accepted);
-      cleaned[key] = {
-        wrong_count: Number.isFinite(count) ? Math.max(0, Math.min(9999, count)) : 0,
-        last_answer: limitText(info.last_answer),
-        original_answer: limitText(info.original_answer || info.last_answer),
-        correct_answer: correctAnswer,
-        accepted,
-        skipped: Boolean(info.skipped),
-        last_time: limitText(info.last_time, 80),
-        question_type: questionType,
-        language,
-        grading_mode: gradingMode,
-        round_id: limitText(info.round_id, 100),
-        rubric: sanitizeStoredRubric(info.rubric, correctAnswer, accepted),
-        rejudged_at: limitText(info.rejudged_at, 80),
-        rejudge_result: ["correct", "incorrect"].includes(info.rejudge_result) ? info.rejudge_result : "",
-        rejudge_reason: limitText(info.rejudge_reason),
-      };
-    });
-  return cleaned;
-}
-
-function mergeWrongBooks(current, incoming) {
-  const merged = { ...sanitizeWrongBook(current) };
-  Object.entries(sanitizeWrongBook(incoming)).forEach(([word, info]) => {
-    const previous = merged[word] || {};
-    delete merged[word];
-    merged[word] = {
-      ...previous,
-      ...info,
-      wrong_count: Math.max(previous.wrong_count || 0, info.wrong_count || 0),
-      correct_answer: info.correct_answer || previous.correct_answer || "",
-      accepted: info.accepted.length ? info.accepted : previous.accepted || [],
-    };
-  });
-  return sanitizeWrongBook(merged);
-}
-
-function trimRubricCache(cache) {
-  if (!cache || typeof cache !== "object" || Array.isArray(cache)) return {};
-  return Object.fromEntries(Object.entries(cache).slice(-MAX_RUBRIC_CACHE_ITEMS));
-}
-
-function normalizeJapaneseReading(value) {
-  return String(value || "").normalize("NFKC").replace(/\s+/g, "").trim();
-}
-
-function isJapaneseReading(value) {
-  return /^[\u3040-\u30ff\u31f0-\u31ffー・]+$/u.test(normalizeJapaneseReading(value));
-}
-
-function sanitizeJapaneseReadings(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const cleaned = {};
-  Object.entries(value).forEach(([word, reading]) => {
-    const cleanWord = limitText(word, 64);
-    const cleanReading = normalizeJapaneseReading(reading).slice(0, 64);
-    if (cleanWord && isJapaneseReading(cleanReading)) cleaned[cleanWord] = cleanReading;
-  });
-  return Object.fromEntries(Object.entries(cleaned).slice(-MAX_JAPANESE_READING_CACHE_ITEMS));
-}
-
-function sanitizeJapaneseWrittenForms(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const cleaned = {};
-  Object.entries(value).forEach(([word, written]) => {
-    const cleanWord = limitText(word, 64);
-    const cleanWritten = limitText(written, 64);
-    if (
-      cleanWord
-      && cleanWritten
-      && /^[\u3040-\u30ff\u31f0-\u31ff\u3400-\u9fff々〆ヶー・]+$/u.test(cleanWord)
-      && /^[\u3040-\u30ff\u31f0-\u31ff\u3400-\u9fff々〆ヶー・]+$/u.test(cleanWritten)
-    ) cleaned[cleanWord] = cleanWritten;
-  });
-  return Object.fromEntries(Object.entries(cleaned).slice(-MAX_JAPANESE_READING_CACHE_ITEMS));
-}
-
-function sanitizeProfile(value) {
-  const cleaned = String(value || "").trim().slice(0, 30);
-  return cleaned || DEFAULT_PROFILE;
-}
-
-function profileStorageName(profile) {
-  return encodeURIComponent(sanitizeProfile(profile));
-}
-
-function normalizeQuizLanguage(value) {
-  if (value === "english" || value === "japanese") return value;
-  return "";
-}
-
-function quizLanguageLabel(language) {
-  return LANGUAGE_LABELS[language] || "未选语言";
-}
-
-function normalizePracticeMode(value) {
-  if (value === "dictation") return "dictation";
-  return "meaning";
-}
-
-function practiceModeLabel(mode) {
-  return PRACTICE_LABELS[mode] || "释义";
-}
-
-function wordMatchesLanguage(word, language) {
-  const value = String(word || "").trim();
-  if (!value) return false;
-  if (language === "english") return /^[A-Za-z][A-Za-z'-]*$/.test(value);
-  if (language === "japanese") return /[\u3040-\u30ff\u3400-\u9fff々〆ヶ]/u.test(value);
-  return true;
-}
-
-function filterWordsByLanguage(words, language) {
-  return words.filter((word) => wordMatchesLanguage(word, language));
-}
-
 function filterWrongBookByLanguage(book, language = state.quizLanguage) {
-  if (!language) return {};
-  return Object.fromEntries(Object.entries(book || {}).filter(([word]) => wordMatchesLanguage(word, language)));
+  return filterWrongBookByLanguageModel(book, language);
 }
 
 function removeLanguageFromWrongBook(book, language = state.quizLanguage) {
-  return Object.fromEntries(Object.entries(book || {}).filter(([word]) => !wordMatchesLanguage(word, language)));
+  return removeLanguageFromWrongBookModel(book, language);
 }
 
 const state = {
@@ -574,39 +351,23 @@ function accountAiSuggestionSettingsKey(language, account = state.account) {
 }
 
 function learningSyncApi() {
-  return window.WYJLearningSync || null;
+  return learningSyncAdapter.api();
 }
 
 function learningSyncRecordId(kind, ...components) {
-  return learningSyncApi()?.makeRecordId(kind, components) || "";
+  return learningSyncAdapter.recordId(kind, ...components);
 }
 
 function learningSyncGroupPrefix(kind, ...components) {
-  const id = learningSyncRecordId(kind, ...components);
-  return id ? `${id}|` : "";
-}
-
-function learningSyncTimestamp(value) {
-  const parsed = new Date(value || "");
-  return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+  return learningSyncAdapter.groupPrefix(kind, ...components);
 }
 
 function learningSyncRecord(dataType, kind, components, payload, updatedAt = "") {
-  return {
-    data_type: dataType,
-    record_id: learningSyncRecordId(kind, ...components),
-    payload,
-    updated_at: learningSyncTimestamp(updatedAt),
-    deleted: false,
-  };
+  return learningSyncAdapter.record(dataType, kind, components, payload, updatedAt);
 }
 
 function decodeProfileStorageName(value) {
-  try {
-    return sanitizeProfile(decodeURIComponent(value));
-  } catch (_) {
-    return sanitizeProfile(value);
-  }
+  return learningSyncAdapter.decodeProfile(value);
 }
 
 function savedProjectPreferences(language, account = state.account) {
@@ -815,7 +576,7 @@ function updateLearningSyncStatus(status) {
 }
 
 function renderLearningSyncDashboardStatus() {
-  if (storageWriteFailed) {
+  if (hasStorageWriteFailure()) {
     setDashboardService("dashboardSyncStatus", "浏览器存储受限", "is-warning");
     return;
   }
@@ -976,35 +737,6 @@ async function importLearningSyncBackup(event) {
   } finally {
     event.target.value = "";
   }
-}
-
-function sanitizeStudyRecords(value) {
-  if (!Array.isArray(value)) return [];
-  return value.slice(-MAX_STUDY_RECORDS).map((record) => {
-    if (!record || typeof record !== "object") return null;
-    const language = normalizeQuizLanguage(record.language);
-    const parsedTotal = Number.parseInt(record.total, 10) || 0;
-    if (parsedTotal < 1) return null;
-    const total = Math.min(500, parsedTotal);
-    const correct = Math.max(0, Math.min(total, Number.parseInt(record.correct, 10) || 0));
-    const skipped = Math.max(0, Math.min(total - correct, Number.parseInt(record.skipped, 10) || 0));
-    const wrong = Math.max(0, total - correct - skipped);
-    const finishedAt = new Date(record.finishedAt || record.finished_at || "");
-    if (!language || !Number.isFinite(finishedAt.getTime())) return null;
-    return {
-      id: limitText(record.id, 100) || `${finishedAt.getTime()}-${language}`,
-      finishedAt: finishedAt.toISOString(),
-      language,
-      practiceMode: normalizePracticeMode(record.practiceMode),
-      mode: ["normal", "review-current", "review-history"].includes(record.mode) ? record.mode : "normal",
-      total,
-      correct,
-      wrong,
-      skipped,
-      accuracy: Math.round((correct / total) * 100),
-      durationSec: Math.max(0, Math.min(24 * 60 * 60, Number.parseInt(record.durationSec, 10) || 0)),
-    };
-  }).filter(Boolean);
 }
 
 function loadStudyRecords() {
@@ -1199,10 +931,7 @@ function clearSession() {
   state.session = "";
   state.account = null;
   state.quizSession = "";
-  sessionStorage.removeItem("vocabSession");
-  localStorage.removeItem("vocabSession");
-  localStorage.removeItem("wyjAccountSession");
-  localStorage.removeItem("wyjAccountCache");
+  clearAccountSessionStorage();
   ["secretInput", "registerSecretInput", "registerConfirmInput", "currentSecretInput", "newSecretInput", "newSecretConfirmInput", "deleteSecretInput", "adminNewSecretInput"].forEach((id) => {
     const input = $(id);
     if (input) input.value = "";
@@ -1213,60 +942,20 @@ function clearSession() {
   renderAccountUi();
 }
 
-function membershipLabel(value) {
-  return {
-    free: "普通用户",
-    trial_single_language: "单语言包月体验会员",
-    monthly: "历史双语言包月会员",
-    lifetime: "历史双语言永久会员",
-    legacy_all_monthly: "历史双语言包月会员",
-    legacy_all_lifetime: "历史双语言永久会员",
-    japanese_lifetime: "双语言双项永久会员",
-    tools_monthly: "工具箱包月会员",
-    dual_language_monthly: "双语言包月",
-    dual_language_lifetime: "双语言双项永久会员",
-    all_access_monthly: "全功能包月会员",
-    all_access_lifetime: "全功能永久会员",
-    super_admin: "超级管理员",
-  }[value] || "普通用户";
-}
-
-function entitlementLabel(code) {
-  return {
-    language_japanese_access: "日语会员功能",
-    language_english_access: "英语会员功能",
-    language_all_access: "全部语言会员功能",
-    tools_access: "在线工具箱",
-    tools_batch_access: "批量处理",
-    temporary_share_access: "临时分享",
-    save_tool_config: "保存工具配置",
-    all_features_access: "全部高级功能",
-  }[code] || code;
-}
-
 function accountEntitlements(account = state.account) {
-  return new Set(Array.isArray(account?.entitlements) ? account.entitlements : []);
+  return accountEntitlementsModel(account);
 }
 
 function hasAccountEntitlement(code, account = state.account) {
-  return isSuperAdmin(account) || accountEntitlements(account).has(code);
+  return hasAccountEntitlementModel(code, account);
 }
 
 function accountMembershipSummary(account = state.account) {
-  if (!account) return { code: "free", name: "未登录", permanent: false, expires_at: "", tools_access: false };
-  return account.membership_summary || {
-    code: account.membership || "free",
-    name: membershipLabel(account.membership),
-    permanent: account.membership === "lifetime",
-    expires_at: account.membership_expires || "",
-    tools_access: Boolean(account.tools_access),
-  };
+  return accountMembershipSummaryModel(account);
 }
 
 function isSuperAdmin(account = state.account) {
-  return Boolean(
-    account && account.username === "wyj" && account.role === "super_admin" && account.is_super_admin === true,
-  );
+  return isSuperAdminModel(account);
 }
 
 function applyAccount(account) {
@@ -1651,65 +1340,6 @@ async function voteForFeature(feedbackId, voted) {
   }
 }
 
-async function requestJsonGet(path, options = {}) {
-  const authenticated = options.authenticated === true;
-  let lastError = new Error(BACKEND_NETWORK_MESSAGE);
-  for (let attempt = 0; attempt < STATUS_RETRY_BASE_DELAYS_MS.length; attempt += 1) {
-    const delay = retryDelayWithJitter(STATUS_RETRY_BASE_DELAYS_MS[attempt]);
-    if (delay) await waitForDelay(delay, options.controller?.signal);
-    let response;
-    try {
-      response = await fetchWithTimeout(path, {
-        method: "GET",
-        cache: "no-store",
-        credentials: "same-origin",
-        headers: authenticated ? { "X-Session-Token": state.session } : {},
-        controller: options.controller,
-      }, options.timeoutMs || API_GET_TIMEOUT_MS);
-    } catch (networkError) {
-      if (networkError?.name === "AbortError") throw networkError;
-      backendAvailable = false;
-      backendFailureMessage = backendErrorMessage(networkError);
-      lastError = new Error(backendFailureMessage);
-      if (attempt < STATUS_RETRY_BASE_DELAYS_MS.length - 1) continue;
-      throw lastError;
-    }
-
-    const data = await response.json().catch(() => ({}));
-    if (response.ok) {
-      backendAvailable = true;
-      return data;
-    }
-    if (authenticated && response.status === 401) {
-      clearSession();
-      showAuth("登录已失效，请重新登录", { replace: true });
-      const error = new Error("登录已失效，请重新登录");
-      error.code = "session_expired";
-      throw error;
-    }
-    if (GET_RETRYABLE_STATUS.has(response.status) && attempt < STATUS_RETRY_BASE_DELAYS_MS.length - 1) {
-      lastError = new Error("服务器正在恢复，请稍候…");
-      lastError.status = response.status;
-      continue;
-    }
-    const configuredWrong = String(data.error || "").includes("LOCAL_API_BASE");
-    const message = configuredWrong
-      ? BACKEND_CONFIG_MESSAGE
-      : GET_RETRYABLE_STATUS.has(response.status)
-        ? backendErrorMessage({ status: response.status })
-        : data.error || `请求失败（HTTP ${response.status}）`;
-    const error = new Error(message);
-    error.code = data.code || "request_failed";
-    error.status = response.status;
-    throw error;
-  }
-  throw lastError;
-}
-
-async function apiGet(path, options = {}) {
-  return requestJsonGet(path, { ...options, authenticated: true });
-}
-
 function openModal(id) {
   const modal = $(id);
   if (!modal) return;
@@ -1813,10 +1443,7 @@ async function logoutAccount() {
 }
 
 function planDetails(plan) {
-  const item = membershipPlans.find((candidate) => candidate.code === plan);
-  return item
-    ? [item.name, `${item.price} ${item.currency}`, item.description]
-    : ["请选择套餐", "", ""];
+  return planDetailsModel(membershipPlans, plan);
 }
 
 function showRejudgeResultModal(title, message, tone = "info") {
@@ -1841,31 +1468,11 @@ function closeRejudgeResultModal() {
   });
 }
 
-function normalizedMembershipGoal(value) {
-  const goal = String(value || "").trim();
-  return Object.prototype.hasOwnProperty.call(MEMBERSHIP_GOALS, goal) ? goal : "";
-}
-
-function membershipGoalForPlan(planCode, trialLanguage = "") {
-  if (planCode === "trial_single_language") {
-    return trialLanguage === "japanese" ? "japanese" : "english";
-  }
-  if (planCode === "tools_monthly") return "tools";
-  if (["dual_language_monthly", "japanese_lifetime", "dual_language_lifetime"].includes(planCode)) return "bilingual";
-  if (["all_access_monthly", "all_access_lifetime", "legacy_all_monthly", "legacy_all_lifetime"].includes(planCode)) return "all";
-  return "";
-}
-
 function membershipGoalForCurrentContext() {
   if (location.pathname.startsWith("/tools")) return "tools";
   if (currentProject === "english" || state.quizLanguage === "english") return "english";
   if (currentProject === "japanese" || state.quizLanguage === "japanese") return "japanese";
   return "";
-}
-
-function membershipGoalAllowsPlan(goal, planCode) {
-  const config = MEMBERSHIP_GOALS[normalizedMembershipGoal(goal)];
-  return Boolean(config?.plans.includes(planCode));
 }
 
 function updateMembershipPurchaseSummary() {
@@ -1886,28 +1493,17 @@ function updateMembershipPurchaseSummary() {
 }
 
 function normalizedPaymentMethod(value) {
-  const method = String(value || "").trim().toLowerCase();
-  const allowed = paymentMethods.length
-    ? paymentMethods.map((item) => item.code)
-    : ["wechat", "alipay"];
-  return allowed.includes(method) ? method : "";
+  return normalizedPaymentMethodModel(value, paymentMethods);
 }
 
 function paymentMethodLabel(value) {
-  const method = normalizedPaymentMethod(value);
-  return paymentMethods.find((item) => item.code === method)?.name || {
-    wechat: "微信支付",
-    alipay: "支付宝",
-  }[method] || "未选择";
+  return paymentMethodLabelModel(value, paymentMethods);
 }
 
 function renderPaymentMethods() {
   const list = $("paymentMethodList");
   if (!list) return;
-  const methods = paymentMethods.length ? paymentMethods : [
-    { code: "wechat", name: "微信支付" },
-    { code: "alipay", name: "支付宝" },
-  ];
+  const methods = paymentMethods.length ? paymentMethods : DEFAULT_PAYMENT_METHODS;
   selectedPaymentMethod = normalizedPaymentMethod(selectedPaymentMethod);
   list.innerHTML = methods.map((item) => `<label>
     <input type="radio" name="paymentMethod" value="${escapeHtml(item.code)}" ${item.code === selectedPaymentMethod ? "checked" : ""} />
@@ -2264,18 +1860,6 @@ function selectRechargePlan(plan, options = {}) {
   if (!options.preserveOrder) $("rechargeMessage").textContent = "";
 }
 
-function paymentStatusLabel(status) {
-  return {
-    pending_payment: "等待付款",
-    user_paid: "已通知管理员，等待确认",
-    processing: "管理员核对中",
-    approved: "已开通",
-    rejected: "已拒绝",
-    expired: "订单已过期",
-    cancelled: "已取消",
-  }[status] || status || "未知";
-}
-
 function renderPaymentOrder(record) {
   if (!record) return;
   const orderPaymentMethod = normalizedPaymentMethod(record.payment_method);
@@ -2460,42 +2044,6 @@ async function deleteOwnAccount(event) {
   }
 }
 
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>'"]/g, (char) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;",
-  }[char]));
-}
-
-async function writeClipboardText(value) {
-  if (navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(String(value));
-      return true;
-    } catch (_) {
-      // Embedded browsers may expose the API but reject it; fall back below.
-    }
-  }
-
-  const helper = document.createElement("textarea");
-  helper.value = String(value);
-  helper.setAttribute("readonly", "");
-  helper.style.position = "fixed";
-  helper.style.opacity = "0";
-  helper.style.pointerEvents = "none";
-  document.body.appendChild(helper);
-  helper.focus();
-  helper.select();
-  let copied = false;
-  try {
-    copied = document.execCommand("copy");
-  } catch (_) {
-    copied = false;
-  } finally {
-    helper.remove();
-  }
-  return copied;
-}
-
 async function copyTextWithFeedback(value, button) {
   if (!button) return false;
   const originalLabel = button.dataset.copyLabel || button.textContent;
@@ -2616,37 +2164,6 @@ function adminUserById(id) {
   return adminUsers.find((user) => user.id === id);
 }
 
-function formatLocalDateTime(value, fallback = "无") {
-  if (!value) return fallback;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  const parts = Object.fromEntries(new Intl.DateTimeFormat("zh-CN", {
-    timeZone: BUSINESS_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date).map((part) => [part.type, part.value]));
-  return `${parts.year}/${parts.month}/${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
-}
-
-function rechargeStatusLabel(status) {
-  return {
-    pending: "待处理",
-    pending_payment: "等待用户付款",
-    user_paid: "用户已确认付款",
-    processing: "核对处理中",
-    activated: "已开通",
-    approved: "已开通",
-    rejected: "已拒绝",
-    expired: "已过期",
-    cancelled: "用户已取消",
-  }[status] || status || "未知";
-}
-
 function renderAdminUsers(users = null) {
   if (Array.isArray(users)) adminUsers = users;
   const list = $("adminUserList");
@@ -2710,23 +2227,6 @@ function renderAdminAudit(logs) {
     <p>管理员：${escapeHtml(log.actor_username || "-")} · 对象：${escapeHtml(log.target_username || "-")}</p>
     <p>${escapeHtml(log.note || "无备注")}</p>
   </article>`).join("") || "<p>暂无审计记录</p>";
-}
-
-function loginReasonLabel(reason) {
-  return {
-    success: "登录成功",
-    invalid_credentials: "用户名或密钥错误",
-    account_banned: "账户已封禁",
-    login_rate_limited: "请求过于频繁",
-  }[reason] || reason || "登录失败";
-}
-
-function loginLocationLabel(log) {
-  let country = String(log.country || "").toUpperCase();
-  if (/^[A-Z]{2}$/.test(country) && typeof Intl.DisplayNames === "function") {
-    try { country = new Intl.DisplayNames(["zh-CN"], { type: "region" }).of(country) || country; } catch (_) {}
-  }
-  return [...new Set([log.city, log.region, country].map((item) => String(item || "").trim()).filter(Boolean))].join(" / ") || "未知网络位置";
 }
 
 function renderAdminLoginLogs(logs) {
@@ -2933,9 +2433,7 @@ function localDateValue(date = new Date()) {
 }
 
 function membershipDateValue(value) {
-  if (!value) return "";
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? "" : localDateValue(parsed);
+  return membershipDateValueModel(value, localDateValue);
 }
 
 function updateAdminMembershipFields(fillDefaults = true) {
@@ -3710,13 +3208,6 @@ function showLanguageGate() {
   showProjectPicker();
 }
 
-function pushRoute(path, replace = false) {
-  const target = String(path || "/");
-  if (location.pathname === target) return;
-  history[replace ? "replaceState" : "pushState"]({}, "", target);
-  renderAccountUi();
-}
-
 function hidePrimaryScreens() {
   const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
   ["publicHome", "changelogPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "shareViewer", "adminPanel"].forEach((id) => {
@@ -4104,71 +3595,11 @@ function showAchievementToast(message) {
   }, 3200);
 }
 
-function calculateLongestStudyStreak(records) {
-  const dayNumbers = [...new Set(records.map((record) => localDayKey(record.finishedAt)).filter(Boolean))]
-    .map((key) => {
-      const [year, month, day] = key.split("-").map(Number);
-      return Math.floor(Date.UTC(year, month - 1, day) / 86400000);
-    })
-    .sort((left, right) => left - right);
-  let longest = 0;
-  let current = 0;
-  let previous = null;
-  dayNumbers.forEach((day) => {
-    current = previous !== null && day === previous + 1 ? current + 1 : 1;
-    longest = Math.max(longest, current);
-    previous = day;
-  });
-  return longest;
-}
-
 function achievementMetrics() {
-  const records = state.studyRecords;
-  const languageRounds = { english: 0, japanese: 0 };
-  const totals = records.reduce((result, record) => {
-    result.rounds += 1;
-    result.words += record.total;
-    result.correct += record.correct;
-    result.skipped += record.skipped;
-    if (record.correct === record.total) result.perfectRounds += 1;
-    if (record.total >= 20) result.longRounds += 1;
-    if (record.practiceMode === "dictation") result.dictationRounds += 1;
-    if (record.mode.startsWith("review-")) result.reviewRounds += 1;
-    if (record.total >= 10 && record.accuracy >= 90) result.highAccuracyRounds += 1;
-    languageRounds[record.language] += 1;
-    return result;
-  }, {
-    rounds: 0,
-    words: 0,
-    correct: 0,
-    skipped: 0,
-    perfectRounds: 0,
-    longRounds: 0,
-    dictationRounds: 0,
-    reviewRounds: 0,
-    highAccuracyRounds: 0,
-  });
-  totals.wrongWords = Object.keys(state.historyWrongBook).length;
-  totals.longestStreak = calculateLongestStudyStreak(records);
-  totals.bilingualRounds = Math.min(languageRounds.english, languageRounds.japanese);
-
-  const dailyTotals = new Map();
-  records.forEach((record) => {
-    const day = localDayKey(record.finishedAt);
-    const key = `${day}:${record.language}`;
-    dailyTotals.set(key, (dailyTotals.get(key) || 0) + record.total);
-  });
-  const completedGoalDays = new Set();
-  dailyTotals.forEach((total, key) => {
-    const separator = key.lastIndexOf(":");
-    const day = key.slice(0, separator);
-    const language = key.slice(separator + 1);
+  return calculateAchievementMetrics(state.studyRecords, state.historyWrongBook, (language) => {
     const storedGoal = Number.parseInt(localStorage.getItem(studyGoalKey(language)), 10);
-    const goal = Number.isInteger(storedGoal) && storedGoal >= 1 && storedGoal <= 500 ? storedGoal : 20;
-    if (total >= goal) completedGoalDays.add(day);
+    return Number.isInteger(storedGoal) && storedGoal >= 1 && storedGoal <= 500 ? storedGoal : 20;
   });
-  totals.goalDays = completedGoalDays.size;
-  return totals;
 }
 
 function evaluateAchievements(notify = false) {
@@ -4267,25 +3698,6 @@ function renderAchievements() {
   }
 }
 
-function localDayKey(value = new Date()) {
-  const date = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(date.getTime())) return "";
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function studyDaySeries(days = 7) {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  return Array.from({ length: days }, (_, index) => {
-    const date = new Date(start);
-    date.setDate(start.getDate() - (days - index - 1));
-    return { date, key: localDayKey(date), total: 0, correct: 0, rounds: 0 };
-  });
-}
-
 function currentStudyRecords() {
   return state.studyRecords
     .filter((record) => record.language === state.quizLanguage)
@@ -4306,30 +3718,6 @@ function saveStudyGoal() {
   queueStudyGoalForSync();
   renderStudyDashboard();
   renderDashboard();
-}
-
-function formatDuration(seconds) {
-  const value = Math.max(0, Number.parseInt(seconds, 10) || 0);
-  if (value < 60) return `${value}秒`;
-  const minutes = Math.floor(value / 60);
-  const remainder = value % 60;
-  if (minutes < 60) return remainder ? `${minutes}分${remainder}秒` : `${minutes}分钟`;
-  const hours = Math.floor(minutes / 60);
-  const restMinutes = minutes % 60;
-  return restMinutes ? `${hours}小时${restMinutes}分` : `${hours}小时`;
-}
-
-function calculateStudyStreak(records) {
-  const studiedDays = new Set(records.map((record) => localDayKey(record.finishedAt)).filter(Boolean));
-  const cursor = new Date();
-  cursor.setHours(0, 0, 0, 0);
-  if (!studiedDays.has(localDayKey(cursor))) cursor.setDate(cursor.getDate() - 1);
-  let streak = 0;
-  while (streak < 3660 && studiedDays.has(localDayKey(cursor))) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return streak;
 }
 
 function recordStudyRound(summary) {
@@ -4476,63 +3864,6 @@ function confirmClearStudyRecords() {
   });
 }
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
-  const { controller: suppliedController, signal: suppliedSignal, ...requestOptions } = options;
-  const externalSignal = suppliedController?.signal || suppliedSignal || null;
-  const controller = new AbortController();
-  let timedOut = false;
-  const abortFromExternal = () => controller.abort();
-  if (externalSignal?.aborted) controller.abort();
-  else externalSignal?.addEventListener("abort", abortFromExternal, { once: true });
-  const timeout = setTimeout(() => {
-    timedOut = true;
-    controller.abort();
-  }, timeoutMs);
-
-  try {
-    return await fetch(url, { ...requestOptions, signal: controller.signal });
-  } catch (error) {
-    if (error.name === "AbortError") {
-      const wrapped = new Error(timedOut ? "请求超时，请稍后重试" : "请求已取消");
-      wrapped.name = timedOut ? "TimeoutError" : "AbortError";
-      wrapped.code = timedOut ? "request_timeout" : "request_aborted";
-      throw wrapped;
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-    externalSignal?.removeEventListener("abort", abortFromExternal);
-  }
-}
-
-function retryDelayWithJitter(baseMilliseconds) {
-  if (!baseMilliseconds) return 0;
-  const jitter = Math.floor(Math.random() * Math.max(80, baseMilliseconds * 0.35));
-  return baseMilliseconds + jitter;
-}
-
-function waitForDelay(milliseconds, signal = null) {
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) {
-      const error = new Error("请求已取消");
-      error.name = "AbortError";
-      reject(error);
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      signal?.removeEventListener("abort", abort);
-      resolve();
-    }, milliseconds);
-    const abort = () => {
-      window.clearTimeout(timer);
-      const error = new Error("请求已取消");
-      error.name = "AbortError";
-      reject(error);
-    };
-    signal?.addEventListener("abort", abort, { once: true });
-  });
-}
-
 function backendErrorMessage(error) {
   const detail = String(error?.message || "");
   if (detail.includes("LOCAL_API_BASE")) return BACKEND_CONFIG_MESSAGE;
@@ -4548,6 +3879,22 @@ function backendErrorMessage(error) {
   }
   return BACKEND_NETWORK_MESSAGE;
 }
+
+const { api, apiGet, publicApi, requestJsonGet, uploadApi } = createApiClient({
+  getSession: () => state.session,
+  backendErrorMessage,
+  markBackendReachable,
+  markGetReachable: () => { backendAvailable = true; },
+  markNetworkFailure: (message, source) => {
+    backendAvailable = false;
+    if (source !== "upload") backendFailureMessage = message;
+  },
+  handleSessionExpired: (options = {}) => {
+    clearSession();
+    showAuth("登录已失效，请重新登录", options);
+  },
+  handleMembershipRequired: () => openMembershipModal({ goal: membershipGoalForCurrentContext() }),
+});
 
 function applyBackendStatus(data) {
   markBackendReachable(data);
@@ -4610,145 +3957,6 @@ async function ensureBackendConnection() {
   }
 }
 
-async function api(path, body = {}, options = {}) {
-  let response;
-  try {
-    response = await fetchWithTimeout(
-      path,
-      {
-        method: "POST",
-        cache: "no-store",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Session-Token": state.session,
-        },
-        body: JSON.stringify(body),
-        controller: options.controller,
-        signal: options.signal,
-      },
-      options.timeoutMs || API_TIMEOUT_MS,
-    );
-  } catch (error) {
-    if (error.name === "AbortError") throw error;
-    backendAvailable = false;
-    backendFailureMessage = backendErrorMessage(error);
-    throw new Error(backendFailureMessage);
-  }
-  const data = await response.json().catch(() => ({}));
-  if (response.ok || response.status < 500) markBackendReachable(data);
-  if (!response.ok) {
-    if (response.status === 401) {
-      clearSession();
-      showAuth("登录已失效，请重新登录");
-      throw new Error("登录已失效，请重新登录");
-    }
-    const error = new Error(data.error || "请求失败");
-    error.code = data.code || "request_failed";
-    if (error.code === "membership_required") openMembershipModal({ goal: membershipGoalForCurrentContext() });
-    throw error;
-  }
-  return data;
-}
-
-
-function uploadApi(path, body = {}, options = {}) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    const controller = options.controller || new AbortController();
-    const abortRequest = () => xhr.abort();
-    let completed = false;
-    const finish = (callback) => {
-      if (completed) return;
-      completed = true;
-      controller.signal.removeEventListener("abort", abortRequest);
-      callback();
-    };
-    xhr.open("POST", path, true);
-    xhr.timeout = options.timeoutMs || 180000;
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.setRequestHeader("X-Session-Token", state.session);
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable && typeof options.onProgress === "function") {
-        options.onProgress(Math.max(0, Math.min(1, event.loaded / event.total)), event.loaded, event.total);
-      }
-    };
-    xhr.onload = () => finish(() => {
-      let data = {};
-      try { data = JSON.parse(xhr.responseText || "{}"); } catch (_error) { data = {}; }
-      if (xhr.status < 500) markBackendReachable(data);
-      if (xhr.status >= 200 && xhr.status < 300) {
-        if (typeof options.onProgress === "function") options.onProgress(1, 1, 1);
-        resolve(data);
-        return;
-      }
-      if (xhr.status === 401) {
-        clearSession();
-        showAuth("登录已失效，请重新登录");
-      }
-      const error = new Error(data.error || "请求失败");
-      error.code = data.code || "request_failed";
-      error.status = xhr.status;
-      if (error.code === "membership_required") openMembershipModal({ goal: membershipGoalForCurrentContext() });
-      reject(error);
-    });
-    xhr.onerror = () => finish(() => {
-      backendAvailable = false;
-      const error = new Error(backendErrorMessage(new Error("network error")));
-      error.code = "network_error";
-      reject(error);
-    });
-    xhr.ontimeout = () => finish(() => {
-      const error = new Error("上传超时，请检查网络后重试");
-      error.code = "upload_timeout";
-      reject(error);
-    });
-    xhr.onabort = () => finish(() => {
-      const error = new Error("上传已取消");
-      error.name = "AbortError";
-      error.code = "upload_cancelled";
-      reject(error);
-    });
-    if (controller.signal.aborted) {
-      xhr.abort();
-      return;
-    }
-    controller.signal.addEventListener("abort", abortRequest, { once: true });
-    try {
-      xhr.send(JSON.stringify(body));
-    } catch (error) {
-      finish(() => reject(error));
-    }
-  });
-}
-
-async function publicApi(path, body = {}, options = {}) {
-  let response;
-  try {
-    response = await fetchWithTimeout(
-      path,
-      {
-        method: "POST",
-        cache: "no-store",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        controller: options.controller,
-      },
-      options.timeoutMs || API_TIMEOUT_MS,
-    );
-  } catch (error) {
-    if (error.name === "AbortError") throw error;
-    throw new Error(backendErrorMessage(error));
-  }
-  const data = await response.json().catch(() => ({}));
-  if (response.ok || response.status < 500) markBackendReachable(data);
-  if (!response.ok) {
-    const error = new Error(data.error || "请求失败");
-    error.code = data.code || "request_failed";
-    throw error;
-  }
-  return data;
-}
-
 function setView(id) {
   if (id === "quizView" && !state.roundActive) id = "setupView";
   const leavingQuiz = id !== "quizView" && $("quizView")?.classList.contains("active");
@@ -4786,12 +3994,12 @@ function updateStats() {
     const ignored = [];
     if (analysis.duplicates) ignored.push(`${analysis.duplicates} 个重复词`);
     if (analysis.invalid.length) ignored.push(`${analysis.invalid.length} 个其他语言或无效词`);
-    $("wordQualityHint").textContent = storageWriteFailed
+    $("wordQualityHint").textContent = hasStorageWriteFailure()
       ? "浏览器存储空间不足，本次更改可能无法在刷新后保留"
       : ignored.length
         ? `可测试 ${eligibleWords.length} 个，开始时将忽略${ignored.join("、")}`
         : eligibleWords.length ? `已识别 ${eligibleWords.length} 个可测试词` : "";
-    $("wordQualityHint").classList.toggle("has-warning", storageWriteFailed || ignored.length > 0);
+    $("wordQualityHint").classList.toggle("has-warning", hasStorageWriteFailure() || ignored.length > 0);
   }
   const quizTab = document.querySelector('[data-view="quizView"]');
   if (quizTab) {
@@ -4946,20 +4154,7 @@ function speakCurrentWord() {
 }
 
 function normalizeDictationAnswer(value) {
-  const normalized = String(value || "").normalize("NFKC").trim();
-  if (state.quizLanguage === "english") return normalized.toLowerCase().replace(/\s+/g, " ");
-  return normalized.replace(/\s+/g, "");
-}
-
-function hasJapaneseKanji(value) {
-  return /[\u3400-\u9fff々〆ヶ]/u.test(String(value || ""));
-}
-
-function normalizeKana(value) {
-  return [...normalizeJapaneseReading(value)].map((character) => {
-    const code = character.charCodeAt(0);
-    return code >= 0x30a1 && code <= 0x30f6 ? String.fromCharCode(code - 0x60) : character;
-  }).join("");
+  return normalizeDictationAnswerModel(value, state.quizLanguage);
 }
 
 function rememberJapaneseVocabularyData(readings, writtenForms = {}, persist = true) {
@@ -4985,122 +4180,70 @@ function rememberJapaneseReadings(readings, persist = true) {
 }
 
 function japaneseReadingFor(word) {
-  const cleanWord = String(word || "").trim();
-  if (state.japaneseReadings[cleanWord]) return state.japaneseReadings[cleanWord];
-  return isJapaneseReading(cleanWord) ? normalizeJapaneseReading(cleanWord) : "";
+  return japaneseReadingForModel(word, state.japaneseReadings);
 }
 
 function japaneseWrittenFormFor(word) {
-  const cleanWord = String(word || "").trim();
-  return state.japaneseWrittenForms[cleanWord] || cleanWord;
+  return japaneseWrittenFormForModel(word, state.japaneseWrittenForms);
 }
 
 function japaneseDictationRequiresBoth(word) {
-  const written = japaneseWrittenFormFor(word);
-  const reading = japaneseReadingFor(word);
-  return Boolean(hasJapaneseKanji(written) && reading && normalizeKana(written) !== normalizeKana(reading));
+  return japaneseDictationRequiresBothModel(word, state.japaneseReadings, state.japaneseWrittenForms);
 }
 
 function formatJapaneseDictationAnswer(word) {
-  const written = japaneseWrittenFormFor(word);
-  const reading = japaneseReadingFor(word);
-  return japaneseDictationRequiresBoth(word) ? `${written} / ${reading}` : (written || reading || word);
+  return formatJapaneseDictationAnswerModel(word, state.japaneseReadings, state.japaneseWrittenForms);
+}
+
+function installLocalTestBindings() {
+  const isLoopback = ["127.0.0.1", "localhost", "::1"].includes(location.hostname);
+  if (!isLoopback || globalThis.__WYJ_TEST_MODE__ !== true) return;
+
+  const values = {
+    APP_VERSION: () => APP_VERSION,
+    QUESTION_TRANSITION_MS: () => QUESTION_TRANSITION_MS,
+    activeWrongRejudgeKey: () => activeWrongRejudgeKey,
+    adminFeedback: () => adminFeedback,
+    backendAvailable: () => backendAvailable,
+    currentPaymentOrder: () => currentPaymentOrder,
+    currentProject: () => currentProject,
+    learningSyncManager: () => learningSyncManager,
+    learningSyncStatus: () => learningSyncStatus,
+    learningSyncWrongRenderPending: () => learningSyncWrongRenderPending,
+    paymentQrObjectUrl: () => paymentQrObjectUrl,
+    pendingScreen: () => pendingScreen,
+    selectedMembershipGoal: () => selectedMembershipGoal,
+    selectedPaymentMethod: () => selectedPaymentMethod,
+    state: () => state,
+  };
+  const functions = {
+    activeWrongBook,
+    formatJapaneseDictationAnswer,
+    japaneseReadingFor,
+    japaneseWrittenFormFor,
+    queueStudyGoalForSync,
+    rememberJapaneseVocabularyData,
+    renderDashboard,
+    renderWrongBook,
+    shuffle,
+    studyGoalKey,
+    wrongRejudgeLogKey,
+  };
+
+  Object.entries(values).forEach(([name, read]) => {
+    Object.defineProperty(globalThis, name, { configurable: true, get: read });
+  });
+  Object.entries(functions).forEach(([name, value]) => {
+    Object.defineProperty(globalThis, name, { configurable: true, value });
+  });
 }
 
 function dictationEvaluation(word, answer, language = state.quizLanguage) {
-  const expectedWord = normalizeDictationAnswer(word);
-  const student = normalizeDictationAnswer(answer);
-  if (language !== "japanese") {
-    return {
-      correct: expectedWord === student,
-      expected: word,
-      guidance: "",
-    };
-  }
-
-  const written = japaneseWrittenFormFor(word);
-  const reading = japaneseReadingFor(word);
-  if (!reading || !written) {
-    return {
-      correct: false,
-      expected: word,
-      guidance: "未能取得该词的完整写法，请返回词表后重试",
-    };
-  }
-
-  const compact = student.replace(/[\/、，,；;：:|｜=＝·・]/g, "");
-  const normalizedCompact = normalizeKana(compact);
-  const normalizedWritten = normalizeKana(normalizeDictationAnswer(written));
-  const normalizedReading = normalizeKana(reading);
-  const requiresBoth = japaneseDictationRequiresBoth(word);
-  const correct = requiresBoth
-    ? normalizedCompact === `${normalizedWritten}${normalizedReading}`
-      || normalizedCompact === `${normalizedReading}${normalizedWritten}`
-    : [expectedWord, normalizedWritten, normalizedReading]
-      .map((item) => normalizeKana(item))
-      .includes(normalizedCompact);
-  const guidance = correct
-    ? ""
-    : requiresBoth
-      ? `请同时填写汉字“${written}”和假名“${reading}”`
-      : `正确写法是“${written || reading || word}”`;
-
-  return {
-    correct,
-    expected: formatJapaneseDictationAnswer(word),
-    guidance,
-  };
-}
-
-function normalizeMeaning(value) {
-  return String(value || "")
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(/\s+/g, "")
-    .replace(/[，。！？、；：,.!?;:（）()\[\]{}<>《》"“”‘’·•/\\|]/g, "");
-}
-
-function splitMeanings(value) {
-  return String(value || "")
-    .split(/[\/、，,；;：:|]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function semanticMeaningForms(value) {
-  const forms = new Set([normalizeMeaning(value)]);
-  let changed = true;
-  while (changed) {
-    changed = false;
-    [...forms].forEach((form) => {
-      const additions = [];
-      if (form.length > 1 && "的地得".includes(form[form.length - 1])) additions.push(form.slice(0, -1));
-      if (form.length >= 3 && form.startsWith("有")) additions.push(form.slice(1));
-      if (form.length >= 3 && form.endsWith("性")) additions.push(form.slice(0, -1));
-      additions.forEach((item) => {
-        if (item && !forms.has(item)) {
-          forms.add(item);
-          changed = true;
-        }
-      });
-    });
-  }
-  forms.delete("");
-  return forms;
-}
-
-function meaningBigrams(value) {
-  const normalized = normalizeMeaning(value);
-  if (normalized.length < 2) return normalized ? new Set([normalized]) : new Set();
-  return new Set(Array.from({ length: normalized.length - 1 }, (_, index) => normalized.slice(index, index + 2)));
-}
-
-function meaningSimilarity(left, right) {
-  const a = meaningBigrams(left);
-  const b = meaningBigrams(right);
-  if (!a.size || !b.size) return 0;
-  const intersection = [...a].filter((item) => b.has(item)).length;
-  return intersection / new Set([...a, ...b]).size;
+  return evaluateDictation(word, answer, {
+    language,
+    readings: state.japaneseReadings,
+    writtenForms: state.japaneseWrittenForms,
+  });
 }
 
 function reviewEntryForWord(word) {
@@ -5129,106 +4272,22 @@ function hasUsableMeaning(info) {
 }
 
 function localReviewResult(word, answer, info, options = {}) {
-  const gloss = limitText(info && info.correct_answer) || "（未给出释义）";
-  const accepted = sanitizeAccepted(info && info.accepted);
-  const language = normalizeQuizLanguage(options.language) || state.quizLanguage;
-  const gradingMode = ["strict", "normal", "lenient"].includes(options.gradingMode)
-    ? options.gradingMode
-    : state.gradingMode;
-  const pool = [...new Set([gloss, ...accepted].flatMap(splitMeanings))];
-  const student = normalizeMeaning(answer);
-  let correct = false;
-
-  if (student) {
-    const studentForms = semanticMeaningForms(student);
-    correct = pool.some((item) => {
-      const expected = normalizeMeaning(item);
-      if (!expected) return false;
-      const expectedForms = semanticMeaningForms(expected);
-      if ([...studentForms].some((form) => expectedForms.has(form))) return true;
-      if (gradingMode === "strict") return false;
-      if (student.length >= 3 && expected.length >= 3 && (student.includes(expected) || expected.includes(student))) return true;
-      return Math.min(student.length, expected.length) >= 3 && meaningSimilarity(student, expected) >= 0.67;
-    });
-  }
-
-  return {
-    correct,
-    gloss,
-    accepted,
-    rubric: { language: quizLanguageLabel(language), gloss, accepted, notes: "本地错题复习" },
-    kind: "local-review",
-    ai_review: false,
-    grading_mode: gradingMode,
-    word,
-    answer,
-  };
+  return evaluateLocalMeaning(word, answer, info, {
+    language: normalizeQuizLanguage(options.language) || state.quizLanguage,
+    gradingMode: ["strict", "normal", "lenient"].includes(options.gradingMode)
+      ? options.gradingMode
+      : state.gradingMode,
+  });
 }
 
 function parseWordText(value, captureReadings = true) {
-  const words = [];
-  const readings = {};
-  const writtenForms = {};
-  String(value || "").split(/\r?\n/).forEach((rawLine) => {
-    const line = rawLine.trim();
-    if (!line) return;
-    const pair = state.quizLanguage === "japanese"
-      ? line.match(/^(.+?)\s*[|｜=＝]\s*([^|｜=＝]+)$/u)
-      : null;
-    if (pair) {
-      const word = pair[1].trim();
-      const reading = normalizeJapaneseReading(pair[2]);
-      if (wordMatchesLanguage(word, "japanese") && isJapaneseReading(reading)) {
-        words.push(word);
-        readings[word] = reading;
-        writtenForms[word] = word;
-        return;
-      }
-    }
-    line.split(/[\s,，、;；]+/).map((word) => word.trim()).filter(Boolean).forEach((word) => words.push(word));
-  });
-  if (captureReadings) rememberJapaneseVocabularyData(readings, writtenForms);
-  return words;
+  const parsed = parseWordTextModel(value, state.quizLanguage);
+  if (captureReadings) rememberJapaneseVocabularyData(parsed.readings, parsed.writtenForms);
+  return parsed.words;
 }
 
 function parseWords() {
   return parseWordText($("wordInput").value);
-}
-
-function wordIdentity(word, language = state.quizLanguage) {
-  const normalized = String(word || "").normalize("NFKC").trim();
-  return language === "english" ? normalized.toLocaleLowerCase("en") : normalized;
-}
-
-function analyzeWordList(words, language = state.quizLanguage) {
-  const valid = [];
-  const invalid = [];
-  const seen = new Set();
-  let duplicates = 0;
-  (Array.isArray(words) ? words : []).forEach((item) => {
-    const word = limitText(item, 240);
-    if (!word) return;
-    if (language && !wordMatchesLanguage(word, language)) {
-      invalid.push(word);
-      return;
-    }
-    const key = wordIdentity(word, language);
-    if (seen.has(key)) {
-      duplicates += 1;
-      return;
-    }
-    seen.add(key);
-    valid.push(word);
-  });
-  return { valid, invalid, duplicates };
-}
-
-function formatWordInputEntry(word) {
-  return word;
-}
-
-function formatWordsForInput(words) {
-  return words.map(formatWordInputEntry).join("\n");
 }
 
 function cancelVocabularySearch() {
@@ -5596,25 +4655,14 @@ function showWord(options = {}) {
 }
 
 function updateWrongEntry(book, word, answer, gloss, accepted, context = {}) {
-  const current = book[word] || { wrong_count: 0 };
-  delete book[word];
-  book[word] = {
-    wrong_count: (current.wrong_count || 0) + 1,
-    last_answer: answer,
-    original_answer: answer,
-    correct_answer: gloss,
-    accepted: accepted || [],
+  return updateWrongEntryModel(book, word, answer, gloss, accepted, {
+    ...context,
     skipped: answer === SKIPPED_ANSWER,
-    last_time: new Date().toLocaleString(),
-    question_type: context.questionType === "dictation" ? "dictation" : "meaning",
     language: normalizeQuizLanguage(context.language) || state.quizLanguage,
-    grading_mode: ["strict", "normal", "lenient"].includes(context.gradingMode) ? context.gradingMode : state.gradingMode,
-    round_id: limitText(context.roundId, 100),
-    rubric: sanitizeStoredRubric(context.rubric, gloss, accepted),
-    rejudged_at: "",
-    rejudge_result: "",
-    rejudge_reason: "",
-  };
+    gradingMode: ["strict", "normal", "lenient"].includes(context.gradingMode)
+      ? context.gradingMode
+      : state.gradingMode,
+  });
 }
 
 function markWrong(word, answer, gloss, accepted, rubric = null) {
@@ -6609,7 +5657,7 @@ async function login(event) {
       secret: $("secretInput").value,
     });
     state.session = data.session;
-    safeStorageSet(localStorage, "wyjAccountSession", state.session);
+    persistAccountSession(state.session);
     applyAccount(data.account);
     $("secretInput").value = "";
     clearSavedWordDrafts(data.account);
@@ -6730,6 +5778,7 @@ async function navigateFromSiteNav(destination) {
 }
 
 async function boot() {
+  installLocalTestBindings();
   if (state.account?.id) {
     loadAccountLocalState();
     startLearningDataSync();

@@ -117,6 +117,9 @@ async function connectBrowser() {
   const sessionId = attached.sessionId;
   const send = (method, params = {}) => client.send(method, params, sessionId);
   await Promise.all([send("Page.enable"), send("DOM.enable"), send("Runtime.enable"), send("Log.enable"), send("Network.enable")]);
+  await send("Page.addScriptToEvaluateOnNewDocument", {
+    source: "Object.defineProperty(globalThis, '__WYJ_TEST_MODE__', { configurable: true, value: true });",
+  });
   await send("Network.setCacheDisabled", { cacheDisabled: true });
   await send("Network.setBypassServiceWorker", { bypass: false });
   await client.send("Browser.setDownloadBehavior", {

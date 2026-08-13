@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "keys": [
+    { "family": "account-session", "storage": "localStorage", "source": "js/core/session.js", "fragment": "wyjAccountSession" },
+    { "family": "account-cache", "storage": "localStorage", "source": "js/core/session.js", "fragment": "wyjAccountCache" },
+    { "family": "legacy-session", "storage": "localStorage/sessionStorage", "source": "js/core/session.js", "fragment": "vocabSession" },
+    { "family": "application-version", "storage": "localStorage", "source": "app.js", "fragment": "vocabAppVersion" },
+    { "family": "legacy-profile", "storage": "localStorage", "source": "app.js", "fragment": "vocabProfile" },
+    { "family": "account-profile", "storage": "localStorage", "source": "app.js", "fragment": "vocabProfile:v${ACCOUNT_DATA_VERSION}" },
+    { "family": "word-draft", "storage": "localStorage", "source": "app.js", "fragment": "vocabWords:${accountId}" },
+    { "family": "quiz-runtime", "storage": "sessionStorage", "source": "app.js", "fragment": "vocabRuntime:v1" },
+    { "family": "wrong-book", "storage": "localStorage", "source": "app.js", "fragment": "wrongBook:v${ACCOUNT_DATA_VERSION}" },
+    { "family": "wrong-rejudge-log", "storage": "localStorage", "source": "app.js", "fragment": "wrongRejudgeLog:v1" },
+    { "family": "achievements", "storage": "localStorage", "source": "app.js", "fragment": "achievements:v${ACCOUNT_DATA_VERSION}" },
+    { "family": "study-history", "storage": "localStorage", "source": "app.js", "fragment": "studyHistory:v${STUDY_DATA_VERSION}" },
+    { "family": "daily-goal", "storage": "localStorage", "source": "app.js", "fragment": "studyGoal:v${STUDY_DATA_VERSION}" },
+    { "family": "language-settings", "storage": "localStorage", "source": "app.js", "fragment": "learningPreferences:v1" },
+    { "family": "grading-preference", "storage": "localStorage", "source": "app.js", "fragment": "gradingMode" },
+    { "family": "practice-preference", "storage": "localStorage", "source": "app.js", "fragment": "practiceMode" },
+    { "family": "rubric-cache", "storage": "localStorage", "source": "app.js", "fragment": "rubricCache" },
+    { "family": "japanese-reading-cache", "storage": "localStorage", "source": "app.js", "fragment": "japaneseReadingCache:v1" },
+    { "family": "japanese-written-form-cache", "storage": "localStorage", "source": "app.js", "fragment": "japaneseWrittenFormCache:v1" },
+    { "family": "ai-suggestion-settings", "storage": "localStorage", "source": "app.js", "fragment": "aiSuggestSettings:v2" },
+    { "family": "changelog-seen-version", "storage": "localStorage", "source": "app.js", "fragment": "wyjChangelogSeenVersion:v1" },
+    { "family": "tool-preferences", "storage": "localStorage", "source": "tools.js", "fragment": "toolPreferences:v${TOOL_PREFERENCES_CACHE_VERSION}" },
+    { "family": "tool-workflows", "storage": "localStorage", "source": "workflows.js", "fragment": "wyjToolWorkflows:v${SCHEMA_VERSION}" },
+    { "family": "tool-workflow-access", "storage": "localStorage", "source": "workflows.js", "fragment": "wyjWorkflowAccess:v1" },
+    { "family": "learning-sync-records", "storage": "localStorage", "source": "learning-sync.js", "fragment": "wyjLearningSync:v1:" },
+    { "family": "learning-sync-client", "storage": "localStorage", "source": "learning-sync.js", "fragment": "wyjLearningSyncClient:v1" }
+  ]
+}
