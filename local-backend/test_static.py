@@ -488,6 +488,7 @@ class StaticSiteTests(unittest.TestCase):
         ):
             self.assertEqual(settings["vars"]["WYJ_ENVIRONMENT"], environment)
             self.assertEqual(settings["vars"]["CLOUD_STATUS_MODE"], "legacy")
+            self.assertEqual(settings["vars"]["CLOUD_READS_ENABLED"], "false")
             self.assertEqual(settings["vars"]["CLOUD_WRITES_ENABLED"], "false")
             self.assertEqual(settings["vars"]["WORKERS_AI_ENABLED"], "false")
 
@@ -504,9 +505,24 @@ class StaticSiteTests(unittest.TestCase):
         self.assertEqual(preview["ai"]["binding"], "AI")
 
         production = config["env"]["production"]
-        self.assertNotIn("d1_databases", production)
-        self.assertNotIn("r2_buckets", production)
-        self.assertNotIn("ai", production)
+        self.assertEqual(production["d1_databases"][0]["binding"], "WYJ_DB")
+        self.assertEqual(production["d1_databases"][0]["database_name"], "wyj-cloud-production")
+        self.assertRegex(
+            production["d1_databases"][0]["database_id"],
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+        )
+        self.assertNotEqual(
+            production["d1_databases"][0]["database_id"],
+            preview["d1_databases"][0]["database_id"],
+        )
+        self.assertEqual(production["d1_databases"][0]["migrations_dir"], "cloudflare/migrations")
+        self.assertEqual(production["r2_buckets"][0]["binding"], "WYJ_STORAGE")
+        self.assertEqual(production["r2_buckets"][0]["bucket_name"], "wyj-cloud-production")
+        self.assertNotEqual(
+            production["r2_buckets"][0]["bucket_name"],
+            preview["r2_buckets"][0]["bucket_name"],
+        )
+        self.assertEqual(production["ai"]["binding"], "AI")
 
         local_config = json.loads((ROOT / "wrangler.local.jsonc").read_text(encoding="utf-8"))
         self.assertNotIn("database_id", local_config["d1_databases"][0])
