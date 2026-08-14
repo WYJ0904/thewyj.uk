@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "thewyj-uk",
+  "name": "japanese",
   "pages_build_output_dir": ".",
   "compatibility_date": "2026-08-06",
   "send_metrics": false,

@@ -473,6 +473,7 @@ class StaticSiteTests(unittest.TestCase):
     def test_cloudflare_foundation_config_is_safe_and_complete(self):
         config_text = (ROOT / "wrangler.jsonc").read_text(encoding="utf-8")
         config = json.loads(config_text)
+        self.assertEqual(config["name"], "japanese")
         self.assertEqual(config["pages_build_output_dir"], ".")
         self.assertEqual(config["compatibility_date"], "2026-08-06")
         self.assertNotIn("compatibility_flags", config)
