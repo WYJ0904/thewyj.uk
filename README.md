@@ -319,6 +319,14 @@ Pages Functions：
 | --- | --- |
 | `LOCAL_API_BASE` | 必填，当前为 `https://api.thewyj.uk` |
 | `LOCAL_API_FALLBACK` | 可选的第二后端地址 |
+| `CLOUD_FOUNDATION_ENABLED` | 是否允许显式访问新的云端基础状态接口；生产默认 `true` |
+| `CLOUD_STATUS_MODE` | `/api/status` 的默认来源；保持 `legacy` 可继续验证本地后端与 Tunnel，设为 `cloud` 才切换到云状态 |
+| `CLOUD_READS_ENABLED` / `CLOUD_WRITES_ENABLED` | 后续云端读写迁移开关；本任务均为 `false`，支付不会迁移 |
+| `WORKERS_AI_ENABLED` | Workers AI 功能开关；默认 `false`，绑定存在也不会自动产生推理用量 |
+| `D1_RATE_LIMIT_ENABLED` | 是否用 D1 对云端基础接口做基础限流；发生配额或绑定错误时自动 fail-open 并标记降级 |
+| `CLOUD_RATE_LIMIT_REQUESTS` / `CLOUD_RATE_LIMIT_WINDOW_SECONDS` | 云端基础接口限流阈值，默认 120 次/60 秒 |
+| `CLOUD_DEEP_HEALTH_CHECKS` | 是否让云端状态接口读取 D1 schema 版本；默认启用，失败只显示 degraded |
+| `LEGACY_API_FALLBACK_ENABLED` | 保留旧 Python/Tunnel 回退能力的公开状态标记；默认 `true` |
 
 本地后端支持：
 
@@ -398,7 +406,10 @@ node --check app.js
 node --check tools.js
 node --check workflows.js
 node --check sw.js
+node --check functions/_middleware.js
+node --check functions/_lib/cloudflare-foundation.mjs
 node --check "functions/api/[[path]].js"
+node --check functions/api/status.js
 node scripts/check_js_module_graph.mjs
 node local-backend/test_module_graph_js.mjs
 node scripts/check_storage_contract.mjs
@@ -407,6 +418,7 @@ node local-backend/test_learning_sync_js.mjs
 node local-backend/test_tools_js.mjs
 node local-backend/test_workflows_js.mjs
 node local-backend/test_proxy_js.mjs
+node local-backend/test_cloudflare_foundation_js.mjs
 ```
 
 `.github/workflows/ci.yml` 在推送到 `main`、所有 Pull Request 以及手动触发时运行。进入仓库的 **Actions -> Core CI -> Run workflow** 可手动执行。工作流分为：
@@ -434,6 +446,69 @@ node local-backend/test_tools_browser.mjs
 完整覆盖还包括公开首页、更新日志、有限匿名试用、受保护路由、注册登录、个人首页本地摘要与服务状态、断网后会话保留与自动恢复、微信 WebView 兼容、登录位置审计、会话摘要迁移、封禁、管理员安全重置密钥、用户自助改密、密钥与哈希防泄露、老会员迁移、六种在售方案、支付方式锁定、私有二维码鉴权、完整支付状态机、微信与支付宝订单刷新恢复、原子审批与唯一履约、包月续期与永久会员幂等、权益隔离与合并、过期降级、管理员审计、反馈隐私与投票去重、错题实际重新判定与幂等审计、本地优先分级搜索、NFKC/大小写/假名归一化、英语词形匹配、稳定排序、TTL/LRU 缓存、完整排除词缓存键、工具权限、收藏/历史/配置、双客户端留言自动同步、文件签名、跨站拒绝、限流、AI 兜底选词、日语汉字自动标音、纯假名直接出题、汉字与假名听写判卷、错题 PDF、HTML ID、PWA 缓存、390/1366/1920 像素布局与关键文字对比度、CSV 引号换行、MD5、颜色转换、JPEG 元数据清理、Wi-Fi/联系人二维码和 OpenCC 词典完整性。额外压力矩阵验证 300 次状态请求、200 次并发工具写入和 24 次并发 PDF 导出均为 0 错误。
 
 ## Cloudflare Pages 配置
+
+### Serverless 基础层与渐进切换
+
+`wrangler.jsonc` 是 Pages Functions 的版本化配置，覆盖本地 development、Cloudflare preview 和 production。三套环境都声明同名 bindings，资源本身彼此隔离：
+
+| 能力 | binding | 本地/preview/production 资源 |
+| --- | --- | --- |
+| D1 | `WYJ_DB` | `wyj-cloud-development` / `wyj-cloud-preview` / `wyj-cloud-production` |
+| R2 | `WYJ_STORAGE` | `wyj-cloud-development` / `wyj-cloud-preview` / `wyj-cloud-production` |
+| Workers AI | `AI` | Preview/Production 的 AI binding；默认功能开关关闭，本地不声明以避免无意远程计费 |
+
+配置没有 `account_id`、D1 UUID、API token 或 secret。D1/R2 采用 Wrangler resource draft：本地开发会自动创建隔离资源，首次远端 preview 部署前必须在控制台确认它们解析到预期资源，不能直接在 production 试错。任何真实 ID 只留在 Cloudflare，不写回仓库。`cloudflare/migrations/0001_foundation.sql` 只创建 schema 元数据和基础限流窗口，不包含用户、会员、订单或支付数据，重复执行不会删除旧数据。
+
+新的 `functions/_middleware.js` 为 Pages Functions 响应加入安全头和 `X-Request-ID`，拒绝浏览器跨站写请求，并把未处理异常转成统一的 `{ ok, error, code, retryable, request_id }` 格式。上游 Python 的正常/业务错误响应仍原样透传，避免破坏现有前端协议。`GET /api/status?source=cloud` 返回 D1/R2/AI binding、feature flags、限流和降级原因；默认 `GET /api/status` 仍代理旧后端，因此启动器和前端不会把“Cloudflare 在线”误判成“账户后端在线”。
+
+所有高风险写入，特别是会员、订单、付款二维码和管理员审批，继续由本地 Python 后端处理。`CLOUD_READS_ENABLED=false`、`CLOUD_WRITES_ENABLED=false`、`WORKERS_AI_ENABLED=false` 是生产初始值。验证 preview 后才逐项开启；要立即回退，只需把开关恢复为 `false` 并保持 `CLOUD_STATUS_MODE=legacy`。
+
+### 控制台准备
+
+1. 在 **Workers & Pages -> D1** 确认或创建 `wyj-cloud-preview` 与 `wyj-cloud-production`；本地 development 使用 Wrangler 的本地持久化数据库。
+2. 在 **R2** 确认或创建同名的 preview/production Standard bucket。免费额度只适用于 Standard storage。
+3. 打开 Pages 项目 **Settings -> Bindings**，确认 Preview 和 Production 的 D1 `WYJ_DB`、R2 `WYJ_STORAGE`、Workers AI `AI` 分别指向上表资源。Wrangler 首次部署 resource draft 时可能自动创建资源，因此必须先部署 preview 并回到这里核对，不能让 production 与 preview 共用数据。
+4. 在 **Settings -> Variables and Secrets** 设置非敏感 feature flags；`LOCAL_API_BASE` 继续指向现有同源代理上游。若未来需要 secret，使用 `wrangler pages secret put <KEY> --project-name <PROJECT>` 或控制台 Secret，不要写入 `wrangler.jsonc`。
+5. Pages Wrangler 配置要求 V2 build system。首次采用配置前，先比对控制台现有 production/preview bindings；配置一旦部署就是 Pages 的 source of truth。
+
+### 本地开发
+
+需要 Node 22 和仓库锁定的 Wrangler 4.118。`compatibility_date` 使用该版本本地 runtime 已支持且仍在 30 天窗口内的 `2026-08-06`；升级 Wrangler 后应先在 preview 验证再更新。PowerShell 因执行策略拦截 `.ps1` 时可直接运行 `npm.cmd`。
+
+```powershell
+npm.cmd ci
+npm.cmd run cf:migrate:local
+npm.cmd run cf:types
+npm.cmd run cf:check
+npm.cmd run cf:dev
+```
+
+Wrangler 在 `.wrangler/state` 保存本地 D1/R2；目录已忽略。访问 `http://127.0.0.1:8788/api/status?source=cloud` 检查云基础层，访问不带参数的 `/api/status` 检查本地 Python 后端。Workers AI 即使在本地也会访问 Cloudflare并计入用量，所以 development 顶层配置不声明 `AI`；需要真实联调时先登录 Wrangler，再临时运行 `npx.cmd wrangler pages dev --ai AI`。普通本地开发和自动测试不要求 Cloudflare Token，也不产生 AI 用量。
+
+### 迁移、部署与回滚
+
+先应用 preview，再应用 production；远端命令会修改真实资源，运行前必须确认当前 Cloudflare 账户和数据库名称：
+
+```powershell
+# Preview D1
+npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env preview
+# Preview Pages（非 main 分支产生 preview deployment）
+npx.cmd wrangler pages deploy . --branch cloudflare-foundation-preview
+
+# Production D1
+npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env production
+# Production Pages
+npx.cmd wrangler pages deploy . --branch main
+```
+
+回滚分两层：先把 `CLOUD_STATUS_MODE` 改回 `legacy`，并关闭云读、云写和 Workers AI；如果仍需回退代码，在 Pages 项目的 **Deployments -> All deployments** 对之前成功的 production deployment 选择 **Rollback to this deployment**。Preview deployment 不能作为回滚目标。D1 迁移是前向迁移，本次新增表保持惰性即可，不要为代码回滚删除表或生产数据。
+
+### 免费额度降级
+
+- D1 达到免费读写额度时会拒绝查询；云状态接口将限流标记为 degraded 后 fail-open，旧 `/api/*` 仍走 Python/Tunnel。
+- R2 或 Workers AI 达到额度时，调用方应返回统一可重试错误并回退本地能力；本任务没有启用这两类业务调用。
+- Workers AI 免费额度按日重置且本地调用也计量，因此 binding 与功能开关分离。
+- 任何 binding 缺失都不会让静态站点白屏；`/api/status?source=cloud` 返回 200/degraded 和具体原因，而登录、支付和会员继续依赖 legacy 状态与原后端。
 
 ### GitHub 仓库
 

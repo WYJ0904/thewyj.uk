@@ -36,6 +36,7 @@ await withMockFetch(async (url) => {
       LOCAL_API_BASE: "https://primary.example",
       LOCAL_API_FALLBACK: "https://fallback.example",
     },
+    data: { requestId: "proxy-request-123" },
     request: new Request("https://thewyj.uk/api/status"),
   });
   assert.equal(response.status, 200);
@@ -47,6 +48,7 @@ await withMockFetch(async (url) => {
 
 await withMockFetch(async (_url, init) => {
   globalThis.__postAttempts.push(init.method);
+  globalThis.__proxyRequestId = init.headers.get("X-Request-ID");
   throw new TypeError("simulated transport failure");
 }, async () => {
   globalThis.__postAttempts = [];
@@ -55,6 +57,7 @@ await withMockFetch(async (_url, init) => {
       LOCAL_API_BASE: "https://primary.example",
       LOCAL_API_FALLBACK: "https://fallback.example",
     },
+    data: { requestId: "proxy-request-456" },
     request: new Request("https://thewyj.uk/api/recharge/request", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -63,8 +66,12 @@ await withMockFetch(async (_url, init) => {
   });
   assert.equal(response.status, 502);
   assert.equal(globalThis.__postAttempts.length, 1, "non-idempotent requests must never be replayed");
-  assert.equal((await response.json()).code, "upstream_unreachable");
+  assert.equal(globalThis.__proxyRequestId, "proxy-request-456");
+  const payload = await response.json();
+  assert.equal(payload.code, "upstream_unreachable");
+  assert.equal(payload.request_id, "proxy-request-456");
   delete globalThis.__postAttempts;
+  delete globalThis.__proxyRequestId;
   completed += 1;
 });
 

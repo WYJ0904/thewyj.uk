@@ -30,8 +30,9 @@ const CLIENT_CONTEXT_HEADERS = new Set([
   "x-wyj-client-city",
 ]);
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
+function json(data, status = 200, requestId = "") {
+  const payload = requestId && !data.request_id ? { ...data, request_id: requestId } : data;
+  return new Response(JSON.stringify(payload), {
     status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
@@ -91,7 +92,7 @@ function encodedContextHeader(value, maxLength = 120) {
   return encodeURIComponent(String(value || "").slice(0, maxLength));
 }
 
-function requestHeadersFor(request, requestContext = {}) {
+function requestHeadersFor(request, requestContext = {}, requestId = "") {
   const headers = new Headers();
   request.headers.forEach((value, key) => {
     const normalized = key.toLowerCase();
@@ -107,6 +108,7 @@ function requestHeadersFor(request, requestContext = {}) {
   headers.set("X-WYJ-Client-Country", encodedContextHeader(requestContext.country || request.headers.get("CF-IPCountry"), 80));
   headers.set("X-WYJ-Client-Region", encodedContextHeader(requestContext.region || requestContext.regionCode, 120));
   headers.set("X-WYJ-Client-City", encodedContextHeader(requestContext.city, 120));
+  if (requestId) headers.set("X-Request-ID", requestId);
   return headers;
 }
 
@@ -150,12 +152,13 @@ async function fetchWithTimeout(url, init, timeoutMs) {
 
 export async function onRequest(context) {
   const { env, request } = context;
+  const requestId = context.data?.requestId || "";
 
   let bases;
   try {
     bases = configuredBases(env);
   } catch (error) {
-    return json({ ok: false, error: error.message }, 500);
+    return json({ ok: false, error: error.message, code: "configuration_error", retryable: false }, 500, requestId);
   }
 
   if (!bases.length) {
@@ -163,8 +166,11 @@ export async function onRequest(context) {
       {
         ok: false,
         error: "LOCAL_API_BASE is not configured. Start the local backend and set this to the Cloudflare Tunnel URL.",
+        code: "upstream_not_configured",
+        retryable: false,
       },
       503,
+      requestId,
     );
   }
 
@@ -172,14 +178,24 @@ export async function onRequest(context) {
   const maxBodyBytes = requestPath === "/api/temporary/file" ? MAX_TEMP_FILE_PROXY_BODY_BYTES : MAX_PROXY_BODY_BYTES;
   const declaredLength = Number(request.headers.get("Content-Length") || 0);
   if (declaredLength > maxBodyBytes) {
-    return json({ ok: false, error: requestPath === "/api/temporary/file" ? "请求内容过大，临时文件最大支持 20 MB。" : "请求内容过大。" }, 413);
+    return json({
+      ok: false,
+      error: requestPath === "/api/temporary/file" ? "请求内容过大，临时文件最大支持 20 MB。" : "请求内容过大。",
+      code: "request_too_large",
+      retryable: false,
+    }, 413, requestId);
   }
 
   const method = request.method.toUpperCase();
   const idempotent = NO_BODY_METHODS.has(method);
   const body = idempotent ? undefined : await request.arrayBuffer();
   if (body && body.byteLength > maxBodyBytes) {
-    return json({ ok: false, error: requestPath === "/api/temporary/file" ? "请求内容过大，临时文件最大支持 20 MB。" : "请求内容过大。" }, 413);
+    return json({
+      ok: false,
+      error: requestPath === "/api/temporary/file" ? "请求内容过大，临时文件最大支持 20 MB。" : "请求内容过大。",
+      code: "request_too_large",
+      retryable: false,
+    }, 413, requestId);
   }
   const rounds = idempotent ? IDEMPOTENT_RETRY_BASE_DELAYS_MS : [0];
   const candidateBases = idempotent ? bases : bases.slice(0, 1);
@@ -192,7 +208,7 @@ export async function onRequest(context) {
       const target = targetUrlFor(request, base);
       const init = {
         method: request.method,
-        headers: requestHeadersFor(request, request.cf || context.cf || {}),
+        headers: requestHeadersFor(request, request.cf || context.cf || {}, requestId),
         redirect: "manual",
       };
       if (body) init.body = body;
@@ -222,6 +238,7 @@ export async function onRequest(context) {
       retryable: true,
     },
     502,
+    requestId,
   );
 }
 

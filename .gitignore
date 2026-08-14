@@ -1,8 +1,12 @@
 node_modules/
 dist/
 build/
+.wrangler/
 .env
 .env.*
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
 .idea/
 
 # Local runtime files from the original desktop version

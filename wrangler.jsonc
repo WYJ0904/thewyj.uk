@@ -1,0 +1,103 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "thewyj-uk",
+  "pages_build_output_dir": ".",
+  "compatibility_date": "2026-08-06",
+  "send_metrics": false,
+  "vars": {
+    "WYJ_ENVIRONMENT": "development",
+    "LOCAL_API_BASE": "http://127.0.0.1:8765",
+    "CLOUD_FOUNDATION_ENABLED": "true",
+    "CLOUD_STATUS_MODE": "legacy",
+    "CLOUD_READS_ENABLED": "false",
+    "CLOUD_WRITES_ENABLED": "false",
+    "WORKERS_AI_ENABLED": "false",
+    "D1_RATE_LIMIT_ENABLED": "true",
+    "CLOUD_RATE_LIMIT_REQUESTS": "120",
+    "CLOUD_RATE_LIMIT_WINDOW_SECONDS": "60",
+    "CLOUD_DEEP_HEALTH_CHECKS": "true",
+    "LEGACY_API_FALLBACK_ENABLED": "true"
+  },
+  "d1_databases": [
+    {
+      "binding": "WYJ_DB",
+      "database_name": "wyj-cloud-development",
+      "migrations_table": "wyj_d1_migrations",
+      "migrations_dir": "cloudflare/migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "WYJ_STORAGE",
+      "bucket_name": "wyj-cloud-development"
+    }
+  ],
+  "env": {
+    "preview": {
+      "vars": {
+        "WYJ_ENVIRONMENT": "preview",
+        "LOCAL_API_BASE": "https://api.thewyj.uk",
+        "CLOUD_FOUNDATION_ENABLED": "true",
+        "CLOUD_STATUS_MODE": "legacy",
+        "CLOUD_READS_ENABLED": "false",
+        "CLOUD_WRITES_ENABLED": "false",
+        "WORKERS_AI_ENABLED": "false",
+        "D1_RATE_LIMIT_ENABLED": "true",
+        "CLOUD_RATE_LIMIT_REQUESTS": "120",
+        "CLOUD_RATE_LIMIT_WINDOW_SECONDS": "60",
+        "CLOUD_DEEP_HEALTH_CHECKS": "true",
+        "LEGACY_API_FALLBACK_ENABLED": "true"
+      },
+      "d1_databases": [
+        {
+          "binding": "WYJ_DB",
+          "database_name": "wyj-cloud-preview",
+          "migrations_table": "wyj_d1_migrations",
+          "migrations_dir": "cloudflare/migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "WYJ_STORAGE",
+          "bucket_name": "wyj-cloud-preview"
+        }
+      ],
+      "ai": {
+        "binding": "AI"
+      }
+    },
+    "production": {
+      "vars": {
+        "WYJ_ENVIRONMENT": "production",
+        "LOCAL_API_BASE": "https://api.thewyj.uk",
+        "CLOUD_FOUNDATION_ENABLED": "true",
+        "CLOUD_STATUS_MODE": "legacy",
+        "CLOUD_READS_ENABLED": "false",
+        "CLOUD_WRITES_ENABLED": "false",
+        "WORKERS_AI_ENABLED": "false",
+        "D1_RATE_LIMIT_ENABLED": "true",
+        "CLOUD_RATE_LIMIT_REQUESTS": "120",
+        "CLOUD_RATE_LIMIT_WINDOW_SECONDS": "60",
+        "CLOUD_DEEP_HEALTH_CHECKS": "true",
+        "LEGACY_API_FALLBACK_ENABLED": "true"
+      },
+      "d1_databases": [
+        {
+          "binding": "WYJ_DB",
+          "database_name": "wyj-cloud-production",
+          "migrations_table": "wyj_d1_migrations",
+          "migrations_dir": "cloudflare/migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "WYJ_STORAGE",
+          "bucket_name": "wyj-cloud-production"
+        }
+      ],
+      "ai": {
+        "binding": "AI"
+      }
+    }
+  }
+}
