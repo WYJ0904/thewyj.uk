@@ -1,0 +1,15 @@
+{
+  "name": "thewyj-uk-pages",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Cloudflare Pages development tooling for thewyj.uk",
+  "scripts": {
+    "cf:check": "wrangler pages functions build functions --outdir .wrangler/functions-build",
+    "cf:types": "wrangler types .wrangler/worker-configuration.d.ts --env preview",
+    "cf:migrate:local": "wrangler d1 migrations apply WYJ_DB --local --config wrangler.local.jsonc --persist-to .wrangler/state",
+    "cf:dev": "wrangler pages dev --persist-to .wrangler/state --port 8788 --d1 WYJ_DB --r2 WYJ_STORAGE"
+  },
+  "devDependencies": {
+    "wrangler": "4.118.0"
+  }
+}

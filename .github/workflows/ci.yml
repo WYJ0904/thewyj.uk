@@ -99,6 +99,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-downloads-
 
+      - name: Install pinned Cloudflare development tooling
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+
       - name: Check JavaScript syntax
         run: |
           set -euo pipefail
@@ -110,7 +115,10 @@ jobs:
             node --check workflows.js
             node --check learning-sync.js
             node --check sw.js
+            node --check functions/_middleware.js
+            node --check functions/_lib/cloudflare-foundation.mjs
             node --check "functions/api/[[path]].js"
+            node --check functions/api/status.js
             node --check local-backend/test_tools_js.mjs
             node --check local-backend/test_core_js.mjs
             node --check local-backend/test_language_js.mjs
@@ -118,6 +126,7 @@ jobs:
             node --check local-backend/test_workflows_js.mjs
             node --check local-backend/test_learning_sync_js.mjs
             node --check local-backend/test_proxy_js.mjs
+            node --check local-backend/test_cloudflare_foundation_js.mjs
             node --check local-backend/test_app_browser.mjs
             node --check local-backend/test_tools_browser.mjs
             node --check local-backend/test_module_graph_js.mjs
@@ -171,6 +180,15 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_proxy_js.mjs 2>&1 | tee artifacts/pages-proxy.log
+
+      - name: Test Cloudflare serverless foundation
+        run: |
+          set -euo pipefail
+          mkdir -p .wrangler
+          node local-backend/test_cloudflare_foundation_js.mjs 2>&1 | tee artifacts/cloudflare-foundation.log
+          npx wrangler types .wrangler/ci-types.d.ts --env preview 2>&1 | tee artifacts/cloudflare-types.log
+          npx wrangler pages functions build functions --outdir .wrangler/ci-functions 2>&1 | tee artifacts/cloudflare-functions-build.log
+          npx wrangler d1 migrations apply WYJ_DB --local --config wrangler.local.jsonc --persist-to .wrangler/ci-state 2>&1 | tee artifacts/cloudflare-d1-migration.log
 
       - name: Check HTML, PWA and tool catalog
         run: |
