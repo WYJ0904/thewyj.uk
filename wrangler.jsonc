@@ -67,6 +67,24 @@
         "CLOUD_RATE_LIMIT_WINDOW_SECONDS": "60",
         "CLOUD_DEEP_HEALTH_CHECKS": "true",
         "LEGACY_API_FALLBACK_ENABLED": "true"
+      },
+      "d1_databases": [
+        {
+          "binding": "WYJ_DB",
+          "database_name": "wyj-cloud-production",
+          "database_id": "11c288d8-c584-409f-bb1f-7e7af11793e5",
+          "migrations_table": "wyj_d1_migrations",
+          "migrations_dir": "cloudflare/migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "WYJ_STORAGE",
+          "bucket_name": "wyj-cloud-production"
+        }
+      ],
+      "ai": {
+        "binding": "AI"
       }
     }
   }
