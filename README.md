@@ -449,15 +449,15 @@ node local-backend/test_tools_browser.mjs
 
 ### Serverless 基础层与渐进切换
 
-`wrangler.jsonc` 是 Pages Functions 的版本化配置，`name` 固定为现有 Cloudflare Pages 项目 `thewyj-uk`，覆盖本地 development、Cloudflare preview 和 production。三套环境都声明同名 bindings，资源本身彼此隔离：
+`wrangler.jsonc` 是 Pages Functions 的版本化部署配置，`name` 固定为现有 Cloudflare Pages 项目 `thewyj-uk`。当前只启用已经验收所需的 Preview bindings；本地 development 使用 `wrangler.local.jsonc` 和 Wrangler 本地持久化，Production 在独立资源创建并通过人工确认前不声明云资源 binding，避免误把 Preview 数据库用于生产。
 
-| 能力 | binding | 本地/preview/production 资源 |
+| 能力 | binding | 本地 development | Preview | Production gate |
 | --- | --- | --- |
-| D1 | `WYJ_DB` | `wyj-cloud-development` / `wyj-cloud-preview` / `wyj-cloud-production` |
-| R2 | `WYJ_STORAGE` | `wyj-cloud-development` / `wyj-cloud-preview` / `wyj-cloud-production` |
-| Workers AI | `AI` | Preview/Production 的 AI binding；默认功能开关关闭，本地不声明以避免无意远程计费 |
+| D1 | `WYJ_DB` | `wyj-cloud-development`（仅本地状态） | `wyj-cloud-preview` | 创建 `wyj-cloud-production` 后再加入配置 |
+| R2 | `WYJ_STORAGE` | `wyj-cloud-development`（仅本地状态） | `wyj-cloud-preview` | 创建 `wyj-cloud-production` 后再加入配置 |
+| Workers AI | `AI` | 默认不声明，避免无意远程计费 | 已声明，功能开关默认关闭 | Preview 验收后再加入配置 |
 
-配置没有 `account_id`、D1 UUID、API token 或 secret。D1/R2 采用 Wrangler resource draft：本地开发会自动创建隔离资源，首次远端 preview 部署前必须在控制台确认它们解析到预期资源，不能直接在 production 试错。任何真实 ID 只留在 Cloudflare，不写回仓库。`cloudflare/migrations/0001_foundation.sql` 只创建 schema 元数据和基础限流窗口，不包含用户、会员、订单或支付数据，重复执行不会删除旧数据。
+配置没有 `account_id`、API token 或 secret。Cloudflare Pages 在部署带 D1 binding 的 Wrangler 配置时要求 `database_id`，因此 `env.preview` 保存 Cloudflare 生成的 Preview D1 资源 UUID；该 UUID 只是不可用于鉴权的资源标识，真正凭据仍只保存在 Cloudflare。Production D1 UUID 尚未产生，也没有占位值或 Preview ID 冒充。`cloudflare/migrations/0001_foundation.sql` 只创建 schema 元数据和基础限流窗口，不包含用户、会员、订单或支付数据，重复执行不会删除旧数据。
 
 新的 `functions/_middleware.js` 为 Pages Functions 响应加入安全头和 `X-Request-ID`，拒绝浏览器跨站写请求，并把未处理异常转成统一的 `{ ok, error, code, retryable, request_id }` 格式。上游 Python 的正常/业务错误响应仍原样透传，避免破坏现有前端协议。`GET /api/status?source=cloud` 返回 D1/R2/AI binding、feature flags、限流和降级原因；默认 `GET /api/status` 仍代理旧后端，因此启动器和前端不会把“Cloudflare 在线”误判成“账户后端在线”。
 
@@ -465,9 +465,9 @@ node local-backend/test_tools_browser.mjs
 
 ### 控制台准备
 
-1. 在 **Workers & Pages -> D1** 确认或创建 `wyj-cloud-preview` 与 `wyj-cloud-production`；本地 development 使用 Wrangler 的本地持久化数据库。
-2. 在 **R2** 确认或创建同名的 preview/production Standard bucket。免费额度只适用于 Standard storage。
-3. 打开 Pages 项目 `thewyj-uk` 的 **Settings -> Bindings**，确认 Preview 和 Production 的 D1 `WYJ_DB`、R2 `WYJ_STORAGE`、Workers AI `AI` 分别指向上表资源。Wrangler 首次部署 resource draft 时可能自动创建资源，因此必须先部署 preview 并回到这里核对，不能让 production 与 preview 共用数据。
+1. 在 **Workers & Pages -> D1** 确认 Preview 数据库 `wyj-cloud-preview`；本地 development 使用 Wrangler 的本地持久化数据库。不要在 Preview 验收前创建 Production 数据库。
+2. 在 **R2** 确认 Preview Standard bucket `wyj-cloud-preview`。免费额度只适用于 Standard storage；Production bucket 同样等 Preview 验收后再创建。
+3. 打开 Pages 项目 `thewyj-uk` 的 **Settings -> Bindings**，核对 Preview 的 D1 `WYJ_DB`、R2 `WYJ_STORAGE`、Workers AI `AI`。Wrangler 配置部署后是 Pages 的 source of truth，控制台设置必须与 `env.preview` 一致。
 4. 在 `thewyj-uk` 项目的 **Settings -> Variables and Secrets** 设置非敏感 feature flags；`LOCAL_API_BASE` 继续指向现有同源代理上游。若未来需要 secret，使用 `wrangler pages secret put <KEY> --project-name thewyj-uk` 或控制台 Secret，不要写入 `wrangler.jsonc`。
 5. Pages Wrangler 配置要求 V2 build system。首次采用配置前，先比对控制台现有 production/preview bindings；配置一旦部署就是 Pages 的 source of truth。
 
@@ -483,23 +483,20 @@ npm.cmd run cf:check
 npm.cmd run cf:dev
 ```
 
-Wrangler 在 `.wrangler/state` 保存本地 D1/R2；目录已忽略。访问 `http://127.0.0.1:8788/api/status?source=cloud` 检查云基础层，访问不带参数的 `/api/status` 检查本地 Python 后端。Workers AI 即使在本地也会访问 Cloudflare并计入用量，所以 development 顶层配置不声明 `AI`；需要真实联调时先登录 Wrangler，再临时运行 `npx.cmd wrangler pages dev --ai AI`。普通本地开发和自动测试不要求 Cloudflare Token，也不产生 AI 用量。
+`wrangler.local.jsonc` 只供本地 migration 使用，`cf:dev` 通过 `--d1 WYJ_DB --r2 WYJ_STORAGE` 创建同名本地 bindings。Wrangler 在 `.wrangler/state` 保存本地 D1/R2；目录已忽略。访问 `http://127.0.0.1:8788/api/status?source=cloud` 检查云基础层，访问不带参数的 `/api/status` 检查本地 Python 后端。Workers AI 即使在本地也会访问 Cloudflare 并计入用量，所以本地配置不声明 `AI`；需要真实联调时先登录 Wrangler，再临时运行 `npx.cmd wrangler pages dev --d1 WYJ_DB --r2 WYJ_STORAGE --ai AI`。普通本地开发和自动测试不要求 Cloudflare Token，也不产生 AI 用量。
 
 ### 迁移、部署与回滚
 
-先应用 preview，再应用 production；远端命令会修改真实资源，运行前必须确认当前 Cloudflare 账户和数据库名称：
+先应用 Preview，再验证三个 bindings。下列 Preview 流程全部通过以前，不创建或部署 Production 资源：
 
 ```powershell
 # Preview D1
 npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env preview
 # Preview Pages（非 main 分支产生 preview deployment）
-npx.cmd wrangler pages deploy . --project-name thewyj-uk --branch cloudflare-foundation-preview
-
-# Production D1
-npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env production
-# Production Pages
-npx.cmd wrangler pages deploy . --project-name thewyj-uk --branch main
+npx.cmd wrangler pages deploy . --project-name thewyj-uk --branch codex/task10-cloudflare-foundation
 ```
+
+Preview 的 `/api/status?source=cloud`、D1、R2 和 Workers AI 全部通过后，才创建 `wyj-cloud-production` D1/R2，在 `env.production` 加入各自真实 binding，并依次执行 Production migration 与 `main` 部署。未完成这一步时，Production 环境有意保持无云资源 binding，状态接口会按设计返回 degraded，而不是连接 Preview 数据。
 
 回滚分两层：先把 `CLOUD_STATUS_MODE` 改回 `legacy`，并关闭云读、云写和 Workers AI；如果仍需回退代码，在 Pages 项目的 **Deployments -> All deployments** 对之前成功的 production deployment 选择 **Rollback to this deployment**。Preview deployment 不能作为回滚目标。D1 迁移是前向迁移，本次新增表保持惰性即可，不要为代码回滚删除表或生产数据。
 

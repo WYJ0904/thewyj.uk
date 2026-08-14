@@ -478,10 +478,9 @@ class StaticSiteTests(unittest.TestCase):
         self.assertEqual(config["compatibility_date"], "2026-08-06")
         self.assertNotIn("compatibility_flags", config)
         self.assertNotIn("account_id", config)
-        self.assertNotIn("database_id", config_text)
-        self.assertNotRegex(config_text, r"[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
+        self.assertNotIn("d1_databases", config)
+        self.assertNotIn("r2_buckets", config)
 
-        expected_bindings = {"d1": "WYJ_DB", "r2": "WYJ_STORAGE", "ai": "AI"}
         for environment, settings in (
             ("development", config),
             ("preview", config["env"]["preview"]),
@@ -491,13 +490,30 @@ class StaticSiteTests(unittest.TestCase):
             self.assertEqual(settings["vars"]["CLOUD_STATUS_MODE"], "legacy")
             self.assertEqual(settings["vars"]["CLOUD_WRITES_ENABLED"], "false")
             self.assertEqual(settings["vars"]["WORKERS_AI_ENABLED"], "false")
-            self.assertEqual(settings["d1_databases"][0]["binding"], expected_bindings["d1"])
-            self.assertEqual(settings["d1_databases"][0]["migrations_dir"], "cloudflare/migrations")
-            self.assertEqual(settings["r2_buckets"][0]["binding"], expected_bindings["r2"])
-            if environment == "development":
-                self.assertNotIn("ai", settings)
-            else:
-                self.assertEqual(settings["ai"]["binding"], expected_bindings["ai"])
+
+        preview = config["env"]["preview"]
+        self.assertEqual(preview["d1_databases"][0]["binding"], "WYJ_DB")
+        self.assertEqual(preview["d1_databases"][0]["database_name"], "wyj-cloud-preview")
+        self.assertRegex(
+            preview["d1_databases"][0]["database_id"],
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+        )
+        self.assertEqual(preview["d1_databases"][0]["migrations_dir"], "cloudflare/migrations")
+        self.assertEqual(preview["r2_buckets"][0]["binding"], "WYJ_STORAGE")
+        self.assertEqual(preview["r2_buckets"][0]["bucket_name"], "wyj-cloud-preview")
+        self.assertEqual(preview["ai"]["binding"], "AI")
+
+        production = config["env"]["production"]
+        self.assertNotIn("d1_databases", production)
+        self.assertNotIn("r2_buckets", production)
+        self.assertNotIn("ai", production)
+
+        local_config = json.loads((ROOT / "wrangler.local.jsonc").read_text(encoding="utf-8"))
+        self.assertNotIn("database_id", local_config["d1_databases"][0])
+        self.assertEqual(local_config["d1_databases"][0]["binding"], "WYJ_DB")
+        self.assertEqual(local_config["d1_databases"][0]["database_name"], "wyj-cloud-development")
+        self.assertEqual(local_config["r2_buckets"][0]["binding"], "WYJ_STORAGE")
+        self.assertEqual(local_config["r2_buckets"][0]["bucket_name"], "wyj-cloud-development")
 
         migration = (ROOT / "cloudflare" / "migrations" / "0001_foundation.sql").read_text(encoding="utf-8")
         self.assertIn("CREATE TABLE IF NOT EXISTS cloud_runtime_metadata", migration)
@@ -520,8 +536,12 @@ class StaticSiteTests(unittest.TestCase):
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
         self.assertEqual(package["devDependencies"]["wrangler"], "4.118.0")
         self.assertIn("wrangler types", package["scripts"]["cf:types"])
+        self.assertIn("--env preview", package["scripts"]["cf:types"])
         self.assertIn("wrangler d1 migrations apply WYJ_DB --local", package["scripts"]["cf:migrate:local"])
+        self.assertIn("--config wrangler.local.jsonc", package["scripts"]["cf:migrate:local"])
         self.assertIn("wrangler pages dev", package["scripts"]["cf:dev"])
+        self.assertIn("--d1 WYJ_DB", package["scripts"]["cf:dev"])
+        self.assertIn("--r2 WYJ_STORAGE", package["scripts"]["cf:dev"])
 
     def test_remote_data_loading_has_retry_and_partial_recovery(self):
         self.assertIn('id="membershipPlanRecovery"', self.html)

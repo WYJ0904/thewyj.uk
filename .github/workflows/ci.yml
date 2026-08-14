@@ -186,9 +186,9 @@ jobs:
           set -euo pipefail
           mkdir -p .wrangler
           node local-backend/test_cloudflare_foundation_js.mjs 2>&1 | tee artifacts/cloudflare-foundation.log
-          npx wrangler types .wrangler/ci-types.d.ts --env production 2>&1 | tee artifacts/cloudflare-types.log
+          npx wrangler types .wrangler/ci-types.d.ts --env preview 2>&1 | tee artifacts/cloudflare-types.log
           npx wrangler pages functions build functions --outdir .wrangler/ci-functions 2>&1 | tee artifacts/cloudflare-functions-build.log
-          npx wrangler d1 migrations apply WYJ_DB --local --persist-to .wrangler/ci-state 2>&1 | tee artifacts/cloudflare-d1-migration.log
+          npx wrangler d1 migrations apply WYJ_DB --local --config wrangler.local.jsonc --persist-to .wrangler/ci-state 2>&1 | tee artifacts/cloudflare-d1-migration.log
 
       - name: Check HTML, PWA and tool catalog
         run: |
