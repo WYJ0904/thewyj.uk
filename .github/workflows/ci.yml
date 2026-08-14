@@ -184,6 +184,7 @@ jobs:
       - name: Test Cloudflare serverless foundation
         run: |
           set -euo pipefail
+          mkdir -p .wrangler
           node local-backend/test_cloudflare_foundation_js.mjs 2>&1 | tee artifacts/cloudflare-foundation.log
           npx wrangler types .wrangler/ci-types.d.ts --env production 2>&1 | tee artifacts/cloudflare-types.log
           npx wrangler pages functions build functions --outdir .wrangler/ci-functions 2>&1 | tee artifacts/cloudflare-functions-build.log
