@@ -449,7 +449,7 @@ node local-backend/test_tools_browser.mjs
 
 ### Serverless 基础层与渐进切换
 
-`wrangler.jsonc` 是 Pages Functions 的版本化配置，`name` 固定为现有 Cloudflare Pages 项目 `japanese`，覆盖本地 development、Cloudflare preview 和 production。三套环境都声明同名 bindings，资源本身彼此隔离：
+`wrangler.jsonc` 是 Pages Functions 的版本化配置，`name` 固定为现有 Cloudflare Pages 项目 `thewyj-uk`，覆盖本地 development、Cloudflare preview 和 production。三套环境都声明同名 bindings，资源本身彼此隔离：
 
 | 能力 | binding | 本地/preview/production 资源 |
 | --- | --- | --- |
@@ -467,8 +467,8 @@ node local-backend/test_tools_browser.mjs
 
 1. 在 **Workers & Pages -> D1** 确认或创建 `wyj-cloud-preview` 与 `wyj-cloud-production`；本地 development 使用 Wrangler 的本地持久化数据库。
 2. 在 **R2** 确认或创建同名的 preview/production Standard bucket。免费额度只适用于 Standard storage。
-3. 打开 Pages 项目 `japanese` 的 **Settings -> Bindings**，确认 Preview 和 Production 的 D1 `WYJ_DB`、R2 `WYJ_STORAGE`、Workers AI `AI` 分别指向上表资源。Wrangler 首次部署 resource draft 时可能自动创建资源，因此必须先部署 preview 并回到这里核对，不能让 production 与 preview 共用数据。
-4. 在 `japanese` 项目的 **Settings -> Variables and Secrets** 设置非敏感 feature flags；`LOCAL_API_BASE` 继续指向现有同源代理上游。若未来需要 secret，使用 `wrangler pages secret put <KEY> --project-name japanese` 或控制台 Secret，不要写入 `wrangler.jsonc`。
+3. 打开 Pages 项目 `thewyj-uk` 的 **Settings -> Bindings**，确认 Preview 和 Production 的 D1 `WYJ_DB`、R2 `WYJ_STORAGE`、Workers AI `AI` 分别指向上表资源。Wrangler 首次部署 resource draft 时可能自动创建资源，因此必须先部署 preview 并回到这里核对，不能让 production 与 preview 共用数据。
+4. 在 `thewyj-uk` 项目的 **Settings -> Variables and Secrets** 设置非敏感 feature flags；`LOCAL_API_BASE` 继续指向现有同源代理上游。若未来需要 secret，使用 `wrangler pages secret put <KEY> --project-name thewyj-uk` 或控制台 Secret，不要写入 `wrangler.jsonc`。
 5. Pages Wrangler 配置要求 V2 build system。首次采用配置前，先比对控制台现有 production/preview bindings；配置一旦部署就是 Pages 的 source of truth。
 
 ### 本地开发
@@ -493,12 +493,12 @@ Wrangler 在 `.wrangler/state` 保存本地 D1/R2；目录已忽略。访问 `ht
 # Preview D1
 npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env preview
 # Preview Pages（非 main 分支产生 preview deployment）
-npx.cmd wrangler pages deploy . --project-name japanese --branch cloudflare-foundation-preview
+npx.cmd wrangler pages deploy . --project-name thewyj-uk --branch cloudflare-foundation-preview
 
 # Production D1
 npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env production
 # Production Pages
-npx.cmd wrangler pages deploy . --project-name japanese --branch main
+npx.cmd wrangler pages deploy . --project-name thewyj-uk --branch main
 ```
 
 回滚分两层：先把 `CLOUD_STATUS_MODE` 改回 `legacy`，并关闭云读、云写和 Workers AI；如果仍需回退代码，在 Pages 项目的 **Deployments -> All deployments** 对之前成功的 production deployment 选择 **Rollback to this deployment**。Preview deployment 不能作为回滚目标。D1 迁移是前向迁移，本次新增表保持惰性即可，不要为代码回滚删除表或生产数据。
