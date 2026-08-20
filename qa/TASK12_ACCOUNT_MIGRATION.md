@@ -3,7 +3,7 @@
 ## Scope And Source Of Truth
 
 - Source schema audited: `local-backend/account_store.py` and the SQLite schema it initializes.
-- Cloud target: D1 tables created by `cloudflare/migrations/0003_accounts_sessions.sql`, with the concurrent Session cap enforced by `0004_session_limit_trigger.sql`.
+- Cloud target: D1 tables created by `cloudflare/migrations/0003_accounts_sessions.sql`, with the concurrent Session cap enforced by `0004_session_limit_trigger.sql` and deterministic newest-session ordering applied by `0005_session_limit_ordering.sql`.
 - Stable identity: the existing SQLite `users.id` text value is copied unchanged.
 - Cloud-primary switch: `TASK12_CLOUD_ACCOUNTS_ENABLED=true` selects D1 for account APIs. It never writes the same account mutation to SQLite.
 - Legacy business compatibility: a short-lived signed identity assertion lets non-migrated Python business APIs look up the stable user ID. No D1 token or second SQLite Session is created.
@@ -42,7 +42,7 @@ Successful login upgrades an accepted lower-iteration PBKDF2 record to the curre
 
 Task 12 uses strategy B: SQLite Session rows are counted but never imported. The D1 table only receives newly issued token digests. A formal cloud-primary switch therefore requires every existing device to log in again.
 
-Password change, admin reset, ban/unban, forced logout and deletion increment `session_version` and revoke all D1 sessions. Session resolution checks digest, expiry, revocation, account state and version on every request. A D1 `AFTER INSERT` trigger atomically keeps at most 12 active sessions per user, including concurrent logins.
+Password change, admin reset, ban/unban, forced logout and deletion increment `session_version` and revoke all D1 sessions. Session resolution checks digest, expiry, revocation, account state and version on every request. A D1 `AFTER INSERT` trigger atomically keeps at most 12 active sessions per user, including concurrent logins; insertion `rowid` breaks same-millisecond ties so the newest 12 survive.
 
 ## Migration And Cutover Gates
 

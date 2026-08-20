@@ -126,6 +126,7 @@ try {
     "0002_low_risk_cloud_services.sql",
     "0003_accounts_sessions.sql",
     "0004_session_limit_trigger.sql",
+    "0005_session_limit_ordering.sql",
   ]) {
     const sql = await readFile(path.join(ROOT, "cloudflare", "migrations", filename), "utf8");
     await db.exec(sql.replace(/\r?\n/g, " "));

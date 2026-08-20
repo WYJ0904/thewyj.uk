@@ -578,6 +578,13 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("LIMIT -1 OFFSET 12", task12_session_limit)
         self.assertNotRegex(task12_session_limit, r"\bDROP\b")
 
+        task12_session_ordering = (
+            ROOT / "cloudflare" / "migrations" / "0005_session_limit_ordering.sql"
+        ).read_text(encoding="utf-8")
+        self.assertIn("DROP TRIGGER IF EXISTS task12_sessions_limit_after_insert", task12_session_ordering)
+        self.assertIn("ORDER BY rowid DESC", task12_session_ordering)
+        self.assertIn("LIMIT -1 OFFSET 12", task12_session_ordering)
+
         middleware = (ROOT / "functions" / "_lib" / "cloudflare-foundation.mjs").read_text(encoding="utf-8")
         status = (ROOT / "functions" / "api" / "status.js").read_text(encoding="utf-8")
         self.assertIn("crypto.randomUUID()", middleware)

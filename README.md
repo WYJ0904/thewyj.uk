@@ -496,7 +496,7 @@ npm.cmd run cf:dev
 
 ### 迁移、部署与回滚
 
-Task 10 的 `0001_foundation.sql` 已在 Preview 与 Production 应用，Task 11 的 `0002_low_risk_cloud_services.sql` 已完成既定环境验证。Task 12 新增 `0003_accounts_sessions.sql` 和用于并发会话上限的 `0004_session_limit_trigger.sql`；只允许先应用到本地和 Preview。未经新的明确批准，不执行 Production Task 12 migration、账户导入、Session 切换或 `VOCAB_CLOUD_ACCOUNT_PRIMARY=true`。
+Task 10 的 `0001_foundation.sql` 已在 Preview 与 Production 应用，Task 11 的 `0002_low_risk_cloud_services.sql` 已完成既定环境验证。Task 12 新增 `0003_accounts_sessions.sql`、并发会话上限 trigger `0004_session_limit_trigger.sql`，以及用插入顺序消除同毫秒排序歧义的 `0005_session_limit_ordering.sql`；只允许先应用到本地和 Preview。未经新的明确批准，不执行 Production Task 12 migration、账户导入、Session 切换或 `VOCAB_CLOUD_ACCOUNT_PRIMARY=true`。
 
 ```powershell
 # 本地全新 D1 验证
@@ -556,7 +556,7 @@ Production 导入还要求 `TASK11_PRODUCTION_IMPORT_ENABLED=true`、`--backup-c
 
 ### Task 12 账户与会话迁移
 
-`cloudflare/migrations/0003_accounts_sessions.sql` 新建 `task12_users`、`task12_sessions`、登录审计、账户审计和登录失败窗口；`0004_session_limit_trigger.sql` 在每次插入时由 D1 原子保留最新 12 个有效 Session，避免并发登录的应用层裁剪竞态。它们不创建 membership、entitlement、payment、临时分享或 AI 表。用户主键直接复用 SQLite 的稳定文本 ID，Task 11 的反馈、投票和学习同步继续以同一 ID 归属；导入状态会报告 orphan 数量，非零时停止正式导入。
+`cloudflare/migrations/0003_accounts_sessions.sql` 新建 `task12_users`、`task12_sessions`、登录审计、账户审计和登录失败窗口；`0004_session_limit_trigger.sql` 在每次插入时由 D1 原子保留最新 12 个有效 Session，`0005_session_limit_ordering.sql` 再把保留顺序固定为 SQLite 插入 `rowid`，避免并发登录落在同一毫秒时使用随机 digest 破坏新旧顺序。它们不创建 membership、entitlement、payment、临时分享或 AI 表。用户主键直接复用 SQLite 的稳定文本 ID，Task 11 的反馈、投票和学习同步继续以同一 ID 归属；导入状态会报告 orphan 数量，非零时停止正式导入。
 
 密码继续使用现有 `PBKDF2-SHA256`、随机盐和 310,000 次迭代，Cloudflare Runtime 通过 Web Crypto 验证。迁移工具只复制结构有效的 PBKDF2 摘要；历史明文、旧 hash 和损坏记录只按数量分类，并写成 `reset_required`，绝不把原值发送到 D1、报告或日志。D1 Session 只保存 `sha256$...` digest、有效期、会话版本和最小客户端类型。Task 12 采用 **策略 B**：不迁移旧活动 Session，正式切换时所有设备需要重新登录。
 
