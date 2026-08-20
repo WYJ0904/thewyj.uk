@@ -154,11 +154,11 @@ export async function loginAccount(db, username, secret, request) {
     ) VALUES (?1, ?2, ?3, ?4, ?4, ?5, ?6)`).bind(
       digest, row.id, Number(row.session_version || 1), now, expiryFrom(), clientKind(request),
     ),
+    db.prepare(`DELETE FROM task12_sessions WHERE token_digest IN (
+      SELECT token_digest FROM task12_sessions WHERE user_id = ?1 AND revoked = 0
+      ORDER BY created_at DESC, token_digest DESC LIMIT -1 OFFSET ?2
+    )`).bind(row.id, MAX_SESSIONS_PER_USER),
   ]);
-  await run(db, `DELETE FROM task12_sessions WHERE token_digest IN (
-    SELECT token_digest FROM task12_sessions WHERE user_id = ?1 AND revoked = 0
-    ORDER BY created_at DESC, token_digest DESC LIMIT -1 OFFSET ?2
-  )`, [row.id, MAX_SESSIONS_PER_USER]);
   return { session: token, account: accountPayload(await userById(db, row.id)) };
 }
 
