@@ -1389,6 +1389,7 @@ function Sync-BackendSource {
     foreach ($fileName in @(
         "server.py",
         "account_store.py",
+        "cloud_identity.py",
         "membership.py",
         "payment_assets.py",
         "temporary_store.py",
