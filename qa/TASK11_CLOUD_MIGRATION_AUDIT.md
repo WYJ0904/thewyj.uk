@@ -54,4 +54,7 @@ Preview enables the Task 11-specific read/write flags for integration validation
 - On 2026-08-20, `0002_low_risk_cloud_services.sql` was applied only to the `wyj-cloud-preview` D1 database.
 - A second remote migration listing reported no pending migrations.
 - Read-only verification returned Task 11 schema version `1` and nine `task11_` tables.
-- No legacy user data was imported during this step. Production migration, Production import, Production cloud reads/writes, and fallback removal remain intentionally untouched.
+- The eight public records from the structured `changelog.js` source were seeded idempotently; no legacy user data was imported.
+- The branch Preview returned HTTP 200 with D1, R2, and Workers AI bindings present, Task 11 schema ready, and the Preview-only Task 11 read/write flags enabled.
+- Preview integration checks covered the changelog response, one aggregate telemetry write, cross-origin rejection, telemetry field allowlisting, and the unauthenticated feedback boundary. The telemetry probe row was removed after verification.
+- Production migration, Production import, Production cloud reads/writes, and fallback removal remain intentionally untouched.
