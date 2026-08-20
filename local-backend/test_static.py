@@ -570,6 +570,14 @@ class StaticSiteTests(unittest.TestCase):
         )
         self.assertNotRegex(task11_migration, r"\b(?:DROP|ALTER\s+TABLE\s+users)\b")
 
+        task12_session_limit = (
+            ROOT / "cloudflare" / "migrations" / "0004_session_limit_trigger.sql"
+        ).read_text(encoding="utf-8")
+        self.assertIn("CREATE TRIGGER IF NOT EXISTS task12_sessions_limit_after_insert", task12_session_limit)
+        self.assertIn("WHERE user_id = NEW.user_id AND revoked = 0", task12_session_limit)
+        self.assertIn("LIMIT -1 OFFSET 12", task12_session_limit)
+        self.assertNotRegex(task12_session_limit, r"\bDROP\b")
+
         middleware = (ROOT / "functions" / "_lib" / "cloudflare-foundation.mjs").read_text(encoding="utf-8")
         status = (ROOT / "functions" / "api" / "status.js").read_text(encoding="utf-8")
         self.assertIn("crypto.randomUUID()", middleware)
