@@ -215,6 +215,58 @@ export async function resolveLegacyAccount(context) {
   throw new LegacyAuthDependencyError("账户认证服务暂时不可用，请稍后重试。", "legacy_auth_unavailable");
 }
 
+export async function verifyLegacyPassword(context, account, secret) {
+  if (!bridgeConfigured(context.env)) {
+    throw new LegacyAuthDependencyError("旧账户登录密钥校验桥尚未配置。", "legacy_password_bridge_not_configured");
+  }
+  let bases;
+  try {
+    bases = configuredBases(context.env);
+  } catch (_) {
+    throw new LegacyAuthDependencyError("旧账户登录密钥校验服务配置无效。", "legacy_password_bridge_configuration_error");
+  }
+  if (!bases.length) {
+    throw new LegacyAuthDependencyError("旧账户登录密钥校验服务尚未配置。", "legacy_password_bridge_not_configured");
+  }
+  const requestId = context.data?.requestId || crypto.randomUUID();
+  const assertionRequest = new Request(new URL("/api/internal/task12/verify-secret", context.request.url), {
+    method: "POST",
+  });
+  const headers = addProxyContextHeaders(
+    new Headers({ Accept: "application/json", "Content-Type": "application/json; charset=utf-8" }),
+    context.request,
+    context.request.cf || context.cf || {},
+    requestId,
+  );
+  await addLegacyIdentityHeaders(headers, assertionRequest, account, context.env, requestId);
+  try {
+    const response = await fetchWithTimeout(
+      targetUrlFor(assertionRequest, bases[0]).toString(),
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ secret: String(secret || "") }),
+        redirect: "manual",
+      },
+      LEGACY_AUTH_TIMEOUT_MS,
+    );
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload?.ok || typeof payload.valid !== "boolean") {
+      throw new LegacyAuthDependencyError(
+        "旧账户登录密钥校验服务返回了无效响应。",
+        "legacy_password_bridge_invalid_response",
+      );
+    }
+    return payload.valid;
+  } catch (error) {
+    if (error instanceof LegacyAuthDependencyError) throw error;
+    throw new LegacyAuthDependencyError(
+      "旧账户登录密钥校验服务暂时不可用，请稍后重试。",
+      "legacy_password_bridge_unavailable",
+    );
+  }
+}
+
 export async function proxyToLegacy(context) {
   const { env, request } = context;
   const requestId = context.data?.requestId || crypto.randomUUID();

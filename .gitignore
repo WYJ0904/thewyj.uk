@@ -37,6 +37,7 @@ desktop-tools/*日志*.txt
 desktop-tools/*错误*.txt
 desktop-tools/*标准输出*.txt
 desktop-tools/*标准错误*.txt
+desktop-tools/*错误*.txt.previous
 **/payment/qrcodes/
 **/credentials.json
 *.pdf
@@ -45,6 +46,7 @@ latest-url.txt
 # Codex workspace scratch/output folders
 .agents/
 .codex/
+.codex-remote-attachments/
 .tool-e2e/
 work/
 outputs/

@@ -6,10 +6,11 @@ import {
   jsonResponse,
   sha256Hex,
 } from "./cloudflare-foundation.mjs";
-import { resolveLegacyAccount } from "./legacy-api.mjs";
+import { resolveLegacyAccount, verifyLegacyPassword } from "./legacy-api.mjs";
 import { resolveTask12Account } from "./task12-auth.mjs";
 import { bridgeConfigured } from "./task12-bridge.mjs";
 import { importTask12Batch, task12ImportCounts } from "./task12-import.mjs";
+import { passwordPepperConfigured } from "./task12-crypto.mjs";
 import {
   TASK12_SCHEMA_VERSION,
   Task12Error,
@@ -108,6 +109,22 @@ async function migrationAuthentication(context, flags) {
 
 function loginSubject(context) {
   return String(context.request.headers.get("CF-Connecting-IP") || "anonymous").slice(0, 80);
+}
+
+function passwordOptions(context) {
+  const passwordPepper = String(context.env.WYJ_TASK12_PASSWORD_PEPPER || "");
+  if (!passwordPepperConfigured(passwordPepper)) {
+    throw new Task12Error(
+      "云端账户密码保护 Secret 尚未配置",
+      503,
+      "task12_password_pepper_not_configured",
+      true,
+    );
+  }
+  return {
+    passwordPepper,
+    verifyLegacy: async (account, secret) => await verifyLegacyPassword(context, account, secret),
+  };
 }
 
 const LEGACY_BUSINESS_ACCOUNT_FIELDS = Object.freeze([
@@ -223,7 +240,10 @@ async function executeRoute(context, descriptor, account, legacyProxy) {
     if (String(payload.secret || "") !== String(payload.confirm_secret || "")) {
       throw new Task12Error("两次输入的登录密钥不一致", 400, "secret_mismatch");
     }
-    return response({ ok: true, account: await registerAccount(db, payload.username, payload.secret) }, 201, context);
+    return response({
+      ok: true,
+      account: await registerAccount(db, payload.username, payload.secret, passwordOptions(context)),
+    }, 201, context);
   }
   if (path === "/api/login") {
     requireAllowedFields(payload, new Set(["username", "secret"]));
@@ -235,7 +255,9 @@ async function executeRoute(context, descriptor, account, legacyProxy) {
       });
     }
     try {
-      const result = await loginAccount(db, payload.username, payload.secret, context.request);
+      const result = await loginAccount(
+        db, payload.username, payload.secret, context.request, passwordOptions(context),
+      );
       await clearLoginFailures(context, state);
       await safeLoginAudit(context, payload.username, true, "success", result.account);
       let enriched = result.account;
@@ -248,7 +270,7 @@ async function executeRoute(context, descriptor, account, legacyProxy) {
       return response({ ok: true, session: result.session, model: "Cloudflare account", account: enriched }, 200, context);
     } catch (error) {
       if (error instanceof Task12Error) {
-        await recordLoginFailure(context, state);
+        if (!error.retryable) await recordLoginFailure(context, state);
         await safeLoginAudit(context, payload.username, false, error.code);
       }
       throw error;
@@ -267,18 +289,18 @@ async function executeRoute(context, descriptor, account, legacyProxy) {
     if ("confirm_secret" in payload && String(payload.new_secret || "") !== String(payload.confirm_secret || "")) {
       throw new Task12Error("两次输入的新登录密钥不一致", 400, "secret_mismatch");
     }
-    await changeOwnSecret(db, account, payload.current_secret, payload.new_secret);
+    await changeOwnSecret(db, account, payload.current_secret, payload.new_secret, passwordOptions(context));
     return response({ ok: true, session_invalidated: true }, 200, context);
   }
   if (path === "/api/account/delete") {
     requireAllowedFields(payload, new Set(["secret"]));
-    await deleteOwnAccount(db, account, payload.secret);
+    await deleteOwnAccount(db, account, payload.secret, passwordOptions(context));
     return response({ ok: true, account_deleted: true }, 200, context);
   }
   const userId = String(payload.user_id || "");
   if (path === "/api/admin/secret") {
     requireAllowedFields(payload, new Set(["user_id", "secret"]));
-    await adminResetSecret(db, account, userId, payload.secret);
+    await adminResetSecret(db, account, userId, payload.secret, passwordOptions(context));
     return response({ ok: true, session_invalidated: true }, 200, context);
   }
   if (path === "/api/admin/ban") {

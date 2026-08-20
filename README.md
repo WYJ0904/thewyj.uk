@@ -510,7 +510,7 @@ npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env preview
 npx.cmd wrangler pages deploy . --project-name thewyj-uk --branch codex/task12-accounts-sessions-d1
 ```
 
-Preview 的 `/api/status?source=cloud` 必须同时显示 Task 12 schema `1`、`task12_cloud_accounts=true` 和 `task12_legacy_bridge=true`。随后用隔离账户验证注册、登录、改密、封禁、强制退出、多会话、Task 11 ownership 与旧业务桥接，再提交 Draft PR。Production 的 Task 12 与导入开关保持 `false`，合并代码不会自动迁移或切换 Production 账户。
+Preview 的 `/api/status?source=cloud` 必须同时显示 Task 12 schema `1`、`task12_cloud_accounts=true`、`task12_legacy_bridge=true` 和 `task12_password_pepper=true`。随后用隔离账户验证注册、登录、改密、封禁、强制退出、多会话、旧摘要首次升级、Task 11 ownership 与旧业务桥接，再提交 Draft PR。Production 的 Task 12 与导入开关保持 `false`，合并代码不会自动迁移或切换 Production 账户。
 
 回滚分两层：先关闭 Task 11 专用云读写开关并保留 legacy fallback；如果仍需回退代码，在 Pages 项目的 **Deployments -> All deployments** 对之前成功的 production deployment 选择 **Rollback to this deployment**。D1 迁移是前向迁移，新表保持惰性即可，不要为代码回滚删除表或生产数据。Preview deployment 不能作为 Production 回滚目标。
 
@@ -558,9 +558,22 @@ Production 导入还要求 `TASK11_PRODUCTION_IMPORT_ENABLED=true`、`--backup-c
 
 `cloudflare/migrations/0003_accounts_sessions.sql` 新建 `task12_users`、`task12_sessions`、登录审计、账户审计和登录失败窗口；`0004_session_limit_trigger.sql` 在每次插入时由 D1 原子保留最新 12 个有效 Session，`0005_session_limit_ordering.sql` 再把保留顺序固定为 SQLite 插入 `rowid`，避免并发登录落在同一毫秒时使用随机 digest 破坏新旧顺序。它们不创建 membership、entitlement、payment、临时分享或 AI 表。用户主键直接复用 SQLite 的稳定文本 ID，Task 11 的反馈、投票和学习同步继续以同一 ID 归属；导入状态会报告 orphan 数量，非零时停止正式导入。
 
-密码继续使用现有 `PBKDF2-SHA256`、随机盐和 310,000 次迭代，Cloudflare Runtime 通过 Web Crypto 验证。迁移工具只复制结构有效的 PBKDF2 摘要；历史明文、旧 hash 和损坏记录只按数量分类，并写成 `reset_required`，绝不把原值发送到 D1、报告或日志。D1 Session 只保存 `sha256$...` digest、有效期、会话版本和最小客户端类型。Task 12 采用 **策略 B**：不迁移旧活动 Session，正式切换时所有设备需要重新登录。
+新建或成功升级的云账户使用版本化摘要 `pbkdf2_sha256_cf_v1$310000$...`：随机盐、四个串行 PBKDF2-SHA256 阶段（100,000 + 100,000 + 100,000 + 10,000）以及仅保存在 Cloudflare Secret 中的服务端 HMAC pepper。`password_scheme` 继续写 `pbkdf2_sha256` 作为算法家族，具体格式由摘要前缀区分，避免重建已有 D1 表。原因是当前 workerd 会拒绝单次超过 100,000 iterations 的 PBKDF2 调用；分段版本保持总工作量 310,000，并使每一步都在运行时限制内。`WYJ_TASK12_PASSWORD_PEPPER` 必须至少 32 bytes、按环境独立生成且稳定保存；状态接口只报告 `password_pepper_configured`，不会返回 Secret 值。丢失或更换 pepper 会使已生成的云摘要无法验证，只能通过受控密码重置恢复。
 
-Preview 身份桥使用 `WYJ_LEGACY_IDENTITY_BRIDGE_SECRET` 与本地 `VOCAB_LEGACY_IDENTITY_BRIDGE_SECRET`。Pages 验证 D1 Session 后生成最长 45 秒的 HMAC 断言，签名绑定 request ID、HTTP method、path、稳定 user ID 和 username；Python 验证后只读取原会员/业务数据。`run.ps1` 会在私有 `data/settings.json` 生成 `legacy_identity_bridge_key`，请在 Cloudflare **Workers & Pages -> thewyj-uk -> Settings -> Variables and Secrets -> Preview** 新建同值的加密 Secret。不要把值写入命令行参数、README 或 Git。
+迁移工具只复制结构有效的旧 `pbkdf2_sha256$310000$...` 摘要。该格式第一次登录时由 Pages 通过 45 秒 HMAC 身份断言调用 Python 的只读 `/api/internal/task12/verify-secret`：请求绑定稳定 user ID、username、method、path 与 request ID，不建立旧 Session、不写 SQLite、不返回摘要或原始密钥；验证成功后 D1 立即改写为 `pbkdf2_sha256_cf_v1`，验证失败则保持原记录。历史明文、旧 hash 和损坏记录仍只按数量分类并写成 `reset_required`，绝不把原值发送到 D1、报告或日志。D1 Session 只保存 `sha256$...` digest、有效期、会话版本和最小客户端类型。Task 12 采用 **策略 B**：不迁移旧活动 Session，正式切换时所有设备需要重新登录。
+
+Preview 身份桥使用 `WYJ_LEGACY_IDENTITY_BRIDGE_SECRET` 与本地 `VOCAB_LEGACY_IDENTITY_BRIDGE_SECRET`。Pages 验证 D1 Session 后生成最长 45 秒的 HMAC 断言，签名绑定 request ID、HTTP method、path、稳定 user ID 和 username；Python 验证后只读取原会员/业务数据。`run.ps1` 会在私有 `data/settings.json` 生成 `legacy_identity_bridge_key`，请在 Cloudflare **Workers & Pages -> thewyj-uk -> Settings -> Variables and Secrets -> Preview** 新建同值的加密 Secret。另在同一 Preview 环境创建独立的 `WYJ_TASK12_PASSWORD_PEPPER`，不要复用身份桥 Secret。两项都必须保存为加密 Secret，不要把值写入命令行参数、README 或 Git。
+
+```powershell
+# Wrangler 会交互式读取，不要把 Secret 写在命令参数或 shell history 中
+npx.cmd wrangler pages secret put WYJ_LEGACY_IDENTITY_BRIDGE_SECRET `
+  --project-name thewyj-uk --env preview
+npx.cmd wrangler pages secret put WYJ_TASK12_PASSWORD_PEPPER `
+  --project-name thewyj-uk --env preview
+
+# 只列名称和 Encrypted 状态，不显示值
+npx.cmd wrangler pages secret list --project-name thewyj-uk --env preview
+```
 
 ```powershell
 # 默认 dry-run：只输出计数，不联网、不打印用户名、hash、token 或 secret

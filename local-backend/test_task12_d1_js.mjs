@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createHmac } from "node:crypto";
+import { createHmac, pbkdf2Sync, randomBytes } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -24,9 +24,11 @@ import {
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const BRIDGE_SECRET = "task12-isolated-bridge-secret-0123456789";
+const PASSWORD_PEPPER = "task12-isolated-password-pepper-0123456789";
 const ADMIN_SECRET = "Task12-Admin-Secret!";
 const USER_SECRET = "Task12-User-Secret!";
 const NEW_USER_SECRET = "Task12-New-User-Secret!";
+const IMPORTED_SECRET = "Task12-Imported-Secret!";
 const ENVIRONMENT = Object.freeze({
   CLOUD_FOUNDATION_ENABLED: "true",
   CLOUD_READS_ENABLED: "false",
@@ -41,8 +43,10 @@ const ENVIRONMENT = Object.freeze({
   LOCAL_API_BASE: "https://legacy-business.invalid",
   WYJ_ENVIRONMENT: "preview",
   WYJ_LEGACY_IDENTITY_BRIDGE_SECRET: BRIDGE_SECRET,
+  WYJ_TASK12_PASSWORD_PEPPER: PASSWORD_PEPPER,
 });
 const nativeFetch = globalThis.fetch;
+let legacyVerificationRequests = 0;
 globalThis.fetch = async (input, init = {}) => {
   const request = new Request(input, init);
   const url = new URL(request.url);
@@ -61,6 +65,30 @@ globalThis.fetch = async (input, init = {}) => {
         membership_summary: { label: "双语言包月", active: true, lifetime: false },
         tools_access: false,
       },
+    });
+  }
+  if (url.pathname === "/api/internal/task12/verify-secret") {
+    legacyVerificationRequests += 1;
+    assert.equal(request.method, "POST");
+    assert.equal(request.headers.has("X-Session-Token"), false);
+    const issuedAt = request.headers.get(bridgeTesting.BRIDGE_HEADERS.issuedAt);
+    const requestId = request.headers.get(bridgeTesting.BRIDGE_HEADERS.requestId);
+    const canonical = bridgeTesting.canonicalIdentity({
+      userId,
+      username,
+      issuedAt,
+      requestId,
+      method: "POST",
+      pathname: "/api/internal/task12/verify-secret",
+    });
+    const expected = createHmac("sha256", BRIDGE_SECRET).update(canonical).digest("base64url");
+    assert.equal(request.headers.get(bridgeTesting.BRIDGE_HEADERS.signature), expected);
+    const body = await request.json();
+    return Response.json({
+      ok: true,
+      valid: userId === "task12-imported-stable-id"
+        && username === "task12-imported"
+        && body.secret === IMPORTED_SECRET,
     });
   }
   return Response.json({ ok: true });
@@ -99,7 +127,44 @@ async function insertAdmin(db) {
     password_iterations, role, registered_at, created_at, updated_at, source_updated_at
   ) VALUES (?1, 'wyj', 'wyj', ?2, 'pbkdf2_sha256', 310000,
     'super_admin', ?3, ?3, ?3, ?3)`)
-    .bind("task12-admin-stable-id", await hashSecret(ADMIN_SECRET), now).run();
+    .bind("task12-admin-stable-id", await hashSecret(ADMIN_SECRET, PASSWORD_PEPPER), now).run();
+}
+
+function legacyHashSecret(secret) {
+  const salt = randomBytes(16);
+  const digest = pbkdf2Sync(secret, salt, 310000, 32, "sha256");
+  return `pbkdf2_sha256$310000$${salt.toString("base64url")}$${digest.toString("base64url")}`;
+}
+
+function verifyCloudHashIndependently(secret, encoded, pepper) {
+  const [scheme, iterations, encodedSalt, encodedDigest] = String(encoded || "").split("$");
+  if (scheme !== "pbkdf2_sha256_cf_v1" || iterations !== "310000") return false;
+  const salt = Buffer.from(encodedSalt, "base64url");
+  let state = Buffer.from("wyj-task12-cloud-pbkdf2-v1", "utf8");
+  for (const [index, rounds] of [100000, 100000, 100000, 10000].entries()) {
+    state = pbkdf2Sync(
+      secret,
+      Buffer.concat([salt, Buffer.from([index]), state]),
+      rounds,
+      32,
+      "sha256",
+    );
+  }
+  const expected = createHmac("sha256", pepper)
+    .update(Buffer.concat([
+      Buffer.from("wyj-task12-password-verifier-v1", "utf8"),
+      salt,
+      state,
+    ]))
+    .digest("base64url");
+  return expected === encodedDigest;
+}
+
+function passwordOptions(legacySecret = "") {
+  return {
+    passwordPepper: PASSWORD_PEPPER,
+    verifyLegacy: async (row, secret) => Boolean(legacySecret) && row.username === "task12-imported" && secret === legacySecret,
+  };
 }
 
 function loginRequest() {
@@ -114,7 +179,6 @@ const mf = new Miniflare({
   modules: true,
   script: "export default { fetch() { return new Response('ok'); } }",
   compatibilityDate: "2026-08-06",
-  compatibilityFlags: ["nodejs_compat"],
   d1Databases: ["WYJ_DB"],
   d1Persist: runtime,
 });
@@ -133,13 +197,13 @@ try {
     await db.exec(sql.replace(/\r?\n/g, " "));
   }
   await insertAdmin(db);
-  const migrationAdminLogin = await loginAccount(db, "wyj", ADMIN_SECRET, loginRequest());
+  const migrationAdminLogin = await loginAccount(db, "wyj", ADMIN_SECRET, loginRequest(), passwordOptions());
   const importedAt = "2026-08-20T00:00:00Z";
   const importedRecord = {
     id: "task12-imported-stable-id",
     username: "task12-imported",
     username_normalized: "task12-imported",
-    password_hash: await hashSecret("Task12-Imported-Secret!"),
+    password_hash: legacyHashSecret(IMPORTED_SECRET),
     password_scheme: "pbkdf2_sha256",
     password_iterations: 310000,
     role: "user",
@@ -190,12 +254,73 @@ try {
     .bind(importedRecord.id).first();
   assert.equal(imported.id, importedRecord.id);
   assert.equal(imported.session_version, 4);
-  const importedLogin = await loginAccount(
-    db, "task12-imported", "Task12-Imported-Secret!", loginRequest(),
+
+  const raceUserId = "task12-login-race-id";
+  const raceSecret = "Task12-Race-Secret!";
+  const raceHash = legacyHashSecret(raceSecret);
+  await db.prepare(`INSERT INTO task12_users (
+    id, username, username_normalized, password_hash, password_scheme,
+    password_iterations, role, banned, permanent_ban, session_version,
+    registered_at, created_at, updated_at, source_updated_at
+  ) VALUES (?1, 'task12-login-race', 'task12-login-race', ?2, 'pbkdf2_sha256',
+    310000, 'user', 0, 0, 2, ?3, ?3, ?3, ?3)`)
+    .bind(raceUserId, raceHash, importedAt).run();
+  await assert.rejects(
+    () => loginAccount(db, "task12-login-race", raceSecret, loginRequest(), {
+      passwordPepper: PASSWORD_PEPPER,
+      verifyLegacy: async (row, candidate) => {
+        assert.equal(row.id, raceUserId);
+        assert.equal(candidate, raceSecret);
+        await db.prepare(`UPDATE task12_users SET banned = 1, permanent_ban = 1,
+          session_version = session_version + 1 WHERE id = ?1`).bind(raceUserId).run();
+        return true;
+      },
+    }),
+    (error) => {
+      assert.equal(error.code, "account_changed_during_login");
+      return true;
+    },
   );
+  const raceUser = await db.prepare(
+    "SELECT password_hash, banned, session_version FROM task12_users WHERE id = ?1",
+  ).bind(raceUserId).first();
+  assert.equal(raceUser.password_hash, raceHash);
+  assert.equal(raceUser.banned, 1);
+  assert.equal(raceUser.session_version, 3);
+  const raceSessions = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task12_sessions WHERE user_id = ?1",
+  ).bind(raceUserId).first();
+  assert.equal(Number(raceSessions.count), 0);
+  completed += 1;
+
+  const wrongImportedLogin = await accountRequest(db, "/api/login", {
+    method: "POST",
+    ip: "198.51.100.6",
+    body: { username: "task12-imported", secret: "Task12-Wrong-Imported-Secret!" },
+  });
+  assert.equal(wrongImportedLogin.response.status, 403);
+  assert.equal(wrongImportedLogin.payload.code, "invalid_credentials");
+  const notUpgraded = await db.prepare(
+    "SELECT password_hash, password_scheme FROM task12_users WHERE id = ?1",
+  ).bind(importedRecord.id).first();
+  assert.equal(notUpgraded.password_scheme, "pbkdf2_sha256");
+  assert.ok(notUpgraded.password_hash.startsWith("pbkdf2_sha256$310000$"));
+  const importedLoginResponse = await accountRequest(db, "/api/login", {
+    method: "POST",
+    ip: "198.51.100.8",
+    body: { username: "task12-imported", secret: IMPORTED_SECRET },
+  });
+  assert.equal(importedLoginResponse.response.status, 200, JSON.stringify(importedLoginResponse.payload));
+  const importedLogin = { session: importedLoginResponse.payload.session };
+  const upgradedImported = await db.prepare(
+    "SELECT password_hash, password_scheme FROM task12_users WHERE id = ?1",
+  ).bind(importedRecord.id).first();
+  assert.equal(upgradedImported.password_scheme, "pbkdf2_sha256");
+  assert.ok(upgradedImported.password_hash.startsWith("pbkdf2_sha256_cf_v1$310000$"));
+  assert.equal(legacyVerificationRequests, 2);
   const importedAccount = await resolveSession(db, importedLogin.session);
   await changeOwnSecret(
-    db, importedAccount, "Task12-Imported-Secret!", "Task12-Imported-New-Secret!",
+    db, importedAccount, IMPORTED_SECRET, "Task12-Imported-New-Secret!", passwordOptions(),
   );
   const staleImport = await accountRequest(db, "/api/admin/task12/import", {
     method: "POST",
@@ -204,10 +329,10 @@ try {
   });
   assert.equal(staleImport.payload.changed, 0);
   await assert.rejects(
-    () => loginAccount(db, "task12-imported", "Task12-Imported-Secret!", loginRequest()),
+    () => loginAccount(db, "task12-imported", IMPORTED_SECRET, loginRequest(), passwordOptions()),
   );
   assert.equal(
-    (await loginAccount(db, "task12-imported", "Task12-Imported-New-Secret!", loginRequest())).account.id,
+    (await loginAccount(db, "task12-imported", "Task12-Imported-New-Secret!", loginRequest(), passwordOptions())).account.id,
     importedRecord.id,
   );
   const resetRecord = {
@@ -234,6 +359,20 @@ try {
   assert.equal(resetLogin.payload.code, "password_reset_required");
   completed += 1;
 
+  const missingPepper = await accountRequest(db, "/api/register", {
+    method: "POST",
+    ip: "198.51.100.7",
+    env: { WYJ_TASK12_PASSWORD_PEPPER: "" },
+    body: {
+      username: "task12-no-pepper",
+      secret: USER_SECRET,
+      confirm_secret: USER_SECRET,
+    },
+  });
+  assert.equal(missingPepper.response.status, 503);
+  assert.equal(missingPepper.payload.code, "task12_password_pepper_not_configured");
+  completed += 1;
+
   const registered = await accountRequest(db, "/api/register", {
     method: "POST",
     ip: "198.51.100.10",
@@ -244,7 +383,18 @@ try {
   const storedUser = await db.prepare("SELECT * FROM task12_users WHERE id = ?1").bind(userId).first();
   assert.equal(storedUser.password_scheme, "pbkdf2_sha256");
   assert.equal(storedUser.password_iterations, 310000);
-  assert.ok(storedUser.password_hash.startsWith("pbkdf2_sha256$310000$"));
+  assert.ok(storedUser.password_hash.startsWith("pbkdf2_sha256_cf_v1$310000$"));
+  assert.equal(verifyCloudHashIndependently(USER_SECRET, storedUser.password_hash, PASSWORD_PEPPER), true);
+  assert.equal(verifyCloudHashIndependently("wrong-secret", storedUser.password_hash, PASSWORD_PEPPER), false);
+  await assert.rejects(
+    () => loginAccount(
+      db,
+      "task12-user",
+      USER_SECRET,
+      loginRequest(),
+      { ...passwordOptions(), passwordPepper: "different-task12-password-pepper-0123456789" },
+    ),
+  );
   completed += 1;
 
   const wrong = await accountRequest(db, "/api/login", {
@@ -283,14 +433,14 @@ try {
   assert.equal(sessionRow.client_kind, "webview");
   completed += 1;
 
-  const secondLogin = await loginAccount(db, "task12-user", USER_SECRET, loginRequest());
+  const secondLogin = await loginAccount(db, "task12-user", USER_SECRET, loginRequest(), passwordOptions());
   const account = await resolveSession(db, secondLogin.session);
   assert.equal(account.id, userId);
-  await changeOwnSecret(db, account, USER_SECRET, NEW_USER_SECRET);
+  await changeOwnSecret(db, account, USER_SECRET, NEW_USER_SECRET, passwordOptions());
   assert.equal(await resolveSession(db, firstToken), null);
   assert.equal(await resolveSession(db, secondLogin.session), null);
-  await assert.rejects(() => loginAccount(db, "task12-user", USER_SECRET, loginRequest()));
-  const changedLogin = await loginAccount(db, "task12-user", NEW_USER_SECRET, loginRequest());
+  await assert.rejects(() => loginAccount(db, "task12-user", USER_SECRET, loginRequest(), passwordOptions()));
+  const changedLogin = await loginAccount(db, "task12-user", NEW_USER_SECRET, loginRequest(), passwordOptions());
   assert.equal((await resolveSession(db, changedLogin.session)).id, userId);
   completed += 1;
 
@@ -298,18 +448,18 @@ try {
   const admin = await resolveSession(db, adminLogin.session);
   await adminSetBan(db, admin, userId, true);
   assert.equal(await resolveSession(db, changedLogin.session), null);
-  await assert.rejects(() => loginAccount(db, "task12-user", NEW_USER_SECRET, loginRequest()));
+  await assert.rejects(() => loginAccount(db, "task12-user", NEW_USER_SECRET, loginRequest(), passwordOptions()));
   await adminSetBan(db, admin, userId, false);
-  const afterUnban = await loginAccount(db, "task12-user", NEW_USER_SECRET, loginRequest());
+  const afterUnban = await loginAccount(db, "task12-user", NEW_USER_SECRET, loginRequest(), passwordOptions());
   await adminForceLogout(db, admin, userId);
   assert.equal(await resolveSession(db, afterUnban.session), null);
-  await adminResetSecret(db, admin, userId, USER_SECRET);
-  const afterReset = await loginAccount(db, "task12-user", USER_SECRET, loginRequest());
+  await adminResetSecret(db, admin, userId, USER_SECRET, passwordOptions());
+  const afterReset = await loginAccount(db, "task12-user", USER_SECRET, loginRequest(), passwordOptions());
   assert.equal((await resolveSession(db, afterReset.session)).id, userId);
   completed += 1;
 
   const concurrent = await Promise.all(
-    Array.from({ length: 13 }, () => loginAccount(db, "task12-user", USER_SECRET, loginRequest())),
+    Array.from({ length: 13 }, () => loginAccount(db, "task12-user", USER_SECRET, loginRequest(), passwordOptions())),
   );
   const resolvedConcurrent = await Promise.all(concurrent.map(({ session }) => resolveSession(db, session)));
   assert.equal(resolvedConcurrent.filter(Boolean).length, 12);
@@ -353,7 +503,7 @@ try {
   assert.equal(limitedRegister.payload.code, "account_rate_limited");
   completed += 1;
 
-  const ownershipLogin = await loginAccount(db, "task12-user", USER_SECRET, loginRequest());
+  const ownershipLogin = await loginAccount(db, "task12-user", USER_SECRET, loginRequest(), passwordOptions());
   const feedback = await requestHandler(handleTask11Request, db, "/api/feedback", {
     method: "POST",
     token: ownershipLogin.session,
@@ -410,10 +560,10 @@ try {
   }
   completed += 1;
 
-  const deleteLogin = await loginAccount(db, "task12-user", USER_SECRET, loginRequest());
+  const deleteLogin = await loginAccount(db, "task12-user", USER_SECRET, loginRequest(), passwordOptions());
   await adminDeleteUser(db, admin, userId);
   assert.equal(await resolveSession(db, deleteLogin.session), null);
-  await assert.rejects(() => loginAccount(db, "task12-user", USER_SECRET, loginRequest()));
+  await assert.rejects(() => loginAccount(db, "task12-user", USER_SECRET, loginRequest(), passwordOptions()));
   completed += 1;
 
   console.log(`Task 12 Miniflare/D1 checks passed: ${completed}`);

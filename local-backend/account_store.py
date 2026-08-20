@@ -1022,6 +1022,24 @@ class AccountStore:
         payload["deleted"] = 0
         return payload
 
+    def verify_legacy_secret(self, user_id, username, candidate):
+        """Verify one imported PBKDF2 secret without creating or changing legacy state."""
+        user_id = str(user_id or "").strip()
+        normalized = self.normalize_username(username)
+        if not user_id or len(user_id) > 80 or not normalized:
+            return False
+        with self.connect() as connection:
+            row = connection.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        if (
+            not row
+            or row["deleted"]
+            or row["banned"]
+            or row["username_normalized"] != normalized
+            or not secret_is_hashed(row["secret"])
+        ):
+            return False
+        return verify_secret(candidate, row["secret"])
+
     def get_user_by_name(self, username, include_deleted=False):
         normalized = self.normalize_username(username)
         with self.connect() as connection:

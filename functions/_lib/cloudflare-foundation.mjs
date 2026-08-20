@@ -1,4 +1,5 @@
 import { bridgeConfigured } from "./task12-bridge.mjs";
+import { passwordPepperConfigured } from "./task12-crypto.mjs";
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{8,80}$/;
 const SAFE_API_METHODS = new Set(["GET", "HEAD"]);
@@ -223,6 +224,7 @@ async function bindingHealth(env, flags) {
     schema_version: "",
     session_strategy: "invalidate_legacy_sessions",
     legacy_bridge_configured: bridgeConfigured(env),
+    password_pepper_configured: passwordPepperConfigured(env?.WYJ_TASK12_PASSWORD_PEPPER),
   };
   if (!bindings.d1) degraded.push("d1_binding_missing");
   if (!bindings.r2) degraded.push("r2_binding_missing");
@@ -265,6 +267,9 @@ async function bindingHealth(env, flags) {
   if (flags.task12CloudAccounts && !task12.legacy_bridge_configured) {
     degraded.push("task12_legacy_bridge_not_configured");
   }
+  if (flags.task12CloudAccounts && !task12.password_pepper_configured) {
+    degraded.push("task12_password_pepper_not_configured");
+  }
   return { bindings, degraded, task11, task12 };
 }
 
@@ -287,7 +292,7 @@ export async function cloudStatusResponse(context) {
     status: degraded.length ? "degraded" : "ok",
     service: "wyj-cloud-foundation",
     environment: String(context.env?.WYJ_ENVIRONMENT || "development"),
-    build: "2026-08-20-task12-accounts-preview",
+    build: "2026-08-21-task12-password-compat",
     time: new Date().toISOString(),
     auth: Boolean(flags.task12CloudAccounts && health.task12.schema_ready),
     backend_ready: Boolean(flags.task12CloudAccounts && health.task12.schema_ready),
@@ -305,6 +310,7 @@ export async function cloudStatusResponse(context) {
       task12_cloud_accounts: flags.task12CloudAccounts,
       task12_import: flags.task12Import,
       task12_legacy_bridge: health.task12.legacy_bridge_configured,
+      task12_password_pepper: health.task12.password_pepper_configured,
       workers_ai: flags.workersAi,
       legacy_api_fallback: flags.legacyFallback,
       payment_cloud_migration: false,

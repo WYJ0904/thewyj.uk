@@ -1,4 +1,5 @@
 import {
+  PASSWORD_HASH_PREFIX,
   PASSWORD_HASH_ITERATIONS,
   consumeVerificationWork,
   createSessionToken,
@@ -44,6 +45,40 @@ function expiryFrom(date = new Date()) {
 
 function isSuperAdmin(row) {
   return Boolean(row && row.role === "super_admin" && !row.deleted && !row.banned);
+}
+
+function passwordPepper(options = {}) {
+  return String(options.passwordPepper || "");
+}
+
+async function verifyRowSecret(row, secret, options = {}) {
+  const verified = await verifySecret(String(secret || ""), row?.password_hash, passwordPepper(options));
+  if (!verified.needsLegacyVerification) return verified;
+  if (typeof options.verifyLegacy !== "function") {
+    throw new Task12Error(
+      "旧账户登录密钥校验服务暂时不可用，请稍后重试",
+      503,
+      "legacy_password_verifier_unavailable",
+      true,
+    );
+  }
+  let valid;
+  try {
+    valid = Boolean(await options.verifyLegacy(row, String(secret || "")));
+  } catch (_) {
+    throw new Task12Error(
+      "旧账户登录密钥校验服务暂时不可用，请稍后重试",
+      503,
+      "legacy_password_verifier_unavailable",
+      true,
+    );
+  }
+  return {
+    valid,
+    needsUpgrade: valid,
+    needsLegacyVerification: false,
+    scheme: PASSWORD_HASH_PREFIX,
+  };
 }
 
 async function userById(db, userId) {
@@ -95,7 +130,7 @@ export async function recordLoginEvent(db, attemptedUsername, success, reason, d
   )`, [cutoff, LOGIN_AUDIT_MAX_RECORDS]);
 }
 
-export async function registerAccount(db, username, secret) {
+export async function registerAccount(db, username, secret, options = {}) {
   const cleanUsername = validateUsername(username);
   const cleanSecret = validateSecret(secret);
   const normalized = normalizeUsername(cleanUsername);
@@ -104,7 +139,7 @@ export async function registerAccount(db, username, secret) {
   const now = isoNow();
   const user = {
     id: crypto.randomUUID(), username: cleanUsername, username_normalized: normalized,
-    password_hash: await hashSecret(cleanSecret), role: "user", registered_at: now,
+    password_hash: await hashSecret(cleanSecret, passwordPepper(options)), role: "user", registered_at: now,
     created_at: now, updated_at: now,
   };
   try {
@@ -124,36 +159,64 @@ export async function registerAccount(db, username, secret) {
   return accountPayload(await userById(db, user.id));
 }
 
-export async function loginAccount(db, username, secret, request) {
+export async function loginAccount(db, username, secret, request, options = {}) {
   const usernameText = String(username || "").trim();
   const secretText = String(secret || "");
   const row = await userByName(db, usernameText);
   if (!row || row.deleted) {
-    await consumeVerificationWork(secretText);
+    await consumeVerificationWork(secretText, passwordPepper(options));
     throw new Task12Error("用户名或登录密钥错误", 403, "invalid_credentials");
   }
   if (row.banned) throw new Task12Error("账户已被封禁", 403, "account_banned");
-  if (row.password_scheme !== "pbkdf2_sha256" || !row.password_hash) {
-    await consumeVerificationWork(secretText);
+  if (row.password_scheme !== PASSWORD_HASH_PREFIX || !row.password_hash) {
+    await consumeVerificationWork(secretText, passwordPepper(options));
     throw new Task12Error("此账户需要先重置登录密钥", 403, "password_reset_required");
   }
-  const verified = await verifySecret(secretText, row.password_hash);
+  const verified = await verifyRowSecret(row, secretText, options);
   if (!verified.valid) throw new Task12Error("用户名或登录密钥错误", 403, "invalid_credentials");
   const now = isoNow();
   const token = createSessionToken();
   const digest = await sessionStorageKey(token);
-  const passwordHash = verified.needsUpgrade ? await hashSecret(secretText) : row.password_hash;
+  const originalHash = String(row.password_hash);
+  const originalSessionVersion = Number(row.session_version || 1);
+  const passwordHash = verified.needsUpgrade
+    ? await hashSecret(secretText, passwordPepper(options))
+    : row.password_hash;
   await requireDatabase(db).batch([
     db.prepare(`UPDATE task12_users SET last_login_at = ?2, updated_at = ?2,
-      source_updated_at = ?2, password_hash = ?3, password_iterations = ?4 WHERE id = ?1`)
-      .bind(row.id, now, passwordHash, verified.needsUpgrade ? PASSWORD_HASH_ITERATIONS : row.password_iterations),
+      source_updated_at = ?2, password_hash = ?3, password_iterations = ?4
+      WHERE id = ?1 AND password_hash = ?5 AND session_version = ?6
+        AND banned = 0 AND deleted = 0`)
+      .bind(
+        row.id, now, passwordHash,
+        verified.needsUpgrade ? PASSWORD_HASH_ITERATIONS : row.password_iterations,
+        originalHash, originalSessionVersion,
+      ),
     db.prepare(`DELETE FROM task12_sessions WHERE expires_at <= ?1 OR revoked = 1`).bind(now),
     db.prepare(`INSERT INTO task12_sessions (
       token_digest, user_id, session_version, created_at, last_seen_at, expires_at, client_kind
-    ) VALUES (?1, ?2, ?3, ?4, ?4, ?5, ?6)`).bind(
-      digest, row.id, Number(row.session_version || 1), now, expiryFrom(), clientKind(request),
+    ) SELECT ?1, ?2, ?3, ?4, ?4, ?5, ?6
+      WHERE EXISTS (
+        SELECT 1 FROM task12_users
+        WHERE id = ?2 AND password_hash = ?7 AND session_version = ?3
+          AND banned = 0 AND deleted = 0
+      )`).bind(
+      digest, row.id, originalSessionVersion, now, expiryFrom(), clientKind(request), passwordHash,
     ),
   ]);
+  const storedSession = await first(
+    db,
+    "SELECT token_digest FROM task12_sessions WHERE token_digest = ?1 AND user_id = ?2",
+    [digest, row.id],
+  );
+  if (!storedSession) {
+    throw new Task12Error(
+      "账户状态刚刚发生变化，请重新登录",
+      409,
+      "account_changed_during_login",
+      true,
+    );
+  }
   return { session: token, account: accountPayload(await userById(db, row.id)) };
 }
 
@@ -198,13 +261,13 @@ export async function logoutAllAccounts(db, account) {
   ]);
 }
 
-export async function changeOwnSecret(db, account, currentSecret, newSecret) {
+export async function changeOwnSecret(db, account, currentSecret, newSecret, options = {}) {
   const row = await userById(db, account.id);
   if (!row || row.deleted) throw new Task12Error("账户不存在", 404, "user_not_found");
   if (isSuperAdmin(row)) throw new Task12Error("固定管理员密钥不能在此修改", 403, "admin_protected");
-  const verified = await verifySecret(String(currentSecret || ""), row.password_hash);
+  const verified = await verifyRowSecret(row, currentSecret, options);
   if (!verified.valid) throw new Task12Error("当前登录密钥错误", 403, "invalid_secret");
-  const hash = await hashSecret(validateSecret(newSecret));
+  const hash = await hashSecret(validateSecret(newSecret), passwordPepper(options));
   const now = isoNow();
   const before = auditSnapshot(row);
   await requireDatabase(db).batch([
@@ -218,11 +281,11 @@ export async function changeOwnSecret(db, account, currentSecret, newSecret) {
   await accountAudit(db, row, "password_change", row, before, auditSnapshot(await userById(db, row.id)));
 }
 
-export async function deleteOwnAccount(db, account, secret) {
+export async function deleteOwnAccount(db, account, secret, options = {}) {
   const row = await userById(db, account.id);
   if (!row || row.deleted) throw new Task12Error("账户不存在", 404, "user_not_found");
   if (isSuperAdmin(row)) throw new Task12Error("固定管理员账户不能注销", 403, "admin_protected");
-  const verified = await verifySecret(String(secret || ""), row.password_hash);
+  const verified = await verifyRowSecret(row, secret, options);
   if (!verified.valid) throw new Task12Error("当前登录密钥错误", 403, "invalid_secret");
   const now = isoNow();
   const before = auditSnapshot(row);
@@ -274,11 +337,11 @@ async function requireAdminTarget(db, actor, userId) {
   return target;
 }
 
-export async function adminResetSecret(db, actor, userId, secret) {
+export async function adminResetSecret(db, actor, userId, secret, options = {}) {
   const target = await requireAdminTarget(db, actor, userId);
   const now = isoNow();
   const before = auditSnapshot(target);
-  const hash = await hashSecret(validateSecret(secret));
+  const hash = await hashSecret(validateSecret(secret), passwordPepper(options));
   await requireDatabase(db).batch([
     db.prepare(`UPDATE task12_users SET password_hash = ?2, password_scheme = 'pbkdf2_sha256',
       password_iterations = ?3, session_version = session_version + 1,
@@ -358,4 +421,7 @@ export async function accountCounts(db) {
   return { users, active, banned, deleted, admins, sessions, login_audit: audits, task11_orphaned_user_ids: orphaned };
 }
 
-export const __testing = { all, first, isSuperAdmin, requireDatabase, revokeSessions, run, userById, userByName };
+export const __testing = {
+  all, first, isSuperAdmin, passwordPepper, requireDatabase, revokeSessions,
+  run, userById, userByName, verifyRowSecret,
+};

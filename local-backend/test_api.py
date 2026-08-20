@@ -741,6 +741,57 @@ class AccountApiTests(unittest.TestCase):
             self.assertEqual(status, 409, blocked)
             self.assertEqual(blocked["code"], "cloud_account_primary")
 
+    def test_task12_secret_verifier_requires_signed_identity_and_rejects_plaintext(self):
+        username, account, _ = self.new_user()
+        bridge_secret = "task12-secret-verifier-bridge-0123456789"
+        path = "/api/internal/task12/verify-secret"
+        headers = cloud_identity_headers("POST", path, account["id"], username, bridge_secret)
+        with mock.patch.dict(
+            os.environ,
+            {"VOCAB_LEGACY_IDENTITY_BRIDGE_SECRET": bridge_secret},
+        ):
+            status, verified = self.request(
+                "POST", path, {"secret": "ABC1234"}, extra_headers=headers
+            )
+            self.assertEqual(status, 200, verified)
+            self.assertTrue(verified["valid"])
+            self.assertNotIn("ABC1234", json.dumps(verified))
+
+            status, rejected = self.request(
+                "POST", path, {"secret": "wrong-secret"}, extra_headers=headers
+            )
+            self.assertEqual(status, 200, rejected)
+            self.assertFalse(rejected["valid"])
+
+            status, unsigned = self.request("POST", path, {"secret": "ABC1234"})
+            self.assertEqual(status, 403, unsigned)
+            self.assertEqual(unsigned["code"], "identity_assertion_invalid")
+
+            tampered = dict(headers)
+            tampered["X-WYJ-Identity-Signature"] = "tampered"
+            status, invalid = self.request(
+                "POST", path, {"secret": "ABC1234"}, extra_headers=tampered
+            )
+            self.assertEqual(status, 403, invalid)
+
+            plaintext_username, plaintext_account, _ = self.new_user()
+            with server.ACCOUNT_STORE.connect() as connection:
+                connection.execute(
+                    "UPDATE users SET secret = ? WHERE id = ?",
+                    ("legacy-plaintext-must-not-verify", plaintext_account["id"]),
+                )
+            plaintext_headers = cloud_identity_headers(
+                "POST", path, plaintext_account["id"], plaintext_username, bridge_secret
+            )
+            status, plaintext = self.request(
+                "POST",
+                path,
+                {"secret": "legacy-plaintext-must-not-verify"},
+                extra_headers=plaintext_headers,
+            )
+            self.assertEqual(status, 200, plaintext)
+            self.assertFalse(plaintext["valid"])
+
     def test_ai_unavailable_is_retryable_service_unavailable(self):
         _, _, session = self.new_user()
         status, started = self.request(

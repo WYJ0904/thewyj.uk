@@ -2446,6 +2446,32 @@ class VocabHandler(BaseHTTPRequestHandler):
                 )
                 return
 
+            if request_path == "/api/internal/task12/verify-secret":
+                try:
+                    identity = verify_cloud_identity(self.headers, self.command, request_path)
+                    if not identity:
+                        raise CloudIdentityError("identity assertion is required")
+                except (CloudIdentityError, KeyError, TypeError, ValueError):
+                    json_response(
+                        self,
+                        HTTPStatus.FORBIDDEN,
+                        {"error": "身份校验失败", "code": "identity_assertion_invalid"},
+                    )
+                    return
+                payload = self.read_json()
+                if set(payload) != {"secret"}:
+                    json_response(
+                        self,
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "请求字段无效", "code": "invalid_fields"},
+                    )
+                    return
+                valid = ACCOUNT_STORE.verify_legacy_secret(
+                    identity["id"], identity["username"], payload.get("secret")
+                )
+                json_response(self, HTTPStatus.OK, {"ok": True, "valid": bool(valid)})
+                return
+
             if cloud_account_primary() and request_path in {"/api/register", "/api/login"}:
                 json_response(
                     self,
