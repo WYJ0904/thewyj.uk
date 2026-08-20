@@ -11,12 +11,16 @@
     "CLOUD_STATUS_MODE": "legacy",
     "CLOUD_READS_ENABLED": "false",
     "CLOUD_WRITES_ENABLED": "false",
+    "TASK11_CLOUD_READS_ENABLED": "false",
+    "TASK11_CLOUD_WRITES_ENABLED": "false",
     "WORKERS_AI_ENABLED": "false",
     "D1_RATE_LIMIT_ENABLED": "true",
     "CLOUD_RATE_LIMIT_REQUESTS": "120",
     "CLOUD_RATE_LIMIT_WINDOW_SECONDS": "60",
     "CLOUD_DEEP_HEALTH_CHECKS": "true",
-    "LEGACY_API_FALLBACK_ENABLED": "true"
+    "LEGACY_API_FALLBACK_ENABLED": "true",
+    "TASK11_IMPORT_ENABLED": "false",
+    "TASK11_PRODUCTION_IMPORT_ENABLED": "false"
   },
   "env": {
     "preview": {
@@ -27,12 +31,16 @@
         "CLOUD_STATUS_MODE": "legacy",
         "CLOUD_READS_ENABLED": "false",
         "CLOUD_WRITES_ENABLED": "false",
+        "TASK11_CLOUD_READS_ENABLED": "true",
+        "TASK11_CLOUD_WRITES_ENABLED": "true",
         "WORKERS_AI_ENABLED": "false",
         "D1_RATE_LIMIT_ENABLED": "true",
         "CLOUD_RATE_LIMIT_REQUESTS": "120",
         "CLOUD_RATE_LIMIT_WINDOW_SECONDS": "60",
         "CLOUD_DEEP_HEALTH_CHECKS": "true",
-        "LEGACY_API_FALLBACK_ENABLED": "true"
+        "LEGACY_API_FALLBACK_ENABLED": "true",
+        "TASK11_IMPORT_ENABLED": "true",
+        "TASK11_PRODUCTION_IMPORT_ENABLED": "false"
       },
       "d1_databases": [
         {
@@ -61,12 +69,16 @@
         "CLOUD_STATUS_MODE": "legacy",
         "CLOUD_READS_ENABLED": "false",
         "CLOUD_WRITES_ENABLED": "false",
+        "TASK11_CLOUD_READS_ENABLED": "false",
+        "TASK11_CLOUD_WRITES_ENABLED": "false",
         "WORKERS_AI_ENABLED": "false",
         "D1_RATE_LIMIT_ENABLED": "true",
         "CLOUD_RATE_LIMIT_REQUESTS": "120",
         "CLOUD_RATE_LIMIT_WINDOW_SECONDS": "60",
         "CLOUD_DEEP_HEALTH_CHECKS": "true",
-        "LEGACY_API_FALLBACK_ENABLED": "true"
+        "LEGACY_API_FALLBACK_ENABLED": "true",
+        "TASK11_IMPORT_ENABLED": "false",
+        "TASK11_PRODUCTION_IMPORT_ENABLED": "false"
       },
       "d1_databases": [
         {

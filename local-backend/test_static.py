@@ -102,17 +102,17 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260811-tool-workflows"
+        release_token = "20260820-task11-cloud-migration"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
-        self.assertIn('export const APP_VERSION = "2026-08-11-tool-workflows"', self.core)
+        self.assertIn('export const APP_VERSION = "2026-08-20-task11-cloud-migration"', self.core)
         for module in ("api", "config", "router", "session", "storage", "ui"):
             self.assertIn(f'/js/core/{module}.js', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20260811-tool-workflows"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20260820-task11-cloud-migration"', self.html)
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
-        self.assertIn('APP_BUILD = "2026-08-11-tool-workflows"', server)
+        self.assertIn('APP_BUILD = "2026-08-20-task11-cloud-migration"', server)
         self.assertIn('"/trial", "/changelog"', server)
         self.assertEqual((ROOT / "_redirects").read_text(encoding="utf-8").strip(), "/* /index.html 200")
 
@@ -139,7 +139,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("globalThis.WYJ_CHANGELOG", self.changelog)
         for field in ("version", "build", "date", "features", "improvements", "fixes", "security"):
             self.assertRegex(self.changelog, rf"\b{field}:\s*")
-        self.assertIn("2026-08-11-tool-workflows", self.changelog)
+        self.assertIn("2026-08-20-task11-cloud-migration", self.changelog)
         self.assertIn("function renderChangelog()", self.app)
         self.assertIn("function maybeShowVersionNotice()", self.app)
         self.assertIn("function submitFeedback(", self.app)
@@ -293,7 +293,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("const matrix = new Uint16Array(cells)", self.tools_bundle)
 
     def test_temporary_file_limit_is_consistent_across_the_full_request_chain(self):
-        proxy = (ROOT / "functions" / "api" / "[[path]].js").read_text(encoding="utf-8")
+        proxy = (ROOT / "functions" / "_lib" / "legacy-api.mjs").read_text(encoding="utf-8")
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
         store = (ROOT / "local-backend" / "temporary_store.py").read_text(encoding="utf-8")
         self.assertIn("const TEMP_FILE_MAX_BYTES = 20 * 1024 * 1024", self.tools)
@@ -492,6 +492,16 @@ class StaticSiteTests(unittest.TestCase):
             self.assertEqual(settings["vars"]["CLOUD_WRITES_ENABLED"], "false")
             self.assertEqual(settings["vars"]["WORKERS_AI_ENABLED"], "false")
 
+        self.assertEqual(config["vars"]["TASK11_CLOUD_READS_ENABLED"], "false")
+        self.assertEqual(config["vars"]["TASK11_CLOUD_WRITES_ENABLED"], "false")
+        self.assertEqual(config["vars"]["TASK11_IMPORT_ENABLED"], "false")
+        self.assertEqual(config["env"]["preview"]["vars"]["TASK11_CLOUD_READS_ENABLED"], "true")
+        self.assertEqual(config["env"]["preview"]["vars"]["TASK11_CLOUD_WRITES_ENABLED"], "true")
+        self.assertEqual(config["env"]["preview"]["vars"]["TASK11_IMPORT_ENABLED"], "true")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK11_CLOUD_READS_ENABLED"], "false")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK11_CLOUD_WRITES_ENABLED"], "false")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK11_IMPORT_ENABLED"], "false")
+
         preview = config["env"]["preview"]
         self.assertEqual(preview["d1_databases"][0]["binding"], "WYJ_DB")
         self.assertEqual(preview["d1_databases"][0]["database_name"], "wyj-cloud-preview")
@@ -537,6 +547,26 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("INSERT OR IGNORE", migration)
         self.assertNotRegex(migration, r"\b(?:DROP|DELETE\s+FROM\s+users|ALTER\s+TABLE\s+users)\b")
 
+        task11_migration = (
+            ROOT / "cloudflare" / "migrations" / "0002_low_risk_cloud_services.sql"
+        ).read_text(encoding="utf-8")
+        for table in (
+            "task11_changelog_entries",
+            "task11_feedback_items",
+            "task11_feedback_votes",
+            "task11_feedback_audit_logs",
+            "task11_learning_sync_records",
+            "task11_learning_sync_heads",
+            "task11_learning_sync_changes",
+            "task11_usage_buckets",
+        ):
+            self.assertIn(f"CREATE TABLE IF NOT EXISTS {table}", task11_migration)
+        self.assertNotRegex(
+            task11_migration,
+            r"CREATE TABLE IF NOT EXISTS\s+(?:users|sessions|memberships|payment_requests)\b",
+        )
+        self.assertNotRegex(task11_migration, r"\b(?:DROP|ALTER\s+TABLE\s+users)\b")
+
         middleware = (ROOT / "functions" / "_lib" / "cloudflare-foundation.mjs").read_text(encoding="utf-8")
         status = (ROOT / "functions" / "api" / "status.js").read_text(encoding="utf-8")
         self.assertIn("crypto.randomUUID()", middleware)
@@ -545,7 +575,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("function apiError", middleware)
         self.assertIn("function enforceCloudRateLimit", middleware)
         self.assertIn("payment_cloud_migration: false", middleware)
-        self.assertIn("statusRouteResponse(context, legacyProxy)", status)
+        self.assertIn("statusRouteResponse(context, proxyToLegacy)", status)
         self.assertIn('statusSourceFor(context.request, context.env) !== "cloud"', middleware)
         self.assertIn("return legacyProxy(context);", middleware)
 
@@ -576,9 +606,11 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("Promise.allSettled(", self.worker)
         self.assertNotIn("cache.addAll(CORE_SHELL)", self.worker)
         proxy = (ROOT / "functions" / "api" / "[[path]].js").read_text(encoding="utf-8")
-        self.assertIn("function upstreamTimeoutFor", proxy)
-        self.assertIn("function retryDelayWithJitter", proxy)
-        self.assertIn("bases.slice(0, 1)", proxy)
+        legacy_proxy = (ROOT / "functions" / "_lib" / "legacy-api.mjs").read_text(encoding="utf-8")
+        self.assertIn("handleTask11Request(context, proxyToLegacy)", proxy)
+        self.assertIn("function upstreamTimeoutFor", legacy_proxy)
+        self.assertIn("function retryDelayWithJitter", legacy_proxy)
+        self.assertIn("bases.slice(0, 1)", legacy_proxy)
         self.assertNotIn("bases.flatMap", proxy)
         launcher = (ROOT / "desktop-tools" / "start-wyj.ps1").read_text(encoding="utf-8-sig")
         startup = launcher[launcher.index("        $sourceChanged = Sync-BackendSource"):]
@@ -654,7 +686,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertLess(local_position, remote_position)
 
     def test_login_audit_and_proxy_context_do_not_leak_credentials_or_backend_details(self):
-        proxy = (ROOT / "functions" / "api" / "[[path]].js").read_text(encoding="utf-8")
+        proxy = (ROOT / "functions" / "_lib" / "legacy-api.mjs").read_text(encoding="utf-8")
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
         self.assertIn('id="adminLoginView"', self.html)
         self.assertIn('id="adminLoginList"', self.html)

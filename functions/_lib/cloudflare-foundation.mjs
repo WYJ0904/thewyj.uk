@@ -23,10 +23,14 @@ function integerValue(value, fallback, minimum, maximum) {
 
 export function featureFlags(env = {}) {
   const requestedMode = String(env.CLOUD_STATUS_MODE || "legacy").trim().toLowerCase();
+  const cloudReads = booleanValue(env.CLOUD_READS_ENABLED, false);
+  const cloudWrites = booleanValue(env.CLOUD_WRITES_ENABLED, false);
   return {
     cloudFoundation: booleanValue(env.CLOUD_FOUNDATION_ENABLED, false),
-    cloudReads: booleanValue(env.CLOUD_READS_ENABLED, false),
-    cloudWrites: booleanValue(env.CLOUD_WRITES_ENABLED, false),
+    cloudReads,
+    cloudWrites,
+    task11CloudReads: booleanValue(env.TASK11_CLOUD_READS_ENABLED, cloudReads),
+    task11CloudWrites: booleanValue(env.TASK11_CLOUD_WRITES_ENABLED, cloudWrites),
     legacyFallback: booleanValue(env.LEGACY_API_FALLBACK_ENABLED, true),
     workersAi: booleanValue(env.WORKERS_AI_ENABLED, false),
     d1RateLimit: booleanValue(env.D1_RATE_LIMIT_ENABLED, true),
@@ -108,7 +112,7 @@ export function withSecurityHeaders(response, requestId, isApi = false) {
   const headers = new Headers(response.headers);
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) headers.set(name, value);
   headers.set("X-Request-ID", requestId);
-  if (isApi) headers.set("Cache-Control", "no-store");
+  if (isApi && !headers.has("Cache-Control")) headers.set("Cache-Control", "no-store");
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -129,22 +133,28 @@ async function sha256Hex(value) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-export async function enforceCloudRateLimit(context, flags = featureFlags(context.env)) {
-  if (!flags.d1RateLimit) return { allowed: true, enabled: false, degraded: false };
+export async function enforceD1RateLimit(context, options = {}) {
+  const enabled = options.enabled !== false;
+  if (!enabled) return { allowed: true, enabled: false, degraded: false };
   if (!context.env?.WYJ_DB?.prepare) {
     return { allowed: true, enabled: true, degraded: true, reason: "binding_unavailable" };
   }
 
   const now = Math.floor(Date.now() / 1000);
-  const windowStart = Math.floor(now / flags.rateWindowSeconds) * flags.rateWindowSeconds;
-  const expiresAt = windowStart + flags.rateWindowSeconds;
+  const windowSeconds = integerValue(options.windowSeconds, DEFAULT_RATE_WINDOW_SECONDS, 10, 3600);
+  const limit = integerValue(options.limit, DEFAULT_RATE_LIMIT, 1, 1000);
+  const windowStart = Math.floor(now / windowSeconds) * windowSeconds;
+  const expiresAt = windowStart + windowSeconds;
   const url = new URL(context.request.url);
-  const clientHint = String(
+  const defaultSubject = String(
     context.request.headers.get("CF-Connecting-IP")
       || context.request.headers.get("X-Forwarded-For")?.split(",")[0]
       || "anonymous",
   ).trim();
-  const keyHash = await sha256Hex(`${url.pathname}\u0000${clientHint}\u0000${windowStart}`);
+  const subject = String(options.subject || defaultSubject).slice(0, 160);
+  const scope = String(options.scope || url.pathname).slice(0, 120);
+  const route = `${url.pathname}:${scope}`.slice(0, 160);
+  const keyHash = await sha256Hex(`${scope}\u0000${subject}\u0000${windowStart}`);
 
   try {
     const row = await context.env.WYJ_DB.prepare(
@@ -156,7 +166,7 @@ export async function enforceCloudRateLimit(context, flags = featureFlags(contex
          expires_at = excluded.expires_at
        WHERE cloud_rate_limit_windows.request_count <= ?5
        RETURNING request_count, expires_at`,
-    ).bind(keyHash, url.pathname, windowStart, expiresAt, flags.rateLimit).first();
+      ).bind(keyHash, route, windowStart, expiresAt, limit).first();
 
     // Deterministic sampling keeps stale rows bounded without doubling D1 writes on every request.
     if (keyHash.endsWith("00") || keyHash.endsWith("01")) {
@@ -167,13 +177,13 @@ export async function enforceCloudRateLimit(context, flags = featureFlags(contex
       else await cleanup;
     }
 
-    const count = row ? Number(row.request_count || 1) : flags.rateLimit + 1;
+    const count = row ? Number(row.request_count || 1) : limit + 1;
     return {
-      allowed: count <= flags.rateLimit,
+      allowed: count <= limit,
       enabled: true,
       degraded: false,
       count,
-      limit: flags.rateLimit,
+      limit,
       retryAfter: Math.max(1, expiresAt - now),
     };
   } catch (error) {
@@ -186,6 +196,15 @@ export async function enforceCloudRateLimit(context, flags = featureFlags(contex
   }
 }
 
+export async function enforceCloudRateLimit(context, flags = featureFlags(context.env)) {
+  return enforceD1RateLimit(context, {
+    enabled: flags.d1RateLimit,
+    limit: flags.rateLimit,
+    windowSeconds: flags.rateWindowSeconds,
+    scope: new URL(context.request.url).pathname,
+  });
+}
+
 async function bindingHealth(env, flags) {
   const bindings = {
     d1: Boolean(env?.WYJ_DB?.prepare),
@@ -193,6 +212,7 @@ async function bindingHealth(env, flags) {
     workers_ai: Boolean(env?.AI),
   };
   const degraded = [];
+  const task11 = { schema_ready: false, schema_version: "" };
   if (!bindings.d1) degraded.push("d1_binding_missing");
   if (!bindings.r2) degraded.push("r2_binding_missing");
   if (flags.workersAi && !bindings.workers_ai) degraded.push("workers_ai_binding_missing");
@@ -206,8 +226,22 @@ async function bindingHealth(env, flags) {
     } catch (error) {
       degraded.push(`d1_${classifyCloudError(error)}`);
     }
+    try {
+      const row = await env.WYJ_DB.prepare(
+        "SELECT value FROM task11_metadata WHERE key = ?1",
+      ).bind("schema_version").first();
+      task11.schema_version = String(row?.value || "");
+      task11.schema_ready = task11.schema_version === "1";
+      if (!task11.schema_ready && (flags.task11CloudReads || flags.task11CloudWrites)) {
+        degraded.push("task11_schema_not_ready");
+      }
+    } catch (error) {
+      if (flags.task11CloudReads || flags.task11CloudWrites) {
+        degraded.push(`task11_${classifyCloudError(error)}`);
+      }
+    }
   }
-  return { bindings, degraded };
+  return { bindings, degraded, task11 };
 }
 
 export async function cloudStatusResponse(context) {
@@ -236,10 +270,13 @@ export async function cloudStatusResponse(context) {
     ai_ready: false,
     model: "Cloudflare foundation",
     bindings: health.bindings,
+    task11: health.task11,
     features: {
       cloud_foundation: flags.cloudFoundation,
       cloud_reads: flags.cloudReads,
       cloud_writes: flags.cloudWrites,
+      task11_cloud_reads: flags.task11CloudReads,
+      task11_cloud_writes: flags.task11CloudWrites,
       workers_ai: flags.workersAi,
       legacy_api_fallback: flags.legacyFallback,
       payment_cloud_migration: false,

@@ -1,6 +1,16 @@
 (() => {
   const entries = [
     {
+      version: "2026.08.20",
+      build: "2026-08-20-task11-cloud-migration",
+      date: "2026-08-20",
+      title: "低风险服务 Cloudflare 迁移",
+      features: ["为更新日志、反馈、功能投票和学习同步增加 D1 云端实现与渐进开关。"],
+      improvements: ["保留本地优先学习流程，并通过旧账户鉴权桥维持稳定用户 ID 和现有 API 契约。"],
+      fixes: ["并发同步改为版本化冲突重试，避免两台设备同时写入时丢失合并结果。"],
+      security: ["D1 不保存账户、密码、会话、会员、支付或原始工具内容；统计只保存聚合白名单字段。"],
+    },
+    {
       version: "2026.08.11.3",
       build: "2026-08-11-tool-workflows",
       date: "2026-08-11",
