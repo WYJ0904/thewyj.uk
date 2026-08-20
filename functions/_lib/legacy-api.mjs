@@ -1,3 +1,7 @@
+import { featureFlags } from "./cloudflare-foundation.mjs";
+import { resolveTask12Account } from "./task12-auth.mjs";
+import { addLegacyIdentityHeaders, bridgeConfigured } from "./task12-bridge.mjs";
+
 const HOP_BY_HOP_HEADERS = new Set([
   "connection", "content-length", "expect", "host", "keep-alive",
   "proxy-authenticate", "proxy-authorization", "te", "trailer",
@@ -18,6 +22,11 @@ const CLIENT_CONTEXT_HEADERS = new Set([
   "x-wyj-proxy", "x-wyj-client-ip", "x-wyj-client-country",
   "x-wyj-client-region", "x-wyj-client-city",
 ]);
+
+function privateProxyHeader(name) {
+  const normalized = String(name || "").toLowerCase();
+  return CLIENT_CONTEXT_HEADERS.has(normalized) || normalized.startsWith("x-wyj-identity-");
+}
 
 function json(data, status = 200, requestId = "") {
   const payload = requestId && !data.request_id ? { ...data, request_id: requestId } : data;
@@ -88,7 +97,7 @@ function requestHeadersFor(request, requestContext = {}, requestId = "") {
   const headers = new Headers();
   request.headers.forEach((value, key) => {
     const normalized = key.toLowerCase();
-    if (!HOP_BY_HOP_HEADERS.has(normalized) && !CLIENT_CONTEXT_HEADERS.has(normalized)) {
+    if (!HOP_BY_HOP_HEADERS.has(normalized) && !privateProxyHeader(normalized)) {
       headers.set(key, value);
     }
   });
@@ -208,7 +217,33 @@ export async function resolveLegacyAccount(context) {
 
 export async function proxyToLegacy(context) {
   const { env, request } = context;
-  const requestId = context.data?.requestId || "";
+  const requestId = context.data?.requestId || crypto.randomUUID();
+  const flags = featureFlags(env);
+  let cloudIdentity = null;
+  if (flags.task12CloudAccounts && String(request.headers.get("X-Session-Token") || "").trim()) {
+    if (!bridgeConfigured(env)) {
+      return json({
+        ok: false,
+        error: "云端账户已启用，但旧业务身份桥尚未配置。",
+        code: "task12_legacy_bridge_not_configured",
+        retryable: false,
+      }, 503, requestId);
+    }
+    try {
+      const result = await resolveTask12Account(context);
+      if (!result.authenticated) {
+        return json({ ok: false, error: "请先登录", code: result.code || "authentication_required" }, result.status || 401, requestId);
+      }
+      cloudIdentity = result.account;
+    } catch (_) {
+      return json({
+        ok: false,
+        error: "云端账户服务暂时不可用，请稍后重试。",
+        code: "task12_account_unavailable",
+        retryable: true,
+      }, 503, requestId);
+    }
+  }
   let bases;
   try {
     bases = configuredBases(env);
@@ -256,9 +291,13 @@ export async function proxyToLegacy(context) {
     for (let baseIndex = 0; baseIndex < candidateBases.length; baseIndex += 1) {
       const base = candidateBases[baseIndex];
       const target = targetUrlFor(request, base);
+      const headers = requestHeadersFor(request, request.cf || context.cf || {}, requestId);
+      if (cloudIdentity) {
+        await addLegacyIdentityHeaders(headers, request, cloudIdentity, env, requestId);
+      }
       const init = {
         method: request.method,
-        headers: requestHeadersFor(request, request.cf || context.cf || {}, requestId),
+        headers,
         redirect: "manual",
       };
       if (body) init.body = body;
@@ -291,6 +330,8 @@ export const __testing = {
   configuredBases,
   fetchWithTimeout,
   legacyAuthHeadersFor,
+  privateProxyHeader,
+  requestHeadersFor,
   retryDelayWithJitter,
   targetUrlFor,
   upstreamTimeoutFor,

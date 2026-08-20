@@ -9,6 +9,8 @@ import {
   LegacyAuthDependencyError,
   resolveLegacyAccount,
 } from "./legacy-api.mjs";
+import { resolveTask12Account } from "./task12-auth.mjs";
+import { Task12Error } from "./task12-model.mjs";
 import { Task11Error } from "./task11-model.mjs";
 import { importTask11Batch, task11ImportCounts } from "./task11-import.mjs";
 import {
@@ -92,14 +94,19 @@ function authenticationError(result, context) {
   return apiError("account_unavailable", "账户不可用", result.status || 403, requestId(context));
 }
 
-async function authenticate(context, requirement) {
+async function authenticate(context, requirement, flags) {
   if (requirement === "public") return null;
   let result;
   try {
-    result = await resolveLegacyAccount(context);
+    result = flags.task12CloudAccounts
+      ? await resolveTask12Account(context)
+      : await resolveLegacyAccount(context);
   } catch (error) {
     if (error instanceof LegacyAuthDependencyError) {
       throw new Task11Error(error.message, 503, error.code, true);
+    }
+    if (error instanceof Task12Error) {
+      throw new Task11Error(error.message, error.status, error.code, error.retryable);
     }
     throw error;
   }
@@ -274,7 +281,7 @@ export async function handleTask11Request(context, legacyProxy) {
   }
 
   try {
-    const account = await authenticate(context, descriptor.auth);
+    const account = await authenticate(context, descriptor.auth, flags);
     if (account instanceof Response) return account;
     const rate = await enforceD1RateLimit(context, {
       enabled: flags.d1RateLimit,

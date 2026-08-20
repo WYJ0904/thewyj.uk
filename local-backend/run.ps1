@@ -92,7 +92,25 @@ if (-not $settings.PSObject.Properties["share_hmac_key"] -or -not [string]$setti
     [System.IO.File]::WriteAllText($SettingsPath, $json, (New-Object System.Text.UTF8Encoding($false)))
 }
 
+if (-not $settings.PSObject.Properties["legacy_identity_bridge_key"] -or -not [string]$settings.legacy_identity_bridge_key) {
+    $bytes = New-Object byte[] 32
+    $generator = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $generator.GetBytes($bytes)
+    } finally {
+        $generator.Dispose()
+    }
+    $key = [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+    $settings | Add-Member -NotePropertyName "legacy_identity_bridge_key" -NotePropertyValue $key -Force
+    $json = $settings | ConvertTo-Json -Depth 8
+    [System.IO.File]::WriteAllText($SettingsPath, $json, (New-Object System.Text.UTF8Encoding($false)))
+}
+
 $env:VOCAB_SHARE_HMAC_KEY = [string]$settings.share_hmac_key
+$env:VOCAB_LEGACY_IDENTITY_BRIDGE_SECRET = [string]$settings.legacy_identity_bridge_key
+$env:VOCAB_CLOUD_ACCOUNT_PRIMARY = if (
+    $settings.PSObject.Properties["cloud_account_primary"] -and [bool]$settings.cloud_account_primary
+) { "true" } else { "false" }
 if (-not $env:VOCAB_ADMIN_SECRET -and $settings.PSObject.Properties["access_token"] -and [string]$settings.access_token) {
     # Existing databases keep their administrator password. This fallback is
     # used only for a new database without an explicit bootstrap secret.

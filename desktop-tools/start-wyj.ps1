@@ -213,6 +213,7 @@ function Write-LauncherErrorReport {
     foreach ($relativePath in @(
         "server.py",
         "account_store.py",
+        "cloud_identity.py",
         "membership.py",
         "payment_assets.py",
         "temporary_store.py",
@@ -1312,6 +1313,7 @@ function Test-SourceLayout {
     $required = @(
         "server.py",
         "account_store.py",
+        "cloud_identity.py",
         "membership.py",
         "payment_assets.py",
         "temporary_store.py",

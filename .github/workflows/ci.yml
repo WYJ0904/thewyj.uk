@@ -67,6 +67,11 @@ jobs:
           set -euo pipefail
           python -m unittest scripts.test_migrate_task11_to_d1 -v 2>&1 | tee artifacts/task11-migration-tool.log
 
+      - name: Test Task 12 migration tooling
+        run: |
+          set -euo pipefail
+          python -m unittest scripts.test_migrate_task12_accounts_to_d1 -v 2>&1 | tee artifacts/task12-migration-tool.log
+
       - name: Upload Python reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -135,6 +140,7 @@ jobs:
             node --check local-backend/test_task11_model_js.mjs
             node --check local-backend/test_task11_api_js.mjs
             node --check local-backend/test_task11_d1_js.mjs
+            node --check local-backend/test_task12_d1_js.mjs
             node --check local-backend/test_app_browser.mjs
             node --check local-backend/test_tools_browser.mjs
             node --check local-backend/test_module_graph_js.mjs
@@ -206,6 +212,11 @@ jobs:
           node local-backend/test_task11_model_js.mjs 2>&1 | tee artifacts/task11-model.log
           node local-backend/test_task11_api_js.mjs 2>&1 | tee artifacts/task11-routing.log
           node local-backend/test_task11_d1_js.mjs 2>&1 | tee artifacts/task11-cloud-integration.log
+
+      - name: Test Task 12 account, session and identity integration
+        run: |
+          set -euo pipefail
+          node local-backend/test_task12_d1_js.mjs 2>&1 | tee artifacts/task12-cloud-integration.log
 
       - name: Check HTML, PWA and tool catalog
         run: |

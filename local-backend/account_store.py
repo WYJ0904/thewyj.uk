@@ -982,6 +982,46 @@ class AccountStore:
             return None
         return self._expire_if_needed(row)
 
+    def resolve_cloud_identity_user(self, user_id, username):
+        """Resolve a D1-authenticated identity without creating a legacy session."""
+        user_id = str(user_id or "").strip()
+        username = self.validate_username(username)
+        normalized = self.normalize_username(username)
+        if not user_id or len(user_id) > 80:
+            raise AccountError("云端账户身份无效", 403, "cloud_identity_invalid")
+        created = False
+        with self.lock, self.connect() as connection:
+            row = connection.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+            by_name = connection.execute(
+                "SELECT id FROM users WHERE username_normalized = ?", (normalized,)
+            ).fetchone()
+            if row and row["username_normalized"] != normalized:
+                raise AccountError("云端账户身份映射冲突", 409, "cloud_identity_conflict")
+            if by_name and by_name["id"] != user_id:
+                raise AccountError("云端账户用户名映射冲突", 409, "cloud_identity_conflict")
+            if not row:
+                now = iso_now()
+                disabled_secret = hash_secret(secrets.token_urlsafe(48))
+                connection.execute(
+                    """
+                    INSERT INTO users (
+                        id, username, username_normalized, secret, role, membership,
+                        registered_at, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, 'user', 'free', ?, ?, ?)
+                    """,
+                    (user_id, username, normalized, disabled_secret, now, now, now),
+                )
+                row = connection.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+                created = True
+        if created:
+            self._sync_after_write()
+        # D1 already checked ban/deletion/session_version before signing the assertion.
+        # A mapping copy avoids stale legacy account-state flags overriding that decision.
+        payload = dict(row)
+        payload["banned"] = 0
+        payload["deleted"] = 0
+        return payload
+
     def get_user_by_name(self, username, include_deleted=False):
         normalized = self.normalize_username(username)
         with self.connect() as connection:
