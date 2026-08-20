@@ -1,3 +1,5 @@
+import { pbkdf2Sync, timingSafeEqual } from "node:crypto";
+
 export const PASSWORD_HASH_PREFIX = "pbkdf2_sha256";
 export const PASSWORD_HASH_ITERATIONS = 310_000;
 export const SESSION_TOKEN_PREFIX = "sha256";
@@ -22,12 +24,7 @@ function constantTimeEqual(left, right) {
   if (!(left instanceof Uint8Array) || !(right instanceof Uint8Array) || left.length !== right.length) {
     return false;
   }
-  if (typeof crypto.subtle.timingSafeEqual === "function") {
-    return crypto.subtle.timingSafeEqual(left, right);
-  }
-  let difference = 0;
-  for (let index = 0; index < left.length; index += 1) difference |= left[index] ^ right[index];
-  return difference === 0;
+  return timingSafeEqual(left, right);
 }
 
 export function parsePasswordHash(encoded) {
@@ -48,19 +45,10 @@ export function parsePasswordHash(encoded) {
 }
 
 async function deriveSecret(secret, salt, iterations) {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(String(secret || "")),
-    "PBKDF2",
-    false,
-    ["deriveBits"],
-  );
-  const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: "SHA-256", salt, iterations },
-    key,
-    256,
-  );
-  return new Uint8Array(bits);
+  // workerd's Web Crypto PBKDF2 path rejects the existing 310,000-iteration
+  // account format. The supported Node crypto implementation preserves the
+  // exact PBKDF2-SHA256 digest without weakening historical hashes.
+  return new Uint8Array(pbkdf2Sync(String(secret || ""), salt, iterations, 32, "sha256"));
 }
 
 export async function hashSecret(secret, iterations = PASSWORD_HASH_ITERATIONS) {

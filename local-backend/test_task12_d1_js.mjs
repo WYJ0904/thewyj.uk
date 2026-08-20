@@ -114,6 +114,7 @@ const mf = new Miniflare({
   modules: true,
   script: "export default { fetch() { return new Response('ok'); } }",
   compatibilityDate: "2026-08-06",
+  compatibilityFlags: ["nodejs_compat"],
   d1Databases: ["WYJ_DB"],
   d1Persist: runtime,
 });

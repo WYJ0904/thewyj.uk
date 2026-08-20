@@ -479,7 +479,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertEqual(config["name"], "thewyj-uk")
         self.assertEqual(config["pages_build_output_dir"], ".")
         self.assertEqual(config["compatibility_date"], "2026-08-06")
-        self.assertNotIn("compatibility_flags", config)
+        self.assertEqual(config.get("compatibility_flags"), ["nodejs_compat"])
         self.assertNotIn("account_id", config)
         self.assertNotIn("d1_databases", config)
         self.assertNotIn("r2_buckets", config)
