@@ -1,13 +1,10 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const SOURCE_PATH = path.join(HERE, "..", "functions", "api", "[[path]].js");
-const source = fs.readFileSync(SOURCE_PATH, "utf8");
-const moduleUrl = `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
-const { onRequest, __testing } = await import(moduleUrl);
+const SOURCE_PATH = path.join(HERE, "..", "functions", "_lib", "legacy-api.mjs");
+const { proxyToLegacy: onRequest, __testing } = await import(pathToFileURL(SOURCE_PATH));
 
 async function withMockFetch(mock, action) {
   const original = globalThis.fetch;

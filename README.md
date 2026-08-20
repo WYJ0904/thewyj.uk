@@ -321,12 +321,15 @@ Pages Functions：
 | `LOCAL_API_FALLBACK` | 可选的第二后端地址 |
 | `CLOUD_FOUNDATION_ENABLED` | 是否允许显式访问新的云端基础状态接口；生产默认 `true` |
 | `CLOUD_STATUS_MODE` | `/api/status` 的默认来源；保持 `legacy` 可继续验证本地后端与 Tunnel，设为 `cloud` 才切换到云状态 |
-| `CLOUD_READS_ENABLED` / `CLOUD_WRITES_ENABLED` | 后续云端读写迁移开关；本任务均为 `false`，支付不会迁移 |
+| `CLOUD_READS_ENABLED` / `CLOUD_WRITES_ENABLED` | 全局云端读写总开关；Task 11 仍保持 `false`，支付和其他高风险业务不会迁移 |
+| `TASK11_CLOUD_READS_ENABLED` / `TASK11_CLOUD_WRITES_ENABLED` | Task 11 低风险模块专用开关；Preview 为 `true` 便于验收，Production 默认 `false` |
 | `WORKERS_AI_ENABLED` | Workers AI 功能开关；默认 `false`，绑定存在也不会自动产生推理用量 |
 | `D1_RATE_LIMIT_ENABLED` | 是否用 D1 对云端基础接口做基础限流；发生配额或绑定错误时自动 fail-open 并标记降级 |
 | `CLOUD_RATE_LIMIT_REQUESTS` / `CLOUD_RATE_LIMIT_WINDOW_SECONDS` | 云端基础接口限流阈值，默认 120 次/60 秒 |
 | `CLOUD_DEEP_HEALTH_CHECKS` | 是否让云端状态接口读取 D1 schema 版本；默认启用，失败只显示 degraded |
 | `LEGACY_API_FALLBACK_ENABLED` | 保留旧 Python/Tunnel 回退能力的公开状态标记；默认 `true` |
+| `TASK11_IMPORT_ENABLED` | 受管理员会话保护的 Task 11 数据导入入口；仅 Preview 默认启用，Production 默认关闭 |
+| `TASK11_PRODUCTION_IMPORT_ENABLED` | Production 数据导入的第二道开关；默认 `false`，还必须提供明确确认头 |
 
 本地后端支持：
 
@@ -449,27 +452,27 @@ node local-backend/test_tools_browser.mjs
 
 ### Serverless 基础层与渐进切换
 
-`wrangler.jsonc` 是 Pages Functions 的版本化部署配置，`name` 固定为现有 Cloudflare Pages 项目 `thewyj-uk`。当前只启用已经验收所需的 Preview bindings；本地 development 使用 `wrangler.local.jsonc` 和 Wrangler 本地持久化，Production 在独立资源创建并通过人工确认前不声明云资源 binding，避免误把 Preview 数据库用于生产。
+`wrangler.jsonc` 是 Pages Functions 的版本化部署配置，`name` 固定为现有 Cloudflare Pages 项目 `thewyj-uk`。Task 10 已在 Preview 与 Production 分别创建并验证 D1、R2、Workers AI bindings；本地 development 继续使用 `wrangler.local.jsonc` 和 Wrangler 本地持久化。两套远端资源相互独立，不能把 Preview 数据导入 Production。
 
-| 能力 | binding | 本地 development | Preview | Production gate |
+| 能力 | binding | 本地 development | Preview | Production |
 | --- | --- | --- |
-| D1 | `WYJ_DB` | `wyj-cloud-development`（仅本地状态） | `wyj-cloud-preview` | 创建 `wyj-cloud-production` 后再加入配置 |
-| R2 | `WYJ_STORAGE` | `wyj-cloud-development`（仅本地状态） | `wyj-cloud-preview` | 创建 `wyj-cloud-production` 后再加入配置 |
-| Workers AI | `AI` | 默认不声明，避免无意远程计费 | 已声明，功能开关默认关闭 | Preview 验收后再加入配置 |
+| D1 | `WYJ_DB` | `wyj-cloud-development`（仅本地状态） | `wyj-cloud-preview` | `wyj-cloud-production` |
+| R2 | `WYJ_STORAGE` | `wyj-cloud-development`（仅本地状态） | `wyj-cloud-preview` | `wyj-cloud-production` |
+| Workers AI | `AI` | 默认不声明，避免无意远程计费 | 已绑定，业务开关关闭 | 已绑定，业务开关关闭 |
 
-配置没有 `account_id`、API token 或 secret。Cloudflare Pages 在部署带 D1 binding 的 Wrangler 配置时要求 `database_id`，因此 `env.preview` 保存 Cloudflare 生成的 Preview D1 资源 UUID；该 UUID 只是不可用于鉴权的资源标识，真正凭据仍只保存在 Cloudflare。Production D1 UUID 尚未产生，也没有占位值或 Preview ID 冒充。`cloudflare/migrations/0001_foundation.sql` 只创建 schema 元数据和基础限流窗口，不包含用户、会员、订单或支付数据，重复执行不会删除旧数据。
+配置没有 `account_id`、API token 或 secret。Cloudflare Pages 在部署带 D1 binding 的 Wrangler 配置时要求 `database_id`，因此 Preview 与 Production 环境各自保存 Cloudflare 生成的 D1 资源 UUID；这些 UUID 不是鉴权凭据，真正凭据仍只保存在 Cloudflare。`cloudflare/migrations/0001_foundation.sql` 已在两套远端 D1 应用，只创建 schema 元数据和基础限流窗口，不包含用户、会员、订单或支付数据。
 
 新的 `functions/_middleware.js` 为 Pages Functions 响应加入安全头和 `X-Request-ID`，拒绝浏览器跨站写请求，并把未处理异常转成统一的 `{ ok, error, code, retryable, request_id }` 格式。上游 Python 的正常/业务错误响应仍原样透传，避免破坏现有前端协议。`GET /api/status?source=cloud` 返回 D1/R2/AI binding、feature flags、限流和降级原因；默认 `GET /api/status` 仍代理旧后端，因此启动器和前端不会把“Cloudflare 在线”误判成“账户后端在线”。
 
-所有高风险写入，特别是会员、订单、付款二维码和管理员审批，继续由本地 Python 后端处理。`CLOUD_READS_ENABLED=false`、`CLOUD_WRITES_ENABLED=false`、`WORKERS_AI_ENABLED=false` 是生产初始值。验证 preview 后才逐项开启；要立即回退，只需把开关恢复为 `false` 并保持 `CLOUD_STATUS_MODE=legacy`。
+所有高风险写入，特别是账户、会员、订单、付款二维码、管理员审批、临时分享、PDF 和 AI 判卷，继续由本地 Python 后端处理。Production 的全局云读、云写、Task 11 云读写与 Workers AI 业务开关均保持关闭，`LEGACY_API_FALLBACK_ENABLED=true`。Task 11 只在 Preview 打开专用读写开关；要立即回退，只需关闭 `TASK11_CLOUD_READS_ENABLED` 与 `TASK11_CLOUD_WRITES_ENABLED`，并保持 `CLOUD_STATUS_MODE=legacy`。
 
 ### 控制台准备
 
-1. 在 **Workers & Pages -> D1** 确认 Preview 数据库 `wyj-cloud-preview`；本地 development 使用 Wrangler 的本地持久化数据库。不要在 Preview 验收前创建 Production 数据库。
-2. 在 **R2** 确认 Preview Standard bucket `wyj-cloud-preview`。免费额度只适用于 Standard storage；Production bucket 同样等 Preview 验收后再创建。
-3. 打开 Pages 项目 `thewyj-uk` 的 **Settings -> Bindings**，核对 Preview 的 D1 `WYJ_DB`、R2 `WYJ_STORAGE`、Workers AI `AI`。Wrangler 配置部署后是 Pages 的 source of truth，控制台设置必须与 `env.preview` 一致。
+1. 在 **Workers & Pages -> D1** 核对 `wyj-cloud-preview` 与 `wyj-cloud-production`，不要互换环境。
+2. 在 **R2** 核对同名 Preview/Production Standard buckets。免费额度只适用于 Standard storage。
+3. 打开 Pages 项目 `thewyj-uk` 的 **Settings -> Bindings**，分别核对 Preview/Production 的 D1 `WYJ_DB`、R2 `WYJ_STORAGE`、Workers AI `AI`。Wrangler 配置部署后是 Pages 的 source of truth。
 4. 在 `thewyj-uk` 项目的 **Settings -> Variables and Secrets** 设置非敏感 feature flags；`LOCAL_API_BASE` 继续指向现有同源代理上游。若未来需要 secret，使用 `wrangler pages secret put <KEY> --project-name thewyj-uk` 或控制台 Secret，不要写入 `wrangler.jsonc`。
-5. Pages Wrangler 配置要求 V2 build system。首次采用配置前，先比对控制台现有 production/preview bindings；配置一旦部署就是 Pages 的 source of truth。
+5. Pages Wrangler 配置要求 V2 build system。每次迁移前先比对控制台现有 Production/Preview bindings；配置一旦部署就是 Pages 的 source of truth。
 
 ### 本地开发
 
@@ -487,24 +490,69 @@ npm.cmd run cf:dev
 
 ### 迁移、部署与回滚
 
-先应用 Preview，再验证三个 bindings。下列 Preview 流程全部通过以前，不创建或部署 Production 资源：
+Task 10 的 `0001_foundation.sql` 已在 Preview 与 Production 应用。Task 11 新增 `0002_low_risk_cloud_services.sql`，必须先在本地和 Preview 验证；未经明确批准，不执行 Production migration、Production 数据导入或 Production 云读写切换。
 
 ```powershell
+# 本地全新 D1 验证
+npm.cmd run cf:migrate:local
+npm.cmd run test:task11
+
 # Preview D1
 npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env preview
-# Preview Pages（非 main 分支产生 preview deployment）
-npx.cmd wrangler pages deploy . --project-name thewyj-uk --branch codex/task10-cloudflare-foundation
+# Preview Pages（Task 11 独立分支）
+npx.cmd wrangler pages deploy . --project-name thewyj-uk --branch codex/task11-low-risk-cloud-migration
 ```
 
-Preview 的 `/api/status?source=cloud`、D1、R2 和 Workers AI 全部通过后，才创建 `wyj-cloud-production` D1/R2，在 `env.production` 加入各自真实 binding，并依次执行 Production migration 与 `main` 部署。未完成这一步时，Production 环境有意保持无云资源 binding，状态接口会按设计返回 degraded，而不是连接 Preview 数据。
+Preview 的 `/api/status?source=cloud`、Task 11 schema、静态 changelog fallback、旧鉴权桥、反馈所有权、投票、学习同步冲突与 tombstone 均通过后，提交 Draft PR 并等待批准。Production 已有独立 bindings，但配置中的 Task 11 Production 读写和导入开关仍为 `false`，合并代码不会自动写入 Production D1。
 
-回滚分两层：先把 `CLOUD_STATUS_MODE` 改回 `legacy`，并关闭云读、云写和 Workers AI；如果仍需回退代码，在 Pages 项目的 **Deployments -> All deployments** 对之前成功的 production deployment 选择 **Rollback to this deployment**。Preview deployment 不能作为回滚目标。D1 迁移是前向迁移，本次新增表保持惰性即可，不要为代码回滚删除表或生产数据。
+回滚分两层：先关闭 Task 11 专用云读写开关并保留 legacy fallback；如果仍需回退代码，在 Pages 项目的 **Deployments -> All deployments** 对之前成功的 production deployment 选择 **Rollback to this deployment**。D1 迁移是前向迁移，新表保持惰性即可，不要为代码回滚删除表或生产数据。Preview deployment 不能作为 Production 回滚目标。
+
+### Task 11 低风险云迁移
+
+Task 11 只迁移结构化更新日志、反馈、功能投票、学习同步和聚合 telemetry。`cloudflare/migrations/0002_low_risk_cloud_services.sql` 创建带 `task11_` 前缀的独立表，不创建或复制账户、密码、Session、会员、entitlement、支付、二维码、临时分享、PDF 或 AI 业务数据。现有 `/api/*` 路径和响应字段保持不变。
+
+需要身份的云端路由使用 `functions/_lib/legacy-api.mjs` 的过渡鉴权桥：Pages 只把现有 `X-Session-Token` 发给旧系统的 `/api/me` 验证，D1 仅保存其返回的稳定用户 ID。旧账户服务不可用时返回明确的 `legacy_auth_unavailable`，不会降级成匿名写入。Task 12 后可替换这一桥接，不需要重建 Task 11 表。
+
+| 路由 | 云端数据 | 权限 |
+| --- | --- | --- |
+| `GET /api/changelog` | 结构化 changelog | 公开；D1 不可用时浏览器读取静态 `changelog.js` |
+| `POST /api/feedback`、`GET /api/feedback/mine` | 私有反馈 | 当前登录用户，只能读自己的数据 |
+| `GET /api/feedback/voting`、`POST /api/feedback/vote` | 已公开建议与一人一票 | 当前登录用户 |
+| `GET /api/admin/feedback`、`POST /api/admin/feedback/update` | 反馈管理与独立审计 | 旧账户系统确认的超级管理员 |
+| `POST /api/learning/sync` | 增量学习记录、版本流和 tombstone | 当前登录用户；按稳定用户 ID 隔离 |
+| `POST /api/telemetry` | 小时级聚合计数 | 公开白名单字段；不保存 IP、UA 或原始输入 |
+| `GET /api/admin/task11/telemetry` | 聚合统计 | 超级管理员 |
+
+Preview 专用开关默认打开 Task 11 云读写，Production 默认关闭。读取失败可安全回退旧 API；写入只允许在 schema 预检通过后开始，一旦云端写入开始就不会再回退双写。D1 同步使用用户版本和 mutation ID 做乐观并发控制，发生竞争时重新读取并执行原有合并规则。
+
+迁移工具默认是 dry-run，并通过与云端导入端相同的字段白名单逐条验证。报告只保存源数量、预计目标数量、非法/重复数量和导入结果，不保存反馈正文、学习 payload、用户名、token 或其他原始内容。报告和数据库备份必须放在 Git 仓库外。
+
+```powershell
+# Preview dry-run：不会联网写入
+python scripts/migrate_task11_to_d1.py `
+  --source-db <受保护的SQLite备份> `
+  --environment preview `
+  --dry-run `
+  --report <仓库外的迁移报告.json>
+
+# Preview 正式导入前，把管理员会话放入环境变量，禁止打印其值
+$env:WYJ_TASK11_ADMIN_SESSION = '<当前管理员会话>'
+python scripts/migrate_task11_to_d1.py `
+  --source-db <受保护的SQLite备份> `
+  --environment preview `
+  --endpoint <Task-11-Preview-URL> `
+  --apply `
+  --report <仓库外的迁移报告.json>
+```
+
+Production 导入还要求 `TASK11_PRODUCTION_IMPORT_ENABLED=true`、`--backup-confirmed` 和 `--confirm-production TASK11-PRODUCTION-MIGRATION`。这些条件默认不满足；必须在 Preview、CI、源/目标数量核对通过并获得明确批准后才能临时启用。导入可重复运行：changelog/反馈/学习记录使用稳定主键 upsert，投票和版本变更使用唯一约束去重。
 
 ### 免费额度降级
 
-- D1 达到免费读写额度时会拒绝查询；云状态接口将限流标记为 degraded 后 fail-open，旧 `/api/*` 仍走 Python/Tunnel。
+- D1 达到免费读写额度时会拒绝查询；云状态接口标记 degraded。Task 11 读取可回退旧 API，尚未开始的写入可回退旧 API；已经开始的云写入不会再双写。
 - R2 或 Workers AI 达到额度时，调用方应返回统一可重试错误并回退本地能力；本任务没有启用这两类业务调用。
 - Workers AI 免费额度按日重置且本地调用也计量，因此 binding 与功能开关分离。
+- telemetry 按小时、功能、结果、耗时档和错误码聚合，不逐事件持久化用户数据；超限时丢弃统计不能阻止业务。
 - 任何 binding 缺失都不会让静态站点白屏；`/api/status?source=cloud` 返回 200/degraded 和具体原因，而登录、支付和会员继续依赖 legacy 状态与原后端。
 
 ### GitHub 仓库

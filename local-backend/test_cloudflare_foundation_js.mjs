@@ -19,6 +19,8 @@ let completed = 0;
     CLOUD_FOUNDATION_ENABLED: "yes",
     CLOUD_READS_ENABLED: "1",
     CLOUD_WRITES_ENABLED: "false",
+    TASK11_CLOUD_READS_ENABLED: "false",
+    TASK11_CLOUD_WRITES_ENABLED: "true",
     CLOUD_STATUS_MODE: "CLOUD",
     CLOUD_RATE_LIMIT_REQUESTS: "9999",
     CLOUD_RATE_LIMIT_WINDOW_SECONDS: "1",
@@ -26,6 +28,8 @@ let completed = 0;
   assert.equal(flags.cloudFoundation, true);
   assert.equal(flags.cloudReads, true);
   assert.equal(flags.cloudWrites, false);
+  assert.equal(flags.task11CloudReads, false);
+  assert.equal(flags.task11CloudWrites, true);
   assert.equal(flags.statusMode, "cloud");
   assert.equal(flags.rateLimit, 600);
   assert.equal(flags.rateWindowSeconds, 10);
@@ -209,6 +213,38 @@ function fakeRateLimitDatabase({ fail = "", schemaVersion = "1" } = {}) {
   assert.equal(degradedResponse.status, 200);
   assert.equal(degraded.status, "degraded");
   assert.ok(degraded.degraded_reasons.includes("d1_binding_missing"));
+
+  const task11SchemaFailureResponse = await cloudStatusResponse({
+    env: {
+      CLOUD_FOUNDATION_ENABLED: "true",
+      CLOUD_READS_ENABLED: "false",
+      CLOUD_WRITES_ENABLED: "false",
+      TASK11_CLOUD_READS_ENABLED: "true",
+      TASK11_CLOUD_WRITES_ENABLED: "false",
+      CLOUD_DEEP_HEALTH_CHECKS: "true",
+      D1_RATE_LIMIT_ENABLED: "false",
+      WYJ_STORAGE: {},
+      WYJ_DB: {
+        prepare(sql) {
+          return {
+            bind() {
+              return {
+                async first() {
+                  if (sql.includes("task11_metadata")) throw new Error("no such table: task11_metadata");
+                  return { value: "1" };
+                },
+              };
+            },
+          };
+        },
+      },
+    },
+    request: new Request("https://preview.example/api/status?source=cloud"),
+    data: {},
+  });
+  const task11SchemaFailure = await task11SchemaFailureResponse.json();
+  assert.equal(task11SchemaFailure.status, "degraded");
+  assert.ok(task11SchemaFailure.degraded_reasons.includes("task11_binding_unavailable"));
   completed += 1;
 }
 

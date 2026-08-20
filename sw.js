@@ -1,15 +1,16 @@
-const CACHE = "wyj-shell-20260811-tool-workflows-es-modules";
+const CACHE = "wyj-shell-20260820-task11-cloud-migration-es-modules";
 const NAVIGATION_TIMEOUT_MS = 5000;
 const ASSET_TIMEOUT_MS = 10000;
 const CORE_SHELL = [
   "/",
   "/index.html",
-  "/styles.css?v=20260811-tool-workflows",
-  "/product-ui.css?v=20260811-tool-workflows",
-  "/changelog.js?v=20260811-tool-workflows",
-  "/learning-sync.js?v=20260811-tool-workflows",
-  "/app.js?v=20260811-tool-workflows",
+  "/styles.css?v=20260820-task11-cloud-migration",
+  "/product-ui.css?v=20260820-task11-cloud-migration",
+  "/changelog.js?v=20260820-task11-cloud-migration",
+  "/learning-sync.js?v=20260820-task11-cloud-migration",
+  "/app.js?v=20260820-task11-cloud-migration",
   "/js/core/api.js",
+  "/js/core/changelog.js",
   "/js/core/config.js",
   "/js/core/router.js",
   "/js/core/session.js",
@@ -24,7 +25,7 @@ const CORE_SHELL = [
   "/js/membership/plans.js",
   "/js/membership/recharge.js",
   "/js/admin/formatters.js",
-  "/tools.js?v=20260811-tool-workflows",
+  "/tools.js?v=20260820-task11-cloud-migration",
   "/js/tools/catalog.js",
   "/js/tools/file.js",
   "/js/tools/image.js",
@@ -32,11 +33,11 @@ const CORE_SHELL = [
   "/js/tools/runner.js",
   "/js/tools/temporary.js",
   "/js/tools/text.js",
-  "/workflows.js?v=20260811-tool-workflows",
+  "/workflows.js?v=20260820-task11-cloud-migration",
   "/vendor/qrcode.js?v=2.0.4",
   "/vendor/opencc-st-characters.txt",
   "/vendor/opencc-ts-characters.txt",
-  "/manifest.webmanifest?v=20260811-tool-workflows",
+  "/manifest.webmanifest?v=20260820-task11-cloud-migration",
   "/icon-192.png",
   "/icon-512.png",
 ];

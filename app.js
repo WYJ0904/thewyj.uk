@@ -12,6 +12,7 @@ import {
   STATUS_TIMEOUT_MS,
 } from "./js/core/config.js";
 import { createApiClient, fetchWithTimeout, retryDelayWithJitter, waitForDelay } from "./js/core/api.js";
+import { loadCloudChangelog, staticChangelogEntries } from "./js/core/changelog.js";
 import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js";
 import {
   clearAccountSessionStorage,
@@ -212,6 +213,8 @@ let adminUsers = [];
 let adminFeedback = [];
 let adminLoadSequence = 0;
 let feedbackLoadSequence = 0;
+let cloudChangelogEntries = null;
+let cloudChangelogPromise = null;
 let adminFeedbackSearchTimer = null;
 let confirmAction = null;
 let lastLimitPromptKey = "";
@@ -1110,7 +1113,20 @@ function renderDashboardToolShelf(id, items, emptyMessage) {
 }
 
 function changelogEntries() {
-  return Array.isArray(window.WYJ_CHANGELOG) ? window.WYJ_CHANGELOG : [];
+  return cloudChangelogEntries || staticChangelogEntries(window);
+}
+
+function refreshCloudChangelog() {
+  if (cloudChangelogPromise) return cloudChangelogPromise;
+  cloudChangelogPromise = loadCloudChangelog()
+    .then((entries) => {
+      cloudChangelogEntries = entries;
+      renderChangelog();
+      renderLatestUpdate();
+      return entries;
+    })
+    .catch(() => changelogEntries());
+  return cloudChangelogPromise;
 }
 
 function latestChangelog() {
@@ -6049,6 +6065,7 @@ async function boot() {
   }, BACKEND_REFRESH_INTERVAL_MS);
 
   const initialPath = location.pathname.replace(/\/+$/, "") || "/";
+  void refreshCloudChangelog();
   const backendPromise = refreshBackendState();
   await runSplashSequence(() => {
     $("appShell").classList.remove("app-shell-pending");

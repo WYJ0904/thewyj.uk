@@ -550,10 +550,10 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260811-tool-workflows');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260811-tool-workflows');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260811-tool-workflows');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260811-tool-workflows');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260820-task11-cloud-migration');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260820-task11-cloud-migration');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260820-task11-cloud-migration');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260820-task11-cloud-migration');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -563,10 +563,10 @@ async function main() {
       assert.equal(pwa.cachedLearningSync, true);
       assert.equal(pwa.cachedWorkflows, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.11.3");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.20");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-11-tool-workflows");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-20-task11-cloud-migration");
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
     });
@@ -637,10 +637,13 @@ async function main() {
       await navigate(`/changelog?app-matrix=${RUN_ID}`);
       await waitFor("!document.querySelector('#entryScreen')", 6_000, "changelog splash removal");
       await waitFor("location.pathname === '/changelog' && !document.querySelector('#changelogPage')?.classList.contains('hidden')", 8_000, "changelog route");
-      assert.equal(await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"), 7);
+      assert.equal(
+        await evaluate("document.querySelectorAll('#changelogPage .changelog-list article').length"),
+        await evaluate("window.WYJ_CHANGELOG.length"),
+      );
       assert.equal(await evaluate("document.querySelector('#changelogPage').textContent.includes('可配置工具工作流')"), true);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.11.3");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.20");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
@@ -1465,7 +1468,11 @@ async function main() {
       assert.deepEqual(await auditVisibleTextContrast("#projectApp"), []);
       const desktopLanguageShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `language-wrong-1366-${RUN_ID}.png`), Buffer.from(desktopLanguageShot.data, "base64"));
-      await evaluate("Math.random = window.__languageMatrixRandom; delete window.__languageMatrixRandom; true");
+      await evaluate(`(() => {
+        if (typeof window.__languageMatrixRandom === "function") Math.random = window.__languageMatrixRandom;
+        delete window.__languageMatrixRandom;
+        return true;
+      })()`);
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
     });
 
@@ -1833,10 +1840,13 @@ async function main() {
     const unexpectedHttpErrors = networkHttpErrors.filter((item) => {
       const pathname = new URL(item.url).pathname;
       const expectedPermissionDenial = item.status === 403 && expectedDeniedPaths.has(pathname);
+      const expectedStaticChangelogFallback = item.status === 404 && pathname === "/api/changelog";
       const expectedDeletedAccountSyncCancellation = item.status === 401
         && pathname === "/api/learning/sync"
         && item.expectedSessionInvalidation;
-      return !expectedPermissionDenial && !expectedDeletedAccountSyncCancellation;
+      return !expectedPermissionDenial
+        && !expectedStaticChangelogFallback
+        && !expectedDeletedAccountSyncCancellation;
     });
     assert.deepEqual(unexpectedHttpErrors, [], `unexpected browser HTTP errors: ${JSON.stringify(networkHttpErrors)}`);
     assert.deepEqual(runtimeErrors, [], `browser runtime errors: ${JSON.stringify(runtimeErrors)}`);

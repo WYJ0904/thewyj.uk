@@ -213,6 +213,7 @@ async function main() {
   const browser = await connectBrowser();
   const { client, browserContextId, send, targetId } = browser;
   const runtimeErrors = [];
+  const networkHttpErrors = [];
   client.listeners.add((message) => {
     if (message.sessionId && message.sessionId !== browser.sessionId) return;
     if (message.method === "Runtime.exceptionThrown") {
@@ -228,7 +229,17 @@ async function main() {
       runtimeErrors.push(`${description} @ ${location}`);
     }
     if (message.method === "Log.entryAdded" && ["error", "warning"].includes(message.params?.entry?.level)) {
-      runtimeErrors.push(message.params.entry.text);
+      const value = message.params.entry.text || "browser log error";
+      const expectedCancellation = /^Failed to load resource: net::ERR_(?:ABORTED|CONNECTION_ABORTED)$/.test(value);
+      if (!expectedCancellation && !/^Failed to load resource: the server responded with a status of \d+/.test(value)) {
+        runtimeErrors.push(value);
+      }
+    }
+    if (message.method === "Network.responseReceived" && Number(message.params?.response?.status) >= 400) {
+      networkHttpErrors.push({
+        status: Number(message.params.response.status),
+        url: message.params.response.url,
+      });
     }
   });
 
@@ -395,20 +406,27 @@ async function main() {
     const before = downloadSnapshot();
     await click(selector);
     const deadline = Date.now() + timeout;
-    let stableChanged = null;
+    let stableCandidate = null;
     while (Date.now() < deadline) {
       const after = downloadSnapshot();
-      const created = [...after]
-        .filter(([name]) => !before.has(name))
-        .sort((left, right) => fs.statSync(path.join(DOWNLOAD_ROOT, right[0])).mtimeMs - fs.statSync(path.join(DOWNLOAD_ROOT, left[0])).mtimeMs)[0];
-      if (created) return path.join(DOWNLOAD_ROOT, created[0]);
-      const changed = [...after].find(([name, signature]) => before.get(name) !== signature);
-      if (changed) {
-        if (stableChanged?.name === changed[0] && stableChanged.signature === changed[1]) {
-          if (Date.now() - stableChanged.since >= 750) return path.join(DOWNLOAD_ROOT, changed[0]);
+      const partialDownloadExists = fs.readdirSync(DOWNLOAD_ROOT).some((name) => name.endsWith(".crdownload"));
+      const candidates = [...after]
+        .filter(([name, signature]) => !before.has(name) || before.get(name) !== signature)
+        .sort((left, right) => {
+          const leftIsNew = before.has(left[0]) ? 0 : 1;
+          const rightIsNew = before.has(right[0]) ? 0 : 1;
+          if (leftIsNew !== rightIsNew) return rightIsNew - leftIsNew;
+          return fs.statSync(path.join(DOWNLOAD_ROOT, right[0])).mtimeMs - fs.statSync(path.join(DOWNLOAD_ROOT, left[0])).mtimeMs;
+        });
+      const candidate = candidates[0];
+      if (!partialDownloadExists && candidate) {
+        if (stableCandidate?.name === candidate[0] && stableCandidate.signature === candidate[1]) {
+          if (Date.now() - stableCandidate.since >= 300) return path.join(DOWNLOAD_ROOT, candidate[0]);
         } else {
-          stableChanged = { name: changed[0], signature: changed[1], since: Date.now() };
+          stableCandidate = { name: candidate[0], signature: candidate[1], since: Date.now() };
         }
+      } else {
+        stableCandidate = null;
       }
       await delay(100);
     }
@@ -1282,8 +1300,14 @@ async function main() {
       auditedWorkflowCapabilities: coveredWorkflowCapabilities.size,
     }, null, 2));
 
+    const expectedNotFoundPaths = new Set(["/api/changelog", "/api/share/text/read"]);
+    const unexpectedHttpErrors = networkHttpErrors.filter((item) => {
+      const pathname = new URL(item.url).pathname;
+      return !(item.status === 404 && expectedNotFoundPaths.has(pathname));
+    });
     assert.deepEqual(failures, [], "tool matrix failures");
     assert.deepEqual(runtimeErrors, [], "browser runtime errors");
+    assert.deepEqual(unexpectedHttpErrors, [], `unexpected browser HTTP errors: ${JSON.stringify(networkHttpErrors)}`);
   } finally {
     await client.send("Target.closeTarget", { targetId }).catch(() => {});
     await client.send("Target.disposeBrowserContext", { browserContextId }).catch(() => {});
