@@ -300,8 +300,213 @@ assert.equal(stoppedSignal?.aborted, true);
 releaseStoppedSync({ schema_version: sync.SCHEMA_VERSION, results: [], changes: [], next_since_version: 0, has_more: false });
 assert.equal((await stoppedOperation).cancelled, true);
 
+const legacyStorage = new MemoryStorage();
+const legacyAccountId = "legacy-learning-account";
+const legacyStateKey = `wyjLearningSync:v1:${encodeURIComponent(legacyAccountId)}`;
+const legacyWrongId = sync.makeRecordId("wrong", ["默认", "history", "古い記録"]);
+const storedGoalId = sync.makeRecordId("goal", ["默认", "japanese"]);
+const preservedSettingsId = sync.makeRecordId("settings", ["english"]);
+const legacyTimestamp = new Date().toISOString();
+legacyStorage.setItem(legacyStateKey, JSON.stringify({
+  schema_version: 1,
+  account_id: legacyAccountId,
+  server_version: 19,
+  migration_complete: true,
+  records: {
+    legacy_wrong: {
+      dataType: "wrong_book",
+      recordId: "wrong|默认|history|古い記録",
+      payload: { wrong_count: 2, correct_answer: "旧记录" },
+      updated_at: legacyTimestamp,
+    },
+    [sync.recordKey("daily_goal", storedGoalId)]: {
+      dataType: "daily_goal",
+      payload: { goal: 18 },
+      updated_at: legacyTimestamp,
+    },
+    [sync.recordKey("language_settings", preservedSettingsId)]: {
+      data_type: "language_settings",
+      record_id: preservedSettingsId,
+      payload: { gradingMode: "normal" },
+      updated_at: legacyTimestamp,
+    },
+    broken_record: {
+      data_type: "test_history",
+      record_id: "task11-prod-active-not-a-supported-id",
+      payload: { score: 10 },
+      updated_at: legacyTimestamp,
+    },
+  },
+}));
+const legacyManager = new sync.LearningSyncManager({
+  storage: legacyStorage,
+  onlineSource: new OnlineSource(false),
+  crypto: globalThis.crypto,
+  transport: serverFixture(),
+});
+legacyManager.start({ accountId: legacyAccountId, clientVersion: "legacy-test" });
+legacyManager.stop(false);
+assert.deepEqual(
+  Object.values(legacyManager.state.records).map((record) => record.record_id).sort(),
+  [legacyWrongId, storedGoalId, preservedSettingsId].sort(),
+);
+assert.equal(legacyManager.state.records[sync.recordKey("language_settings", preservedSettingsId)].record_id, preservedSettingsId);
+assert.equal(legacyManager.state.records[sync.recordKey("wrong_book", legacyWrongId)].dirty, true);
+assert.equal(legacyManager.state.records[sync.recordKey("daily_goal", storedGoalId)].dirty, true);
+assert.equal(legacyManager.state.quarantined_records.length, 1);
+assert.equal(legacyManager.state.quarantined_records[0].record_id, "task11-prod-active-not-a-supported-id");
+
+const restoredLegacyManager = new sync.LearningSyncManager({
+  storage: legacyStorage,
+  onlineSource: new OnlineSource(false),
+  crypto: globalThis.crypto,
+  transport: serverFixture(),
+});
+restoredLegacyManager.start({ accountId: legacyAccountId, clientVersion: "restored-session" });
+restoredLegacyManager.stop(false);
+assert.deepEqual(
+  Object.values(restoredLegacyManager.state.records).map((record) => record.record_id).sort(),
+  [legacyWrongId, storedGoalId, preservedSettingsId].sort(),
+);
+assert.equal(restoredLegacyManager.state.quarantined_records.length, 1);
+
+const productionTombstoneId = "task11-prod-verify-0123456789abcdef0123456789abcdef";
+const remoteConfigId = sync.makeRecordId("config", ["active_profile"]);
+let productionFixtureCalls = 0;
+const productionStatuses = [];
+const productionCompatibilityManager = new sync.LearningSyncManager({
+  storage: new MemoryStorage(),
+  onlineSource: new OnlineSource(true),
+  crypto: globalThis.crypto,
+  onStatus: (status) => productionStatuses.push(status),
+  transport: async () => {
+    productionFixtureCalls += 1;
+    return {
+      schema_version: 1,
+      server_version: 85,
+      next_since_version: 85,
+      has_more: false,
+      merged_count: 0,
+      results: [],
+      changes: productionFixtureCalls === 1 ? [{
+        data_type: "learning_config",
+        record_id: productionTombstoneId,
+        payload: {},
+        updated_at: legacyTimestamp,
+        deleted: true,
+        server_version: 84,
+      }, {
+        data_type: "learning_config",
+        record_id: remoteConfigId,
+        payload: { profile: "默认" },
+        updated_at: legacyTimestamp,
+        deleted: false,
+        server_version: 85,
+      }] : [],
+    };
+  },
+});
+productionCompatibilityManager.start({ accountId: "production-compatibility", clientVersion: "hotfix-test" });
+productionCompatibilityManager.stop(false);
+const recoveredProductionSync = await productionCompatibilityManager.syncNow();
+assert.equal(recoveredProductionSync.ok, true);
+assert.equal(recoveredProductionSync.ignored_tombstones, 1);
+assert.equal(recoveredProductionSync.isolated_count, 0);
+assert.equal(productionCompatibilityManager.state.server_version, 85);
+assert.equal(productionCompatibilityManager.state.quarantined_records.length, 0);
+assert.equal(productionCompatibilityManager.state.records[sync.recordKey("learning_config", remoteConfigId)].payload.profile, "默认");
+assert.equal(productionStatuses.at(-1).status, "synced");
+const repeatedProductionSync = await productionCompatibilityManager.syncNow();
+assert.equal(repeatedProductionSync.ok, true);
+assert.equal(repeatedProductionSync.ignored_tombstones, 0);
+assert.equal(Object.keys(productionCompatibilityManager.state.records).length, 1);
+
+const isolatedRemoteId = "task11-prod-active-0123456789abcdef0123456789abcdef";
+const isolatedRemoteManager = new sync.LearningSyncManager({
+  storage: new MemoryStorage(),
+  onlineSource: new OnlineSource(true),
+  crypto: globalThis.crypto,
+  transport: async () => ({
+    schema_version: 1,
+    server_version: 86,
+    next_since_version: 86,
+    has_more: false,
+    merged_count: 0,
+    results: [],
+    changes: [{
+      data_type: "test_history",
+      record_id: isolatedRemoteId,
+      payload: { score: 1 },
+      updated_at: legacyTimestamp,
+      deleted: false,
+      server_version: 84,
+    }, {
+      data_type: "learning_config",
+      record_id: remoteConfigId,
+      payload: { profile: "默认" },
+      updated_at: legacyTimestamp,
+      deleted: false,
+      server_version: 86,
+    }],
+  }),
+});
+isolatedRemoteManager.start({ accountId: "isolated-remote", clientVersion: "hotfix-test" });
+isolatedRemoteManager.stop(false);
+const isolatedRemoteSync = await isolatedRemoteManager.syncNow();
+assert.equal(isolatedRemoteSync.ok, true);
+assert.equal(isolatedRemoteSync.isolated_count, 1);
+assert.equal(isolatedRemoteManager.state.server_version, 86);
+assert.equal(isolatedRemoteManager.state.quarantined_records[0].record_id, isolatedRemoteId);
+assert.equal(Object.keys(isolatedRemoteManager.state.records).length, 1);
+
+const idempotentStorage = new MemoryStorage();
+const idempotentRequests = [];
+const idempotentTransport = serverFixture();
+const idempotentManager = new sync.LearningSyncManager({
+  storage: idempotentStorage,
+  onlineSource: new OnlineSource(true),
+  crypto: globalThis.crypto,
+  transport: async (payload) => {
+    idempotentRequests.push(payload.changes.map((change) => change.record_id));
+    return idempotentTransport(payload);
+  },
+});
+idempotentManager.start({
+  accountId: "idempotent-account",
+  clientVersion: "first-session",
+  legacyRecords: [{
+    data_type: "test_history",
+    record_id: sync.makeRecordId("history", ["默认", "round-stable"]),
+    payload: { id: "round-stable", score: 80 },
+    updated_at: legacyTimestamp,
+  }],
+});
+idempotentManager.stop(false);
+assert.equal((await idempotentManager.syncNow()).ok, true);
+assert.equal((await idempotentManager.syncNow()).ok, true);
+assert.equal(idempotentRequests[0].length, 1);
+assert.equal(idempotentRequests[1].length, 0);
+assert.equal(Object.keys(idempotentManager.state.records).length, 1);
+
+const resumedIdempotentManager = new sync.LearningSyncManager({
+  storage: idempotentStorage,
+  onlineSource: new OnlineSource(true),
+  crypto: globalThis.crypto,
+  transport: idempotentTransport,
+});
+resumedIdempotentManager.start({ accountId: "idempotent-account", clientVersion: "restored-session" });
+resumedIdempotentManager.stop(false);
+assert.equal((await resumedIdempotentManager.syncNow()).ok, true);
+assert.equal(Object.keys(resumedIdempotentManager.state.records).length, 1);
+
 manager.destroy();
 staleDevice.destroy();
 inFlightDelete.destroy();
 stoppable.destroy();
-console.log("learning sync JS tests passed (local-first, backup validation, in-flight delete/restore safety)");
+legacyManager.destroy();
+restoredLegacyManager.destroy();
+productionCompatibilityManager.destroy();
+isolatedRemoteManager.destroy();
+idempotentManager.destroy();
+resumedIdempotentManager.destroy();
+console.log("learning sync JS tests passed (local-first, legacy ID migration, quarantine, idempotency, session restore)");

@@ -174,6 +174,10 @@ function loginRequest() {
   });
 }
 
+function canonicalLearningRecordId(kind, ...components) {
+  return ["v1", kind, ...components.map((value) => Buffer.from(String(value), "utf8").toString("base64url"))].join("|");
+}
+
 const runtime = await mkdtemp(path.join(os.tmpdir(), "wyj-task12-d1-"));
 const mf = new Miniflare({
   modules: true,
@@ -436,12 +440,77 @@ try {
   const secondLogin = await loginAccount(db, "task12-user", USER_SECRET, loginRequest(), passwordOptions());
   const account = await resolveSession(db, secondLogin.session);
   assert.equal(account.id, userId);
+  const sessionLearningId = canonicalLearningRecordId("history", "默认", "task12-session-round");
+  const initialLearningSync = await requestHandler(handleTask11Request, db, "/api/learning/sync", {
+    method: "POST",
+    token: firstToken,
+    body: {
+      schema_version: 1,
+      client_id: "task12-session-client-001",
+      client_version: "task12-test",
+      since_version: 0,
+      changes: [{
+        data_type: "test_history",
+        record_id: sessionLearningId,
+        payload: { id: "task12-session-round", score: 60 },
+        updated_at: "2026-08-21T08:00:00.000Z",
+        deleted: false,
+        base_server_version: 0,
+      }],
+    },
+  });
+  assert.equal(initialLearningSync.response.status, 200, JSON.stringify(initialLearningSync.payload));
+  assert.equal(initialLearningSync.payload.results[0].record_id, sessionLearningId);
+  const initialLearningVersion = initialLearningSync.payload.results[0].server_version;
   await changeOwnSecret(db, account, USER_SECRET, NEW_USER_SECRET, passwordOptions());
   assert.equal(await resolveSession(db, firstToken), null);
   assert.equal(await resolveSession(db, secondLogin.session), null);
+  const invalidatedSessionSync = await requestHandler(handleTask11Request, db, "/api/learning/sync", {
+    method: "POST",
+    token: firstToken,
+    body: {
+      schema_version: 1,
+      client_id: "task12-session-client-001",
+      client_version: "task12-test",
+      since_version: initialLearningVersion,
+      changes: [],
+    },
+  });
+  assert.equal(invalidatedSessionSync.response.status, 401);
   await assert.rejects(() => loginAccount(db, "task12-user", USER_SECRET, loginRequest(), passwordOptions()));
   const changedLogin = await loginAccount(db, "task12-user", NEW_USER_SECRET, loginRequest(), passwordOptions());
   assert.equal((await resolveSession(db, changedLogin.session)).id, userId);
+  const resumedLearningBody = {
+    schema_version: 1,
+    client_id: "task12-session-client-001",
+    client_version: "task12-test-restored",
+    since_version: initialLearningVersion,
+    changes: [{
+      data_type: "test_history",
+      record_id: sessionLearningId,
+      payload: { id: "task12-session-round", score: 95 },
+      updated_at: "2026-08-21T09:00:00.000Z",
+      deleted: false,
+      base_server_version: initialLearningVersion,
+    }],
+  };
+  const resumedLearningSync = await requestHandler(handleTask11Request, db, "/api/learning/sync", {
+    method: "POST",
+    token: changedLogin.session,
+    body: resumedLearningBody,
+  });
+  assert.equal(resumedLearningSync.response.status, 200, JSON.stringify(resumedLearningSync.payload));
+  const repeatedLearningSync = await requestHandler(handleTask11Request, db, "/api/learning/sync", {
+    method: "POST",
+    token: changedLogin.session,
+    body: resumedLearningBody,
+  });
+  assert.equal(repeatedLearningSync.response.status, 200, JSON.stringify(repeatedLearningSync.payload));
+  const persistedLearningRows = await db.prepare(`SELECT COUNT(*) AS count, MAX(payload_json) AS payload_json
+    FROM task11_learning_sync_records WHERE user_id = ?1 AND data_type = 'test_history' AND record_id = ?2`)
+    .bind(userId, sessionLearningId).first();
+  assert.equal(Number(persistedLearningRows.count), 1);
+  assert.equal(JSON.parse(persistedLearningRows.payload_json).score, 95);
   completed += 1;
 
   const adminLogin = migrationAdminLogin;

@@ -1,6 +1,16 @@
 (() => {
   const entries = [
     {
+      version: "2026.08.22",
+      build: "2026-08-22-learning-sync-record-id",
+      date: "2026-08-22",
+      title: "学习数据同步兼容修复",
+      features: [],
+      improvements: ["旧浏览器学习记录会补全稳定 ID；单条无法识别的记录不再阻塞其余数据同步。"],
+      fixes: ["修复 Task 12 切换后历史同步 tombstone 导致客户端游标无法推进的问题。"],
+      security: ["继续严格校验规范 ID，仅迁移明确支持的旧格式，并按账号保持 D1 数据隔离。"],
+    },
+    {
       version: "2026.08.20",
       build: "2026-08-20-task11-cloud-migration",
       date: "2026-08-20",

@@ -14,6 +14,7 @@
   const MAX_RECORD_BYTES = 384 * 1024;
   const MAX_REQUEST_BYTES = 440 * 1024;
   const MAX_BACKUP_BYTES = 5 * 1024 * 1024;
+  const MAX_QUARANTINED_RECORDS = 100;
   const DATA_TYPES = new Set([
     "wrong_book",
     "achievement",
@@ -22,6 +23,17 @@
     "language_settings",
     "learning_config",
   ]);
+  const RECORD_KIND_RULES = Object.freeze({
+    wrong: Object.freeze({ dataType: "wrong_book", components: 3 }),
+    achievement: Object.freeze({ dataType: "achievement", components: 2 }),
+    history: Object.freeze({ dataType: "test_history", components: 2 }),
+    goal: Object.freeze({ dataType: "daily_goal", components: 2 }),
+    settings: Object.freeze({ dataType: "language_settings", components: 1 }),
+    config: Object.freeze({ dataType: "learning_config", components: 1 }),
+  });
+  const KIND_BY_DATA_TYPE = Object.freeze(Object.fromEntries(
+    Object.entries(RECORD_KIND_RULES).map(([kind, rule]) => [rule.dataType, kind]),
+  ));
   const STATUS_LABELS = Object.freeze({
     synced: "已同步",
     pending: "等待同步",
@@ -64,18 +76,109 @@
 
   function makeRecordId(kind, components) {
     const cleanKind = String(kind || "").trim();
-    if (!/^[a-z_]{2,30}$/.test(cleanKind)) throw new Error("学习记录类型无效");
-    return ["v1", cleanKind, ...components.map((item) => encodeBase64Url(String(item || "")))].join("|");
+    const rule = RECORD_KIND_RULES[cleanKind];
+    const values = Array.isArray(components) ? components.map((item) => String(item ?? "")) : [];
+    if (!rule || values.length > rule.components || values.some((item) => !validRecordComponent(item))) {
+      throw new Error("学习记录类型无效");
+    }
+    return ["v1", cleanKind, ...values.map((item) => encodeBase64Url(item))].join("|");
   }
 
-  function parseRecordId(recordId) {
+  function validRecordComponent(value) {
+    const text = String(value ?? "");
+    return text.length >= 1 && text.length <= 300 && !/[\u0000-\u001f\u007f]/.test(text);
+  }
+
+  function parseRecordId(recordId, expectedDataType = "") {
     const parts = String(recordId || "").split("|");
-    if (parts.length < 3 || parts[0] !== "v1" || !/^[a-z_]{2,30}$/.test(parts[1])) return null;
+    const rule = RECORD_KIND_RULES[parts[1]];
+    if (
+      parts[0] !== "v1"
+      || !rule
+      || (expectedDataType && rule.dataType !== expectedDataType)
+      || parts.length !== rule.components + 2
+      || parts.slice(2).some((part) => !/^[A-Za-z0-9_-]+$/.test(part))
+    ) return null;
     try {
-      return { kind: parts[1], components: parts.slice(2).map(decodeBase64Url) };
+      const components = parts.slice(2).map(decodeBase64Url);
+      if (
+        components.some((item) => !validRecordComponent(item))
+        || components.some((item, index) => encodeBase64Url(item) !== parts[index + 2])
+      ) return null;
+      return { kind: parts[1], components };
     } catch (_) {
       return null;
     }
+  }
+
+  function legacyRecordComponents(dataType, recordId) {
+    const expectedKind = KIND_BY_DATA_TYPE[dataType];
+    const rule = RECORD_KIND_RULES[expectedKind];
+    if (!expectedKind || !rule) return null;
+    for (const separator of ["|", ":"]) {
+      const parts = String(recordId || "").split(separator);
+      if (parts[0] !== expectedKind) continue;
+      let components = parts.slice(1);
+      if (separator === ":" && expectedKind === "wrong" && components.length === 1) {
+        components = ["默认", "history", components[0]];
+      }
+      if (components.length === rule.components && components.every(validRecordComponent)) return components;
+    }
+    return null;
+  }
+
+  function derivedRecordComponents(dataType, raw, payload) {
+    const profile = String(raw.profile || payload.profile || "默认").trim();
+    const language = String(raw.language || payload.language || "").trim().toLowerCase();
+    if (dataType === "wrong_book") {
+      const word = String(raw.word || payload.word || payload.term || "").trim();
+      const scope = String(raw.scope || payload.scope || "history").trim();
+      return [profile, scope, word].every(validRecordComponent) && ["current", "history"].includes(scope)
+        ? [profile, scope, word]
+        : null;
+    }
+    if (dataType === "achievement") {
+      const id = String(raw.achievement_id || payload.achievement_id || payload.id || raw.id || "").trim();
+      return [profile, id].every(validRecordComponent) ? [profile, id] : null;
+    }
+    if (dataType === "test_history") {
+      const id = String(raw.history_id || payload.id || raw.id || "").trim();
+      return [profile, id].every(validRecordComponent) ? [profile, id] : null;
+    }
+    if (dataType === "daily_goal") {
+      return validRecordComponent(profile) && ["english", "japanese"].includes(language)
+        ? [profile, language]
+        : null;
+    }
+    if (dataType === "language_settings") {
+      return ["english", "japanese"].includes(language) ? [language] : null;
+    }
+    if (dataType === "learning_config" && validRecordComponent(payload.profile)) return ["active_profile"];
+    return null;
+  }
+
+  function recordIdFromStorageKey(value) {
+    const text = String(value || "");
+    const separator = text.indexOf("\u001f");
+    return separator >= 0 ? text.slice(separator + 1) : "";
+  }
+
+  function canonicalizeRecordId(dataType, raw, options = {}) {
+    const payload = raw?.payload && typeof raw.payload === "object" && !Array.isArray(raw.payload)
+      ? raw.payload
+      : {};
+    const candidate = String(
+      raw?.record_id
+      || raw?.recordId
+      || raw?.id
+      || recordIdFromStorageKey(options.storageKeyHint)
+      || "",
+    ).trim();
+    if (candidate && parseRecordId(candidate, dataType)) return candidate;
+    const legacyComponents = candidate ? legacyRecordComponents(dataType, candidate) : null;
+    const components = legacyComponents || derivedRecordComponents(dataType, raw || {}, payload);
+    const kind = KIND_BY_DATA_TYPE[dataType];
+    return kind && components ? makeRecordId(kind, components) : "";
   }
 
   function recordKey(dataType, recordId) {
@@ -178,10 +281,10 @@
 
   function normalizeRecord(raw, options = {}) {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("学习记录格式无效");
-    const dataType = String(raw.data_type || "").trim();
-    const recordId = String(raw.record_id || "").trim();
+    const dataType = String(raw.data_type || raw.dataType || "").trim();
+    const recordId = canonicalizeRecordId(dataType, raw, options);
     if (!DATA_TYPES.has(dataType)) throw new Error("学习数据类型无效");
-    if (!/^[A-Za-z0-9._~|:-]{1,700}$/.test(recordId) || !parseRecordId(recordId)) {
+    if (!/^[A-Za-z0-9._~|:-]{1,700}$/.test(recordId) || !parseRecordId(recordId, dataType)) {
       throw new Error("学习记录标识无效");
     }
     const deleted = raw.deleted === true;
@@ -209,6 +312,61 @@
     };
   }
 
+  function emptyState(accountId) {
+    return {
+      schema_version: SCHEMA_VERSION,
+      account_id: accountId,
+      server_version: 0,
+      migration_complete: false,
+      records: {},
+      quarantined_records: [],
+      migration_stats: { migrated: 0, isolated: 0 },
+    };
+  }
+
+  function quarantinedRecord(raw, error, source, storageKeyHint = "") {
+    const candidate = String(raw?.record_id || raw?.recordId || raw?.id || recordIdFromStorageKey(storageKeyHint) || "");
+    const value = {
+      source: String(source || "local").slice(0, 20),
+      data_type: String(raw?.data_type || raw?.dataType || "").slice(0, 40),
+      record_id: candidate.slice(0, 700),
+      reason: String(error?.message || "学习记录无法兼容").slice(0, 160),
+      record: clone(raw),
+    };
+    if (utf8Bytes(stableStringify(value)).length > MAX_RECORD_BYTES) delete value.record;
+    return value;
+  }
+
+  function mergeStoredRecord(current, incoming) {
+    if (!current) return incoming;
+    const incomingNewer = compareRecords(current, incoming) <= 0;
+    const winner = incomingNewer ? incoming : current;
+    const loser = incomingNewer ? current : incoming;
+    if (winner.deleted || loser.deleted) {
+      const tombstoneWins = winner.deleted || (
+        compareRecords(current, incoming) === 0
+        && Math.max(current.server_version || 0, incoming.server_version || 0) === (current.deleted ? current.server_version : incoming.server_version)
+      );
+      const selected = tombstoneWins ? (current.deleted ? current : incoming) : winner;
+      return {
+        ...selected,
+        server_version: Math.max(current.server_version || 0, incoming.server_version || 0),
+        dirty: current.dirty || incoming.dirty,
+        revision: Math.max(current.revision || 0, incoming.revision || 0),
+      };
+    }
+    const payload = ["wrong_book", "achievement"].includes(winner.data_type)
+      ? mergePayload(winner.data_type, loser.payload, winner.payload, true)
+      : winner.payload;
+    return {
+      ...winner,
+      payload,
+      server_version: Math.max(current.server_version || 0, incoming.server_version || 0),
+      dirty: current.dirty || incoming.dirty,
+      revision: Math.max(current.revision || 0, incoming.revision || 0),
+    };
+  }
+
   function randomClientId(cryptoObject) {
     if (cryptoObject?.randomUUID) return `client-${cryptoObject.randomUUID()}`;
     const bytes = new Uint8Array(16);
@@ -218,29 +376,43 @@
   }
 
   function parseStoredState(text, accountId) {
+    const state = emptyState(accountId);
     try {
       const value = JSON.parse(text || "{}");
       if (value.schema_version !== SCHEMA_VERSION || value.account_id !== accountId) throw new Error();
-      const records = {};
-      Object.values(value.records || {}).slice(0, MAX_RECORDS).forEach((raw) => {
-        const record = normalizeRecord(raw);
-        records[recordKey(record.data_type, record.record_id)] = record;
+      state.server_version = Math.max(0, Number.parseInt(value.server_version, 10) || 0);
+      state.migration_complete = value.migration_complete === true;
+      state.quarantined_records = Array.isArray(value.quarantined_records)
+        ? value.quarantined_records.slice(0, MAX_QUARANTINED_RECORDS).map(clone)
+        : [];
+      state.migration_stats = {
+        migrated: Math.max(0, Number.parseInt(value.migration_stats?.migrated, 10) || 0),
+        isolated: state.quarantined_records.length,
+      };
+      const entries = Array.isArray(value.records)
+        ? value.records.map((raw, index) => [String(index), raw])
+        : Object.entries(value.records || {});
+      entries.slice(0, MAX_RECORDS).forEach(([storageKey, raw]) => {
+        try {
+          const originalId = String(raw?.record_id || raw?.recordId || raw?.id || recordIdFromStorageKey(storageKey) || "").trim();
+          const record = normalizeRecord(raw, { storageKeyHint: storageKey });
+          if (record.record_id !== originalId || raw?.data_type === undefined || raw?.record_id === undefined) {
+            record.dirty = true;
+            record.revision = Math.max(1, record.revision || 0);
+            state.migration_stats.migrated += 1;
+          }
+          const key = recordKey(record.data_type, record.record_id);
+          state.records[key] = mergeStoredRecord(state.records[key], record);
+        } catch (error) {
+          if (state.quarantined_records.length < MAX_QUARANTINED_RECORDS) {
+            state.quarantined_records.push(quarantinedRecord(raw, error, "local", storageKey));
+          }
+          state.migration_stats.isolated += 1;
+        }
       });
-      return {
-        schema_version: SCHEMA_VERSION,
-        account_id: accountId,
-        server_version: Math.max(0, Number.parseInt(value.server_version, 10) || 0),
-        migration_complete: value.migration_complete === true,
-        records,
-      };
+      return state;
     } catch (_) {
-      return {
-        schema_version: SCHEMA_VERSION,
-        account_id: accountId,
-        server_version: 0,
-        migration_complete: false,
-        records: {},
-      };
+      return state;
     }
   }
 
@@ -308,11 +480,23 @@
       }
       this.state = parseStoredState(this.storage.getItem(this.storageKey()), this.accountId);
       if (!this.state.migration_complete) {
-        legacyRecords.slice(0, MAX_RECORDS).forEach((raw) => this.upsert(raw, { schedule: false, migrate: true }));
+        legacyRecords.slice(0, MAX_RECORDS).forEach((raw) => {
+          try {
+            this.upsert(raw, { schedule: false, migrate: true });
+          } catch (error) {
+            this.quarantine(raw, error, "legacy");
+          }
+        });
         this.state.migration_complete = true;
         this.persist();
       }
-      this.emitStatus(this.dirtyRecords().length ? "pending" : "synced");
+      const migrated = Number(this.state.migration_stats?.migrated || 0);
+      const isolated = Number(this.state.migration_stats?.isolated || 0);
+      const detail = [
+        migrated ? `已兼容 ${migrated} 项旧记录` : "",
+        isolated ? `${isolated} 项无法识别的旧记录已隔离` : "",
+      ].filter(Boolean).join("；");
+      this.emitStatus(this.dirtyRecords().length ? "pending" : isolated ? "merged" : "synced", detail);
       this.schedule(400);
       return this.snapshot();
     }
@@ -367,6 +551,21 @@
         pending: this.dirtyRecords().length,
         server_version: this.state?.server_version || 0,
       });
+    }
+
+    quarantine(raw, error, source = "local", storageKeyHint = "") {
+      if (!this.state) return;
+      if (!Array.isArray(this.state.quarantined_records)) this.state.quarantined_records = [];
+      const entry = quarantinedRecord(raw, error, source, storageKeyHint);
+      const marker = `${entry.source}\u001f${entry.data_type}\u001f${entry.record_id}\u001f${entry.reason}`;
+      const exists = this.state.quarantined_records.some((item) => (
+        `${item.source}\u001f${item.data_type}\u001f${item.record_id}\u001f${item.reason}` === marker
+      ));
+      if (!exists && this.state.quarantined_records.length < MAX_QUARANTINED_RECORDS) {
+        this.state.quarantined_records.push(entry);
+      }
+      this.state.migration_stats = this.state.migration_stats || { migrated: 0, isolated: 0 };
+      this.state.migration_stats.isolated = this.state.quarantined_records.length;
     }
 
     dirtyRecords() {
@@ -526,6 +725,7 @@
       const operation = (async () => {
         this.emitStatus("syncing");
         let mergedCount = 0;
+        let ignoredTombstones = 0;
         let loops = 0;
         do {
           const batch = this.requestBatch();
@@ -540,25 +740,53 @@
           if (syncGeneration !== this.generation) return { ok: false, cancelled: true };
           if (!response || response.schema_version !== SCHEMA_VERSION) throw new Error("服务器同步响应版本无效");
           const remoteByKey = new Map();
+          let compatibleCount = 0;
           [...(response.results || []), ...(response.changes || [])].forEach((record) => {
-            const key = recordKey(record.data_type, record.record_id);
+            let normalized;
+            try {
+              normalized = normalizeRecord(record);
+            } catch (error) {
+              const version = Number.parseInt(record?.server_version, 10) || 0;
+              if (record?.deleted === true && version > 0) {
+                ignoredTombstones += 1;
+                return;
+              }
+              this.quarantine(record, error, "remote");
+              return;
+            }
+            if (String(record.record_id || "") !== normalized.record_id) compatibleCount += 1;
+            const key = recordKey(normalized.data_type, normalized.record_id);
             const previous = remoteByKey.get(key);
-            if (!previous || Number(record.server_version) >= Number(previous.server_version)) remoteByKey.set(key, record);
+            if (!previous || Number(normalized.server_version) >= Number(previous.server_version)) {
+              remoteByKey.set(key, normalized);
+            }
           });
           [...remoteByKey.values()]
             .sort((left, right) => Number(left.server_version) - Number(right.server_version))
             .forEach((record) => this.applyServerRecord(record, submitted));
           this.state.server_version = Math.max(0, Number.parseInt(response.next_since_version, 10) || 0);
           mergedCount += Number.parseInt(response.merged_count, 10) || 0;
+          mergedCount += compatibleCount;
           this.persist();
           loops += 1;
           if (!response.has_more && !this.dirtyRecords().length) break;
         } while (loops < 20);
         this.retryCount = 0;
         const pending = this.dirtyRecords().length;
-        this.emitStatus(mergedCount ? "merged" : pending ? "pending" : "synced", mergedCount ? `已合并 ${mergedCount} 项设备变更` : "");
+        const isolated = Number(this.state.migration_stats?.isolated || 0);
+        const detail = [
+          mergedCount ? `已合并或兼容 ${mergedCount} 项设备变更` : "",
+          isolated ? `${isolated} 项无法识别的旧记录已隔离，其余记录已同步` : "",
+        ].filter(Boolean).join("；");
+        this.emitStatus(mergedCount || isolated ? "merged" : pending ? "pending" : "synced", detail);
         if (pending) this.schedule(500);
-        return { ok: !pending, merged_count: mergedCount, pending };
+        return {
+          ok: !pending,
+          merged_count: mergedCount,
+          pending,
+          isolated_count: isolated,
+          ignored_tombstones: ignoredTombstones,
+        };
       })().catch((error) => {
         if (syncGeneration !== this.generation || !this.state || !this.accountId) {
           return { ok: false, cancelled: true };
@@ -594,6 +822,7 @@
           deleted: record.deleted,
           server_version: record.server_version || 0,
         })),
+        quarantined_records: clone(this.state.quarantined_records || []),
       }, null, 2);
     }
 
@@ -647,6 +876,7 @@
     makeRecordId,
     mergePayload,
     normalizeRecord,
+    canonicalizeRecordId,
     parseRecordId,
     recordKey,
     stableStringify,
