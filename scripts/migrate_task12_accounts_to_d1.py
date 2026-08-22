@@ -190,7 +190,13 @@ def endpoint_url(base: str, path: str) -> str:
 
 
 def request_json(url: str, token: str, payload: dict | None, production: bool) -> dict:
-    headers = {"Accept": "application/json", "X-Session-Token": token}
+    parsed = urllib.parse.urlsplit(url)
+    headers = {
+        "Accept": "application/json",
+        "Origin": urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, "", "", "")),
+        "User-Agent": "WYJ-Cloud-Migration/1.0",
+        "X-Session-Token": token,
+    }
     body = None
     method = "GET"
     if payload is not None:

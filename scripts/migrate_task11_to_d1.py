@@ -288,8 +288,11 @@ def endpoint_url(base: str, path: str) -> str:
 
 
 def request_json(url: str, session_token: str, payload: dict | None, production: bool) -> dict:
+    parsed = urllib.parse.urlsplit(url)
     headers = {
         "Accept": "application/json",
+        "Origin": urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, "", "", "")),
+        "User-Agent": "WYJ-Cloud-Migration/1.0",
         "X-Session-Token": session_token,
     }
     body = None

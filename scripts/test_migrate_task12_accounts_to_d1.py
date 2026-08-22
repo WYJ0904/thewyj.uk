@@ -130,6 +130,25 @@ class Task12MigrationTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "Production requires"):
                     MIGRATION.apply_import(args, data)
 
+    def test_request_uses_target_origin_for_same_origin_protection(self):
+        response = mock.MagicMock()
+        response.__enter__.return_value = response
+        response.read.return_value = b'{"ok":true}'
+        with mock.patch("urllib.request.urlopen", return_value=response) as opened:
+            MIGRATION.request_json(
+                "https://example.test/api/admin/task12/import",
+                "masked-test-token",
+                {"schema_version": 1, "kind": "accounts", "records": []},
+                True,
+            )
+        request = opened.call_args.args[0]
+        self.assertEqual(request.get_header("Origin"), "https://example.test")
+        self.assertEqual(request.get_header("User-agent"), "WYJ-Cloud-Migration/1.0")
+        self.assertEqual(
+            request.get_header("X-wyj-task12-production-confirm"),
+            MIGRATION.PRODUCTION_CONFIRMATION,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
