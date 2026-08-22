@@ -322,8 +322,8 @@ Pages Functions：
 | `CLOUD_FOUNDATION_ENABLED` | 是否允许显式访问新的云端基础状态接口；生产默认 `true` |
 | `CLOUD_STATUS_MODE` | `/api/status` 的默认来源；保持 `legacy` 可继续验证本地后端与 Tunnel，设为 `cloud` 才切换到云状态 |
 | `CLOUD_READS_ENABLED` / `CLOUD_WRITES_ENABLED` | 全局云端读写总开关；Task 11 仍保持 `false`，支付和其他高风险业务不会迁移 |
-| `TASK11_CLOUD_READS_ENABLED` / `TASK11_CLOUD_WRITES_ENABLED` | Task 11 低风险模块专用开关；Preview 为 `true` 便于验收，Production 默认 `false` |
-| `TASK12_CLOUD_ACCOUNTS_ENABLED` | D1 账户与会话主开关；仅 Preview 默认 `true`，Production 在最终迁移获批前保持 `false` |
+| `TASK11_CLOUD_READS_ENABLED` / `TASK11_CLOUD_WRITES_ENABLED` | Task 11 低风险模块专用开关；Preview 与 Production 均已启用，读取仍保留 legacy fallback |
+| `TASK12_CLOUD_ACCOUNTS_ENABLED` | D1 账户与会话主开关；Preview 与 Production 均已在迁移验收后启用 |
 | `TASK12_IMPORT_ENABLED` | Task 12 账户导入接口；仅 Preview 默认启用，Production 默认关闭 |
 | `TASK12_PRODUCTION_IMPORT_ENABLED` | Production 账户导入第二道开关；默认 `false`，还要求明确确认头 |
 | `WYJ_LEGACY_IDENTITY_BRIDGE_SECRET` | Pages 到旧 Python 业务接口的短时身份断言 HMAC secret；至少 32 字符，只存 Cloudflare Secret |
@@ -470,7 +470,7 @@ node local-backend/test_tools_browser.mjs
 
 新的 `functions/_middleware.js` 为 Pages Functions 响应加入安全头和 `X-Request-ID`，拒绝浏览器跨站写请求，并把未处理异常转成统一的 `{ ok, error, code, retryable, request_id }` 格式。上游 Python 的正常/业务错误响应仍原样透传，避免破坏现有前端协议。`GET /api/status?source=cloud` 返回 D1/R2/AI binding、feature flags、限流和降级原因；默认 `GET /api/status` 仍代理旧后端，因此启动器和前端不会把“Cloudflare 在线”误判成“账户后端在线”。
 
-会员、订单、付款二维码、管理员审批、临时分享、PDF 和 AI 判卷继续由本地 Python 后端处理。Task 11 的 Production D1 读写已经启用并保留 legacy fallback；Task 12 只在 Preview 打开 D1 账户与会话，Production 的 Task 12 开关仍为 `false`，因此线上账户仍由旧后端负责。Preview 中，Pages 先验证 D1 Session，再用短时 HMAC 身份断言访问尚未迁移的旧业务接口；原始 D1 token 不会转发给 Python，也不会在 SQLite 建立第二套 Session。要立即回退 Preview，关闭 `TASK12_CLOUD_ACCOUNTS_ENABLED` 和 `TASK12_IMPORT_ENABLED`，旧账户路径仍可工作。
+会员、订单、付款二维码、管理员审批、临时分享、PDF 和 AI 判卷继续由本地 Python 后端处理。Task 11 的 Production D1 读写已经启用并保留 legacy fallback；Task 12 的 Preview 与 Production 均已切到 D1 账户与会话，Production 导入端点保持关闭。Pages 验证 D1 Session 后使用短时 HMAC 身份断言访问尚未迁移的旧业务接口；原始 D1 token 不会转发给 Python，也不会在 SQLite 建立第二套 Session。本地运行配置使用 `cloud_account_primary=true`，因此 SQLite 不再接受账户登录、注册或旧 Session，避免长期双写和 split-brain。
 
 ### 控制台准备
 
@@ -496,7 +496,7 @@ npm.cmd run cf:dev
 
 ### 迁移、部署与回滚
 
-Task 10 的 `0001_foundation.sql` 已在 Preview 与 Production 应用，Task 11 的 `0002_low_risk_cloud_services.sql` 已完成既定环境验证。Task 12 新增 `0003_accounts_sessions.sql`、并发会话上限 trigger `0004_session_limit_trigger.sql`，以及用插入顺序消除同毫秒排序歧义的 `0005_session_limit_ordering.sql`；只允许先应用到本地和 Preview。未经新的明确批准，不执行 Production Task 12 migration、账户导入、Session 切换或 `VOCAB_CLOUD_ACCOUNT_PRIMARY=true`。
+Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sql`，以及 Task 12 的 `0003_accounts_sessions.sql`、`0004_session_limit_trigger.sql`、`0005_session_limit_ordering.sql` 均已在 Preview 和 Production 应用。Task 12 Production 在 2026-08-22 完成备份、dry-run、稳定 user ID/ownership 核对、导入和切换；旧 Session 未迁移，所有设备需要重新登录。迁移报告与生产备份只保存在仓库外，导入开关已经重新关闭。
 
 ```powershell
 # 本地全新 D1 验证
@@ -510,7 +510,7 @@ npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env preview
 npx.cmd wrangler pages deploy . --project-name thewyj-uk --branch codex/task12-accounts-sessions-d1
 ```
 
-Preview 的 `/api/status?source=cloud` 必须同时显示 Task 12 schema `1`、`task12_cloud_accounts=true`、`task12_legacy_bridge=true` 和 `task12_password_pepper=true`。随后用隔离账户验证注册、登录、改密、封禁、强制退出、多会话、旧摘要首次升级、Task 11 ownership 与旧业务桥接，再提交 Draft PR。Production 的 Task 12 与导入开关保持 `false`，合并代码不会自动迁移或切换 Production 账户。
+Preview 与 Production 的 `/api/status?source=cloud` 必须同时显示 Task 12 schema `1`、`task12_cloud_accounts=true`、`task12_legacy_bridge=true` 和 `task12_password_pepper=true`；Production 还必须显示 `task12_import=false`。隔离测试覆盖注册、登录、改密、封禁、强制退出、多会话、旧摘要首次升级、Task 11 ownership 与旧业务桥接。任何后续部署都必须保持 Production 账户主开关开启，除非正在执行有数据核对和重新认证方案的受控回滚。
 
 回滚分两层：先关闭 Task 11 专用云读写开关并保留 legacy fallback；如果仍需回退代码，在 Pages 项目的 **Deployments -> All deployments** 对之前成功的 production deployment 选择 **Rollback to this deployment**。D1 迁移是前向迁移，新表保持惰性即可，不要为代码回滚删除表或生产数据。Preview deployment 不能作为 Production 回滚目标。
 
@@ -518,7 +518,7 @@ Preview 的 `/api/status?source=cloud` 必须同时显示 Task 12 schema `1`、`
 
 Task 11 只迁移结构化更新日志、反馈、功能投票、学习同步和聚合 telemetry。`cloudflare/migrations/0002_low_risk_cloud_services.sql` 创建带 `task11_` 前缀的独立表，不创建或复制账户、密码、Session、会员、entitlement、支付、二维码、临时分享、PDF 或 AI 业务数据。现有 `/api/*` 路径和响应字段保持不变。
 
-Production 的 Task 12 开关关闭时，需要身份的 Task 11 路由仍使用 `functions/_lib/legacy-api.mjs` 验证旧会话。Task 12 Preview 启用后，Task 11 直接使用 D1 Session 和同一稳定 user ID，不再依赖本机 `/api/me`；既有 Task 11 表及 ownership 不会重建。
+Task 12 启用后，Task 11 在 Preview 与 Production 都直接使用 D1 Session 和同一稳定 user ID，不再依赖本机 `/api/me`；既有 Task 11 表及 ownership 不会重建。`legacy-api.mjs` 仍保留为受控回滚路径，但 Production 正常身份主路径不再接受旧 SQLite Session。
 
 | 路由 | 云端数据 | 权限 |
 | --- | --- | --- |
@@ -562,7 +562,7 @@ Production 导入还要求 `TASK11_PRODUCTION_IMPORT_ENABLED=true`、`--backup-c
 
 迁移工具只复制结构有效的旧 `pbkdf2_sha256$310000$...` 摘要。该格式第一次登录时由 Pages 通过 45 秒 HMAC 身份断言调用 Python 的只读 `/api/internal/task12/verify-secret`：请求绑定稳定 user ID、username、method、path 与 request ID，不建立旧 Session、不写 SQLite、不返回摘要或原始密钥；验证成功后 D1 立即改写为 `pbkdf2_sha256_cf_v1`，验证失败则保持原记录。历史明文、旧 hash 和损坏记录仍只按数量分类并写成 `reset_required`，绝不把原值发送到 D1、报告或日志。D1 Session 只保存 `sha256$...` digest、有效期、会话版本和最小客户端类型。Task 12 采用 **策略 B**：不迁移旧活动 Session，正式切换时所有设备需要重新登录。
 
-Preview 身份桥使用 `WYJ_LEGACY_IDENTITY_BRIDGE_SECRET` 与本地 `VOCAB_LEGACY_IDENTITY_BRIDGE_SECRET`。Pages 验证 D1 Session 后生成最长 45 秒的 HMAC 断言，签名绑定 request ID、HTTP method、path、稳定 user ID 和 username；Python 验证后只读取原会员/业务数据。`run.ps1` 会在私有 `data/settings.json` 生成 `legacy_identity_bridge_key`，请在 Cloudflare **Workers & Pages -> thewyj-uk -> Settings -> Variables and Secrets -> Preview** 新建同值的加密 Secret。另在同一 Preview 环境创建独立的 `WYJ_TASK12_PASSWORD_PEPPER`，不要复用身份桥 Secret。两项都必须保存为加密 Secret，不要把值写入命令行参数、README 或 Git。
+Preview 与 Production 身份桥分别使用各环境的 `WYJ_LEGACY_IDENTITY_BRIDGE_SECRET`，并与本地 `VOCAB_LEGACY_IDENTITY_BRIDGE_SECRET` 配对。Pages 验证 D1 Session 后生成最长 45 秒的 HMAC 断言，签名绑定 request ID、HTTP method、path、稳定 user ID 和 username；Python 验证后只读取原会员/业务数据。`run.ps1` 会从私有 `data/settings.json` 读取 `legacy_identity_bridge_key`；另需为每个环境保存独立且稳定的 `WYJ_TASK12_PASSWORD_PEPPER`。两项都必须是 Cloudflare 加密 Secret，不要把值写入命令行参数、README 或 Git。
 
 ```powershell
 # Wrangler 会交互式读取，不要把 Secret 写在命令参数或 shell history 中
@@ -593,7 +593,7 @@ python scripts/migrate_task12_accounts_to_d1.py `
   --report <仓库外的迁移报告.json>
 ```
 
-导入按稳定 ID upsert，可重复执行且不会复制 SQLite Session。切换窗口必须先停止 SQLite 账户写入，再做最终 backup/dry-run/import/数量核对，随后才启用云账户和本地 `cloud_account_primary`。Production 导入额外要求 `TASK12_PRODUCTION_IMPORT_ENABLED=true`、`--backup-confirmed`、`--confirm-production TASK12-PRODUCTION-ACCOUNT-MIGRATION` 和同名确认头；本分支没有满足这些条件，也没有执行 Production migration。回滚时先关闭 Pages 的 Task 12 开关；如果 D1 已发生改密、封禁或新注册，不能直接恢复旧 SQLite 主写，必须先按迁移报告核对账户并让受影响用户重新认证/重置密钥，避免恢复旧密码或产生 split-brain。
+导入按稳定 ID upsert，可重复执行且不会复制 SQLite Session。Production 导入曾临时要求 `TASK12_PRODUCTION_IMPORT_ENABLED=true`、`--backup-confirmed`、`--confirm-production TASK12-PRODUCTION-ACCOUNT-MIGRATION` 和同名确认头；完成源/目标数量、ID 集合与 Task 11 ownership 核对后，两个导入开关均已恢复为 `false`。回滚时先把 Pages 的 Task 12 主开关关闭；如果 D1 已发生改密、封禁或新注册，不能直接恢复旧 SQLite 主写，必须先按仓库外迁移报告核对账户并让受影响用户重新认证或重置密钥，避免恢复旧密码或产生 split-brain。
 
 ### 免费额度降级
 
