@@ -982,7 +982,7 @@ class AccountStore:
             return None
         return self._expire_if_needed(row)
 
-    def resolve_cloud_identity_user(self, user_id, username):
+    def resolve_cloud_identity_user(self, user_id, username, entitlements=None):
         """Resolve a D1-authenticated identity without creating a legacy session."""
         user_id = str(user_id or "").strip()
         username = self.validate_username(username)
@@ -1020,6 +1020,8 @@ class AccountStore:
         payload = dict(row)
         payload["banned"] = 0
         payload["deleted"] = 0
+        if entitlements is not None:
+            payload["_cloud_entitlements"] = tuple(sorted(set(entitlements)))
         return payload
 
     def verify_legacy_secret(self, user_id, username, candidate):
@@ -1296,6 +1298,8 @@ class AccountStore:
             return set()
         if self.is_super_admin(row):
             return set(ALL_ACCESS_ENTITLEMENTS) | {"language_english_access"}
+        if isinstance(row, dict) and "_cloud_entitlements" in row:
+            return set(row["_cloud_entitlements"])
         entitlements = set()
         for membership in self.memberships_for(row):
             entitlements.update(membership["entitlements"])

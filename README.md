@@ -326,6 +326,11 @@ Pages Functions：
 | `TASK12_CLOUD_ACCOUNTS_ENABLED` | D1 账户与会话主开关；Preview 与 Production 均已在迁移验收后启用 |
 | `TASK12_IMPORT_ENABLED` | Task 12 账户导入接口；仅 Preview 默认启用，Production 默认关闭 |
 | `TASK12_PRODUCTION_IMPORT_ENABLED` | Production 账户导入第二道开关；默认 `false`，还要求明确确认头 |
+| `TASK13_CLOUD_READS_ENABLED` | D1 会员、权益和支付读取开关；Task 13 分支仅在 Preview 启用，Production 保持 `false` |
+| `TASK13_CLOUD_WRITES_ENABLED` | D1 会员、权益和支付写入总开关；必须与读取和支付主开关同时启用才接受支付写入 |
+| `TASK13_PAYMENT_PRIMARY_ENABLED` | 支付单一主写门；启用后 D1/R2 是会员与支付唯一主路径，失败不会回退双写 SQLite |
+| `TASK13_IMPORT_ENABLED` | Task 13 导入入口；仅 Preview 默认启用，Production 保持关闭 |
+| `TASK13_PRODUCTION_IMPORT_ENABLED` | Production 导入第二道开关；默认 `false`，还要求管理员会话、备份和精确确认头 |
 | `WYJ_LEGACY_IDENTITY_BRIDGE_SECRET` | Pages 到旧 Python 业务接口的短时身份断言 HMAC secret；至少 32 字符，只存 Cloudflare Secret |
 | `WORKERS_AI_ENABLED` | Workers AI 功能开关；默认 `false`，绑定存在也不会自动产生推理用量 |
 | `D1_RATE_LIMIT_ENABLED` | 是否用 D1 对云端基础接口做基础限流；发生配额或绑定错误时自动 fail-open 并标记降级 |
@@ -503,6 +508,7 @@ Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sq
 npm.cmd run cf:migrate:local
 npm.cmd run test:task11
 npm.cmd run test:task12
+npm.cmd run test:task13
 
 # Preview D1
 npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env preview
@@ -594,6 +600,52 @@ python scripts/migrate_task12_accounts_to_d1.py `
 ```
 
 导入按稳定 ID upsert，可重复执行且不会复制 SQLite Session。Production 导入曾临时要求 `TASK12_PRODUCTION_IMPORT_ENABLED=true`、`--backup-confirmed`、`--confirm-production TASK12-PRODUCTION-ACCOUNT-MIGRATION` 和同名确认头；完成源/目标数量、ID 集合与 Task 11 ownership 核对后，两个导入开关均已恢复为 `false`。回滚时先把 Pages 的 Task 12 主开关关闭；如果 D1 已发生改密、封禁或新注册，不能直接恢复旧 SQLite 主写，必须先按仓库外迁移报告核对账户并让受影响用户重新认证或重置密钥，避免恢复旧密码或产生 split-brain。
+
+### Task 13 会员、权益和支付 Preview
+
+`cloudflare/migrations/0006_memberships_payments.sql` 在 Task 12 稳定 user ID 上新增 `task13_` 前缀的方案、会员、entitlement override、支付订单、状态历史、唯一履约、管理员审批和审计表。迁移不会删除或改写旧 SQLite 表，也不会提前迁移临时分享、PDF 或 AI。六个在售方案仍以 `local-backend/membership.py` 为业务权威：8 CNY 单语言包月、20 CNY 双语言包月、20 CNY 工具箱包月、30 CNY 全功能包月、70 CNY 双语言双项永久、100 CNY 全功能永久；内部代码 `japanese_lifetime` 保持不变，70 CNY 方案不包含工具箱。`monthly`、`lifetime` 和 `dual_language_lifetime` 仅用于历史兼容，新订单会拒绝停售方案。
+
+Pages 保持原 `/api/membership/*`、`/api/recharge/*` 和 `/api/admin/*` 契约。服务端从 D1 读取方案并锁定订单名称、金额、期限和 entitlement 快照；客户端不能指定金额、用户 ID、权益或 R2 key。订单仍按 `pending_payment -> user_paid -> processing -> approved` 流转，也支持 `rejected`、`cancelled`、`expired`。用户点击“我已付款”只进入 `user_paid`，只有超级管理员审批成功才在同一 D1 batch 中写入唯一履约、会员、状态历史和审计。重复或并发审批不能重复延长期限，异常响应会说明提交状态而不会悄悄重试履约。
+
+收款二维码存放在环境隔离的私有 `WYJ_STORAGE` bucket，固定 key 为 `payments/qrcodes/v1/<wechat|alipay>_<plan>.png`。接口不接受客户端 object key，只允许已登录的订单本人按订单 ID 读取，校验订单归属、状态、支付方式、方案和 `qr_resource_id` 后返回 PNG；响应使用 `Cache-Control: private, no-store`，不返回 object key。二维码文件、内容和真实付款信息不得进入 Git、迁移报告或 CI artifact。
+
+Preview 验证顺序：
+
+```powershell
+# 本地 D1/R2 + Miniflare 回归
+npm.cmd run cf:migrate:local
+npm.cmd run test:task13
+
+# Preview D1：只应用前向 migration，不删除旧表
+npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env preview
+
+# 迁移前只读审计；报告必须写在仓库外
+python scripts/migrate_task13_memberships_payments.py `
+  --source-db <受保护的SQLite备份> `
+  --qr-dir <私有二维码目录> `
+  --environment preview `
+  --dry-run `
+  --report <仓库外的迁移报告.json>
+
+# Preview 导入：会按固定 key 上传私有二维码并分批幂等写入 D1
+$env:WYJ_TASK13_ADMIN_SESSION = '<Preview 的 D1 管理员会话>'
+python scripts/migrate_task13_memberships_payments.py `
+  --source-db <受保护的SQLite备份> `
+  --qr-dir <私有二维码目录> `
+  --environment preview `
+  --endpoint <Task-13-Preview-URL> `
+  --apply --upload-r2 `
+  --r2-bucket wyj-cloud-preview `
+  --wrangler-env preview `
+  --report <仓库外的迁移报告.json>
+
+# 分支 Preview 部署
+npx.cmd wrangler pages deploy . --project-name thewyj-uk --branch codex/task13-membership-payment-cloud
+```
+
+迁移工具使用 SQLite 只读连接检查用户归属、主键/订单号重复、方案兼容、各状态数量、唯一履约和二维码 PNG 签名/大小；导入按稳定 ID upsert/ignore，可重复执行。报告只含计数和结果，不含用户名、订单备注、二维码内容、Session、Secret 或 Token。Preview 必须逐项验证六种方案、五种用途、微信/支付宝、刷新恢复、私有二维码越权、用户声明付款不履约、管理员批准/拒绝、包月续期、永久幂等、并发审批、D1/R2 故障和现有移动支付流程。
+
+**Production 支付切换尚未执行。** `TASK13_CLOUD_READS_ENABLED`、`TASK13_CLOUD_WRITES_ENABLED`、`TASK13_IMPORT_ENABLED`、`TASK13_PRODUCTION_IMPORT_ENABLED` 和 `TASK13_PAYMENT_PRIMARY_ENABLED` 在 Production 均保持 `false`。未来切换必须先做仓库外 SQLite 备份和 dry-run，再临时打开导入门并使用 `--backup-confirmed --backup-dir <仓库外目录> --confirm-production TASK13-PRODUCTION-MEMBERSHIP-PAYMENT-MIGRATION`；完成源/目标数量、会员、订单、状态、履约和二维码清单核对后，还需另一次明确批准才能让云端创建新订单。切换后不能回退支付写入到 SQLite，否则会形成 split-brain。受控回滚是在尚未产生云端新写入时关闭 Task 13 开关并恢复此前 Pages deployment；如果已经产生新订单或会员变更，必须先导出并核对差异，不能直接恢复旧主写。
 
 ### 免费额度降级
 

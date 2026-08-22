@@ -592,7 +592,17 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("function sameOriginResult", middleware)
         self.assertIn("function apiError", middleware)
         self.assertIn("function enforceCloudRateLimit", middleware)
-        self.assertIn("payment_cloud_migration: false", middleware)
+        self.assertIn("payment_cloud_migration: flags.task13PaymentPrimary", middleware)
+        wrangler = json.loads((ROOT / "wrangler.jsonc").read_text(encoding="utf-8"))
+        production_vars = wrangler["env"]["production"]["vars"]
+        for variable in (
+            "TASK13_CLOUD_READS_ENABLED",
+            "TASK13_CLOUD_WRITES_ENABLED",
+            "TASK13_IMPORT_ENABLED",
+            "TASK13_PRODUCTION_IMPORT_ENABLED",
+            "TASK13_PAYMENT_PRIMARY_ENABLED",
+        ):
+            self.assertEqual(production_vars[variable], "false")
         self.assertIn("statusRouteResponse(context, proxyToLegacy)", status)
         self.assertIn('statusSourceFor(context.request, context.env) !== "cloud"', middleware)
         self.assertIn("return legacyProxy(context);", middleware)
