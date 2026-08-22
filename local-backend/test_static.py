@@ -102,17 +102,17 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260820-task11-cloud-migration"
+        release_token = "20260822-learning-sync-record-id"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
-        self.assertIn('export const APP_VERSION = "2026-08-20-task11-cloud-migration"', self.core)
+        self.assertIn('export const APP_VERSION = "2026-08-22-learning-sync-record-id"', self.core)
         for module in ("api", "config", "router", "session", "storage", "ui"):
             self.assertIn(f'/js/core/{module}.js', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20260820-task11-cloud-migration"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20260822-learning-sync-record-id"', self.html)
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
-        self.assertIn('APP_BUILD = "2026-08-20-task11-cloud-migration"', server)
+        self.assertIn('APP_BUILD = "2026-08-22-learning-sync-record-id"', server)
         self.assertIn('"/trial", "/changelog"', server)
         self.assertEqual((ROOT / "_redirects").read_text(encoding="utf-8").strip(), "/* /index.html 200")
 
@@ -139,7 +139,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("globalThis.WYJ_CHANGELOG", self.changelog)
         for field in ("version", "build", "date", "features", "improvements", "fixes", "security"):
             self.assertRegex(self.changelog, rf"\b{field}:\s*")
-        self.assertIn("2026-08-20-task11-cloud-migration", self.changelog)
+        self.assertIn("2026-08-22-learning-sync-record-id", self.changelog)
         self.assertIn("function renderChangelog()", self.app)
         self.assertIn("function maybeShowVersionNotice()", self.app)
         self.assertIn("function submitFeedback(", self.app)

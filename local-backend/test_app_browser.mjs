@@ -550,10 +550,10 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260820-task11-cloud-migration');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260820-task11-cloud-migration');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260820-task11-cloud-migration');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260820-task11-cloud-migration');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260822-learning-sync-record-id');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260822-learning-sync-record-id');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260822-learning-sync-record-id');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260822-learning-sync-record-id');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -563,10 +563,10 @@ async function main() {
       assert.equal(pwa.cachedLearningSync, true);
       assert.equal(pwa.cachedWorkflows, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.20");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.22");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-20-task11-cloud-migration");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-22-learning-sync-record-id");
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
     });
@@ -643,7 +643,7 @@ async function main() {
       );
       assert.equal(await evaluate("document.querySelector('#changelogPage').textContent.includes('可配置工具工作流')"), true);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.20");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.22");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
