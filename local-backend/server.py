@@ -25,6 +25,7 @@ from pathlib import Path
 from socketserver import TCPServer
 
 from account_store import AccountError, AccountStore
+from cloud_identity import CloudIdentityError, assertion_present, verify_cloud_identity
 from payment_assets import PaymentAssetError, load_qr_asset, public_payment_methods
 from temporary_store import MAX_TEMP_FILE_BYTES, TemporaryStore
 from vocabulary_index import LOCAL_VOCABULARY_INDEX, normalize_word
@@ -89,6 +90,12 @@ JAPANESE_FORM_CACHE = {}
 STATE_LOCK = threading.RLock()
 AI_SEMAPHORE = threading.BoundedSemaphore(AI_MAX_CONCURRENCY)
 OLLAMA_READY_LOCK = threading.Lock()
+
+
+def cloud_account_primary():
+    return str(os.environ.get("VOCAB_CLOUD_ACCOUNT_PRIMARY", "")).strip().casefold() in {
+        "1", "true", "yes", "on",
+    }
 OLLAMA_READY_CACHE = {"checked_at": 0.0, "value": False}
 OLLAMA_READY_CACHE_TTL_SEC = 3.0
 QUIZ_RUN_TTL_SEC = 2 * 60 * 60
@@ -2168,10 +2175,20 @@ class VocabHandler(BaseHTTPRequestHandler):
         return json.loads(raw or "{}")
 
     def session_ok(self):
-        token = self.headers.get("X-Session-Token", "")
-        return ACCOUNT_STORE.resolve_session(token) is not None
+        return self.session_user() is not None
 
     def session_user(self):
+        if assertion_present(self.headers):
+            try:
+                path = urllib.parse.urlsplit(self.path).path
+                identity = verify_cloud_identity(self.headers, self.command, path)
+                return ACCOUNT_STORE.resolve_cloud_identity_user(
+                    identity["id"], identity["username"]
+                )
+            except (AccountError, CloudIdentityError, KeyError, TypeError, ValueError):
+                return None
+        if cloud_account_primary():
+            return None
         return ACCOUNT_STORE.resolve_session(self.headers.get("X-Session-Token", ""))
 
     def require_session(self):
@@ -2426,6 +2443,43 @@ class VocabHandler(BaseHTTPRequestHandler):
                     self,
                     HTTPStatus.FORBIDDEN,
                     {"error": "请求来源无效", "code": "origin_forbidden"},
+                )
+                return
+
+            if request_path == "/api/internal/task12/verify-secret":
+                try:
+                    identity = verify_cloud_identity(self.headers, self.command, request_path)
+                    if not identity:
+                        raise CloudIdentityError("identity assertion is required")
+                except (CloudIdentityError, KeyError, TypeError, ValueError):
+                    json_response(
+                        self,
+                        HTTPStatus.FORBIDDEN,
+                        {"error": "身份校验失败", "code": "identity_assertion_invalid"},
+                    )
+                    return
+                payload = self.read_json()
+                if set(payload) != {"secret"}:
+                    json_response(
+                        self,
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "请求字段无效", "code": "invalid_fields"},
+                    )
+                    return
+                valid = ACCOUNT_STORE.verify_legacy_secret(
+                    identity["id"], identity["username"], payload.get("secret")
+                )
+                json_response(self, HTTPStatus.OK, {"ok": True, "valid": bool(valid)})
+                return
+
+            if cloud_account_primary() and request_path in {"/api/register", "/api/login"}:
+                json_response(
+                    self,
+                    HTTPStatus.CONFLICT,
+                    {
+                        "error": "账户登录与注册已切换到 Cloudflare D1。",
+                        "code": "cloud_account_primary",
+                    },
                 )
                 return
 

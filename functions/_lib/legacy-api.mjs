@@ -1,3 +1,7 @@
+import { featureFlags } from "./cloudflare-foundation.mjs";
+import { resolveTask12Account } from "./task12-auth.mjs";
+import { addLegacyIdentityHeaders, bridgeConfigured } from "./task12-bridge.mjs";
+
 const HOP_BY_HOP_HEADERS = new Set([
   "connection", "content-length", "expect", "host", "keep-alive",
   "proxy-authenticate", "proxy-authorization", "te", "trailer",
@@ -18,6 +22,11 @@ const CLIENT_CONTEXT_HEADERS = new Set([
   "x-wyj-proxy", "x-wyj-client-ip", "x-wyj-client-country",
   "x-wyj-client-region", "x-wyj-client-city",
 ]);
+
+function privateProxyHeader(name) {
+  const normalized = String(name || "").toLowerCase();
+  return CLIENT_CONTEXT_HEADERS.has(normalized) || normalized.startsWith("x-wyj-identity-");
+}
 
 function json(data, status = 200, requestId = "") {
   const payload = requestId && !data.request_id ? { ...data, request_id: requestId } : data;
@@ -88,7 +97,7 @@ function requestHeadersFor(request, requestContext = {}, requestId = "") {
   const headers = new Headers();
   request.headers.forEach((value, key) => {
     const normalized = key.toLowerCase();
-    if (!HOP_BY_HOP_HEADERS.has(normalized) && !CLIENT_CONTEXT_HEADERS.has(normalized)) {
+    if (!HOP_BY_HOP_HEADERS.has(normalized) && !privateProxyHeader(normalized)) {
       headers.set(key, value);
     }
   });
@@ -206,9 +215,87 @@ export async function resolveLegacyAccount(context) {
   throw new LegacyAuthDependencyError("账户认证服务暂时不可用，请稍后重试。", "legacy_auth_unavailable");
 }
 
+export async function verifyLegacyPassword(context, account, secret) {
+  if (!bridgeConfigured(context.env)) {
+    throw new LegacyAuthDependencyError("旧账户登录密钥校验桥尚未配置。", "legacy_password_bridge_not_configured");
+  }
+  let bases;
+  try {
+    bases = configuredBases(context.env);
+  } catch (_) {
+    throw new LegacyAuthDependencyError("旧账户登录密钥校验服务配置无效。", "legacy_password_bridge_configuration_error");
+  }
+  if (!bases.length) {
+    throw new LegacyAuthDependencyError("旧账户登录密钥校验服务尚未配置。", "legacy_password_bridge_not_configured");
+  }
+  const requestId = context.data?.requestId || crypto.randomUUID();
+  const assertionRequest = new Request(new URL("/api/internal/task12/verify-secret", context.request.url), {
+    method: "POST",
+  });
+  const headers = addProxyContextHeaders(
+    new Headers({ Accept: "application/json", "Content-Type": "application/json; charset=utf-8" }),
+    context.request,
+    context.request.cf || context.cf || {},
+    requestId,
+  );
+  await addLegacyIdentityHeaders(headers, assertionRequest, account, context.env, requestId);
+  try {
+    const response = await fetchWithTimeout(
+      targetUrlFor(assertionRequest, bases[0]).toString(),
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ secret: String(secret || "") }),
+        redirect: "manual",
+      },
+      LEGACY_AUTH_TIMEOUT_MS,
+    );
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload?.ok || typeof payload.valid !== "boolean") {
+      throw new LegacyAuthDependencyError(
+        "旧账户登录密钥校验服务返回了无效响应。",
+        "legacy_password_bridge_invalid_response",
+      );
+    }
+    return payload.valid;
+  } catch (error) {
+    if (error instanceof LegacyAuthDependencyError) throw error;
+    throw new LegacyAuthDependencyError(
+      "旧账户登录密钥校验服务暂时不可用，请稍后重试。",
+      "legacy_password_bridge_unavailable",
+    );
+  }
+}
+
 export async function proxyToLegacy(context) {
   const { env, request } = context;
-  const requestId = context.data?.requestId || "";
+  const requestId = context.data?.requestId || crypto.randomUUID();
+  const flags = featureFlags(env);
+  let cloudIdentity = null;
+  if (flags.task12CloudAccounts && String(request.headers.get("X-Session-Token") || "").trim()) {
+    if (!bridgeConfigured(env)) {
+      return json({
+        ok: false,
+        error: "云端账户已启用，但旧业务身份桥尚未配置。",
+        code: "task12_legacy_bridge_not_configured",
+        retryable: false,
+      }, 503, requestId);
+    }
+    try {
+      const result = await resolveTask12Account(context);
+      if (!result.authenticated) {
+        return json({ ok: false, error: "请先登录", code: result.code || "authentication_required" }, result.status || 401, requestId);
+      }
+      cloudIdentity = result.account;
+    } catch (_) {
+      return json({
+        ok: false,
+        error: "云端账户服务暂时不可用，请稍后重试。",
+        code: "task12_account_unavailable",
+        retryable: true,
+      }, 503, requestId);
+    }
+  }
   let bases;
   try {
     bases = configuredBases(env);
@@ -256,9 +343,13 @@ export async function proxyToLegacy(context) {
     for (let baseIndex = 0; baseIndex < candidateBases.length; baseIndex += 1) {
       const base = candidateBases[baseIndex];
       const target = targetUrlFor(request, base);
+      const headers = requestHeadersFor(request, request.cf || context.cf || {}, requestId);
+      if (cloudIdentity) {
+        await addLegacyIdentityHeaders(headers, request, cloudIdentity, env, requestId);
+      }
       const init = {
         method: request.method,
-        headers: requestHeadersFor(request, request.cf || context.cf || {}, requestId),
+        headers,
         redirect: "manual",
       };
       if (body) init.body = body;
@@ -291,6 +382,8 @@ export const __testing = {
   configuredBases,
   fetchWithTimeout,
   legacyAuthHeadersFor,
+  privateProxyHeader,
+  requestHeadersFor,
   retryDelayWithJitter,
   targetUrlFor,
   upstreamTimeoutFor,

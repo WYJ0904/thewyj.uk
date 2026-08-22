@@ -245,6 +245,41 @@ function fakeRateLimitDatabase({ fail = "", schemaVersion = "1" } = {}) {
   const task11SchemaFailure = await task11SchemaFailureResponse.json();
   assert.equal(task11SchemaFailure.status, "degraded");
   assert.ok(task11SchemaFailure.degraded_reasons.includes("task11_binding_unavailable"));
+
+  const task12ReadyEnv = {
+    CLOUD_FOUNDATION_ENABLED: "true",
+    CLOUD_DEEP_HEALTH_CHECKS: "true",
+    D1_RATE_LIMIT_ENABLED: "false",
+    TASK12_CLOUD_ACCOUNTS_ENABLED: "true",
+    WYJ_ENVIRONMENT: "preview",
+    WYJ_LEGACY_IDENTITY_BRIDGE_SECRET: "task12-status-bridge-secret-0123456789",
+    WYJ_TASK12_PASSWORD_PEPPER: "task12-status-password-pepper-0123456789",
+    WYJ_STORAGE: {},
+    WYJ_DB: {
+      prepare() {
+        return { bind() { return { async first() { return { value: "1" }; } }; } };
+      },
+    },
+  };
+  const task12ReadyResponse = await cloudStatusResponse({
+    env: task12ReadyEnv,
+    request: new Request("https://preview.example/api/status?source=cloud"),
+    data: {},
+  });
+  const task12Ready = await task12ReadyResponse.json();
+  assert.equal(task12Ready.status, "ok");
+  assert.equal(task12Ready.task12.password_pepper_configured, true);
+  assert.equal(task12Ready.features.task12_password_pepper, true);
+
+  const task12MissingPepperResponse = await cloudStatusResponse({
+    env: { ...task12ReadyEnv, WYJ_TASK12_PASSWORD_PEPPER: "" },
+    request: new Request("https://preview.example/api/status?source=cloud"),
+    data: {},
+  });
+  const task12MissingPepper = await task12MissingPepperResponse.json();
+  assert.equal(task12MissingPepper.status, "degraded");
+  assert.equal(task12MissingPepper.task12.password_pepper_configured, false);
+  assert.ok(task12MissingPepper.degraded_reasons.includes("task12_password_pepper_not_configured"));
   completed += 1;
 }
 

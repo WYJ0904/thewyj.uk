@@ -1,3 +1,6 @@
+import { bridgeConfigured } from "./task12-bridge.mjs";
+import { passwordPepperConfigured } from "./task12-crypto.mjs";
+
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{8,80}$/;
 const SAFE_API_METHODS = new Set(["GET", "HEAD"]);
 const DEFAULT_RATE_LIMIT = 120;
@@ -31,6 +34,9 @@ export function featureFlags(env = {}) {
     cloudWrites,
     task11CloudReads: booleanValue(env.TASK11_CLOUD_READS_ENABLED, cloudReads),
     task11CloudWrites: booleanValue(env.TASK11_CLOUD_WRITES_ENABLED, cloudWrites),
+    task12CloudAccounts: booleanValue(env.TASK12_CLOUD_ACCOUNTS_ENABLED, false),
+    task12Import: booleanValue(env.TASK12_IMPORT_ENABLED, false),
+    task12ProductionImport: booleanValue(env.TASK12_PRODUCTION_IMPORT_ENABLED, false),
     legacyFallback: booleanValue(env.LEGACY_API_FALLBACK_ENABLED, true),
     workersAi: booleanValue(env.WORKERS_AI_ENABLED, false),
     d1RateLimit: booleanValue(env.D1_RATE_LIMIT_ENABLED, true),
@@ -127,7 +133,7 @@ export function classifyCloudError(error) {
   return "temporarily_unavailable";
 }
 
-async function sha256Hex(value) {
+export async function sha256Hex(value) {
   const bytes = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -213,6 +219,13 @@ async function bindingHealth(env, flags) {
   };
   const degraded = [];
   const task11 = { schema_ready: false, schema_version: "" };
+  const task12 = {
+    schema_ready: false,
+    schema_version: "",
+    session_strategy: "invalidate_legacy_sessions",
+    legacy_bridge_configured: bridgeConfigured(env),
+    password_pepper_configured: passwordPepperConfigured(env?.WYJ_TASK12_PASSWORD_PEPPER),
+  };
   if (!bindings.d1) degraded.push("d1_binding_missing");
   if (!bindings.r2) degraded.push("r2_binding_missing");
   if (flags.workersAi && !bindings.workers_ai) degraded.push("workers_ai_binding_missing");
@@ -240,8 +253,24 @@ async function bindingHealth(env, flags) {
         degraded.push(`task11_${classifyCloudError(error)}`);
       }
     }
+    try {
+      const row = await env.WYJ_DB.prepare(
+        "SELECT value FROM task12_metadata WHERE key = ?1",
+      ).bind("schema_version").first();
+      task12.schema_version = String(row?.value || "");
+      task12.schema_ready = task12.schema_version === "1";
+      if (!task12.schema_ready && flags.task12CloudAccounts) degraded.push("task12_schema_not_ready");
+    } catch (error) {
+      if (flags.task12CloudAccounts) degraded.push(`task12_${classifyCloudError(error)}`);
+    }
   }
-  return { bindings, degraded, task11 };
+  if (flags.task12CloudAccounts && !task12.legacy_bridge_configured) {
+    degraded.push("task12_legacy_bridge_not_configured");
+  }
+  if (flags.task12CloudAccounts && !task12.password_pepper_configured) {
+    degraded.push("task12_password_pepper_not_configured");
+  }
+  return { bindings, degraded, task11, task12 };
 }
 
 export async function cloudStatusResponse(context) {
@@ -263,20 +292,25 @@ export async function cloudStatusResponse(context) {
     status: degraded.length ? "degraded" : "ok",
     service: "wyj-cloud-foundation",
     environment: String(context.env?.WYJ_ENVIRONMENT || "development"),
-    build: "2026-08-14-cloudflare-foundation",
+    build: "2026-08-21-task12-password-compat",
     time: new Date().toISOString(),
-    auth: false,
-    backend_ready: false,
+    auth: Boolean(flags.task12CloudAccounts && health.task12.schema_ready),
+    backend_ready: Boolean(flags.task12CloudAccounts && health.task12.schema_ready),
     ai_ready: false,
     model: "Cloudflare foundation",
     bindings: health.bindings,
     task11: health.task11,
+    task12: health.task12,
     features: {
       cloud_foundation: flags.cloudFoundation,
       cloud_reads: flags.cloudReads,
       cloud_writes: flags.cloudWrites,
       task11_cloud_reads: flags.task11CloudReads,
       task11_cloud_writes: flags.task11CloudWrites,
+      task12_cloud_accounts: flags.task12CloudAccounts,
+      task12_import: flags.task12Import,
+      task12_legacy_bridge: health.task12.legacy_bridge_configured,
+      task12_password_pepper: health.task12.password_pepper_configured,
       workers_ai: flags.workersAi,
       legacy_api_fallback: flags.legacyFallback,
       payment_cloud_migration: false,

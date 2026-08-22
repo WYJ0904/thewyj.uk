@@ -346,6 +346,9 @@ class StaticSiteTests(unittest.TestCase):
         watchdog = (ROOT / "desktop-tools" / "watch-wyj.ps1").read_text(encoding="utf-8-sig")
         backend_runner = (ROOT / "local-backend" / "run.ps1").read_text(encoding="utf-8-sig")
         self.assertIn("membership.py", launcher)
+        sync_backend = re.search(r"function Sync-BackendSource \{(.*?)\n\}", launcher, re.S)
+        self.assertIsNotNone(sync_backend)
+        self.assertIn('"cloud_identity.py"', sync_backend.group(1))
         self.assertIn("payment_assets.py", launcher)
         self.assertIn("temporary_store.py", launcher)
         self.assertIn("vocabulary_index.py", launcher)
@@ -498,8 +501,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertEqual(config["env"]["preview"]["vars"]["TASK11_CLOUD_READS_ENABLED"], "true")
         self.assertEqual(config["env"]["preview"]["vars"]["TASK11_CLOUD_WRITES_ENABLED"], "true")
         self.assertEqual(config["env"]["preview"]["vars"]["TASK11_IMPORT_ENABLED"], "true")
-        self.assertEqual(config["env"]["production"]["vars"]["TASK11_CLOUD_READS_ENABLED"], "false")
-        self.assertEqual(config["env"]["production"]["vars"]["TASK11_CLOUD_WRITES_ENABLED"], "false")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK11_CLOUD_READS_ENABLED"], "true")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK11_CLOUD_WRITES_ENABLED"], "true")
         self.assertEqual(config["env"]["production"]["vars"]["TASK11_IMPORT_ENABLED"], "false")
 
         preview = config["env"]["preview"]
@@ -566,6 +569,21 @@ class StaticSiteTests(unittest.TestCase):
             r"CREATE TABLE IF NOT EXISTS\s+(?:users|sessions|memberships|payment_requests)\b",
         )
         self.assertNotRegex(task11_migration, r"\b(?:DROP|ALTER\s+TABLE\s+users)\b")
+
+        task12_session_limit = (
+            ROOT / "cloudflare" / "migrations" / "0004_session_limit_trigger.sql"
+        ).read_text(encoding="utf-8")
+        self.assertIn("CREATE TRIGGER IF NOT EXISTS task12_sessions_limit_after_insert", task12_session_limit)
+        self.assertIn("WHERE user_id = NEW.user_id AND revoked = 0", task12_session_limit)
+        self.assertIn("LIMIT -1 OFFSET 12", task12_session_limit)
+        self.assertNotRegex(task12_session_limit, r"\bDROP\b")
+
+        task12_session_ordering = (
+            ROOT / "cloudflare" / "migrations" / "0005_session_limit_ordering.sql"
+        ).read_text(encoding="utf-8")
+        self.assertIn("DROP TRIGGER IF EXISTS task12_sessions_limit_after_insert", task12_session_ordering)
+        self.assertIn("ORDER BY rowid DESC", task12_session_ordering)
+        self.assertIn("LIMIT -1 OFFSET 12", task12_session_ordering)
 
         middleware = (ROOT / "functions" / "_lib" / "cloudflare-foundation.mjs").read_text(encoding="utf-8")
         status = (ROOT / "functions" / "api" / "status.js").read_text(encoding="utf-8")

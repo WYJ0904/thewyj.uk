@@ -1,10 +1,14 @@
 import json
 import base64
+import hashlib
+import hmac
 import os
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -36,6 +40,34 @@ for payment_method in ("wechat", "alipay"):
 
 import server  # noqa: E402
 from account_store import ADMIN_SECRET  # noqa: E402
+
+
+def cloud_identity_headers(method, path, user_id, username, secret):
+    issued_at = int(time.time())
+    request_id = "task12-api-bridge-request-001"
+    canonical = "\n".join(
+        (
+            "wyj-legacy-identity-v1",
+            str(issued_at),
+            request_id,
+            method.upper(),
+            path,
+            user_id,
+            username,
+        )
+    )
+    signature = base64.urlsafe_b64encode(
+        hmac.new(secret.encode(), canonical.encode(), hashlib.sha256).digest()
+    ).decode("ascii").rstrip("=")
+    return {
+        "X-WYJ-Proxy": "pages",
+        "X-WYJ-Identity-Version": "1",
+        "X-WYJ-Identity-User-ID": urllib.parse.quote(user_id),
+        "X-WYJ-Identity-Username": urllib.parse.quote(username),
+        "X-WYJ-Identity-Issued-At": str(issued_at),
+        "X-WYJ-Identity-Request-ID": request_id,
+        "X-WYJ-Identity-Signature": signature,
+    }
 
 
 class AccountApiTests(unittest.TestCase):
@@ -684,6 +716,81 @@ class AccountApiTests(unittest.TestCase):
         self.assertEqual(status, 200, data)
         status, _ = self.request("GET", "/api/me", session=session)
         self.assertEqual(status, 401)
+
+    def test_cloud_identity_bridge_replaces_legacy_session_when_cloud_is_primary(self):
+        username, account, legacy_session = self.new_user()
+        bridge_secret = "task12-api-bridge-secret-0123456789"
+        headers = cloud_identity_headers(
+            "GET", "/api/me", account["id"], username, bridge_secret
+        )
+        with mock.patch.dict(
+            os.environ,
+            {
+                "VOCAB_LEGACY_IDENTITY_BRIDGE_SECRET": bridge_secret,
+                "VOCAB_CLOUD_ACCOUNT_PRIMARY": "true",
+            },
+        ):
+            status, _ = self.request("GET", "/api/me", session=legacy_session)
+            self.assertEqual(status, 401)
+            status, bridged = self.request("GET", "/api/me", extra_headers=headers)
+            self.assertEqual(status, 200, bridged)
+            self.assertEqual(bridged["account"]["id"], account["id"])
+            status, blocked = self.request(
+                "POST", "/api/login", {"username": username, "secret": "ABC1234"}
+            )
+            self.assertEqual(status, 409, blocked)
+            self.assertEqual(blocked["code"], "cloud_account_primary")
+
+    def test_task12_secret_verifier_requires_signed_identity_and_rejects_plaintext(self):
+        username, account, _ = self.new_user()
+        bridge_secret = "task12-secret-verifier-bridge-0123456789"
+        path = "/api/internal/task12/verify-secret"
+        headers = cloud_identity_headers("POST", path, account["id"], username, bridge_secret)
+        with mock.patch.dict(
+            os.environ,
+            {"VOCAB_LEGACY_IDENTITY_BRIDGE_SECRET": bridge_secret},
+        ):
+            status, verified = self.request(
+                "POST", path, {"secret": "ABC1234"}, extra_headers=headers
+            )
+            self.assertEqual(status, 200, verified)
+            self.assertTrue(verified["valid"])
+            self.assertNotIn("ABC1234", json.dumps(verified))
+
+            status, rejected = self.request(
+                "POST", path, {"secret": "wrong-secret"}, extra_headers=headers
+            )
+            self.assertEqual(status, 200, rejected)
+            self.assertFalse(rejected["valid"])
+
+            status, unsigned = self.request("POST", path, {"secret": "ABC1234"})
+            self.assertEqual(status, 403, unsigned)
+            self.assertEqual(unsigned["code"], "identity_assertion_invalid")
+
+            tampered = dict(headers)
+            tampered["X-WYJ-Identity-Signature"] = "tampered"
+            status, invalid = self.request(
+                "POST", path, {"secret": "ABC1234"}, extra_headers=tampered
+            )
+            self.assertEqual(status, 403, invalid)
+
+            plaintext_username, plaintext_account, _ = self.new_user()
+            with server.ACCOUNT_STORE.connect() as connection:
+                connection.execute(
+                    "UPDATE users SET secret = ? WHERE id = ?",
+                    ("legacy-plaintext-must-not-verify", plaintext_account["id"]),
+                )
+            plaintext_headers = cloud_identity_headers(
+                "POST", path, plaintext_account["id"], plaintext_username, bridge_secret
+            )
+            status, plaintext = self.request(
+                "POST",
+                path,
+                {"secret": "legacy-plaintext-must-not-verify"},
+                extra_headers=plaintext_headers,
+            )
+            self.assertEqual(status, 200, plaintext)
+            self.assertFalse(plaintext["valid"])
 
     def test_ai_unavailable_is_retryable_service_unavailable(self):
         _, _, session = self.new_user()
