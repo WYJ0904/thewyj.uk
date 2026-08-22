@@ -501,8 +501,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertEqual(config["env"]["preview"]["vars"]["TASK11_CLOUD_READS_ENABLED"], "true")
         self.assertEqual(config["env"]["preview"]["vars"]["TASK11_CLOUD_WRITES_ENABLED"], "true")
         self.assertEqual(config["env"]["preview"]["vars"]["TASK11_IMPORT_ENABLED"], "true")
-        self.assertEqual(config["env"]["production"]["vars"]["TASK11_CLOUD_READS_ENABLED"], "false")
-        self.assertEqual(config["env"]["production"]["vars"]["TASK11_CLOUD_WRITES_ENABLED"], "false")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK11_CLOUD_READS_ENABLED"], "true")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK11_CLOUD_WRITES_ENABLED"], "true")
         self.assertEqual(config["env"]["production"]["vars"]["TASK11_IMPORT_ENABLED"], "false")
 
         preview = config["env"]["preview"]

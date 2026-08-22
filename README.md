@@ -470,7 +470,7 @@ node local-backend/test_tools_browser.mjs
 
 新的 `functions/_middleware.js` 为 Pages Functions 响应加入安全头和 `X-Request-ID`，拒绝浏览器跨站写请求，并把未处理异常转成统一的 `{ ok, error, code, retryable, request_id }` 格式。上游 Python 的正常/业务错误响应仍原样透传，避免破坏现有前端协议。`GET /api/status?source=cloud` 返回 D1/R2/AI binding、feature flags、限流和降级原因；默认 `GET /api/status` 仍代理旧后端，因此启动器和前端不会把“Cloudflare 在线”误判成“账户后端在线”。
 
-会员、订单、付款二维码、管理员审批、临时分享、PDF 和 AI 判卷继续由本地 Python 后端处理。Task 12 只在 Preview 打开 D1 账户与会话；Production 的 Task 12 开关仍为 `false`，因此线上账户仍由旧后端负责。Preview 中，Pages 先验证 D1 Session，再用短时 HMAC 身份断言访问尚未迁移的旧业务接口；原始 D1 token 不会转发给 Python，也不会在 SQLite 建立第二套 Session。要立即回退 Preview，关闭 `TASK12_CLOUD_ACCOUNTS_ENABLED` 和 `TASK12_IMPORT_ENABLED`，旧账户路径仍可工作。
+会员、订单、付款二维码、管理员审批、临时分享、PDF 和 AI 判卷继续由本地 Python 后端处理。Task 11 的 Production D1 读写已经启用并保留 legacy fallback；Task 12 只在 Preview 打开 D1 账户与会话，Production 的 Task 12 开关仍为 `false`，因此线上账户仍由旧后端负责。Preview 中，Pages 先验证 D1 Session，再用短时 HMAC 身份断言访问尚未迁移的旧业务接口；原始 D1 token 不会转发给 Python，也不会在 SQLite 建立第二套 Session。要立即回退 Preview，关闭 `TASK12_CLOUD_ACCOUNTS_ENABLED` 和 `TASK12_IMPORT_ENABLED`，旧账户路径仍可工作。
 
 ### 控制台准备
 
