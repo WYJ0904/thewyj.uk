@@ -102,15 +102,19 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260822-learning-sync-record-id"
+        release_token = "20260823-task14-temporary-sharing"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
-        self.assertIn('export const APP_VERSION = "2026-08-22-learning-sync-record-id"', self.core)
+        self.assertIn('export const APP_VERSION = "2026-08-23-task14-temporary-sharing"', self.core)
         for module in ("api", "config", "router", "session", "storage", "ui"):
             self.assertIn(f'/js/core/{module}.js', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20260822-learning-sync-record-id"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20260823-task14-temporary-sharing"', self.html)
+        stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
+        self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
+        self.assertNotIn('.tool-e2e', stage_script)
+        self.assertIn('"pages:stage": "node scripts/stage_pages_deploy.mjs"', (ROOT / "package.json").read_text(encoding="utf-8"))
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
         self.assertIn('APP_BUILD = "2026-08-22-learning-sync-record-id"', server)
         self.assertIn('"/trial", "/changelog"', server)
@@ -306,6 +310,16 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("function uploadApi", self.core)
         self.assertIn('bridge.uploadApi("/api/temporary/file"', self.tools)
         self.assertIn("timeoutMs: 180000", self.tools)
+        self.assertIn("const TEMP_VIDEO_MAX_BYTES = 30 * 1024 * 1024", self.tools)
+        self.assertIn('".mp4": "video/mp4"', self.tools)
+        self.assertIn('bridge.uploadBinaryApi(initialized.upload.upload_url', self.tools)
+        self.assertIn("requestJsonGet,", self.app)
+        self.assertIn("uploadBinaryApi,", self.app)
+        task14_model = (ROOT / "functions" / "_lib" / "task14-model.mjs").read_text(encoding="utf-8")
+        self.assertIn("MAX_TEMP_FILE_BYTES = 20 * 1024 * 1024", task14_model)
+        self.assertIn("MAX_TEMP_VIDEO_BYTES = 30 * 1024 * 1024", task14_model)
+        for extension in (".mp4", ".m4v", ".mov", ".webm"):
+            self.assertIn(f'"{extension}"', task14_model)
 
     def test_opencc_character_dictionaries_are_local_and_cached(self):
         expected = {

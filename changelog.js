@@ -1,6 +1,16 @@
 (() => {
   const entries = [
     {
+      version: "2026.08.23",
+      build: "2026-08-23-task14-temporary-sharing",
+      date: "2026-08-23",
+      title: "临时分享 Cloudflare Preview",
+      features: ["临时文本、文件、二维码、剪贴板和留言房间迁到 Preview D1/R2 验证。"],
+      improvements: ["文件使用原始字节上传和私有流式下载，新增视频、Range 续传与确定性下载次数。"],
+      fixes: ["修复临时分享能力探测和二进制上传方法未传入工具桥接的问题。"],
+      security: ["R2 object key 不对客户端公开，密码与连接码只保存摘要，并增加配额、限流和幂等清理。"],
+    },
+    {
       version: "2026.08.22",
       build: "2026-08-22-learning-sync-record-id",
       date: "2026-08-22",

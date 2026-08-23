@@ -12,7 +12,11 @@ import {
   STATUS_TIMEOUT_MS,
 } from "./js/core/config.js";
 import { createApiClient, fetchWithTimeout, retryDelayWithJitter, waitForDelay } from "./js/core/api.js";
-import { loadCloudChangelog, staticChangelogEntries } from "./js/core/changelog.js";
+import {
+  loadCloudChangelog,
+  mergeChangelogEntries,
+  staticChangelogEntries,
+} from "./js/core/changelog.js";
 import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js";
 import {
   clearAccountSessionStorage,
@@ -1113,7 +1117,7 @@ function renderDashboardToolShelf(id, items, emptyMessage) {
 }
 
 function changelogEntries() {
-  return cloudChangelogEntries || staticChangelogEntries(window);
+  return mergeChangelogEntries(cloudChangelogEntries || [], staticChangelogEntries(window));
 }
 
 function refreshCloudChangelog() {
@@ -3896,7 +3900,7 @@ function backendErrorMessage(error) {
   return BACKEND_NETWORK_MESSAGE;
 }
 
-const { api, apiGet, publicApi, requestJsonGet, uploadApi } = createApiClient({
+const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = createApiClient({
   getSession: () => state.session,
   backendErrorMessage,
   markBackendReachable,
@@ -6038,7 +6042,9 @@ async function boot() {
       api,
       apiGet,
       publicApi,
+      requestJsonGet,
       uploadApi,
+      uploadBinaryApi,
       copyText: writeClipboardText,
       formatDate: formatLocalDateTime,
       navigate: (path) => pushRoute(path),

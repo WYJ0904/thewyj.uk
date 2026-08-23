@@ -231,6 +231,70 @@ export function createApiClient({
     });
   }
 
+  function uploadBinaryApi(path, body, options = {}) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const controller = options.controller || new AbortController();
+      const abortRequest = () => xhr.abort();
+      let completed = false;
+      const finish = (callback) => {
+        if (completed) return;
+        completed = true;
+        controller.signal.removeEventListener("abort", abortRequest);
+        callback();
+      };
+      xhr.open(options.method || "PUT", path, true);
+      xhr.timeout = options.timeoutMs || 600000;
+      xhr.setRequestHeader("Content-Type", options.contentType || body?.type || "application/octet-stream");
+      xhr.setRequestHeader("X-Session-Token", getSession());
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable && typeof options.onProgress === "function") {
+          options.onProgress(Math.max(0, Math.min(1, event.loaded / event.total)), event.loaded, event.total);
+        }
+      };
+      xhr.onload = () => finish(() => {
+        let data = {};
+        try { data = JSON.parse(xhr.responseText || "{}"); } catch (_error) { data = {}; }
+        if (xhr.status < 500) markBackendReachable(data);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          if (typeof options.onProgress === "function") options.onProgress(1, body?.size || 1, body?.size || 1);
+          resolve(data);
+          return;
+        }
+        if (xhr.status === 401) handleSessionExpired();
+        const error = new Error(data.error || "上传失败");
+        error.code = data.code || "request_failed";
+        error.status = xhr.status;
+        if (error.code === "membership_required") handleMembershipRequired();
+        reject(error);
+      });
+      xhr.onerror = () => finish(() => {
+        const message = backendErrorMessage(new Error("network error"));
+        markNetworkFailure(message, "upload");
+        const error = new Error(message);
+        error.code = "network_error";
+        reject(error);
+      });
+      xhr.ontimeout = () => finish(() => {
+        const error = new Error("上传超时，请检查网络后重试");
+        error.code = "upload_timeout";
+        reject(error);
+      });
+      xhr.onabort = () => finish(() => {
+        const error = new Error("上传已取消");
+        error.name = "AbortError";
+        error.code = "upload_cancelled";
+        reject(error);
+      });
+      if (controller.signal.aborted) {
+        xhr.abort();
+        return;
+      }
+      controller.signal.addEventListener("abort", abortRequest, { once: true });
+      try { xhr.send(body); } catch (error) { finish(() => reject(error)); }
+    });
+  }
+
   async function publicApi(path, body = {}, options = {}) {
     let response;
     try {
@@ -250,10 +314,11 @@ export function createApiClient({
     if (!response.ok) {
       const error = new Error(data.error || "请求失败");
       error.code = data.code || "request_failed";
+      error.status = response.status;
       throw error;
     }
     return data;
   }
 
-  return Object.freeze({ api, apiGet, publicApi, requestJsonGet, uploadApi });
+  return Object.freeze({ api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi });
 }

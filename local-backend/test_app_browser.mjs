@@ -550,10 +550,10 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260822-learning-sync-record-id');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260822-learning-sync-record-id');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260822-learning-sync-record-id');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260822-learning-sync-record-id');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260823-task14-temporary-sharing');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260823-task14-temporary-sharing');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260823-task14-temporary-sharing');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260823-task14-temporary-sharing');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -563,10 +563,10 @@ async function main() {
       assert.equal(pwa.cachedLearningSync, true);
       assert.equal(pwa.cachedWorkflows, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.22");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.23");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-22-learning-sync-record-id");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-23-task14-temporary-sharing");
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
     });

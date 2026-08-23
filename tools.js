@@ -50,6 +50,8 @@ import { runToolRenderer } from "./js/tools/runner.js";
   let activeRoomPoller = null;
   let activeUploadController = null;
   const TEMP_FILE_MAX_BYTES = 20 * 1024 * 1024;
+  const TEMP_VIDEO_MAX_BYTES = 30 * 1024 * 1024;
+  const TEMP_VIDEO_EXTENSIONS = new Set(["mp4", "m4v", "mov", "webm"]);
   const ROOM_POLL_BASE_MS = 4000;
   const ROOM_POLL_MAX_MS = 30000;
   const TOOL_PREFERENCES_CACHE_VERSION = 1;
@@ -941,6 +943,45 @@ import { runToolRenderer } from "./js/tools/runner.js";
     return `${location.origin}/share/${type}/${encodeURIComponent(id)}`;
   }
 
+  let temporaryCapabilitiesPromise = null;
+  function temporaryCapabilities(refresh = false) {
+    if (refresh || !temporaryCapabilitiesPromise) {
+      temporaryCapabilitiesPromise = bridge.requestJsonGet("/api/temporary/capabilities", {
+        authenticated: false,
+        timeoutMs: 8000,
+      }).then((data) => ({ ...data, available: true })).catch(() => ({
+        available: false,
+        cloud_reads: false,
+        cloud_upload: false,
+        temporary_primary: false,
+        limits: { file_bytes: TEMP_FILE_MAX_BYTES, video_bytes: TEMP_VIDEO_MAX_BYTES },
+      }));
+    }
+    return temporaryCapabilitiesPromise;
+  }
+
+  function temporaryFileLimit(file, capabilities = {}) {
+    const extension = String(file?.name || "").split(".").pop().toLowerCase();
+    const video = TEMP_VIDEO_EXTENSIONS.has(extension);
+    const limits = capabilities.limits || {};
+    return {
+      video,
+      bytes: Number(video ? limits.video_bytes : limits.file_bytes) || (video ? TEMP_VIDEO_MAX_BYTES : TEMP_FILE_MAX_BYTES),
+    };
+  }
+
+  function temporaryFileMime(file) {
+    if (String(file?.type || "").trim()) return String(file.type).trim().toLowerCase();
+    const extension = String(file?.name || "").toLowerCase().match(/(\.[a-z0-9]+)$/)?.[1] || "";
+    return ({
+      ".txt": "text/plain", ".csv": "text/csv", ".json": "application/json",
+      ".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif",
+      ".zip": "application/zip", ".mp4": "video/mp4", ".m4v": "video/x-m4v",
+      ".mov": "video/quicktime", ".webm": "video/webm",
+    })[extension] || "application/octet-stream";
+  }
+
   function showQrCode(target, value) {
     target.innerHTML = "";
     if (typeof window.qrcode !== "function") {
@@ -1028,7 +1069,7 @@ import { runToolRenderer } from "./js/tools/runner.js";
 
   function renderTemporaryFile(tool) {
     byId("toolWorkbenchBody").innerHTML = `<div class="tool-form temporary-tool-form">
-      <label class="file-drop"><span>选择临时文件（最大 20 MB）</span><input id="tempFileInput" type="file" accept=".txt,.csv,.json,.pdf,.png,.jpg,.jpeg,.webp,.gif,.zip" /></label>
+      <label class="file-drop"><span>选择临时文件（普通文件 20 MB，视频 30 MB）</span><input id="tempFileInput" type="file" accept=".txt,.csv,.json,.pdf,.png,.jpg,.jpeg,.webp,.gif,.zip,.mp4,.m4v,.mov,.webm" /></label>
       ${temporaryCommonFields(60)}
       <label><span>最大下载次数</span><input id="tempMaxDownloads" data-config="maxDownloads" type="number" min="1" max="100" value="5" /></label>
       <div class="tool-command-row"><button class="primary" id="createTempBtn" type="button">上传并生成链接</button><button id="cancelTempUploadBtn" class="hidden" type="button">取消上传</button></div>
@@ -1054,37 +1095,68 @@ import { runToolRenderer } from "./js/tools/runner.js";
       cancelButton.classList.remove("hidden");
       progressWrap.classList.remove("hidden");
       updateProgress(0, "准备读取…");
+      let reservationId = "";
       try {
         const selected = byId("tempFileInput").files?.[0];
         if (!selected) throw new Error("请选择文件");
-        if (selected.size > TEMP_FILE_MAX_BYTES) throw new Error("临时文件不能超过 20 MB");
-        const buffer = await readFileWithProgress(selected, controller, (ratio) => updateProgress(ratio * 0.2, `读取 ${Math.round(ratio * 100)}%`));
-        if (controller.signal.aborted) return;
-        updateProgress(0.2, "正在编码…");
-        const bytes = new Uint8Array(buffer);
-        let binary = "";
-        for (let index = 0; index < bytes.length; index += 0x8000) {
-          if (controller.signal.aborted) return;
-          binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+        const capabilities = await temporaryCapabilities(true);
+        if (!capabilities.available) throw new Error("暂时无法确认临时分享服务状态，请检查网络后重试");
+        const limit = temporaryFileLimit(selected, capabilities);
+        if (selected.size > limit.bytes) {
+          throw new Error(`临时${limit.video ? "视频" : "文件"}不能超过 ${limit.bytes / (1024 * 1024)} MB`);
         }
-        const data = await bridge.uploadApi("/api/temporary/file", {
-          file_name: selected.name,
-          mime_type: selected.type || "application/octet-stream",
-          base64: btoa(binary),
-          password: byId("tempPassword").value,
-          minutes: byId("tempMinutes").value,
-          max_downloads: byId("tempMaxDownloads").value,
-          destroy_after_download: byId("tempDestroy").checked,
-        }, {
-          controller,
-          timeoutMs: 180000,
-          onProgress: (ratio) => updateProgress(0.2 + ratio * 0.8, `上传 ${Math.round(ratio * 100)}%`),
-        });
+        let data;
+        if (capabilities.cloud_upload) {
+          updateProgress(0, "正在创建安全上传…");
+          const initialized = await bridge.api("/api/temporary/file/init", {
+            file_name: selected.name,
+            mime_type: temporaryFileMime(selected),
+            size_bytes: selected.size,
+            password: byId("tempPassword").value,
+            minutes: byId("tempMinutes").value,
+            max_downloads: byId("tempMaxDownloads").value,
+            destroy_after_download: byId("tempDestroy").checked,
+          }, { timeoutMs: 30000 });
+          reservationId = initialized.upload.id;
+          data = await bridge.uploadBinaryApi(initialized.upload.upload_url, selected, {
+            controller,
+            timeoutMs: 600000,
+            contentType: temporaryFileMime(selected),
+            onProgress: (ratio) => updateProgress(ratio, `上传 ${Math.round(ratio * 100)}%`),
+          });
+        } else {
+          if (limit.video) throw new Error("云端临时视频分享尚未启用，请稍后重试");
+          const buffer = await readFileWithProgress(selected, controller, (ratio) => updateProgress(ratio * 0.2, `读取 ${Math.round(ratio * 100)}%`));
+          if (controller.signal.aborted) return;
+          updateProgress(0.2, "正在兼容旧版服务…");
+          const bytes = new Uint8Array(buffer);
+          let binary = "";
+          for (let index = 0; index < bytes.length; index += 0x8000) {
+            if (controller.signal.aborted) return;
+            binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+          }
+          data = await bridge.uploadApi("/api/temporary/file", {
+            file_name: selected.name,
+            mime_type: temporaryFileMime(selected),
+            base64: btoa(binary),
+            password: byId("tempPassword").value,
+            minutes: byId("tempMinutes").value,
+            max_downloads: byId("tempMaxDownloads").value,
+            destroy_after_download: byId("tempDestroy").checked,
+          }, {
+            controller,
+            timeoutMs: 180000,
+            onProgress: (ratio) => updateProgress(0.2 + ratio * 0.8, `上传 ${Math.round(ratio * 100)}%`),
+          });
+        }
         const url = shareUrl("file", data.file.id);
         renderTemporaryResult(byId("temporaryResult"), "下载链接", url, url);
         updateProgress(1, "上传完成");
         setMessage(`已安全保存，${formatBytes(data.file.size_bytes)}，有效至 ${bridge.formatDate(data.file.expires_at)}`);
       } catch (error) {
+        if (reservationId) {
+          bridge.api("/api/temporary/file/cancel", { id: reservationId }, { timeoutMs: 10000 }).catch(() => undefined);
+        }
         if (error.name !== "AbortError" || !controller.silentCancel) {
           setMessage(error.message, error.name !== "AbortError");
         }
@@ -1452,10 +1524,33 @@ import { runToolRenderer } from "./js/tools/runner.js";
           const data = await bridge.publicApi("/api/share/clipboard/read", { code: id });
           output.textContent = data.clipboard.content;
         } else if (type === "file") {
-          const data = await bridge.publicApi("/api/share/file/read", { id, password: byId("sharePasswordInput").value }, { timeoutMs: 180000 });
-          const bytes = bytesFromBase64(data.file.base64);
-          downloadBlob(data.file.file_name, new Blob([bytes], { type: data.file.mime_type }));
-          output.textContent = `\u6587\u4ef6 ${data.file.file_name} \u5df2\u5f00\u59cb\u4e0b\u8f7d`;
+          const capabilities = await temporaryCapabilities(true);
+          if (!capabilities.available) throw new Error("暂时无法确认临时分享服务状态，请检查网络后重试");
+          let fileName = "";
+          if (capabilities.cloud_reads) {
+            try {
+              const data = await bridge.publicApi("/api/share/file/authorize", {
+                id, password: byId("sharePasswordInput").value,
+              }, { timeoutMs: 30000 });
+              const link = document.createElement("a");
+              link.href = data.download.url;
+              link.download = data.download.file.file_name;
+              link.rel = "noopener";
+              document.body.appendChild(link);
+              link.click();
+              link.remove();
+              fileName = data.download.file.file_name;
+            } catch (error) {
+              if (capabilities.temporary_primary || !["share_not_found", "task14_cloud_not_enabled"].includes(error.code)) throw error;
+            }
+          }
+          if (!fileName) {
+            const data = await bridge.publicApi("/api/share/file/read", { id, password: byId("sharePasswordInput").value }, { timeoutMs: 180000 });
+            const bytes = bytesFromBase64(data.file.base64);
+            downloadBlob(data.file.file_name, new Blob([bytes], { type: data.file.mime_type }));
+            fileName = data.file.file_name;
+          }
+          output.textContent = `\u6587\u4ef6 ${fileName} \u5df2\u5f00\u59cb\u4e0b\u8f7d`;
         } else if (type === "room") {
           const password = byId("sharePasswordInput").value;
           const data = await bridge.publicApi("/api/share/room/read", { id, password }, { timeoutMs: 12000 });

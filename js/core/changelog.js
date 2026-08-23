@@ -33,6 +33,21 @@ export function staticChangelogEntries(root = globalThis) {
     .filter(Boolean));
 }
 
+export function mergeChangelogEntries(...collections) {
+  const byBuild = new Map();
+  collections.forEach((collection) => {
+    (Array.isArray(collection) ? collection : []).forEach((value) => {
+      const entry = cleanEntry(value);
+      if (entry && !byBuild.has(entry.build)) byBuild.set(entry.build, entry);
+    });
+  });
+  return Object.freeze([...byBuild.values()].sort((left, right) => (
+    right.date.localeCompare(left.date)
+    || right.version.localeCompare(left.version, undefined, { numeric: true })
+    || right.build.localeCompare(left.build)
+  )));
+}
+
 export async function loadCloudChangelog(options = {}) {
   const fetcher = options.fetcher || fetchWithTimeout;
   const response = await fetcher("/api/changelog", {

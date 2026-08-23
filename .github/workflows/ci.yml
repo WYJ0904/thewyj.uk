@@ -77,6 +77,11 @@ jobs:
           set -euo pipefail
           python -m unittest scripts.test_migrate_task13_memberships_payments -v 2>&1 | tee artifacts/task13-migration-tool.log
 
+      - name: Test Task 14 migration tooling
+        run: |
+          set -euo pipefail
+          python -m unittest scripts.test_migrate_task14_temporary_to_d1_r2 -v 2>&1 | tee artifacts/task14-migration-tool.log
+
       - name: Upload Python reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -147,6 +152,8 @@ jobs:
             node --check local-backend/test_task11_d1_js.mjs
             node --check local-backend/test_task12_d1_js.mjs
             node --check local-backend/test_task13_d1_js.mjs
+            node --check local-backend/test_task14_d1_js.mjs
+            node --check cloudflare/task14-cleanup-worker.mjs
             node --check local-backend/test_app_browser.mjs
             node --check local-backend/test_tools_browser.mjs
             node --check local-backend/test_module_graph_js.mjs
@@ -228,6 +235,13 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_task13_d1_js.mjs 2>&1 | tee artifacts/task13-cloud-integration.log
+
+      - name: Test Task 14 temporary sharing and private file integration
+        run: |
+          set -euo pipefail
+          node local-backend/test_task14_d1_js.mjs 2>&1 | tee artifacts/task14-cloud-integration.log
+          node -e "JSON.parse(require('fs').readFileSync('wrangler.task14-cleanup.jsonc','utf8'))" \
+            2>&1 | tee artifacts/task14-cleanup-config.log
 
       - name: Check HTML, PWA and tool catalog
         run: |

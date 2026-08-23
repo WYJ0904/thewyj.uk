@@ -1,14 +1,14 @@
-const CACHE = "wyj-shell-20260822-learning-sync-record-id-es-modules";
+const CACHE = "wyj-shell-20260823-task14-temporary-sharing-es-modules";
 const NAVIGATION_TIMEOUT_MS = 5000;
 const ASSET_TIMEOUT_MS = 10000;
 const CORE_SHELL = [
   "/",
   "/index.html",
-  "/styles.css?v=20260822-learning-sync-record-id",
-  "/product-ui.css?v=20260822-learning-sync-record-id",
-  "/changelog.js?v=20260822-learning-sync-record-id",
-  "/learning-sync.js?v=20260822-learning-sync-record-id",
-  "/app.js?v=20260822-learning-sync-record-id",
+  "/styles.css?v=20260823-task14-temporary-sharing",
+  "/product-ui.css?v=20260823-task14-temporary-sharing",
+  "/changelog.js?v=20260823-task14-temporary-sharing",
+  "/learning-sync.js?v=20260823-task14-temporary-sharing",
+  "/app.js?v=20260823-task14-temporary-sharing",
   "/js/core/api.js",
   "/js/core/changelog.js",
   "/js/core/config.js",
@@ -25,7 +25,7 @@ const CORE_SHELL = [
   "/js/membership/plans.js",
   "/js/membership/recharge.js",
   "/js/admin/formatters.js",
-  "/tools.js?v=20260822-learning-sync-record-id",
+  "/tools.js?v=20260823-task14-temporary-sharing",
   "/js/tools/catalog.js",
   "/js/tools/file.js",
   "/js/tools/image.js",
@@ -33,11 +33,11 @@ const CORE_SHELL = [
   "/js/tools/runner.js",
   "/js/tools/temporary.js",
   "/js/tools/text.js",
-  "/workflows.js?v=20260822-learning-sync-record-id",
+  "/workflows.js?v=20260823-task14-temporary-sharing",
   "/vendor/qrcode.js?v=2.0.4",
   "/vendor/opencc-st-characters.txt",
   "/vendor/opencc-ts-characters.txt",
-  "/manifest.webmanifest?v=20260822-learning-sync-record-id",
+  "/manifest.webmanifest?v=20260823-task14-temporary-sharing",
   "/icon-192.png",
   "/icon-512.png",
 ];

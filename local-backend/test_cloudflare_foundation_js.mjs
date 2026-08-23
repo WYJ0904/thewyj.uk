@@ -173,6 +173,7 @@ function fakeRateLimitDatabase({ fail = "", schemaVersion = "1" } = {}) {
     WYJ_DB: fakeRateLimitDatabase(),
     WYJ_STORAGE: {},
     AI: {},
+    WYJ_TASK14_TEMPORARY_SECRET: "task14-status-secret-0123456789abcdef",
   };
   const request = new Request("https://preview.example/api/status?source=cloud", {
     headers: { "X-Request-ID": "status-request-123" },

@@ -2,7 +2,7 @@
 
 [![Core CI](https://github.com/WYJ0904/thewyj.uk/actions/workflows/ci.yml/badge.svg)](https://github.com/WYJ0904/thewyj.uk/actions/workflows/ci.yml)
 
-这是部署在 Cloudflare Pages 上的语言测试与在线工具箱。前端是纯 HTML/CSS/JavaScript，账户、会员、临时分享、PDF 和本地 AI 由 Python 标准库后端提供，公网通过 Cloudflare Tunnel 访问本机后端。
+这是部署在 Cloudflare Pages 上的语言测试与在线工具箱。前端是纯 HTML/CSS/JavaScript；账户、会员与支付已经迁到 Cloudflare D1/R2。临时分享正在 Task 14 Preview 中迁到 D1/R2，Production 在完成数据核对前仍使用 Python 后端；PDF 和本地 AI 继续通过 Cloudflare Tunnel 访问本机服务。
 
 正式网站：<https://thewyj.uk>
 
@@ -10,9 +10,9 @@
 
 - 前端：`index.html`、`styles.css`、`product-ui.css`、原生 ES Module 入口 `app.js`、`tools.js` 与 `js/` 领域模块
 - PWA：`manifest.webmanifest`、`sw.js`
-- Pages Functions：`functions/api/[[path]].js`，把同源 `/api/*` 请求代理到固定 Tunnel
-- 后端：Python 3.8+ 标准库 `ThreadingHTTPServer`
-- 数据库：SQLite
+- Pages Functions：`functions/api/[[path]].js`，在同源 `/api/*` 下路由 Cloudflare D1/R2 业务和受控 legacy fallback
+- 后端：Cloudflare Pages Functions；Python 3.8+ 标准库 `ThreadingHTTPServer` 暂时承载尚未迁移的 PDF、AI 和 Production 临时分享
+- 数据库：Cloudflare D1 为已迁移业务的主数据源；SQLite 只保留尚未迁移业务和受控回滚数据
 - 本地 AI：Ollama，默认模型 `qwen3:8b`
 - 公网链路：Cloudflare Pages -> Pages Function -> `api.thewyj.uk` -> Cloudflare Tunnel -> 本机 `8765`
 - 构建系统：无；不需要 npm、Vite、React、Vue 或 `node_modules`
@@ -210,7 +210,9 @@ MD5、SHA-1、SHA-256、SHA-512、文件信息、CSV/JSON 互转、文本编码�
 - 临时二维码：文本、URL、可直接填写的 Wi-Fi、vCard 联系人和动态失效链接
 - 临时留言房间：密码、最大消息数、自动过期、创建者清空、不公开列出，并以 4 秒轮询和指数退避在多设备间自动同步
 
-临时数据每 60 秒清理一次，也会在读取前清理。临时文件最大 20 MB；允许 TXT、CSV、JSON、PDF、PNG、JPG、WebP、GIF 和 ZIP。服务端同时校验安全文件名、扩展名、MIME 和文件签名，Pages Function 为 JSON/Base64 开销保留 28 MB 请求体上限。
+Production 当前仍使用 legacy Python 临时分享：每 60 秒和读取前清理，普通临时文件最大 20 MiB，允许 TXT、CSV、JSON、PDF、PNG、JPG/JPEG、WebP、GIF 和 ZIP。Task 14 Preview 使用 D1 保存 metadata、私有 R2 保存原始字节；普通文件仍为 20 MiB，MP4、M4V、MOV、WebM 视频为 30 MiB。云路径会同时校验安全文件名、扩展名、MIME 和基础文件签名，上传使用原始请求体，下载使用 R2 字节流及受控 Range，不再把完整文件 Base64 编码进 JSON。
+
+Task 14 Preview 的下载次数在服务端签发授权时原子消费。一个 15 分钟授权可以用于同一次下载的 Range 和重试，不会重复计数；网络中断会消耗该次授权，但可用原授权续传。`destroy_after_download` 只在完整非 Range 响应结束后进入删除流程，活动授权会保护待删除对象，避免清理任务抢先删除重试所需文件。
 
 ## 更新日志、反馈与功能投票
 
@@ -331,6 +333,10 @@ Pages Functions：
 | `TASK13_PAYMENT_PRIMARY_ENABLED` | 支付单一主写门；启用后 D1/R2 是会员与支付唯一主路径，失败不会回退双写 SQLite |
 | `TASK13_IMPORT_ENABLED` | Task 13 导入入口；仅 Preview 默认启用，Production 保持关闭 |
 | `TASK13_PRODUCTION_IMPORT_ENABLED` | Production 导入第二道开关；默认 `false`，还要求管理员会话、备份和精确确认头 |
+| `TASK14_CLOUD_READS_ENABLED` / `TASK14_CLOUD_WRITES_ENABLED` | D1/R2 临时分享读写开关；仅 Preview 启用，Production 在完成迁移验收前保持 `false` |
+| `TASK14_TEMPORARY_PRIMARY_ENABLED` | 临时分享单一主路径开关；Preview 为云端主路径，Production 保持 legacy 主路径，禁止失败后双写 |
+| `TASK14_IMPORT_ENABLED` / `TASK14_PRODUCTION_IMPORT_ENABLED` | Task 14 导入入口及 Production 第二道开关；Preview 仅用于隔离迁移，Production 两项均保持 `false` |
+| `WYJ_TASK14_TEMPORARY_SECRET` | Task 14 密码摘要、连接码 HMAC 和下载授权密钥；至少 32 字符，只存 Cloudflare 加密 Secret |
 | `WYJ_LEGACY_IDENTITY_BRIDGE_SECRET` | Pages 到旧 Python 业务接口的短时身份断言 HMAC secret；至少 32 字符，只存 Cloudflare Secret |
 | `WORKERS_AI_ENABLED` | Workers AI 功能开关；默认 `false`，绑定存在也不会自动产生推理用量 |
 | `D1_RATE_LIMIT_ENABLED` | 是否用 D1 对云端基础接口做基础限流；发生配额或绑定错误时自动 fail-open 并标记降级 |
@@ -475,7 +481,7 @@ node local-backend/test_tools_browser.mjs
 
 新的 `functions/_middleware.js` 为 Pages Functions 响应加入安全头和 `X-Request-ID`，拒绝浏览器跨站写请求，并把未处理异常转成统一的 `{ ok, error, code, retryable, request_id }` 格式。上游 Python 的正常/业务错误响应仍原样透传，避免破坏现有前端协议。`GET /api/status?source=cloud` 返回 D1/R2/AI binding、feature flags、限流和降级原因；默认 `GET /api/status` 仍代理旧后端，因此启动器和前端不会把“Cloudflare 在线”误判成“账户后端在线”。
 
-会员、权益、支付订单、付款二维码和管理员审批已由 Task 13 的 Production D1/R2 单一主路径处理；临时分享、PDF 和 AI 判卷继续由本地 Python 后端处理。Task 11 的 Production D1 读写已经启用并保留只读回滚能力；Task 12 的 Preview 与 Production 均已切到 D1 账户与会话，Production 导入端点保持关闭。Pages 验证 D1 Session 后使用短时 HMAC 身份断言访问尚未迁移的旧业务接口；原始 D1 token 不会转发给 Python，也不会在 SQLite 建立第二套 Session。本地运行配置使用 `cloud_account_primary=true`，因此 SQLite 不再接受账户登录、注册或旧 Session；Task 13 支付主路径启用后也不会把失败的云端写入回退到 SQLite，避免长期双写和 split-brain。
+会员、权益、支付订单、付款二维码和管理员审批已由 Task 13 的 Production D1/R2 单一主路径处理。Task 14 临时分享云路径只在 Preview 启用，Production 仍由本地 Python 后端处理；PDF 和 AI 判卷也继续使用本机服务。Task 11 的 Production D1 读写已经启用并保留只读回滚能力；Task 12 的 Preview 与 Production 均已切到 D1 账户与会话，Production 导入端点保持关闭。Pages 验证 D1 Session 后使用短时 HMAC 身份断言访问尚未迁移的旧业务接口；原始 D1 token 不会转发给 Python，也不会在 SQLite 建立第二套 Session。本地运行配置使用 `cloud_account_primary=true`，因此 SQLite 不再接受账户登录、注册或旧 Session；Task 13 支付主路径和 Task 14 Preview 临时分享主路径都不会在云写失败后回退双写 SQLite。
 
 ### 控制台准备
 
@@ -501,7 +507,7 @@ npm.cmd run cf:dev
 
 ### 迁移、部署与回滚
 
-Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sql`，以及 Task 12 的 `0003_accounts_sessions.sql`、`0004_session_limit_trigger.sql`、`0005_session_limit_ordering.sql` 均已在 Preview 和 Production 应用。Task 12 Production 在 2026-08-22 完成备份、dry-run、稳定 user ID/ownership 核对、导入和切换；旧 Session 未迁移，所有设备需要重新登录。迁移报告与生产备份只保存在仓库外，导入开关已经重新关闭。
+Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sql`、Task 12 的 `0003_accounts_sessions.sql`、`0004_session_limit_trigger.sql`、`0005_session_limit_ordering.sql` 和 Task 13 的 `0006_memberships_payments.sql` 均已在 Preview 和 Production 应用。Task 14 的 `0007_temporary_sharing.sql`、`0008_task14_user_storage_trigger.sql`、`0009_task14_global_storage_trigger.sql` 本次只应用到 Preview，Production 尚未执行。Task 12 Production 在 2026-08-22 完成备份、dry-run、稳定 user ID/ownership 核对、导入和切换；旧 Session 未迁移，所有设备需要重新登录。迁移报告与生产备份只保存在仓库外，Production 导入开关已经重新关闭。
 
 ```powershell
 # 本地全新 D1 验证
@@ -509,11 +515,13 @@ npm.cmd run cf:migrate:local
 npm.cmd run test:task11
 npm.cmd run test:task12
 npm.cmd run test:task13
+npm.cmd run test:task14
 
 # Preview D1
 npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env preview
-# Preview Pages（Task 12 独立分支）
-npx.cmd wrangler pages deploy . --project-name thewyj-uk --branch codex/task12-accounts-sessions-d1
+# Preview Pages（按当前任务分支替换 branch）
+npm.cmd run pages:stage
+npx.cmd wrangler pages deploy .wrangler/pages-output --project-name thewyj-uk --branch codex/task14-temporary-sharing-r2
 ```
 
 Preview 与 Production 的 `/api/status?source=cloud` 必须同时显示 Task 12 schema `1`、`task12_cloud_accounts=true`、`task12_legacy_bridge=true` 和 `task12_password_pepper=true`；Production 还必须显示 `task12_import=false`。隔离测试覆盖注册、登录、改密、封禁、强制退出、多会话、旧摘要首次升级、Task 11 ownership 与旧业务桥接。任何后续部署都必须保持 Production 账户主开关开启，除非正在执行有数据核对和重新认证方案的受控回滚。
@@ -649,11 +657,61 @@ Task 13 Production 已在 2026-08-23 完成仓库外 SQLite 备份、dry-run、�
 
 Production 主路径启用后，旧 Python 会员与支付实现仅作为受控恢复参考，不再接受 Pages 的新支付主写。回滚前必须先停止新支付操作，导出并核对 D1 在切换后的订单、会员、履约和审计增量，再决定前向修复或受控回迁；不能直接关闭云端开关并恢复 SQLite 主写，否则会丢失新订单并形成 split-brain。Pages 代码回滚仍可在 **Deployments -> All deployments** 选择此前成功版本，但数据 source of truth 不能随代码版本自动倒退。
 
+### Task 14 临时分享云迁移（仅 Preview）
+
+`cloudflare/migrations/0007_temporary_sharing.sql` 在 Task 12 稳定 user ID 上创建 `task14_` 前缀的临时分享、房间消息、下载授权、用量和迁移状态表；`0008`、`0009` 分别建立单用户 500 MiB 与全局 5 GiB 存储配额 trigger。D1 只保存 metadata、摘要、计数和 R2 服务端引用，二进制文件保存在环境隔离的私有 `WYJ_STORAGE` bucket。客户端不能列出 bucket、指定 object key 或读取其他用户的 metadata；公开分享读取仍按不可预测 ID、密码或连接码及有效期受控。
+
+Task 14 保留临时文本、普通及动态二维码内容、剪贴板、留言房间和临时文件。文件上传先创建服务端 reservation，再用原始 `PUT` 请求体写入 R2；下载先原子签发短时授权，再由受控 API 流式返回字节。服务端校验 extension、MIME、基础签名、大小和状态，响应设置安全的 `Content-Disposition`、`nosniff` 和私有缓存策略。普通文件上限 20 MiB，视频 MP4/M4V/MOV/WebM 上限 30 MiB；空文件和不匹配的 MIME、扩展名或签名会被拒绝。
+
+下载上限采用“授权成功即消费一次”的确定性语义，避免两个并发客户端同时抢到最后一个名额。同一授权可在 15 分钟内用于 Range 或断线重试且不重复计数，但原子请求锁保证同一时刻只能有一个下载流，不能把一个授权并发复用成多次下载；中断本身不退还次数。完整非 Range 下载结束后，`destroy_after_download` 才进入删除流程。过期检查在创建、读取、授权和定时任务中执行；独立 cleanup Worker 每小时处理过期、失败重试、D1/R2 不一致和 orphan 对象，删除操作保持幂等。
+
+Preview 验证顺序：
+
+```powershell
+# 本地 migration、Miniflare、并发、Range、配额和迁移工具回归
+npm.cmd run cf:migrate:local
+npm.cmd run test:task14
+
+# Preview 专用 Secret，值不要出现在命令历史、README 或 Git
+npx.cmd wrangler pages secret put WYJ_TASK14_TEMPORARY_SECRET --project-name thewyj-uk --env preview
+
+# Preview D1 与 Pages 分支部署
+npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env preview
+npm.cmd run pages:stage
+npx.cmd wrangler pages deploy .wrangler/pages-output --project-name thewyj-uk --branch codex/task14-temporary-sharing-r2
+
+# 迁移前只读审计，报告和 resume state 必须写在仓库外
+python scripts/migrate_task14_temporary_to_d1_r2.py `
+  --source-db <受保护的SQLite备份> `
+  --environment preview `
+  --report <仓库外的dry-run报告.json>
+
+# 幂等上传 R2 并导入 D1
+$env:WYJ_TASK14_MIGRATION_SESSION = '<Preview 的 D1 管理员会话>'
+python scripts/migrate_task14_temporary_to_d1_r2.py `
+  --source-db <受保护的SQLite备份> `
+  --environment preview `
+  --endpoint <Task-14-Preview-URL> `
+  --apply --upload-r2 `
+  --r2-bucket wyj-cloud-preview `
+  --wrangler-env preview `
+  --resume-state <仓库外的resume-state.json> `
+  --report <仓库外的apply报告.json>
+```
+
+`wrangler.task14-cleanup.jsonc` 是 cleanup Worker 模板，D1 UUID 使用占位符，不能直接提交真实 ID。部署 Preview 时复制到已忽略的 `.wrangler/` 目录，替换 Preview 占位符后执行 `npx.cmd wrangler deploy --config <本地配置> --env preview`。Production cleanup Worker、migration、Secret 和 Task 14 开关本次均不启用。
+
+`npm.cmd run pages:stage` 只把 Pages 运行时需要的根文件、`assets`、`functions`、`js` 和 `vendor` 复制到已忽略的 `.wrangler/pages-output`。直接上传这个白名单目录可避免把 `.tool-e2e`、本地数据库、日志、测试下载和其他私有运行文件带入 Direct Upload；不要用仓库根目录替代它。
+
+迁移工具只读取 SQLite 备份并输出安全计数：metadata、文件数、总字节、类型、无效 ID/错误码和 ownership orphan 数，不输出内容、密码、摘要、token 或本机路径。R2 上传按确定性 key 和 SHA-256 回读校验，resume state 支持中断续跑；D1 import 使用 source key 幂等 upsert。Preview 回滚使用相同脚本加 `--rollback --endpoint <URL>`，只删除该 source key 导入的数据和对应 R2 对象，不删除正常云端新建数据。
+
+Production 切换必须另行执行备份、dry-run、文件/字节/ownership 核对、D1 migration、R2 上传、D1 导入、云端只读验证和移动端实际下载验收。确认无冲突后才能同时启用 Task 14 读、写和主路径开关，并停止 SQLite 临时分享新写入；在此之前 Production 继续使用 legacy 主路径。若 Preview 失败，关闭 Preview 的三个 Task 14 主开关即可恢复 legacy fallback，保留 D1/R2 数据供诊断，不删除表或对象。
+
 ### 免费额度降级
 
 - D1 达到免费读写额度时会拒绝查询；云状态接口标记 degraded。Task 11 读取可回退旧 API；Task 12 账户和 Task 13 会员/支付已经是云端主路径，会返回明确的可重试错误，不会回退或双写 SQLite。
 - Task 12 一旦正式切到 D1 主账户，不会在 D1 故障时把认证写入回退到 SQLite；登录、注册和受保护云同步会返回明确可重试错误，避免 split-brain。静态页面、浏览器本地学习数据和纯本地工具仍可打开。
-- R2 达到额度或暂时不可用时，私有付款二维码接口返回明确可重试错误，不会暴露 object key 或回退公开文件；Workers AI 仍由独立功能开关控制。
+- R2 达到额度或暂时不可用时，私有付款二维码和 Task 14 Preview 文件接口返回明确可重试错误，不会暴露 object key 或回退公开文件。Task 14 会暂停新的云端上传，纯本地工具继续可用；Workers AI 仍由独立功能开关控制。
 - Workers AI 免费额度按日重置且本地调用也计量，因此 binding 与功能开关分离。
 - telemetry 按小时、功能、结果、耗时档和错误码聚合，不逐事件持久化用户数据；超限时丢弃统计不能阻止业务。
 - 任何 binding 缺失都不会让静态站点白屏；`/api/status?source=cloud` 返回 200/degraded 和具体原因。Task 11 保留受控读取 fallback，Task 12 与 Task 13 则拒绝受影响的云端操作并提示重试，不会悄悄切回旧账户或支付主写。
@@ -687,8 +745,8 @@ Pages 发布静态根目录，不生成 `dist`。`_redirects` 把 SPA 路由回�
 
 ## 当前限制
 
-- 网站账户、AI、会员和临时分享依赖这台电脑在线；电脑关机、休眠、断网或 Tunnel 离线时，世界其他地区也无法使用这些服务。
-- 临时文件单个上限为 20 MB；前端、Python 后端和 Pages Function 代理均已为 Base64/JSON 开销预留一致容量，并提供读取、上传进度、取消和 180 秒超时。普通本地文件工具仍支持总计 50 MB。
+- 账户、会员与支付不再依赖本机；AI、PDF 和 Production 临时分享仍要求本机后端与 Tunnel 在线。Task 14 云端临时分享目前只在 Preview 验证，尚未切换 Production。
+- Production legacy 临时文件单个上限为 20 MiB，仍使用 Base64/JSON 代理；Task 14 Preview 的普通文件为 20 MiB、视频为 30 MiB，并使用原始上传与流式下载。普通本地文件工具仍支持总计 50 MB。
 - 纯浏览器图片处理能力受设备内存和浏览器 Canvas 支持影响；超大图片应分批处理。
 - 简繁转换使用 OpenCC 官方字符词典并在浏览器本地执行；它是字符级转换，不包含地区词汇与上下文短语消歧。
 - 工具处理内容默认不上传，服务器因此无法恢复用户未主动保存的本地处理结果。

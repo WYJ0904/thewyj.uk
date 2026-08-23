@@ -44,6 +44,7 @@ const {
 } = await import("../js/core/session.js");
 const { loadJson, safeStorageSet } = await import("../js/core/storage.js");
 const { createApiClient } = await import("../js/core/api.js");
+const { mergeChangelogEntries } = await import("../js/core/changelog.js");
 
 assert(APP_ROUTE_MANIFEST.includes("/tools/:tool_id"));
 const visited = [];
@@ -68,6 +69,34 @@ assert.deepEqual(loadJson("missing", { ok: true }, new MemoryStorage()), { ok: t
 const storage = new MemoryStorage();
 assert.equal(safeStorageSet(storage, "answer", 42), true);
 assert.equal(storage.getItem("answer"), "42");
+
+const cloudEntry = {
+  version: "2026.08.20",
+  build: "cloud-older",
+  date: "2026-08-20",
+  title: "云端旧版本",
+  features: [],
+  improvements: [],
+  fixes: [],
+  security: [],
+};
+const staticEntry = {
+  version: "2026.08.23",
+  build: "task14-current",
+  date: "2026-08-23",
+  title: "当前静态版本",
+  features: ["Task 14"],
+  improvements: [],
+  fixes: [],
+  security: [],
+};
+const mergedEntries = mergeChangelogEntries(
+  [cloudEntry, { ...cloudEntry, title: "重复项不应覆盖" }],
+  [staticEntry],
+);
+assert.deepEqual(mergedEntries.map((entry) => entry.build), ["task14-current", "cloud-older"]);
+assert.equal(mergedEntries[1].title, "云端旧版本");
+assert(Object.isFrozen(mergedEntries));
 
 const calls = [];
 let sessionExpired = 0;
