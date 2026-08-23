@@ -314,7 +314,7 @@ export async function cloudStatusResponse(context) {
     status: degraded.length ? "degraded" : "ok",
     service: "wyj-cloud-foundation",
     environment: String(context.env?.WYJ_ENVIRONMENT || "development"),
-    build: "2026-08-23-task13-membership-payment-preview",
+    build: "2026-08-23-task13-membership-payment-production",
     time: new Date().toISOString(),
     auth: Boolean(flags.task12CloudAccounts && health.task12.schema_ready),
     backend_ready: Boolean(flags.task12CloudAccounts && health.task12.schema_ready),

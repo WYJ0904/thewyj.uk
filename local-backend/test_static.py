@@ -598,9 +598,12 @@ class StaticSiteTests(unittest.TestCase):
         for variable in (
             "TASK13_CLOUD_READS_ENABLED",
             "TASK13_CLOUD_WRITES_ENABLED",
+            "TASK13_PAYMENT_PRIMARY_ENABLED",
+        ):
+            self.assertEqual(production_vars[variable], "true")
+        for variable in (
             "TASK13_IMPORT_ENABLED",
             "TASK13_PRODUCTION_IMPORT_ENABLED",
-            "TASK13_PAYMENT_PRIMARY_ENABLED",
         ):
             self.assertEqual(production_vars[variable], "false")
         self.assertIn("statusRouteResponse(context, proxyToLegacy)", status)
