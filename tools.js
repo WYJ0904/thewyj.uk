@@ -949,8 +949,9 @@ import { runToolRenderer } from "./js/tools/runner.js";
       temporaryCapabilitiesPromise = bridge.requestJsonGet("/api/temporary/capabilities", {
         authenticated: false,
         timeoutMs: 8000,
-      }).then((data) => ({ ...data, available: true })).catch(() => ({
-        available: false,
+      }).then((data) => ({ ...data, available: true })).catch((error) => ({
+        available: error?.status === 404,
+        legacy_only: error?.status === 404,
         cloud_reads: false,
         cloud_upload: false,
         temporary_primary: false,

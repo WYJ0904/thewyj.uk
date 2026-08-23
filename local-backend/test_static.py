@@ -313,6 +313,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("const TEMP_VIDEO_MAX_BYTES = 30 * 1024 * 1024", self.tools)
         self.assertIn('".mp4": "video/mp4"', self.tools)
         self.assertIn('bridge.uploadBinaryApi(initialized.upload.upload_url', self.tools)
+        self.assertIn("available: error?.status === 404", self.tools)
+        self.assertIn("legacy_only: error?.status === 404", self.tools)
         self.assertIn("requestJsonGet,", self.app)
         self.assertIn("uploadBinaryApi,", self.app)
         task14_model = (ROOT / "functions" / "_lib" / "task14-model.mjs").read_text(encoding="utf-8")
