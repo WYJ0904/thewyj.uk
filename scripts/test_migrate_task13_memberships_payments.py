@@ -237,11 +237,14 @@ class Task13MigrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             _, qr_directory = self.build_fixture(directory)
             assets = {"payments/qrcodes/v1/wechat_trial_single_language.png": qr_directory / "wechat_trial_single_language.png"}
-            with mock.patch("subprocess.run") as run:
+            with mock.patch.object(MIGRATION.shutil, "which", return_value="C:/tools/npx.cmd"), mock.patch(
+                "subprocess.run"
+            ) as run:
                 run.return_value = SimpleNamespace(returncode=0)
                 uploaded = MIGRATION.upload_qr_assets(assets, "preview-private-bucket", "preview")
             self.assertEqual(uploaded, 1)
             command = run.call_args.args[0]
+            self.assertEqual(command[0], "C:/tools/npx.cmd")
             self.assertIn("preview-private-bucket/payments/qrcodes/v1/wechat_trial_single_language.png", command)
             self.assertIn("private, no-store", command)
             self.assertIn("--remote", command)

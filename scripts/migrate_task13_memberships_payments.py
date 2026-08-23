@@ -464,10 +464,13 @@ def chunks(records: list[dict], size: int = MAX_BATCH):
 def upload_qr_assets(assets: dict[str, Path], bucket: str, wrangler_env: str) -> int:
     if not bucket or not assets:
         return 0
+    npx = shutil.which("npx.cmd" if os.name == "nt" else "npx") or shutil.which("npx")
+    if not npx:
+        raise RuntimeError("Wrangler launcher is unavailable")
     uploaded = 0
     for key, source in assets.items():
         command = [
-            "npx", "wrangler", "r2", "object", "put", f"{bucket}/{key}",
+            npx, "wrangler", "r2", "object", "put", f"{bucket}/{key}",
             "--file", str(source), "--content-type", "image/png",
             "--cache-control", "private, no-store", "--remote", "--force",
             "--env", wrangler_env, "--config", "wrangler.jsonc",
