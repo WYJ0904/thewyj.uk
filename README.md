@@ -326,6 +326,11 @@ Pages Functions：
 | `TASK12_CLOUD_ACCOUNTS_ENABLED` | D1 账户与会话主开关；Preview 与 Production 均已在迁移验收后启用 |
 | `TASK12_IMPORT_ENABLED` | Task 12 账户导入接口；仅 Preview 默认启用，Production 默认关闭 |
 | `TASK12_PRODUCTION_IMPORT_ENABLED` | Production 账户导入第二道开关；默认 `false`，还要求明确确认头 |
+| `TASK13_CLOUD_READS_ENABLED` | D1 会员、权益和支付读取开关；Preview 与 Production 均已在迁移验收后启用 |
+| `TASK13_CLOUD_WRITES_ENABLED` | D1 会员、权益和支付写入总开关；必须与读取和支付主开关同时启用才接受支付写入 |
+| `TASK13_PAYMENT_PRIMARY_ENABLED` | 支付单一主写门；启用后 D1/R2 是会员与支付唯一主路径，失败不会回退双写 SQLite |
+| `TASK13_IMPORT_ENABLED` | Task 13 导入入口；仅 Preview 默认启用，Production 保持关闭 |
+| `TASK13_PRODUCTION_IMPORT_ENABLED` | Production 导入第二道开关；默认 `false`，还要求管理员会话、备份和精确确认头 |
 | `WYJ_LEGACY_IDENTITY_BRIDGE_SECRET` | Pages 到旧 Python 业务接口的短时身份断言 HMAC secret；至少 32 字符，只存 Cloudflare Secret |
 | `WORKERS_AI_ENABLED` | Workers AI 功能开关；默认 `false`，绑定存在也不会自动产生推理用量 |
 | `D1_RATE_LIMIT_ENABLED` | 是否用 D1 对云端基础接口做基础限流；发生配额或绑定错误时自动 fail-open 并标记降级 |
@@ -448,7 +453,7 @@ node local-backend/test_app_browser.mjs
 node local-backend/test_tools_browser.mjs
 ```
 
-当前 Python 自动化套件共 164 项，另配有学习同步客户端协议测试、38 项 JavaScript 工具模块自检、11 组工作流核心自检和 4 项 Pages 代理韧性检查，以及 `qa/functional-audit.json` 驱动的全功能覆盖门禁。门禁必须精确覆盖 20 个路由、21 条应用流程、103 个工具、51 个工具子模式、7 个复选控制、12 个工作流能力和 27 个工作流浏览器行为；源码和 QA 清单任一方向出现缺项都会直接失败。
+当前 Python 自动化套件共 171 项，另配有学习同步客户端协议测试、38 项 JavaScript 工具模块自检、11 组工作流核心自检和 4 项 Pages 代理韧性检查，以及 `qa/functional-audit.json` 驱动的全功能覆盖门禁。门禁必须精确覆盖 20 个路由、21 条应用流程、103 个工具、51 个工具子模式、7 个复选控制、12 个工作流能力和 27 个工作流浏览器行为；源码和 QA 清单任一方向出现缺项都会直接失败。
 
 `test_app_browser.mjs` 使用真实 Chrome 覆盖 21 条完整用户流程，其中包含学习数据离线排队、恢复连接、第二设备目标合并、账号绑定备份校验，以及 390px 手机视口下的错题重新判定、统一反馈计时、A-H 切页/刷新状态完整性、WCAG AA 对比度回归、结构化更新日志、私有反馈提交、管理员反馈处理与功能投票。`test_tools_browser.mjs` 会为每次运行创建全新的浏览器上下文，逐项操作 103 个工具（文本 29、文件 17、图片 30、随机 22、临时 5）及 51 个子模式，并额外真实操作工作流创建、编辑、保存、导入导出、四个模板、批量失败隔离、取消、离线运行和 390/1366/1920 响应式布局。文件、图片、PDF、ZIP、二维码、vCard 和工作流产物不使用被测页面自行判定，而由 `qa/verify_tool_artifacts.py` 通过标准库、Pillow、pypdf、OpenCV 和 vobject 独立重新打开并验证语义；本地首次运行前执行 `python -m pip install -r qa/requirements.txt`。
 
@@ -470,7 +475,7 @@ node local-backend/test_tools_browser.mjs
 
 新的 `functions/_middleware.js` 为 Pages Functions 响应加入安全头和 `X-Request-ID`，拒绝浏览器跨站写请求，并把未处理异常转成统一的 `{ ok, error, code, retryable, request_id }` 格式。上游 Python 的正常/业务错误响应仍原样透传，避免破坏现有前端协议。`GET /api/status?source=cloud` 返回 D1/R2/AI binding、feature flags、限流和降级原因；默认 `GET /api/status` 仍代理旧后端，因此启动器和前端不会把“Cloudflare 在线”误判成“账户后端在线”。
 
-会员、订单、付款二维码、管理员审批、临时分享、PDF 和 AI 判卷继续由本地 Python 后端处理。Task 11 的 Production D1 读写已经启用并保留 legacy fallback；Task 12 的 Preview 与 Production 均已切到 D1 账户与会话，Production 导入端点保持关闭。Pages 验证 D1 Session 后使用短时 HMAC 身份断言访问尚未迁移的旧业务接口；原始 D1 token 不会转发给 Python，也不会在 SQLite 建立第二套 Session。本地运行配置使用 `cloud_account_primary=true`，因此 SQLite 不再接受账户登录、注册或旧 Session，避免长期双写和 split-brain。
+会员、权益、支付订单、付款二维码和管理员审批已由 Task 13 的 Production D1/R2 单一主路径处理；临时分享、PDF 和 AI 判卷继续由本地 Python 后端处理。Task 11 的 Production D1 读写已经启用并保留只读回滚能力；Task 12 的 Preview 与 Production 均已切到 D1 账户与会话，Production 导入端点保持关闭。Pages 验证 D1 Session 后使用短时 HMAC 身份断言访问尚未迁移的旧业务接口；原始 D1 token 不会转发给 Python，也不会在 SQLite 建立第二套 Session。本地运行配置使用 `cloud_account_primary=true`，因此 SQLite 不再接受账户登录、注册或旧 Session；Task 13 支付主路径启用后也不会把失败的云端写入回退到 SQLite，避免长期双写和 split-brain。
 
 ### 控制台准备
 
@@ -503,6 +508,7 @@ Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sq
 npm.cmd run cf:migrate:local
 npm.cmd run test:task11
 npm.cmd run test:task12
+npm.cmd run test:task13
 
 # Preview D1
 npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env preview
@@ -595,14 +601,62 @@ python scripts/migrate_task12_accounts_to_d1.py `
 
 导入按稳定 ID upsert，可重复执行且不会复制 SQLite Session。Production 导入曾临时要求 `TASK12_PRODUCTION_IMPORT_ENABLED=true`、`--backup-confirmed`、`--confirm-production TASK12-PRODUCTION-ACCOUNT-MIGRATION` 和同名确认头；完成源/目标数量、ID 集合与 Task 11 ownership 核对后，两个导入开关均已恢复为 `false`。回滚时先把 Pages 的 Task 12 主开关关闭；如果 D1 已发生改密、封禁或新注册，不能直接恢复旧 SQLite 主写，必须先按仓库外迁移报告核对账户并让受影响用户重新认证或重置密钥，避免恢复旧密码或产生 split-brain。
 
+### Task 13 会员、权益和支付云迁移
+
+`cloudflare/migrations/0006_memberships_payments.sql` 在 Task 12 稳定 user ID 上新增 `task13_` 前缀的方案、会员、entitlement override、支付订单、状态历史、唯一履约、管理员审批和审计表。迁移不会删除或改写旧 SQLite 表，也不会提前迁移临时分享、PDF 或 AI。六个在售方案仍以 `local-backend/membership.py` 为业务权威：8 CNY 单语言包月、20 CNY 双语言包月、20 CNY 工具箱包月、30 CNY 全功能包月、70 CNY 双语言双项永久、100 CNY 全功能永久；内部代码 `japanese_lifetime` 保持不变，70 CNY 方案不包含工具箱。`monthly`、`lifetime` 和 `dual_language_lifetime` 仅用于历史兼容，新订单会拒绝停售方案。
+
+Pages 保持原 `/api/membership/*`、`/api/recharge/*` 和 `/api/admin/*` 契约。服务端从 D1 读取方案并锁定订单名称、金额、期限和 entitlement 快照；客户端不能指定金额、用户 ID、权益或 R2 key。订单仍按 `pending_payment -> user_paid -> processing -> approved` 流转，也支持 `rejected`、`cancelled`、`expired`。用户点击“我已付款”只进入 `user_paid`，只有超级管理员审批成功才在同一 D1 batch 中写入唯一履约、会员、状态历史和审计。重复或并发审批不能重复延长期限，异常响应会说明提交状态而不会悄悄重试履约。
+
+收款二维码存放在环境隔离的私有 `WYJ_STORAGE` bucket，固定 key 为 `payments/qrcodes/v1/<wechat|alipay>_<plan>.png`。接口不接受客户端 object key，只允许已登录的订单本人按订单 ID 读取，校验订单归属、状态、支付方式、方案和 `qr_resource_id` 后返回 PNG；响应使用 `Cache-Control: private, no-store`，不返回 object key。二维码文件、内容和真实付款信息不得进入 Git、迁移报告或 CI artifact。
+
+Preview 验证顺序：
+
+```powershell
+# 本地 D1/R2 + Miniflare 回归
+npm.cmd run cf:migrate:local
+npm.cmd run test:task13
+
+# Preview D1：只应用前向 migration，不删除旧表
+npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env preview
+
+# 迁移前只读审计；报告必须写在仓库外
+python scripts/migrate_task13_memberships_payments.py `
+  --source-db <受保护的SQLite备份> `
+  --qr-dir <私有二维码目录> `
+  --environment preview `
+  --dry-run `
+  --report <仓库外的迁移报告.json>
+
+# Preview 导入：会按固定 key 上传私有二维码并分批幂等写入 D1
+$env:WYJ_TASK13_ADMIN_SESSION = '<Preview 的 D1 管理员会话>'
+python scripts/migrate_task13_memberships_payments.py `
+  --source-db <受保护的SQLite备份> `
+  --qr-dir <私有二维码目录> `
+  --environment preview `
+  --endpoint <Task-13-Preview-URL> `
+  --apply --upload-r2 `
+  --r2-bucket wyj-cloud-preview `
+  --wrangler-env preview `
+  --report <仓库外的迁移报告.json>
+
+# 分支 Preview 部署
+npx.cmd wrangler pages deploy . --project-name thewyj-uk --branch codex/task13-membership-payment-cloud
+```
+
+迁移工具使用 SQLite 只读连接检查用户归属、主键/订单号重复、方案兼容、各状态数量、唯一履约和二维码 PNG 签名/大小；导入按稳定 ID upsert/ignore，可重复执行。报告只含计数和结果，不含用户名、订单备注、二维码内容、Session、Secret 或 Token。Preview 必须逐项验证六种方案、五种用途、微信/支付宝、刷新恢复、私有二维码越权、用户声明付款不履约、管理员批准/拒绝、包月续期、永久幂等、并发审批、D1/R2 故障和现有移动支付流程。
+
+Task 13 Production 已在 2026-08-23 完成仓库外 SQLite 备份、dry-run、稳定 user ID/归属核对、D1 migration、幂等导入、私有 R2 二维码逐文件 SHA-256 回读、云端只读验证，以及微信和支付宝人工扫码验收。随后启用了 `TASK13_CLOUD_READS_ENABLED`、`TASK13_CLOUD_WRITES_ENABLED` 和 `TASK13_PAYMENT_PRIMARY_ENABLED`；两个导入开关均已恢复为 `false`。Production 新订单、付款状态、审批和会员履约现在只写 D1/R2，失败不会回退或双写 SQLite。
+
+Production 主路径启用后，旧 Python 会员与支付实现仅作为受控恢复参考，不再接受 Pages 的新支付主写。回滚前必须先停止新支付操作，导出并核对 D1 在切换后的订单、会员、履约和审计增量，再决定前向修复或受控回迁；不能直接关闭云端开关并恢复 SQLite 主写，否则会丢失新订单并形成 split-brain。Pages 代码回滚仍可在 **Deployments -> All deployments** 选择此前成功版本，但数据 source of truth 不能随代码版本自动倒退。
+
 ### 免费额度降级
 
-- D1 达到免费读写额度时会拒绝查询；云状态接口标记 degraded。Task 11 读取可回退旧 API，尚未开始的写入可回退旧 API；已经开始的云写入不会再双写。
+- D1 达到免费读写额度时会拒绝查询；云状态接口标记 degraded。Task 11 读取可回退旧 API；Task 12 账户和 Task 13 会员/支付已经是云端主路径，会返回明确的可重试错误，不会回退或双写 SQLite。
 - Task 12 一旦正式切到 D1 主账户，不会在 D1 故障时把认证写入回退到 SQLite；登录、注册和受保护云同步会返回明确可重试错误，避免 split-brain。静态页面、浏览器本地学习数据和纯本地工具仍可打开。
-- R2 或 Workers AI 达到额度时，调用方应返回统一可重试错误并回退本地能力；本任务没有启用这两类业务调用。
+- R2 达到额度或暂时不可用时，私有付款二维码接口返回明确可重试错误，不会暴露 object key 或回退公开文件；Workers AI 仍由独立功能开关控制。
 - Workers AI 免费额度按日重置且本地调用也计量，因此 binding 与功能开关分离。
 - telemetry 按小时、功能、结果、耗时档和错误码聚合，不逐事件持久化用户数据；超限时丢弃统计不能阻止业务。
-- 任何 binding 缺失都不会让静态站点白屏；`/api/status?source=cloud` 返回 200/degraded 和具体原因，而登录、支付和会员继续依赖 legacy 状态与原后端。
+- 任何 binding 缺失都不会让静态站点白屏；`/api/status?source=cloud` 返回 200/degraded 和具体原因。Task 11 保留受控读取 fallback，Task 12 与 Task 13 则拒绝受影响的云端操作并提示重试，不会悄悄切回旧账户或支付主写。
 
 ### GitHub 仓库
 

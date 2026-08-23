@@ -37,6 +37,11 @@ export function featureFlags(env = {}) {
     task12CloudAccounts: booleanValue(env.TASK12_CLOUD_ACCOUNTS_ENABLED, false),
     task12Import: booleanValue(env.TASK12_IMPORT_ENABLED, false),
     task12ProductionImport: booleanValue(env.TASK12_PRODUCTION_IMPORT_ENABLED, false),
+    task13CloudReads: booleanValue(env.TASK13_CLOUD_READS_ENABLED, false),
+    task13CloudWrites: booleanValue(env.TASK13_CLOUD_WRITES_ENABLED, false),
+    task13Import: booleanValue(env.TASK13_IMPORT_ENABLED, false),
+    task13ProductionImport: booleanValue(env.TASK13_PRODUCTION_IMPORT_ENABLED, false),
+    task13PaymentPrimary: booleanValue(env.TASK13_PAYMENT_PRIMARY_ENABLED, false),
     legacyFallback: booleanValue(env.LEGACY_API_FALLBACK_ENABLED, true),
     workersAi: booleanValue(env.WORKERS_AI_ENABLED, false),
     d1RateLimit: booleanValue(env.D1_RATE_LIMIT_ENABLED, true),
@@ -83,6 +88,7 @@ export function apiError(code, message, status, requestId, options = {}) {
       error: message,
       code,
       retryable: Boolean(options.retryable),
+      ...(options.details && typeof options.details === "object" ? options.details : {}),
     },
     status,
     requestId,
@@ -226,6 +232,7 @@ async function bindingHealth(env, flags) {
     legacy_bridge_configured: bridgeConfigured(env),
     password_pepper_configured: passwordPepperConfigured(env?.WYJ_TASK12_PASSWORD_PEPPER),
   };
+  const task13 = { schema_ready: false, schema_version: "", payment_primary: flags.task13PaymentPrimary };
   if (!bindings.d1) degraded.push("d1_binding_missing");
   if (!bindings.r2) degraded.push("r2_binding_missing");
   if (flags.workersAi && !bindings.workers_ai) degraded.push("workers_ai_binding_missing");
@@ -263,6 +270,20 @@ async function bindingHealth(env, flags) {
     } catch (error) {
       if (flags.task12CloudAccounts) degraded.push(`task12_${classifyCloudError(error)}`);
     }
+    try {
+      const row = await env.WYJ_DB.prepare(
+        "SELECT value FROM task13_metadata WHERE key = ?1",
+      ).bind("schema_version").first();
+      task13.schema_version = String(row?.value || "");
+      task13.schema_ready = task13.schema_version === "1";
+      if (!task13.schema_ready && (
+        flags.task13CloudReads || flags.task13CloudWrites || flags.task13PaymentPrimary
+      )) degraded.push("task13_schema_not_ready");
+    } catch (error) {
+      if (flags.task13CloudReads || flags.task13CloudWrites || flags.task13PaymentPrimary) {
+        degraded.push(`task13_${classifyCloudError(error)}`);
+      }
+    }
   }
   if (flags.task12CloudAccounts && !task12.legacy_bridge_configured) {
     degraded.push("task12_legacy_bridge_not_configured");
@@ -270,7 +291,8 @@ async function bindingHealth(env, flags) {
   if (flags.task12CloudAccounts && !task12.password_pepper_configured) {
     degraded.push("task12_password_pepper_not_configured");
   }
-  return { bindings, degraded, task11, task12 };
+  if (flags.task13PaymentPrimary && !bindings.r2) degraded.push("task13_r2_binding_missing");
+  return { bindings, degraded, task11, task12, task13 };
 }
 
 export async function cloudStatusResponse(context) {
@@ -292,7 +314,7 @@ export async function cloudStatusResponse(context) {
     status: degraded.length ? "degraded" : "ok",
     service: "wyj-cloud-foundation",
     environment: String(context.env?.WYJ_ENVIRONMENT || "development"),
-    build: "2026-08-21-task12-password-compat",
+    build: "2026-08-23-task13-membership-payment-production",
     time: new Date().toISOString(),
     auth: Boolean(flags.task12CloudAccounts && health.task12.schema_ready),
     backend_ready: Boolean(flags.task12CloudAccounts && health.task12.schema_ready),
@@ -301,6 +323,7 @@ export async function cloudStatusResponse(context) {
     bindings: health.bindings,
     task11: health.task11,
     task12: health.task12,
+    task13: health.task13,
     features: {
       cloud_foundation: flags.cloudFoundation,
       cloud_reads: flags.cloudReads,
@@ -311,9 +334,13 @@ export async function cloudStatusResponse(context) {
       task12_import: flags.task12Import,
       task12_legacy_bridge: health.task12.legacy_bridge_configured,
       task12_password_pepper: health.task12.password_pepper_configured,
+      task13_cloud_reads: flags.task13CloudReads,
+      task13_cloud_writes: flags.task13CloudWrites,
+      task13_import: flags.task13Import,
+      task13_payment_primary: flags.task13PaymentPrimary,
       workers_ai: flags.workersAi,
       legacy_api_fallback: flags.legacyFallback,
-      payment_cloud_migration: false,
+      payment_cloud_migration: flags.task13PaymentPrimary,
     },
     rate_limit: {
       enabled: rate.enabled,

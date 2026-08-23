@@ -34,6 +34,7 @@ import {
   recordLoginEvent,
   registerAccount,
 } from "./task12-service.mjs";
+import { enrichAccountWithTask13, listTask13Audit } from "./task13-service.mjs";
 
 const LOGIN_FAILURE_LIMIT = 8;
 const LOGIN_FAILURE_WINDOW_SECONDS = 300;
@@ -161,6 +162,17 @@ async function legacyBusinessJson(context, path, token, legacyProxy) {
   return payload;
 }
 
+async function businessAccount(context, account, token, legacyProxy, flags) {
+  if (flags.task13CloudReads) return await enrichAccountWithTask13(context.env.WYJ_DB, account);
+  const legacy = await legacyBusinessJson(context, "/api/me", token, legacyProxy);
+  return mergeLegacyBusinessAccount(account, legacy.account);
+}
+
+async function optionalLegacyBusinessJson(context, path, token, legacyProxy) {
+  try { return await legacyBusinessJson(context, path, token, legacyProxy); }
+  catch (_) { return null; }
+}
+
 async function loginFailureKey(context) {
   return await sha256Hex(`task12-login\u0000${loginSubject(context)}`);
 }
@@ -195,22 +207,25 @@ async function safeLoginAudit(context, username, success, reason, user = null) {
   catch (_) { /* Audit storage failure must not disclose credentials or block authentication. */ }
 }
 
-async function executeRoute(context, descriptor, account, legacyProxy) {
+async function executeRoute(context, descriptor, account, legacyProxy, flags) {
   const path = new URL(context.request.url).pathname;
   const method = context.request.method.toUpperCase();
   const db = context.env.WYJ_DB;
   if (method === "GET") {
     if (path === "/api/me") {
-      const legacy = await legacyBusinessJson(
-        context, "/api/me", context.request.headers.get("X-Session-Token"), legacyProxy,
+      const enriched = await businessAccount(
+        context, account, context.request.headers.get("X-Session-Token"), legacyProxy, flags,
       );
-      return response({ ok: true, account: mergeLegacyBusinessAccount(account, legacy.account) }, 200, context);
+      return response({ ok: true, account: enriched }, 200, context);
     }
     if (path === "/api/admin/users") {
       const cloudUsers = await listUsers(db, account);
-      const legacy = await legacyBusinessJson(
-        context, "/api/admin/users", context.request.headers.get("X-Session-Token"), legacyProxy,
-      );
+      if (flags.task13CloudReads) {
+        const users = await Promise.all(cloudUsers.map((item) => enrichAccountWithTask13(db, item)));
+        return response({ ok: true, users }, 200, context);
+      }
+      const legacy = await legacyBusinessJson(context, "/api/admin/users",
+        context.request.headers.get("X-Session-Token"), legacyProxy);
       const legacyById = new Map((legacy.users || []).map((item) => [String(item.id || ""), item]));
       return response({
         ok: true,
@@ -219,13 +234,18 @@ async function executeRoute(context, descriptor, account, legacyProxy) {
     }
     if (path === "/api/admin/login-logs") return response({ ok: true, logs: await listLoginAudit(db, account) }, 200, context);
     if (path === "/api/admin/audit") {
-      const [cloudLogs, legacy] = await Promise.all([
+      const [cloudLogs, legacy, membershipLogs] = await Promise.all([
         listAccountAudit(db, account),
-        legacyBusinessJson(
-          context, "/api/admin/audit", context.request.headers.get("X-Session-Token"), legacyProxy,
-        ),
+        flags.task13CloudReads
+          ? optionalLegacyBusinessJson(
+            context, "/api/admin/audit", context.request.headers.get("X-Session-Token"), legacyProxy,
+          )
+          : legacyBusinessJson(
+            context, "/api/admin/audit", context.request.headers.get("X-Session-Token"), legacyProxy,
+          ),
+        flags.task13CloudReads ? listTask13Audit(db) : Promise.resolve([]),
       ]);
-      const logs = [...cloudLogs, ...(legacy.logs || [])]
+      const logs = [...cloudLogs, ...(legacy?.logs || []), ...membershipLogs]
         .sort((left, right) => String(right.created_at || "").localeCompare(String(left.created_at || "")))
         .slice(0, 500);
       return response({ ok: true, logs }, 200, context);
@@ -262,8 +282,7 @@ async function executeRoute(context, descriptor, account, legacyProxy) {
       await safeLoginAudit(context, payload.username, true, "success", result.account);
       let enriched = result.account;
       try {
-        const legacy = await legacyBusinessJson(context, "/api/me", result.session, legacyProxy);
-        enriched = mergeLegacyBusinessAccount(result.account, legacy.account);
+        enriched = await businessAccount(context, result.account, result.session, legacyProxy, flags);
       } catch (_) {
         enriched = { ...result.account, membership_state_unavailable: true };
       }
@@ -381,7 +400,7 @@ export async function handleTask12Request(context, legacyProxy) {
         });
       }
     }
-    return await executeRoute(context, descriptor, account, legacyProxy);
+    return await executeRoute(context, descriptor, account, legacyProxy, flags);
   } catch (error) {
     if (error instanceof Task12Error) {
       return apiError(error.code, error.message, error.status, requestId(context), { retryable: error.retryable });

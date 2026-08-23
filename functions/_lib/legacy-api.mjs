@@ -1,6 +1,7 @@
 import { featureFlags } from "./cloudflare-foundation.mjs";
 import { resolveTask12Account } from "./task12-auth.mjs";
 import { addLegacyIdentityHeaders, bridgeConfigured } from "./task12-bridge.mjs";
+import { enrichAccountWithTask13 } from "./task13-service.mjs";
 
 const HOP_BY_HOP_HEADERS = new Set([
   "connection", "content-length", "expect", "host", "keep-alive",
@@ -286,7 +287,9 @@ export async function proxyToLegacy(context) {
       if (!result.authenticated) {
         return json({ ok: false, error: "请先登录", code: result.code || "authentication_required" }, result.status || 401, requestId);
       }
-      cloudIdentity = result.account;
+      cloudIdentity = flags.task13PaymentPrimary
+        ? await enrichAccountWithTask13(env.WYJ_DB, result.account)
+        : result.account;
     } catch (_) {
       return json({
         ok: false,

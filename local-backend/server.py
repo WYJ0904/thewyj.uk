@@ -2183,7 +2183,7 @@ class VocabHandler(BaseHTTPRequestHandler):
                 path = urllib.parse.urlsplit(self.path).path
                 identity = verify_cloud_identity(self.headers, self.command, path)
                 return ACCOUNT_STORE.resolve_cloud_identity_user(
-                    identity["id"], identity["username"]
+                    identity["id"], identity["username"], identity.get("entitlements")
                 )
             except (AccountError, CloudIdentityError, KeyError, TypeError, ValueError):
                 return None
