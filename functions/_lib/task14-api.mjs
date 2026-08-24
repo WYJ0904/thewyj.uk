@@ -127,6 +127,7 @@ async function capabilities(context, flags) {
     cloud_reads: Boolean(flags.task14CloudReads && schemaReady),
     cloud_upload: Boolean(flags.task14CloudWrites && flags.task14TemporaryPrimary && schemaReady),
     temporary_primary: Boolean(flags.task14TemporaryPrimary),
+    legacy_writes_frozen: Boolean(flags.task14LegacyWritesFrozen),
     limits: {
       text_bytes: MAX_TEMP_TEXT_BYTES,
       file_bytes: MAX_TEMP_FILE_BYTES,
@@ -254,6 +255,15 @@ export async function handleTask14Request(context, legacyProxy) {
   }
   const flags = featureFlags(context.env);
   if (!featureEnabled(descriptor, flags)) {
+    if (descriptor.mode === "write" && flags.task14LegacyWritesFrozen) {
+      return apiError(
+        "task14_migration_in_progress",
+        "临时分享正在进行短暂迁移维护，请稍后重试",
+        503,
+        requestId(context),
+        { retryable: true, headers: { "Retry-After": "30" } },
+      );
+    }
     if (descriptor.cloudOnly) {
       return apiError("task14_cloud_not_enabled", "云端临时分享尚未启用", 503, requestId(context), { retryable: true });
     }

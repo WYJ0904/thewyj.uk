@@ -30,6 +30,7 @@ const ENVIRONMENT = Object.freeze({
   TASK14_IMPORT_ENABLED: "true",
   TASK14_PRODUCTION_IMPORT_ENABLED: "false",
   TASK14_TEMPORARY_PRIMARY_ENABLED: "true",
+  TASK14_LEGACY_WRITES_FROZEN: "false",
   D1_RATE_LIMIT_ENABLED: "false",
   LEGACY_API_FALLBACK_ENABLED: "true",
   WYJ_ENVIRONMENT: "preview",
@@ -201,6 +202,17 @@ try {
     env: { TASK14_CLOUD_WRITES_ENABLED: "false", TASK14_TEMPORARY_PRIMARY_ENABLED: "false" },
   });
   assert.deepEqual(legacyMode.legacyCalls, ["/api/temporary/text"]);
+  const frozenLegacyMode = await requestTask14(db, storage, "/api/temporary/text", {
+    method: "POST", token: USERS.member.token, body: { content: "blocked during migration" },
+    env: {
+      TASK14_CLOUD_WRITES_ENABLED: "false",
+      TASK14_TEMPORARY_PRIMARY_ENABLED: "false",
+      TASK14_LEGACY_WRITES_FROZEN: "true",
+    },
+  });
+  assert.equal(frozenLegacyMode.response.status, 503);
+  assert.equal(frozenLegacyMode.payload.code, "task14_migration_in_progress");
+  assert.deepEqual(frozenLegacyMode.legacyCalls, []);
   completed += 1;
 
   const unauthenticated = await requestTask14(db, storage, "/api/temporary/text", {

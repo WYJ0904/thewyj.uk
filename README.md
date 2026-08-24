@@ -335,6 +335,7 @@ Pages Functions：
 | `TASK13_PRODUCTION_IMPORT_ENABLED` | Production 导入第二道开关；默认 `false`，还要求管理员会话、备份和精确确认头 |
 | `TASK14_CLOUD_READS_ENABLED` / `TASK14_CLOUD_WRITES_ENABLED` | D1/R2 临时分享读写开关；仅 Preview 启用，Production 在完成迁移验收前保持 `false` |
 | `TASK14_TEMPORARY_PRIMARY_ENABLED` | 临时分享单一主路径开关；Preview 为云端主路径，Production 保持 legacy 主路径，禁止失败后双写 |
+| `TASK14_LEGACY_WRITES_FROZEN` | Production 迁移窗口的临时写入维护开关；为 `true` 时仅阻止临时分享新写入并返回可重试 503，不影响其他 legacy API；平时必须为 `false` |
 | `TASK14_IMPORT_ENABLED` / `TASK14_PRODUCTION_IMPORT_ENABLED` | Task 14 导入入口及 Production 第二道开关；Preview 仅用于隔离迁移，Production 两项均保持 `false` |
 | `WYJ_TASK14_TEMPORARY_SECRET` | Task 14 密码摘要、连接码 HMAC 和下载授权密钥；至少 32 字符，只存 Cloudflare 加密 Secret |
 | `WYJ_LEGACY_IDENTITY_BRIDGE_SECRET` | Pages 到旧 Python 业务接口的短时身份断言 HMAC secret；至少 32 字符，只存 Cloudflare Secret |
