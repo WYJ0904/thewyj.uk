@@ -1,5 +1,6 @@
 import { bridgeConfigured } from "./task12-bridge.mjs";
 import { passwordPepperConfigured } from "./task12-crypto.mjs";
+import { temporarySecretConfigured } from "./task14-crypto.mjs";
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{8,80}$/;
 const SAFE_API_METHODS = new Set(["GET", "HEAD"]);
@@ -42,6 +43,12 @@ export function featureFlags(env = {}) {
     task13Import: booleanValue(env.TASK13_IMPORT_ENABLED, false),
     task13ProductionImport: booleanValue(env.TASK13_PRODUCTION_IMPORT_ENABLED, false),
     task13PaymentPrimary: booleanValue(env.TASK13_PAYMENT_PRIMARY_ENABLED, false),
+    task14CloudReads: booleanValue(env.TASK14_CLOUD_READS_ENABLED, false),
+    task14CloudWrites: booleanValue(env.TASK14_CLOUD_WRITES_ENABLED, false),
+    task14Import: booleanValue(env.TASK14_IMPORT_ENABLED, false),
+    task14ProductionImport: booleanValue(env.TASK14_PRODUCTION_IMPORT_ENABLED, false),
+    task14TemporaryPrimary: booleanValue(env.TASK14_TEMPORARY_PRIMARY_ENABLED, false),
+    task14LegacyWritesFrozen: booleanValue(env.TASK14_LEGACY_WRITES_FROZEN, false),
     legacyFallback: booleanValue(env.LEGACY_API_FALLBACK_ENABLED, true),
     workersAi: booleanValue(env.WORKERS_AI_ENABLED, false),
     d1RateLimit: booleanValue(env.D1_RATE_LIMIT_ENABLED, true),
@@ -233,6 +240,12 @@ async function bindingHealth(env, flags) {
     password_pepper_configured: passwordPepperConfigured(env?.WYJ_TASK12_PASSWORD_PEPPER),
   };
   const task13 = { schema_ready: false, schema_version: "", payment_primary: flags.task13PaymentPrimary };
+  const task14 = {
+    schema_ready: false,
+    schema_version: "",
+    temporary_primary: flags.task14TemporaryPrimary,
+    secret_configured: temporarySecretConfigured(env?.WYJ_TASK14_TEMPORARY_SECRET),
+  };
   if (!bindings.d1) degraded.push("d1_binding_missing");
   if (!bindings.r2) degraded.push("r2_binding_missing");
   if (flags.workersAi && !bindings.workers_ai) degraded.push("workers_ai_binding_missing");
@@ -284,6 +297,20 @@ async function bindingHealth(env, flags) {
         degraded.push(`task13_${classifyCloudError(error)}`);
       }
     }
+    try {
+      const row = await env.WYJ_DB.prepare(
+        "SELECT value FROM task14_metadata WHERE key = ?1",
+      ).bind("schema_version").first();
+      task14.schema_version = String(row?.value || "");
+      task14.schema_ready = task14.schema_version === "1";
+      if (!task14.schema_ready && (
+        flags.task14CloudReads || flags.task14CloudWrites || flags.task14TemporaryPrimary
+      )) degraded.push("task14_schema_not_ready");
+    } catch (error) {
+      if (flags.task14CloudReads || flags.task14CloudWrites || flags.task14TemporaryPrimary) {
+        degraded.push(`task14_${classifyCloudError(error)}`);
+      }
+    }
   }
   if (flags.task12CloudAccounts && !task12.legacy_bridge_configured) {
     degraded.push("task12_legacy_bridge_not_configured");
@@ -292,7 +319,11 @@ async function bindingHealth(env, flags) {
     degraded.push("task12_password_pepper_not_configured");
   }
   if (flags.task13PaymentPrimary && !bindings.r2) degraded.push("task13_r2_binding_missing");
-  return { bindings, degraded, task11, task12, task13 };
+  if (flags.task14TemporaryPrimary && !bindings.r2) degraded.push("task14_r2_binding_missing");
+  if (flags.task14TemporaryPrimary && !task14.secret_configured) {
+    degraded.push("task14_temporary_secret_not_configured");
+  }
+  return { bindings, degraded, task11, task12, task13, task14 };
 }
 
 export async function cloudStatusResponse(context) {
@@ -314,7 +345,7 @@ export async function cloudStatusResponse(context) {
     status: degraded.length ? "degraded" : "ok",
     service: "wyj-cloud-foundation",
     environment: String(context.env?.WYJ_ENVIRONMENT || "development"),
-    build: "2026-08-23-task13-membership-payment-production",
+    build: "2026-08-24-task14-production-r2",
     time: new Date().toISOString(),
     auth: Boolean(flags.task12CloudAccounts && health.task12.schema_ready),
     backend_ready: Boolean(flags.task12CloudAccounts && health.task12.schema_ready),
@@ -324,6 +355,7 @@ export async function cloudStatusResponse(context) {
     task11: health.task11,
     task12: health.task12,
     task13: health.task13,
+    task14: health.task14,
     features: {
       cloud_foundation: flags.cloudFoundation,
       cloud_reads: flags.cloudReads,
@@ -338,6 +370,12 @@ export async function cloudStatusResponse(context) {
       task13_cloud_writes: flags.task13CloudWrites,
       task13_import: flags.task13Import,
       task13_payment_primary: flags.task13PaymentPrimary,
+      task14_cloud_reads: flags.task14CloudReads,
+      task14_cloud_writes: flags.task14CloudWrites,
+      task14_import: flags.task14Import,
+      task14_temporary_primary: flags.task14TemporaryPrimary,
+      task14_legacy_writes_frozen: flags.task14LegacyWritesFrozen,
+      task14_temporary_secret: health.task14.secret_configured,
       workers_ai: flags.workersAi,
       legacy_api_fallback: flags.legacyFallback,
       payment_cloud_migration: flags.task13PaymentPrimary,

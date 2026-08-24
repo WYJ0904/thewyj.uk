@@ -8,10 +8,12 @@
     "cf:types": "wrangler types .wrangler/worker-configuration.d.ts --env preview",
     "cf:migrate:local": "wrangler d1 migrations apply WYJ_DB --local --config wrangler.local.jsonc --persist-to .wrangler/state",
     "cf:dev": "wrangler pages dev --persist-to .wrangler/state --port 8788 --d1 WYJ_DB --r2 WYJ_STORAGE",
+    "pages:stage": "node scripts/stage_pages_deploy.mjs",
     "task11:seed": "node scripts/task11_changelog_seed.mjs",
     "test:task11": "node local-backend/test_task11_model_js.mjs && node local-backend/test_task11_api_js.mjs && node local-backend/test_task11_d1_js.mjs",
     "test:task12": "node local-backend/test_task12_d1_js.mjs",
-    "test:task13": "node local-backend/test_task13_d1_js.mjs && python -m unittest scripts.test_migrate_task13_memberships_payments -v"
+    "test:task13": "node local-backend/test_task13_d1_js.mjs && python -m unittest scripts.test_migrate_task13_memberships_payments -v",
+    "test:task14": "node local-backend/test_task14_d1_js.mjs && python -m unittest scripts.test_migrate_task14_temporary_to_d1_r2 -v"
   },
   "devDependencies": {
     "miniflare": "5.20260730.0-alpha",

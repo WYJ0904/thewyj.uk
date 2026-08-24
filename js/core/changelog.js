@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js";
+import { fetchWithTimeout } from "./api.js?v=20260824-task14-production-r2";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 
@@ -31,6 +31,21 @@ export function staticChangelogEntries(root = globalThis) {
   return Object.freeze((Array.isArray(root.WYJ_CHANGELOG) ? root.WYJ_CHANGELOG : [])
     .map(cleanEntry)
     .filter(Boolean));
+}
+
+export function mergeChangelogEntries(...collections) {
+  const byBuild = new Map();
+  collections.forEach((collection) => {
+    (Array.isArray(collection) ? collection : []).forEach((value) => {
+      const entry = cleanEntry(value);
+      if (entry && !byBuild.has(entry.build)) byBuild.set(entry.build, entry);
+    });
+  });
+  return Object.freeze([...byBuild.values()].sort((left, right) => (
+    right.date.localeCompare(left.date)
+    || right.version.localeCompare(left.version, undefined, { numeric: true })
+    || right.build.localeCompare(left.build)
+  )));
 }
 
 export async function loadCloudChangelog(options = {}) {

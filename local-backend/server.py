@@ -27,7 +27,13 @@ from socketserver import TCPServer
 from account_store import AccountError, AccountStore
 from cloud_identity import CloudIdentityError, assertion_present, verify_cloud_identity
 from payment_assets import PaymentAssetError, load_qr_asset, public_payment_methods
-from temporary_store import MAX_TEMP_FILE_BYTES, TemporaryStore
+from temporary_store import (
+    ALLOWED_FILE_TYPES,
+    MAX_TEMP_FILE_BYTES,
+    MAX_TEMP_LIFETIME_MINUTES,
+    MAX_TEMP_TEXT_BYTES,
+    TemporaryStore,
+)
 from vocabulary_index import LOCAL_VOCABULARY_INDEX, normalize_word
 
 
@@ -2251,6 +2257,31 @@ class VocabHandler(BaseHTTPRequestHandler):
                     "ok": True,
                     "plans": ACCOUNT_STORE.membership_plans(),
                     "payment_methods": public_payment_methods(),
+                },
+            )
+            return
+
+        if path == "/api/temporary/capabilities":
+            json_response(
+                self,
+                HTTPStatus.OK,
+                {
+                    "ok": True,
+                    "task": 14,
+                    "schema_ready": False,
+                    "cloud_reads": False,
+                    "cloud_upload": False,
+                    "temporary_primary": False,
+                    "legacy_only": True,
+                    "limits": {
+                        "text_bytes": MAX_TEMP_TEXT_BYTES,
+                        "file_bytes": MAX_TEMP_FILE_BYTES,
+                        "video_bytes": 30 * 1024 * 1024,
+                        "lifetime_minutes": MAX_TEMP_LIFETIME_MINUTES,
+                    },
+                    "file_extensions": sorted(
+                        extension.lstrip(".") for extension in ALLOWED_FILE_TYPES
+                    ),
                 },
             )
             return
