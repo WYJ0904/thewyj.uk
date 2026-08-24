@@ -5,10 +5,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20260824-task14-production";
-import { randomToolResult } from "./js/tools/random.js?v=20260824-task14-production";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260824-task14-production";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260824-task14-production";
+} from "./js/tools/catalog.js?v=20260824-task14-production-r2";
+import { randomToolResult } from "./js/tools/random.js?v=20260824-task14-production-r2";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260824-task14-production-r2";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260824-task14-production-r2";
 import {
   csvString,
   decodeLocalText,
@@ -17,15 +17,15 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20260824-task14-production";
+} from "./js/tools/file.js?v=20260824-task14-production-r2";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20260824-task14-production";
-import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-production";
+} from "./js/tools/image.js?v=20260824-task14-production-r2";
+import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-production-r2";
 (() => {
   "use strict";
 

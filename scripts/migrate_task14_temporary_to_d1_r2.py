@@ -373,7 +373,11 @@ def upload_file_assets(database_path: Path, records: list[dict], bucket: str, wr
 
 
 def request_json(url: str, token: str, payload: dict | None, production: bool = False) -> dict:
-    headers = {"Accept": "application/json", "X-Session-Token": token}
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "WYJ-Task14-Migration/1.0",
+        "X-Session-Token": token,
+    }
     data = None
     method = "GET"
     if payload is not None:

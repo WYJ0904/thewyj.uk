@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from types import SimpleNamespace
 from unittest import mock
+from urllib import request as urllib_request
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -72,6 +73,42 @@ def fixture_database(path: Path):
 
 
 class Task14MigrationTests(unittest.TestCase):
+    def test_migration_requests_use_an_explicit_non_secret_user_agent(self):
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def read(self):
+                return b'{"ok":true}'
+
+        captured = []
+
+        def fake_urlopen(request, timeout):
+            captured.append(request)
+            self.assertEqual(timeout, 30)
+            return FakeResponse()
+
+        with mock.patch.object(urllib_request, "urlopen", side_effect=fake_urlopen):
+            result = MIGRATION.request_json(
+                "https://thewyj.uk/api/admin/task14/import/status",
+                "masked-token",
+                None,
+                True,
+            )
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(len(captured), 1)
+        headers = {key.lower(): value for key, value in captured[0].header_items()}
+        self.assertEqual(headers["user-agent"], "WYJ-Task14-Migration/1.0")
+        self.assertEqual(
+            headers["x-wyj-task14-production-confirm"],
+            MIGRATION.PRODUCTION_CONFIRMATION,
+        )
+        self.assertEqual(headers["x-session-token"], "masked-token")
+
     def test_dry_run_inventory_is_safe_and_expired_records_are_not_migrated(self):
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "source.sqlite3"

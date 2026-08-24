@@ -2,12 +2,12 @@
   const entries = [
     {
       version: "2026.08.24",
-      build: "2026-08-24-task14-production",
+      build: "2026-08-24-task14-production-r2",
       date: "2026-08-24",
       title: "临时分享 Cloudflare Production",
-      features: ["临时文本、文件、二维码、剪贴板和留言房间迁到 Preview D1/R2 验证。"],
+      features: ["临时文本、文件、二维码、剪贴板和留言房间已切换到 Production D1/R2。"],
       improvements: ["文件使用原始字节上传和私有流式下载，新增视频、Range 续传与确定性下载次数。"],
-      fixes: ["修复临时分享能力探测、二进制上传桥接以及旧 Service Worker 跨版本模块混用问题。"],
+      fixes: ["修复临时分享能力探测、二进制上传桥接、公开分享页误探测旧 Tunnel，以及旧 Service Worker 跨版本模块混用问题。"],
       security: ["R2 object key 不对客户端公开，密码与连接码只保存摘要，并增加配额、限流和幂等清理。"],
     },
     {

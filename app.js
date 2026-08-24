@@ -10,29 +10,29 @@ import {
   PDF_TIMEOUT_MS,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260824-task14-production";
-import { createApiClient, fetchWithTimeout, retryDelayWithJitter, waitForDelay } from "./js/core/api.js?v=20260824-task14-production";
+} from "./js/core/config.js?v=20260824-task14-production-r2";
+import { createApiClient, fetchWithTimeout, retryDelayWithJitter, waitForDelay } from "./js/core/api.js?v=20260824-task14-production-r2";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260824-task14-production";
-import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260824-task14-production";
+} from "./js/core/changelog.js?v=20260824-task14-production-r2";
+import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260824-task14-production-r2";
 import {
   clearAccountSessionStorage,
   persistAccountSession,
   restoreAccountSession,
-} from "./js/core/session.js?v=20260824-task14-production";
-import { hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260824-task14-production";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260824-task14-production";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260824-task14-production";
+} from "./js/core/session.js?v=20260824-task14-production-r2";
+import { hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260824-task14-production-r2";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260824-task14-production-r2";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260824-task14-production-r2";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260824-task14-production";
+} from "./js/language/history.js?v=20260824-task14-production-r2";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -67,15 +67,15 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260824-task14-production";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260824-task14-production";
+} from "./js/language/quiz.js?v=20260824-task14-production-r2";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260824-task14-production-r2";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260824-task14-production";
+} from "./js/language/wrong-book.js?v=20260824-task14-production-r2";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -83,7 +83,7 @@ import {
   hasAccountEntitlement as hasAccountEntitlementModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260824-task14-production";
+} from "./js/membership/account.js?v=20260824-task14-production-r2";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -91,19 +91,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260824-task14-production";
+} from "./js/membership/plans.js?v=20260824-task14-production-r2";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260824-task14-production";
+} from "./js/membership/recharge.js?v=20260824-task14-production-r2";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260824-task14-production";
+} from "./js/admin/formatters.js?v=20260824-task14-production-r2";
 
 const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
 const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);
@@ -6057,22 +6057,33 @@ async function boot() {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register(`/sw.js?v=${APP_VERSION}`).catch(() => {});
   }
-  window.addEventListener("offline", () => markBackendDisconnected());
-  window.addEventListener("online", () => scheduleBackendRecovery(150));
-  window.addEventListener("pageshow", (event) => {
-    if (event.persisted || !backendAvailable) scheduleBackendRecovery(200);
+  const initialPath = location.pathname.replace(/\/+$/, "") || "/";
+  const shouldProbeLegacyBackend = () => !location.pathname.startsWith("/share/");
+  window.addEventListener("offline", () => {
+    if (shouldProbeLegacyBackend()) markBackendDisconnected();
   });
-  navigator.connection?.addEventListener?.("change", () => scheduleBackendRecovery(300));
+  window.addEventListener("online", () => {
+    if (shouldProbeLegacyBackend()) scheduleBackendRecovery(150);
+  });
+  window.addEventListener("pageshow", (event) => {
+    if (shouldProbeLegacyBackend() && (event.persisted || !backendAvailable)) scheduleBackendRecovery(200);
+  });
+  navigator.connection?.addEventListener?.("change", () => {
+    if (shouldProbeLegacyBackend()) scheduleBackendRecovery(300);
+  });
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && (state.session || !backendAvailable)) scheduleBackendRecovery(150);
+    if (shouldProbeLegacyBackend() && document.visibilityState === "visible" && (state.session || !backendAvailable)) {
+      scheduleBackendRecovery(150);
+    }
   });
   window.setInterval(() => {
-    if (document.visibilityState === "visible" && navigator.onLine !== false) refreshBackendState();
+    if (shouldProbeLegacyBackend() && document.visibilityState === "visible" && navigator.onLine !== false) {
+      refreshBackendState();
+    }
   }, BACKEND_REFRESH_INTERVAL_MS);
 
-  const initialPath = location.pathname.replace(/\/+$/, "") || "/";
   void refreshCloudChangelog();
-  const backendPromise = refreshBackendState();
+  const backendPromise = initialPath.startsWith("/share/") ? Promise.resolve() : refreshBackendState();
   await runSplashSequence(() => {
     $("appShell").classList.remove("app-shell-pending");
     $("appShell").classList.add("app-shell-ready");

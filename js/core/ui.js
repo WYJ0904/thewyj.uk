@@ -1,4 +1,4 @@
-import { BUSINESS_TIME_ZONE } from "./config.js?v=20260824-task14-production";
+import { BUSINESS_TIME_ZONE } from "./config.js?v=20260824-task14-production-r2";
 
 export const $ = (id) => document.getElementById(id);
 
