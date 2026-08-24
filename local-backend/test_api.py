@@ -424,6 +424,16 @@ class AccountApiTests(unittest.TestCase):
         self.assertEqual(created["request"]["amount_cents"], 800)
         self.assertEqual(created["request"]["trial_language"], "english")
 
+    def test_legacy_temporary_capabilities_selects_non_cloud_transport(self):
+        status, data = self.request("GET", "/api/temporary/capabilities")
+        self.assertEqual(status, 200, data)
+        self.assertTrue(data["ok"])
+        self.assertTrue(data["legacy_only"])
+        self.assertFalse(data["cloud_upload"])
+        self.assertFalse(data["temporary_primary"])
+        self.assertEqual(data["limits"]["file_bytes"], 20 * 1024 * 1024)
+        self.assertIn("zip", data["file_extensions"])
+
     def test_ai_vocabulary_suggestion_levels_and_membership_limit(self):
         _, _, session = self.new_user()
         with mock.patch("server.search_vocabulary_sources") as search:
