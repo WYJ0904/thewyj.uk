@@ -502,34 +502,38 @@ async function main() {
       assert.equal(logoResponse.status, 200);
       assert.match(logoResponse.headers.get("content-type") || "", /^image\/png(?:;|$)/i);
       assert.deepEqual([...logoBytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+      await send("Page.addScriptToEvaluateOnNewDocument", { source: `
+        document.addEventListener('DOMContentLoaded', () => {
+          const entry = document.querySelector('#entryScreen');
+          const shell = document.querySelector('#appShell');
+          const image = document.querySelector('.entry-logo');
+          if (!entry || !shell || !image) return;
+          const entryStyle = getComputedStyle(entry);
+          const entryRect = entry.getBoundingClientRect();
+          const imageStyle = getComputedStyle(image);
+          globalThis.__wyjInitialEntryState = {
+            entryVisible: entryStyle.display !== 'none',
+            shellProtected: (
+              (shell.getAttribute('aria-hidden') === 'true' && shell.classList.contains('app-shell-pending'))
+              || (
+                entryStyle.position === 'fixed'
+                && entryRect.left <= 0
+                && entryRect.top <= 0
+                && entryRect.right >= innerWidth
+                && entryRect.bottom >= innerHeight
+                && Number.parseInt(entryStyle.zIndex || '0', 10) >= 9000
+              )
+            ),
+            imageState: !image.complete ? 'loading' : image.naturalWidth > 0 ? 'loaded' : 'failed',
+            objectFit: imageStyle.objectFit,
+            legacyDoors: document.querySelectorAll('.splash-door').length,
+            legacyBrandText: document.body.textContent.includes('77 79 6A'),
+          };
+        }, { once: true });
+      ` });
       await navigate(`/?app-matrix=${RUN_ID}`);
-      await waitFor("document.querySelector('#entryScreen')", 3_000, "initial splash");
-      const initial = await evaluate(`(() => {
-        const entry = document.querySelector('#entryScreen');
-        const shell = document.querySelector('#appShell');
-        const image = document.querySelector('.entry-logo');
-        const entryStyle = getComputedStyle(entry);
-        const entryRect = entry.getBoundingClientRect();
-        const imageStyle = getComputedStyle(image);
-        return {
-          entryVisible: entryStyle.display !== 'none',
-          shellProtected: (
-            (shell.getAttribute('aria-hidden') === 'true' && shell.classList.contains('app-shell-pending'))
-            || (
-              entryStyle.position === 'fixed'
-              && entryRect.left <= 0
-              && entryRect.top <= 0
-              && entryRect.right >= innerWidth
-              && entryRect.bottom >= innerHeight
-              && Number.parseInt(entryStyle.zIndex || '0', 10) >= 9000
-            )
-          ),
-          imageState: !image.complete ? "loading" : image.naturalWidth > 0 ? "loaded" : "failed",
-          objectFit: imageStyle.objectFit,
-          legacyDoors: document.querySelectorAll('.splash-door').length,
-          legacyBrandText: document.body.textContent.includes('77 79 6A'),
-        };
-      })()`);
+      await waitFor("globalThis.__wyjInitialEntryState", 3_000, "captured initial splash");
+      const initial = await evaluate("globalThis.__wyjInitialEntryState");
       assert.equal(initial.entryVisible, true);
       assert.equal(initial.shellProtected, true);
       assert.notEqual(initial.imageState, "failed");
@@ -563,7 +567,7 @@ async function main() {
       assert.equal(pwa.cachedLearningSync, true);
       assert.equal(pwa.cachedWorkflows, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.23");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.24");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-24-task14-production");
