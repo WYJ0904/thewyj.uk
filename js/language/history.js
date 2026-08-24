@@ -1,4 +1,4 @@
-import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js";
+import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20260824-task14-production";
 
 export const MAX_STUDY_RECORDS = 500;
 

@@ -102,15 +102,15 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260823-task14-temporary-sharing"
+        release_token = "20260824-task14-production"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
-        self.assertIn('export const APP_VERSION = "2026-08-23-task14-temporary-sharing"', self.core)
+        self.assertIn('export const APP_VERSION = "2026-08-24-task14-production"', self.core)
         for module in ("api", "config", "router", "session", "storage", "ui"):
-            self.assertIn(f'/js/core/{module}.js', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20260823-task14-temporary-sharing"', self.html)
+            self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
+        self.assertIn('type="module" src="/app.js?v=20260824-task14-production"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         self.assertNotIn('.tool-e2e', stage_script)
@@ -119,6 +119,29 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('APP_BUILD = "2026-08-22-learning-sync-record-id"', server)
         self.assertIn('"/trial", "/changelog"', server)
         self.assertEqual((ROOT / "_redirects").read_text(encoding="utf-8").strip(), "/* /index.html 200")
+
+    def test_browser_module_graph_uses_one_release_version(self):
+        release_token = "20260824-task14-production"
+        import_pattern = re.compile(
+            r'(?:from\s+|import\s+)["\'](\.{1,2}/[^"\']+\.js(?:\?[^"\']*)?)["\']'
+        )
+        source_paths = [ROOT / "app.js", ROOT / "tools.js", *sorted((ROOT / "js").rglob("*.js"))]
+        imports_found = 0
+        for source_path in source_paths:
+            source = source_path.read_text(encoding="utf-8")
+            for specifier in import_pattern.findall(source):
+                imports_found += 1
+                self.assertTrue(
+                    specifier.endswith(f"?v={release_token}"),
+                    f"unversioned browser module import in {source_path.relative_to(ROOT)}: {specifier}",
+                )
+                relative_target = specifier.split("?", 1)[0]
+                target_path = (source_path.parent / relative_target).resolve()
+                self.assertTrue(target_path.is_file(), str(target_path))
+                public_url = f"/{target_path.relative_to(ROOT).as_posix()}?v={release_token}"
+                self.assertIn(f'"{public_url}"', self.worker)
+        self.assertGreater(imports_found, 20)
+        self.assertEqual(re.findall(r'"/js/[^"?]+\.js"', self.worker), [])
 
     def test_public_home_and_trial_are_explicitly_limited(self):
         for route in ('href="/"', 'href="/changelog"'):

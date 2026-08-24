@@ -10,29 +10,29 @@ import {
   PDF_TIMEOUT_MS,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js";
-import { createApiClient, fetchWithTimeout, retryDelayWithJitter, waitForDelay } from "./js/core/api.js";
+} from "./js/core/config.js?v=20260824-task14-production";
+import { createApiClient, fetchWithTimeout, retryDelayWithJitter, waitForDelay } from "./js/core/api.js?v=20260824-task14-production";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js";
-import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js";
+} from "./js/core/changelog.js?v=20260824-task14-production";
+import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260824-task14-production";
 import {
   clearAccountSessionStorage,
   persistAccountSession,
   restoreAccountSession,
-} from "./js/core/session.js";
-import { hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js";
+} from "./js/core/session.js?v=20260824-task14-production";
+import { hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260824-task14-production";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260824-task14-production";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260824-task14-production";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js";
+} from "./js/language/history.js?v=20260824-task14-production";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -67,15 +67,15 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js";
+} from "./js/language/quiz.js?v=20260824-task14-production";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260824-task14-production";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js";
+} from "./js/language/wrong-book.js?v=20260824-task14-production";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -83,7 +83,7 @@ import {
   hasAccountEntitlement as hasAccountEntitlementModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js";
+} from "./js/membership/account.js?v=20260824-task14-production";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -91,19 +91,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js";
+} from "./js/membership/plans.js?v=20260824-task14-production";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js";
+} from "./js/membership/recharge.js?v=20260824-task14-production";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js";
+} from "./js/admin/formatters.js?v=20260824-task14-production";
 
 const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
 const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);

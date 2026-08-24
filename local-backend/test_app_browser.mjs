@@ -550,10 +550,10 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260823-task14-temporary-sharing');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260823-task14-temporary-sharing');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260823-task14-temporary-sharing');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260823-task14-temporary-sharing');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260824-task14-production');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260824-task14-production');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260824-task14-production');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260824-task14-production');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -566,7 +566,7 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.23");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-23-task14-temporary-sharing");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-24-task14-production");
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
     });
