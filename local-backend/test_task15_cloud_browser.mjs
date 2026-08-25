@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const BASE_URL = process.env.WYJ_TEST_BASE || "http://127.0.0.1:8894";
 const CDP_URL = process.env.WYJ_CDP_URL || "http://127.0.0.1:9225";
+const EXPECT_AI_MODE = process.env.WYJ_EXPECT_AI_MODE || "disabled";
 const RUN_ID = Date.now().toString(36);
 const USERNAME = `cloudonly${RUN_ID}`.slice(0, 32);
 const USER_SECRET = "Cloud-Only-Browser-2026!";
@@ -295,7 +296,18 @@ async function main() {
         throw new Error(`${error.message}; diagnostic=${JSON.stringify(diagnostic)}; dialogs=${JSON.stringify(dialogs)}`);
       }
       assert.equal(await evaluate("localStorage.getItem('wyjAccountSession')"), originalSession);
-      assert.ok(dialogs.some((message) => message.includes("AI 暂时不可用") && message.includes("释义练习仍可继续")));
+      const aiUnavailable = dialogs.some(
+        (message) => message.includes("AI 暂时不可用") && message.includes("释义练习仍可继续"),
+      );
+      if (EXPECT_AI_MODE === "disabled") {
+        assert.equal(aiUnavailable, true, "disabled Workers AI must degrade without ending the quiz");
+      } else if (EXPECT_AI_MODE === "enabled") {
+        assert.equal(aiUnavailable, false, "enabled Workers AI must resolve the Japanese enrichment path");
+        const cloudStatus = await request("/api/status?source=cloud");
+        assert.equal(cloudStatus.data.ai_ready, true);
+      } else {
+        assert.equal(EXPECT_AI_MODE, "either", `unsupported WYJ_EXPECT_AI_MODE: ${EXPECT_AI_MODE}`);
+      }
     });
 
     await check("real browser canvas produces a parseable semantic PDF", async () => {
