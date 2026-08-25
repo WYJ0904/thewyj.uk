@@ -263,7 +263,7 @@ data\users.pre-feedback-006.sqlite3
 data\users.pre-learning-sync-007.sqlite3
 ```
 
-D1 migration 位于 `cloudflare/migrations/`，由 `wyj_d1_migrations` 管理并按 `0001`～`0010` 前向执行。付款履约、投票、学习记录、临时下载授权和 Task 15 import receipt 均使用稳定主键或唯一约束防止重复。回滚不删除 D1 表或 R2 对象；先冻结相关写入、导出并核对云端增量，再执行前向修复或受控恢复。
+D1 migration 位于 `cloudflare/migrations/`，由 `wyj_d1_migrations` 管理并按 `0001`～`0011` 前向执行。付款履约、投票、学习记录、临时下载授权和 Task 15 import receipt 均使用稳定主键或唯一约束防止重复。回滚不删除 D1 表或 R2 对象；先冻结相关写入、导出并核对云端增量，再执行前向修复或受控恢复。
 
 ## 浏览器本地数据
 
@@ -488,7 +488,7 @@ npm.cmd run cf:dev
 
 ### 迁移、部署与回滚
 
-Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sql`、Task 12 的 `0003_accounts_sessions.sql`、`0004_session_limit_trigger.sql`、`0005_session_limit_ordering.sql`、Task 13 的 `0006_memberships_payments.sql`，Task 14 的 `0007_temporary_sharing.sql`、`0008_task14_user_storage_trigger.sql`、`0009_task14_global_storage_trigger.sql`，以及 Task 15 的 `0010_task15_cloud_only.sql` 必须从 fresh D1 按序可重复应用。Production 迁移报告与备份只保存在仓库外；导入完成后所有 Production import 开关保持关闭。
+Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sql`、Task 12 的 `0003_accounts_sessions.sql`、`0004_session_limit_trigger.sql`、`0005_session_limit_ordering.sql`、Task 13 的 `0006_memberships_payments.sql`，Task 14 的 `0007_temporary_sharing.sql`、`0008_task14_user_storage_trigger.sql`、`0009_task14_global_storage_trigger.sql`，以及 Task 15 的 `0010_task15_cloud_only.sql`、`0011_task15_import_trigger_order.sql` 必须从 fresh D1 按序可重复应用。Production 迁移报告与备份只保存在仓库外；导入完成后所有 Production import 开关保持关闭。
 
 ```powershell
 # 本地全新 D1 验证
@@ -684,7 +684,7 @@ Task 14 回滚只允许作为受控恢复：先停止新的临时分享写入，
 
 ### Task 15 完全云端化
 
-`cloudflare/migrations/0010_task15_cloud_only.sql` 新增短期 quiz authorization、Workers AI cache/用量/并发 lease、工具收藏/最近使用/保存配置，以及幂等 import batch/receipt。模型只在 `functions/_lib/task15-model.mjs` 配置；当前使用 Cloudflare 官方 JSON Mode 支持列表中明确列出、仍保持 active 的多语言 `@cf/meta/llama-3.1-8b-instruct-fast`。单次输入最多 6,000 字符、输出最多 512 tokens、超时 18 秒；仅 Workers AI 5xx 最多自动重试 1 次，401/403/429、格式错误和 timeout 不重试；每用户每日 120 次、全站每日 3,000 次，最多 4 个并发 lease，cache 保留 7 天并在后续写入时有界清理过期项。
+`cloudflare/migrations/0010_task15_cloud_only.sql` 新增短期 quiz authorization、Workers AI cache/用量/并发 lease、工具收藏/最近使用/保存配置，以及幂等 import batch/receipt；`0011_task15_import_trigger_order.sql` 固定远端 D1 的 import receipt 校验优先级。模型只在 `functions/_lib/task15-model.mjs` 配置；当前使用 Cloudflare 官方 JSON Mode 支持列表中明确列出、仍保持 active 的多语言 `@cf/meta/llama-3.1-8b-instruct-fast`。单次输入最多 6,000 字符、输出最多 512 tokens、超时 18 秒；仅 Workers AI 5xx 最多自动重试 1 次，401/403/429、格式错误和 timeout 不重试；每用户每日 120 次、全站每日 3,000 次，最多 4 个并发 lease，cache 保留 7 天并在后续写入时有界清理过期项。
 
 学习请求先使用内置词典、NFKC/假名/词形规则和 D1 cache；只有仍无法可靠回答时才调用 Workers AI。AI cache key 是规范化输入的 SHA-256，持久化内容不含原始用户答案、完整词表、prompt、密码或 Session token。AI 401/403、429、5xx、timeout、无效 JSON 或 schema failure 都返回稳定业务错误并保持 canonical Session。
 

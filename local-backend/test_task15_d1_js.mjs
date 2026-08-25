@@ -134,6 +134,7 @@ try {
     "0008_task14_user_storage_trigger.sql",
     "0009_task14_global_storage_trigger.sql",
     "0010_task15_cloud_only.sql",
+    "0011_task15_import_trigger_order.sql",
   ]);
   for (const filename of migrations) {
     const sql = await readFile(path.join(ROOT, "cloudflare", "migrations", filename), "utf8");

@@ -139,31 +139,54 @@ CREATE TABLE IF NOT EXISTS task15_import_receipts (
         ON DELETE CASCADE
 );
 
-CREATE TRIGGER IF NOT EXISTS trg_task15_import_receipt_validate
+CREATE TRIGGER IF NOT EXISTS trg_task15_import_receipt_parent
 BEFORE INSERT ON task15_import_receipts
+WHEN NOT EXISTS (
+    SELECT 1 FROM task15_import_batches
+    WHERE source_key = NEW.source_key AND kind = NEW.kind
+)
 BEGIN
-    SELECT CASE
-        WHEN NOT EXISTS (
-            SELECT 1 FROM task15_import_batches
-            WHERE source_key = NEW.source_key AND kind = NEW.kind
-        ) THEN RAISE(ABORT, 'task15_import_parent_missing')
-        WHEN NEW.source_count != (
-            SELECT source_count FROM task15_import_batches
-            WHERE source_key = NEW.source_key AND kind = NEW.kind
-        ) THEN RAISE(ABORT, 'task15_import_source_count_conflict')
-        WHEN (
-            SELECT complete FROM task15_import_batches
-            WHERE source_key = NEW.source_key AND kind = NEW.kind
-        ) = 1 THEN RAISE(ABORT, 'task15_import_already_complete')
-        WHEN NEW.received_count + COALESCE((
-            SELECT SUM(received_count) FROM task15_import_receipts
-            WHERE source_key = NEW.source_key AND kind = NEW.kind
-        ), 0) > NEW.source_count THEN RAISE(ABORT, 'task15_import_incomplete_source')
-        WHEN NEW.complete = 1 AND NEW.received_count + COALESCE((
-            SELECT SUM(received_count) FROM task15_import_receipts
-            WHERE source_key = NEW.source_key AND kind = NEW.kind
-        ), 0) != NEW.source_count THEN RAISE(ABORT, 'task15_import_incomplete_source')
-    END;
+    SELECT RAISE(ABORT, 'task15_import_parent_missing');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_task15_import_receipt_source_count
+BEFORE INSERT ON task15_import_receipts
+WHEN NEW.source_count != (
+    SELECT source_count FROM task15_import_batches
+    WHERE source_key = NEW.source_key AND kind = NEW.kind
+)
+BEGIN
+    SELECT RAISE(ABORT, 'task15_import_source_count_conflict');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_task15_import_receipt_complete
+BEFORE INSERT ON task15_import_receipts
+WHEN (
+    SELECT complete FROM task15_import_batches
+    WHERE source_key = NEW.source_key AND kind = NEW.kind
+) = 1
+BEGIN
+    SELECT RAISE(ABORT, 'task15_import_already_complete');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_task15_import_receipt_overflow
+BEFORE INSERT ON task15_import_receipts
+WHEN NEW.received_count + COALESCE((
+    SELECT SUM(received_count) FROM task15_import_receipts
+    WHERE source_key = NEW.source_key AND kind = NEW.kind
+), 0) > NEW.source_count
+BEGIN
+    SELECT RAISE(ABORT, 'task15_import_incomplete_source');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_task15_import_receipt_early_complete
+BEFORE INSERT ON task15_import_receipts
+WHEN NEW.complete = 1 AND NEW.received_count + COALESCE((
+    SELECT SUM(received_count) FROM task15_import_receipts
+    WHERE source_key = NEW.source_key AND kind = NEW.kind
+), 0) != NEW.source_count
+BEGIN
+    SELECT RAISE(ABORT, 'task15_import_incomplete_source');
 END;
 
 CREATE TRIGGER IF NOT EXISTS trg_task15_import_receipt_rollup
