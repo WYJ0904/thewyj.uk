@@ -89,8 +89,12 @@ async function readJson(request, maximumBytes) {
 }
 
 function authenticationError(result, context) {
-  if (result.status === 401) return apiError("authentication_required", "请先登录", 401, requestId(context));
-  return apiError("account_unavailable", "账户不可用", result.status || 403, requestId(context));
+  return apiError(
+    String(result.code || (result.status === 401 ? "canonical_session_invalid" : "account_unavailable")),
+    result.status === 401 ? "登录会话无效，请重新登录" : "账户不可用",
+    result.status || 403,
+    requestId(context),
+  );
 }
 
 async function authenticate(context, requirement) {
@@ -236,13 +240,7 @@ function cloudFailure(error, context) {
   return apiError(`task14_${classification}`, message, 503, requestId(context), { retryable: true });
 }
 
-function shouldFallback(error, descriptor, flags) {
-  if (!descriptor.legacy || !flags.legacyFallback || flags.task14TemporaryPrimary) return false;
-  if (!(error instanceof Task14Error)) return descriptor.mode === "read";
-  return descriptor.mode === "read" && ["share_not_found", "clipboard_not_found", "room_not_found"].includes(error.code);
-}
-
-export async function handleTask14Request(context, legacyProxy) {
+export async function handleTask14Request(context) {
   const url = new URL(context.request.url);
   const method = context.request.method.toUpperCase();
   const descriptor = ROUTES.get(`${method} ${url.pathname}`);
@@ -264,10 +262,7 @@ export async function handleTask14Request(context, legacyProxy) {
         { retryable: true, headers: { "Retry-After": "30" } },
       );
     }
-    if (descriptor.cloudOnly) {
-      return apiError("task14_cloud_not_enabled", "云端临时分享尚未启用", 503, requestId(context), { retryable: true });
-    }
-    return legacyProxy(context);
+    return apiError("task14_cloud_not_enabled", "云端临时分享尚未启用", 503, requestId(context), { retryable: true });
   }
   if (descriptor.mode === "import" && !productionImportAllowed(context, flags)) {
     return apiError(
@@ -277,7 +272,6 @@ export async function handleTask14Request(context, legacyProxy) {
       requestId(context),
     );
   }
-  const fallbackContext = descriptor.legacy ? { ...context, request: context.request.clone() } : context;
   try {
     if (descriptor.mode !== "capability" && !await ensureTask14Schema(context.env.WYJ_DB)) {
       throw new Task14Error("云端临时分享数据结构尚未就绪", 503, "task14_schema_not_ready", true);
@@ -299,7 +293,6 @@ export async function handleTask14Request(context, legacyProxy) {
     }
     return await executeRoute(context, descriptor, account, flags);
   } catch (error) {
-    if (shouldFallback(error, descriptor, flags)) return legacyProxy(fallbackContext);
     if (error instanceof Task14Error) {
       return apiError(error.code, error.message, error.status, requestId(context), { retryable: error.retryable });
     }
@@ -319,5 +312,4 @@ export const __testing = Object.freeze({
   featureEnabled,
   productionImportAllowed,
   readJson,
-  shouldFallback,
 });

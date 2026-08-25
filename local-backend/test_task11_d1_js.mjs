@@ -6,6 +6,7 @@ import path from "node:path";
 import { Miniflare } from "miniflare";
 
 import { handleTask11Request } from "../functions/_lib/task11-api.mjs";
+import { sessionStorageKey } from "../functions/_lib/task12-crypto.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const TOKENS = Object.freeze({
@@ -17,27 +18,32 @@ const ENVIRONMENT = Object.freeze({
   CLOUD_FOUNDATION_ENABLED: "true",
   CLOUD_READS_ENABLED: "true",
   CLOUD_WRITES_ENABLED: "true",
-  LEGACY_API_FALLBACK_ENABLED: "true",
+  TASK11_CLOUD_READS_ENABLED: "true",
+  TASK11_CLOUD_WRITES_ENABLED: "true",
+  TASK12_CLOUD_ACCOUNTS_ENABLED: "true",
+  LEGACY_API_FALLBACK_ENABLED: "false",
   TASK11_IMPORT_ENABLED: "true",
   TASK11_PRODUCTION_IMPORT_ENABLED: "false",
   D1_RATE_LIMIT_ENABLED: "true",
-  LOCAL_API_BASE: "https://legacy-auth.invalid",
   WYJ_ENVIRONMENT: "development",
 });
 
-let authAvailable = true;
-const originalFetch = globalThis.fetch;
-globalThis.fetch = async (input, init = {}) => {
-  const url = new URL(typeof input === "string" ? input : input.url);
-  if (url.hostname !== "legacy-auth.invalid" || url.pathname !== "/api/me") {
-    return originalFetch(input, init);
+async function insertAccountsAndSessions(db) {
+  const now = new Date().toISOString();
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  for (const [token, account] of Object.entries(TOKENS)) {
+    const role = account.is_super_admin ? "super_admin" : "user";
+    await db.prepare(`INSERT INTO task12_users (
+      id, username, username_normalized, password_hash, password_scheme,
+      password_iterations, role, registered_at, created_at, updated_at, source_updated_at
+    ) VALUES (?1, ?2, ?3, '', 'reset_required', 0, ?4, ?5, ?5, ?5, ?5)`)
+      .bind(account.id, account.username, account.username.toLowerCase(), role, now).run();
+    await db.prepare(`INSERT INTO task12_sessions (
+      token_digest, user_id, session_version, created_at, last_seen_at, expires_at, client_kind
+    ) VALUES (?1, ?2, 1, ?3, ?3, ?4, 'browser')`)
+      .bind(await sessionStorageKey(token), account.id, now, expires).run();
   }
-  if (!authAvailable) throw new TypeError("legacy auth fixture unavailable");
-  const headers = new Headers(init.headers || (typeof input === "string" ? undefined : input.headers));
-  const account = TOKENS[headers.get("X-Session-Token") || ""];
-  if (!account) return Response.json({ ok: false, code: "authentication_required" }, { status: 401 });
-  return Response.json({ ok: true, account: { ...account, banned: false, deleted: false } });
-};
+}
 
 function syncBody(clientId, sinceVersion, changes) {
   return {
@@ -74,7 +80,7 @@ async function task11Request(db, route, options = {}) {
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     }),
     waitUntil(promise) { waits.push(promise); },
-  }, async () => Response.json({ ok: true, source: "legacy" }));
+  });
   await Promise.all(waits);
   return { response, payload: await response.json() };
 }
@@ -91,11 +97,15 @@ let completed = 0;
 
 try {
   const db = await mf.getD1Database("WYJ_DB");
-  for (const filename of ["0001_foundation.sql", "0002_low_risk_cloud_services.sql"]) {
+  for (const filename of [
+    "0001_foundation.sql", "0002_low_risk_cloud_services.sql", "0003_accounts_sessions.sql",
+    "0004_session_limit_trigger.sql", "0005_session_limit_ordering.sql",
+  ]) {
     const sql = await readFile(path.join(ROOT, "cloudflare", "migrations", filename), "utf8");
     // D1Database.exec treats physical lines as separate queries; migration files are formatted SQL.
     await db.exec(sql.replace(/\r?\n/g, " "));
   }
+  await insertAccountsAndSessions(db);
 
   const changelogRecord = {
     version: "task11.integration",
@@ -293,15 +303,16 @@ try {
   assert.equal("user_id" in telemetryList.payload.buckets[0], false);
   completed += 1;
 
-  authAvailable = false;
-  const unavailable = await task11Request(db, "/api/feedback/mine", { token: "task11-user-one" });
-  assert.equal(unavailable.response.status, 503);
-  assert.equal(unavailable.payload.code, "legacy_auth_unavailable");
+  const nativeFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new TypeError("network unavailable"); };
+  const independent = await task11Request(db, "/api/feedback/mine", { token: "task11-user-one" });
+  globalThis.fetch = nativeFetch;
+  assert.equal(independent.response.status, 200);
+  assert.equal(independent.payload.feedback.length >= 1, true);
   completed += 1;
 
   console.log(`Task 11 Miniflare/D1 checks passed: ${completed}`);
 } finally {
-  globalThis.fetch = originalFetch;
   await mf.dispose();
   await rm(runtime, { recursive: true, force: true });
 }

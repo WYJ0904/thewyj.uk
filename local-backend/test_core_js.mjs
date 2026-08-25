@@ -42,8 +42,8 @@ const {
   persistAccountSession,
   restoreAccountSession,
 } = await import("../js/core/session.js");
-const { loadJson, safeStorageSet } = await import("../js/core/storage.js");
-const { createApiClient } = await import("../js/core/api.js");
+const { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet, storageWriteFailure } = await import("../js/core/storage.js");
+const { createApiClient, isCanonicalSessionFailure } = await import("../js/core/api.js");
 const { mergeChangelogEntries } = await import("../js/core/changelog.js");
 
 assert(APP_ROUTE_MANIFEST.includes("/tools/:tool_id"));
@@ -69,6 +69,29 @@ assert.deepEqual(loadJson("missing", { ok: true }, new MemoryStorage()), { ok: t
 const storage = new MemoryStorage();
 assert.equal(safeStorageSet(storage, "answer", 42), true);
 assert.equal(storage.getItem("answer"), "42");
+Object.defineProperty(globalThis, "blockedStorage", {
+  configurable: true,
+  get() { throw new DOMException("blocked", "SecurityError"); },
+});
+const blockedStorage = getSafeStorage("blockedStorage");
+assert.equal(safeStorageSet(blockedStorage, "session", "in-memory-only"), false);
+assert.equal(blockedStorage.getItem("session"), "in-memory-only");
+delete globalThis.blockedStorage;
+const failingStorage = new MemoryStorage();
+failingStorage.setItem = () => { throw new DOMException("blocked", "SecurityError"); };
+assert.equal(safeStorageSet(failingStorage, "session", "secret-value"), false);
+assert.equal(hasStorageWriteFailure(), true);
+assert.deepEqual(storageWriteFailure(), { code: "storage_write_failed", key: "session", name: "SecurityError" });
+
+sessionStorage.setItem("vocabSession", "legacy-preserved");
+const originalSetItem = localStorage.setItem.bind(localStorage);
+localStorage.setItem = () => { throw new DOMException("blocked", "SecurityError"); };
+assert.equal(restoreAccountSession(), "legacy-preserved");
+assert.equal(sessionStorage.getItem("vocabSession"), "legacy-preserved");
+localStorage.setItem = originalSetItem;
+assert.equal(isCanonicalSessionFailure({ code: "canonical_session_invalid" }), true);
+assert.equal(isCanonicalSessionFailure({ code: "authentication_required" }), true);
+assert.equal(isCanonicalSessionFailure({ code: "dependency_auth_failed" }), false);
 
 const cloudEntry = {
   version: "2026.08.20",
@@ -109,7 +132,14 @@ globalThis.fetch = async (path, options) => {
   if (path === "/api/membership") {
     return { ok: false, status: 403, json: async () => ({ error: "membership", code: "membership_required" }) };
   }
-  return { ok: false, status: 401, json: async () => ({ error: "expired" }) };
+  if (path === "/api/business-401") {
+    return { ok: false, status: 401, json: async () => ({ error: "dependency", code: "dependency_auth_failed" }) };
+  }
+  return {
+    ok: false,
+    status: 401,
+    json: async () => ({ error: "expired", code: "canonical_session_invalid" }),
+  };
 };
 
 const client = createApiClient({
@@ -126,7 +156,9 @@ assert.deepEqual(await client.apiGet("/api/private"), { account: { id: "u1" } })
 assert.equal(calls[0].options.headers["X-Session-Token"], "session-token");
 await assert.rejects(client.api("/api/membership"), (error) => error.code === "membership_required");
 assert.equal(membershipPrompted, 1);
-await assert.rejects(client.api("/api/expired"));
+await assert.rejects(client.api("/api/business-401"), (error) => error.code === "dependency_auth_failed");
+assert.equal(sessionExpired, 0);
+await assert.rejects(client.api("/api/expired"), (error) => error.code === "canonical_session_invalid");
 assert.equal(sessionExpired, 1);
 
 console.log("Core JS module tests passed (router, storage, session, API).");

@@ -5,10 +5,6 @@ import {
   featureFlags,
   jsonResponse,
 } from "./cloudflare-foundation.mjs";
-import {
-  LegacyAuthDependencyError,
-  resolveLegacyAccount,
-} from "./legacy-api.mjs";
 import { resolveTask12Account } from "./task12-auth.mjs";
 import { Task12Error } from "./task12-model.mjs";
 import { Task11Error } from "./task11-model.mjs";
@@ -30,13 +26,13 @@ import {
 const ROUTES = new Map([
   ["GET /api/changelog", { mode: "read", auth: "public", legacy: false, limit: 120, window: 60 }],
   ["HEAD /api/changelog", { mode: "read", auth: "public", legacy: false, limit: 120, window: 60 }],
-  ["POST /api/feedback", { mode: "write", auth: "user", legacy: true, limit: 5, window: 600, body: 32 * 1024 }],
-  ["GET /api/feedback/mine", { mode: "read", auth: "user", legacy: true, limit: 120, window: 60 }],
-  ["GET /api/feedback/voting", { mode: "read", auth: "user", legacy: true, limit: 120, window: 60 }],
-  ["POST /api/feedback/vote", { mode: "write", auth: "user", legacy: true, limit: 30, window: 60, body: 4 * 1024 }],
-  ["GET /api/admin/feedback", { mode: "read", auth: "admin", legacy: true, limit: 120, window: 60 }],
-  ["POST /api/admin/feedback/update", { mode: "write", auth: "admin", legacy: true, limit: 120, window: 60, body: 16 * 1024 }],
-  ["POST /api/learning/sync", { mode: "write", auth: "user", legacy: true, limit: 30, window: 60, body: 440 * 1024 }],
+  ["POST /api/feedback", { mode: "write", auth: "user", limit: 5, window: 600, body: 32 * 1024 }],
+  ["GET /api/feedback/mine", { mode: "read", auth: "user", limit: 120, window: 60 }],
+  ["GET /api/feedback/voting", { mode: "read", auth: "user", limit: 120, window: 60 }],
+  ["POST /api/feedback/vote", { mode: "write", auth: "user", limit: 30, window: 60, body: 4 * 1024 }],
+  ["GET /api/admin/feedback", { mode: "read", auth: "admin", limit: 120, window: 60 }],
+  ["POST /api/admin/feedback/update", { mode: "write", auth: "admin", limit: 120, window: 60, body: 16 * 1024 }],
+  ["POST /api/learning/sync", { mode: "write", auth: "user", limit: 30, window: 60, body: 440 * 1024 }],
   ["POST /api/telemetry", { mode: "write", auth: "public", legacy: false, limit: 60, window: 60, body: 2 * 1024 }],
   ["GET /api/admin/task11/telemetry", { mode: "read", auth: "admin", legacy: false, limit: 120, window: 60 }],
   ["POST /api/admin/task11/import", { mode: "write", auth: "admin", legacy: false, limit: 10, window: 60, body: 512 * 1024, import: true }],
@@ -90,31 +86,32 @@ async function readJson(request, maximumBytes) {
 }
 
 function authenticationError(result, context) {
-  if (result.status === 401) return apiError("authentication_required", "请先登录", 401, requestId(context));
-  return apiError("account_unavailable", "账户不可用", result.status || 403, requestId(context));
+  return apiError(
+    String(result.code || (result.status === 401 ? "canonical_session_invalid" : "account_unavailable")),
+    result.status === 401 ? "登录会话无效，请重新登录" : "账户不可用",
+    result.status || 403,
+    requestId(context),
+  );
 }
 
 async function authenticate(context, requirement, flags) {
   if (requirement === "public") return null;
-  let result;
+  if (!flags.task12CloudAccounts) {
+    throw new Task11Error("云端账户服务当前未启用", 503, "cloud_accounts_disabled", true);
+  }
   try {
-    result = flags.task12CloudAccounts
-      ? await resolveTask12Account(context)
-      : await resolveLegacyAccount(context);
-  } catch (error) {
-    if (error instanceof LegacyAuthDependencyError) {
-      throw new Task11Error(error.message, 503, error.code, true);
+    const result = await resolveTask12Account(context);
+    if (!result.authenticated) return authenticationError(result, context);
+    if (requirement === "admin" && !result.account.is_super_admin) {
+      return apiError("forbidden", "无管理员权限", 403, requestId(context));
     }
+    return result.account;
+  } catch (error) {
     if (error instanceof Task12Error) {
       throw new Task11Error(error.message, error.status, error.code, error.retryable);
     }
     throw error;
   }
-  if (!result.authenticated) return authenticationError(result, context);
-  if (requirement === "admin" && !result.account.is_super_admin) {
-    return apiError("forbidden", "无管理员权限", 403, requestId(context));
-  }
-  return result.account;
 }
 
 function rateLimitError(path, rate, context) {
@@ -216,7 +213,7 @@ function cloudFailure(error, context) {
   );
 }
 
-export async function handleTask11Request(context, legacyProxy) {
+export async function handleTask11Request(context) {
   const url = new URL(context.request.url);
   const method = context.request.method.toUpperCase();
   const descriptor = ROUTES.get(`${method} ${url.pathname}`);
@@ -253,13 +250,8 @@ export async function handleTask11Request(context, legacyProxy) {
     }
   }
   if (!featureEnabled(descriptor, flags)) {
-    if (descriptor.legacy) return legacyProxy(context);
     return disabledResponse(descriptor, context);
   }
-
-  const fallbackContext = descriptor.legacy && descriptor.mode === "write"
-    ? { ...context, request: context.request.clone() }
-    : context;
   try {
     const ready = await ensureTask11Schema(context.env.WYJ_DB);
     if (!ready) {
@@ -271,7 +263,6 @@ export async function handleTask11Request(context, legacyProxy) {
       );
     }
   } catch (error) {
-    if (descriptor.legacy && flags.legacyFallback) return legacyProxy(fallbackContext);
     if (error instanceof Task11Error) {
       return apiError(error.code, error.message, error.status, requestId(context), {
         retryable: error.retryable,
@@ -295,9 +286,6 @@ export async function handleTask11Request(context, legacyProxy) {
   } catch (error) {
     if (error instanceof Task11Error) {
       return apiError(error.code, error.message, error.status, requestId(context), { retryable: error.retryable });
-    }
-    if (descriptor.mode === "read" && descriptor.legacy && flags.legacyFallback) {
-      return legacyProxy(fallbackContext);
     }
     console.error(JSON.stringify({
       event: "task11_cloud_error",

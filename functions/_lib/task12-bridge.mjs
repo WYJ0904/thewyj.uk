@@ -1,4 +1,5 @@
 const encoder = new TextEncoder();
+// TEST-ONLY migration/rollback fixture. Production's Pages entry must never import this module.
 const BRIDGE_VERSION = "1";
 const BRIDGE_ENTITLEMENT_VERSION = "2";
 const BRIDGE_MAX_AGE_SECONDS = 45;

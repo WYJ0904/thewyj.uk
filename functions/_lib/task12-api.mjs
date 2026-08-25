@@ -6,9 +6,7 @@ import {
   jsonResponse,
   sha256Hex,
 } from "./cloudflare-foundation.mjs";
-import { resolveLegacyAccount, verifyLegacyPassword } from "./legacy-api.mjs";
 import { resolveTask12Account } from "./task12-auth.mjs";
-import { bridgeConfigured } from "./task12-bridge.mjs";
 import { importTask12Batch, task12ImportCounts } from "./task12-import.mjs";
 import { passwordPepperConfigured } from "./task12-crypto.mjs";
 import {
@@ -83,8 +81,17 @@ async function readJson(request, maximumBytes) {
 }
 
 function authenticationError(result, context) {
-  if (result.status === 401) return apiError("authentication_required", "请先登录", 401, requestId(context));
-  return apiError("account_unavailable", "账户不可用", result.status || 403, requestId(context));
+  const messages = {
+    authentication_required: "请先登录",
+    canonical_session_invalid: "登录会话无效，请重新登录",
+    session_expired: "登录会话已过期，请重新登录",
+    session_revoked: "登录会话已被撤销，请重新登录",
+    session_generation_invalid: "账户安全状态已变化，请重新登录",
+    account_deleted: "账户已删除",
+    account_banned: "账户已被封禁",
+  };
+  const code = String(result.code || (result.status === 401 ? "canonical_session_invalid" : "account_unavailable"));
+  return apiError(code, messages[code] || "账户不可用", result.status || 403, requestId(context));
 }
 
 async function cloudAuthentication(context, requirement) {
@@ -98,14 +105,13 @@ async function cloudAuthentication(context, requirement) {
 }
 
 async function migrationAuthentication(context, flags) {
-  if (flags.task12CloudAccounts) {
-    const cloud = await resolveTask12Account(context, { touch: false }).catch(() => null);
-    if (cloud?.authenticated && cloud.account.is_super_admin) return cloud.account;
+  if (!flags.task12CloudAccounts) {
+    return apiError("cloud_accounts_required", "迁移接口只接受云端管理员会话", 503, requestId(context));
   }
-  const legacy = await resolveLegacyAccount(context);
-  if (!legacy.authenticated) return authenticationError(legacy, context);
-  if (!legacy.account.is_super_admin) return apiError("forbidden", "无管理员权限", 403, requestId(context));
-  return legacy.account;
+  const cloud = await resolveTask12Account(context, { touch: false });
+  if (!cloud.authenticated) return authenticationError(cloud, context);
+  if (!cloud.account.is_super_admin) return apiError("forbidden", "无管理员权限", 403, requestId(context));
+  return cloud.account;
 }
 
 function loginSubject(context) {
@@ -122,55 +128,12 @@ function passwordOptions(context) {
       true,
     );
   }
-  return {
-    passwordPepper,
-    verifyLegacy: async (account, secret) => await verifyLegacyPassword(context, account, secret),
-  };
+  return { passwordPepper };
 }
 
-const LEGACY_BUSINESS_ACCOUNT_FIELDS = Object.freeze([
-  "membership", "membership_start", "membership_expires", "trial_language",
-  "memberships", "entitlements", "membership_summary", "tools_access", "recharge_status",
-]);
-
-function mergeLegacyBusinessAccount(cloudAccount, legacyAccount) {
-  if (!legacyAccount || String(legacyAccount.id || "") !== String(cloudAccount?.id || "")) return cloudAccount;
-  const merged = { ...cloudAccount };
-  for (const field of LEGACY_BUSINESS_ACCOUNT_FIELDS) {
-    if (field in legacyAccount) merged[field] = legacyAccount[field];
-  }
-  return merged;
-}
-
-async function legacyBusinessJson(context, path, token, legacyProxy) {
-  const url = new URL(path, context.request.url);
-  const headers = new Headers(context.request.headers);
-  headers.delete("Content-Length");
-  headers.delete("Content-Type");
-  headers.set("Accept", "application/json");
-  headers.set("X-Session-Token", token);
-  const request = new Request(url, { method: "GET", headers });
-  const response = await legacyProxy({
-    ...context,
-    request,
-    cf: context.request.cf || context.cf || {},
-  });
-  const payload = await response.json().catch(() => null);
-  if (!response.ok || !payload?.ok) {
-    throw new Task12Error("旧业务数据暂时不可用", 503, "task12_legacy_business_unavailable", true);
-  }
-  return payload;
-}
-
-async function businessAccount(context, account, token, legacyProxy, flags) {
+async function businessAccount(context, account, flags) {
   if (flags.task13CloudReads) return await enrichAccountWithTask13(context.env.WYJ_DB, account);
-  const legacy = await legacyBusinessJson(context, "/api/me", token, legacyProxy);
-  return mergeLegacyBusinessAccount(account, legacy.account);
-}
-
-async function optionalLegacyBusinessJson(context, path, token, legacyProxy) {
-  try { return await legacyBusinessJson(context, path, token, legacyProxy); }
-  catch (_) { return null; }
+  return account;
 }
 
 async function loginFailureKey(context) {
@@ -207,15 +170,13 @@ async function safeLoginAudit(context, username, success, reason, user = null) {
   catch (_) { /* Audit storage failure must not disclose credentials or block authentication. */ }
 }
 
-async function executeRoute(context, descriptor, account, legacyProxy, flags) {
+async function executeRoute(context, descriptor, account, flags) {
   const path = new URL(context.request.url).pathname;
   const method = context.request.method.toUpperCase();
   const db = context.env.WYJ_DB;
   if (method === "GET") {
     if (path === "/api/me") {
-      const enriched = await businessAccount(
-        context, account, context.request.headers.get("X-Session-Token"), legacyProxy, flags,
-      );
+      const enriched = await businessAccount(context, account, flags);
       return response({ ok: true, account: enriched }, 200, context);
     }
     if (path === "/api/admin/users") {
@@ -224,28 +185,15 @@ async function executeRoute(context, descriptor, account, legacyProxy, flags) {
         const users = await Promise.all(cloudUsers.map((item) => enrichAccountWithTask13(db, item)));
         return response({ ok: true, users }, 200, context);
       }
-      const legacy = await legacyBusinessJson(context, "/api/admin/users",
-        context.request.headers.get("X-Session-Token"), legacyProxy);
-      const legacyById = new Map((legacy.users || []).map((item) => [String(item.id || ""), item]));
-      return response({
-        ok: true,
-        users: cloudUsers.map((item) => mergeLegacyBusinessAccount(item, legacyById.get(item.id))),
-      }, 200, context);
+      return response({ ok: true, users: cloudUsers }, 200, context);
     }
     if (path === "/api/admin/login-logs") return response({ ok: true, logs: await listLoginAudit(db, account) }, 200, context);
     if (path === "/api/admin/audit") {
-      const [cloudLogs, legacy, membershipLogs] = await Promise.all([
+      const [cloudLogs, membershipLogs] = await Promise.all([
         listAccountAudit(db, account),
-        flags.task13CloudReads
-          ? optionalLegacyBusinessJson(
-            context, "/api/admin/audit", context.request.headers.get("X-Session-Token"), legacyProxy,
-          )
-          : legacyBusinessJson(
-            context, "/api/admin/audit", context.request.headers.get("X-Session-Token"), legacyProxy,
-          ),
         flags.task13CloudReads ? listTask13Audit(db) : Promise.resolve([]),
       ]);
-      const logs = [...cloudLogs, ...(legacy?.logs || []), ...membershipLogs]
+      const logs = [...cloudLogs, ...membershipLogs]
         .sort((left, right) => String(right.created_at || "").localeCompare(String(left.created_at || "")))
         .slice(0, 500);
       return response({ ok: true, logs }, 200, context);
@@ -282,7 +230,7 @@ async function executeRoute(context, descriptor, account, legacyProxy, flags) {
       await safeLoginAudit(context, payload.username, true, "success", result.account);
       let enriched = result.account;
       try {
-        enriched = await businessAccount(context, result.account, result.session, legacyProxy, flags);
+        enriched = await businessAccount(context, result.account, flags);
       } catch (_) {
         enriched = { ...result.account, membership_state_unavailable: true };
       }
@@ -348,7 +296,7 @@ function cloudFailure(error, context) {
   return apiError(`task12_${classification}`, "云端账户服务暂时不可用，请稍后重试", 503, requestId(context), { retryable: true });
 }
 
-export async function handleTask12Request(context, legacyProxy) {
+export async function handleTask12Request(context) {
   const url = new URL(context.request.url);
   const method = context.request.method.toUpperCase();
   const descriptor = ROUTES.get(`${method} ${url.pathname}`);
@@ -369,16 +317,7 @@ export async function handleTask12Request(context, legacyProxy) {
       }
     }
   } else if (!flags.task12CloudAccounts) {
-    return legacyProxy(context);
-  }
-
-  if (!descriptor.import && !bridgeConfigured(context.env)) {
-    return apiError(
-      "task12_legacy_bridge_not_configured",
-      "云端账户已启用，但旧业务身份桥尚未配置",
-      503,
-      requestId(context),
-    );
+    return apiError("cloud_accounts_disabled", "云端账户服务当前未启用", 503, requestId(context));
   }
 
   try {
@@ -400,7 +339,7 @@ export async function handleTask12Request(context, legacyProxy) {
         });
       }
     }
-    return await executeRoute(context, descriptor, account, legacyProxy, flags);
+    return await executeRoute(context, descriptor, account, flags);
   } catch (error) {
     if (error instanceof Task12Error) {
       return apiError(error.code, error.message, error.status, requestId(context), { retryable: error.retryable });

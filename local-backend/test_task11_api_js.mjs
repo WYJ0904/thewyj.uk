@@ -11,14 +11,14 @@ function contextFor(path, env = {}, options = {}) {
   };
 }
 
-function schemaDatabase(routeFailure = "") {
+function schemaDatabase(routeFailure = "", schemaVersion = "1") {
   return {
     prepare(sql) {
       return {
         bind() {
           return {
             async first() {
-              if (sql.includes("task11_metadata")) return { value: "1" };
+              if (sql.includes("task11_metadata")) return { value: schemaVersion };
               if (routeFailure) throw new Error(routeFailure);
               return null;
             },
@@ -41,25 +41,18 @@ function schemaDatabase(routeFailure = "") {
 let completed = 0;
 
 {
-  let legacyCalls = 0;
   const response = await handleTask11Request(
     contextFor("/api/feedback/mine", {
       CLOUD_READS_ENABLED: "false",
       LEGACY_API_FALLBACK_ENABLED: "true",
     }, { headers: { "X-Session-Token": "test-token" } }),
-    async () => {
-      legacyCalls += 1;
-      return Response.json({ ok: true, source: "legacy" });
-    },
   );
-  assert.equal(response.status, 200);
-  assert.equal((await response.json()).source, "legacy");
-  assert.equal(legacyCalls, 1);
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).code, "cloud_reads_disabled");
   completed += 1;
 }
 
 {
-  let legacyCalls = 0;
   const response = await handleTask11Request(
     contextFor("/api/learning/sync", {
       CLOUD_WRITES_ENABLED: "false",
@@ -72,13 +65,9 @@ let completed = 0;
       },
       body: "{}",
     }),
-    async () => {
-      legacyCalls += 1;
-      return Response.json({ ok: true, source: "legacy" });
-    },
   );
-  assert.equal((await response.json()).source, "legacy");
-  assert.equal(legacyCalls, 1);
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).code, "cloud_writes_disabled");
   completed += 1;
 }
 
@@ -95,20 +84,15 @@ let completed = 0;
 }
 
 {
-  let legacyCalls = 0;
   const response = await handleTask11Request(
     contextFor("/api/feedback/mine", {
       CLOUD_READS_ENABLED: "true",
       LEGACY_API_FALLBACK_ENABLED: "true",
+      WYJ_DB: schemaDatabase("", "0"),
     }, { headers: { "X-Session-Token": "test-token" } }),
-    async () => {
-      legacyCalls += 1;
-      return Response.json({ ok: true, source: "legacy-after-schema-failure" });
-    },
   );
-  assert.equal(response.status, 200);
-  assert.equal((await response.json()).source, "legacy-after-schema-failure");
-  assert.equal(legacyCalls, 1);
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).code, "task11_schema_not_ready");
   completed += 1;
 }
 

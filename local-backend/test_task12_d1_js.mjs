@@ -39,11 +39,14 @@ const ENVIRONMENT = Object.freeze({
   TASK12_IMPORT_ENABLED: "true",
   TASK12_PRODUCTION_IMPORT_ENABLED: "false",
   D1_RATE_LIMIT_ENABLED: "true",
-  LEGACY_API_FALLBACK_ENABLED: "true",
-  LOCAL_API_BASE: "https://legacy-business.invalid",
+  LEGACY_API_FALLBACK_ENABLED: "false",
   WYJ_ENVIRONMENT: "preview",
-  WYJ_LEGACY_IDENTITY_BRIDGE_SECRET: BRIDGE_SECRET,
   WYJ_TASK12_PASSWORD_PEPPER: PASSWORD_PEPPER,
+});
+const ROLLBACK_LEGACY_ENVIRONMENT = Object.freeze({
+  ...ENVIRONMENT,
+  LOCAL_API_BASE: "https://legacy-business.invalid",
+  WYJ_LEGACY_IDENTITY_BRIDGE_SECRET: BRIDGE_SECRET,
 });
 const nativeFetch = globalThis.fetch;
 let legacyVerificationRequests = 0;
@@ -94,7 +97,7 @@ globalThis.fetch = async (input, init = {}) => {
   return Response.json({ ok: true });
 };
 
-async function requestHandler(handler, db, route, options = {}, legacyProxy = async () => Response.json({ ok: true, source: "legacy" })) {
+async function requestHandler(handler, db, route, options = {}) {
   const headers = new Headers(options.headers || {});
   if (options.token) headers.set("X-Session-Token", options.token);
   if (options.ip) headers.set("CF-Connecting-IP", options.ip);
@@ -111,13 +114,13 @@ async function requestHandler(handler, db, route, options = {}, legacyProxy = as
     }),
     waitUntil(promise) { waits.push(promise); },
   };
-  const response = await handler(context, legacyProxy);
+  const response = await handler(context);
   await Promise.all(waits);
   return { context, response, payload: await response.json() };
 }
 
 async function accountRequest(db, route, options = {}) {
-  return await requestHandler(handleTask12Request, db, route, options, proxyToLegacy);
+  return await requestHandler(handleTask12Request, db, route, options);
 }
 
 async function insertAdmin(db) {
@@ -130,10 +133,10 @@ async function insertAdmin(db) {
     .bind("task12-admin-stable-id", await hashSecret(ADMIN_SECRET, PASSWORD_PEPPER), now).run();
 }
 
-function legacyHashSecret(secret) {
+function legacyHashSecret(secret, iterations = 310000) {
   const salt = randomBytes(16);
-  const digest = pbkdf2Sync(secret, salt, 310000, 32, "sha256");
-  return `pbkdf2_sha256$310000$${salt.toString("base64url")}$${digest.toString("base64url")}`;
+  const digest = pbkdf2Sync(secret, salt, iterations, 32, "sha256");
+  return `pbkdf2_sha256$${iterations}$${salt.toString("base64url")}$${digest.toString("base64url")}`;
 }
 
 function verifyCloudHashIndependently(secret, encoded, pepper) {
@@ -160,11 +163,8 @@ function verifyCloudHashIndependently(secret, encoded, pepper) {
   return expected === encodedDigest;
 }
 
-function passwordOptions(legacySecret = "") {
-  return {
-    passwordPepper: PASSWORD_PEPPER,
-    verifyLegacy: async (row, secret) => Boolean(legacySecret) && row.username === "task12-imported" && secret === legacySecret,
-  };
+function passwordOptions() {
+  return { passwordPepper: PASSWORD_PEPPER };
 }
 
 function loginRequest() {
@@ -261,25 +261,23 @@ try {
 
   const raceUserId = "task12-login-race-id";
   const raceSecret = "Task12-Race-Secret!";
-  const raceHash = legacyHashSecret(raceSecret);
+  const raceIterations = 2_000_000;
+  const raceHash = legacyHashSecret(raceSecret, raceIterations);
   await db.prepare(`INSERT INTO task12_users (
     id, username, username_normalized, password_hash, password_scheme,
     password_iterations, role, banned, permanent_ban, session_version,
     registered_at, created_at, updated_at, source_updated_at
   ) VALUES (?1, 'task12-login-race', 'task12-login-race', ?2, 'pbkdf2_sha256',
-    310000, 'user', 0, 0, 2, ?3, ?3, ?3, ?3)`)
-    .bind(raceUserId, raceHash, importedAt).run();
+    ?3, 'user', 0, 0, 2, ?4, ?4, ?4, ?4)`)
+    .bind(raceUserId, raceHash, raceIterations, importedAt).run();
+  const racingLogin = loginAccount(
+    db, "task12-login-race", raceSecret, loginRequest(), passwordOptions(),
+  );
+  await new Promise((resolve) => setTimeout(resolve, 25));
+  await db.prepare(`UPDATE task12_users SET banned = 1, permanent_ban = 1,
+    session_version = session_version + 1 WHERE id = ?1`).bind(raceUserId).run();
   await assert.rejects(
-    () => loginAccount(db, "task12-login-race", raceSecret, loginRequest(), {
-      passwordPepper: PASSWORD_PEPPER,
-      verifyLegacy: async (row, candidate) => {
-        assert.equal(row.id, raceUserId);
-        assert.equal(candidate, raceSecret);
-        await db.prepare(`UPDATE task12_users SET banned = 1, permanent_ban = 1,
-          session_version = session_version + 1 WHERE id = ?1`).bind(raceUserId).run();
-        return true;
-      },
-    }),
+    () => racingLogin,
     (error) => {
       assert.equal(error.code, "account_changed_during_login");
       return true;
@@ -321,7 +319,7 @@ try {
   ).bind(importedRecord.id).first();
   assert.equal(upgradedImported.password_scheme, "pbkdf2_sha256");
   assert.ok(upgradedImported.password_hash.startsWith("pbkdf2_sha256_cf_v1$310000$"));
-  assert.equal(legacyVerificationRequests, 2);
+  assert.equal(legacyVerificationRequests, 0);
   const importedAccount = await resolveSession(db, importedLogin.session);
   await changeOwnSecret(
     db, importedAccount, IMPORTED_SECRET, "Task12-Imported-New-Secret!", passwordOptions(),
@@ -420,13 +418,13 @@ try {
   assert.equal(login.response.status, 200);
   assert.deepEqual(
     login.payload.account.entitlements,
-    ["language_all_access"],
+    [],
     JSON.stringify(login.payload.account),
   );
   const firstToken = login.payload.session;
   const current = await accountRequest(db, "/api/me", { token: firstToken });
   assert.equal(current.response.status, 200);
-  assert.deepEqual(current.payload.account.entitlements, ["language_all_access"]);
+  assert.deepEqual(current.payload.account.entitlements, []);
   const forbiddenAdmin = await accountRequest(db, "/api/admin/users", { token: firstToken });
   assert.equal(forbiddenAdmin.response.status, 403);
   assert.equal(forbiddenAdmin.payload.code, "forbidden");
@@ -597,7 +595,9 @@ try {
       return Response.json({ ok: true });
     };
     const context = {
-      env: { ...ENVIRONMENT, WYJ_DB: db },
+      // The identity bridge remains a rollback-only unit-tested asset. Task 12
+      // account routes above never receive these variables or invoke this path.
+      env: { ...ROLLBACK_LEGACY_ENVIRONMENT, WYJ_DB: db },
       data: { requestId: "task12-bridge-request-001" },
       request: new Request("https://thewyj.uk/api/tools/preferences", {
         headers: { "X-Session-Token": ownershipLogin.session },
@@ -620,7 +620,7 @@ try {
     assert.equal(upstreamRequest.headers.get(bridgeTesting.BRIDGE_HEADERS.signature), expected);
     const noBridge = await proxyToLegacy({
       ...context,
-      env: { ...ENVIRONMENT, WYJ_DB: db, WYJ_LEGACY_IDENTITY_BRIDGE_SECRET: "" },
+      env: { ...ROLLBACK_LEGACY_ENVIRONMENT, WYJ_DB: db, WYJ_LEGACY_IDENTITY_BRIDGE_SECRET: "" },
     });
     assert.equal(noBridge.status, 503);
     assert.equal((await noBridge.json()).code, "task12_legacy_bridge_not_configured");

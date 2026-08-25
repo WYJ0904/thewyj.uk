@@ -52,33 +52,7 @@ function passwordPepper(options = {}) {
 }
 
 async function verifyRowSecret(row, secret, options = {}) {
-  const verified = await verifySecret(String(secret || ""), row?.password_hash, passwordPepper(options));
-  if (!verified.needsLegacyVerification) return verified;
-  if (typeof options.verifyLegacy !== "function") {
-    throw new Task12Error(
-      "旧账户登录密钥校验服务暂时不可用，请稍后重试",
-      503,
-      "legacy_password_verifier_unavailable",
-      true,
-    );
-  }
-  let valid;
-  try {
-    valid = Boolean(await options.verifyLegacy(row, String(secret || "")));
-  } catch (_) {
-    throw new Task12Error(
-      "旧账户登录密钥校验服务暂时不可用，请稍后重试",
-      503,
-      "legacy_password_verifier_unavailable",
-      true,
-    );
-  }
-  return {
-    valid,
-    needsUpgrade: valid,
-    needsLegacyVerification: false,
-    scheme: PASSWORD_HASH_PREFIX,
-  };
+  return await verifySecret(String(secret || ""), row?.password_hash, passwordPepper(options));
 }
 
 async function userById(db, userId) {
@@ -220,9 +194,9 @@ export async function loginAccount(db, username, secret, request, options = {}) 
   return { session: token, account: accountPayload(await userById(db, row.id)) };
 }
 
-export async function resolveSession(db, token, options = {}) {
+export async function resolveSessionState(db, token, options = {}) {
   const raw = String(token || "");
-  if (!raw) return null;
+  if (!raw) return { account: null, code: "authentication_required", status: 401 };
   const digest = await sessionStorageKey(raw);
   const row = await first(db, `SELECT
       s.token_digest, s.session_version AS session_generation, s.created_at AS session_created_at,
@@ -230,18 +204,29 @@ export async function resolveSession(db, token, options = {}) {
     FROM task12_sessions AS s JOIN task12_users AS u ON u.id = s.user_id
     WHERE s.token_digest = ?1`, [digest]);
   const now = new Date();
-  const invalid = !row || row.revoked || row.deleted || row.banned
-    || Number(row.session_generation) !== Number(row.session_version)
-    || !Number.isFinite(Date.parse(row.expires_at)) || Date.parse(row.expires_at) <= now.getTime();
-  if (invalid) {
+  let code = "";
+  let status = 401;
+  if (!row) code = "canonical_session_invalid";
+  else if (row.deleted) { code = "account_deleted"; status = 403; }
+  else if (row.banned) { code = "account_banned"; status = 403; }
+  else if (row.revoked) code = "session_revoked";
+  else if (Number(row.session_generation) !== Number(row.session_version)) code = "session_generation_invalid";
+  else if (!Number.isFinite(Date.parse(row.expires_at)) || Date.parse(row.expires_at) <= now.getTime()) {
+    code = "session_expired";
+  }
+  if (code) {
     if (row) await run(db, "DELETE FROM task12_sessions WHERE token_digest = ?1", [digest]);
-    return null;
+    return { account: null, code, status };
   }
   if (options.touch !== false && now.getTime() - Date.parse(row.last_seen_at) >= 5 * 60 * 1000) {
     await run(db, `UPDATE task12_sessions SET last_seen_at = ?2, expires_at = ?3
       WHERE token_digest = ?1 AND revoked = 0`, [digest, isoNow(now), expiryFrom(now)]);
   }
-  return accountPayload(row);
+  return { account: accountPayload(row), code: "", status: 200 };
+}
+
+export async function resolveSession(db, token, options = {}) {
+  return (await resolveSessionState(db, token, options)).account;
 }
 
 export async function logoutAccount(db, token) {

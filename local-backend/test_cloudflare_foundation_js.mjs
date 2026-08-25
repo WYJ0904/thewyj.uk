@@ -37,18 +37,16 @@ let completed = 0;
 }
 
 {
-  let legacyCalls = 0;
   const legacyProxy = async () => {
-    legacyCalls += 1;
-    return new Response(JSON.stringify({ ok: true, source: "legacy" }));
+    throw new Error("legacy status proxy must stay disabled");
   };
   const legacyResponse = await statusRouteResponse({
     env: { CLOUD_STATUS_MODE: "legacy" },
     data: {},
     request: new Request("https://thewyj.uk/api/status"),
   }, legacyProxy);
-  assert.equal((await legacyResponse.json()).source, "legacy");
-  assert.equal(legacyCalls, 1);
+  assert.equal(legacyResponse.status, 410);
+  assert.equal((await legacyResponse.json()).code, "legacy_status_retired");
 
   const disabled = await statusRouteResponse({
     env: { CLOUD_FOUNDATION_ENABLED: "false" },

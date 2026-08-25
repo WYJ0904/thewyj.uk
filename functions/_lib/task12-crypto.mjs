@@ -90,7 +90,6 @@ async function derivePbkdf2(key, salt, iterations) {
 }
 
 async function deriveLegacySecret(secret, salt, iterations) {
-  if (iterations > 100_000) return null;
   return await derivePbkdf2(await importPasswordKey(secret), salt, iterations);
 }
 
@@ -122,11 +121,6 @@ export async function verifySecret(secret, encoded, pepper) {
   if (!parsed) return { valid: false, needsUpgrade: false, needsLegacyVerification: false, scheme: "" };
   if (parsed.scheme === PASSWORD_HASH_PREFIX) {
     const actual = await deriveLegacySecret(secret, parsed.salt, parsed.iterations);
-    if (!actual) {
-      return {
-        valid: false, needsUpgrade: false, needsLegacyVerification: true, scheme: parsed.scheme,
-      };
-    }
     return {
       valid: constantTimeEqual(actual, parsed.digest),
       needsUpgrade: true,

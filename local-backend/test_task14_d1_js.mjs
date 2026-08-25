@@ -32,7 +32,7 @@ const ENVIRONMENT = Object.freeze({
   TASK14_TEMPORARY_PRIMARY_ENABLED: "true",
   TASK14_LEGACY_WRITES_FROZEN: "false",
   D1_RATE_LIMIT_ENABLED: "false",
-  LEGACY_API_FALLBACK_ENABLED: "true",
+  LEGACY_API_FALLBACK_ENABLED: "false",
   WYJ_ENVIRONMENT: "preview",
   WYJ_TASK14_TEMPORARY_SECRET: SECRET,
 });
@@ -107,11 +107,7 @@ async function requestTask14(db, storage, route, options = {}) {
       duplex: body ? "half" : undefined,
     }),
   };
-  const legacyCalls = [];
-  const response = await handleTask14Request(context, async (legacyContext) => {
-    legacyCalls.push(new URL(legacyContext.request.url).pathname);
-    return Response.json({ ok: true, source: "legacy" });
-  });
+  const response = await handleTask14Request(context);
   let payload = null;
   let bytes = null;
   if (options.consume !== false) {
@@ -121,7 +117,7 @@ async function requestTask14(db, storage, route, options = {}) {
     else bytes = new Uint8Array(await response.arrayBuffer());
     await Promise.allSettled(pending);
   }
-  return { response, payload, bytes, pending, legacyCalls };
+  return { response, payload, bytes, pending };
 }
 
 async function uploadFile(db, storage, fileName, fixture, options = {}) {
@@ -197,11 +193,12 @@ try {
   assert.equal(capabilities.payload.cloud_upload, true);
   assert.equal(capabilities.payload.limits.file_bytes, MAX_TEMP_FILE_BYTES);
   assert.equal(capabilities.payload.limits.video_bytes, MAX_TEMP_VIDEO_BYTES);
-  const legacyMode = await requestTask14(db, storage, "/api/temporary/text", {
-    method: "POST", token: USERS.member.token, body: { content: "legacy" },
+  const cloudDisabled = await requestTask14(db, storage, "/api/temporary/text", {
+    method: "POST", token: USERS.member.token, body: { content: "cloud disabled" },
     env: { TASK14_CLOUD_WRITES_ENABLED: "false", TASK14_TEMPORARY_PRIMARY_ENABLED: "false" },
   });
-  assert.deepEqual(legacyMode.legacyCalls, ["/api/temporary/text"]);
+  assert.equal(cloudDisabled.response.status, 503);
+  assert.equal(cloudDisabled.payload.code, "task14_cloud_not_enabled");
   const frozenLegacyMode = await requestTask14(db, storage, "/api/temporary/text", {
     method: "POST", token: USERS.member.token, body: { content: "blocked during migration" },
     env: {
@@ -212,7 +209,6 @@ try {
   });
   assert.equal(frozenLegacyMode.response.status, 503);
   assert.equal(frozenLegacyMode.payload.code, "task14_migration_in_progress");
-  assert.deepEqual(frozenLegacyMode.legacyCalls, []);
   completed += 1;
 
   const unauthenticated = await requestTask14(db, storage, "/api/temporary/text", {

@@ -1,3 +1,5 @@
-# Copy this file to .dev.vars only when a future cloud route needs a secret.
+# Copy this file to .dev.vars for local Cloudflare-only development.
+# Generate independent random values of at least 32 characters. Never reuse Production secrets.
 # Do not put LOCAL_API_BASE or feature flags here; those non-secret values live in wrangler.jsonc.
-# EXAMPLE_SECRET=replace-locally-and-never-commit
+WYJ_TASK12_PASSWORD_PEPPER=replace-with-a-random-local-value-at-least-32-characters
+WYJ_TASK14_TEMPORARY_SECRET=replace-with-another-random-local-value-at-least-32-characters
