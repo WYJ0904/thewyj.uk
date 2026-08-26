@@ -106,6 +106,22 @@ let completed = 0;
   assert.equal(secured.headers.get("X-Request-ID"), "request-123");
   assert.equal(secured.headers.get("X-Content-Type-Options"), "nosniff");
   assert.equal(secured.headers.get("Cache-Control"), "no-store");
+
+  const html = withSecurityHeaders(new Response("<!doctype html>", {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+    },
+  }), "request-html", false);
+  assert.equal(html.headers.get("Cache-Control"), "public, max-age=0, must-revalidate, no-transform");
+
+  const asset = withSecurityHeaders(new Response("body {}", {
+    headers: {
+      "Content-Type": "text/css",
+      "Cache-Control": "public, max-age=86400",
+    },
+  }), "request-asset", false);
+  assert.equal(asset.headers.get("Cache-Control"), "public, max-age=86400");
   completed += 1;
 }
 

@@ -135,6 +135,13 @@ export function withSecurityHeaders(response, requestId, isApi = false) {
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) headers.set(name, value);
   headers.set("X-Request-ID", requestId);
   if (isApi && !headers.has("Cache-Control")) headers.set("Cache-Control", "no-store");
+  const contentType = String(headers.get("Content-Type") || "").toLowerCase();
+  if (!isApi && contentType.includes("text/html")) {
+    const cacheControl = String(headers.get("Cache-Control") || "public, max-age=0, must-revalidate");
+    if (!/(?:^|,)\s*no-transform\s*(?:,|$)/iu.test(cacheControl)) {
+      headers.set("Cache-Control", `${cacheControl}, no-transform`);
+    }
+  }
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
