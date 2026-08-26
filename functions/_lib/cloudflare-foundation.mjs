@@ -1,6 +1,6 @@
-import { bridgeConfigured } from "./task12-bridge.mjs";
 import { passwordPepperConfigured } from "./task12-crypto.mjs";
 import { temporarySecretConfigured } from "./task14-crypto.mjs";
+import { TASK15_AI_MODEL, TASK15_BUILD } from "./task15-model.mjs";
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{8,80}$/;
 const SAFE_API_METHODS = new Set(["GET", "HEAD"]);
@@ -26,7 +26,7 @@ function integerValue(value, fallback, minimum, maximum) {
 }
 
 export function featureFlags(env = {}) {
-  const requestedMode = String(env.CLOUD_STATUS_MODE || "legacy").trim().toLowerCase();
+  const requestedMode = String(env.CLOUD_STATUS_MODE || "cloud").trim().toLowerCase();
   const cloudReads = booleanValue(env.CLOUD_READS_ENABLED, false);
   const cloudWrites = booleanValue(env.CLOUD_WRITES_ENABLED, false);
   return {
@@ -49,7 +49,10 @@ export function featureFlags(env = {}) {
     task14ProductionImport: booleanValue(env.TASK14_PRODUCTION_IMPORT_ENABLED, false),
     task14TemporaryPrimary: booleanValue(env.TASK14_TEMPORARY_PRIMARY_ENABLED, false),
     task14LegacyWritesFrozen: booleanValue(env.TASK14_LEGACY_WRITES_FROZEN, false),
-    legacyFallback: booleanValue(env.LEGACY_API_FALLBACK_ENABLED, true),
+    task15CloudOnly: booleanValue(env.TASK15_CLOUD_ONLY_ENABLED, false),
+    task15Import: booleanValue(env.TASK15_IMPORT_ENABLED, false),
+    task15ProductionImport: booleanValue(env.TASK15_PRODUCTION_IMPORT_ENABLED, false),
+    legacyFallback: booleanValue(env.LEGACY_API_FALLBACK_ENABLED, false),
     workersAi: booleanValue(env.WORKERS_AI_ENABLED, false),
     d1RateLimit: booleanValue(env.D1_RATE_LIMIT_ENABLED, true),
     deepHealthChecks: booleanValue(env.CLOUD_DEEP_HEALTH_CHECKS, false),
@@ -132,6 +135,13 @@ export function withSecurityHeaders(response, requestId, isApi = false) {
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) headers.set(name, value);
   headers.set("X-Request-ID", requestId);
   if (isApi && !headers.has("Cache-Control")) headers.set("Cache-Control", "no-store");
+  const contentType = String(headers.get("Content-Type") || "").toLowerCase();
+  if (!isApi && contentType.includes("text/html")) {
+    const cacheControl = String(headers.get("Cache-Control") || "public, max-age=0, must-revalidate");
+    if (!/(?:^|,)\s*no-transform\s*(?:,|$)/iu.test(cacheControl)) {
+      headers.set("Cache-Control", `${cacheControl}, no-transform`);
+    }
+  }
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -236,7 +246,6 @@ async function bindingHealth(env, flags) {
     schema_ready: false,
     schema_version: "",
     session_strategy: "invalidate_legacy_sessions",
-    legacy_bridge_configured: bridgeConfigured(env),
     password_pepper_configured: passwordPepperConfigured(env?.WYJ_TASK12_PASSWORD_PEPPER),
   };
   const task13 = { schema_ready: false, schema_version: "", payment_primary: flags.task13PaymentPrimary };
@@ -246,6 +255,7 @@ async function bindingHealth(env, flags) {
     temporary_primary: flags.task14TemporaryPrimary,
     secret_configured: temporarySecretConfigured(env?.WYJ_TASK14_TEMPORARY_SECRET),
   };
+  const task15 = { schema_ready: false, schema_version: "", cloud_only: flags.task15CloudOnly };
   if (!bindings.d1) degraded.push("d1_binding_missing");
   if (!bindings.r2) degraded.push("r2_binding_missing");
   if (flags.workersAi && !bindings.workers_ai) degraded.push("workers_ai_binding_missing");
@@ -311,9 +321,16 @@ async function bindingHealth(env, flags) {
         degraded.push(`task14_${classifyCloudError(error)}`);
       }
     }
-  }
-  if (flags.task12CloudAccounts && !task12.legacy_bridge_configured) {
-    degraded.push("task12_legacy_bridge_not_configured");
+    try {
+      const row = await env.WYJ_DB.prepare(
+        "SELECT value FROM task15_metadata WHERE key = ?1",
+      ).bind("schema_version").first();
+      task15.schema_version = String(row?.value || "");
+      task15.schema_ready = task15.schema_version === "1";
+      if (!task15.schema_ready && flags.task15CloudOnly) degraded.push("task15_schema_not_ready");
+    } catch (error) {
+      if (flags.task15CloudOnly) degraded.push(`task15_${classifyCloudError(error)}`);
+    }
   }
   if (flags.task12CloudAccounts && !task12.password_pepper_configured) {
     degraded.push("task12_password_pepper_not_configured");
@@ -323,7 +340,7 @@ async function bindingHealth(env, flags) {
   if (flags.task14TemporaryPrimary && !task14.secret_configured) {
     degraded.push("task14_temporary_secret_not_configured");
   }
-  return { bindings, degraded, task11, task12, task13, task14 };
+  return { bindings, degraded, task11, task12, task13, task14, task15 };
 }
 
 export async function cloudStatusResponse(context) {
@@ -345,17 +362,18 @@ export async function cloudStatusResponse(context) {
     status: degraded.length ? "degraded" : "ok",
     service: "wyj-cloud-foundation",
     environment: String(context.env?.WYJ_ENVIRONMENT || "development"),
-    build: "2026-08-24-task14-production-r2",
+    build: TASK15_BUILD,
     time: new Date().toISOString(),
     auth: Boolean(flags.task12CloudAccounts && health.task12.schema_ready),
     backend_ready: Boolean(flags.task12CloudAccounts && health.task12.schema_ready),
-    ai_ready: false,
-    model: "Cloudflare foundation",
+    ai_ready: Boolean(flags.workersAi && health.bindings.workers_ai),
+    model: flags.workersAi ? TASK15_AI_MODEL : "Cloudflare rules only",
     bindings: health.bindings,
     task11: health.task11,
     task12: health.task12,
     task13: health.task13,
     task14: health.task14,
+    task15: health.task15,
     features: {
       cloud_foundation: flags.cloudFoundation,
       cloud_reads: flags.cloudReads,
@@ -364,7 +382,6 @@ export async function cloudStatusResponse(context) {
       task11_cloud_writes: flags.task11CloudWrites,
       task12_cloud_accounts: flags.task12CloudAccounts,
       task12_import: flags.task12Import,
-      task12_legacy_bridge: health.task12.legacy_bridge_configured,
       task12_password_pepper: health.task12.password_pepper_configured,
       task13_cloud_reads: flags.task13CloudReads,
       task13_cloud_writes: flags.task13CloudWrites,
@@ -377,6 +394,7 @@ export async function cloudStatusResponse(context) {
       task14_legacy_writes_frozen: flags.task14LegacyWritesFrozen,
       task14_temporary_secret: health.task14.secret_configured,
       workers_ai: flags.workersAi,
+      task15_cloud_only: flags.task15CloudOnly,
       legacy_api_fallback: flags.legacyFallback,
       payment_cloud_migration: flags.task13PaymentPrimary,
     },
@@ -395,10 +413,12 @@ export async function cloudStatusResponse(context) {
   return jsonResponse(payload, 200, requestId);
 }
 
-export async function statusRouteResponse(context, legacyProxy) {
+export async function statusRouteResponse(context) {
   const flags = featureFlags(context.env);
   const requestId = context.data?.requestId || requestIdFor(context.request);
-  if (statusSourceFor(context.request, context.env) !== "cloud") return legacyProxy(context);
+  if (statusSourceFor(context.request, context.env) === "legacy") {
+    return apiError("legacy_status_retired", "本机后端状态接口已退役", 410, requestId);
+  }
   if (!flags.cloudFoundation) {
     return apiError("cloud_foundation_disabled", "云端基础设施当前未启用。", 404, requestId);
   }

@@ -82,6 +82,11 @@ jobs:
           set -euo pipefail
           python -m unittest scripts.test_migrate_task14_temporary_to_d1_r2 -v 2>&1 | tee artifacts/task14-migration-tool.log
 
+      - name: Test Task 15 remaining-data migration tooling
+        run: |
+          set -euo pipefail
+          python -m unittest scripts.test_migrate_task15_remaining_to_d1 -v 2>&1 | tee artifacts/task15-migration-tool.log
+
       - name: Upload Python reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -153,6 +158,10 @@ jobs:
             node --check local-backend/test_task12_d1_js.mjs
             node --check local-backend/test_task13_d1_js.mjs
             node --check local-backend/test_task14_d1_js.mjs
+            node --check local-backend/test_task15_d1_js.mjs
+            node --check local-backend/test_task15_cloud_only_gate.mjs
+            node --check local-backend/test_task15_cloud_browser.mjs
+            node --check local-backend/test_task15_pdf_js.mjs
             node --check cloudflare/task14-cleanup-worker.mjs
             node --check local-backend/test_app_browser.mjs
             node --check local-backend/test_tools_browser.mjs
@@ -161,6 +170,7 @@ jobs:
             node --check scripts/check_storage_contract.mjs
             node --check scripts/task11_changelog_seed.mjs
             node --check scripts/task11_validate_import.mjs
+            node --check scripts/check_task15_cloud_only.mjs
           } 2>&1 | tee artifacts/javascript-syntax.log
 
       - name: Check ES module dependency graph
@@ -243,6 +253,14 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('wrangler.task14-cleanup.jsonc','utf8'))" \
             2>&1 | tee artifacts/task14-cleanup-config.log
 
+      - name: Test Task 15 cloud-only runtime and authentication isolation
+        run: |
+          set -euo pipefail
+          node local-backend/test_task15_d1_js.mjs 2>&1 | tee artifacts/task15-cloud-integration.log
+          node local-backend/test_task15_pdf_js.mjs 2>&1 | tee artifacts/task15-pdf.log
+          node local-backend/test_task15_cloud_only_gate.mjs 2>&1 | tee artifacts/task15-cloud-only-gate-self-test.log
+          node scripts/check_task15_cloud_only.mjs 2>&1 | tee artifacts/task15-cloud-only-gate.log
+
       - name: Check HTML, PWA and tool catalog
         run: |
           set -euo pipefail
@@ -307,8 +325,6 @@ jobs:
         include:
           - suite: application
             script: local-backend/test_app_browser.mjs
-          - suite: toolbox
-            script: local-backend/test_tools_browser.mjs
     env:
       WYJ_TEST_BASE: http://127.0.0.1:8892
       WYJ_CDP_URL: http://127.0.0.1:9223
@@ -456,6 +472,195 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: browser-${{ matrix.suite }}-reports-${{ github.run_attempt }}
+          path: |
+            artifacts/
+            .tool-e2e/*.png
+            .tool-e2e/qr-*.gif
+            .tool-e2e/tool-artifacts-*.json
+            .tool-e2e/downloads-*/**
+          if-no-files-found: warn
+          retention-days: 7
+
+  cloud-only-browser-test:
+    name: Cloud-only browser, canonical session and toolbox
+    needs:
+      - python-tests
+      - javascript-static-tests
+      - sensitive-file-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      WYJ_TEST_BASE: http://127.0.0.1:8894
+      WYJ_CDP_URL: http://127.0.0.1:9225
+      WYJ_TEST_ARTIFACT_DIR: artifacts
+      WYJ_TASK12_PASSWORD_PEPPER: task15-ci-password-pepper-fixture-2026
+      WYJ_TASK14_TEMPORARY_SECRET: task15-ci-temporary-hmac-fixture-2026
+      NO_PROXY: 127.0.0.1,localhost
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Set up Python readiness helper
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Restore Node download cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-task15-cloud-browser-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-task15-cloud-browser-
+
+      - name: Install pinned Cloudflare development tooling
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Install independent toolbox artifact validators
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -r qa/requirements.txt
+
+      - name: Prepare fresh Cloudflare-only D1 state
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts "${RUNNER_TEMP}/task15-cloud-state"
+          npx wrangler d1 migrations apply WYJ_DB \
+            --local \
+            --config wrangler.local.jsonc \
+            --persist-to "${RUNNER_TEMP}/task15-cloud-state" \
+            2>&1 | tee artifacts/task15-cloud-d1-migrations.log
+
+      - name: Prepare isolated Cloudflare administrator fixture
+        run: |
+          set -euo pipefail
+          admin_secret="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+          echo "::add-mask::$admin_secret"
+          echo "WYJ_TEST_ADMIN_SECRET=$admin_secret" >> "$GITHUB_ENV"
+          export WYJ_TEST_ADMIN_SECRET="$admin_secret"
+          export WYJ_CI_ADMIN_SQL="${RUNNER_TEMP}/task15-cloud-admin.sql"
+          node --input-type=module <<'JS'
+          import fs from "node:fs";
+          import { hashSecret } from "./functions/_lib/task12-crypto.mjs";
+
+          const now = new Date().toISOString();
+          const hash = await hashSecret(
+            process.env.WYJ_TEST_ADMIN_SECRET,
+            process.env.WYJ_TASK12_PASSWORD_PEPPER,
+          );
+          const quote = (value) => `'${String(value).replaceAll("'", "''")}'`;
+          fs.writeFileSync(process.env.WYJ_CI_ADMIN_SQL, `INSERT INTO task12_users (
+            id, username, username_normalized, password_hash, password_scheme,
+            password_iterations, role, registered_at, created_at, updated_at, source_updated_at
+          ) VALUES (
+            'task15-ci-super-admin', 'wyj', 'wyj', ${quote(hash)}, 'pbkdf2_sha256',
+            310000, 'super_admin', ${quote(now)}, ${quote(now)}, ${quote(now)}, ${quote(now)}
+          );\n`);
+          JS
+          npx wrangler d1 execute WYJ_DB \
+            --local \
+            --config wrangler.local.jsonc \
+            --persist-to "${RUNNER_TEMP}/task15-cloud-state" \
+            --file "$WYJ_CI_ADMIN_SQL" \
+            2>&1 | tee artifacts/task15-cloud-admin-fixture.log
+
+      - name: Start Pages Functions and headless Chrome without legacy services
+        run: |
+          set -euo pipefail
+          chrome_bin="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [[ -z "$chrome_bin" ]]; then
+            echo "No Chrome or Chromium executable is available on this runner." >&2
+            exit 1
+          fi
+
+          npx wrangler pages dev . \
+            --ip 127.0.0.1 \
+            --port 8894 \
+            --persist-to "${RUNNER_TEMP}/task15-cloud-state" \
+            --d1 WYJ_DB \
+            --r2 WYJ_STORAGE \
+            --show-interactive-dev-session false \
+            --log-level info \
+            --binding WYJ_ENVIRONMENT=development \
+            --binding CLOUD_FOUNDATION_ENABLED=true \
+            --binding CLOUD_STATUS_MODE=cloud \
+            --binding CLOUD_READS_ENABLED=true \
+            --binding CLOUD_WRITES_ENABLED=true \
+            --binding TASK11_CLOUD_READS_ENABLED=true \
+            --binding TASK11_CLOUD_WRITES_ENABLED=true \
+            --binding TASK12_CLOUD_ACCOUNTS_ENABLED=true \
+            --binding TASK13_CLOUD_READS_ENABLED=true \
+            --binding TASK13_CLOUD_WRITES_ENABLED=true \
+            --binding TASK13_PAYMENT_PRIMARY_ENABLED=true \
+            --binding TASK14_CLOUD_READS_ENABLED=true \
+            --binding TASK14_CLOUD_WRITES_ENABLED=true \
+            --binding TASK14_TEMPORARY_PRIMARY_ENABLED=true \
+            --binding TASK14_LEGACY_WRITES_FROZEN=true \
+            --binding TASK15_CLOUD_ONLY_ENABLED=true \
+            --binding WORKERS_AI_ENABLED=false \
+            --binding LEGACY_API_FALLBACK_ENABLED=false \
+            --binding WYJ_TASK12_PASSWORD_PEPPER="$WYJ_TASK12_PASSWORD_PEPPER" \
+            --binding WYJ_TASK14_TEMPORARY_SECRET="$WYJ_TASK14_TEMPORARY_SECRET" \
+            > artifacts/task15-pages-dev.log 2>&1 < /dev/null &
+          echo "$!" > artifacts/task15-pages-dev.pid
+
+          "$chrome_bin" \
+            --headless=new \
+            --no-sandbox \
+            --disable-dev-shm-usage \
+            --disable-background-networking \
+            --remote-allow-origins=* \
+            --remote-debugging-address=127.0.0.1 \
+            --remote-debugging-port=9225 \
+            --user-data-dir="${RUNNER_TEMP}/task15-cloud-chrome" \
+            about:blank \
+            > artifacts/task15-chrome.log 2>&1 < /dev/null &
+          echo "$!" > artifacts/task15-chrome.pid
+
+          python scripts/wait_for_http_services.py \
+            --timeout 90 \
+            --service "Cloud-only Pages=http://127.0.0.1:8894/api/status?source=cloud" \
+            --pid-file "Cloud-only Pages=artifacts/task15-pages-dev.pid" \
+            --log-file "Cloud-only Pages=artifacts/task15-pages-dev.log" \
+            --service "Chrome=http://127.0.0.1:9225/json/version" \
+            --pid-file "Chrome=artifacts/task15-chrome.pid" \
+            --log-file "Chrome=artifacts/task15-chrome.log"
+
+      - name: Run cloud-only P0 browser flow
+        run: |
+          set -euo pipefail
+          node local-backend/test_task15_cloud_browser.mjs 2>&1 | tee artifacts/task15-cloud-browser.log
+
+      - name: Run complete toolbox browser matrix on Cloudflare D1 and R2
+        env:
+          WYJ_TEST_PYTHON: python
+        run: |
+          set -euo pipefail
+          node local-backend/test_tools_browser.mjs 2>&1 | tee artifacts/task15-cloud-toolbox.log
+
+      - name: Stop Cloudflare-only browser fixtures
+        if: always()
+        run: |
+          for pid_file in artifacts/task15-*.pid; do
+            [[ -f "$pid_file" ]] || continue
+            pid="$(cat "$pid_file")"
+            kill "$pid" 2>/dev/null || true
+          done
+
+      - name: Upload cloud-only browser reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: task15-cloud-browser-reports-${{ github.run_attempt }}
           path: |
             artifacts/
             .tool-e2e/*.png

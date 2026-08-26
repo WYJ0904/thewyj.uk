@@ -2,13 +2,13 @@
   const entries = [
     {
       version: "2026.08.24",
-      build: "2026-08-24-task14-production-r2",
+      build: "2026-08-26-task15-cloud-only",
       date: "2026-08-24",
-      title: "临时分享 Cloudflare Production",
-      features: ["临时文本、文件、二维码、剪贴板和留言房间已切换到 Production D1/R2。"],
-      improvements: ["文件使用原始字节上传和私有流式下载，新增视频、Range 续传与确定性下载次数。"],
-      fixes: ["修复临时分享能力探测、二进制上传桥接、公开分享页误探测旧 Tunnel，以及旧 Service Worker 跨版本模块混用问题。"],
-      security: ["R2 object key 不对客户端公开，密码与连接码只保存摘要，并增加配额、限流和幂等清理。"],
+      title: "Production 完全云端化",
+      features: ["语言判卷、日语读音、词汇补全和工具偏好已迁移到 Pages Functions、D1 与 Workers AI。"],
+      improvements: ["错题 PDF 改为浏览器本地生成；规则、词典和缓存命中时不会调用 AI。"],
+      fixes: ["只有 D1 canonical session 的稳定终态错误会清除登录；业务 401、AI、网络或依赖故障不再误踢用户。"],
+      security: ["Production 已关闭本机代理、Tunnel fallback 和身份桥依赖，AI 不持久化原始答案、词表或 prompt。"],
     },
     {
       version: "2026.08.22",

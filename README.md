@@ -2,7 +2,7 @@
 
 [![Core CI](https://github.com/WYJ0904/thewyj.uk/actions/workflows/ci.yml/badge.svg)](https://github.com/WYJ0904/thewyj.uk/actions/workflows/ci.yml)
 
-这是部署在 Cloudflare Pages 上的语言测试与在线工具箱。前端是纯 HTML/CSS/JavaScript；账户、会员、支付与临时分享已经迁到 Cloudflare D1/R2。PDF 和本地 AI 继续通过 Cloudflare Tunnel 访问本机服务。
+这是部署在 Cloudflare Pages 上的语言测试与在线工具箱。前端是纯 HTML/CSS/JavaScript；正式 API 由 Pages Functions 提供，结构化数据存于 D1，私有二进制存于 R2，短文本 AI fallback 使用 Workers AI，PDF 在浏览器本地生成。Production 不依赖用户电脑、Python、SQLite、Ollama、Cloudflare Tunnel 或 `LOCAL_API_BASE`。
 
 正式网站：<https://thewyj.uk>
 
@@ -10,11 +10,12 @@
 
 - 前端：`index.html`、`styles.css`、`product-ui.css`、原生 ES Module 入口 `app.js`、`tools.js` 与 `js/` 领域模块
 - PWA：`manifest.webmanifest`、`sw.js`
-- Pages Functions：`functions/api/[[path]].js`，在同源 `/api/*` 下路由 Cloudflare D1/R2 业务和受控 legacy fallback
-- 后端：Cloudflare Pages Functions；Python 3.8+ 标准库 `ThreadingHTTPServer` 暂时承载尚未迁移的 PDF、AI，以及已迁移业务的受控回滚实现
-- 数据库：Cloudflare D1 为已迁移业务的主数据源；SQLite 只保留尚未迁移业务和受控回滚数据
-- 本地 AI：Ollama，默认模型 `qwen3:8b`
-- 公网链路：Cloudflare Pages -> Pages Function -> `api.thewyj.uk` -> Cloudflare Tunnel -> 本机 `8765`
+- Pages Functions：`functions/api/[[path]].js`，在同源 `/api/*` 下直接路由 Task 11～15 Cloudflare 服务，不代理本机
+- 后端：Cloudflare Pages Functions；账户、学习、会员、支付、临时分享、工具偏好与 AI 业务均在 Cloudflare 运行
+- 数据库与对象存储：D1 是正式结构化数据源，R2 保存私有付款二维码和临时分享文件
+- AI：Workers AI binding `AI`，先走本地规则、内置词典和 D1 cache，仅在必要时调用集中配置的模型
+- PDF：错题 PDF、多图 PDF 与图片 PDF 均在浏览器本地生成，不上传用户内容
+- 公网链路：浏览器 -> `thewyj.uk` 同源 Pages / Pages Functions -> D1、R2 或 Workers AI
 - 构建系统：无；不需要 npm、Vite、React、Vue 或 `node_modules`
 
 网站根目录保留 `index.html`，Cloudflare Pages 可直接发布仓库根目录。
@@ -78,13 +79,13 @@ js/
 
 试用文本和图片只在当前浏览器中处理；图片上限为 12 MB、2,000 万像素，文本和 JSON 上限为 200,000 字符。匿名成绩只保留在当前页面内存，刷新即清除，不写入服务器学习记录。匿名用户不能使用批量处理、保存工具配置、临时分享、正式会员或管理员功能；相应 API 即使被直接调用也要求有效服务端会话和权益。试用完成后只显示一次页面内注册提示，不使用弹窗反复打扰。
 
-日语释义测试允许词表只输入汉字或只输入假名。纯假名会直接出题；含汉字的词会在开考前由后端词典缓存、Jisho 精确查询及必要时 Ollama 补全读音，并在题目汉字下方显示假名，例如“電話 / でんわ”。听写模式继续隐藏词形与读音，避免直接泄露答案。
+日语释义测试允许词表只输入汉字或只输入假名。纯假名会直接出题；含汉字的词会在开考前由内置词典、D1 cache 及必要时 Workers AI 补全读音，并在题目汉字下方显示假名，例如“電話 / でんわ”。听写模式继续隐藏词形与读音，避免直接泄露答案。
 
-单词搜索和阶段推荐优先使用按语言与等级建立的内存索引，顺序为精确匹配、前缀匹配、标准化词形、同等级模糊匹配和最多四个相邻等级补充。本地结果足够时不会访问网络或等待 Ollama；只有不足时才使用受等级校验的在线/AI 补充。索引统一处理 NFKC、大小写、全角半角和片假名/平假名，结果使用有界 TTL/LRU 缓存。前端输入采用 200 ms 防抖并通过 `AbortController` 取消旧请求。
+单词搜索和阶段推荐优先使用按语言与等级建立的内存索引，顺序为精确匹配、前缀匹配、标准化词形、同等级模糊匹配和相邻等级补充。本地结果足够时不会调用 Workers AI；只有不足时才使用受等级校验、配额和超时保护的 AI 补充。索引统一处理 NFKC、大小写、全角半角和片假名/平假名，结果使用有界缓存。前端输入采用 200 ms 防抖并通过 `AbortController` 取消旧请求。
 
 ## 会员方案
 
-唯一价格与权益配置位于 `local-backend/membership.py`。前端方案、充值订单和后端开通逻辑读取同一份服务端配置。
+Production 的价格、权益与在售状态以 D1 的 `task13_membership_plans` 和 `task13_membership_entitlements` 为唯一运行时配置；订单创建时由服务端锁定方案快照。`local-backend/membership.py` 仅保留给旧 SQLite 迁移、隔离测试和历史兼容校验，不参与线上请求。
 
 | 方案代码 | 价格 | 权益 |
 | --- | ---: | --- |
@@ -120,7 +121,7 @@ js/
 
 权限按有效会员记录合并，不使用单一 `isVip`。全功能永久和全功能包月覆盖全部模块；20 CNY 双语言包月与 20 CNY 工具箱包月互不越权；70 CNY 双语言双项永久包含英语和日语测试，但不包含工具箱；单语言体验和其他有效会员可以叠加。包月会员到期后立即失去对应权益，但同时存在的其他会员权益仍会保留。超级管理员拥有全部权益。
 
-桌面启动器使用 Cloudflare 官方 `auto` 协议并验证 `https://thewyj.uk/api/status`。当自定义域名在本地网络或代理下暂时不可达时，还会用 `https://japanese-6pa.pages.dev/api/status` 验证同一 Pages Function → Tunnel → 本机后端链路。守护程序要求多次连续失败才修复，修复延迟使用指数退避和随机抖动，避免把一次公网探测抖动放大成 Tunnel 重启风暴。
+桌面启动器不参与正式网站运行。它只保留给历史后端隔离测试和人工回滚演练，始终手动启动且不创建开机自启动项；关闭电脑不会影响 Production。
 
 ### 老会员兼容
 
@@ -156,7 +157,7 @@ pending_payment -> expired
 
 裁剪后的收款图片只保留二维码、金额和套餐名称，并在使用前验证扫码内容与处理前一致。图片必须去除头像、姓名、账号、状态栏及元数据，且不得进入 Git、公开静态目录、README、日志、数据库或源码 Base64。
 
-运行时把 12 张已清理 PNG 放在后端私有数据目录 `data/payment/qrcodes/`，或通过 `VOCAB_PAYMENT_QR_DIR` 指向等价的受保护目录。文件名固定为 `wechat_<plan_code>.png` 与 `alipay_<plan_code>.png`。该目录已被 `.gitignore` 排除，部署时必须通过受控的本机文件传输单独配置。
+Production 的 12 张已清理 PNG 存在私有 R2 bucket，通过固定的服务端映射关联支付方式和方案代码；R2 object key 不返回客户端，也不使用公开 object URL。仓库外的历史本机目录 `data/payment/qrcodes/` 只用于迁移备份和隔离回归，继续由 `.gitignore` 排除。
 
 浏览器只能通过 `GET /api/recharge/qr?request_id=<订单ID>` 获取二维码。接口检查会话、订单归属、状态、支付方式、套餐与固定资源映射、解析后的根目录、文件大小和 PNG 签名，并返回 `Cache-Control: private, no-store`。前端携带 `X-Session-Token` 获取 Blob，关闭窗口、切换订单、退出或会话失效时撤销 Object URL。
 
@@ -231,11 +232,9 @@ Task 14 的下载次数在服务端签发授权时原子消费。一个 15 分�
 
 ## 数据库与迁移
 
-运行数据库默认位于后端工作目录的 `data/users.sqlite3`，用户镜像为同一工作目录下的 `users.txt`；生产环境可用 `VOCAB_USERS_DB` 与 `VOCAB_USERS_TXT` 显式指定。不要在文档、日志或公开响应中记录实际绝对路径。
+Production 结构化数据只存于 Cloudflare D1，文件只存于私有 R2。账户密码在 D1 中使用带随机盐和服务端 pepper 的版本化 PBKDF2-SHA256 摘要；Session 只保存 token SHA-256 digest、过期时间和会话版本。仓库外最后一份 SQLite 与 `users.txt` 只作为迁移前备份，不接受正式写入，也不能作为运行 fallback。
 
-密码使用 PBKDF2-SHA256、随机盐和 310,000 次迭代保存。`users.txt` 只写 `secret=protected`，不再写明文密码。会话令牌只以 SHA-256 摘要存入 SQLite；老数据库中的明文密码与会话令牌会在启动时自动升级为摘要，同时保持现有登录有效。
-
-迁移文件：
+历史 SQLite 迁移文件仅用于验证旧备份和迁移工具：
 
 - `local-backend/migrations/pre-001-schema.sql`：迁移前结构快照
 - `local-backend/migrations/001_entitlements_up.sql`：新权益、充值、审计、工具与临时数据表
@@ -253,7 +252,7 @@ Task 14 的下载次数在服务端签发授权时原子消费。一个 15 分�
 - `local-backend/migrations/007_learning_sync_up.sql`：新增按用户、数据类型和稳定 ID 保存的增量学习记录、版本头与变更流
 - `local-backend/migrations/007_learning_sync_down.sql`：只回滚学习同步表，不删除浏览器本地数据或既有账户数据
 
-第一次对老数据库执行迁移前会使用 SQLite backup API 创建一次性备份：
+历史迁移曾在仓库外通过 SQLite backup API 创建一次性备份：
 
 ```text
 data\users.pre-entitlements-001.sqlite3
@@ -264,11 +263,7 @@ data\users.pre-feedback-006.sqlite3
 data\users.pre-learning-sync-007.sqlite3
 ```
 
-迁移由 `schema_migrations` 控制并可安全重启。支付履约对订单 ID 和 `source_ref=payment:<payment_request_id>` 都有唯一索引，防止重复增加期限。每个结构阶段只创建一次迁移前备份；备份可能仍含旧版明文密码，必须只保存在本机受保护目录，不能上传或提交。
-
-新增表包括 `membership_plans`、`user_memberships`、`membership_entitlements`、`user_entitlement_overrides`、`payment_requests`、`admin_audit_logs`、`login_audit_logs`、`tool_favorites`、`tool_recent_usage`、`saved_tool_configs`、`learning_sync_records`、`learning_sync_heads`、`learning_sync_changes` 及五类临时数据表。原 `users`、`sessions` 和 `recharge_requests` 表保留。
-
-回滚前必须停止服务并另外备份当前数据库。只回退本次支付改版时可执行 `004_payment_flow_down.sql`，但会删除新增的支付状态历史与履约表，因此优先恢复 `users.pre-payment-004.sqlite3`。完整回退旧权益系统时才使用早期备份或更早的 down SQL。
+D1 migration 位于 `cloudflare/migrations/`，由 `wyj_d1_migrations` 管理并按 `0001`～`0011` 前向执行。付款履约、投票、学习记录、临时下载授权和 Task 15 import receipt 均使用稳定主键或唯一约束防止重复。回滚不删除 D1 表或 R2 对象；先冻结相关写入、导出并核对云端增量，再执行前向修复或受控恢复。
 
 ## 浏览器本地数据
 
@@ -310,8 +305,8 @@ data\users.pre-learning-sync-007.sqlite3
 - 支付二维码不在静态目录，只有订单本人可通过会话保护接口读取；响应禁止缓存且不暴露文件路径
 - 错误响应不返回调用栈或本机路径
 - CSP、`nosniff`、禁止 iframe、严格 Referrer 和 Permissions Policy；本地图片处理仅额外允许同源生成的 `blob:` 图片
-- 公共代理错误不返回 Tunnel 地址、底层异常或调用栈；后端不暴露 Python 版本标识
-- Ollama `11434` 不对公网开放，公网只通过 Tunnel 访问账户后端 `8765`
+- Production 不包含代理到本机的路由；统一错误响应不返回依赖细节、调用栈或本机路径
+- Workers AI 错误、业务权限错误、网络失败和 Cloudflare 依赖错误不会被误判为 canonical Session 失效
 
 ## 环境变量
 
@@ -319,12 +314,10 @@ Pages Functions：
 
 | 变量 | 说明 |
 | --- | --- |
-| `LOCAL_API_BASE` | 必填，当前为 `https://api.thewyj.uk` |
-| `LOCAL_API_FALLBACK` | 可选的第二后端地址 |
-| `CLOUD_FOUNDATION_ENABLED` | 是否允许显式访问新的云端基础状态接口；生产默认 `true` |
-| `CLOUD_STATUS_MODE` | `/api/status` 的默认来源；保持 `legacy` 可继续验证本地后端与 Tunnel，设为 `cloud` 才切换到云状态 |
-| `CLOUD_READS_ENABLED` / `CLOUD_WRITES_ENABLED` | 全局云端读写总开关；Task 11 仍保持 `false`，支付和其他高风险业务不会迁移 |
-| `TASK11_CLOUD_READS_ENABLED` / `TASK11_CLOUD_WRITES_ENABLED` | Task 11 低风险模块专用开关；Preview 与 Production 均已启用，读取仍保留 legacy fallback |
+| `CLOUD_FOUNDATION_ENABLED` | Cloudflare 基础层开关；Preview 与 Production 为 `true` |
+| `CLOUD_STATUS_MODE` | 状态来源；Preview 与 Production 固定为 `cloud`，`source=legacy` 返回 410 |
+| `CLOUD_READS_ENABLED` / `CLOUD_WRITES_ENABLED` | 全局云端读写总开关；Preview 与 Production 均为 `true` |
+| `TASK11_CLOUD_READS_ENABLED` / `TASK11_CLOUD_WRITES_ENABLED` | 更新日志、反馈、投票、学习同步和 telemetry；Preview 与 Production 均启用且不回退本机 |
 | `TASK12_CLOUD_ACCOUNTS_ENABLED` | D1 账户与会话主开关；Preview 与 Production 均已在迁移验收后启用 |
 | `TASK12_IMPORT_ENABLED` | Task 12 账户导入接口；仅 Preview 默认启用，Production 默认关闭 |
 | `TASK12_PRODUCTION_IMPORT_ENABLED` | Production 账户导入第二道开关；默认 `false`，还要求明确确认头 |
@@ -335,40 +328,26 @@ Pages Functions：
 | `TASK13_PRODUCTION_IMPORT_ENABLED` | Production 导入第二道开关；默认 `false`，还要求管理员会话、备份和精确确认头 |
 | `TASK14_CLOUD_READS_ENABLED` / `TASK14_CLOUD_WRITES_ENABLED` | D1/R2 临时分享读写开关；Preview 与 Production 均已在迁移验收后启用 |
 | `TASK14_TEMPORARY_PRIMARY_ENABLED` | 临时分享单一主路径开关；Preview 与 Production 均为云端主路径，失败不会回退双写 SQLite |
-| `TASK14_LEGACY_WRITES_FROZEN` | Production 迁移窗口的临时写入维护开关；为 `true` 时仅阻止临时分享新写入并返回可重试 503，不影响其他 legacy API；平时必须为 `false` |
+| `TASK14_LEGACY_WRITES_FROZEN` | legacy 临时分享写入冻结标记；Production 保持 `true`，正式 D1/R2 主路径不受影响 |
 | `TASK14_IMPORT_ENABLED` / `TASK14_PRODUCTION_IMPORT_ENABLED` | Task 14 导入入口及 Production 第二道开关；Preview 仅用于隔离迁移，Production 两项均保持 `false` |
 | `WYJ_TASK14_TEMPORARY_SECRET` | Task 14 密码摘要、连接码 HMAC 和下载授权密钥；至少 32 字符，只存 Cloudflare 加密 Secret |
-| `WYJ_LEGACY_IDENTITY_BRIDGE_SECRET` | Pages 到旧 Python 业务接口的短时身份断言 HMAC secret；至少 32 字符，只存 Cloudflare Secret |
-| `WORKERS_AI_ENABLED` | Workers AI 功能开关；默认 `false`，绑定存在也不会自动产生推理用量 |
+| `TASK15_CLOUD_ONLY_ENABLED` | Task 15 Production cloud-only gate；Preview 与 Production 必须为 `true` |
+| `TASK15_IMPORT_ENABLED` / `TASK15_PRODUCTION_IMPORT_ENABLED` | 剩余工具偏好迁移入口和 Production 第二道开关；正常 Production 均为 `false` |
+| `WORKERS_AI_ENABLED` | Workers AI 业务开关；Preview 与 Production 为 `true`，development 默认关闭以避免意外用量 |
 | `D1_RATE_LIMIT_ENABLED` | 是否用 D1 对云端基础接口做基础限流；发生配额或绑定错误时自动 fail-open 并标记降级 |
 | `CLOUD_RATE_LIMIT_REQUESTS` / `CLOUD_RATE_LIMIT_WINDOW_SECONDS` | 云端基础接口限流阈值，默认 120 次/60 秒 |
 | `CLOUD_DEEP_HEALTH_CHECKS` | 是否让云端状态接口读取 D1 schema 版本；默认启用，失败只显示 degraded |
-| `LEGACY_API_FALLBACK_ENABLED` | 保留旧 Python/Tunnel 回退能力的公开状态标记；默认 `true` |
+| `LEGACY_API_FALLBACK_ENABLED` | Production legacy fallback 标记；所有环境保持 `false` |
 | `TASK11_IMPORT_ENABLED` | 受管理员会话保护的 Task 11 数据导入入口；仅 Preview 默认启用，Production 默认关闭 |
 | `TASK11_PRODUCTION_IMPORT_ENABLED` | Production 数据导入的第二道开关；默认 `false`，还必须提供明确确认头 |
 
-本地后端支持：
+`WYJ_TASK12_PASSWORD_PEPPER` 与 `WYJ_TASK14_TEMPORARY_SECRET` 必须按环境保存在 Cloudflare encrypted Secret 中。Production 不需要 `LOCAL_API_BASE`、`LOCAL_API_FALLBACK` 或 `WYJ_LEGACY_IDENTITY_BRIDGE_SECRET`；不要重新添加这些变量来绕过 cloud-only gate。不要提交 `.env`、`.dev.vars`、`data/`、SQLite、`users.txt`、日志、二维码、token、Secret 或 Tunnel 凭据。
 
-- `VOCAB_ADMIN_SECRET`：仅全新数据库创建固定管理员时使用，不覆盖现有密码
-- `VOCAB_SHARE_HMAC_KEY`：六位临时剪贴板连接码的 HMAC 密钥；启动器会持久生成
-- `VOCAB_LEGACY_IDENTITY_BRIDGE_SECRET`：与 Pages Secret 相同的身份桥密钥；`run.ps1` 首次启动时写入私有 `data/settings.json`，不会进入 Git
-- `VOCAB_CLOUD_ACCOUNT_PRIMARY`：正式切换后设为 `true`，让旧 Python 后端拒绝旧 Session 与直接登录/注册；当前保持 `false`
-- `VOCAB_USERS_DB`、`VOCAB_USERS_TXT`、`VOCAB_STATIC_DIR`
-- `VOCAB_BACKEND_ROOT`：桌面启动器的私有运行目录；优先级低于命令行 `-RuntimeRoot`，高于本机启动器配置
-- `VOCAB_PYTHON_EXE`、`VOCAB_CLOUDFLARED_EXE`、`VOCAB_OLLAMA_EXE`：需要覆盖自动发现结果时使用
-- `VOCAB_TUNNEL_CONFIG`：Cloudflare Tunnel 私有配置文件；默认使用当前 Windows 账户的 `.cloudflared/config.yml`
-- `VOCAB_PAYMENT_QR_DIR`：裁剪后支付二维码的私有目录；默认 `data/payment/qrcodes/`
-- `VOCAB_PAYMENT_QR_MAX_BYTES`：单张支付二维码最大字节数，默认 3 MB
-- `VOCAB_HOST`、`VOCAB_PORT`
-- `VOCAB_MAX_JSON_BYTES`、`VOCAB_MAX_TEMP_FILE_JSON_BYTES`、`VOCAB_MAX_REJECT_DRAIN_BYTES`
-- `VOCAB_AI_MAX_CONCURRENCY`、`VOCAB_AI_QUEUE_TIMEOUT_SEC`
-- `OLLAMA_HOST`、`OLLAMA_MODEL`、`OLLAMA_TIMEOUT_SEC`
+## 历史后端与手动测试启动器
 
-不要提交 `.env`、`data/`、SQLite、`users.txt`、日志或 Tunnel 凭据。
+Production 不需要启动本机程序，电脑关机后网站仍应完整可用。仓库保留 `local-backend/` 与 `desktop-tools/`，仅用于历史兼容测试、迁移审计和人工回滚演练；它们不进入 Pages Production 模块图，不是线上 fallback。项目不配置开机自启动。
 
-## 手动启动
-
-本项目不配置开机自启动。电脑重启后可双击 `启动WYJ网站.cmd`。仓库中的 `desktop-tools/` 是受版本控制的启动器源码目录；部署到桌面时，CMD 放在目标目录根部，两个 PowerShell 文件复制到 `_wyj-tools/`。CMD 也兼容三个文件处于同一目录的开发布局，不会因这两种布局找不到启动器。
+如需在隔离环境重放旧后端测试，可手动运行 `启动WYJ网站.cmd`。仓库中的 `desktop-tools/` 是受版本控制的启动器源码目录；部署到桌面时，CMD 放在目标目录根部，两个 PowerShell 文件复制到 `_wyj-tools/`。CMD 也兼容三个文件处于同一目录的开发布局。
 
 ```text
 仓库源码                       桌面手动启动布局
@@ -377,11 +356,11 @@ desktop-tools/start-wyj.ps1    -> _wyj-tools/start-wyj.ps1
 desktop-tools/watch-wyj.ps1    -> _wyj-tools/watch-wyj.ps1
 ```
 
-V11.0.0 启动器把仓库源码和私有运行目录分开。源码按 `-SourceRoot`、`VOCAB_SOURCE_ROOT`、入口附近、本机 `launcher.json`、受限范围自动发现的顺序选择；运行目录按 `-RuntimeRoot`、`VOCAB_BACKEND_ROOT`、本机配置、现有旧版目录、当前账户本地应用数据目录的顺序选择。首次识别后会保存本机配置，继续使用原数据库、管理员账户和 Tunnel 工具，不搬移或覆盖私有数据。启动时会把 Tunnel 的本地上游从 `localhost:8765` 原子修复为 `127.0.0.1:8765`，避免 Windows 将 `localhost` 解析到后端未监听的 IPv6 地址。
+V11.0.0 启动器把仓库源码和私有运行目录分开，不搬移或覆盖历史数据库、账号、二维码和 Tunnel 凭据。它只在用户明确双击后启动，所有子进程均为本次手动会话的独立后台进程。
 
 V11.0.0 还会兼容 Clash Party。若 Clash Party 原来使用全局代理，启动器会切换为规则模式，只让 `cloudflared.exe` 和 `argotunnel.com` 直连，并用 `MATCH,GLOBAL` 保持其余流量原来的全局代理行为；同时把 `+.argotunnel.com` 加入 fake-IP 排除。若用户本来使用直连模式，启动器不会强制改动。当前运行中的 Clash Party 会通过本地命名管道热加载，并启动仅限本次手动会话的隐藏守护进程，`stdin`、`stdout`、`stderr` 分别重定向；关闭 Clash Party 或关机后会自然结束，不创建开机自启动。配置变更前的备份保存在 `%LOCALAPPDATA%\WYJJapanese\config-backups\mihomo-party`。
 
-启动时只原子同步白名单中的 Python 文件和 SQL 迁移，保留 `data/`、`tools/`、数据库和配置。若仓库私有目录中存在 12 张已清理支付二维码，启动器会按固定文件名复制到运行目录，不接触原始收款截图；`japanese_lifetime` 是当前 70 CNY 双语言双项永久方案，仍保留 `dual_language_lifetime` 二维码文件供历史订单读取。随后依次恢复账户与支付后端、Cloudflare Tunnel 和本地 AI。后端与 Tunnel 都以独立隐藏进程运行，stdin、stdout、stderr 分别重定向；启动器固定等待 2 秒并只执行一次本地健康检查，不等待服务器进程退出。AI 启动失败只降级 AI 功能，不会阻塞登录、会员或支付。守护程序在连续三次修复失败后暂停 30 分钟，避免后台无限重启。
+启动时只同步白名单内的测试后端文件并保留私有运行数据。旧 Python、Ollama 与 Tunnel 即使全部停止，也不得影响 `thewyj.uk` 的登录、学习、支付、工具、临时分享、AI 或 PDF；cloud-only 浏览器 CI 会专门阻止这类依赖重新进入正式路径。
 
 常用诊断与重新配置：
 
@@ -393,7 +372,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\desktop-tools\start-wyj.ps
 powershell -NoProfile -ExecutionPolicy Bypass -File .\desktop-tools\start-wyj.ps1 -Configure -RuntimeRoot "你的私有运行目录"
 ```
 
-启动器会删除历史遗留的开机启动快捷方式，但不会创建新的自启动项。手动启动后会运行隐藏守护程序，电脑关机后自然停止。`启动日志.txt`、`守护日志.txt`、`后台标准输出.txt`、`后台标准错误.txt`、`Tunnel标准输出.txt`、`Tunnel标准错误.txt`、`后台启动错误.txt` 和失败时自动生成的 `启动错误报告.txt` 均放在 `启动WYJ网站.cmd` 同一目录；报告不包含数据库内容、登录密钥、Tunnel 凭据或付款码。
+启动器会删除历史遗留的开机启动快捷方式，但不会创建新的自启动项。手动测试产生的日志和错误报告放在启动器目录且不得提交；报告不包含数据库内容、登录密钥、Tunnel 凭据或付款码。
 
 源码中对应文件：
 
@@ -402,7 +381,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\desktop-tools\start-wyj.ps
 - `desktop-tools/watch-wyj.ps1`
 - `local-backend/run.ps1`
 
-也可以只启动本地后端：
+也可以只启动历史测试后端：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\local-backend\run.ps1
@@ -445,9 +424,10 @@ node local-backend/test_cloudflare_foundation_js.mjs
 `.github/workflows/ci.yml` 在推送到 `main`、所有 Pull Request 以及手动触发时运行。进入仓库的 **Actions -> Core CI -> Run workflow** 可手动执行。工作流分为：
 
 - `Python syntax and unittest`：Python 语法检查和完整 `unittest`；
-- `JavaScript and static site checks`：JavaScript 语法、ES Module 无环依赖、浏览器存储兼容、工具与工作流测试、Pages 代理测试，以及 HTML、PWA 和目录覆盖检查；
+- `JavaScript and static site checks`：JavaScript 语法、ES Module 无环依赖、浏览器存储兼容、工具与工作流测试、历史代理 fixture 测试，以及 HTML、PWA 和目录覆盖检查；
 - `Sensitive files and static naming`：检查敏感运行文件、凭据特征、旧仓库名和会员静态名称；
 - `Browser flow (application/toolbox)`：两个并行的真实无头 Chrome 流程，分别覆盖完整网站流程和 103 个在线工具。
+- `Cloud-only browser`：只启动 fresh D1/R2 Pages Functions 与 Chrome，不启动 Python、SQLite、Ollama、cloudflared 或 `LOCAL_API_BASE`，验证注册登录、刷新/重开标签、业务失败隔离、英语/日语导入开考和网络恢复。
 
 浏览器 job 会为每个矩阵项创建独立的临时 SQLite、随机测试管理员密钥、合成的 1 像素二维码和确定性的 Ollama 兼容测试夹具，只访问 `127.0.0.1` 上的隔离服务，不读取真实账户、生产服务、真实 Ollama、Cloudflare Tunnel 或真实收款二维码。测试夹具仅让既有浏览器流程稳定覆盖 AI 入口，不进行真实模型推理。依赖缓存仅保存 `pip`/`npm` 下载缓存，不缓存源码、测试输出或通过结果。每个 job 无论成功失败都会上传关键日志，保留 7 天。
 
@@ -460,7 +440,7 @@ node local-backend/test_app_browser.mjs
 node local-backend/test_tools_browser.mjs
 ```
 
-当前 Python 自动化套件共 171 项，另配有学习同步客户端协议测试、38 项 JavaScript 工具模块自检、11 组工作流核心自检和 4 项 Pages 代理韧性检查，以及 `qa/functional-audit.json` 驱动的全功能覆盖门禁。门禁必须精确覆盖 20 个路由、21 条应用流程、103 个工具、51 个工具子模式、7 个复选控制、12 个工作流能力和 27 个工作流浏览器行为；源码和 QA 清单任一方向出现缺项都会直接失败。
+当前 Python 自动化套件共 174 项，另配有学习同步客户端协议测试、38 项 JavaScript 工具模块自检、11 组工作流核心自检和 4 项 Pages 代理韧性检查，以及 `qa/functional-audit.json` 驱动的全功能覆盖门禁。门禁必须精确覆盖 20 个路由、21 条应用流程、103 个工具、51 个工具子模式、7 个复选控制、12 个工作流能力和 27 个工作流浏览器行为；源码和 QA 清单任一方向出现缺项都会直接失败。
 
 `test_app_browser.mjs` 使用真实 Chrome 覆盖 21 条完整用户流程，其中包含学习数据离线排队、恢复连接、第二设备目标合并、账号绑定备份校验，以及 390px 手机视口下的错题重新判定、统一反馈计时、A-H 切页/刷新状态完整性、WCAG AA 对比度回归、结构化更新日志、私有反馈提交、管理员反馈处理与功能投票。`test_tools_browser.mjs` 会为每次运行创建全新的浏览器上下文，逐项操作 103 个工具（文本 29、文件 17、图片 30、随机 22、临时 5）及 51 个子模式，并额外真实操作工作流创建、编辑、保存、导入导出、四个模板、批量失败隔离、取消、离线运行和 390/1366/1920 响应式布局。文件、图片、PDF、ZIP、二维码、vCard 和工作流产物不使用被测页面自行判定，而由 `qa/verify_tool_artifacts.py` 通过标准库、Pillow、pypdf、OpenCV 和 vobject 独立重新打开并验证语义；本地首次运行前执行 `python -m pip install -r qa/requirements.txt`。
 
@@ -476,20 +456,20 @@ node local-backend/test_tools_browser.mjs
 | --- | --- | --- |
 | D1 | `WYJ_DB` | `wyj-cloud-development`（仅本地状态） | `wyj-cloud-preview` | `wyj-cloud-production` |
 | R2 | `WYJ_STORAGE` | `wyj-cloud-development`（仅本地状态） | `wyj-cloud-preview` | `wyj-cloud-production` |
-| Workers AI | `AI` | 默认不声明，避免无意远程计费 | 已绑定，业务开关关闭 | 已绑定，业务开关关闭 |
+| Workers AI | `AI` | 默认不声明，避免无意远程计费 | 已绑定，Task 15 业务开启 | 已绑定，Task 15 业务开启 |
 
 配置没有 `account_id`、API token 或 secret。Cloudflare Pages 在部署带 D1 binding 的 Wrangler 配置时要求 `database_id`，因此 Preview 与 Production 环境各自保存 Cloudflare 生成的 D1 资源 UUID；这些 UUID 不是鉴权凭据，真正凭据仍只保存在 Cloudflare。`cloudflare/migrations/0001_foundation.sql` 已在两套远端 D1 应用，只创建 schema 元数据和基础限流窗口，不包含用户、会员、订单或支付数据。
 
-新的 `functions/_middleware.js` 为 Pages Functions 响应加入安全头和 `X-Request-ID`，拒绝浏览器跨站写请求，并把未处理异常转成统一的 `{ ok, error, code, retryable, request_id }` 格式。上游 Python 的正常/业务错误响应仍原样透传，避免破坏现有前端协议。`GET /api/status?source=cloud` 返回 D1/R2/AI binding、feature flags、限流和降级原因；默认 `GET /api/status` 仍代理旧后端，因此启动器和前端不会把“Cloudflare 在线”误判成“账户后端在线”。
+`functions/_middleware.js` 为 Pages Functions 响应加入安全头和 `X-Request-ID`，拒绝浏览器跨站写请求，并把未处理异常转成统一的 `{ ok, error, code, retryable, request_id }` 格式。`GET /api/status` 与 `GET /api/status?source=cloud` 均直接报告 D1/R2/AI bindings、feature flags、限流和降级原因；`source=legacy` 返回 410，不发起本机请求。
 
-会员、权益、支付订单、付款二维码和管理员审批已由 Task 13 的 Production D1/R2 单一主路径处理；Task 14 临时分享也已切到 Production D1/R2 单一主路径。PDF 和 AI 判卷继续使用本机服务。Task 11 的 Production D1 读写已经启用并保留只读回滚能力；Task 12 的 Preview 与 Production 均已切到 D1 账户与会话，Production 导入端点保持关闭。Pages 验证 D1 Session 后使用短时 HMAC 身份断言访问尚未迁移的旧业务接口；原始 D1 token 不会转发给 Python，也不会在 SQLite 建立第二套 Session。本地运行配置使用 `cloud_account_primary=true`，因此 SQLite 不再接受账户登录、注册或旧 Session；Task 13 支付与 Task 14 临时分享都不会在云写失败后回退双写 SQLite。
+Task 11～15 的 Production 业务均使用 Pages Functions。D1 是账户、Session、学习同步、会员、订单、临时分享 metadata、工具偏好、AI cache/用量和审计的单一结构化数据源；R2 保存私有支付二维码和临时分享文件；Workers AI 只处理必要的短文本 fallback；PDF 在浏览器本地生成。Production 不导入 `legacy-api.mjs` 或 `task12-bridge.mjs`，不把 D1 Session 转换成旧身份，也不会在云服务错误时回退或双写 SQLite。
 
 ### 控制台准备
 
 1. 在 **Workers & Pages -> D1** 核对 `wyj-cloud-preview` 与 `wyj-cloud-production`，不要互换环境。
 2. 在 **R2** 核对同名 Preview/Production Standard buckets。免费额度只适用于 Standard storage。
 3. 打开 Pages 项目 `thewyj-uk` 的 **Settings -> Bindings**，分别核对 Preview/Production 的 D1 `WYJ_DB`、R2 `WYJ_STORAGE`、Workers AI `AI`。Wrangler 配置部署后是 Pages 的 source of truth。
-4. 在 `thewyj-uk` 项目的 **Settings -> Variables and Secrets** 设置非敏感 feature flags；`LOCAL_API_BASE` 继续指向现有同源代理上游。若未来需要 secret，使用 `wrangler pages secret put <KEY> --project-name thewyj-uk` 或控制台 Secret，不要写入 `wrangler.jsonc`。
+4. 在 `thewyj-uk` 项目的 **Settings -> Variables and Secrets** 核对非敏感 feature flags，并以 Cloudflare encrypted Secret 保存 Task 12/14 密钥。Production 不设置 `LOCAL_API_BASE` 或 identity bridge secret。新增 Secret 使用 `wrangler pages secret put <KEY> --project-name thewyj-uk` 或控制台 Secret，不要写入 `wrangler.jsonc`。
 5. Pages Wrangler 配置要求 V2 build system。每次迁移前先比对控制台现有 Production/Preview bindings；配置一旦部署就是 Pages 的 source of truth。
 
 ### 本地开发
@@ -504,11 +484,11 @@ npm.cmd run cf:check
 npm.cmd run cf:dev
 ```
 
-`wrangler.local.jsonc` 只供本地 migration 使用，`cf:dev` 通过 `--d1 WYJ_DB --r2 WYJ_STORAGE` 创建同名本地 bindings。Wrangler 在 `.wrangler/state` 保存本地 D1/R2；目录已忽略。访问 `http://127.0.0.1:8788/api/status?source=cloud` 检查云基础层，访问不带参数的 `/api/status` 检查本地 Python 后端。Workers AI 即使在本地也会访问 Cloudflare 并计入用量，所以本地配置不声明 `AI`；需要真实联调时先登录 Wrangler，再临时运行 `npx.cmd wrangler pages dev --d1 WYJ_DB --r2 WYJ_STORAGE --ai AI`。普通本地开发和自动测试不要求 Cloudflare Token，也不产生 AI 用量。
+先将 `.dev.vars.example` 复制为已忽略的 `.dev.vars`，并为两个占位项分别生成至少 32 字符的本地随机值；不要复用 Preview 或 Production Secret。`wrangler.local.jsonc` 只供本地 migration 使用，`cf:dev` 通过 `--d1 WYJ_DB --r2 WYJ_STORAGE` 创建同名本地 bindings。默认 development 使用本地 D1/R2 cloud-only 路径，AI 则保持关闭；Wrangler 在 `.wrangler/state` 保存本地数据且该目录已忽略。访问 `http://127.0.0.1:8788/api/status?source=cloud` 检查云基础层。Workers AI 即使在本地也会访问 Cloudflare并计入用量，需要真实联调时先登录 Wrangler，再临时运行 `npx.cmd wrangler pages dev --d1 WYJ_DB --r2 WYJ_STORAGE --ai AI --binding WORKERS_AI_ENABLED=true`。普通本地开发和自动测试不要求 Python、SQLite、Ollama、Tunnel 或 Cloudflare Token。
 
 ### 迁移、部署与回滚
 
-Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sql`、Task 12 的 `0003_accounts_sessions.sql`、`0004_session_limit_trigger.sql`、`0005_session_limit_ordering.sql`、Task 13 的 `0006_memberships_payments.sql`，以及 Task 14 的 `0007_temporary_sharing.sql`、`0008_task14_user_storage_trigger.sql`、`0009_task14_global_storage_trigger.sql` 均已在 Preview 和 Production 应用。Task 12 Production 在 2026-08-22 完成备份、dry-run、稳定 user ID/ownership 核对、导入和切换；旧 Session 未迁移，所有设备需要重新登录。Task 14 Production 在 2026-08-24 完成备份、dry-run、迁移、只读与新写入验收和单一主路径切换。迁移报告与生产备份只保存在仓库外，所有 Production 导入开关均已重新关闭。
+Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sql`、Task 12 的 `0003_accounts_sessions.sql`、`0004_session_limit_trigger.sql`、`0005_session_limit_ordering.sql`、Task 13 的 `0006_memberships_payments.sql`，Task 14 的 `0007_temporary_sharing.sql`、`0008_task14_user_storage_trigger.sql`、`0009_task14_global_storage_trigger.sql`，以及 Task 15 的 `0010_task15_cloud_only.sql`、`0011_task15_import_trigger_order.sql` 必须从 fresh D1 按序可重复应用。Production 迁移报告与备份只保存在仓库外；导入完成后所有 Production import 开关保持关闭。
 
 ```powershell
 # 本地全新 D1 验证
@@ -517,23 +497,24 @@ npm.cmd run test:task11
 npm.cmd run test:task12
 npm.cmd run test:task13
 npm.cmd run test:task14
+npm.cmd run test:task15
 
 # Preview D1
 npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env preview
 # Preview Pages（按当前任务分支替换 branch）
 npm.cmd run pages:stage
-npx.cmd wrangler pages deploy .wrangler/pages-output --project-name thewyj-uk --branch codex/task14-temporary-sharing-r2
+npx.cmd wrangler pages deploy .wrangler/pages-output --project-name thewyj-uk --branch codex/task15-workers-ai-retire-legacy-backend
 ```
 
-Preview 与 Production 的 `/api/status?source=cloud` 必须同时显示 Task 12 schema `1`、`task12_cloud_accounts=true`、`task12_legacy_bridge=true` 和 `task12_password_pepper=true`；Production 还必须显示 `task12_import=false`。隔离测试覆盖注册、登录、改密、封禁、强制退出、多会话、旧摘要首次升级、Task 11 ownership 与旧业务桥接。任何后续部署都必须保持 Production 账户主开关开启，除非正在执行有数据核对和重新认证方案的受控回滚。
+Preview 与 Production 的 `/api/status?source=cloud` 必须显示 Task 12～15 schema ready、`task15_cloud_only=true`、`workers_ai=true`、`legacy_fallback=false`，且 Production import 均为 `false`。隔离测试覆盖注册、登录、刷新/重开标签恢复、改密、封禁、强制退出、多会话、Task 11 ownership、业务错误不退出登录、英语/日语导入开考和网络恢复。任何后续部署都必须保持 Production D1 账户主开关开启。
 
-回滚分两层：先关闭 Task 11 专用云读写开关并保留 legacy fallback；如果仍需回退代码，在 Pages 项目的 **Deployments -> All deployments** 对之前成功的 production deployment 选择 **Rollback to this deployment**。D1 迁移是前向迁移，新表保持惰性即可，不要为代码回滚删除表或生产数据。Preview deployment 不能作为 Production 回滚目标。
+回滚是人工数据恢复流程，不是线上请求 fallback。先冻结受影响的新写入、导出并核对 D1/R2 增量，再决定前向修复或从仓库外备份恢复；代码可在 Pages **Deployments -> All deployments** 回滚到先前成功的 Production deployment。D1 migration 是前向迁移，不要因代码回滚删除表或生产数据；Preview deployment 不能作为 Production 回滚目标，也不得把正式主写切回正在变化的 SQLite。
 
 ### Task 11 低风险云迁移
 
 Task 11 只迁移结构化更新日志、反馈、功能投票、学习同步和聚合 telemetry。`cloudflare/migrations/0002_low_risk_cloud_services.sql` 创建带 `task11_` 前缀的独立表，不创建或复制账户、密码、Session、会员、entitlement、支付、二维码、临时分享、PDF 或 AI 业务数据。现有 `/api/*` 路径和响应字段保持不变。
 
-Task 12 启用后，Task 11 在 Preview 与 Production 都直接使用 D1 Session 和同一稳定 user ID，不再依赖本机 `/api/me`；既有 Task 11 表及 ownership 不会重建。`legacy-api.mjs` 仍保留为受控回滚路径，但 Production 正常身份主路径不再接受旧 SQLite Session。
+Task 12 启用后，Task 11 在 Preview 与 Production 都直接使用 D1 Session 和同一稳定 user ID，不再依赖本机 `/api/me`；既有 Task 11 表及 ownership 不会重建。`legacy-api.mjs` 只保留为 test-only 迁移/回滚 fixture，Production 正常身份和业务模块均不会导入它。
 
 | 路由 | 云端数据 | 权限 |
 | --- | --- | --- |
@@ -545,7 +526,7 @@ Task 12 启用后，Task 11 在 Preview 与 Production 都直接使用 D1 Sessio
 | `POST /api/telemetry` | 小时级聚合计数 | 公开白名单字段；不保存 IP、UA 或原始输入 |
 | `GET /api/admin/task11/telemetry` | 聚合统计 | 超级管理员 |
 
-Preview 专用开关默认打开 Task 11 云读写，Production 默认关闭。读取失败可安全回退旧 API；写入只允许在 schema 预检通过后开始，一旦云端写入开始就不会再回退双写。D1 同步使用用户版本和 mutation ID 做乐观并发控制，发生竞争时重新读取并执行原有合并规则。
+Task 11 完成迁移后，Preview 与 Production 的云读写均已启用，D1 是唯一正式数据源；读取或写入失败会返回可重试的云端错误，不会回退或双写旧 API。D1 同步使用用户版本和 mutation ID 做乐观并发控制，发生竞争时重新读取并执行原有合并规则。
 
 迁移工具默认是 dry-run，并通过与云端导入端相同的字段白名单逐条验证。报告只保存源数量、预计目标数量、非法/重复数量和导入结果，不保存反馈正文、学习 payload、用户名、token 或其他原始内容。报告和数据库备份必须放在 Git 仓库外。
 
@@ -573,22 +554,11 @@ Production 导入还要求 `TASK11_PRODUCTION_IMPORT_ENABLED=true`、`--backup-c
 
 `cloudflare/migrations/0003_accounts_sessions.sql` 新建 `task12_users`、`task12_sessions`、登录审计、账户审计和登录失败窗口；`0004_session_limit_trigger.sql` 在每次插入时由 D1 原子保留最新 12 个有效 Session，`0005_session_limit_ordering.sql` 再把保留顺序固定为 SQLite 插入 `rowid`，避免并发登录落在同一毫秒时使用随机 digest 破坏新旧顺序。它们不创建 membership、entitlement、payment、临时分享或 AI 表。用户主键直接复用 SQLite 的稳定文本 ID，Task 11 的反馈、投票和学习同步继续以同一 ID 归属；导入状态会报告 orphan 数量，非零时停止正式导入。
 
-新建或成功升级的云账户使用版本化摘要 `pbkdf2_sha256_cf_v1$310000$...`：随机盐、四个串行 PBKDF2-SHA256 阶段（100,000 + 100,000 + 100,000 + 10,000）以及仅保存在 Cloudflare Secret 中的服务端 HMAC pepper。`password_scheme` 继续写 `pbkdf2_sha256` 作为算法家族，具体格式由摘要前缀区分，避免重建已有 D1 表。原因是当前 workerd 会拒绝单次超过 100,000 iterations 的 PBKDF2 调用；分段版本保持总工作量 310,000，并使每一步都在运行时限制内。`WYJ_TASK12_PASSWORD_PEPPER` 必须至少 32 bytes、按环境独立生成且稳定保存；状态接口只报告 `password_pepper_configured`，不会返回 Secret 值。丢失或更换 pepper 会使已生成的云摘要无法验证，只能通过受控密码重置恢复。
+新建或成功升级的云账户使用版本化摘要 `pbkdf2_sha256_cf_v1$310000$...`：随机盐、四个串行 PBKDF2-SHA256 阶段（100,000 + 100,000 + 100,000 + 10,000）以及仅保存在 Cloudflare Secret 中的服务端 HMAC pepper。`password_scheme` 继续写 `pbkdf2_sha256` 作为算法家族，具体格式由摘要前缀区分，避免重建已有 D1 表。分段格式让每个 Web Crypto 调用保持有界，同时维持 310,000 次总工作量。`WYJ_TASK12_PASSWORD_PEPPER` 必须至少 32 bytes、按环境独立生成且稳定保存；状态接口只报告 `password_pepper_configured`，不会返回 Secret 值。丢失或更换 pepper 会使已生成的云摘要无法验证，只能通过受控密码重置恢复。
 
-迁移工具只复制结构有效的旧 `pbkdf2_sha256$310000$...` 摘要。该格式第一次登录时由 Pages 通过 45 秒 HMAC 身份断言调用 Python 的只读 `/api/internal/task12/verify-secret`：请求绑定稳定 user ID、username、method、path 与 request ID，不建立旧 Session、不写 SQLite、不返回摘要或原始密钥；验证成功后 D1 立即改写为 `pbkdf2_sha256_cf_v1`，验证失败则保持原记录。历史明文、旧 hash 和损坏记录仍只按数量分类并写成 `reset_required`，绝不把原值发送到 D1、报告或日志。D1 Session 只保存 `sha256$...` digest、有效期、会话版本和最小客户端类型。Task 12 采用 **策略 B**：不迁移旧活动 Session，正式切换时所有设备需要重新登录。
+迁移工具只复制结构有效的旧 `pbkdf2_sha256$310000$...` 摘要。Task 15 由 Pages Web Crypto 直接验证该受支持摘要，并在成功登录后升级成 `pbkdf2_sha256_cf_v1`；不再调用 Python 身份桥。历史明文、未知 hash 和损坏记录仍只按数量分类并标记 `reset_required`，绝不把原值发送到 D1、报告或日志。D1 Session 只保存 `sha256$...` digest、有效期、会话版本和最小客户端类型；旧活动 Session 未迁移，正式切换时要求用户重新登录。
 
-Preview 与 Production 身份桥分别使用各环境的 `WYJ_LEGACY_IDENTITY_BRIDGE_SECRET`，并与本地 `VOCAB_LEGACY_IDENTITY_BRIDGE_SECRET` 配对。Pages 验证 D1 Session 后生成最长 45 秒的 HMAC 断言，签名绑定 request ID、HTTP method、path、稳定 user ID 和 username；Python 验证后只读取原会员/业务数据。`run.ps1` 会从私有 `data/settings.json` 读取 `legacy_identity_bridge_key`；另需为每个环境保存独立且稳定的 `WYJ_TASK12_PASSWORD_PEPPER`。两项都必须是 Cloudflare 加密 Secret，不要把值写入命令行参数、README 或 Git。
-
-```powershell
-# Wrangler 会交互式读取，不要把 Secret 写在命令参数或 shell history 中
-npx.cmd wrangler pages secret put WYJ_LEGACY_IDENTITY_BRIDGE_SECRET `
-  --project-name thewyj-uk --env preview
-npx.cmd wrangler pages secret put WYJ_TASK12_PASSWORD_PEPPER `
-  --project-name thewyj-uk --env preview
-
-# 只列名称和 Encrypted 状态，不显示值
-npx.cmd wrangler pages secret list --project-name thewyj-uk --env preview
-```
+`WYJ_TASK12_PASSWORD_PEPPER` 必须按环境独立、稳定地保存在 Cloudflare encrypted Secret。`legacy-api.mjs` 与 `task12-bridge.mjs` 只作为 test-only 迁移/回滚 fixture 保留；Production 模块图、路由和环境变量均不依赖 identity bridge。
 
 ```powershell
 # 默认 dry-run：只输出计数，不联网、不打印用户名、hash、token 或 secret
@@ -612,7 +582,7 @@ python scripts/migrate_task12_accounts_to_d1.py `
 
 ### Task 13 会员、权益和支付云迁移
 
-`cloudflare/migrations/0006_memberships_payments.sql` 在 Task 12 稳定 user ID 上新增 `task13_` 前缀的方案、会员、entitlement override、支付订单、状态历史、唯一履约、管理员审批和审计表。迁移不会删除或改写旧 SQLite 表，也不会提前迁移临时分享、PDF 或 AI。六个在售方案仍以 `local-backend/membership.py` 为业务权威：8 CNY 单语言包月、20 CNY 双语言包月、20 CNY 工具箱包月、30 CNY 全功能包月、70 CNY 双语言双项永久、100 CNY 全功能永久；内部代码 `japanese_lifetime` 保持不变，70 CNY 方案不包含工具箱。`monthly`、`lifetime` 和 `dual_language_lifetime` 仅用于历史兼容，新订单会拒绝停售方案。
+`cloudflare/migrations/0006_memberships_payments.sql` 在 Task 12 稳定 user ID 上新增 `task13_` 前缀的方案、会员、entitlement override、支付订单、状态历史、唯一履约、管理员审批和审计表。迁移不会删除或改写旧 SQLite 表，也不会提前迁移临时分享、PDF 或 AI。六个在售方案由 D1 方案表提供：8 CNY 单语言包月、20 CNY 双语言包月、20 CNY 工具箱包月、30 CNY 全功能包月、70 CNY 双语言双项永久、100 CNY 全功能永久；内部代码 `japanese_lifetime` 保持不变，70 CNY 方案不包含工具箱。`monthly`、`lifetime` 和 `dual_language_lifetime` 仅用于历史兼容，新订单会拒绝停售方案。
 
 Pages 保持原 `/api/membership/*`、`/api/recharge/*` 和 `/api/admin/*` 契约。服务端从 D1 读取方案并锁定订单名称、金额、期限和 entitlement 快照；客户端不能指定金额、用户 ID、权益或 R2 key。订单仍按 `pending_payment -> user_paid -> processing -> approved` 流转，也支持 `rejected`、`cancelled`、`expired`。用户点击“我已付款”只进入 `user_paid`，只有超级管理员审批成功才在同一 D1 batch 中写入唯一履约、会员、状态历史和审计。重复或并发审批不能重复延长期限，异常响应会说明提交状态而不会悄悄重试履约。
 
@@ -706,20 +676,53 @@ python scripts/migrate_task14_temporary_to_d1_r2.py `
 
 迁移工具只读取 SQLite 备份并输出安全计数：metadata、文件数、总字节、类型、无效 ID/错误码和 ownership orphan 数，不输出内容、密码、摘要、token 或本机路径。R2 上传按确定性 key 和 SHA-256 回读校验，resume state 支持中断续跑；D1 import 使用 source key 幂等 upsert。Preview 回滚使用相同脚本加 `--rollback --endpoint <URL>`，只删除该 source key 导入的数据和对应 R2 对象，不删除正常云端新建数据。
 
-Task 14 Production 切换前对 legacy SQLite 做了仓库外备份、两次 dry-run、文件签名和稳定 user ID 归属核对。源 metadata、文件和字节数均为 0，目标导入数量也为 0，因此没有 legacy R2 对象需要上传，空迁移集合的 checksum 核对成立；两个幂等 import run 均完成。随后验证所有临时类型、20/30 MiB 边界、密码/连接码、并发最后一次下载、Range/中断恢复、销毁语义、R2 缺失、配额和 390x844 移动端真实下载，才同时启用 Production 的读、写和主路径开关。当前 `TASK14_IMPORT_ENABLED=false`、`TASK14_PRODUCTION_IMPORT_ENABLED=false`、`TASK14_LEGACY_WRITES_FROZEN=false`，D1/R2 是唯一正式 source of truth。
+Task 14 Production 切换前对 legacy SQLite 做了仓库外备份、两次 dry-run、文件签名和稳定 user ID 归属核对。源 metadata、文件和字节数均为 0，目标导入数量也为 0，因此没有 legacy R2 对象需要上传，空迁移集合的 checksum 核对成立；两个幂等 import run 均完成。随后验证所有临时类型、20/30 MiB 边界、密码/连接码、并发最后一次下载、Range/中断恢复、销毁语义、R2 缺失、配额和 390x844 移动端真实下载，才同时启用 Production 的读、写和主路径开关。当前 `TASK14_IMPORT_ENABLED=false`、`TASK14_PRODUCTION_IMPORT_ENABLED=false`，`TASK14_LEGACY_WRITES_FROZEN=true` 阻止历史实现重新接受新写入，D1/R2 是唯一正式 source of truth。
 
 旧 Draft PR #11 不合并。其 MP4/M4V/MOV/WebM 支持、30 MiB 视频限制、扩展名/MIME/容器签名校验、R2 流式移动端下载，以及确定性的下载计数和并发语义，均已由 Task 14 当前实现替代；旧 PR 中 Tunnel 选择逻辑不再适用于云端临时分享。
 
 Task 14 回滚只允许作为受控恢复：先停止新的临时分享写入，导出并核对切换后 D1/R2 增量，再决定前向修复或受控回迁。不得直接把 SQLite 恢复为主写，也不得让 Cloud 与 SQLite 双写。代码层可在 Pages **Deployments -> All deployments** 回滚到先前成功部署，但数据 source of truth 不会随代码自动倒退，D1 表和 R2 对象不得删除。
 
+### Task 15 完全云端化
+
+`cloudflare/migrations/0010_task15_cloud_only.sql` 新增短期 quiz authorization、Workers AI cache/用量/并发 lease、工具收藏/最近使用/保存配置，以及幂等 import batch/receipt；`0011_task15_import_trigger_order.sql` 固定远端 D1 的 import receipt 校验优先级。模型只在 `functions/_lib/task15-model.mjs` 配置；当前使用 Cloudflare 官方 JSON Mode 支持列表中明确列出、仍保持 active 的多语言 `@cf/meta/llama-3.1-8b-instruct-fast`。单次输入最多 6,000 字符、输出最多 512 tokens、超时 18 秒；仅 Workers AI 5xx 最多自动重试 1 次，401/403/429、格式错误和 timeout 不重试；每用户每日 120 次、全站每日 3,000 次，最多 4 个并发 lease，cache 保留 7 天并在后续写入时有界清理过期项。
+
+学习请求先使用内置词典、NFKC/假名/词形规则和 D1 cache；只有仍无法可靠回答时才调用 Workers AI。AI cache key 是规范化输入的 SHA-256，持久化内容不含原始用户答案、完整词表、prompt、密码或 Session token。AI 401/403、429、5xx、timeout、无效 JSON 或 schema failure 都返回稳定业务错误并保持 canonical Session。
+
+Canonical Session 由 Task 12 D1 唯一判定。前端仅在 `authentication_required`、`canonical_session_invalid`、`session_expired`、`session_revoked`、`session_generation_invalid`、`account_deleted` 或 `account_banned` 等稳定终态代码下清除本地 Session；普通 HTTP 401、`membership_required`、Workers AI、D1/R2 业务表、网络或依赖错误不会触发退出。会话成功写入后立即读回校验，storage 写入失败会显示明确提示；同源标签页通过浏览器 `storage` event 同步登录或退出状态，不额外广播 token。
+
+错题 PDF 由 `js/language/pdf.js` 在浏览器 Canvas 生成 JPEG 页面并写入标准 PDF 1.4 容器。导出前检查 MIME 与 `%PDF` 签名，生成内容不经过 API。多图 PDF 和图片 PDF 继续走既有浏览器工具实现。
+
+Task 15 剩余 SQLite 工具偏好迁移只读取仓库外备份并输出计数、稳定 batch key 和聚合 SHA-256，不输出用户名、配置正文、token、Secret 或本机路径。每批 receipt 绑定 source/kind/batch/digest/source count；完全相同的重放返回 `replayed`，同 batch 内容变化会拒绝。D1 mutations 与 receipt 在同一 batch 中提交，数据库触发器原子限制累计数量、完成状态和来源总数；已存在的云端收藏、历史或配置优先，导入和回滚都不会覆盖或删除这些记录。
+
+```powershell
+# dry-run；报告必须写在仓库外
+python scripts/migrate_task15_remaining_to_d1.py `
+  --source-db <受保护的SQLite备份> `
+  --environment preview `
+  --report <仓库外的task15-dry-run.json>
+
+# Preview apply；管理员 Session 只放进进程环境变量
+$env:WYJ_TASK15_MIGRATION_SESSION = '<隔离Preview管理员会话>'
+python scripts/migrate_task15_remaining_to_d1.py `
+  --source-db <受保护的SQLite备份> `
+  --environment preview `
+  --endpoint <Task-15-Preview-URL> `
+  --apply `
+  --report <仓库外的task15-preview-apply.json>
+```
+
+Production 切换顺序固定为：创建迁移 tag与最后 SQLite 只读备份；记录 D1/R2 数量和聚合一致性；Preview migration/import/browser 验收；Production migration 与只读核对；短时冻结旧写入；Production 导入和重复重放核对；启用 cloud-only 与 Workers AI；关闭 import、legacy fallback、`LOCAL_API_BASE` 和 identity bridge；最后停止 Python、Ollama 与 cloudflared。回滚必须先导出并核对切换后的 D1/R2 增量，不能直接恢复旧 SQLite 主写。
+
+Task 15 Production 最终验收于 2026-08-27 完成：本机 Python、Ollama、cloudflared 和相关监听端口全部停止后，Production 移动端完整流程仍通过；随后电脑彻底关机，使用手机移动网络从异地重新访问 `thewyj.uk`，登录、学习、AI、工具及云端状态均可用。Production 的结构化数据、私有文件和 AI 分别以 D1、R2 和 Workers AI 为正式 source of truth；本地 SQLite、Tunnel 与历史后端只保留仓库外备份、测试夹具和人工回滚参考，不接受线上主写。
+
 ### 免费额度降级
 
-- D1 达到免费读写额度时会拒绝查询；云状态接口标记 degraded。Task 11 读取可回退旧 API；Task 12 账户和 Task 13 会员/支付已经是云端主路径，会返回明确的可重试错误，不会回退或双写 SQLite。
+- D1 达到免费读写额度时会拒绝查询；云状态接口标记 degraded。Task 11～15 都返回明确的可重试错误，不会回退或双写 SQLite。浏览器本地学习记录、PDF 和纯本地工具仍可使用。
 - Task 12 一旦正式切到 D1 主账户，不会在 D1 故障时把认证写入回退到 SQLite；登录、注册和受保护云同步会返回明确可重试错误，避免 split-brain。静态页面、浏览器本地学习数据和纯本地工具仍可打开。
 - R2 达到额度或暂时不可用时，私有付款二维码和 Task 14 文件接口返回明确可重试错误，不会暴露 object key 或回退公开文件。Task 14 会暂停新的云端上传，纯本地工具继续可用；Workers AI 仍由独立功能开关控制。
-- Workers AI 免费额度按日重置且本地调用也计量，因此 binding 与功能开关分离。
+- Workers AI 达到额度或暂时不可用时，规则、词典和 cache 仍可工作；需要 AI 的请求显示“AI 暂时不可用”，登录、支付、工具和临时分享不受影响。
 - telemetry 按小时、功能、结果、耗时档和错误码聚合，不逐事件持久化用户数据；超限时丢弃统计不能阻止业务。
-- 任何 binding 缺失都不会让静态站点白屏；`/api/status?source=cloud` 返回 200/degraded 和具体原因。Task 11 保留受控读取 fallback，Task 12 与 Task 13 则拒绝受影响的云端操作并提示重试，不会悄悄切回旧账户或支付主写。
+- 任何 binding 缺失都不会让静态站点白屏；`/api/status?source=cloud` 返回 200/degraded 和具体原因。受影响操作明确提示重试，不会把错误伪装成退出登录，也不会悄悄切回本机。
 
 ### GitHub 仓库
 
@@ -742,16 +745,19 @@ git clone https://github.com/WYJ0904/thewyj.uk.git
 
 1. 推送 `main` 到 `WYJ0904/thewyj.uk`。
 2. Cloudflare Pages 连接该仓库和 `main`。
-3. 设置 `LOCAL_API_BASE=https://api.thewyj.uk`。
-4. 部署后检查 `/api/status`、登录、`/select`、无权限 `/tools` 拦截和管理员审批。
-5. 在提供本地后端的电脑上手动运行启动器，并保持电脑、网络和 Tunnel 在线。
+3. 核对 D1 `WYJ_DB`、R2 `WYJ_STORAGE`、Workers AI `AI` bindings，以及 Task 12/14 encrypted Secrets；不要设置 `LOCAL_API_BASE`。
+4. 先应用待发布的 D1 migration，再部署 Pages staged output。
+5. 部署后检查 `/api/status?source=cloud`、登录持久化、英语/日语导入开考、会员与支付、临时分享、Workers AI 降级和浏览器本地 PDF。
+6. 保持 Python、Ollama 和 cloudflared 停止，从另一台设备和另一网络完成最终 smoke。
 
-Pages 发布静态根目录，不生成 `dist`。`_redirects` 把 SPA 路由回退到 `index.html`。Service Worker 缓存版本会随本次发布更新，避免持续读取旧 JS/CSS。
+Pages 发布静态根目录，不生成 `dist`。仓库不提供顶层 `404.html`，由 Cloudflare Pages 的默认 SPA 行为把未匹配导航交给根页面；不要重新加入 `/* /index.html 200`，新版 Wrangler 会把它判定为循环规则并忽略。Service Worker 缓存版本会随本次发布更新，避免持续读取旧 JS/CSS。
 
 ## 当前限制
 
-- 账户、会员、支付和临时分享不再依赖本机；AI 与 PDF 仍要求本机后端和 Tunnel 在线。
+- Production 全部正式功能均不依赖本机；历史 Python、SQLite、Ollama 与 Tunnel 仅保留仓库外备份和 test-only fixture。
 - Production Task 14 普通文件为 20 MiB、视频为 30 MiB，并使用原始上传、私有 R2 流式下载和受控 Range。普通本地文件工具仍支持总计 50 MB。
+- Workers AI 有每日用量、并发与超时限制；额度耗尽时只降级 AI fallback，不影响规则判卷和其他模块。
+- 浏览器本地 PDF 受设备 Canvas、内存和下载权限限制；失败不会上传错题数据或回退本机服务。
 - 纯浏览器图片处理能力受设备内存和浏览器 Canvas 支持影响；超大图片应分批处理。
 - 简繁转换使用 OpenCC 官方字符词典并在浏览器本地执行；它是字符级转换，不包含地区词汇与上下文短语消歧。
 - 工具处理内容默认不上传，服务器因此无法恢复用户未主动保存的本地处理结果。

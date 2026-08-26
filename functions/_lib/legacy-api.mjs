@@ -1,3 +1,4 @@
+// TEST-ONLY migration/rollback fixture. Production's Pages entry must never import this module.
 import { featureFlags } from "./cloudflare-foundation.mjs";
 import { resolveTask12Account } from "./task12-auth.mjs";
 import { addLegacyIdentityHeaders, bridgeConfigured } from "./task12-bridge.mjs";

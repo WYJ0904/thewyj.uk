@@ -102,15 +102,15 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260824-task14-production-r2"
+        release_token = "20260826-task15-cloud-only"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
-        self.assertIn('export const APP_VERSION = "2026-08-24-task14-production-r2"', self.core)
+        self.assertIn('export const APP_VERSION = "2026-08-26-task15-cloud-only"', self.core)
         for module in ("api", "config", "router", "session", "storage", "ui"):
             self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20260824-task14-production-r2"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20260826-task15-cloud-only"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         self.assertNotIn('.tool-e2e', stage_script)
@@ -118,10 +118,11 @@ class StaticSiteTests(unittest.TestCase):
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
         self.assertIn('APP_BUILD = "2026-08-22-learning-sync-record-id"', server)
         self.assertIn('"/trial", "/changelog"', server)
-        self.assertEqual((ROOT / "_redirects").read_text(encoding="utf-8").strip(), "/* /index.html 200")
+        self.assertFalse((ROOT / "_redirects").exists())
+        self.assertFalse((ROOT / "404.html").exists())
 
     def test_browser_module_graph_uses_one_release_version(self):
-        release_token = "20260824-task14-production-r2"
+        release_token = "20260826-task15-cloud-only"
         import_pattern = re.compile(
             r'(?:from\s+|import\s+)["\'](\.{1,2}/[^"\']+\.js(?:\?[^"\']*)?)["\']'
         )
@@ -145,7 +146,7 @@ class StaticSiteTests(unittest.TestCase):
 
     def test_public_share_routes_do_not_probe_the_legacy_backend(self):
         self.assertIn(
-            'const shouldProbeLegacyBackend = () => !location.pathname.startsWith("/share/");',
+            'const shouldProbeCloudBackend = () => !location.pathname.startsWith("/share/");',
             self.app,
         )
         self.assertIn(
@@ -330,29 +331,23 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("const matrix = new Uint16Array(cells)", self.tools_bundle)
 
     def test_temporary_file_limit_is_consistent_across_the_full_request_chain(self):
-        proxy = (ROOT / "functions" / "_lib" / "legacy-api.mjs").read_text(encoding="utf-8")
-        server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
-        store = (ROOT / "local-backend" / "temporary_store.py").read_text(encoding="utf-8")
+        task14_api = (ROOT / "functions" / "_lib" / "task14-api.mjs").read_text(encoding="utf-8")
+        task14_model = (ROOT / "functions" / "_lib" / "task14-model.mjs").read_text(encoding="utf-8")
+        task14_service = (ROOT / "functions" / "_lib" / "task14-service.mjs").read_text(encoding="utf-8")
         self.assertIn("const TEMP_FILE_MAX_BYTES = 20 * 1024 * 1024", self.tools)
-        self.assertIn("const MAX_PROXY_BODY_BYTES = 600 * 1024", proxy)
-        self.assertIn("const MAX_TEMP_FILE_PROXY_BODY_BYTES = 28 * 1024 * 1024", proxy)
-        self.assertIn("MAX_TEMP_FILE_BYTES = 20 * 1024 * 1024", store)
-        self.assertIn("MAX_JSON_BYTES = int(os.environ.get(\"VOCAB_MAX_JSON_BYTES\", str(512 * 1024)))", server)
-        self.assertIn("DEFAULT_MAX_TEMP_FILE_JSON_BYTES = ((MAX_TEMP_FILE_BYTES + 2) // 3) * 4 + 128 * 1024", server)
-        self.assertIn('request_path == "/api/temporary/file"', server)
-        self.assertIn("function uploadApi", self.core)
-        self.assertIn('bridge.uploadApi("/api/temporary/file"', self.tools)
-        self.assertIn("timeoutMs: 180000", self.tools)
         self.assertIn("const TEMP_VIDEO_MAX_BYTES = 30 * 1024 * 1024", self.tools)
         self.assertIn('".mp4": "video/mp4"', self.tools)
+        self.assertIn('bridge.api("/api/temporary/file/init"', self.tools)
         self.assertIn('bridge.uploadBinaryApi(initialized.upload.upload_url', self.tools)
-        self.assertIn("available: error?.status === 404", self.tools)
-        self.assertIn("legacy_only: error?.status === 404", self.tools)
+        self.assertIn('bridge.api("/api/temporary/file/cancel"', self.tools)
         self.assertIn("requestJsonGet,", self.app)
         self.assertIn("uploadBinaryApi,", self.app)
-        task14_model = (ROOT / "functions" / "_lib" / "task14-model.mjs").read_text(encoding="utf-8")
         self.assertIn("MAX_TEMP_FILE_BYTES = 20 * 1024 * 1024", task14_model)
         self.assertIn("MAX_TEMP_VIDEO_BYTES = 30 * 1024 * 1024", task14_model)
+        self.assertIn('["POST /api/temporary/file/init"', task14_api)
+        self.assertIn('["PUT /api/temporary/file/upload"', task14_api)
+        self.assertIn("raw: true", task14_api)
+        self.assertIn('upload_url: `/api/temporary/file/upload?id=', task14_service)
         for extension in (".mp4", ".m4v", ".mov", ".webm"):
             self.assertIn(f'"{extension}"', task14_model)
 
@@ -384,7 +379,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('server_version = "WYJ"', server)
         self.assertIn('sys_version = ""', server)
         self.assertNotIn('server_version = "VocabQwenWeb', server)
-        self.assertEqual((ROOT / "_redirects").read_text(encoding="utf-8").strip(), "/* /index.html 200")
+        self.assertFalse((ROOT / "_redirects").exists())
 
     def test_branding_and_launcher_contract(self):
         combined = self.html + self.app + self.worker
@@ -539,13 +534,22 @@ class StaticSiteTests(unittest.TestCase):
             ("production", config["env"]["production"]),
         ):
             self.assertEqual(settings["vars"]["WYJ_ENVIRONMENT"], environment)
-            self.assertEqual(settings["vars"]["CLOUD_STATUS_MODE"], "legacy")
-            self.assertEqual(settings["vars"]["CLOUD_READS_ENABLED"], "false")
-            self.assertEqual(settings["vars"]["CLOUD_WRITES_ENABLED"], "false")
-            self.assertEqual(settings["vars"]["WORKERS_AI_ENABLED"], "false")
+            self.assertEqual(settings["vars"]["CLOUD_STATUS_MODE"], "cloud")
+            self.assertEqual(settings["vars"]["LEGACY_API_FALLBACK_ENABLED"], "false")
 
-        self.assertEqual(config["vars"]["TASK11_CLOUD_READS_ENABLED"], "false")
-        self.assertEqual(config["vars"]["TASK11_CLOUD_WRITES_ENABLED"], "false")
+        self.assertEqual(config["vars"]["CLOUD_READS_ENABLED"], "true")
+        self.assertEqual(config["vars"]["CLOUD_WRITES_ENABLED"], "true")
+        self.assertEqual(config["vars"]["WORKERS_AI_ENABLED"], "false")
+        self.assertEqual(config["vars"]["TASK15_CLOUD_ONLY_ENABLED"], "true")
+        for environment in ("preview", "production"):
+            settings = config["env"][environment]
+            self.assertEqual(settings["vars"]["CLOUD_READS_ENABLED"], "true")
+            self.assertEqual(settings["vars"]["CLOUD_WRITES_ENABLED"], "true")
+            self.assertEqual(settings["vars"]["WORKERS_AI_ENABLED"], "true")
+            self.assertEqual(settings["vars"]["TASK15_CLOUD_ONLY_ENABLED"], "true")
+
+        self.assertEqual(config["vars"]["TASK11_CLOUD_READS_ENABLED"], "true")
+        self.assertEqual(config["vars"]["TASK11_CLOUD_WRITES_ENABLED"], "true")
         self.assertEqual(config["vars"]["TASK11_IMPORT_ENABLED"], "false")
         self.assertEqual(config["env"]["preview"]["vars"]["TASK11_CLOUD_READS_ENABLED"], "true")
         self.assertEqual(config["env"]["preview"]["vars"]["TASK11_CLOUD_WRITES_ENABLED"], "true")
@@ -655,9 +659,10 @@ class StaticSiteTests(unittest.TestCase):
             "TASK13_PRODUCTION_IMPORT_ENABLED",
         ):
             self.assertEqual(production_vars[variable], "false")
-        self.assertIn("statusRouteResponse(context, proxyToLegacy)", status)
-        self.assertIn('statusSourceFor(context.request, context.env) !== "cloud"', middleware)
-        self.assertIn("return legacyProxy(context);", middleware)
+        self.assertIn("statusRouteResponse(context)", status)
+        self.assertNotIn("proxyToLegacy", status)
+        self.assertIn('statusSourceFor(context.request, context.env) === "legacy"', middleware)
+        self.assertIn('apiError("legacy_status_retired"', middleware)
 
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
         self.assertEqual(package["devDependencies"]["wrangler"], "4.118.0")
@@ -686,12 +691,10 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("Promise.allSettled(", self.worker)
         self.assertNotIn("cache.addAll(CORE_SHELL)", self.worker)
         proxy = (ROOT / "functions" / "api" / "[[path]].js").read_text(encoding="utf-8")
-        legacy_proxy = (ROOT / "functions" / "_lib" / "legacy-api.mjs").read_text(encoding="utf-8")
-        self.assertIn("handleTask11Request(context, proxyToLegacy)", proxy)
-        self.assertIn("function upstreamTimeoutFor", legacy_proxy)
-        self.assertIn("function retryDelayWithJitter", legacy_proxy)
-        self.assertIn("bases.slice(0, 1)", legacy_proxy)
-        self.assertNotIn("bases.flatMap", proxy)
+        self.assertIn("handleTask11Request(context)", proxy)
+        self.assertIn("handleTask15Request(context)", proxy)
+        self.assertNotIn("proxyToLegacy", proxy)
+        self.assertNotIn("legacy-api.mjs", proxy)
         launcher = (ROOT / "desktop-tools" / "start-wyj.ps1").read_text(encoding="utf-8-sig")
         startup = launcher[launcher.index("        $sourceChanged = Sync-BackendSource"):]
         self.assertLess(startup.index("        Ensure-Backend"), startup.index("        Ensure-Tunnel"))

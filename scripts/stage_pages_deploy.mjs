@@ -7,7 +7,6 @@ const WRANGLER_ROOT = path.join(ROOT, ".wrangler");
 const OUTPUT = path.join(WRANGLER_ROOT, "pages-output");
 const ROOT_FILES = Object.freeze([
   "_headers",
-  "_redirects",
   "app.js",
   "changelog.js",
   "icon-192.png",

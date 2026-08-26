@@ -37,18 +37,16 @@ let completed = 0;
 }
 
 {
-  let legacyCalls = 0;
   const legacyProxy = async () => {
-    legacyCalls += 1;
-    return new Response(JSON.stringify({ ok: true, source: "legacy" }));
+    throw new Error("legacy status proxy must stay disabled");
   };
   const legacyResponse = await statusRouteResponse({
     env: { CLOUD_STATUS_MODE: "legacy" },
     data: {},
     request: new Request("https://thewyj.uk/api/status"),
   }, legacyProxy);
-  assert.equal((await legacyResponse.json()).source, "legacy");
-  assert.equal(legacyCalls, 1);
+  assert.equal(legacyResponse.status, 410);
+  assert.equal((await legacyResponse.json()).code, "legacy_status_retired");
 
   const disabled = await statusRouteResponse({
     env: { CLOUD_FOUNDATION_ENABLED: "false" },
@@ -108,6 +106,22 @@ let completed = 0;
   assert.equal(secured.headers.get("X-Request-ID"), "request-123");
   assert.equal(secured.headers.get("X-Content-Type-Options"), "nosniff");
   assert.equal(secured.headers.get("Cache-Control"), "no-store");
+
+  const html = withSecurityHeaders(new Response("<!doctype html>", {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+    },
+  }), "request-html", false);
+  assert.equal(html.headers.get("Cache-Control"), "public, max-age=0, must-revalidate, no-transform");
+
+  const asset = withSecurityHeaders(new Response("body {}", {
+    headers: {
+      "Content-Type": "text/css",
+      "Cache-Control": "public, max-age=86400",
+    },
+  }), "request-asset", false);
+  assert.equal(asset.headers.get("Cache-Control"), "public, max-age=86400");
   completed += 1;
 }
 

@@ -1,11 +1,24 @@
 import {
   API_GET_TIMEOUT_MS,
   API_TIMEOUT_MS,
-  BACKEND_CONFIG_MESSAGE,
   BACKEND_NETWORK_MESSAGE,
   GET_RETRYABLE_STATUS,
   STATUS_RETRY_BASE_DELAYS_MS,
-} from "./config.js?v=20260824-task14-production-r2";
+} from "./config.js?v=20260826-task15-cloud-only";
+
+export const CANONICAL_SESSION_ERROR_CODES = new Set([
+  "authentication_required",
+  "canonical_session_invalid",
+  "session_expired",
+  "session_revoked",
+  "session_generation_invalid",
+  "account_deleted",
+  "account_banned",
+]);
+
+export function isCanonicalSessionFailure(payload) {
+  return CANONICAL_SESSION_ERROR_CODES.has(String(payload?.code || ""));
+}
 
 export async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
   const { controller: suppliedController, signal: suppliedSignal, ...requestOptions } = options;
@@ -102,10 +115,11 @@ export function createApiClient({
         markGetReachable(data);
         return data;
       }
-      if (authenticated && response.status === 401) {
+      if (authenticated && isCanonicalSessionFailure(data)) {
         handleSessionExpired({ replace: true });
-        const error = new Error("登录已失效，请重新登录");
-        error.code = "session_expired";
+        const error = new Error(data.error || "登录已失效，请重新登录");
+        error.code = data.code;
+        error.status = response.status;
         throw error;
       }
       if (GET_RETRYABLE_STATUS.has(response.status) && attempt < STATUS_RETRY_BASE_DELAYS_MS.length - 1) {
@@ -113,12 +127,9 @@ export function createApiClient({
         lastError.status = response.status;
         continue;
       }
-      const configuredWrong = String(data.error || "").includes("LOCAL_API_BASE");
-      const message = configuredWrong
-        ? BACKEND_CONFIG_MESSAGE
-        : GET_RETRYABLE_STATUS.has(response.status)
-          ? backendErrorMessage({ status: response.status })
-          : data.error || `请求失败（HTTP ${response.status}）`;
+      const message = GET_RETRYABLE_STATUS.has(response.status)
+        ? backendErrorMessage({ status: response.status })
+        : data.error || `请求失败（HTTP ${response.status}）`;
       const error = new Error(message);
       error.code = data.code || "request_failed";
       error.status = response.status;
@@ -151,12 +162,16 @@ export function createApiClient({
     const data = await response.json().catch(() => ({}));
     if (response.ok || response.status < 500) markBackendReachable(data);
     if (!response.ok) {
-      if (response.status === 401) {
+      if (isCanonicalSessionFailure(data)) {
         handleSessionExpired();
-        throw new Error("登录已失效，请重新登录");
+        const error = new Error(data.error || "登录已失效，请重新登录");
+        error.code = data.code;
+        error.status = response.status;
+        throw error;
       }
       const error = new Error(data.error || "请求失败");
       error.code = data.code || "request_failed";
+      error.status = response.status;
       if (error.code === "membership_required") handleMembershipRequired();
       throw error;
     }
@@ -193,7 +208,7 @@ export function createApiClient({
           resolve(data);
           return;
         }
-        if (xhr.status === 401) handleSessionExpired();
+        if (isCanonicalSessionFailure(data)) handleSessionExpired();
         const error = new Error(data.error || "请求失败");
         error.code = data.code || "request_failed";
         error.status = xhr.status;
@@ -261,7 +276,7 @@ export function createApiClient({
           resolve(data);
           return;
         }
-        if (xhr.status === 401) handleSessionExpired();
+        if (isCanonicalSessionFailure(data)) handleSessionExpired();
         const error = new Error(data.error || "上传失败");
         error.code = data.code || "request_failed";
         error.status = xhr.status;

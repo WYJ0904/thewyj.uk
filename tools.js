@@ -5,10 +5,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20260824-task14-production-r2";
-import { randomToolResult } from "./js/tools/random.js?v=20260824-task14-production-r2";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260824-task14-production-r2";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260824-task14-production-r2";
+} from "./js/tools/catalog.js?v=20260826-task15-cloud-only";
+import { randomToolResult } from "./js/tools/random.js?v=20260826-task15-cloud-only";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260826-task15-cloud-only";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260826-task15-cloud-only";
 import {
   csvString,
   decodeLocalText,
@@ -17,15 +17,15 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20260824-task14-production-r2";
+} from "./js/tools/file.js?v=20260826-task15-cloud-only";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20260824-task14-production-r2";
-import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-production-r2";
+} from "./js/tools/image.js?v=20260826-task15-cloud-only";
+import { runToolRenderer } from "./js/tools/runner.js?v=20260826-task15-cloud-only";
 (() => {
   "use strict";
 
@@ -44,6 +44,8 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-producti
   let bridge = null;
   let preferences = { favorites: [], recent: [], configs: [] };
   let loadedPreferencesKey = "";
+  let preferencesLoadedAt = 0;
+  let preferencesLoadPromise = null;
   let currentCategory = "all";
   let currentTool = null;
   let currentDownload = null;
@@ -55,6 +57,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-producti
   const ROOM_POLL_BASE_MS = 4000;
   const ROOM_POLL_MAX_MS = 30000;
   const TOOL_PREFERENCES_CACHE_VERSION = 1;
+  const TOOL_PREFERENCES_TTL_MS = 30_000;
 
   const byId = (id) => document.getElementById(id);
   const categoryFor = (tool) => CATEGORY_MAP.get(tool.category);
@@ -90,6 +93,8 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-producti
     if (loadedPreferencesKey === key) return;
     preferences = readCachedPreferences();
     loadedPreferencesKey = key;
+    preferencesLoadedAt = 0;
+    preferencesLoadPromise = null;
   }
 
   function persistPreferences() {
@@ -230,17 +235,41 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-producti
 
   async function loadPreferences(options = {}) {
     ensureAccountPreferences();
-    try {
-      const data = await bridge.apiGet("/api/tools/preferences");
-      preferences = normalizePreferences(data);
-      persistPreferences();
-    } catch (error) {
-      if (error.code === "membership_required" && !options.allowCached) throw error;
-      preferences = readCachedPreferences();
+    const key = preferencesCacheKey();
+    const fresh = preferencesLoadedAt && Date.now() - preferencesLoadedAt < TOOL_PREFERENCES_TTL_MS;
+    if (!options.force && fresh) {
+      renderShelves();
+      renderCatalog();
+      return preferences;
     }
-    renderShelves();
-    renderCatalog();
-    bridge?.onPreferencesChanged?.();
+    if (preferencesLoadPromise?.key === key) {
+      if (!options.force) return preferencesLoadPromise.promise;
+      try { await preferencesLoadPromise.promise; } catch (_) { /* The forced refresh below is authoritative. */ }
+    }
+    const promise = (async () => {
+      try {
+        const data = await bridge.apiGet("/api/tools/preferences");
+        if (preferencesCacheKey() !== key) return preferences;
+        preferences = normalizePreferences(data);
+        preferencesLoadedAt = Date.now();
+        persistPreferences();
+      } catch (error) {
+        if (error.code === "membership_required" && !options.allowCached) throw error;
+        if (preferencesCacheKey() === key) preferences = readCachedPreferences();
+      }
+      if (preferencesCacheKey() === key) {
+        renderShelves();
+        renderCatalog();
+        bridge?.onPreferencesChanged?.();
+      }
+      return preferences;
+    })();
+    preferencesLoadPromise = { key, promise };
+    try {
+      return await promise;
+    } finally {
+      if (preferencesLoadPromise?.promise === promise) preferencesLoadPromise = null;
+    }
   }
 
   async function toggleFavorite(toolId, forcePinned = null) {
@@ -249,7 +278,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-producti
     const pinned = forcePinned !== null ? forcePinned : Boolean(existing?.pinned);
     try {
       await bridge.api("/api/tools/favorite", { tool_id: toolId, favorite, pinned });
-      await loadPreferences();
+      await loadPreferences({ force: true });
       updateWorkbenchActions();
     } catch (error) {
       setMessage(error.message, true);
@@ -298,7 +327,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-producti
       if (!name) return setMessage("请输入配置名称", true);
       try {
         await bridge.api("/api/tools/config/save", { tool_id: currentTool.id, name, config: collectConfig() });
-        await loadPreferences();
+        await loadPreferences({ force: true });
         renderCurrentTool();
         setMessage("配置已保存");
       } catch (error) { setMessage(error.message, true); }
@@ -311,7 +340,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-producti
     byId("savedToolConfigList")?.querySelectorAll("[data-delete-config]").forEach((button) => button.addEventListener("click", async () => {
       try {
         await bridge.api("/api/tools/config/delete", { id: button.dataset.deleteConfig });
-        await loadPreferences();
+        await loadPreferences({ force: true });
         renderCurrentTool();
         setMessage("配置已删除");
       } catch (error) {
@@ -443,7 +472,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-producti
     renderCurrentTool();
     if (pushRoute) bridge.navigate(`/tools/${tool.id}`);
     recordRecentLocally(tool.id);
-    bridge.api("/api/tools/recent", { tool_id: tool.id }).then(loadPreferences).catch(() => {});
+    bridge.api("/api/tools/recent", { tool_id: tool.id }).catch(() => {});
   }
 
   function closeWorkbench(pushRoute = true) {
@@ -510,7 +539,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-producti
     byId("clearToolHistoryBtn")?.addEventListener("click", async () => {
       try {
         await bridge.api("/api/tools/history/clear", {});
-        await loadPreferences();
+        await loadPreferences({ force: true });
         setMessage("最近使用记录已清除");
       } catch (error) {
         setMessage(error.message, true);
@@ -950,8 +979,8 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-producti
         authenticated: false,
         timeoutMs: 8000,
       }).then((data) => ({ ...data, available: true })).catch((error) => ({
-        available: error?.status === 404,
-        legacy_only: error?.status === 404,
+        available: false,
+        error_code: String(error?.code || "temporary_capabilities_unavailable"),
         cloud_reads: false,
         cloud_upload: false,
         temporary_primary: false,
@@ -1045,29 +1074,6 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-producti
     if (showMessage) setMessage("已取消上传");
   }
 
-  function readFileWithProgress(file, controller, onProgress) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      const abort = () => reader.abort();
-      const finish = (callback) => {
-        controller.signal.removeEventListener("abort", abort);
-        callback();
-      };
-      reader.onprogress = (event) => {
-        if (event.lengthComputable) onProgress(event.loaded / event.total);
-      };
-      reader.onload = () => finish(() => resolve(reader.result));
-      reader.onerror = () => finish(() => reject(reader.error || new Error("读取文件失败")));
-      reader.onabort = () => finish(() => {
-        const error = new Error("上传已取消");
-        error.name = "AbortError";
-        reject(error);
-      });
-      controller.signal.addEventListener("abort", abort, { once: true });
-      reader.readAsArrayBuffer(file);
-    });
-  }
-
   function renderTemporaryFile(tool) {
     byId("toolWorkbenchBody").innerHTML = `<div class="tool-form temporary-tool-form">
       <label class="file-drop"><span>选择临时文件（普通文件 20 MB，视频 30 MB）</span><input id="tempFileInput" type="file" accept=".txt,.csv,.json,.pdf,.png,.jpg,.jpeg,.webp,.gif,.zip,.mp4,.m4v,.mov,.webm" /></label>
@@ -1102,54 +1108,28 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-producti
         if (!selected) throw new Error("请选择文件");
         const capabilities = await temporaryCapabilities(true);
         if (!capabilities.available) throw new Error("暂时无法确认临时分享服务状态，请检查网络后重试");
+        if (!capabilities.cloud_upload) throw new Error("云端临时文件上传暂不可用，请稍后重试");
         const limit = temporaryFileLimit(selected, capabilities);
         if (selected.size > limit.bytes) {
           throw new Error(`临时${limit.video ? "视频" : "文件"}不能超过 ${limit.bytes / (1024 * 1024)} MB`);
         }
-        let data;
-        if (capabilities.cloud_upload) {
-          updateProgress(0, "正在创建安全上传…");
-          const initialized = await bridge.api("/api/temporary/file/init", {
-            file_name: selected.name,
-            mime_type: temporaryFileMime(selected),
-            size_bytes: selected.size,
-            password: byId("tempPassword").value,
-            minutes: byId("tempMinutes").value,
-            max_downloads: byId("tempMaxDownloads").value,
-            destroy_after_download: byId("tempDestroy").checked,
-          }, { timeoutMs: 30000 });
-          reservationId = initialized.upload.id;
-          data = await bridge.uploadBinaryApi(initialized.upload.upload_url, selected, {
-            controller,
-            timeoutMs: 600000,
-            contentType: temporaryFileMime(selected),
-            onProgress: (ratio) => updateProgress(ratio, `上传 ${Math.round(ratio * 100)}%`),
-          });
-        } else {
-          if (limit.video) throw new Error("云端临时视频分享尚未启用，请稍后重试");
-          const buffer = await readFileWithProgress(selected, controller, (ratio) => updateProgress(ratio * 0.2, `读取 ${Math.round(ratio * 100)}%`));
-          if (controller.signal.aborted) return;
-          updateProgress(0.2, "正在兼容旧版服务…");
-          const bytes = new Uint8Array(buffer);
-          let binary = "";
-          for (let index = 0; index < bytes.length; index += 0x8000) {
-            if (controller.signal.aborted) return;
-            binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
-          }
-          data = await bridge.uploadApi("/api/temporary/file", {
-            file_name: selected.name,
-            mime_type: temporaryFileMime(selected),
-            base64: btoa(binary),
-            password: byId("tempPassword").value,
-            minutes: byId("tempMinutes").value,
-            max_downloads: byId("tempMaxDownloads").value,
-            destroy_after_download: byId("tempDestroy").checked,
-          }, {
-            controller,
-            timeoutMs: 180000,
-            onProgress: (ratio) => updateProgress(0.2 + ratio * 0.8, `上传 ${Math.round(ratio * 100)}%`),
-          });
-        }
+        updateProgress(0, "正在创建安全上传…");
+        const initialized = await bridge.api("/api/temporary/file/init", {
+          file_name: selected.name,
+          mime_type: temporaryFileMime(selected),
+          size_bytes: selected.size,
+          password: byId("tempPassword").value,
+          minutes: byId("tempMinutes").value,
+          max_downloads: byId("tempMaxDownloads").value,
+          destroy_after_download: byId("tempDestroy").checked,
+        }, { timeoutMs: 30000 });
+        reservationId = initialized.upload.id;
+        const data = await bridge.uploadBinaryApi(initialized.upload.upload_url, selected, {
+          controller,
+          timeoutMs: 600000,
+          contentType: temporaryFileMime(selected),
+          onProgress: (ratio) => updateProgress(ratio, `上传 ${Math.round(ratio * 100)}%`),
+        });
         const url = shareUrl("file", data.file.id);
         renderTemporaryResult(byId("temporaryResult"), "下载链接", url, url);
         updateProgress(1, "上传完成");
@@ -1477,10 +1457,6 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-producti
     else renderTemporaryRoom(tool);
   }
 
-  function bytesFromBase64(value) {
-    const binary = atob(value); return Uint8Array.from(binary, (char) => char.charCodeAt(0));
-  }
-
   function renderShareRoomMessages(room) {
     const output = byId("shareViewerOutput");
     const messages = uniqueRoomMessages(room);
@@ -1527,30 +1503,18 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task14-producti
         } else if (type === "file") {
           const capabilities = await temporaryCapabilities(true);
           if (!capabilities.available) throw new Error("暂时无法确认临时分享服务状态，请检查网络后重试");
-          let fileName = "";
-          if (capabilities.cloud_reads) {
-            try {
-              const data = await bridge.publicApi("/api/share/file/authorize", {
-                id, password: byId("sharePasswordInput").value,
-              }, { timeoutMs: 30000 });
-              const link = document.createElement("a");
-              link.href = data.download.url;
-              link.download = data.download.file.file_name;
-              link.rel = "noopener";
-              document.body.appendChild(link);
-              link.click();
-              link.remove();
-              fileName = data.download.file.file_name;
-            } catch (error) {
-              if (capabilities.temporary_primary || !["share_not_found", "task14_cloud_not_enabled"].includes(error.code)) throw error;
-            }
-          }
-          if (!fileName) {
-            const data = await bridge.publicApi("/api/share/file/read", { id, password: byId("sharePasswordInput").value }, { timeoutMs: 180000 });
-            const bytes = bytesFromBase64(data.file.base64);
-            downloadBlob(data.file.file_name, new Blob([bytes], { type: data.file.mime_type }));
-            fileName = data.file.file_name;
-          }
+          if (!capabilities.cloud_reads) throw new Error("云端临时文件下载暂不可用，请稍后重试");
+          const data = await bridge.publicApi("/api/share/file/authorize", {
+            id, password: byId("sharePasswordInput").value,
+          }, { timeoutMs: 30000 });
+          const link = document.createElement("a");
+          link.href = data.download.url;
+          link.download = data.download.file.file_name;
+          link.rel = "noopener";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          const fileName = data.download.file.file_name;
           output.textContent = `\u6587\u4ef6 ${fileName} \u5df2\u5f00\u59cb\u4e0b\u8f7d`;
         } else if (type === "room") {
           const password = byId("sharePasswordInput").value;

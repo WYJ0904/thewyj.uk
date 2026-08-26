@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { createHmac } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -7,8 +6,6 @@ import path from "node:path";
 import { Miniflare } from "miniflare";
 
 import { handleTask13Request } from "../functions/_lib/task13-api.mjs";
-import { proxyToLegacy } from "../functions/_lib/legacy-api.mjs";
-import { __testing as bridgeTesting } from "../functions/_lib/task12-bridge.mjs";
 import { sessionStorageKey } from "../functions/_lib/task12-crypto.mjs";
 import { accountMembershipState } from "../functions/_lib/task13-service.mjs";
 
@@ -22,7 +19,7 @@ const ENVIRONMENT = Object.freeze({
   TASK13_PRODUCTION_IMPORT_ENABLED: "false",
   TASK13_PAYMENT_PRIMARY_ENABLED: "true",
   D1_RATE_LIMIT_ENABLED: "false",
-  LEGACY_API_FALLBACK_ENABLED: "true",
+  LEGACY_API_FALLBACK_ENABLED: "false",
   WYJ_ENVIRONMENT: "preview",
 });
 const USERS = Object.freeze({
@@ -83,17 +80,12 @@ async function requestTask13(db, storage, route, options = {}) {
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     }),
   };
-  const legacyCalls = [];
-  const response = await handleTask13Request(context, async (legacyContext) => {
-    legacyCalls.push(new URL(legacyContext.request.url).pathname);
-    return Response.json({ ok: true, source: "legacy" });
-  });
+  const response = await handleTask13Request(context);
   const contentType = response.headers.get("Content-Type") || "";
   return {
     response,
     payload: contentType.startsWith("application/json") ? await response.json() : null,
     bytes: contentType.startsWith("image/") ? new Uint8Array(await response.arrayBuffer()) : null,
-    legacyCalls,
   };
 }
 
@@ -467,65 +459,20 @@ try {
   assert.equal(productionImport.payload.code, "task13_production_import_confirmation_required");
   const writesDisabled = await createOrder(db, storage, USERS.four, "tools_monthly", "wechat");
   assert.notEqual(writesDisabled.payload.source, "legacy");
-  const legacyFallback = await requestTask13(db, storage, "/api/recharge/request", {
+  const cloudDisabled = await requestTask13(db, storage, "/api/recharge/request", {
     method: "POST",
     token: USERS.four.token,
     body: { plan: "tools_monthly", payment_method: "wechat", trial_language: "" },
     env: { TASK13_PAYMENT_PRIMARY_ENABLED: "false" },
   });
-  assert.equal(legacyFallback.payload.source, "legacy");
-  assert.deepEqual(legacyFallback.legacyCalls, ["/api/recharge/request"]);
+  assert.equal(cloudDisabled.response.status, 503);
+  assert.equal(cloudDisabled.payload.code, "task13_cloud_not_enabled");
   completed += 1;
 
   const auditCount = await tableCount(db, "task13_admin_audit_logs");
   assert.ok(auditCount >= 5);
-  const nativeFetch = globalThis.fetch;
-  const bridgeSecret = "task13-entitlement-bridge-secret-0123456789";
-  let upstreamRequest = null;
-  try {
-    globalThis.fetch = async (input, init) => {
-      upstreamRequest = new Request(input, init);
-      return Response.json({ ok: true });
-    };
-    const bridgeRequestId = "task13-entitlement-bridge-001";
-    const bridged = await proxyToLegacy({
-      env: {
-        ...ENVIRONMENT,
-        WYJ_DB: db,
-        WYJ_STORAGE: storage,
-        LOCAL_API_BASE: "https://legacy-task13.invalid",
-        WYJ_LEGACY_IDENTITY_BRIDGE_SECRET: bridgeSecret,
-      },
-      data: { requestId: bridgeRequestId },
-      request: new Request("https://thewyj.uk/api/tools/preferences", {
-        headers: { "X-Session-Token": USERS.one.token },
-      }),
-    });
-    assert.equal(bridged.status, 200);
-    assert.equal(upstreamRequest.headers.get(bridgeTesting.BRIDGE_HEADERS.version), "2");
-    assert.equal(upstreamRequest.headers.has("X-Session-Token"), false);
-    const entitlements = decodeURIComponent(
-      upstreamRequest.headers.get(bridgeTesting.BRIDGE_HEADERS.entitlements) || "",
-    ).split(",").filter(Boolean);
-    assert.ok(entitlements.includes("tools_access"));
-    assert.ok(entitlements.includes("language_english_access"));
-    const canonical = bridgeTesting.canonicalIdentity({
-      userId: USERS.one.id,
-      username: USERS.one.username,
-      issuedAt: upstreamRequest.headers.get(bridgeTesting.BRIDGE_HEADERS.issuedAt),
-      requestId: bridgeRequestId,
-      method: "GET",
-      pathname: "/api/tools/preferences",
-      version: "2",
-      entitlements,
-    });
-    assert.equal(
-      upstreamRequest.headers.get(bridgeTesting.BRIDGE_HEADERS.signature),
-      createHmac("sha256", bridgeSecret).update(canonical).digest("base64url"),
-    );
-  } finally {
-    globalThis.fetch = nativeFetch;
-  }
+  const task13Source = await readFile(path.join(ROOT, "functions", "_lib", "task13-api.mjs"), "utf8");
+  assert.doesNotMatch(task13Source, /legacy-api|proxyToLegacy|LOCAL_API_BASE/u);
   completed += 1;
   console.log(`Task 13 Miniflare/D1/R2 checks passed: ${completed}`);
 } finally {

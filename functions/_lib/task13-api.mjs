@@ -76,8 +76,12 @@ async function readJson(request, maximumBytes) {
 }
 
 function authenticationError(result, context) {
-  if (result.status === 401) return apiError("authentication_required", "请先登录", 401, requestId(context));
-  return apiError("account_unavailable", "账户不可用", result.status || 403, requestId(context));
+  return apiError(
+    String(result.code || (result.status === 401 ? "canonical_session_invalid" : "account_unavailable")),
+    result.status === 401 ? "登录会话无效，请重新登录" : "账户不可用",
+    result.status || 403,
+    requestId(context),
+  );
 }
 
 async function authenticate(context, requirement) {
@@ -212,7 +216,7 @@ function productionImportAllowed(context, flags) {
     && context.request.headers.get("X-WYJ-Task13-Production-Confirm") === "TASK13-PRODUCTION-MEMBERSHIP-PAYMENT-MIGRATION";
 }
 
-export async function handleTask13Request(context, legacyProxy) {
+export async function handleTask13Request(context) {
   const url = new URL(context.request.url);
   const method = context.request.method.toUpperCase();
   const descriptor = ROUTES.get(`${method} ${url.pathname}`);
@@ -224,7 +228,10 @@ export async function handleTask13Request(context, legacyProxy) {
     });
   }
   const flags = featureFlags(context.env);
-  if (!featureEnabled(descriptor, flags)) return legacyProxy(context);
+  if (!featureEnabled(descriptor, flags)) {
+    const code = descriptor.mode === "import" ? "task13_import_disabled" : "task13_cloud_not_enabled";
+    return apiError(code, "云端会员与支付服务当前未启用", 503, requestId(context), { retryable: false });
+  }
   if (descriptor.mode === "import" && !productionImportAllowed(context, flags)) {
     return apiError(
       "task13_production_import_confirmation_required",
@@ -234,9 +241,6 @@ export async function handleTask13Request(context, legacyProxy) {
     );
   }
 
-  const fallbackContext = descriptor.mode !== "import"
-    ? { ...context, request: context.request.clone() }
-    : context;
   try {
     if (!await ensureTask13Schema(context.env.WYJ_DB)) {
       throw new Task13Error("云端会员与支付数据结构尚未就绪", 503, "task13_schema_not_ready", true);
@@ -263,9 +267,6 @@ export async function handleTask13Request(context, legacyProxy) {
         retryable: error.retryable,
         details: error.committed ? { committed: true } : undefined,
       });
-    }
-    if (descriptor.mode === "read" && flags.legacyFallback && !flags.task13PaymentPrimary) {
-      return legacyProxy(fallbackContext);
     }
     console.error(JSON.stringify({
       event: "task13_cloud_error",

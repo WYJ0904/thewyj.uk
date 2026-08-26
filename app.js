@@ -3,36 +3,42 @@ import {
   API_GET_TIMEOUT_MS,
   API_TIMEOUT_MS,
   APP_VERSION,
-  BACKEND_CONFIG_MESSAGE,
   BACKEND_NETWORK_MESSAGE,
   BACKEND_REFRESH_INTERVAL_MS,
   BUSINESS_TIME_ZONE,
-  PDF_TIMEOUT_MS,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260824-task14-production-r2";
-import { createApiClient, fetchWithTimeout, retryDelayWithJitter, waitForDelay } from "./js/core/api.js?v=20260824-task14-production-r2";
+} from "./js/core/config.js?v=20260826-task15-cloud-only";
+import {
+  createApiClient,
+  fetchWithTimeout,
+  isCanonicalSessionFailure,
+  retryDelayWithJitter,
+  waitForDelay,
+} from "./js/core/api.js?v=20260826-task15-cloud-only";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260824-task14-production-r2";
-import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260824-task14-production-r2";
+} from "./js/core/changelog.js?v=20260826-task15-cloud-only";
+import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260826-task15-cloud-only";
 import {
+  ACCOUNT_CACHE_KEY,
   clearAccountSessionStorage,
   persistAccountSession,
   restoreAccountSession,
-} from "./js/core/session.js?v=20260824-task14-production-r2";
-import { hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260824-task14-production-r2";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260824-task14-production-r2";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260824-task14-production-r2";
+  subscribeAccountSessionChanges,
+} from "./js/core/session.js?v=20260826-task15-cloud-only";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260826-task15-cloud-only";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260826-task15-cloud-only";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260826-task15-cloud-only";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260824-task14-production-r2";
+} from "./js/language/history.js?v=20260826-task15-cloud-only";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -67,15 +73,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260824-task14-production-r2";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260824-task14-production-r2";
+} from "./js/language/quiz.js?v=20260826-task15-cloud-only";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260826-task15-cloud-only";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260826-task15-cloud-only";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260824-task14-production-r2";
+} from "./js/language/wrong-book.js?v=20260826-task15-cloud-only";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -83,7 +90,7 @@ import {
   hasAccountEntitlement as hasAccountEntitlementModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260824-task14-production-r2";
+} from "./js/membership/account.js?v=20260826-task15-cloud-only";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -91,19 +98,22 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260824-task14-production-r2";
+} from "./js/membership/plans.js?v=20260826-task15-cloud-only";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260824-task14-production-r2";
+} from "./js/membership/recharge.js?v=20260826-task15-cloud-only";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260824-task14-production-r2";
+} from "./js/admin/formatters.js?v=20260826-task15-cloud-only";
+
+const localStorage = getSafeStorage("localStorage");
+const sessionStorage = getSafeStorage("sessionStorage");
 
 const PREVIOUS_QUESTION_TRANSITION_MS = 8000;
 const QUESTION_TRANSITION_MS = Math.round(PREVIOUS_QUESTION_TRANSITION_MS * 2 / 3);
@@ -949,6 +959,24 @@ function clearSession() {
   renderAccountUi();
 }
 
+function adoptExternalAccountSession(nextSession) {
+  stopLearningDataSync();
+  releasePaymentQr();
+  cancelVocabularySearch();
+  if (judgeController) judgeController.abort();
+  clearNextTimer();
+  hideResultPanel();
+  state.session = nextSession;
+  state.account = null;
+  state.quizSession = "";
+  localStorage.removeItem(ACCOUNT_CACHE_KEY);
+  resetLocalViewState();
+  pendingScreen = "workspace";
+  pendingAuthMessage = "正在验证另一页面的登录状态…";
+  renderAccountUi();
+  scheduleBackendRecovery(0);
+}
+
 function accountEntitlements(account = state.account) {
   return accountEntitlementsModel(account);
 }
@@ -1222,7 +1250,11 @@ function renderDashboard() {
 
   setDashboardService("dashboardAccountStatus", backendAvailable ? "在线" : "离线", backendAvailable ? "is-online" : "is-offline");
   renderLearningSyncDashboardStatus();
-  setDashboardService("dashboardAiStatus", aiAvailable ? "可用" : "未连接", aiAvailable ? "is-online" : "is-warning");
+  setDashboardService(
+    "dashboardAiStatus",
+    !backendAvailable ? "网络不可用" : aiAvailable ? "可用" : "规则模式",
+    backendAvailable && aiAvailable ? "is-online" : "is-warning",
+  );
   const canShare = isSuperAdmin(account) || hasAccountEntitlement("temporary_share_access", account);
   setDashboardService(
     "dashboardShareStatus",
@@ -1636,13 +1668,13 @@ async function loadPaymentQr(record, modalSequence = membershipModalLoadSequence
       },
       API_GET_TIMEOUT_MS,
     );
-    if (response.status === 401) {
-      clearSession();
-      showAuth("登录已失效，请重新登录", { replace: true });
-      return;
-    }
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
+      if (isCanonicalSessionFailure(data)) {
+        clearSession();
+        showAuth(data.error || "登录已失效，请重新登录", { replace: true });
+        return;
+      }
       throw new Error(data.error || "二维码暂时无法加载");
     }
     const contentType = response.headers.get("Content-Type") || "";
@@ -3360,9 +3392,9 @@ function showWorkspace() {
   showMainShell();
   $("authPanel").classList.add("hidden");
   $("workspace").classList.remove("hidden");
-  $("statusDot").classList.toggle("online", backendAvailable && aiAvailable);
-  if (!backendAvailable) $("modelLabel").textContent = "本地复习";
-  else if (!aiAvailable) $("modelLabel").textContent = "AI 未启动";
+  $("statusDot").classList.toggle("online", backendAvailable);
+  if (!backendAvailable) $("modelLabel").textContent = "离线模式";
+  else if (!aiAvailable) $("modelLabel").textContent = "规则模式";
   restoreProjectRuntime();
 }
 
@@ -3886,16 +3918,15 @@ function confirmClearStudyRecords() {
 
 function backendErrorMessage(error) {
   const detail = String(error?.message || "");
-  if (detail.includes("LOCAL_API_BASE")) return BACKEND_CONFIG_MESSAGE;
   if (navigator.onLine === false) return "设备当前没有网络连接，请联网后重试。";
   if (error?.code === "request_timeout" || error?.name === "TimeoutError" || detail.includes("超时")) {
     return "服务器响应超时，可保留当前页面稍后重试。";
   }
   if (Number(error?.status) === 530) {
-    return "公网通道暂时未连上本机服务，请确认已运行“启动WYJ网站”后重试。";
+    return "Cloudflare 云端服务暂时无法处理请求，请稍后重试。";
   }
   if ([502, 503, 504].includes(Number(error?.status))) {
-    return "服务通道正在恢复，请稍候几秒后重试。";
+    return "云端服务正在恢复，请稍候几秒后重试。";
   }
   return BACKEND_NETWORK_MESSAGE;
 }
@@ -3919,8 +3950,8 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
 function applyBackendStatus(data) {
   markBackendReachable(data);
   aiAvailable = data.ai_ready !== false;
-  $("modelLabel").textContent = data.model || "qwen3:8b";
-  $("statusDot").classList.toggle("online", aiAvailable);
+  $("modelLabel").textContent = data.model || (aiAvailable ? "Workers AI" : "规则模式");
+  $("statusDot").classList.toggle("online", true);
 }
 
 function markBackendReachable(data = {}) {
@@ -3928,7 +3959,7 @@ function markBackendReachable(data = {}) {
   backendFailureMessage = "";
   if (typeof data.ai_ready === "boolean") aiAvailable = data.ai_ready;
   if (data.model && $("modelLabel")) $("modelLabel").textContent = data.model;
-  $("statusDot")?.classList.toggle("online", backendAvailable && aiAvailable);
+  $("statusDot")?.classList.toggle("online", backendAvailable);
 }
 
 async function requestBackendStatus() {
@@ -3943,11 +3974,9 @@ async function requestBackendStatus() {
       const error = new Error(data.error || `服务器返回 ${response.status}`);
       error.status = response.status;
       error.code = data.code || "status_unavailable";
-      if (error.message.includes("LOCAL_API_BASE")) throw error;
       lastError = error;
     } catch (error) {
       lastError = error;
-      if (String(error?.message || "").includes("LOCAL_API_BASE")) break;
     }
   }
   throw lastError;
@@ -3971,7 +4000,7 @@ async function ensureBackendConnection() {
     backendAvailable = false;
     aiAvailable = false;
     backendFailureMessage = backendErrorMessage(error);
-    $("modelLabel").textContent = "本地复习";
+    $("modelLabel").textContent = "离线模式";
     $("statusDot").classList.remove("online");
     return false;
   }
@@ -4451,7 +4480,7 @@ async function generateAiVocabulary() {
   button.disabled = true;
   button.textContent = "搜索中…";
   message.classList.remove("error");
-  message.textContent = "正在从本地分级索引选词；不足时才会联网并调用本地 AI…";
+  message.textContent = "正在从内置分级索引选词；不足时才会调用 Workers AI…";
   saveAiSuggestionSettings();
   try {
     const data = await api(
@@ -4474,7 +4503,7 @@ async function generateAiVocabulary() {
     $("wordInput").value = formatWordsForInput(words);
     saveCurrentWordDraft();
     updateStats();
-    const sourceText = data.selection_source === "local" ? "本地分级索引" : "本地索引、联网资料与本地 AI";
+    const sourceText = data.selection_source === "local" ? "内置分级索引" : "内置索引与 Workers AI";
     message.textContent = `${sourceText} 已${mode === "append" ? "追加" : "生成"} ${added.length} 个${data.level_label || ""}词汇`;
   } catch (error) {
     message.textContent = error.message;
@@ -4508,20 +4537,21 @@ async function ensureJapaneseQuestionForms(words) {
   if (!missing.length) return true;
   if (!backendAvailable || !state.session) {
     alert(dictation
-      ? "这些日语词还缺少完整的汉字或假名写法，请连接后端后重试。"
-      : "这些日语汉字还缺少假名读音，请连接后端后重试。");
+      ? "这些日语词还缺少完整的汉字或假名写法，请联网后重试。"
+      : "这些日语汉字还缺少假名读音，请联网后重试。");
     return false;
   }
 
+  let resolution = null;
   try {
-    const data = await api(
+    resolution = await api(
       "/api/japanese/readings",
       { words: missing, quiz_session: state.quizSession },
       { timeoutMs: 180000 },
     );
-    rememberJapaneseVocabularyData(data.readings || {}, data.written_forms || {});
+    rememberJapaneseVocabularyData(resolution.readings || {}, resolution.written_forms || {});
   } catch (error) {
-    alert(`${dictation ? "获取日语完整写法" : "获取日语假名读音"}失败：${error.message}。请稍后重试；生僻词可能需要本地 AI。`);
+    alert(`${dictation ? "获取日语完整写法" : "获取日语假名读音"}失败：${error.message}。内置词库未收录的生僻词需要 Workers AI 可用。`);
     return false;
   }
 
@@ -4534,6 +4564,10 @@ async function ensureJapaneseQuestionForms(words) {
   });
   if (unresolved.length) {
     const preview = unresolved.slice(0, 5).join("、");
+    if (!dictation && resolution?.ai_unavailable) {
+      alert(`AI 暂时不可用，${preview}${unresolved.length > 5 ? "等" : ""}暂不显示假名标音；释义练习仍可继续。`);
+      return true;
+    }
     alert(`AI 暂时未找到这些词的${dictation ? "完整写法" : "假名读音"}：${preview}${unresolved.length > 5 ? "等" : ""}。请稍后重试。`);
     return false;
   }
@@ -4555,16 +4589,7 @@ async function startQuiz(words, mode = "normal", options = {}) {
     if (backendAvailable) {
       showAuth("开始测试前请登录账户；错题复习仍可离线进行。未登录时不能绕过测试数量限制。");
     } else {
-      alert("当前离线：可以复习已有错题；开始新测试需要连接本地后端并登录账户。");
-    }
-    return;
-  }
-
-  if (mode === "normal" && state.practiceMode === "meaning" && !aiAvailable) {
-    if (backendAvailable) {
-      alert("本地后端在线，但 Ollama 尚未启动。请重新运行桌面启动程序；错题复习仍可本地进行。");
-    } else {
-      alert("当前离线：可以进行听写或错题复习；首次释义判卷需要本地 AI 在线。");
+      alert("当前离线：可以复习已有错题；开始新测试需要连接 Cloudflare 云端服务并登录账户。");
     }
     return;
   }
@@ -4980,7 +5005,7 @@ async function submitAnswer(event) {
         $("resultPanel").classList.remove("hidden");
         $("resultTitle").className = "result-title";
         $("resultTitle").textContent = "首次准备释义";
-        $("resultGloss").textContent = "正在调用本地 AI，保存后续离线复习所需的标准答案";
+        $("resultGloss").textContent = "正在获取标准释义，保存后可继续离线复习";
         const data = await api("/api/rubric", { word, quiz_session: state.quizSession }, { timeoutMs: AI_TIMEOUT_MS });
         const rubric = data.rubric || {};
         info.correct_answer = limitText(rubric.gloss) || info.correct_answer;
@@ -4991,7 +5016,7 @@ async function submitAnswer(event) {
 
       info = reviewEntryForWord(word);
       if (!hasUsableMeaning(info)) {
-        throw new Error("这条旧错题没有保存标准释义；请连接本地 AI 后再复习一次。");
+        throw new Error("这条旧错题没有保存标准释义；请联网获取一次后再复习。");
       }
 
       const result = localReviewResult(word, answer, info);
@@ -5008,7 +5033,7 @@ async function submitAnswer(event) {
     } catch (error) {
       $("resultPanel").classList.remove("grading", "ai-review", "hidden");
       $("resultTitle").className = "result-title bad";
-      $("resultTitle").textContent = "本地复习暂不可用";
+      $("resultTitle").textContent = "错题复习暂不可用";
       $("resultGloss").textContent = error.message;
       scheduleResultHide();
     } finally {
@@ -5406,44 +5431,20 @@ async function exportWrongBook(scope = "current") {
   showWrongActionMessage("");
 
   try {
-    const response = await fetchWithTimeout(
-      "/api/export-pdf",
-      {
-        method: "POST",
-        cache: "no-store",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Session-Token": state.session,
-        },
-        body: JSON.stringify({
-          wrongBook: book,
-          title: scope === "history" ? "WYJ的网站历史错题本" : "WYJ的网站本轮错题本",
-          meta: {
-            profile: state.profile,
-            scope: scope === "history" ? "历史错题" : "本轮错题",
-            grading_mode: state.gradingMode,
-            language: state.quizLanguage,
-            practice_mode: state.practiceMode,
-            achievement_count: ACHIEVEMENTS.filter((item) => state.achievements[item.id]).length,
-          },
-        }),
+    const blob = await createWrongBookPdf(book, {
+      title: scope === "history" ? "WYJ的网站历史错题本" : "WYJ的网站本轮错题本",
+      meta: {
+        profile: state.profile,
+        scope: scope === "history" ? "历史错题" : "本轮错题",
+        grading_mode: state.gradingMode,
+        language: state.quizLanguage,
+        practice_mode: state.practiceMode,
+        achievement_count: ACHIEVEMENTS.filter((item) => state.achievements[item.id]).length,
       },
-      PDF_TIMEOUT_MS,
-    );
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      if (response.status === 401) {
-        clearSession();
-        showAuth("登录已失效，请重新登录");
-        return;
-      }
-      throw new Error(data.error || "导出失败");
-    }
-
-    const blob = await response.blob();
-    const contentType = response.headers.get("Content-Type") || "";
+    });
+    const contentType = blob.type || "";
     const signature = await blob.slice(0, 4).text();
-    if (!contentType.includes("application/pdf") || signature !== "%PDF") throw new Error("服务器没有返回有效 PDF");
+    if (!contentType.includes("application/pdf") || signature !== "%PDF") throw new Error("浏览器没有生成有效 PDF");
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -5453,7 +5454,7 @@ async function exportWrongBook(scope = "current") {
     unlockAchievement("firstPdf");
     showWrongActionMessage("PDF 已生成并开始下载。如果没有看到文件，请检查浏览器的下载权限。");
   } catch (error) {
-    showWrongActionMessage(`导出失败：${error.message || "请检查本地后端连接"}`, true);
+    showWrongActionMessage(`导出失败：${error.message || "请检查浏览器下载权限"}`, true);
   } finally {
     if (button) {
       button.disabled = false;
@@ -5677,16 +5678,21 @@ async function login(event) {
       secret: $("secretInput").value,
     });
     state.session = data.session;
-    persistAccountSession(state.session);
+    const persisted = persistAccountSession(state.session);
     applyAccount(data.account);
     $("secretInput").value = "";
     clearSavedWordDrafts(data.account);
     pendingScreen = "workspace";
     pendingAuthMessage = "";
-    $("modelLabel").textContent = data.model || "qwen3:8b";
+    $("modelLabel").textContent = data.model || "Cloudflare 云端";
     showModulePicker(false);
     pushRoute("/select", true);
     updateStats();
+    if (!persisted) {
+      window.setTimeout(() => alert(
+        "已登录，但浏览器无法保存登录状态。当前页面仍可使用；关闭或刷新后可能需要重新登录。请检查隐私模式或站点存储权限。",
+      ), 0);
+    }
   } catch (error) {
     $("loginError").textContent = error.message;
   } finally {
@@ -5715,14 +5721,21 @@ async function performBackendRefresh() {
       );
       const health = await healthResponse.json().catch(() => ({}));
       if (!healthResponse.ok) {
-        if (healthResponse.status === 401) clearSession();
-        pendingScreen = "auth";
-        pendingAuthMessage = "登录已失效，请重新登录";
+        if (isCanonicalSessionFailure(health)) {
+          clearSession();
+          pendingScreen = "auth";
+          pendingAuthMessage = health.error || "登录已失效，请重新登录";
+        } else {
+          backendAvailable = false;
+          backendFailureMessage = health.error || "账户服务暂时不可用，请稍后重试。";
+          pendingScreen = state.session && state.account ? "workspace" : "auth";
+          pendingAuthMessage = state.session && state.account ? "" : backendFailureMessage;
+        }
       } else {
         applyAccount(health.account);
         aiAvailable = health.ai_ready !== false;
-        $("modelLabel").textContent = health.model || data.model || "qwen3:8b";
-        $("statusDot").classList.toggle("online", aiAvailable);
+        $("modelLabel").textContent = health.model || data.model || (aiAvailable ? "Workers AI" : "规则模式");
+        $("statusDot").classList.toggle("online", true);
         pendingScreen = "workspace";
         pendingAuthMessage = "";
       }
@@ -5736,7 +5749,7 @@ async function performBackendRefresh() {
     backendFailureMessage = backendErrorMessage(error);
     pendingScreen = state.session && state.account ? "workspace" : "auth";
     pendingAuthMessage = state.session && state.account ? "" : backendFailureMessage;
-    $("modelLabel").textContent = "本地复习";
+    $("modelLabel").textContent = "离线模式";
     $("statusDot").classList.remove("online");
   }
   applyPendingScreen();
@@ -5756,7 +5769,7 @@ function markBackendDisconnected(message = "设备当前没有网络连接，联
   backendAvailable = false;
   aiAvailable = false;
   backendFailureMessage = message;
-  if ($("modelLabel")) $("modelLabel").textContent = "本地复习";
+  if ($("modelLabel")) $("modelLabel").textContent = "离线模式";
   $("statusDot")?.classList.remove("online");
   renderDashboard();
 }
@@ -6058,26 +6071,37 @@ async function boot() {
     navigator.serviceWorker.register(`/sw.js?v=${APP_VERSION}`).catch(() => {});
   }
   const initialPath = location.pathname.replace(/\/+$/, "") || "/";
-  const shouldProbeLegacyBackend = () => !location.pathname.startsWith("/share/");
+  const shouldProbeCloudBackend = () => !location.pathname.startsWith("/share/");
   window.addEventListener("offline", () => {
-    if (shouldProbeLegacyBackend()) markBackendDisconnected();
+    if (shouldProbeCloudBackend()) markBackendDisconnected();
   });
   window.addEventListener("online", () => {
-    if (shouldProbeLegacyBackend()) scheduleBackendRecovery(150);
+    if (shouldProbeCloudBackend()) scheduleBackendRecovery(150);
   });
   window.addEventListener("pageshow", (event) => {
-    if (shouldProbeLegacyBackend() && (event.persisted || !backendAvailable)) scheduleBackendRecovery(200);
+    if (shouldProbeCloudBackend() && (event.persisted || !backendAvailable)) scheduleBackendRecovery(200);
   });
   navigator.connection?.addEventListener?.("change", () => {
-    if (shouldProbeLegacyBackend()) scheduleBackendRecovery(300);
+    if (shouldProbeCloudBackend()) scheduleBackendRecovery(300);
+  });
+  subscribeAccountSessionChanges((nextSession) => {
+    if (nextSession === state.session) return;
+    if (!nextSession) {
+      if (state.session) {
+        clearSession();
+        showAuth("账户已在另一个页面退出", { path: "/login", replace: true });
+      }
+      return;
+    }
+    adoptExternalAccountSession(nextSession);
   });
   document.addEventListener("visibilitychange", () => {
-    if (shouldProbeLegacyBackend() && document.visibilityState === "visible" && (state.session || !backendAvailable)) {
+    if (shouldProbeCloudBackend() && document.visibilityState === "visible" && (state.session || !backendAvailable)) {
       scheduleBackendRecovery(150);
     }
   });
   window.setInterval(() => {
-    if (shouldProbeLegacyBackend() && document.visibilityState === "visible" && navigator.onLine !== false) {
+    if (shouldProbeCloudBackend() && document.visibilityState === "visible" && navigator.onLine !== false) {
       refreshBackendState();
     }
   }, BACKEND_REFRESH_INTERVAL_MS);
