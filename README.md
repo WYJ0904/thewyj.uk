@@ -713,6 +713,8 @@ python scripts/migrate_task15_remaining_to_d1.py `
 
 Production 切换顺序固定为：创建迁移 tag与最后 SQLite 只读备份；记录 D1/R2 数量和聚合一致性；Preview migration/import/browser 验收；Production migration 与只读核对；短时冻结旧写入；Production 导入和重复重放核对；启用 cloud-only 与 Workers AI；关闭 import、legacy fallback、`LOCAL_API_BASE` 和 identity bridge；最后停止 Python、Ollama 与 cloudflared。回滚必须先导出并核对切换后的 D1/R2 增量，不能直接恢复旧 SQLite 主写。
 
+Task 15 Production 最终验收于 2026-08-27 完成：本机 Python、Ollama、cloudflared 和相关监听端口全部停止后，Production 移动端完整流程仍通过；随后电脑彻底关机，使用手机移动网络从异地重新访问 `thewyj.uk`，登录、学习、AI、工具及云端状态均可用。Production 的结构化数据、私有文件和 AI 分别以 D1、R2 和 Workers AI 为正式 source of truth；本地 SQLite、Tunnel 与历史后端只保留仓库外备份、测试夹具和人工回滚参考，不接受线上主写。
+
 ### 免费额度降级
 
 - D1 达到免费读写额度时会拒绝查询；云状态接口标记 degraded。Task 11～15 都返回明确的可重试错误，不会回退或双写 SQLite。浏览器本地学习记录、PDF 和纯本地工具仍可使用。
