@@ -8,37 +8,37 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260824-task15-cloud-only";
+} from "./js/core/config.js?v=20260826-task15-cloud-only";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20260824-task15-cloud-only";
+} from "./js/core/api.js?v=20260826-task15-cloud-only";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260824-task15-cloud-only";
-import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260824-task15-cloud-only";
+} from "./js/core/changelog.js?v=20260826-task15-cloud-only";
+import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260826-task15-cloud-only";
 import {
   ACCOUNT_CACHE_KEY,
   clearAccountSessionStorage,
   persistAccountSession,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20260824-task15-cloud-only";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260824-task15-cloud-only";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260824-task15-cloud-only";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260824-task15-cloud-only";
+} from "./js/core/session.js?v=20260826-task15-cloud-only";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260826-task15-cloud-only";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260826-task15-cloud-only";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260826-task15-cloud-only";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260824-task15-cloud-only";
+} from "./js/language/history.js?v=20260826-task15-cloud-only";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -73,16 +73,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260824-task15-cloud-only";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260824-task15-cloud-only";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20260824-task15-cloud-only";
+} from "./js/language/quiz.js?v=20260826-task15-cloud-only";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260826-task15-cloud-only";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260826-task15-cloud-only";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260824-task15-cloud-only";
+} from "./js/language/wrong-book.js?v=20260826-task15-cloud-only";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -90,7 +90,7 @@ import {
   hasAccountEntitlement as hasAccountEntitlementModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260824-task15-cloud-only";
+} from "./js/membership/account.js?v=20260826-task15-cloud-only";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -98,19 +98,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260824-task15-cloud-only";
+} from "./js/membership/plans.js?v=20260826-task15-cloud-only";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260824-task15-cloud-only";
+} from "./js/membership/recharge.js?v=20260826-task15-cloud-only";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260824-task15-cloud-only";
+} from "./js/admin/formatters.js?v=20260826-task15-cloud-only";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");

@@ -1,4 +1,4 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260824-task15-cloud-only";
+import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260826-task15-cloud-only";
 
 export const ACCOUNT_SESSION_KEY = "wyjAccountSession";
 export const ACCOUNT_CACHE_KEY = "wyjAccountCache";

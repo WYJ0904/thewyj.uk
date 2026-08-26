@@ -554,10 +554,10 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260824-task15-cloud-only');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260824-task15-cloud-only');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260824-task15-cloud-only');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260824-task15-cloud-only');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260826-task15-cloud-only');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260826-task15-cloud-only');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260826-task15-cloud-only');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260826-task15-cloud-only');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -570,7 +570,7 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.24");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-24-task15-cloud-only");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-26-task15-cloud-only");
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
     });

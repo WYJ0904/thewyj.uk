@@ -1,6 +1,6 @@
 # Task 15 Production route audit
 
-Audit baseline: `2026-08-24-task15-cloud-only`.
+Audit baseline: `2026-08-26-task15-cloud-only`.
 
 ## Invariants
 

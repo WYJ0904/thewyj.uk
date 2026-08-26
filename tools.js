@@ -5,10 +5,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20260824-task15-cloud-only";
-import { randomToolResult } from "./js/tools/random.js?v=20260824-task15-cloud-only";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260824-task15-cloud-only";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260824-task15-cloud-only";
+} from "./js/tools/catalog.js?v=20260826-task15-cloud-only";
+import { randomToolResult } from "./js/tools/random.js?v=20260826-task15-cloud-only";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260826-task15-cloud-only";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260826-task15-cloud-only";
 import {
   csvString,
   decodeLocalText,
@@ -17,15 +17,15 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20260824-task15-cloud-only";
+} from "./js/tools/file.js?v=20260826-task15-cloud-only";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20260824-task15-cloud-only";
-import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task15-cloud-only";
+} from "./js/tools/image.js?v=20260826-task15-cloud-only";
+import { runToolRenderer } from "./js/tools/runner.js?v=20260826-task15-cloud-only";
 (() => {
   "use strict";
 
@@ -44,6 +44,8 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task15-cloud-on
   let bridge = null;
   let preferences = { favorites: [], recent: [], configs: [] };
   let loadedPreferencesKey = "";
+  let preferencesLoadedAt = 0;
+  let preferencesLoadPromise = null;
   let currentCategory = "all";
   let currentTool = null;
   let currentDownload = null;
@@ -55,6 +57,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task15-cloud-on
   const ROOM_POLL_BASE_MS = 4000;
   const ROOM_POLL_MAX_MS = 30000;
   const TOOL_PREFERENCES_CACHE_VERSION = 1;
+  const TOOL_PREFERENCES_TTL_MS = 30_000;
 
   const byId = (id) => document.getElementById(id);
   const categoryFor = (tool) => CATEGORY_MAP.get(tool.category);
@@ -90,6 +93,8 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task15-cloud-on
     if (loadedPreferencesKey === key) return;
     preferences = readCachedPreferences();
     loadedPreferencesKey = key;
+    preferencesLoadedAt = 0;
+    preferencesLoadPromise = null;
   }
 
   function persistPreferences() {
@@ -230,17 +235,41 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task15-cloud-on
 
   async function loadPreferences(options = {}) {
     ensureAccountPreferences();
-    try {
-      const data = await bridge.apiGet("/api/tools/preferences");
-      preferences = normalizePreferences(data);
-      persistPreferences();
-    } catch (error) {
-      if (error.code === "membership_required" && !options.allowCached) throw error;
-      preferences = readCachedPreferences();
+    const key = preferencesCacheKey();
+    const fresh = preferencesLoadedAt && Date.now() - preferencesLoadedAt < TOOL_PREFERENCES_TTL_MS;
+    if (!options.force && fresh) {
+      renderShelves();
+      renderCatalog();
+      return preferences;
     }
-    renderShelves();
-    renderCatalog();
-    bridge?.onPreferencesChanged?.();
+    if (preferencesLoadPromise?.key === key) {
+      if (!options.force) return preferencesLoadPromise.promise;
+      try { await preferencesLoadPromise.promise; } catch (_) { /* The forced refresh below is authoritative. */ }
+    }
+    const promise = (async () => {
+      try {
+        const data = await bridge.apiGet("/api/tools/preferences");
+        if (preferencesCacheKey() !== key) return preferences;
+        preferences = normalizePreferences(data);
+        preferencesLoadedAt = Date.now();
+        persistPreferences();
+      } catch (error) {
+        if (error.code === "membership_required" && !options.allowCached) throw error;
+        if (preferencesCacheKey() === key) preferences = readCachedPreferences();
+      }
+      if (preferencesCacheKey() === key) {
+        renderShelves();
+        renderCatalog();
+        bridge?.onPreferencesChanged?.();
+      }
+      return preferences;
+    })();
+    preferencesLoadPromise = { key, promise };
+    try {
+      return await promise;
+    } finally {
+      if (preferencesLoadPromise?.promise === promise) preferencesLoadPromise = null;
+    }
   }
 
   async function toggleFavorite(toolId, forcePinned = null) {
@@ -249,7 +278,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task15-cloud-on
     const pinned = forcePinned !== null ? forcePinned : Boolean(existing?.pinned);
     try {
       await bridge.api("/api/tools/favorite", { tool_id: toolId, favorite, pinned });
-      await loadPreferences();
+      await loadPreferences({ force: true });
       updateWorkbenchActions();
     } catch (error) {
       setMessage(error.message, true);
@@ -298,7 +327,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task15-cloud-on
       if (!name) return setMessage("请输入配置名称", true);
       try {
         await bridge.api("/api/tools/config/save", { tool_id: currentTool.id, name, config: collectConfig() });
-        await loadPreferences();
+        await loadPreferences({ force: true });
         renderCurrentTool();
         setMessage("配置已保存");
       } catch (error) { setMessage(error.message, true); }
@@ -311,7 +340,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task15-cloud-on
     byId("savedToolConfigList")?.querySelectorAll("[data-delete-config]").forEach((button) => button.addEventListener("click", async () => {
       try {
         await bridge.api("/api/tools/config/delete", { id: button.dataset.deleteConfig });
-        await loadPreferences();
+        await loadPreferences({ force: true });
         renderCurrentTool();
         setMessage("配置已删除");
       } catch (error) {
@@ -443,7 +472,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task15-cloud-on
     renderCurrentTool();
     if (pushRoute) bridge.navigate(`/tools/${tool.id}`);
     recordRecentLocally(tool.id);
-    bridge.api("/api/tools/recent", { tool_id: tool.id }).then(loadPreferences).catch(() => {});
+    bridge.api("/api/tools/recent", { tool_id: tool.id }).catch(() => {});
   }
 
   function closeWorkbench(pushRoute = true) {
@@ -510,7 +539,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260824-task15-cloud-on
     byId("clearToolHistoryBtn")?.addEventListener("click", async () => {
       try {
         await bridge.api("/api/tools/history/clear", {});
-        await loadPreferences();
+        await loadPreferences({ force: true });
         setMessage("最近使用记录已清除");
       } catch (error) {
         setMessage(error.message, true);

@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?v=20260824-task15-cloud-only";
+import { fetchWithTimeout } from "./api.js?v=20260826-task15-cloud-only";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 

@@ -2,7 +2,7 @@
   const entries = [
     {
       version: "2026.08.24",
-      build: "2026-08-24-task15-cloud-only",
+      build: "2026-08-26-task15-cloud-only",
       date: "2026-08-24",
       title: "Production 完全云端化",
       features: ["语言判卷、日语读音、词汇补全和工具偏好已迁移到 Pages Functions、D1 与 Workers AI。"],

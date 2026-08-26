@@ -214,6 +214,7 @@ async function main() {
   const { client, browserContextId, send, targetId } = browser;
   const runtimeErrors = [];
   const networkHttpErrors = [];
+  const apiRequestCounts = new Map();
   client.listeners.add((message) => {
     if (message.sessionId && message.sessionId !== browser.sessionId) return;
     if (message.method === "Runtime.exceptionThrown") {
@@ -240,6 +241,10 @@ async function main() {
         status: Number(message.params.response.status),
         url: message.params.response.url,
       });
+    }
+    if (message.method === "Network.requestWillBeSent") {
+      const pathname = new URL(message.params.request.url).pathname;
+      if (pathname.startsWith("/api/")) apiRequestCounts.set(pathname, (apiRequestCounts.get(pathname) || 0) + 1);
     }
   });
 
@@ -601,7 +606,8 @@ async function main() {
       await setFields(fields);
       await click("#runTextToolBtn");
       await waitFor("!document.querySelector('#runTextToolBtn')?.disabled", 20_000, `${toolId} mode completion`);
-      assert.equal((await readState()).textOutput, expected, `${toolId} mode ${JSON.stringify(fields)}`);
+      const state = await readState();
+      assert.equal(state.textOutput, expected, `${toolId} mode ${JSON.stringify(fields)} (${state.message})`);
     };
     await verifyTextMode("letter-case", { "#textToolInput": "Ab cD", "#textToolOption": "upper" }, "AB CD");
     coverMode("text.letter-case.upper");
@@ -1254,6 +1260,8 @@ async function main() {
     await send("Emulation.setTouchEmulationEnabled", { enabled: false });
 
     fs.writeFileSync(ARTIFACT_MANIFEST_PATH, JSON.stringify(artifactManifest, null, 2));
+    const failures = results.filter((result) => result.status === "failed");
+    assert.deepEqual(failures, [], `tool browser failures: ${JSON.stringify(failures)}`);
     const python = process.env.WYJ_TEST_PYTHON || (process.platform === "win32" ? "python" : "python3");
     const verifier = spawnSync(python, [path.join(ROOT, "qa", "verify_tool_artifacts.py"), ARTIFACT_MANIFEST_PATH], {
       cwd: ROOT,
@@ -1267,7 +1275,6 @@ async function main() {
 
     const testedIds = new Set(results.map((result) => result.id));
     assert.deepEqual([...testedIds].sort(), catalog.map((tool) => tool.id).sort(), "not every catalog tool was exercised");
-    const failures = results.filter((result) => result.status === "failed");
     assert.deepEqual(
       [...coveredToolModes].sort(),
       [...REQUIRED_TOOL_MODES].sort(),
@@ -1294,6 +1301,7 @@ async function main() {
       summary,
       failures,
       runtimeErrors,
+      toolPreferenceRequests: apiRequestCounts.get("/api/tools/preferences") || 0,
       downloads: fs.readdirSync(DOWNLOAD_ROOT).filter((name) => !name.endsWith(".crdownload")).length,
       auditedModes: coveredToolModes.size,
       auditedWorkflowFlows: coveredWorkflowFlows.size,
@@ -1307,6 +1315,10 @@ async function main() {
     });
     assert.deepEqual(failures, [], "tool matrix failures");
     assert.deepEqual(runtimeErrors, [], "browser runtime errors");
+    assert.ok(
+      (apiRequestCounts.get("/api/tools/preferences") || 0) <= 20,
+      `tool preference requests were not coalesced: ${apiRequestCounts.get("/api/tools/preferences") || 0}`,
+    );
     assert.deepEqual(unexpectedHttpErrors, [], `unexpected browser HTTP errors: ${JSON.stringify(networkHttpErrors)}`);
   } finally {
     await client.send("Target.closeTarget", { targetId }).catch(() => {});

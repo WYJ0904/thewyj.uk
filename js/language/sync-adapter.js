@@ -1,4 +1,4 @@
-import { sanitizeProfile } from "./quiz.js?v=20260824-task15-cloud-only";
+import { sanitizeProfile } from "./quiz.js?v=20260826-task15-cloud-only";
 
 export function createLearningSyncAdapter(getApi) {
   const api = () => getApi() || null;

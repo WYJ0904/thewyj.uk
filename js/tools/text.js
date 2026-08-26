@@ -1,4 +1,4 @@
-import { secureInt } from "./random.js?v=20260824-task15-cloud-only";
+import { secureInt } from "./random.js?v=20260826-task15-cloud-only";
 
 const TRADITIONAL_PAIRS = [
   ["后", "後"], ["发", "發"], ["里", "裡"], ["云", "雲"], ["台", "臺"], ["万", "萬"], ["与", "與"], ["专", "專"], ["业", "業"], ["东", "東"],
@@ -54,22 +54,33 @@ export function getOpenCcSource() {
   return openCcMaps?.source || "fallback";
 }
 
+async function fetchOpenCcMaps(fetchStaticText) {
+  const [simplifiedToTraditional, traditionalToSimplified] = await Promise.all([
+    fetchStaticText("/vendor/opencc-st-characters.txt"),
+    fetchStaticText("/vendor/opencc-ts-characters.txt"),
+  ]);
+  const maps = {
+    traditional: parseOpenCcCharacterDictionary(simplifiedToTraditional),
+    simple: parseOpenCcCharacterDictionary(traditionalToSimplified),
+    source: "opencc",
+  };
+  if (maps.traditional.size < 3000 || maps.simple.size < 3000) throw new Error("OpenCC 字符词典不完整");
+  return maps;
+}
+
 export function loadOpenCcMaps(fetchStaticText) {
   if (openCcMaps) return Promise.resolve(openCcMaps);
   if (!openCcMapsPromise) {
-    openCcMapsPromise = Promise.all([
-      fetchStaticText("/vendor/opencc-st-characters.txt"),
-      fetchStaticText("/vendor/opencc-ts-characters.txt"),
-    ]).then(([simplifiedToTraditional, traditionalToSimplified]) => {
-      const maps = {
-        traditional: parseOpenCcCharacterDictionary(simplifiedToTraditional),
-        simple: parseOpenCcCharacterDictionary(traditionalToSimplified),
-        source: "opencc",
-      };
-      if (maps.traditional.size < 3000 || maps.simple.size < 3000) throw new Error("OpenCC 字符词典不完整");
-      openCcMaps = maps;
-      return maps;
-    }).catch(() => {
+    openCcMapsPromise = fetchOpenCcMaps(fetchStaticText)
+      .catch(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 120));
+        return await fetchOpenCcMaps(fetchStaticText);
+      })
+      .then((maps) => {
+        openCcMaps = maps;
+        return maps;
+      })
+      .catch(() => {
       openCcMaps = fallbackChineseMaps();
       return openCcMaps;
     });

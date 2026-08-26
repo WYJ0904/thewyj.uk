@@ -1,6 +1,6 @@
 export const TASK15_SCHEMA_VERSION = "1";
 export const TASK15_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
-export const TASK15_BUILD = "2026-08-24-task15-cloud-only";
+export const TASK15_BUILD = "2026-08-26-task15-cloud-only";
 export const QUIZ_SESSION_TTL_SECONDS = 2 * 60 * 60;
 export const NORMAL_QUIZ_WORD_LIMIT = 15;
 export const MAX_QUIZ_WORDS = 200;

@@ -20,7 +20,7 @@ import {
 import { randomToolResult, secureUuid } from "../js/tools/random.js";
 import { runToolRenderer } from "../js/tools/runner.js";
 import { buildVcardPayload, buildWifiPayload } from "../js/tools/temporary.js";
-import { parseOpenCcCharacterDictionary, runTextOperation } from "../js/tools/text.js";
+import { getOpenCcSource, loadOpenCcMaps, parseOpenCcCharacterDictionary, runTextOperation } from "../js/tools/text.js";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
@@ -45,6 +45,16 @@ assert.ok(stMap.size > 3000);
 assert.ok(tsMap.size > 3000);
 assert.equal(stMap.get("忆"), "憶");
 assert.equal(tsMap.get("憶"), "忆");
+let openCcFetchCount = 0;
+await loadOpenCcMaps(async (url) => {
+  openCcFetchCount += 1;
+  if (openCcFetchCount === 1) throw new Error("synthetic first-load race");
+  const fileName = url.includes("-st-") ? "opencc-st-characters.txt" : "opencc-ts-characters.txt";
+  return fs.readFileSync(path.join(root, "vendor", fileName), "utf8");
+});
+assert.ok(openCcFetchCount >= 3, "OpenCC loader should retry one failed batch");
+assert.equal(getOpenCcSource(), "opencc");
+assert.equal(runTextOperation("chinese-convert", "学习网站", "", "", "traditional"), "學習網站");
 assert.equal(runTextOperation("camel-case", "Hello world", "", "", ""), "helloWorld");
 assert.match(runTextOperation("text-stats", "中文 test", "", "", ""), /中日韩字符：2/);
 
