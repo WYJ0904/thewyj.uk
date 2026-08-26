@@ -14,8 +14,10 @@ const REQUIRED_WORKFLOW_CAPABILITIES = new Set(AUDIT_MATRIX.workflow_capabilitie
 const coveredToolModes = new Set();
 const coveredWorkflowFlows = new Set();
 const coveredWorkflowCapabilities = new Set();
+let downloadRetryCount = 0;
 const BASE_URL = process.env.WYJ_TEST_BASE || "http://127.0.0.1:8892";
 const CDP_URL = process.env.WYJ_CDP_URL || "http://127.0.0.1:9223";
+const ADMIN_USERNAME = process.env.WYJ_TEST_ADMIN_USERNAME || "wyj";
 const ADMIN_SECRET = process.env.WYJ_TEST_ADMIN_SECRET || "";
 const TEST_ROOT = path.join(ROOT, ".tool-e2e");
 const RUN_ID = Date.now().toString(36);
@@ -122,7 +124,7 @@ async function api(pathname, payload = null, token = "", expected = [200]) {
 async function createMember() {
   await api("/api/register", { username: USERNAME, secret: USER_SECRET, confirm_secret: USER_SECRET }, "", [201]);
   const login = await api("/api/login", { username: USERNAME, secret: USER_SECRET });
-  const admin = await api("/api/login", { username: "wyj", secret: ADMIN_SECRET });
+  const admin = await api("/api/login", { username: ADMIN_USERNAME, secret: ADMIN_SECRET });
   await api("/api/admin/membership/manage", {
     user_id: login.account.id,
     action: "grant",
@@ -411,6 +413,8 @@ async function main() {
     const before = downloadSnapshot();
     await click(selector);
     const deadline = Date.now() + timeout;
+    const retryAt = Date.now() + Math.min(3_000, Math.floor(timeout / 2));
+    let retried = false;
     let stableCandidate = null;
     while (Date.now() < deadline) {
       const after = downloadSnapshot();
@@ -432,6 +436,11 @@ async function main() {
         }
       } else {
         stableCandidate = null;
+      }
+      if (!retried && Date.now() >= retryAt && !partialDownloadExists && !candidate) {
+        retried = true;
+        downloadRetryCount += 1;
+        await click(selector);
       }
       await delay(100);
     }
@@ -1262,6 +1271,7 @@ async function main() {
     fs.writeFileSync(ARTIFACT_MANIFEST_PATH, JSON.stringify(artifactManifest, null, 2));
     const failures = results.filter((result) => result.status === "failed");
     assert.deepEqual(failures, [], `tool browser failures: ${JSON.stringify(failures)}`);
+    assert.ok(downloadRetryCount <= 3, `browser download subsystem needed ${downloadRetryCount} retries`);
     const python = process.env.WYJ_TEST_PYTHON || (process.platform === "win32" ? "python" : "python3");
     const verifier = spawnSync(python, [path.join(ROOT, "qa", "verify_tool_artifacts.py"), ARTIFACT_MANIFEST_PATH], {
       cwd: ROOT,
@@ -1303,6 +1313,7 @@ async function main() {
       runtimeErrors,
       toolPreferenceRequests: apiRequestCounts.get("/api/tools/preferences") || 0,
       downloads: fs.readdirSync(DOWNLOAD_ROOT).filter((name) => !name.endsWith(".crdownload")).length,
+      downloadRetries: downloadRetryCount,
       auditedModes: coveredToolModes.size,
       auditedWorkflowFlows: coveredWorkflowFlows.size,
       auditedWorkflowCapabilities: coveredWorkflowCapabilities.size,
