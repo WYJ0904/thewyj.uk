@@ -493,7 +493,6 @@ jobs:
       WYJ_TEST_BASE: http://127.0.0.1:8894
       WYJ_CDP_URL: http://127.0.0.1:9225
       WYJ_TEST_ARTIFACT_DIR: artifacts
-      WYJ_CLOUD_STATE: ${{ runner.temp }}/task15-cloud-state
       WYJ_TASK12_PASSWORD_PEPPER: task15-ci-password-pepper-fixture-2026
       WYJ_TASK14_TEMPORARY_SECRET: task15-ci-temporary-hmac-fixture-2026
       NO_PROXY: 127.0.0.1,localhost
@@ -534,11 +533,11 @@ jobs:
       - name: Prepare fresh Cloudflare-only D1 state
         run: |
           set -euo pipefail
-          mkdir -p artifacts "$WYJ_CLOUD_STATE"
+          mkdir -p artifacts "${RUNNER_TEMP}/task15-cloud-state"
           npx wrangler d1 migrations apply WYJ_DB \
             --local \
             --config wrangler.local.jsonc \
-            --persist-to "$WYJ_CLOUD_STATE" \
+            --persist-to "${RUNNER_TEMP}/task15-cloud-state" \
             2>&1 | tee artifacts/task15-cloud-d1-migrations.log
 
       - name: Prepare isolated Cloudflare administrator fixture
@@ -570,7 +569,7 @@ jobs:
           npx wrangler d1 execute WYJ_DB \
             --local \
             --config wrangler.local.jsonc \
-            --persist-to "$WYJ_CLOUD_STATE" \
+            --persist-to "${RUNNER_TEMP}/task15-cloud-state" \
             --file "$WYJ_CI_ADMIN_SQL" \
             2>&1 | tee artifacts/task15-cloud-admin-fixture.log
 
@@ -586,7 +585,7 @@ jobs:
           npx wrangler pages dev . \
             --ip 127.0.0.1 \
             --port 8894 \
-            --persist-to "$WYJ_CLOUD_STATE" \
+            --persist-to "${RUNNER_TEMP}/task15-cloud-state" \
             --d1 WYJ_DB \
             --r2 WYJ_STORAGE \
             --show-interactive-dev-session false \
