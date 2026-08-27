@@ -565,11 +565,14 @@ class StaticSiteTests(unittest.TestCase):
             "TASK16_PRODUCTION_IMPORT_ENABLED",
         ):
             self.assertEqual(config["vars"][variable], "false")
-            self.assertEqual(config["env"]["production"]["vars"][variable], "false")
         self.assertEqual(config["env"]["preview"]["vars"]["TASK16_CLOUD_READS_ENABLED"], "true")
         self.assertEqual(config["env"]["preview"]["vars"]["TASK16_CLOUD_WRITES_ENABLED"], "true")
         self.assertEqual(config["env"]["preview"]["vars"]["TASK16_IMPORT_ENABLED"], "true")
         self.assertEqual(config["env"]["preview"]["vars"]["TASK16_PRODUCTION_IMPORT_ENABLED"], "false")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK16_CLOUD_READS_ENABLED"], "true")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK16_CLOUD_WRITES_ENABLED"], "true")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK16_IMPORT_ENABLED"], "false")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK16_PRODUCTION_IMPORT_ENABLED"], "false")
 
         preview = config["env"]["preview"]
         self.assertEqual(preview["d1_databases"][0]["binding"], "WYJ_DB")

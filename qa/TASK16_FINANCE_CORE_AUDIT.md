@@ -2,7 +2,7 @@
 
 ## 范围与边界
 
-本审计覆盖 Task 16 的财务模型、云同步、原始事件识别、跨来源对账、会员权益和旧 DailyPayGuard 数据迁移。它不把完整 Web 财务 UI、Android 自动采集客户端或通知保存功能提前纳入 Task 16。Production 财务 read/write/import 开关保持关闭，任何真实数据切换都必须另行 dry-run、备份、对账和验收。
+本审计覆盖 Task 16 的财务模型、云同步、原始事件识别、跨来源对账、会员权益和旧 DailyPayGuard 数据迁移。它不把完整 Web 财务 UI、Android 自动采集客户端或通知保存功能提前纳入 Task 16。Production 已在仓库外备份和 `0012` schema/数量核对后开启财务 read/write；import 双开关继续关闭，任何真实旧数据导入都必须另行 dry-run、备份、对账和验收。
 
 ## 旧 DailyPayGuard 审计
 
@@ -97,4 +97,4 @@
 
 ## Production 停止点
 
-Task 16 分支与 Draft PR 不自动执行 Production migration、导入或开关切换。正式切换必须先完成仓库外备份、真实旧数据 dry-run、用户归属和 count/digest 核对、双客户端验收及明确批准；期间严禁 SharedPreferences/D1 双写。
+Task 16 Production schema 已在明确批准后完成仓库外备份、稳定用户与既有业务数量核对，并应用 `0012`；财务 read/write 已开启，import 仍关闭。当前没有真实 DailyPayGuard 导出可供导入，因此财务表从零记录开始。未来导入必须先完成仓库外备份、真实旧数据 dry-run、用户归属和 count/digest 核对；期间严禁 SharedPreferences/D1 双写。

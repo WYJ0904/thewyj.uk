@@ -333,7 +333,7 @@ Pages Functions：
 | `WYJ_TASK14_TEMPORARY_SECRET` | Task 14 密码摘要、连接码 HMAC 和下载授权密钥；至少 32 字符，只存 Cloudflare 加密 Secret |
 | `TASK15_CLOUD_ONLY_ENABLED` | Task 15 Production cloud-only gate；Preview 与 Production 必须为 `true` |
 | `TASK15_IMPORT_ENABLED` / `TASK15_PRODUCTION_IMPORT_ENABLED` | 剩余工具偏好迁移入口和 Production 第二道开关；正常 Production 均为 `false` |
-| `TASK16_CLOUD_READS_ENABLED` / `TASK16_CLOUD_WRITES_ENABLED` | 财务账本读取与本地优先增量同步开关；Preview 为 `true`，Production 在财务客户端和迁移正式验收前保持 `false` |
+| `TASK16_CLOUD_READS_ENABLED` / `TASK16_CLOUD_WRITES_ENABLED` | 财务账本读取与本地优先增量同步开关；Preview 与 Production 均为 `true`，Production 已在仓库外备份和 `0012` schema 核对后启用 |
 | `TASK16_IMPORT_ENABLED` | 旧 DailyPayGuard 财务导入入口；仅 Preview 隔离验证启用，Production 默认关闭 |
 | `TASK16_PRODUCTION_IMPORT_ENABLED` | Production 财务导入第二道开关；默认 `false`，还要求管理员会话、仓库外备份和精确确认头 |
 | `WORKERS_AI_ENABLED` | Workers AI 业务开关；Preview 与 Production 为 `true`，development 默认关闭以避免意外用量 |
@@ -510,7 +510,7 @@ npm.cmd run pages:stage
 npx.cmd wrangler pages deploy .wrangler/pages-output --project-name thewyj-uk --branch codex/task15-workers-ai-retire-legacy-backend
 ```
 
-Preview 与 Production 的 `/api/status?source=cloud` 必须显示 Task 12～15 schema ready、`task15_cloud_only=true`、`workers_ai=true`、`legacy_fallback=false`，且 Production import 均为 `false`。应用 `0012` 后 Preview 还必须显示 Task 16 schema ready 且财务读写开启；Production 的 Task 16 读写与导入在独立迁移和客户端验收前全部保持关闭。隔离测试覆盖注册、登录、刷新/重开标签恢复、改密、封禁、强制退出、多会话、Task 11 ownership、业务错误不退出登录、英语/日语导入开考和网络恢复。任何后续部署都必须保持 Production D1 账户主开关开启。
+Preview 与 Production 的 `/api/status?source=cloud` 必须显示 Task 12～16 schema ready、`task15_cloud_only=true`、`workers_ai=true`、`legacy_fallback=false`，且 Production import 均为 `false`。Task 16 的 Preview 与 Production 财务读写均已启用；Production 旧数据导入仍保持双开关关闭，仅允许在仓库外备份、明确管理员确认和逐批对账期间短时开启。隔离测试覆盖注册、登录、刷新/重开标签恢复、改密、封禁、强制退出、多会话、Task 11 ownership、业务错误不退出登录、英语/日语导入开考和网络恢复。任何后续部署都必须保持 Production D1 账户主开关开启。
 
 回滚是人工数据恢复流程，不是线上请求 fallback。先冻结受影响的新写入、导出并核对 D1/R2 增量，再决定前向修复或从仓库外备份恢复；代码可在 Pages **Deployments -> All deployments** 回滚到先前成功的 Production deployment。D1 migration 是前向迁移，不要因代码回滚删除表或生产数据；Preview deployment 不能作为 Production 回滚目标，也不得把正式主写切回正在变化的 SQLite。
 
@@ -757,7 +757,7 @@ python scripts/migrate_dailypayguard_finance.py `
   --rollback
 ```
 
-Production 迁移必须另行执行：仓库外备份与 dry-run、稳定 user ID 核对、异常隔离、`0012` migration、导入及重复重放、源/目标 count 与 digest 核对、双客户端验收，最后才允许开启财务 read/write。Production 精确确认值是 `TASK16-PRODUCTION-FINANCE-MIGRATION`，但仅设置请求头仍不够；`TASK16_PRODUCTION_IMPORT_ENABLED` 也必须由人工短时开启。发生问题时先关闭新的财务写入并导出 D1 增量，不能把 D1 和旧 SharedPreferences 双写，也不能删除旧数据来回滚。完整审计和强制场景矩阵见 `qa/TASK16_FINANCE_CORE_AUDIT.md`。
+Production 已在仓库外全量 D1 备份、稳定 user ID 与 Task 11～15 数量核对后应用 `0012`，财务 read/write 已开启；当时没有可导入的真实 DailyPayGuard 导出，因此 Production 财务表以零记录开始，未伪造迁移数据。旧数据导入仍必须另行执行仓库外 dry-run、异常隔离、逐批导入、重复重放和源/目标 count/digest 核对。Production 精确确认值是 `TASK16-PRODUCTION-FINANCE-MIGRATION`，但仅设置请求头仍不够；`TASK16_IMPORT_ENABLED` 与 `TASK16_PRODUCTION_IMPORT_ENABLED` 也必须由管理员短时开启，并在完成后立即关闭。发生问题时先关闭新的财务写入并导出 D1 增量，不能把 D1 和旧 SharedPreferences 双写，也不能删除旧数据来回滚。完整审计和强制场景矩阵见 `qa/TASK16_FINANCE_CORE_AUDIT.md`。
 
 ### 免费额度降级
 
