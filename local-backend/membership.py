@@ -10,6 +10,7 @@ ENTITLEMENT_LABELS = {
     "tools_batch_access": "批量文件和图片处理",
     "temporary_share_access": "临时分享",
     "save_tool_config": "保存工具配置",
+    "finance_access": "财务账本",
     "all_features_access": "全部普通高级功能",
 }
 
@@ -17,6 +18,17 @@ ALL_ACCESS_ENTITLEMENTS = tuple(ENTITLEMENT_LABELS)
 
 # This is the only price and entitlement source used by the backend and the UI.
 MEMBERSHIP_PLANS = {
+    "finance_monthly": {
+        "name": "财务会员",
+        "price_cents": 800,
+        "currency": "CNY",
+        "lifetime": False,
+        "duration_months": 1,
+        "purchasable": False,
+        "priority": 44,
+        "description": "Web 与 Android 共用的财务账本会员，有效期一个月；收款码配置完成前不公开销售。",
+        "entitlements": ("finance_access",),
+    },
     "japanese_lifetime": {
         "name": "双语言双项永久会员",
         "price_cents": 7000,

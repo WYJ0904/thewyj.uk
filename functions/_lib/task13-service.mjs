@@ -99,11 +99,18 @@ function membershipMetadata(row) {
 function rowEntitlements(row) {
   const metadata = membershipMetadata(row);
   const snapshot = safeJsonArray(metadata.entitlements_snapshot).filter((code) => ENTITLEMENT_SET.has(code));
+  let entitlements;
   if (String(row?.source || "") === "payment"
     && Object.prototype.hasOwnProperty.call(metadata, "entitlements_snapshot")) {
-    return snapshot;
+    entitlements = snapshot;
+  } else {
+    entitlements = String(row?.entitlements_csv || "").split(",").filter((code) => ENTITLEMENT_SET.has(code));
   }
-  return String(row?.entitlements_csv || "").split(",").filter((code) => ENTITLEMENT_SET.has(code));
+  if (["all_access_monthly", "all_access_lifetime"].includes(String(row?.plan_code || ""))
+      || entitlements.includes("all_features_access")) {
+    entitlements.push("finance_access");
+  }
+  return [...new Set(entitlements)];
 }
 
 function legacyMembershipCode(membership) {

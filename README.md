@@ -263,7 +263,7 @@ data\users.pre-feedback-006.sqlite3
 data\users.pre-learning-sync-007.sqlite3
 ```
 
-D1 migration 位于 `cloudflare/migrations/`，由 `wyj_d1_migrations` 管理并按 `0001`～`0011` 前向执行。付款履约、投票、学习记录、临时下载授权和 Task 15 import receipt 均使用稳定主键或唯一约束防止重复。回滚不删除 D1 表或 R2 对象；先冻结相关写入、导出并核对云端增量，再执行前向修复或受控恢复。
+D1 migration 位于 `cloudflare/migrations/`，由 `wyj_d1_migrations` 管理并按 `0001`～`0012` 前向执行。付款履约、投票、学习记录、临时下载授权、Task 15 import receipt 和财务同步操作均使用稳定主键或唯一约束防止重复。回滚不删除 D1 表或 R2 对象；先冻结相关写入、导出并核对云端增量，再执行前向修复或受控恢复。
 
 ## 浏览器本地数据
 
@@ -333,6 +333,9 @@ Pages Functions：
 | `WYJ_TASK14_TEMPORARY_SECRET` | Task 14 密码摘要、连接码 HMAC 和下载授权密钥；至少 32 字符，只存 Cloudflare 加密 Secret |
 | `TASK15_CLOUD_ONLY_ENABLED` | Task 15 Production cloud-only gate；Preview 与 Production 必须为 `true` |
 | `TASK15_IMPORT_ENABLED` / `TASK15_PRODUCTION_IMPORT_ENABLED` | 剩余工具偏好迁移入口和 Production 第二道开关；正常 Production 均为 `false` |
+| `TASK16_CLOUD_READS_ENABLED` / `TASK16_CLOUD_WRITES_ENABLED` | 财务账本读取与本地优先增量同步开关；Preview 为 `true`，Production 在财务客户端和迁移正式验收前保持 `false` |
+| `TASK16_IMPORT_ENABLED` | 旧 DailyPayGuard 财务导入入口；仅 Preview 隔离验证启用，Production 默认关闭 |
+| `TASK16_PRODUCTION_IMPORT_ENABLED` | Production 财务导入第二道开关；默认 `false`，还要求管理员会话、仓库外备份和精确确认头 |
 | `WORKERS_AI_ENABLED` | Workers AI 业务开关；Preview 与 Production 为 `true`，development 默认关闭以避免意外用量 |
 | `D1_RATE_LIMIT_ENABLED` | 是否用 D1 对云端基础接口做基础限流；发生配额或绑定错误时自动 fail-open 并标记降级 |
 | `CLOUD_RATE_LIMIT_REQUESTS` / `CLOUD_RATE_LIMIT_WINDOW_SECONDS` | 云端基础接口限流阈值，默认 120 次/60 秒 |
@@ -488,7 +491,7 @@ npm.cmd run cf:dev
 
 ### 迁移、部署与回滚
 
-Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sql`、Task 12 的 `0003_accounts_sessions.sql`、`0004_session_limit_trigger.sql`、`0005_session_limit_ordering.sql`、Task 13 的 `0006_memberships_payments.sql`，Task 14 的 `0007_temporary_sharing.sql`、`0008_task14_user_storage_trigger.sql`、`0009_task14_global_storage_trigger.sql`，以及 Task 15 的 `0010_task15_cloud_only.sql`、`0011_task15_import_trigger_order.sql` 必须从 fresh D1 按序可重复应用。Production 迁移报告与备份只保存在仓库外；导入完成后所有 Production import 开关保持关闭。
+Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sql`、Task 12 的 `0003_accounts_sessions.sql`、`0004_session_limit_trigger.sql`、`0005_session_limit_ordering.sql`、Task 13 的 `0006_memberships_payments.sql`，Task 14 的 `0007_temporary_sharing.sql`、`0008_task14_user_storage_trigger.sql`、`0009_task14_global_storage_trigger.sql`、Task 15 的 `0010_task15_cloud_only.sql`、`0011_task15_import_trigger_order.sql`，以及 Task 16 的 `0012_finance_core.sql` 必须从 fresh D1 按序可重复应用。Production 迁移报告与备份只保存在仓库外；导入完成后所有 Production import 开关保持关闭。
 
 ```powershell
 # 本地全新 D1 验证
@@ -498,6 +501,7 @@ npm.cmd run test:task12
 npm.cmd run test:task13
 npm.cmd run test:task14
 npm.cmd run test:task15
+npm.cmd run test:task16
 
 # Preview D1
 npx.cmd wrangler d1 migrations apply WYJ_DB --remote --env preview
@@ -506,7 +510,7 @@ npm.cmd run pages:stage
 npx.cmd wrangler pages deploy .wrangler/pages-output --project-name thewyj-uk --branch codex/task15-workers-ai-retire-legacy-backend
 ```
 
-Preview 与 Production 的 `/api/status?source=cloud` 必须显示 Task 12～15 schema ready、`task15_cloud_only=true`、`workers_ai=true`、`legacy_fallback=false`，且 Production import 均为 `false`。隔离测试覆盖注册、登录、刷新/重开标签恢复、改密、封禁、强制退出、多会话、Task 11 ownership、业务错误不退出登录、英语/日语导入开考和网络恢复。任何后续部署都必须保持 Production D1 账户主开关开启。
+Preview 与 Production 的 `/api/status?source=cloud` 必须显示 Task 12～15 schema ready、`task15_cloud_only=true`、`workers_ai=true`、`legacy_fallback=false`，且 Production import 均为 `false`。应用 `0012` 后 Preview 还必须显示 Task 16 schema ready 且财务读写开启；Production 的 Task 16 读写与导入在独立迁移和客户端验收前全部保持关闭。隔离测试覆盖注册、登录、刷新/重开标签恢复、改密、封禁、强制退出、多会话、Task 11 ownership、业务错误不退出登录、英语/日语导入开考和网络恢复。任何后续部署都必须保持 Production D1 账户主开关开启。
 
 回滚是人工数据恢复流程，不是线上请求 fallback。先冻结受影响的新写入、导出并核对 D1/R2 增量，再决定前向修复或从仓库外备份恢复；代码可在 Pages **Deployments -> All deployments** 回滚到先前成功的 Production deployment。D1 migration 是前向迁移，不要因代码回滚删除表或生产数据；Preview deployment 不能作为 Production 回滚目标，也不得把正式主写切回正在变化的 SQLite。
 
@@ -714,6 +718,46 @@ python scripts/migrate_task15_remaining_to_d1.py `
 Production 切换顺序固定为：创建迁移 tag与最后 SQLite 只读备份；记录 D1/R2 数量和聚合一致性；Preview migration/import/browser 验收；Production migration 与只读核对；短时冻结旧写入；Production 导入和重复重放核对；启用 cloud-only 与 Workers AI；关闭 import、legacy fallback、`LOCAL_API_BASE` 和 identity bridge；最后停止 Python、Ollama 与 cloudflared。回滚必须先导出并核对切换后的 D1/R2 增量，不能直接恢复旧 SQLite 主写。
 
 Task 15 Production 最终验收于 2026-08-27 完成：本机 Python、Ollama、cloudflared 和相关监听端口全部停止后，Production 移动端完整流程仍通过；随后电脑彻底关机，使用手机移动网络从异地重新访问 `thewyj.uk`，登录、学习、AI、工具及云端状态均可用。Production 的结构化数据、私有文件和 AI 分别以 D1、R2 和 Workers AI 为正式 source of truth；本地 SQLite、Tunnel 与历史后端只保留仓库外备份、测试夹具和人工回滚参考，不接受线上主写。
+
+### Task 16 财务核心与 DailyPayGuard 迁移
+
+Task 16 只建立财务数据、同步、识别和迁移核心，不提前提供完整 Web 财务页面或 Android 自动采集客户端。`cloudflare/migrations/0012_finance_core.sql` 在 Task 12 稳定 user ID 上创建用户设备/版本、分类、预算、canonical transaction、raw event、transaction-event 关联、审计、增量变更、幂等操作 receipt，以及来源、批次和逐记录迁移 receipt。原始通知或短信正文不保存到 D1、R2、AI、telemetry 或日志；服务端仅保存经过白名单过滤的交易字段和原文 SHA-256 fingerprint。Task 16 不使用 R2，也没有新增 Secret。
+
+财务操作保持本地优先：Web/Android 先把有稳定 `operation_id`、entity ID、revision 和 device ID 的操作写入本地队列，再批量调用 `POST /api/finance/sync`。服务端返回单调 `server_version`、逐操作 receipt 和增量 change stream；离线重放、进程重启、并发 Worker 和双设备使用同一 operation/provider reference 时不会重复创建 raw event。每次写入会固定读取实体前的 server version，另一设备抢先写入时返回可重试冲突，不会生成虚假的成功 receipt。设备的 `last_sync_version` 只推进到实际返回的 `next_since`；账目分页使用时间与 ID 复合游标，避免同一毫秒多笔交易跨页遗漏。删除采用 tombstone，撤销采用带 revision 的 restore；冲突返回当前版本，不会整份覆盖另一设备数据。合并/拆分的变更 payload 同时包含目标记录、来源 tombstone 和新记录，客户端无需猜测或丢弃 raw evidence。
+
+自动识别先判断来源、完成语义和收支/退款方向，再接受金额。贷款/信用额度、优惠券、抽奖和商品宣传等营销内容即使包含金额也只保存为 rejected raw evidence，不创建账目。跨来源融合只在强 provider transaction/reference 一致时自动执行；同来源但缺少稳定参考号的相近金额和时间仍保持独立。用户手动合并/拆分会保留 raw event 关联和审计记录。
+
+服务端新增兼容权益 `finance_access` 和隐藏基础方案 `finance_monthly`（8 CNY/月）。`all_access_monthly` 与 `all_access_lifetime` 自动合并该权益，旧全功能会员无需改写历史订单快照即可获得财务访问。由于尚未提供财务用途的真实私有收款二维码，`finance_monthly` 当前 `purchasable=false`，不会出现在在售套餐或创建支付订单；现有六个套餐、价格、权益、二维码和支付状态机未改变。待二维码和完整购买验收在后续明确任务完成后，才能通过服务端配置开放销售。
+
+旧 DailyPayGuard Android 原型是 Kotlin/Compose + NotificationListener，记录保存在 SharedPreferences 的 tab/newline 文本中，并用 timestamp 作为删除 ID；旧进程内 15 秒 fingerprint 去重在 App 重启后失效，也缺少编辑、云同步和持久审计。迁移工具支持 SharedPreferences XML 或导出文本，使用旧 timestamp 加用户/来源不可逆短摘要生成稳定 ID，默认 source key 也按稳定 user ID 派生，避免不同账户或不同导入源发生全局主键冲突且不暴露用户名。金额用 Decimal 转成 minor unit，无效/重复记录只在报告中输出数量、聚合 digest、opaque ID 和错误码。每条导入会原子写入 canonical transaction、legacy raw event、关联和摘要 receipt；中断后可安全 resume。完成批次前服务端会重建 canonical 数据并复核 SHA-256。工具不会修改旧数据，也不会输出通知正文、hash、token、用户名或本机路径。
+
+```powershell
+# 默认 dry-run；报告必须放在仓库外
+python scripts/migrate_dailypayguard_finance.py `
+  --source <DailyPayGuard导出XML或文本> `
+  --user-id <Task-12稳定用户ID> `
+  --environment preview `
+  --report <仓库外的task16-dry-run.json>
+
+# Preview apply；Session 只放进进程环境变量
+$env:WYJ_TASK16_MIGRATION_SESSION = '<隔离Preview管理员会话>'
+python scripts/migrate_dailypayguard_finance.py `
+  --source <DailyPayGuard导出XML或文本> `
+  --user-id <Task-12稳定用户ID> `
+  --environment preview `
+  --endpoint <Task-16-Preview-URL> `
+  --apply `
+  --report <仓库外的task16-preview-apply.json>
+
+# 只回滚同一 source key 导入且尚未被用户修改的记录；记录变为 tombstone
+python scripts/migrate_dailypayguard_finance.py `
+  --environment preview `
+  --endpoint <Task-16-Preview-URL> `
+  --source-key <报告中的source_key> `
+  --rollback
+```
+
+Production 迁移必须另行执行：仓库外备份与 dry-run、稳定 user ID 核对、异常隔离、`0012` migration、导入及重复重放、源/目标 count 与 digest 核对、双客户端验收，最后才允许开启财务 read/write。Production 精确确认值是 `TASK16-PRODUCTION-FINANCE-MIGRATION`，但仅设置请求头仍不够；`TASK16_PRODUCTION_IMPORT_ENABLED` 也必须由人工短时开启。发生问题时先关闭新的财务写入并导出 D1 增量，不能把 D1 和旧 SharedPreferences 双写，也不能删除旧数据来回滚。完整审计和强制场景矩阵见 `qa/TASK16_FINANCE_CORE_AUDIT.md`。
 
 ### 免费额度降级
 
