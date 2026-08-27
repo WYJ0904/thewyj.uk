@@ -123,7 +123,7 @@ try {
   const migrations = (await readdir(path.join(ROOT, "cloudflare", "migrations")))
     .filter((name) => /^\d{4}_.+\.sql$/u.test(name))
     .sort();
-  assert.deepEqual(migrations, [
+  const task15Migrations = [
     "0001_foundation.sql",
     "0002_low_risk_cloud_services.sql",
     "0003_accounts_sessions.sql",
@@ -135,7 +135,8 @@ try {
     "0009_task14_global_storage_trigger.sql",
     "0010_task15_cloud_only.sql",
     "0011_task15_import_trigger_order.sql",
-  ]);
+  ];
+  assert.deepEqual(migrations.slice(0, task15Migrations.length), task15Migrations);
   for (const filename of migrations) {
     const sql = await readFile(path.join(ROOT, "cloudflare", "migrations", filename), "utf8");
     await db.exec(sql.replace(/\r?\n/g, " "));

@@ -558,6 +558,22 @@ class StaticSiteTests(unittest.TestCase):
         self.assertEqual(config["env"]["production"]["vars"]["TASK11_CLOUD_WRITES_ENABLED"], "true")
         self.assertEqual(config["env"]["production"]["vars"]["TASK11_IMPORT_ENABLED"], "false")
 
+        for variable in (
+            "TASK16_CLOUD_READS_ENABLED",
+            "TASK16_CLOUD_WRITES_ENABLED",
+            "TASK16_IMPORT_ENABLED",
+            "TASK16_PRODUCTION_IMPORT_ENABLED",
+        ):
+            self.assertEqual(config["vars"][variable], "false")
+        self.assertEqual(config["env"]["preview"]["vars"]["TASK16_CLOUD_READS_ENABLED"], "true")
+        self.assertEqual(config["env"]["preview"]["vars"]["TASK16_CLOUD_WRITES_ENABLED"], "true")
+        self.assertEqual(config["env"]["preview"]["vars"]["TASK16_IMPORT_ENABLED"], "true")
+        self.assertEqual(config["env"]["preview"]["vars"]["TASK16_PRODUCTION_IMPORT_ENABLED"], "false")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK16_CLOUD_READS_ENABLED"], "true")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK16_CLOUD_WRITES_ENABLED"], "true")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK16_IMPORT_ENABLED"], "false")
+        self.assertEqual(config["env"]["production"]["vars"]["TASK16_PRODUCTION_IMPORT_ENABLED"], "false")
+
         preview = config["env"]["preview"]
         self.assertEqual(preview["d1_databases"][0]["binding"], "WYJ_DB")
         self.assertEqual(preview["d1_databases"][0]["database_name"], "wyj-cloud-preview")
@@ -638,6 +654,29 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("ORDER BY rowid DESC", task12_session_ordering)
         self.assertIn("LIMIT -1 OFFSET 12", task12_session_ordering)
 
+        task16_migration = (
+            ROOT / "cloudflare" / "migrations" / "0012_finance_core.sql"
+        ).read_text(encoding="utf-8")
+        for table in (
+            "task16_finance_devices",
+            "task16_finance_user_versions",
+            "task16_finance_categories",
+            "task16_finance_budgets",
+            "task16_finance_transactions",
+            "task16_finance_raw_events",
+            "task16_finance_transaction_events",
+            "task16_finance_audit_logs",
+            "task16_finance_changes",
+            "task16_finance_sync_operations",
+            "task16_import_batches",
+            "task16_import_receipts",
+            "task16_import_record_receipts",
+        ):
+            self.assertIn(f"CREATE TABLE IF NOT EXISTS {table}", task16_migration)
+        self.assertIn("text_fingerprint_sha256", task16_migration)
+        self.assertNotIn("raw_text", task16_migration)
+        self.assertNotRegex(task16_migration, r"\b(?:DROP|ALTER\s+TABLE\s+task12_users)\b")
+
         middleware = (ROOT / "functions" / "_lib" / "cloudflare-foundation.mjs").read_text(encoding="utf-8")
         status = (ROOT / "functions" / "api" / "status.js").read_text(encoding="utf-8")
         self.assertIn("crypto.randomUUID()", middleware)
@@ -673,6 +712,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("wrangler pages dev", package["scripts"]["cf:dev"])
         self.assertIn("--d1 WYJ_DB", package["scripts"]["cf:dev"])
         self.assertIn("--r2 WYJ_STORAGE", package["scripts"]["cf:dev"])
+        self.assertIn("test_task16_d1_js.mjs", package["scripts"]["test:task16"])
+        self.assertIn("test_migrate_dailypayguard_finance", package["scripts"]["test:task16"])
 
     def test_remote_data_loading_has_retry_and_partial_recovery(self):
         self.assertIn('id="membershipPlanRecovery"', self.html)
