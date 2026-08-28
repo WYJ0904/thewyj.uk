@@ -1,4 +1,4 @@
-import { sanitizeProfile } from "./quiz.js?v=20260828-task17-finance-web";
+import { sanitizeProfile } from "./quiz.js?v=20260829-task17-finance-hotfix";
 
 export function createLearningSyncAdapter(getApi) {
   const api = () => getApi() || null;

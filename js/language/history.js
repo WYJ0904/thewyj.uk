@@ -1,4 +1,4 @@
-import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20260828-task17-finance-web";
+import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20260829-task17-finance-hotfix";
 
 export const MAX_STUDY_RECORDS = 500;
 

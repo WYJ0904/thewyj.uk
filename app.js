@@ -8,38 +8,38 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260828-task17-finance-web";
+} from "./js/core/config.js?v=20260829-task17-finance-hotfix";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20260828-task17-finance-web";
+} from "./js/core/api.js?v=20260829-task17-finance-hotfix";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260828-task17-finance-web";
-import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260828-task17-finance-web";
+} from "./js/core/changelog.js?v=20260829-task17-finance-hotfix";
+import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260829-task17-finance-hotfix";
 import {
   ACCOUNT_CACHE_KEY,
   clearAccountSessionStorage,
   persistAccountSession,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20260828-task17-finance-web";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260828-task17-finance-web";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260828-task17-finance-web";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260828-task17-finance-web";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260828-task17-finance-web";
+} from "./js/core/session.js?v=20260829-task17-finance-hotfix";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260829-task17-finance-hotfix";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260829-task17-finance-hotfix";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260829-task17-finance-hotfix";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260829-task17-finance-hotfix";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260828-task17-finance-web";
+} from "./js/language/history.js?v=20260829-task17-finance-hotfix";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -74,16 +74,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260828-task17-finance-web";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260828-task17-finance-web";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20260828-task17-finance-web";
+} from "./js/language/quiz.js?v=20260829-task17-finance-hotfix";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260829-task17-finance-hotfix";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260829-task17-finance-hotfix";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260828-task17-finance-web";
+} from "./js/language/wrong-book.js?v=20260829-task17-finance-hotfix";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -91,7 +91,7 @@ import {
   hasAccountEntitlement as hasAccountEntitlementModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260828-task17-finance-web";
+} from "./js/membership/account.js?v=20260829-task17-finance-hotfix";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -99,19 +99,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260828-task17-finance-web";
+} from "./js/membership/plans.js?v=20260829-task17-finance-hotfix";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260828-task17-finance-web";
+} from "./js/membership/recharge.js?v=20260829-task17-finance-hotfix";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260828-task17-finance-web";
+} from "./js/admin/formatters.js?v=20260829-task17-finance-hotfix";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");

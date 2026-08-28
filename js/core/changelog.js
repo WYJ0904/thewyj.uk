@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?v=20260828-task17-finance-web";
+import { fetchWithTimeout } from "./api.js?v=20260829-task17-finance-hotfix";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 
