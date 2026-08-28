@@ -4,6 +4,7 @@ import {
   amountTextToMinor,
   applyFinanceChange,
   calculateFinanceSummary,
+  financeCollectionKey,
   filterFinanceTransactions,
   formatFinanceMoney,
 } from "../js/finance/app.js";
@@ -37,6 +38,10 @@ assert.deepEqual(filterFinanceTransactions(records, { query: "工资", month: "2
 assert.deepEqual(filterFinanceTransactions(records, { status: "deleted" }).map((item) => item.id), ["txn:deleted:1"]);
 
 const store = { transactions: {}, categories: {}, budgets: {}, server_version: 0 };
+assert.equal(financeCollectionKey("transaction"), "transactions");
+assert.equal(financeCollectionKey("category"), "categories");
+assert.equal(financeCollectionKey("budget"), "budgets");
+assert.equal(financeCollectionKey("unknown"), "");
 assert.equal(applyFinanceChange(store, {
   version: 4,
   entity_type: "transaction",
@@ -50,5 +55,17 @@ assert.equal(applyFinanceChange(store, {
   payload: { transaction: { ...records[0], amount_minor: 1, revision: 0 } },
 }), true);
 assert.equal(store.transactions["txn:income:1"].amount_minor, 100000, "older revisions cannot overwrite newer local state");
+assert.equal(applyFinanceChange(store, {
+  version: 6,
+  entity_type: "category",
+  payload: { category: { id: "category:food", name: "餐饮", applies_to: "expense", color: "#2563eb", status: "active", revision: 1 } },
+}), true);
+assert.equal(store.categories["category:food"].name, "餐饮", "category changes hydrate the categories collection");
+assert.equal(applyFinanceChange(store, {
+  version: 7,
+  entity_type: "budget",
+  payload: { budget: { id: "budget:food", category_id: "category:food", period_type: "monthly", amount_minor: 50000, currency: "CNY", starts_on: "2026-01-01", ends_on: "2026-01-31", status: "active", revision: 1 } },
+}), true);
+assert.equal(store.budgets["budget:food"].amount_minor, 50000, "budget changes hydrate the budgets collection");
 
-console.log("Finance Web model tests passed (money, summary, filters, tombstones, revision merge).");
+console.log("Finance Web model tests passed (money, summary, filters, entity collections, tombstones, revision merge).");
