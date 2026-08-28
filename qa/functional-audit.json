@@ -13,6 +13,7 @@
     { "id": "toolbox", "path": "/tools", "access": "tools-entitlement" },
     { "id": "tool", "path": "/tools/:tool_id", "access": "tools-entitlement" },
     { "id": "tool-workflows", "path": "/tools/workflows", "access": "tools-entitlement" },
+    { "id": "finance", "path": "/finance", "access": "finance-entitlement" },
     { "id": "account", "path": "/account", "access": "authenticated" },
     { "id": "recharge", "path": "/recharge", "access": "authenticated" },
     { "id": "admin", "path": "/admin", "access": "administrator" },
@@ -39,6 +40,7 @@
     "English dictation, speech, achievements and study statistics",
     "Japanese kanji/kana resolution and both-form dictation",
     "administrator recharge approval, membership editor and entitlement override",
+    "finance ledger local-first CRUD, budget, reconnect, reload and mobile layout",
     "administrator ban, force logout, secret reset and delete",
     "accepted feature voting can be added and cancelled",
     "full member toolbox, AI vocabulary and account secret/logout draft cleanup",
@@ -146,7 +148,7 @@
     "trial.tool": ["quiz", "text", "json", "image-compress", "image-format"],
     "payment.method": ["wechat", "alipay"],
     "membership.plan": [
-      "trial_single_language", "dual_language_monthly", "tools_monthly",
+      "trial_single_language", "finance_monthly", "dual_language_monthly", "tools_monthly",
       "all_access_monthly", "japanese_lifetime", "all_access_lifetime"
     ],
     "feedback.type": [

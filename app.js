@@ -8,37 +8,38 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260826-task15-cloud-only";
+} from "./js/core/config.js?v=20260828-task17-finance-web";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20260826-task15-cloud-only";
+} from "./js/core/api.js?v=20260828-task17-finance-web";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260826-task15-cloud-only";
-import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260826-task15-cloud-only";
+} from "./js/core/changelog.js?v=20260828-task17-finance-web";
+import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260828-task17-finance-web";
 import {
   ACCOUNT_CACHE_KEY,
   clearAccountSessionStorage,
   persistAccountSession,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20260826-task15-cloud-only";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260826-task15-cloud-only";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260826-task15-cloud-only";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260826-task15-cloud-only";
+} from "./js/core/session.js?v=20260828-task17-finance-web";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260828-task17-finance-web";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260828-task17-finance-web";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260828-task17-finance-web";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260828-task17-finance-web";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260826-task15-cloud-only";
+} from "./js/language/history.js?v=20260828-task17-finance-web";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -73,16 +74,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260826-task15-cloud-only";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260826-task15-cloud-only";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20260826-task15-cloud-only";
+} from "./js/language/quiz.js?v=20260828-task17-finance-web";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260828-task17-finance-web";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260828-task17-finance-web";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260826-task15-cloud-only";
+} from "./js/language/wrong-book.js?v=20260828-task17-finance-web";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -90,7 +91,7 @@ import {
   hasAccountEntitlement as hasAccountEntitlementModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260826-task15-cloud-only";
+} from "./js/membership/account.js?v=20260828-task17-finance-web";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -98,19 +99,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260826-task15-cloud-only";
+} from "./js/membership/plans.js?v=20260828-task17-finance-web";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260826-task15-cloud-only";
+} from "./js/membership/recharge.js?v=20260828-task17-finance-web";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260826-task15-cloud-only";
+} from "./js/admin/formatters.js?v=20260828-task17-finance-web";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -222,6 +223,7 @@ let vocabularySearchTimer = null;
 let vocabularySearchController = null;
 let vocabularySearchSequence = 0;
 let toolsInitialized = false;
+let financeController = null;
 let routeBusy = false;
 let adminUsers = [];
 let adminFeedback = [];
@@ -248,6 +250,7 @@ const trialState = {
 };
 const rejudgeInFlight = new Set();
 const modalReturnFocus = new Map();
+const modalCloseTimers = new Map();
 let rejudgeResultScrollPosition = null;
 const projectRuntime = {
   english: null,
@@ -947,6 +950,7 @@ function clearSession() {
   cancelVocabularySearch();
   state.session = "";
   state.account = null;
+  financeController?.resetAccount();
   state.quizSession = "";
   clearAccountSessionStorage();
   ["secretInput", "registerSecretInput", "registerConfirmInput", "currentSecretInput", "newSecretInput", "newSecretConfirmInput", "deleteSecretInput", "adminNewSecretInput"].forEach((id) => {
@@ -968,6 +972,7 @@ function adoptExternalAccountSession(nextSession) {
   hideResultPanel();
   state.session = nextSession;
   state.account = null;
+  financeController?.resetAccount();
   state.quizSession = "";
   localStorage.removeItem(ACCOUNT_CACHE_KEY);
   resetLocalViewState();
@@ -996,7 +1001,9 @@ function isSuperAdmin(account = state.account) {
 function applyAccount(account) {
   const previousAccountId = String(state.account?.id || "");
   const nextAccountId = String(account?.id || "");
+  if (previousAccountId !== nextAccountId) financeController?.resetAccount();
   state.account = account || null;
+  financeController?.accountUpdated?.();
   if (state.account) safeStorageSet(localStorage, "wyjAccountCache", JSON.stringify(state.account));
   else localStorage.removeItem("wyjAccountCache");
   if (state.account && previousAccountId !== nextAccountId) {
@@ -1033,6 +1040,8 @@ function renderAccountUi() {
     ? "language"
     : location.pathname.startsWith("/tools")
       ? "tools"
+      : location.pathname.startsWith("/finance")
+        ? "finance"
       : location.pathname === "/trial"
         ? (trialState.tool === "quiz" ? "language" : "tools")
         : location.pathname === "/changelog"
@@ -1063,6 +1072,11 @@ function renderAccountUi() {
       ? "可使用"
       : "会员功能";
     $("toolsMemberBadge").classList.toggle("active", Boolean(account && (isSuperAdmin(account) || hasAccountEntitlement("tools_access", account))));
+  }
+  if ($("financeMemberBadge")) {
+    const financeAccess = Boolean(account && (isSuperAdmin(account) || hasAccountEntitlement("finance_access", account)));
+    $("financeMemberBadge").textContent = financeAccess ? "可使用" : "会员功能";
+    $("financeMemberBadge").classList.toggle("active", financeAccess);
   }
   renderAccountDetails();
   renderDashboard();
@@ -1237,6 +1251,18 @@ function renderDashboard() {
     ? `最近一次：${quizLanguageLabel(latest.language)} ${practiceModeLabel(latest.practiceMode)}，${latest.total} 题，正确率 ${latest.accuracy}%`
     : "完成第一轮测试后显示结果。";
 
+  const finance = financeController?.dashboardSummary?.() || { balance_minor: 0, pending: 0, available: false };
+  if ($("dashboardFinanceBalance")) $("dashboardFinanceBalance").textContent = formatFinanceMoney(finance.balance_minor);
+  if ($("dashboardFinanceSync")) {
+    $("dashboardFinanceSync").textContent = finance.available
+      ? finance.pending
+        ? `${finance.pending} 项本机修改等待同步`
+        : finance.last_sync_at
+          ? `最近同步 ${formatLocalDateTime(finance.last_sync_at)}`
+          : "打开财务账本后开始同步"
+      : "财务会员 8 CNY/月；全功能会员已包含";
+  }
+
   const resumable = ["english", "japanese"].filter((language) => Boolean(loadProjectRuntime(language)?.roundActive));
   $("dashboardResumeSection").classList.toggle("hidden", !resumable.length);
   [["dashboardResumeEnglish", "english"], ["dashboardResumeJapanese", "japanese"]].forEach(([id, language]) => {
@@ -1395,6 +1421,11 @@ async function voteForFeature(feedbackId, voted) {
 function openModal(id) {
   const modal = $(id);
   if (!modal) return;
+  const pendingClose = modalCloseTimers.get(id);
+  if (pendingClose) {
+    window.clearTimeout(pendingClose);
+    modalCloseTimers.delete(id);
+  }
   if (!modalReturnFocus.has(id) && document.activeElement instanceof HTMLElement) {
     modalReturnFocus.set(id, document.activeElement);
   }
@@ -1408,6 +1439,11 @@ function openModal(id) {
 function closeModal(id, immediate = false) {
   const modal = $(id);
   if (!modal || modal.classList.contains("hidden")) return;
+  const pendingClose = modalCloseTimers.get(id);
+  if (pendingClose) {
+    window.clearTimeout(pendingClose);
+    modalCloseTimers.delete(id);
+  }
   if (id === "membershipModal") {
     membershipModalLoadSequence += 1;
     membershipModalController?.abort();
@@ -1415,6 +1451,7 @@ function closeModal(id, immediate = false) {
     releasePaymentQr();
   }
   const finish = () => {
+    modalCloseTimers.delete(id);
     modal.classList.add("hidden");
     modal.classList.remove("is-closing");
     modal.setAttribute("aria-hidden", "true");
@@ -1437,7 +1474,7 @@ function closeModal(id, immediate = false) {
   if (immediate || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) finish();
   else {
     modal.classList.add("is-closing");
-    window.setTimeout(finish, 180);
+    modalCloseTimers.set(id, window.setTimeout(finish, 180));
   }
 }
 
@@ -1521,6 +1558,7 @@ function closeRejudgeResultModal() {
 }
 
 function membershipGoalForCurrentContext() {
+  if (location.pathname.startsWith("/finance")) return "finance";
   if (location.pathname.startsWith("/tools")) return "tools";
   if (currentProject === "english" || state.quizLanguage === "english") return "english";
   if (currentProject === "japanese" || state.quizLanguage === "japanese") return "japanese";
@@ -3262,7 +3300,7 @@ function showLanguageGate() {
 
 function hidePrimaryScreens() {
   const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
-  ["publicHome", "changelogPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "shareViewer", "adminPanel"].forEach((id) => {
+  ["publicHome", "changelogPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "shareViewer", "adminPanel"].forEach((id) => {
     const element = $(id);
     if (!element) return;
     element.classList.add("hidden");
@@ -3273,6 +3311,7 @@ function hidePrimaryScreens() {
   $("authPanel")?.classList.add("hidden");
   $("workspace")?.classList.add("hidden");
   window.WYJTools?.hide?.();
+  financeController?.hide?.();
 }
 
 function stopProjectActivity() {
@@ -3434,6 +3473,31 @@ async function showTools(path = "/tools", pushHistory = true) {
   }
 }
 
+async function showFinance(pushHistory = true) {
+  if (!state.session || !state.account) {
+    showAuth("请先登录后使用财务账本", { replace: true });
+    return;
+  }
+  stopProjectActivity();
+  currentProject = "";
+  state.quizLanguage = "";
+  hidePrimaryScreens();
+  $("financePage")?.classList.remove("hidden");
+  $("financePage")?.setAttribute("aria-hidden", "false");
+  document.body.classList.remove("project-picker-active");
+  if (pushHistory) pushRoute("/finance");
+  renderAccountUi();
+  try {
+    await financeController?.show?.();
+  } catch (error) {
+    const message = $("financeMessage");
+    if (message) {
+      message.textContent = error?.message || "财务账本暂时无法加载，本机数据仍然保留。";
+      message.dataset.tone = "error";
+    }
+  }
+}
+
 function showShareRoute(path) {
   stopProjectActivity();
   currentProject = "";
@@ -3496,6 +3560,10 @@ async function routeCurrent() {
     }
     if (path === "/tools" || path.startsWith("/tools/")) {
       await showTools(path, false);
+      return;
+    }
+    if (path === "/finance") {
+      await showFinance(false);
       return;
     }
     if (path === "/admin") {
@@ -3947,6 +4015,25 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
   handleMembershipRequired: () => openMembershipModal({ goal: membershipGoalForCurrentContext() }),
 });
 
+financeController = createFinanceController({
+  api,
+  apiGet,
+  storage: localStorage,
+  account: () => state.account,
+  hasEntitlement: (code, account) => hasAccountEntitlement(code, account),
+  isSuperAdmin: (account) => isSuperAdmin(account),
+  openRecharge: (goal) => {
+    pushRoute("/recharge");
+    return openMembershipModal({ goal });
+  },
+  navigate: (path) => {
+    if (path === "/select") showModulePicker(true);
+    else pushRoute(path);
+  },
+  appVersion: APP_VERSION,
+  onSummaryChanged: () => renderDashboard(),
+});
+
 function applyBackendStatus(data) {
   markBackendReachable(data);
   aiAvailable = data.ai_ready !== false;
@@ -4256,6 +4343,7 @@ function installLocalTestBindings() {
     backendAvailable: () => backendAvailable,
     currentPaymentOrder: () => currentPaymentOrder,
     currentProject: () => currentProject,
+    financeController: () => financeController,
     learningSyncManager: () => learningSyncManager,
     learningSyncStatus: () => learningSyncStatus,
     learningSyncWrongRenderPending: () => learningSyncWrongRenderPending,
@@ -5807,6 +5895,11 @@ async function navigateFromSiteNav(destination) {
   if (destination === "tools") {
     if (state.session && state.account) await showTools("/tools", true);
     else showTrial(true, "text");
+    return;
+  }
+  if (destination === "finance") {
+    if (state.session && state.account) await showFinance(true);
+    else showAuth("请先登录后使用财务账本", { path: "/login" });
   }
 }
 
@@ -6023,6 +6116,7 @@ async function boot() {
   });
   document.querySelectorAll("[data-module]").forEach((button) => button.addEventListener("click", async () => {
     if (button.dataset.module === "language") showProjectPicker(true);
+    else if (button.dataset.module === "finance") await showFinance(true);
     else await showTools("/tools", true);
   }));
   $("languageBackBtn").addEventListener("click", () => showModulePicker(true));
@@ -6030,6 +6124,7 @@ async function boot() {
   $("leaveToolsBtn").addEventListener("click", () => showModulePicker(true));
   $("toolsAccountBtn").addEventListener("click", () => { pushRoute("/account"); openModal("accountModal"); });
   $("dashboardMembershipBtn")?.addEventListener("click", () => { pushRoute("/recharge"); openMembershipModal(); });
+  $("dashboardFinanceBtn")?.addEventListener("click", () => showFinance(true));
   $("shareLoginBtn").addEventListener("click", () => state.session && state.account ? showModulePicker(true) : showAuth("", { path: "/login" }));
   $("gradingModeSelect").addEventListener("change", (event) => {
     state.gradingMode = event.target.value;

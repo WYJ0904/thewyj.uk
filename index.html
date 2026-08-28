@@ -6,9 +6,9 @@
     <meta name="theme-color" content="#ffffff" />
     <title>WYJ的网站</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260826-task15-cloud-only" />
-    <link rel="stylesheet" href="/styles.css?v=20260826-task15-cloud-only" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260826-task15-cloud-only" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260828-task17-finance-web" />
+    <link rel="stylesheet" href="/styles.css?v=20260828-task17-finance-web" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260828-task17-finance-web" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 WYJ的网站" aria-hidden="false">
@@ -29,6 +29,7 @@
           <a href="/" data-site-nav="home" id="navHomeLink"><span id="navHomeLabel">首页</span></a>
           <a href="/language" data-site-nav="language">语言学习</a>
           <a href="/tools" data-site-nav="tools">在线工具</a>
+          <a href="/finance" data-site-nav="finance">财务</a>
           <a href="/changelog" data-site-nav="changelog">更新日志</a>
         </div>
         <div class="site-nav-actions" id="navGuestActions">
@@ -99,10 +100,10 @@
         </section>
 
         <section class="public-section" aria-labelledby="publicPlansTitle">
-          <header class="public-section-heading"><p class="section-kicker">账户与套餐</p><h2 id="publicPlansTitle">按需要选择学习或工具权益</h2><p>提供单语言、双语言、工具箱与全功能方案。付款和开通仍沿用登录后的管理员人工确认流程。</p></header>
+          <header class="public-section-heading"><p class="section-kicker">账户与套餐</p><h2 id="publicPlansTitle">按需要选择学习、工具或财务权益</h2><p>提供语言学习、工具箱、财务账本与全功能方案。付款和开通仍沿用登录后的管理员人工确认流程。</p></header>
           <div class="public-card-grid public-card-grid-three">
             <article class="public-plan-card"><h3>免费体验</h3><p>无需注册，开放五项明确试用功能。</p></article>
-            <article class="public-plan-card"><h3>按模块订阅</h3><p>可分别选择语言学习、工具箱或组合套餐。</p></article>
+            <article class="public-plan-card"><h3>按模块订阅</h3><p>可分别选择语言学习、工具箱、财务账本或组合套餐。</p></article>
             <article class="public-plan-card"><h3>永久权益</h3><p>提供双语言和全功能永久方案。</p></article>
           </div>
           <div class="public-actions"><button class="primary" id="publicPlansBtn" type="button">登录后查看套餐</button><button class="button-ghost" id="publicChangelogBtn" type="button">查看更新日志</button></div>
@@ -194,6 +195,11 @@
             <span><strong>在线工具箱</strong><small>文本、文件、图片、随机与临时分享</small></span>
             <em id="toolsMemberBadge">会员功能</em>
           </button>
+          <button class="module-card" type="button" data-module="finance">
+            <span class="module-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h10M7 13h4M15 13h2M7 17h3"/></svg></span>
+            <span><strong>财务账本</strong><small>收入、支出、退款、分类与预算</small></span>
+            <em id="financeMemberBadge">会员功能</em>
+          </button>
           </div>
         </section>
 
@@ -225,6 +231,12 @@
             <div class="dashboard-tool-shelf"><h3>收藏</h3><div id="dashboardFavoriteTools"><p class="dashboard-empty">还没有收藏工具。</p></div></div>
             <div class="dashboard-tool-shelf"><h3>最近使用</h3><div id="dashboardRecentTools"><p class="dashboard-empty">还没有使用记录。</p></div></div>
           </section>
+
+          <section class="dashboard-section dashboard-panel" aria-labelledby="dashboardFinanceTitle">
+            <div class="dashboard-section-heading"><div><h2 id="dashboardFinanceTitle">本月财务</h2><p id="dashboardFinanceSync">打开财务账本后显示本机摘要。</p></div></div>
+            <div class="dashboard-finance-summary"><span>余额</span><strong id="dashboardFinanceBalance">¥0.00</strong></div>
+            <button class="button-ghost dashboard-update-link" id="dashboardFinanceBtn" type="button">打开财务账本</button>
+          </section>
         </div>
 
         <div class="dashboard-columns dashboard-columns-secondary">
@@ -253,6 +265,86 @@
           </section>
         </div>
       </section>
+
+      <section class="finance-page hidden" id="financePage" aria-labelledby="financeTitle" aria-hidden="true">
+        <header class="finance-header">
+          <div><p class="section-kicker">云端财务账本</p><h1 id="financeTitle">财务</h1><p>Web 与 Android 共用同一账户、账本和服务端规则。</p></div>
+          <div class="finance-header-actions"><span class="status-badge" id="financeSyncStatus" data-tone="info">准备中</span><button class="button-secondary" id="financeBackBtn" type="button">返回个人首页</button></div>
+        </header>
+
+        <section class="finance-locked hidden" id="financeLocked" aria-labelledby="financeLockedTitle">
+          <div class="finance-locked-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/></svg></div>
+          <div><h2 id="financeLockedTitle">财务会员 8 CNY/月</h2><p>包含 Web 与 Android 共用财务账本。全功能包月和全功能永久会员已自动包含，无需重复购买。</p><button class="primary" id="financeUpgradeBtn" type="button">查看财务会员</button></div>
+        </section>
+
+        <div class="finance-workspace hidden" id="financeWorkspace">
+          <aside class="finance-sync-note" aria-live="polite"><span id="financeSyncDetail">本地修改会在联网后自动同步。</span><div><button class="button-secondary" id="financeSyncBtn" type="button">立即同步</button><button class="button-ghost hidden" id="financeResolveConflictBtn" type="button">以本机修改重试</button></div></aside>
+
+          <section class="finance-summary-section" aria-labelledby="financeSummaryTitle">
+            <div class="finance-section-heading"><div><h2 id="financeSummaryTitle">收支概览</h2><p id="financeSummaryPeriod">本月</p></div><button class="primary" id="financeAddTransactionBtn" type="button">新增账目</button></div>
+            <div class="finance-summary-grid">
+              <article><span>总收入</span><strong class="is-income" id="financeIncomeTotal">¥0.00</strong></article>
+              <article><span>总支出</span><strong class="is-expense" id="financeExpenseTotal">¥0.00</strong></article>
+              <article><span>退款</span><strong class="is-refund" id="financeRefundTotal">¥0.00</strong></article>
+              <article><span>余额</span><strong id="financeBalanceTotal">¥0.00</strong></article>
+            </div>
+          </section>
+
+          <section class="finance-content-grid">
+            <div class="finance-ledger-panel">
+              <div class="finance-section-heading"><div><h2>账目</h2><p id="financeTransactionCount">0 笔</p></div></div>
+              <div class="finance-filter-grid" aria-label="筛选账目">
+                <label><span>搜索</span><input id="financeSearchInput" type="search" maxlength="120" placeholder="商户、对手方或备注" /></label>
+                <label><span>月份</span><input id="financeMonthFilter" type="month" /></label>
+                <label><span>类型</span><select id="financeDirectionFilter"><option value="">全部类型</option><option value="income">收入</option><option value="expense">支出</option><option value="refund">退款</option></select></label>
+                <label><span>分类</span><select id="financeCategoryFilter"><option value="">全部分类</option></select></label>
+                <label><span>状态</span><select id="financeStatusFilter"><option value="active">当前账目</option><option value="deleted">已删除</option><option value="all">全部状态</option></select></label>
+              </div>
+              <div class="finance-undo hidden" id="financeUndoBar"><span>账目已删除。</span><button id="financeUndoBtn" type="button">撤销</button></div>
+              <div class="finance-transaction-list" id="financeTransactionList" aria-live="polite"></div>
+            </div>
+
+            <aside class="finance-side-column">
+              <section class="finance-side-panel"><div class="finance-section-heading"><div><h2>预算状态</h2><p>到期不删除历史账目</p></div><button class="button-ghost" id="financeManageBudgetsBtn" type="button">管理</button></div><div id="financeBudgetSummary"></div></section>
+              <section class="finance-side-panel"><div class="finance-section-heading"><div><h2>分类统计</h2><p>按当前筛选月份的支出</p></div><button class="button-ghost" id="financeManageCategoriesBtn" type="button">管理</button></div><div id="financeCategoryStats"></div></section>
+            </aside>
+          </section>
+          <p class="meta-line" id="financeMessage" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <div class="modal-layer hidden" id="financeTransactionModal" aria-hidden="true">
+        <section class="modal-panel finance-editor-modal" role="dialog" aria-modal="true" aria-labelledby="financeTransactionModalTitle">
+          <button class="modal-close" data-finance-close="financeTransactionModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+          <p class="section-kicker">财务账目</p><h2 id="financeTransactionModalTitle">新增账目</h2>
+          <form class="finance-form" id="financeTransactionForm">
+            <input id="financeTransactionId" type="hidden" />
+            <div class="finance-form-grid"><label><span>类型</span><select id="financeTransactionDirection" required><option value="expense">支出</option><option value="income">收入</option><option value="refund">退款</option></select></label><label><span>金额（CNY）</span><input id="financeTransactionAmount" inputmode="decimal" maxlength="14" placeholder="0.00" required /></label></div>
+            <div class="finance-form-grid"><label><span>时间</span><input id="financeTransactionTime" type="datetime-local" required /></label><label><span>分类</span><select id="financeTransactionCategory"><option value="">未分类</option></select></label></div>
+            <div class="finance-form-grid"><label><span>商户</span><input id="financeTransactionMerchant" maxlength="160" placeholder="例如：便利店" /></label><label><span>对手方</span><input id="financeTransactionCounterparty" maxlength="160" placeholder="例如：朋友或公司" /></label></div>
+            <label><span>备注</span><textarea id="financeTransactionNote" maxlength="500" placeholder="可选，不要填写密码或支付凭据"></textarea></label>
+            <div class="action-row"><button class="button-secondary" data-finance-close="financeTransactionModal" type="button">取消</button><button class="primary" type="submit">保存账目</button></div>
+          </form>
+        </section>
+      </div>
+
+      <div class="modal-layer hidden" id="financeCategoryModal" aria-hidden="true">
+        <section class="modal-panel finance-editor-modal" role="dialog" aria-modal="true" aria-labelledby="financeCategoryTitle">
+          <button class="modal-close" data-finance-close="financeCategoryModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+          <p class="section-kicker">财务设置</p><h2 id="financeCategoryTitle">分类管理</h2>
+          <form class="finance-form" id="financeCategoryForm"><input id="financeCategoryId" type="hidden" /><div class="finance-form-grid"><label><span>分类名称</span><input id="financeCategoryName" maxlength="80" required /></label><label><span>适用类型</span><select id="financeCategoryAppliesTo"><option value="both">收入和支出</option><option value="income">仅收入</option><option value="expense">仅支出</option></select></label></div><label class="finance-color-field"><span>标识颜色</span><input id="financeCategoryColor" type="color" value="#2563eb" /></label><div class="action-row"><button class="primary" type="submit">保存分类</button></div></form>
+          <div class="finance-manager-list" id="financeCategoryManagerList"></div>
+        </section>
+      </div>
+
+      <div class="modal-layer hidden" id="financeBudgetModal" aria-hidden="true">
+        <section class="modal-panel finance-editor-modal" role="dialog" aria-modal="true" aria-labelledby="financeBudgetTitle">
+          <button class="modal-close" data-finance-close="financeBudgetModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+          <p class="section-kicker">财务设置</p><h2 id="financeBudgetTitle">月度预算</h2>
+          <form class="finance-form" id="financeBudgetForm"><input id="financeBudgetId" type="hidden" /><div class="finance-form-grid"><label><span>月份</span><input id="financeBudgetMonth" type="month" required /></label><label><span>预算金额（CNY）</span><input id="financeBudgetAmount" inputmode="decimal" maxlength="14" placeholder="0.00" required /></label></div><label><span>分类</span><select id="financeBudgetCategory"><option value="">总预算（不限定分类）</option></select></label><div class="action-row"><button class="primary" type="submit">保存预算</button></div></form>
+          <div class="finance-manager-list" id="financeBudgetManagerList"></div>
+        </section>
+      </div>
       <section class="project-picker hidden" id="projectPicker" aria-labelledby="projectPickerTitle">
         <header class="project-brand">
           <img src="/icon-192.png" alt="WYJ的网站 Logo" />
@@ -665,7 +757,8 @@
             <button class="membership-goal-option" data-membership-goal="japanese" type="button" aria-pressed="false"><strong>只学日语</strong><small>日语单语言或覆盖双语言的方案</small></button>
             <button class="membership-goal-option" data-membership-goal="bilingual" type="button" aria-pressed="false"><strong>英语和日语</strong><small>同时使用两种语言会员功能</small></button>
             <button class="membership-goal-option" data-membership-goal="tools" type="button" aria-pressed="false"><strong>只用工具箱</strong><small>在线工具、批量处理和临时分享</small></button>
-            <button class="membership-goal-option" data-membership-goal="all" type="button" aria-pressed="false"><strong>语言和工具箱</strong><small>学习与工具全部高级功能</small></button>
+            <button class="membership-goal-option" data-membership-goal="finance" type="button" aria-pressed="false"><strong>只用财务</strong><small>Web 与 Android 共用财务账本</small></button>
+            <button class="membership-goal-option" data-membership-goal="all" type="button" aria-pressed="false"><strong>语言、工具和财务</strong><small>全功能方案包含三个模块</small></button>
           </div>
           <p class="membership-goal-hint" id="membershipGoalHint" aria-live="polite">先选择用途，页面只会显示适合该用途的套餐。</p>
         </fieldset>
@@ -683,7 +776,7 @@
           <div class="payment-method-list" id="paymentMethodList" aria-live="polite"></div>
         </fieldset>
         <div class="purchase-summary" id="purchaseSummary">请先选择需要的功能</div>
-        <p class="membership-warning">套餐按模块独立授权：双语言包月和 70 CNY 双语言双项永久会员包含英语、日语测试，不包含在线工具箱；工具箱包月仅包含在线工具箱。需要两个模块时请选择全功能套餐。</p>
+        <p class="membership-warning">套餐按模块独立授权：双语言包月和 70 CNY 双语言双项永久会员包含英语、日语测试，不包含在线工具箱或财务；工具箱包月仅包含在线工具箱；财务会员仅包含财务账本。全功能套餐自动包含这些模块，无需重复购买。</p>
         <div class="payment-order hidden" id="paymentOrderBox">
           <dl><dt>用户名</dt><dd id="paymentUsername">-</dd><dt>会员方案</dt><dd id="paymentPlan">-</dd><dt class="hidden" id="paymentLanguageTerm">所选语言</dt><dd class="hidden" id="paymentLanguage">-</dd><dt>支付方式</dt><dd id="paymentMethod">-</dd><dt>应付金额</dt><dd id="paymentAmount">-</dd><dt>订单编号</dt><dd><code id="paymentOrderNumber">-</code> <button id="copyOrderBtn" type="button">复制</button></dd><dt>付款备注</dt><dd><span id="paymentNote">-</span> <button id="copyPaymentNoteBtn" type="button">复制</button></dd><dt>订单状态</dt><dd id="paymentStatus">-</dd></dl>
           <div class="payment-qr-wrap hidden" id="paymentQrWrap">
@@ -744,7 +837,7 @@
           <div class="admin-current-memberships" id="adminCurrentMemberships"></div>
           <div class="admin-membership-grid">
             <label class="field-label"><span>操作</span><select id="adminMembershipAction"><option value="grant">开通或覆盖</option><option value="extend">续期一个月</option><option value="cancel">取消所选会员</option><option value="cancel_all">降级为普通用户</option></select></label>
-            <label class="field-label"><span>会员方案</span><select id="adminMembershipSelect"><option value="trial_single_language">单语言包月体验会员</option><option value="dual_language_monthly">双语言包月</option><option value="tools_monthly">工具箱包月会员</option><option value="all_access_monthly">全功能包月会员</option><option value="japanese_lifetime">双语言双项永久会员</option><option value="all_access_lifetime">全功能永久会员</option></select></label>
+            <label class="field-label"><span>会员方案</span><select id="adminMembershipSelect"><option value="trial_single_language">单语言包月体验会员</option><option value="finance_monthly">财务会员</option><option value="dual_language_monthly">双语言包月</option><option value="tools_monthly">工具箱包月会员</option><option value="all_access_monthly">全功能包月会员</option><option value="japanese_lifetime">双语言双项永久会员</option><option value="all_access_lifetime">全功能永久会员</option></select></label>
             <label class="field-label hidden" id="adminTrialLanguageField"><span>体验语言</span><select id="adminTrialLanguageSelect"><option value="">请选择</option><option value="english">英语</option><option value="japanese">日语</option></select></label>
           </div>
           <div class="admin-date-grid">
@@ -869,10 +962,10 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20260826-task15-cloud-only"></script>
-    <script type="module" src="/tools.js?v=20260826-task15-cloud-only"></script>
-    <script src="/workflows.js?v=20260826-task15-cloud-only"></script>
-    <script src="/learning-sync.js?v=20260826-task15-cloud-only"></script>
-    <script type="module" src="/app.js?v=20260826-task15-cloud-only"></script>
+    <script src="/changelog.js?v=20260828-task17-finance-web"></script>
+    <script type="module" src="/tools.js?v=20260828-task17-finance-web"></script>
+    <script src="/workflows.js?v=20260828-task17-finance-web"></script>
+    <script src="/learning-sync.js?v=20260828-task17-finance-web"></script>
+    <script type="module" src="/app.js?v=20260828-task17-finance-web"></script>
   </body>
 </html>

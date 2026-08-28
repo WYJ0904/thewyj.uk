@@ -1,7 +1,7 @@
 export const APP_ROUTE_MANIFEST = Object.freeze([
   "/", "/login", "/register", "/trial", "/changelog", "/select", "/language",
   "/language/english", "/language/japanese", "/tools", "/tools/:tool_id", "/tools/workflows",
-  "/account", "/recharge", "/admin", "/share/text/:id", "/share/file/:id",
+  "/finance", "/account", "/recharge", "/admin", "/share/text/:id", "/share/file/:id",
   "/share/clipboard/:code", "/share/qr/:id", "/share/room/:id",
 ]);
 

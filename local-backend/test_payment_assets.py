@@ -16,6 +16,7 @@ from payment_assets import (
 
 PLAN_CODES = (
     "trial_single_language",
+    "finance_monthly",
     "dual_language_monthly",
     "tools_monthly",
     "all_access_monthly",
@@ -56,7 +57,7 @@ class PaymentAssetTests(unittest.TestCase):
             for method in PAYMENT_METHODS
             for plan in PLAN_CODES
         }
-        self.assertEqual(len(resources), 12)
+        self.assertEqual(len(resources), 14)
         self.assertEqual(
             qr_resource_id_for("wechat", "tools_monthly"),
             "qr-v1:wechat:tools_monthly",

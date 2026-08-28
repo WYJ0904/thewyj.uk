@@ -4,7 +4,7 @@ import {
   sanitizeAccepted,
   sanitizeStoredRubric,
   wordMatchesLanguage,
-} from "./quiz.js?v=20260826-task15-cloud-only";
+} from "./quiz.js?v=20260828-task17-finance-web";
 
 export const MAX_WRONG_BOOK_ITEMS = 250;
 

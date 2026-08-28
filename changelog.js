@@ -1,6 +1,16 @@
 (() => {
   const entries = [
     {
+      version: "2026.08.28",
+      build: "2026-08-28-task17-finance-web",
+      date: "2026-08-28",
+      title: "财务账本正式接入网站",
+      features: ["新增财务一级入口，支持收入、支出、退款、分类、预算、搜索筛选和撤销删除。"],
+      improvements: ["Web 与 Android 共用 Task 16 canonical ledger；离线修改先保存在本机，恢复联网后自动增量同步。"],
+      fixes: ["修复财务权益到期后界面仍可编辑、重复预算和跨月预算统计边界等状态问题。"],
+      security: ["财务 API 继续由服务端校验 finance_access 与稳定 user ID，客户端不能跨账户读取或修改账目。"],
+    },
+    {
       version: "2026.08.24",
       build: "2026-08-26-task15-cloud-only",
       date: "2026-08-24",

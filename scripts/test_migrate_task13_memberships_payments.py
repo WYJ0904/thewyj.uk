@@ -163,8 +163,15 @@ class Task13MigrationTests(unittest.TestCase):
             self.assertEqual(counts["users"], 2)
             self.assertEqual(counts["memberships"], 2)
             self.assertEqual(counts["payment_orders"], 2)
-            self.assertEqual(counts["qr_inventory"], {"expected": 13, "valid": 13, "missing": 0, "invalid": 0})
-            self.assertEqual(len(qr_assets), 13)
+            current_qr_count = len(MIGRATION.PAYMENT_METHODS) * sum(
+                1 for plan in MIGRATION.MEMBERSHIP_PLANS.values() if plan["purchasable"]
+            )
+            expected_qr_count = current_qr_count + 1  # Historical alipay legacy order fixture.
+            self.assertEqual(
+                counts["qr_inventory"],
+                {"expected": expected_qr_count, "valid": expected_qr_count, "missing": 0, "invalid": 0},
+            )
+            self.assertEqual(len(qr_assets), expected_qr_count)
             self.assertEqual(data["memberships"][0]["plan_code"], "legacy_all_monthly")
             approved = next(item for item in data["payment_orders"] if item["id"] == "payment-approved")
             self.assertEqual(approved["plan_code"], "legacy_all_lifetime")

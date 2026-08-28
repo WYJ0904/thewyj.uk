@@ -17,6 +17,7 @@ export const ENTITLEMENT_CODES = Object.freeze([
 ]);
 export const PURCHASABLE_PLAN_CODES = Object.freeze([
   "trial_single_language",
+  "finance_monthly",
   "dual_language_monthly",
   "tools_monthly",
   "all_access_monthly",
@@ -28,7 +29,6 @@ export const COMPATIBLE_PLAN_CODES = Object.freeze([
   "dual_language_lifetime",
   "legacy_all_monthly",
   "legacy_all_lifetime",
-  "finance_monthly",
 ]);
 export const PAYMENT_STATUSES = Object.freeze([
   "pending_payment", "user_paid", "processing", "approved",
