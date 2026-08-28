@@ -28,6 +28,7 @@ TINY_PNG = base64.b64decode(
 )
 PAYMENT_PLAN_CODES = (
     "trial_single_language",
+    "finance_monthly",
     "dual_language_monthly",
     "tools_monthly",
     "all_access_monthly",
@@ -960,6 +961,8 @@ class AccountApiTests(unittest.TestCase):
         self.assertEqual(status, 200, plans)
         by_code = {item["code"]: item for item in plans["plans"]}
         self.assertEqual(by_code["trial_single_language"]["price_cents"], 800)
+        self.assertEqual(by_code["finance_monthly"]["price_cents"], 800)
+        self.assertEqual(by_code["finance_monthly"]["name"], "财务会员")
         self.assertEqual(by_code["tools_monthly"]["price_cents"], 2000)
         self.assertEqual(by_code["dual_language_monthly"]["price_cents"], 2000)
         self.assertEqual(by_code["dual_language_monthly"]["name"], "双语言包月")
@@ -975,6 +978,7 @@ class AccountApiTests(unittest.TestCase):
         self.assertIn("language_english_access", by_code["japanese_lifetime"]["entitlements"])
         self.assertIn("language_all_access", by_code["japanese_lifetime"]["entitlements"])
         self.assertNotIn("tools_access", by_code["japanese_lifetime"]["entitlements"])
+        self.assertEqual(by_code["finance_monthly"]["entitlements"], ["finance_access"])
         self.assertNotIn("dual_language_lifetime", by_code)
         self.assertEqual(
             {item["code"] for item in plans["payment_methods"]},
@@ -984,6 +988,7 @@ class AccountApiTests(unittest.TestCase):
             set(by_code),
             {
                 "trial_single_language",
+                "finance_monthly",
                 "tools_monthly",
                 "dual_language_monthly",
                 "all_access_monthly",

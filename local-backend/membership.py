@@ -24,9 +24,9 @@ MEMBERSHIP_PLANS = {
         "currency": "CNY",
         "lifetime": False,
         "duration_months": 1,
-        "purchasable": False,
+        "purchasable": True,
         "priority": 44,
-        "description": "Web 与 Android 共用的财务账本会员，有效期一个月；收款码配置完成前不公开销售。",
+        "description": "Web 与 Android 共用的财务账本会员，有效期一个月，不包含语言学习或在线工具箱。",
         "entitlements": ("finance_access",),
     },
     "japanese_lifetime": {
@@ -83,7 +83,7 @@ MEMBERSHIP_PLANS = {
         "duration_months": 1,
         "purchasable": True,
         "priority": 80,
-        "description": "全部语言测试和在线工具箱功能，有效期一个月。",
+        "description": "全部语言测试、在线工具箱和财务账本功能，有效期一个月。",
         "entitlements": ALL_ACCESS_ENTITLEMENTS,
     },
     "dual_language_lifetime": {
@@ -109,7 +109,7 @@ MEMBERSHIP_PLANS = {
         "duration_months": 0,
         "purchasable": True,
         "priority": 100,
-        "description": "全部语言测试和在线工具箱功能，永久有效。",
+        "description": "全部语言测试、在线工具箱和财务账本功能，永久有效。",
         "entitlements": ALL_ACCESS_ENTITLEMENTS,
     },
     "trial_single_language": {

@@ -168,6 +168,8 @@ jobs:
             node --check local-backend/test_task15_cloud_browser.mjs
             node --check local-backend/test_task15_pdf_js.mjs
             node --check local-backend/test_task16_d1_js.mjs
+            node --check local-backend/test_finance_js.mjs
+            node --check local-backend/test_task17_d1_js.mjs
             node --check cloudflare/task14-cleanup-worker.mjs
             node --check local-backend/test_app_browser.mjs
             node --check local-backend/test_tools_browser.mjs
@@ -271,6 +273,12 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_task16_d1_js.mjs 2>&1 | tee artifacts/task16-cloud-integration.log
+
+      - name: Test Task 17 finance web and membership integration
+        run: |
+          set -euo pipefail
+          node local-backend/test_finance_js.mjs 2>&1 | tee artifacts/task17-finance-client.log
+          node local-backend/test_task17_d1_js.mjs 2>&1 | tee artifacts/task17-finance-cloud-integration.log
 
       - name: Check HTML, PWA and tool catalog
         run: |

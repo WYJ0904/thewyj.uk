@@ -48,6 +48,7 @@ class StaticSiteTests(unittest.TestCase):
         cls.worker = (ROOT / "sw.js").read_text(encoding="utf-8")
         cls.changelog = (ROOT / "changelog.js").read_text(encoding="utf-8")
         cls.learning_sync = (ROOT / "learning-sync.js").read_text(encoding="utf-8")
+        cls.finance = (ROOT / "js" / "finance" / "app.js").read_text(encoding="utf-8")
 
     def test_html_ids_are_unique_and_app_references_exist(self):
         parser = IdCollector()
@@ -82,6 +83,9 @@ class StaticSiteTests(unittest.TestCase):
             "workflowTemplateList", "workflowEditor", "workflowNameInput", "workflowStepList",
             "workflowToolSelect", "workflowFileInput", "workflowBatchToggle", "workflowRunState",
             "runWorkflowBtn", "cancelWorkflowBtn", "downloadWorkflowResultBtn", "copyWorkflowResultBtn",
+            "financePage", "financeLocked", "financeWorkspace", "financeTransactionList",
+            "financeTransactionModal", "financeCategoryModal", "financeBudgetModal",
+            "financeSyncStatus", "financeSyncBtn", "financeUndoBar", "financeUndoBtn",
         }
         self.assertEqual(sorted(required - html_ids), [])
 
@@ -102,15 +106,15 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260826-task15-cloud-only"
+        release_token = "20260828-task17-finance-web"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
-        self.assertIn('export const APP_VERSION = "2026-08-26-task15-cloud-only"', self.core)
+        self.assertIn('export const APP_VERSION = "2026-08-28-task17-finance-web"', self.core)
         for module in ("api", "config", "router", "session", "storage", "ui"):
             self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20260826-task15-cloud-only"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20260828-task17-finance-web"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         self.assertNotIn('.tool-e2e', stage_script)
@@ -122,7 +126,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertFalse((ROOT / "404.html").exists())
 
     def test_browser_module_graph_uses_one_release_version(self):
-        release_token = "20260826-task15-cloud-only"
+        release_token = "20260828-task17-finance-web"
         import_pattern = re.compile(
             r'(?:from\s+|import\s+)["\'](\.{1,2}/[^"\']+\.js(?:\?[^"\']*)?)["\']'
         )
@@ -677,6 +681,14 @@ class StaticSiteTests(unittest.TestCase):
         self.assertNotIn("raw_text", task16_migration)
         self.assertNotRegex(task16_migration, r"\b(?:DROP|ALTER\s+TABLE\s+task12_users)\b")
 
+        task17_migration = (
+            ROOT / "cloudflare" / "migrations" / "0013_finance_web_membership.sql"
+        ).read_text(encoding="utf-8")
+        self.assertIn("finance_monthly", task17_migration)
+        self.assertIn("finance_access", task17_migration)
+        self.assertIn("800", task17_migration)
+        self.assertNotRegex(task17_migration, r"\b(?:DROP|DELETE|ALTER\s+TABLE)\b")
+
         middleware = (ROOT / "functions" / "_lib" / "cloudflare-foundation.mjs").read_text(encoding="utf-8")
         status = (ROOT / "functions" / "api" / "status.js").read_text(encoding="utf-8")
         self.assertIn("crypto.randomUUID()", middleware)
@@ -714,6 +726,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("--r2 WYJ_STORAGE", package["scripts"]["cf:dev"])
         self.assertIn("test_task16_d1_js.mjs", package["scripts"]["test:task16"])
         self.assertIn("test_migrate_dailypayguard_finance", package["scripts"]["test:task16"])
+        self.assertIn("test_finance_js.mjs", package["scripts"]["test:task17"])
+        self.assertIn("test_task17_d1_js.mjs", package["scripts"]["test:task17"])
 
     def test_remote_data_loading_has_retry_and_partial_recovery(self):
         self.assertIn('id="membershipPlanRecovery"', self.html)
@@ -784,11 +798,12 @@ class StaticSiteTests(unittest.TestCase):
 
     def test_membership_ui_filters_plans_by_purpose_without_replacing_server_checks(self):
         goal_values = re.findall(r'data-membership-goal="([^"]+)"', self.html)
-        self.assertEqual(goal_values, ["english", "japanese", "bilingual", "tools", "all"])
+        self.assertEqual(goal_values, ["english", "japanese", "bilingual", "tools", "finance", "all"])
         self.assertIn("const MEMBERSHIP_GOALS = Object.freeze", self.membership)
         self.assertIn("function membershipGoalAllowsPlan", self.membership)
         self.assertIn("function membershipGoalForPlan", self.membership)
         self.assertIn('openMembershipModal({ goal: "tools" })', self.app)
+        self.assertIn('openRecharge("finance")', self.finance)
         self.assertGreaterEqual(
             self.app.count("membershipGoalAllowsPlan(selectedMembershipGoal"), 3
         )

@@ -483,12 +483,16 @@ class AccountStoreTests(unittest.TestCase):
         with self.assertRaises(AccountError):
             self.store.create_recharge_request(user, "monthly", "wechat")
 
-    def test_all_six_purchasable_plans_require_manual_approval_and_grant_expected_rights(self):
+    def test_all_seven_purchasable_plans_require_manual_approval_and_grant_expected_rights(self):
         cases = {
             "trial_single_language": {
                 "language": "english",
                 "included": {"language_english_access"},
                 "excluded": {"language_japanese_access", "language_all_access", "tools_access"},
+            },
+            "finance_monthly": {
+                "included": {"finance_access"},
+                "excluded": {"language_english_access", "language_japanese_access", "language_all_access", "tools_access"},
             },
             "dual_language_monthly": {
                 "included": {"language_english_access", "language_japanese_access", "language_all_access"},
@@ -499,7 +503,7 @@ class AccountStoreTests(unittest.TestCase):
                 "excluded": {"language_english_access", "language_japanese_access", "language_all_access"},
             },
             "all_access_monthly": {
-                "included": {"language_english_access", "language_japanese_access", "language_all_access", "tools_access"},
+                "included": {"language_english_access", "language_japanese_access", "language_all_access", "tools_access", "finance_access"},
                 "excluded": set(),
             },
             "japanese_lifetime": {
@@ -507,7 +511,7 @@ class AccountStoreTests(unittest.TestCase):
                 "excluded": {"tools_access"},
             },
             "all_access_lifetime": {
-                "included": {"language_english_access", "language_japanese_access", "language_all_access", "tools_access"},
+                "included": {"language_english_access", "language_japanese_access", "language_all_access", "tools_access", "finance_access"},
                 "excluded": set(),
             },
         }

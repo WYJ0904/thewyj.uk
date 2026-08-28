@@ -2433,7 +2433,7 @@ class VocabHandler(BaseHTTPRequestHandler):
             return
 
         spa_path = (
-            path in {"/", "/login", "/register", "/trial", "/changelog", "/select", "/language", "/tools", "/account", "/recharge", "/admin"}
+            path in {"/", "/login", "/register", "/trial", "/changelog", "/select", "/language", "/tools", "/finance", "/account", "/recharge", "/admin"}
             or path.startswith("/language/")
             or path.startswith("/tools/")
             or path.startswith("/share/")

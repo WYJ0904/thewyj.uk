@@ -90,6 +90,7 @@ Production 的价格、权益与在售状态以 D1 的 `task13_membership_plans`
 | 方案代码 | 价格 | 权益 |
 | --- | ---: | --- |
 | `trial_single_language` | 8 CNY/月 | 英语或日语任选一种，所选语言会员功能一个月，不包含工具箱 |
+| `finance_monthly` | 8 CNY/月 | Web 与 Android 共用财务账本，不包含语言测试或工具箱 |
 | `dual_language_monthly` | 20 CNY/月 | “双语言包月”：英语和日语全部测试会员功能，不包含工具箱 |
 | `tools_monthly` | 20 CNY/月 | 在线工具箱、批量处理、临时分享和配置保存，不包含语言测试会员功能 |
 | `all_access_monthly` | 30 CNY/月 | 全部语言会员功能、工具箱、批量处理、临时分享、配置保存 |
@@ -104,9 +105,10 @@ Production 的价格、权益与在售状态以 D1 的 `task13_membership_plans`
 | 只学日语 | 单语言包月、双语言包月、全功能包月、双语言双项永久、全功能永久 |
 | 英语和日语 | 双语言包月、全功能包月、双语言双项永久、全功能永久 |
 | 只用工具箱 | 工具箱包月、全功能包月、全功能永久 |
-| 语言和工具箱 | 全功能包月、全功能永久 |
+| 只用财务 | 财务会员、全功能包月、全功能永久 |
+| 语言、工具和财务 | 全功能包月、全功能永久 |
 
-用途筛选只用于减少误选，不参与价格或权限判定。六个在售方案代码保持不变，订单金额、权益、支付方式和二维码资源仍由服务端根据方案代码锁定。单语言用途会同时锁定英语或日语选择；旧的未完成订单打开时按订单快照恢复套餐和支付方式，并显示与该订单兼容的用途。
+用途筛选只用于减少误选，不参与价格或权限判定。七个在售方案的订单金额、权益、支付方式和二维码资源都由服务端根据方案代码锁定；Task 17 只新增 `finance_monthly`，既有六个方案代码、价格和语义保持不变。单语言用途会同时锁定英语或日语选择；旧的未完成订单打开时按订单快照恢复套餐和支付方式，并显示与该订单兼容的用途。
 
 权益代码：
 
@@ -116,6 +118,7 @@ Production 的价格、权益与在售状态以 D1 的 `task13_membership_plans`
 - `tools_access`
 - `tools_batch_access`
 - `temporary_share_access`
+- `finance_access`
 - `save_tool_config`
 - `all_features_access`
 
@@ -263,7 +266,7 @@ data\users.pre-feedback-006.sqlite3
 data\users.pre-learning-sync-007.sqlite3
 ```
 
-D1 migration 位于 `cloudflare/migrations/`，由 `wyj_d1_migrations` 管理并按 `0001`～`0012` 前向执行。付款履约、投票、学习记录、临时下载授权、Task 15 import receipt 和财务同步操作均使用稳定主键或唯一约束防止重复。回滚不删除 D1 表或 R2 对象；先冻结相关写入、导出并核对云端增量，再执行前向修复或受控恢复。
+D1 migration 位于 `cloudflare/migrations/`，由 `wyj_d1_migrations` 管理并按 `0001`～`0013` 前向执行。付款履约、投票、学习记录、临时下载授权、Task 15 import receipt 和财务同步操作均使用稳定主键或唯一约束防止重复。回滚不删除 D1 表或 R2 对象；先冻结相关写入、导出并核对云端增量，再执行前向修复或受控恢复。
 
 ## 浏览器本地数据
 
@@ -491,7 +494,7 @@ npm.cmd run cf:dev
 
 ### 迁移、部署与回滚
 
-Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sql`、Task 12 的 `0003_accounts_sessions.sql`、`0004_session_limit_trigger.sql`、`0005_session_limit_ordering.sql`、Task 13 的 `0006_memberships_payments.sql`，Task 14 的 `0007_temporary_sharing.sql`、`0008_task14_user_storage_trigger.sql`、`0009_task14_global_storage_trigger.sql`、Task 15 的 `0010_task15_cloud_only.sql`、`0011_task15_import_trigger_order.sql`，以及 Task 16 的 `0012_finance_core.sql` 必须从 fresh D1 按序可重复应用。Production 迁移报告与备份只保存在仓库外；导入完成后所有 Production import 开关保持关闭。
+Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sql`、Task 12 的 `0003_accounts_sessions.sql`、`0004_session_limit_trigger.sql`、`0005_session_limit_ordering.sql`、Task 13 的 `0006_memberships_payments.sql`，Task 14 的 `0007_temporary_sharing.sql`、`0008_task14_user_storage_trigger.sql`、`0009_task14_global_storage_trigger.sql`、Task 15 的 `0010_task15_cloud_only.sql`、`0011_task15_import_trigger_order.sql`、Task 16 的 `0012_finance_core.sql`，以及 Task 17 的 `0013_finance_web_membership.sql` 必须从 fresh D1 按序可重复应用。Production 迁移报告与备份只保存在仓库外；导入完成后所有 Production import 开关保持关闭。
 
 ```powershell
 # 本地全新 D1 验证
@@ -590,7 +593,7 @@ python scripts/migrate_task12_accounts_to_d1.py `
 
 Pages 保持原 `/api/membership/*`、`/api/recharge/*` 和 `/api/admin/*` 契约。服务端从 D1 读取方案并锁定订单名称、金额、期限和 entitlement 快照；客户端不能指定金额、用户 ID、权益或 R2 key。订单仍按 `pending_payment -> user_paid -> processing -> approved` 流转，也支持 `rejected`、`cancelled`、`expired`。用户点击“我已付款”只进入 `user_paid`，只有超级管理员审批成功才在同一 D1 batch 中写入唯一履约、会员、状态历史和审计。重复或并发审批不能重复延长期限，异常响应会说明提交状态而不会悄悄重试履约。
 
-收款二维码存放在环境隔离的私有 `WYJ_STORAGE` bucket，固定 key 为 `payments/qrcodes/v1/<wechat|alipay>_<plan>.png`。接口不接受客户端 object key，只允许已登录的订单本人按订单 ID 读取，校验订单归属、状态、支付方式、方案和 `qr_resource_id` 后返回 PNG；响应使用 `Cache-Control: private, no-store`，不返回 object key。二维码文件、内容和真实付款信息不得进入 Git、迁移报告或 CI artifact。
+收款二维码存放在环境隔离的私有 `WYJ_STORAGE` bucket，既有方案使用固定 key `payments/qrcodes/v1/<wechat|alipay>_<plan>.png`。`finance_monthly` 的订单仍保存自身的 plan-bound `qr_resource_id`，服务端物理读取则复用同支付方式的 `all_access_monthly` 私有收款码，避免复制敏感二维码文件；客户端不能选择或看到该映射。接口只允许已登录的订单本人按订单 ID 读取，并校验订单归属、状态、支付方式、方案和 `qr_resource_id`；响应使用 `Cache-Control: private, no-store`，不返回 object key。二维码文件、内容和真实付款信息不得进入 Git、迁移报告或 CI artifact。
 
 Preview 验证顺序：
 
@@ -727,7 +730,7 @@ Task 16 只建立财务数据、同步、识别和迁移核心，不提前提供
 
 自动识别先判断来源、完成语义和收支/退款方向，再接受金额。贷款/信用额度、优惠券、抽奖和商品宣传等营销内容即使包含金额也只保存为 rejected raw evidence，不创建账目。跨来源融合只在强 provider transaction/reference 一致时自动执行；同来源但缺少稳定参考号的相近金额和时间仍保持独立。用户手动合并/拆分会保留 raw event 关联和审计记录。
 
-服务端新增兼容权益 `finance_access` 和隐藏基础方案 `finance_monthly`（8 CNY/月）。`all_access_monthly` 与 `all_access_lifetime` 自动合并该权益，旧全功能会员无需改写历史订单快照即可获得财务访问。由于尚未提供财务用途的真实私有收款二维码，`finance_monthly` 当前 `purchasable=false`，不会出现在在售套餐或创建支付订单；现有六个套餐、价格、权益、二维码和支付状态机未改变。待二维码和完整购买验收在后续明确任务完成后，才能通过服务端配置开放销售。
+Task 16 当时先新增兼容权益 `finance_access` 和隐藏基础方案 `finance_monthly`（8 CNY/月），并让 `all_access_monthly` 与 `all_access_lifetime` 自动合并该权益；旧全功能会员因此无需改写历史订单快照即可获得财务访问。该阶段尚未开放独立购买。Task 17 随后通过 `0013_finance_web_membership.sql` 将 `finance_monthly` 开放为第七个在售方案；当前在售状态、用途筛选和私有二维码要求以本 README 的“会员与套餐”和“Task 17 Web 财务账本”章节为准。
 
 旧 DailyPayGuard Android 原型是 Kotlin/Compose + NotificationListener，记录保存在 SharedPreferences 的 tab/newline 文本中，并用 timestamp 作为删除 ID；旧进程内 15 秒 fingerprint 去重在 App 重启后失效，也缺少编辑、云同步和持久审计。迁移工具支持 SharedPreferences XML 或导出文本，使用旧 timestamp 加用户/来源不可逆短摘要生成稳定 ID，默认 source key 也按稳定 user ID 派生，避免不同账户或不同导入源发生全局主键冲突且不暴露用户名。金额用 Decimal 转成 minor unit，无效/重复记录只在报告中输出数量、聚合 digest、opaque ID 和错误码。每条导入会原子写入 canonical transaction、legacy raw event、关联和摘要 receipt；中断后可安全 resume。完成批次前服务端会重建 canonical 数据并复核 SHA-256。工具不会修改旧数据，也不会输出通知正文、hash、token、用户名或本机路径。
 
@@ -758,6 +761,14 @@ python scripts/migrate_dailypayguard_finance.py `
 ```
 
 Production 已在仓库外全量 D1 备份、稳定 user ID 与 Task 11～15 数量核对后应用 `0012`，财务 read/write 已开启；当时没有可导入的真实 DailyPayGuard 导出，因此 Production 财务表以零记录开始，未伪造迁移数据。旧数据导入仍必须另行执行仓库外 dry-run、异常隔离、逐批导入、重复重放和源/目标 count/digest 核对。Production 精确确认值是 `TASK16-PRODUCTION-FINANCE-MIGRATION`，但仅设置请求头仍不够；`TASK16_IMPORT_ENABLED` 与 `TASK16_PRODUCTION_IMPORT_ENABLED` 也必须由管理员短时开启，并在完成后立即关闭。发生问题时先关闭新的财务写入并导出 D1 增量，不能把 D1 和旧 SharedPreferences 双写，也不能删除旧数据来回滚。完整审计和强制场景矩阵见 `qa/TASK16_FINANCE_CORE_AUDIT.md`。
+
+### Task 17 Web 财务账本
+
+`/finance` 是登录后的一级功能入口，复用 Task 16 的 D1 canonical transaction、分类、预算、revision、tombstone 和增量同步协议。页面支持收入、支出、退款、新增、编辑、删除后撤销、搜索、月份/类型/分类筛选、商户、对手方、备注、月总预算和分类预算；首页只显示余额与同步摘要。Web 不实现 Android Notification Listener、SMS 或 Accessibility 采集，Android 自动识别后的 canonical transaction 通过同一 API 出现在网页。
+
+浏览器采用账户隔离的本地队列，先保存有稳定 operation ID 和 entity ID 的修改，再调用 `/api/finance/sync`。刷新、离线或页面切换不会消费或丢失队列；恢复联网后按 revision 同步，冲突会保留本机修改并基于服务端当前 revision 重试，不会整份覆盖另一设备。删除继续使用 tombstone。退出或切换账户时只切换到对应账户命名空间，不把一名用户的账目展示给另一名用户。
+
+`cloudflare/migrations/0013_finance_web_membership.sql` 只把已有的 `finance_monthly` 开放为第七个在售方案（8 CNY/月）并保持 `finance_access`；它不修改既有六个方案的价格、订单快照或权益。全功能包月与全功能永久继续通过合并 entitlement 自动获得财务权限，无需重复购买。充值流程仍是服务端锁定方案、价格、支付方式和私有二维码，用户“我已付款”后只进入人工审核，不会自动开通。财务会员到期后页面停止云端读取和编辑，但本机及 D1 历史账目不会被删除。
 
 ### 免费额度降级
 

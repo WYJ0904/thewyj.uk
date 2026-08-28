@@ -484,6 +484,17 @@ async function main() {
         historyWrong: state?.historyWrongBook?.hello || null,
         syncWrong: Object.values(learningSyncManager?.state?.records || {}).filter((item) => item.record_id?.includes('hello')),
         rejudgeFetches: window.__rejudgeFetches || [],
+        paymentQrMessage: document.querySelector('#paymentQrMessage')?.textContent || '',
+        paymentQrSrc: document.querySelector('#paymentQrImage')?.getAttribute('src') || '',
+        paymentQrWrapHidden: document.querySelector('#paymentQrWrap')?.classList.contains('hidden'),
+        membershipModalHidden: document.querySelector('#membershipModal')?.classList.contains('hidden'),
+        paymentQrObjectUrl,
+        paymentOrder: currentPaymentOrder ? { id: currentPaymentOrder.id, status: currentPaymentOrder.status, payment_method: currentPaymentOrder.payment_method } : null,
+        financeSummary: financeController?.dashboardSummary?.() || null,
+        financeSyncStatus: document.querySelector('#financeSyncStatus')?.textContent || '',
+        financeSyncDetail: document.querySelector('#financeSyncDetail')?.textContent || '',
+        financeMessage: document.querySelector('#financeMessage')?.textContent || '',
+        navigatorOnline: navigator.onLine,
         activeWrongRejudgeKey,
         learningSyncWrongRenderPending,
       })`).catch(() => ({}));
@@ -554,10 +565,10 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260826-task15-cloud-only');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260826-task15-cloud-only');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260826-task15-cloud-only');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260826-task15-cloud-only');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260828-task17-finance-web');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260828-task17-finance-web');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260828-task17-finance-web');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260828-task17-finance-web');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -567,10 +578,10 @@ async function main() {
       assert.equal(pwa.cachedLearningSync, true);
       assert.equal(pwa.cachedWorkflows, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.24");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.28");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-26-task15-cloud-only");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-28-task17-finance-web");
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
     });
@@ -647,7 +658,7 @@ async function main() {
       );
       assert.equal(await evaluate("document.querySelector('#changelogPage').textContent.includes('可配置工具工作流')"), true);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.24");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.28");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
@@ -693,11 +704,11 @@ async function main() {
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
       const mobileDashboard = await evaluate(`({ viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth, cards: document.querySelectorAll('.dashboard-entry-grid .module-card').length })`);
       assert.ok(mobileDashboard.scrollWidth <= mobileDashboard.viewport + 1, JSON.stringify(mobileDashboard));
-      assert.equal(mobileDashboard.cards, 3);
+      assert.equal(mobileDashboard.cards, 4);
       const mobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `dashboard-390-${RUN_ID}.png`), Buffer.from(mobileShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
-      assert.equal(await evaluate("getComputedStyle(document.querySelector('.dashboard-entry-grid')).gridTemplateColumns.split(' ').length"), 3);
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('.dashboard-entry-grid')).gridTemplateColumns.split(' ').length"), 4);
       const wideShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `dashboard-1920-${RUN_ID}.png`), Buffer.from(wideShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 768, deviceScaleFactor: 1, mobile: false });
@@ -848,6 +859,20 @@ async function main() {
     });
 
     await check("locked toolbox, direct-route guard and membership plans", async () => {
+      await click('[data-module="finance"]');
+      await waitFor("location.pathname === '/finance' && !document.querySelector('#financeLocked')?.classList.contains('hidden')", 8_000, "locked finance page");
+      assert.equal(await evaluate("document.querySelector('#financeWorkspace').classList.contains('hidden')"), true);
+      assert.ok((await evaluate("document.querySelector('#financeLocked').textContent")).includes("财务会员 8 CNY/月"));
+      await click("#financeUpgradeBtn");
+      await waitFor("selectedMembershipGoal === 'finance' && document.querySelectorAll('#membershipPlanList [data-plan]').length === 3", 8_000, "finance membership choices");
+      assert.deepEqual(
+        await evaluate("[...document.querySelectorAll('#membershipPlanList [data-plan]')].map(node => node.dataset.plan)"),
+        ["finance_monthly", "all_access_monthly", "all_access_lifetime"],
+      );
+      await click('[data-close-modal="membershipModal"]');
+      await click("#financeBackBtn");
+      await waitFor("location.pathname === '/select'", 4_000, "finance back to dashboard");
+
       await click('[data-module="tools"]');
       await waitFor("!document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, "membership modal");
       assert.equal(await evaluate("location.pathname"), "/select");
@@ -857,6 +882,7 @@ async function main() {
         japanese: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
         bilingual: ["dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
         tools: ["tools_monthly", "all_access_monthly", "all_access_lifetime"],
+        finance: ["finance_monthly", "all_access_monthly", "all_access_lifetime"],
         all: ["all_access_monthly", "all_access_lifetime"],
       };
       const planTextByCode = {};
@@ -871,11 +897,13 @@ async function main() {
           planTextByCode[item.code] = item.text;
         });
       }
-      assert.deepEqual([...observedCodes].sort(), ["all_access_lifetime", "all_access_monthly", "dual_language_monthly", "japanese_lifetime", "tools_monthly", "trial_single_language"]);
+      assert.deepEqual([...observedCodes].sort(), ["all_access_lifetime", "all_access_monthly", "dual_language_monthly", "finance_monthly", "japanese_lifetime", "tools_monthly", "trial_single_language"]);
       assert.ok(planTextByCode.trial_single_language.includes("8"));
       assert.ok(planTextByCode.dual_language_monthly.includes("20"));
       assert.ok(planTextByCode.dual_language_monthly.includes("双语言包月"));
       assert.ok(planTextByCode.tools_monthly.includes("20"));
+      assert.ok(planTextByCode.finance_monthly.includes("8"));
+      assert.ok(planTextByCode.finance_monthly.includes("财务会员"));
       assert.ok(planTextByCode.all_access_monthly.includes("30"));
       assert.ok(planTextByCode.japanese_lifetime.includes("70"));
       assert.ok(planTextByCode.japanese_lifetime.includes("双语言双项永久会员"));
@@ -934,6 +962,7 @@ async function main() {
       assert.equal(await evaluate("selectedMembershipGoal"), "tools");
       assert.equal(await evaluate("document.querySelector('#paymentOrderBox').classList.contains('hidden')"), false);
       await click('[data-close-modal="membershipModal"]');
+
     });
 
     await check("WeChat and Alipay order state survives a full page reload", async () => {
@@ -1616,7 +1645,7 @@ async function main() {
       await waitFor("!document.querySelector('#adminEditModal')?.classList.contains('hidden')", 3_000, "admin editor");
       assert.deepEqual(
         await evaluate("[...document.querySelector('#adminMembershipSelect').options].map(option => option.value).filter(Boolean)"),
-        ["trial_single_language", "dual_language_monthly", "tools_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
+        ["trial_single_language", "finance_monthly", "dual_language_monthly", "tools_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
       );
       assert.ok((await evaluate("document.querySelector('#adminCurrentMemberships').textContent")).includes("全功能包月会员"));
       await assertReadable(".admin-current-memberships article small");
@@ -1666,6 +1695,151 @@ async function main() {
       await waitFor(`adminFeedback.some((item) => item.id === ${JSON.stringify(browserFeedbackId)} && item.status === 'accepted' && item.admin_note === 'Accepted in browser regression')`, 12_000, "admin feedback accepted");
       await click('[data-admin-view="adminAuditView"]');
       await waitFor("document.querySelector('#adminAuditList')?.textContent.includes('feedback_update')", 5_000, "feedback audit record");
+    });
+
+    await check("finance ledger local-first CRUD, budget, reconnect, reload and mobile layout", async () => {
+      const financeStubSource = `(() => {
+        if (window.__financeTestOriginalFetch) return;
+        const key = '__wyjFinanceBrowserServer:v1';
+        const load = () => { try { return JSON.parse(sessionStorage.getItem(key)) || {}; } catch (_) { return {}; } };
+        const save = (value) => sessionStorage.setItem(key, JSON.stringify(value));
+        const initial = load();
+        window.__financeBrowserServer = {
+          version: Number(initial.version || 0),
+          transactions: initial.transactions || {},
+          categories: initial.categories || {},
+          budgets: initial.budgets || {},
+        };
+        const persist = () => save(window.__financeBrowserServer);
+        const json = (payload, status = 200) => Promise.resolve(new Response(JSON.stringify({ ok: true, ...payload }), { status, headers: { 'Content-Type': 'application/json' } }));
+        window.__financeTestOriginalFetch = window.fetch.bind(window);
+        window.fetch = (input, init = {}) => {
+          const url = new URL(typeof input === 'string' ? input : input.url, location.origin);
+          if (!url.pathname.startsWith('/api/finance/')) return window.__financeTestOriginalFetch(input, init);
+          const server = window.__financeBrowserServer;
+          if (url.pathname === '/api/finance/bootstrap') return json({
+            schema_version: 1, server_version: server.version, finance_access: true,
+            transaction_count: Object.values(server.transactions).filter(item => item.status === 'active').length,
+            categories: Object.values(server.categories), budgets: Object.values(server.budgets),
+          });
+          if (url.pathname === '/api/finance/transactions') return json({ transactions: Object.values(server.transactions), next_before: 0, next_before_id: '' });
+          if (url.pathname === '/api/finance/changes') return json({ schema_version: 1, server_version: server.version, changes: [], next_since: server.version, has_more: false });
+          if (url.pathname === '/api/finance/sync') {
+            const body = JSON.parse(init.body || '{}');
+            const operation_results = [];
+            for (const operation of body.operations || []) {
+              const [kind, action] = operation.type.split('.');
+              const collection = { transaction: 'transactions', category: 'categories', budget: 'budgets' }[kind];
+              if (!collection) return json({ code: 'finance_operation_invalid', error: 'invalid finance operation' }, 400);
+              const current = server[collection][operation.entity_id] || {};
+              server.version += 1;
+              const entity = action === 'upsert'
+                ? { ...current, ...operation.payload, id: operation.entity_id, status: 'active', revision: Number(operation.base_revision || 0) + 1, sync_version: server.version, source_kind: current.source_kind || (kind === 'transaction' ? 'manual' : undefined), reconciliation_state: current.reconciliation_state || (kind === 'transaction' ? 'confirmed' : undefined), updated_at: new Date().toISOString(), deleted_at: '' }
+                : { ...current, id: operation.entity_id, status: action === 'delete' ? 'deleted' : 'active', revision: Number(operation.base_revision || 0) + 1, sync_version: server.version, updated_at: new Date().toISOString(), deleted_at: action === 'delete' ? new Date().toISOString() : '' };
+              server[collection][entity.id] = entity;
+              operation_results.push({ operation_id: operation.operation_id, [kind]: entity });
+            }
+            persist();
+            return json({ schema_version: 1, server_version: server.version, next_since: server.version, has_more: false, changes: [], operation_results });
+          }
+          return json({ code: 'not_found', message: 'not found' }, 404);
+        };
+      })();`;
+      await send("Page.addScriptToEvaluateOnNewDocument", { source: financeStubSource });
+      await useSession(userSession, "/select");
+      await evaluate(financeStubSource);
+      await click('[data-module="finance"]');
+      await waitFor("location.pathname === '/finance' && !document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 8_000, "finance workspace");
+      assert.equal(await evaluate("document.querySelector('#financeLocked').classList.contains('hidden')"), true);
+
+      await click("#financeManageCategoriesBtn");
+      await setFields({ "#financeCategoryName": "餐饮", "#financeCategoryAppliesTo": "expense" });
+      await click("#financeCategoryForm button[type=submit]");
+      await waitFor("document.querySelector('#financeCategoryManagerList')?.textContent.includes('餐饮')", 4_000, "finance category");
+      const categoryId = await evaluate("document.querySelector('#financeCategoryManagerList [data-finance-category-edit]')?.dataset.financeCategoryEdit");
+      assert.ok(categoryId);
+      await click('[data-finance-close="financeCategoryModal"]');
+
+      const addTransaction = async ({ direction, amount, merchant, counterparty = "", note = "", category = "" }) => {
+        await click("#financeAddTransactionBtn");
+        await setFields({
+          "#financeTransactionDirection": direction,
+          "#financeTransactionAmount": amount,
+          "#financeTransactionMerchant": merchant,
+          "#financeTransactionCounterparty": counterparty,
+          "#financeTransactionNote": note,
+          "#financeTransactionCategory": category,
+        });
+        await click("#financeTransactionForm button[type=submit]");
+        await waitFor("document.querySelector('#financeTransactionModal').classList.contains('hidden')", 4_000, `save ${direction}`);
+      };
+      await addTransaction({ direction: "expense", amount: "12.34", merchant: "便利店", note: "午餐", category: categoryId });
+      await addTransaction({ direction: "income", amount: "100.00", merchant: "测试收入", counterparty: "测试公司" });
+      await addTransaction({ direction: "refund", amount: "2.34", merchant: "便利店退款", category: categoryId });
+      await waitFor("document.querySelectorAll('#financeTransactionList .finance-transaction').length === 3", 8_000, "three finance directions");
+      assert.ok((await evaluate("document.querySelector('#financeBalanceTotal').textContent")).includes("90.00"));
+
+      await setFields({ "#financeSearchInput": "午餐" });
+      await waitFor("document.querySelectorAll('#financeTransactionList .finance-transaction').length === 1", 3_000, "finance search");
+      await setFields({ "#financeSearchInput": "测试公司" });
+      await waitFor("document.querySelectorAll('#financeTransactionList .finance-transaction').length === 1 && document.querySelector('#financeTransactionList').textContent.includes('测试收入')", 3_000, "finance counterparty search");
+      await setFields({ "#financeSearchInput": "" });
+      await setFields({ "#financeDirectionFilter": "refund" });
+      await waitFor("document.querySelectorAll('#financeTransactionList .finance-transaction').length === 1 && document.querySelector('#financeTransactionList').textContent.includes('退款')", 3_000, "finance direction filter");
+      await setFields({ "#financeDirectionFilter": "", "#financeCategoryFilter": categoryId });
+      await waitFor("document.querySelectorAll('#financeTransactionList .finance-transaction').length === 2", 3_000, "finance category filter");
+      await setFields({ "#financeCategoryFilter": "" });
+      const expenseId = await evaluate(`(() => [...document.querySelectorAll('#financeTransactionList .finance-transaction')].find(node => node.textContent.includes('便利店') && node.textContent.includes('支出'))?.dataset.financeTransaction)()`);
+      assert.ok(expenseId);
+      await click(`[data-finance-edit="${expenseId}"]`);
+      await setFields({ "#financeTransactionAmount": "15.00" });
+      await click("#financeTransactionForm button[type=submit]");
+      await waitFor("document.querySelector('#financeExpenseTotal').textContent.includes('15.00')", 5_000, "finance edit");
+      await click(`[data-finance-delete="${expenseId}"]`);
+      await waitFor("!document.querySelector('#financeUndoBar').classList.contains('hidden')", 3_000, "finance delete undo");
+      await setFields({ "#financeStatusFilter": "deleted" });
+      await waitFor("document.querySelectorAll('#financeTransactionList .finance-transaction.is-deleted').length === 1", 3_000, "finance deleted filter");
+      await setFields({ "#financeStatusFilter": "active" });
+      await click("#financeUndoBtn");
+      await waitFor("document.querySelector('#financeUndoBar').classList.contains('hidden')", 3_000, "finance restore");
+
+      await click("#financeManageBudgetsBtn");
+      await setFields({ "#financeBudgetAmount": "20.00", "#financeBudgetCategory": categoryId });
+      await click("#financeBudgetForm button[type=submit]");
+      await waitFor("document.querySelector('#financeBudgetManagerList')?.textContent.includes('20.00')", 4_000, "finance budget");
+      await click('[data-finance-close="financeBudgetModal"]');
+      assert.ok((await evaluate("document.querySelector('#financeBudgetSummary').textContent")).includes("剩余"));
+      assert.ok((await evaluate("document.querySelector('#financeCategoryStats').textContent")).includes("餐饮"));
+
+      await send("Network.emulateNetworkConditions", { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
+      await evaluate("window.dispatchEvent(new Event('offline')); true");
+      await addTransaction({ direction: "expense", amount: "1.00", merchant: "离线账目" });
+      assert.ok(Number(await evaluate("financeController.dashboardSummary().pending")) >= 1);
+      await send("Network.emulateNetworkConditions", { offline: false, latency: 80, downloadThroughput: 1_500_000, uploadThroughput: 750_000 });
+      await evaluate("window.dispatchEvent(new Event('online')); true");
+      await waitFor("financeController.dashboardSummary().pending === 0", 8_000, "finance reconnect sync");
+
+      await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+      const mobilePage = await evaluate(`({ viewport: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth, cards: document.querySelectorAll('#financeTransactionList .finance-transaction').length })`);
+      assert.ok(mobilePage.scrollWidth <= mobilePage.viewport + 1, JSON.stringify(mobilePage));
+      assert.equal(mobilePage.cards, 4);
+      await click("#financeAddTransactionBtn");
+      await waitFor("!document.querySelector('#financeTransactionModal').classList.contains('hidden')", 3_000, "mobile finance editor");
+      const mobileFinance = await evaluate(`({ viewport: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth, modalWidth: document.querySelector('#financeTransactionModal .modal-panel').getBoundingClientRect().width })`);
+      assert.ok(mobileFinance.scrollWidth <= mobileFinance.viewport + 1, JSON.stringify(mobileFinance));
+      assert.ok(mobileFinance.modalWidth <= mobileFinance.viewport, JSON.stringify(mobileFinance));
+      const financeShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      fs.writeFileSync(path.join(TEST_ROOT, `finance-390-${RUN_ID}.png`), Buffer.from(financeShot.data, "base64"));
+      await click('[data-finance-close="financeTransactionModal"]');
+      await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+
+      await navigate(`/finance?reload=${RUN_ID}`);
+      await waitFor("!document.querySelector('#entryScreen') && location.pathname === '/finance'", 8_000, "finance reload");
+      await waitFor("document.querySelectorAll('#financeTransactionList .finance-transaction').length === 4", 8_000, "finance reload state");
+      assert.ok((await evaluate("document.querySelector('#financeTransactionList').textContent")).includes("离线账目"));
+      await evaluate("window.fetch = window.__financeTestOriginalFetch; delete window.__financeTestOriginalFetch; true");
+      await useSession(admin.session, "/admin");
+      await waitFor("!document.querySelector('#adminPanel')?.classList.contains('hidden')", 12_000, "admin restored after finance test");
     });
 
     await check("administrator ban, force logout, secret reset and delete", async () => {
