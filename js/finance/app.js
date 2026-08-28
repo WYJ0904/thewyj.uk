@@ -5,6 +5,11 @@ const CLIENT_PAGE_SIZE = 100;
 const SYNC_BATCH_SIZE = 80;
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
 const VALID_ENTITY_KINDS = new Set(["transaction", "category", "budget"]);
+const ENTITY_COLLECTION_KEYS = Object.freeze({
+  transaction: "transactions",
+  category: "categories",
+  budget: "budgets",
+});
 
 function safeJson(value, fallback) {
   try {
@@ -154,6 +159,16 @@ function entityNormalizer(kind) {
   return () => null;
 }
 
+export function financeCollectionKey(kind) {
+  return ENTITY_COLLECTION_KEYS[String(kind || "")] || "";
+}
+
+function financeCollection(store, kind) {
+  const key = financeCollectionKey(kind);
+  const collection = key ? store?.[key] : null;
+  return collection && typeof collection === "object" ? collection : null;
+}
+
 function normalizeOperation(value) {
   if (!value || typeof value !== "object") return null;
   const operationId = safeText(value.operation_id, 80);
@@ -251,9 +266,10 @@ export function applyFinanceChange(store, change) {
   const payload = change?.payload?.[entityType];
   const clean = entityNormalizer(entityType)(payload);
   if (!clean) return false;
-  const collection = `${entityType}s`;
-  const current = store[collection]?.[clean.id];
-  if (!current || Number(clean.revision) >= Number(current.revision || 0)) store[collection][clean.id] = clean;
+  const collection = financeCollection(store, entityType);
+  if (!collection) return false;
+  const current = collection[clean.id];
+  if (!current || Number(clean.revision) >= Number(current.revision || 0)) collection[clean.id] = clean;
   store.server_version = Math.max(Number(store.server_version || 0), Number(change.version || clean.sync_version || 0));
   return true;
 }
@@ -510,7 +526,8 @@ export function createFinanceController({
       queued_at_ms: Date.now(),
     };
     store.pending.push(operation);
-    if (store[`${kind}s`]?.[entity.id]) store[`${kind}s`][entity.id].revision = baseRevision + 1;
+    const collection = financeCollection(store, kind);
+    if (collection?.[entity.id]) collection[entity.id].revision = baseRevision + 1;
     persist();
     renderAll();
     if (navigator.onLine !== false) syncNow().catch(() => {});
@@ -520,7 +537,8 @@ export function createFinanceController({
   function applyOperationResult(result) {
     for (const kind of VALID_ENTITY_KINDS) {
       const clean = entityNormalizer(kind)(result?.[kind]);
-      if (clean) store[`${kind}s`][clean.id] = clean;
+      const collection = financeCollection(store, kind);
+      if (clean && collection) collection[clean.id] = clean;
     }
   }
 
@@ -557,8 +575,10 @@ export function createFinanceController({
     const clean = entityNormalizer(kind)(item);
     if (!clean) return;
     const hasPending = store.pending.some((operation) => operation.entity_id === clean.id);
-    const current = store[`${kind}s`][clean.id];
-    if (!hasPending && (!current || clean.revision >= current.revision)) store[`${kind}s`][clean.id] = clean;
+    const collection = financeCollection(store, kind);
+    if (!collection) return;
+    const current = collection[clean.id];
+    if (!hasPending && (!current || clean.revision >= current.revision)) collection[clean.id] = clean;
   }
 
   async function hydrate() {
@@ -673,7 +693,8 @@ export function createFinanceController({
       const serverItem = entityNormalizer(kind)(remote[kind][operation.entity_id]);
       const targetStatus = operation.type.endsWith(".delete") ? "deleted" : operation.type.endsWith(".restore") ? "active" : "";
       if (targetStatus && serverItem?.status === targetStatus) {
-        if (serverItem) store[`${kind}s`][serverItem.id] = serverItem;
+        const collection = financeCollection(store, kind);
+        if (serverItem && collection) collection[serverItem.id] = serverItem;
         continue;
       }
       const revisionKey = `${kind}:${operation.entity_id}`;
@@ -690,7 +711,8 @@ export function createFinanceController({
     for (const [revisionKey, revision] of predictedRevision.entries()) {
       const [kind, ...idParts] = revisionKey.split(":");
       const id = idParts.join(":");
-      if (store[`${kind}s`]?.[id]) store[`${kind}s`][id].revision = revision;
+      const collection = financeCollection(store, kind);
+      if (collection?.[id]) collection[id].revision = revision;
     }
     persist();
     renderAll();

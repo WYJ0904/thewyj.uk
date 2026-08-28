@@ -1748,9 +1748,25 @@ async function main() {
       await send("Page.addScriptToEvaluateOnNewDocument", { source: financeStubSource });
       await useSession(userSession, "/select");
       await evaluate(financeStubSource);
+      await evaluate(`(() => {
+        const server = window.__financeBrowserServer;
+        server.version = 2;
+        server.categories['category:preloaded'] = {
+          id: 'category:preloaded', name: '云端预置分类', applies_to: 'expense', color: '#2563eb',
+          status: 'active', revision: 1, sync_version: 1, updated_at: new Date().toISOString(), deleted_at: ''
+        };
+        server.budgets['budget:preloaded'] = {
+          id: 'budget:preloaded', category_id: 'category:preloaded', period_type: 'monthly', amount_minor: 5000,
+          currency: 'CNY', starts_on: new Date().toISOString().slice(0, 7) + '-01', ends_on: '',
+          status: 'active', revision: 1, sync_version: 2, updated_at: new Date().toISOString(), deleted_at: ''
+        };
+        return true;
+      })()`);
       await click('[data-module="finance"]');
       await waitFor("location.pathname === '/finance' && !document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 8_000, "finance workspace");
       assert.equal(await evaluate("document.querySelector('#financeLocked').classList.contains('hidden')"), true);
+      await waitFor("document.querySelector('#financeCategoryFilter')?.textContent.includes('云端预置分类')", 4_000, "pre-existing finance category hydration");
+      assert.ok((await evaluate("document.querySelector('#financeBudgetSummary').textContent")).includes("50.00"));
 
       await click("#financeManageCategoriesBtn");
       await setFields({ "#financeCategoryName": "餐饮", "#financeCategoryAppliesTo": "expense" });
