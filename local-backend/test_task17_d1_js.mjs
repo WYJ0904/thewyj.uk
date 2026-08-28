@@ -8,6 +8,7 @@ import { Miniflare } from "miniflare";
 import { handleTask13Request } from "../functions/_lib/task13-api.mjs";
 import { handleTask16Request } from "../functions/_lib/task16-api.mjs";
 import { sessionStorageKey } from "../functions/_lib/task12-crypto.mjs";
+import { qrObjectKeyFor, qrResourceIdFor } from "../functions/_lib/task13-model.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const ENVIRONMENT = Object.freeze({
@@ -91,10 +92,15 @@ try {
   }
   for (const user of Object.values(USERS)) await insertAccountAndSession(db, user);
   for (const method of ["wechat", "alipay"]) {
-    await storage.put(`payments/qrcodes/v1/${method}_finance_monthly.png`, PNG_FIXTURE, {
+    await storage.put(qrObjectKeyFor(method, "finance_monthly"), PNG_FIXTURE, {
       httpMetadata: { contentType: "image/png" },
     });
   }
+  assert.equal(qrResourceIdFor("wechat", "finance_monthly"), "qr-v1:wechat:finance_monthly");
+  assert.equal(
+    qrObjectKeyFor("wechat", "finance_monthly"),
+    "payments/qrcodes/v1/wechat_all_access_monthly.png",
+  );
 
   const plans = await request(handleTask13Request, db, storage, "/api/membership/plans");
   assert.equal(plans.response.status, 200);

@@ -99,6 +99,17 @@ class PaymentAssetTests(unittest.TestCase):
             )
         self.assertEqual(invalid.exception.code, "payment_qr_invalid")
 
+    def test_finance_resource_id_reuses_private_receiver_asset(self):
+        expected = PNG_SIGNATURE + b"shared-private-receiver"
+        self.write_asset("wechat", "all_access_monthly", expected)
+        content, content_type = load_qr_asset(
+            "wechat",
+            "finance_monthly",
+            "qr-v1:wechat:finance_monthly",
+        )
+        self.assertEqual(content, expected)
+        self.assertEqual(content_type, "image/png")
+
     def test_missing_asset_error_does_not_disclose_local_path(self):
         with self.assertRaises(PaymentAssetError) as missing:
             load_qr_asset(

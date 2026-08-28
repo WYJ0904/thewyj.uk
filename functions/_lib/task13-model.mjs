@@ -40,6 +40,9 @@ export const OPEN_PAYMENT_STATUSES = Object.freeze(["pending_payment", "user_pai
 const ID_PATTERN = /^[A-Za-z0-9._:-]{1,80}$/;
 const ORDER_PATTERN = /^[A-Za-z0-9._:-]{1,80}$/;
 const PNG_SIGNATURE = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const QR_ASSET_PLAN_ALIASES = Object.freeze({
+  finance_monthly: "all_access_monthly",
+});
 
 export class Task13Error extends Error {
   constructor(message, status = 400, code = "task13_error", retryable = false, committed = false) {
@@ -123,7 +126,8 @@ export function qrResourceIdFor(paymentMethod, planCode) {
 export function qrObjectKeyFor(paymentMethod, planCode) {
   const resource = qrResourceIdFor(paymentMethod, planCode);
   const [, method, plan] = resource.split(":");
-  return `payments/qrcodes/v1/${method}_${plan}.png`;
+  const assetPlan = QR_ASSET_PLAN_ALIASES[plan] || plan;
+  return `payments/qrcodes/v1/${method}_${assetPlan}.png`;
 }
 
 export function hasPngSignature(bytes) {

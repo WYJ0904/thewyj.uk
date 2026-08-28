@@ -32,7 +32,8 @@ def write_qr_fixtures(directory: Path) -> None:
         if not plan["purchasable"]:
             continue
         for method in MIGRATION.PAYMENT_METHODS:
-            (directory / f"{method}_{code}.png").write_bytes(ONE_PIXEL_PNG)
+            asset_code = MIGRATION.qr_asset_plan_code(code)
+            (directory / f"{method}_{asset_code}.png").write_bytes(ONE_PIXEL_PNG)
     (directory / "alipay_legacy_all_lifetime.png").write_bytes(ONE_PIXEL_PNG)
 
 
@@ -163,9 +164,12 @@ class Task13MigrationTests(unittest.TestCase):
             self.assertEqual(counts["users"], 2)
             self.assertEqual(counts["memberships"], 2)
             self.assertEqual(counts["payment_orders"], 2)
-            current_qr_count = len(MIGRATION.PAYMENT_METHODS) * sum(
-                1 for plan in MIGRATION.MEMBERSHIP_PLANS.values() if plan["purchasable"]
-            )
+            current_qr_count = len({
+                (method, MIGRATION.qr_asset_plan_code(code))
+                for code, plan in MIGRATION.MEMBERSHIP_PLANS.items()
+                if plan["purchasable"]
+                for method in MIGRATION.PAYMENT_METHODS
+            })
             expected_qr_count = current_qr_count + 1  # Historical alipay legacy order fixture.
             self.assertEqual(
                 counts["qr_inventory"],

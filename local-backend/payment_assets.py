@@ -12,7 +12,9 @@ PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 _PLAN_FILENAMES = {
     "trial_single_language": "trial_single_language.png",
-    "finance_monthly": "finance_monthly.png",
+    # The finance order keeps its own plan-bound resource ID while reusing the
+    # existing private receiver QR for the same payment method.
+    "finance_monthly": "all_access_monthly.png",
     "dual_language_monthly": "dual_language_monthly.png",
     "tools_monthly": "tools_monthly.png",
     "all_access_monthly": "all_access_monthly.png",

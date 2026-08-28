@@ -593,7 +593,7 @@ python scripts/migrate_task12_accounts_to_d1.py `
 
 Pages 保持原 `/api/membership/*`、`/api/recharge/*` 和 `/api/admin/*` 契约。服务端从 D1 读取方案并锁定订单名称、金额、期限和 entitlement 快照；客户端不能指定金额、用户 ID、权益或 R2 key。订单仍按 `pending_payment -> user_paid -> processing -> approved` 流转，也支持 `rejected`、`cancelled`、`expired`。用户点击“我已付款”只进入 `user_paid`，只有超级管理员审批成功才在同一 D1 batch 中写入唯一履约、会员、状态历史和审计。重复或并发审批不能重复延长期限，异常响应会说明提交状态而不会悄悄重试履约。
 
-收款二维码存放在环境隔离的私有 `WYJ_STORAGE` bucket，固定 key 为 `payments/qrcodes/v1/<wechat|alipay>_<plan>.png`。接口不接受客户端 object key，只允许已登录的订单本人按订单 ID 读取，校验订单归属、状态、支付方式、方案和 `qr_resource_id` 后返回 PNG；响应使用 `Cache-Control: private, no-store`，不返回 object key。二维码文件、内容和真实付款信息不得进入 Git、迁移报告或 CI artifact。
+收款二维码存放在环境隔离的私有 `WYJ_STORAGE` bucket，既有方案使用固定 key `payments/qrcodes/v1/<wechat|alipay>_<plan>.png`。`finance_monthly` 的订单仍保存自身的 plan-bound `qr_resource_id`，服务端物理读取则复用同支付方式的 `all_access_monthly` 私有收款码，避免复制敏感二维码文件；客户端不能选择或看到该映射。接口只允许已登录的订单本人按订单 ID 读取，并校验订单归属、状态、支付方式、方案和 `qr_resource_id`；响应使用 `Cache-Control: private, no-store`，不返回 object key。二维码文件、内容和真实付款信息不得进入 Git、迁移报告或 CI artifact。
 
 Preview 验证顺序：
 
