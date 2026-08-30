@@ -682,7 +682,7 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#usernameInput').value"), USERNAME);
       await click("#loginSubmitBtn");
       await waitFor("location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')", 12_000, "module picker");
-      assert.ok((await evaluate("localStorage.getItem('wyjAccountSession') || ''")).length > 20);
+      assert.ok((await evaluate("localStorage.getItem('wyjAccountSession') || '')").length > 20);
     });
 
     const userSession = await evaluate("localStorage.getItem('wyjAccountSession')");
@@ -2031,15 +2031,18 @@ async function main() {
     });
 
     const expectedDeniedPaths = new Set(["/api/tools/access", "/api/quiz/start"]);
+    const expectedTask18CloudOnlyPaths = new Set(["/api/messages/pending", "/api/admin/messages", "/api/admin/roles"]);
     const unexpectedHttpErrors = networkHttpErrors.filter((item) => {
       const pathname = new URL(item.url).pathname;
       const expectedPermissionDenial = item.status === 403 && expectedDeniedPaths.has(pathname);
       const expectedStaticChangelogFallback = item.status === 404 && pathname === "/api/changelog";
+      const expectedTask18LegacyBackendFallback = item.status === 404 && expectedTask18CloudOnlyPaths.has(pathname);
       const expectedDeletedAccountSyncCancellation = item.status === 401
         && pathname === "/api/learning/sync"
         && item.expectedSessionInvalidation;
       return !expectedPermissionDenial
         && !expectedStaticChangelogFallback
+        && !expectedTask18LegacyBackendFallback
         && !expectedDeletedAccountSyncCancellation;
     });
     assert.deepEqual(unexpectedHttpErrors, [], `unexpected browser HTTP errors: ${JSON.stringify(networkHttpErrors)}`);
