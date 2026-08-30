@@ -266,7 +266,7 @@ data\users.pre-feedback-006.sqlite3
 data\users.pre-learning-sync-007.sqlite3
 ```
 
-D1 migration 位于 `cloudflare/migrations/`，由 `wyj_d1_migrations` 管理并按 `0001`～`0013` 前向执行。付款履约、投票、学习记录、临时下载授权、Task 15 import receipt 和财务同步操作均使用稳定主键或唯一约束防止重复。回滚不删除 D1 表或 R2 对象；先冻结相关写入、导出并核对云端增量，再执行前向修复或受控恢复。
+D1 migration 位于 `cloudflare/migrations/`，由 `wyj_d1_migrations` 管理并按 `0001`～`0014` 前向执行。付款履约、投票、学习记录、临时下载授权、Task 15 import receipt、财务同步、管理员角色和站内消息均使用稳定主键或唯一约束防止重复。回滚不删除 D1 表或 R2 对象；先冻结相关写入、导出并核对云端增量，再执行前向修复或受控恢复。
 
 ## 浏览器本地数据
 
@@ -339,6 +339,7 @@ Pages Functions：
 | `TASK16_CLOUD_READS_ENABLED` / `TASK16_CLOUD_WRITES_ENABLED` | 财务账本读取与本地优先增量同步开关；Preview 与 Production 均为 `true`，Production 已在仓库外备份和 `0012` schema 核对后启用 |
 | `TASK16_IMPORT_ENABLED` | 旧 DailyPayGuard 财务导入入口；仅 Preview 隔离验证启用，Production 默认关闭 |
 | `TASK16_PRODUCTION_IMPORT_ENABLED` | Production 财务导入第二道开关；默认 `false`，还要求管理员会话、仓库外备份和精确确认头 |
+| `TASK18_ADMIN_MESSAGES_ENABLED` | 唯一 owner、普通 admin 和站内消息开关；development/Preview 启用，Production 在迁移与人工验收前保持关闭 |
 | `WORKERS_AI_ENABLED` | Workers AI 业务开关；Preview 与 Production 为 `true`，development 默认关闭以避免意外用量 |
 | `D1_RATE_LIMIT_ENABLED` | 是否用 D1 对云端基础接口做基础限流；发生配额或绑定错误时自动 fail-open 并标记降级 |
 | `CLOUD_RATE_LIMIT_REQUESTS` / `CLOUD_RATE_LIMIT_WINDOW_SECONDS` | 云端基础接口限流阈值，默认 120 次/60 秒 |
@@ -494,7 +495,7 @@ npm.cmd run cf:dev
 
 ### 迁移、部署与回滚
 
-Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sql`、Task 12 的 `0003_accounts_sessions.sql`、`0004_session_limit_trigger.sql`、`0005_session_limit_ordering.sql`、Task 13 的 `0006_memberships_payments.sql`，Task 14 的 `0007_temporary_sharing.sql`、`0008_task14_user_storage_trigger.sql`、`0009_task14_global_storage_trigger.sql`、Task 15 的 `0010_task15_cloud_only.sql`、`0011_task15_import_trigger_order.sql`、Task 16 的 `0012_finance_core.sql`，以及 Task 17 的 `0013_finance_web_membership.sql` 必须从 fresh D1 按序可重复应用。Production 迁移报告与备份只保存在仓库外；导入完成后所有 Production import 开关保持关闭。
+Task 10 的 `0001_foundation.sql`、Task 11 的 `0002_low_risk_cloud_services.sql`、Task 12 的 `0003_accounts_sessions.sql`、`0004_session_limit_trigger.sql`、`0005_session_limit_ordering.sql`、Task 13 的 `0006_memberships_payments.sql`，Task 14 的 `0007_temporary_sharing.sql`、`0008_task14_user_storage_trigger.sql`、`0009_task14_global_storage_trigger.sql`、Task 15 的 `0010_task15_cloud_only.sql`、`0011_task15_import_trigger_order.sql`、Task 16 的 `0012_finance_core.sql`、Task 17 的 `0013_finance_web_membership.sql`，以及 Task 18 的 `0014_admin_roles_messages.sql` 必须从 fresh D1 按序可重复应用。Production 迁移报告与备份只保存在仓库外；导入完成后所有 Production import 开关保持关闭。
 
 ```powershell
 # 本地全新 D1 验证
@@ -769,6 +770,16 @@ Production 已在仓库外全量 D1 备份、稳定 user ID 与 Task 11～15 数
 浏览器采用账户隔离的本地队列，先保存有稳定 operation ID 和 entity ID 的修改，再调用 `/api/finance/sync`。刷新、离线或页面切换不会消费或丢失队列；恢复联网后按 revision 同步，冲突会保留本机修改并基于服务端当前 revision 重试，不会整份覆盖另一设备。删除继续使用 tombstone。退出或切换账户时只切换到对应账户命名空间，不把一名用户的账目展示给另一名用户。
 
 `cloudflare/migrations/0013_finance_web_membership.sql` 只把已有的 `finance_monthly` 开放为第七个在售方案（8 CNY/月）并保持 `finance_access`；它不修改既有六个方案的价格、订单快照或权益。全功能包月与全功能永久继续通过合并 entitlement 自动获得财务权限，无需重复购买。充值流程仍是服务端锁定方案、价格、支付方式和私有二维码，用户“我已付款”后只进入人工审核，不会自动开通。财务会员到期后页面停止云端读取和编辑，但本机及 D1 历史账目不会被删除。
+
+### Task 18 管理员权限与站内消息
+
+`cloudflare/migrations/0014_admin_roles_messages.sql` 在既有 Task 12 稳定 user ID 上增加普通 `admin` 角色、角色审计、统一敏感操作审计和通用站内消息表。唯一 owner 继续由 `task12_users.role = 'super_admin'` 表示；数据库 trigger 与服务端共同禁止第二个 owner、owner 降级/封禁/删除，以及普通 admin 管理自己、其他 admin 或 owner。只有 owner 可以授予和撤销 admin，并查看角色变更审计；migration/import/cleanup 等基础设施操作仍为 owner-only。
+
+普通 admin 可执行用户、订单、会员、反馈、工具统计和消息等日常运营操作，但所有敏感操作会记录 actor ID/角色、目标、成功或失败、必要摘要和 request ID。授权或撤销在 Session 解析时实时合并，不复制账户、不创建第二套登录，也不强制普通用户重新登录。管理员后台的“管理员角色”页仅 owner 可见；“站内消息”支持单用户、2～100 个用户和全站范围，批量/全站发送必须再次确认且有 D1 限流和幂等 key。
+
+用户在登录恢复后通过 `/api/messages/pending` 获取尚未处理的有效消息。全站消息会在发送时冻结当时的有效账户收件集合，后注册账户不会收到旧广播。普通消息关闭成功写回执后不再重复；需要明确确认的消息即使关闭，也会在下次会话继续出现，直到调用确认回执。过期或撤回消息不返回。正文只按纯文本渲染，发送者标签固定为“thewyj 管理员通知”，不允许管理员注入 HTML、伪装 owner 或要求输入密码。数据模型使用 `admin_messages`、`admin_message_recipients` 和 `admin_message_receipts`，后续 Android 可复用同一 API 语义；本任务没有 R2 或新增 Secret。
+
+Preview 应先按 `qa/TASK18_ADMIN_MESSAGES_AUDIT.md` 核对 active owner 数量必须为 1，再应用 `0014`、重复执行 migration 测试、运行 `npm run test:task18` 和 390x844 浏览器流程。Production 的 `TASK18_ADMIN_MESSAGES_ENABLED` 默认保持 `false`；只有完成 D1 备份、计数核对、owner 人工授权/撤销和消息回执验收后才单独开启。回滚先关闭 feature flag 并导出增量，保留表、trigger 和审计，不删除角色/消息数据，不恢复 SQLite 主写。
 
 ### 免费额度降级
 

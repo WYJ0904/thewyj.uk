@@ -1,4 +1,4 @@
-export const APP_VERSION = "2026-08-28-task17-finance-web";
+export const APP_VERSION = "2026-08-29-task18-admin-messages";
 
 export const API_TIMEOUT_MS = 30000;
 export const AI_TIMEOUT_MS = 25000;

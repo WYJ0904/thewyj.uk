@@ -70,13 +70,30 @@ export function loginContext(request) {
   };
 }
 
+export function accountRole(row) {
+  if (row?.role === "super_admin") return "super_admin";
+  if (row?.role === "admin") return "admin";
+  if (row?.assigned_admin_role === "admin" || row?.admin_role === "admin") return "admin";
+  return "user";
+}
+
+export function isOwnerAccount(row) {
+  return Boolean(row && accountRole(row) === "super_admin" && !row.deleted && !row.banned);
+}
+
+export function isAdminAccount(row) {
+  return Boolean(row && new Set(["admin", "super_admin"]).has(accountRole(row)) && !row.deleted && !row.banned);
+}
+
 export function accountPayload(row) {
   if (!row) return null;
-  const superAdmin = row.role === "super_admin";
+  const role = accountRole(row);
+  const superAdmin = role === "super_admin";
+  const admin = role === "admin" || superAdmin;
   return {
     id: String(row.id),
     username: String(row.username),
-    role: String(row.role || "user"),
+    role,
     membership: superAdmin ? "lifetime" : "free",
     membership_start: "",
     membership_expires: "",
@@ -89,6 +106,8 @@ export function accountPayload(row) {
     created_at: String(row.created_at || ""),
     updated_at: String(row.updated_at || ""),
     is_super_admin: superAdmin,
+    is_owner: superAdmin,
+    is_admin: admin,
     memberships: [],
     entitlements: [],
     membership_summary: {
@@ -107,7 +126,7 @@ export function auditSnapshot(row) {
   return {
     id: String(row.id || ""),
     username: String(row.username || ""),
-    role: String(row.role || "user"),
+    role: accountRole(row),
     banned: Boolean(row.banned),
     permanent_ban: Boolean(row.permanent_ban),
     deleted: Boolean(row.deleted),

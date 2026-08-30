@@ -39,8 +39,8 @@ const ROUTES = new Map([
   ["POST /api/admin/membership/manage", { mode: "write", auth: "admin", limit: 60, window: 60, body: 8 * 1024 }],
   ["POST /api/admin/membership", { mode: "write", auth: "admin", limit: 60, window: 60, body: 4 * 1024 }],
   ["POST /api/admin/entitlement", { mode: "write", auth: "admin", limit: 60, window: 60, body: 4 * 1024 }],
-  ["POST /api/admin/task13/import", { mode: "import", auth: "admin", limit: 10, window: 60, body: 512 * 1024 }],
-  ["GET /api/admin/task13/import/status", { mode: "import", auth: "admin", limit: 30, window: 60 }],
+  ["POST /api/admin/task13/import", { mode: "import", auth: "owner", limit: 10, window: 60, body: 512 * 1024 }],
+  ["GET /api/admin/task13/import/status", { mode: "import", auth: "owner", limit: 30, window: 60 }],
 ]);
 
 const METHODS_BY_PATH = new Map();
@@ -88,7 +88,10 @@ async function authenticate(context, requirement) {
   if (requirement === "public") return null;
   const result = await resolveTask12Account(context);
   if (!result.authenticated) return authenticationError(result, context);
-  if (requirement === "admin" && !result.account.is_super_admin) {
+  if (requirement === "owner" && !result.account.is_super_admin) {
+    return apiError("owner_required", "只有站点所有者可以执行此操作", 403, requestId(context));
+  }
+  if (requirement === "admin" && !result.account.is_admin) {
     return apiError("forbidden", "无管理员权限", 403, requestId(context));
   }
   return result.account;

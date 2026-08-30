@@ -56,6 +56,7 @@ export function featureFlags(env = {}) {
     task16CloudWrites: booleanValue(env.TASK16_CLOUD_WRITES_ENABLED, false),
     task16Import: booleanValue(env.TASK16_IMPORT_ENABLED, false),
     task16ProductionImport: booleanValue(env.TASK16_PRODUCTION_IMPORT_ENABLED, false),
+    task18AdminMessages: booleanValue(env.TASK18_ADMIN_MESSAGES_ENABLED, false),
     legacyFallback: booleanValue(env.LEGACY_API_FALLBACK_ENABLED, false),
     workersAi: booleanValue(env.WORKERS_AI_ENABLED, false),
     d1RateLimit: booleanValue(env.D1_RATE_LIMIT_ENABLED, true),
@@ -266,6 +267,12 @@ async function bindingHealth(env, flags) {
     cloud_reads: flags.task16CloudReads,
     cloud_writes: flags.task16CloudWrites,
   };
+  const task18 = {
+    schema_ready: false,
+    schema_version: "",
+    enabled: flags.task18AdminMessages,
+    owner_count: 0,
+  };
   if (!bindings.d1) degraded.push("d1_binding_missing");
   if (!bindings.r2) degraded.push("r2_binding_missing");
   if (flags.workersAi && !bindings.workers_ai) degraded.push("workers_ai_binding_missing");
@@ -355,6 +362,18 @@ async function bindingHealth(env, flags) {
         degraded.push(`task16_${classifyCloudError(error)}`);
       }
     }
+    try {
+      const [metadata, owner] = await env.WYJ_DB.batch([
+        env.WYJ_DB.prepare("SELECT value FROM task18_metadata WHERE key = ?1").bind("schema_version"),
+        env.WYJ_DB.prepare("SELECT COUNT(*) AS count FROM task12_users WHERE role = 'super_admin' AND banned = 0 AND deleted = 0"),
+      ]);
+      task18.schema_version = String(metadata?.results?.[0]?.value || "");
+      task18.owner_count = Number(owner?.results?.[0]?.count || 0);
+      task18.schema_ready = task18.schema_version === "1" && task18.owner_count === 1;
+      if (!task18.schema_ready && flags.task18AdminMessages) degraded.push("task18_schema_not_ready");
+    } catch (error) {
+      if (flags.task18AdminMessages) degraded.push(`task18_${classifyCloudError(error)}`);
+    }
   }
   if (flags.task12CloudAccounts && !task12.password_pepper_configured) {
     degraded.push("task12_password_pepper_not_configured");
@@ -364,7 +383,7 @@ async function bindingHealth(env, flags) {
   if (flags.task14TemporaryPrimary && !task14.secret_configured) {
     degraded.push("task14_temporary_secret_not_configured");
   }
-  return { bindings, degraded, task11, task12, task13, task14, task15, task16 };
+  return { bindings, degraded, task11, task12, task13, task14, task15, task16, task18 };
 }
 
 export async function cloudStatusResponse(context) {
@@ -399,6 +418,7 @@ export async function cloudStatusResponse(context) {
     task14: health.task14,
     task15: health.task15,
     task16: health.task16,
+    task18: health.task18,
     features: {
       cloud_foundation: flags.cloudFoundation,
       cloud_reads: flags.cloudReads,
@@ -423,6 +443,7 @@ export async function cloudStatusResponse(context) {
       task16_cloud_reads: flags.task16CloudReads,
       task16_cloud_writes: flags.task16CloudWrites,
       task16_import: flags.task16Import,
+      task18_admin_messages: flags.task18AdminMessages,
       legacy_api_fallback: flags.legacyFallback,
       payment_cloud_migration: flags.task13PaymentPrimary,
     },

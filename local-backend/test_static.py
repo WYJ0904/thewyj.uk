@@ -106,15 +106,15 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260829-task17-finance-hotfix"
+        release_token = "20260829-task18-admin-messages"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
-        self.assertIn('export const APP_VERSION = "2026-08-28-task17-finance-web"', self.core)
+        self.assertIn('export const APP_VERSION = "2026-08-29-task18-admin-messages"', self.core)
         for module in ("api", "config", "router", "session", "storage", "ui"):
             self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20260829-task17-finance-hotfix"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20260829-task18-admin-messages"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         self.assertNotIn('.tool-e2e', stage_script)
@@ -126,7 +126,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertFalse((ROOT / "404.html").exists())
 
     def test_browser_module_graph_uses_one_release_version(self):
-        release_token = "20260829-task17-finance-hotfix"
+        release_token = "20260829-task18-admin-messages"
         import_pattern = re.compile(
             r'(?:from\s+|import\s+)["\'](\.{1,2}/[^"\']+\.js(?:\?[^"\']*)?)["\']'
         )

@@ -6,9 +6,9 @@
     <meta name="theme-color" content="#ffffff" />
     <title>WYJ的网站</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260829-task17-finance-hotfix" />
-    <link rel="stylesheet" href="/styles.css?v=20260829-task17-finance-hotfix" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260829-task17-finance-hotfix" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260829-task18-admin-messages" />
+    <link rel="stylesheet" href="/styles.css?v=20260829-task18-admin-messages" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260829-task18-admin-messages" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 WYJ的网站" aria-hidden="false">
@@ -703,7 +703,7 @@
         <header class="admin-header">
           <div>
             <p class="section-kicker">管理后台</p>
-            <h1>用户与会员管理</h1>
+            <h1>站点管理</h1>
           </div>
           <div class="action-row compact">
             <button id="refreshAdminBtn" type="button">刷新</button>
@@ -717,6 +717,8 @@
           <button id="adminLoginTab" data-admin-view="adminLoginView" type="button" role="tab" aria-controls="adminLoginView" aria-selected="false">登录记录</button>
           <button id="adminToolStatsTab" data-admin-view="adminToolStatsView" type="button" role="tab" aria-controls="adminToolStatsView" aria-selected="false">工具统计</button>
           <button id="adminFeedbackTab" data-admin-view="adminFeedbackView" type="button" role="tab" aria-controls="adminFeedbackView" aria-selected="false">反馈与投票</button>
+          <button id="adminMessagesTab" data-admin-view="adminMessagesView" type="button" role="tab" aria-controls="adminMessagesView" aria-selected="false">站内消息</button>
+          <button class="hidden" id="adminRolesTab" data-admin-view="adminRolesView" type="button" role="tab" aria-controls="adminRolesView" aria-selected="false">管理员角色</button>
         </div>
         <section class="admin-view active" id="adminUsersView" role="tabpanel" aria-labelledby="adminUsersTab">
           <div class="admin-toolbar">
@@ -738,6 +740,37 @@
             <label><span>状态</span><select id="adminFeedbackStatus"><option value="">全部状态</option><option value="pending">待处理</option><option value="viewed">已查看</option><option value="accepted">已采纳</option><option value="completed">已完成</option><option value="rejected">已拒绝</option></select></label>
           </div>
           <div class="admin-user-list" id="adminFeedbackList"></div>
+        </section>
+        <section class="admin-view" id="adminMessagesView" role="tabpanel" aria-labelledby="adminMessagesTab">
+          <form class="admin-message-compose" id="adminMessageForm">
+            <div class="admin-message-grid">
+              <label class="field-label"><span>目标范围</span><select id="adminMessageScope"><option value="single">指定单个用户</option><option value="multiple">选择多个用户</option><option value="all">全部用户</option></select></label>
+              <label class="field-label"><span>消息类型</span><select id="adminMessageType"><option value="normal">普通</option><option value="important">重要</option><option value="maintenance">维护</option><option value="account">账户</option></select></label>
+              <label class="field-label"><span>到期时间（可选）</span><input id="adminMessageExpiry" type="datetime-local" /></label>
+            </div>
+            <section class="admin-message-targets" id="adminMessageTargets" aria-labelledby="adminMessageTargetsTitle">
+              <div class="admin-toolbar"><strong id="adminMessageTargetsTitle">选择收件用户</strong><label class="admin-search"><span>筛选</span><input id="adminMessageTargetSearch" type="search" maxlength="80" autocomplete="off" placeholder="用户名或用户 ID" /></label></div>
+              <div class="admin-message-target-list" id="adminMessageTargetList"></div>
+            </section>
+            <label class="field-label"><span>标题</span><input id="adminMessageTitle" maxlength="120" required placeholder="简明说明消息主题" /></label>
+            <label class="field-label"><span>正文</span><textarea id="adminMessageBody" maxlength="4000" required placeholder="消息会按纯文本显示，不支持 HTML"></textarea></label>
+            <label class="admin-checkbox"><input id="adminMessageRequiresConfirmation" type="checkbox" /> 需要用户明确点击“确认已读”</label>
+            <div class="action-row"><button class="primary" id="sendAdminMessageBtn" type="submit">发送站内消息</button></div>
+            <p class="meta-line" id="adminMessageFormStatus" aria-live="polite"></p>
+          </form>
+          <div class="admin-user-list admin-message-list" id="adminMessageList"></div>
+        </section>
+        <section class="admin-view" id="adminRolesView" role="tabpanel" aria-labelledby="adminRolesTab">
+          <div class="admin-role-controls">
+            <label class="field-label"><span>选择普通用户</span><select id="adminRoleUserSelect"><option value="">请选择用户</option></select></label>
+            <label class="field-label"><span>操作备注</span><input id="adminRoleNote" maxlength="500" placeholder="说明授权或撤销原因" /></label>
+            <div class="action-row"><button class="primary" id="grantAdminRoleBtn" type="button">授予管理员</button></div>
+          </div>
+          <h2 class="admin-subheading">当前管理员</h2>
+          <div class="admin-user-list" id="adminRoleList"></div>
+          <h2 class="admin-subheading">角色变更审计</h2>
+          <div class="admin-user-list" id="adminRoleAuditList"></div>
+          <p class="meta-line" id="adminRoleStatus" aria-live="polite"></p>
         </section>
         <p class="error" id="adminError" aria-live="polite"></p>
       </section>
@@ -812,6 +845,19 @@
           <button id="openDeleteAccountBtn" type="button">注销账户</button>
         </div>
         <p class="error" id="accountMessage" aria-live="polite"></p>
+      </section>
+    </div>
+
+    <div class="modal-layer hidden" id="siteMessageModal" aria-hidden="true">
+      <section class="modal-panel site-message-panel" role="dialog" aria-modal="true" aria-labelledby="siteMessageTitle" aria-describedby="siteMessageBody">
+        <button class="modal-close" id="siteMessageCloseIcon" type="button" aria-label="关闭消息"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        <p class="section-kicker" id="siteMessageSource">thewyj 管理员通知</p>
+        <span class="status-badge" id="siteMessageType">普通</span>
+        <h2 id="siteMessageTitle"></h2>
+        <div class="site-message-body" id="siteMessageBody"></div>
+        <p class="meta-line" id="siteMessageMeta"></p>
+        <div class="action-row"><button id="siteMessageCloseBtn" type="button">关闭</button><button class="primary hidden" id="siteMessageAcknowledgeBtn" type="button">确认已读</button></div>
+        <p class="error" id="siteMessageError" aria-live="polite"></p>
       </section>
     </div>
 
@@ -962,10 +1008,10 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20260829-task17-finance-hotfix"></script>
-    <script type="module" src="/tools.js?v=20260829-task17-finance-hotfix"></script>
-    <script src="/workflows.js?v=20260829-task17-finance-hotfix"></script>
-    <script src="/learning-sync.js?v=20260829-task17-finance-hotfix"></script>
-    <script type="module" src="/app.js?v=20260829-task17-finance-hotfix"></script>
+    <script src="/changelog.js?v=20260829-task18-admin-messages"></script>
+    <script type="module" src="/tools.js?v=20260829-task18-admin-messages"></script>
+    <script src="/workflows.js?v=20260829-task18-admin-messages"></script>
+    <script src="/learning-sync.js?v=20260829-task18-admin-messages"></script>
+    <script type="module" src="/app.js?v=20260829-task18-admin-messages"></script>
   </body>
 </html>

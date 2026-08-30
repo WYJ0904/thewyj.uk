@@ -4,7 +4,7 @@ import {
   BACKEND_NETWORK_MESSAGE,
   GET_RETRYABLE_STATUS,
   STATUS_RETRY_BASE_DELAYS_MS,
-} from "./config.js?v=20260829-task17-finance-hotfix";
+} from "./config.js?v=20260829-task18-admin-messages";
 
 export const CANONICAL_SESSION_ERROR_CODES = new Set([
   "authentication_required",

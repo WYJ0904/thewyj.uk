@@ -5,10 +5,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20260829-task17-finance-hotfix";
-import { randomToolResult } from "./js/tools/random.js?v=20260829-task17-finance-hotfix";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260829-task17-finance-hotfix";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260829-task17-finance-hotfix";
+} from "./js/tools/catalog.js?v=20260829-task18-admin-messages";
+import { randomToolResult } from "./js/tools/random.js?v=20260829-task18-admin-messages";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260829-task18-admin-messages";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260829-task18-admin-messages";
 import {
   csvString,
   decodeLocalText,
@@ -17,15 +17,15 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20260829-task17-finance-hotfix";
+} from "./js/tools/file.js?v=20260829-task18-admin-messages";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20260829-task17-finance-hotfix";
-import { runToolRenderer } from "./js/tools/runner.js?v=20260829-task17-finance-hotfix";
+} from "./js/tools/image.js?v=20260829-task18-admin-messages";
+import { runToolRenderer } from "./js/tools/runner.js?v=20260829-task18-admin-messages";
 (() => {
   "use strict";
 

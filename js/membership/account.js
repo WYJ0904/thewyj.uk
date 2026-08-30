@@ -41,8 +41,12 @@ export function accountEntitlements(account) {
 
 export function isSuperAdmin(account) {
   return Boolean(
-    account && account.username === "wyj" && account.role === "super_admin" && account.is_super_admin === true,
+    account && account.role === "super_admin" && account.is_super_admin === true,
   );
+}
+
+export function isAdmin(account) {
+  return Boolean(account && (isSuperAdmin(account) || (account.role === "admin" && account.is_admin === true)));
 }
 
 export function hasAccountEntitlement(code, account) {

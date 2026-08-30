@@ -51,10 +51,10 @@ const ROUTES = new Map([
   ["POST /api/share/clipboard/read", { mode: "read", auth: "public", limit: 30, window: 60, body: 2 * 1024, legacy: true }],
   ["POST /api/share/room/read", { mode: "read", auth: "public", limit: 120, window: 60, body: 4 * 1024, legacy: true }],
   ["POST /api/share/room/post", { mode: "read", auth: "public", limit: 60, window: 60, body: 8 * 1024, legacy: true }],
-  ["POST /api/admin/task14/cleanup", { mode: "import", auth: "admin", limit: 10, window: 60, body: 2 * 1024, cloudOnly: true }],
-  ["POST /api/admin/task14/import", { mode: "import", auth: "admin", limit: 10, window: 60, body: 512 * 1024, cloudOnly: true }],
-  ["POST /api/admin/task14/import/rollback", { mode: "import", auth: "admin", limit: 5, window: 60, body: 4 * 1024, cloudOnly: true }],
-  ["GET /api/admin/task14/import/status", { mode: "import", auth: "admin", limit: 30, window: 60, cloudOnly: true }],
+  ["POST /api/admin/task14/cleanup", { mode: "import", auth: "owner", limit: 10, window: 60, body: 2 * 1024, cloudOnly: true }],
+  ["POST /api/admin/task14/import", { mode: "import", auth: "owner", limit: 10, window: 60, body: 512 * 1024, cloudOnly: true }],
+  ["POST /api/admin/task14/import/rollback", { mode: "import", auth: "owner", limit: 5, window: 60, body: 4 * 1024, cloudOnly: true }],
+  ["GET /api/admin/task14/import/status", { mode: "import", auth: "owner", limit: 30, window: 60, cloudOnly: true }],
 ]);
 
 const METHODS_BY_PATH = new Map();
@@ -101,7 +101,10 @@ async function authenticate(context, requirement) {
   if (requirement === "public") return null;
   const result = await resolveTask12Account(context);
   if (!result.authenticated) return authenticationError(result, context);
-  if (requirement === "admin" && !result.account.is_super_admin) {
+  if (requirement === "owner" && !result.account.is_super_admin) {
+    return apiError("owner_required", "只有站点所有者可以执行此操作", 403, requestId(context));
+  }
+  if (requirement === "admin" && !result.account.is_admin) {
     return apiError("forbidden", "无管理员权限", 403, requestId(context));
   }
   return result.account;

@@ -565,10 +565,10 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260829-task17-finance-hotfix');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260829-task17-finance-hotfix');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260829-task17-finance-hotfix');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260829-task17-finance-hotfix');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260829-task18-admin-messages');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260829-task18-admin-messages');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260829-task18-admin-messages');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260829-task18-admin-messages');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);

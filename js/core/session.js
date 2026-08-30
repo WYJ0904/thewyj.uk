@@ -1,4 +1,4 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260829-task17-finance-hotfix";
+import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260829-task18-admin-messages";
 
 export const ACCOUNT_SESSION_KEY = "wyjAccountSession";
 export const ACCOUNT_CACHE_KEY = "wyjAccountCache";

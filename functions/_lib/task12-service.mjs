@@ -16,6 +16,8 @@ import {
   accountPayload,
   auditSnapshot,
   clientKind,
+  isAdminAccount,
+  isOwnerAccount,
   isoNow,
   normalizeUsername,
   validateSecret,
@@ -44,7 +46,11 @@ function expiryFrom(date = new Date()) {
 }
 
 function isSuperAdmin(row) {
-  return Boolean(row && row.role === "super_admin" && !row.deleted && !row.banned);
+  return isOwnerAccount(row);
+}
+
+function isAdmin(row) {
+  return isAdminAccount(row);
 }
 
 function passwordPepper(options = {}) {
@@ -55,12 +61,28 @@ async function verifyRowSecret(row, secret, options = {}) {
   return await verifySecret(String(secret || ""), row?.password_hash, passwordPepper(options));
 }
 
-async function userById(db, userId) {
-  return await first(db, "SELECT * FROM task12_users WHERE id = ?1", [String(userId || "")]);
+function task18RoleTableMissing(error) {
+  return /no such table:\s*task18_admin_roles/i.test(String(error?.message || error || ""));
 }
 
-async function userByName(db, username) {
-  return await first(db, "SELECT * FROM task12_users WHERE username_normalized = ?1", [normalizeUsername(username)]);
+async function userWithRole(db, whereSql, values) {
+  try {
+    return await first(db, `SELECT users.*, roles.role AS assigned_admin_role
+      FROM task12_users AS users
+      LEFT JOIN task18_admin_roles AS roles ON roles.user_id = users.id
+      WHERE ${whereSql}`, values);
+  } catch (error) {
+    if (!task18RoleTableMissing(error)) throw error;
+    return await first(db, `SELECT * FROM task12_users WHERE ${whereSql.replaceAll("users.", "")}`, values);
+  }
+}
+
+export async function userById(db, userId) {
+  return await userWithRole(db, "users.id = ?1", [String(userId || "")]);
+}
+
+export async function userByName(db, username) {
+  return await userWithRole(db, "users.username_normalized = ?1", [normalizeUsername(username)]);
 }
 
 async function revokeSessions(db, userId, now = isoNow()) {
@@ -198,11 +220,27 @@ export async function resolveSessionState(db, token, options = {}) {
   const raw = String(token || "");
   if (!raw) return { account: null, code: "authentication_required", status: 401 };
   const digest = await sessionStorageKey(raw);
-  const row = await first(db, `SELECT
-      s.token_digest, s.session_version AS session_generation, s.created_at AS session_created_at,
-      s.last_seen_at, s.expires_at, s.revoked, u.*
-    FROM task12_sessions AS s JOIN task12_users AS u ON u.id = s.user_id
-    WHERE s.token_digest = ?1`, [digest]);
+  let row;
+  try {
+    row = await first(db, `SELECT
+        sessions.token_digest, sessions.session_version AS session_generation,
+        sessions.created_at AS session_created_at, sessions.last_seen_at,
+        sessions.expires_at, sessions.revoked, users.*,
+        roles.role AS assigned_admin_role
+      FROM task12_sessions AS sessions
+      JOIN task12_users AS users ON users.id = sessions.user_id
+      LEFT JOIN task18_admin_roles AS roles ON roles.user_id = users.id
+      WHERE sessions.token_digest = ?1`, [digest]);
+  } catch (error) {
+    if (!task18RoleTableMissing(error)) throw error;
+    row = await first(db, `SELECT
+        sessions.token_digest, sessions.session_version AS session_generation,
+        sessions.created_at AS session_created_at, sessions.last_seen_at,
+        sessions.expires_at, sessions.revoked, users.*
+      FROM task12_sessions AS sessions
+      JOIN task12_users AS users ON users.id = sessions.user_id
+      WHERE sessions.token_digest = ?1`, [digest]);
+  }
   const now = new Date();
   let code = "";
   let status = 401;
@@ -269,7 +307,7 @@ export async function changeOwnSecret(db, account, currentSecret, newSecret, opt
 export async function deleteOwnAccount(db, account, secret, options = {}) {
   const row = await userById(db, account.id);
   if (!row || row.deleted) throw new Task12Error("账户不存在", 404, "user_not_found");
-  if (isSuperAdmin(row)) throw new Task12Error("固定管理员账户不能注销", 403, "admin_protected");
+  if (isAdmin(row)) throw new Task12Error("管理员角色需由站点所有者撤销后才能注销", 403, "admin_protected");
   const verified = await verifyRowSecret(row, secret, options);
   if (!verified.valid) throw new Task12Error("当前登录密钥错误", 403, "invalid_secret");
   const now = isoNow();
@@ -285,13 +323,22 @@ export async function deleteOwnAccount(db, account, secret, options = {}) {
 }
 
 export async function listUsers(db, actor) {
-  if (!isSuperAdmin(actor)) throw new Task12Error("无管理员权限", 403, "forbidden");
-  return (await all(db, `SELECT * FROM task12_users WHERE deleted = 0
-    ORDER BY registered_at DESC, username_normalized ASC LIMIT 1000`)).map(accountPayload);
+  if (!isAdmin(actor)) throw new Task12Error("无管理员权限", 403, "forbidden");
+  try {
+    return (await all(db, `SELECT users.*, roles.role AS assigned_admin_role
+      FROM task12_users AS users
+      LEFT JOIN task18_admin_roles AS roles ON roles.user_id = users.id
+      WHERE users.deleted = 0
+      ORDER BY users.registered_at DESC, users.username_normalized ASC LIMIT 1000`)).map(accountPayload);
+  } catch (error) {
+    if (!task18RoleTableMissing(error)) throw error;
+    return (await all(db, `SELECT * FROM task12_users WHERE deleted = 0
+      ORDER BY registered_at DESC, username_normalized ASC LIMIT 1000`)).map(accountPayload);
+  }
 }
 
 export async function listLoginAudit(db, actor, limit = 300) {
-  if (!isSuperAdmin(actor)) throw new Task12Error("无管理员权限", 403, "forbidden");
+  if (!isAdmin(actor)) throw new Task12Error("无管理员权限", 403, "forbidden");
   const safeLimit = Math.max(1, Math.min(Number(limit || 300), 500));
   return await all(db, `SELECT id, user_id, username, success, reason, ip_address,
     country, region, city, user_agent, source, created_at
@@ -299,7 +346,7 @@ export async function listLoginAudit(db, actor, limit = 300) {
 }
 
 export async function listAccountAudit(db, actor, limit = 200) {
-  if (!isSuperAdmin(actor)) throw new Task12Error("无管理员权限", 403, "forbidden");
+  if (!isAdmin(actor)) throw new Task12Error("无管理员权限", 403, "forbidden");
   const safeLimit = Math.max(1, Math.min(Number(limit || 200), 500));
   const rows = await all(db, `SELECT * FROM task12_account_audit_logs
     ORDER BY created_at DESC, id DESC LIMIT ?1`, [safeLimit]);
@@ -315,10 +362,16 @@ export async function listAccountAudit(db, actor, limit = 200) {
 }
 
 async function requireAdminTarget(db, actor, userId) {
-  if (!isSuperAdmin(actor)) throw new Task12Error("无管理员权限", 403, "forbidden");
+  if (!isAdmin(actor)) throw new Task12Error("无管理员权限", 403, "forbidden");
   const target = await userById(db, userId);
   if (!target || target.deleted) throw new Task12Error("用户不存在", 404, "user_not_found");
-  if (isSuperAdmin(target)) throw new Task12Error("不能修改固定管理员账户", 403, "admin_protected");
+  if (isSuperAdmin(target)) throw new Task12Error("不能修改站点所有者账户", 403, "owner_protected");
+  if (isSuperAdmin(actor) && isAdmin(target)) {
+    throw new Task12Error("请先撤销该用户的管理员角色，再修改账户状态", 409, "admin_role_must_be_revoked");
+  }
+  if (!isSuperAdmin(actor) && (isAdmin(target) || String(target.id) === String(actor.id))) {
+    throw new Task12Error("普通管理员不能修改自己或其他管理员", 403, "admin_target_protected");
+  }
   return target;
 }
 
@@ -407,6 +460,6 @@ export async function accountCounts(db) {
 }
 
 export const __testing = {
-  all, first, isSuperAdmin, passwordPepper, requireDatabase, revokeSessions,
+  all, first, isAdmin, isSuperAdmin, passwordPepper, requireDatabase, revokeSessions,
   run, userById, userByName, verifyRowSecret,
 };
