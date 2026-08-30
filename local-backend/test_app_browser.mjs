@@ -682,7 +682,7 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#usernameInput').value"), USERNAME);
       await click("#loginSubmitBtn");
       await waitFor("location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')", 12_000, "module picker");
-      assert.ok((await evaluate("localStorage.getItem('wyjAccountSession') || '')").length > 20);
+      assert.ok((await evaluate("localStorage.getItem('wyjAccountSession') || ''")).length > 20);
     });
 
     const userSession = await evaluate("localStorage.getItem('wyjAccountSession')");
