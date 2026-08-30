@@ -302,8 +302,25 @@ async function main() {
   const setFiles = async (selector, files) => {
     const result = await evaluate(`document.querySelector(${JSON.stringify(selector)})`, false);
     assert.ok(result?.objectId, `missing file input ${selector}`);
+    await evaluate(`(() => {
+      const input = document.querySelector(${JSON.stringify(selector)});
+      const suppress = (event) => event.stopImmediatePropagation();
+      input.__wyjTestSuppressFileEvents = suppress;
+      input.addEventListener('input', suppress, true);
+      input.addEventListener('change', suppress, true);
+      return true;
+    })()`);
     await send("DOM.setFileInputFiles", { objectId: result.objectId, files });
-    await evaluate(`document.querySelector(${JSON.stringify(selector)}).dispatchEvent(new Event('change', { bubbles: true }))`);
+    await evaluate(`(() => {
+      const input = document.querySelector(${JSON.stringify(selector)});
+      const suppress = input.__wyjTestSuppressFileEvents;
+      input.removeEventListener('input', suppress, true);
+      input.removeEventListener('change', suppress, true);
+      delete input.__wyjTestSuppressFileEvents;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    })()`);
   };
 
   const auditVisibleTextContrast = async (rootSelector) => evaluate(`(() => {
