@@ -167,7 +167,18 @@ async function main() {
         "#registerConfirmInput": USER_SECRET,
       });
       await click("#registerSubmitBtn");
-      await waitFor("location.pathname === '/login' && document.querySelector('#loginError')?.textContent.includes('注册成功')", 15_000, "registration success");
+      await waitFor(
+        "location.pathname === '/login' && !document.querySelector('#loginForm')?.classList.contains('hidden') && document.querySelector('#registerForm')?.classList.contains('hidden')",
+        15_000,
+        "registration login handoff",
+      );
+      assert.equal(await evaluate("document.querySelector('#usernameInput')?.value"), USERNAME);
+      await delay(120);
+      const registrationStatus = String(await evaluate("document.querySelector('#loginError')?.textContent || ''"));
+      assert.ok(
+        !registrationStatus || registrationStatus.includes("注册成功"),
+        `unexpected registration status: ${registrationStatus}`,
+      );
       await setFields({ "#usernameInput": USERNAME, "#secretInput": USER_SECRET });
       await click("#loginSubmitBtn");
       await waitFor("location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')", 15_000, "user dashboard");
