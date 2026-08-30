@@ -33,6 +33,7 @@ import {
   registerAccount,
 } from "./task12-service.mjs";
 import { enrichAccountWithTask13, listTask13Audit } from "./task13-service.mjs";
+import { listAdminActionAudit } from "./task18-service.mjs";
 
 const LOGIN_FAILURE_LIMIT = 8;
 const LOGIN_FAILURE_WINDOW_SECONDS = 300;
@@ -98,7 +99,7 @@ async function cloudAuthentication(context, requirement) {
   if (requirement === "public" || requirement === "optional") return null;
   const result = await resolveTask12Account(context);
   if (!result.authenticated) return authenticationError(result, context);
-  if (requirement === "admin" && !result.account.is_super_admin) {
+  if (requirement === "admin" && !result.account.is_admin) {
     return apiError("forbidden", "无管理员权限", 403, requestId(context));
   }
   return result.account;
@@ -189,11 +190,12 @@ async function executeRoute(context, descriptor, account, flags) {
     }
     if (path === "/api/admin/login-logs") return response({ ok: true, logs: await listLoginAudit(db, account) }, 200, context);
     if (path === "/api/admin/audit") {
-      const [cloudLogs, membershipLogs] = await Promise.all([
+      const [cloudLogs, membershipLogs, task18Logs] = await Promise.all([
         listAccountAudit(db, account),
         flags.task13CloudReads ? listTask13Audit(db) : Promise.resolve([]),
+        flags.task18AdminMessages ? listAdminActionAudit(db, account) : Promise.resolve([]),
       ]);
-      const logs = [...cloudLogs, ...membershipLogs]
+      const logs = [...cloudLogs, ...membershipLogs, ...task18Logs]
         .sort((left, right) => String(right.created_at || "").localeCompare(String(left.created_at || "")))
         .slice(0, 500);
       return response({ ok: true, logs }, 200, context);

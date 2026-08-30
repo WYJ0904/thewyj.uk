@@ -52,9 +52,9 @@ const ROUTES = new Map([
   ["POST /api/tools/config/save", { body: 64 * 1024, limit: 60, window: 60 }],
   ["POST /api/tools/config/delete", { body: 2 * 1024, limit: 60, window: 60 }],
   ["GET /api/admin/tool-stats", { body: 0, limit: 60, window: 60, admin: true }],
-  ["POST /api/admin/task15/import", { body: 512 * 1024, limit: 10, window: 60, admin: true, import: true }],
-  ["POST /api/admin/task15/import/rollback", { body: 4 * 1024, limit: 5, window: 60, admin: true, import: true }],
-  ["GET /api/admin/task15/import/status", { body: 0, limit: 30, window: 60, admin: true, import: true }],
+  ["POST /api/admin/task15/import", { body: 512 * 1024, limit: 10, window: 60, admin: true, owner: true, import: true }],
+  ["POST /api/admin/task15/import/rollback", { body: 4 * 1024, limit: 5, window: 60, admin: true, owner: true, import: true }],
+  ["GET /api/admin/task15/import/status", { body: 0, limit: 30, window: 60, admin: true, owner: true, import: true }],
 ]);
 
 const METHODS_BY_PATH = new Map();
@@ -250,7 +250,10 @@ export async function handleTask15Request(context) {
     const account = flags.task13CloudReads
       ? await enrichAccountWithTask13(context.env.WYJ_DB, authenticated.account)
       : authenticated.account;
-    if (descriptor.admin && !account.is_super_admin) {
+    if (descriptor.owner && !account.is_super_admin) {
+      throw new Task15Error("无管理员权限", 403, "forbidden");
+    }
+    if (descriptor.admin && !account.is_admin) {
       throw new Task15Error("无管理员权限", 403, "forbidden");
     }
     const rate = await enforceD1RateLimit(context, {

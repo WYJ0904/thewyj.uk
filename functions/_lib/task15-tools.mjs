@@ -269,7 +269,7 @@ export async function deleteToolConfig(db, account, payload) {
 }
 
 export async function listToolUsageStats(db, account) {
-  if (!account?.is_super_admin) throw new Task15Error("无管理员权限", 403, "forbidden");
+  if (!account?.is_admin) throw new Task15Error("无管理员权限", 403, "forbidden");
   return await all(db, `SELECT tool_id, COUNT(*) AS uses, COUNT(DISTINCT user_id) AS users,
     MAX(used_at) AS last_used_at FROM task15_tool_recent_usage
     GROUP BY tool_id ORDER BY uses DESC, tool_id LIMIT 200`);

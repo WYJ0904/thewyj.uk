@@ -35,8 +35,8 @@ const ROUTES = new Map([
   ["POST /api/learning/sync", { mode: "write", auth: "user", limit: 30, window: 60, body: 440 * 1024 }],
   ["POST /api/telemetry", { mode: "write", auth: "public", legacy: false, limit: 60, window: 60, body: 2 * 1024 }],
   ["GET /api/admin/task11/telemetry", { mode: "read", auth: "admin", legacy: false, limit: 120, window: 60 }],
-  ["POST /api/admin/task11/import", { mode: "write", auth: "admin", legacy: false, limit: 10, window: 60, body: 512 * 1024, import: true }],
-  ["GET /api/admin/task11/import/status", { mode: "write", auth: "admin", legacy: false, limit: 30, window: 60, import: true }],
+  ["POST /api/admin/task11/import", { mode: "write", auth: "owner", legacy: false, limit: 10, window: 60, body: 512 * 1024, import: true }],
+  ["GET /api/admin/task11/import/status", { mode: "write", auth: "owner", legacy: false, limit: 30, window: 60, import: true }],
 ]);
 
 const METHODS_BY_PATH = new Map();
@@ -102,7 +102,10 @@ async function authenticate(context, requirement, flags) {
   try {
     const result = await resolveTask12Account(context);
     if (!result.authenticated) return authenticationError(result, context);
-    if (requirement === "admin" && !result.account.is_super_admin) {
+    if (requirement === "owner" && !result.account.is_super_admin) {
+      return apiError("owner_required", "只有站点所有者可以执行此操作", 403, requestId(context));
+    }
+    if (requirement === "admin" && !result.account.is_admin) {
       return apiError("forbidden", "无管理员权限", 403, requestId(context));
     }
     return result.account;

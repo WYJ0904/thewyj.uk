@@ -3456,6 +3456,169 @@ progress {
   margin-top: var(--space-3);
 }
 
+.admin-message-compose {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.admin-message-grid,
+.admin-role-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.admin-message-targets {
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-subtle);
+}
+
+.admin-message-targets .admin-toolbar {
+  margin-bottom: var(--space-3);
+}
+
+.admin-message-target-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.admin-message-target-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  color: var(--color-text);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.admin-message-target-option:has(input:checked) {
+  border-color: #8eafe3;
+  background: var(--color-primary-soft);
+}
+
+.admin-message-target-option input,
+.admin-checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+}
+
+.admin-message-target-option span {
+  min-width: 0;
+}
+
+.admin-message-target-option strong,
+.admin-message-target-option small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-message-target-option small,
+.admin-message-card p,
+.admin-role-controls + .admin-subheading {
+  color: var(--color-text-secondary);
+}
+
+.admin-message-compose textarea {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+}
+
+.admin-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+.admin-message-card .admin-message-body,
+.site-message-body {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.admin-message-card .admin-message-body {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border-left: 3px solid #8eafe3;
+  color: var(--color-text);
+  background: var(--color-surface-subtle);
+}
+
+.admin-role-controls {
+  margin-bottom: var(--space-6);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.admin-subheading {
+  margin: var(--space-6) 0 var(--space-3);
+  font-size: var(--font-lg);
+}
+
+.site-message-panel {
+  width: min(640px, 100%);
+}
+
+.site-message-panel .status-badge {
+  display: inline-flex;
+  width: fit-content;
+  margin: var(--space-2) 0;
+}
+
+.site-message-panel .status-badge[data-message-type="important"],
+.admin-message-card .status-badge[data-message-type="important"] {
+  color: #991b1b;
+  background: var(--color-error-soft);
+}
+
+.site-message-panel .status-badge[data-message-type="maintenance"],
+.admin-message-card .status-badge[data-message-type="maintenance"] {
+  color: #7b4b0a;
+  background: var(--color-warning-soft);
+}
+
+.site-message-panel .status-badge[data-message-type="account"],
+.admin-message-card .status-badge[data-message-type="account"] {
+  color: #1e4f9e;
+  background: var(--color-primary-soft);
+}
+
+.site-message-body {
+  max-height: min(48vh, 440px);
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  color: var(--color-text);
+  background: var(--color-surface-subtle);
+  line-height: 1.7;
+}
+
 @media (max-width: 1024px) {
   .site-nav {
     gap: var(--space-3);
@@ -3473,6 +3636,10 @@ progress {
 
   .tool-catalog {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-message-target-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .dashboard-entry-grid,
@@ -3570,6 +3737,15 @@ progress {
 
   .site-nav-actions {
     justify-self: end;
+  }
+
+  .admin-message-grid,
+  .admin-role-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-message-target-list {
+    grid-template-columns: 1fr;
   }
 
   .workspace > .tabs {

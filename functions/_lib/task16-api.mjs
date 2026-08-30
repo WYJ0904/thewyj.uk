@@ -188,7 +188,7 @@ export async function handleTask16Request(context) {
     if (!authenticated.authenticated) return authenticationError(authenticated, context);
     const account = await enrichAccountWithTask13(context.env.WYJ_DB, authenticated.account);
     if (descriptor.admin) {
-      if (!account.is_super_admin) throw new Task16Error("无管理员权限", 403, "forbidden");
+      if (!account.is_super_admin) throw new Task16Error("只有站点所有者可以执行此操作", 403, "owner_required");
     } else {
       requireFinanceAccess(account);
     }

@@ -342,7 +342,7 @@ async function main() {
       const bg = luminance(background);
       const ratio = (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
       if (ratio < 4.5) violations.push({
-        selector: element.id ? '#' + element.id : element.className ? element.tagName.toLowerCase() + '.' + String(element.className).trim().replace(/\\s+/g, '.') : element.tagName.toLowerCase(),
+        selector: element.id ? '#' + element.id : element.className ? element.tagName.toLowerCase() + '.' + String(element.className).trim().replace(/\s+/g, '.') : element.tagName.toLowerCase(),
         text: (element.value || element.textContent || '').trim().slice(0, 40),
         ratio: Number(ratio.toFixed(2)),
         color: style.color,
@@ -565,10 +565,10 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260829-task17-finance-hotfix');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260829-task17-finance-hotfix');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260829-task17-finance-hotfix');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260829-task17-finance-hotfix');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260829-task18-admin-messages');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260829-task18-admin-messages');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260829-task18-admin-messages');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260829-task18-admin-messages');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -578,10 +578,10 @@ async function main() {
       assert.equal(pwa.cachedLearningSync, true);
       assert.equal(pwa.cachedWorkflows, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.28");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.29");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-28-task17-finance-web");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-29-task18-admin-messages");
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
     });
@@ -658,7 +658,7 @@ async function main() {
       );
       assert.equal(await evaluate("document.querySelector('#changelogPage').textContent.includes('可配置工具工作流')"), true);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.28");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.29");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
@@ -2031,15 +2031,18 @@ async function main() {
     });
 
     const expectedDeniedPaths = new Set(["/api/tools/access", "/api/quiz/start"]);
+    const expectedTask18CloudOnlyPaths = new Set(["/api/messages/pending", "/api/admin/messages", "/api/admin/roles"]);
     const unexpectedHttpErrors = networkHttpErrors.filter((item) => {
       const pathname = new URL(item.url).pathname;
       const expectedPermissionDenial = item.status === 403 && expectedDeniedPaths.has(pathname);
       const expectedStaticChangelogFallback = item.status === 404 && pathname === "/api/changelog";
+      const expectedTask18LegacyBackendFallback = item.status === 404 && expectedTask18CloudOnlyPaths.has(pathname);
       const expectedDeletedAccountSyncCancellation = item.status === 401
         && pathname === "/api/learning/sync"
         && item.expectedSessionInvalidation;
       return !expectedPermissionDenial
         && !expectedStaticChangelogFallback
+        && !expectedTask18LegacyBackendFallback
         && !expectedDeletedAccountSyncCancellation;
     });
     assert.deepEqual(unexpectedHttpErrors, [], `unexpected browser HTTP errors: ${JSON.stringify(networkHttpErrors)}`);

@@ -23,6 +23,8 @@ import {
   safeJsonObject,
   validateTrialLanguage,
 } from "./task13-model.mjs";
+import { accountPayload, isAdminAccount, isOwnerAccount } from "./task12-model.mjs";
+import { userById } from "./task12-service.mjs";
 
 const MAX_QR_BYTES = 3 * 1024 * 1024;
 const HONG_KONG_OFFSET_MS = 8 * 60 * 60 * 1000;
@@ -529,9 +531,12 @@ export async function processPaymentOrder(db, actor, orderId, actionValue, noteV
     ));
     throw new Task13Error("只有用户已确认付款的订单可以处理", 409, "request_already_processed", false, committed);
   }
-  const target = await userRow(db, row.user_id);
+  const target = await userById(db, row.user_id);
   if (!target || target.deleted || target.banned) throw new Task13Error("订单用户不存在或账户不可用", 409, "payment_user_invalid");
-  if (target.role === "super_admin") throw new Task13Error("管理员账户不能购买会员", 409, "payment_user_invalid");
+  if (isOwnerAccount(target)) throw new Task13Error("站点所有者账户不能购买会员", 409, "payment_user_invalid");
+  if (!isOwnerAccount(actor) && isAdminAccount(target)) {
+    throw new Task13Error("普通管理员不能处理其他管理员的订单", 403, "admin_target_protected");
+  }
   const plan = await planRow(db, row.plan_code);
   if (!String(row.order_number || "").startsWith("LEGACY-")) validateStoredPaymentMethod(row);
   const now = isoNow();
@@ -649,16 +654,14 @@ export async function processPaymentOrder(db, actor, orderId, actionValue, noteV
   return finalStatus;
 }
 
-async function targetAccount(db, userId) {
-  const row = await userRow(db, userId);
+async function targetAccount(db, actor, userId) {
+  const row = await userById(db, userId);
   if (!row || row.deleted) throw new Task13Error("用户不存在", 404, "user_not_found");
-  const account = {
-    id: String(row.id), username: String(row.username), role: String(row.role || "user"),
-    is_super_admin: row.role === "super_admin", banned: Boolean(row.banned), deleted: Boolean(row.deleted),
-    registered_at: String(row.registered_at || ""), last_login_at: String(row.last_login_at || ""),
-    created_at: String(row.created_at || ""), updated_at: String(row.updated_at || ""),
-  };
-  if (account.is_super_admin) throw new Task13Error("不能修改固定管理员的会员", 403, "admin_protected");
+  const account = accountPayload(row);
+  if (account.is_super_admin) throw new Task13Error("不能修改站点所有者的会员", 403, "owner_protected");
+  if (!isOwnerAccount(actor) && (account.is_admin || String(account.id) === String(actor.id))) {
+    throw new Task13Error("普通管理员不能修改自己或其他管理员的会员", 403, "admin_target_protected");
+  }
   return account;
 }
 
@@ -668,7 +671,7 @@ export async function adminManageMembership(db, actor, input) {
   if (!["grant", "extend", "cancel", "cancel_all"].includes(action)) {
     throw new Task13Error("会员操作无效", 400, "membership_action_invalid");
   }
-  const target = await targetAccount(db, input.user_id);
+  const target = await targetAccount(db, actor, input.user_id);
   const before = await enrichAccountWithTask13(db, target);
   const now = isoNow();
   const note = cleanNote(input.note);
@@ -745,7 +748,7 @@ export async function adminManageMembership(db, actor, input) {
 }
 
 export async function adminSetEntitlementOverride(db, actor, input) {
-  const target = await targetAccount(db, input.user_id);
+  const target = await targetAccount(db, actor, input.user_id);
   const entitlement = String(input.entitlement || "").trim();
   if (!ENTITLEMENT_SET.has(entitlement)) throw new Task13Error("权益代码无效", 400, "entitlement_invalid");
   if (![true, false, null].includes(input.allowed)) throw new Task13Error("权益覆盖状态无效", 400, "entitlement_allowed_invalid");
