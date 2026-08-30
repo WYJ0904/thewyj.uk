@@ -74,7 +74,7 @@
         "TASK16_CLOUD_WRITES_ENABLED": "true",
         "TASK16_IMPORT_ENABLED": "true",
         "TASK16_PRODUCTION_IMPORT_ENABLED": "false",
-        "TASK18_ADMIN_MESSAGES_ENABLED": "false",
+        "TASK18_ADMIN_MESSAGES_ENABLED": "true",
         "WORKERS_AI_ENABLED": "true",
         "D1_RATE_LIMIT_ENABLED": "true",
         "CLOUD_RATE_LIMIT_REQUESTS": "120",
