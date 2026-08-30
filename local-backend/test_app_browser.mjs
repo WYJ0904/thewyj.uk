@@ -454,6 +454,22 @@ async function main() {
   const useSession = async (session, pathname) => {
     await evaluate(`localStorage.setItem('wyjAccountSession', ${JSON.stringify(session)}); location.href = ${JSON.stringify(pathname)}; true`);
     await waitFor("!document.querySelector('#entryScreen') && !document.querySelector('#appShell')?.classList.contains('app-shell-pending')", 12_000, `${pathname} after splash`);
+    const routeReady = pathname === "/select"
+      ? "!document.querySelector('#modulePicker')?.classList.contains('hidden')"
+      : pathname === "/recharge"
+        ? "!document.querySelector('#membershipModal')?.classList.contains('hidden')"
+        : pathname === "/admin"
+          ? "!document.querySelector('#adminPanel')?.classList.contains('hidden')"
+          : pathname.startsWith("/language/")
+            ? `currentProject === ${JSON.stringify(pathname.split("/").pop())} && !document.querySelector('#projectApp')?.classList.contains('hidden')`
+            : "true";
+    await waitFor(`(
+      state?.session === ${JSON.stringify(session)}
+      && Boolean(state?.account?.id)
+      && location.pathname === ${JSON.stringify(pathname)}
+      && document.querySelector('#authPanel')?.classList.contains('hidden')
+      && (${routeReady})
+    )`, 15_000, `${pathname} authenticated route`);
   };
 
   const check = async (name, action) => {
