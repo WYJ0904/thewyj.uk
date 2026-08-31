@@ -666,6 +666,19 @@ try {
     body: { word: "book", quiz_session: englishQuiz },
   });
   assert.equal(localWithoutAi.response.status, 200);
+  const basicWordsWithoutAi = await learningRequest(db, "/api/quiz/start", {
+    method: "POST", token, body: { language: "english", words: ["hello", "world"] },
+  });
+  for (const [word, gloss] of [["hello", "你好"], ["world", "世界"]]) {
+    const basicRubric = await learningRequest(db, "/api/rubric", {
+      method: "POST", token,
+      env: { WORKERS_AI_ENABLED: "false" },
+      body: { word, quiz_session: basicWordsWithoutAi.payload.quiz_session },
+    });
+    assert.equal(basicRubric.response.status, 200);
+    assert.equal(basicRubric.payload.rubric.gloss, gloss);
+    assert.equal(basicRubric.payload.source, "local");
+  }
   const unknownWithoutAi = await learningRequest(db, "/api/rubric", {
     method: "POST", token,
     env: { WORKERS_AI_ENABLED: "false" },
