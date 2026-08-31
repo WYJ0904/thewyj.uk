@@ -27,11 +27,17 @@ const USERS = Object.freeze({
   admin: { id: "task17-admin", username: "task17-admin", role: "super_admin", token: "task17-admin-token" },
   finance: { id: "task17-finance", username: "task17-finance", role: "user", token: "task17-finance-token" },
   alipay: { id: "task17-alipay", username: "task17-alipay", role: "user", token: "task17-alipay-token" },
+  allAccessWechat: { id: "task17-all-wechat", username: "task17-all-wechat", role: "user", token: "task17-all-wechat-token" },
+  allAccessAlipay: { id: "task17-all-alipay", username: "task17-all-alipay", role: "user", token: "task17-all-alipay-token" },
   free: { id: "task17-free", username: "task17-free", role: "user", token: "task17-free-token" },
 });
-const PNG_FIXTURE = new Uint8Array([
+const FINANCE_QR_FIXTURE = new Uint8Array([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-  0x54, 0x41, 0x53, 0x4b, 0x31, 0x37,
+  0x46, 0x49, 0x4e, 0x41, 0x4e, 0x43, 0x45,
+]);
+const ALL_ACCESS_QR_FIXTURE = new Uint8Array([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+  0x41, 0x4c, 0x4c, 0x2d, 0x41, 0x43, 0x43, 0x45, 0x53, 0x53,
 ]);
 
 async function insertAccountAndSession(db, user) {
@@ -92,15 +98,21 @@ try {
   }
   for (const user of Object.values(USERS)) await insertAccountAndSession(db, user);
   for (const method of ["wechat", "alipay"]) {
-    await storage.put(qrObjectKeyFor(method, "finance_monthly"), PNG_FIXTURE, {
+    await storage.put(qrObjectKeyFor(method, "finance_monthly"), FINANCE_QR_FIXTURE, {
+      httpMetadata: { contentType: "image/png" },
+    });
+    await storage.put(qrObjectKeyFor(method, "all_access_monthly"), ALL_ACCESS_QR_FIXTURE, {
       httpMetadata: { contentType: "image/png" },
     });
   }
   assert.equal(qrResourceIdFor("wechat", "finance_monthly"), "qr-v1:wechat:finance_monthly");
   assert.equal(
     qrObjectKeyFor("wechat", "finance_monthly"),
-    "payments/qrcodes/v1/wechat_all_access_monthly.png",
+    "payments/qrcodes/v1/wechat_finance_monthly.png",
   );
+  assert.equal(qrObjectKeyFor("alipay", "finance_monthly"), "payments/qrcodes/v1/alipay_finance_monthly.png");
+  assert.notEqual(qrObjectKeyFor("wechat", "finance_monthly"), qrObjectKeyFor("wechat", "all_access_monthly"));
+  assert.notEqual(qrObjectKeyFor("alipay", "finance_monthly"), qrObjectKeyFor("alipay", "all_access_monthly"));
 
   const plans = await request(handleTask13Request, db, storage, "/api/membership/plans");
   assert.equal(plans.response.status, 200);
@@ -120,11 +132,39 @@ try {
     token: USERS.alipay.token,
   });
   assert.equal(alipayQr.response.status, 200);
-  assert.deepEqual(alipayQr.bytes, PNG_FIXTURE);
+  assert.deepEqual(alipayQr.bytes, FINANCE_QR_FIXTURE);
   const cancelled = await request(handleTask13Request, db, storage, "/api/recharge/cancel", {
     method: "POST", token: USERS.alipay.token, body: { request_id: alipayOrder.payload.request.id },
   });
   assert.equal(cancelled.payload.request.status, "cancelled");
+
+  for (const [method, user] of [
+    ["wechat", USERS.allAccessWechat],
+    ["alipay", USERS.allAccessAlipay],
+  ]) {
+    const allAccessOrder = await request(handleTask13Request, db, storage, "/api/recharge/request", {
+      method: "POST", token: user.token,
+      body: { plan: "all_access_monthly", payment_method: method, trial_language: "" },
+    });
+    assert.equal(allAccessOrder.response.status, 201, JSON.stringify(allAccessOrder.payload));
+    assert.equal(allAccessOrder.payload.request.amount_cents, 3000);
+    assert.equal(allAccessOrder.payload.request.payment_method, method);
+    assert.equal(allAccessOrder.payload.request.status, "pending_payment");
+    const allAccessQr = await request(
+      handleTask13Request,
+      db,
+      storage,
+      `/api/recharge/qr?request_id=${allAccessOrder.payload.request.id}`,
+      { token: user.token },
+    );
+    assert.equal(allAccessQr.response.status, 200);
+    assert.deepEqual(allAccessQr.bytes, ALL_ACCESS_QR_FIXTURE);
+    assert.notDeepEqual(allAccessQr.bytes, FINANCE_QR_FIXTURE);
+    const allAccessCancelled = await request(handleTask13Request, db, storage, "/api/recharge/cancel", {
+      method: "POST", token: user.token, body: { request_id: allAccessOrder.payload.request.id },
+    });
+    assert.equal(allAccessCancelled.payload.request.status, "cancelled");
+  }
 
   const created = await request(handleTask13Request, db, storage, "/api/recharge/request", {
     method: "POST", token: USERS.finance.token,
@@ -138,7 +178,7 @@ try {
     token: USERS.finance.token,
   });
   assert.equal(wechatQr.response.status, 200);
-  assert.deepEqual(wechatQr.bytes, PNG_FIXTURE);
+  assert.deepEqual(wechatQr.bytes, FINANCE_QR_FIXTURE);
   const confirmed = await request(handleTask13Request, db, storage, "/api/recharge/confirm", {
     method: "POST", token: USERS.finance.token, body: { request_id: created.payload.request.id },
   });

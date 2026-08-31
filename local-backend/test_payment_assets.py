@@ -99,16 +99,39 @@ class PaymentAssetTests(unittest.TestCase):
             )
         self.assertEqual(invalid.exception.code, "payment_qr_invalid")
 
-    def test_finance_resource_id_reuses_private_receiver_asset(self):
-        expected = PNG_SIGNATURE + b"shared-private-receiver"
-        self.write_asset("wechat", "all_access_monthly", expected)
-        content, content_type = load_qr_asset(
-            "wechat",
-            "finance_monthly",
-            "qr-v1:wechat:finance_monthly",
-        )
-        self.assertEqual(content, expected)
-        self.assertEqual(content_type, "image/png")
+    def test_finance_and_all_access_assets_never_cross_wire(self):
+        for method in PAYMENT_METHODS:
+            finance = PNG_SIGNATURE + f"{method}-finance-8-cny".encode("ascii")
+            all_access = PNG_SIGNATURE + f"{method}-all-access-30-cny".encode("ascii")
+            self.write_asset(method, "finance_monthly", finance)
+            self.write_asset(method, "all_access_monthly", all_access)
+
+            finance_content, finance_type = load_qr_asset(
+                method,
+                "finance_monthly",
+                f"qr-v1:{method}:finance_monthly",
+            )
+            all_access_content, all_access_type = load_qr_asset(
+                method,
+                "all_access_monthly",
+                f"qr-v1:{method}:all_access_monthly",
+            )
+            self.assertEqual(finance_content, finance)
+            self.assertEqual(all_access_content, all_access)
+            self.assertNotEqual(finance_content, all_access_content)
+            self.assertEqual(finance_type, "image/png")
+            self.assertEqual(all_access_type, "image/png")
+
+    def test_missing_finance_asset_does_not_fall_back_to_all_access(self):
+        for method in PAYMENT_METHODS:
+            self.write_asset(method, "all_access_monthly")
+            with self.assertRaises(PaymentAssetError) as missing:
+                load_qr_asset(
+                    method,
+                    "finance_monthly",
+                    f"qr-v1:{method}:finance_monthly",
+                )
+            self.assertEqual(missing.exception.code, "payment_qr_unavailable")
 
     def test_missing_asset_error_does_not_disclose_local_path(self):
         with self.assertRaises(PaymentAssetError) as missing:

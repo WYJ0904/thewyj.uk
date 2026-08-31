@@ -4,11 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
-    <title>WYJ的网站</title>
+    <title>thewyj — 学习、工具、财务与分享</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260829-task18-admin-messages" />
-    <link rel="stylesheet" href="/styles.css?v=20260829-task18-admin-messages" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260829-task18-admin-messages" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260831-task19-design-system-2" />
+    <link rel="stylesheet" href="/styles.css?v=20260831-task19-design-system-2" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260831-task19-design-system-2" />
+    <link rel="stylesheet" href="/design-system.css?v=20260831-task19-design-system-2" />
+    <link rel="stylesheet" href="/public-experience.css?v=20260831-task19-design-system-2" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20260831-task19-design-system-2" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 WYJ的网站" aria-hidden="false">
@@ -21,32 +24,50 @@
 
     <main class="app-shell app-shell-pending" id="appShell" aria-hidden="true">
       <nav class="site-nav" id="accountBar" aria-label="主导航">
-        <a class="site-brand" href="/" data-site-nav="home" aria-label="WYJ的网站首页">
-          <img src="/icon-192.png" alt="" />
-          <span class="site-brand-copy"><strong>WYJ的网站</strong><small id="siteVersionLabel">v2026.08.11</small></span>
-        </a>
-        <div class="site-nav-links">
-          <a href="/" data-site-nav="home" id="navHomeLink"><span id="navHomeLabel">首页</span></a>
-          <a href="/language" data-site-nav="language">语言学习</a>
-          <a href="/tools" data-site-nav="tools">在线工具</a>
-          <a href="/finance" data-site-nav="finance">财务</a>
-          <a href="/changelog" data-site-nav="changelog">更新日志</a>
-        </div>
-        <div class="site-nav-actions" id="navGuestActions">
-          <button class="button-ghost" id="navLoginBtn" type="button">登录</button>
-          <button class="primary" id="navRegisterBtn" type="button">注册</button>
-        </div>
-        <details class="account-menu hidden" id="accountMenu">
-          <summary aria-label="打开账户菜单"><span class="account-badge" id="accountBadge">未登录</span></summary>
-          <div class="account-menu-popover" role="menu">
-            <button class="hidden" id="homeBtn" type="button" role="menuitem">个人首页</button>
-            <button id="membershipBtn" type="button" role="menuitem">会员与充值</button>
-            <button class="hidden" id="feedbackBtn" type="button" role="menuitem">反馈与功能投票</button>
-            <button class="hidden" id="accountBtn" type="button" role="menuitem">账户设置</button>
-            <button class="hidden" id="adminBtn" type="button" role="menuitem">管理后台</button>
-            <button class="hidden danger-text" id="logoutBtn" type="button" role="menuitem">退出登录</button>
+        <div class="site-nav-bar">
+          <a class="site-brand" href="/" data-site-nav="home" aria-label="thewyj 首页">
+            <img src="/icon-192.png" alt="" />
+            <span class="site-brand-copy"><strong>thewyj</strong><small id="siteVersionLabel">v2026.08.29</small></span>
+          </a>
+          <button class="site-nav-toggle" id="siteNavToggle" type="button" aria-expanded="false" aria-controls="siteNavPanel" aria-label="打开主导航">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+            <span>导航</span>
+          </button>
+          <div class="site-nav-actions" id="navGuestActions">
+            <button class="button-ghost" id="navLoginBtn" type="button">登录</button>
+            <button class="primary" id="navRegisterBtn" type="button">注册</button>
           </div>
-        </details>
+          <details class="account-menu hidden" id="accountMenu">
+            <summary aria-label="打开账户菜单"><span class="account-badge" id="accountBadge">未登录</span></summary>
+            <div class="account-menu-popover" role="menu">
+              <button class="hidden" id="homeBtn" type="button" role="menuitem">个人首页</button>
+              <button id="membershipBtn" type="button" role="menuitem">会员与充值</button>
+              <button class="hidden" id="feedbackBtn" type="button" role="menuitem">反馈与功能投票</button>
+              <button class="hidden" id="accountBtn" type="button" role="menuitem">账户设置</button>
+              <button class="hidden" id="adminBtn" type="button" role="menuitem">管理后台</button>
+              <button class="hidden danger-text" id="logoutBtn" type="button" role="menuitem">退出登录</button>
+            </div>
+          </details>
+        </div>
+        <div class="site-nav-panel" id="siteNavPanel" aria-hidden="true">
+          <div class="site-nav-links site-nav-cards">
+            <div class="site-nav-card">
+              <p>开始</p>
+              <a href="/" data-site-nav="home" id="navHomeLink"><span id="navHomeLabel">首页</span><small>产品概览与入口</small></a>
+              <a href="/changelog" data-site-nav="changelog"><span>更新日志</span><small>最近上线与修复</small></a>
+            </div>
+            <div class="site-nav-card">
+              <p>学习</p>
+              <a href="/language" data-site-nav="language"><span>语言学习</span><small>英语、日语与错题复习</small></a>
+              <a href="/trial" data-site-nav="trial"><span>免费试用</span><small>无需注册，最多十题</small></a>
+            </div>
+            <div class="site-nav-card">
+              <p>工作</p>
+              <a href="/tools" data-site-nav="tools"><span>在线工具</span><small>文本、文件、图片与临时分享</small></a>
+              <a href="/finance" data-site-nav="finance"><span>财务账本</span><small>交易、预算与跨设备同步</small></a>
+            </div>
+          </div>
+        </div>
       </nav>
 
       <aside class="version-notice hidden" id="versionNotice" role="status" aria-live="polite">
@@ -56,42 +77,88 @@
       </aside>
 
       <section class="public-home hidden" id="publicHome" aria-labelledby="publicHomeTitle" aria-hidden="true">
-        <section class="public-intro">
+        <section class="public-intro public-hero">
+          <div class="public-hero-scene" aria-hidden="true">
+            <div class="hero-scene-card hero-scene-learning"><small>日语测试</small><strong>電話</strong><span>でんわ</span><i>12 / 20</i></div>
+            <div class="hero-scene-card hero-scene-finance"><small>本月余额</small><strong>¥ 3,284.60</strong><span>预算内 72%</span><i>财务</i></div>
+            <div class="hero-scene-card hero-scene-tools"><small>工具搜索</small><strong>JSON 格式化</strong><span>仅在浏览器处理</span><i>工具箱</i></div>
+            <div class="hero-scene-line"></div>
+          </div>
           <div class="public-intro-copy">
-            <p class="section-kicker">语言学习与浏览器工具</p>
-            <h1 id="publicHomeTitle">WYJ的网站</h1>
-            <p class="public-lead">练习英语和日语词汇，处理日常文本、文件与图片。免费试用内容直接在浏览器运行，登录后可保存学习记录并使用账户权益。</p>
+            <p class="section-kicker">一个账户，日常所需</p>
+            <h1 id="publicHomeTitle">thewyj</h1>
+            <p class="public-hero-statement">把每天真正会用到的能力，放进一个清楚、可靠的产品。</p>
+            <div class="public-hero-motion" aria-label="学习、工具、财务与分享">
+              <span>从</span>
+              <span class="split-flap" id="publicSplitFlap" data-phrases="学习|工具|财务|分享"><span data-split-flap-word aria-hidden="true">学习</span></span>
+              <span>开始</span>
+            </div>
+            <p class="public-lead">练习英语和日语，处理文本、文件与图片，维护个人财务，并在需要时安全地临时分享。一个账户，同一套云端数据与权益。</p>
             <div class="public-actions">
               <button class="primary" id="publicTrialBtn" type="button">开始免费试用</button>
               <button class="button-secondary" id="publicRegisterBtn" type="button">创建账户</button>
             </div>
             <ul class="public-trust-list" aria-label="服务特点">
               <li>试用无需注册</li>
-              <li>文件默认不上传</li>
-              <li>无第三方追踪</li>
+              <li>文件默认本地处理</li>
+              <li>没有第三方追踪</li>
             </ul>
           </div>
         </section>
 
-        <section class="public-section" aria-labelledby="publicLearningTitle">
-          <header class="public-section-heading"><p class="section-kicker">语言学习</p><h2 id="publicLearningTitle">从词表到错题复习</h2><p>正式账户提供词表、释义与听写、日语假名标音、错题本、统计、成就和 AI 判卷。</p></header>
-          <div class="public-card-grid public-card-grid-two">
-            <article class="public-feature-card"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H4Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v17a3 3 0 0 1 3-3h3Z"/></svg></span><div><h3>英语学习</h3><p>导入自己的词表，练习释义与听写，并集中复习错误内容。</p></div></article>
-            <article class="public-feature-card"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><div><h3>日语学习</h3><p>支持汉字或假名输入，自动显示读音，并按日语规则完成测试。</p></div></article>
+        <section class="public-section public-capabilities" aria-labelledby="publicCapabilitiesTitle">
+          <header class="public-section-heading">
+            <p class="section-kicker">核心能力</p>
+            <h2 id="publicCapabilitiesTitle">不是功能清单，是一套能衔接的日常工作流</h2>
+            <p>选择一项查看真实产品界面。桌面端支持悬停、焦点和点击，触屏使用点击展开。</p>
+          </header>
+          <div class="capability-gallery" id="publicCapabilityGallery">
+            <article class="capability-panel active" data-capability-panel="learning">
+              <button class="capability-trigger" type="button" aria-expanded="true" aria-controls="capabilityLearningBody">
+                <span class="capability-index">01</span><span><strong id="publicLearningTitle">学习</strong><small>英语与日语</small></span>
+              </button>
+              <div class="capability-body" id="capabilityLearningBody">
+                <div class="capability-copy"><p>词表、释义与听写、假名标音、错题重新判定、统计和成就保留在同一条学习路径里。</p><button class="button-secondary" id="publicLanguageTrialBtn" type="button">试做最多 10 题</button></div>
+                <div class="product-preview learning-preview" aria-label="日语答题界面预览"><div class="preview-toolbar"><span>日语测试</span><small>12 / 20</small></div><div class="preview-question"><strong>電話</strong><span>でんわ</span></div><div class="preview-answer">中文意思</div><div class="preview-feedback"><b>正确</b><span>标准释义：电话</span></div></div>
+              </div>
+            </article>
+            <article class="capability-panel" data-capability-panel="tools">
+              <button class="capability-trigger" type="button" aria-expanded="false" aria-controls="capabilityToolsBody">
+                <span class="capability-index">02</span><span><strong id="publicToolsTitle">工具箱</strong><small>浏览器本地处理</small></span>
+              </button>
+              <div class="capability-body" id="capabilityToolsBody" hidden>
+                <div class="capability-copy"><p>文本、文件、图片、随机生成器和临时工具支持模糊搜索、收藏、最近使用与工作流。</p><button class="button-secondary" id="publicToolsTrialBtn" type="button">试用本地工具</button></div>
+                <div class="product-preview tools-preview" aria-label="工具搜索界面预览"><div class="preview-search">搜索 JSON、图片、哈希…</div><div class="preview-tool-grid"><span>JSON 格式化</span><span>图片压缩</span><span>SHA-256</span><span>随机密码</span></div><small>103 项工具目录</small></div>
+              </div>
+            </article>
+            <article class="capability-panel" data-capability-panel="finance">
+              <button class="capability-trigger" type="button" aria-expanded="false" aria-controls="capabilityFinanceBody">
+                <span class="capability-index">03</span><span><strong>财务</strong><small>同一份云端账本</small></span>
+              </button>
+              <div class="capability-body" id="capabilityFinanceBody" hidden>
+                <div class="capability-copy"><p>收入、支出、退款、预算和分类共享同一套服务端规则，Web 与 Android 使用相同 canonical transaction。</p></div>
+                <div class="product-preview finance-preview" aria-label="财务账本界面预览"><div class="preview-finance-stats"><span><small>收入</small><b>¥ 8,520</b></span><span><small>支出</small><b>¥ 5,235.40</b></span><span><small>余额</small><b>¥ 3,284.60</b></span></div><div class="preview-transaction"><span>日常餐饮<small>今天 12:20</small></span><b>- ¥ 32.00</b></div><div class="preview-budget"><span>月预算</span><i><b></b></i><small>剩余 28%</small></div></div>
+              </div>
+            </article>
+            <article class="capability-panel" data-capability-panel="share">
+              <button class="capability-trigger" type="button" aria-expanded="false" aria-controls="capabilityShareBody">
+                <span class="capability-index">04</span><span><strong>分享</strong><small>临时且受控</small></span>
+              </button>
+              <div class="capability-body" id="capabilityShareBody" hidden>
+                <div class="capability-copy"><p>临时文本、文件、剪贴板、二维码和留言房间支持密码、期限、次数与阅后销毁。</p></div>
+                <div class="product-preview share-preview" aria-label="临时文件分享界面预览"><div class="preview-file"><span class="preview-file-icon">PDF</span><span><strong>project-notes.pdf</strong><small>2.4 MB · 私有 R2</small></span></div><div class="preview-share-meta"><span>24 小时后过期</span><span>剩余 3 次下载</span></div><div class="preview-share-link">thewyj.uk/share/file/••••••</div></div>
+              </div>
+            </article>
+            <article class="capability-panel" data-capability-panel="account">
+              <button class="capability-trigger" type="button" aria-expanded="false" aria-controls="capabilityAccountBody">
+                <span class="capability-index">05</span><span><strong>账户</strong><small>权益与跨设备</small></span>
+              </button>
+              <div class="capability-body" id="capabilityAccountBody" hidden>
+                <div class="capability-copy"><p>账户、会员、学习同步、财务账本、反馈与站内消息都由同一身份体系保护。</p></div>
+                <div class="product-preview account-preview" aria-label="账户权益界面预览"><div class="preview-account"><span>WYJ 用户</span><b>已同步</b></div><div class="preview-entitlements"><span>语言学习</span><span>在线工具</span><span>财务账本</span></div><div class="preview-update"><small>最近更新</small><strong>管理员分级与站内消息</strong></div></div>
+              </div>
+            </article>
           </div>
-          <button class="button-secondary public-section-action" id="publicLanguageTrialBtn" type="button">试做最多 10 题</button>
-        </section>
-
-        <section class="public-section" aria-labelledby="publicToolsTitle">
-          <header class="public-section-heading"><p class="section-kicker">在线工具</p><h2 id="publicToolsTitle">常用处理集中在一个地方</h2><p>正式工具箱覆盖五个分类；免费试用开放四项单次、本地处理工具。</p></header>
-          <div class="public-card-grid public-tool-category-grid">
-            <article class="public-feature-card"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 6h16M4 12h12M4 18h8"/></svg></span><div><h3>文本处理</h3><p>统计、清理、转换、提取和 JSON 工具。</p></div></article>
-            <article class="public-feature-card"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/></svg></span><div><h3>文件处理</h3><p>哈希、格式转换、分割、合并与打包。</p></div></article>
-            <article class="public-feature-card"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="9" r="1.5"/><path d="m5 17 4-4 3 3 2-2 5 5"/></svg></span><div><h3>图片与设计</h3><p>压缩、转换、裁剪、隐私处理与设计辅助。</p></div></article>
-            <article class="public-feature-card"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 4h6v6H4zM14 14h6v6h-6zM15 4h5v5M4 15h5v5"/><path d="m10 7 4 10"/></svg></span><div><h3>随机生成器</h3><p>密码、UUID、抽签、分组、骰子和随机决定。</p></div></article>
-            <article class="public-feature-card"><span class="public-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div><h3>临时工具</h3><p>会员可创建有期限和次数限制的分享内容。</p></div></article>
-          </div>
-          <button class="button-secondary public-section-action" id="publicToolsTrialBtn" type="button">试用本地工具</button>
         </section>
 
         <section class="public-privacy-band" aria-labelledby="publicPrivacyTitle">
@@ -1008,10 +1075,10 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20260829-task18-admin-messages"></script>
-    <script type="module" src="/tools.js?v=20260829-task18-admin-messages"></script>
-    <script src="/workflows.js?v=20260829-task18-admin-messages"></script>
-    <script src="/learning-sync.js?v=20260829-task18-admin-messages"></script>
-    <script type="module" src="/app.js?v=20260829-task18-admin-messages"></script>
+    <script src="/changelog.js?v=20260831-task19-design-system-2"></script>
+    <script type="module" src="/tools.js?v=20260831-task19-design-system-2"></script>
+    <script src="/workflows.js?v=20260831-task19-design-system-2"></script>
+    <script src="/learning-sync.js?v=20260831-task19-design-system-2"></script>
+    <script type="module" src="/app.js?v=20260831-task19-design-system-2"></script>
   </body>
 </html>
