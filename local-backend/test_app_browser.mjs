@@ -626,13 +626,18 @@ async function main() {
         scrollWidth: document.documentElement.scrollWidth,
         loginVisible: document.querySelector('#navLoginBtn').getBoundingClientRect().width > 0,
         registerVisible: document.querySelector('#navRegisterBtn').getBoundingClientRect().width > 0,
+        brandHeight: document.querySelector('.site-brand').getBoundingClientRect().height,
         navHeight: document.querySelector('#siteNavToggle').getBoundingClientRect().height,
+        loginHeight: document.querySelector('#navLoginBtn').getBoundingClientRect().height,
+        registerHeight: document.querySelector('#navRegisterBtn').getBoundingClientRect().height,
         collapsedBodies: [...document.querySelectorAll('.capability-body[hidden]')].every((item) => getComputedStyle(item).display === 'none'),
       })`);
       assert.ok(mobilePublic.scrollWidth <= mobilePublic.viewport + 1, JSON.stringify(mobilePublic));
       assert.equal(mobilePublic.loginVisible, true);
       assert.equal(mobilePublic.registerVisible, true);
-      assert.ok(mobilePublic.navHeight >= 40, JSON.stringify(mobilePublic));
+      for (const key of ['brandHeight', 'navHeight', 'loginHeight', 'registerHeight']) {
+        assert.ok(mobilePublic[key] >= 44, JSON.stringify(mobilePublic));
+      }
       assert.equal(mobilePublic.collapsedBodies, true);
       const mobileHomeShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-390-${RUN_ID}.png`), Buffer.from(mobileHomeShot.data, "base64"));
