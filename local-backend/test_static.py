@@ -120,6 +120,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('type="module" src="/app.js?v=20260831-task19-design-system-2"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
+        for asset in ("design-system.css", "public-experience.css", "workspace-experience.css"):
+            self.assertIn(f'  "{asset}",', stage_script)
         self.assertNotIn('.tool-e2e', stage_script)
         self.assertIn('"pages:stage": "node scripts/stage_pages_deploy.mjs"', (ROOT / "package.json").read_text(encoding="utf-8"))
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
