@@ -325,7 +325,7 @@ class LauncherStabilityTests(unittest.TestCase):
         self.assertIn('connector metrics are not accepted as public availability', watchdog)
         self.assertNotIn('$localOk -and ($publicOk -or $connectorOk)', watchdog)
 
-    def test_source_selection_and_historical_seventy_yuan_qr_fallback(self):
+    def test_source_selection_finance_assets_and_historical_seventy_yuan_qr_fallback(self):
         launcher = ROOT / "desktop-tools" / "start-wyj.ps1"
         with tempfile.TemporaryDirectory() as directory:
             temporary = Path(directory)
@@ -336,6 +336,7 @@ class LauncherStabilityTests(unittest.TestCase):
             (runtime / "data" / "payment" / "qrcodes").mkdir(parents=True)
             current_plans = (
                 "trial_single_language",
+                "finance_monthly",
                 "dual_language_monthly",
                 "tools_monthly",
                 "all_access_monthly",
@@ -360,8 +361,9 @@ class LauncherStabilityTests(unittest.TestCase):
                 $script:BackendRoot = '{runtime}'
                 $script:FileLoggingEnabled = $false
                 $count = Sync-PrivatePaymentAssets
-                if ($count -ne 12) {{ throw "unexpected QR count: $count" }}
+                if ($count -ne 14) {{ throw "unexpected QR count: $count" }}
                 foreach ($method in @('wechat', 'alipay')) {{
+                    if (-not (Test-Path -LiteralPath (Join-Path $script:BackendRoot "data\\payment\\qrcodes\\${{method}}_finance_monthly.png") -PathType Leaf)) {{ throw 'finance QR missing' }}
                     if (-not (Test-Path -LiteralPath (Join-Path $script:BackendRoot "data\\payment\\qrcodes\\${{method}}_japanese_lifetime.png") -PathType Leaf)) {{ throw 'current Japanese QR missing' }}
                     if (-not (Test-Path -LiteralPath (Join-Path $script:BackendRoot "data\\payment\\qrcodes\\${{method}}_dual_language_lifetime.png") -PathType Leaf)) {{ throw 'historical dual-language QR fallback missing' }}
                 }}

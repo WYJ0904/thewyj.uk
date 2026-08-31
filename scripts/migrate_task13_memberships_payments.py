@@ -43,13 +43,6 @@ PAYMENT_STATUSES = OPEN_PAYMENT_STATUSES | TERMINAL_PAYMENT_STATUSES
 MIGRATED_AUDIT_PREFIXES = ("membership_", "entitlement_", "payment_")
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 MAX_QR_BYTES = 3 * 1024 * 1024
-QR_ASSET_PLAN_ALIASES = {"finance_monthly": "all_access_monthly"}
-
-
-def qr_asset_plan_code(plan_code: str) -> str:
-    return QR_ASSET_PLAN_ALIASES.get(str(plan_code or ""), str(plan_code or ""))
-
-
 MAX_BATCH = 100
 
 
@@ -291,13 +284,13 @@ def duplicate_count(records: list[dict], fields: tuple[str, ...]) -> int:
 
 def qr_inventory(qr_directory: Path, payment_rows: list[dict]) -> tuple[dict, dict[str, Path]]:
     expected = {
-        (method, qr_asset_plan_code(code))
+        (method, code)
         for method in PAYMENT_METHODS
         for code, plan in MEMBERSHIP_PLANS.items()
         if plan["purchasable"]
     }
     expected.update(
-        (row["payment_method"], qr_asset_plan_code(row["plan_code"]))
+        (row["payment_method"], row["plan_code"])
         for row in payment_rows
         if row["payment_method"] in PAYMENT_METHODS
     )

@@ -1438,6 +1438,7 @@ function Sync-PrivatePaymentAssets {
     $destinationRoot = Join-Path $script:BackendRoot "data\payment\qrcodes"
     $plans = @(
         [pscustomobject]@{ Code = "trial_single_language"; LegacyCode = "" },
+        [pscustomobject]@{ Code = "finance_monthly"; LegacyCode = "" },
         [pscustomobject]@{ Code = "dual_language_monthly"; LegacyCode = "" },
         [pscustomobject]@{ Code = "tools_monthly"; LegacyCode = "" },
         [pscustomobject]@{ Code = "all_access_monthly"; LegacyCode = "" },
@@ -1470,14 +1471,14 @@ function Sync-PrivatePaymentAssets {
             $null = Copy-FileIfChanged -Source $historicalSource -Destination $historicalDestination
         }
     }
-    if ($validCount -eq 12) {
+    if ($validCount -eq 14) {
         if ($copiedCount -gt 0) {
             Write-LaunchLog "已安全同步 $copiedCount 张更新后的私有支付二维码。" "Green"
         } else {
-            Write-LaunchLog "12 张私有支付二维码已就绪。" "Green"
+            Write-LaunchLog "14 张私有支付二维码已就绪。" "Green"
         }
     } else {
-        Write-LaunchLog "私有支付二维码仅就绪 $validCount/12；缺失方案将无法显示付款码。" "Yellow"
+        Write-LaunchLog "私有支付二维码仅就绪 $validCount/14；缺失方案将无法显示付款码。" "Yellow"
     }
     return $validCount
 }
