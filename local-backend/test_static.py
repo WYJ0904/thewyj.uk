@@ -45,6 +45,9 @@ class StaticSiteTests(unittest.TestCase):
         cls.workflows = (ROOT / "workflows.js").read_text(encoding="utf-8")
         cls.styles = (ROOT / "styles.css").read_text(encoding="utf-8")
         cls.product_styles = (ROOT / "product-ui.css").read_text(encoding="utf-8")
+        cls.design_styles = (ROOT / "design-system.css").read_text(encoding="utf-8")
+        cls.public_styles = (ROOT / "public-experience.css").read_text(encoding="utf-8")
+        cls.workspace_styles = (ROOT / "workspace-experience.css").read_text(encoding="utf-8")
         cls.worker = (ROOT / "sw.js").read_text(encoding="utf-8")
         cls.changelog = (ROOT / "changelog.js").read_text(encoding="utf-8")
         cls.learning_sync = (ROOT / "learning-sync.js").read_text(encoding="utf-8")
@@ -106,15 +109,15 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260829-task18-admin-messages"
-        for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
+        release_token = "20260831-task19-design-system-2"
+        for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "design-system.css", "public-experience.css", "workspace-experience.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
-        self.assertIn('export const APP_VERSION = "2026-08-29-task18-admin-messages"', self.core)
-        for module in ("api", "config", "router", "session", "storage", "ui"):
+        self.assertIn('export const APP_VERSION = "2026-08-31-task19-design-system-2"', self.core)
+        for module in ("api", "config", "router", "session", "storage", "ui", "design-system"):
             self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20260829-task18-admin-messages"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20260831-task19-design-system-2"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         self.assertNotIn('.tool-e2e', stage_script)
@@ -126,7 +129,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertFalse((ROOT / "404.html").exists())
 
     def test_browser_module_graph_uses_one_release_version(self):
-        release_token = "20260829-task18-admin-messages"
+        release_token = "20260831-task19-design-system-2"
         import_pattern = re.compile(
             r'(?:from\s+|import\s+)["\'](\.{1,2}/[^"\']+\.js(?:\?[^"\']*)?)["\']'
         )
@@ -242,6 +245,44 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('class="auth-logo"', self.html)
         self.assertNotRegex(self.html, r">\s*[文+×↕]\s*<")
 
+    def test_task19_design_system_two_contract(self):
+        self.assertIn('href="/design-system.css?v=20260831-task19-design-system-2"', self.html)
+        self.assertIn('href="/public-experience.css?v=20260831-task19-design-system-2"', self.html)
+        self.assertIn('href="/workspace-experience.css?v=20260831-task19-design-system-2"', self.html)
+        self.assertIn('id="siteNavToggle"', self.html)
+        self.assertIn('id="siteNavPanel"', self.html)
+        self.assertEqual(self.html.count('data-capability-panel='), 5)
+        self.assertIn('id="publicSplitFlap"', self.html)
+        self.assertIn('data-phrases="学习|工具|财务|分享"', self.html)
+        self.assertIn('一个账户，日常所需', self.html)
+        self.assertNotIn('One account. Everyday work.', self.html)
+        self.assertIn('.capability-body[hidden]', self.public_styles)
+        self.assertIn('@media (prefers-reduced-motion: reduce)', self.design_styles)
+        self.assertIn('@media (prefers-reduced-motion: reduce)', self.workspace_styles)
+        self.assertIn('--ds-container-wide: 1440px', self.design_styles)
+        self.assertIn('--ds-touch-min: 44px', self.design_styles)
+        modal_motion = re.search(
+            r"@keyframes dsModalPanelIn\s*\{(.*?)\}\s*@keyframes dsModalPanelOut\s*\{(.*?)\}",
+            self.design_styles,
+            re.S,
+        )
+        self.assertIsNotNone(modal_motion)
+        self.assertNotIn("opacity", "".join(modal_motion.groups()))
+        self.assertIn('.dashboard-entry-grid .module-card[data-module="tools"]', self.workspace_styles)
+        self.assertIn('.tools-panel,\n.finance-page,\n.admin-panel', self.workspace_styles)
+        self.assertRegex(
+            self.workspace_styles,
+            r"\.admin-tabs\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)",
+        )
+        combined = self.html + self.design_styles + self.public_styles + self.workspace_styles
+        for forbidden in ('fonts.googleapis.com', 'cdnjs.cloudflare.com/ajax/libs/gsap', 'react.production.min.js'):
+            self.assertNotIn(forbidden, combined)
+        audit = (ROOT / "qa" / "TASK19_DESIGN_AUDIT.md").read_text(encoding="utf-8")
+        android = (ROOT / "docs" / "DESIGN_SYSTEM_2.md").read_text(encoding="utf-8")
+        for reference in ("Vesper", "Superr", "CardNav", "SplitFlapText", "AccordionGallery"):
+            self.assertIn(reference, audit)
+        self.assertIn("Android", android)
+
     def test_dashboard_rejudge_and_readability_contract(self):
         self.assertIn('data-dashboard-project="english"', self.html)
         self.assertIn('data-dashboard-project="japanese"', self.html)
@@ -268,13 +309,15 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("toolPreferences:v", self.tools)
 
         required_colors = {
-            "--color-text": "#1f2937",
-            "--color-text-secondary": "#475569",
-            "--color-text-muted": "#5b6878",
+            "--ds-text": "#18212f",
+            "--ds-text-secondary": "#475569",
+            "--ds-text-muted": "#5b687a",
         }
         for token, color in required_colors.items():
-            self.assertRegex(self.product_styles, rf"{re.escape(token)}:\s*{color}")
-        disabled = re.search(r"button:disabled\s*\{([^}]*)\}", self.product_styles, re.S)
+            self.assertRegex(self.design_styles, rf"{re.escape(token)}:\s*{color}")
+        self.assertIn("--color-text: var(--ds-text)", self.design_styles)
+        combined_styles = self.product_styles + "\n" + self.design_styles
+        disabled = re.search(r"button:disabled(?:,\s*[^\{]+)?\s*\{([^}]*)\}", combined_styles, re.S)
         self.assertIsNotNone(disabled)
         self.assertRegex(disabled.group(1), r"opacity:\s*1")
         self.assertRegex(self.product_styles, r"\.plan-option:disabled\s*\{[^}]*opacity:\s*1")

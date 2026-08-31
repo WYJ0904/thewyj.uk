@@ -1,6 +1,16 @@
 (() => {
   const entries = [
     {
+      version: "2026.08.31",
+      build: "2026-08-31-task19-design-system-2",
+      date: "2026-08-31",
+      title: "thewyj Design System 2.0",
+      features: ["公开首页新增品牌舞台、结构化主导航与真实产品能力展示。"],
+      improvements: ["登录后学习、工具、财务、会员、分享和管理工作区统一使用可映射到 Android 的语义 token 与组件状态。"],
+      fixes: ["财务月度会员改用微信和支付宝各自的 8 CNY 私有收款二维码，不再复用全功能月度素材。"],
+      security: ["支付二维码继续从私有 R2 按订单归属和支付方式读取，缺失专属素材时明确失败而不跨套餐回退。"],
+    },
+    {
       version: "2026.08.29",
       build: "2026-08-29-task18-admin-messages",
       date: "2026-08-29",

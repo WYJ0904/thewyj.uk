@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?v=20260829-task18-admin-messages";
+import { fetchWithTimeout } from "./api.js?v=20260831-task19-design-system-2";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 

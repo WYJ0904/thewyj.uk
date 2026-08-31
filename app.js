@@ -8,38 +8,39 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260829-task18-admin-messages";
+} from "./js/core/config.js?v=20260831-task19-design-system-2";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20260829-task18-admin-messages";
+} from "./js/core/api.js?v=20260831-task19-design-system-2";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260829-task18-admin-messages";
-import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260829-task18-admin-messages";
+} from "./js/core/changelog.js?v=20260831-task19-design-system-2";
+import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260831-task19-design-system-2";
 import {
   ACCOUNT_CACHE_KEY,
   clearAccountSessionStorage,
   persistAccountSession,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20260829-task18-admin-messages";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260829-task18-admin-messages";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260829-task18-admin-messages";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260829-task18-admin-messages";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260829-task18-admin-messages";
+} from "./js/core/session.js?v=20260831-task19-design-system-2";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260831-task19-design-system-2";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260831-task19-design-system-2";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260831-task19-design-system-2";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260831-task19-design-system-2";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260831-task19-design-system-2";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260829-task18-admin-messages";
+} from "./js/language/history.js?v=20260831-task19-design-system-2";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -74,16 +75,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260829-task18-admin-messages";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260829-task18-admin-messages";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20260829-task18-admin-messages";
+} from "./js/language/quiz.js?v=20260831-task19-design-system-2";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260831-task19-design-system-2";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260831-task19-design-system-2";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260829-task18-admin-messages";
+} from "./js/language/wrong-book.js?v=20260831-task19-design-system-2";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -92,7 +93,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260829-task18-admin-messages";
+} from "./js/membership/account.js?v=20260831-task19-design-system-2";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -100,19 +101,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260829-task18-admin-messages";
+} from "./js/membership/plans.js?v=20260831-task19-design-system-2";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260829-task18-admin-messages";
+} from "./js/membership/recharge.js?v=20260831-task19-design-system-2";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260829-task18-admin-messages";
+} from "./js/admin/formatters.js?v=20260831-task19-design-system-2";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -3505,6 +3506,7 @@ function showPublicHome(pushHistory = true) {
   currentProject = "";
   state.quizLanguage = "";
   hidePrimaryScreens();
+  setExperienceMode("public");
   $("publicHome").classList.remove("hidden");
   $("publicHome").setAttribute("aria-hidden", "false");
   document.body.classList.remove("project-picker-active");
@@ -3517,6 +3519,7 @@ function showChangelog(pushHistory = true) {
   currentProject = "";
   state.quizLanguage = "";
   hidePrimaryScreens();
+  setExperienceMode("public");
   $("changelogPage").classList.remove("hidden");
   $("changelogPage").setAttribute("aria-hidden", "false");
   document.body.classList.remove("project-picker-active");
@@ -3530,6 +3533,7 @@ function showTrial(pushHistory = true, tool = "") {
   currentProject = "";
   state.quizLanguage = "";
   hidePrimaryScreens();
+  setExperienceMode("public");
   $("trialPage").classList.remove("hidden");
   $("trialPage").setAttribute("aria-hidden", "false");
   document.body.classList.remove("project-picker-active");
@@ -3578,6 +3582,7 @@ function showLanguageGate() {
 }
 
 function hidePrimaryScreens() {
+  setExperienceMode("workspace");
   const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
   ["publicHome", "changelogPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "shareViewer", "adminPanel"].forEach((id) => {
     const element = $(id);
@@ -6183,6 +6188,7 @@ async function navigateFromSiteNav(destination) {
 }
 
 async function boot() {
+  initDesignSystem();
   installLocalTestBindings();
   if (state.account?.id) {
     loadAccountLocalState();

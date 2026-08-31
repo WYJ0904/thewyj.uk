@@ -489,6 +489,13 @@ async function main() {
         authPanelHidden: document.querySelector('#authPanel')?.classList.contains('hidden'),
         sessionLength: (localStorage.getItem('wyjAccountSession') || '').length,
         accountCached: Boolean(localStorage.getItem('wyjAccountCache')),
+        busy: Boolean(state?.busy),
+        roundActive: Boolean(state?.roundActive),
+        startDisabled: Boolean(document.querySelector('#startBtn')?.disabled),
+        setupActive: document.querySelector('#setupView')?.classList.contains('active'),
+        quizActive: document.querySelector('#quizView')?.classList.contains('active'),
+        wordInput: document.querySelector('#wordInput')?.value || '',
+        rechargeMessage: document.querySelector('#rechargeMessage')?.textContent || '',
         syncStatus: document.querySelector('#learningSyncStatus')?.textContent || '',
         syncDetail: document.querySelector('#learningSyncDetail')?.textContent || '',
         wrongCount: document.querySelectorAll('#wrongList .wrong-item').length,
@@ -572,8 +579,17 @@ async function main() {
       assert.equal(await evaluate("!document.querySelector('#accountBar').classList.contains('hidden')"), true);
       assert.equal(await evaluate("!document.querySelector('#navGuestActions').classList.contains('hidden')"), true);
       assert.equal(await evaluate("document.querySelector('#accountMenu').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("document.querySelectorAll('#publicHome .public-feature-card').length"), 7);
-      assert.equal(await evaluate("document.querySelector('#publicHome').textContent.includes('无第三方追踪')"), true);
+      assert.equal(await evaluate("document.querySelector('#publicHomeTitle').textContent.trim()"), "thewyj");
+      assert.equal(await evaluate("document.querySelectorAll('#publicCapabilityGallery [data-capability-panel]').length"), 5);
+      assert.equal(await evaluate("document.querySelector('#publicHome').textContent.includes('没有第三方追踪')"), true);
+      assert.equal(await evaluate("document.querySelector('#publicSplitFlap').dataset.phrases"), "学习|工具|财务|分享");
+      await click("#siteNavToggle");
+      assert.equal(await evaluate("document.querySelector('#siteNavToggle').getAttribute('aria-expanded')"), "true");
+      assert.equal(await evaluate("document.querySelectorAll('#siteNavPanel a').length"), 6);
+      await click("#siteNavToggle");
+      await click('.capability-trigger[aria-controls="capabilityToolsBody"]');
+      assert.equal(await evaluate("document.querySelector('[data-capability-panel=tools]').classList.contains('active')"), true);
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('#capabilityLearningBody')).display"), "none");
       const pwa = await evaluate(`(async () => {
         const registration = await Promise.race([
           navigator.serviceWorker.ready,
@@ -581,23 +597,46 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260829-task18-admin-messages');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260829-task18-admin-messages');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260829-task18-admin-messages');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260829-task18-admin-messages');
-        return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260831-task19-design-system-2');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20260831-task19-design-system-2');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260831-task19-design-system-2');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260831-task19-design-system-2');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260831-task19-design-system-2');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260831-task19-design-system-2');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260831-task19-design-system-2');
+        return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
       assert.equal(pwa.cachedLogo, true);
       assert.equal(pwa.cachedProductStyles, true);
+      assert.equal(pwa.cachedDesignStyles, true);
+      assert.equal(pwa.cachedPublicStyles, true);
+      assert.equal(pwa.cachedWorkspaceStyles, true);
       assert.equal(pwa.cachedChangelog, true);
       assert.equal(pwa.cachedLearningSync, true);
       assert.equal(pwa.cachedWorkflows, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.29");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.31");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-29-task18-admin-messages");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-08-31-task19-design-system-2");
+      await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+      const mobilePublic = await evaluate(`({
+        viewport: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        loginVisible: document.querySelector('#navLoginBtn').getBoundingClientRect().width > 0,
+        registerVisible: document.querySelector('#navRegisterBtn').getBoundingClientRect().width > 0,
+        navHeight: document.querySelector('#siteNavToggle').getBoundingClientRect().height,
+        collapsedBodies: [...document.querySelectorAll('.capability-body[hidden]')].every((item) => getComputedStyle(item).display === 'none'),
+      })`);
+      assert.ok(mobilePublic.scrollWidth <= mobilePublic.viewport + 1, JSON.stringify(mobilePublic));
+      assert.equal(mobilePublic.loginVisible, true);
+      assert.equal(mobilePublic.registerVisible, true);
+      assert.ok(mobilePublic.navHeight >= 40, JSON.stringify(mobilePublic));
+      assert.equal(mobilePublic.collapsedBodies, true);
+      const mobileHomeShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      fs.writeFileSync(path.join(TEST_ROOT, `public-home-390-${RUN_ID}.png`), Buffer.from(mobileHomeShot.data, "base64"));
+      await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
     });
@@ -674,7 +713,7 @@ async function main() {
       );
       assert.equal(await evaluate("document.querySelector('#changelogPage').textContent.includes('可配置工具工作流')"), true);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.29");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.31");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
@@ -724,7 +763,7 @@ async function main() {
       const mobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `dashboard-390-${RUN_ID}.png`), Buffer.from(mobileShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
-      assert.equal(await evaluate("getComputedStyle(document.querySelector('.dashboard-entry-grid')).gridTemplateColumns.split(' ').length"), 4);
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('.dashboard-entry-grid')).gridTemplateColumns.split(' ').length"), 6);
       const wideShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `dashboard-1920-${RUN_ID}.png`), Buffer.from(wideShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 768, deviceScaleFactor: 1, mobile: false });
@@ -1647,6 +1686,15 @@ async function main() {
     await check("administrator recharge approval, membership editor and entitlement override", async () => {
       await useSession(admin.session, "/admin");
       await waitFor("!document.querySelector('#adminPanel')?.classList.contains('hidden') && document.querySelector('#adminPanel').getAttribute('aria-busy') === 'false'", 15_000, "admin panel");
+      await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+      assert.ok(await evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), "admin panel must not overflow at 390px");
+      assert.ok(await evaluate(`[...document.querySelectorAll('.admin-tabs button:not(.hidden)')].every((button) => {
+        const rect = button.getBoundingClientRect();
+        return rect.left >= 0 && rect.right <= innerWidth + 1 && rect.width >= 120;
+      })`), "every mobile administrator tab must be fully visible");
+      const mobileAdminShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
+      fs.writeFileSync(path.join(TEST_ROOT, `admin-390-${RUN_ID}.png`), Buffer.from(mobileAdminShot.data, "base64"));
+      await send("Emulation.clearDeviceMetricsOverride");
       await click('[data-admin-view="adminRechargeView"]');
       const requestSelector = `#adminRechargeList [data-request-id]`;
       await waitFor(`[...document.querySelectorAll(${JSON.stringify(requestSelector)})].some(node => node.textContent.includes(${JSON.stringify(USERNAME)}))`, 8_000, "user recharge request");
@@ -1659,6 +1707,11 @@ async function main() {
       await assertReadable(".admin-user-facts strong");
       await click("#adminUserList [data-admin-edit]");
       await waitFor("!document.querySelector('#adminEditModal')?.classList.contains('hidden')", 3_000, "admin editor");
+      await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+      assert.ok(await evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), "admin membership editor must not overflow at 390px");
+      const mobileAdminEditorShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
+      fs.writeFileSync(path.join(TEST_ROOT, `admin-editor-390-${RUN_ID}.png`), Buffer.from(mobileAdminEditorShot.data, "base64"));
+      await send("Emulation.clearDeviceMetricsOverride");
       assert.deepEqual(
         await evaluate("[...document.querySelector('#adminMembershipSelect').options].map(option => option.value).filter(Boolean)"),
         ["trial_single_language", "finance_monthly", "dual_language_monthly", "tools_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],

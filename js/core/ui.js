@@ -1,4 +1,4 @@
-import { BUSINESS_TIME_ZONE } from "./config.js?v=20260829-task18-admin-messages";
+import { BUSINESS_TIME_ZONE } from "./config.js?v=20260831-task19-design-system-2";
 
 export const $ = (id) => document.getElementById(id);
 
