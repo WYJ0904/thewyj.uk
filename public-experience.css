@@ -23,10 +23,16 @@
 
 .site-brand {
   width: fit-content;
+  min-height: var(--ds-touch-min);
+}
+
+.site-nav-actions button,
+.account-menu summary {
+  min-height: var(--ds-touch-min);
 }
 
 .site-nav-toggle {
-  min-height: 40px;
+  min-height: var(--ds-touch-min);
   display: inline-flex;
   padding: 0 var(--ds-space-3);
   border-color: var(--ds-border);
@@ -843,7 +849,7 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
   }
 
   .site-nav-actions button {
-    min-height: 40px;
+    min-height: var(--ds-touch-min);
     padding: 0 var(--ds-space-3);
     font-size: var(--ds-text-sm);
   }
