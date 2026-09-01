@@ -5,10 +5,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20260831-task19-design-system-2";
-import { randomToolResult } from "./js/tools/random.js?v=20260831-task19-design-system-2";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260831-task19-design-system-2";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260831-task19-design-system-2";
+} from "./js/tools/catalog.js?v=20260901-task19-production-final";
+import { randomToolResult } from "./js/tools/random.js?v=20260901-task19-production-final";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260901-task19-production-final";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260901-task19-production-final";
 import {
   csvString,
   decodeLocalText,
@@ -17,15 +17,15 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20260831-task19-design-system-2";
+} from "./js/tools/file.js?v=20260901-task19-production-final";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20260831-task19-design-system-2";
-import { runToolRenderer } from "./js/tools/runner.js?v=20260831-task19-design-system-2";
+} from "./js/tools/image.js?v=20260901-task19-production-final";
+import { runToolRenderer } from "./js/tools/runner.js?v=20260901-task19-production-final";
 (() => {
   "use strict";
 

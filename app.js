@@ -8,39 +8,39 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260831-task19-design-system-2";
+} from "./js/core/config.js?v=20260901-task19-production-final";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20260831-task19-design-system-2";
+} from "./js/core/api.js?v=20260901-task19-production-final";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260831-task19-design-system-2";
-import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260831-task19-design-system-2";
+} from "./js/core/changelog.js?v=20260901-task19-production-final";
+import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260901-task19-production-final";
 import {
   ACCOUNT_CACHE_KEY,
   clearAccountSessionStorage,
   persistAccountSession,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20260831-task19-design-system-2";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260831-task19-design-system-2";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260831-task19-design-system-2";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260831-task19-design-system-2";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260831-task19-design-system-2";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260831-task19-design-system-2";
+} from "./js/core/session.js?v=20260901-task19-production-final";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260901-task19-production-final";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260901-task19-production-final";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260901-task19-production-final";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260901-task19-production-final";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260901-task19-production-final";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260831-task19-design-system-2";
+} from "./js/language/history.js?v=20260901-task19-production-final";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -75,16 +75,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260831-task19-design-system-2";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260831-task19-design-system-2";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20260831-task19-design-system-2";
+} from "./js/language/quiz.js?v=20260901-task19-production-final";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260901-task19-production-final";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260901-task19-production-final";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260831-task19-design-system-2";
+} from "./js/language/wrong-book.js?v=20260901-task19-production-final";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -93,7 +93,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260831-task19-design-system-2";
+} from "./js/membership/account.js?v=20260901-task19-production-final";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -101,19 +101,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260831-task19-design-system-2";
+} from "./js/membership/plans.js?v=20260901-task19-production-final";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260831-task19-design-system-2";
+} from "./js/membership/recharge.js?v=20260901-task19-production-final";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260831-task19-design-system-2";
+} from "./js/admin/formatters.js?v=20260901-task19-production-final";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
