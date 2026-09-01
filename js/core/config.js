@@ -1,4 +1,4 @@
-export const APP_VERSION = "2026-08-31-task19-design-system-2";
+export const APP_VERSION = "2026-09-01-task19-production-final";
 
 export const API_TIMEOUT_MS = 30000;
 export const AI_TIMEOUT_MS = 25000;

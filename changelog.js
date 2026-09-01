@@ -2,7 +2,7 @@
   const entries = [
     {
       version: "2026.08.31",
-      build: "2026-08-31-task19-design-system-2",
+      build: "2026-09-01-task19-production-final",
       date: "2026-08-31",
       title: "thewyj Design System 2.0",
       features: ["公开首页新增品牌舞台、结构化主导航与真实产品能力展示。"],
