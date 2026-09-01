@@ -17,6 +17,7 @@ const USER_SECRET_NEW = "App-Matrix-New-2026!";
 fs.mkdirSync(DOWNLOAD_ROOT, { recursive: true });
 const wordsFile = path.join(TEST_ROOT, `app-words-${RUN_ID}.txt`);
 const wrongFile = path.join(TEST_ROOT, `app-wrong-${RUN_ID}.json`);
+const wrongFailureFile = path.join(TEST_ROOT, `app-wrong-failure-${RUN_ID}.json`);
 const trialImageFile = path.join(TEST_ROOT, `app-trial-${RUN_ID}.png`);
 fs.writeFileSync(wordsFile, "hello\nworld\nstudy\n", "utf8");
 fs.writeFileSync(wrongFile, JSON.stringify({
@@ -28,6 +29,17 @@ fs.writeFileSync(wrongFile, JSON.stringify({
   },
   historyWrongBook: {
     hello: { last_answer: "你好", original_answer: "你好", correct_answer: "你好", accepted: ["您好"], wrong_count: 2 },
+  },
+}, null, 2), "utf8");
+fs.writeFileSync(wrongFailureFile, JSON.stringify({
+  type: "vocab-wrong-book",
+  version: 1,
+  language: "english",
+  currentWrongBook: {
+    network: { last_answer: "网络", original_answer: "网络", correct_answer: "网络", accepted: ["网络连接"], wrong_count: 1 },
+  },
+  historyWrongBook: {
+    network: { last_answer: "网络", original_answer: "网络", correct_answer: "网络", accepted: ["网络连接"], wrong_count: 1 },
   },
 }, null, 2), "utf8");
 fs.writeFileSync(
@@ -372,6 +384,34 @@ async function main() {
     return true;
   })()`);
 
+  const pressKey = async (key, code = key) => {
+    const windowsVirtualKeyCode = key === "Enter" ? 13 : key === "Tab" ? 9 : key === "Escape" ? 27 : 0;
+    await send("Input.dispatchKeyEvent", { type: "keyDown", key, code, windowsVirtualKeyCode, nativeVirtualKeyCode: windowsVirtualKeyCode });
+    await send("Input.dispatchKeyEvent", { type: "keyUp", key, code, windowsVirtualKeyCode, nativeVirtualKeyCode: windowsVirtualKeyCode });
+  };
+
+  const touchTap = async (selector) => {
+    const point = await evaluate(`(() => {
+      const element = document.querySelector(${JSON.stringify(selector)});
+      if (!element) throw new Error('missing touch target ${selector}');
+      if (element.disabled) throw new Error('disabled touch target ${selector}');
+      element.scrollIntoView({ block: 'center', inline: 'center', behavior: 'auto' });
+      const rect = element.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const hit = document.elementFromPoint(x, y);
+      if (hit !== element && !element.contains(hit)) {
+        throw new Error('covered touch target ${selector}: ' + (hit?.id || hit?.className || hit?.tagName || 'none'));
+      }
+      return { x, y, width: rect.width, height: rect.height };
+    })()`);
+    assert.ok(point.width >= 44 && point.height >= 44, `undersized touch target ${selector}: ${JSON.stringify(point)}`);
+    await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: point.x, y: point.y, id: 1, radiusX: 1, radiusY: 1, force: 1 }] });
+    await delay(60);
+    await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    return point;
+  };
+
   const tap = async (selector) => {
     await evaluate(`(() => {
       const element = document.querySelector(${JSON.stringify(selector)});
@@ -597,7 +637,43 @@ async function main() {
       await click("#siteNavToggle");
       assert.equal(await evaluate("document.querySelector('#siteNavToggle').getAttribute('aria-expanded')"), "true");
       assert.equal(await evaluate("document.querySelectorAll('#siteNavPanel a').length"), 6);
+      assert.equal(await evaluate("document.querySelector('[data-site-nav=trial]').getAttribute('href')"), "/trial");
+      await click("[data-site-nav=trial]");
+      await waitFor("location.pathname === '/trial' && !document.querySelector('#trialPage')?.classList.contains('hidden')", 4_000, "desktop trial navigation");
+      await click("#trialHomeBtn");
+      await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 4_000, "home after desktop trial navigation");
+
       await click("#siteNavToggle");
+      await evaluate("document.querySelector('#siteNavToggle').focus(); true");
+      for (let index = 0; index < 12; index += 1) {
+        await pressKey("Tab", "Tab");
+        if (await evaluate("document.activeElement?.dataset?.siteNav === 'trial'")) break;
+      }
+      assert.equal(await evaluate("document.activeElement === document.querySelector('[data-site-nav=trial]')"), true);
+      assert.equal(await evaluate("document.querySelector('[data-site-nav=trial]').matches(':focus-visible')"), true);
+      await pressKey("Enter", "Enter");
+      await waitFor("location.pathname === '/trial' && !document.querySelector('#trialPage')?.classList.contains('hidden')", 4_000, "keyboard trial navigation");
+      await click("#trialHomeBtn");
+      await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 4_000, "home after keyboard trial navigation");
+
+      const navigationMatrix = [
+        { destination: "home", selector: "#navHomeLink", pathname: "/", surface: "#publicHome" },
+        { destination: "changelog", selector: "[data-site-nav=changelog]", pathname: "/changelog", surface: "#changelogPage" },
+        { destination: "language", selector: "[data-site-nav=language]", pathname: "/trial", surface: "#trialPage" },
+        { destination: "tools", selector: "[data-site-nav=tools]", pathname: "/trial", surface: "#trialPage" },
+        { destination: "finance", selector: "[data-site-nav=finance]", pathname: "/login", surface: "#authPanel" },
+      ];
+      for (const item of navigationMatrix) {
+        await click("#siteNavToggle");
+        await click(item.selector);
+        await waitFor(`location.pathname === ${JSON.stringify(item.pathname)} && !document.querySelector(${JSON.stringify(item.surface)})?.classList.contains('hidden')`, 4_000, `${item.destination} navigation`);
+        assert.equal(await evaluate("document.querySelector('#siteNavToggle').getAttribute('aria-expanded')"), "false");
+        if (item.destination !== "home") {
+          await click(".site-brand[data-site-nav=home]");
+          await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 4_000, `home after ${item.destination}`);
+        }
+      }
+
       await click('.capability-trigger[aria-controls="capabilityToolsBody"]');
       assert.equal(await evaluate("document.querySelector('[data-capability-panel=tools]').classList.contains('active')"), true);
       assert.equal(await evaluate("getComputedStyle(document.querySelector('#capabilityLearningBody')).display"), "none");
@@ -608,13 +684,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260901-task19-remediation-r4');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20260901-task19-remediation-r4');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260901-task19-remediation-r4');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260901-task19-remediation-r4');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260901-task19-remediation-r4');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260901-task19-remediation-r4');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260901-task19-remediation-r4');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260901-task19-remediation-r5');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20260901-task19-remediation-r5');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260901-task19-remediation-r5');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260901-task19-remediation-r5');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260901-task19-remediation-r5');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260901-task19-remediation-r5');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260901-task19-remediation-r5');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -650,8 +726,24 @@ async function main() {
         assert.ok(mobilePublic[key] >= 44, JSON.stringify(mobilePublic));
       }
       assert.equal(mobilePublic.collapsedBodies, true);
+
+      await send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
+      await touchTap("#siteNavToggle");
+      await waitFor("document.querySelector('#siteNavToggle').getAttribute('aria-expanded') === 'true'", 2_000, "mobile navigation open");
+      const mobileNavShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      fs.writeFileSync(path.join(TEST_ROOT, `public-nav-390-${RUN_ID}.png`), Buffer.from(mobileNavShot.data, "base64"));
+      await touchTap("[data-site-nav=trial]");
+      await waitFor("location.pathname === '/trial' && !document.querySelector('#trialPage')?.classList.contains('hidden')", 4_000, "mobile trial navigation");
+      await touchTap("#trialHomeBtn");
+      await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 4_000, "mobile home after trial navigation");
+      await touchTap('.capability-trigger[aria-controls="capabilityFinanceBody"]');
+      assert.equal(await evaluate("document.querySelector('[data-capability-panel=finance]').classList.contains('active')"), true);
+      const mobileAccordionShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      fs.writeFileSync(path.join(TEST_ROOT, `public-accordion-390-${RUN_ID}.png`), Buffer.from(mobileAccordionShot.data, "base64"));
+      await evaluate("scrollTo({ top: 0, behavior: 'auto' }); true");
       const mobileHomeShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-390-${RUN_ID}.png`), Buffer.from(mobileHomeShot.data, "base64"));
+      await send("Emulation.setTouchEmulationEnabled", { enabled: false, maxTouchPoints: 1 });
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `public-home-1440-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
@@ -739,9 +831,11 @@ async function main() {
     });
 
     await check("registration and login UI", async () => {
+      await evaluate("localStorage.setItem('wyj_theme_preference_v1', 'light'); true");
       await navigate(`/register?app-matrix=${RUN_ID}`);
       await waitFor("!document.querySelector('#entryScreen')", 6_000, "register splash removal");
       await waitFor("location.pathname === '/register' && !document.querySelector('#registerForm')?.classList.contains('hidden')", 8_000, "register route");
+      assert.equal(await evaluate("document.documentElement.dataset.themePreference"), "light");
       await setFields({
         "#registerUsernameInput": USERNAME,
         "#registerSecretInput": USER_SECRET,
@@ -754,6 +848,7 @@ async function main() {
       await click("#loginSubmitBtn");
       await waitFor("location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')", 12_000, "module picker");
       assert.ok((await evaluate("localStorage.getItem('wyjAccountSession') || ''")).length > 20);
+      assert.equal(await evaluate("document.documentElement.dataset.themePreference"), "light");
     });
 
     const userSession = await evaluate("localStorage.getItem('wyjAccountSession')");
@@ -761,43 +856,64 @@ async function main() {
     const browserFeedbackTitle = `Browser feedback ${RUN_ID}`;
     let browserFeedbackId = "";
 
-    await check("authenticated dashboard summary and responsive layout", async () => {
-      assert.ok((await evaluate("document.querySelector('#dashboardGreeting').textContent")).includes(USERNAME));
-      assert.equal(await evaluate("document.querySelectorAll('.dashboard-metric').length"), 4);
+    await check("authenticated product home continuity and responsive layout", async () => {
+      assert.equal(await evaluate("document.body.dataset.experience"), "public");
+      assert.equal(await evaluate("document.querySelector('#modulePickerTitle').textContent.trim()"), "thewyj");
+      assert.ok((await evaluate("document.querySelector('#dashboardGreeting').textContent")).includes(`欢迎回来，${USERNAME}`));
+      assert.equal(await evaluate("document.querySelector('#modulePicker').classList.contains('authenticated-home')"), true);
+      assert.equal(await evaluate("document.querySelectorAll('#modulePicker .public-hero').length"), 1);
+      assert.equal(await evaluate("document.querySelectorAll('.dashboard-metric').length"), 0);
+      assert.equal(await evaluate("document.querySelectorAll('.authenticated-product-card').length"), 4);
       assert.equal(await evaluate("document.querySelectorAll('[data-dashboard-project]').length"), 2);
+      assert.equal(await evaluate("document.querySelectorAll('#modulePicker [data-module=language]').length >= 1"), true);
+      assert.equal(await evaluate("document.querySelectorAll('#modulePicker [data-module=tools]').length >= 1"), true);
+      assert.equal(await evaluate("document.querySelectorAll('#modulePicker [data-module=finance]').length >= 1"), true);
       assert.match(await evaluate("document.querySelector('#dashboardAccountStatus').textContent"), /在线|离线/);
       assert.ok((await evaluate("document.querySelector('#dashboardLatestResult').textContent")).length > 4);
       await assertReadable("#dashboardMembershipName");
       await assertReadable("#dashboardMembershipExpiry");
       await assertReadable(".dashboard-empty");
+      assert.equal(await evaluate("document.documentElement.dataset.themePreference"), "light");
+      await click("#themeToggleBtn");
+      assert.equal(await evaluate("document.documentElement.dataset.themePreference"), "dark");
+      assert.equal(await evaluate("document.documentElement.dataset.theme"), "dark");
+      await click("#themeToggleBtn");
+      await click("#themeToggleBtn");
+      assert.equal(await evaluate("document.documentElement.dataset.themePreference"), "light");
+      assert.equal(await evaluate("document.documentElement.dataset.theme"), "light");
       await delay(240);
       assert.deepEqual(await auditVisibleTextContrast("#modulePicker"), []);
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-      const mobileDashboard = await evaluate(`({
+      const mobileHome = await evaluate(`({
         viewport: innerWidth,
         scrollWidth: document.documentElement.scrollWidth,
-        cards: document.querySelectorAll('.dashboard-launchpad-grid .module-card').length,
-        launchpadColumns: getComputedStyle(document.querySelector('.dashboard-launchpad-grid')).gridTemplateColumns.split(' ').length,
+        cards: document.querySelectorAll('.authenticated-product-card').length,
+        productColumns: getComputedStyle(document.querySelector('.authenticated-product-grid')).gridTemplateColumns.split(' ').length,
+        heroHeight: document.querySelector('.authenticated-hero').getBoundingClientRect().height,
+        headingVisible: document.querySelector('#modulePickerTitle').getBoundingClientRect().height > 0,
       })`);
-      assert.ok(mobileDashboard.scrollWidth <= mobileDashboard.viewport + 1, JSON.stringify(mobileDashboard));
-      assert.equal(mobileDashboard.cards, 4);
-      assert.equal(mobileDashboard.launchpadColumns, 1);
-      const mobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
-      fs.writeFileSync(path.join(TEST_ROOT, `dashboard-390-${RUN_ID}.png`), Buffer.from(mobileShot.data, "base64"));
+      assert.ok(mobileHome.scrollWidth <= mobileHome.viewport + 1, JSON.stringify(mobileHome));
+      assert.equal(mobileHome.cards, 4);
+      assert.equal(mobileHome.productColumns, 1);
+      assert.ok(mobileHome.heroHeight >= 700, JSON.stringify(mobileHome));
+      assert.equal(mobileHome.headingVisible, true);
+      const mobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
+      fs.writeFileSync(path.join(TEST_ROOT, `authenticated-home-390-${RUN_ID}.png`), Buffer.from(mobileShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
-      assert.deepEqual(
-        await evaluate(`({
-          launchpad: getComputedStyle(document.querySelector('.dashboard-launchpad-grid')).gridTemplateColumns.split(' ').length,
-          learning: getComputedStyle(document.querySelector('.dashboard-learning-actions')).gridTemplateColumns.split(' ').length,
-        })`),
-        { launchpad: 2, learning: 2 },
-      );
+      const desktopHome = await evaluate(`({
+        productColumns: getComputedStyle(document.querySelector('.authenticated-product-grid')).gridTemplateColumns.split(' ').length,
+        learningColumns: getComputedStyle(document.querySelector('.authenticated-learning-actions')).gridTemplateColumns.split(' ').length,
+      })`);
+      assert.equal(desktopHome.productColumns, 12);
+      assert.equal(desktopHome.learningColumns, 2);
       const wideShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
-      fs.writeFileSync(path.join(TEST_ROOT, `dashboard-1920-${RUN_ID}.png`), Buffer.from(wideShot.data, "base64"));
+      fs.writeFileSync(path.join(TEST_ROOT, `authenticated-home-1920-${RUN_ID}.png`), Buffer.from(wideShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 768, deviceScaleFactor: 1, mobile: false });
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
-      fs.writeFileSync(path.join(TEST_ROOT, `dashboard-1366-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
+      fs.writeFileSync(path.join(TEST_ROOT, `authenticated-home-1366-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+      await click(".authenticated-service-details > summary");
+      assert.equal(await evaluate("document.querySelector('.authenticated-service-details').open"), true);
     });
 
     await check("learning data sync is local-first and receives a second-device update", async () => {
@@ -1278,14 +1394,14 @@ async function main() {
       );
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       await send("Emulation.setTouchEmulationEnabled", { enabled: false });
-      await setFiles("#wrongDataFileInput", [wrongFile]);
+      await setFiles("#wrongDataFileInput", [wrongFailureFile]);
       await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 1", 6_000, "wrong data reimport");
       await evaluate(`(() => {
         for (const book of [state.currentWrongBook, state.historyWrongBook]) {
-          if (!book.hello) continue;
-          book.hello.correct_answer = '';
-          book.hello.accepted = [];
-          book.hello.rubric = { gloss: '', accepted: [], language: 'english', notes: '' };
+          if (!book.network) continue;
+          book.network.correct_answer = '';
+          book.network.accepted = [];
+          book.network.rubric = { gloss: '', accepted: [], language: 'english', notes: '' };
         }
         renderWrongBook();
         window.__rejudgeFailureOriginalFetch = window.fetch;
@@ -1302,7 +1418,8 @@ async function main() {
         return true;
       })()`);
       await click(".wrong-rejudge-button");
-      await setFields({ ".wrong-rejudge-input": "你好" });
+      await waitFor("!document.querySelector('.wrong-rejudge-form')?.classList.contains('hidden')", 2_000, "network failure rejudge form");
+      await setFields({ ".wrong-rejudge-input": "网络" });
       try {
         await click(".wrong-rejudge-submit");
         await waitFor("!document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定失败'", 4_000, "failed rejudge result modal");
@@ -1321,11 +1438,11 @@ async function main() {
       } finally {
         await evaluate("window.fetch = window.__rejudgeFailureOriginalFetch; delete window.__rejudgeFailureOriginalFetch; true");
       }
-      await setFiles("#wrongDataFileInput", [wrongFile]);
-      await waitFor("state.currentWrongBook.hello?.correct_answer === '你好'", 4_000, "restore imported rubric after network failure");
+      await setFiles("#wrongDataFileInput", [wrongFailureFile]);
+      await waitFor("state.currentWrongBook.network?.correct_answer === '网络'", 4_000, "restore imported rubric after network failure");
       await click("#reviewBtn");
       await waitFor("document.querySelector('#quizView').classList.contains('active')", 8_000, "offline review start");
-      await setFields({ "#answerInput": "你好" });
+      await setFields({ "#answerInput": "网络" });
       await click("#submitBtn");
       await waitFor("document.querySelector('#resultTitle')?.classList.contains('ok') && !document.querySelector('#nextNowBtn')?.disabled", 5_000, "offline review answer");
       await click("#nextNowBtn");
@@ -2061,11 +2178,14 @@ async function main() {
       assert.ok((await evaluate("document.querySelector('#aiSuggestMessage').textContent")).includes("3"));
       await setFields({ "#wordInput": "draft_should_clear" });
       await click("#homeBtn");
+      const themeBeforeLogout = await evaluate("localStorage.getItem('wyj_theme_preference_v1')");
       await click("#logoutBtn");
       await waitFor("location.pathname === '/login' && !document.querySelector('#authPanel')?.classList.contains('hidden')", 10_000, "logout");
+      assert.equal(await evaluate("localStorage.getItem('wyj_theme_preference_v1')"), themeBeforeLogout);
       await setFields({ "#usernameInput": USERNAME, "#secretInput": USER_SECRET });
       await click("#loginSubmitBtn");
       await waitFor("location.pathname === '/select'", 10_000, "relogin");
+      assert.equal(await evaluate("localStorage.getItem('wyj_theme_preference_v1')"), themeBeforeLogout);
       await click('[data-module="language"]');
       await click('[data-project="english"]');
       await waitFor("location.pathname === '/language/english'", 6_000, "English after relogin");

@@ -109,7 +109,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260901-task19-remediation-r4"
+        release_token = "20260901-task19-remediation-r5"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "design-system.css", "public-experience.css", "workspace-experience.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
@@ -119,7 +119,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)', self.app)
         for module in ("api", "config", "router", "session", "storage", "ui", "design-system"):
             self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20260901-task19-remediation-r4"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20260901-task19-remediation-r5"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         for asset in ("design-system.css", "public-experience.css", "workspace-experience.css"):
@@ -133,7 +133,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertFalse((ROOT / "404.html").exists())
 
     def test_browser_module_graph_uses_one_release_version(self):
-        release_token = "20260901-task19-remediation-r4"
+        release_token = "20260901-task19-remediation-r5"
         import_pattern = re.compile(
             r'(?:from\s+|import\s+)["\'](\.{1,2}/[^"\']+\.js(?:\?[^"\']*)?)["\']'
         )
@@ -245,14 +245,15 @@ class StaticSiteTests(unittest.TestCase):
             self.assertIn(token, self.product_styles)
         self.assertIn('id="accountBar" aria-label="主导航"', self.html)
         self.assertIn('data-site-nav="language"', self.html)
+        self.assertIn('data-site-nav="trial"', self.html)
         self.assertIn('data-site-nav="tools"', self.html)
         self.assertIn('class="auth-logo"', self.html)
         self.assertNotRegex(self.html, r">\s*[文+×↕]\s*<")
 
     def test_task19_design_system_two_contract(self):
-        self.assertIn('href="/design-system.css?v=20260901-task19-remediation-r4"', self.html)
-        self.assertIn('href="/public-experience.css?v=20260901-task19-remediation-r4"', self.html)
-        self.assertIn('href="/workspace-experience.css?v=20260901-task19-remediation-r4"', self.html)
+        self.assertIn('href="/design-system.css?v=20260901-task19-remediation-r5"', self.html)
+        self.assertIn('href="/public-experience.css?v=20260901-task19-remediation-r5"', self.html)
+        self.assertIn('href="/workspace-experience.css?v=20260901-task19-remediation-r5"', self.html)
         self.assertIn('id="siteNavToggle"', self.html)
         self.assertIn('id="siteNavPanel"', self.html)
         self.assertIn('id="themeToggleBtn"', self.html)
@@ -275,9 +276,14 @@ class StaticSiteTests(unittest.TestCase):
         )
         self.assertIsNotNone(modal_motion)
         self.assertNotIn("opacity", "".join(modal_motion.groups()))
-        self.assertIn('.dashboard-launchpad-grid', self.workspace_styles)
-        self.assertIn('.dashboard-learning-lane', self.workspace_styles)
-        self.assertIn('.dashboard-quick-lane .module-card', self.workspace_styles)
+        self.assertIn('.authenticated-home', self.workspace_styles)
+        self.assertIn('.authenticated-product-grid', self.workspace_styles)
+        self.assertIn('.authenticated-service-details', self.workspace_styles)
+        self.assertIn('class="module-picker authenticated-home hidden"', self.html)
+        self.assertIn('id="modulePickerTitle">thewyj</h1>', self.html)
+        self.assertNotIn('class="dashboard-metric"', self.html)
+        self.assertNotIn('个人工作区', self.html)
+        self.assertNotIn('今日概览', self.html)
         self.assertIn('data-dashboard-project="english"', self.html)
         self.assertIn('data-dashboard-project="japanese"', self.html)
         self.assertIn('data-module="tools"', self.html)
@@ -285,6 +291,9 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('id="adminUserMatch"', self.html)
         self.assertIn('id="adminUserLoadMoreBtn"', self.html)
         self.assertIn('id="adminRoleUserSearch"', self.html)
+        self.assertIn('if (destination === "trial")', self.app)
+        self.assertIn('showTrial(true, "quiz")', self.app)
+        self.assertIn('siteNavigationDestinations.has(destination)', self.app)
         self.assertIn('.tools-panel,\n.finance-page,\n.admin-panel', self.workspace_styles)
         self.assertRegex(
             self.workspace_styles,

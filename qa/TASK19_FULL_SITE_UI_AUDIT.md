@@ -23,7 +23,7 @@ Status meanings:
 | `/login`, `/register` | Token-only | Accessible forms, but generic panel composition and update notice compete with account task | Focused account shell, useful trust context, no blocking notice |
 | `/trial` | Partial | Functionally complete; repeated cards and form sections lack visual rhythm | Preserve all five trials, improve navigation, result states, and mobile flow |
 | `/changelog` | Partial | Structured data works, but page reads as an unstructured card list | Editorial timeline, clear release categories, current-version marker |
-| `/select` | Partial | Four equal entry cards and stacked dashboard cards make every item equally loud | Unified Workspace Entry with one primary resume area, compact module rail, overview strip, and purposeful secondary panels |
+| `/select` | Partial | The signed-in route changes the product homepage into a KPI-heavy workspace, so login feels like entering a different site | Preserve the public homepage identity and hierarchy; replace guest CTAs with signed-in actions and place personal summaries beside the product they belong to |
 | `/language` | Partial | Language choice works, but remains an isolated picker | Bring into shared workspace shell and explain each learning path without adding marketing copy |
 | `/language/english` | Legacy | Old `WYJ的网站` heading, separate topbar, horizontal tab scrollbar at 390 px | Shared workspace header, compact accessible tabs, complete quiz/wrong/history/stat states |
 | `/language/japanese` | Legacy | Same shell split as English; dense controls need responsive regrouping | Same component contract as English while preserving furigana and judge behavior |
@@ -64,9 +64,10 @@ motion, and state contracts.
 
 The public page order is: navigation, hero with one signature word transition,
 core capability gallery, privacy/local-processing proof, product workflow,
-membership choices, and changelog entry. The authenticated home is not a
-marketing page: it prioritizes resume/continue, module shortcuts, today's
-summary, recent tools, finance, service health, and updates.
+membership choices, and changelog entry. `/select` is the authenticated state
+of that same product home: it retains the brand hero and shared navigation,
+replaces guest CTAs with continue/open actions, and places learning, tool,
+finance, membership, update, and sync summaries beside their product entry.
 
 ## Architecture and Android parity
 
@@ -100,9 +101,10 @@ business tests, Task 18 role/message tests, tool catalog coverage, desktop and
   a touch-safe five-capability gallery, compact card navigation, and a visible
   continuation below the first viewport. Reduced motion disables the signature
   movement without hiding content.
-- The authenticated workspace uses the warm neutral canvas and a new asymmetric
-  launchpad. Learning is the primary lane; tools and finance remain immediately
-  available without turning the dashboard into a marketing page.
+- The authenticated home now keeps the public product page's brand hero,
+  container rhythm, navigation, and theme. Personal learning, tool, finance,
+  membership, update, and sync data are integrated into product sections rather
+  than a separate KPI dashboard.
 - English, Japanese, tools, workflows, sharing, finance, membership, account,
   and administrator routes now share the same workspace header, surfaces,
   controls, dialogs, status language, and responsive rules.
@@ -137,6 +139,8 @@ the previous user's editor while the new query is pending.
 | Fast administrator searches could edit the previous result | The old card stayed interactive during debounce, and late responses could overwrite newer searches | Added immediate loading state, stale-response sequencing, and username-matched browser regression coverage |
 | Legacy dashboard browser assertion failed | The test still expected the removed equal-card grid | Updated it to assert the new four-card mobile stack and two-lane desktop launchpad |
 | Existing clients could delay the remediated Service Worker update | The registration URL reused the unchanged product version while shell assets used the new release token | Separated `ASSET_RELEASE` from `APP_VERSION` and versioned the Service Worker registration with the release token |
+| Navigation “免费试用” looked actionable but did nothing | The anchor had the correct `/trial` href, but the global navigation handler cancelled native navigation and omitted the `trial` destination | Added the existing trial route to the navigation dispatcher and only intercepts known destinations, preserving native fallback for future links |
+| Login changed the homepage into a separate control panel | `/select` grouped personal data into a workspace title, KPI strip, and service-status dashboard with a different hierarchy from `/` | Rebuilt `/select` as the authenticated product-home state while retaining all existing DOM data contracts, routes, permissions, and module handlers |
 
 ## Final local validation
 
@@ -157,7 +161,7 @@ credential, user, order, or payment asset was read or modified.
 | Pages staging | All four Design System 2.0 CSS resources present with source-identical SHA-256 hashes |
 | Repository audit | 207 tracked and candidate paths passed the sensitive-file audit |
 
-The manual visual walk covered public, account, dashboard, language, tools,
+The manual visual walk covered public, account, authenticated home, language, tools,
 workflow, share, finance, recharge, and administrator surfaces in light and
 dark themes at desktop and 390x844. Final contrast scans reported no visible
 text violations, no horizontal overflow, and no browser runtime errors.

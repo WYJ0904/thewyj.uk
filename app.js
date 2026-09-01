@@ -9,39 +9,39 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260901-task19-remediation-r4";
+} from "./js/core/config.js?v=20260901-task19-remediation-r5";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20260901-task19-remediation-r4";
+} from "./js/core/api.js?v=20260901-task19-remediation-r5";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260901-task19-remediation-r4";
-import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260901-task19-remediation-r4";
+} from "./js/core/changelog.js?v=20260901-task19-remediation-r5";
+import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260901-task19-remediation-r5";
 import {
   ACCOUNT_CACHE_KEY,
   clearAccountSessionStorage,
   persistAccountSession,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20260901-task19-remediation-r4";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260901-task19-remediation-r4";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260901-task19-remediation-r4";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260901-task19-remediation-r4";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260901-task19-remediation-r4";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260901-task19-remediation-r4";
+} from "./js/core/session.js?v=20260901-task19-remediation-r5";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260901-task19-remediation-r5";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260901-task19-remediation-r5";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260901-task19-remediation-r5";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260901-task19-remediation-r5";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260901-task19-remediation-r5";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260901-task19-remediation-r4";
+} from "./js/language/history.js?v=20260901-task19-remediation-r5";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -76,16 +76,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260901-task19-remediation-r4";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260901-task19-remediation-r4";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20260901-task19-remediation-r4";
+} from "./js/language/quiz.js?v=20260901-task19-remediation-r5";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260901-task19-remediation-r5";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260901-task19-remediation-r5";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260901-task19-remediation-r4";
+} from "./js/language/wrong-book.js?v=20260901-task19-remediation-r5";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -94,7 +94,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260901-task19-remediation-r4";
+} from "./js/membership/account.js?v=20260901-task19-remediation-r5";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -102,19 +102,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260901-task19-remediation-r4";
+} from "./js/membership/plans.js?v=20260901-task19-remediation-r5";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260901-task19-remediation-r4";
+} from "./js/membership/recharge.js?v=20260901-task19-remediation-r5";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260901-task19-remediation-r4";
+} from "./js/admin/formatters.js?v=20260901-task19-remediation-r5";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -1370,7 +1370,7 @@ function renderDashboard() {
   const englishGoal = dashboardGoal("english");
   const japaneseGoal = dashboardGoal("japanese");
 
-  $("dashboardGreeting").textContent = `${account.username} 的工作区`;
+  $("dashboardGreeting").textContent = `欢迎回来，${account.username}`;
   $("dashboardMembershipName").textContent = summary.name || "普通用户";
   $("dashboardMembershipExpiry").textContent = summary.permanent
     ? "永久有效"
@@ -1387,15 +1387,19 @@ function renderDashboard() {
     : "完成第一轮测试后显示结果。";
 
   const finance = financeController?.dashboardSummary?.() || { balance_minor: 0, pending: 0, available: false };
-  if ($("dashboardFinanceBalance")) $("dashboardFinanceBalance").textContent = formatFinanceMoney(finance.balance_minor);
+  const financeBalance = formatFinanceMoney(finance.balance_minor);
+  if ($("dashboardFinanceBalance")) $("dashboardFinanceBalance").textContent = financeBalance;
+  document.querySelectorAll("[data-dashboard-balance-copy]").forEach((element) => { element.textContent = financeBalance; });
   if ($("dashboardFinanceSync")) {
-    $("dashboardFinanceSync").textContent = finance.available
+    const financeStatus = finance.available
       ? finance.pending
         ? `${finance.pending} 项本机修改等待同步`
         : finance.last_sync_at
           ? `最近同步 ${formatLocalDateTime(finance.last_sync_at)}`
           : "打开财务账本后开始同步"
       : "财务会员 8 CNY/月；全功能会员已包含";
+    $("dashboardFinanceSync").textContent = financeStatus;
+    document.querySelectorAll("[data-dashboard-finance-copy]").forEach((element) => { element.textContent = financeStatus; });
   }
 
   const resumable = ["english", "japanese"].filter((language) => Boolean(loadProjectRuntime(language)?.roundActive));
@@ -3745,6 +3749,7 @@ function showModulePicker(pushHistory = true, message = "") {
   currentProject = "";
   state.quizLanguage = "";
   hidePrimaryScreens();
+  setExperienceMode("public");
   $("modulePicker").classList.remove("hidden");
   $("modulePicker").setAttribute("aria-hidden", "false");
   const accessMessage = $("moduleAccessMessage");
@@ -6304,6 +6309,10 @@ async function navigateFromSiteNav(destination) {
     else showTrial(true, "quiz");
     return;
   }
+  if (destination === "trial") {
+    showTrial(true, "quiz");
+    return;
+  }
   if (destination === "tools") {
     if (state.session && state.account) await showTools("/tools", true);
     else showTrial(true, "text");
@@ -6341,9 +6350,12 @@ async function boot() {
   $("showRegisterBtn").addEventListener("click", () => showAuthMode("register", true));
   $("navLoginBtn").addEventListener("click", () => showAuth("", { mode: "login", path: "/login" }));
   $("navRegisterBtn").addEventListener("click", () => showAuth("", { mode: "register", path: "/register" }));
+  const siteNavigationDestinations = new Set(["home", "changelog", "language", "trial", "tools", "finance"]);
   document.querySelectorAll("[data-site-nav]").forEach((link) => link.addEventListener("click", async (event) => {
+    const destination = link.dataset.siteNav;
+    if (!siteNavigationDestinations.has(destination)) return;
     event.preventDefault();
-    await navigateFromSiteNav(link.dataset.siteNav);
+    await navigateFromSiteNav(destination);
   }));
   $("publicTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
   $("publicLanguageTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
