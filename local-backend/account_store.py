@@ -1467,22 +1467,58 @@ class AccountStore:
             connection.execute("DELETE FROM users WHERE id = ?", (user_id,))
         self._sync_after_write()
 
-    def list_users(self):
+    def list_users(self, query="", match="partial", page=1, limit=30, include_pagination=False):
+        query = str(query or "").strip()
+        if len(query) > 80:
+            raise AccountError("用户搜索内容过长", 400, "admin_user_query_too_long")
+        match = "exact" if match == "exact" else "partial"
+        try:
+            page = max(1, min(int(page or 1), 10000))
+            limit = max(10, min(int(limit or 30), 100))
+        except (TypeError, ValueError) as exc:
+            raise AccountError("用户分页参数无效", 400, "admin_user_pagination_invalid") from exc
+        offset = (page - 1) * limit
+        where = "deleted = 0"
+        values = []
+        if query:
+            normalized = self.normalize_username(query)
+            if match == "exact":
+                where += " AND (id = ? OR username_normalized = ?)"
+                values.extend((query, normalized))
+            else:
+                escaped = query.lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                where += " AND (LOWER(id) LIKE ? ESCAPE '\\' OR username_normalized LIKE ? ESCAPE '\\')"
+                values.extend((f"%{escaped}%", f"%{escaped}%"))
         with self.connect() as connection:
+            total = int(connection.execute(f"SELECT COUNT(*) FROM users WHERE {where}", values).fetchone()[0])
             rows = connection.execute(
-                "SELECT * FROM users WHERE deleted = 0 ORDER BY registered_at DESC, username_normalized"
+                f"SELECT * FROM users WHERE {where} ORDER BY registered_at DESC, username_normalized, id LIMIT ? OFFSET ?",
+                (*values, limit, offset),
             ).fetchall()
             pending = {}
-            for item in connection.execute(
-                "SELECT user_id, status FROM recharge_requests ORDER BY requested_at DESC"
-            ).fetchall():
-                pending.setdefault(item["user_id"], item["status"])
+            user_ids = [row["id"] for row in rows]
+            if user_ids:
+                placeholders = ",".join("?" for _ in user_ids)
+                for item in connection.execute(
+                    f"SELECT user_id, status FROM recharge_requests WHERE user_id IN ({placeholders}) ORDER BY requested_at DESC",
+                    user_ids,
+                ).fetchall():
+                    pending.setdefault(item["user_id"], item["status"])
         result = []
         for row in rows:
             item = self.user_payload(row)
             item["recharge_status"] = pending.get(row["id"], "")
             result.append(item)
-        return result
+        page_result = {
+            "users": result,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "has_more": offset + len(result) < total,
+            "query": query,
+            "match": match,
+        }
+        return page_result if include_pagination else result
 
     @staticmethod
     def _public_snapshot(payload):

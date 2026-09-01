@@ -3,44 +3,45 @@ import {
   API_GET_TIMEOUT_MS,
   API_TIMEOUT_MS,
   APP_VERSION,
+  ASSET_RELEASE,
   BACKEND_NETWORK_MESSAGE,
   BACKEND_REFRESH_INTERVAL_MS,
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260901-task19-production-final";
+} from "./js/core/config.js?v=20260901-task19-remediation-r4";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20260901-task19-production-final";
+} from "./js/core/api.js?v=20260901-task19-remediation-r4";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260901-task19-production-final";
-import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260901-task19-production-final";
+} from "./js/core/changelog.js?v=20260901-task19-remediation-r4";
+import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260901-task19-remediation-r4";
 import {
   ACCOUNT_CACHE_KEY,
   clearAccountSessionStorage,
   persistAccountSession,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20260901-task19-production-final";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260901-task19-production-final";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260901-task19-production-final";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260901-task19-production-final";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260901-task19-production-final";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260901-task19-production-final";
+} from "./js/core/session.js?v=20260901-task19-remediation-r4";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260901-task19-remediation-r4";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260901-task19-remediation-r4";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260901-task19-remediation-r4";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260901-task19-remediation-r4";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260901-task19-remediation-r4";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260901-task19-production-final";
+} from "./js/language/history.js?v=20260901-task19-remediation-r4";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -75,16 +76,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260901-task19-production-final";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260901-task19-production-final";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20260901-task19-production-final";
+} from "./js/language/quiz.js?v=20260901-task19-remediation-r4";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260901-task19-remediation-r4";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260901-task19-remediation-r4";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260901-task19-production-final";
+} from "./js/language/wrong-book.js?v=20260901-task19-remediation-r4";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -93,7 +94,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260901-task19-production-final";
+} from "./js/membership/account.js?v=20260901-task19-remediation-r4";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -101,19 +102,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260901-task19-production-final";
+} from "./js/membership/plans.js?v=20260901-task19-remediation-r4";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260901-task19-production-final";
+} from "./js/membership/recharge.js?v=20260901-task19-remediation-r4";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260901-task19-production-final";
+} from "./js/admin/formatters.js?v=20260901-task19-remediation-r4";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -234,15 +235,24 @@ let toolsInitialized = false;
 let financeController = null;
 let routeBusy = false;
 let adminUsers = [];
+let adminMessageTargetUsers = [];
+let adminRoleCandidateUsers = [];
+let adminUserPage = { page: 1, limit: 30, total: 0, has_more: false, query: "", match: "partial" };
 let adminFeedback = [];
 let adminMessages = [];
 let adminRoleState = null;
 const adminMessageSelectedUserIds = new Set();
 let adminLoadSequence = 0;
+let adminUserSearchSequence = 0;
 let feedbackLoadSequence = 0;
 let cloudChangelogEntries = null;
 let cloudChangelogPromise = null;
 let adminFeedbackSearchTimer = null;
+let adminUserSearchTimer = null;
+let adminMessageTargetSearchTimer = null;
+let adminMessageTargetSearchSequence = 0;
+let adminRoleUserSearchTimer = null;
+let adminRoleUserSearchSequence = 0;
 let confirmAction = null;
 let pendingSiteMessages = [];
 let activeSiteMessage = null;
@@ -1360,7 +1370,7 @@ function renderDashboard() {
   const englishGoal = dashboardGoal("english");
   const japaneseGoal = dashboardGoal("japanese");
 
-  $("dashboardGreeting").textContent = `${account.username}，欢迎回来`;
+  $("dashboardGreeting").textContent = `${account.username} 的工作区`;
   $("dashboardMembershipName").textContent = summary.name || "普通用户";
   $("dashboardMembershipExpiry").textContent = summary.permanent
     ? "永久有效"
@@ -2376,19 +2386,51 @@ function generateOwnSecret() {
 }
 
 function adminUserById(id) {
-  return adminUsers.find((user) => user.id === id);
+  return [...adminUsers, ...adminMessageTargetUsers, ...adminRoleCandidateUsers].find((user) => user.id === id);
 }
 
-function renderAdminUsers(users = null) {
-  if (Array.isArray(users)) adminUsers = users;
+function adminUsersQueryPath({ page = 1, query = null, match = null, limit = 30 } = {}) {
+  const params = new URLSearchParams();
+  const cleanQuery = query === null ? ($("adminUserSearch")?.value.trim() || "") : String(query || "").trim();
+  const cleanMatch = match === null ? ($("adminUserMatch")?.value || "partial") : match;
+  if (cleanQuery) params.set("q", cleanQuery);
+  params.set("match", cleanMatch === "exact" ? "exact" : "partial");
+  params.set("page", String(Math.max(1, Number(page) || 1)));
+  params.set("limit", String(Math.max(10, Math.min(Number(limit) || 30, 100))));
+  return `/api/admin/users?${params.toString()}`;
+}
+
+function mergeAdminUserPage(users, append) {
+  if (!append) return [...users];
+  const merged = new Map(adminUsers.map((user) => [user.id, user]));
+  users.forEach((user) => merged.set(user.id, user));
+  return [...merged.values()];
+}
+
+function renderAdminUsers(data = null, { append = false } = {}) {
+  if (data && Array.isArray(data.users)) {
+    adminUsers = mergeAdminUserPage(data.users, append);
+    adminUserPage = {
+      page: Number(data.page || 1),
+      limit: Number(data.limit || 30),
+      total: Number(data.total || 0),
+      has_more: Boolean(data.has_more),
+      query: String(data.query || ""),
+      match: data.match === "exact" ? "exact" : "partial",
+    };
+    if (!$('adminMessageTargetSearch')?.value.trim()) adminMessageTargetUsers = [...adminUsers];
+    if (!$('adminRoleUserSearch')?.value.trim()) adminRoleCandidateUsers = [...adminUsers];
+  } else if (Array.isArray(data)) {
+    adminUsers = data;
+    adminUserPage = { ...adminUserPage, page: 1, total: data.length, has_more: false };
+    if (!$('adminRoleUserSearch')?.value.trim()) adminRoleCandidateUsers = [...adminUsers];
+  }
   const list = $("adminUserList");
-  const query = $("adminUserSearch")?.value.trim().toLocaleLowerCase() || "";
-  const visibleUsers = query
-    ? adminUsers.filter((user) => [user.username, user.id].some((value) => String(value || "").toLocaleLowerCase().includes(query)))
-    : adminUsers;
   const count = $("adminUserCount");
-  if (count) count.textContent = query ? `显示 ${visibleUsers.length} / ${adminUsers.length} 个用户` : `共 ${adminUsers.length} 个用户`;
-  list.innerHTML = visibleUsers.map((user) => {
+  if (count) count.textContent = adminUserPage.query
+    ? `找到 ${adminUserPage.total} 个用户，已显示 ${adminUsers.length} 个`
+    : `共 ${adminUserPage.total} 个用户，已显示 ${adminUsers.length} 个`;
+  list.innerHTML = adminUsers.map((user) => {
     const protectedUser = user.is_admin || (!isSuperAdmin() && user.id === state.account?.id);
     const roleLabel = user.is_super_admin ? "站点所有者" : user.is_admin ? "管理员" : "普通用户";
     const stateClass = user.banned ? "account-state-bad" : "account-state-good";
@@ -2410,9 +2452,58 @@ function renderAdminUsers(users = null) {
       <div class="admin-user-security"><p><span class="admin-field-name">登录密钥</span><span class="secret-value">不可读取 · 可安全重置</span></p><p class="admin-last-login">最后登录：${escapeHtml(formatLocalDateTime(user.last_login_at, "从未"))}</p></div>
       <div class="action-row compact admin-user-actions"><button data-admin-edit type="button" ${protectedUser ? "disabled" : ""}>编辑</button></div>
     </article>`;
-  }).join("") || `<p class="admin-empty-state">${query ? "没有匹配的用户" : "暂无用户"}</p>`;
+  }).join("") || `<p class="admin-empty-state">${adminUserPage.query ? "没有匹配的用户" : "暂无用户"}</p>`;
   list.querySelectorAll("[data-admin-edit]").forEach((button) => button.addEventListener("click", () => openAdminEditor(button.closest("[data-user-id]").dataset.userId)));
+  const loadMore = $("adminUserLoadMoreBtn");
+  if (loadMore) {
+    loadMore.classList.toggle("hidden", !adminUserPage.has_more);
+    loadMore.disabled = false;
+    loadMore.textContent = `加载更多（剩余 ${Math.max(0, adminUserPage.total - adminUsers.length)}）`;
+  }
   renderAdminMessageTargets();
+  if (adminRoleState) renderAdminRoles();
+}
+
+async function loadAdminUsers({ page = 1, append = false } = {}) {
+  const list = $("adminUserList");
+  const loadMore = $("adminUserLoadMoreBtn");
+  const sequence = ++adminUserSearchSequence;
+  const query = $("adminUserSearch")?.value.trim() || "";
+  const match = $("adminUserMatch")?.value || "partial";
+  list?.setAttribute("aria-busy", "true");
+  if (loadMore) {
+    loadMore.disabled = true;
+    loadMore.textContent = "正在加载…";
+  }
+  try {
+    const data = await apiGet(adminUsersQueryPath({ page, query, match }));
+    if (sequence !== adminUserSearchSequence) return;
+    renderAdminUsers(data, { append });
+    $("adminError").textContent = "";
+  } catch (error) {
+    if (sequence !== adminUserSearchSequence) return;
+    $("adminError").textContent = error.message;
+    if (!adminUsers.length) list.innerHTML = `<p class="admin-empty-state">${escapeHtml(error.message)}</p>`;
+  } finally {
+    if (sequence !== adminUserSearchSequence) return;
+    list?.setAttribute("aria-busy", "false");
+    if (loadMore && loadMore.disabled) {
+      loadMore.disabled = false;
+      loadMore.textContent = "重新加载";
+    }
+  }
+}
+
+function markAdminUserSearchPending() {
+  adminUserSearchSequence += 1;
+  adminUsers = [];
+  const list = $("adminUserList");
+  if (list) {
+    list.setAttribute("aria-busy", "true");
+    list.innerHTML = '<p class="admin-empty-state">正在搜索用户…</p>';
+  }
+  const loadMore = $("adminUserLoadMoreBtn");
+  if (loadMore) loadMore.classList.add("hidden");
 }
 
 function renderAdminRecharge(requests) {
@@ -2481,16 +2572,15 @@ function adminMessageTargetLabel(message) {
   return names.join("、") || "未找到目标";
 }
 
-function renderAdminMessageTargets() {
+function renderAdminMessageTargets(users = null) {
+  if (Array.isArray(users)) adminMessageTargetUsers = users;
   const list = $("adminMessageTargetList");
   if (!list) return;
   const scope = $("adminMessageScope")?.value || "single";
-  const query = $("adminMessageTargetSearch")?.value.trim().toLocaleLowerCase() || "";
   $("adminMessageTargets")?.classList.toggle("hidden", scope === "all");
   if (scope === "all") return;
-  const users = adminUsers.filter((user) => !query
-    || [user.username, user.id].some((value) => String(value || "").toLocaleLowerCase().includes(query)));
-  list.innerHTML = users.map((user) => `<label class="admin-message-target-option">
+  const visibleUsers = $("adminMessageTargetSearch")?.value.trim() ? adminMessageTargetUsers : adminUsers;
+  list.innerHTML = visibleUsers.map((user) => `<label class="admin-message-target-option">
     <input type="checkbox" value="${escapeHtml(user.id)}" ${adminMessageSelectedUserIds.has(user.id) ? "checked" : ""} />
     <span><strong>${escapeHtml(user.username)}</strong><small>${escapeHtml(user.is_super_admin ? "站点所有者" : user.is_admin ? "管理员" : user.id)}</small></span>
   </label>`).join("") || '<p class="admin-empty-state">没有匹配的用户</p>';
@@ -2502,6 +2592,23 @@ function renderAdminMessageTargets() {
     if (input.checked) adminMessageSelectedUserIds.add(input.value);
     else adminMessageSelectedUserIds.delete(input.value);
   }));
+}
+
+async function loadAdminMessageTargets() {
+  const list = $("adminMessageTargetList");
+  const query = $("adminMessageTargetSearch")?.value.trim() || "";
+  const sequence = ++adminMessageTargetSearchSequence;
+  list?.setAttribute("aria-busy", "true");
+  try {
+    const data = await apiGet(adminUsersQueryPath({ query, match: "partial", page: 1, limit: 30 }));
+    if (sequence !== adminMessageTargetSearchSequence) return;
+    renderAdminMessageTargets(data.users || []);
+  } catch (error) {
+    if (sequence !== adminMessageTargetSearchSequence) return;
+    list.innerHTML = `<p class="admin-empty-state">${escapeHtml(error.message)}</p>`;
+  } finally {
+    if (sequence === adminMessageTargetSearchSequence) list?.setAttribute("aria-busy", "false");
+  }
 }
 
 function renderAdminMessages(messages = null) {
@@ -2579,7 +2686,7 @@ function renderAdminRoles(data = null) {
   const select = $("adminRoleUserSelect");
   if (select) {
     const prior = select.value;
-    const candidates = adminUsers.filter((user) => !user.is_super_admin && !adminIds.has(user.id) && !user.banned);
+    const candidates = adminRoleCandidateUsers.filter((user) => !user.is_super_admin && !adminIds.has(user.id) && !user.banned);
     select.innerHTML = '<option value="">请选择用户</option>' + candidates.map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.username)} · ${escapeHtml(user.id)}</option>`).join("");
     if (candidates.some((user) => user.id === prior)) select.value = prior;
   }
@@ -2597,6 +2704,27 @@ function renderAdminRoles(data = null) {
       await loadAdminData();
     });
   }));
+}
+
+async function loadAdminRoleCandidates() {
+  const query = $("adminRoleUserSearch")?.value.trim() || "";
+  const sequence = ++adminRoleUserSearchSequence;
+  const select = $("adminRoleUserSelect");
+  select?.setAttribute("aria-busy", "true");
+  try {
+    const data = await apiGet(adminUsersQueryPath({ query, match: "partial", page: 1, limit: 30 }));
+    if (sequence !== adminRoleUserSearchSequence) return;
+    adminRoleCandidateUsers = data.users || [];
+    renderAdminRoles();
+    $("adminRoleStatus").textContent = adminRoleCandidateUsers.length ? "" : "没有匹配的普通用户";
+  } catch (error) {
+    if (sequence !== adminRoleUserSearchSequence) return;
+    adminRoleCandidateUsers = [];
+    renderAdminRoles();
+    $("adminRoleStatus").textContent = error.message;
+  } finally {
+    if (sequence === adminRoleUserSearchSequence) select?.setAttribute("aria-busy", "false");
+  }
 }
 
 function grantSelectedAdminRole() {
@@ -2726,7 +2854,7 @@ async function loadAdminData() {
     if (!$("adminUserList").children.length) $("adminUserList").innerHTML = '<p class="admin-empty-state">正在连接服务器…</p>';
   }
   const requests = [
-    { label: "用户", path: "/api/admin/users", target: "adminUserList", apply: (data) => renderAdminUsers(data.users) },
+    { label: "用户", path: adminUsersQueryPath({ page: 1 }), target: "adminUserList", apply: (data) => renderAdminUsers(data) },
     { label: "充值申请", path: "/api/admin/recharge", target: "adminRechargeList", apply: (data) => renderAdminRecharge(data.requests) },
     { label: "审计日志", path: "/api/admin/audit", target: "adminAuditList", apply: (data) => renderAdminAudit(data.logs) },
     { label: "登录记录", path: "/api/admin/login-logs", target: "adminLoginList", apply: (data) => renderAdminLoginLogs(data.logs) },
@@ -5804,7 +5932,7 @@ async function exportWrongBook(scope = "current") {
 
   try {
     const blob = await createWrongBookPdf(book, {
-      title: scope === "history" ? "WYJ的网站历史错题本" : "WYJ的网站本轮错题本",
+      title: scope === "history" ? "thewyj 历史错题本" : "thewyj 本轮错题本",
       meta: {
         profile: state.profile,
         scope: scope === "history" ? "历史错题" : "本轮错题",
@@ -6304,9 +6432,26 @@ async function boot() {
   $("refreshVotingBtn").addEventListener("click", loadFeatureVoting);
   $("refreshAdminBtn").addEventListener("click", loadAdminData);
   $("leaveAdminBtn").addEventListener("click", leaveAdminPanel);
-  $("adminUserSearch").addEventListener("input", () => renderAdminUsers());
+  $("adminUserSearch").addEventListener("input", () => {
+    window.clearTimeout(adminUserSearchTimer);
+    markAdminUserSearchPending();
+    adminUserSearchTimer = window.setTimeout(() => loadAdminUsers({ page: 1 }), 250);
+  });
+  $("adminUserMatch").addEventListener("change", () => {
+    window.clearTimeout(adminUserSearchTimer);
+    markAdminUserSearchPending();
+    loadAdminUsers({ page: 1 });
+  });
+  $("adminUserLoadMoreBtn").addEventListener("click", () => loadAdminUsers({ page: adminUserPage.page + 1, append: true }));
   $("adminMessageForm")?.addEventListener("submit", sendAdminMessage);
-  $("adminMessageTargetSearch")?.addEventListener("input", renderAdminMessageTargets);
+  $("adminMessageTargetSearch")?.addEventListener("input", () => {
+    window.clearTimeout(adminMessageTargetSearchTimer);
+    adminMessageTargetSearchTimer = window.setTimeout(loadAdminMessageTargets, 250);
+  });
+  $("adminRoleUserSearch")?.addEventListener("input", () => {
+    window.clearTimeout(adminRoleUserSearchTimer);
+    adminRoleUserSearchTimer = window.setTimeout(loadAdminRoleCandidates, 250);
+  });
   $("adminMessageScope")?.addEventListener("change", () => {
     if ($("adminMessageScope").value === "single" && adminMessageSelectedUserIds.size > 1) {
       const firstUserId = adminMessageSelectedUserIds.values().next().value;
@@ -6471,7 +6616,7 @@ async function boot() {
     toolsInitialized = true;
   }
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register(`/sw.js?v=${APP_VERSION}`).catch(() => {});
+    navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`).catch(() => {});
   }
   const initialPath = location.pathname.replace(/\/+$/, "") || "/";
   const shouldProbeCloudBackend = () => !location.pathname.startsWith("/share/");

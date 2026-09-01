@@ -1,7 +1,51 @@
 const PUBLIC_MODE = "public";
 const WORKSPACE_MODE = "workspace";
+const THEME_STORAGE_KEY = "wyj_theme_preference_v1";
+const THEME_ORDER = Object.freeze(["system", "light", "dark"]);
 
 let navigationController = null;
+
+function readThemePreference() {
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return THEME_ORDER.includes(stored) ? stored : "system";
+  } catch (_) {
+    return "system";
+  }
+}
+
+function setupTheme() {
+  const button = document.getElementById("themeToggleBtn");
+  const label = document.getElementById("themeToggleLabel");
+  const colorScheme = window.matchMedia?.("(prefers-color-scheme: dark)");
+  let preference = readThemePreference();
+
+  const apply = () => {
+    const resolved = preference === "system" ? (colorScheme?.matches ? "dark" : "light") : preference;
+    document.documentElement.dataset.theme = resolved;
+    document.documentElement.dataset.themePreference = preference;
+    const visibleLabel = { system: "系统", light: "浅色", dark: "深色" }[preference];
+    const description = `外观：${visibleLabel}`;
+    if (label) label.textContent = visibleLabel;
+    if (button) {
+      button.dataset.themePreference = preference;
+      button.setAttribute("aria-label", `${description}，点击切换`);
+      button.title = `${description}，点击切换`;
+    }
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.content = resolved === "dark" ? "#111318" : "#f3f2ef";
+  };
+
+  button?.addEventListener("click", () => {
+    preference = THEME_ORDER[(THEME_ORDER.indexOf(preference) + 1) % THEME_ORDER.length];
+    try { window.localStorage.setItem(THEME_STORAGE_KEY, preference); } catch (_) { /* Appearance remains usable in memory. */ }
+    apply();
+  });
+  colorScheme?.addEventListener?.("change", () => {
+    if (preference === "system") apply();
+  });
+  apply();
+}
 
 function setupNavigation() {
   const navigation = document.getElementById("accountBar");
@@ -147,6 +191,7 @@ export function setExperienceMode(mode) {
 }
 
 export function initDesignSystem() {
+  setupTheme();
   navigationController = setupNavigation();
   setupSplitFlap();
   setupCapabilityGallery();

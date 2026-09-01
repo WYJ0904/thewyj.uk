@@ -41,6 +41,11 @@
   --ds-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px rgba(15, 23, 42, 0.055);
   --ds-shadow-raised: 0 14px 36px rgba(15, 23, 42, 0.1);
   --ds-shadow-dialog: 0 28px 72px rgba(15, 23, 42, 0.2);
+  --ds-overlay: rgba(15, 23, 42, 0.52);
+  --ds-overlay-soft: rgba(15, 23, 42, 0.42);
+  --ds-hover: rgba(15, 23, 42, 0.055);
+  --ds-skeleton: #e8edf3;
+  --ds-skeleton-shine: rgba(255, 255, 255, 0.62);
 
   /* Motion */
   --ds-duration-instant: 80ms;
@@ -92,13 +97,45 @@
   --ds-focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.28);
 
   /* Public brand stage */
-  --ds-stage: #07090d;
-  --ds-stage-surface: #11141a;
-  --ds-stage-surface-raised: #171a21;
-  --ds-stage-text: #f8fafc;
-  --ds-stage-text-secondary: #b9c1cd;
-  --ds-stage-border: rgba(255, 255, 255, 0.16);
-  --ds-stage-brand: #8eb4ff;
+  --ds-stage: #eef1f5;
+  --ds-stage-surface: #ffffff;
+  --ds-stage-surface-raised: #e4e9f0;
+  --ds-stage-text: #101827;
+  --ds-stage-text-secondary: #475569;
+  --ds-stage-border: rgba(24, 33, 47, 0.16);
+  --ds-stage-brand: #1d4ed8;
+  --ds-stage-action: #1d4ed8;
+  --ds-stage-on-action: #ffffff;
+  --ds-stage-action-hover: #1e40af;
+
+  /* Dark palette values are declared once and assigned below. */
+  --ds-dark-workspace-canvas: #111318;
+  --ds-dark-workspace-canvas-warm: #161715;
+  --ds-dark-surface: #1b1e24;
+  --ds-dark-surface-subtle: #22262d;
+  --ds-dark-surface-raised: #272b33;
+  --ds-dark-surface-disabled: #2c3139;
+  --ds-dark-text: #f4f6f8;
+  --ds-dark-text-secondary: #cbd2dc;
+  --ds-dark-text-muted: #aeb8c6;
+  --ds-dark-text-disabled: #98a4b4;
+  --ds-dark-border: #363d48;
+  --ds-dark-border-strong: #515b69;
+  --ds-dark-brand: #78a6ff;
+  --ds-dark-brand-hover: #9abcff;
+  --ds-dark-brand-pressed: #5e91f5;
+  --ds-dark-brand-soft: #1d3157;
+  --ds-dark-on-brand: #08101f;
+  --ds-dark-success: #6fd7a0;
+  --ds-dark-success-soft: #173c2a;
+  --ds-dark-warning: #f2c572;
+  --ds-dark-warning-soft: #49351b;
+  --ds-dark-error: #ff9b9b;
+  --ds-dark-error-hover: #ffb3b3;
+  --ds-dark-error-soft: #4c2528;
+  --ds-dark-info: #91b7ff;
+  --ds-dark-info-soft: #21365e;
+  --ds-dark-focus: #9abcff;
 
   /* Compatibility aliases used by existing modules. */
   --color-background: var(--ds-workspace-canvas);
@@ -150,6 +187,108 @@
   --accent-2: var(--color-warning);
   --ok: var(--color-success);
   --danger: var(--color-error);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ds-stage: #07090d;
+  --ds-stage-surface: #11141a;
+  --ds-stage-surface-raised: #171a21;
+  --ds-stage-text: #f8fafc;
+  --ds-stage-text-secondary: #b9c1cd;
+  --ds-stage-border: rgba(255, 255, 255, 0.16);
+  --ds-stage-brand: #8eb4ff;
+  --ds-stage-action: #ffffff;
+  --ds-stage-on-action: #0b0d11;
+  --ds-stage-action-hover: #e8efff;
+  --ds-workspace-canvas: var(--ds-dark-workspace-canvas);
+  --ds-workspace-canvas-warm: var(--ds-dark-workspace-canvas-warm);
+  --ds-surface: var(--ds-dark-surface);
+  --ds-surface-subtle: var(--ds-dark-surface-subtle);
+  --ds-surface-raised: var(--ds-dark-surface-raised);
+  --ds-surface-disabled: var(--ds-dark-surface-disabled);
+  --ds-text: var(--ds-dark-text);
+  --ds-text-secondary: var(--ds-dark-text-secondary);
+  --ds-text-muted: var(--ds-dark-text-muted);
+  --ds-text-disabled: var(--ds-dark-text-disabled);
+  --ds-border: var(--ds-dark-border);
+  --ds-border-strong: var(--ds-dark-border-strong);
+  --ds-brand: var(--ds-dark-brand);
+  --ds-brand-hover: var(--ds-dark-brand-hover);
+  --ds-brand-pressed: var(--ds-dark-brand-pressed);
+  --ds-brand-soft: var(--ds-dark-brand-soft);
+  --ds-on-brand: var(--ds-dark-on-brand);
+  --ds-success: var(--ds-dark-success);
+  --ds-success-soft: var(--ds-dark-success-soft);
+  --ds-warning: var(--ds-dark-warning);
+  --ds-warning-soft: var(--ds-dark-warning-soft);
+  --ds-error: var(--ds-dark-error);
+  --ds-error-hover: var(--ds-dark-error-hover);
+  --ds-error-soft: var(--ds-dark-error-soft);
+  --ds-info: var(--ds-dark-info);
+  --ds-info-soft: var(--ds-dark-info-soft);
+  --ds-focus: var(--ds-dark-focus);
+  --ds-focus-ring: 0 0 0 3px rgba(154, 188, 255, 0.28);
+  --ds-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.22), 0 12px 30px rgba(0, 0, 0, 0.2);
+  --ds-shadow-raised: 0 18px 42px rgba(0, 0, 0, 0.28);
+  --ds-shadow-dialog: 0 28px 72px rgba(0, 0, 0, 0.48);
+  --ds-overlay: rgba(0, 0, 0, 0.7);
+  --ds-overlay-soft: rgba(0, 0, 0, 0.58);
+  --ds-hover: rgba(255, 255, 255, 0.075);
+  --ds-skeleton: #2a3038;
+  --ds-skeleton-shine: rgba(255, 255, 255, 0.09);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --ds-stage: #07090d;
+    --ds-stage-surface: #11141a;
+    --ds-stage-surface-raised: #171a21;
+    --ds-stage-text: #f8fafc;
+    --ds-stage-text-secondary: #b9c1cd;
+    --ds-stage-border: rgba(255, 255, 255, 0.16);
+    --ds-stage-brand: #8eb4ff;
+    --ds-stage-action: #ffffff;
+    --ds-stage-on-action: #0b0d11;
+    --ds-stage-action-hover: #e8efff;
+    --ds-workspace-canvas: var(--ds-dark-workspace-canvas);
+    --ds-workspace-canvas-warm: var(--ds-dark-workspace-canvas-warm);
+    --ds-surface: var(--ds-dark-surface);
+    --ds-surface-subtle: var(--ds-dark-surface-subtle);
+    --ds-surface-raised: var(--ds-dark-surface-raised);
+    --ds-surface-disabled: var(--ds-dark-surface-disabled);
+    --ds-text: var(--ds-dark-text);
+    --ds-text-secondary: var(--ds-dark-text-secondary);
+    --ds-text-muted: var(--ds-dark-text-muted);
+    --ds-text-disabled: var(--ds-dark-text-disabled);
+    --ds-border: var(--ds-dark-border);
+    --ds-border-strong: var(--ds-dark-border-strong);
+    --ds-brand: var(--ds-dark-brand);
+    --ds-brand-hover: var(--ds-dark-brand-hover);
+    --ds-brand-pressed: var(--ds-dark-brand-pressed);
+    --ds-brand-soft: var(--ds-dark-brand-soft);
+    --ds-on-brand: var(--ds-dark-on-brand);
+    --ds-success: var(--ds-dark-success);
+    --ds-success-soft: var(--ds-dark-success-soft);
+    --ds-warning: var(--ds-dark-warning);
+    --ds-warning-soft: var(--ds-dark-warning-soft);
+    --ds-error: var(--ds-dark-error);
+    --ds-error-hover: var(--ds-dark-error-hover);
+    --ds-error-soft: var(--ds-dark-error-soft);
+    --ds-info: var(--ds-dark-info);
+    --ds-info-soft: var(--ds-dark-info-soft);
+    --ds-focus: var(--ds-dark-focus);
+    --ds-focus-ring: 0 0 0 3px rgba(154, 188, 255, 0.28);
+    --ds-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.22), 0 12px 30px rgba(0, 0, 0, 0.2);
+    --ds-shadow-raised: 0 18px 42px rgba(0, 0, 0, 0.28);
+    --ds-shadow-dialog: 0 28px 72px rgba(0, 0, 0, 0.48);
+    --ds-overlay: rgba(0, 0, 0, 0.7);
+    --ds-overlay-soft: rgba(0, 0, 0, 0.58);
+    --ds-hover: rgba(255, 255, 255, 0.075);
+    --ds-skeleton: #2a3038;
+    --ds-skeleton-shine: rgba(255, 255, 255, 0.09);
+  }
 }
 
 html {
@@ -301,7 +440,7 @@ button.primary:active:not(:disabled),
 .button-ghost:hover:not(:disabled) {
   border-color: transparent;
   color: var(--ds-text);
-  background: rgba(15, 23, 42, 0.055);
+  background: var(--ds-hover);
 }
 
 .danger-button {
@@ -319,7 +458,7 @@ button.primary:active:not(:disabled),
 button:disabled,
 .button-link[aria-disabled="true"] {
   cursor: not-allowed;
-  border-color: #c9d1dc;
+  border-color: var(--ds-border-strong);
   color: var(--ds-text-disabled);
   background: var(--ds-surface-disabled);
   box-shadow: none;
@@ -413,7 +552,7 @@ textarea[aria-invalid="true"] {
     max(var(--ds-space-4), env(safe-area-inset-right))
     max(var(--ds-space-4), env(safe-area-inset-bottom))
     max(var(--ds-space-4), env(safe-area-inset-left));
-  background: rgba(15, 23, 42, 0.52);
+  background: var(--ds-overlay);
   backdrop-filter: blur(3px);
   animation: dsModalBackdropIn var(--ds-duration-fast) ease-out both;
 }
@@ -438,13 +577,13 @@ textarea[aria-invalid="true"] {
 }
 
 @keyframes dsModalBackdropIn {
-  from { background-color: rgba(15, 23, 42, 0.42); }
-  to { background-color: rgba(15, 23, 42, 0.52); }
+  from { background-color: var(--ds-overlay-soft); }
+  to { background-color: var(--ds-overlay); }
 }
 
 @keyframes dsModalBackdropOut {
-  from { background-color: rgba(15, 23, 42, 0.52); }
-  to { background-color: rgba(15, 23, 42, 0.42); }
+  from { background-color: var(--ds-overlay); }
+  to { background-color: var(--ds-overlay-soft); }
 }
 
 @keyframes dsModalPanelIn {
@@ -540,14 +679,14 @@ textarea[aria-invalid="true"] {
   position: relative;
   overflow: hidden;
   color: var(--ds-text-muted);
-  background: #e8edf3;
+  background: var(--ds-skeleton);
 }
 
 .skeleton::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.62) 50%, transparent 80%);
+  background: linear-gradient(100deg, transparent 20%, var(--ds-skeleton-shine) 50%, transparent 80%);
   transform: translateX(-100%);
   animation: dsSkeleton 1.4s var(--ds-ease-standard) infinite;
 }

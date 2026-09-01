@@ -1,4 +1,4 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260901-task19-production-final";
+import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260901-task19-remediation-r4";
 
 export const ACCOUNT_SESSION_KEY = "wyjAccountSession";
 export const ACCOUNT_CACHE_KEY = "wyjAccountCache";

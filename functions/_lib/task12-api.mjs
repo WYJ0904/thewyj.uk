@@ -181,12 +181,18 @@ async function executeRoute(context, descriptor, account, flags) {
       return response({ ok: true, account: enriched }, 200, context);
     }
     if (path === "/api/admin/users") {
-      const cloudUsers = await listUsers(db, account);
+      const requestUrl = new URL(context.request.url);
+      const cloudPage = await listUsers(db, account, {
+        query: requestUrl.searchParams.get("q") || "",
+        match: requestUrl.searchParams.get("match") || "partial",
+        page: requestUrl.searchParams.get("page") || "1",
+        limit: requestUrl.searchParams.get("limit") || "30",
+      });
       if (flags.task13CloudReads) {
-        const users = await Promise.all(cloudUsers.map((item) => enrichAccountWithTask13(db, item)));
-        return response({ ok: true, users }, 200, context);
+        const users = await Promise.all(cloudPage.users.map((item) => enrichAccountWithTask13(db, item)));
+        return response({ ok: true, ...cloudPage, users }, 200, context);
       }
-      return response({ ok: true, users: cloudUsers }, 200, context);
+      return response({ ok: true, ...cloudPage }, 200, context);
     }
     if (path === "/api/admin/login-logs") return response({ ok: true, logs: await listLoginAudit(db, account) }, 200, context);
     if (path === "/api/admin/audit") {

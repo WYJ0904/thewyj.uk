@@ -94,7 +94,7 @@ class StaticSiteTests(unittest.TestCase):
 
     def test_manifest_and_service_worker_shell_are_deployable(self):
         manifest = json.loads((ROOT / "manifest.webmanifest").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["name"], "WYJ\u7684\u7f51\u7ad9")
+        self.assertEqual(manifest["name"], "thewyj")
         self.assertEqual(manifest["short_name"], "WYJ")
         self.assertEqual(manifest["start_url"], "/")
         self.assertEqual(manifest["background_color"], "#f6f8fb")
@@ -109,15 +109,17 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260901-task19-production-final"
+        release_token = "20260901-task19-remediation-r4"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "design-system.css", "public-experience.css", "workspace-experience.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
         self.assertIn('export const APP_VERSION = "2026-09-01-task19-production-final"', self.core)
+        self.assertIn(f'export const ASSET_RELEASE = "{release_token}"', self.core)
+        self.assertIn('navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)', self.app)
         for module in ("api", "config", "router", "session", "storage", "ui", "design-system"):
             self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20260901-task19-production-final"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20260901-task19-remediation-r4"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         for asset in ("design-system.css", "public-experience.css", "workspace-experience.css"):
@@ -131,7 +133,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertFalse((ROOT / "404.html").exists())
 
     def test_browser_module_graph_uses_one_release_version(self):
-        release_token = "20260901-task19-production-final"
+        release_token = "20260901-task19-remediation-r4"
         import_pattern = re.compile(
             r'(?:from\s+|import\s+)["\'](\.{1,2}/[^"\']+\.js(?:\?[^"\']*)?)["\']'
         )
@@ -248,11 +250,14 @@ class StaticSiteTests(unittest.TestCase):
         self.assertNotRegex(self.html, r">\s*[文+×↕]\s*<")
 
     def test_task19_design_system_two_contract(self):
-        self.assertIn('href="/design-system.css?v=20260901-task19-production-final"', self.html)
-        self.assertIn('href="/public-experience.css?v=20260901-task19-production-final"', self.html)
-        self.assertIn('href="/workspace-experience.css?v=20260901-task19-production-final"', self.html)
+        self.assertIn('href="/design-system.css?v=20260901-task19-remediation-r4"', self.html)
+        self.assertIn('href="/public-experience.css?v=20260901-task19-remediation-r4"', self.html)
+        self.assertIn('href="/workspace-experience.css?v=20260901-task19-remediation-r4"', self.html)
         self.assertIn('id="siteNavToggle"', self.html)
         self.assertIn('id="siteNavPanel"', self.html)
+        self.assertIn('id="themeToggleBtn"', self.html)
+        self.assertIn('id="themeToggleLabel"', self.html)
+        self.assertIn('data-theme="dark"', self.design_styles)
         self.assertEqual(self.html.count('data-capability-panel='), 5)
         self.assertIn('id="publicSplitFlap"', self.html)
         self.assertIn('data-phrases="学习|工具|财务|分享"', self.html)
@@ -270,7 +275,16 @@ class StaticSiteTests(unittest.TestCase):
         )
         self.assertIsNotNone(modal_motion)
         self.assertNotIn("opacity", "".join(modal_motion.groups()))
-        self.assertIn('.dashboard-entry-grid .module-card[data-module="tools"]', self.workspace_styles)
+        self.assertIn('.dashboard-launchpad-grid', self.workspace_styles)
+        self.assertIn('.dashboard-learning-lane', self.workspace_styles)
+        self.assertIn('.dashboard-quick-lane .module-card', self.workspace_styles)
+        self.assertIn('data-dashboard-project="english"', self.html)
+        self.assertIn('data-dashboard-project="japanese"', self.html)
+        self.assertIn('data-module="tools"', self.html)
+        self.assertIn('data-module="finance"', self.html)
+        self.assertIn('id="adminUserMatch"', self.html)
+        self.assertIn('id="adminUserLoadMoreBtn"', self.html)
+        self.assertIn('id="adminRoleUserSearch"', self.html)
         self.assertIn('.tools-panel,\n.finance-page,\n.admin-panel', self.workspace_styles)
         self.assertRegex(
             self.workspace_styles,
@@ -840,6 +854,38 @@ class StaticSiteTests(unittest.TestCase):
             r"\.payment-qr-wrap img\s*\{[^}]*max-width:\s*100%",
         )
         self.assertIn("overflow-x: hidden", self.styles)
+
+    def test_share_viewer_uses_semantic_result_tones(self):
+        self.assertNotIn('class="error" id="shareViewerMessage"', self.html)
+        self.assertIn('setShareViewerMessage("\\u6253\\u5f00\\u6210\\u529f", "success")', self.tools)
+        self.assertIn('setShareViewerMessage(error.message, "error")', self.tools)
+        self.assertIn('#shareViewerMessage[data-tone="success"]', self.workspace_styles)
+        self.assertIn('#shareViewerMessage[data-tone="error"]', self.workspace_styles)
+
+    def test_dark_workspace_statuses_do_not_use_legacy_low_contrast_colors(self):
+        self.assertNotIn("color: #315a98;", self.product_styles)
+        self.assertNotIn("color: #7f1d1d;", self.product_styles)
+        self.assertNotIn("color: #344054;", self.product_styles)
+        self.assertRegex(
+            self.product_styles,
+            r"(?s)\.module-card em\s*\{.*?color:\s*var\(--color-primary\)",
+        )
+        self.assertRegex(
+            self.product_styles,
+            r"(?s)\.danger-zone,\s*\.admin-danger-section\s*\{.*?color:\s*var\(--color-error\)",
+        )
+        self.assertRegex(
+            self.product_styles,
+            r"(?s)\.danger-zone button,\s*\.admin-danger-section button\s*\{.*?color:\s*var\(--color-error\)",
+        )
+        self.assertRegex(
+            self.product_styles,
+            r"(?s)\.tool-chip-list button\s*\{.*?color:\s*var\(--color-text\)",
+        )
+        self.assertRegex(
+            self.product_styles,
+            r"(?s)\.secret-value,\s*code\s*\{.*?background:\s*var\(--color-surface-subtle\)",
+        )
 
     def test_membership_ui_filters_plans_by_purpose_without_replacing_server_checks(self):
         goal_values = re.findall(r'data-membership-goal="([^"]+)"', self.html)

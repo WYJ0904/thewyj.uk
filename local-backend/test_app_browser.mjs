@@ -253,7 +253,14 @@ async function main() {
   const contrastRatio = async (selector, pseudo = "") => evaluate(`(() => {
     const element = document.querySelector(${JSON.stringify(selector)});
     if (!element) throw new Error('missing contrast target: ' + ${JSON.stringify(selector)});
-    const parse = (value) => (String(value).match(/[0-9.]+/g) || []).map(Number);
+    const parse = (value) => {
+      const text = String(value).trim();
+      const parts = (text.match(/[0-9.]+/g) || []).map(Number);
+      if (text.toLowerCase().startsWith("color(srgb")) {
+        return [parts[0] * 255, parts[1] * 255, parts[2] * 255, parts.length > 3 ? parts[3] : 1];
+      }
+      return parts;
+    };
     const luminance = (rgb) => {
       const channels = rgb.slice(0, 3).map((part) => {
         const value = part / 255;
@@ -286,7 +293,11 @@ async function main() {
     const root = document.querySelector(${JSON.stringify(rootSelector)});
     if (!root) throw new Error('missing contrast root: ' + ${JSON.stringify(rootSelector)});
     const parse = (value) => {
-      const parts = (String(value).match(/[0-9.]+/g) || []).map(Number);
+      const text = String(value).trim();
+      const parts = (text.match(/[0-9.]+/g) || []).map(Number);
+      if (text.toLowerCase().startsWith("color(srgb")) {
+        return [parts[0] * 255, parts[1] * 255, parts[2] * 255, parts.length > 3 ? parts[3] : 1];
+      }
       return [parts[0] || 0, parts[1] || 0, parts[2] || 0, parts.length > 3 ? parts[3] : 1];
     };
     const blend = (top, bottom) => {
@@ -597,13 +608,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260901-task19-production-final');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20260901-task19-production-final');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260901-task19-production-final');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260901-task19-production-final');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260901-task19-production-final');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260901-task19-production-final');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260901-task19-production-final');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260901-task19-remediation-r4');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20260901-task19-remediation-r4');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260901-task19-remediation-r4');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260901-task19-remediation-r4');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260901-task19-remediation-r4');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260901-task19-remediation-r4');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260901-task19-remediation-r4');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -762,13 +773,25 @@ async function main() {
       await delay(240);
       assert.deepEqual(await auditVisibleTextContrast("#modulePicker"), []);
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-      const mobileDashboard = await evaluate(`({ viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth, cards: document.querySelectorAll('.dashboard-entry-grid .module-card').length })`);
+      const mobileDashboard = await evaluate(`({
+        viewport: innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        cards: document.querySelectorAll('.dashboard-launchpad-grid .module-card').length,
+        launchpadColumns: getComputedStyle(document.querySelector('.dashboard-launchpad-grid')).gridTemplateColumns.split(' ').length,
+      })`);
       assert.ok(mobileDashboard.scrollWidth <= mobileDashboard.viewport + 1, JSON.stringify(mobileDashboard));
       assert.equal(mobileDashboard.cards, 4);
+      assert.equal(mobileDashboard.launchpadColumns, 1);
       const mobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `dashboard-390-${RUN_ID}.png`), Buffer.from(mobileShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
-      assert.equal(await evaluate("getComputedStyle(document.querySelector('.dashboard-entry-grid')).gridTemplateColumns.split(' ').length"), 6);
+      assert.deepEqual(
+        await evaluate(`({
+          launchpad: getComputedStyle(document.querySelector('.dashboard-launchpad-grid')).gridTemplateColumns.split(' ').length,
+          learning: getComputedStyle(document.querySelector('.dashboard-learning-actions')).gridTemplateColumns.split(' ').length,
+        })`),
+        { launchpad: 2, learning: 2 },
+      );
       const wideShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `dashboard-1920-${RUN_ID}.png`), Buffer.from(wideShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 768, deviceScaleFactor: 1, mobile: false });
@@ -1943,7 +1966,11 @@ async function main() {
 
       const openEditor = async (username) => {
         await setFields({ "#adminUserSearch": username });
-        await waitFor("document.querySelectorAll('#adminUserList .admin-user-card').length === 1", 5_000, username);
+        await waitFor(
+          `document.querySelectorAll('#adminUserList .admin-user-card').length === 1 && document.querySelector('#adminUserList .admin-user-card')?.textContent.includes(${JSON.stringify(username)})`,
+          5_000,
+          username,
+        );
         await click("#adminUserList [data-admin-edit]");
         await waitFor("!document.querySelector('#adminEditModal')?.classList.contains('hidden')", 3_000, `${username} editor`);
       };

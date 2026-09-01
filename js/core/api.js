@@ -4,7 +4,7 @@ import {
   BACKEND_NETWORK_MESSAGE,
   GET_RETRYABLE_STATUS,
   STATUS_RETRY_BASE_DELAYS_MS,
-} from "./config.js?v=20260901-task19-production-final";
+} from "./config.js?v=20260901-task19-remediation-r4";
 
 export const CANONICAL_SESSION_ERROR_CODES = new Set([
   "authentication_required",

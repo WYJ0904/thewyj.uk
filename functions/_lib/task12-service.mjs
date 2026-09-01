@@ -322,19 +322,67 @@ export async function deleteOwnAccount(db, account, secret, options = {}) {
   await accountAudit(db, row, "self_delete", row, before, auditSnapshot(await userById(db, row.id)));
 }
 
-export async function listUsers(db, actor) {
+function adminUserListOptions(options = {}) {
+  const query = String(options.query || "").trim();
+  if (query.length > 80) throw new Task12Error("用户搜索内容过长", 400, "admin_user_query_too_long");
+  const match = options.match === "exact" ? "exact" : "partial";
+  const page = Math.max(1, Math.min(Number.parseInt(options.page, 10) || 1, 10000));
+  const limit = Math.max(10, Math.min(Number.parseInt(options.limit, 10) || 30, 100));
+  return { query, match, page, limit, offset: (page - 1) * limit };
+}
+
+function escapedLike(value) {
+  return String(value).replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
+}
+
+export async function listUsers(db, actor, options = {}) {
   if (!isAdmin(actor)) throw new Task12Error("无管理员权限", 403, "forbidden");
+  const paging = adminUserListOptions(options);
+  const normalized = paging.query ? normalizeUsername(paging.query) : "";
+  const whereValues = [];
+  let whereSql = "users.deleted = 0";
+  if (paging.query) {
+    if (paging.match === "exact") {
+      whereSql += " AND (users.id = ?1 OR users.username_normalized = ?2)";
+      whereValues.push(paging.query, normalized);
+    } else {
+      const pattern = `%${escapedLike(paging.query.toLocaleLowerCase())}%`;
+      whereSql += " AND (LOWER(users.id) LIKE ?1 ESCAPE '\\' OR users.username_normalized LIKE ?2 ESCAPE '\\')";
+      whereValues.push(pattern, pattern);
+    }
+  }
+  const countSql = `SELECT COUNT(*) AS count FROM task12_users AS users WHERE ${whereSql}`;
+  const total = Number((await first(db, countSql, whereValues))?.count || 0);
+  const fieldSql = `users.id, users.username, users.role, users.registered_at,
+    users.last_login_at, users.banned, users.permanent_ban, users.deleted,
+    users.created_at, users.updated_at`;
+  const values = [...whereValues, paging.limit, paging.offset];
+  const limitIndex = whereValues.length + 1;
+  const offsetIndex = whereValues.length + 2;
+  let rows;
   try {
-    return (await all(db, `SELECT users.*, roles.role AS assigned_admin_role
+    rows = await all(db, `SELECT ${fieldSql}, roles.role AS assigned_admin_role
       FROM task12_users AS users
       LEFT JOIN task18_admin_roles AS roles ON roles.user_id = users.id
-      WHERE users.deleted = 0
-      ORDER BY users.registered_at DESC, users.username_normalized ASC LIMIT 1000`)).map(accountPayload);
+      WHERE ${whereSql}
+      ORDER BY users.registered_at DESC, users.username_normalized ASC, users.id ASC
+      LIMIT ?${limitIndex} OFFSET ?${offsetIndex}`, values);
   } catch (error) {
     if (!task18RoleTableMissing(error)) throw error;
-    return (await all(db, `SELECT * FROM task12_users WHERE deleted = 0
-      ORDER BY registered_at DESC, username_normalized ASC LIMIT 1000`)).map(accountPayload);
+    rows = await all(db, `SELECT ${fieldSql} FROM task12_users AS users WHERE ${whereSql}
+      ORDER BY users.registered_at DESC, users.username_normalized ASC, users.id ASC
+      LIMIT ?${limitIndex} OFFSET ?${offsetIndex}`, values);
   }
+  const users = rows.map(accountPayload);
+  return {
+    users,
+    total,
+    page: paging.page,
+    limit: paging.limit,
+    has_more: paging.offset + users.length < total,
+    query: paging.query,
+    match: paging.match,
+  };
 }
 
 export async function listLoginAudit(db, actor, limit = 300) {
