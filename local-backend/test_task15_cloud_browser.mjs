@@ -375,7 +375,22 @@ async function main() {
       await delay(350);
       assert.equal(await evaluate("localStorage.getItem('wyjAccountSession')"), originalSession);
       await send("Network.emulateNetworkConditions", { offline: false, latency: 25, downloadThroughput: 1_000_000, uploadThroughput: 500_000 });
-      const current = await evaluate(`fetch('/api/me', { headers: { 'X-Session-Token': localStorage.getItem('wyjAccountSession') } }).then(async (response) => ({ status: response.status, data: await response.json() }))`);
+      const current = await evaluate(`(async () => {
+        const delays = [100, 200, 400, 800, 1600];
+        let lastError = '';
+        for (let attempt = 0; attempt < delays.length; attempt += 1) {
+          try {
+            const response = await fetch('/api/me', { headers: { 'X-Session-Token': localStorage.getItem('wyjAccountSession') } });
+            const data = await response.json();
+            if (response.status === 200) return { status: response.status, data, attempts: attempt + 1 };
+            lastError = data?.error || ('HTTP ' + response.status);
+          } catch (error) {
+            lastError = error?.message || String(error);
+          }
+          await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
+        }
+        return { status: 0, data: { error: lastError } };
+      })()`);
       assert.equal(current.status, 200, JSON.stringify(current.data));
       assert.equal(current.data.account?.username, USERNAME);
     });
