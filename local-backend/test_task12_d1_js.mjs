@@ -428,12 +428,54 @@ try {
   const forbiddenAdmin = await accountRequest(db, "/api/admin/users", { token: firstToken });
   assert.equal(forbiddenAdmin.response.status, 403);
   assert.equal(forbiddenAdmin.payload.code, "forbidden");
+
+  const searchFixtureTime = "2026-08-21T09:00:00.000Z";
+  await db.batch(Array.from({ length: 23 }, (_, index) => {
+    const suffix = String(index).padStart(2, "0");
+    return db.prepare(`INSERT INTO task12_users (
+      id, username, username_normalized, password_hash, password_scheme,
+      password_iterations, role, registered_at, created_at, updated_at, source_updated_at
+    ) VALUES (?1, ?2, ?3, '', 'reset_required', 0, 'user', ?4, ?4, ?4, ?4)`)
+      .bind(`task19-search-id-${suffix}`, `task19search${suffix}`, `task19search${suffix}`, searchFixtureTime);
+  }));
+  const firstSearchPage = await accountRequest(
+    db,
+    "/api/admin/users?q=task19search&match=partial&page=1&limit=10",
+    { token: migrationAdminLogin.session },
+  );
+  assert.equal(firstSearchPage.response.status, 200);
+  assert.equal(firstSearchPage.payload.total, 23);
+  assert.equal(firstSearchPage.payload.users.length, 10);
+  assert.equal(firstSearchPage.payload.has_more, true);
+  const finalSearchPage = await accountRequest(
+    db,
+    "/api/admin/users?q=task19search&match=partial&page=3&limit=10",
+    { token: migrationAdminLogin.session },
+  );
+  assert.equal(finalSearchPage.payload.users.length, 3);
+  assert.equal(finalSearchPage.payload.has_more, false);
+  const exactSearch = await accountRequest(
+    db,
+    "/api/admin/users?q=TASK19SEARCH07&match=exact&page=1&limit=10",
+    { token: migrationAdminLogin.session },
+  );
+  assert.equal(exactSearch.payload.total, 1);
+  assert.equal(exactSearch.payload.users[0].id, "task19-search-id-07");
+  for (const forbiddenField of ["password_hash", "password_scheme", "session", "secret", "token_digest"]) {
+    assert.equal(Object.hasOwn(exactSearch.payload.users[0], forbiddenField), false);
+  }
+  const escapedWildcard = await accountRequest(
+    db,
+    "/api/admin/users?q=%25&match=partial&page=1&limit=10",
+    { token: migrationAdminLogin.session },
+  );
+  assert.equal(escapedWildcard.payload.total, 0);
   const sessionRow = await db.prepare("SELECT token_digest, client_kind FROM task12_sessions WHERE user_id = ?1")
     .bind(userId).first();
   assert.match(sessionRow.token_digest, /^sha256\$[0-9a-f]{64}$/);
   assert.equal(sessionRow.token_digest.includes(firstToken), false);
   assert.equal(sessionRow.client_kind, "webview");
-  completed += 1;
+  completed += 2;
 
   const secondLogin = await loginAccount(db, "task12-user", USER_SECRET, loginRequest(), passwordOptions());
   const account = await resolveSession(db, secondLogin.session);

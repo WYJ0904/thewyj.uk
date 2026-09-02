@@ -5,10 +5,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20260901-task19-production-final";
-import { randomToolResult } from "./js/tools/random.js?v=20260901-task19-production-final";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260901-task19-production-final";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260901-task19-production-final";
+} from "./js/tools/catalog.js?v=20260901-task19-remediation-r5";
+import { randomToolResult } from "./js/tools/random.js?v=20260901-task19-remediation-r5";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260901-task19-remediation-r5";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260901-task19-remediation-r5";
 import {
   csvString,
   decodeLocalText,
@@ -17,15 +17,15 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20260901-task19-production-final";
+} from "./js/tools/file.js?v=20260901-task19-remediation-r5";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20260901-task19-production-final";
-import { runToolRenderer } from "./js/tools/runner.js?v=20260901-task19-production-final";
+} from "./js/tools/image.js?v=20260901-task19-remediation-r5";
+import { runToolRenderer } from "./js/tools/runner.js?v=20260901-task19-remediation-r5";
 (() => {
   "use strict";
 
@@ -1481,7 +1481,13 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260901-task19-producti
     output.classList.add("hidden");
     output.textContent = "";
     output.dataset.signature = "";
-    byId("shareViewerMessage").textContent = "";
+    const setShareViewerMessage = (value, tone = "") => {
+      const target = byId("shareViewerMessage");
+      target.textContent = value;
+      if (tone) target.dataset.tone = tone;
+      else delete target.dataset.tone;
+    };
+    setShareViewerMessage("");
     byId("sharePasswordField").classList.toggle("hidden", type === "clipboard");
     byId("shareViewerExtra").innerHTML = type === "room" ? '<label class="field-label"><span>\u663e\u793a\u540d\u79f0</span><input id="shareRoomAuthor" maxlength="30" value="\u8bbf\u5ba2" /></label><label class="field-label"><span>\u7559\u8a00</span><textarea id="shareRoomMessage" maxlength="4000"></textarea></label><div class="action-row compact"><button id="shareRoomSendBtn" type="button">\u53d1\u9001\u7559\u8a00</button><span class="room-sync-status" id="shareRoomSyncStatus" aria-live="polite">\u5c1a\u672a\u6253\u5f00\u623f\u95f4</span></div>' : "";
     byId("shareViewer").classList.remove("hidden");
@@ -1494,8 +1500,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260901-task19-producti
       target.classList.toggle("error", error);
     };
     byId("openShareBtn").onclick = async () => {
-      const message = byId("shareViewerMessage");
-      message.textContent = "\u6b63\u5728\u6253\u5f00\u2026";
+      setShareViewerMessage("\u6b63\u5728\u6253\u5f00\u2026", "info");
       try {
         if (type === "clipboard") {
           const data = await bridge.publicApi("/api/share/clipboard/read", { code: id });
@@ -1521,7 +1526,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260901-task19-producti
           const data = await bridge.publicApi("/api/share/room/read", { id, password }, { timeoutMs: 12000 });
           renderShareRoomMessages(data.room);
           startRoomPolling({ id, password, onRoom: renderShareRoomMessages, onStatus: roomStatus });
-          message.textContent = "\u623f\u95f4\u5df2\u6253\u5f00\uff0c\u6b63\u5728\u81ea\u52a8\u540c\u6b65";
+          setShareViewerMessage("\u623f\u95f4\u5df2\u6253\u5f00\uff0c\u6b63\u5728\u81ea\u52a8\u540c\u6b65", "success");
           return;
         } else {
           const data = await bridge.publicApi("/api/share/text/read", { id, password: byId("sharePasswordInput").value });
@@ -1535,10 +1540,10 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260901-task19-producti
           }
         }
         output.classList.remove("hidden");
-        message.textContent = "\u6253\u5f00\u6210\u529f";
+        setShareViewerMessage("\u6253\u5f00\u6210\u529f", "success");
       } catch (error) {
         roomStatus(error.message, true);
-        message.textContent = error.message;
+        setShareViewerMessage(error.message, "error");
       }
     };
     if (type === "room") {
@@ -1546,15 +1551,15 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260901-task19-producti
         const button = event.currentTarget;
         const field = byId("shareRoomMessage");
         const message = field.value.trim();
-        if (!message) { byId("shareViewerMessage").textContent = "\u8bf7\u8f93\u5165\u7559\u8a00"; field.focus(); return; }
+        if (!message) { setShareViewerMessage("\u8bf7\u8f93\u5165\u7559\u8a00", "error"); field.focus(); return; }
         button.disabled = true;
         try {
           const data = await bridge.publicApi("/api/share/room/post", { id, password: byId("sharePasswordInput").value, author: byId("shareRoomAuthor").value, message });
           field.value = "";
           renderShareRoomMessages(data.room);
-          byId("shareViewerMessage").textContent = "\u7559\u8a00\u5df2\u53d1\u9001";
+          setShareViewerMessage("\u7559\u8a00\u5df2\u53d1\u9001", "success");
         } catch (error) {
-          byId("shareViewerMessage").textContent = `\u53d1\u9001\u5931\u8d25\uff1a${error.message}\uff0c\u8349\u7a3f\u5df2\u4fdd\u7559`;
+          setShareViewerMessage(`\u53d1\u9001\u5931\u8d25\uff1a${error.message}\uff0c\u8349\u7a3f\u5df2\u4fdd\u7559`, "error");
         } finally { button.disabled = false; }
       };
     }

@@ -311,6 +311,81 @@ class AccountApiTests(unittest.TestCase):
         self.assertNotIn("ABC1234", serialized)
         self.assertNotIn(replacement, serialized)
 
+    def test_admin_user_search_is_server_side_paginated_and_literal(self):
+        timestamp = "2026-09-01T00:00:00Z"
+        rows = []
+        for index in range(23):
+            suffix = f"{index:02d}"
+            rows.append((
+                f"task19-search-id-{suffix}",
+                f"task19search{suffix}",
+                f"task19search{suffix}",
+                "test-only-unusable-hash",
+                timestamp,
+                timestamp,
+                timestamp,
+            ))
+        with server.ACCOUNT_STORE.connect() as connection:
+            connection.executemany(
+                """
+                INSERT INTO users (
+                    id, username, username_normalized, secret, role, membership,
+                    registered_at, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, 'user', 'free', ?, ?, ?)
+                """,
+                rows,
+            )
+
+        first_query = urllib.parse.urlencode({
+            "q": "task19search",
+            "match": "partial",
+            "page": 1,
+            "limit": 10,
+        })
+        status, first_page = self.request(
+            "GET", f"/api/admin/users?{first_query}", session=self.admin_session,
+        )
+        self.assertEqual(status, 200, first_page)
+        self.assertEqual(first_page["total"], 23)
+        self.assertEqual(len(first_page["users"]), 10)
+        self.assertTrue(first_page["has_more"])
+
+        final_query = urllib.parse.urlencode({
+            "q": "task19search",
+            "match": "partial",
+            "page": 3,
+            "limit": 10,
+        })
+        status, final_page = self.request(
+            "GET", f"/api/admin/users?{final_query}", session=self.admin_session,
+        )
+        self.assertEqual(status, 200, final_page)
+        self.assertEqual(len(final_page["users"]), 3)
+        self.assertFalse(final_page["has_more"])
+
+        exact_query = urllib.parse.urlencode({
+            "q": "TASK19SEARCH07",
+            "match": "exact",
+            "page": 1,
+            "limit": 10,
+        })
+        status, exact = self.request(
+            "GET", f"/api/admin/users?{exact_query}", session=self.admin_session,
+        )
+        self.assertEqual(status, 200, exact)
+        self.assertEqual(exact["total"], 1)
+        self.assertEqual(exact["users"][0]["id"], "task19-search-id-07")
+        serialized = json.dumps(exact, ensure_ascii=False)
+        for forbidden in ("test-only-unusable-hash", "secret", "token_digest"):
+            self.assertNotIn(forbidden, serialized)
+
+        wildcard_query = urllib.parse.urlencode({"q": "%", "match": "partial"})
+        status, wildcard = self.request(
+            "GET", f"/api/admin/users?{wildcard_query}", session=self.admin_session,
+        )
+        self.assertEqual(status, 200, wildcard)
+        self.assertEqual(wildcard["total"], 0)
+
     def test_login_audit_records_network_context_and_is_admin_only(self):
         username = "audit" + uuid.uuid4().hex[:8]
         status, registered = self.request(

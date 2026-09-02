@@ -6,18 +6,18 @@
     <meta name="theme-color" content="#ffffff" />
     <title>thewyj — 学习、工具、财务与分享</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260901-task19-production-final" />
-    <link rel="stylesheet" href="/styles.css?v=20260901-task19-production-final" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260901-task19-production-final" />
-    <link rel="stylesheet" href="/design-system.css?v=20260901-task19-production-final" />
-    <link rel="stylesheet" href="/public-experience.css?v=20260901-task19-production-final" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20260901-task19-production-final" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260901-task19-remediation-r5" />
+    <link rel="stylesheet" href="/styles.css?v=20260901-task19-remediation-r5" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260901-task19-remediation-r5" />
+    <link rel="stylesheet" href="/design-system.css?v=20260901-task19-remediation-r5" />
+    <link rel="stylesheet" href="/public-experience.css?v=20260901-task19-remediation-r5" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20260901-task19-remediation-r5" />
   </head>
   <body>
-    <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 WYJ的网站" aria-hidden="false">
+    <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 thewyj" aria-hidden="false">
       <div class="entry-content" id="splashMedia">
         <img class="entry-logo" id="splashImage" src="/icon-192.png" alt="" />
-        <strong>WYJ的网站</strong>
+        <strong>thewyj</strong>
         <span class="entry-progress" aria-hidden="true"></span>
       </div>
     </div>
@@ -32,6 +32,10 @@
           <button class="site-nav-toggle" id="siteNavToggle" type="button" aria-expanded="false" aria-controls="siteNavPanel" aria-label="打开主导航">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
             <span>导航</span>
+          </button>
+          <button class="theme-toggle" id="themeToggleBtn" type="button" aria-label="外观：跟随系统" title="外观：跟随系统">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.42 1.42M16.94 16.94l1.42 1.42M18.36 5.64l-1.42 1.42M7.06 16.94l-1.42 1.42"/><circle cx="12" cy="12" r="4"/></svg>
+            <span id="themeToggleLabel">系统</span>
           </button>
           <div class="site-nav-actions" id="navGuestActions">
             <button class="button-ghost" id="navLoginBtn" type="button">登录</button>
@@ -235,100 +239,117 @@
         <footer class="trial-footer"><p>需要保存词表、错题、统计或使用完整工具箱？</p><div class="public-actions"><button class="primary" id="trialRegisterBtn" type="button">创建账户</button><button class="button-ghost" id="trialHomeBtn" type="button">返回首页</button></div></footer>
       </section>
 
-      <section class="module-picker hidden" id="modulePicker" aria-labelledby="modulePickerTitle" aria-hidden="true">
-        <header class="dashboard-header">
-          <div>
-            <p class="section-kicker">个人首页</p>
-            <h1 id="modulePickerTitle"><span id="dashboardGreeting">欢迎回来</span></h1>
-            <p id="moduleMembershipStatus">普通注册用户</p>
+      <section class="module-picker authenticated-home hidden" id="modulePicker" aria-labelledby="modulePickerTitle" aria-hidden="true">
+        <section class="public-intro public-hero authenticated-hero">
+          <div class="public-hero-scene" aria-hidden="true">
+            <div class="hero-scene-card hero-scene-learning"><small>语言学习</small><strong>继续练习</strong><span>英语与日语</span><i>今日进度已保留</i></div>
+            <div class="hero-scene-card hero-scene-finance"><small>本月余额</small><strong id="dashboardFinanceBalance">¥0.00</strong><span id="dashboardFinanceSync">打开财务账本后显示摘要</span><i>财务</i></div>
+            <div class="hero-scene-card hero-scene-tools"><small>在线工具</small><strong>快速打开</strong><span>收藏与最近使用</span><i>103 项工具</i></div>
+            <div class="hero-scene-line"></div>
           </div>
-          <button class="button-secondary" id="dashboardMembershipBtn" type="button">查看会员与权益</button>
-        </header>
-        <p class="module-access-message hidden" id="moduleAccessMessage" aria-live="polite"></p>
-
-        <section class="dashboard-section" aria-labelledby="dashboardEntryTitle">
-          <div class="dashboard-section-heading"><div><h2 id="dashboardEntryTitle">继续学习和使用工具</h2><p>选择一个入口即可继续。</p></div><button class="button-ghost dashboard-language-index" type="button" data-module="language">查看语言项目</button></div>
-          <div class="module-grid dashboard-entry-grid" aria-label="主要功能入口">
-          <button class="module-card" type="button" data-dashboard-project="english">
-            <span class="module-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H4Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v17a3 3 0 0 1 3-3h3Z"/></svg></span>
-            <span><strong>英语测试</strong><small>进入英语词表、答题、错题与统计</small></span>
-          </button>
-          <button class="module-card" type="button" data-dashboard-project="japanese">
-            <span class="module-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H4Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v17a3 3 0 0 1 3-3h3Z"/></svg></span>
-            <span><strong>日语测试</strong><small>进入日语词表、假名标音、答题与错题</small></span>
-          </button>
-          <button class="module-card" type="button" data-module="tools">
-            <span class="module-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
-            <span><strong>在线工具箱</strong><small>文本、文件、图片、随机与临时分享</small></span>
-            <em id="toolsMemberBadge">会员功能</em>
-          </button>
-          <button class="module-card" type="button" data-module="finance">
-            <span class="module-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h10M7 13h4M15 13h2M7 17h3"/></svg></span>
-            <span><strong>财务账本</strong><small>收入、支出、退款、分类与预算</small></span>
-            <em id="financeMemberBadge">会员功能</em>
-          </button>
+          <div class="public-intro-copy">
+            <p class="section-kicker" id="dashboardGreeting">欢迎回来</p>
+            <h1 id="modulePickerTitle">thewyj</h1>
+            <p class="public-hero-statement">继续今天真正要做的事。</p>
+            <p class="public-lead">学习、工具、财务与临时分享仍在同一个主页。你的进度、收藏和权益已经就位。</p>
+            <p class="authenticated-membership-line" id="moduleMembershipStatus">普通注册用户</p>
+            <div class="public-actions authenticated-hero-actions">
+              <button class="primary" type="button" data-module="language">继续学习</button>
+              <button class="button-secondary" type="button" data-module="tools">打开工具箱</button>
+              <button class="button-secondary" type="button" data-module="finance">打开财务账本</button>
+            </div>
+            <div class="authenticated-identity" aria-label="账户摘要">
+              <span><small>当前会员</small><strong id="dashboardMembershipName">普通用户</strong></span>
+              <span><small>连续学习</small><strong><b id="dashboardStreak">0</b> 天</strong></span>
+              <span><small>当前错题</small><strong><b id="dashboardWrongCount">0</b> 个</strong></span>
+            </div>
           </div>
         </section>
 
-        <section class="dashboard-section" aria-labelledby="dashboardOverviewTitle">
-          <div class="dashboard-section-heading"><div><h2 id="dashboardOverviewTitle">今日概览</h2><p>学习进度和账户权益摘要。</p></div></div>
-          <div class="dashboard-metric-grid">
-            <article class="dashboard-metric"><span>当前有效会员</span><strong id="dashboardMembershipName">普通用户</strong><small id="dashboardMembershipExpiry">无到期时间</small></article>
-            <article class="dashboard-metric"><span>合并权益</span><strong id="dashboardEntitlements">基础功能</strong><small>多个有效会员的权益会自动合并</small></article>
-            <article class="dashboard-metric"><span>连续学习</span><strong><b id="dashboardStreak">0</b> 天</strong><small>按本机完成记录计算</small></article>
-            <article class="dashboard-metric"><span>当前错题</span><strong><b id="dashboardWrongCount">0</b> 个</strong><small>英语和日语历史错题总数</small></article>
-          </div>
-        </section>
+        <div class="authenticated-home-body">
+          <p class="module-access-message hidden" id="moduleAccessMessage" aria-live="polite"></p>
 
-        <div class="dashboard-columns">
-          <section class="dashboard-section dashboard-panel" aria-labelledby="dashboardLearningTitle">
-            <div class="dashboard-section-heading"><div><h2 id="dashboardLearningTitle">学习摘要</h2><p id="dashboardLatestResult">完成第一轮测试后显示结果。</p></div></div>
-            <div class="dashboard-goal-list">
-              <div><span>英语今日目标</span><strong id="dashboardEnglishGoal">0 / 20 题</strong></div>
-              <div><span>日语今日目标</span><strong id="dashboardJapaneseGoal">0 / 20 题</strong></div>
+          <section class="public-section authenticated-products" aria-labelledby="dashboardEntryTitle">
+            <header class="public-section-heading authenticated-section-heading">
+              <p class="section-kicker">你的产品主页</p>
+              <h2 id="dashboardEntryTitle">从上次停下的地方继续</h2>
+              <p>摘要留在对应产品旁边，需要完整信息时再进入功能页面。</p>
+            </header>
+
+            <div class="authenticated-product-grid">
+              <article class="authenticated-product-card authenticated-learning-card" aria-labelledby="dashboardLearningTitle">
+                <header class="authenticated-card-heading">
+                  <div><p class="section-kicker">学习</p><h3 id="dashboardLearningTitle">英语与日语</h3><p id="dashboardLatestResult">完成第一轮测试后显示结果。</p></div>
+                  <button class="button-ghost" type="button" data-module="language">全部语言项目</button>
+                </header>
+                <div class="authenticated-learning-actions">
+                  <button class="authenticated-learning-link" type="button" data-dashboard-project="english">
+                    <span class="module-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H4Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v17a3 3 0 0 1 3-3h3Z"/></svg></span>
+                    <span><strong>英语学习</strong><small id="dashboardEnglishGoal">0 / 20 题</small></span><span class="module-arrow" aria-hidden="true">→</span>
+                  </button>
+                  <button class="authenticated-learning-link" type="button" data-dashboard-project="japanese">
+                    <span class="module-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H4Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v17a3 3 0 0 1 3-3h3Z"/></svg></span>
+                    <span><strong>日语学习</strong><small id="dashboardJapaneseGoal">0 / 20 题</small></span><span class="module-arrow" aria-hidden="true">→</span>
+                  </button>
+                </div>
+                <div class="dashboard-resume hidden" id="dashboardResumeSection">
+                  <strong>有一轮测试尚未完成</strong>
+                  <div class="action-row compact"><button class="hidden" id="dashboardResumeEnglish" type="button" data-dashboard-resume="english">继续英语测试</button><button class="hidden" id="dashboardResumeJapanese" type="button" data-dashboard-resume="japanese">继续日语测试</button></div>
+                </div>
+              </article>
+
+              <article class="authenticated-product-card" aria-labelledby="dashboardToolsTitle">
+                <header class="authenticated-card-heading">
+                  <div><p class="section-kicker">工具箱</p><h3 id="dashboardToolsTitle">收藏与最近使用</h3><p>本地处理工具优先，工作流随时可打开。</p></div>
+                  <span class="status-badge" id="toolsMemberBadge">会员功能</span>
+                </header>
+                <div class="dashboard-tool-shelf"><h4>收藏</h4><div id="dashboardFavoriteTools"><p class="dashboard-empty">还没有收藏工具。</p></div></div>
+                <div class="dashboard-tool-shelf"><h4>最近使用</h4><div id="dashboardRecentTools"><p class="dashboard-empty">还没有使用记录。</p></div></div>
+                <button class="button-secondary authenticated-card-action" type="button" data-module="tools">查看全部 103 项工具</button>
+              </article>
+
+              <article class="authenticated-product-card authenticated-finance-card" aria-labelledby="dashboardFinanceTitle">
+                <header class="authenticated-card-heading">
+                  <div><p class="section-kicker">财务</p><h3 id="dashboardFinanceTitle">本月简洁摘要</h3><p>详细交易、预算与分类留在账本内。</p></div>
+                  <span class="status-badge" id="financeMemberBadge">会员功能</span>
+                </header>
+                <div class="authenticated-finance-preview"><span>当前余额</span><strong data-dashboard-balance-copy>¥0.00</strong><small data-dashboard-finance-copy>打开财务账本后显示本机摘要。</small></div>
+                <button class="button-secondary authenticated-card-action" id="dashboardFinanceBtn" type="button">打开财务账本</button>
+              </article>
+
+              <article class="authenticated-product-card authenticated-account-card" aria-labelledby="dashboardAccountTitle">
+                <header class="authenticated-card-heading"><div><p class="section-kicker">账户与权益</p><h3 id="dashboardAccountTitle">当前访问范围</h3><p id="dashboardMembershipExpiry">无有效会员到期时间</p></div></header>
+                <div class="authenticated-entitlements"><span>合并权益</span><strong id="dashboardEntitlements">基础功能</strong></div>
+                <button class="button-secondary authenticated-card-action" id="dashboardMembershipBtn" type="button">查看会员与权益</button>
+              </article>
             </div>
-            <div class="dashboard-resume hidden" id="dashboardResumeSection">
-              <h3>未完成的测试</h3>
-              <div class="action-row compact"><button class="hidden" id="dashboardResumeEnglish" type="button" data-dashboard-resume="english">继续英语测试</button><button class="hidden" id="dashboardResumeJapanese" type="button" data-dashboard-resume="japanese">继续日语测试</button></div>
-            </div>
           </section>
 
-          <section class="dashboard-section dashboard-panel" aria-labelledby="dashboardToolsTitle">
-            <div class="dashboard-section-heading"><div><h2 id="dashboardToolsTitle">常用工具</h2><p>只显示收藏和最近使用的工具。</p></div></div>
-            <div class="dashboard-tool-shelf"><h3>收藏</h3><div id="dashboardFavoriteTools"><p class="dashboard-empty">还没有收藏工具。</p></div></div>
-            <div class="dashboard-tool-shelf"><h3>最近使用</h3><div id="dashboardRecentTools"><p class="dashboard-empty">还没有使用记录。</p></div></div>
-          </section>
+          <section class="authenticated-support" aria-label="更新与数据同步">
+            <article class="authenticated-update-card" aria-labelledby="dashboardUpdatesTitle">
+              <div><p class="section-kicker">最近更新</p><h2 id="dashboardUpdatesTitle">产品继续在这里生长</h2><p id="dashboardUpdateDate">等待版本信息</p><p id="dashboardUpdateSummary">正在读取最近更新。</p></div>
+              <button class="button-ghost" id="dashboardChangelogBtn" type="button">查看完整更新日志</button>
+            </article>
 
-          <section class="dashboard-section dashboard-panel" aria-labelledby="dashboardFinanceTitle">
-            <div class="dashboard-section-heading"><div><h2 id="dashboardFinanceTitle">本月财务</h2><p id="dashboardFinanceSync">打开财务账本后显示本机摘要。</p></div></div>
-            <div class="dashboard-finance-summary"><span>余额</span><strong id="dashboardFinanceBalance">¥0.00</strong></div>
-            <button class="button-ghost dashboard-update-link" id="dashboardFinanceBtn" type="button">打开财务账本</button>
-          </section>
-        </div>
-
-        <div class="dashboard-columns dashboard-columns-secondary">
-          <section class="dashboard-section dashboard-panel" aria-labelledby="dashboardUpdatesTitle">
-            <div class="dashboard-section-heading"><div><h2 id="dashboardUpdatesTitle">最近更新</h2><p id="dashboardUpdateDate">等待版本信息</p></div></div>
-            <p id="dashboardUpdateSummary">正在读取最近更新。</p>
-            <button class="button-ghost dashboard-update-link" id="dashboardChangelogBtn" type="button">查看完整更新日志</button>
-          </section>
-          <section class="dashboard-section dashboard-panel" aria-labelledby="dashboardServicesTitle">
-            <div class="dashboard-section-heading"><div><h2 id="dashboardServicesTitle">服务状态</h2><p>单项异常不会阻止本地功能使用。</p></div></div>
-            <dl class="dashboard-service-list">
-              <div><dt>账户 API</dt><dd id="dashboardAccountStatus">检测中</dd></div>
-              <div><dt>学习数据</dt><dd id="dashboardSyncStatus">本地可用</dd></div>
-              <div><dt>AI 判卷</dt><dd id="dashboardAiStatus">检测中</dd></div>
-              <div><dt>临时分享</dt><dd id="dashboardShareStatus">检测中</dd></div>
-            </dl>
-            <div class="dashboard-sync-actions" aria-label="学习数据同步与备份">
-              <div class="action-row compact">
-                <button class="button-secondary" id="learningSyncNowBtn" type="button">立即同步</button>
-                <button class="button-ghost" id="learningSyncExportBtn" type="button">导出 JSON</button>
-                <button class="button-ghost" id="learningSyncImportBtn" type="button">导入 JSON</button>
+            <details class="authenticated-service-details">
+              <summary><span><strong>数据同步与服务</strong><small>本地功能不会因单项服务异常而停止</small></span><span class="status-badge" id="dashboardAccountStatus">检测中</span></summary>
+              <div class="authenticated-service-body">
+                <dl class="dashboard-service-list">
+                  <div><dt>学习数据</dt><dd id="dashboardSyncStatus">本地可用</dd></div>
+                  <div><dt>AI 判卷</dt><dd id="dashboardAiStatus">检测中</dd></div>
+                  <div><dt>临时分享</dt><dd id="dashboardShareStatus">检测中</dd></div>
+                </dl>
+                <div class="dashboard-sync-actions" aria-label="学习数据同步与备份">
+                  <div class="action-row compact">
+                    <button class="button-secondary" id="learningSyncNowBtn" type="button">立即同步</button>
+                    <button class="button-ghost" id="learningSyncExportBtn" type="button">导出 JSON</button>
+                    <button class="button-ghost" id="learningSyncImportBtn" type="button">导入 JSON</button>
+                  </div>
+                  <input class="hidden" id="learningSyncFileInput" type="file" accept="application/json,.json" />
+                  <p id="learningSyncDetail" aria-live="polite">本地修改会在联网后自动同步。</p>
+                </div>
               </div>
-              <input class="hidden" id="learningSyncFileInput" type="file" accept="application/json,.json" />
-              <p id="learningSyncDetail" aria-live="polite">本地修改会在联网后自动同步。</p>
-            </div>
+            </details>
           </section>
         </div>
       </section>
@@ -414,7 +435,7 @@
       </div>
       <section class="project-picker hidden" id="projectPicker" aria-labelledby="projectPickerTitle">
         <header class="project-brand">
-          <img src="/icon-192.png" alt="WYJ的网站 Logo" />
+          <img src="/icon-192.png" alt="thewyj Logo" />
           <div><p class="section-kicker">语言学习</p><h1 id="projectPickerTitle">选择语言测试</h1></div>
         </header>
         <div class="project-grid" aria-label="选择项目">
@@ -435,7 +456,7 @@
           <div class="brand">
             <img class="brand-icon" src="/icon-192.png" alt="" />
             <div>
-              <h1>WYJ的网站</h1>
+              <h1>语言学习</h1>
               <p id="modelLabel" aria-live="polite">检测中</p>
             </div>
           </div>
@@ -762,7 +783,7 @@
           <div id="shareViewerExtra"></div>
           <div class="action-row"><button class="primary" id="openShareBtn" type="button">打开</button><button id="shareLoginBtn" type="button">返回网站</button></div>
           <pre class="share-output hidden" id="shareViewerOutput"></pre>
-          <p class="error" id="shareViewerMessage" aria-live="polite"></p>
+          <p id="shareViewerMessage" aria-live="polite"></p>
         </div>
       </section>
 
@@ -790,9 +811,11 @@
         <section class="admin-view active" id="adminUsersView" role="tabpanel" aria-labelledby="adminUsersTab">
           <div class="admin-toolbar">
             <label class="admin-search" for="adminUserSearch"><span>搜索用户</span><input id="adminUserSearch" type="search" autocomplete="off" placeholder="输入用户名或用户 ID" /></label>
+            <label class="admin-search-mode" for="adminUserMatch"><span>匹配方式</span><select id="adminUserMatch"><option value="partial">模糊匹配</option><option value="exact">精确匹配</option></select></label>
             <p id="adminUserCount" aria-live="polite">用户尚未加载</p>
           </div>
           <div class="admin-user-list" id="adminUserList"></div>
+          <div class="admin-pagination"><button class="button-secondary hidden" id="adminUserLoadMoreBtn" type="button">加载更多用户</button></div>
         </section>
         <section class="admin-view" id="adminRechargeView" role="tabpanel" aria-labelledby="adminRechargeTab">
           <div class="admin-user-list" id="adminRechargeList"></div>
@@ -829,6 +852,7 @@
         </section>
         <section class="admin-view" id="adminRolesView" role="tabpanel" aria-labelledby="adminRolesTab">
           <div class="admin-role-controls">
+            <label class="field-label"><span>搜索普通用户</span><input id="adminRoleUserSearch" type="search" maxlength="80" autocomplete="off" placeholder="用户名或用户 ID" /></label>
             <label class="field-label"><span>选择普通用户</span><select id="adminRoleUserSelect"><option value="">请选择用户</option></select></label>
             <label class="field-label"><span>操作备注</span><input id="adminRoleNote" maxlength="500" placeholder="说明授权或撤销原因" /></label>
             <div class="action-row"><button class="primary" id="grantAdminRoleBtn" type="button">授予管理员</button></div>
@@ -1075,10 +1099,10 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20260901-task19-production-final"></script>
-    <script type="module" src="/tools.js?v=20260901-task19-production-final"></script>
-    <script src="/workflows.js?v=20260901-task19-production-final"></script>
-    <script src="/learning-sync.js?v=20260901-task19-production-final"></script>
-    <script type="module" src="/app.js?v=20260901-task19-production-final"></script>
+    <script src="/changelog.js?v=20260901-task19-remediation-r5"></script>
+    <script type="module" src="/tools.js?v=20260901-task19-remediation-r5"></script>
+    <script src="/workflows.js?v=20260901-task19-remediation-r5"></script>
+    <script src="/learning-sync.js?v=20260901-task19-remediation-r5"></script>
+    <script type="module" src="/app.js?v=20260901-task19-remediation-r5"></script>
   </body>
 </html>

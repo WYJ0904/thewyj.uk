@@ -440,7 +440,7 @@ textarea::placeholder {
   align-items: center;
   padding: 0 12px;
   border-radius: var(--radius-control);
-  color: #344054;
+  color: var(--color-text-secondary);
   font-size: var(--font-sm);
   text-decoration: none;
   white-space: nowrap;
@@ -500,7 +500,7 @@ textarea::placeholder {
   min-height: auto;
   padding: 0;
   border: 0;
-  color: #344054;
+  color: var(--color-text-secondary);
   background: transparent;
   box-shadow: none;
   font-size: var(--font-sm);
@@ -833,7 +833,7 @@ textarea::placeholder {
   width: fit-content;
   padding: 3px 8px;
   border-radius: 999px;
-  color: #1e4f9e;
+  color: var(--color-primary);
   background: var(--color-primary-soft);
   font-size: var(--font-xs);
   font-weight: 700;
@@ -955,7 +955,7 @@ textarea::placeholder {
   padding: 0 9px;
   border: 1px solid #bfd3f2;
   border-radius: 999px;
-  color: #315a98;
+  color: var(--ds-info);
   background: var(--color-primary-soft);
   font-size: var(--font-xs);
   font-weight: 700;
@@ -1269,9 +1269,9 @@ textarea::placeholder {
   top: 12px;
   right: 12px;
   padding: 3px 8px;
-  border: 1px solid #bcd0ee;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
   border-radius: 999px;
-  color: #315a98;
+  color: var(--color-primary);
   background: var(--color-primary-soft);
 }
 
@@ -2172,7 +2172,7 @@ textarea::placeholder {
 
 .chips span {
   border-color: #c9d8f0;
-  color: #315a98;
+  color: var(--ds-info);
   background: var(--color-primary-soft);
 }
 
@@ -2355,9 +2355,23 @@ textarea::placeholder {
 
 .danger-zone,
 .admin-danger-section {
-  border-color: #efb2b2;
-  color: #7f1d1d;
+  border-color: color-mix(in srgb, var(--color-error) 42%, var(--color-border));
+  color: var(--color-error);
   background: var(--color-error-soft);
+}
+
+.danger-zone button,
+.admin-danger-section button {
+  border-color: color-mix(in srgb, var(--color-error) 52%, var(--color-border));
+  color: var(--color-error);
+  background: var(--color-error-soft);
+}
+
+.danger-zone button:hover:not(:disabled),
+.admin-danger-section button:hover:not(:disabled) {
+  border-color: var(--color-error);
+  color: #ffffff;
+  background: var(--color-error);
 }
 
 .tools-header,
@@ -2462,7 +2476,7 @@ textarea::placeholder {
 }
 
 .tool-chip-list button {
-  color: #344054;
+  color: var(--color-text);
   background: var(--color-surface);
 }
 
@@ -2667,7 +2681,7 @@ textarea::placeholder {
 }
 
 .workflow-step.disabled {
-  background: #eef2f6;
+  background: var(--ds-surface-disabled);
 }
 
 .workflow-step-heading {
@@ -3084,14 +3098,14 @@ textarea::placeholder {
 .admin-request-status,
 .achievement-status,
 .achievement-tier {
-  color: #315a98;
+  color: var(--ds-info);
   background: var(--color-primary-soft);
 }
 
 .admin-current-memberships > article span {
   padding: 2px 7px;
   border-radius: 999px;
-  color: #315a98;
+  color: var(--ds-info);
   background: var(--color-primary-soft);
 }
 
@@ -3108,8 +3122,8 @@ textarea::placeholder {
 
 .secret-value,
 code {
-  color: #344054;
-  background: #eef2f6;
+  color: var(--color-text);
+  background: var(--color-surface-subtle);
 }
 
 .achievement-toast {
@@ -3298,7 +3312,7 @@ progress {
 }
 
 .feedback-type {
-  color: #1e4f9e;
+  color: var(--color-primary);
   font-size: var(--font-xs);
   font-weight: 700;
 }
@@ -3328,8 +3342,8 @@ progress {
 }
 
 .feedback-vote-card button.active {
-  border-color: #8eafe3;
-  color: #1e4f9e;
+  border-color: var(--color-border-strong);
+  color: var(--color-primary);
   background: var(--color-primary-soft);
 }
 
@@ -3368,7 +3382,7 @@ progress {
 .admin-feedback-summary span {
   padding: 3px 8px;
   border-radius: 999px;
-  color: #1e4f9e;
+  color: var(--color-primary);
   background: var(--color-primary-soft);
   font-size: var(--font-xs);
   font-weight: 700;
@@ -3421,6 +3435,10 @@ progress {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: end;
   gap: var(--space-3);
+}
+
+.admin-role-controls {
+  grid-template-columns: minmax(180px, 0.9fr) minmax(220px, 1.1fr) minmax(240px, 1.2fr) auto;
 }
 
 .admin-message-targets {
@@ -3551,7 +3569,7 @@ progress {
 
 .site-message-panel .status-badge[data-message-type="account"],
 .admin-message-card .status-badge[data-message-type="account"] {
-  color: #1e4f9e;
+  color: var(--color-primary);
   background: var(--color-primary-soft);
 }
 
@@ -3643,6 +3661,10 @@ progress {
 }
 
 @media (max-width: 900px) {
+  .admin-role-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .admin-user-card {
     grid-template-columns: 1fr;
   }

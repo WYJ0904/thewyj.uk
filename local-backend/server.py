@@ -2365,7 +2365,15 @@ class VocabHandler(BaseHTTPRequestHandler):
             if path == "/api/admin/users":
                 if not self.require_super_admin():
                     return
-                json_response(self, HTTPStatus.OK, {"ok": True, "users": ACCOUNT_STORE.list_users()})
+                params = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
+                result = ACCOUNT_STORE.list_users(
+                    query=params.get("q", [""])[0],
+                    match=params.get("match", ["partial"])[0],
+                    page=params.get("page", ["1"])[0],
+                    limit=params.get("limit", ["30"])[0],
+                    include_pagination=True,
+                )
+                json_response(self, HTTPStatus.OK, {"ok": True, **result})
                 return
 
             if path == "/api/admin/recharge":

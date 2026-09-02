@@ -27,7 +27,7 @@
     "brief branded startup and unauthenticated navigation",
     "limited anonymous trial stays local and protected routes remain locked",
     "registration and login UI",
-    "authenticated dashboard summary and responsive layout",
+    "authenticated product home continuity and responsive layout",
     "learning data sync is local-first and receives a second-device update",
     "authenticated feedback submission is private and mobile-safe",
     "offline state preserves the session and reconnects",
