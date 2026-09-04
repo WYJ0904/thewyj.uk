@@ -391,6 +391,16 @@ async function main() {
   };
 
   const touchTap = async (selector) => {
+    await evaluate(`(async () => {
+      const element = document.querySelector(${JSON.stringify(selector)});
+      if (!element) throw new Error('missing touch target ${selector}');
+      const animatedSurface = element.closest('#siteNavPanel') || element;
+      const animations = animatedSurface.getAnimations({ subtree: true })
+        .filter((animation) => animation.playState === 'running');
+      await Promise.all(animations.map((animation) => animation.finished.catch(() => undefined)));
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return true;
+    })()`);
     const point = await evaluate(`(() => {
       const element = document.querySelector(${JSON.stringify(selector)});
       if (!element) throw new Error('missing touch target ${selector}');
