@@ -9,39 +9,42 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260901-task19-remediation-r5";
+} from "./js/core/config.js?v=20260904-task20-android-r1";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20260901-task19-remediation-r5";
+} from "./js/core/api.js?v=20260904-task20-android-r1";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260901-task19-remediation-r5";
-import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260901-task19-remediation-r5";
+} from "./js/core/changelog.js?v=20260904-task20-android-r1";
+import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260904-task20-android-r1";
 import {
   ACCOUNT_CACHE_KEY,
+  accountSessionHeaders,
   clearAccountSessionStorage,
   persistAccountSession,
+  requestNativeLogout,
+  requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20260901-task19-remediation-r5";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260901-task19-remediation-r5";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260901-task19-remediation-r5";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260901-task19-remediation-r5";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260901-task19-remediation-r5";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260901-task19-remediation-r5";
+} from "./js/core/session.js?v=20260904-task20-android-r1";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260904-task20-android-r1";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260904-task20-android-r1";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260904-task20-android-r1";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260904-task20-android-r1";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260904-task20-android-r1";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260901-task19-remediation-r5";
+} from "./js/language/history.js?v=20260904-task20-android-r1";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -76,16 +79,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260901-task19-remediation-r5";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260901-task19-remediation-r5";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20260901-task19-remediation-r5";
+} from "./js/language/quiz.js?v=20260904-task20-android-r1";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260904-task20-android-r1";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260904-task20-android-r1";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260901-task19-remediation-r5";
+} from "./js/language/wrong-book.js?v=20260904-task20-android-r1";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -94,7 +97,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260901-task19-remediation-r5";
+} from "./js/membership/account.js?v=20260904-task20-android-r1";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -102,19 +105,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260901-task19-remediation-r5";
+} from "./js/membership/plans.js?v=20260904-task20-android-r1";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260901-task19-remediation-r5";
+} from "./js/membership/recharge.js?v=20260904-task20-android-r1";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260901-task19-remediation-r5";
+} from "./js/admin/formatters.js?v=20260904-task20-android-r1";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -1665,6 +1668,7 @@ async function logoutAccount() {
   }
   clearSavedWordDrafts(account);
   clearSession();
+  if (requestNativeLogout()) return;
   pendingScreen = "auth";
   pendingAuthMessage = "已退出登录";
   showAuth(pendingAuthMessage, { path: "/login", replace: true });
@@ -1840,7 +1844,7 @@ async function loadPaymentQr(record, modalSequence = membershipModalLoadSequence
         method: "GET",
         cache: "no-store",
         credentials: "same-origin",
-        headers: { "X-Session-Token": state.session },
+        headers: accountSessionHeaders(state.session),
         controller,
       },
       API_GET_TIMEOUT_MS,
@@ -1848,6 +1852,7 @@ async function loadPaymentQr(record, modalSequence = membershipModalLoadSequence
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
       if (isCanonicalSessionFailure(data)) {
+        if (requestNativeSessionRefresh(data.code)) return;
         clearSession();
         showAuth(data.error || "登录已失效，请重新登录", { replace: true });
         return;
@@ -4426,6 +4431,7 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
     if (source !== "upload") backendFailureMessage = message;
   },
   handleSessionExpired: (options = {}) => {
+    if (requestNativeSessionRefresh(options.code)) return;
     clearSession();
     showAuth("登录已失效，请重新登录", options);
   },
@@ -6216,10 +6222,7 @@ async function performBackendRefresh() {
         {
           method: "POST",
           cache: "no-store",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Session-Token": state.session,
-          },
+          headers: { "Content-Type": "application/json", ...accountSessionHeaders(state.session) },
           body: "{}",
         },
         STATUS_TIMEOUT_MS,
@@ -6227,9 +6230,14 @@ async function performBackendRefresh() {
       const health = await healthResponse.json().catch(() => ({}));
       if (!healthResponse.ok) {
         if (isCanonicalSessionFailure(health)) {
-          clearSession();
-          pendingScreen = "auth";
-          pendingAuthMessage = health.error || "登录已失效，请重新登录";
+          if (requestNativeSessionRefresh(health.code)) {
+            pendingScreen = "workspace";
+            pendingAuthMessage = "正在刷新设备会话…";
+          } else {
+            clearSession();
+            pendingScreen = "auth";
+            pendingAuthMessage = health.error || "登录已失效，请重新登录";
+          }
         } else {
           backendAvailable = false;
           backendFailureMessage = health.error || "账户服务暂时不可用，请稍后重试。";

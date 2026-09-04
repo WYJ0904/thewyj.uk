@@ -52,6 +52,15 @@ work/
 outputs/
 artifacts/
 
+# Android local/build state
+android/local.properties
+android/.gradle/
+android/**/build/
+*.apk
+*.aab
+*.jks
+*.keystore
+
 # Account backend runtime data (contains private account and session data)
 local-backend/data/
 local-backend/users.txt

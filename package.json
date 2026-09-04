@@ -17,7 +17,8 @@
     "test:task15": "node local-backend/test_task15_d1_js.mjs && node local-backend/test_task15_pdf_js.mjs && node local-backend/test_task15_cloud_only_gate.mjs && node scripts/check_task15_cloud_only.mjs && python -m unittest scripts.test_migrate_task15_remaining_to_d1 -v",
     "test:task16": "node local-backend/test_task16_d1_js.mjs && python -m unittest scripts.test_migrate_dailypayguard_finance -v",
     "test:task17": "node local-backend/test_finance_js.mjs && node local-backend/test_task17_d1_js.mjs",
-    "test:task18": "node local-backend/test_task18_d1_js.mjs"
+    "test:task18": "node local-backend/test_task18_d1_js.mjs",
+    "test:task20": "node local-backend/test_task20_d1_js.mjs && python scripts/check_task20_android.py"
   },
   "devDependencies": {
     "miniflare": "5.20260730.0-alpha",

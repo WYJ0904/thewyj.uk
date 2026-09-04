@@ -6,6 +6,7 @@ import { handleTask14Request } from "../_lib/task14-api.mjs";
 import { handleTask15Request } from "../_lib/task15-api.mjs";
 import { handleTask16Request } from "../_lib/task16-api.mjs";
 import { handleTask18Request } from "../_lib/task18-api.mjs";
+import { handleTask20Request } from "../_lib/task20-api.mjs";
 import { resolveTask12Account } from "../_lib/task12-auth.mjs";
 import { recordAdminAction } from "../_lib/task18-service.mjs";
 
@@ -68,6 +69,7 @@ export async function onRequest(context) {
     : null;
   const bodyRequest = sensitiveDescriptor ? context.request.clone() : null;
   const response = await handleTask12Request(context)
+    || await handleTask20Request(context)
     || await handleTask18Request(context)
     || await handleTask13Request(context)
     || await handleTask14Request(context)

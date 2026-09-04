@@ -391,6 +391,16 @@ async function main() {
   };
 
   const touchTap = async (selector) => {
+    await evaluate(`(async () => {
+      const element = document.querySelector(${JSON.stringify(selector)});
+      if (!element) throw new Error('missing touch target ${selector}');
+      const animatedSurface = element.closest('#siteNavPanel') || element;
+      const animations = animatedSurface.getAnimations({ subtree: true })
+        .filter((animation) => animation.playState === 'running');
+      await Promise.all(animations.map((animation) => animation.finished.catch(() => undefined)));
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return true;
+    })()`);
     const point = await evaluate(`(() => {
       const element = document.querySelector(${JSON.stringify(selector)});
       if (!element) throw new Error('missing touch target ${selector}');
@@ -684,13 +694,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260901-task19-remediation-r5');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20260901-task19-remediation-r5');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260901-task19-remediation-r5');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260901-task19-remediation-r5');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260901-task19-remediation-r5');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260901-task19-remediation-r5');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260901-task19-remediation-r5');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260904-task20-android-r1');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20260904-task20-android-r1');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260904-task20-android-r1');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260904-task20-android-r1');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260904-task20-android-r1');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260904-task20-android-r1');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260904-task20-android-r1');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);

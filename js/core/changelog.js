@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?v=20260901-task19-remediation-r5";
+import { fetchWithTimeout } from "./api.js?v=20260904-task20-android-r1";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 

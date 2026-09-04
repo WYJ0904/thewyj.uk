@@ -41,8 +41,11 @@ async function run(db, sql, values = []) {
   return await requireDatabase(db).prepare(sql).bind(...values).run();
 }
 
-function expiryFrom(date = new Date()) {
-  return isoNow(new Date(date.getTime() + SESSION_TTL_SECONDS * 1000));
+function expiryFrom(date = new Date(), ttlSeconds = SESSION_TTL_SECONDS) {
+  const ttl = Number.isFinite(Number(ttlSeconds))
+    ? Math.max(60, Math.min(SESSION_TTL_SECONDS, Number(ttlSeconds)))
+    : SESSION_TTL_SECONDS;
+  return isoNow(new Date(date.getTime() + ttl * 1000));
 }
 
 function isSuperAdmin(row) {
@@ -197,7 +200,10 @@ export async function loginAccount(db, username, secret, request, options = {}) 
         WHERE id = ?2 AND password_hash = ?7 AND session_version = ?3
           AND banned = 0 AND deleted = 0
       )`).bind(
-      digest, row.id, originalSessionVersion, now, expiryFrom(), clientKind(request), passwordHash,
+      digest, row.id, originalSessionVersion, now,
+      expiryFrom(new Date(), options.sessionTtlSeconds),
+      String(options.clientKind || clientKind(request)).slice(0, 40),
+      passwordHash,
     ),
   ]);
   const storedSession = await first(
