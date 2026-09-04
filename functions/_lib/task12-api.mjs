@@ -7,6 +7,7 @@ import {
   sha256Hex,
 } from "./cloudflare-foundation.mjs";
 import { resolveTask12Account } from "./task12-auth.mjs";
+import { clearTask20AccessCookie, task20TokenFromRequest } from "./task20-model.mjs";
 import { importTask12Batch, task12ImportCounts } from "./task12-import.mjs";
 import { passwordPepperConfigured } from "./task12-crypto.mjs";
 import {
@@ -252,8 +253,8 @@ async function executeRoute(context, descriptor, account, flags) {
     }
   }
   if (path === "/api/logout") {
-    await logoutAccount(db, context.request.headers.get("X-Session-Token"));
-    return response({ ok: true }, 200, context);
+    await logoutAccount(db, task20TokenFromRequest(context.request));
+    return response({ ok: true }, 200, context, { "Set-Cookie": clearTask20AccessCookie() });
   }
   if (path === "/api/account/logout-all") {
     await logoutAllAccounts(db, account);

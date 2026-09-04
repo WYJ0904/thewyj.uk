@@ -1,4 +1,4 @@
-import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20260901-task19-remediation-r5";
+import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20260904-task20-android-r1";
 
 export const MAX_STUDY_RECORDS = 500;
 

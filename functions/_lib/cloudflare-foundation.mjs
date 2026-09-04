@@ -1,6 +1,7 @@
 import { passwordPepperConfigured } from "./task12-crypto.mjs";
 import { temporarySecretConfigured } from "./task14-crypto.mjs";
 import { TASK15_AI_MODEL, TASK15_BUILD } from "./task15-model.mjs";
+import { task20SessionSecretConfigured } from "./task20-model.mjs";
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{8,80}$/;
 const SAFE_API_METHODS = new Set(["GET", "HEAD"]);
@@ -57,6 +58,7 @@ export function featureFlags(env = {}) {
     task16Import: booleanValue(env.TASK16_IMPORT_ENABLED, false),
     task16ProductionImport: booleanValue(env.TASK16_PRODUCTION_IMPORT_ENABLED, false),
     task18AdminMessages: booleanValue(env.TASK18_ADMIN_MESSAGES_ENABLED, false),
+    task20AndroidApp: booleanValue(env.TASK20_ANDROID_APP_ENABLED, false),
     legacyFallback: booleanValue(env.LEGACY_API_FALLBACK_ENABLED, false),
     workersAi: booleanValue(env.WORKERS_AI_ENABLED, false),
     d1RateLimit: booleanValue(env.D1_RATE_LIMIT_ENABLED, true),
@@ -273,6 +275,12 @@ async function bindingHealth(env, flags) {
     enabled: flags.task18AdminMessages,
     owner_count: 0,
   };
+  const task20 = {
+    schema_ready: false,
+    schema_version: "",
+    enabled: flags.task20AndroidApp,
+    session_secret_configured: task20SessionSecretConfigured(env?.WYJ_TASK20_DEVICE_SESSION_SECRET),
+  };
   if (!bindings.d1) degraded.push("d1_binding_missing");
   if (!bindings.r2) degraded.push("r2_binding_missing");
   if (flags.workersAi && !bindings.workers_ai) degraded.push("workers_ai_binding_missing");
@@ -374,6 +382,16 @@ async function bindingHealth(env, flags) {
     } catch (error) {
       if (flags.task18AdminMessages) degraded.push(`task18_${classifyCloudError(error)}`);
     }
+    try {
+      const row = await env.WYJ_DB.prepare(
+        "SELECT value FROM task20_metadata WHERE key = ?1",
+      ).bind("schema_version").first();
+      task20.schema_version = String(row?.value || "");
+      task20.schema_ready = task20.schema_version === "1";
+      if (!task20.schema_ready && flags.task20AndroidApp) degraded.push("task20_schema_not_ready");
+    } catch (error) {
+      if (flags.task20AndroidApp) degraded.push(`task20_${classifyCloudError(error)}`);
+    }
   }
   if (flags.task12CloudAccounts && !task12.password_pepper_configured) {
     degraded.push("task12_password_pepper_not_configured");
@@ -383,7 +401,10 @@ async function bindingHealth(env, flags) {
   if (flags.task14TemporaryPrimary && !task14.secret_configured) {
     degraded.push("task14_temporary_secret_not_configured");
   }
-  return { bindings, degraded, task11, task12, task13, task14, task15, task16, task18 };
+  if (flags.task20AndroidApp && !task20.session_secret_configured) {
+    degraded.push("task20_session_secret_not_configured");
+  }
+  return { bindings, degraded, task11, task12, task13, task14, task15, task16, task18, task20 };
 }
 
 export async function cloudStatusResponse(context) {
@@ -419,6 +440,7 @@ export async function cloudStatusResponse(context) {
     task15: health.task15,
     task16: health.task16,
     task18: health.task18,
+    task20: health.task20,
     features: {
       cloud_foundation: flags.cloudFoundation,
       cloud_reads: flags.cloudReads,
@@ -444,6 +466,7 @@ export async function cloudStatusResponse(context) {
       task16_cloud_writes: flags.task16CloudWrites,
       task16_import: flags.task16Import,
       task18_admin_messages: flags.task18AdminMessages,
+      task20_android_app: flags.task20AndroidApp,
       legacy_api_fallback: flags.legacyFallback,
       payment_cloud_migration: flags.task13PaymentPrimary,
     },

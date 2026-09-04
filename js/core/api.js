@@ -4,7 +4,8 @@ import {
   BACKEND_NETWORK_MESSAGE,
   GET_RETRYABLE_STATUS,
   STATUS_RETRY_BASE_DELAYS_MS,
-} from "./config.js?v=20260901-task19-remediation-r5";
+} from "./config.js?v=20260904-task20-android-r1";
+import { accountSessionHeaders } from "./session.js?v=20260904-task20-android-r1";
 
 export const CANONICAL_SESSION_ERROR_CODES = new Set([
   "authentication_required",
@@ -98,7 +99,7 @@ export function createApiClient({
           method: "GET",
           cache: "no-store",
           credentials: "same-origin",
-          headers: authenticated ? { "X-Session-Token": getSession() } : {},
+          headers: authenticated ? accountSessionHeaders(getSession()) : {},
           controller: options.controller,
         }, options.timeoutMs || API_GET_TIMEOUT_MS);
       } catch (networkError) {
@@ -116,7 +117,7 @@ export function createApiClient({
         return data;
       }
       if (authenticated && isCanonicalSessionFailure(data)) {
-        handleSessionExpired({ replace: true });
+        handleSessionExpired({ replace: true, code: data.code });
         const error = new Error(data.error || "登录已失效，请重新登录");
         error.code = data.code;
         error.status = response.status;
@@ -148,7 +149,7 @@ export function createApiClient({
       response = await fetchWithTimeout(path, {
         method: "POST",
         cache: "no-store",
-        headers: { "Content-Type": "application/json", "X-Session-Token": getSession() },
+        headers: { "Content-Type": "application/json", ...accountSessionHeaders(getSession()) },
         body: JSON.stringify(body),
         controller: options.controller,
         signal: options.signal,
@@ -163,7 +164,7 @@ export function createApiClient({
     if (response.ok || response.status < 500) markBackendReachable(data);
     if (!response.ok) {
       if (isCanonicalSessionFailure(data)) {
-        handleSessionExpired();
+        handleSessionExpired({ code: data.code });
         const error = new Error(data.error || "登录已失效，请重新登录");
         error.code = data.code;
         error.status = response.status;
@@ -193,7 +194,8 @@ export function createApiClient({
       xhr.open("POST", path, true);
       xhr.timeout = options.timeoutMs || 180000;
       xhr.setRequestHeader("Content-Type", "application/json");
-      xhr.setRequestHeader("X-Session-Token", getSession());
+      const sessionHeaders = accountSessionHeaders(getSession());
+      if (sessionHeaders["X-Session-Token"]) xhr.setRequestHeader("X-Session-Token", sessionHeaders["X-Session-Token"]);
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable && typeof options.onProgress === "function") {
           options.onProgress(Math.max(0, Math.min(1, event.loaded / event.total)), event.loaded, event.total);
@@ -208,7 +210,7 @@ export function createApiClient({
           resolve(data);
           return;
         }
-        if (isCanonicalSessionFailure(data)) handleSessionExpired();
+        if (isCanonicalSessionFailure(data)) handleSessionExpired({ code: data.code });
         const error = new Error(data.error || "请求失败");
         error.code = data.code || "request_failed";
         error.status = xhr.status;
@@ -261,7 +263,8 @@ export function createApiClient({
       xhr.open(options.method || "PUT", path, true);
       xhr.timeout = options.timeoutMs || 600000;
       xhr.setRequestHeader("Content-Type", options.contentType || body?.type || "application/octet-stream");
-      xhr.setRequestHeader("X-Session-Token", getSession());
+      const sessionHeaders = accountSessionHeaders(getSession());
+      if (sessionHeaders["X-Session-Token"]) xhr.setRequestHeader("X-Session-Token", sessionHeaders["X-Session-Token"]);
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable && typeof options.onProgress === "function") {
           options.onProgress(Math.max(0, Math.min(1, event.loaded / event.total)), event.loaded, event.total);
@@ -276,7 +279,7 @@ export function createApiClient({
           resolve(data);
           return;
         }
-        if (isCanonicalSessionFailure(data)) handleSessionExpired();
+        if (isCanonicalSessionFailure(data)) handleSessionExpired({ code: data.code });
         const error = new Error(data.error || "上传失败");
         error.code = data.code || "request_failed";
         error.status = xhr.status;

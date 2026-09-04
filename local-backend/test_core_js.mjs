@@ -38,8 +38,13 @@ const { APP_ROUTE_MANIFEST, createRouter } = await import("../js/core/router.js"
 const {
   ACCOUNT_CACHE_KEY,
   ACCOUNT_SESSION_KEY,
+  NATIVE_ACCOUNT_SESSION,
+  accountSessionHeaders,
   clearAccountSessionStorage,
+  isThewyjAndroidApp,
   persistAccountSession,
+  requestNativeLogout,
+  requestNativeSessionRefresh,
   restoreAccountSession,
 } = await import("../js/core/session.js");
 const { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet, storageWriteFailure } = await import("../js/core/storage.js");
@@ -89,6 +94,31 @@ localStorage.setItem = () => { throw new DOMException("blocked", "SecurityError"
 assert.equal(restoreAccountSession(), "legacy-preserved");
 assert.equal(sessionStorage.getItem("vocabSession"), "legacy-preserved");
 localStorage.setItem = originalSetItem;
+
+Object.defineProperty(globalThis, "navigator", {
+  configurable: true,
+  value: { userAgent: "Mozilla/5.0 Android/36 thewyj-android/1.0.0" },
+});
+localStorage.setItem(ACCOUNT_SESSION_KEY, "must-not-remain-in-web-storage");
+localStorage.setItem("vocabSession", "legacy-must-not-remain");
+sessionStorage.setItem("vocabSession", "legacy-session-must-not-remain");
+assert.equal(isThewyjAndroidApp(), true);
+assert.equal(restoreAccountSession(), NATIVE_ACCOUNT_SESSION);
+assert.equal(localStorage.getItem(ACCOUNT_SESSION_KEY), null);
+assert.equal(localStorage.getItem("vocabSession"), null);
+assert.equal(sessionStorage.getItem("vocabSession"), null);
+assert.deepEqual(accountSessionHeaders(NATIVE_ACCOUNT_SESSION), {});
+assert.equal(persistAccountSession("never-persist-native-token"), true);
+assert.equal(localStorage.getItem(ACCOUNT_SESSION_KEY), null);
+assert.equal(requestNativeSessionRefresh("canonical_session_invalid"), true);
+assert.equal(location.href, "thewyj://session/refresh?reason=canonical_session_invalid");
+assert.equal(requestNativeLogout(), true);
+assert.equal(location.href, "thewyj://session/logout");
+Object.defineProperty(globalThis, "navigator", {
+  configurable: true,
+  value: { userAgent: "Mozilla/5.0 Chrome/140 Safari/537.36" },
+});
+
 assert.equal(isCanonicalSessionFailure({ code: "canonical_session_invalid" }), true);
 assert.equal(isCanonicalSessionFailure({ code: "authentication_required" }), true);
 assert.equal(isCanonicalSessionFailure({ code: "dependency_auth_failed" }), false);
@@ -160,5 +190,18 @@ await assert.rejects(client.api("/api/business-401"), (error) => error.code === 
 assert.equal(sessionExpired, 0);
 await assert.rejects(client.api("/api/expired"), (error) => error.code === "canonical_session_invalid");
 assert.equal(sessionExpired, 1);
+
+calls.length = 0;
+const nativeClient = createApiClient({
+  getSession: () => NATIVE_ACCOUNT_SESSION,
+  backendErrorMessage: () => "network unavailable",
+  markBackendReachable: () => {},
+  markGetReachable: () => {},
+  markNetworkFailure: () => {},
+  handleSessionExpired: () => {},
+  handleMembershipRequired: () => {},
+});
+await nativeClient.apiGet("/api/private");
+assert.equal(Object.hasOwn(calls[0].options.headers, "X-Session-Token"), false);
 
 console.log("Core JS module tests passed (router, storage, session, API).");

@@ -172,6 +172,7 @@ jobs:
             node --check local-backend/test_task17_d1_js.mjs
             node --check local-backend/test_task18_d1_js.mjs
             node --check local-backend/test_task18_browser.mjs
+            node --check local-backend/test_task20_d1_js.mjs
             node --check cloudflare/task14-cleanup-worker.mjs
             node --check local-backend/test_app_browser.mjs
             node --check local-backend/test_tools_browser.mjs
@@ -287,6 +288,12 @@ jobs:
           set -euo pipefail
           node local-backend/test_task18_d1_js.mjs 2>&1 | tee artifacts/task18-admin-messages.log
 
+      - name: Test Task 20 Android device sessions and security contract
+        run: |
+          set -euo pipefail
+          node local-backend/test_task20_d1_js.mjs 2>&1 | tee artifacts/task20-device-sessions.log
+          python scripts/check_task20_android.py 2>&1 | tee artifacts/task20-android-contract.log
+
       - name: Check HTML, PWA and tool catalog
         run: |
           set -euo pipefail
@@ -337,12 +344,59 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  android-tests:
+    name: Android unit, lint and APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install pinned Android platform
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Run Android unit tests, lint and debug build
+        working-directory: android
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon --stacktrace 2>&1 | tee ../android-build.log
+
+      - name: Upload Android reports and test APK
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-reports-${{ github.run_attempt }}
+          path: |
+            android-build.log
+            android/app/build/reports/tests/
+            android/app/build/reports/lint-results-debug.*
+            android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: warn
+          retention-days: 7
+
   browser-tests:
     name: Browser flow (${{ matrix.suite }})
     needs:
       - python-tests
       - javascript-static-tests
       - sensitive-file-check
+      - android-tests
     runs-on: ubuntu-latest
     timeout-minutes: 40
     strategy:
@@ -513,6 +567,7 @@ jobs:
       - python-tests
       - javascript-static-tests
       - sensitive-file-check
+      - android-tests
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -521,6 +576,7 @@ jobs:
       WYJ_TEST_ARTIFACT_DIR: artifacts
       WYJ_TASK12_PASSWORD_PEPPER: task15-ci-password-pepper-fixture-2026
       WYJ_TASK14_TEMPORARY_SECRET: task15-ci-temporary-hmac-fixture-2026
+      WYJ_TASK20_DEVICE_SESSION_SECRET: task20-ci-device-session-secret-fixture-2026
       NO_PROXY: 127.0.0.1,localhost
     steps:
       - name: Check out repository
@@ -633,10 +689,12 @@ jobs:
             --binding TASK14_LEGACY_WRITES_FROZEN=true \
             --binding TASK15_CLOUD_ONLY_ENABLED=true \
             --binding TASK18_ADMIN_MESSAGES_ENABLED=true \
+            --binding TASK20_ANDROID_APP_ENABLED=true \
             --binding WORKERS_AI_ENABLED=false \
             --binding LEGACY_API_FALLBACK_ENABLED=false \
             --binding WYJ_TASK12_PASSWORD_PEPPER="$WYJ_TASK12_PASSWORD_PEPPER" \
             --binding WYJ_TASK14_TEMPORARY_SECRET="$WYJ_TASK14_TEMPORARY_SECRET" \
+            --binding WYJ_TASK20_DEVICE_SESSION_SECRET="$WYJ_TASK20_DEVICE_SESSION_SECRET" \
             > artifacts/task15-pages-dev.log 2>&1 < /dev/null &
           echo "$!" > artifacts/task15-pages-dev.pid
 

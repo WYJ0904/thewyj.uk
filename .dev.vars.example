@@ -3,3 +3,4 @@
 # Do not put LOCAL_API_BASE or feature flags here; those non-secret values live in wrangler.jsonc.
 WYJ_TASK12_PASSWORD_PEPPER=replace-with-a-random-local-value-at-least-32-characters
 WYJ_TASK14_TEMPORARY_SECRET=replace-with-another-random-local-value-at-least-32-characters
+WYJ_TASK20_DEVICE_SESSION_SECRET=replace-with-an-independent-random-local-value-at-least-32-characters

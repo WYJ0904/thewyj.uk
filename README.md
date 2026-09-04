@@ -781,6 +781,28 @@ Production 已在仓库外全量 D1 备份、稳定 user ID 与 Task 11～15 数
 
 Preview 应先按 `qa/TASK18_ADMIN_MESSAGES_AUDIT.md` 核对 active owner 数量必须为 1，再应用 `0014`、重复执行 migration 测试、运行 `npm run test:task18` 和 390x844 浏览器流程。Production 的 `TASK18_ADMIN_MESSAGES_ENABLED` 默认保持 `false`；只有完成 D1 备份、计数核对、owner 人工授权/撤销和消息回执验收后才单独开启。回滚先关闭 feature flag 并导出增量，保留表、trigger 和审计，不删除角色/消息数据，不恢复 SQLite 主写。
 
+### Task 20 Android 客户端
+
+`android/` 是正式 `thewyj` Android 客户端，release `applicationId` 固定为 `uk.thewyj.app`。Compose 原生层负责安全登录、设备会话、启动/离线恢复、五项底部导航、账户与更新入口；学习、103 个工具、财务、会员与支付、临时分享、管理员和站内消息继续使用同一套 Cloudflare API 与一份受控 WebView 中的 Design System 2.0 页面。Android 不保存第二套 plan、price、entitlement 或二维码映射，财务会员微信/支付宝仍由 Task 13/17 的服务端订单快照与私有 R2 映射决定。
+
+`cloudflare/migrations/0015_android_device_sessions.sql` 在 Task 12 stable user ID 上增加 Android 设备会话和已使用 refresh receipt。访问凭据为 15 分钟；refresh credential 为 180 天滑动、每次轮换并支持同一 request ID 的幂等重试，换 request ID 重放会撤销 token family。D1 只保存摘要，App 的 refresh credential 只以 Android Keystore AES-GCM 密文落盘，WebView 只接收短期 HttpOnly Cookie。网络超时、429、5xx、Wi-Fi/移动数据、IP/NAT 或 VPN 变化只进入可恢复/离线状态，不清除登录；封禁、删除、改密/退出全部设备、明确撤销、过期或 replay 才要求重新登录。
+
+Task 20 没有请求通知、SMS、Accessibility 或开机广播权限，也没有启动长期后台服务。WorkManager 只在联网时每 12 小时低频维护设备会话；Task 21 的通知保存和自动财务采集只有接口占位。旧 `com.yj.dailypayguard` 工程经审计仍是明文 SharedPreferences TSV + timestamp ID 的本地原型，不直接并入新 App；旧数据继续通过 Task 16 的 dry-run/import/rollback 工具迁移。完整边界见 `qa/TASK20_ANDROID_AUDIT.md` 和 `android/README.md`。
+
+```powershell
+# Cloudflare / Web 集成测试
+npm run test:task20
+
+# Android 单元测试、Lint 与 Debug APK
+Set-Location android
+$env:ANDROID_HOME = '<Android SDK>'
+.\gradlew.bat testDebugUnitTest lintDebug assembleDebug
+```
+
+正式覆盖升级必须始终使用同一签名证书。Release 构建只从进程环境读取 `THEWYJ_ANDROID_KEYSTORE_FILE`、`THEWYJ_ANDROID_KEYSTORE_PASSWORD`、`THEWYJ_ANDROID_KEY_ALIAS` 和 `THEWYJ_ANDROID_KEY_PASSWORD`；keystore 与口令不得进入 Git 或 CI 日志。未提供四项值时 Gradle 生成的 release APK 不具备正式分发签名，Task 20 CI 只上传可安装验收的 Debug APK。具体命令见 `android/README.md`。
+
+Preview 先应用 `0015`，再把独立的 32 字节以上随机值保存为 encrypted secret `WYJ_TASK20_DEVICE_SESSION_SECRET`。Preview 的 `TASK20_ANDROID_APP_ENABLED=true`；Production 明确保留 `false`，直到 CI、Preview 和任务书要求的 Android 物理真机 17 项登录持久化矩阵全部通过。回滚只关闭该开关并保留摘要/审计，不删除表、不重置用户，也不恢复第二套账户主写。
+
 ### 免费额度降级
 
 - D1 达到免费读写额度时会拒绝查询；云状态接口标记 degraded。Task 11～15 都返回明确的可重试错误，不会回退或双写 SQLite。浏览器本地学习记录、PDF 和纯本地工具仍可使用。
