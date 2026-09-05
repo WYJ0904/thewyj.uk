@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { writeFile } from 'node:fs/promises';
+import { authVisibilityProbe } from './task20_ui_probe.mjs';
 
 const exec = promisify(execFile);
 const adb = process.env.ADB || 'adb';
@@ -62,6 +63,7 @@ async function connect() {
       return result.result.value;
     };
     await command('Page.enable');
+    await command('Page.addScriptToEvaluateOnNewDocument', { source: `(${authVisibilityProbe.toString()})();` });
     await until(() => evaluate(`location.origin===${JSON.stringify(base)} && document.readyState==='complete'`));
     return { documents, evaluate, close: async () => { ws.close(); await runAdb('forward', '--remove', `tcp:${port}`); } };
   } catch (error) { await runAdb('forward', '--remove', `tcp:${port}`); throw error; }
@@ -69,7 +71,9 @@ async function connect() {
 async function verifyIdentity(connection) {
   const state = await connection.evaluate(`(async()=>{
     const r=await fetch('/api/app/session');const d=await r.json();
-    return {status:r.status,id:d.account?.id,code:d.code,
+    const probe=document.createElement('div');probe.style.cssText='position:fixed;visibility:hidden;height:100dvh;width:1px';document.body.append(probe);
+    const cssViewport=probe.getBoundingClientRect().height;probe.remove();
+    return {status:r.status,id:d.account?.id,code:d.code,cssViewport,visualHeight:visualViewport.height,
       readableCookie:document.cookie.includes('wyj_app_access'),
       storedToken:Boolean(localStorage.getItem('wyjAccountSession')||localStorage.getItem('vocabSession')),
       overflow:document.documentElement.scrollWidth>innerWidth};})()`);
@@ -78,6 +82,8 @@ async function verifyIdentity(connection) {
   assert.equal(state.readableCookie, false);
   assert.equal(state.storedToken, false);
   assert.equal(state.overflow, false);
+  assert.ok(state.cssViewport > 100, 'Android WebView CSS viewport collapsed to zero');
+  assert.ok(Math.abs(state.cssViewport-state.visualHeight)<3, 'CSS and visible viewport diverged');
 }
 async function tapNavigation(label) {
   // Read current semantic bounds, never rely on one model's screen resolution.
@@ -107,7 +113,11 @@ try {
     // Observation window for an unwanted follow-up reload, not a product delay.
     await delay(1800);
     assert.deepEqual(connection.documents, [route], 'One navigation must load exactly one main document');
-    results.push({ test:`navigate:${route}`, passed:true, documentLoads:1 });
+    const frames = await connection.evaluate('window.__qa20AuthFrames');
+    assert.ok(frames?.frames > 0, 'Visible-frame observer missing');
+    assert.equal(frames.loginFrames, 0, JSON.stringify({route,frames}));
+    assert.equal(frames.guestFrames, 0, JSON.stringify({route,frames}));
+    results.push({ test:`navigate:${route}`, passed:true, documentLoads:1, frames });
   }
   const marker = String(Date.now());
   await connection.evaluate(`window.__qa20PageMarker=${JSON.stringify(marker)}`);

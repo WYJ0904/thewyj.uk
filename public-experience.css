@@ -105,7 +105,9 @@
 }
 
 .site-nav.nav-open .site-nav-panel {
-  max-height: 420px;
+  max-height: min(420px, var(--ds-menu-height, calc(100dvh - 84px)));
+  overflow: auto;
+  overscroll-behavior: contain;
   visibility: visible;
   opacity: 1;
   border-color: var(--ds-border);
@@ -902,7 +904,7 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
   }
 
   .site-nav.nav-open .site-nav-panel {
-    max-height: min(620px, calc(100dvh - 84px));
+    max-height: min(620px, var(--ds-menu-height, calc(100dvh - 84px)));
     overflow: auto;
   }
 

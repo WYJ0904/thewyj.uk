@@ -6,6 +6,12 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.view.View
+import android.view.ViewGroup
+import android.util.Log
+import android.webkit.ConsoleMessage
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import android.webkit.CookieManager
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -27,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import uk.thewyj.app.BuildConfig
 import java.net.URI
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -88,7 +96,9 @@ fun ThewyjWebView(
     AndroidView(factory = { webView }, modifier = modifier.fillMaxSize())
 
     LaunchedEffect(navigationEpoch, sessionEpoch) {
+        webView.awaitViewport()
         val target = policy.urlFor(route)
+        if (BuildConfig.DEBUG) Log.i("ThewyjSession", "web-navigation-ready width=${webView.width} height=${webView.height}")
         when (loads.next(navigationEpoch, sessionEpoch, webView.url == target)) {
             WebLoadAction.LOAD -> webView.loadUrl(target)
             WebLoadAction.RELOAD -> webView.reload()
@@ -120,7 +130,32 @@ private fun createWebView(
     onMainFrameError: (String) -> Unit,
     onChooseFiles: (ValueCallback<Array<Uri>>, WebChromeClient.FileChooserParams) -> Boolean,
 ): WebView = WebView(context).apply {
+    // WRAP_CONTENT lets Chromium compute a zero CSS viewport inside AndroidView.
+    layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
     WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
+    if (BuildConfig.DEBUG && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+        // Only fixed state markers; never page text, URLs, identities or credentials.
+        WebViewCompat.addDocumentStartJavaScript(this, """
+            (() => {
+              let previous = '';
+              const visible = id => {
+                let e = document.getElementById(id);
+                if (!e || !e.getClientRects().length) return false;
+                for (; e; e = e.parentElement) {
+                  const s = getComputedStyle(e);
+                  if (s.display === 'none' || s.visibility === 'hidden' || Number(s.opacity) === 0) return false;
+                }
+                return true;
+              };
+              const sample = () => {
+                const state = visible('authPanel') ? 'LOGIN_VISIBLE' : visible('navGuestActions') ? 'GUEST_VISIBLE' : visible('sessionRecovery') ? 'RESTORING' : visible('appShell') ? 'CONTENT' : 'STARTING';
+                if (state !== previous) { console.info('WYJ_AUTH_UI:' + state); previous = state; }
+                if (performance.now() < 20000) requestAnimationFrame(sample);
+              };
+              requestAnimationFrame(sample);
+            })();
+        """.trimIndent(), setOf(BuildConfig.THEWYJ_BASE_URL))
+    }
     settings.apply {
         javaScriptEnabled = true
         domStorageEnabled = true
@@ -138,6 +173,15 @@ private fun createWebView(
     CookieManager.getInstance().setAcceptCookie(true)
     CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
     webChromeClient = object : WebChromeClient() {
+        override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+            val allowed = setOf("STARTING", "RESTORING", "CONTENT", "LOGIN_VISIBLE", "GUEST_VISIBLE")
+            val marker = message.message().removePrefix("WYJ_AUTH_UI:")
+            if (BuildConfig.DEBUG && message.message().startsWith("WYJ_AUTH_UI:") && marker in allowed) {
+                Log.i("ThewyjSession", "web-ui=$marker")
+                return true
+            }
+            return false
+        }
         override fun onShowFileChooser(
             view: WebView,
             callback: ValueCallback<Array<Uri>>,
@@ -188,6 +232,21 @@ private fun createWebView(
         }.onFailure {
             onMainFrameError("无法开始下载，请检查系统下载服务")
         }
+    }
+}
+
+private suspend fun WebView.awaitViewport() {
+    if (isLaidOut && width > 0 && height > 0) return
+    suspendCancellableCoroutine { continuation ->
+        val listener = object : View.OnLayoutChangeListener {
+            override fun onLayoutChange(view: View, l: Int, t: Int, r: Int, b: Int, ol: Int, ot: Int, or: Int, ob: Int) {
+                if (view.width <= 0 || view.height <= 0) return
+                view.removeOnLayoutChangeListener(this)
+                if (continuation.isActive) continuation.resume(Unit)
+            }
+        }
+        addOnLayoutChangeListener(listener)
+        continuation.invokeOnCancellation { removeOnLayoutChangeListener(listener) }
     }
 }
 

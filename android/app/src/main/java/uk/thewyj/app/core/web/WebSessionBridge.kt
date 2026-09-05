@@ -10,6 +10,8 @@ import kotlinx.coroutines.withContext
 import java.net.URI
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import android.util.Log
+import uk.thewyj.app.BuildConfig
 
 interface WebSessionController {
     suspend fun installAccessCookie(accessToken: String, expiresAtEpochMs: Long)
@@ -36,6 +38,7 @@ class WebSessionBridge(
                     if (!continuation.isActive) return@setCookie
                     if (accepted) {
                         flush()
+                        if (BuildConfig.DEBUG) Log.i("ThewyjSession", "cookie-install-complete")
                         continuation.resume(Unit)
                     } else {
                         continuation.resumeWithException(WebSessionException())
