@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.Thewyj" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#161715</item>
+        <item name="android:navigationBarColor">#1B1E24</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>

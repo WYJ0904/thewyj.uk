@@ -2,6 +2,7 @@ package uk.thewyj.app.core.web
 
 import android.annotation.SuppressLint
 import android.app.DownloadManager
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -11,11 +12,16 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
@@ -26,6 +32,7 @@ import java.net.URI
 @Composable
 fun ThewyjWebView(
     route: String,
+    navigationEpoch: Int,
     sessionEpoch: Int,
     backNavigationRequest: Int,
     onRefreshSession: () -> Unit,
@@ -37,11 +44,25 @@ fun ThewyjWebView(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val policy = remember { WebRoutePolicy(BuildConfig.THEWYJ_BASE_URL) }
+    val loads = remember { WebLoadPolicy(sessionEpoch) }
+    val initialBackRequest = remember { backNavigationRequest }
     val refreshCallback = rememberUpdatedState(onRefreshSession)
     val logoutCallback = rememberUpdatedState(onLogout)
     val routeCallback = rememberUpdatedState(onRouteChanged)
     val canGoBackCallback = rememberUpdatedState(onCanGoBackChanged)
     val errorCallback = rememberUpdatedState(onMainFrameError)
+    val pendingFileSelection = remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val callback = pendingFileSelection.value
+        pendingFileSelection.value = null
+        val selected = if (result.resultCode == Activity.RESULT_OK) {
+            WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data)
+                ?.filter { it.scheme == "content" }
+                ?.toTypedArray()
+                ?.takeIf { it.isNotEmpty() }
+        } else null
+        callback?.onReceiveValue(selected)
+    }
     val webView = remember {
         createWebView(
             context = context,
@@ -51,23 +72,36 @@ fun ThewyjWebView(
             onRouteChanged = { routeCallback.value(it) },
             onCanGoBackChanged = { canGoBackCallback.value(it) },
             onMainFrameError = { errorCallback.value(it) },
+            onChooseFiles = { callback, params ->
+                pendingFileSelection.value?.onReceiveValue(null)
+                pendingFileSelection.value = callback
+                runCatching { filePicker.launch(params.createIntent()) }.onFailure {
+                    pendingFileSelection.value = null
+                    callback.onReceiveValue(null)
+                    errorCallback.value("无法打开文件选择器，请检查系统文件应用")
+                }
+                true
+            },
         )
     }
 
     AndroidView(factory = { webView }, modifier = modifier.fillMaxSize())
 
-    LaunchedEffect(route) {
+    LaunchedEffect(navigationEpoch, sessionEpoch) {
         val target = policy.urlFor(route)
-        if (webView.url != target) webView.loadUrl(target)
-    }
-    LaunchedEffect(sessionEpoch) {
-        if (sessionEpoch > 0 && webView.url?.startsWith("https://") == true) webView.reload()
+        when (loads.next(navigationEpoch, sessionEpoch, webView.url == target)) {
+            WebLoadAction.LOAD -> webView.loadUrl(target)
+            WebLoadAction.RELOAD -> webView.reload()
+            WebLoadAction.NONE -> Unit
+        }
     }
     LaunchedEffect(backNavigationRequest) {
-        if (backNavigationRequest > 0 && webView.canGoBack()) webView.goBack()
+        if (backNavigationRequest != initialBackRequest && webView.canGoBack()) webView.goBack()
     }
     DisposableEffect(Unit) {
         onDispose {
+            pendingFileSelection.value?.onReceiveValue(null)
+            pendingFileSelection.value = null
             webView.stopLoading()
             webView.removeAllViews()
             webView.destroy()
@@ -84,6 +118,7 @@ private fun createWebView(
     onRouteChanged: (String) -> Unit,
     onCanGoBackChanged: (Boolean) -> Unit,
     onMainFrameError: (String) -> Unit,
+    onChooseFiles: (ValueCallback<Array<Uri>>, WebChromeClient.FileChooserParams) -> Boolean,
 ): WebView = WebView(context).apply {
     WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
     settings.apply {
@@ -102,6 +137,19 @@ private fun createWebView(
     }
     CookieManager.getInstance().setAcceptCookie(true)
     CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
+    webChromeClient = object : WebChromeClient() {
+        override fun onShowFileChooser(
+            view: WebView,
+            callback: ValueCallback<Array<Uri>>,
+            params: FileChooserParams,
+        ): Boolean {
+            if (policy.decide(view.url.orEmpty()) != NavigationDecision.Internal) {
+                callback.onReceiveValue(null)
+                return true
+            }
+            return onChooseFiles(callback, params)
+        }
+    }
     webViewClient = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             return handleNavigation(context, request.url.toString(), policy, onRefreshSession, onLogout)
