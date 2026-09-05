@@ -1,6 +1,7 @@
 package uk.thewyj.app.core.network
 
 import android.os.Build
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -160,6 +161,7 @@ class ThewyjApiClient(
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
             val text = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
             val payload = runCatching { JSONObject(text) }.getOrElse { JSONObject() }
+            if (BuildConfig.DEBUG) Log.i("ThewyjSession", "$method $path HTTP $status code=${payload.optString("code").take(80)}")
             if (status in 200..299) {
                 ApiCall.Success(payload)
             } else {
@@ -182,16 +184,18 @@ class ThewyjApiClient(
         }
     }
 
-    private fun failureFrom(status: Int, payload: JSONObject): ApiCall.Failure {
+    internal fun failureFrom(status: Int, payload: JSONObject): ApiCall.Failure {
         val code = payload.optString("code", "http_$status")
-        val message = payload.optString("message", "请求未完成")
+        val message = payload.optString("error").takeIf(String::isNotBlank)
+            ?: payload.optString("message").takeIf(String::isNotBlank)
+            ?: "请求未完成"
         val explicitlyRetryable = payload.optBoolean("retryable", false)
         val kind = when {
             explicitlyRetryable || status == 408 || status == 429 || status >= 500 -> ApiFailureKind.RETRYABLE
             code in TERMINAL_AUTH_CODES || status == 401 -> ApiFailureKind.AUTHENTICATION
             else -> ApiFailureKind.VALIDATION
         }
-        return ApiCall.Failure(code, message, kind, status)
+        return ApiCall.Failure(code, "$message ($code)", kind, status)
     }
 
     private fun parseCredentials(json: JSONObject): DeviceCredentials {

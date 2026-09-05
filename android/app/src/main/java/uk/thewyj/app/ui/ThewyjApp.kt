@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -54,11 +55,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uk.thewyj.app.BuildConfig
 import uk.thewyj.app.R
 import uk.thewyj.app.core.auth.AccountSnapshot
+import uk.thewyj.app.core.auth.AuthInputPolicy
 import uk.thewyj.app.core.design.ThewyjCard
 import uk.thewyj.app.core.design.ThewyjPrimaryButton
 import uk.thewyj.app.core.design.ThewyjRadius
@@ -76,6 +79,7 @@ fun ThewyjApp(viewModel: AppViewModel) {
     val destination by viewModel.destination.collectAsStateWithLifecycle()
     val webRoute by viewModel.webRoute.collectAsStateWithLifecycle()
     val webEpoch by viewModel.webEpoch.collectAsStateWithLifecycle()
+    val navigationEpoch by viewModel.navigationEpoch.collectAsStateWithLifecycle()
     val notice by viewModel.notice.collectAsStateWithLifecycle()
     val update by viewModel.update.collectAsStateWithLifecycle()
     val authBusy by viewModel.authBusy.collectAsStateWithLifecycle()
@@ -91,6 +95,12 @@ fun ThewyjApp(viewModel: AppViewModel) {
     Box(Modifier.fillMaxSize()) {
         when (val current = session) {
             SessionState.Initializing -> LoadingScreen()
+            is SessionState.StorageUnavailable -> Surface(Modifier.fillMaxSize()) {
+                Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.Center) {
+                    Text(current.message)
+                    ThewyjPrimaryButton(text = { Text("重试恢复会话") }, onClick = viewModel::retryRestore)
+                }
+            }
             is SessionState.SignedOut -> AuthScreen(
                 message = current.message,
                 busy = authBusy,
@@ -102,6 +112,7 @@ fun ThewyjApp(viewModel: AppViewModel) {
                 destination = destination,
                 webRoute = webRoute,
                 webEpoch = webEpoch,
+                navigationEpoch = navigationEpoch,
                 update = update,
                 onDestination = viewModel::select,
                 onOpenRoute = viewModel::openRoute,
@@ -145,7 +156,7 @@ private fun AuthScreen(
     var username by remember { mutableStateOf("") }
     var secret by remember { mutableStateOf("") }
     var registerMode by remember { mutableStateOf(false) }
-    val valid = username.trim().isNotEmpty() && secret.length >= 7
+    val valid = AuthInputPolicy.canSubmit(username, secret, registerMode)
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(
@@ -159,6 +170,9 @@ private fun AuthScreen(
             Image(painterResource(R.drawable.ic_launcher), contentDescription = null, modifier = Modifier.size(64.dp))
             Spacer(Modifier.height(ThewyjSpacing.Lg))
             Text("thewyj", style = MaterialTheme.typography.displaySmall)
+            if (BuildConfig.DEBUG) {
+                Text("测试环境：${Uri.parse(BuildConfig.THEWYJ_BASE_URL).host}", style = MaterialTheme.typography.bodySmall)
+            }
             Text(
                 "学习、工具、财务与分享，一个账户自然衔接。",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -191,9 +205,10 @@ private fun AuthScreen(
                         onValueChange = { if (it.length <= 128 && '\n' !in it && '\r' !in it) secret = it },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text("登录密钥") },
-                        supportingText = { Text("至少 7 个字符，仅用于本次验证") },
+                        supportingText = { Text(if (registerMode) "新密钥至少 7 个字符" else "输入现有密钥，仅用于本次验证") },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
                         shape = ThewyjRadius.Medium,
                     )
                     if (message.isNotBlank()) {
@@ -236,6 +251,7 @@ private fun AuthenticatedShell(
     destination: AppDestination,
     webRoute: String,
     webEpoch: Int,
+    navigationEpoch: Int,
     update: uk.thewyj.app.core.network.AppConfig?,
     onDestination: (AppDestination) -> Unit,
     onOpenRoute: (String) -> Unit,
@@ -270,6 +286,7 @@ private fun AuthenticatedShell(
         Box(Modifier.fillMaxSize().padding(padding)) {
             ThewyjWebView(
                 route = webRoute,
+                navigationEpoch = navigationEpoch,
                 sessionEpoch = webEpoch,
                 backNavigationRequest = backNavigationRequest,
                 onRefreshSession = onRefresh,
