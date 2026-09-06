@@ -579,8 +579,11 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('$("navGuestActions")?.classList.toggle("hidden", Boolean(account));', self.app)
         self.assertIn('$("accountMenu")?.classList.toggle("hidden", !account);', self.app)
         boot_source = self.app.split("async function boot()", 1)[1]
-        self.assertIn("const shouldResumeWorkspace = Boolean(state.session && state.account);", boot_source)
-        self.assertIn('if (shouldResumeWorkspace && state.session && state.account) pendingScreen = "workspace";', boot_source)
+        initial_render = boot_source.split("await runSplashSequence(() => {", 1)[1].split("await backendPromise;", 1)[0]
+        self.assertIn("if (state.session) {\n      showSessionRecovery();\n      return;\n    }", initial_render)
+        self.assertLess(initial_render.index("showSessionRecovery();"), initial_render.index('showAuth(""'))
+        self.assertIn('id="sessionRecovery"', self.html)
+        self.assertNotIn('showAuth(state.session ?', initial_render)
         membership_source = self.app.split("async function saveAdminMembership()", 1)[1].split("function updateAdminToolsOverride", 1)[0]
         self.assertLess(membership_source.index("await loadAdminData();"), membership_source.index("会员设置已保存并立即生效"))
         admin_action_source = self.app.split("function adminUserAction(kind)", 1)[1].split("function wordDraftKey", 1)[0]

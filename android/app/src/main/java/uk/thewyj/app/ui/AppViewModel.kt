@@ -13,6 +13,7 @@ import uk.thewyj.app.core.network.ApiCall
 import uk.thewyj.app.core.network.AppConfig
 import uk.thewyj.app.core.session.RefreshWorkResult
 import uk.thewyj.app.core.session.SessionState
+import uk.thewyj.app.core.session.ConnectionMode
 import uk.thewyj.app.core.web.NavigationDecision
 import uk.thewyj.app.core.web.WebRoutePolicy
 
@@ -42,8 +43,9 @@ class AppViewModel : ViewModel() {
     private val mutableWebRoute = MutableStateFlow(AppDestination.HOME.route!!)
     val webRoute = mutableWebRoute.asStateFlow()
 
-    private val mutableWebEpoch = MutableStateFlow(0)
-    val webEpoch = mutableWebEpoch.asStateFlow()
+    val webEpoch = repository.webSessionEpoch
+    private val mutableNavigationEpoch = MutableStateFlow(0)
+    val navigationEpoch = mutableNavigationEpoch.asStateFlow()
 
     private val mutableNotice = MutableStateFlow("")
     val notice = mutableNotice.asStateFlow()
@@ -84,7 +86,6 @@ class AppViewModel : ViewModel() {
         if (refreshJob?.isActive == true) return
         refreshJob = viewModelScope.launch {
             if (repository.refresh() == RefreshWorkResult.SUCCESS) {
-                mutableWebEpoch.value += 1
                 mutableNotice.value = "连接已恢复"
             }
         }
@@ -93,28 +94,39 @@ class AppViewModel : ViewModel() {
     fun onNetworkAvailable() {
         val current = repository.state.value
         if (current !is SessionState.Authenticated) return
+        if (current.mode == ConnectionMode.ONLINE) return
         if (networkRecoveryJob?.isActive == true) return
         networkRecoveryJob = viewModelScope.launch {
             repository.restore()
-            if (repository.state.value is SessionState.Authenticated) mutableWebEpoch.value += 1
         }
     }
 
     fun select(destination: AppDestination) {
         mutableDestination.value = destination
-        destination.route?.let { mutableWebRoute.value = it }
+        destination.route?.let(::requestRoute)
     }
 
     fun openRoute(route: String) {
         val normalized = if (route.startsWith('/')) route else "/$route"
-        mutableWebRoute.value = normalized
+        requestRoute(normalized)
         mutableDestination.value = destinationForRoute(normalized)
+    }
+
+    fun retryRestore() {
+        viewModelScope.launch { repository.restore() }
+    }
+
+    private fun requestRoute(route: String) {
+        if (mutableWebRoute.value == route) return
+        mutableWebRoute.value = route
+        mutableNavigationEpoch.value += 1
     }
 
     fun onWebRouteChanged(url: String) {
         val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return
         if (webRoutePolicy.decide(url) != NavigationDecision.Internal) return
-        val route = uri.rawPath.orEmpty().ifBlank { "/" } + uri.rawQuery?.let { "?$it" }.orEmpty()
+        val route = uri.rawPath.orEmpty().ifBlank { "/" } + uri.rawQuery?.let { "?$it" }.orEmpty() +
+            uri.rawFragment?.let { "#$it" }.orEmpty()
         mutableWebRoute.value = route
         mutableDestination.value = destinationForRoute(route)
     }

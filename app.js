@@ -22,9 +22,10 @@ import {
   mergeChangelogEntries,
   staticChangelogEntries,
 } from "./js/core/changelog.js?v=20260904-task20-android-r1";
-import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260904-task20-android-r1";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20260904-task20-android-r1";
 import {
   ACCOUNT_CACHE_KEY,
+  isThewyjAndroidApp,
   accountSessionHeaders,
   clearAccountSessionStorage,
   persistAccountSession,
@@ -236,7 +237,7 @@ let vocabularySearchController = null;
 let vocabularySearchSequence = 0;
 let toolsInitialized = false;
 let financeController = null;
-let routeBusy = false;
+let routeRender = Promise.resolve();
 let adminUsers = [];
 let adminMessageTargetUsers = [];
 let adminRoleCandidateUsers = [];
@@ -1171,6 +1172,7 @@ function renderAccountUi() {
   const summary = accountMembershipSummary(account);
   $("accountBar")?.classList.remove("hidden");
   $("navGuestActions")?.classList.toggle("hidden", Boolean(account));
+  if (!account && state.session) $("navGuestActions")?.classList.add("hidden");
   $("accountMenu")?.classList.toggle("hidden", !account);
   if (!account && $("accountMenu")) $("accountMenu").open = false;
   if ($("navHomeLabel")) $("navHomeLabel").textContent = account ? "个人首页" : "首页";
@@ -1563,6 +1565,8 @@ async function voteForFeature(feedbackId, voted) {
 function openModal(id) {
   const modal = $(id);
   if (!modal) return;
+  // All dialogs live outside the inert application shell, including finance.
+  document.body.append(modal);
   const pendingClose = modalCloseTimers.get(id);
   if (pendingClose) {
     window.clearTimeout(pendingClose);
@@ -1571,11 +1575,14 @@ function openModal(id) {
   if (!modalReturnFocus.has(id) && document.activeElement instanceof HTMLElement) {
     modalReturnFocus.set(id, document.activeElement);
   }
+  const openLayers = [...document.querySelectorAll(".modal-layer:not(.hidden)")].filter((layer) => layer !== modal);
+  modal.style.zIndex = String(Math.max(9000, ...openLayers.map((layer) => Number(getComputedStyle(layer).zIndex) || 9000)) + 1);
   modal.classList.remove("hidden", "is-closing");
   modal.setAttribute("aria-hidden", "false");
   document.body.classList.add("modal-open");
   if ($("appShell")) $("appShell").inert = true;
-  modal.querySelector("button, input, select")?.focus();
+  document.querySelectorAll(".modal-layer:not(.hidden)").forEach((layer) => { layer.inert = layer !== modal; });
+  modal.querySelector("button, input, select")?.focus({ preventScroll: true });
 }
 
 function closeModal(id, immediate = false) {
@@ -1597,6 +1604,10 @@ function closeModal(id, immediate = false) {
     modal.classList.add("hidden");
     modal.classList.remove("is-closing");
     modal.setAttribute("aria-hidden", "true");
+    modal.inert = false;
+    modal.style.removeProperty("z-index");
+    const remaining = [...document.querySelectorAll(".modal-layer:not(.hidden)")];
+    remaining.forEach((layer, index) => { layer.inert = index !== remaining.length - 1; });
     if (id === "accountModal") clearOwnSecretEditor();
     if (id === "adminEditModal") clearAdminSecretEditor();
     if (!document.querySelector(".modal-layer:not(.hidden)")) {
@@ -1605,7 +1616,7 @@ function closeModal(id, immediate = false) {
     }
     const returnFocus = modalReturnFocus.get(id);
     modalReturnFocus.delete(id);
-    if (returnFocus?.isConnected && !returnFocus.closest(".modal-layer.hidden")) returnFocus.focus();
+    if (returnFocus?.isConnected && !returnFocus.closest(".modal-layer.hidden")) returnFocus.focus({ preventScroll: true });
     if ((id === "membershipModal" && location.pathname === "/recharge") || (id === "accountModal" && location.pathname === "/account")) {
       if (state.session && state.account) {
         showModulePicker(false);
@@ -3721,7 +3732,7 @@ function showLanguageGate() {
 function hidePrimaryScreens() {
   setExperienceMode("workspace");
   const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
-  ["publicHome", "changelogPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "shareViewer", "adminPanel"].forEach((id) => {
+  ["sessionRecovery", "publicHome", "changelogPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "shareViewer", "adminPanel"].forEach((id) => {
     const element = $(id);
     if (!element) return;
     element.classList.add("hidden");
@@ -3824,7 +3835,20 @@ function enterProject(value, pushHistory = true) {
   renderAccountUi();
 }
 
+function showSessionRecovery(message = "正在打开你的页面…") {
+  hidePrimaryScreens();
+  $("sessionRecovery").classList.remove("hidden");
+  $("sessionRecovery").setAttribute("aria-hidden", "false");
+  $("sessionRecoveryMessage").textContent = message;
+  $("accountBar").classList.add("hidden");
+}
+
 function showAuth(message = "", options = {}) {
+  // Native owns sign-in. An unresolved HttpOnly cookie is not an anonymous state.
+  if (isThewyjAndroidApp()) {
+    showSessionRecovery(message || "正在恢复设备会话…");
+    return;
+  }
   pendingScreen = "auth";
   pendingAuthMessage = message;
   stopProjectActivity();
@@ -3931,16 +3955,22 @@ function showShareRoute(path) {
   return true;
 }
 
-async function routeCurrent() {
-  if (routeBusy) return;
-  routeBusy = true;
-  try {
+function routeCurrent() {
+  routeRender = routeRender.catch(() => {}).then(renderCurrentRoute);
+  return routeRender;
+}
+
+async function renderCurrentRoute() {
     const path = location.pathname.replace(/\/+$/, "") || "/";
     if (path.startsWith("/share/")) {
       if (!showShareRoute(path)) pushRoute(state.session && state.account ? "/select" : "/login", true);
       return;
     }
     if (!state.session || !state.account) {
+      if (isThewyjAndroidApp()) {
+        showSessionRecovery(pendingAuthMessage || "连接暂时不可用，设备会话已保留。请重试。");
+        return;
+      }
       if (path === "/") {
         showPublicHome(false);
         return;
@@ -4004,9 +4034,6 @@ async function routeCurrent() {
     }
     showModulePicker(false);
     pushRoute("/select", true);
-  } finally {
-    routeBusy = false;
-  }
 }
 
 function updateLanguageUi() {
@@ -4455,6 +4482,8 @@ financeController = createFinanceController({
   },
   appVersion: APP_VERSION,
   onSummaryChanged: () => renderDashboard(),
+  openDialog: openModal,
+  closeDialog: (id) => closeModal(id, true),
 });
 
 function applyBackendStatus(data) {
@@ -4777,6 +4806,8 @@ function installLocalTestBindings() {
     state: () => state,
   };
   const functions = {
+    openModal,
+    closeModal,
     activeWrongBook,
     formatJapaneseDictationAnswer,
     japaneseReadingFor,
@@ -6301,6 +6332,46 @@ function closeAccountMenu() {
   if (menu) menu.open = false;
 }
 
+function dismissTopOverlay() {
+  const modal = [...document.querySelectorAll(".modal-layer:not(.hidden)")].at(-1);
+  if (modal) {
+    if (modal.hasAttribute("data-confirm-only")) modal.querySelector("button")?.focus({ preventScroll: true });
+    else if (modal.id === "siteMessageModal") void dismissActiveSiteMessage();
+    else {
+      if (modal.id === "confirmModal") confirmAction = null;
+      closeModal(modal.id, true);
+    }
+    return true;
+  }
+  if ($("accountMenu")?.open) { closeAccountMenu(); return true; }
+  const navigation = $("siteNavToggle");
+  if (navigation?.getAttribute("aria-expanded") === "true") { navigation.click(); return true; }
+  return false;
+}
+
+function installNativeNavigation() {
+  if (!isThewyjAndroidApp()) return;
+  const navigation = createNativeNavigation({
+    origin: location.origin,
+    pushRoute,
+    renderRoute: routeCurrent,
+    beforeNavigate: () => {
+      closeAccountMenu();
+      for (const modal of document.querySelectorAll(".modal-layer:not(.hidden)")) {
+        // A native tab cannot acknowledge a message or a confirm-only result.
+        if (modal.id === "siteMessageModal" || modal.hasAttribute("data-confirm-only")) continue;
+        if (modal.id === "confirmModal") confirmAction = null;
+        closeModal(modal.id, true);
+      }
+    },
+    onError: () => showAchievementToast("页面暂时无法打开，请重试"),
+  });
+  window.WYJAndroidNavigation = Object.freeze({ navigate: navigation.navigate, back: dismissTopOverlay });
+  const pending = window.__wyjPendingNavigation;
+  delete window.__wyjPendingNavigation;
+  if (pending) void navigation.navigate(pending);
+}
+
 async function navigateFromSiteNav(destination) {
   closeAccountMenu();
   if (destination === "home") {
@@ -6418,6 +6489,18 @@ async function boot() {
     closeModal(modal.id);
   }));
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Tab") {
+      const modal = [...document.querySelectorAll(".modal-layer:not(.hidden)")].findLast((layer) => !layer.inert);
+      if (!modal) return;
+      const targets = [...modal.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')]
+        .filter((element) => !element.disabled && element.getClientRects().length);
+      const first = targets[0], last = targets[targets.length - 1];
+      if (targets.length && ((!modal.contains(document.activeElement)) || (event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last))) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus({ preventScroll: true });
+      }
+      return;
+    }
     if (event.key !== "Escape") return;
     const openModals = [...document.querySelectorAll(".modal-layer:not(.hidden)")];
     const modal = openModals[openModals.length - 1];
@@ -6680,12 +6763,20 @@ async function boot() {
   }, BACKEND_REFRESH_INTERVAL_MS);
 
   void refreshCloudChangelog();
+  $("retrySessionRecoveryBtn").addEventListener("click", async () => {
+    await refreshBackendState();
+    await routeCurrent();
+  });
   const backendPromise = initialPath.startsWith("/share/") ? Promise.resolve() : refreshBackendState();
   await runSplashSequence(() => {
     $("appShell").classList.remove("app-shell-pending");
     $("appShell").classList.add("app-shell-ready");
     $("appShell").setAttribute("aria-hidden", "false");
     if (initialPath.startsWith("/share/") && showShareRoute(initialPath)) return;
+    if (state.session) {
+      showSessionRecovery();
+      return;
+    }
     if (!state.session || !state.account) {
       if (initialPath === "/") {
         showPublicHome(false);
@@ -6700,16 +6791,15 @@ async function boot() {
         return;
       }
     }
-    const shouldResumeWorkspace = Boolean(state.session && state.account);
-    showAuth(state.session ? "正在验证登录状态…" : "", {
+    showAuth("", {
       mode: initialPath === "/register" ? "register" : "login",
       path: initialPath,
       skipRoute: true,
     });
-    if (shouldResumeWorkspace && state.session && state.account) pendingScreen = "workspace";
   });
   await backendPromise;
   await routeCurrent();
+  installNativeNavigation();
   maybeShowVersionNotice();
 }
 

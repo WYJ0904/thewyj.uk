@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { authVisibilityProbe } from "../qa/task20_ui_probe.mjs";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const BASE_URL = process.env.WYJ_TEST_BASE || "http://127.0.0.1:8894";
@@ -393,6 +394,89 @@ async function main() {
       })()`);
       assert.equal(current.status, 200, JSON.stringify(current.data));
       assert.equal(current.data.account?.username, USERNAME);
+    });
+
+    await check("Task 20 native startup and route transitions never paint web login", async () => {
+      await send("Emulation.setUserAgentOverride", { userAgent: "Mozilla/5.0 thewyj-android/1.0.0-debug" });
+      const login = await evaluate(`(async()=>{const r=await fetch('/api/app/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:${JSON.stringify(USERNAME)},secret:${JSON.stringify(USER_SECRET)},device_id:crypto.randomUUID(),app_version:'1.0.0-debug'})});const d=await r.json();return {status:r.status,code:d.code};})()`);
+      assert.equal(login.status, 200, login.code);
+      const probe = await send("Page.addScriptToEvaluateOnNewDocument", { source: `(${authVisibilityProbe.toString()})();` });
+      // Keep real authentication; slow only health delivery to expose the old flash.
+      const latency = await send("Page.addScriptToEvaluateOnNewDocument", { source: `const originalFetch=window.fetch;window.fetch=async(...args)=>{const response=await originalFetch(...args);if(String(args[0]).includes('/api/health'))await new Promise(r=>setTimeout(r,1200));return response;};` });
+      try {
+        await evaluate("localStorage.removeItem('wyjAccountCache')");
+        for (const route of ['/select','/language','/tools','/finance','/account']) {
+          await navigate(route);
+          await waitFor("state.account && document.querySelector('#sessionRecovery').classList.contains('hidden')", 20000, 'authenticated route');
+          await delay(250);
+          const frames = await evaluate("window.__qa20AuthFrames");
+          assert.ok(frames.frames > 0, 'frame observer must run');
+          assert.equal(frames.loginFrames, 0, JSON.stringify({route,frames}));
+          assert.equal(frames.guestFrames, 0, JSON.stringify({route,frames}));
+          if (route === '/account') await click('[data-close-modal="accountModal"]');
+        }
+      } finally {
+        await send('Page.removeScriptToEvaluateOnNewDocument',{identifier:probe.identifier});
+        await send('Page.removeScriptToEvaluateOnNewDocument',{identifier:latency.identifier});
+      }
+    });
+
+    await check("Task 20 warm native navigation reuses the document and session without a recovery screen", async () => {
+      await navigate('/select');
+      await waitFor("Boolean(window.WYJAndroidNavigation)", 20000, 'native route dispatcher ready');
+      await evaluate(`window.__qaWarmDocument = crypto.randomUUID(); window.__qaWarmAuthRequests = [];
+        const fetchBeforeWarm = window.fetch;
+        window.fetch = (...args) => {
+          const path = new URL(typeof args[0] === 'string' ? args[0] : args[0].url, location.href).pathname;
+          if (['/api/me','/api/app/session/refresh'].includes(path)) window.__qaWarmAuthRequests.push(path);
+          return fetchBeforeWarm(...args);
+        };`);
+      const marker = await evaluate('window.__qaWarmDocument');
+      for (const route of ['/language','/finance','/account','/recharge','/select','/language']) {
+        await evaluate(`(${authVisibilityProbe.toString()})();`);
+        await evaluate(`window.WYJAndroidNavigation.navigate(${JSON.stringify(route)})`);
+        await delay(250);
+        assert.equal(await evaluate('window.__qaWarmDocument'), marker, 'warm tab replaced the document');
+        assert.equal(await evaluate('location.pathname'), route);
+        const frames = await evaluate('window.__qa20AuthFrames');
+        assert.ok(frames.frames > 0);
+        assert.equal(frames.loginFrames + frames.guestFrames + frames.restoringFrames, 0, JSON.stringify(frames));
+      }
+      assert.deepEqual(await evaluate('window.__qaWarmAuthRequests'), []);
+      await click('#siteNavToggle');
+      assert.equal(await evaluate('window.WYJAndroidNavigation.back()'), true);
+      assert.equal(await evaluate("document.querySelector('#siteNavToggle').getAttribute('aria-expanded')"), 'false');
+      await evaluate("window.WYJAndroidNavigation.navigate('/account')");
+      assert.equal(await evaluate('window.WYJAndroidNavigation.back()'), true);
+      assert.equal(await evaluate("document.querySelector('#accountModal').classList.contains('hidden')"), true);
+    });
+
+    await check("Task 20 shared dialog portal, bounds, focus and scroll in both themes", async () => {
+      await navigate('/select');
+      const ids = await evaluate("[...document.querySelectorAll('.modal-layer')].map(e=>e.id)");
+      assert.ok(ids.includes('financeTransactionModal') && ids.includes('membershipModal'));
+      for (const theme of ['light','dark']) {
+        await evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)}`);
+        for (const id of ids) {
+          // Geometry audit of every existing dialog; business trigger flows are
+          // separately exercised by application/finance/admin browser suites.
+          await evaluate(`openModal(${JSON.stringify(id)})`);
+          await delay(200);
+          const geometry = await evaluate(`(()=>{const e=document.getElementById(${JSON.stringify(id)}),p=e.querySelector('.modal-panel'),r=p.getBoundingClientRect(),b=e.querySelector('button');const br=b?.getBoundingClientRect();return {parent:e.parentElement.tagName,inert:e.inert,bg:document.getElementById('appShell').inert,x:r.x,y:r.y,right:r.right,bottom:r.bottom,w:innerWidth,h:visualViewport.height,hit:!br||e.contains(document.elementFromPoint(br.x+br.width/2,br.y+br.height/2))};})()`);
+          assert.equal(geometry.parent,'BODY',id);
+          assert.equal(geometry.inert,false,id);
+          assert.equal(geometry.bg,true,id);
+          assert.ok(geometry.x>=-1 && geometry.y>=-1 && geometry.right<=geometry.w+1 && geometry.bottom<=geometry.h+1,JSON.stringify({id,theme,geometry}));
+          assert.ok(geometry.hit,`${id} controls must receive input`);
+          await evaluate(`closeModal(${JSON.stringify(id)},true)`);
+          assert.equal(await evaluate("document.getElementById('appShell').inert"),false);
+        }
+        await click('#siteNavToggle');
+        await waitFor("document.getElementById('siteNavPanel').getBoundingClientRect().height>100",3000,'visible navigation');
+        await click('[data-site-nav="trial"]');
+        await waitFor("location.pathname==='/trial'",3000,'trial navigation');
+        await navigate('/select');
+      }
     });
 
     assert.deepEqual(externalRuntimeRequests, [], `legacy runtime request(s): ${JSON.stringify(externalRuntimeRequests)}`);

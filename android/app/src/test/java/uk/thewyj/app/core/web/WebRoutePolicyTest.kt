@@ -6,6 +6,15 @@ import org.junit.Test
 
 class WebRoutePolicyTest {
     private val policy = WebRoutePolicy("https://thewyj.uk")
+    @Test fun spaNavigationOnlyAcceptsKnownSameOriginPages() {
+        listOf("/select", "/finance", "/language/japanese", "/tools/json", "/share/file/abc_123").forEach {
+            assertEquals(it, policy.spaRoute("https://thewyj.uk$it"))
+        }
+        assertEquals("/finance?month=2026-09#top", policy.spaRoute("https://thewyj.uk/finance?month=2026-09#top"))
+        listOf("https://evil.example/finance", "https://user@thewyj.uk/finance", "https://thewyj.uk/api/me", "https://thewyj.uk/app.js", "https://thewyj.uk/unknown").forEach {
+            assertEquals(null, policy.spaRoute(it))
+        }
+    }
 
     @Test
     fun exactProductionOriginStaysInsideApp() {

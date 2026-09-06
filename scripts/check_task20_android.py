@@ -63,7 +63,8 @@ def main() -> int:
     require("setAcceptThirdPartyCookies(this, false)" in kotlin, "third-party WebView cookies must stay disabled")
     require("MIXED_CONTENT_NEVER_ALLOW" in kotlin, "mixed WebView content must stay blocked")
     require("AndroidKeyStore" in kotlin and "AES/GCM/NoPadding" in kotlin, "long-term credential storage is not Keystore protected")
-    require("deleteEntry(KEY_ALIAS)" in kotlin, "invalidated Android Keystore keys cannot recover safely")
+    require("CredentialStorageException" in kotlin, "credential read failures must preserve encrypted data for recovery")
+    require("resetInvalidatedKey" not in kotlin, "a generic storage failure must not erase credentials or the Keystore key")
     require("refresh_token" not in (ANDROID / "gradle.properties").read_text(encoding="utf-8"), "credential material entered Gradle config")
 
     require("NATIVE_ACCOUNT_SESSION" in frontend_session, "native HttpOnly cookie bridge is missing")
