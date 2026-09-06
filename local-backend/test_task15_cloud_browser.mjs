@@ -421,6 +421,36 @@ async function main() {
       }
     });
 
+    await check("Task 20 warm native navigation reuses the document and session without a recovery screen", async () => {
+      await navigate('/select');
+      await waitFor("Boolean(window.WYJAndroidNavigation)", 20000, 'native route dispatcher ready');
+      await evaluate(`window.__qaWarmDocument = crypto.randomUUID(); window.__qaWarmAuthRequests = [];
+        const fetchBeforeWarm = window.fetch;
+        window.fetch = (...args) => {
+          const path = new URL(typeof args[0] === 'string' ? args[0] : args[0].url, location.href).pathname;
+          if (['/api/me','/api/app/session/refresh'].includes(path)) window.__qaWarmAuthRequests.push(path);
+          return fetchBeforeWarm(...args);
+        };`);
+      const marker = await evaluate('window.__qaWarmDocument');
+      for (const route of ['/language','/finance','/account','/recharge','/select','/language']) {
+        await evaluate(`(${authVisibilityProbe.toString()})();`);
+        await evaluate(`window.WYJAndroidNavigation.navigate(${JSON.stringify(route)})`);
+        await delay(250);
+        assert.equal(await evaluate('window.__qaWarmDocument'), marker, 'warm tab replaced the document');
+        assert.equal(await evaluate('location.pathname'), route);
+        const frames = await evaluate('window.__qa20AuthFrames');
+        assert.ok(frames.frames > 0);
+        assert.equal(frames.loginFrames + frames.guestFrames + frames.restoringFrames, 0, JSON.stringify(frames));
+      }
+      assert.deepEqual(await evaluate('window.__qaWarmAuthRequests'), []);
+      await click('#siteNavToggle');
+      assert.equal(await evaluate('window.WYJAndroidNavigation.back()'), true);
+      assert.equal(await evaluate("document.querySelector('#siteNavToggle').getAttribute('aria-expanded')"), 'false');
+      await evaluate("window.WYJAndroidNavigation.navigate('/account')");
+      assert.equal(await evaluate('window.WYJAndroidNavigation.back()'), true);
+      assert.equal(await evaluate("document.querySelector('#accountModal').classList.contains('hidden')"), true);
+    });
+
     await check("Task 20 shared dialog portal, bounds, focus and scroll in both themes", async () => {
       await navigate('/select');
       const ids = await evaluate("[...document.querySelectorAll('.modal-layer')].map(e=>e.id)");

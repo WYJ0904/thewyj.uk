@@ -3,6 +3,7 @@ package uk.thewyj.app.ui
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -261,12 +262,11 @@ private fun AuthenticatedShell(
     onCheckUpdate: () -> Unit,
     onWebError: (String) -> Unit,
 ) {
-    var canWebGoBack by remember { mutableStateOf(false) }
+    val activity = LocalActivity.current
     var backNavigationRequest by remember { mutableIntStateOf(0) }
-    BackHandler(enabled = destination != AppDestination.HOME || canWebGoBack) {
+    BackHandler {
         if (destination == AppDestination.MY) onDestination(AppDestination.HOME)
-        else if (canWebGoBack) backNavigationRequest += 1
-        else onDestination(AppDestination.HOME)
+        else backNavigationRequest += 1
     }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -292,8 +292,12 @@ private fun AuthenticatedShell(
                 onRefreshSession = onRefresh,
                 onLogout = onLogout,
                 onRouteChanged = onWebRouteChanged,
-                onCanGoBackChanged = { canWebGoBack = it },
+                onCanGoBackChanged = {},
                 onMainFrameError = onWebError,
+                onUnhandledBack = {
+                    if (destination != AppDestination.HOME) onDestination(AppDestination.HOME)
+                    else activity?.moveTaskToBack(true)
+                },
             )
             if (destination == AppDestination.MY) {
                 MyScreen(

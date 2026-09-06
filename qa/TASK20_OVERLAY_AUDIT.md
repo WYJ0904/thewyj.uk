@@ -92,3 +92,25 @@ No D1 migration, API contract, entitlement or payment change. Debug-only native
 diagnostics log fixed UI states, layout dimensions and cookie completion, never
 credentials/page text. Local/CI browser geometry uses loopback-only existing test
 bindings. Production and non-test origins do not expose those bindings.
+
+## 2026-09-06 warm-navigation correction
+
+The earlier one-document-load-per-tab result is NOT a warm-navigation pass.
+Native tabs called loadUrl, re-running boot and health/account discovery on every
+page. Native warm navigation now dispatches only allowlisted same-origin routes
+to the existing SPA renderer. Rapid taps serialize/coalesce; browser history is
+still observation, not another load command. Only cold start and a real changed
+access-session epoch can load/reload a document. The initial recovery state is
+not used during warm navigation. Android Back dismisses the top shared overlay
+before going back in history, preserving confirm-only/message receipt rules.
+
+Local real-browser regression: 11 flows passed, including warm route identity,
+zero auth-refresh requests, painted-frame login/recovery detection, and all 12
+shared dialogs in both themes. Task 20 D1 integration: 18 passed. Static: 28
+passed. Physical results for the newly built SPA APK remain pending until rerun.
+
+Previous fixed-viewport APK on the physical SM-S9360 passed both-theme taps for
+navigation/account menus, membership, account/delete-cancel, feedback plus soft
+keyboard, and all three finance dialogs with native select/date/month/color
+pickers. This is supporting evidence, not a claim that the remaining physical
+admin/message/learning/tool picker matrix is complete.

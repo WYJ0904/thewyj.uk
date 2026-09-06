@@ -1,7 +1,8 @@
 // Inject before navigation. Sampling visible frames catches transient login UI,
 // unlike a final DOM assertion or a document-load count.
 export function authVisibilityProbe() {
-  const report = { frames: 0, loginFrames: 0, guestFrames: 0, events: [] };
+  const started = performance.now();
+  const report = { frames: 0, loginFrames: 0, guestFrames: 0, restoringFrames: 0, events: [] };
   window.__qa20AuthFrames = report;
   let previous = '';
   const visible = selector => {
@@ -14,17 +15,19 @@ export function authVisibilityProbe() {
     return true;
   };
   const sample = () => {
+    if (window.__qa20AuthFrames !== report) return;
     report.frames++;
     const login = visible('#authPanel');
     const guest = visible('#navGuestActions');
     if (login) report.loginFrames++;
     if (guest) report.guestFrames++;
+    if (visible('#sessionRecovery')) report.restoringFrames++;
     const state = login ? 'login' : guest ? 'guest' : visible('#sessionRecovery') ? 'restoring' : visible('#appShell') ? 'content' : 'starting';
     if (state !== previous && report.events.length < 40) {
       report.events.push({ state, atMs: Math.round(performance.now()) });
       previous = state;
     }
-    if (performance.now() < 20000) requestAnimationFrame(sample);
+    if (performance.now() - started < 20000) requestAnimationFrame(sample);
   };
   requestAnimationFrame(sample);
 }

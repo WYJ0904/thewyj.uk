@@ -35,6 +35,7 @@ import uk.thewyj.app.BuildConfig
 import java.net.URI
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
+import org.json.JSONObject
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -49,6 +50,7 @@ fun ThewyjWebView(
     onCanGoBackChanged: (Boolean) -> Unit,
     onMainFrameError: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onUnhandledBack: () -> Unit = {},
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val policy = remember { WebRoutePolicy(BuildConfig.THEWYJ_BASE_URL) }
@@ -59,6 +61,7 @@ fun ThewyjWebView(
     val routeCallback = rememberUpdatedState(onRouteChanged)
     val canGoBackCallback = rememberUpdatedState(onCanGoBackChanged)
     val errorCallback = rememberUpdatedState(onMainFrameError)
+    val unhandledBackCallback = rememberUpdatedState(onUnhandledBack)
     val pendingFileSelection = remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val callback = pendingFileSelection.value
@@ -101,12 +104,19 @@ fun ThewyjWebView(
         if (BuildConfig.DEBUG) Log.i("ThewyjSession", "web-navigation-ready width=${webView.width} height=${webView.height}")
         when (loads.next(navigationEpoch, sessionEpoch, webView.url == target)) {
             WebLoadAction.LOAD -> webView.loadUrl(target)
+            WebLoadAction.NAVIGATE -> webView.navigateWithinDocument(policy, target)
             WebLoadAction.RELOAD -> webView.reload()
             WebLoadAction.NONE -> Unit
         }
     }
     LaunchedEffect(backNavigationRequest) {
-        if (backNavigationRequest != initialBackRequest && webView.canGoBack()) webView.goBack()
+        if (backNavigationRequest != initialBackRequest) {
+            webView.evaluateJavascript("Boolean(window.WYJAndroidNavigation?.back())") { handled ->
+                if (handled != "true") {
+                    if (webView.canGoBack()) webView.goBack() else unhandledBackCallback.value()
+                }
+            }
+        }
     }
     DisposableEffect(Unit) {
         onDispose {
@@ -196,11 +206,19 @@ private fun createWebView(
     }
     webViewClient = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+            if (request.isForMainFrame && policy.spaRoute(request.url.toString()) != null) {
+                view.navigateWithinDocument(policy, request.url.toString())
+                return true
+            }
             return handleNavigation(context, request.url.toString(), policy, onRefreshSession, onLogout)
         }
 
         @Deprecated("Deprecated by Android")
         override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+            if (policy.spaRoute(url) != null) {
+                view.navigateWithinDocument(policy, url)
+                return true
+            }
             return handleNavigation(context, url, policy, onRefreshSession, onLogout)
         }
 
@@ -233,6 +251,19 @@ private fun createWebView(
             onMainFrameError("无法开始下载，请检查系统下载服务")
         }
     }
+}
+
+private fun WebView.navigateWithinDocument(policy: WebRoutePolicy, url: String) {
+    val target = policy.spaRoute(url) ?: return
+    // Queue only a route while JS starts. No credentials or native APIs are exposed.
+    val value = JSONObject.quote(target)
+    evaluateJavascript("""
+        (() => {
+          if (window.WYJAndroidNavigation) window.WYJAndroidNavigation.navigate($value);
+          else window.__wyjPendingNavigation = $value;
+        })();
+    """.trimIndent(), null)
+    if (BuildConfig.DEBUG) Log.i("ThewyjSession", "web-spa-navigation")
 }
 
 private suspend fun WebView.awaitViewport() {

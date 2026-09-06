@@ -22,7 +22,7 @@ import {
   mergeChangelogEntries,
   staticChangelogEntries,
 } from "./js/core/changelog.js?v=20260904-task20-android-r1";
-import { APP_ROUTE_MANIFEST, createRouter } from "./js/core/router.js?v=20260904-task20-android-r1";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20260904-task20-android-r1";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -237,7 +237,7 @@ let vocabularySearchController = null;
 let vocabularySearchSequence = 0;
 let toolsInitialized = false;
 let financeController = null;
-let routeBusy = false;
+let routeRender = Promise.resolve();
 let adminUsers = [];
 let adminMessageTargetUsers = [];
 let adminRoleCandidateUsers = [];
@@ -3955,10 +3955,12 @@ function showShareRoute(path) {
   return true;
 }
 
-async function routeCurrent() {
-  if (routeBusy) return;
-  routeBusy = true;
-  try {
+function routeCurrent() {
+  routeRender = routeRender.catch(() => {}).then(renderCurrentRoute);
+  return routeRender;
+}
+
+async function renderCurrentRoute() {
     const path = location.pathname.replace(/\/+$/, "") || "/";
     if (path.startsWith("/share/")) {
       if (!showShareRoute(path)) pushRoute(state.session && state.account ? "/select" : "/login", true);
@@ -4032,9 +4034,6 @@ async function routeCurrent() {
     }
     showModulePicker(false);
     pushRoute("/select", true);
-  } finally {
-    routeBusy = false;
-  }
 }
 
 function updateLanguageUi() {
@@ -6333,6 +6332,46 @@ function closeAccountMenu() {
   if (menu) menu.open = false;
 }
 
+function dismissTopOverlay() {
+  const modal = [...document.querySelectorAll(".modal-layer:not(.hidden)")].at(-1);
+  if (modal) {
+    if (modal.hasAttribute("data-confirm-only")) modal.querySelector("button")?.focus({ preventScroll: true });
+    else if (modal.id === "siteMessageModal") void dismissActiveSiteMessage();
+    else {
+      if (modal.id === "confirmModal") confirmAction = null;
+      closeModal(modal.id, true);
+    }
+    return true;
+  }
+  if ($("accountMenu")?.open) { closeAccountMenu(); return true; }
+  const navigation = $("siteNavToggle");
+  if (navigation?.getAttribute("aria-expanded") === "true") { navigation.click(); return true; }
+  return false;
+}
+
+function installNativeNavigation() {
+  if (!isThewyjAndroidApp()) return;
+  const navigation = createNativeNavigation({
+    origin: location.origin,
+    pushRoute,
+    renderRoute: routeCurrent,
+    beforeNavigate: () => {
+      closeAccountMenu();
+      for (const modal of document.querySelectorAll(".modal-layer:not(.hidden)")) {
+        // A native tab cannot acknowledge a message or a confirm-only result.
+        if (modal.id === "siteMessageModal" || modal.hasAttribute("data-confirm-only")) continue;
+        if (modal.id === "confirmModal") confirmAction = null;
+        closeModal(modal.id, true);
+      }
+    },
+    onError: () => showAchievementToast("页面暂时无法打开，请重试"),
+  });
+  window.WYJAndroidNavigation = Object.freeze({ navigate: navigation.navigate, back: dismissTopOverlay });
+  const pending = window.__wyjPendingNavigation;
+  delete window.__wyjPendingNavigation;
+  if (pending) void navigation.navigate(pending);
+}
+
 async function navigateFromSiteNav(destination) {
   closeAccountMenu();
   if (destination === "home") {
@@ -6760,6 +6799,7 @@ async function boot() {
   });
   await backendPromise;
   await routeCurrent();
+  installNativeNavigation();
   maybeShowVersionNotice();
 }
 

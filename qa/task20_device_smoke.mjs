@@ -38,11 +38,16 @@ async function connect() {
     const ws = new WebSocket(tab.webSocketDebuggerUrl);
     const pending = new Map();
     const documents = [];
+    const authRequests = [];
     let id = 0;
     ws.onmessage = event => {
       const message = JSON.parse(event.data);
       if (message.method === 'Page.frameNavigated' && !message.params.frame.parentId) {
         documents.push(new URL(message.params.frame.url).pathname);
+      }
+      if (message.method === 'Network.requestWillBeSent') {
+        const path = new URL(message.params.request.url).pathname;
+        if (['/api/me', '/api/status', '/api/health', '/api/app/session/refresh'].includes(path)) authRequests.push(path);
       }
       const call = pending.get(message.id);
       if (!call) return;
@@ -63,12 +68,17 @@ async function connect() {
       return result.result.value;
     };
     await command('Page.enable');
+    await command('Network.enable');
     await command('Page.addScriptToEvaluateOnNewDocument', { source: `(${authVisibilityProbe.toString()})();` });
     await until(() => evaluate(`location.origin===${JSON.stringify(base)} && document.readyState==='complete'`));
-    return { documents, evaluate, close: async () => { ws.close(); await runAdb('forward', '--remove', `tcp:${port}`); } };
+    return { documents, authRequests, evaluate, close: async () => { ws.close(); await runAdb('forward', '--remove', `tcp:${port}`); } };
   } catch (error) { await runAdb('forward', '--remove', `tcp:${port}`); throw error; }
 }
 async function verifyIdentity(connection) {
+  await until(() => connection.evaluate(`(() => {
+    const recovery=document.getElementById('sessionRecovery');
+    return recovery?.classList.contains('hidden') && document.getElementById('appShell')?.classList.contains('app-shell-ready');
+  })()`));
   const state = await connection.evaluate(`(async()=>{
     const r=await fetch('/api/app/session');const d=await r.json();
     const probe=document.createElement('div');probe.style.cssText='position:fixed;visibility:hidden;height:100dvh;width:1px';document.body.append(probe);
@@ -107,17 +117,23 @@ try {
   const refreshes = await nativeRefreshCount();
   for (const [label, route] of [['工具','/tools'],['学习','/language'],['财务','/finance'],['主页','/select'],['工具','/tools'],['财务','/finance']]) {
     connection.documents.length = 0;
+    connection.authRequests.length = 0;
+    await connection.evaluate(`(${authVisibilityProbe.toString()})();`);
     await tapNavigation(label);
-    await until(() => connection.evaluate(`location.pathname===${JSON.stringify(route)} && document.readyState==='complete'`));
+    await until(() => connection.evaluate(`(location.pathname===${JSON.stringify(route)} || (${JSON.stringify(route)}==='/tools' && !document.getElementById('membershipModal').classList.contains('hidden'))) && document.readyState==='complete'`));
     await verifyIdentity(connection);
     // Observation window for an unwanted follow-up reload, not a product delay.
     await delay(1800);
-    assert.deepEqual(connection.documents, [route], 'One navigation must load exactly one main document');
+    assert.deepEqual(connection.documents, [], 'Warm navigation must not load a main document');
+    // Periodic status polling is independent of routing; /api/me and refresh are not.
+    assert.equal(connection.authRequests.filter(path => ['/api/me', '/api/app/session/refresh'].includes(path)).length, 0, 'Warm navigation reauthenticated');
     const frames = await connection.evaluate('window.__qa20AuthFrames');
     assert.ok(frames?.frames > 0, 'Visible-frame observer missing');
     assert.equal(frames.loginFrames, 0, JSON.stringify({route,frames}));
     assert.equal(frames.guestFrames, 0, JSON.stringify({route,frames}));
-    results.push({ test:`navigate:${route}`, passed:true, documentLoads:1, frames });
+    assert.equal(frames.restoringFrames, 0, 'Warm navigation showed a recovery/loading screen');
+    assert.ok(frames.events.some(event => event.state === 'content'), 'Target content never became visible');
+    results.push({ test:`navigate:${route}`, passed:true, documentLoads:0, authRequests:connection.authRequests, frames });
   }
   const marker = String(Date.now());
   await connection.evaluate(`window.__qa20PageMarker=${JSON.stringify(marker)}`);
