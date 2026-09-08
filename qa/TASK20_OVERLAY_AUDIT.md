@@ -150,13 +150,45 @@ screenshots are outside Git; no secret, token, real QR or personal file is logge
 - The unified asset release is bumped to avoid serving the old cached tool code.
   API, database, membership and payment contracts are unchanged.
 
-Remaining physical gates: tool/native file/context/date/color/QR controls after
-the new Preview install; public/trial controls; adminEditModal and siteMessageModal
-using a legitimately authenticated Preview administrator; rejudge correct/network
+Remaining physical gates: adminEditModal and siteMessageModal using a
+legitimately authenticated Preview administrator; rejudge correct/network
 outcomes; reboot/recents/network/VPN and other Task 20 persistence scenarios.
 The historical production admin is absent from Preview. Do not manufacture a
 pass, reset that credential, or forge an owner session to bypass this gate.
-As of 2026-09-08 the phone is no longer listed by adb; reinstall/retest awaits USB.
+
+## 2026-09-08 physical tools and core overlay suites on the new Preview
+
+The phone returned (SM-S9360 / Android 16 / WebView 151, ADB serial
+R5CY22MEHJN). The f639a40-based debug APK was installed on 2026-09-08 14:07
+and points at the fixed Preview https://e82714c4.thewyj-uk.pages.dev. Only the
+isolated Preview fixture (account 6e846bea-d9ee-4363-9b73-aa5afbfc3b19,
+username 1111q) was used; reports and screenshots remain outside Git.
+
+- Tools overlay suite (`TASK20_OVERLAY_SUITE=tools`, report
+  tool-overlays-1111q-r8) passed both themes, 24 checks, zero runtime errors:
+  random-date start/end pickers, gradient start/end color pickers, text-tool
+  select, image-format select, QR kind select, text long-press context menu,
+  file chooser open/cancel/reopen twice, and trial navigation with native
+  quiz-language and image-format selects. The context-menu gate passed on
+  physical evidence (contextmenu event plus two new Android PopupWindows),
+  because Samsung draws the floating toolbar inside the WebView surface and
+  does not expose it to UIAutomator. The file chooser is the official Android
+  16 Photo Picker (`com.google.android.photopicker`); the driver waits for the
+  real picker hierarchy and for MainActivity to resume before reopening.
+- Core overlay suite (`TASK20_OVERLAY_SUITE=core`, report
+  core-overlays-1111q-r1) passed both themes on the same new APK: 52 checks,
+  zero runtime errors. All modal layers mount under body, keep the background
+  inert, fit the 384x703.2 CSS viewport with no horizontal overflow, and
+  release the background after close. Finance direction/datetime/select/color
+  and learning grading/practice/select pickers opened as real native dialogs;
+  feedback soft-keyboard viewport, nested delete-cancel, confirm cancel,
+  rejudge confirm-only Back behavior, and Android Back closing the navigation
+  panel all passed in light and dark.
+- Driver hardening only (commit 2e2ab2e): native picker/file-chooser detection
+  now waits up to 8s for the real platform hierarchy to mount, file-chooser
+  cancel waits for MainActivity to actually resume, tap stability includes
+  scroll/position/viewport height, and the text menu uses contextmenu plus
+  PopupWindow evidence. No product delay, reload, or business-code change.
 
 Repeatable opt-in physical commands: configure the documented device/Preview/
 fixture/report environment variables, then run qa/task20_overlay_device.mjs.
