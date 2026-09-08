@@ -12,11 +12,14 @@ const userId = process.env.TASK20_FIXTURE_USER_ID;
 const out = process.env.TASK20_OVERLAY_REPORT_DIR;
 // Measured from the current physical window's status-bar inset, not product CSS.
 const top = Number(process.env.TASK20_WEBVIEW_TOP_PX);
+const suite=process.env.TASK20_OVERLAY_SUITE || 'core';
+assert(['core','tools'].includes(suite));
 assert(serial && userId && out && Number.isFinite(top));
 assert(/^https:\/\/[a-z0-9.-]+\.pages\.dev$/.test(base || ''));
 const run = async (...args) => (await exec(adb, ['-s', serial, ...args], { timeout: 25000 })).stdout.trim();
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const results = [], errors = [];
+let completed = false, failure = null;
 let socket, port, next = 0;
 const calls = new Map();
 async function until(check, label, timeout = 20000) {
@@ -35,19 +38,34 @@ async function evaluate(expression) {
   const r=await command('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});
   assert(!r.exceptionDetails,'Device page evaluation failed');return r.result.value;
 }
-async function tap(selector) {
-  let p;
+async function tap(selector, holdMs=0) {
+  const size=await run('shell','wm','size');
+  const physicalWidth=Number(/(?:Override|Physical) size: (\d+)x\d+/.exec(size)?.[1]);
+  assert(physicalWidth>0);
+  let p, previous, stable=0;
   await until(async()=>{
     await evaluate(`document.querySelector(${JSON.stringify(selector)})?.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'})`);
     p=await evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)return null;
     const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;
-    const hit=document.elementFromPoint(x,y);return {x,y,width:innerWidth,hit:e===hit||e.contains(hit),disabled:e.disabled};})()`);
-    return p?.hit&&!p.disabled;
+    const hit=document.elementFromPoint(x,y),v=visualViewport;
+    return {x:x-v.offsetLeft,y:y-v.offsetTop,width:innerWidth,
+      visible:r.width>0&&r.height>0&&y>=v.offsetTop&&y<v.offsetTop+v.height,
+      hit:e===hit||e.contains(hit),disabled:e.disabled};})()`);
+    const position=p&&JSON.stringify([p.x,p.y,p.width]);
+    stable=position===previous?stable+1:0;previous=position;
+    return stable>=2&&p?.visible&&p.hit&&!p.disabled;
   },`tap target ${selector}`);
-  const size=await run('shell','wm','size');
-  const physicalWidth=Number(/(?:Override|Physical) size: (\d+)x\d+/.exec(size)?.[1]);
-  assert(physicalWidth>0); const scale=physicalWidth/p.width;
-  await run('shell','input','tap',String(Math.round(p.x*scale)),String(Math.round(top+p.y*scale)));
+  const scale=physicalWidth/p.width;
+  await evaluate(`(()=>{window.__task20TouchHit=false;
+    document.addEventListener('pointerdown',event=>{
+      const target=document.querySelector(${JSON.stringify(selector)});
+      window.__task20TouchHit=Boolean(target&&(target===event.target||target.contains(event.target)));
+      window.__task20TouchTarget={id:event.target.id,tag:event.target.tagName};
+    },{capture:true,once:true});})()`);
+  const x=String(Math.round(p.x*scale)),y=String(Math.round(top+p.y*scale));
+  if(holdMs)await run('shell','input','swipe',x,y,x,y,String(holdMs));
+  else await run('shell','input','tap',x,y);
+  assert(await evaluate('window.__task20TouchHit'),`Physical touch missed ${selector}: ${JSON.stringify(await evaluate('window.__task20TouchTarget'))}`);
 }
 async function nativeTab(text, route) {
   const xmlPath='/data/local/tmp/wyj-overlay-ui.xml';
@@ -68,11 +86,19 @@ async function layer(id) {
   assert(m.body&&!m.inert&&m.backgroundInert,id+' layer ownership');
   assert(m.height>80&&m.x>=-1&&m.right<=m.width+1&&!m.overflow,id+' horizontal bounds');
   assert(m.y>=m.viewportTop-2&&m.bottom<=m.viewportTop+m.viewportHeight+2,id+' vertical bounds');
+  results.push({test:`layer:${id}`,theme,passed:true,geometry:m});
   return m;
 }
 async function close(id) {
   await tap(`#${id} [data-close-modal="${id}"], #${id} [data-finance-close="${id}"]`);
   await until(()=>evaluate(`document.getElementById(${JSON.stringify(id)}).classList.contains('hidden')`),id+' closed');
+}
+async function enterText(selector, text) {
+  await tap(selector);
+  await command('Input.dispatchKeyEvent',{type:'keyDown',key:'a',code:'KeyA',windowsVirtualKeyCode:65,modifiers:2});
+  await command('Input.dispatchKeyEvent',{type:'keyUp',key:'a',code:'KeyA',windowsVirtualKeyCode:65,modifiers:2});
+  await command('Input.insertText',{text});
+  await run('shell','input','keyevent','KEYCODE_BACK');
 }
 async function screenshot(name) {
   const device='/data/local/tmp/wyj-overlay-screen.png';
@@ -103,6 +129,8 @@ try {
   await new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=reject;});
   await command('Runtime.enable');
   assert(await evaluate(`(async()=>{const r=await fetch('/api/app/session');const d=await r.json();return r.ok&&d.account?.id===${JSON.stringify(userId)}})()`),'Isolated fixture mismatch');
+  const financeAccess=await evaluate("(async()=>{const r=await fetch('/api/finance/bootstrap');const d=await r.json();return {status:r.status,code:d.code};})()");
+  assert.equal(financeAccess.status,200,`Preview fixture cannot exercise finance dialogs: HTTP ${financeAccess.status} ${financeAccess.code || ''}`);
   for(let n=0;n<4;n++) {
     const visible=await evaluate("[...document.querySelectorAll('.modal-layer:not(.hidden)')].filter(e=>!e.inert).at(-1)?.id");
     if(!visible)break;await close(visible);
@@ -118,10 +146,59 @@ try {
     if(await evaluate("document.getElementById('accountMenu').open"))await tap('#accountMenu summary');
     for(let n=0;n<3&&await evaluate('document.documentElement.dataset.themePreference')!==theme;n++)await tap('#themeToggleBtn');
     assert.equal(await evaluate('document.documentElement.dataset.theme'),theme);
+    if(suite==='tools') {
+      for(const [tool,fields] of [
+        ['random-date',[['#randomStartDate','date'],['#randomEndDate','date']]],
+        ['gradient-generator',[['#imageColor','color'],['#imageGradientEnd','color']]],
+        ['letter-case',[['#textToolOption','select']]],
+        ['image-format',[['#imageFormat','select']]],
+        ['temporary-qr',[['#qrKind','select']]],
+      ]) {
+        await nativeTab('工具','/tools');
+        await tap(`[data-open-tool="${tool}"]`);
+        await until(()=>evaluate(`location.pathname===${JSON.stringify('/tools/'+tool)}`),tool);
+        for(const [field,kind] of fields)await picker(field,kind);
+        if(tool==='image-format') {
+          // Only verify launch/cancel. Never enumerate, select or screenshot personal files.
+          for(let attempt=0;attempt<2;attempt++) {
+            await tap('#imageToolInput');
+            const xmlPath='/data/local/tmp/wyj-overlay-ui.xml';
+            await run('shell','uiautomator','dump',xmlPath);
+            const xml=await run('shell','cat',xmlPath);
+            assert(/package="(?:com\.google\.android\.documentsui|com\.android\.documentsui|com\.android\.providers\.media[^\"]*|com\.google\.android\.providers\.media[^\"]*|com\.sec\.android\.app\.myfiles)"|resource-id="android:id\/resolver_list"/.test(xml),'Native file chooser did not open');
+            await run('shell','input','keyevent','KEYCODE_BACK');
+            await until(()=>evaluate("document.hasFocus() && document.getElementById('imageToolInput').files.length===0"),'file chooser cancel');
+          }
+          results.push({test:'file-chooser-cancel-reopen',theme,passed:true});
+        }
+        if(tool==='letter-case') {
+          await enterText('#textToolInput','Task20 popup fixture');
+          await tap('#textToolInput',900);
+          const xmlPath='/data/local/tmp/wyj-overlay-ui.xml';
+          await run('shell','uiautomator','dump',xmlPath);
+          const xml=await run('shell','cat',xmlPath);
+          assert(/android:id\/(?:floating_toolbar|floating_toolbar_menu_item_text|floating_toolbar_menu_item_image)|text="(?:复制|全选|选择全部|剪切|Copy|Select all|Cut)"/.test(xml),'Native text-selection menu missing');
+          await screenshot(`${theme}-text-context-menu`);
+          await run('shell','input','keyevent','KEYCODE_BACK');
+          results.push({test:'text-context-menu',theme,passed:true});
+        }
+        assert(await evaluate('document.documentElement.scrollWidth<=innerWidth'),'Tool horizontal overflow');
+      }
+      await nativeTab('主页','/select');await tap('#siteNavToggle');
+      await tap('#siteNavPanel a[href="/trial"]');
+      await until(()=>evaluate("location.pathname==='/trial'"),'trial route');
+      await picker('#trialQuizLanguage','select');
+      await tap('[data-trial-tool="image-format"]');await picker('#trialImageFormat','select');
+      results.push({test:'trial-navigation-native-selects',theme,passed:true});
+      continue;
+    }
     await tap('#siteNavToggle');
     await until(()=>evaluate("document.getElementById('siteNavToggle').getAttribute('aria-expanded')==='true'"),'nav opens');
     await until(()=>evaluate("document.getElementById('siteNavPanel').getBoundingClientRect().height>100 && !document.getElementById('siteNavPanel').getAnimations().some(a=>a.playState==='running')"),'nav fully expanded');
     await screenshot(`${theme}-navigation`);
+    await run('shell','input','keyevent','KEYCODE_BACK');
+    await until(()=>evaluate("document.getElementById('siteNavToggle').getAttribute('aria-expanded')==='false'"),'Android Back closes navigation');
+    await tap('#siteNavToggle');
     await tap('#accountMenu summary');
     await until(()=>evaluate("document.getElementById('accountMenu').open && document.getElementById('siteNavToggle').getAttribute('aria-expanded')==='false'"),'exclusive account menu');
     await tap('#membershipBtn'); await layer('membershipModal');
@@ -146,14 +223,39 @@ try {
       if(id==='financeTransactionModal'){await picker('#financeTransactionDirection','select');await picker('#financeTransactionTime','datetime');}
       if(id==='financeCategoryModal'){await picker('#financeCategoryAppliesTo','select');await picker('#financeCategoryColor','color');}
       if(id==='financeBudgetModal'){await picker('#financeBudgetMonth','month');await picker('#financeBudgetCategory','select');}
-      await close(id,true);results.push({test:id,theme,passed:true,geometry});
+      await close(id);results.push({test:id,theme,passed:true,geometry});
     }
     assert(await evaluate("!document.getElementById('appShell').inert && !document.querySelector('.modal-layer:not(.hidden)')"),'Background did not unlock');
     results.push({test:'navigation-membership-account-nested-feedback-keyboard',theme,passed:true});
+    await nativeTab('学习','/language');
+    await tap('[data-project="english"]');
+    await until(()=>evaluate("location.pathname==='/language/english'"),'English workspace');
+    await tap('[data-view="setupView"]');
+    await picker('#gradingModeSelect','select');await picker('#practiceModeSelect','select');
+    await enterText('#wordInput','hello\nworld');
+    await tap('#startBtn');
+    await until(()=>evaluate("document.getElementById('progressLabel').textContent==='1/2' && !document.getElementById('skipBtn').disabled"),'first question');
+    await tap('#skipBtn');
+    await until(()=>evaluate("document.getElementById('progressLabel').textContent==='2/2' && !document.getElementById('skipBtn').disabled"),'second question');
+    await tap('#skipBtn');await layer('roundSummaryModal');await screenshot(`${theme}-round-summary`);
+    await tap('#roundWrongBtn');
+    await tap('#clearWrongBtn');await layer('confirmModal');await tap('#cancelConfirmBtn');
+    await until(()=>evaluate("document.getElementById('confirmModal').classList.contains('hidden')"),'confirmation cancelled');
+    await tap('#wrongList .wrong-rejudge-button');
+    await enterText('#wrongList .wrong-rejudge-form:not(.hidden) input','not-the-meaning');
+    await tap('#wrongList .wrong-rejudge-form:not(.hidden) .wrong-rejudge-submit');
+    await layer('rejudgeResultModal');await screenshot(`${theme}-rejudge-result`);
+    await run('shell','input','keyevent','KEYCODE_BACK');
+    assert(await evaluate("!document.getElementById('rejudgeResultModal').classList.contains('hidden')"),'Back bypassed confirm-only result');
+    await tap('#rejudgeResultConfirmBtn');
+    await until(()=>evaluate("document.getElementById('rejudgeResultModal').classList.contains('hidden')"),'rejudge acknowledged');
+    results.push({test:'learning-summary-confirm-rejudge-native-back',theme,passed:true});
   }
-  assert.deepEqual(errors,[]);console.log(JSON.stringify({passed:true,results,errors},null,2));
+  assert.deepEqual(errors,[]);completed=true;console.log(JSON.stringify({passed:true,results,errors},null,2));
+} catch(error) {
+  failure=String(error.message);throw error;
 } finally {
   if(socket)socket.close();if(port)await run('forward','--remove',`tcp:${port}`);
   await run('shell','rm','-f','/data/local/tmp/wyj-overlay-ui.xml','/data/local/tmp/wyj-overlay-screen.png');
-  await writeFile(path.join(out,'results.json'),JSON.stringify({results,errors},null,2));
+  await writeFile(path.join(out,'results.json'),JSON.stringify({suite,passed:completed,failure,results,errors},null,2));
 }

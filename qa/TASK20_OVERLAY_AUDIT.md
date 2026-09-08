@@ -33,24 +33,25 @@ substitute for the business triggers or physical picker acceptance.
 
 | Layer ID | Actual trigger / coverage | Physical new-Preview status |
 | --- | --- | --- |
-| financeTransactionModal | Finance: new/edit transaction; direction, datetime, category | Pending |
-| financeCategoryModal | Finance: manage categories; native color and type | Pending |
-| financeBudgetModal | Finance: manage budgets; native month and category | Pending |
-| membershipModal | Account menu: membership; purpose/plan/payment controls | Pending |
-| accountModal | Account settings from menu; nested delete dialog | Pending |
+| financeTransactionModal | Finance: new transaction; direction and datetime | PASS both themes; cancelled without writing |
+| financeCategoryModal | Finance: manage categories; native color and type | PASS both themes; cancelled without writing |
+| financeBudgetModal | Finance: manage budgets; native month and category | PASS both themes; cancelled without writing |
+| membershipModal | Account menu: membership; finance purpose and plans | PASS both themes; no order created |
+| accountModal | Account settings from menu; nested delete dialog | PASS both themes |
 | siteMessageModal | Pending single-user message; close/ack receipt | Pending |
-| deleteAccountModal | Account: delete; CANCEL ONLY on retained fixture | Pending |
+| deleteAccountModal | Account: delete; CANCEL ONLY on retained fixture | PASS both themes; account retained |
 | adminEditModal | Admin: edit isolated selected user | Pending |
-| roundSummaryModal | Finish isolated learning round | Pending |
-| confirmModal | Learning/admin destructive confirmation; cancel | Pending |
-| feedbackModal | Account menu: feedback, existing types and views | Pending |
-| rejudgeResultModal | Rejudge correct/wrong/network outcomes | Pending |
+| roundSummaryModal | Finish isolated two-word round via skip | PASS both themes |
+| confirmModal | Learning destructive confirmation; cancel | PASS both themes; admin trigger pending |
+| feedbackModal | Account menu: feedback type and soft keyboard | PASS both themes; no feedback submitted |
+| rejudgeResultModal | Rejudge wrong outcome; explicit confirmation and Android Back | PASS both themes; correct/network outcomes pending |
 
 Other interaction families:
 
 - `siteNavPanel`: public, select, language, finance, tools, account/admin;
   tap, mouse, Escape, focus, scrolling, trial route. Old-page physical tap after
-  the native sizing fix passed; new-Preview full matrix pending.
+  the native sizing fix passed; new-Preview select-page taps and Android Back
+  passed in both themes. Public/trial and admin-specific routes remain pending.
 - `accountMenu` / `.account-menu-popover`: details/summary, viewport edges,
   account/membership/feedback links, outside click, mutual exclusion with nav.
 - Native selects (26 static controls): trialQuizLanguage, trialImageFormat,
@@ -107,10 +108,58 @@ before going back in history, preserving confirm-only/message receipt rules.
 Local real-browser regression: 11 flows passed, including warm route identity,
 zero auth-refresh requests, painted-frame login/recovery detection, and all 12
 shared dialogs in both themes. Task 20 D1 integration: 18 passed. Static: 28
-passed. Physical results for the newly built SPA APK remain pending until rerun.
+passed. See the dated physical evidence below; a later tool race was found and
+must be rechecked on the next Preview APK before closing this acceptance gate.
 
 Previous fixed-viewport APK on the physical SM-S9360 passed both-theme taps for
 navigation/account menus, membership, account/delete-cancel, feedback plus soft
 keyboard, and all three finance dialogs with native select/date/month/color
 pickers. This is supporting evidence, not a claim that the remaining physical
 admin/message/learning/tool picker matrix is complete.
+
+## 2026-09-07 physical SPA acceptance and 2026-09-08 tool race
+
+Physical evidence uses the fefbb64 APK, fixed Preview
+https://771ae15a.thewyj-uk.pages.dev, SM-S9360 / Android 16 / WebView 151,
+384 CSS-pixel width (1440 physical pixels), 703.2 CSS-pixel WebView height.
+Only an isolated user-created Preview test account was used. Reports and
+screenshots are outside Git; no secret, token, real QR or personal file is logged.
+
+- Native tools, language, finance, home, tools, finance: six actual tab sequences,
+  correct target content (not a membership gate), zero document loads,
+  zero /api/me or native refresh calls, and zero painted login/guest/recovery
+  frames. Independent periodic status polling is not claimed to be zero.
+- Home return retained the document. Process kill and force-stop restored the
+  same account. This is nine flow checks, not proof of phone reboot/VPN cases.
+- Core popup suite: 52 physical checks in light/dark, 10 distinct modal IDs,
+  no runtime errors. Real triggers, ADB touch hit checks, bounds, keyboard,
+  native selectors, nested inertness and native Back were exercised.
+- Driver corrections: physical coordinates subtract visualViewport offsets;
+  wait for stable measured geometry, and verify the actual pointerdown target.
+  Previously an IME-shifted tap hit the word-list button instead of Skip.
+  A resumed wrong-book view must explicitly switch to setup before selectors.
+  These corrections do not add product delays or change learning logic.
+- A separate REAL product race was found in the tools suite: show('/tools')
+  displayed the catalog and awaited preferences; a user opened random-date;
+  the older show continuation then closed that workbench. The URL remained the
+  tool URL. The real-browser regression fails on the old code with
+  "Late preferences closed the new workbench". A tool view revision now guards
+  async continuations; opening/closing/hiding supersedes old renders. Edited
+  input and departure to language are regression-tested with real delayed API
+  responses, not replacement business data. The local 12-flow suite passes.
+- The unified asset release is bumped to avoid serving the old cached tool code.
+  API, database, membership and payment contracts are unchanged.
+
+Remaining physical gates: tool/native file/context/date/color/QR controls after
+the new Preview install; public/trial controls; adminEditModal and siteMessageModal
+using a legitimately authenticated Preview administrator; rejudge correct/network
+outcomes; reboot/recents/network/VPN and other Task 20 persistence scenarios.
+The historical production admin is absent from Preview. Do not manufacture a
+pass, reset that credential, or forge an owner session to bypass this gate.
+As of 2026-09-08 the phone is no longer listed by adb; reinstall/retest awaits USB.
+
+Repeatable opt-in physical commands: configure the documented device/Preview/
+fixture/report environment variables, then run qa/task20_overlay_device.mjs.
+TASK20_OVERLAY_SUITE=core (default) and tools produce separate explicit reports;
+running one does not mark the other passed. Native file-picker checks only open,
+cancel and reopen, never enumerate/select/screenshot personal files.

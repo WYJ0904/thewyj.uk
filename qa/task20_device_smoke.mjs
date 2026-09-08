@@ -133,7 +133,8 @@ try {
     assert.equal(frames.guestFrames, 0, JSON.stringify({route,frames}));
     assert.equal(frames.restoringFrames, 0, 'Warm navigation showed a recovery/loading screen');
     assert.ok(frames.events.some(event => event.state === 'content'), 'Target content never became visible');
-    results.push({ test:`navigate:${route}`, passed:true, documentLoads:0, authRequests:connection.authRequests, frames });
+    const displayedRoute=await connection.evaluate('location.pathname');
+    results.push({ test:`navigate:${route}`, passed:true, displayedRoute, membershipGate:displayedRoute!==route, documentLoads:0, authRequests:connection.authRequests, frames });
   }
   const marker = String(Date.now());
   await connection.evaluate(`window.__qa20PageMarker=${JSON.stringify(marker)}`);

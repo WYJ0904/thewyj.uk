@@ -4,7 +4,7 @@ import {
   sanitizeAccepted,
   sanitizeStoredRubric,
   wordMatchesLanguage,
-} from "./quiz.js?v=20260904-task20-android-r1";
+} from "./quiz.js?v=20260908-task20-navigation-r2";
 
 export const MAX_WRONG_BOOK_ITEMS = 250;
 

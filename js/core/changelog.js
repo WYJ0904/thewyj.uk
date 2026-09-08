@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?v=20260904-task20-android-r1";
+import { fetchWithTimeout } from "./api.js?v=20260908-task20-navigation-r2";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 

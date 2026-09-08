@@ -451,6 +451,51 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#accountModal').classList.contains('hidden')"), true);
     });
 
+    await check("Task 20 late tool preferences cannot replace a newer tool or route", async () => {
+      assert.ok(['127.0.0.1','localhost'].includes(new URL(BASE_URL).hostname), 'Isolated fixture only');
+      assert.ok(process.env.WYJ_TEST_ADMIN_SECRET, 'Isolated administrator fixture required');
+      const admin = await request('/api/login', { username:'wyj', secret:process.env.WYJ_TEST_ADMIN_SECRET });
+      assert.equal(admin.status,200);
+      try {
+        const granted = await request('/api/admin/membership/manage', {
+          user_id:me.data.account.id, action:'grant', plan_code:'tools_monthly', note:'Task20 isolated navigation regression',
+        },admin.data.session);
+        assert.equal(granted.status,200);
+      } finally { await request('/api/logout',{},admin.data.session); }
+      for (const destination of ['tool','language']) {
+        await navigate('/select');
+        await waitFor('Boolean(window.WYJAndroidNavigation)',20000,'native route dispatcher');
+        await evaluate(`(()=>{
+          const original=window.fetch;
+          const gate=new Promise(resolve=>window.__qaReleasePreferences=resolve);
+          window.__qaPreferencesHeld=false;window.__qaToolsNavigationDone=false;
+          window.fetch=async(...args)=>{
+            const response=await original(...args);
+            if(new URL(typeof args[0]==='string'?args[0]:args[0].url,location.href).pathname==='/api/tools/preferences'){
+              window.__qaPreferencesHeld=true;await gate;
+            }
+            return response;
+          };
+          window.WYJAndroidNavigation.navigate('/tools').then(()=>window.__qaToolsNavigationDone=true);
+        })()`);
+        try {
+          await waitFor('window.__qaPreferencesHeld',10000,'real preferences response held');
+          await click('[data-open-tool="random-date"]');
+          await setFields({'#randomStartDate':'2026-01-02'});
+          if(destination==='language') await click('[data-site-nav="language"]');
+        } finally { await evaluate('window.__qaReleasePreferences()'); }
+        await waitFor('window.__qaToolsNavigationDone',10000,'original tools render finished');
+        if(destination==='tool') {
+          assert.equal(await evaluate('location.pathname'),'/tools/random-date');
+          assert.equal(await evaluate("document.getElementById('toolWorkbench').classList.contains('hidden')"),false,'Late preferences closed the new workbench');
+          assert.equal(await evaluate("document.getElementById('randomStartDate').value"),'2026-01-02','Late render reset edited input');
+        } else {
+          await waitFor("location.pathname==='/language'",10000,'new language route');
+          assert.equal(await evaluate("document.getElementById('toolsPanel').classList.contains('hidden')"),true,'Late tools render reopened hidden page');
+        }
+      }
+    });
+
     await check("Task 20 shared dialog portal, bounds, focus and scroll in both themes", async () => {
       await navigate('/select');
       const ids = await evaluate("[...document.querySelectorAll('.modal-layer')].map(e=>e.id)");

@@ -5,10 +5,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20260904-task20-android-r1";
-import { randomToolResult } from "./js/tools/random.js?v=20260904-task20-android-r1";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260904-task20-android-r1";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260904-task20-android-r1";
+} from "./js/tools/catalog.js?v=20260908-task20-navigation-r2";
+import { randomToolResult } from "./js/tools/random.js?v=20260908-task20-navigation-r2";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260908-task20-navigation-r2";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260908-task20-navigation-r2";
 import {
   csvString,
   decodeLocalText,
@@ -17,15 +17,15 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20260904-task20-android-r1";
+} from "./js/tools/file.js?v=20260908-task20-navigation-r2";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20260904-task20-android-r1";
-import { runToolRenderer } from "./js/tools/runner.js?v=20260904-task20-android-r1";
+} from "./js/tools/image.js?v=20260908-task20-navigation-r2";
+import { runToolRenderer } from "./js/tools/runner.js?v=20260908-task20-navigation-r2";
 (() => {
   "use strict";
 
@@ -48,6 +48,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260904-task20-android-
   let preferencesLoadPromise = null;
   let currentCategory = "all";
   let currentTool = null;
+  let viewRevision = 0;
   let currentDownload = null;
   let activeRoomPoller = null;
   let activeUploadController = null;
@@ -464,6 +465,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260904-task20-android-
   async function openTool(toolId, pushRoute = true) {
     const tool = TOOL_MAP.get(toolId);
     if (!tool) return;
+    viewRevision++;
     window.WYJWorkflows?.hide?.({ cancel: true });
     currentTool = tool;
     byId("toolsDashboard").classList.add("hidden");
@@ -476,6 +478,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260904-task20-android-
   }
 
   function closeWorkbench(pushRoute = true) {
+    viewRevision++;
     stopRoomPolling();
     cancelActiveUpload(false);
     currentTool = null;
@@ -487,7 +490,9 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260904-task20-android-
   }
 
   async function show(path = "/tools", options = {}) {
+    const revision = ++viewRevision;
     const access = options.access || (options.offline ? null : await bridge.apiGet("/api/tools/access"));
+    if (revision !== viewRevision) return;
     const account = access?.account || bridge.account?.() || {};
     const summary = account.membership_summary || {};
     const membershipText = summary.permanent ? `${summary.name} · 永久有效` : `${summary.name || "工具箱会员"}${summary.expires_at ? ` · 到期 ${bridge.formatDate(summary.expires_at)}` : ""}`;
@@ -513,12 +518,16 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260904-task20-android-
     } else {
       await loadPreferences({ allowCached: true });
     }
+    // The visible catalog is usable while preferences load. Do not undo a
+    // subsequent tool selection, close, or route departure when they arrive.
+    if (revision !== viewRevision) return;
     const match = path.match(/^\/tools\/([a-z0-9_-]+)$/);
     if (match && TOOL_MAP.has(match[1])) await openTool(match[1], false);
     else closeWorkbench(false);
   }
 
   function hide() {
+    viewRevision++;
     stopRoomPolling();
     cancelActiveUpload(false);
     window.WYJWorkflows?.hide?.({ cancel: true });
