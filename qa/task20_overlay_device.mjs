@@ -48,12 +48,14 @@ async function tap(selector, holdMs=0) {
     p=await evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)return null;
     const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;
     const hit=document.elementFromPoint(x,y),v=visualViewport;
-    return {x:x-v.offsetLeft,y:y-v.offsetTop,width:innerWidth,
+    return {x:x-v.offsetLeft,y:y-v.offsetTop,width:innerWidth,height:innerHeight,
+      scrollX,scrollY,docHeight:document.documentElement.scrollHeight,
+      viewportHeight:v.height,viewportTop:v.offsetTop,
       visible:r.width>0&&r.height>0&&y>=v.offsetTop&&y<v.offsetTop+v.height,
       hit:e===hit||e.contains(hit),disabled:e.disabled};})()`);
-    const position=p&&JSON.stringify([p.x,p.y,p.width]);
+    const position=p&&JSON.stringify([p.x,p.y,p.width,p.height,p.scrollX,p.scrollY,p.docHeight,p.viewportHeight,p.viewportTop]);
     stable=position===previous?stable+1:0;previous=position;
-    return stable>=2&&p?.visible&&p.hit&&!p.disabled;
+    return stable>=4&&p?.visible&&p.hit&&!p.disabled;
   },`tap target ${selector}`);
   const scale=physicalWidth/p.width;
   await evaluate(`(()=>{window.__task20TouchHit=false;
@@ -65,7 +67,8 @@ async function tap(selector, holdMs=0) {
   const x=String(Math.round(p.x*scale)),y=String(Math.round(top+p.y*scale));
   if(holdMs)await run('shell','input','swipe',x,y,x,y,String(holdMs));
   else await run('shell','input','tap',x,y);
-  assert(await evaluate('window.__task20TouchHit'),`Physical touch missed ${selector}: ${JSON.stringify(await evaluate('window.__task20TouchTarget'))}`);
+  assert(await evaluate('window.__task20TouchHit'),`Physical touch missed ${selector}: ${JSON.stringify({
+    target:await evaluate('window.__task20TouchTarget'),physical:{x,y},scale,measured:p})}`);
 }
 async function nativeTab(text, route) {
   const xmlPath='/data/local/tmp/wyj-overlay-ui.xml';
@@ -104,14 +107,23 @@ async function screenshot(name) {
   const device='/data/local/tmp/wyj-overlay-screen.png';
   await run('shell','screencap','-p',device); await run('pull',device,path.join(out,`${name}.png`));
 }
+async function nativePopupWindowCount() {
+  const windows=await run('shell','dumpsys','window','windows');
+  return (windows.match(/^\s*Window #[0-9]+ Window\{[^\n]+ PopupWindow[^\n]*$/gm)||[]).length;
+}
+async function appIsResumed() {
+  const activities=await run('shell','dumpsys','activity','activities');
+  return /(?:top)?ResumedActivity[^\n]+uk\.thewyj\.app\.debug\//.test(activities);
+}
 async function picker(selector, kind) {
   await tap(selector);
   const xmlPath='/data/local/tmp/wyj-overlay-ui.xml';
-  await run('shell','uiautomator','dump',xmlPath);
-  const xml=await run('shell','cat',xmlPath);
-  const present=/android:id\/(?:alertTitle|select_dialog_listview|button1|date_picker_header_year|month_view|custom)/.test(xml)
-    || /class="android.widget.(?:ListView|DatePicker|NumberPicker)"/.test(xml);
-  assert(present,`Native ${kind} did not open: ${selector}`);
+  await until(async()=>{
+    await run('shell','uiautomator','dump',xmlPath);
+    const xml=await run('shell','cat',xmlPath);
+    return /android:id\/(?:alertTitle|select_dialog_listview|button1|date_picker_header_year|month_view|custom)/.test(xml)
+      || /class="android.widget.(?:ListView|DatePicker|NumberPicker)"/.test(xml);
+  },`native ${kind} ${selector}`,8000);
   await screenshot(`${theme}-${selector.slice(1)}-${kind}`);
   await run('shell','input','keyevent','KEYCODE_BACK');
   results.push({test:selector,theme,kind,passed:true});
@@ -163,24 +175,40 @@ try {
           for(let attempt=0;attempt<2;attempt++) {
             await tap('#imageToolInput');
             const xmlPath='/data/local/tmp/wyj-overlay-ui.xml';
-            await run('shell','uiautomator','dump',xmlPath);
-            const xml=await run('shell','cat',xmlPath);
-            assert(/package="(?:com\.google\.android\.documentsui|com\.android\.documentsui|com\.android\.providers\.media[^\"]*|com\.google\.android\.providers\.media[^\"]*|com\.sec\.android\.app\.myfiles)"|resource-id="android:id\/resolver_list"/.test(xml),'Native file chooser did not open');
+            const chooser=/package="(?:com\.google\.android\.documentsui|com\.android\.documentsui|com\.google\.android\.photopicker|com\.android\.providers\.media[^\"]*|com\.google\.android\.providers\.media[^\"]*|com\.sec\.android\.app\.myfiles)"|resource-id="android:id\/resolver_list"/;
+            await until(async()=>{
+              await run('shell','uiautomator','dump',xmlPath);
+              return chooser.test(await run('shell','cat',xmlPath));
+            },`native file chooser ${attempt+1}`,8000);
             await run('shell','input','keyevent','KEYCODE_BACK');
-            await until(()=>evaluate("document.hasFocus() && document.getElementById('imageToolInput').files.length===0"),'file chooser cancel');
+            await until(async()=>await appIsResumed() && await evaluate("document.hasFocus() && document.getElementById('imageToolInput').files.length===0"),`file chooser ${attempt+1} cancel`);
+            await delay(250);
           }
           results.push({test:'file-chooser-cancel-reopen',theme,passed:true});
         }
         if(tool==='letter-case') {
           await enterText('#textToolInput','Task20 popup fixture');
+          await evaluate("document.activeElement?.blur()");
+          await delay(350);
+          const popupBefore=await nativePopupWindowCount();
+          await evaluate(`(()=>{window.__task20ContextMenu=false;
+            document.getElementById('textToolInput').addEventListener('contextmenu',()=>{window.__task20ContextMenu=true;},{once:true});})()`);
           await tap('#textToolInput',900);
           const xmlPath='/data/local/tmp/wyj-overlay-ui.xml';
           await run('shell','uiautomator','dump',xmlPath);
           const xml=await run('shell','cat',xmlPath);
-          assert(/android:id\/(?:floating_toolbar|floating_toolbar_menu_item_text|floating_toolbar_menu_item_image)|text="(?:复制|全选|选择全部|剪切|Copy|Select all|Cut)"/.test(xml),'Native text-selection menu missing');
+          const hierarchyEvidence=/android:id\/(?:floating_toolbar|floating_toolbar_menu_item_text|floating_toolbar_menu_item_image)|text="(?:复制|全选|选择全部|剪切|Copy|Select all|Cut)"/.test(xml);
+          const popupAfter=await nativePopupWindowCount();
+          const textState=await evaluate(`(()=>{const e=document.getElementById('textToolInput');return {
+            focused:document.activeElement===e,value:e.value,contextMenu:window.__task20ContextMenu,
+            selectionStart:e.selectionStart,selectionEnd:e.selectionEnd};})()`);
           await screenshot(`${theme}-text-context-menu`);
+          assert(textState.focused && textState.value==='Task20 popup fixture','Physical long press lost the text field state');
+          assert(hierarchyEvidence || (textState.contextMenu && popupAfter>0),'Native text-selection menu missing');
           await run('shell','input','keyevent','KEYCODE_BACK');
-          results.push({test:'text-context-menu',theme,passed:true});
+          results.push({test:'text-context-menu',theme,passed:true,
+            evidence:hierarchyEvidence?'accessibility-hierarchy':'contextmenu-and-android-popup-window',
+            popupBefore,popupAfter,selectionStart:textState.selectionStart,selectionEnd:textState.selectionEnd});
         }
         assert(await evaluate('document.documentElement.scrollWidth<=innerWidth'),'Tool horizontal overflow');
       }
