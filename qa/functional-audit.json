@@ -32,7 +32,7 @@
     "authenticated feedback submission is private and mobile-safe",
     "offline state preserves the session and reconnects",
     "locked toolbox, direct-route guard and membership plans",
-    "WeChat and Alipay order state survives a full page reload",
+    "notification archive WeChat and Alipay orders survive a full page reload",
     "word import, export, shuffle and clear",
     "free limit, empty answer and skipped wrong-book flow",
     "wrong search, JSON/PDF export, import and offline review",
