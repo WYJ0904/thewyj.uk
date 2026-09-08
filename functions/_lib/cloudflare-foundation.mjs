@@ -59,6 +59,8 @@ export function featureFlags(env = {}) {
     task16ProductionImport: booleanValue(env.TASK16_PRODUCTION_IMPORT_ENABLED, false),
     task18AdminMessages: booleanValue(env.TASK18_ADMIN_MESSAGES_ENABLED, false),
     task20AndroidApp: booleanValue(env.TASK20_ANDROID_APP_ENABLED, false),
+    task21NotificationReads: booleanValue(env.TASK21_NOTIFICATION_READS_ENABLED, false),
+    task21NotificationWrites: booleanValue(env.TASK21_NOTIFICATION_WRITES_ENABLED, false),
     legacyFallback: booleanValue(env.LEGACY_API_FALLBACK_ENABLED, false),
     workersAi: booleanValue(env.WORKERS_AI_ENABLED, false),
     d1RateLimit: booleanValue(env.D1_RATE_LIMIT_ENABLED, true),

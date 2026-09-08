@@ -768,6 +768,16 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("800", task21_payment_migration)
         self.assertNotRegex(task21_payment_migration, r"\b(?:DROP|DELETE|ALTER\s+TABLE)\b")
 
+        task21_notification_migration = (
+            ROOT / "cloudflare" / "migrations" / "0017_notification_archive.sql"
+        ).read_text(encoding="utf-8")
+        self.assertIn("task21_notification_events", task21_notification_migration)
+        self.assertIn("task21_notification_candidates", task21_notification_migration)
+        self.assertIn("task21_notification_sync_operations", task21_notification_migration)
+        self.assertNotRegex(task21_notification_migration, r"\b(?:DROP\s+TABLE|DELETE\s+FROM|ALTER\s+TABLE)\b")
+        for raw_column in ("title", "text", "body", "big_text", "ticker", "extras", "raw_text"):
+            self.assertNotIn(raw_column, task21_notification_migration)
+
         middleware = (ROOT / "functions" / "_lib" / "cloudflare-foundation.mjs").read_text(encoding="utf-8")
         status = (ROOT / "functions" / "api" / "status.js").read_text(encoding="utf-8")
         self.assertIn("crypto.randomUUID()", middleware)

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">thewyj</string>
+    <string name="notification_listener_label">thewyj 通知保存</string>
 </resources>
