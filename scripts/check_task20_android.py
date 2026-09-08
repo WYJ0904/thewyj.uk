@@ -94,7 +94,7 @@ def main() -> int:
     preview = wrangler["env"]["preview"]["vars"]
     production = wrangler["env"]["production"]["vars"]
     require(preview.get("TASK20_ANDROID_APP_ENABLED") == "true", "Preview Android flag must be enabled")
-    require(production.get("TASK20_ANDROID_APP_ENABLED") == "false", "Production Android flag must remain off before true-device acceptance")
+    require(production.get("TASK20_ANDROID_APP_ENABLED") == "true", "Production Android flag must remain enabled after Task 20 rollout")
 
     tracked = subprocess.run(
         ["git", "ls-files", "android"],
