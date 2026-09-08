@@ -34,6 +34,7 @@ data class AccountSnapshot(
                 role = json.optString("role", "user"),
                 membershipLabel = summary?.optString("label")
                     ?.takeIf(String::isNotBlank)
+                    ?: json.optString("membership_label").takeIf(String::isNotBlank)
                     ?: json.optString("membership", "free"),
                 entitlements = entitlements,
             )

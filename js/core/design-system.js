@@ -5,6 +5,24 @@ const THEME_ORDER = Object.freeze(["system", "light", "dark"]);
 
 let navigationController = null;
 
+function setupOverlayViewport() {
+  // Keep every modal outside page stacking contexts and the inert main shell.
+  document.querySelectorAll(".modal-layer").forEach((layer) => document.body.append(layer));
+  const update = () => {
+    const viewport = window.visualViewport;
+    const height = viewport?.height || window.innerHeight;
+    const top = viewport?.offsetTop || 0;
+    document.documentElement.style.setProperty("--ds-overlay-height", `${height}px`);
+    document.documentElement.style.setProperty("--ds-overlay-top", `${top}px`);
+    const navBottom = document.getElementById("accountBar")?.getBoundingClientRect().bottom || 0;
+    document.documentElement.style.setProperty("--ds-menu-height", `${Math.max(44, height + top - navBottom - 16)}px`);
+  };
+  update();
+  window.addEventListener("resize", update, { passive: true });
+  window.visualViewport?.addEventListener("resize", update, { passive: true });
+  window.visualViewport?.addEventListener("scroll", update, { passive: true });
+}
+
 function readThemePreference() {
   try {
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
@@ -60,6 +78,7 @@ function setupNavigation() {
     toggle.setAttribute("aria-label", next ? "关闭主导航" : "打开主导航");
     panel.setAttribute("aria-hidden", String(!next));
     panel.inert = !next;
+    if (next) document.getElementById("accountMenu")?.removeAttribute("open");
     if (!next && restoreFocus) toggle.focus();
   };
 
@@ -78,6 +97,9 @@ function setupNavigation() {
   });
 
   setOpen(false);
+  document.getElementById("accountMenu")?.addEventListener("toggle", (event) => {
+    if (event.target.open) setOpen(false);
+  });
   return Object.freeze({ close: () => setOpen(false) });
 }
 
@@ -191,6 +213,7 @@ export function setExperienceMode(mode) {
 }
 
 export function initDesignSystem() {
+  setupOverlayViewport();
   setupTheme();
   navigationController = setupNavigation();
   setupSplitFlap();

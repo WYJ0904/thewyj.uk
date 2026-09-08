@@ -359,6 +359,21 @@ try {
     assert.equal(result.payload.code, "task20_session_secret_not_configured");
   });
 
+  await test("six-character historical secret logs in without weakening new-secret rules", async () => {
+    await insertUser(db, "task20-legacy-six", "task20-six");
+    await db.prepare("UPDATE task12_users SET password_hash = ?1 WHERE id = ?2")
+      .bind(await hashSecret("123456", PASSWORD_PEPPER), "task20-legacy-six").run();
+    const login = await requestHandler(db, "/api/app/login", {
+      method: "POST",
+      body: { ...loginPayload(crypto.randomUUID()), username: "task20-six", secret: "123456" },
+    });
+    assert.equal(login.response.status, 200);
+    assert.equal(login.payload.account.id, "task20-legacy-six");
+    const { validateSecret } = await import("../functions/_lib/task12-model.mjs");
+    assert.throws(() => validateSecret("123456"));
+    assert.equal(validateSecret("1234567"), "1234567");
+  });
+
   console.log(`Task 20 D1 integration tests passed: ${completed}`);
 } finally {
   await mf.dispose();

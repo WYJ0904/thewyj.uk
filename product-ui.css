@@ -513,6 +513,10 @@ textarea::placeholder {
   right: 0;
   z-index: 900;
   width: 220px;
+  max-width: calc(100vw - 24px);
+  max-height: var(--ds-menu-height, calc(100dvh - 84px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: grid;
   gap: 4px;
   padding: 8px;

@@ -46,6 +46,18 @@ class WebRoutePolicy(baseUrl: String) {
         return "${trusted.scheme}://${trusted.authority}$safePath"
     }
 
+    fun spaRoute(rawUrl: String): String? {
+        if (decide(rawUrl) != NavigationDecision.Internal) return null
+        val uri = runCatching { URI(rawUrl) }.getOrNull() ?: return null
+        if (uri.userInfo != null) return null
+        val path = uri.rawPath.orEmpty().ifBlank { "/" }
+        val known = path in setOf("/", "/login", "/register", "/trial", "/changelog", "/select", "/language", "/finance", "/account", "/recharge", "/admin", "/tools") ||
+            Regex("^/language/(english|japanese)$").matches(path) ||
+            Regex("^/tools/[a-z0-9-]+$").matches(path) ||
+            Regex("^/share/(text|file|clipboard|qr|room)/[A-Za-z0-9_-]+$").matches(path)
+        return if (known) path + uri.rawQuery?.let { "?$it" }.orEmpty() + uri.rawFragment?.let { "#$it" }.orEmpty() else null
+    }
+
     private fun effectivePort(uri: URI): Int = when {
         uri.port > 0 -> uri.port
         uri.scheme.equals("https", true) -> 443

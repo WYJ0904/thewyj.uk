@@ -1,6 +1,9 @@
 package uk.thewyj.app.core.session
 
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
@@ -20,6 +23,77 @@ import uk.thewyj.app.core.web.WebSessionController
 class SessionRepositoryTest {
     private val now = 1_000_000L
     private val account = AccountSnapshot("stable-user-id", "alice", "user", "普通用户", emptySet())
+
+    @Test
+    fun coldExpiredSessionDoesNotMountWebViewBeforeRefreshAndCookieComplete() = runBlocking {
+        val gate = CompletableDeferred<Unit>()
+        val api = FakeApi().apply {
+            refreshGate = gate
+            refreshResult = ApiCall.Success(credentials("new-access", "new-refresh"))
+        }
+        val web = FakeWebSession()
+        val repository = repository(FakeStore(credentials(accessExpiry = now - 1)), api, web)
+        val startup = launch(start = CoroutineStart.UNDISPATCHED) { repository.restore() }
+        assertTrue(repository.state.value is SessionState.Initializing)
+        assertEquals("", web.installedAccess)
+        gate.complete(Unit)
+        startup.join()
+        assertTrue(repository.state.value is SessionState.Authenticated)
+        assertEquals("new-access", web.installedAccess)
+        assertEquals(1, api.rotationKeys.size)
+    }
+
+    @Test
+    fun newRepositoryRestoresDurableLoginWithoutRefreshAndLogoutRemainsTerminal() = runBlocking {
+        val store = FakeStore(null)
+        val api = FakeApi().apply {
+            loginResult = ApiCall.Success(credentials())
+            currentResult = ApiCall.Success(account)
+        }
+        repository(store, api, FakeWebSession()).login("alice", "123456")
+        val web = FakeWebSession()
+        val restarted = repository(store, api, web)
+        restarted.restore()
+        assertTrue(restarted.state.value is SessionState.Authenticated)
+        assertEquals("access-old", web.installedAccess)
+        assertEquals(0, api.rotationKeys.size)
+        assertEquals(0, restarted.webSessionEpoch.value)
+        restarted.logout()
+        val afterLogout = repository(store, api, FakeWebSession())
+        afterLogout.restore()
+        assertTrue(afterLogout.state.value is SessionState.SignedOut)
+    }
+
+    @Test
+    fun restorationDoesNotReplayWebRefreshButTokenRotationDoesExactlyOnce() = runBlocking {
+        val store = FakeStore(credentials())
+        val api = FakeApi().apply {
+            currentResult = ApiCall.Success(account)
+            refreshResult = ApiCall.Success(credentials("rotated", "rotated-refresh"))
+        }
+        val repository = repository(store, api, FakeWebSession())
+        repeat(3) { repository.restore() }
+        assertEquals(0, repository.webSessionEpoch.value)
+        repository.refresh()
+        assertEquals(1, repository.webSessionEpoch.value)
+        repeat(3) { repository.restore() }
+        assertEquals(1, repository.webSessionEpoch.value)
+    }
+
+    @Test
+    fun temporaryStorageFailureNeverBecomesLogoutOrDeletesCredentials() = runBlocking {
+        val store = FakeStore(credentials()).apply { failRead = true }
+        val api = FakeApi().apply { currentResult = ApiCall.Success(account) }
+        val web = FakeWebSession()
+        val repository = repository(store, api, web)
+        repository.restore()
+        assertTrue(repository.state.value is SessionState.StorageUnavailable)
+        assertEquals(credentials(), store.active)
+        assertEquals(0, web.clearCount)
+        store.failRead = false
+        repository.restore()
+        assertTrue(repository.state.value is SessionState.Authenticated)
+    }
 
     @Test
     fun validSessionRestoresSameAccountAndCookie() = runBlocking {
@@ -189,9 +263,13 @@ class SessionRepositoryTest {
 }
 
 private class FakeStore(initial: DeviceCredentials?) : CredentialStore {
+    var failRead = false
     var active: DeviceCredentials? = initial
     var pending: PendingLogout? = null
-    override fun loadActive() = active
+    override fun loadActive(): DeviceCredentials? {
+        if (failRead) throw uk.thewyj.app.core.auth.CredentialStorageException()
+        return active
+    }
     override fun saveActive(credentials: DeviceCredentials) { active = credentials }
     override fun clearActive() { active = null }
     override fun loadPendingLogout() = pending
@@ -209,6 +287,7 @@ private class FakeWebSession : WebSessionController {
 }
 
 private class FakeApi : AccountApi {
+    var refreshGate: CompletableDeferred<Unit>? = null
     var loginResult: ApiCall<DeviceCredentials> = ApiCall.Failure("unused", "unused", ApiFailureKind.VALIDATION)
     var refreshResult: ApiCall<DeviceCredentials> = ApiCall.Failure("unused", "unused", ApiFailureKind.VALIDATION)
     var currentResult: ApiCall<AccountSnapshot> = ApiCall.Failure("unused", "unused", ApiFailureKind.VALIDATION)
@@ -219,6 +298,7 @@ private class FakeApi : AccountApi {
     override suspend fun login(username: String, secret: String, deviceId: String) = loginResult
     override suspend fun refresh(credentials: DeviceCredentials, deviceId: String, rotationKey: String): ApiCall<DeviceCredentials> {
         rotationKeys += rotationKey
+        refreshGate?.await()
         return refreshResult
     }
     override suspend fun currentAccount(accessToken: String) = currentResult

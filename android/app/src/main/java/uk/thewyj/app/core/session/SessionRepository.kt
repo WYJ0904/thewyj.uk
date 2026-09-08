@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uk.thewyj.app.core.auth.CredentialStore
+import uk.thewyj.app.core.auth.CredentialStorageException
 import uk.thewyj.app.core.auth.DeviceCredentials
 import uk.thewyj.app.core.auth.DeviceIdentity
 import uk.thewyj.app.core.auth.PendingLogout
@@ -14,6 +15,7 @@ import uk.thewyj.app.core.network.ApiCall
 import uk.thewyj.app.core.network.ApiFailureKind
 import uk.thewyj.app.core.network.AppConfig
 import uk.thewyj.app.core.web.WebSessionController
+import uk.thewyj.app.core.web.WebSessionException
 import java.util.UUID
 
 class SessionRepository(
@@ -26,8 +28,10 @@ class SessionRepository(
     private val mutex = Mutex()
     private val mutableState = MutableStateFlow<SessionState>(SessionState.Initializing)
     val state: StateFlow<SessionState> = mutableState.asStateFlow()
+    private val mutableWebSessionEpoch = MutableStateFlow(0)
+    val webSessionEpoch = mutableWebSessionEpoch.asStateFlow()
 
-    suspend fun restore() = mutex.withLock {
+    suspend fun restore() = guarded(Unit) { mutex.withLock {
         flushPendingLogout()
         val credentials = store.loadActive()
         when (StartupPolicy.choose(
@@ -41,17 +45,17 @@ class SessionRepository(
             StartupAction.REFRESH_ACCESS -> refreshLocked(credentials!!)
             StartupAction.VERIFY_ACCESS -> verifyLocked(credentials!!)
         }
-    }
+    } }
 
-    suspend fun login(username: String, secret: String) = mutex.withLock {
+    suspend fun login(username: String, secret: String) = guarded(Unit) { mutex.withLock {
         flushPendingLogout()
         when (val result = api.login(username.trim(), secret, deviceIdentity.getOrCreate())) {
             is ApiCall.Success -> activate(result.value)
             is ApiCall.Failure -> mutableState.value = SessionState.SignedOut(result.message)
         }
-    }
+    } }
 
-    suspend fun register(username: String, secret: String) = mutex.withLock {
+    suspend fun register(username: String, secret: String) = guarded(Unit) { mutex.withLock {
         flushPendingLogout()
         when (val result = api.register(username.trim(), secret)) {
             is ApiCall.Success -> when (val login = api.login(username.trim(), secret, deviceIdentity.getOrCreate())) {
@@ -60,17 +64,17 @@ class SessionRepository(
             }
             is ApiCall.Failure -> mutableState.value = SessionState.SignedOut(result.message)
         }
-    }
+    } }
 
-    suspend fun refresh(): RefreshWorkResult = mutex.withLock {
+    suspend fun refresh(): RefreshWorkResult = guarded(RefreshWorkResult.RETRY) { mutex.withLock {
         val credentials = store.loadActive()
             ?: return@withLock RefreshWorkResult.SIGNED_OUT.also {
                 mutableState.value = SessionState.SignedOut()
             }
         refreshLocked(credentials)
-    }
+    } }
 
-    suspend fun logout() = mutex.withLock {
+    suspend fun logout() = guarded(Unit) { mutex.withLock {
         val credentials = store.loadActive()
         val deviceId = deviceIdentity.getOrCreate()
         if (credentials != null) {
@@ -82,6 +86,16 @@ class SessionRepository(
         store.clearActive()
         webSession.clearAccountData()
         mutableState.value = SessionState.SignedOut()
+    } }
+
+    private suspend fun <T> guarded(fallback: T, action: suspend () -> T): T = try {
+        action()
+    } catch (error: CredentialStorageException) {
+        mutableState.value = SessionState.StorageUnavailable(error.message.orEmpty())
+        fallback
+    } catch (error: WebSessionException) {
+        mutableState.value = SessionState.StorageUnavailable(error.message.orEmpty())
+        fallback
     }
 
     suspend fun appConfig(): ApiCall<AppConfig> = api.appConfig()
@@ -120,11 +134,14 @@ class SessionRepository(
             terminate("登录有效期已结束，请重新登录")
             return RefreshWorkResult.SIGNED_OUT
         }
-        mutableState.value = SessionState.Authenticated(
-            original.account,
-            ConnectionMode.RECOVERING,
-            "正在恢复连接",
-        )
+        // A cold-start WebView must not request authentication before its cookie exists.
+        if (mutableState.value is SessionState.Authenticated) {
+            mutableState.value = SessionState.Authenticated(
+                original.account,
+                ConnectionMode.RECOVERING,
+                "正在恢复连接",
+            )
+        }
         val rotationKey = original.pendingRotationKey.ifBlank { UUID.randomUUID().toString() }
         val pending = original.copy(pendingRotationKey = rotationKey)
         store.saveActive(pending)
@@ -157,6 +174,9 @@ class SessionRepository(
         }
         store.saveActive(credentials)
         webSession.installAccessCookie(credentials.accessToken, credentials.accessExpiresAtEpochMs)
+        if (previous != null && previous.accessToken != credentials.accessToken) {
+            mutableWebSessionEpoch.value += 1
+        }
         mutableState.value = SessionState.Authenticated(credentials.account, ConnectionMode.ONLINE)
     }
 

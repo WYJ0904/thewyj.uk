@@ -313,6 +313,8 @@ export function createFinanceController({
   navigate,
   appVersion,
   onSummaryChanged = () => {},
+  openDialog,
+  closeDialog,
 }) {
   let store = null;
   let currentAccountId = "";
@@ -720,6 +722,7 @@ export function createFinanceController({
   }
 
   function openLayer(id) {
+    if (openDialog) return openDialog(id);
     const layer = element(id);
     if (!layer) return;
     layer.classList.remove("hidden");
@@ -728,6 +731,7 @@ export function createFinanceController({
   }
 
   function closeLayer(id) {
+    if (closeDialog) return closeDialog(id);
     const layer = element(id);
     if (!layer) return;
     layer.classList.add("hidden");

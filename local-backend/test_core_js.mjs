@@ -34,7 +34,7 @@ globalThis.history = {
 globalThis.localStorage = new MemoryStorage({ vocabSession: "legacy-local" });
 globalThis.sessionStorage = new MemoryStorage({ vocabSession: "legacy-session" });
 
-const { APP_ROUTE_MANIFEST, createRouter } = await import("../js/core/router.js");
+const { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } = await import("../js/core/router.js");
 const {
   ACCOUNT_CACHE_KEY,
   ACCOUNT_SESSION_KEY,
@@ -59,6 +59,30 @@ router.pushRoute("/select");
 router.pushRoute("/login", true);
 assert.deepEqual(history.calls, [["push", "/select"], ["replace", "/login"]]);
 assert.deepEqual(visited, ["/select", "/login"]);
+
+for (const path of ["/finance", "/tools/json", "/language/japanese", "/share/file/abc_123", "/account?from=native"]) {
+  assert.equal(nativeAppRoute(path, "https://thewyj.uk"), path);
+}
+for (const path of ["//evil.example/finance", "/api/me", "/app.js", "/unknown", "javascript:alert(1)", "/\\evil.example/finance"]) {
+  assert.equal(nativeAppRoute(path, "https://thewyj.uk"), null);
+}
+const nativeVisited = [], nativeRendered = [];
+let releaseRoute;
+const blockedRoute = new Promise(resolve => { releaseRoute = resolve; });
+const native = createNativeNavigation({
+  origin: "https://thewyj.uk",
+  pushRoute: path => nativeVisited.push(path),
+  renderRoute: async () => { nativeRendered.push(nativeVisited.at(-1)); if (nativeRendered.length === 1) await blockedRoute; },
+});
+const firstNavigation = native.navigate("/language");
+await Promise.resolve();
+native.navigate("/tools");
+const lastNavigation = native.navigate("/finance");
+releaseRoute();
+await Promise.all([firstNavigation, lastNavigation]);
+assert.deepEqual(nativeRendered, ["/language", "/finance"], "rapid tabs keep the final route without concurrent rendering");
+assert.equal(await native.navigate("/api/me"), false);
+assert.equal(nativeVisited.length, 2, "native routing cannot call an auth/API endpoint");
 
 assert.equal(restoreAccountSession(), "legacy-session");
 assert.equal(localStorage.getItem(ACCOUNT_SESSION_KEY), "legacy-session");

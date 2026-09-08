@@ -1,0 +1,536 @@
+// Opt-in physical Preview audit. Real ADB taps, never element.click/openModal.
+import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { writeFile, mkdir } from 'node:fs/promises';
+import path from 'node:path';
+const exec = promisify(execFile);
+const adb = process.env.ADB || 'adb';
+const serial = process.env.ANDROID_SERIAL;
+const base = process.env.TASK20_PREVIEW_URL;
+const userId = process.env.TASK20_FIXTURE_USER_ID;
+const out = process.env.TASK20_OVERLAY_REPORT_DIR;
+// Measured from the current physical window's status-bar inset, not product CSS.
+const top = Number(process.env.TASK20_WEBVIEW_TOP_PX);
+const suite=process.env.TASK20_OVERLAY_SUITE || 'core';
+assert(['core','tools','rejudge','persistence'].includes(suite));
+assert(serial && userId && out && Number.isFinite(top));
+assert(/^https:\/\/[a-z0-9.-]+\.pages\.dev$/.test(base || ''));
+const run = async (...args) => (await exec(adb, ['-s', serial, ...args], { timeout: 25000 })).stdout.trim();
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const results = [], errors = [], dialogs = [];
+let completed = false, failure = null;
+let socket, port, next = 0;
+const calls = new Map();
+async function until(check, label, timeout = 20000) {
+  const end = Date.now()+timeout;
+  while (Date.now()<end) { if (await check()) return; await delay(100); }
+  throw new Error(`Did not settle: ${label}`);
+}
+function command(method, params={}) {
+  return new Promise((resolve,reject) => {
+    const id=++next;
+    const timer=setTimeout(()=>{calls.delete(id);reject(new Error(`${method} timeout`));},20000);
+    calls.set(id,{resolve,reject,timer}); socket.send(JSON.stringify({id,method,params}));
+  });
+}
+async function evaluate(expression) {
+  const r=await command('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});
+  assert(!r.exceptionDetails,'Device page evaluation failed');return r.result.value;
+}
+async function tap(selector, holdMs=0) {
+  const size=await run('shell','wm','size');
+  const physicalWidth=Number(/(?:Override|Physical) size: (\d+)x\d+/.exec(size)?.[1]);
+  assert(physicalWidth>0);
+  let p, previous, stable=0;
+  try {
+    await until(async()=>{
+      await evaluate(`document.querySelector(${JSON.stringify(selector)})?.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'})`);
+      p=await evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)return null;
+      const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;
+      const hit=document.elementFromPoint(x,y),v=visualViewport;
+      return {x:x-v.offsetLeft,y:y-v.offsetTop,width:innerWidth,height:innerHeight,
+        scrollX,scrollY,docHeight:document.documentElement.scrollHeight,
+        viewportHeight:v.height,viewportTop:v.offsetTop,
+        visible:r.width>0&&r.height>0&&y>=v.offsetTop&&y<v.offsetTop+v.height,
+        hit:e===hit||e.contains(hit),disabled:e.disabled,
+        topLayers:[...document.querySelectorAll('.modal-layer:not(.hidden)')].filter(m=>!m.inert).map(m=>m.id)};})()`);
+      const position=p&&JSON.stringify([p.x,p.y,p.width,p.height,p.scrollX,p.scrollY,p.docHeight,p.viewportHeight,p.viewportTop]);
+      stable=position===previous?stable+1:0;previous=position;
+      return stable>=4&&p?.visible&&p.hit&&!p.disabled;
+    },`tap target ${selector}`);
+  } catch (error) {
+    throw new Error(`tap target ${selector}: ${JSON.stringify(p)}`);
+  }
+  const scale=physicalWidth/p.width;
+  await evaluate(`(()=>{window.__task20TouchHit=false;
+    document.addEventListener('pointerdown',event=>{
+      const target=document.querySelector(${JSON.stringify(selector)});
+      window.__task20TouchHit=Boolean(target&&(target===event.target||target.contains(event.target)));
+      window.__task20TouchTarget={id:event.target.id,tag:event.target.tagName};
+    },{capture:true,once:true});})()`);
+  const x=String(Math.round(p.x*scale)),y=String(Math.round(top+p.y*scale));
+  if(holdMs)await run('shell','input','swipe',x,y,x,y,String(holdMs));
+  else await run('shell','input','tap',x,y);
+  assert(await evaluate('window.__task20TouchHit'),`Physical touch missed ${selector}: ${JSON.stringify({
+    target:await evaluate('window.__task20TouchTarget'),physical:{x,y},scale,measured:p})}`);
+}
+async function nativeTab(text, route) {
+  const xmlPath='/data/local/tmp/wyj-overlay-ui.xml';
+  await run('shell','uiautomator','dump',xmlPath);
+  const xml=await run('shell','cat',xmlPath);
+  const node=(xml.match(/<node\b[^>]+>/g)||[]).findLast(n=>n.includes(`text="${text}"`)&&n.includes('package="uk.thewyj.app.debug"'));
+  const b=/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/.exec(node||'');assert(b,'Native tab missing');
+  await run('shell','input','tap',String(Math.round((+b[1]+ +b[3])/2)),String(Math.round((+b[2]+ +b[4])/2)));
+  await until(()=>evaluate(`location.pathname===${JSON.stringify(route)} && document.getElementById('sessionRecovery')?.classList.contains('hidden')`),route);
+}
+async function layer(id) {
+  await until(()=>evaluate(`!document.getElementById(${JSON.stringify(id)}).classList.contains('hidden')`),id);
+  await until(()=>evaluate(`!document.getElementById(${JSON.stringify(id)}).getAnimations({subtree:true}).some(a=>a.playState==='running')`),id+' animation');
+  const m=await evaluate(`(()=>{const e=document.getElementById(${JSON.stringify(id)}),p=e.querySelector('.modal-panel'),r=p.getBoundingClientRect(),v=visualViewport;
+    return {body:e.parentElement===document.body,inert:e.inert,backgroundInert:document.getElementById('appShell').inert,
+      x:r.x,y:r.y,right:r.right,bottom:r.bottom,height:r.height,viewportHeight:v.height,viewportTop:v.offsetTop,width:innerWidth,
+      overflow:document.documentElement.scrollWidth>innerWidth};})()`);
+  assert(m.body&&!m.inert&&m.backgroundInert,id+' layer ownership');
+  assert(m.height>80&&m.x>=-1&&m.right<=m.width+1&&!m.overflow,id+' horizontal bounds');
+  assert(m.y>=m.viewportTop-2&&m.bottom<=m.viewportTop+m.viewportHeight+2,id+' vertical bounds');
+  results.push({test:`layer:${id}`,theme,passed:true,geometry:m});
+  return m;
+}
+async function close(id) {
+  await tap(`#${id} [data-close-modal="${id}"], #${id} [data-finance-close="${id}"]`);
+  await until(()=>evaluate(`document.getElementById(${JSON.stringify(id)}).classList.contains('hidden')`),id+' closed');
+}
+async function enterText(selector, text) {
+  await tap(selector);
+  await command('Input.dispatchKeyEvent',{type:'keyDown',key:'a',code:'KeyA',windowsVirtualKeyCode:65,modifiers:2});
+  await command('Input.dispatchKeyEvent',{type:'keyUp',key:'a',code:'KeyA',windowsVirtualKeyCode:65,modifiers:2});
+  await command('Input.insertText',{text});
+  await run('shell','input','keyevent','KEYCODE_BACK');
+}
+async function screenshot(name) {
+  const device='/data/local/tmp/wyj-overlay-screen.png';
+  await run('shell','screencap','-p',device); await run('pull',device,path.join(out,`${name}.png`));
+}
+async function nativePopupWindowCount() {
+  const windows=await run('shell','dumpsys','window','windows');
+  return (windows.match(/^\s*Window #[0-9]+ Window\{[^\n]+ PopupWindow[^\n]*$/gm)||[]).length;
+}
+async function appIsResumed() {
+  const activities=await run('shell','dumpsys','activity','activities');
+  return /(?:top)?ResumedActivity[^\n]+uk\.thewyj\.app\.debug\//.test(activities);
+}
+async function pidOf() {
+  try { return String(await run('shell','pidof','uk.thewyj.app.debug')).trim(); }
+  catch { return ''; }
+}
+async function picker(selector, kind) {
+  await tap(selector);
+  const xmlPath='/data/local/tmp/wyj-overlay-ui.xml';
+  await until(async()=>{
+    await run('shell','uiautomator','dump',xmlPath);
+    const xml=await run('shell','cat',xmlPath);
+    return /android:id\/(?:alertTitle|select_dialog_listview|button1|date_picker_header_year|month_view|custom)/.test(xml)
+      || /class="android.widget.(?:ListView|DatePicker|NumberPicker)"/.test(xml);
+  },`native ${kind} ${selector}`,8000);
+  await screenshot(`${theme}-${selector.slice(1)}-${kind}`);
+  await run('shell','input','keyevent','KEYCODE_BACK');
+  results.push({test:selector,theme,kind,passed:true});
+}
+async function airplaneMode(enabled) {
+  await run('shell','cmd','connectivity','airplane-mode',enabled?'enable':'disable');
+  await until(async()=>String(await run('shell','settings','get','global','airplane_mode_on')).trim()===(enabled?'1':'0'),`airplane mode ${enabled}`,10000);
+}
+async function backendReachability() {
+  return evaluate(`(async()=>{try{const r=await fetch('/api/status',{cache:'no-store'});const d=await r.json().catch(()=>({}));return {ok:r.ok&&d.ok,status:r.status};}catch(e){return {ok:false,error:String(e&&e.message||e)}}})()`);
+}
+async function statusDotOnline() {
+  return evaluate("document.getElementById('statusDot')?.classList.contains('online')===true");
+}
+async function topLayerIs(id) {
+  return evaluate(`(()=>{const visible=[...document.querySelectorAll('.modal-layer:not(.hidden)')].filter(m=>!m.inert);return visible.length===1&&visible[0].id===${JSON.stringify(id)};})()`);
+}
+async function fileSelect(fileName) {
+  const xmlPath='/data/local/tmp/wyj-overlay-ui.xml';
+  await until(async()=>{
+    await run('shell','uiautomator','dump',xmlPath);
+    const xml=await run('shell','cat',xmlPath);
+    return /package="[^"]*(?:documentsui|myfiles)[^"]*"/.test(xml);
+  },'file chooser mounts',10000);
+  const tapNode=async(node)=>{
+    const b=/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/.exec(node);assert(b,'picker node bounds');
+    await run('shell','input','tap',String(Math.round((+b[1]+ +b[3])/2)),String(Math.round((+b[2]+ +b[4])/2)));
+  };
+  const dump=async()=>{
+    await run('shell','uiautomator','dump',xmlPath);
+    return (await run('shell','cat',xmlPath)).match(/<node\b[^>]+>/g)||[];
+  };
+  const findFile=(nodes)=>nodes.find(n=>n.includes('text="wyj-rejudge-legacy')||n.includes(`text="${fileName}"`));
+  await delay(800);
+  const chip=(await dump()).find(n=>n.includes('text="本周"')||n.includes('text="This week"'));
+  if(chip){await tapNode(chip);await delay(1500);}
+  else {
+    const burger=(await dump()).find(n=>/content-desc="[^"]*(?:Show roots|根目录)[^"]*"/i.test(n));
+    assert(burger,'Picker roots toggle missing');
+    await tapNode(burger);await delay(1000);
+    const downloads=(await dump()).filter(n=>n.includes('text="下载"')||n.includes('text="Downloads"')).at(-1);
+    assert(downloads,'Picker Downloads root missing');
+    await tapNode(downloads);await delay(1500);
+  }
+  let file=null,lastTexts=[];
+  for(let attempt=0;attempt<6 && !file;attempt++) {
+    await delay(500);
+    const nodes=await dump();
+    lastTexts=[...new Set(nodes.map(n=>/text="([^"]*)"/.exec(n)?.[1]).filter(Boolean))];
+    const first=findFile(nodes);
+    if(!first){await run('shell','input','swipe','720','2600','720','900','300');continue;}
+    await delay(500);
+    const second=findFile(await dump());
+    if(!second) continue;
+    const b1=/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/.exec(first);
+    const b2=/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/.exec(second);
+    if(b1 && b2 && b1[0]===b2[0]) file=second;
+  }
+  assert(file,`Could not select ${fileName} in the native picker; last visible texts: ${lastTexts.join(' | ')}`);
+  await tapNode(file);
+  await acceptDialog(20000);
+  await until(async()=>await appIsResumed(),'activity resumes after import',20000);
+}
+async function acceptDialog(timeout=8000) {
+  // Android WebView renders JS dialogs natively and does not emit
+  // Page.javascriptDialogOpening over the devtools socket, so accept the real
+  // native dialog instead of sending a CDP dialog command.
+  const xmlPath='/data/local/tmp/wyj-overlay-ui.xml';
+  const end=Date.now()+timeout;
+  while(Date.now()<end) {
+    await run('shell','uiautomator','dump',xmlPath);
+    const xml=await run('shell','cat',xmlPath);
+    const ok=(xml.match(/<node\b[^>]+>/g)||[]).find(n=>n.includes('text="确定"')||n.includes('text="OK"'));
+    if(ok) {
+      const b=/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/.exec(ok);assert(b,'dialog button bounds');
+      await run('shell','input','tap',String(Math.round((+b[1]+ +b[3])/2)),String(Math.round((+b[2]+ +b[4])/2)));
+      return;
+    }
+    await delay(150);
+  }
+  throw new Error('Expected native import dialog did not appear');
+}
+async function attach() {
+  const pid=await pidOf();
+  assert(pid,'thewyj debug app is not running');
+  port=await run('forward','tcp:0',`localabstract:webview_devtools_remote_${pid}`);
+  let tabs=[];
+  await until(async()=>{
+    try { tabs=await(await fetch(`http://127.0.0.1:${port}/json/list`)).json(); }
+    catch { return false; }
+    return Array.isArray(tabs)&&tabs.some(t=>t.type==='page'&&t.url.startsWith(base+'/'));
+  },'Preview page tab',30000);
+  const tab=tabs.find(t=>t.type==='page'&&t.url.startsWith(base+'/'));
+  socket=new WebSocket(tab.webSocketDebuggerUrl);
+  socket.onmessage=e=>{const m=JSON.parse(e.data);if(m.method==='Runtime.exceptionThrown')errors.push('runtime_exception');
+    if(m.method==='Page.javascriptDialogOpening')dialogs.push(m.params);
+    const c=calls.get(m.id);if(!c)return;calls.delete(m.id);clearTimeout(c.timer);m.error?c.reject(new Error(m.error.message)):c.resolve(m.result);};
+  await new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=reject;});
+  await command('Runtime.enable');
+  await command('Page.enable');
+}
+async function detach() {
+  try { socket?.close(); } catch {}
+  socket=null;
+  for(const c of calls.values()) { clearTimeout(c.timer); c.reject(new Error('detached')); }
+  calls.clear();
+  if(port) { await run('forward','--remove',`tcp:${port}`); port=null; }
+}
+let theme='';
+try {
+  await mkdir(out,{recursive:true});
+  await attach();
+  assert(await evaluate(`(async()=>{const r=await fetch('/api/app/session');const d=await r.json();return r.ok&&d.account?.id===${JSON.stringify(userId)}})()`),'Isolated fixture mismatch');
+  const financeAccess=await evaluate("(async()=>{const r=await fetch('/api/finance/bootstrap');const d=await r.json();return {status:r.status,code:d.code};})()");
+  assert.equal(financeAccess.status,200,`Preview fixture cannot exercise finance dialogs: HTTP ${financeAccess.status} ${financeAccess.code || ''}`);
+  for(let n=0;n<4;n++) {
+    const visible=await evaluate("[...document.querySelectorAll('.modal-layer:not(.hidden)')].filter(e=>!e.inert).at(-1)?.id");
+    if(!visible)break;await close(visible);
+  }
+  if(await evaluate("!document.getElementById('versionNotice').classList.contains('hidden')")) {
+    await tap('#dismissVersionNoticeBtn');
+    await until(()=>evaluate("document.getElementById('versionNotice').classList.contains('hidden')"),'version notice dismissal');
+    results.push({test:'version-notice-dismiss',passed:true});
+  }
+  if(suite==='persistence') {
+    const snapshot=async()=>evaluate(`(async()=>{let account=null;try{const r=await fetch('/api/app/session');const d=await r.json().catch(()=>({}));account=d.account?.id;}catch{account=null;}return {account,path:location.pathname,nav:performance.getEntriesByType('navigation').length};})()`);
+    const base0=await snapshot();
+    assert.equal(base0.account,userId,'fixture session missing before persistence checks');
+    await run('shell','input','keyevent','KEYCODE_HOME');
+    await until(async()=>!await appIsResumed(),'app leaves foreground',10000);
+    await run('shell','am','start','-n','uk.thewyj.app.debug/uk.thewyj.app.MainActivity');
+    await until(async()=>await appIsResumed(),'app returns to foreground',10000);
+    await delay(1200);
+    const homeState=await snapshot();
+    assert.equal(homeState.account,userId,'session lost after home/return');
+    assert.equal(homeState.nav,base0.nav,'home/return reloaded the document');
+    results.push({test:'persistence-home-return',passed:true,path:homeState.path});
+    await detach();
+    await run('shell','input','keyevent','KEYCODE_HOME');
+    await until(async()=>!await appIsResumed(),'app backgrounded before process kill',10000);
+    await delay(2000);
+    for(let attempt=0;attempt<4;attempt++) {
+      await run('shell','am','kill','uk.thewyj.app.debug');
+      await delay(1200);
+      if(!await pidOf())break;
+    }
+    await until(async()=>!await pidOf(),'process terminated',15000);
+    await run('shell','am','start','-n','uk.thewyj.app.debug/uk.thewyj.app.MainActivity');
+    await attach();
+    await until(async()=>await appIsResumed(),'app resumes after process kill',20000);
+    await until(()=>evaluate("document.readyState==='complete' && Boolean(document.getElementById('accountMenu'))"),'account surface after process kill',20000);
+    const killState=await snapshot();
+    assert.equal(killState.account,userId,'session lost after process kill');
+    results.push({test:'persistence-process-kill',passed:true,path:killState.path});
+    await detach();
+    await run('shell','am','force-stop','uk.thewyj.app.debug');
+    await delay(1200);
+    await run('shell','am','start','-n','uk.thewyj.app.debug/uk.thewyj.app.MainActivity');
+    await attach();
+    await until(async()=>await appIsResumed(),'app resumes after force-stop',25000);
+    await until(()=>evaluate("document.readyState==='complete' && Boolean(document.getElementById('accountMenu'))"),'account surface after force-stop',25000);
+    const forceState=await snapshot();
+    assert.equal(forceState.account,userId,'session lost after force-stop');
+    results.push({test:'persistence-force-stop',passed:true,path:forceState.path});
+    await airplaneMode(true);
+    await until(async()=>!(await statusDotOnline()),'app marks offline',30000);
+    const offState=await evaluate(`(()=>({path:location.pathname,
+      accountMenu:Boolean(document.getElementById('accountMenu')?.querySelector('summary')?.textContent.trim()),
+      loginVisible:Boolean(document.getElementById('loginView')?.classList.contains('active'))}))()`);
+    assert.equal(offState.loginVisible,false,'login form appeared while offline');
+    assert(offState.accountMenu && !/^\/login/.test(offState.path),`authenticated surface lost while offline: ${JSON.stringify(offState)}`);
+    results.push({test:'persistence-offline-retention',passed:true,path:offState.path});
+    await airplaneMode(false);
+    await until(async()=>(await backendReachability()).ok===true,'backend reachable again',60000);
+    await until(async()=>await statusDotOnline(),'app marks online again',30000);
+    const recoveredState=await snapshot();
+    assert.equal(recoveredState.account,userId,'session lost across the offline window');
+    results.push({test:'persistence-network-recovery',passed:true,path:recoveredState.path});
+  }
+  else for(theme of ['light','dark']) {
+    await nativeTab('主页','/select');
+    if(await evaluate("document.getElementById('siteNavToggle').getAttribute('aria-expanded')==='true'"))await tap('#siteNavToggle');
+    if(await evaluate("document.getElementById('accountMenu').open"))await tap('#accountMenu summary');
+    for(let n=0;n<3&&await evaluate('document.documentElement.dataset.themePreference')!==theme;n++)await tap('#themeToggleBtn');
+    assert.equal(await evaluate('document.documentElement.dataset.theme'),theme);
+    if(suite==='tools') {
+      for(const [tool,fields] of [
+        ['random-date',[['#randomStartDate','date'],['#randomEndDate','date']]],
+        ['gradient-generator',[['#imageColor','color'],['#imageGradientEnd','color']]],
+        ['letter-case',[['#textToolOption','select']]],
+        ['image-format',[['#imageFormat','select']]],
+        ['temporary-qr',[['#qrKind','select']]],
+      ]) {
+        await nativeTab('工具','/tools');
+        await tap(`[data-open-tool="${tool}"]`);
+        await until(()=>evaluate(`location.pathname===${JSON.stringify('/tools/'+tool)}`),tool);
+        for(const [field,kind] of fields)await picker(field,kind);
+        if(tool==='image-format') {
+          // Only verify launch/cancel. Never enumerate, select or screenshot personal files.
+          for(let attempt=0;attempt<2;attempt++) {
+            await tap('#imageToolInput');
+            const xmlPath='/data/local/tmp/wyj-overlay-ui.xml';
+            const chooser=/package="(?:com\.google\.android\.documentsui|com\.android\.documentsui|com\.google\.android\.photopicker|com\.android\.providers\.media[^\"]*|com\.google\.android\.providers\.media[^\"]*|com\.sec\.android\.app\.myfiles)"|resource-id="android:id\/resolver_list"/;
+            await until(async()=>{
+              await run('shell','uiautomator','dump',xmlPath);
+              return chooser.test(await run('shell','cat',xmlPath));
+            },`native file chooser ${attempt+1}`,8000);
+            await run('shell','input','keyevent','KEYCODE_BACK');
+            await until(async()=>await appIsResumed() && await evaluate("document.hasFocus() && document.getElementById('imageToolInput').files.length===0"),`file chooser ${attempt+1} cancel`);
+            await delay(250);
+          }
+          results.push({test:'file-chooser-cancel-reopen',theme,passed:true});
+        }
+        if(tool==='letter-case') {
+          await enterText('#textToolInput','Task20 popup fixture');
+          await evaluate("document.activeElement?.blur()");
+          await delay(350);
+          const popupBefore=await nativePopupWindowCount();
+          await evaluate(`(()=>{window.__task20ContextMenu=false;
+            document.getElementById('textToolInput').addEventListener('contextmenu',()=>{window.__task20ContextMenu=true;},{once:true});})()`);
+          await tap('#textToolInput',900);
+          const xmlPath='/data/local/tmp/wyj-overlay-ui.xml';
+          await run('shell','uiautomator','dump',xmlPath);
+          const xml=await run('shell','cat',xmlPath);
+          const hierarchyEvidence=/android:id\/(?:floating_toolbar|floating_toolbar_menu_item_text|floating_toolbar_menu_item_image)|text="(?:复制|全选|选择全部|剪切|Copy|Select all|Cut)"/.test(xml);
+          const popupAfter=await nativePopupWindowCount();
+          const textState=await evaluate(`(()=>{const e=document.getElementById('textToolInput');return {
+            focused:document.activeElement===e,value:e.value,contextMenu:window.__task20ContextMenu,
+            selectionStart:e.selectionStart,selectionEnd:e.selectionEnd};})()`);
+          await screenshot(`${theme}-text-context-menu`);
+          assert(textState.focused && textState.value==='Task20 popup fixture','Physical long press lost the text field state');
+          assert(hierarchyEvidence || (textState.contextMenu && popupAfter>0),'Native text-selection menu missing');
+          await run('shell','input','keyevent','KEYCODE_BACK');
+          results.push({test:'text-context-menu',theme,passed:true,
+            evidence:hierarchyEvidence?'accessibility-hierarchy':'contextmenu-and-android-popup-window',
+            popupBefore,popupAfter,selectionStart:textState.selectionStart,selectionEnd:textState.selectionEnd});
+        }
+        assert(await evaluate('document.documentElement.scrollWidth<=innerWidth'),'Tool horizontal overflow');
+      }
+      await nativeTab('主页','/select');await tap('#siteNavToggle');
+      await tap('#siteNavPanel a[href="/trial"]');
+      await until(()=>evaluate("location.pathname==='/trial'"),'trial route');
+      await picker('#trialQuizLanguage','select');
+      await tap('[data-trial-tool="image-format"]');await picker('#trialImageFormat','select');
+      results.push({test:'trial-navigation-native-selects',theme,passed:true});
+      continue;
+    }
+    if(suite==='rejudge') {
+      await nativeTab('学习','/language');
+      await tap('[data-project="english"]');
+      await until(()=>evaluate("location.pathname==='/language/english'"),'English workspace');
+      await tap('[data-view="setupView"]');
+      await enterText('#wordInput','hello\nworld');
+      await tap('#startBtn');
+      await until(()=>evaluate("document.getElementById('progressLabel').textContent==='1/2' && !document.getElementById('skipBtn').disabled"),'first question');
+      await tap('#skipBtn');
+      await until(()=>evaluate("document.getElementById('progressLabel').textContent==='2/2' && !document.getElementById('skipBtn').disabled"),'second question');
+      await tap('#skipBtn');await layer('roundSummaryModal');
+      await tap('#roundWrongBtn');
+      await until(()=>evaluate("document.getElementById('wrongView').classList.contains('active')"),'wrong view');
+      if(!(await evaluate(`document.querySelector('#wrongList .wrong-item[data-word="network"]')!==null`))) {
+        await tap('#importWrongDataBtn');
+        await fileSelect('wyj-rejudge-legacy.json');
+        await until(()=>evaluate("document.querySelector('#wrongList .wrong-item[data-word=\"network\"]')!==null"),'legacy network entry imported');
+      }
+      const baseline=await evaluate(`(()=>({count:document.querySelectorAll('#wrongList .wrong-item').length,words:[...document.querySelectorAll('#wrongList .wrong-item h3')].map(e=>e.textContent)}))()`);
+      assert.equal(baseline.count,3,`Unexpected wrong-book baseline ${JSON.stringify(baseline)}`);
+      const standardAnswer=async(word)=>evaluate(`(()=>{const e=document.querySelector('#wrongList .wrong-item[data-word=${JSON.stringify(word)}] .wrong-item-copy p');const m=/标准：(.+)$/.exec(e?e.textContent:'');return m?m[1]:'';})()`);
+      const networkAnswer=await standardAnswer('network');
+      assert(!networkAnswer||networkAnswer==='（未给出）','Legacy entry unexpectedly carries a standard meaning');
+      // --- offline branch: real airplane mode, no stubbed failures ---
+      await airplaneMode(true);
+      await until(async()=>!(await statusDotOnline()),'app marks backend offline',30000);
+      const offlineProof=await backendReachability();
+      assert.equal(offlineProof.ok,false,`Device still reached the backend in airplane mode: ${JSON.stringify(offlineProof)}`);
+      await tap('#wrongList .wrong-item[data-word="network"] .wrong-rejudge-button');
+      await enterText('#wrongList .wrong-rejudge-form:not(.hidden) input','网络');
+      await tap('#wrongList .wrong-rejudge-form:not(.hidden) .wrong-rejudge-submit');
+      await layer('rejudgeResultModal');
+      const failedTitle=await evaluate("document.getElementById('rejudgeResultTitle').textContent");
+      const failedMessage=await evaluate("document.getElementById('rejudgeResultMessage').textContent");
+      assert.equal(failedTitle,'重新判定失败');
+      assert(failedMessage.length>0,'Empty offline failure message');
+      assert(await evaluate("document.querySelector('#wrongList .wrong-item[data-word=\"network\"]')!==null"),'Offline rejudge mutated the wrong book');
+      assert.equal(await evaluate("document.querySelectorAll('#wrongList .wrong-item').length"),baseline.count,'Offline rejudge changed the item count');
+      await screenshot(`${theme}-rejudge-network-failure`);
+      await until(()=>topLayerIs('rejudgeResultModal'),'rejudge modal sole top layer',10000);
+      await run('shell','input','keyevent','KEYCODE_BACK');
+      assert(await evaluate("!document.getElementById('rejudgeResultModal').classList.contains('hidden')"),'Back bypassed offline result modal');
+      await tap('#rejudgeResultConfirmBtn');
+      await until(()=>evaluate("document.getElementById('rejudgeResultModal').classList.contains('hidden')"),'offline result acknowledged');
+      results.push({test:'rejudge-network-failure',theme,passed:true,message:failedMessage,offlineProof});
+      // --- real recovery: restore connectivity, verify rejudge works again ---
+      await airplaneMode(false);
+      await until(async()=>(await backendReachability()).ok===true,'backend reachable after airplane mode off',60000);
+      await until(async()=>await statusDotOnline(),'app marks backend online',30000);
+      const worldAnswer=await standardAnswer('world');
+      assert(worldAnswer && worldAnswer!=='（未给出）','world standard meaning missing');
+      await tap('#wrongList .wrong-item[data-word="world"] .wrong-rejudge-button');
+      await enterText('#wrongList .wrong-rejudge-form:not(.hidden) input',worldAnswer);
+      await tap('#wrongList .wrong-rejudge-form:not(.hidden) .wrong-rejudge-submit');
+      await until(()=>evaluate("!document.getElementById('rejudgeResultModal').classList.contains('hidden') && document.getElementById('rejudgeResultTitle').textContent==='重新判定正确'"),'recovery rejudge correct',30000);
+      await screenshot(`${theme}-rejudge-recovery`);
+      await until(()=>topLayerIs('rejudgeResultModal'),'rejudge modal sole top layer',10000);
+      await tap('#rejudgeResultConfirmBtn');
+      await until(()=>evaluate("document.getElementById('rejudgeResultModal').classList.contains('hidden')"),'recovery acknowledged');
+      assert(await evaluate("document.querySelector('#wrongList .wrong-item[data-word=\"world\"]')===null"),'world not removed after recovery rejudge');
+      results.push({test:'rejudge-network-recovery',theme,passed:true});
+      // --- correct-answer branch ---
+      const helloAnswer=await standardAnswer('hello');
+      assert(helloAnswer && helloAnswer!=='（未给出）','hello standard meaning missing');
+      const beforeCorrect=await evaluate("document.querySelectorAll('#wrongList .wrong-item').length");
+      await tap('#wrongList .wrong-item[data-word="hello"] .wrong-rejudge-button');
+      await enterText('#wrongList .wrong-rejudge-form:not(.hidden) input',helloAnswer);
+      await tap('#wrongList .wrong-rejudge-form:not(.hidden) .wrong-rejudge-submit');
+      await until(()=>evaluate("!document.getElementById('rejudgeResultModal').classList.contains('hidden') && document.getElementById('rejudgeResultTitle').textContent==='重新判定正确'"),'correct rejudge modal',30000);
+      await layer('rejudgeResultModal');
+      const correctMessage=await evaluate("document.getElementById('rejudgeResultMessage').textContent");
+      assert(correctMessage.includes('已从错题本移除'),correctMessage);
+      assert(correctMessage.includes('并校正对应测试统计'),`Stats were not adjusted: ${correctMessage}`);
+      await screenshot(`${theme}-rejudge-correct`);
+      await until(()=>topLayerIs('rejudgeResultModal'),'rejudge modal sole top layer',10000);
+      await run('shell','input','keyevent','KEYCODE_BACK');
+      assert(await evaluate("!document.getElementById('rejudgeResultModal').classList.contains('hidden')"),'Back bypassed correct result modal');
+      await tap('#rejudgeResultConfirmBtn');
+      await until(()=>evaluate("document.getElementById('rejudgeResultModal').classList.contains('hidden')"),'correct result acknowledged');
+      assert(await evaluate("document.querySelector('#wrongList .wrong-item[data-word=\"hello\"]')===null"),'hello not removed after correct rejudge');
+      assert.equal(await evaluate("document.querySelectorAll('#wrongList .wrong-item').length"),beforeCorrect-1,'Correct rejudge did not remove exactly one item');
+      const logEntry=await evaluate(`(()=>{const key=Object.keys(localStorage).find(k=>k.startsWith('wrongRejudgeLog:v1:'));const log=JSON.parse(localStorage.getItem(key)||'[]');const last=[...log].reverse().find(e=>e.word==='hello');return last||null;})()`);
+      assert(logEntry && logEntry.new_result==='correct',`Rejudge audit log missing correct entry: ${JSON.stringify(logEntry)}`);
+      results.push({test:'rejudge-correct-answer',theme,passed:true,message:correctMessage});
+      continue;
+    }
+    await tap('#siteNavToggle');
+    await until(()=>evaluate("document.getElementById('siteNavToggle').getAttribute('aria-expanded')==='true'"),'nav opens');
+    await until(()=>evaluate("document.getElementById('siteNavPanel').getBoundingClientRect().height>100 && !document.getElementById('siteNavPanel').getAnimations().some(a=>a.playState==='running')"),'nav fully expanded');
+    await screenshot(`${theme}-navigation`);
+    await run('shell','input','keyevent','KEYCODE_BACK');
+    await until(()=>evaluate("document.getElementById('siteNavToggle').getAttribute('aria-expanded')==='false'"),'Android Back closes navigation');
+    await tap('#siteNavToggle');
+    await tap('#accountMenu summary');
+    await until(()=>evaluate("document.getElementById('accountMenu').open && document.getElementById('siteNavToggle').getAttribute('aria-expanded')==='false'"),'exclusive account menu');
+    await tap('#membershipBtn'); await layer('membershipModal');
+    await tap('[data-membership-goal="finance"]');
+    await until(()=>evaluate("document.querySelectorAll('#membershipPlanList button').length>0"),'plans');
+    await screenshot(`${theme}-membership`); await close('membershipModal');
+    await tap('#accountMenu summary');await tap('#accountBtn'); await layer('accountModal');
+    await tap('#openDeleteAccountBtn');await layer('deleteAccountModal');
+    assert(await evaluate("document.getElementById('accountModal').inert"),'Lower dialog remains interactive');
+    await screenshot(`${theme}-nested-delete-cancel-only`);await close('deleteAccountModal');await layer('accountModal');await close('accountModal');
+    await tap('#accountMenu summary');await tap('#feedbackBtn');await layer('feedbackModal');
+    await picker('#feedbackType','select');
+    const beforeKeyboard=await evaluate('visualViewport.height');
+    await tap('#feedbackTitleInput');
+    await until(()=>evaluate(`visualViewport.height<${beforeKeyboard-30}`),'soft keyboard');await layer('feedbackModal');
+    await screenshot(`${theme}-feedback-keyboard`);
+    await run('shell','input','keyevent','KEYCODE_BACK');
+    await until(()=>evaluate(`visualViewport.height>=${beforeKeyboard-3}`),'keyboard dismissed');await close('feedbackModal');
+    await nativeTab('财务','/finance');
+    for(const [button,id] of [['#financeAddTransactionBtn','financeTransactionModal'],['#financeManageCategoriesBtn','financeCategoryModal'],['#financeManageBudgetsBtn','financeBudgetModal']]) {
+      await tap(button); const geometry=await layer(id);await screenshot(`${theme}-${id}`);
+      if(id==='financeTransactionModal'){await picker('#financeTransactionDirection','select');await picker('#financeTransactionTime','datetime');}
+      if(id==='financeCategoryModal'){await picker('#financeCategoryAppliesTo','select');await picker('#financeCategoryColor','color');}
+      if(id==='financeBudgetModal'){await picker('#financeBudgetMonth','month');await picker('#financeBudgetCategory','select');}
+      await close(id);results.push({test:id,theme,passed:true,geometry});
+    }
+    assert(await evaluate("!document.getElementById('appShell').inert && !document.querySelector('.modal-layer:not(.hidden)')"),'Background did not unlock');
+    results.push({test:'navigation-membership-account-nested-feedback-keyboard',theme,passed:true});
+    await nativeTab('学习','/language');
+    await tap('[data-project="english"]');
+    await until(()=>evaluate("location.pathname==='/language/english'"),'English workspace');
+    await tap('[data-view="setupView"]');
+    await picker('#gradingModeSelect','select');await picker('#practiceModeSelect','select');
+    await enterText('#wordInput','hello\nworld');
+    await tap('#startBtn');
+    await until(()=>evaluate("document.getElementById('progressLabel').textContent==='1/2' && !document.getElementById('skipBtn').disabled"),'first question');
+    await tap('#skipBtn');
+    await until(()=>evaluate("document.getElementById('progressLabel').textContent==='2/2' && !document.getElementById('skipBtn').disabled"),'second question');
+    await tap('#skipBtn');await layer('roundSummaryModal');await screenshot(`${theme}-round-summary`);
+    await tap('#roundWrongBtn');
+    await tap('#clearWrongBtn');await layer('confirmModal');await tap('#cancelConfirmBtn');
+    await until(()=>evaluate("document.getElementById('confirmModal').classList.contains('hidden')"),'confirmation cancelled');
+    await tap('#wrongList .wrong-rejudge-button');
+    await enterText('#wrongList .wrong-rejudge-form:not(.hidden) input','not-the-meaning');
+    await tap('#wrongList .wrong-rejudge-form:not(.hidden) .wrong-rejudge-submit');
+    await layer('rejudgeResultModal');await screenshot(`${theme}-rejudge-result`);
+    await run('shell','input','keyevent','KEYCODE_BACK');
+    assert(await evaluate("!document.getElementById('rejudgeResultModal').classList.contains('hidden')"),'Back bypassed confirm-only result');
+    await tap('#rejudgeResultConfirmBtn');
+    await until(()=>evaluate("document.getElementById('rejudgeResultModal').classList.contains('hidden')"),'rejudge acknowledged');
+    results.push({test:'learning-summary-confirm-rejudge-native-back',theme,passed:true});
+  }
+  assert.deepEqual(errors,[]);completed=true;console.log(JSON.stringify({passed:true,results,errors},null,2));
+} catch(error) {
+  failure=String(error.message);throw error;
+} finally {
+  try { if(socket)socket.close(); } catch {}
+  if(port)await run('forward','--remove',`tcp:${port}`);
+  await run('shell','rm','-f','/data/local/tmp/wyj-overlay-ui.xml','/data/local/tmp/wyj-overlay-screen.png');
+  await writeFile(path.join(out,'results.json'),JSON.stringify({suite,passed:completed,failure,results,errors},null,2));
+}

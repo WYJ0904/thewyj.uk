@@ -6,6 +6,7 @@ enum class ConnectionMode { ONLINE, OFFLINE, RECOVERING }
 
 sealed interface SessionState {
     data object Initializing : SessionState
+    data class StorageUnavailable(val message: String) : SessionState
     data class SignedOut(val message: String = "") : SessionState
     data class Authenticated(
         val account: AccountSnapshot,

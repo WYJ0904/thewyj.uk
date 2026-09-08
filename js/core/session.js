@@ -1,4 +1,4 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260904-task20-android-r1";
+import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260908-task20-navigation-r2";
 
 export const ACCOUNT_SESSION_KEY = "wyjAccountSession";
 export const ACCOUNT_CACHE_KEY = "wyjAccountCache";

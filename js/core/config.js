@@ -1,5 +1,5 @@
-export const APP_VERSION = "2026-09-04-task20-android-preview";
-export const ASSET_RELEASE = "20260904-task20-android-r1";
+export const APP_VERSION = "2026-09-08-task20-navigation-preview";
+export const ASSET_RELEASE = "20260908-task20-navigation-r2";
 
 export const API_TIMEOUT_MS = 30000;
 export const AI_TIMEOUT_MS = 25000;
