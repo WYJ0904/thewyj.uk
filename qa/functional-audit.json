@@ -148,7 +148,7 @@
     "trial.tool": ["quiz", "text", "json", "image-compress", "image-format"],
     "payment.method": ["wechat", "alipay"],
     "membership.plan": [
-      "trial_single_language", "finance_monthly", "dual_language_monthly", "tools_monthly",
+      "trial_single_language", "finance_monthly", "notification_archive_access", "dual_language_monthly", "tools_monthly",
       "all_access_monthly", "japanese_lifetime", "all_access_lifetime"
     ],
     "feedback.type": [

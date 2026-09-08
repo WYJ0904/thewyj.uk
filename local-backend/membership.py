@@ -11,6 +11,7 @@ ENTITLEMENT_LABELS = {
     "temporary_share_access": "临时分享",
     "save_tool_config": "保存工具配置",
     "finance_access": "财务账本",
+    "notification_archive_access": "通知保存",
     "all_features_access": "全部普通高级功能",
 }
 
@@ -28,6 +29,17 @@ MEMBERSHIP_PLANS = {
         "priority": 44,
         "description": "Web 与 Android 共用的财务账本会员，有效期一个月，不包含语言学习或在线工具箱。",
         "entitlements": ("finance_access",),
+    },
+    "notification_archive_access": {
+        "name": "通知保存",
+        "price_cents": 800,
+        "currency": "CNY",
+        "lifetime": False,
+        "duration_months": 1,
+        "purchasable": True,
+        "priority": 43,
+        "description": "仅 Android 使用的通知保存会员，有效期一个月，不包含财务账本、语言学习或在线工具箱。",
+        "entitlements": ("notification_archive_access",),
     },
     "japanese_lifetime": {
         "name": "双语言双项永久会员",
@@ -83,7 +95,7 @@ MEMBERSHIP_PLANS = {
         "duration_months": 1,
         "purchasable": True,
         "priority": 80,
-        "description": "全部语言测试、在线工具箱和财务账本功能，有效期一个月。",
+        "description": "全部语言测试、在线工具箱、财务账本和 Android 通知保存功能，有效期一个月。",
         "entitlements": ALL_ACCESS_ENTITLEMENTS,
     },
     "dual_language_lifetime": {
@@ -109,7 +121,7 @@ MEMBERSHIP_PLANS = {
         "duration_months": 0,
         "purchasable": True,
         "priority": 100,
-        "description": "全部语言测试、在线工具箱和财务账本功能，永久有效。",
+        "description": "全部语言测试、在线工具箱、财务账本和 Android 通知保存功能，永久有效。",
         "entitlements": ALL_ACCESS_ENTITLEMENTS,
     },
     "trial_single_language": {

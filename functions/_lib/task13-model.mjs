@@ -13,11 +13,13 @@ export const ENTITLEMENT_CODES = Object.freeze([
   "temporary_share_access",
   "save_tool_config",
   "finance_access",
+  "notification_archive_access",
   "all_features_access",
 ]);
 export const PURCHASABLE_PLAN_CODES = Object.freeze([
   "trial_single_language",
   "finance_monthly",
+  "notification_archive_access",
   "dual_language_monthly",
   "tools_monthly",
   "all_access_monthly",

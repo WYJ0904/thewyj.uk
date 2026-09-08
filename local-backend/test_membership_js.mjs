@@ -27,6 +27,7 @@ import { loginLocationLabel, loginReasonLabel, membershipDateValue } from "../js
 assert.deepEqual(MEMBERSHIP_PLAN_ORDER, [
   "trial_single_language",
   "finance_monthly",
+  "notification_archive_access",
   "dual_language_monthly",
   "tools_monthly",
   "all_access_monthly",
@@ -39,11 +40,14 @@ assert.equal(membershipGoalForPlan("trial_single_language", "japanese"), "japane
 assert.equal(membershipGoalForPlan("dual_language_monthly"), "bilingual");
 assert.equal(membershipGoalForPlan("tools_monthly"), "tools");
 assert.equal(membershipGoalForPlan("finance_monthly"), "finance");
+assert.equal(membershipGoalForPlan("notification_archive_access"), "notifications");
 assert.equal(membershipGoalForPlan("all_access_lifetime"), "all");
 assert.equal(membershipGoalAllowsPlan("tools", "tools_monthly"), true);
 assert.equal(membershipGoalAllowsPlan("tools", "dual_language_monthly"), false);
 assert.equal(membershipGoalAllowsPlan("finance", "finance_monthly"), true);
 assert.equal(membershipGoalAllowsPlan("finance", "tools_monthly"), false);
+assert.equal(membershipGoalAllowsPlan("notifications", "notification_archive_access"), true);
+assert.equal(membershipGoalAllowsPlan("notifications", "finance_monthly"), false);
 assert.equal(MEMBERSHIP_GOALS.english.plans.includes("trial_single_language"), true);
 
 const plans = [{ code: "tools_monthly", name: "工具箱包月会员", price: "20", currency: "CNY", description: "工具权益" }];
@@ -57,8 +61,10 @@ assert.equal(hasAccountEntitlement("language_all_access", member), false);
 assert.equal(accountMembershipSummary(member).name, "历史双语言包月会员");
 assert.equal(membershipLabel("japanese_lifetime"), "双语言双项永久会员");
 assert.equal(membershipLabel("finance_monthly"), "财务会员");
+assert.equal(membershipLabel("notification_archive_access"), "通知保存");
 assert.equal(entitlementLabel("temporary_share_access"), "临时分享");
 assert.equal(entitlementLabel("finance_access"), "财务账本");
+assert.equal(entitlementLabel("notification_archive_access"), "通知保存");
 const admin = { username: "wyj", role: "super_admin", is_super_admin: true };
 assert.equal(isSuperAdmin(admin), true);
 assert.equal(hasAccountEntitlement("tools_access", admin), true);
@@ -79,4 +85,4 @@ assert.equal(loginLocationLabel({}), "未知网络位置");
 assert.equal(membershipDateValue("invalid", () => "unexpected"), "");
 assert.equal(membershipDateValue("2026-08-14T00:00:00Z", () => "2026/08/14"), "2026/08/14");
 
-console.log("Membership/admin JS module tests passed (seven plans, entitlements, payments, admin formatters).");
+console.log("Membership/admin JS module tests passed (eight plans, entitlements, payments, admin formatters).");

@@ -173,6 +173,7 @@ jobs:
             node --check local-backend/test_task18_d1_js.mjs
             node --check local-backend/test_task18_browser.mjs
             node --check local-backend/test_task20_d1_js.mjs
+            node --check local-backend/test_task21_payment_js.mjs
             node --check qa/task20_overlay_device.mjs
             node --check cloudflare/task14-cleanup-worker.mjs
             node --check local-backend/test_app_browser.mjs
@@ -294,6 +295,11 @@ jobs:
           set -euo pipefail
           node local-backend/test_task20_d1_js.mjs 2>&1 | tee artifacts/task20-device-sessions.log
           python scripts/check_task20_android.py 2>&1 | tee artifacts/task20-android-contract.log
+
+      - name: Test Task 21 payment product and private QR isolation
+        run: |
+          set -euo pipefail
+          node local-backend/test_task21_payment_js.mjs 2>&1 | tee artifacts/task21-payment.log
 
       - name: Check HTML, PWA and tool catalog
         run: |

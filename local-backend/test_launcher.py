@@ -337,6 +337,7 @@ class LauncherStabilityTests(unittest.TestCase):
             current_plans = (
                 "trial_single_language",
                 "finance_monthly",
+                "notification_archive_access",
                 "dual_language_monthly",
                 "tools_monthly",
                 "all_access_monthly",
@@ -361,9 +362,10 @@ class LauncherStabilityTests(unittest.TestCase):
                 $script:BackendRoot = '{runtime}'
                 $script:FileLoggingEnabled = $false
                 $count = Sync-PrivatePaymentAssets
-                if ($count -ne 14) {{ throw "unexpected QR count: $count" }}
+                if ($count -ne 16) {{ throw "unexpected QR count: $count" }}
                 foreach ($method in @('wechat', 'alipay')) {{
                     if (-not (Test-Path -LiteralPath (Join-Path $script:BackendRoot "data\\payment\\qrcodes\\${{method}}_finance_monthly.png") -PathType Leaf)) {{ throw 'finance QR missing' }}
+                    if (-not (Test-Path -LiteralPath (Join-Path $script:BackendRoot "data\\payment\\qrcodes\\${{method}}_notification_archive_access.png") -PathType Leaf)) {{ throw 'notification archive QR missing' }}
                     if (-not (Test-Path -LiteralPath (Join-Path $script:BackendRoot "data\\payment\\qrcodes\\${{method}}_japanese_lifetime.png") -PathType Leaf)) {{ throw 'current Japanese QR missing' }}
                     if (-not (Test-Path -LiteralPath (Join-Path $script:BackendRoot "data\\payment\\qrcodes\\${{method}}_dual_language_lifetime.png") -PathType Leaf)) {{ throw 'historical dual-language QR fallback missing' }}
                 }}

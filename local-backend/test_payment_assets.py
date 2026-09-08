@@ -17,6 +17,7 @@ from payment_assets import (
 PLAN_CODES = (
     "trial_single_language",
     "finance_monthly",
+    "notification_archive_access",
     "dual_language_monthly",
     "tools_monthly",
     "all_access_monthly",
@@ -57,7 +58,7 @@ class PaymentAssetTests(unittest.TestCase):
             for method in PAYMENT_METHODS
             for plan in PLAN_CODES
         }
-        self.assertEqual(len(resources), 14)
+        self.assertEqual(len(resources), 16)
         self.assertEqual(
             qr_resource_id_for("wechat", "tools_monthly"),
             "qr-v1:wechat:tools_monthly",
@@ -122,6 +123,27 @@ class PaymentAssetTests(unittest.TestCase):
             self.assertEqual(finance_type, "image/png")
             self.assertEqual(all_access_type, "image/png")
 
+    def test_equal_price_finance_and_notification_assets_never_cross_wire(self):
+        for method in PAYMENT_METHODS:
+            finance = PNG_SIGNATURE + f"{method}-finance-8-cny".encode("ascii")
+            notification = PNG_SIGNATURE + f"{method}-notification-8-cny".encode("ascii")
+            self.write_asset(method, "finance_monthly", finance)
+            self.write_asset(method, "notification_archive_access", notification)
+
+            finance_content, _ = load_qr_asset(
+                method,
+                "finance_monthly",
+                f"qr-v1:{method}:finance_monthly",
+            )
+            notification_content, _ = load_qr_asset(
+                method,
+                "notification_archive_access",
+                f"qr-v1:{method}:notification_archive_access",
+            )
+            self.assertEqual(finance_content, finance)
+            self.assertEqual(notification_content, notification)
+            self.assertNotEqual(finance_content, notification_content)
+
     def test_missing_finance_asset_does_not_fall_back_to_all_access(self):
         for method in PAYMENT_METHODS:
             self.write_asset(method, "all_access_monthly")
@@ -130,6 +152,19 @@ class PaymentAssetTests(unittest.TestCase):
                     method,
                     "finance_monthly",
                     f"qr-v1:{method}:finance_monthly",
+                )
+            self.assertEqual(missing.exception.code, "payment_qr_unavailable")
+
+    def test_missing_notification_asset_does_not_fall_back_to_other_eight_yuan_plan(self):
+        for method in PAYMENT_METHODS:
+            self.write_asset(method, "finance_monthly")
+            self.write_asset(method, "trial_single_language")
+            self.write_asset(method, "all_access_monthly")
+            with self.assertRaises(PaymentAssetError) as missing:
+                load_qr_asset(
+                    method,
+                    "notification_archive_access",
+                    f"qr-v1:{method}:notification_archive_access",
                 )
             self.assertEqual(missing.exception.code, "payment_qr_unavailable")
 

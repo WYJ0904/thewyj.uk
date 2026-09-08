@@ -18,7 +18,8 @@
     "test:task16": "node local-backend/test_task16_d1_js.mjs && python -m unittest scripts.test_migrate_dailypayguard_finance -v",
     "test:task17": "node local-backend/test_finance_js.mjs && node local-backend/test_task17_d1_js.mjs",
     "test:task18": "node local-backend/test_task18_d1_js.mjs",
-    "test:task20": "node local-backend/test_task20_d1_js.mjs && python scripts/check_task20_android.py"
+    "test:task20": "node local-backend/test_task20_d1_js.mjs && python scripts/check_task20_android.py",
+    "test:task21-payment": "node local-backend/test_task21_payment_js.mjs"
   },
   "devDependencies": {
     "miniflare": "5.20260730.0-alpha",
