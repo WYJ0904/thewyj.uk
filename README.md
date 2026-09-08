@@ -91,11 +91,12 @@ Production 的价格、权益与在售状态以 D1 的 `task13_membership_plans`
 | --- | ---: | --- |
 | `trial_single_language` | 8 CNY/月 | 英语或日语任选一种，所选语言会员功能一个月，不包含工具箱 |
 | `finance_monthly` | 8 CNY/月 | Web 与 Android 共用财务账本，不包含语言测试或工具箱 |
+| `notification_archive_access` | 8 CNY/月 | 仅 Android 使用的通知保存，不包含财务、语言测试或工具箱 |
 | `dual_language_monthly` | 20 CNY/月 | “双语言包月”：英语和日语全部测试会员功能，不包含工具箱 |
 | `tools_monthly` | 20 CNY/月 | 在线工具箱、批量处理、临时分享和配置保存，不包含语言测试会员功能 |
-| `all_access_monthly` | 30 CNY/月 | 全部语言会员功能、工具箱、批量处理、临时分享、配置保存 |
+| `all_access_monthly` | 30 CNY/月 | 全部语言会员功能、工具箱、财务、通知保存、批量处理、临时分享、配置保存 |
 | `japanese_lifetime` | 70 CNY | “双语言双项永久会员”：英语和日语测试会员功能永久有效，不包含工具箱 |
-| `all_access_lifetime` | 100 CNY | 全功能永久有效 |
+| `all_access_lifetime` | 100 CNY | 全功能永久有效，包含财务和通知保存 |
 
 充值窗口先让用户选择用途，再只展示适合该用途的在售方案：
 
@@ -106,9 +107,10 @@ Production 的价格、权益与在售状态以 D1 的 `task13_membership_plans`
 | 英语和日语 | 双语言包月、全功能包月、双语言双项永久、全功能永久 |
 | 只用工具箱 | 工具箱包月、全功能包月、全功能永久 |
 | 只用财务 | 财务会员、全功能包月、全功能永久 |
-| 语言、工具和财务 | 全功能包月、全功能永久 |
+| 只用通知保存 | 通知保存、全功能包月、全功能永久 |
+| 全部功能 | 全功能包月、全功能永久 |
 
-用途筛选只用于减少误选，不参与价格或权限判定。七个在售方案的订单金额、权益、支付方式和二维码资源都由服务端根据方案代码锁定；Task 17 只新增 `finance_monthly`，既有六个方案代码、价格和语义保持不变。单语言用途会同时锁定英语或日语选择；旧的未完成订单打开时按订单快照恢复套餐和支付方式，并显示与该订单兼容的用途。
+用途筛选只用于减少误选，不参与价格或权限判定。八个在售方案的订单金额、权益、支付方式和二维码资源都由服务端根据方案代码锁定；Task 21 的支付阶段只新增 `notification_archive_access`，既有七个方案代码、价格和语义保持不变。单语言用途会同时锁定英语或日语选择；旧的未完成订单打开时按订单快照恢复套餐和支付方式，并显示与该订单兼容的用途。
 
 权益代码：
 
@@ -119,10 +121,11 @@ Production 的价格、权益与在售状态以 D1 的 `task13_membership_plans`
 - `tools_batch_access`
 - `temporary_share_access`
 - `finance_access`
+- `notification_archive_access`
 - `save_tool_config`
 - `all_features_access`
 
-权限按有效会员记录合并，不使用单一 `isVip`。全功能永久和全功能包月覆盖全部模块；20 CNY 双语言包月与 20 CNY 工具箱包月互不越权；70 CNY 双语言双项永久包含英语和日语测试，但不包含工具箱；单语言体验和其他有效会员可以叠加。包月会员到期后立即失去对应权益，但同时存在的其他会员权益仍会保留。超级管理员拥有全部权益。
+权限按有效会员记录合并，不使用单一 `isVip`。全功能永久和全功能包月覆盖全部模块，包括 `finance_access` 与 `notification_archive_access`；两个独立 8 CNY 产品互不越权。20 CNY 双语言包月与 20 CNY 工具箱包月互不越权；70 CNY 双语言双项永久包含英语和日语测试，但不包含工具箱；单语言体验和其他有效会员可以叠加。包月会员到期后立即失去对应权益，但同时存在的其他会员权益仍会保留。超级管理员拥有全部权益。
 
 桌面启动器不参与正式网站运行。它只保留给历史后端隔离测试和人工回滚演练，始终手动启动且不创建开机自启动项；关闭电脑不会影响 Production。
 
@@ -160,7 +163,7 @@ pending_payment -> expired
 
 裁剪后的收款图片只保留二维码、金额和套餐名称，并在使用前验证扫码内容与处理前一致。图片必须去除头像、姓名、账号、状态栏及元数据，且不得进入 Git、公开静态目录、README、日志、数据库或源码 Base64。
 
-Production 的 12 张已清理 PNG 存在私有 R2 bucket，通过固定的服务端映射关联支付方式和方案代码；R2 object key 不返回客户端，也不使用公开 object URL。仓库外的历史本机目录 `data/payment/qrcodes/` 只用于迁移备份和隔离回归，继续由 `.gitignore` 排除。
+收款 PNG 存在私有 R2 bucket，通过固定的服务端映射关联支付方式和方案代码；R2 object key 不返回客户端，也不使用公开 object URL。应用 `0016_notification_archive_payment.sql` 前，必须先把通知保存的微信与支付宝专属素材分别上传到 `payments/qrcodes/v1/wechat_notification_archive_access.png` 和 `payments/qrcodes/v1/alipay_notification_archive_access.png`。仓库外的历史本机目录 `data/payment/qrcodes/` 只用于迁移备份和隔离回归，继续由 `.gitignore` 排除。
 
 浏览器只能通过 `GET /api/recharge/qr?request_id=<订单ID>` 获取二维码。接口检查会话、订单归属、状态、支付方式、套餐与固定资源映射、解析后的根目录、文件大小和 PNG 签名，并返回 `Cache-Control: private, no-store`。前端携带 `X-Session-Token` 获取 Blob，关闭窗口、切换订单、退出或会话失效时撤销 Object URL。
 
@@ -594,7 +597,7 @@ python scripts/migrate_task12_accounts_to_d1.py `
 
 Pages 保持原 `/api/membership/*`、`/api/recharge/*` 和 `/api/admin/*` 契约。服务端从 D1 读取方案并锁定订单名称、金额、期限和 entitlement 快照；客户端不能指定金额、用户 ID、权益或 R2 key。订单仍按 `pending_payment -> user_paid -> processing -> approved` 流转，也支持 `rejected`、`cancelled`、`expired`。用户点击“我已付款”只进入 `user_paid`，只有超级管理员审批成功才在同一 D1 batch 中写入唯一履约、会员、状态历史和审计。重复或并发审批不能重复延长期限，异常响应会说明提交状态而不会悄悄重试履约。
 
-收款二维码存放在环境隔离的私有 `WYJ_STORAGE` bucket，每个在售方案和支付方式使用独立固定 key `payments/qrcodes/v1/<wechat|alipay>_<plan>.png`。`finance_monthly` 使用自己的微信、支付宝专属私有收款码，不复用 `all_access_monthly`，专属素材缺失时也不会回退到其他套餐。接口只允许已登录的订单本人按订单 ID 读取，并校验订单归属、状态、支付方式、方案和 plan-bound `qr_resource_id`；响应使用 `Cache-Control: private, no-store`，不返回 object key。二维码文件、内容和真实付款信息不得进入 Git、迁移报告或 CI artifact。
+收款二维码存放在环境隔离的私有 `WYJ_STORAGE` bucket，每个在售方案和支付方式使用独立固定 key `payments/qrcodes/v1/<wechat|alipay>_<plan>.png`。`finance_monthly` 与 `notification_archive_access` 各自使用微信、支付宝专属私有收款码，二者不会互相复用，也不会复用 `all_access_monthly`；任何专属素材缺失都会 fail closed。接口只允许已登录的订单本人按订单 ID 读取，并校验订单归属、状态、支付方式、方案和 plan-bound `qr_resource_id`；响应使用 `Cache-Control: private, no-store`，不返回 object key。二维码文件、内容和真实付款信息不得进入 Git、迁移报告或 CI artifact。
 
 Preview 验证顺序：
 

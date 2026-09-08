@@ -116,11 +116,18 @@ try {
 
   const plans = await request(handleTask13Request, db, storage, "/api/membership/plans");
   assert.equal(plans.response.status, 200);
-  assert.equal(plans.payload.plans.length, 7);
+  assert.equal(plans.payload.plans.length, 8);
   const financePlan = plans.payload.plans.find((item) => item.code === "finance_monthly");
   assert.deepEqual({ name: financePlan.name, price_cents: financePlan.price_cents, entitlements: financePlan.entitlements }, {
     name: "财务会员", price_cents: 800, entitlements: ["finance_access"],
   });
+  const notificationPlan = plans.payload.plans.find((item) => item.code === "notification_archive_access");
+  assert.deepEqual({ name: notificationPlan.name, price_cents: notificationPlan.price_cents, entitlements: notificationPlan.entitlements }, {
+    name: "通知保存", price_cents: 800, entitlements: ["notification_archive_access"],
+  });
+  for (const code of ["all_access_monthly", "all_access_lifetime"]) {
+    assert.equal(plans.payload.plans.find((item) => item.code === code).entitlements.includes("notification_archive_access"), true);
+  }
 
   const alipayOrder = await request(handleTask13Request, db, storage, "/api/recharge/request", {
     method: "POST", token: USERS.alipay.token,

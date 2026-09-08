@@ -111,6 +111,7 @@ function rowEntitlements(row) {
   if (["all_access_monthly", "all_access_lifetime"].includes(String(row?.plan_code || ""))
       || entitlements.includes("all_features_access")) {
     entitlements.push("finance_access");
+    entitlements.push("notification_archive_access");
   }
   return [...new Set(entitlements)];
 }

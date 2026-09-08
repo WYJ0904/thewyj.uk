@@ -1,6 +1,7 @@
 export const MEMBERSHIP_PLAN_ORDER = Object.freeze([
   "trial_single_language",
   "finance_monthly",
+  "notification_archive_access",
   "dual_language_monthly",
   "tools_monthly",
   "all_access_monthly",
@@ -36,9 +37,14 @@ export const MEMBERSHIP_GOALS = Object.freeze({
     description: "显示财务会员和已包含财务权益的全功能方案。",
     plans: ["finance_monthly", "all_access_monthly", "all_access_lifetime"],
   },
+  notifications: {
+    label: "只用通知保存",
+    description: "显示 Android 通知保存会员和已包含该权益的全功能方案。",
+    plans: ["notification_archive_access", "all_access_monthly", "all_access_lifetime"],
+  },
   all: {
-    label: "语言、工具和财务",
-    description: "显示同时包含语言学习、在线工具箱与财务账本的全功能方案。",
+    label: "全部功能",
+    description: "显示同时包含语言学习、在线工具箱、财务账本与通知保存的全功能方案。",
     plans: ["all_access_monthly", "all_access_lifetime"],
   },
 });
@@ -51,6 +57,7 @@ export function normalizedMembershipGoal(value) {
 export function membershipGoalForPlan(planCode, trialLanguage = "") {
   if (planCode === "trial_single_language") return trialLanguage === "japanese" ? "japanese" : "english";
   if (planCode === "finance_monthly") return "finance";
+  if (planCode === "notification_archive_access") return "notifications";
   if (planCode === "tools_monthly") return "tools";
   if (["dual_language_monthly", "japanese_lifetime", "dual_language_lifetime"].includes(planCode)) return "bilingual";
   if (["all_access_monthly", "all_access_lifetime", "legacy_all_monthly", "legacy_all_lifetime"].includes(planCode)) return "all";

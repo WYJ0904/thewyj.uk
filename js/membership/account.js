@@ -10,6 +10,7 @@ const MEMBERSHIP_LABELS = Object.freeze({
   dual_language_monthly: "双语言包月",
   dual_language_lifetime: "双语言双项永久会员",
   finance_monthly: "财务会员",
+  notification_archive_access: "通知保存",
   all_access_monthly: "全功能包月会员",
   all_access_lifetime: "全功能永久会员",
   super_admin: "超级管理员",
@@ -24,6 +25,7 @@ const ENTITLEMENT_LABELS = Object.freeze({
   temporary_share_access: "临时分享",
   save_tool_config: "保存工具配置",
   finance_access: "财务账本",
+  notification_archive_access: "通知保存",
   all_features_access: "全部高级功能",
 });
 

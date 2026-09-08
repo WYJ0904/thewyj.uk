@@ -1439,12 +1439,14 @@ function Sync-PrivatePaymentAssets {
     $plans = @(
         [pscustomobject]@{ Code = "trial_single_language"; LegacyCode = "" },
         [pscustomobject]@{ Code = "finance_monthly"; LegacyCode = "" },
+        [pscustomobject]@{ Code = "notification_archive_access"; LegacyCode = "" },
         [pscustomobject]@{ Code = "dual_language_monthly"; LegacyCode = "" },
         [pscustomobject]@{ Code = "tools_monthly"; LegacyCode = "" },
         [pscustomobject]@{ Code = "all_access_monthly"; LegacyCode = "" },
         [pscustomobject]@{ Code = "japanese_lifetime"; LegacyCode = "dual_language_lifetime" },
         [pscustomobject]@{ Code = "all_access_lifetime"; LegacyCode = "" }
     )
+    $expectedCount = $plans.Count * 2
     $validCount = 0
     $copiedCount = 0
     foreach ($method in @("wechat", "alipay")) {
@@ -1471,14 +1473,14 @@ function Sync-PrivatePaymentAssets {
             $null = Copy-FileIfChanged -Source $historicalSource -Destination $historicalDestination
         }
     }
-    if ($validCount -eq 14) {
+    if ($validCount -eq $expectedCount) {
         if ($copiedCount -gt 0) {
             Write-LaunchLog "已安全同步 $copiedCount 张更新后的私有支付二维码。" "Green"
         } else {
-            Write-LaunchLog "14 张私有支付二维码已就绪。" "Green"
+            Write-LaunchLog "$expectedCount 张私有支付二维码已就绪。" "Green"
         }
     } else {
-        Write-LaunchLog "私有支付二维码仅就绪 $validCount/14；缺失方案将无法显示付款码。" "Yellow"
+        Write-LaunchLog "私有支付二维码仅就绪 $validCount/$expectedCount；缺失方案将无法显示付款码。" "Yellow"
     }
     return $validCount
 }

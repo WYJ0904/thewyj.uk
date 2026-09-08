@@ -181,6 +181,7 @@ try {
   assert.deepEqual(financePlan, { price_cents: 800, currency: "CNY", duration_months: 1, purchasable: 0 });
   assert.equal(financeState.entitlements.includes("finance_access"), true);
   assert.equal(allState.entitlements.includes("finance_access"), true, "old all-access payment snapshots gain finance access");
+  assert.equal(allState.entitlements.includes("notification_archive_access"), true, "old all-access payment snapshots gain notification archive access");
   assert.equal((await accountMembershipState(db, baseAccount(USERS.free))).entitlements.includes("finance_access"), false);
   completed += 1;
 

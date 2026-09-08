@@ -32,7 +32,7 @@
     "authenticated feedback submission is private and mobile-safe",
     "offline state preserves the session and reconnects",
     "locked toolbox, direct-route guard and membership plans",
-    "WeChat and Alipay order state survives a full page reload",
+    "notification archive WeChat and Alipay orders survive a full page reload",
     "word import, export, shuffle and clear",
     "free limit, empty answer and skipped wrong-book flow",
     "wrong search, JSON/PDF export, import and offline review",
@@ -148,7 +148,7 @@
     "trial.tool": ["quiz", "text", "json", "image-compress", "image-format"],
     "payment.method": ["wechat", "alipay"],
     "membership.plan": [
-      "trial_single_language", "finance_monthly", "dual_language_monthly", "tools_monthly",
+      "trial_single_language", "finance_monthly", "notification_archive_access", "dual_language_monthly", "tools_monthly",
       "all_access_monthly", "japanese_lifetime", "all_access_lifetime"
     ],
     "feedback.type": [

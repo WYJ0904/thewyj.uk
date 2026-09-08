@@ -694,13 +694,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260908-task20-navigation-r2');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20260908-task20-navigation-r2');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260908-task20-navigation-r2');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260908-task20-navigation-r2');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260908-task20-navigation-r2');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260908-task20-navigation-r2');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260908-task20-navigation-r2');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260908-task21-payment-r1');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20260908-task21-payment-r1');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260908-task21-payment-r1');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260908-task21-payment-r1');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260908-task21-payment-r1');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260908-task21-payment-r1');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260908-task21-payment-r1');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -1092,6 +1092,7 @@ async function main() {
         bilingual: ["dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
         tools: ["tools_monthly", "all_access_monthly", "all_access_lifetime"],
         finance: ["finance_monthly", "all_access_monthly", "all_access_lifetime"],
+        notifications: ["notification_archive_access", "all_access_monthly", "all_access_lifetime"],
         all: ["all_access_monthly", "all_access_lifetime"],
       };
       const planTextByCode = {};
@@ -1106,13 +1107,15 @@ async function main() {
           planTextByCode[item.code] = item.text;
         });
       }
-      assert.deepEqual([...observedCodes].sort(), ["all_access_lifetime", "all_access_monthly", "dual_language_monthly", "finance_monthly", "japanese_lifetime", "tools_monthly", "trial_single_language"]);
+      assert.deepEqual([...observedCodes].sort(), ["all_access_lifetime", "all_access_monthly", "dual_language_monthly", "finance_monthly", "japanese_lifetime", "notification_archive_access", "tools_monthly", "trial_single_language"]);
       assert.ok(planTextByCode.trial_single_language.includes("8"));
       assert.ok(planTextByCode.dual_language_monthly.includes("20"));
       assert.ok(planTextByCode.dual_language_monthly.includes("双语言包月"));
       assert.ok(planTextByCode.tools_monthly.includes("20"));
       assert.ok(planTextByCode.finance_monthly.includes("8"));
       assert.ok(planTextByCode.finance_monthly.includes("财务会员"));
+      assert.ok(planTextByCode.notification_archive_access.includes("8"));
+      assert.ok(planTextByCode.notification_archive_access.includes("通知保存"));
       assert.ok(planTextByCode.all_access_monthly.includes("30"));
       assert.ok(planTextByCode.japanese_lifetime.includes("70"));
       assert.ok(planTextByCode.japanese_lifetime.includes("双语言双项永久会员"));
@@ -1174,15 +1177,15 @@ async function main() {
 
     });
 
-    await check("WeChat and Alipay order state survives a full page reload", async () => {
+    await check("notification archive WeChat and Alipay orders survive a full page reload", async () => {
       const labels = { wechat: "微信支付", alipay: "支付宝" };
       for (const method of ["wechat", "alipay"]) {
         const paymentUser = await createUser(`pay${method}`);
         await useSession(paymentUser.session, "/recharge");
         await waitFor("!document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, `${method} recharge modal`);
-        await click('[data-membership-goal="tools"]');
-        await waitFor("document.querySelector('#membershipPlanList [data-plan=\"tools_monthly\"]')", 8_000, `${method} tools plan`);
-        await click('[data-plan="tools_monthly"]');
+        await click('[data-membership-goal="notifications"]');
+        await waitFor("document.querySelector('#membershipPlanList [data-plan=\"notification_archive_access\"]')", 8_000, `${method} notification archive plan`);
+        await click('[data-plan="notification_archive_access"]');
         assert.equal(await evaluate("selectedPaymentMethod"), "");
         assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').disabled"), true);
         await click(`#paymentMethodList input[value="${method}"]`);
@@ -1191,6 +1194,9 @@ async function main() {
         await click("#submitRechargeBtn");
         await waitFor("currentPaymentOrder?.status === 'pending_payment' && !document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, `${method} pending payment order`);
         assert.equal(await evaluate("currentPaymentOrder.payment_method"), method);
+        assert.equal(await evaluate("currentPaymentOrder.plan_code"), "notification_archive_access");
+        assert.equal(await evaluate("currentPaymentOrder.amount_cents"), 800);
+        assert.equal(await evaluate("document.querySelector('#paymentPlan').textContent.trim()"), "通知保存");
         assert.equal(await evaluate("document.querySelector('#paymentMethod').textContent.trim()"), labels[method]);
         assert.equal(await evaluate("document.querySelector('#paymentStatus').textContent.trim()"), "等待付款");
         assert.equal(await evaluate("document.querySelector('#paymentQrLabel').textContent.trim()"), `请使用${labels[method]}扫码付款`);
@@ -1202,6 +1208,8 @@ async function main() {
         await waitFor("!document.querySelector('#entryScreen')", 6_000, `${method} recharge reload splash`);
         await waitFor("currentPaymentOrder?.status === 'pending_payment' && !document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, `${method} restored order`);
         assert.equal(await evaluate("selectedPaymentMethod"), method);
+        assert.equal(await evaluate("currentPaymentOrder.plan_code"), "notification_archive_access");
+        assert.equal(await evaluate("currentPaymentOrder.amount_cents"), 800);
         assert.equal(await evaluate("document.querySelector('#paymentMethodList input:checked')?.value"), method);
         assert.equal(await evaluate("document.querySelector('#paymentMethod').textContent.trim()"), labels[method]);
         assert.equal(await evaluate("document.querySelector('#paymentStatus').textContent.trim()"), "等待付款");
@@ -1869,7 +1877,7 @@ async function main() {
       await send("Emulation.clearDeviceMetricsOverride");
       assert.deepEqual(
         await evaluate("[...document.querySelector('#adminMembershipSelect').options].map(option => option.value).filter(Boolean)"),
-        ["trial_single_language", "finance_monthly", "dual_language_monthly", "tools_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
+        ["trial_single_language", "finance_monthly", "notification_archive_access", "dual_language_monthly", "tools_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
       );
       assert.ok((await evaluate("document.querySelector('#adminCurrentMemberships').textContent")).includes("全功能包月会员"));
       await assertReadable(".admin-current-memberships article small");
