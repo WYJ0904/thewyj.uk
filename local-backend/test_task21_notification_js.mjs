@@ -229,6 +229,62 @@ try {
   });
   assert.equal(crossConfirm.response.status, 403);
 
+  // Confirm is idempotent: a second confirm must not create another finance transaction.
+  const confirmAgain = await request(db, "/api/notification/candidates/confirm", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: { candidate_id: candidate.id, device_id: "device-task21-000001" },
+  });
+  assert.equal(confirmAgain.response.status, 200);
+  assert.equal(confirmAgain.payload.no_change, true);
+  const confirmedTxnCount = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND source_kind = 'automatic'",
+  ).bind(USERS.subscriber.id).first();
+  assert.equal(Number(confirmedTxnCount.count), 2, "confirming a candidate twice must not duplicate finance");
+
+  // Reject is idempotent and final: reject then confirm is rejected.
+  const reject = await request(db, "/api/notification/candidates/reject", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: { candidate_id: candidate.id },
+  });
+  assert.equal(reject.response.status, 409);
+  assert.equal(reject.payload.code, "candidate_status_invalid");
+
+  const rejectPending = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-low-2", {
+      ...transactionEvent(),
+      event_id: "evt-task21-00000006",
+      fingerprint: fingerprint("ee55"),
+      parse_status: "candidate",
+      confidence: 750,
+      amount_minor: 990,
+    }),
+  });
+  const rejectCandidate = await db.prepare(
+    "SELECT * FROM task21_notification_candidates WHERE user_id = ?1 AND status = 'pending' AND amount_minor = 990",
+  ).bind(USERS.subscriber.id).first();
+  const rejectOk = await request(db, "/api/notification/candidates/reject", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: { candidate_id: rejectCandidate.id },
+  });
+  assert.equal(rejectOk.response.status, 200);
+  assert.equal(rejectOk.payload.candidate.status, "rejected");
+  const rejectAgain = await request(db, "/api/notification/candidates/reject", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: { candidate_id: rejectCandidate.id },
+  });
+  assert.equal(rejectAgain.response.status, 200);
+  assert.equal(rejectAgain.payload.no_change, true);
+  const rejectedTxn = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 990 AND source_kind = 'automatic'",
+  ).bind(USERS.subscriber.id).first();
+  assert.equal(Number(rejectedTxn.count), 0, "rejected candidate must never create a finance transaction");
+
   // 10. Malformed amount and unsupported currency are rejected.
   const badAmount = await request(db, "/api/notification/ingest", {
     method: "POST",

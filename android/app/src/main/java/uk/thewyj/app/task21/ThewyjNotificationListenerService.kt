@@ -7,6 +7,8 @@ import android.content.Intent
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import uk.thewyj.app.BuildConfig
+import java.io.File
 import java.util.concurrent.Executors
 
 /**
@@ -18,13 +20,16 @@ import java.util.concurrent.Executors
 class ThewyjNotificationListenerService : NotificationListenerService() {
     private val executor = Executors.newSingleThreadExecutor()
     private var coordinator: NotificationCaptureCoordinator? = null
+    private var sessionProvider: NotificationSessionProvider? = null
 
     override fun onListenerConnected() {
         super.onListenerConnected()
+        val provider = sessionProvider ?: NotificationSessionProvider(this).also { sessionProvider = it }
         coordinator = coordinator ?: NotificationCaptureCoordinator(
-            archive = LocalNotificationArchive.inDirectory(filesDir, "default"),
-            ingestQueue = OfflineNotificationQueue(java.io.File(filesDir, "notification-ingest.queue")),
-            account = { null },
+            archiveFor = { accountId -> LocalNotificationArchive.inDirectory(filesDir, accountId) },
+            queueFor = { accountId -> OfflineNotificationQueue(File(filesDir, "notification-ingest-${accountId.take(40)}.queue")) },
+            transport = HttpNotificationIngestTransport(BuildConfig.THEWYJ_BASE_URL),
+            account = provider::currentAccount,
         )
     }
 
@@ -39,6 +44,7 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
         val receivedAtMs = System.currentTimeMillis()
         executor.execute {
             coordinator?.onNotification(sourcePackage, title, text, bigText, subText, receivedAtMs)
+            coordinator?.flush()
         }
     }
 }
