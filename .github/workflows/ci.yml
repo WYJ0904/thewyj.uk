@@ -173,6 +173,7 @@ jobs:
             node --check local-backend/test_task18_d1_js.mjs
             node --check local-backend/test_task18_browser.mjs
             node --check local-backend/test_task20_d1_js.mjs
+            node --check qa/task20_overlay_device.mjs
             node --check cloudflare/task14-cleanup-worker.mjs
             node --check local-backend/test_app_browser.mjs
             node --check local-backend/test_tools_browser.mjs

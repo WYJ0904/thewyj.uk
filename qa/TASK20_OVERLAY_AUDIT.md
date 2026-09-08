@@ -38,13 +38,13 @@ substitute for the business triggers or physical picker acceptance.
 | financeBudgetModal | Finance: manage budgets; native month and category | PASS both themes; cancelled without writing |
 | membershipModal | Account menu: membership; finance purpose and plans | PASS both themes; no order created |
 | accountModal | Account settings from menu; nested delete dialog | PASS both themes |
-| siteMessageModal | Pending single-user message; close/ack receipt | Pending |
+| siteMessageModal | Pending single-user message; close/ack receipt | BLOCKED: no legitimate Preview administrator |
 | deleteAccountModal | Account: delete; CANCEL ONLY on retained fixture | PASS both themes; account retained |
-| adminEditModal | Admin: edit isolated selected user | Pending |
+| adminEditModal | Admin: edit isolated selected user | BLOCKED: no legitimate Preview administrator |
 | roundSummaryModal | Finish isolated two-word round via skip | PASS both themes |
 | confirmModal | Learning destructive confirmation; cancel | PASS both themes; admin trigger pending |
 | feedbackModal | Account menu: feedback type and soft keyboard | PASS both themes; no feedback submitted |
-| rejudgeResultModal | Rejudge wrong outcome; explicit confirmation and Android Back | PASS both themes; correct/network outcomes pending |
+| rejudgeResultModal | Rejudge wrong/correct/network outcomes; explicit confirmation and Android Back | PASS both themes; correct and network outcomes PASS 2026-09-08 |
 
 Other interaction families:
 
@@ -151,10 +151,12 @@ screenshots are outside Git; no secret, token, real QR or personal file is logge
   API, database, membership and payment contracts are unchanged.
 
 Remaining physical gates: adminEditModal and siteMessageModal using a
-legitimately authenticated Preview administrator; rejudge correct/network
-outcomes; reboot/recents/network/VPN and other Task 20 persistence scenarios.
-The historical production admin is absent from Preview. Do not manufacture a
-pass, reset that credential, or forge an owner session to bypass this gate.
+legitimately authenticated Preview administrator (BLOCKED, see below), plus
+reboot/recents/VPN scenarios that require manual device handling. Rejudge
+correct/network outcomes and the automatable persistence scenarios passed on
+2026-09-08. The historical production admin is absent from Preview. Do not
+manufacture a pass, reset that credential, or forge an owner session to bypass
+this gate.
 
 ## 2026-09-08 physical tools and core overlay suites on the new Preview
 
@@ -195,3 +197,50 @@ fixture/report environment variables, then run qa/task20_overlay_device.mjs.
 TASK20_OVERLAY_SUITE=core (default) and tools produce separate explicit reports;
 running one does not mark the other passed. Native file-picker checks only open,
 cancel and reopen, never enumerate/select/screenshot personal files.
+
+## 2026-09-08 rejudge outcomes and persistence scenarios on the new Preview
+
+Same device, APK, Preview and fixture as the tools/core runs above
+(SM-S9360 / Android 16 / WebView 151, f639a40-based debug APK, fixed Preview
+https://e82714c4.thewyj-uk.pages.dev, isolated account 6e846bea-…-bfc3b19).
+Two new opt-in physical suites were added to qa/task20_overlay_device.mjs and
+run against the real device; reports rejudge-r3 and persistence-r6 are outside
+Git. No product code changed for these results; the changes are driver-only.
+
+- rejudge correct-answer branch: PASS in both themes. A two-word round was
+  started and skipped through the real UI; the displayed standard meaning of
+  "hello" was typed into the real rejudge form. The modal reported
+  "重新判定正确", "已从错题本移除并校正对应测试统计", the item left the
+  rendered list, and the local rejudge audit log recorded new_result "correct".
+- rejudge network branch: PASS in both themes with a real network cut. A
+  legacy-format entry (no standard meaning) was imported through the real
+  wrong-book JSON import UI (native DocumentsUI picker, real file selection,
+  native completion alert). Airplane mode was toggled via
+  `cmd connectivity airplane-mode enable`; an in-page fetch of /api/status
+  really failed ("Failed to fetch") and the app flipped its status indicator
+  offline. Submitting a re-answer then produced "重新判定失败：
+  “network”重新判定失败：这条旧错题没有可用于重新判定的标准释义"; the entry
+  stayed in the wrong book and the item count was unchanged. The result modal
+  kept its confirm-only Android Back behavior. After airplane mode was
+  disabled, /api/status really recovered, the status indicator returned online,
+  and rejudging "world" succeeded, proving failure UI, state preservation and
+  recovery. Runtime exceptions: zero across both themes including the offline
+  window.
+- persistence suite: PASS. Home/return retained the document (navigation entry
+  count unchanged) and the session. Backgrounding plus `am kill`, and
+  `am force-stop`, both restored the same fixture account after relaunch.
+  While airplane mode was on, the authenticated surface stayed up with no
+  login view; after recovery the session still belonged to the fixture. Zero
+  runtime exceptions.
+- Driver hardening only: re-attachable WebView devtools session for process
+  restarts; native JS-dialog acceptance (Android WebView renders alerts
+  natively and emits no Page.javascriptDialogOpening); DocumentsUI selection
+  via the recents chip with stable-bounds verification; tap failures now report
+  measured geometry and visible modal layers. No product delay, reload or
+  business-code change; no test weakened.
+
+BLOCKED: adminEditModal and siteMessageModal still require a legitimate
+Preview administrator (the historical production admin is absent from Preview).
+NEEDS_MANUAL_DEVICE_ACTION: full device reboot, recents-edge cases and real VPN
+switches that cannot be reliably automated without physically handling the
+phone.
