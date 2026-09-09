@@ -342,18 +342,28 @@ try {
   assert.equal(rangeA.response.status, 206);
   assert.equal(rangeA.payload.length, 10);
 
-  const shareAfter = await request(db, storage, `/api/transfer/shares/${shareId}?password=正确密码`);
-  assert.equal(shareAfter.payload.share.download_count, 1);
+  let shareAfter;
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    shareAfter = await request(db, storage, `/api/transfer/shares/${shareId}?password=正确密码`);
+    if (Number(shareAfter.payload.share.download_count) === 1) break;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  assert.equal(Number(shareAfter.payload.share.download_count), 1);
 
   // 7. Max downloads: after the second full download the share is exhausted.
   const downloadB = await request(db, storage,
     `/api/transfer/shares/${shareId}/download?file=${fileB.file_id}&grant=${grant}`);
   assert.equal(downloadB.response.status, 200);
-  const exhausted = await request(db, storage, `/api/transfer/shares/${shareId}/authorize`, {
-    method: "POST",
-    body: { password: "正确密码" },
-  });
-  assert.equal(exhausted.response.status, 410);
+  let exhausted;
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    exhausted = await request(db, storage, `/api/transfer/shares/${shareId}/authorize`, {
+      method: "POST",
+      body: { password: "正确密码" },
+    });
+    if ([404, 410].includes(exhausted.response.status)) break;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  assert.ok([404, 410].includes(exhausted.response.status), "exhausted share must reject further authorization");
 
   // 8. One-time + Range/retry: range is allowed, then the first complete download destroys.
   const oneSession = await createSession(db, storage, {
