@@ -2275,6 +2275,8 @@ async function main() {
       "/api/admin/messages",
       "/api/admin/roles",
       "/api/notification/candidates",
+      "/api/transfer/capabilities",
+      "/api/transfer/shares",
     ]);
     const unexpectedHttpErrors = networkHttpErrors.filter((item) => {
       const pathname = new URL(item.url).pathname;
