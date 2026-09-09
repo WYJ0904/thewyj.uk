@@ -252,8 +252,11 @@ export async function allocateUploadFile(db, account, env, input) {
   if (files.some((file) => file.relative_path === relativePath)) {
     throw new Task22Error("同一分享内存在重复路径", 409, "transfer_duplicate_path");
   }
-  const existing = await first(db, "SELECT * FROM task22_upload_files WHERE session_id = ?1 AND id = ?2", [session.id, fileId]);
+  const existing = await first(db, "SELECT * FROM task22_upload_files WHERE id = ?1", [fileId]);
   if (existing) {
+    if (existing.session_id !== session.id) {
+      throw new Task22Error("文件标识已被其他上传任务使用", 409, "transfer_file_id_conflict");
+    }
     if (Number(existing.size_bytes) !== sizeBytes || existing.relative_path !== relativePath) {
       throw new Task22Error("文件标识与既有元数据冲突", 409, "transfer_file_id_conflict");
     }
