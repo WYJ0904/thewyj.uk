@@ -8,7 +8,6 @@ import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import uk.thewyj.app.BuildConfig
-import java.io.File
 import java.util.concurrent.Executors
 
 /**
@@ -27,7 +26,7 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
         val provider = sessionProvider ?: NotificationSessionProvider(this).also { sessionProvider = it }
         coordinator = coordinator ?: NotificationCaptureCoordinator(
             archiveFor = { accountId -> LocalNotificationArchive.inDirectory(filesDir, accountId) },
-            queueFor = { accountId -> OfflineNotificationQueue(File(filesDir, "notification-ingest-${accountId.take(40)}.queue")) },
+            queueFor = { accountId -> NotificationOfflineQueue.inDirectory(filesDir, accountId) },
             transport = HttpNotificationIngestTransport(BuildConfig.THEWYJ_BASE_URL),
             account = provider::currentAccount,
         )

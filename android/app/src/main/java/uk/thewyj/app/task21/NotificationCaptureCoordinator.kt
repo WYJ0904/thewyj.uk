@@ -10,9 +10,16 @@ class NotificationCaptureCoordinator(
     private val archiveFor: (accountId: String) -> NotificationArchiveStore,
     private val queueFor: (accountId: String) -> OfflineNotificationQueue,
     private val transport: NotificationIngestTransport,
-    private val ingestPath: String = "/api/notification/ingest",
     private val account: () -> CaptureAccount?,
 ) {
+    data class FlushResult(
+        val uploaded: Int,
+        val pending: Int,
+        val discardedInvalid: Int,
+        val authenticationRequired: Boolean,
+        val retryableFailures: Int,
+    )
+
     data class CaptureAccount(
         val accountId: String,
         val deviceId: String,
@@ -91,18 +98,48 @@ class NotificationCaptureCoordinator(
     }
 
     /** Drains the current account's offline queue. Retryable failures stay queued. */
-    fun flush(): Int {
-        val current = account() ?: return 0
-        if (!current.notificationEntitled) return 0
+    fun flushDetailed(): FlushResult {
+        val current = account() ?: return FlushResult(0, 0, 0, authenticationRequired = true, retryableFailures = 0)
+        if (!current.notificationEntitled) return FlushResult(0, 0, 0, authenticationRequired = false, retryableFailures = 0)
         val ingestQueue = queueFor(current.accountId)
         var uploaded = 0
-        for ((operationId, payload) in ingestQueue.peekAll()) {
-            val response = transport.post(ingestPath, current.sessionToken, payload)
-            if (response.ok || response.status == 400 || response.status == 401 || response.status == 403) {
-                ingestQueue.remove(operationId)
-                if (response.ok) uploaded += 1
+        var discardedInvalid = 0
+        var authenticationRequired = false
+        var retryableFailures = 0
+        for (request in ingestQueue.peekRequests()) {
+            val response = runCatching {
+                transport.post(request.path, current.sessionToken, request.body)
+            }.getOrElse {
+                retryableFailures += 1
+                break
+            }
+            when {
+                response.ok -> {
+                    ingestQueue.remove(request.operationId)
+                    uploaded += 1
+                }
+                response.status in setOf(400, 404, 409) -> {
+                    ingestQueue.remove(request.operationId)
+                    discardedInvalid += 1
+                }
+                response.status in setOf(401, 403) -> {
+                    authenticationRequired = true
+                    break
+                }
+                else -> {
+                    retryableFailures += 1
+                    break
+                }
             }
         }
-        return uploaded
+        return FlushResult(
+            uploaded = uploaded,
+            pending = ingestQueue.pendingCount(),
+            discardedInvalid = discardedInvalid,
+            authenticationRequired = authenticationRequired,
+            retryableFailures = retryableFailures,
+        )
     }
+
+    fun flush(): Int = flushDetailed().uploaded
 }
