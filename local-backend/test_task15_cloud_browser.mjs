@@ -613,7 +613,11 @@ async function main() {
           // Geometry audit of every existing dialog; business trigger flows are
           // separately exercised by application/finance/admin browser suites.
           await evaluate(`openModal(${JSON.stringify(id)})`);
-          await delay(200);
+          await waitFor(
+            `document.getElementById(${JSON.stringify(id)})?.parentElement?.tagName === 'BODY' && !document.getElementById(${JSON.stringify(id)})?.classList.contains('hidden') && document.getElementById('appShell')?.inert === true`,
+            3000,
+            `${id} opened with inert application shell`,
+          );
           const geometry = await evaluate(`(()=>{const e=document.getElementById(${JSON.stringify(id)}),p=e.querySelector('.modal-panel'),r=p.getBoundingClientRect(),b=e.querySelector('button');const br=b?.getBoundingClientRect();return {parent:e.parentElement.tagName,inert:e.inert,bg:document.getElementById('appShell').inert,x:r.x,y:r.y,right:r.right,bottom:r.bottom,w:innerWidth,h:visualViewport.height,hit:!br||e.contains(document.elementFromPoint(br.x+br.width/2,br.y+br.height/2))};})()`);
           assert.equal(geometry.parent,'BODY',id);
           assert.equal(geometry.inert,false,id);
