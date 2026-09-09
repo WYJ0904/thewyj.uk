@@ -7,6 +7,7 @@ import { Miniflare } from "miniflare";
 
 import { handleTask21Request } from "../functions/_lib/task21-api.mjs";
 import { sessionStorageKey } from "../functions/_lib/task12-crypto.mjs";
+import { __testing as task21Testing } from "../functions/_lib/task21-service.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const ENVIRONMENT = Object.freeze({
@@ -59,12 +60,12 @@ async function grantMembership(db, userId, planCode) {
   ].join(" ")).bind(`task21-${userId}`, userId, planCode, now, expires, `task21-${userId}`).run();
 }
 
-async function request(db, route, options = {}) {
+async function request(db, route, options = {}, environment = ENVIRONMENT) {
   const headers = new Headers(options.headers || {});
   if (options.token) headers.set("X-Session-Token", options.token);
   if (options.body !== undefined) headers.set("Content-Type", "application/json");
   const response = await handleTask21Request({
-    env: { ...ENVIRONMENT, WYJ_DB: db },
+    env: { ...environment, WYJ_DB: db },
     data: { requestId: crypto.randomUUID() },
     request: new Request("https://preview.thewyj.uk" + route, {
       method: options.method || "GET",
@@ -183,6 +184,27 @@ try {
   ).bind(USERS.subscriber.id).first();
   assert.equal(Number(txnCount.count), 1, "replayed ingest must not create a second finance transaction");
 
+  // A prior D1 failure may leave the event row without its finance outcome.
+  // Replaying must finish that exact event instead of treating it as complete.
+  const partialEvent = transactionEvent({
+    event_id: "evt-task21-partial-01",
+    fingerprint: fingerprint("aabb"),
+    amount_minor: 1450,
+  });
+  await task21Testing.storeEvent(db, { id: USERS.subscriber.id }, partialEvent, "device-task21-original");
+  const repaired = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-retry-99", "op-partial-retry", partialEvent),
+  });
+  assert.equal(repaired.response.status, 200, JSON.stringify(repaired.payload));
+  assert.equal(repaired.payload.operation_results[0].recovered, true);
+  assert.match(repaired.payload.operation_results[0].transaction_id, /^txn:/);
+  const partialTxnCount = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 1450",
+  ).bind(USERS.subscriber.id).first();
+  assert.equal(Number(partialTxnCount.count), 1);
+
   // 7. A different event with the same fingerprint dedupes to the same record.
   const dupFingerprint = await request(db, "/api/notification/ingest", {
     method: "POST",
@@ -238,7 +260,7 @@ try {
   assert.equal(confirmAgain.response.status, 200);
   assert.equal(confirmAgain.payload.no_change, true);
   const confirmedTxnCount = await db.prepare(
-    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND source_kind = 'automatic'",
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND source_kind = 'automatic' AND amount_minor = 1280",
   ).bind(USERS.subscriber.id).first();
   assert.equal(Number(confirmedTxnCount.count), 2, "confirming a candidate twice must not duplicate finance");
 
@@ -285,6 +307,36 @@ try {
   ).bind(USERS.subscriber.id).first();
   assert.equal(Number(rejectedTxn.count), 0, "rejected candidate must never create a finance transaction");
 
+  const deletePending = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-delete-pending", {
+      ...transactionEvent(),
+      event_id: "evt-task21-delete-pending",
+      fingerprint: fingerprint("de18"),
+      parse_status: "candidate",
+      confidence: 740,
+      amount_minor: 3330,
+    }),
+  });
+  const deletePendingId = deletePending.payload.operation_results[0].candidate_id;
+  const deletePendingEvent = await request(db, "/api/notification/events/delete", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: { event_id: "evt-task21-delete-pending" },
+  });
+  assert.equal(deletePendingEvent.response.status, 200);
+  const deletedCandidate = await db.prepare(
+    "SELECT status FROM task21_notification_candidates WHERE id = ?1",
+  ).bind(deletePendingId).first();
+  assert.equal(deletedCandidate.status, "rejected", "deleting an event must close its pending candidate");
+  const confirmDeleted = await request(db, "/api/notification/candidates/confirm", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: { candidate_id: deletePendingId, device_id: "device-task21-000001" },
+  });
+  assert.equal(confirmDeleted.response.status, 409);
+
   // 10. Malformed amount and unsupported currency are rejected.
   const badAmount = await request(db, "/api/notification/ingest", {
     method: "POST",
@@ -320,6 +372,10 @@ try {
   const candidates = await request(db, "/api/notification/candidates?status=confirmed", { token: USERS.subscriber.token });
   assert.equal(candidates.response.status, 200);
   assert.equal(candidates.payload.candidates.length, 1);
+  const invalidCandidateFilter = await request(db, "/api/notification/candidates?status=unknown", {
+    token: USERS.subscriber.token,
+  });
+  assert.equal(invalidCandidateFilter.response.status, 400);
 
   // 12. Delete is owner-scoped and idempotent.
   const del = await request(db, "/api/notification/events/delete", {
@@ -336,7 +392,130 @@ try {
   });
   assert.equal(crossDel.response.status, 403);
 
-  console.log("Task 21 notification checks passed (privacy boundary, entitlement, idempotent ingest, dedupe, finance integration, candidates).");
+  // 13. An expired session is rejected and does not leak candidate data.
+  const expiredSessionUser = Object.freeze({
+    id: "task21-expired-session", username: "task21-expired-session", token: "task21-expired-session-token",
+  });
+  await insertUser(db, expiredSessionUser);
+  await grantMembership(db, expiredSessionUser.id, "notification_archive_access");
+  const expiredAt = new Date(Date.now() - 60_000).toISOString();
+  await db.prepare([
+    "INSERT INTO task12_sessions (",
+    "token_digest, user_id, session_version, created_at, last_seen_at, expires_at, client_kind",
+    ") VALUES (?1, ?2, 1, ?3, ?3, ?4, 'browser')",
+  ].join(" ")).bind(
+    await sessionStorageKey(expiredSessionUser.token), expiredSessionUser.id,
+    new Date().toISOString(), expiredAt,
+  ).run();
+  const expiredSessionRead = await request(db, "/api/notification/events", { token: expiredSessionUser.token });
+  assert.equal(expiredSessionRead.response.status, 401);
+
+  // 14. A lapsed entitlement denies confirm and never creates finance records.
+  const lapsedUser = Object.freeze({
+    id: "task21-lapsed-entitlement", username: "task21-lapsed-entitlement", token: "task21-lapsed-entitlement-token",
+  });
+  await insertUser(db, lapsedUser, lapsedUser.token);
+  await grantMembership(db, lapsedUser.id, "notification_archive_access");
+  const lapsedIngest = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: lapsedUser.token,
+    body: ingestBody("device-task21-000002", "op-lapsed-1", {
+      ...transactionEvent(),
+      event_id: "evt-task21-00000007",
+      fingerprint: fingerprint("ff66"),
+      parse_status: "candidate",
+      confidence: 750,
+    }),
+  });
+  assert.equal(lapsedIngest.response.status, 200, JSON.stringify(lapsedIngest.payload));
+  const lapsedCandidateId = lapsedIngest.payload.operation_results[0].candidate_id;
+  assert.match(lapsedCandidateId, /^cand:/);
+  await db.prepare(
+    "UPDATE task13_user_memberships SET expires_at = ?1 WHERE user_id = ?2 AND plan_code = 'notification_archive_access'",
+  ).bind(new Date(Date.now() - 60_000).toISOString(), lapsedUser.id).run();
+  const lapsedConfirm = await request(db, "/api/notification/candidates/confirm", {
+    method: "POST",
+    token: lapsedUser.token,
+    body: { candidate_id: lapsedCandidateId, device_id: "device-task21-000002" },
+  });
+  assert.equal(lapsedConfirm.response.status, 403);
+  assert.equal(lapsedConfirm.payload.code, "notification_membership_required");
+  const lapsedTxnCount = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1",
+  ).bind(lapsedUser.id).first();
+  assert.equal(Number(lapsedTxnCount.count), 0, "expired entitlement must not create finance transactions");
+
+  // 15. Reject then confirm is rejected: rejected candidates are terminal.
+  const rejectedConfirm = await request(db, "/api/notification/candidates/confirm", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: { candidate_id: rejectCandidate.id, device_id: "device-task21-000001" },
+  });
+  assert.equal(rejectedConfirm.response.status, 409);
+  assert.equal(rejectedConfirm.payload.code, "candidate_status_invalid");
+
+  // 16. Two clients confirming concurrently produce exactly one finance transaction.
+  const concurrent = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-concurrent-1", {
+      ...transactionEvent(),
+      event_id: "evt-task21-00000008",
+      fingerprint: fingerprint("aa77"),
+      parse_status: "candidate",
+      confidence: 760,
+      amount_minor: 2220,
+    }),
+  });
+  assert.equal(concurrent.response.status, 200, JSON.stringify(concurrent.payload));
+  const concurrentCandidateId = concurrent.payload.operation_results[0].candidate_id;
+  const [firstConfirm, secondConfirm] = await Promise.all([
+    request(db, "/api/notification/candidates/confirm", {
+      method: "POST",
+      token: USERS.subscriber.token,
+      body: { candidate_id: concurrentCandidateId, device_id: "device-task21-000001" },
+    }),
+    request(db, "/api/notification/candidates/confirm", {
+      method: "POST",
+      token: USERS.subscriber.token,
+      body: { candidate_id: concurrentCandidateId, device_id: "device-task21-000003" },
+    }),
+  ]);
+  // A racing writer may be asked to retry, but every confirm either succeeds,
+  // reports an idempotent no-op, or is retryable — never a partial double entry.
+  assert.ok([200, 409, 503].includes(firstConfirm.response.status), JSON.stringify(firstConfirm.payload));
+  assert.ok([200, 409, 503].includes(secondConfirm.response.status), JSON.stringify(secondConfirm.payload));
+  const settledConfirm = await request(db, "/api/notification/candidates/confirm", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: { candidate_id: concurrentCandidateId, device_id: "device-task21-000001" },
+  });
+  assert.equal(settledConfirm.response.status, 200, JSON.stringify(settledConfirm.payload));
+  const concurrentTxnCount = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 2220 AND source_kind = 'automatic'",
+  ).bind(USERS.subscriber.id).first();
+  assert.equal(Number(concurrentTxnCount.count), 1, "concurrent confirms must create exactly one finance transaction");
+
+  // 17. Feature flag off keeps every Task 21 route fail-closed.
+  const flagsOff = {
+    ...ENVIRONMENT,
+    TASK21_NOTIFICATION_READS_ENABLED: "false",
+    TASK21_NOTIFICATION_WRITES_ENABLED: "false",
+  };
+  const readOff = await request(db, "/api/notification/events", { token: USERS.subscriber.token }, flagsOff);
+  assert.equal(readOff.response.status, 503);
+  assert.equal(readOff.payload.code, "task21_notification_not_enabled");
+  const writeOff = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-flag-off", transactionEvent()),
+  }, flagsOff);
+  assert.equal(writeOff.response.status, 503);
+  assert.equal(writeOff.payload.code, "task21_notification_not_enabled");
+  const candidatesOff = await request(db, "/api/notification/candidates", { token: USERS.subscriber.token }, flagsOff);
+  assert.equal(candidatesOff.response.status, 503);
+
+  console.log("Task 21 notification checks passed (privacy boundary, entitlement lifecycle, idempotent ingest, dedupe, finance integration, candidate state machine, feature flags).");
 } finally {
   await mf.dispose();
   await rm(runtime, { recursive: true, force: true });

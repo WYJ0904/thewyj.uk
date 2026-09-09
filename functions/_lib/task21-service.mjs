@@ -95,10 +95,10 @@ async function nextFinanceVersion(db, userId, now) {
   return Number(row?.server_version || 0) + 1;
 }
 
-async function findFinanceRawBySourceEvent(db, userId, deviceId, sourceEventId) {
+async function findFinanceRawBySourceEvent(db, userId, sourceEventId) {
   return await first(db, `SELECT * FROM task16_finance_raw_events
-    WHERE user_id = ?1 AND device_id = ?2 AND source_type = 'notification' AND source_event_id = ?3
-    ORDER BY created_at LIMIT 1`, [userId, deviceId, sourceEventId]);
+    WHERE user_id = ?1 AND source_type = 'notification' AND source_event_id = ?2
+    ORDER BY created_at LIMIT 1`, [userId, sourceEventId]);
 }
 
 async function financeTransactionIdForRaw(db, rawId) {
@@ -108,7 +108,7 @@ async function financeTransactionIdForRaw(db, rawId) {
 }
 
 async function createAutomaticFinanceTransaction(db, account, deviceId, event) {
-  const existing = await findFinanceRawBySourceEvent(db, account.id, deviceId, event.event_id);
+  const existing = await findFinanceRawBySourceEvent(db, account.id, event.event_id);
   if (existing) {
     return { transaction_id: await financeTransactionIdForRaw(db, existing.id), duplicate: true };
   }
@@ -177,7 +177,7 @@ async function createAutomaticFinanceTransaction(db, account, deviceId, event) {
     ]);
     return { transaction_id: transactionId, duplicate: false };
   } catch (error) {
-    const raced = await findFinanceRawBySourceEvent(db, account.id, deviceId, event.event_id);
+    const raced = await findFinanceRawBySourceEvent(db, account.id, event.event_id);
     if (raced) return { transaction_id: await financeTransactionIdForRaw(db, raced.id), duplicate: true };
     throw error;
   }
@@ -229,28 +229,67 @@ async function candidateById(db, account, candidateId) {
   return row;
 }
 
+function eventFromStoredRow(row) {
+  return {
+    event_id: String(row.event_id),
+    fingerprint: String(row.fingerprint),
+    source_package: String(row.source_package),
+    source_type: String(row.source_type),
+    event_type: String(row.event_type),
+    parser_version: String(row.parser_version),
+    parse_status: String(row.parse_status),
+    direction: String(row.direction),
+    amount_minor: Number(row.amount_minor),
+    currency: String(row.currency),
+    payment_channel: String(row.payment_channel),
+    merchant: String(row.merchant),
+    counterparty: String(row.counterparty),
+    confidence: Number(row.confidence),
+    occurred_at_ms: Number(row.occurred_at_ms),
+    received_at_ms: Number(row.received_at_ms),
+  };
+}
+
+async function attachEventOutcome(db, account, event, deviceId, now) {
+  const isTransactionLike = event.event_type === "transaction" || event.event_type === "refund";
+  const autoIngest = isTransactionLike && event.parse_status === "parsed"
+    && event.confidence >= AUTO_INGEST_CONFIDENCE_MILLI;
+  const makeCandidate = isTransactionLike && !autoIngest && event.parse_status !== "unparsed";
+  let transactionId = "";
+  let candidateId = "";
+  if (autoIngest) {
+    transactionId = (await createAutomaticFinanceTransaction(db, account, deviceId, event)).transaction_id;
+  } else if (makeCandidate) {
+    candidateId = (await candidateForEvent(db, account, event, now)).id;
+  }
+  if (transactionId || candidateId) {
+    await run(db, `UPDATE task21_notification_events SET candidate_id = ?2, finance_transaction_id = ?3,
+      updated_at = ?4 WHERE user_id = ?1 AND event_id = ?5`, [
+      account.id, candidateId, transactionId, now, event.event_id,
+    ]);
+  }
+  return { transactionId, candidateId };
+}
+
 async function processIngest(db, account, deviceId, operation) {
   if (!operation || typeof operation !== "object" || Array.isArray(operation)) {
     throw new Task21Error("采集操作无效", 400, "operation_invalid");
   }
   requireAllowedFields(operation, new Set(["operation_id", "type", "payload"]));
-  const operationId = cleanId(operation.operation_id, "操作标识");
+  cleanId(operation.operation_id, "操作标识");
   if (operation.type !== "event.ingest") throw new Task21Error("采集操作类型无效", 400, "operation_type_invalid");
   const event = normalizeNotificationEvent(operation.payload);
-
   const now = isoNow();
-  const isTransactionLike = event.event_type === "transaction" || event.event_type === "refund";
-  const autoIngest = isTransactionLike && event.parse_status === "parsed" && event.confidence >= AUTO_INGEST_CONFIDENCE_MILLI;
-  const makeCandidate = isTransactionLike && !autoIngest && event.parse_status !== "unparsed";
 
-  let transactionId = "";
-  let candidateId = "";
   try {
     await storeEvent(db, account, event, deviceId);
   } catch (error) {
     const existingEvent = await first(db, `SELECT * FROM task21_notification_events
-      WHERE user_id = ?1 AND (event_id = ?2 OR fingerprint = ?3)`, [account.id, event.event_id, event.fingerprint]);
-    if (existingEvent) {
+      WHERE user_id = ?1 AND (event_id = ?2 OR fingerprint = ?3)`, [
+      account.id, event.event_id, event.fingerprint,
+    ]);
+    if (!existingEvent) throw error;
+    if (existingEvent.finance_transaction_id || existingEvent.candidate_id) {
       return {
         event: publicNotificationEvent(existingEvent),
         duplicate: true,
@@ -258,21 +297,26 @@ async function processIngest(db, account, deviceId, operation) {
         candidate_id: existingEvent.candidate_id,
       };
     }
-    throw error;
+    const repaired = eventFromStoredRow(existingEvent);
+    const outcome = await attachEventOutcome(db, account, repaired, existingEvent.device_id, now);
+    const row = await eventById(db, account, existingEvent.event_id);
+    return {
+      event: publicNotificationEvent(row),
+      duplicate: true,
+      recovered: true,
+      transaction_id: outcome.transactionId,
+      candidate_id: outcome.candidateId,
+    };
   }
 
-  if (autoIngest) {
-    transactionId = (await createAutomaticFinanceTransaction(db, account, deviceId, event)).transaction_id;
-  } else if (makeCandidate) {
-    candidateId = (await candidateForEvent(db, account, event, now)).id;
-  }
-
-  if (transactionId || candidateId) {
-    await run(db, `UPDATE task21_notification_events SET candidate_id = ?2, finance_transaction_id = ?3,
-      updated_at = ?4 WHERE user_id = ?1 AND event_id = ?5`, [account.id, candidateId, transactionId, now, event.event_id]);
-  }
+  const outcome = await attachEventOutcome(db, account, event, deviceId, now);
   const row = await eventById(db, account, event.event_id);
-  return { event: publicNotificationEvent(row), duplicate: false, transaction_id: transactionId, candidate_id: candidateId };
+  return {
+    event: publicNotificationEvent(row),
+    duplicate: false,
+    transaction_id: outcome.transactionId,
+    candidate_id: outcome.candidateId,
+  };
 }
 
 async function processOperation(db, account, deviceId, operation) {
@@ -343,10 +387,13 @@ export async function listNotificationEvents(db, account, input = {}) {
 export async function listNotificationCandidates(db, account, input = {}) {
   requireNotificationAccess(account);
   const status = String(input.status || "pending").trim().toLowerCase();
+  if (!["pending", "confirmed", "rejected"].includes(status)) {
+    throw new Task21Error("通知候选状态无效", 400, "candidate_status_invalid");
+  }
   const limit = Math.min(MAX_EVENT_PAGE, Math.max(1, Number.parseInt(String(input.limit || 50), 10) || 50));
   const rows = await all(db, `SELECT * FROM task21_notification_candidates
     WHERE user_id = ?1 ${status ? "AND status = ?2" : ""}
-    ORDER BY created_at DESC, id DESC LIMIT ?${status ? 3 : 2}`, status ? [account.id, status, limit] : [account.id, limit]);
+    ORDER BY created_at DESC, id DESC LIMIT ?3`, [account.id, status, limit]);
   return { candidates: rows.map(publicNotificationCandidate) };
 }
 
@@ -357,9 +404,10 @@ export async function confirmNotificationCandidate(db, account, input) {
   const row = await candidateById(db, account, candidateId);
   if (row.status === "confirmed") return { candidate: publicNotificationCandidate(row), no_change: true };
   if (row.status !== "pending") throw new Task21Error("该候选不能确认", 409, "candidate_status_invalid");
-  const device = validateDeviceId(input.device_id);
+  validateDeviceId(input.device_id);
   const event = await eventById(db, account, row.event_id);
-  const finance = await createAutomaticFinanceTransaction(db, account, device, {
+  if (event.status !== "active") throw new Task21Error("该候选关联通知已删除", 409, "candidate_status_invalid");
+  const finance = await createAutomaticFinanceTransaction(db, account, event.device_id, {
     event_id: event.event_id,
     fingerprint: event.fingerprint,
     direction: row.direction,
@@ -402,8 +450,12 @@ export async function deleteNotificationEvent(db, account, eventIdValue) {
   const row = await eventById(db, account, eventId);
   if (row.status === "deleted") return { event: publicNotificationEvent(row), no_change: true };
   const now = isoNow();
-  await run(db, `UPDATE task21_notification_events SET status = 'deleted', deleted_at = ?2,
-    updated_at = ?2 WHERE user_id = ?1 AND event_id = ?3`, [account.id, now, eventId]);
+  await db.batch([
+    db.prepare(`UPDATE task21_notification_events SET status = 'deleted', deleted_at = ?2,
+      updated_at = ?2 WHERE user_id = ?1 AND event_id = ?3`).bind(account.id, now, eventId),
+    db.prepare(`UPDATE task21_notification_candidates SET status = 'rejected', updated_at = ?2
+      WHERE user_id = ?1 AND event_id = ?3 AND status = 'pending'`).bind(account.id, now, eventId),
+  ]);
   const updated = await eventById(db, account, eventId);
   return { event: publicNotificationEvent(updated) };
 }

@@ -83,3 +83,7 @@ CREATE TABLE IF NOT EXISTS task21_notification_sync_operations (
 );
 CREATE INDEX IF NOT EXISTS idx_task21_sync_operations_device
 ON task21_notification_sync_operations (user_id, device_id, created_at DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_task21_finance_notification_source
+ON task16_finance_raw_events (user_id, source_type, source_event_id)
+WHERE source_type = 'notification' AND source_event_id != '';
