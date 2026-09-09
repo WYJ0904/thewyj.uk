@@ -1523,6 +1523,7 @@ textarea::placeholder {
 }
 
 .finance-summary-section,
+.finance-candidates-section,
 .finance-ledger-panel,
 .finance-side-panel {
   min-width: 0;
@@ -1531,6 +1532,64 @@ textarea::placeholder {
   border-radius: var(--radius-card);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
+}
+
+.finance-candidates-section {
+  margin-top: var(--space-5);
+}
+
+.finance-candidate-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.finance-candidate,
+.finance-candidate-main,
+.finance-candidate-actions {
+  display: flex;
+  align-items: center;
+}
+
+.finance-candidate {
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-subtle);
+}
+
+.finance-candidate-main {
+  min-width: 0;
+  gap: var(--space-3);
+}
+
+.finance-candidate-main > div {
+  min-width: 0;
+}
+
+.finance-candidate-main strong,
+.finance-candidate-main small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.finance-candidate-main small,
+.finance-candidate-empty p,
+.finance-candidate-message p {
+  color: var(--color-text-secondary);
+}
+
+.finance-candidate-actions {
+  flex: 0 0 auto;
+  gap: var(--space-2);
+}
+
+.finance-candidate-empty,
+.finance-candidate-message {
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-control);
 }
 
 .finance-summary-grid {
@@ -3969,6 +4028,7 @@ progress {
   }
 
   .finance-summary-section,
+  .finance-candidates-section,
   .finance-ledger-panel,
   .finance-side-panel,
   .finance-locked {
@@ -3985,9 +4045,22 @@ progress {
   }
 
   .finance-transaction,
+  .finance-candidate,
   .finance-manager-row {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .finance-candidate-main {
+    align-items: flex-start;
+  }
+
+  .finance-candidate-actions {
+    width: 100%;
+  }
+
+  .finance-candidate-actions > * {
+    flex: 1 1 0;
   }
 
   .finance-transaction-side {

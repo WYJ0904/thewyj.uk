@@ -694,13 +694,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260908-task21-payment-r1');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20260908-task21-payment-r1');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260908-task21-payment-r1');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260908-task21-payment-r1');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260908-task21-payment-r1');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260908-task21-payment-r1');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260908-task21-payment-r1');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260909-task21-notification-r2');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20260909-task21-notification-r2');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260909-task21-notification-r2');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260909-task21-notification-r2');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260909-task21-notification-r2');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260909-task21-notification-r2');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260909-task21-notification-r2');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -2270,18 +2270,23 @@ async function main() {
     });
 
     const expectedDeniedPaths = new Set(["/api/tools/access", "/api/quiz/start"]);
-    const expectedTask18CloudOnlyPaths = new Set(["/api/messages/pending", "/api/admin/messages", "/api/admin/roles"]);
+    const expectedCloudOnlyPaths = new Set([
+      "/api/messages/pending",
+      "/api/admin/messages",
+      "/api/admin/roles",
+      "/api/notification/candidates",
+    ]);
     const unexpectedHttpErrors = networkHttpErrors.filter((item) => {
       const pathname = new URL(item.url).pathname;
       const expectedPermissionDenial = item.status === 403 && expectedDeniedPaths.has(pathname);
       const expectedStaticChangelogFallback = item.status === 404 && pathname === "/api/changelog";
-      const expectedTask18LegacyBackendFallback = item.status === 404 && expectedTask18CloudOnlyPaths.has(pathname);
+      const expectedLegacyBackendFallback = item.status === 404 && expectedCloudOnlyPaths.has(pathname);
       const expectedDeletedAccountSyncCancellation = item.status === 401
         && pathname === "/api/learning/sync"
         && item.expectedSessionInvalidation;
       return !expectedPermissionDenial
         && !expectedStaticChangelogFallback
-        && !expectedTask18LegacyBackendFallback
+        && !expectedLegacyBackendFallback
         && !expectedDeletedAccountSyncCancellation;
     });
     assert.deepEqual(unexpectedHttpErrors, [], `unexpected browser HTTP errors: ${JSON.stringify(networkHttpErrors)}`);
