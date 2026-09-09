@@ -496,6 +496,113 @@ async function main() {
       }
     });
 
+    await check("Task 21 finance candidate review confirms, rejects and tombstones structured events", async () => {
+      assert.ok(process.env.WYJ_TEST_ADMIN_SECRET, "Isolated administrator fixture required");
+      const admin = await request("/api/login", { username: "wyj", secret: process.env.WYJ_TEST_ADMIN_SECRET });
+      assert.equal(admin.status, 200);
+      try {
+        for (const planCode of ["finance_monthly", "notification_archive_access"]) {
+          const granted = await request("/api/admin/membership/manage", {
+            user_id: me.data.account.id,
+            action: "grant",
+            plan_code: planCode,
+            note: "Task21 isolated browser candidate fixture",
+          }, admin.data.session);
+          assert.equal(granted.status, 200, JSON.stringify(granted.data));
+        }
+      } finally {
+        await request("/api/logout", {}, admin.data.session);
+      }
+
+      await send("Page.reload", { ignoreCache: true });
+      await waitFor(
+        "state.account?.entitlements.includes('finance_access') && state.account?.entitlements.includes('notification_archive_access')",
+        20_000,
+        "Task 21 entitlements after reload",
+      );
+
+      const event = (suffix, amount, fingerprintValue) => ({
+        event_id: "evt-browser-" + RUN_ID + "-" + suffix,
+        fingerprint: fingerprintValue.repeat(64),
+        source_package: "com.tencent.mm",
+        source_type: "notification",
+        event_type: "transaction",
+        parser_version: "browser-fixture-v1",
+        parse_status: "candidate",
+        direction: "expense",
+        amount_minor: amount,
+        currency: "CNY",
+        payment_channel: "wechat",
+        merchant: "隔离测试商户",
+        counterparty: "隔离测试商户",
+        confidence: 800,
+        occurred_at_ms: Date.now(),
+        received_at_ms: Date.now(),
+      });
+      const ingest = async (suffix, amount, fingerprintValue) => request("/api/notification/ingest", {
+        schema_version: "1",
+        device_id: "device-browser-task21",
+        operations: [{
+          operation_id: "op-browser-" + RUN_ID + "-" + suffix,
+          type: "event.ingest",
+          payload: event(suffix, amount, fingerprintValue),
+        }],
+      }, originalSession);
+
+      const confirmIngest = await ingest("confirm", 4321, "a");
+      assert.equal(confirmIngest.status, 200, JSON.stringify(confirmIngest.data));
+      const confirmId = confirmIngest.data.operation_results[0].candidate_id;
+      assert.ok(confirmId);
+      await navigate("/finance?task21=" + RUN_ID);
+      await waitFor("!document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 15_000, "finance workspace");
+      await waitFor(
+        "Boolean(document.querySelector('[data-finance-candidate=\"" + confirmId + "\"]'))",
+        15_000,
+        "Task 21 candidate in finance UI",
+      );
+      await click('[data-finance-candidate-confirm="' + confirmId + '"]');
+      await waitFor(
+        "!document.querySelector('[data-finance-candidate=\"" + confirmId + "\"]')",
+        15_000,
+        "confirmed candidate removed from pending UI",
+      );
+      const transactions = await request("/api/finance/transactions?limit=100", null, originalSession);
+      assert.equal(transactions.status, 200);
+      assert.equal(
+        transactions.data.transactions.filter((item) => item.amount_minor === 4321 && item.source_kind === "automatic").length,
+        1,
+      );
+
+      const rejectIngest = await ingest("reject", 5432, "b");
+      assert.equal(rejectIngest.status, 200, JSON.stringify(rejectIngest.data));
+      const rejectId = rejectIngest.data.operation_results[0].candidate_id;
+      await click("#financeCandidatesRefreshBtn");
+      await waitFor(
+        "Boolean(document.querySelector('[data-finance-candidate=\"" + rejectId + "\"]'))",
+        15_000,
+        "second Task 21 candidate in finance UI",
+      );
+      await click('[data-finance-candidate-reject="' + rejectId + '"]');
+      await waitFor(
+        "!document.querySelector('[data-finance-candidate=\"" + rejectId + "\"]')",
+        15_000,
+        "rejected candidate removed from pending UI",
+      );
+      const rejected = await request("/api/notification/candidates?status=rejected&limit=100", null, originalSession);
+      assert.equal(rejected.status, 200);
+      assert.equal(rejected.data.candidates.some((item) => item.id === rejectId), true);
+      const rejectedTransactions = await request("/api/finance/transactions?limit=100", null, originalSession);
+      assert.equal(rejectedTransactions.data.transactions.some((item) => item.amount_minor === 5432), false);
+
+      const deleted = await request("/api/notification/events/delete", {
+        event_id: "evt-browser-" + RUN_ID + "-reject",
+      }, originalSession);
+      assert.equal(deleted.status, 200);
+      assert.equal(deleted.data.event.status, "deleted");
+      assert.equal(JSON.stringify(deleted.data).includes("隔离测试商户"), true);
+      assert.equal(["title", "text", "body", "big_text"].some((field) => field in deleted.data.event), false);
+    });
+
     await check("Task 20 shared dialog portal, bounds, focus and scroll in both themes", async () => {
       await navigate('/select');
       const ids = await evaluate("[...document.querySelectorAll('.modal-layer')].map(e=>e.id)");

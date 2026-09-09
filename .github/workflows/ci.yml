@@ -175,6 +175,7 @@ jobs:
             node --check local-backend/test_task20_d1_js.mjs
             node --check local-backend/test_task21_payment_js.mjs
             node --check local-backend/test_task21_notification_js.mjs
+            node --check js/finance/candidates.js
             node --check qa/task20_overlay_device.mjs
             node --check cloudflare/task14-cleanup-worker.mjs
             node --check local-backend/test_app_browser.mjs
@@ -701,8 +702,12 @@ jobs:
             --binding TASK14_TEMPORARY_PRIMARY_ENABLED=true \
             --binding TASK14_LEGACY_WRITES_FROZEN=true \
             --binding TASK15_CLOUD_ONLY_ENABLED=true \
+            --binding TASK16_CLOUD_READS_ENABLED=true \
+            --binding TASK16_CLOUD_WRITES_ENABLED=true \
             --binding TASK18_ADMIN_MESSAGES_ENABLED=true \
             --binding TASK20_ANDROID_APP_ENABLED=true \
+            --binding TASK21_NOTIFICATION_READS_ENABLED=true \
+            --binding TASK21_NOTIFICATION_WRITES_ENABLED=true \
             --binding WORKERS_AI_ENABLED=false \
             --binding LEGACY_API_FALLBACK_ENABLED=false \
             --binding WYJ_TASK12_PASSWORD_PEPPER="$WYJ_TASK12_PASSWORD_PEPPER" \
