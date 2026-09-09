@@ -175,6 +175,7 @@ jobs:
             node --check local-backend/test_task20_d1_js.mjs
             node --check local-backend/test_task21_payment_js.mjs
             node --check local-backend/test_task21_notification_js.mjs
+            node --check local-backend/test_task22_d1_js.mjs
             node --check js/finance/candidates.js
             node --check qa/task20_overlay_device.mjs
             node --check cloudflare/task14-cleanup-worker.mjs
@@ -307,6 +308,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_task21_notification_js.mjs 2>&1 | tee artifacts/task21-notification.log
+
+      - name: Test Task 22 file transfer multipart, quota and share lifecycle
+        run: |
+          set -euo pipefail
+          node local-backend/test_task22_d1_js.mjs 2>&1 | tee artifacts/task22-transfer.log
 
       - name: Check HTML, PWA and tool catalog
         run: |
@@ -708,6 +714,8 @@ jobs:
             --binding TASK20_ANDROID_APP_ENABLED=true \
             --binding TASK21_NOTIFICATION_READS_ENABLED=true \
             --binding TASK21_NOTIFICATION_WRITES_ENABLED=true \
+            --binding TASK22_TRANSFER_READS_ENABLED=true \
+            --binding TASK22_TRANSFER_WRITES_ENABLED=true \
             --binding WORKERS_AI_ENABLED=false \
             --binding LEGACY_API_FALLBACK_ENABLED=false \
             --binding WYJ_TASK12_PASSWORD_PEPPER="$WYJ_TASK12_PASSWORD_PEPPER" \

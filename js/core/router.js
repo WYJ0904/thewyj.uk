@@ -2,7 +2,7 @@ export const APP_ROUTE_MANIFEST = Object.freeze([
   "/", "/login", "/register", "/trial", "/changelog", "/select", "/language",
   "/language/english", "/language/japanese", "/tools", "/tools/:tool_id", "/tools/workflows",
   "/finance", "/account", "/recharge", "/admin", "/share/text/:id", "/share/file/:id",
-  "/share/clipboard/:code", "/share/qr/:id", "/share/room/:id",
+  "/share/clipboard/:code", "/share/qr/:id", "/share/room/:id", "/transfer",
 ]);
 
 export function createRouter({ onRouteChange = () => {} } = {}) {

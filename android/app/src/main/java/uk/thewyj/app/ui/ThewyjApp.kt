@@ -265,8 +265,10 @@ private fun AuthenticatedShell(
     val activity = LocalActivity.current
     var backNavigationRequest by remember { mutableIntStateOf(0) }
     var showNotificationArchive by remember { mutableStateOf(false) }
+    var showTransfer by remember { mutableStateOf(false) }
     BackHandler {
         if (showNotificationArchive) showNotificationArchive = false
+        else if (showTransfer) showTransfer = false
         else if (destination == AppDestination.MY) onDestination(AppDestination.HOME)
         else backNavigationRequest += 1
     }
@@ -309,6 +311,7 @@ private fun AuthenticatedShell(
                     update = update,
                     onOpenRoute = onOpenRoute,
                     onOpenNotifications = { showNotificationArchive = true },
+                    onOpenTransfer = { showTransfer = true },
                     onRefresh = onRefresh,
                     onCheckUpdate = onCheckUpdate,
                     onLogout = onLogout,
@@ -326,6 +329,12 @@ private fun AuthenticatedShell(
                     onBack = { showNotificationArchive = false },
                 )
             }
+            if (showTransfer) {
+                TransferScreen(
+                    account = state.account,
+                    onBack = { showTransfer = false },
+                )
+            }
         }
     }
 }
@@ -338,6 +347,7 @@ private fun MyScreen(
     update: uk.thewyj.app.core.network.AppConfig?,
     onOpenRoute: (String) -> Unit,
     onOpenNotifications: () -> Unit,
+    onOpenTransfer: () -> Unit,
     onRefresh: () -> Unit,
     onCheckUpdate: () -> Unit,
     onLogout: () -> Unit,
@@ -389,6 +399,8 @@ private fun MyScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     SettingsAction("通知保存", "通知权限、本机历史与自动记账候选") { onOpenNotifications() }
+                    HorizontalDivider()
+                    SettingsAction("文件传输", "SAF 大文件分片上传、续传与链接分享") { onOpenTransfer() }
                 }
             }
             ThewyjCard(Modifier.fillMaxWidth()) {

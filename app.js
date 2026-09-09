@@ -9,20 +9,20 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260909-task21-notification-r2";
+} from "./js/core/config.js?v=20260909-task22-transfer-r1";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20260909-task21-notification-r2";
+} from "./js/core/api.js?v=20260909-task22-transfer-r1";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260909-task21-notification-r2";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20260909-task21-notification-r2";
+} from "./js/core/changelog.js?v=20260909-task22-transfer-r1";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20260909-task22-transfer-r1";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -33,20 +33,21 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20260909-task21-notification-r2";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260909-task21-notification-r2";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260909-task21-notification-r2";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260909-task21-notification-r2";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260909-task21-notification-r2";
-import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20260909-task21-notification-r2";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260909-task21-notification-r2";
+} from "./js/core/session.js?v=20260909-task22-transfer-r1";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260909-task22-transfer-r1";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260909-task22-transfer-r1";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260909-task22-transfer-r1";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260909-task22-transfer-r1";
+import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20260909-task22-transfer-r1";
+import { createTransferController } from "./js/transfer/app.js?v=20260909-task22-transfer-r1";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260909-task22-transfer-r1";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260909-task21-notification-r2";
+} from "./js/language/history.js?v=20260909-task22-transfer-r1";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -81,16 +82,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260909-task21-notification-r2";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260909-task21-notification-r2";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20260909-task21-notification-r2";
+} from "./js/language/quiz.js?v=20260909-task22-transfer-r1";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260909-task22-transfer-r1";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260909-task22-transfer-r1";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260909-task21-notification-r2";
+} from "./js/language/wrong-book.js?v=20260909-task22-transfer-r1";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -99,7 +100,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260909-task21-notification-r2";
+} from "./js/membership/account.js?v=20260909-task22-transfer-r1";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -107,19 +108,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260909-task21-notification-r2";
+} from "./js/membership/plans.js?v=20260909-task22-transfer-r1";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260909-task21-notification-r2";
+} from "./js/membership/recharge.js?v=20260909-task22-transfer-r1";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260909-task21-notification-r2";
+} from "./js/admin/formatters.js?v=20260909-task22-transfer-r1";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -239,6 +240,7 @@ let vocabularySearchSequence = 0;
 let toolsInitialized = false;
 let financeController = null;
 let financeCandidatesController = null;
+let transferController = null;
 let routeRender = Promise.resolve();
 let adminUsers = [];
 let adminMessageTargetUsers = [];
@@ -1141,6 +1143,7 @@ function applyAccount(account) {
   if (previousAccountId !== nextAccountId) {
     financeController?.resetAccount();
     financeCandidatesController?.hide?.();
+    transferController?.accountUpdated?.();
     resetSiteMessageQueue();
   }
   state.account = account || null;
@@ -1186,6 +1189,8 @@ function renderAccountUi() {
       ? "tools"
       : location.pathname.startsWith("/finance")
         ? "finance"
+      : location.pathname.startsWith("/transfer")
+        ? "transfer"
       : location.pathname === "/trial"
         ? (trialState.tool === "quiz" ? "language" : "tools")
         : location.pathname === "/changelog"
@@ -3736,7 +3741,7 @@ function showLanguageGate() {
 function hidePrimaryScreens() {
   setExperienceMode("workspace");
   const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
-  ["sessionRecovery", "publicHome", "changelogPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "shareViewer", "adminPanel"].forEach((id) => {
+  ["sessionRecovery", "publicHome", "changelogPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "transferPage", "shareViewer", "adminPanel"].forEach((id) => {
     const element = $(id);
     if (!element) return;
     element.classList.add("hidden");
@@ -3749,6 +3754,7 @@ function hidePrimaryScreens() {
   window.WYJTools?.hide?.();
   financeController?.hide?.();
   financeCandidatesController?.hide?.();
+  transferController?.hide?.();
 }
 
 function stopProjectActivity() {
@@ -3951,6 +3957,27 @@ async function showFinance(pushHistory = true) {
   }
 }
 
+async function showTransfer(pushHistory = true) {
+  stopProjectActivity();
+  currentProject = "";
+  state.quizLanguage = "";
+  hidePrimaryScreens();
+  $("transferPage")?.classList.remove("hidden");
+  $("transferPage")?.setAttribute("aria-hidden", "false");
+  document.body.classList.remove("project-picker-active");
+  if (pushHistory) pushRoute("/transfer");
+  renderAccountUi();
+  try {
+    await transferController?.show?.();
+  } catch (error) {
+    const message = $("transferMessage");
+    if (message) {
+      message.textContent = error?.message || "文件传输暂时无法加载。";
+      message.dataset.tone = "error";
+    }
+  }
+}
+
 function showShareRoute(path) {
   stopProjectActivity();
   currentProject = "";
@@ -3990,6 +4017,10 @@ async function renderCurrentRoute() {
         showChangelog(false);
         return;
       }
+      if (path === "/transfer") {
+        showTransfer(false);
+        return;
+      }
       const register = path === "/register";
       showAuth(pendingAuthMessage, { mode: register ? "register" : "login", path: register ? "/register" : "/login", replace: !["/login", "/register"].includes(path) });
       return;
@@ -4023,6 +4054,10 @@ async function renderCurrentRoute() {
     }
     if (path === "/finance") {
       await showFinance(false);
+      return;
+    }
+    if (path === "/transfer") {
+      await showTransfer(false);
       return;
     }
     if (path === "/admin") {
@@ -4503,6 +4538,18 @@ financeCandidatesController = createFinanceCandidatesController({
   onCandidateChanged: () => { void financeController?.syncNow?.(); },
 });
 
+transferController = createTransferController({
+  storage: localStorage,
+  account: () => state.account,
+  hasEntitlement: (code, account) => hasAccountEntitlement(code, account),
+  isSuperAdmin: (account) => isSuperAdmin(account),
+  navigate: (path) => {
+    if (path === "/select") showModulePicker(true);
+    else pushRoute(path);
+  },
+  appVersion: APP_VERSION,
+});
+
 function applyBackendStatus(data) {
   markBackendReachable(data);
   aiAvailable = data.ai_ready !== false;
@@ -4821,6 +4868,7 @@ function installLocalTestBindings() {
     selectedMembershipGoal: () => selectedMembershipGoal,
     selectedPaymentMethod: () => selectedPaymentMethod,
     state: () => state,
+    transferController: () => transferController,
   };
   const functions = {
     openModal,

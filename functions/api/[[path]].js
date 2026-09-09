@@ -8,6 +8,7 @@ import { handleTask16Request } from "../_lib/task16-api.mjs";
 import { handleTask18Request } from "../_lib/task18-api.mjs";
 import { handleTask20Request } from "../_lib/task20-api.mjs";
 import { handleTask21Request } from "../_lib/task21-api.mjs";
+import { handleTask22Request } from "../_lib/task22-api.mjs";
 import { resolveTask12Account } from "../_lib/task12-auth.mjs";
 import { recordAdminAction } from "../_lib/task18-service.mjs";
 
@@ -30,6 +31,7 @@ const SENSITIVE_ADMIN_ACTIONS = Object.freeze({
   "/api/admin/task15/import/rollback": ["task15_import_rollback", "migration", "source_key"],
   "/api/admin/task16/import": ["task16_import", "migration", "source_key"],
   "/api/admin/task16/import/rollback": ["task16_import_rollback", "migration", "source_key"],
+  "/api/admin/task22/cleanup": ["task22_cleanup", "operation", "mode"],
 });
 
 async function auditSensitiveAdminRequest(context, response, bodyRequest, descriptor) {
@@ -73,6 +75,7 @@ export async function onRequest(context) {
     || await handleTask20Request(context)
     || await handleTask18Request(context)
     || await handleTask21Request(context)
+    || await handleTask22Request(context)
     || await handleTask13Request(context)
     || await handleTask14Request(context)
     || await handleTask11Request(context)

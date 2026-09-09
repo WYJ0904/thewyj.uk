@@ -6,12 +6,12 @@
     <meta name="theme-color" content="#ffffff" />
     <title>thewyj — 学习、工具、财务与分享</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260909-task21-notification-r2" />
-    <link rel="stylesheet" href="/styles.css?v=20260909-task21-notification-r2" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260909-task21-notification-r2" />
-    <link rel="stylesheet" href="/design-system.css?v=20260909-task21-notification-r2" />
-    <link rel="stylesheet" href="/public-experience.css?v=20260909-task21-notification-r2" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20260909-task21-notification-r2" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260909-task22-transfer-r1" />
+    <link rel="stylesheet" href="/styles.css?v=20260909-task22-transfer-r1" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260909-task22-transfer-r1" />
+    <link rel="stylesheet" href="/design-system.css?v=20260909-task22-transfer-r1" />
+    <link rel="stylesheet" href="/public-experience.css?v=20260909-task22-transfer-r1" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20260909-task22-transfer-r1" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 thewyj" aria-hidden="false">
@@ -74,6 +74,7 @@
               <p>工作</p>
               <a href="/tools" data-site-nav="tools"><span>在线工具</span><small>文本、文件、图片与临时分享</small></a>
               <a href="/finance" data-site-nav="finance"><span>财务账本</span><small>交易、预算与跨设备同步</small></a>
+              <a href="/transfer" data-site-nav="transfer"><span>文件传输</span><small>大文件分片续传与链接分享</small></a>
             </div>
           </div>
         </div>
@@ -412,6 +413,72 @@
           </section>
           <p class="meta-line" id="financeMessage" aria-live="polite"></p>
         </div>
+      </section>
+
+      <section class="transfer-page hidden" id="transferPage" aria-labelledby="transferTitle" aria-hidden="true">
+        <header class="transfer-header">
+          <div>
+            <p class="section-kicker">文件传输 2.0</p>
+            <h1 id="transferTitle">文件传输</h1>
+            <p>多文件、目录结构、分片断点续传；控制面经 thewyj API，大数据面直写私有 R2。</p>
+          </div>
+          <div class="transfer-header-actions">
+            <span class="status-badge" id="transferQuotaText" data-tone="info">配额加载中</span>
+            <button class="button-secondary" id="transferBackBtn" type="button">返回</button>
+          </div>
+        </header>
+        <progress class="transfer-quota" id="transferQuotaBar" max="1" value="0"></progress>
+
+        <section class="transfer-config" aria-label="分享设置">
+          <label><span>有效期</span>
+            <select id="transferExpiry">
+              <option value="60">1 小时</option>
+              <option value="1440" selected>1 天</option>
+              <option value="4320">3 天</option>
+              <option value="10080">7 天</option>
+            </select>
+          </label>
+          <label><span>访问密码（可选）</span><input id="transferPassword" type="text" maxlength="120" autocomplete="off" /></label>
+          <label><span>最大下载次数</span><input id="transferMaxDownloads" type="number" min="1" max="100" value="5" /></label>
+          <label class="transfer-check"><input id="transferOneTime" type="checkbox" /><span>阅后即焚（下载一次后销毁）</span></label>
+        </section>
+
+        <section class="transfer-drop-zone" id="transferDropZone">
+          <div>
+            <strong>把文件拖到这里</strong>
+            <p>支持多文件、文件夹、相对目录结构与 Ctrl+V 粘贴；大文件自动分片续传。</p>
+            <div class="transfer-drop-actions">
+              <button class="primary" id="transferSelectFilesBtn" type="button">选择文件</button>
+              <button class="button-secondary" id="transferSelectFolderBtn" type="button">选择文件夹</button>
+            </div>
+            <input id="transferFileInput" type="file" multiple hidden />
+            <input id="transferFolderInput" type="file" webkitdirectory hidden />
+          </div>
+        </section>
+
+        <section class="transfer-summary-line" aria-live="polite">
+          已上传 <strong id="transferUploadedBytes">0 B</strong> / <strong id="transferTotalBytes">0 B</strong>
+          <button class="primary" id="transferCompleteBtn" type="button" disabled>创建分享链接</button>
+        </section>
+        <div class="transfer-queue" id="transferQueue" aria-live="polite"></div>
+
+        <section class="transfer-share-card hidden" id="transferShareCard" aria-labelledby="transferShareTitle">
+          <div class="transfer-section-heading">
+            <div><h2 id="transferShareTitle">分享已创建</h2><p>复制链接或扫码，下载次数与有效期由服务端强制执行。</p></div>
+          </div>
+          <div class="transfer-share-link-row">
+            <input id="transferShareLink" readonly />
+            <button class="primary" id="transferCopyLinkBtn" type="button">复制链接</button>
+          </div>
+          <canvas id="transferQr" class="transfer-qr" width="0" height="0" aria-label="分享二维码"></canvas>
+          <div class="transfer-share-files" id="transferShareFiles"></div>
+        </section>
+
+        <section class="transfer-my-shares" aria-labelledby="transferMySharesTitle">
+          <div class="transfer-section-heading"><div><h2 id="transferMySharesTitle">我的分享</h2><p>撤销后服务端立即删除私有文件。</p></div></div>
+          <div id="transferMyShares"></div>
+        </section>
+        <p class="meta-line" id="transferMessage" aria-live="polite"></p>
       </section>
 
       <div class="modal-layer hidden" id="financeTransactionModal" aria-hidden="true">
@@ -1113,10 +1180,10 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20260909-task21-notification-r2"></script>
-    <script type="module" src="/tools.js?v=20260909-task21-notification-r2"></script>
-    <script src="/workflows.js?v=20260909-task21-notification-r2"></script>
-    <script src="/learning-sync.js?v=20260909-task21-notification-r2"></script>
-    <script type="module" src="/app.js?v=20260909-task21-notification-r2"></script>
+    <script src="/changelog.js?v=20260909-task22-transfer-r1"></script>
+    <script type="module" src="/tools.js?v=20260909-task22-transfer-r1"></script>
+    <script src="/workflows.js?v=20260909-task22-transfer-r1"></script>
+    <script src="/learning-sync.js?v=20260909-task22-transfer-r1"></script>
+    <script type="module" src="/app.js?v=20260909-task22-transfer-r1"></script>
   </body>
 </html>
