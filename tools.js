@@ -5,10 +5,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20260908-task21-payment-r1";
-import { randomToolResult } from "./js/tools/random.js?v=20260908-task21-payment-r1";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260908-task21-payment-r1";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260908-task21-payment-r1";
+} from "./js/tools/catalog.js?v=20260909-task21-notification-r2";
+import { randomToolResult } from "./js/tools/random.js?v=20260909-task21-notification-r2";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260909-task21-notification-r2";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260909-task21-notification-r2";
 import {
   csvString,
   decodeLocalText,
@@ -17,15 +17,15 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20260908-task21-payment-r1";
+} from "./js/tools/file.js?v=20260909-task21-notification-r2";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20260908-task21-payment-r1";
-import { runToolRenderer } from "./js/tools/runner.js?v=20260908-task21-payment-r1";
+} from "./js/tools/image.js?v=20260909-task21-notification-r2";
+import { runToolRenderer } from "./js/tools/runner.js?v=20260909-task21-notification-r2";
 (() => {
   "use strict";
 
@@ -1021,6 +1021,32 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260908-task21-payment-
     })[extension] || "application/octet-stream";
   }
 
+  function qrPngDataUrl(qr, cellSize = 8, quietModules = 4) {
+    const moduleCount = qr.getModuleCount();
+    const pixels = (moduleCount + quietModules * 2) * cellSize;
+    const canvas = document.createElement("canvas");
+    canvas.width = pixels;
+    canvas.height = pixels;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("当前浏览器无法绘制二维码");
+    context.imageSmoothingEnabled = false;
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, pixels, pixels);
+    context.fillStyle = "#000000";
+    for (let row = 0; row < moduleCount; row += 1) {
+      for (let column = 0; column < moduleCount; column += 1) {
+        if (!qr.isDark(row, column)) continue;
+        context.fillRect(
+          (column + quietModules) * cellSize,
+          (row + quietModules) * cellSize,
+          cellSize,
+          cellSize,
+        );
+      }
+    }
+    return canvas.toDataURL("image/png");
+  }
+
   function showQrCode(target, value) {
     target.innerHTML = "";
     if (typeof window.qrcode !== "function") {
@@ -1030,8 +1056,8 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260908-task21-payment-
       const utf8Encoder = window.qrcode.stringToBytesFuncs?.["UTF-8"];
       if (utf8Encoder) window.qrcode.stringToBytes = utf8Encoder;
       const qr = window.qrcode(0, "M"); qr.addData(String(value)); qr.make();
-      const image = document.createElement("img"); image.src = qr.createDataURL(6, 12); image.alt = "分享二维码"; target.appendChild(image);
-      const download = document.createElement("a"); download.href = image.src; download.download = `qr-${Date.now()}.gif`; download.textContent = "下载二维码"; target.appendChild(download);
+      const image = document.createElement("img"); image.src = qrPngDataUrl(qr); image.alt = "分享二维码"; target.appendChild(image);
+      const download = document.createElement("a"); download.href = image.src; download.download = `qr-${Date.now()}.png`; download.textContent = "下载二维码"; target.appendChild(download);
     } catch (error) {
       const fallback = document.createElement("p"); fallback.textContent = `内容过长，无法生成二维码：${error.message}`; target.appendChild(fallback);
     }

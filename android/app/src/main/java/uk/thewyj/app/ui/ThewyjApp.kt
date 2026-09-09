@@ -264,8 +264,10 @@ private fun AuthenticatedShell(
 ) {
     val activity = LocalActivity.current
     var backNavigationRequest by remember { mutableIntStateOf(0) }
+    var showNotificationArchive by remember { mutableStateOf(false) }
     BackHandler {
-        if (destination == AppDestination.MY) onDestination(AppDestination.HOME)
+        if (showNotificationArchive) showNotificationArchive = false
+        else if (destination == AppDestination.MY) onDestination(AppDestination.HOME)
         else backNavigationRequest += 1
     }
     Scaffold(
@@ -306,6 +308,7 @@ private fun AuthenticatedShell(
                     message = state.message,
                     update = update,
                     onOpenRoute = onOpenRoute,
+                    onOpenNotifications = { showNotificationArchive = true },
                     onRefresh = onRefresh,
                     onCheckUpdate = onCheckUpdate,
                     onLogout = onLogout,
@@ -315,6 +318,12 @@ private fun AuthenticatedShell(
                     text = state.message.ifBlank { "当前离线，本地功能仍可使用" },
                     kind = "warning",
                     modifier = Modifier.fillMaxWidth().padding(ThewyjSpacing.Md),
+                )
+            }
+            if (showNotificationArchive) {
+                NotificationArchiveScreen(
+                    account = state.account,
+                    onBack = { showNotificationArchive = false },
                 )
             }
         }
@@ -328,6 +337,7 @@ private fun MyScreen(
     message: String,
     update: uk.thewyj.app.core.network.AppConfig?,
     onOpenRoute: (String) -> Unit,
+    onOpenNotifications: () -> Unit,
     onRefresh: () -> Unit,
     onCheckUpdate: () -> Unit,
     onLogout: () -> Unit,
@@ -372,13 +382,13 @@ private fun MyScreen(
                 }
             }
             ThewyjCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(ThewyjSpacing.Xl)) {
+                Column(Modifier.padding(ThewyjSpacing.Lg)) {
                     Text("Android 能力", style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.height(ThewyjSpacing.Sm))
                     Text(
-                        "后台会话维护已启用，低频运行且仅在联网时执行。通知保存与自动财务识别将在后续独立任务中提供。",
+                        "后台会话维护已启用，低频运行且仅在联网时执行。",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    SettingsAction("通知保存", "通知权限、本机历史与自动记账候选") { onOpenNotifications() }
                 }
             }
             ThewyjCard(Modifier.fillMaxWidth()) {

@@ -1,4 +1,4 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260908-task21-payment-r1";
+import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260909-task21-notification-r2";
 
 export const ACCOUNT_SESSION_KEY = "wyjAccountSession";
 export const ACCOUNT_CACHE_KEY = "wyjAccountCache";

@@ -790,7 +790,17 @@ Preview 应先按 `qa/TASK18_ADMIN_MESSAGES_AUDIT.md` 核对 active owner 数量
 
 `cloudflare/migrations/0015_android_device_sessions.sql` 在 Task 12 stable user ID 上增加 Android 设备会话和已使用 refresh receipt。访问凭据为 15 分钟；refresh credential 为 180 天滑动、每次轮换并支持同一 request ID 的幂等重试，换 request ID 重放会撤销 token family。D1 只保存摘要，App 的 refresh credential 只以 Android Keystore AES-GCM 密文落盘，WebView 只接收短期 HttpOnly Cookie。网络超时、429、5xx、Wi-Fi/移动数据、IP/NAT 或 VPN 变化只进入可恢复/离线状态，不清除登录；封禁、删除、改密/退出全部设备、明确撤销、过期或 replay 才要求重新登录。
 
-Task 20 没有请求通知、SMS、Accessibility 或开机广播权限，也没有启动长期后台服务。WorkManager 只在联网时每 12 小时低频维护设备会话；Task 21 的通知保存和自动财务采集只有接口占位。旧 `com.yj.dailypayguard` 工程经审计仍是明文 SharedPreferences TSV + timestamp ID 的本地原型，不直接并入新 App；旧数据继续通过 Task 16 的 dry-run/import/rollback 工具迁移。完整边界见 `qa/TASK20_ANDROID_AUDIT.md` 和 `android/README.md`。
+Task 20 没有请求通知、SMS、Accessibility 或开机广播权限，也没有启动长期后台服务。WorkManager 只在联网时每 12 小时低频维护设备会话。旧 `com.yj.dailypayguard` 工程经审计仍是明文 SharedPreferences TSV + timestamp ID 的本地原型，不直接并入新 App；旧数据继续通过 Task 16 的 dry-run/import/rollback 工具迁移。完整边界见 `qa/TASK20_ANDROID_AUDIT.md` 和 `android/README.md`。
+
+### Task 21 通知保存与自动财务采集
+
+Task 21 只新增 Android 通知保存能力，不请求 SMS、Accessibility 或开机广播权限。NotificationListener 在设备本地归档完整通知内容，然后运行本地结构化 parser；云端只接收 parser 输出，不接收 title、text、bigText、subText、ticker、MessagingStyle 或 extras 等任何原始通知正文。后端若在这些接口收到原始正文字段会直接拒绝，而不是接受后丢弃。
+
+云端数据模型由 `cloudflare/migrations/0017_notification_archive.sql` 提供：`task21_notification_events`（结构化事件）、`task21_notification_candidates`（低置信候选）和 `task21_notification_sync_operations`（幂等回执）。接口为 `POST /api/notification/ingest`、`GET /api/notification/events`、`GET /api/notification/candidates`、`POST /api/notification/candidates/confirm`、`POST /api/notification/candidates/reject` 和 `POST /api/notification/events/delete`，全部要求登录和 `notification_archive_access` 权益（或全功能）。ingest 通过客户端 `event_id`/`fingerprint` 与 D1 唯一约束双层去重，并通过 operation receipt 幂等重放；同一交易通知提交多次只形成一条候选或一条正式财务记录。
+
+高置信结构化事件直接复用 Task 16/17 财务数据模型写入 `task16_finance_raw_events`、`task16_finance_transactions` 和变更流；低置信事件进入候选，由用户确认后才转为正式财务记录，确认前不影响余额、预算、图表或统计。退款复用 Task 17 的 `refund` 语义，不会当作 income 污染统计。
+
+Android 侧实现 `NotificationListenerService`、通知权限/状态抽象、app-private 本地归档 repository、WeChat/Alipay parser adapter、稳定 fingerprint/event_id、离线 ingest 队列和幂等重试。真实通知捕获仍需物理设备验收，单元测试只覆盖 JVM 可验证的 parser、fingerprint 和本地归档逻辑，不宣称真机通过。Production 的 `TASK21_NOTIFICATION_READS_ENABLED`/`TASK21_NOTIFICATION_WRITES_ENABLED` 保持 `false`，先仅在 Preview 开启。
 
 ```powershell
 # Cloudflare / Web 集成测试

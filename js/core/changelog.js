@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?v=20260908-task21-payment-r1";
+import { fetchWithTimeout } from "./api.js?v=20260909-task21-notification-r2";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 

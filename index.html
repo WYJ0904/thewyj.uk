@@ -6,12 +6,12 @@
     <meta name="theme-color" content="#ffffff" />
     <title>thewyj — 学习、工具、财务与分享</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260908-task21-payment-r1" />
-    <link rel="stylesheet" href="/styles.css?v=20260908-task21-payment-r1" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260908-task21-payment-r1" />
-    <link rel="stylesheet" href="/design-system.css?v=20260908-task21-payment-r1" />
-    <link rel="stylesheet" href="/public-experience.css?v=20260908-task21-payment-r1" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20260908-task21-payment-r1" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260909-task21-notification-r2" />
+    <link rel="stylesheet" href="/styles.css?v=20260909-task21-notification-r2" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260909-task21-notification-r2" />
+    <link rel="stylesheet" href="/design-system.css?v=20260909-task21-notification-r2" />
+    <link rel="stylesheet" href="/public-experience.css?v=20260909-task21-notification-r2" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20260909-task21-notification-r2" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 thewyj" aria-hidden="false">
@@ -381,6 +381,14 @@
               <article><span>退款</span><strong class="is-refund" id="financeRefundTotal">¥0.00</strong></article>
               <article><span>余额</span><strong id="financeBalanceTotal">¥0.00</strong></article>
             </div>
+          </section>
+
+          <section class="finance-candidates-section hidden" id="financeCandidatesSection" aria-labelledby="financeCandidatesTitle" aria-hidden="true">
+            <div class="finance-section-heading">
+              <div><h2 id="financeCandidatesTitle">通知待确认</h2><p>Android 自动识别的低置信交易，确认后才会计入账目、预算与统计。</p></div>
+              <button class="button-secondary" id="financeCandidatesRefreshBtn" type="button">刷新</button>
+            </div>
+            <div class="finance-candidate-list" id="financeCandidateList" aria-live="polite"></div>
           </section>
 
           <section class="finance-content-grid">
@@ -1105,10 +1113,10 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20260908-task21-payment-r1"></script>
-    <script type="module" src="/tools.js?v=20260908-task21-payment-r1"></script>
-    <script src="/workflows.js?v=20260908-task21-payment-r1"></script>
-    <script src="/learning-sync.js?v=20260908-task21-payment-r1"></script>
-    <script type="module" src="/app.js?v=20260908-task21-payment-r1"></script>
+    <script src="/changelog.js?v=20260909-task21-notification-r2"></script>
+    <script type="module" src="/tools.js?v=20260909-task21-notification-r2"></script>
+    <script src="/workflows.js?v=20260909-task21-notification-r2"></script>
+    <script src="/learning-sync.js?v=20260909-task21-notification-r2"></script>
+    <script type="module" src="/app.js?v=20260909-task21-notification-r2"></script>
   </body>
 </html>

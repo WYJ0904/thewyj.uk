@@ -1,5 +1,5 @@
-export const APP_VERSION = "2026-09-08-task21-payment-preview";
-export const ASSET_RELEASE = "20260908-task21-payment-r1";
+export const APP_VERSION = "2026-09-09-task21-notification";
+export const ASSET_RELEASE = "20260909-task21-notification-r2";
 
 export const API_TIMEOUT_MS = 30000;
 export const AI_TIMEOUT_MS = 25000;

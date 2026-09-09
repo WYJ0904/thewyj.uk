@@ -109,17 +109,17 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260908-task21-payment-r1"
+        release_token = "20260909-task21-notification-r2"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "design-system.css", "public-experience.css", "workspace-experience.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
-        self.assertIn('export const APP_VERSION = "2026-09-08-task21-payment-preview"', self.core)
+        self.assertIn('export const APP_VERSION = "2026-09-09-task21-notification"', self.core)
         self.assertIn(f'export const ASSET_RELEASE = "{release_token}"', self.core)
         self.assertIn('navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)', self.app)
         for module in ("api", "config", "router", "session", "storage", "ui", "design-system"):
             self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20260908-task21-payment-r1"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20260909-task21-notification-r2"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         for asset in ("design-system.css", "public-experience.css", "workspace-experience.css"):
@@ -133,7 +133,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertFalse((ROOT / "404.html").exists())
 
     def test_browser_module_graph_uses_one_release_version(self):
-        release_token = "20260908-task21-payment-r1"
+        release_token = "20260909-task21-notification-r2"
         import_pattern = re.compile(
             r'(?:from\s+|import\s+)["\'](\.{1,2}/[^"\']+\.js(?:\?[^"\']*)?)["\']'
         )
@@ -251,9 +251,9 @@ class StaticSiteTests(unittest.TestCase):
         self.assertNotRegex(self.html, r">\s*[文+×↕]\s*<")
 
     def test_task19_design_system_two_contract(self):
-        self.assertIn('href="/design-system.css?v=20260908-task21-payment-r1"', self.html)
-        self.assertIn('href="/public-experience.css?v=20260908-task21-payment-r1"', self.html)
-        self.assertIn('href="/workspace-experience.css?v=20260908-task21-payment-r1"', self.html)
+        self.assertIn('href="/design-system.css?v=20260909-task21-notification-r2"', self.html)
+        self.assertIn('href="/public-experience.css?v=20260909-task21-notification-r2"', self.html)
+        self.assertIn('href="/workspace-experience.css?v=20260909-task21-notification-r2"', self.html)
         self.assertIn('id="siteNavToggle"', self.html)
         self.assertIn('id="siteNavPanel"', self.html)
         self.assertIn('id="themeToggleBtn"', self.html)
@@ -767,6 +767,16 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("finance_access", task21_payment_migration)
         self.assertIn("800", task21_payment_migration)
         self.assertNotRegex(task21_payment_migration, r"\b(?:DROP|DELETE|ALTER\s+TABLE)\b")
+
+        task21_notification_migration = (
+            ROOT / "cloudflare" / "migrations" / "0017_notification_archive.sql"
+        ).read_text(encoding="utf-8")
+        self.assertIn("task21_notification_events", task21_notification_migration)
+        self.assertIn("task21_notification_candidates", task21_notification_migration)
+        self.assertIn("task21_notification_sync_operations", task21_notification_migration)
+        self.assertNotRegex(task21_notification_migration, r"\b(?:DROP\s+TABLE|DELETE\s+FROM|ALTER\s+TABLE)\b")
+        for raw_column in ("title", "text", "body", "big_text", "ticker", "extras", "raw_text"):
+            self.assertNotIn(raw_column, task21_notification_migration)
 
         middleware = (ROOT / "functions" / "_lib" / "cloudflare-foundation.mjs").read_text(encoding="utf-8")
         status = (ROOT / "functions" / "api" / "status.js").read_text(encoding="utf-8")

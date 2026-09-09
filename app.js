@@ -9,20 +9,20 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260908-task21-payment-r1";
+} from "./js/core/config.js?v=20260909-task21-notification-r2";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20260908-task21-payment-r1";
+} from "./js/core/api.js?v=20260909-task21-notification-r2";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260908-task21-payment-r1";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20260908-task21-payment-r1";
+} from "./js/core/changelog.js?v=20260909-task21-notification-r2";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20260909-task21-notification-r2";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -33,19 +33,20 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20260908-task21-payment-r1";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260908-task21-payment-r1";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260908-task21-payment-r1";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260908-task21-payment-r1";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260908-task21-payment-r1";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260908-task21-payment-r1";
+} from "./js/core/session.js?v=20260909-task21-notification-r2";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260909-task21-notification-r2";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260909-task21-notification-r2";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260909-task21-notification-r2";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260909-task21-notification-r2";
+import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20260909-task21-notification-r2";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260909-task21-notification-r2";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260908-task21-payment-r1";
+} from "./js/language/history.js?v=20260909-task21-notification-r2";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -80,16 +81,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260908-task21-payment-r1";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260908-task21-payment-r1";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20260908-task21-payment-r1";
+} from "./js/language/quiz.js?v=20260909-task21-notification-r2";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260909-task21-notification-r2";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260909-task21-notification-r2";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260908-task21-payment-r1";
+} from "./js/language/wrong-book.js?v=20260909-task21-notification-r2";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -98,7 +99,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260908-task21-payment-r1";
+} from "./js/membership/account.js?v=20260909-task21-notification-r2";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -106,19 +107,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260908-task21-payment-r1";
+} from "./js/membership/plans.js?v=20260909-task21-notification-r2";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260908-task21-payment-r1";
+} from "./js/membership/recharge.js?v=20260909-task21-notification-r2";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260908-task21-payment-r1";
+} from "./js/admin/formatters.js?v=20260909-task21-notification-r2";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -237,6 +238,7 @@ let vocabularySearchController = null;
 let vocabularySearchSequence = 0;
 let toolsInitialized = false;
 let financeController = null;
+let financeCandidatesController = null;
 let routeRender = Promise.resolve();
 let adminUsers = [];
 let adminMessageTargetUsers = [];
@@ -1138,10 +1140,12 @@ function applyAccount(account) {
   const nextAccountId = String(account?.id || "");
   if (previousAccountId !== nextAccountId) {
     financeController?.resetAccount();
+    financeCandidatesController?.hide?.();
     resetSiteMessageQueue();
   }
   state.account = account || null;
   financeController?.accountUpdated?.();
+  financeCandidatesController?.accountUpdated?.();
   if (state.account) safeStorageSet(localStorage, "wyjAccountCache", JSON.stringify(state.account));
   else localStorage.removeItem("wyjAccountCache");
   if (state.account && previousAccountId !== nextAccountId) {
@@ -3744,6 +3748,7 @@ function hidePrimaryScreens() {
   $("workspace")?.classList.add("hidden");
   window.WYJTools?.hide?.();
   financeController?.hide?.();
+  financeCandidatesController?.hide?.();
 }
 
 function stopProjectActivity() {
@@ -3934,7 +3939,9 @@ async function showFinance(pushHistory = true) {
   if (pushHistory) pushRoute("/finance");
   renderAccountUi();
   try {
-    await financeController?.show?.();
+    const financeVisible = await financeController?.show?.();
+    if (financeVisible) await financeCandidatesController?.show?.();
+    else financeCandidatesController?.hide?.();
   } catch (error) {
     const message = $("financeMessage");
     if (message) {
@@ -4484,6 +4491,16 @@ financeController = createFinanceController({
   onSummaryChanged: () => renderDashboard(),
   openDialog: openModal,
   closeDialog: (id) => closeModal(id, true),
+});
+
+financeCandidatesController = createFinanceCandidatesController({
+  api,
+  apiGet,
+  storage: localStorage,
+  account: () => state.account,
+  hasEntitlement: (code, account) => hasAccountEntitlement(code, account),
+  isSuperAdmin: (account) => isSuperAdmin(account),
+  onCandidateChanged: () => { void financeController?.syncNow?.(); },
 });
 
 function applyBackendStatus(data) {

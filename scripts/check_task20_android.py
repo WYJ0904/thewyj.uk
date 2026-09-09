@@ -50,11 +50,22 @@ def main() -> int:
         node.attrib.get(f"{ANDROID_NS}name", "")
         for node in manifest.findall("uses-permission")
     }
-    require(permissions == {
-        "android.permission.INTERNET",
-        "android.permission.ACCESS_NETWORK_STATE",
-    }, f"Task 20 permission surface changed: {sorted(permissions)}")
-    require("NotificationListenerService" not in manifest_source, "Task 21 notification listener was added early")
+    require(
+        permissions == {
+            "android.permission.INTERNET",
+            "android.permission.ACCESS_NETWORK_STATE",
+        },
+        f"Task 20 permission surface changed: {sorted(permissions)}",
+    )
+    require(
+        "android.service.notification.NotificationListenerService" in manifest_source
+        and "ThewyjNotificationListenerService" in manifest_source,
+        "Task 21 notification listener service is missing or misconfigured",
+    )
+    require(
+        'android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"' in manifest_source,
+        "Task 21 notification listener service lost its system binding permission",
+    )
     require("AccessibilityService" not in manifest_source, "Task 21 accessibility service was added early")
     require("READ_SMS" not in manifest_source and "RECEIVE_SMS" not in manifest_source, "Task 21 SMS permission was added early")
     require("addJavascriptInterface" not in kotlin, "unsafe universal JavaScript bridge is forbidden")
