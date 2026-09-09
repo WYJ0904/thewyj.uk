@@ -2,6 +2,7 @@ package uk.thewyj.app.task22
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -25,14 +26,17 @@ class TransferUploadWorker(
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        val accountId = runCatching { SecureCredentialStore(applicationContext).loadActive()?.account?.id }
-            .getOrNull()
-            ?: return Result.failure()
+        val accountId = runCatching { SecureCredentialStore(applicationContext).loadActive()?.account?.id }.getOrNull()
+        if (accountId == null) {
+            Log.w("T22WORKER", "no active credential; returning failure")
+            return Result.failure()
+        }
         val store = TransferQueueStore.inDirectory(applicationContext.filesDir, accountId)
         val configStore = TransferConfigStore.inDirectory(applicationContext.filesDir, accountId)
         val config = configStore.load()
         val api = TransferApiClient(applicationContext)
         val items = store.load()
+        Log.i("T22WORKER", "start account=$accountId items=${items.size}")
         var sessionId = items.firstOrNull { it.sessionId.isNotBlank() }?.sessionId.orEmpty()
         var retried = false
         for (item in items) {
@@ -102,6 +106,7 @@ class TransferUploadWorker(
                 store.upsert(item.copy(status = TransferItemStatus.PAUSED))
                 return Result.success()
             } catch (error: TransferApiException) {
+                Log.w("T22WORKER", "api error ${error.status} ${error.code}: ${error.message}")
                 when {
                     error.status == 401 || error.status == 403 -> {
                         store.upsert(item.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "上传失败"))
@@ -119,6 +124,7 @@ class TransferUploadWorker(
                     }
                 }
             } catch (error: Throwable) {
+                Log.e("T22WORKER", "unexpected failure", error)
                 store.upsert(item.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "网络异常"))
                 if (!retried && runAttemptCount < 3) return Result.retry()
             }

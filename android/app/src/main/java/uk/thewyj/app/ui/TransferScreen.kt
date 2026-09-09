@@ -2,6 +2,7 @@ package uk.thewyj.app.ui
 
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -123,7 +124,10 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
 
     LaunchedEffect(Unit) {
         refreshQueue()
-        runCatching { api.capabilities() }.onSuccess { payload ->
+        if (queue.any { it.status == TransferItemStatus.PENDING || it.status == TransferItemStatus.UPLOADING }) {
+            TransferUploadWorker.enqueue(context)
+        }
+        runCatching { withContext(Dispatchers.IO) { api.capabilities() } }.onSuccess { payload ->
             val used = payload.optLong("used_bytes", 0)
             val limit = payload.optLong("storage_limit_bytes", 0)
             quota = "已用 ${formatBytes(used)} / ${formatBytes(limit)}"
@@ -132,13 +136,14 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
             delay(700)
             queue = queueStore.load()
             if (queue.any { it.status == TransferItemStatus.DONE }) {
-                runCatching { api.listShares() }.onSuccess { shares = it }.onFailure { }
+                runCatching { withContext(Dispatchers.IO) { api.listShares() } }.onSuccess { shares = it }.onFailure { }
             }
         }
     }
 
     fun completeTransfer() {
         val pending = queue.filter { it.status == TransferItemStatus.DONE }
+        Log.i("T22UI", "completeTransfer invoked; pending=${pending.size} queue=${queue.map { it.status }}")
         if (pending.isEmpty()) {
             message = "还没有上传完成的文件。"
             return
@@ -147,14 +152,16 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
         scope.launch {
             val result = runCatching {
                 val sessionId = pending.first().sessionId
-                api.complete(sessionId)
+                withContext(Dispatchers.IO) { api.complete(sessionId) }
             }
             result.onSuccess { share ->
+                Log.i("T22UI", "complete ok share=${share.id}")
                 shareLink = "https://thewyj.uk/transfer#share=${share.id}"
                 message = "分享已创建。"
                 queueStore.save(queue.filterNot { it.status == TransferItemStatus.DONE })
                 refreshQueue()
             }.onFailure { error ->
+                Log.e("T22UI", "complete failed", error)
                 message = error.message ?: "创建分享失败。"
             }
             busy = false
@@ -293,9 +300,10 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
                                     OutlinedButton(
                                         onClick = {
                                             scope.launch {
-                                                runCatching { api.revoke(share.id) }
-                                                    .onSuccess { shares = shares.filterNot { it.id == share.id } }
-                                                    .onFailure { message = it.message ?: "撤销失败" }
+                                                Log.i("T22UI", "revoke invoked id=${share.id}")
+                                                runCatching { withContext(Dispatchers.IO) { api.revoke(share.id) } }
+                                                    .onSuccess { Log.i("T22UI", "revoke ok ${share.id}"); shares = shares.filterNot { it.id == share.id } }
+                                                    .onFailure { Log.e("T22UI", "revoke failed", it); message = it.message ?: "撤销失败" }
                                             }
                                         },
                                         shape = ThewyjRadius.Small,

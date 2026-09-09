@@ -195,6 +195,23 @@ try {
   });
   assert.equal(guestOverflow.response.status, 413);
 
+  // 2b. A large file within the free tier must not double-count the session's
+  // declared bytes at allocation time.
+  const bigSession = await createSession(db, storage, {
+    token: USERS.free.token,
+    fileCount: 1,
+    totalBytes: 300 * 1024 * 1024,
+  });
+  const bigFile = await allocateFile(db, storage, bigSession, {
+    token: USERS.free.token,
+    fileId: "file-big-00000001",
+    relativePath: "big.bin",
+    fileName: "big.bin",
+    mimeType: "application/octet-stream",
+    sizeBytes: 300 * 1024 * 1024,
+  });
+  assert.equal(bigFile.part_count, 19);
+
   // 3. Cross-owner isolation: another user cannot read, complete or abort the session.
   const foreignState = await request(db, storage, `/api/transfer/uploads/${guestSession}`, { token: USERS.other.token });
   assert.equal(foreignState.response.status, 404);

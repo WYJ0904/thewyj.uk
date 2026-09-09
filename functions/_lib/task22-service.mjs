@@ -267,7 +267,11 @@ export async function allocateUploadFile(db, account, env, input) {
     throw new Task22Error("任务总大小与声明不一致", 413, "transfer_session_size_exceeded");
   }
   const limit = await storageLimitBytes(db, account, input.guest_id);
-  if (sizeBytes + await activeBytes(db, owner) > limit) {
+  // The active session's declared bytes were already charged at creation;
+  // only newly allocated bytes beyond that declaration need the limit check.
+  const accountedBySession = Number(session.total_bytes || 0);
+  const outsideBytes = await activeBytes(db, owner) - accountedBySession;
+  if (sizeBytes + Math.max(0, outsideBytes) > limit) {
     throw new Task22Error("当前账户的文件存储配额不足", 413, "transfer_storage_quota_exceeded");
   }
   const now = isoNow();
