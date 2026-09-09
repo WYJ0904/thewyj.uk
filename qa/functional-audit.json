@@ -21,7 +21,8 @@
     { "id": "share-file", "path": "/share/file/:id", "access": "public-token" },
     { "id": "share-clipboard", "path": "/share/clipboard/:code", "access": "public-token" },
     { "id": "share-qr", "path": "/share/qr/:id", "access": "public-token" },
-    { "id": "share-room", "path": "/share/room/:id", "access": "public-token" }
+    { "id": "share-room", "path": "/share/room/:id", "access": "public-token" },
+    { "id": "file-transfer", "path": "/transfer", "access": "public-limited" }
   ],
   "browser_flows": [
     "brief branded startup and unauthenticated navigation",

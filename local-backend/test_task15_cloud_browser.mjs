@@ -603,6 +603,31 @@ async function main() {
       assert.equal(["title", "text", "body", "big_text"].some((field) => field in deleted.data.event), false);
     });
 
+    await check("Task 22 file transfer uploads, publishes and revokes through the real UI", async () => {
+      await navigate("/transfer");
+      await waitFor("!document.querySelector('#transferPage')?.classList.contains('hidden')", 15_000, "transfer page");
+      await evaluate(`transferController.addFiles([
+        new File(["Task 22 browser fixture"], "ci-note.txt", { type: "text/plain" }),
+        new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47]), "ci-dot.png"], { type: "image/png" }),
+      ])`);
+      await waitFor("document.querySelectorAll('[data-transfer-item]').length === 2", 15_000, "two transfer items");
+      await waitFor("!document.getElementById('transferCompleteBtn')?.disabled", 60_000, "transfer upload complete");
+      await click("#transferCompleteBtn");
+      await waitFor("!document.querySelector('#transferShareCard')?.classList.contains('hidden')", 20_000, "share card");
+      const linkValue = await evaluate("document.getElementById('transferShareLink')?.value || ''");
+      assert.match(linkValue, /^https:\/\/[^/]+\/transfer#share=/);
+      assert.equal(await evaluate("document.querySelectorAll('[data-transfer-download]').length"), 2);
+      await waitFor(
+        "Boolean(document.querySelector('[data-transfer-revoke]'))",
+        15_000,
+        "share appears in my shares",
+      );
+      const sharedCount = await evaluate("document.querySelectorAll('[data-transfer-revoke]').length");
+      assert.ok(sharedCount >= 1, "my shares must list the published share");
+      await click("[data-transfer-revoke]");
+      await waitFor("!document.querySelector('[data-transfer-revoke]')", 15_000, "share revoked");
+    });
+
     await check("Task 20 shared dialog portal, bounds, focus and scroll in both themes", async () => {
       await navigate('/select');
       const ids = await evaluate("[...document.querySelectorAll('.modal-layer')].map(e=>e.id)");

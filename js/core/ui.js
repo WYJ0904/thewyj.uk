@@ -1,4 +1,4 @@
-import { BUSINESS_TIME_ZONE } from "./config.js?v=20260909-task21-notification-r2";
+import { BUSINESS_TIME_ZONE } from "./config.js?v=20260909-task22-transfer-r1";
 
 export const $ = (id) => document.getElementById(id);
 
