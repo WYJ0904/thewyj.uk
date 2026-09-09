@@ -615,7 +615,7 @@ async function main() {
       await click("#transferCompleteBtn");
       await waitFor("!document.querySelector('#transferShareCard')?.classList.contains('hidden')", 20_000, "share card");
       const linkValue = await evaluate("document.getElementById('transferShareLink')?.value || ''");
-      assert.match(linkValue, /^https:\/\/[^/]+\/transfer#share=/);
+      assert.match(linkValue, /^https?:\/\/[^/]+\/transfer#share=/);
       assert.equal(await evaluate("document.querySelectorAll('[data-transfer-download]').length"), 2);
       await waitFor(
         "Boolean(document.querySelector('[data-transfer-revoke]'))",

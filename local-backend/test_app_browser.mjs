@@ -646,7 +646,7 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#publicSplitFlap').dataset.phrases"), "学习|工具|财务|分享");
       await click("#siteNavToggle");
       assert.equal(await evaluate("document.querySelector('#siteNavToggle').getAttribute('aria-expanded')"), "true");
-      assert.equal(await evaluate("document.querySelectorAll('#siteNavPanel a').length"), 6);
+      assert.equal(await evaluate("document.querySelectorAll('#siteNavPanel a').length"), 7);
       assert.equal(await evaluate("document.querySelector('[data-site-nav=trial]').getAttribute('href')"), "/trial");
       await click("[data-site-nav=trial]");
       await waitFor("location.pathname === '/trial' && !document.querySelector('#trialPage')?.classList.contains('hidden')", 4_000, "desktop trial navigation");
