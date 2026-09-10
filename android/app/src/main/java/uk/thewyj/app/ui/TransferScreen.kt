@@ -30,6 +30,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import uk.thewyj.app.BuildConfig
+import uk.thewyj.app.task22.TransferLinks
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -156,7 +158,7 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
             }
             result.onSuccess { share ->
                 Log.i("T22UI", "complete ok share=${share.id}")
-                shareLink = "https://thewyj.uk/transfer#share=${share.id}"
+                shareLink = TransferLinks.shareLink(BuildConfig.THEWYJ_BASE_URL, share.id)
                 message = "分享已创建。"
                 queueStore.save(queue.filterNot { it.status == TransferItemStatus.DONE })
                 refreshQueue()
