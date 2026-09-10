@@ -51,6 +51,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun routeIntent(intent: Intent?) {
+        // Payment recognition notifications deep link into the finance page so
+        // the user can review the candidate or re-verify the amount.
+        if (intent?.hasExtra(PAYMENT_NOTIFICATION_EXTRA) == true
+            || intent?.hasExtra(PAYMENT_VERIFY_EXTRA) == true
+        ) {
+            viewModel.openRoute("/finance")
+            return
+        }
         val uri = intent?.data ?: return
         val route = when (uri.scheme) {
             "https" -> if (uri.host == "thewyj.uk") uri.encodedPath.orEmpty() else ""
@@ -58,5 +66,10 @@ class MainActivity : ComponentActivity() {
             else -> ""
         }
         if (route.isNotBlank()) viewModel.openRoute(route)
+    }
+
+    companion object {
+        const val PAYMENT_NOTIFICATION_EXTRA = "thewyj_recognition_id"
+        const val PAYMENT_VERIFY_EXTRA = "thewyj_verify_recognition_id"
     }
 }
