@@ -55,6 +55,29 @@ export function requireNotificationAccess(account) {
   return account;
 }
 
+/**
+ * Finance recognition (ingest, candidates, confirm/reject) is a finance_access
+ * capability: a finance-only account may recognise payments without being able
+ * to browse the notification archive, and an archive-only account must never
+ * create finance records.
+ */
+function hasFinanceAccess(account) {
+  const entitlements = new Set(Array.isArray(account?.entitlements) ? account.entitlements : []);
+  return Boolean(
+    account?.is_super_admin
+    || entitlements.has("finance_access")
+    || entitlements.has("all_features_access"),
+  );
+}
+
+export function requireFinanceRecognitionAccess(account) {
+  if (!account) throw new Task21Error("请先登录", 401, "authentication_required");
+  if (!hasFinanceAccess(account)) {
+    throw new Task21Error("当前会员不包含财务识别功能", 403, "finance_membership_required");
+  }
+  return account;
+}
+
 export async function ensureTask21Schema(db) {
   if (!db?.prepare) return false;
   try {
@@ -412,7 +435,7 @@ async function recordOperation(db, account, deviceId, operation, digest, result)
 }
 
 export async function ingestNotificationEvents(db, account, input) {
-  requireNotificationAccess(account);
+  requireFinanceRecognitionAccess(account);
   requireAllowedFields(input, new Set(["schema_version", "device_id", "operations"]));
   if (Number(input.schema_version) !== Number(TASK21_SCHEMA_VERSION)) {
     throw new Task21Error("通知采集版本不兼容", 409, "schema_version_unsupported");
@@ -447,7 +470,7 @@ export async function listNotificationEvents(db, account, input = {}) {
 }
 
 export async function listNotificationCandidates(db, account, input = {}) {
-  requireNotificationAccess(account);
+  requireFinanceRecognitionAccess(account);
   const status = String(input.status || "pending").trim().toLowerCase();
   if (!["pending", "confirmed", "rejected"].includes(status)) {
     throw new Task21Error("通知候选状态无效", 400, "candidate_status_invalid");
@@ -456,11 +479,40 @@ export async function listNotificationCandidates(db, account, input = {}) {
   const rows = await all(db, `SELECT * FROM task21_notification_candidates
     WHERE user_id = ?1 ${status ? "AND status = ?2" : ""}
     ORDER BY created_at DESC, id DESC LIMIT ?3`, [account.id, status, limit]);
-  return { candidates: rows.map(publicNotificationCandidate) };
+  if (!rows.length) return { candidates: [] };
+  // Attach the minimal evidence summary (source types/packages and machine
+  // values for each contributing event) without any raw notification text.
+  const placeholders = rows.map((_, index) => `?${index + 2}`).join(",");
+  const evidenceRows = await all(db, `SELECT event_id, candidate_id, source_type, source_package,
+    amount_minor, direction, provider_reference, occurred_at_ms, reconciliation_state, created_at
+    FROM task21_notification_evidence
+    WHERE user_id = ?1 AND candidate_id IN (${placeholders})
+    ORDER BY created_at ASC`, [account.id, ...rows.map((row) => row.id)]);
+  const byCandidate = new Map();
+  for (const evidence of evidenceRows) {
+    if (!byCandidate.has(evidence.candidate_id)) byCandidate.set(evidence.candidate_id, []);
+    byCandidate.get(evidence.candidate_id).push({
+      event_id: String(evidence.event_id || ""),
+      source_type: String(evidence.source_type || "notification"),
+      source_package: String(evidence.source_package || ""),
+      amount_minor: Number(evidence.amount_minor || 0),
+      direction: String(evidence.direction || ""),
+      provider_reference: String(evidence.provider_reference || ""),
+      occurred_at_ms: Number(evidence.occurred_at_ms || 0),
+      reconciliation_state: String(evidence.reconciliation_state || ""),
+      created_at: String(evidence.created_at || ""),
+    });
+  }
+  return {
+    candidates: rows.map((row) => ({
+      ...publicNotificationCandidate(row),
+      evidence: byCandidate.get(row.id) || [],
+    })),
+  };
 }
 
 export async function confirmNotificationCandidate(db, account, input) {
-  requireNotificationAccess(account);
+  requireFinanceRecognitionAccess(account);
   requireAllowedFields(input, new Set(["candidate_id", "device_id", "edits"]));
   const candidateId = cleanId(input.candidate_id, "候选标识");
   const row = await candidateById(db, account, candidateId);
@@ -552,7 +604,7 @@ function candidateEdits(value) {
 }
 
 export async function rejectNotificationCandidate(db, account, input) {
-  requireNotificationAccess(account);
+  requireFinanceRecognitionAccess(account);
   requireAllowedFields(input, new Set(["candidate_id"]));
   const candidateId = cleanId(input.candidate_id, "候选标识");
   const row = await candidateById(db, account, candidateId);

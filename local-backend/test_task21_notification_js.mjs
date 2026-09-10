@@ -27,6 +27,7 @@ const ENVIRONMENT = Object.freeze({
 const USERS = Object.freeze({
   subscriber: Object.freeze({ id: "task21-notify-sub", username: "task21-notify-sub", token: "task21-notify-sub-token" }),
   financeOnly: Object.freeze({ id: "task21-finance-only", username: "task21-finance-only", token: "task21-finance-token" }),
+  archiveOnly: Object.freeze({ id: "task21-archive-only", username: "task21-archive-only", token: "task21-archive-token" }),
   free: Object.freeze({ id: "task21-free", username: "task21-free", token: "task21-free-token" }),
 });
 
@@ -57,7 +58,7 @@ async function grantMembership(db, userId, planCode) {
     "id, user_id, plan_code, starts_at, expires_at, is_lifetime, status,",
     "source, source_ref, created_by, metadata_json, created_at, updated_at",
     ") VALUES (?1, ?2, ?3, ?4, ?5, 0, 'active', 'admin', ?6, '', '{}', ?4, ?4)",
-  ].join(" ")).bind(`task21-${userId}`, userId, planCode, now, expires, `task21-${userId}`).run();
+  ].join(" ")).bind(`task21-${userId}-${planCode}`, userId, planCode, now, expires, `task21-${userId}-${planCode}`).run();
 }
 
 async function request(db, route, options = {}, environment = ENVIRONMENT) {
@@ -128,7 +129,9 @@ try {
 
   for (const user of Object.values(USERS)) await insertUser(db, user, user.token);
   await grantMembership(db, USERS.subscriber.id, "notification_archive_access");
+  await grantMembership(db, USERS.subscriber.id, "finance_monthly");
   await grantMembership(db, USERS.financeOnly.id, "finance_monthly");
+  await grantMembership(db, USERS.archiveOnly.id, "notification_archive_access");
 
   // 1. Unauthenticated is rejected.
   const anon = await request(db, "/api/notification/events");
@@ -142,6 +145,19 @@ try {
   // 3. Finance-only membership must not grant notification archive access.
   const financeRead = await request(db, "/api/notification/events", { token: USERS.financeOnly.token });
   assert.equal(financeRead.response.status, 403);
+  // Finance-only accounts may still use payment recognition and candidates.
+  const financeCandidates = await request(db, "/api/notification/candidates", { token: USERS.financeOnly.token });
+  assert.equal(financeCandidates.response.status, 200, JSON.stringify(financeCandidates.payload));
+  // Archive-only accounts may read history but must never ingest finance events.
+  const archiveEvents = await request(db, "/api/notification/events", { token: USERS.archiveOnly.token });
+  assert.equal(archiveEvents.response.status, 200, JSON.stringify(archiveEvents.payload));
+  const archiveIngest = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.archiveOnly.token,
+    body: ingestBody("device-task21-000001", "op-archive-only", transactionEvent()),
+  });
+  assert.equal(archiveIngest.response.status, 403);
+  assert.equal(archiveIngest.payload.code, "finance_membership_required");
 
   // 4. Raw notification content fields are rejected outright.
   const rawReject = await request(db, "/api/notification/ingest", {
@@ -265,7 +281,10 @@ try {
     token: USERS.financeOnly.token,
     body: { candidate_id: candidate.id, device_id: "device-task21-000001" },
   });
-  assert.equal(crossConfirm.response.status, 403);
+  // Another finance-entitled account must not see or confirm this candidate:
+  // the lookup is account scoped, so it simply does not exist for them.
+  assert.equal(crossConfirm.response.status, 404);
+  assert.equal(crossConfirm.payload.code, "notification_candidate_not_found");
 
   // Confirm is idempotent: a second confirm must not create another finance transaction.
   const confirmedTxnCountBefore = await db.prepare(
@@ -439,6 +458,7 @@ try {
   });
   await insertUser(db, lapsedUser, lapsedUser.token);
   await grantMembership(db, lapsedUser.id, "notification_archive_access");
+  await grantMembership(db, lapsedUser.id, "finance_monthly");
   const lapsedIngest = await request(db, "/api/notification/ingest", {
     method: "POST",
     token: lapsedUser.token,
@@ -454,7 +474,9 @@ try {
   const lapsedCandidateId = lapsedIngest.payload.operation_results[0].candidate_id;
   assert.match(lapsedCandidateId, /^cand:/);
   await db.prepare(
-    "UPDATE task13_user_memberships SET expires_at = ?1 WHERE user_id = ?2 AND plan_code = 'notification_archive_access'",
+    // Payment recognition belongs to finance_access, so the finance membership
+    // is the one that lapses here.
+    "UPDATE task13_user_memberships SET expires_at = ?1 WHERE user_id = ?2 AND plan_code = 'finance_monthly'",
   ).bind(new Date(Date.now() - 60_000).toISOString(), lapsedUser.id).run();
   const lapsedConfirm = await request(db, "/api/notification/candidates/confirm", {
     method: "POST",
@@ -462,11 +484,14 @@ try {
     body: { candidate_id: lapsedCandidateId, device_id: "device-task21-000002" },
   });
   assert.equal(lapsedConfirm.response.status, 403);
-  assert.equal(lapsedConfirm.payload.code, "notification_membership_required");
+  assert.equal(lapsedConfirm.payload.code, "finance_membership_required");
   const lapsedTxnCount = await db.prepare(
     "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1",
   ).bind(lapsedUser.id).first();
   assert.equal(Number(lapsedTxnCount.count), 0, "expired entitlement must not create finance transactions");
+  // The archive membership is still active, so history remains readable.
+  const lapsedEvents = await request(db, "/api/notification/events", { token: lapsedUser.token });
+  assert.equal(lapsedEvents.response.status, 200, JSON.stringify(lapsedEvents.payload));
 
   // 15. Reject then confirm is rejected: rejected candidates are terminal.
   const rejectedConfirm = await request(db, "/api/notification/candidates/confirm", {

@@ -182,6 +182,13 @@ export function publicNotificationEvent(row) {
 }
 
 export function publicNotificationCandidate(row) {
+  let edited = {};
+  try {
+    const parsed = JSON.parse(String(row.edited_json || "{}"));
+    edited = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch (_) {
+    edited = {};
+  }
   return {
     id: String(row.id || ""),
     event_id: String(row.event_id || ""),
@@ -195,6 +202,9 @@ export function publicNotificationCandidate(row) {
     confidence: Number(row.confidence || 0),
     status: String(row.status || ""),
     finance_transaction_id: String(row.finance_transaction_id || ""),
+    evidence_count: Number(row.evidence_count || 1),
+    correction_count: Number(row.correction_count || 0),
+    edited,
     created_at: String(row.created_at || ""),
     updated_at: String(row.updated_at || ""),
   };
