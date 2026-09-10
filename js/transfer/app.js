@@ -207,17 +207,21 @@ export function createTransferController({
     if (!authenticated()) body.guest_id = guestId();
     const payload = await request("/api/transfer/uploads", { method: "POST", body });
     activeSession = { id: payload.upload.id, expiresAt: payload.upload.expires_at };
+    for (const item of queue) if (!item.sessionId) item.sessionId = activeSession.id;
+    persistQueue();
     return activeSession;
   }
 
   async function uploadPartBytes(item, partNumber, part) {
+    const partDigest = await crypto.subtle.digest("SHA-256", await part.arrayBuffer());
+    const partHash = [...new Uint8Array(partDigest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
     const controller = new AbortController();
     item.controller = controller;
     const response = await fetch(
       `/api/transfer/uploads/${item.sessionId}/files/${item.fileId}/parts/${partNumber}`,
       {
         method: "PUT",
-        headers: headers({ "Content-Type": "application/octet-stream" }),
+        headers: headers({ "Content-Type": "application/octet-stream", "X-Part-Sha256": partHash }),
         body: part,
         signal: controller.signal,
       },
@@ -247,6 +251,7 @@ export function createTransferController({
     item.partSize = payload.file.part_size;
     item.partCount = payload.file.part_count;
     item.uploadedParts = [];
+    persistQueue();
   }
 
   async function uploadItem(item) {
@@ -260,6 +265,7 @@ export function createTransferController({
     item.paused = false;
     await ensureSession();
     if (item.sessionId !== activeSession.id) item.sessionId = activeSession.id;
+    persistQueue();
     await allocateItem(item);
     if (item.partCount === 0) item.partCount = Math.max(1, Math.ceil(item.size / item.partSize));
     const startedAt = Date.now();
@@ -277,6 +283,7 @@ export function createTransferController({
         await uploadPartBytes(item, partNumber, part);
         item.uploadedParts.push(partNumber);
         item.uploaded = Math.min(item.size, offset + length);
+        persistQueue();
       } catch (error) {
         if (item.status === "cancelled") return;
         if (error.code === "transfer_part_size_mismatch" || error.code === "transfer_identifier_invalid") {
@@ -302,6 +309,7 @@ export function createTransferController({
     }
     item.status = "done";
     item.controller = null;
+    persistQueue();
     renderQueue();
     if (queue.every((entry) => entry.status === "done")) setMessage("全部文件已上传，可以创建分享链接。");
   }
@@ -378,7 +386,72 @@ export function createTransferController({
     const password = window.prompt("该分享可能设有访问密码，如需要请输入：") || "";
     try {
       const payload = await request(`/api/transfer/shares/${shareId}/authorize`, { method: "POST", body: { password } });
-      window.location.href = `/api/transfer/shares/${shareId}/download?file=${encodeURIComponent(fileId)}&grant=${encodeURIComponent(payload.download.token)}`;
+      const token = payload.download.token;
+      const meta = payload.download.share.files.find((file) => file.file_id === fileId);
+      const size = Number(meta?.size_bytes || 0);
+      const downloadUrl = `/api/transfer/shares/${shareId}/download?file=${encodeURIComponent(fileId)}&grant=${encodeURIComponent(token)}`;
+      const pickerAvailable = typeof window.showSaveFilePicker === "function";
+      if (!size || size <= 4 * 1024 * 1024 || !pickerAvailable) {
+        // Let the browser stream the response straight to disk; the page never
+        // holds the file contents in memory.
+        const anchor = document.createElement("a");
+        anchor.href = downloadUrl;
+        anchor.download = meta?.file_name || "download";
+        anchor.rel = "noopener";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        setMessage("下载已开始，请查看浏览器下载列表。", "success");
+        return;
+      }
+      // Bounded-memory streaming: each ranged response is piped straight into
+      // the destination file, so even a 1 GiB transfer never becomes a Blob.
+      const rangeSize = 8 * 1024 * 1024;
+      const handle = await window.showSaveFilePicker({ suggestedName: meta?.file_name || "download" });
+      const writable = await handle.createWritable();
+      try {
+        let offset = 0;
+        setMessage(`正在下载 ${formatBytes(0)} / ${formatBytes(size)}`);
+        while (offset < size) {
+          const length = Math.min(rangeSize, size - offset);
+          let lastError = null;
+          let settled = false;
+          for (let attempt = 0; attempt < 3 && !settled; attempt += 1) {
+            try {
+              const response = await fetch(downloadUrl, {
+                headers: { ...headers(), Range: `bytes=${offset}-${offset + length - 1}` },
+              });
+              if (response.status !== 206 || !response.body) {
+                throw new Error(`下载失败（HTTP ${response.status}）`);
+              }
+              const reader = response.body.getReader();
+              let written = 0;
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                // Position-based writes keep retries idempotent.
+                await writable.write({ type: "write", position: offset + written, data: value });
+                written += value.byteLength;
+              }
+              if (written !== length) {
+                throw new Error(`下载分片长度不一致（${written}/${length}）`);
+              }
+              settled = true;
+            } catch (error) {
+              lastError = error;
+              if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+            }
+          }
+          if (!settled) throw lastError || new Error("下载失败");
+          offset += length;
+          setMessage(`正在下载 ${formatBytes(offset)} / ${formatBytes(size)}`);
+        }
+        await writable.close();
+        setMessage("下载完成。", "success");
+      } catch (error) {
+        await writable.abort().catch(() => {});
+        throw error;
+      }
     } catch (error) {
       setMessage(error.message || "下载失败。", "error");
     }
