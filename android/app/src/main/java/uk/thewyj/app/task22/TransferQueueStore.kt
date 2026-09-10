@@ -12,7 +12,7 @@ import java.nio.file.StandardCopyOption
  * demand and are never loaded into memory.
  */
 class TransferQueueStore(private val file: File) {
-    private val lock = Any()
+    private val lock = locks.computeIfAbsent(file.canonicalPath) { Any() }
 
     fun load(): List<QueuedTransfer> {
         synchronized(lock) {
@@ -68,6 +68,17 @@ class TransferQueueStore(private val file: File) {
         }
     }
 
+    fun update(localId: String, transform: (QueuedTransfer) -> QueuedTransfer): QueuedTransfer? = synchronized(lock) {
+        val items = load().toMutableList()
+        val index = items.indexOfFirst { it.localId == localId }
+        if (index < 0) return@synchronized null
+        val updated = transform(items[index])
+        require(updated.localId == localId)
+        items[index] = updated
+        save(items)
+        updated
+    }
+
     fun clearForAccount(accountId: String) {
         synchronized(lock) {
             save(emptyList())
@@ -75,6 +86,7 @@ class TransferQueueStore(private val file: File) {
     }
 
     companion object {
+        private val locks = java.util.concurrent.ConcurrentHashMap<String, Any>()
         fun inDirectory(directory: File, accountId: String): TransferQueueStore {
             val safe = accountId.replace(Regex("""[^A-Za-z0-9._-]"""), "_").take(80)
             return TransferQueueStore(File(directory, "transfer-queue-$safe.json"))

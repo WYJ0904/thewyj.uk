@@ -1,5 +1,5 @@
-export const TASK22_SCHEMA_VERSION = "1";
-export const TASK22_BUILD = "2026-09-09-task22-file-transfer-2";
+export const TASK22_SCHEMA_VERSION = "2";
+export const TASK22_BUILD = "2026-09-10-task22-single-object-downloads";
 
 export const PART_SIZE_BYTES = 16 * 1024 * 1024;
 export const MIN_PART_SIZE_BYTES = 5 * 1024 * 1024;
@@ -66,12 +66,12 @@ export function normalizeMime(value) {
 }
 
 function safeComponent(value, maximum) {
-  const text = String(value ?? "");
+  const text = String(value ?? "").trim();
   if (!text || text === "." || text === ".." || text.length > maximum || CONTROL_PATTERN.test(text)) {
     throw new Task22Error("文件名或路径组件无效", 400, "transfer_name_invalid");
   }
   if (/[\\/]/.test(text)) throw new Task22Error("文件路径不能包含路径分隔符", 400, "transfer_path_invalid");
-  return text.trim();
+  return text;
 }
 
 export function cleanFileName(value) {
@@ -87,11 +87,26 @@ export function cleanRelativePath(value) {
   if (!raw || raw.startsWith("/") || raw.includes("//") || raw.length > 512 || CONTROL_PATTERN.test(raw)) {
     throw new Task22Error("文件相对路径无效", 400, "transfer_path_invalid");
   }
-  const components = raw.split("/");
+  // Normalize before validating so a padded component such as " .. " can
+  // never be accepted as a literal name and later resolve to a traversal.
+  const components = raw.split("/").map((component) => component.trim());
   if (components.some((component) => component === ".." || component === "." || !component)) {
     throw new Task22Error("文件相对路径不能包含目录穿越", 400, "transfer_path_traversal");
   }
   const cleaned = components.map((component) => {
+    let decoded = component;
+    for (let pass = 0; pass < 2; pass += 1) {
+      try {
+        const next = decodeURIComponent(decoded);
+        if (next === decoded) break;
+        decoded = next;
+      } catch (_) {
+        throw new Task22Error("路径组件包含无效的编码", 400, "transfer_path_invalid");
+      }
+    }
+    if (decoded !== component && (decoded.includes("/") || decoded.includes("\\") || decoded === "." || decoded === "..")) {
+      throw new Task22Error("文件相对路径不能包含目录穿越", 400, "transfer_path_traversal");
+    }
     const safe = safeComponent(component, 255);
     if (!/^[\p{L}\p{N} _.,()\[\]+=-]+$/u.test(safe)) {
       throw new Task22Error("路径组件包含不允许的字符", 400, "transfer_path_invalid");
@@ -260,6 +275,8 @@ export function sharePayload(row, files = []) {
       file_name: String(file.file_name || ""),
       mime_type: String(file.mime_type || ""),
       size_bytes: Number(file.size_bytes || 0),
+      part_size: Number(file.part_size || 0),
+      part_count: Number(file.part_count || 0),
       preview_policy: String(file.preview_policy || "download_only"),
     })),
   };

@@ -133,10 +133,20 @@ async function consumeCreateQuota(db, owner) {
   }
 }
 
+const ENVIRONMENT_SCOPES = Object.freeze(["production", "preview", "development"]);
+
+function scopeFor(environment) {
+  const value = String(environment || "").toLowerCase();
+  return ENVIRONMENT_SCOPES.includes(value) ? value : "development";
+}
+
 function objectKeyFor(environment, fileId, partNumber) {
-  const scope = ["production", "preview", "development"].includes(String(environment || "").toLowerCase())
-    ? String(environment).toLowerCase() : "development";
-  return `transfers/v2/${scope}/files/${fileId}/part-${partNumber}`;
+  return `transfers/v2/${scopeFor(environment)}/files/${fileId}/part-${partNumber}`;
+}
+
+/** One R2 object per uploaded file; parts are uploaded into this object. */
+function fileObjectKeyFor(environment, fileId) {
+  return `transfers/v2/${scopeFor(environment)}/objects/${fileId}/file`;
 }
 
 async function sessionRow(db, id) {
@@ -227,6 +237,7 @@ export async function createUploadSession(db, account, env, input) {
 }
 
 export async function allocateUploadFile(db, account, env, input) {
+  const storage = env.WYJ_STORAGE;
   requireAllowedFields(input, new Set([
     "session_id", "guest_id", "file_id", "relative_path", "file_name", "mime_type", "size_bytes",
   ]));
@@ -246,12 +257,6 @@ export async function allocateUploadFile(db, account, env, input) {
   const partSize = partSizeFor(sizeBytes);
   const count = partCountFor(sizeBytes, partSize);
   const files = await fileRows(db, session.id);
-  if (files.length >= session.file_count) {
-    throw new Task22Error("该任务的文件数量已用完", 409, "transfer_file_count_exceeded");
-  }
-  if (files.some((file) => file.relative_path === relativePath)) {
-    throw new Task22Error("同一分享内存在重复路径", 409, "transfer_duplicate_path");
-  }
   const existing = await first(db, "SELECT * FROM task22_upload_files WHERE id = ?1", [fileId]);
   if (existing) {
     if (existing.session_id !== session.id) {
@@ -262,22 +267,48 @@ export async function allocateUploadFile(db, account, env, input) {
     }
     return existing;
   }
+  if (files.length >= session.file_count) {
+    throw new Task22Error("该任务的文件数量已用完", 409, "transfer_file_count_exceeded");
+  }
+  if (files.some((file) => file.relative_path === relativePath)) {
+    throw new Task22Error("同一分享内存在重复路径", 409, "transfer_duplicate_path");
+  }
   const sessionBytes = files.reduce((sum, file) => sum + Number(file.size_bytes), 0);
   if (sessionBytes + sizeBytes > Number(session.total_bytes)) {
     throw new Task22Error("任务总大小与声明不一致", 413, "transfer_session_size_exceeded");
   }
   const limit = await storageLimitBytes(db, account, input.guest_id);
-  if (sizeBytes + await activeBytes(db, owner) > limit) {
+  // The active session's declared bytes were already charged at creation;
+  // only newly allocated bytes beyond that declaration need the limit check.
+  const accountedBySession = Number(session.total_bytes || 0);
+  const outsideBytes = await activeBytes(db, owner) - accountedBySession;
+  if (sizeBytes + Math.max(0, outsideBytes) > limit) {
     throw new Task22Error("当前账户的文件存储配额不足", 413, "transfer_storage_quota_exceeded");
   }
   const now = isoNow();
-  await run(db, `INSERT INTO task22_upload_files (
-      id, session_id, relative_path, file_name, mime_type, size_bytes, part_size,
-      part_count, preview_policy, state, created_at, updated_at
-    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'allocated', ?10, ?10)`, [
-    fileId, session.id, relativePath, fileName, mimeType, sizeBytes,
-    partSize, count, policy.policy, now,
-  ]);
+  // Parts are uploaded straight into one R2 object so downloads can stream it
+  // natively instead of being concatenated inside the Worker.
+  const bucket = requireStorage(storage);
+  const objectKey = fileObjectKeyFor(env?.WYJ_ENVIRONMENT, fileId);
+  const multipart = await bucket.createMultipartUpload(objectKey, {
+    httpMetadata: { contentType: mimeType, cacheControl: "private, no-store" },
+    customMetadata: { task: "22", session: session.id, file: fileId },
+  });
+  if (!multipart?.uploadId) {
+    throw new Task22Error("文件传输云存储暂时不可用", 503, "transfer_storage_unavailable", true);
+  }
+  try {
+    await run(db, `INSERT INTO task22_upload_files (
+        id, session_id, relative_path, file_name, mime_type, size_bytes, part_size,
+        part_count, preview_policy, state, object_key, upload_id, created_at, updated_at
+      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'allocated', ?10, ?11, ?12, ?12)`, [
+      fileId, session.id, relativePath, fileName, mimeType, sizeBytes,
+      partSize, count, policy.policy, objectKey, multipart.uploadId, now,
+    ]);
+  } catch (error) {
+    try { await multipart.abort(); } catch (_) { /* cleanup retried later */ }
+    throw error;
+  }
   return await first(db, "SELECT * FROM task22_upload_files WHERE id = ?1", [fileId]);
 }
 
@@ -303,7 +334,6 @@ export async function uploadPart(db, storage, account, request, sessionId, fileI
     throw new Task22Error("分片校验值无效", 400, "transfer_part_hash_invalid");
   }
   const bucket = requireStorage(storage);
-  const objectKey = objectKeyFor(environment, file.id, partNumber);
   const existing = await first(db, `SELECT * FROM task22_upload_parts
     WHERE session_id = ?1 AND file_id = ?2 AND part_number = ?3`, [session.id, file.id, partNumber]);
   if (existing) {
@@ -313,40 +343,53 @@ export async function uploadPart(db, storage, account, request, sessionId, fileI
     }
     return { part_number: partNumber, size_bytes: Number(existing.size_bytes), uploaded: true };
   }
-  const putOptions = {
-    httpMetadata: { contentType: "application/octet-stream", cacheControl: "private, no-store" },
-    customMetadata: { task: "22", session: session.id, file: file.id, part: String(partNumber) },
-  };
-  let uploaded;
+  const objectKey = file.object_key || fileObjectKeyFor(environment, file.id);
+  const uploadId = String(file.upload_id || "");
+  if (!uploadId) {
+    throw new Task22Error("上传对象尚未初始化，请重新分配文件", 409, "transfer_upload_not_initialized");
+  }
+  const multipart = bucket.resumeMultipartUpload(objectKey, uploadId);
+  let uploadedPart;
+  let committed = false;
   try {
     if (typeof globalThis.FixedLengthStream === "function") {
       const fixed = new globalThis.FixedLengthStream(expected.length);
-      const [putResult, pipeResult] = await Promise.allSettled([
-        bucket.put(objectKey, fixed.readable, putOptions),
+      const [partResult, pipeResult] = await Promise.allSettled([
+        multipart.uploadPart(partNumber, fixed.readable),
         request.body.pipeTo(fixed.writable),
       ]);
       if (pipeResult.status === "rejected") throw pipeResult.reason;
-      if (putResult.status === "rejected") throw putResult.reason;
-      uploaded = putResult.value;
+      if (partResult.status === "rejected") throw partResult.reason;
+      uploadedPart = partResult.value;
     } else {
       const bytes = await request.arrayBuffer();
       if (bytes.byteLength !== expected.length) {
         throw new Task22Error("分片大小与声明不一致", 400, "transfer_part_size_mismatch");
       }
-      uploaded = await bucket.put(objectKey, bytes, putOptions);
+      uploadedPart = await multipart.uploadPart(partNumber, bytes);
     }
-    if (!uploaded || Number(uploaded.size) !== expected.length) {
-      throw new Task22Error("分片大小校验失败", 400, "transfer_part_size_mismatch");
+    if (!uploadedPart?.etag) {
+      throw new Task22Error("分片上传校验失败，请重试", 400, "transfer_part_size_mismatch", true);
     }
     await run(db, `INSERT INTO task22_upload_parts (
-        session_id, file_id, part_number, size_bytes, sha256_hex, object_key, uploaded_at
-      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`, [
-      session.id, file.id, partNumber, expected.length, sha256Header, objectKey, isoNow(),
+        session_id, file_id, part_number, size_bytes, sha256_hex, object_key, etag, uploaded_at
+      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`, [
+      session.id, file.id, partNumber, expected.length, sha256Header, objectKey,
+      String(uploadedPart.etag), isoNow(),
     ]);
+    committed = true;
     await run(db, "UPDATE task22_upload_sessions SET updated_at = ?2 WHERE id = ?1", [session.id, isoNow()]);
     return { part_number: partNumber, size_bytes: expected.length, uploaded: false };
   } catch (error) {
-    try { await bucket.delete(objectKey); } catch (_) { /* best effort */ }
+    const winner = await first(db, `SELECT * FROM task22_upload_parts
+      WHERE session_id = ?1 AND file_id = ?2 AND part_number = ?3`, [session.id, file.id, partNumber]);
+    if (committed || winner?.etag) {
+      return { part_number: partNumber, size_bytes: expected.length, uploaded: true };
+    }
+    if (winner && sha256Header && winner.sha256_hex === sha256Header) {
+      return { part_number: partNumber, size_bytes: Number(winner.size_bytes), uploaded: true };
+    }
+    if (winner) throw new Task22Error("同一分片重传内容不一致", 409, "transfer_part_hash_conflict");
     throw error;
   }
 }
@@ -377,10 +420,11 @@ export async function completeUploadSession(db, storage, account, env, input) {
     throw new Task22Error("上传任务已过期", 410, "transfer_session_expired");
   }
   const files = await fileRows(db, session.id);
-  if (files.length === 0 || files.length > session.file_count) {
+  if (files.length !== Number(session.file_count)) {
     throw new Task22Error("上传文件数量与任务声明不一致", 409, "transfer_incomplete_upload");
   }
   let declaredBytes = 0;
+  const fileParts = new Map();
   for (const file of files) {
     declaredBytes += Number(file.size_bytes);
     const parts = await all(db, `SELECT * FROM task22_upload_parts
@@ -388,18 +432,53 @@ export async function completeUploadSession(db, storage, account, env, input) {
     if (parts.length !== Number(file.part_count)) {
       throw new Task22Error("仍有分片未上传完成", 409, "transfer_incomplete_upload");
     }
+    let uploadedBytes = 0;
     for (const part of parts) {
       const expected = partRange(Number(part.part_number), Number(file.part_size), Number(file.size_bytes));
       if (Number(part.size_bytes) !== expected.length) {
         throw new Task22Error("分片大小校验失败", 409, "transfer_part_size_mismatch");
       }
-      if (!await requireStorage(storage).head(part.object_key)) {
-        throw new Task22Error("分片内容缺失，请重传", 409, "transfer_part_missing");
+      if (file.upload_id) {
+        // Multipart files: the part lives inside the uploaded object and the
+        // stored etag is required to complete it.
+        if (!part.etag) {
+          throw new Task22Error("分片内容缺失，请重传", 409, "transfer_part_missing");
+        }
+      } else {
+        const head = await requireStorage(storage).head(part.object_key);
+        if (!head) {
+          throw new Task22Error("分片内容缺失，请重传", 409, "transfer_part_missing");
+        }
+        if (Number(head.size) !== expected.length) {
+          throw new Task22Error("分片内容长度与声明不一致", 409, "transfer_part_size_mismatch");
+        }
       }
+      uploadedBytes += Number(part.size_bytes);
     }
+    if (uploadedBytes !== Number(file.size_bytes)) {
+      throw new Task22Error("文件实际上传字节与声明不一致", 409, "transfer_incomplete_upload");
+    }
+    fileParts.set(file.id, parts);
   }
-  if (declaredBytes > Number(session.total_bytes)) {
-    throw new Task22Error("上传总大小超出任务声明", 409, "transfer_session_size_exceeded");
+  if (declaredBytes !== Number(session.total_bytes)) {
+    throw new Task22Error("上传总大小与任务声明不一致", 409, "transfer_incomplete_upload");
+  }
+  // Assemble each file into its single R2 object before anything is published.
+  for (const file of files) {
+    if (!file.upload_id) continue;
+    const objectKey = file.object_key || fileObjectKeyFor(env?.WYJ_ENVIRONMENT, file.id);
+    const multipart = requireStorage(storage).resumeMultipartUpload(objectKey, file.upload_id);
+    await multipart.complete(
+      (fileParts.get(file.id) || []).map((part) => ({
+        partNumber: Number(part.part_number),
+        etag: String(part.etag),
+      })),
+    );
+    const head = await requireStorage(storage).head(objectKey);
+    if (!head || Number(head.size) !== Number(file.size_bytes)) {
+      try { await requireStorage(storage).delete(objectKey); } catch (_) { /* cleanup retried later */ }
+      throw new Task22Error("上传文件合并校验失败", 409, "transfer_file_size_mismatch");
+    }
   }
   const shareId = randomToken(24);
   const now = isoNow();
@@ -414,10 +493,11 @@ export async function completeUploadSession(db, storage, account, env, input) {
     ),
     ...files.map((file) => db.prepare(`INSERT INTO task22_share_files (
         share_id, file_id, relative_path, file_name, mime_type, size_bytes,
-        part_size, part_count, sha256_hex, preview_policy
-      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`).bind(
+        part_size, part_count, sha256_hex, preview_policy, object_key
+      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`).bind(
       shareId, file.id, file.relative_path, file.file_name, file.mime_type,
       file.size_bytes, file.part_size, file.part_count, file.sha256_hex, file.preview_policy,
+      file.object_key || "",
     )),
     db.prepare(`UPDATE task22_upload_sessions SET state = 'published', share_id = ?2,
       completed_at = ?3, updated_at = ?3 WHERE id = ?1 AND state = 'active'`).bind(session.id, shareId, now),
@@ -489,6 +569,15 @@ export async function authorizeShareDownload(db, storage, env, input) {
       ) SELECT ?2, id, ?3, ?4, 'active' FROM task22_shares
       WHERE id = ?1 AND state = 'active' AND expires_at > ?3 AND download_count < max_downloads`)
       .bind(row.id, digest, now, expiresAt),
+    db.prepare(`UPDATE task22_shares SET
+        download_count = download_count + 1,
+        state = CASE WHEN one_time = 1 OR download_count + 1 >= max_downloads
+          THEN 'delete_pending' ELSE state END,
+        deletion_reason = CASE WHEN one_time = 1 OR download_count + 1 >= max_downloads
+          THEN 'download_limit' ELSE deletion_reason END,
+        updated_at = ?2
+      WHERE id = ?1 AND state = 'active'`)
+      .bind(row.id, now),
   ]);
   const grant = await first(db, "SELECT * FROM task22_download_grants WHERE token_digest = ?1", [digest]);
   if (!grant) throw new Task22Error("分享下载次数已用完", 410, "transfer_download_limit_reached");
@@ -508,59 +597,67 @@ async function finalizeDownload(db, storage, row, digest, requestId) {
   await run(db, `UPDATE task22_download_grants SET state = 'completed', completed_at = ?2,
     last_used_at = ?2, active_request_id = '', active_request_expires_at = ''
     WHERE token_digest = ?1 AND active_request_id = ?3`, [digest, isoNow(), requestId]);
-  const nextCount = Number(row.download_count) + 1;
-  const destroy = Boolean(row.one_time) || nextCount >= Number(row.max_downloads);
-  await run(db, `UPDATE task22_shares SET download_count = ?2,
-    state = CASE WHEN ?3 THEN 'delete_pending' ELSE state END,
-    deletion_reason = CASE WHEN ?3 THEN 'download_limit' ELSE deletion_reason END,
-    updated_at = ?4 WHERE id = ?5`, [row.id, nextCount, destroy ? 1 : 0, isoNow(), row.id]);
-  if (destroy) await removeShare(db, storage, row, "download_limit");
+  if (row.state === "delete_pending") {
+    await removeShare(db, storage, row, row.deletion_reason || "download_limit");
+  }
 }
 
-async function concatenatedParts(storage, parts, offset = 0, length = null, onComplete = null, onCancel = null) {
-  let remaining = length;
+/**
+ * Streams the requested window across the uploaded parts without ever running
+ * JavaScript per chunk. The response body is the readable half of an identity
+ * TransformStream; each part body is handed over with `pipeTo`, which the
+ * runtime pumps natively. A `pull`-driven JavaScript ReadableStream costs CPU
+ * per chunk and is killed by the Workers CPU limit mid-response (observed as
+ * silently truncated downloads), so the pump must stay outside JS.
+ */
+function concatenatedParts(storage, parts, offset = 0, length = null, onComplete = null, onCancel = null) {
+  let remaining = length === null ? Number.POSITIVE_INFINITY : Number(length);
   let settled = false;
   const once = (callback) => {
     if (settled || !callback) return;
     settled = true;
     callback();
   };
-  return new ReadableStream({
-    async start(controller) {
-      let skipped = 0;
-      try {
-        for (const part of parts) {
-          const partSize = Number(part.size_bytes);
-          if (offset > skipped + partSize) { skipped += partSize; continue; }
-          const localOffset = Math.max(0, offset - skipped);
-          const available = partSize - localOffset;
-          if (available <= 0) { skipped += partSize; continue; }
-          const take = remaining === null ? available : Math.min(remaining, available);
-          const object = await storage.get(part.object_key, { range: { offset: localOffset, length: take } });
-          if (!object?.body) throw new Task22Error("分享文件内容缺失", 503, "transfer_file_missing", true);
-          const reader = object.body.getReader();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            controller.enqueue(value);
-          }
-          if (remaining !== null) {
-            remaining -= take;
-            if (remaining <= 0) break;
-          }
+  const { readable, writable } = new TransformStream();
+  void (async () => {
+    let skipped = 0;
+    try {
+      for (const part of parts) {
+        if (remaining <= 0) break;
+        const partSize = Number(part.size_bytes);
+        if (skipped + partSize <= Number(offset)) {
           skipped += partSize;
+          continue;
         }
-        once(onComplete);
-        controller.close();
-      } catch (error) {
-        once(onCancel);
-        controller.error(error);
+        const localOffset = Math.max(0, Number(offset) - skipped);
+        const available = partSize - localOffset;
+        skipped += partSize;
+        if (available <= 0) continue;
+        const take = Math.min(remaining, available);
+        const object = await storage.get(part.object_key, { range: { offset: localOffset, length: take } });
+        if (!object?.body) throw new Task22Error("分享文件内容缺失", 503, "transfer_file_missing", true);
+        if (typeof object.body.pipeTo === "function") {
+          await object.body.pipeTo(writable, { preventClose: true });
+        } else {
+          // Test runtimes expose the object only as a buffer.
+          const bytes = new Uint8Array(await object.arrayBuffer());
+          const writer = writable.getWriter();
+          try { await writer.write(bytes); } finally { writer.releaseLock(); }
+        }
+        remaining -= take;
       }
-    },
-    async cancel() {
+      const writer = writable.getWriter();
+      try { await writer.close(); } finally { writer.releaseLock(); }
+      once(onComplete);
+    } catch (error) {
+      try {
+        const writer = writable.getWriter();
+        try { await writer.abort(error); } finally { writer.releaseLock(); }
+      } catch (_) { /* stream already closed or aborted */ }
       once(onCancel);
-    },
-  });
+    }
+  })();
+  return readable;
 }
 
 export async function streamFileDownload(context, shareIdValue, fileIdValue, token) {
@@ -579,11 +676,13 @@ export async function streamFileDownload(context, shareIdValue, fileIdValue, tok
   if (!row) throw new Task22Error("下载授权无效或已过期", 403, "transfer_download_grant_invalid");
   const file = await first(db, "SELECT * FROM task22_share_files WHERE share_id = ?1 AND file_id = ?2", [shareId, fileId]);
   if (!file) throw new Task22Error("分享文件不存在", 404, "transfer_share_file_not_found");
-  const parts = await all(db, `SELECT * FROM task22_upload_parts WHERE file_id = ?1 ORDER BY part_number`, [fileId]);
-  if (parts.length !== Number(file.part_count)) {
+  const totalBytes = Number(file.size_bytes);
+  const singleObject = String(file.object_key || "");
+  const parts = singleObject ? [] : await all(db, `SELECT * FROM task22_upload_parts
+    WHERE file_id = ?1 ORDER BY part_number`, [fileId]);
+  if (!singleObject && parts.length !== Number(file.part_count)) {
     throw new Task22Error("分享文件内容不完整", 503, "transfer_file_missing", true);
   }
-  const totalBytes = Number(file.size_bytes);
   const requestedRange = parseByteRange(context.request.headers.get("Range"), totalBytes);
   const requestId = randomToken(18);
   const claimed = await first(db, `UPDATE task22_download_grants SET
@@ -621,23 +720,38 @@ export async function streamFileDownload(context, shareIdValue, fileIdValue, tok
     const start = requestedRange.offset;
     headers.set("Content-Range", `bytes ${start}-${start + length - 1}/${totalBytes}`);
   }
-  let settled = false;
-  const once = (callback) => {
-    if (settled) return;
-    settled = true;
-    if (typeof context.waitUntil === "function") context.waitUntil(Promise.resolve(callback()).catch(() => undefined));
-    else void Promise.resolve(callback()).catch(() => undefined);
-  };
   const fullResponse = !requestedRange;
-  const body = await concatenatedParts(
+  if (singleObject) {
+    // The uploaded file is one R2 object: hand the body to the client as-is so
+    // the runtime streams it natively (a JavaScript pump is killed by the
+    // Workers CPU limit and truncates large downloads).
+    if (fullResponse) {
+      await run(db, `UPDATE task22_download_grants SET state = 'completed', completed_at = ?2,
+        last_used_at = ?2, active_request_id = '', active_request_expires_at = ''
+        WHERE token_digest = ?1 AND active_request_id = ?3`, [digest, isoNow(), requestId]);
+    } else {
+      await releaseDownloadRequest(db, digest, requestId);
+    }
+    const object = requestedRange
+      ? await storage.get(singleObject, { range: { offset: requestedRange.offset, length: requestedRange.length } })
+      : await storage.get(singleObject);
+    if (!object?.body) throw new Task22Error("下载数据暂时不可用", 503, "transfer_file_missing", true);
+    if (fullResponse && row.state === "delete_pending") {
+      // Metadata disappears right away; the object itself is removed by the
+      // cleanup pass once the response has finished streaming.
+      await retireShareRows(db, row.id);
+    }
+    return new Response(object.body, { status: requestedRange ? 206 : 200, headers });
+  }
+  const body = concatenatedParts(
     storage,
     parts,
     requestedRange?.offset || 0,
     requestedRange?.length ?? null,
     fullResponse
-      ? () => once(() => finalizeDownload(db, storage, row, digest, requestId))
-      : () => once(() => releaseDownloadRequest(db, digest, requestId)),
-    () => once(() => releaseDownloadRequest(db, digest, requestId)),
+      ? () => void finalizeDownload(db, storage, row, digest, requestId).catch(() => undefined)
+      : () => void releaseDownloadRequest(db, digest, requestId).catch(() => undefined),
+    () => void releaseDownloadRequest(db, digest, requestId).catch(() => undefined),
   );
   return new Response(body, { status: requestedRange ? 206 : 200, headers });
 }
@@ -646,15 +760,42 @@ async function expireSession(db, storage, session, reason) {
   const targetState = reason === "owner_aborted" ? "aborted" : "expired";
   await run(db, `UPDATE task22_upload_sessions SET state = ?2, deleted_at = ?3,
     updated_at = ?3 WHERE id = ?1 AND state = 'active'`, [session.id, targetState, isoNow()]);
-  await deleteSessionParts(db, storage, session.id, reason);
+  await deleteSessionObjects(db, storage, session.id);
 }
 
-async function deleteSessionParts(db, storage, sessionId, reason) {
+/**
+ * Releases every R2 resource of an unfinished session: the in-progress
+ * multipart upload, the merged object (if it already completed) and any legacy
+ * per-part objects.
+ */
+async function deleteSessionObjects(db, storage, sessionId) {
+  const bucket = requireStorage(storage);
+  const files = await all(db, "SELECT id, object_key, upload_id FROM task22_upload_files WHERE session_id = ?1", [sessionId]);
+  for (const file of files) {
+    if (!file.object_key) continue;
+    if (file.upload_id) {
+      try { await bucket.resumeMultipartUpload(file.object_key, file.upload_id).abort(); } catch (_) { /* already completed */ }
+    }
+    try { await bucket.delete(file.object_key); } catch (_) { /* retried by cleanup */ }
+  }
   const parts = await all(db, "SELECT object_key FROM task22_upload_parts WHERE session_id = ?1", [sessionId]);
   for (const part of parts) {
-    try { await requireStorage(storage).delete(part.object_key); } catch (_) { /* retried by cleanup */ }
+    if (!part.object_key) continue;
+    try { await bucket.delete(part.object_key); } catch (_) { /* legacy part object */ }
   }
   await run(db, "DELETE FROM task22_upload_parts WHERE session_id = ?1", [sessionId]);
+}
+
+/**
+ * Retires a share whose final allowed download has been served: metadata must
+ * disappear at once, but the R2 object has to survive until the response has
+ * finished streaming, so object deletion stays with the cleanup pass.
+ */
+async function retireShareRows(db, shareId) {
+  await run(db, "DELETE FROM task22_download_grants WHERE share_id = ?1", [shareId]);
+  await run(db, "DELETE FROM task22_upload_parts WHERE file_id IN (SELECT file_id FROM task22_share_files WHERE share_id = ?1)", [shareId]);
+  await run(db, "DELETE FROM task22_share_files WHERE share_id = ?1", [shareId]);
+  await run(db, "DELETE FROM task22_shares WHERE id = ?1", [shareId]);
 }
 
 export async function revokeShare(db, storage, account, input) {
@@ -675,20 +816,32 @@ async function removeShare(db, storage, row, reason) {
   const nextState = row.state === "revoked" ? "revoked" : "delete_pending";
   await run(db, `UPDATE task22_shares SET state = ?2, deletion_reason = ?3,
     cleanup_retry_at = '', updated_at = ?4 WHERE id = ?1 AND state != 'deleted'`, [row.id, nextState, reason, now]);
-  const files = await shareFileRows(db, row.id);
+  const bucket = requireStorage(storage);
+  const shareFiles = await all(db, `SELECT sf.file_id, sf.object_key, uf.upload_id FROM task22_share_files AS sf
+    LEFT JOIN task22_upload_files AS uf ON uf.id = sf.file_id WHERE sf.share_id = ?1`, [row.id]);
+  let failed = 0;
+  for (const file of shareFiles) {
+    if (file.object_key) {
+      try { await bucket.delete(file.object_key); } catch (_) { failed += 1; }
+      if (file.upload_id) {
+        try { await bucket.resumeMultipartUpload(file.object_key, file.upload_id).abort(); } catch (_) { /* already completed */ }
+      }
+    }
+  }
   const parts = await all(db, `SELECT object_key FROM task22_upload_parts WHERE file_id IN
     (SELECT file_id FROM task22_share_files WHERE share_id = ?1)`, [row.id]);
-  let failed = 0;
   for (const part of parts) {
-    try { await requireStorage(storage).delete(part.object_key); } catch (_) { failed += 1; }
+    if (!part.object_key) continue;
+    try { await bucket.delete(part.object_key); } catch (_) { failed += 1; }
   }
   if (failed) {
     await run(db, `UPDATE task22_shares SET cleanup_attempts = cleanup_attempts + 1,
       cleanup_retry_at = ?2, updated_at = ?2 WHERE id = ?1`, [row.id, isoNow(new Date(Date.now() + 30 * 60 * 1000))]);
     return false;
   }
-  await run(db, "DELETE FROM task22_shares WHERE id = ?1", [row.id]);
   await run(db, "DELETE FROM task22_upload_parts WHERE file_id IN (SELECT file_id FROM task22_share_files WHERE share_id = ?1)", [row.id]);
+  await run(db, "DELETE FROM task22_share_files WHERE share_id = ?1", [row.id]);
+  await run(db, "DELETE FROM task22_shares WHERE id = ?1", [row.id]);
   return true;
 }
 
@@ -730,7 +883,8 @@ export async function cleanupExpiredTransfers(db, storage, options = {}) {
   let orphanRemoved = 0;
   let orphanInspected = 0;
   if (options.scanOrphans && storage?.list) {
-    const prefix = `transfers/v2/${String(options.environment || "development")}/files/`;
+    const scope = scopeFor(options.environment);
+    const prefix = `transfers/v2/${scope}/files/`;
     let cursor;
     do {
       const page = await storage.list({ prefix, cursor, limit: Math.min(1000, limit) });
@@ -746,6 +900,28 @@ export async function cleanupExpiredTransfers(db, storage, options = {}) {
       }
       cursor = page.truncated ? page.cursor : undefined;
     } while (cursor && orphanInspected < limit);
+    // Single-object uploads whose share is gone (retired after the final
+    // download, or left behind by an interrupted session).
+    const objectPrefix = `transfers/v2/${scope}/objects/`;
+    let objectCursor;
+    do {
+      const page = await storage.list({ prefix: objectPrefix, cursor: objectCursor, limit: Math.min(1000, limit) });
+      for (const object of page.objects || []) {
+        if (orphanInspected >= limit) break;
+        orphanInspected += 1;
+        const fileId = object.key.slice(objectPrefix.length).split("/")[0];
+        const linked = fileId
+          ? await first(db, `SELECT sf.file_id FROM task22_share_files AS sf
+              JOIN task22_shares AS s ON s.id = sf.share_id WHERE sf.file_id = ?1`, [fileId])
+          : { file_id: "unknown" };
+        const age = Date.now() - new Date(object.uploaded || 0).getTime();
+        if (!linked && age > 24 * 60 * 60 * 1000) {
+          await storage.delete(object.key);
+          orphanRemoved += 1;
+        }
+      }
+      objectCursor = page.truncated ? page.cursor : undefined;
+    } while (objectCursor && orphanInspected < limit);
   }
   return {
     sessions_removed: sessionsRemoved,

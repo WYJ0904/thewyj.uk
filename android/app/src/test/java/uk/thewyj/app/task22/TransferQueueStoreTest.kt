@@ -7,6 +7,26 @@ import org.junit.Test
 import java.io.File
 
 class TransferQueueStoreTest {
+    @Test fun separateInstancesSerializeReadModifyWrite() {
+        val dir = java.nio.file.Files.createTempDirectory("transfer-queue-concurrency").toFile()
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(4)
+        try {
+            val first = TransferQueueStore.inDirectory(dir, "account-a")
+            first.upsert(QueuedTransfer(localId = "shared", source = source("shared")))
+            val jobs = (1..100).map { part ->
+                pool.submit {
+                    TransferQueueStore.inDirectory(dir, "account-a").update("shared") { item ->
+                        item.copy(uploadedParts = item.uploadedParts + part)
+                    }
+                }
+            }
+            jobs.forEach { it.get() }
+            assertEquals((1..100).toSet(), first.load().single().uploadedParts)
+        } finally {
+            pool.shutdownNow()
+            dir.deleteRecursively()
+        }
+    }
     private fun source(id: String) = TransferFileSource(
         uri = "content://com.example.provider/document/$id",
         displayName = "report-$id.txt",

@@ -407,7 +407,7 @@ async function bindingHealth(env, flags) {
         "SELECT value FROM task22_metadata WHERE key = ?1",
       ).bind("schema_version").first();
       task22.schema_version = String(row?.value || "");
-      task22.schema_ready = task22.schema_version === "1";
+      task22.schema_ready = task22.schema_version === "2";
       if (!task22.schema_ready && (flags.task22TransferReads || flags.task22TransferWrites)) {
         degraded.push("task22_schema_not_ready");
       }
