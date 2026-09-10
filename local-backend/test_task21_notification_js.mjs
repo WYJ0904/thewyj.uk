@@ -636,6 +636,30 @@ try {
   assert.equal(differentAmount.response.status, 200);
   assert.notEqual(differentAmount.payload.operation_results[0].candidate_id, multiCandidateId);
 
+  // 18c. The same source with the same amount inside the window may be two real
+  // payments, so it must stay a separate candidate (only cross-source evidence
+  // merges).
+  const sameSourceAgain = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-multi-same-source", {
+      ...transactionEvent(),
+      event_id: "evt-task21-00000105",
+      fingerprint: fingerprint("bb05"),
+      parse_status: "candidate",
+      confidence: 700,
+      amount_minor: 3360,
+      occurred_at_ms: 1_700_000_150_000,
+      received_at_ms: 1_700_000_150_100,
+    }),
+  });
+  assert.equal(sameSourceAgain.response.status, 200);
+  assert.notEqual(
+    sameSourceAgain.payload.operation_results[0].candidate_id,
+    multiCandidateId,
+    "two payments from the same source must stay two candidates",
+  );
+
   // 19. Edit before confirm: the user's values win, machine evidence is kept.
   const editable = await request(db, "/api/notification/ingest", {
     method: "POST",

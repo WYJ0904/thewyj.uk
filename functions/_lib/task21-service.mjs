@@ -256,6 +256,16 @@ async function reconcileEvidenceCandidate(db, account, event, now) {
   const alreadyLinked = await first(db, `SELECT id FROM task21_notification_evidence
     WHERE user_id = ?1 AND event_id = ?2`, [account.id, event.event_id]);
   if (alreadyLinked) return row.id;
+  // Only cross-source evidence may merge. Two events from the same source with
+  // the same amount and time can be two real payments (for example two ¥28
+  // payments inside three minutes), so they must stay separate candidates.
+  const sameSource = await first(db, `SELECT id FROM task21_notification_evidence
+    WHERE user_id = ?1 AND candidate_id = ?2 AND source_type = ?3 AND source_package = ?4
+    LIMIT 1`, [
+    account.id, row.id,
+    String(event.source_type || "notification"), String(event.source_package || ""),
+  ]);
+  if (sameSource) return "";
   await linkEvidence(db, account, event, row.id, false, "merged", now);
   await run(db, `UPDATE task21_notification_candidates
     SET evidence_count = evidence_count + 1, updated_at = ?2
