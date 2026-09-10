@@ -173,6 +173,58 @@ try {
   await grantMembership(db, USERS.tools.id, "tools_monthly");
   const guestId = "guest:aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 
+  const raceSession = await createSession(db, storage, { token: USERS.other.token, totalBytes: 64 });
+  await allocateFile(db, storage, raceSession, {
+    token: USERS.other.token, fileId: "concurrent-part-file", relativePath: "race.bin", fileName: "race.bin", mimeType: "application/octet-stream", sizeBytes: 64,
+  });
+  const raceBytes = bytesOf(37, 64);
+  const raceHash = Buffer.from(await crypto.subtle.digest("SHA-256", raceBytes)).toString("hex");
+  const racedParts = await Promise.all([1, 2].map(() => request(db, storage,
+    "/api/transfer/uploads/" + raceSession + "/files/concurrent-part-file/parts/1", {
+      method: "PUT", token: USERS.other.token, bodyBytes: raceBytes, headers: { "X-Part-Sha256": raceHash },
+    })));
+  assert.ok(racedParts.every(result => result.response.status < 300), "duplicate part uploads must be idempotent");
+  const committedPart = await db.prepare("SELECT object_key FROM task22_upload_parts WHERE session_id = ?1").bind(raceSession).first();
+  const storedPart = await storage.get(committedPart.object_key);
+  assert.ok(storedPart, "losing concurrent writer must not delete the winning object");
+  assert.deepEqual(new Uint8Array(await storedPart.arrayBuffer()), raceBytes);
+
+  const expiredAllocation = await createSession(db, storage, { token: USERS.other.token, totalBytes: 16 });
+  const expiredFileId = "expired-part-000001";
+  await allocateFile(db, storage, expiredAllocation, {
+    token: USERS.other.token, fileId: expiredFileId, relativePath: "old.bin",
+    fileName: "old.bin", mimeType: "application/octet-stream", sizeBytes: 16,
+  });
+  await putPart(db, storage, expiredAllocation, expiredFileId, 1, 16, 5, { token: USERS.other.token });
+  const expiredPartKey = (await db.prepare(
+    "SELECT object_key FROM task22_upload_parts WHERE session_id = ?1",
+  ).bind(expiredAllocation).first())?.object_key;
+  await db.prepare("UPDATE task22_upload_sessions SET expires_at = '2000-01-01T00:00:00Z' WHERE id = ?1").bind(expiredAllocation).run();
+  const expiredResult = await request(db, storage, "/api/transfer/uploads/files", {
+    method: "POST", token: USERS.other.token,
+    body: { session_id: expiredAllocation, file_id: "expired-file-000001", relative_path: "a.txt", file_name: "a.txt", size_bytes: 16 },
+  });
+  assert.equal(expiredResult.response.status, 410);
+  assert.equal(expiredResult.payload.code, "transfer_session_expired");
+  // The expired allocate path must reach the real R2 binding and clean up the
+  // abandoned part instead of throwing on an undefined storage handle.
+  assert.ok(expiredPartKey, "expired session part must have been uploaded first");
+  assert.equal(await storage.get(expiredPartKey), null, "expired session objects must be deleted from R2");
+
+  for (const [fileCount, totalBytes] of [[2, 16], [1, 17]]) {
+    const incompleteSession = await createSession(db, storage, { token: USERS.other.token, fileCount, totalBytes });
+    const fileId = "incomplete-file-" + fileCount;
+    await allocateFile(db, storage, incompleteSession, {
+      token: USERS.other.token, fileId, relativePath: "a.txt", fileName: "a.txt", mimeType: "text/plain", sizeBytes: 16,
+    });
+    await putPart(db, storage, incompleteSession, fileId, 1, 16, 12, { token: USERS.other.token });
+    const incomplete = await request(db, storage, "/api/transfer/uploads/" + incompleteSession + "/complete", {
+      method: "POST", token: USERS.other.token, body: {},
+    });
+    assert.equal(incomplete.response.status, 409);
+    assert.equal(incomplete.payload.code, "transfer_incomplete_upload");
+  }
+
   // 1. Capabilities report the tiered, server-side quota.
   const freeCaps = await request(db, storage, "/api/transfer/capabilities", { token: USERS.free.token });
   assert.equal(freeCaps.payload.storage_limit_bytes, 500 * 1024 * 1024);
@@ -236,6 +288,20 @@ try {
   });
   assert.equal(traversal.response.status, 400);
   assert.equal(traversal.payload.code, "transfer_path_traversal");
+  for (const relativePath of [" .. /a.txt", " . /a.txt", "   /a.txt"]) {
+    const unsafe = await request(db, storage, "/api/transfer/uploads/files", {
+      method: "POST", token: USERS.free.token,
+      body: { session_id: safetySession, file_id: "file-trim-00000001", relative_path: relativePath, file_name: "a.txt", size_bytes: 16 },
+    });
+    assert.equal(unsafe.response.status, 400, relativePath);
+  }
+  for (const relativePath of ["%2e%2e/a.txt", "a/%2e%2e/b.txt", "..%2Fa.txt"]) {
+    const encoded = await request(db, storage, "/api/transfer/uploads/files", {
+      method: "POST", token: USERS.free.token,
+      body: { session_id: safetySession, file_id: "file-enc-00000001", relative_path: relativePath, file_name: "a.txt", size_bytes: 16 },
+    });
+    assert.equal(encoded.response.status, 400, relativePath);
+  }
   const crlfName = await request(db, storage, "/api/transfer/uploads/files", {
     method: "POST",
     token: USERS.free.token,
@@ -520,6 +586,69 @@ try {
   assert.equal(revokedForeign.response.status, 404);
   const revokedMetadata = await request(db, storage, `/api/transfer/shares/${revokeShareId}`);
   assert.equal(revokedMetadata.response.status, 404);
+
+  // 13. Multi-part ranges stream exactly the requested window across a part
+  // boundary, and a full download reassembles identical bytes.
+  {
+    const firstPart = 16 * 1024 * 1024;
+    const fileSize = firstPart + (1 * 1024 * 1024) + 123;
+    const multiSession = await createSession(db, storage, {
+      token: USERS.other.token, fileCount: 1, totalBytes: fileSize,
+    });
+    const multiFileId = "file-multipart-0001";
+    await allocateFile(db, storage, multiSession, {
+      token: USERS.other.token, fileId: multiFileId, relativePath: "multi.bin",
+      fileName: "multi.bin", mimeType: "application/octet-stream", sizeBytes: fileSize,
+    });
+    const partOneBytes = bytesOf(11, firstPart);
+    const partTwoBytes = bytesOf(97, fileSize - firstPart);
+    const uploadA = await request(db, storage,
+      `/api/transfer/uploads/${multiSession}/files/${multiFileId}/parts/1`, {
+        method: "PUT", token: USERS.other.token, bodyBytes: partOneBytes,
+      });
+    assert.equal(uploadA.response.status, 201);
+    const uploadB = await request(db, storage,
+      `/api/transfer/uploads/${multiSession}/files/${multiFileId}/parts/2`, {
+        method: "PUT", token: USERS.other.token, bodyBytes: partTwoBytes,
+      });
+    assert.equal(uploadB.response.status, 201);
+    const multiComplete = await request(db, storage, `/api/transfer/uploads/${multiSession}/complete`, {
+      method: "POST", token: USERS.other.token, body: {},
+    });
+    assert.equal(multiComplete.response.status, 200, JSON.stringify(multiComplete.payload));
+    const multiShareId = multiComplete.payload.share.id;
+    const multiGrant = await request(db, storage, `/api/transfer/shares/${multiShareId}/authorize`, {
+      method: "POST", body: {},
+    });
+    assert.equal(multiGrant.response.status, 200);
+    const grantToken = multiGrant.payload.download.token;
+
+    const start = firstPart - 100;
+    const end = firstPart + 100;
+    const ranged = await request(db, storage,
+      `/api/transfer/shares/${multiShareId}/download?file=${multiFileId}&grant=${grantToken}`, {
+        headers: { Range: `bytes=${start}-${end}` },
+      });
+    assert.equal(ranged.response.status, 206);
+    const expected = new Uint8Array(end - start + 1);
+    expected.set(partOneBytes.subarray(start, firstPart), 0);
+    expected.set(partTwoBytes.subarray(0, end - firstPart + 1), 100);
+    assert.deepEqual(ranged.payload, expected);
+
+    const full = await request(db, storage,
+      `/api/transfer/shares/${multiShareId}/download?file=${multiFileId}&grant=${grantToken}`);
+    assert.equal(full.response.status, 200);
+    assert.equal(full.payload.length, fileSize);
+    assert.deepEqual(full.payload.subarray(0, 256), partOneBytes.subarray(0, 256));
+    assert.deepEqual(
+      full.payload.subarray(fileSize - 256),
+      partTwoBytes.subarray(partTwoBytes.length - 256),
+    );
+    const multiRevoked = await request(db, storage, `/api/transfer/shares/${multiShareId}/revoke`, {
+      method: "POST", token: USERS.other.token, body: {},
+    });
+    assert.equal(multiRevoked.response.status, 200);
+  }
 
   console.log("Task 22 file transfer checks passed (tiered quota, guest isolation, multipart resume, idempotent complete/abort, password, downloads, one-time, range, policy types, legacy compatibility).");
 } finally {
