@@ -6,6 +6,7 @@
     { "id": "register", "path": "/register", "access": "public" },
     { "id": "trial", "path": "/trial", "access": "public-limited" },
     { "id": "changelog", "path": "/changelog", "access": "public" },
+    { "id": "download", "path": "/download", "access": "public" },
     { "id": "dashboard", "path": "/select", "access": "authenticated" },
     { "id": "language-picker", "path": "/language", "access": "authenticated" },
     { "id": "english-learning", "path": "/language/english", "access": "authenticated" },

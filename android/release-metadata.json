@@ -1,0 +1,12 @@
+{
+  "applicationId": "uk.thewyj.app",
+  "versionName": "1.1.0",
+  "versionCode": 2,
+  "minimumVersionCode": 1,
+  "releaseDate": "2026-09-10",
+  "releaseBuild": "2026-09-10-task23-android-release",
+  "apkFileName": "thewyj-android-1.1.0.apk",
+  "apkKey": "app/android/thewyj-android-1.1.0.apk",
+  "apkSha256": "d110da8cafc3d79a500d2fb29a9993ac14e940b6773128b1dc41c69dd0871342",
+  "apkSizeBytes": 1679711
+}

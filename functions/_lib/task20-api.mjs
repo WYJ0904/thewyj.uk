@@ -25,6 +25,7 @@ import {
 
 const ROUTES = new Map([
   ["GET /api/app/config", { auth: "public", limit: 120, window: 60, schema: false }],
+  ["GET /api/app/download", { auth: "public", limit: 60, window: 60, schema: false }],
   ["POST /api/app/login", { auth: "public", body: 8 * 1024, limit: 12, window: 300 }],
   ["POST /api/app/session/refresh", { auth: "public", body: 8 * 1024, limit: 60, window: 60 }],
   ["POST /api/app/session/logout", { auth: "optional", body: 4 * 1024, limit: 30, window: 60 }],
@@ -102,6 +103,40 @@ function safeAndroidDownloadUrl(value) {
   }
 }
 
+function androidReleaseKey(context) {
+  const configured = String(context.env.ANDROID_APK_KEY || "").trim().slice(0, 200);
+  return configured || "app/android/thewyj-android-release.apk";
+}
+
+/**
+ * Stable official APK download. The bytes live in R2 and are streamed straight
+ * to the client, so the URL never changes when the site is redeployed and the
+ * download is byte-identical to the published release metadata.
+ */
+async function serveAndroidRelease(context) {
+  const storage = context.env.WYJ_STORAGE;
+  if (!storage?.get) {
+    return apiError("app_download_unavailable", "安装包暂时不可用，请稍后重试", 503, requestId(context), { retryable: true });
+  }
+  const key = androidReleaseKey(context);
+  const object = await storage.get(key).catch(() => null);
+  if (!object?.body) {
+    return apiError("app_download_unavailable", "安装包暂时不可用，请稍后重试", 503, requestId(context), { retryable: true });
+  }
+  const fileName = String(context.env.ANDROID_APK_FILE_NAME || "thewyj-android.apk").slice(0, 120);
+  const sha256 = String(context.env.ANDROID_APK_SHA256 || "").slice(0, 64).toLowerCase();
+  const headers = new Headers({
+    "Content-Type": "application/vnd.android.package-archive",
+    "Content-Disposition": `attachment; filename="${fileName.replace(/[^A-Za-z0-9._-]/g, "")}"`,
+    "Cache-Control": "public, max-age=300",
+    "X-Content-Type-Options": "nosniff",
+  });
+  if (Number(object.size) > 0) headers.set("Content-Length", String(object.size));
+  if (sha256) headers.set("X-Apk-Sha256", sha256);
+  if (object.httpEtag) headers.set("ETag", String(object.httpEtag));
+  return new Response(object.body, { status: 200, headers });
+}
+
 async function executeRoute(context, descriptor, account) {
   const path = new URL(context.request.url).pathname;
   const method = context.request.method.toUpperCase();
@@ -115,9 +150,20 @@ async function executeRoute(context, descriptor, account) {
         latest_version_code: Math.max(1, Number.parseInt(String(context.env.ANDROID_LATEST_VERSION_CODE || "1"), 10) || 1),
         latest_version_name: String(context.env.ANDROID_LATEST_VERSION_NAME || "1.0.0").slice(0, 40),
         minimum_version_code: Math.max(1, Number.parseInt(String(context.env.ANDROID_MINIMUM_VERSION_CODE || "1"), 10) || 1),
-        download_url: safeAndroidDownloadUrl(context.env.ANDROID_DOWNLOAD_URL),
+        // The APK is served from a stable route that streams the release object
+        // out of R2, so the link survives every Production deployment.
+        download_url: safeAndroidDownloadUrl(context.env.ANDROID_DOWNLOAD_URL)
+          || new URL("/api/app/download", context.request.url).toString(),
+        release_date: String(context.env.ANDROID_RELEASE_DATE || "").slice(0, 20),
+        apk_file_name: String(context.env.ANDROID_APK_FILE_NAME || "thewyj-android.apk").slice(0, 120),
+        apk_sha256: String(context.env.ANDROID_APK_SHA256 || "").slice(0, 64).toLowerCase(),
+        apk_size_bytes: Math.max(0, Number.parseInt(String(context.env.ANDROID_APK_SIZE_BYTES || "0"), 10) || 0),
+        release_notes_build: String(context.env.ANDROID_RELEASE_BUILD || "").slice(0, 80),
       },
     }, 200, context);
+  }
+  if (method === "GET" && path === "/api/app/download") {
+    return await serveAndroidRelease(context);
   }
   if (method === "GET" && path === "/api/app/session") {
     const token = task20TokenFromRequest(context.request);
@@ -181,7 +227,11 @@ export async function handleTask20Request(context) {
     return apiError("task20_android_app_disabled", "Android App 云端会话尚未启用", 503, requestId(context), { retryable: true });
   }
   try {
-    if (url.pathname !== "/api/app/config") requireTask20AndroidClient(context.request);
+    // Config and the official APK download are public distribution endpoints:
+    // browsers must be able to read the release metadata and install the app.
+    if (!["/api/app/config", "/api/app/download"].includes(url.pathname)) {
+      requireTask20AndroidClient(context.request);
+    }
     if (descriptor.schema !== false && !await ensureTask20Schema(context.env.WYJ_DB)) {
       throw new Task12Error("Android 设备会话数据结构尚未就绪", 503, "task20_schema_not_ready", true);
     }

@@ -61,6 +61,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uk.thewyj.app.BuildConfig
+import uk.thewyj.app.core.network.AppUpdatePolicy
 import uk.thewyj.app.R
 import uk.thewyj.app.core.auth.AccountSnapshot
 import uk.thewyj.app.core.auth.AuthInputPolicy
@@ -419,7 +420,13 @@ private fun MyScreen(
                     Spacer(Modifier.height(ThewyjSpacing.Md))
                     Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
                         OutlinedButton(onClick = onCheckUpdate, shape = ThewyjRadius.Medium) { Text("检查更新") }
-                        if (update != null && update.latestVersionCode > BuildConfig.VERSION_CODE && update.downloadUrl.isNotBlank()) {
+                        if (update != null && AppUpdatePolicy.decide(
+                                BuildConfig.VERSION_CODE,
+                                update.latestVersionCode,
+                                update.minimumVersionCode,
+                                update.downloadUrl,
+                            ) != AppUpdatePolicy.Decision.UP_TO_DATE
+                        ) {
                             ThewyjPrimaryButton(
                                 text = { Text("打开下载页") },
                                 onClick = {
