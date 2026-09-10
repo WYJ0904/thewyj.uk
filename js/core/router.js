@@ -27,28 +27,50 @@ export function nativeAppRoute(value, origin) {
   return known ? url.pathname + url.search + url.hash : null;
 }
 
-// One document and one route renderer. Rapid native taps coalesce to the latest
-// destination while an existing permission/data request finishes.
+// One document and one route renderer. Rapid native taps coalesce to the
+// latest destination: the URL and the route surface are applied immediately,
+// while data hydration for every visited tab continues in the background and
+// the router generation guard drops any older render that finishes late.
 export function createNativeNavigation({ origin, pushRoute, renderRoute, beforeNavigate = () => {}, onError = () => {} }) {
   let pending = null;
-  let running = null;
+  let running = false;
+  let current = Promise.resolve(true);
+
+  function drain() {
+    try {
+      while (pending !== null) {
+        const target = pending;
+        pending = null;
+        beforeNavigate();
+        // The URL and the route surface switch synchronously here; data
+        // hydration continues in the background so the next tap is never
+        // blocked by a slow page.
+        pushRoute(target);
+        Promise.resolve()
+          .then(() => renderRoute())
+          .catch((error) => onError(error));
+      }
+      return true;
+    } finally {
+      running = false;
+      // A tap that arrived while the last iteration was finishing must not be
+      // dropped: re-check the queue once more before going idle.
+      if (pending !== null) {
+        running = true;
+        current = Promise.resolve().then(drain);
+      }
+    }
+  }
+
   function navigate(value) {
     const route = nativeAppRoute(value, origin);
     if (!route) return Promise.resolve(false);
     pending = route;
     if (!running) {
-      running = Promise.resolve().then(async () => {
-        while (pending !== null) {
-          const target = pending;
-          pending = null;
-          beforeNavigate();
-          pushRoute(target);
-          try { await renderRoute(); } catch (error) { onError(error); }
-        }
-        return true;
-      }).finally(() => { running = null; });
+      running = true;
+      current = Promise.resolve().then(drain);
     }
-    return running;
+    return current;
   }
   return Object.freeze({ navigate });
 }

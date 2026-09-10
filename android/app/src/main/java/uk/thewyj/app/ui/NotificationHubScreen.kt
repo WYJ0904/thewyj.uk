@@ -4,18 +4,25 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -23,6 +30,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,14 +38,19 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import kotlinx.coroutines.launch
 import uk.thewyj.app.core.auth.AccountSnapshot
+import uk.thewyj.app.core.permission.PermissionCenter
 import uk.thewyj.app.task21.store.NotificationHistoryItem
 import uk.thewyj.app.task21.store.NotificationRuleEntity
 import java.text.SimpleDateFormat
@@ -53,6 +66,7 @@ import java.util.UUID
 @Composable
 fun NotificationHubScreen(
     account: AccountSnapshot,
+    onOpenPermissions: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val entitled = account.entitlements.contains("notification_archive_access") ||
@@ -66,6 +80,12 @@ fun NotificationHubScreen(
     val state = remember(account.id) { NotificationHubState(context, account.id) }
     val scope = rememberCoroutineScope()
     var tab by remember { mutableIntStateOf(0) }
+    var notificationAccess by remember { mutableStateOf(PermissionCenter.notificationListenerGranted(context)) }
+
+    LifecycleResumeEffect(Unit) {
+        notificationAccess = PermissionCenter.notificationListenerGranted(context)
+        onPauseOrDispose { }
+    }
 
     LaunchedEffect(account.id) {
         state.refresh()
@@ -86,6 +106,23 @@ fun NotificationHubScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
+        if (!notificationAccess) {
+            Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("通知访问未开启", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "系统通知栏里的通知不会被保存，也无法用于支付金额识别。请在系统设置中允许 thewyj 的通知访问。",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = onOpenPermissions) { Text("去开启") }
+                        TextButton(onClick = { notificationAccess = PermissionCenter.notificationListenerGranted(context) }) {
+                            Text("重新检查")
+                        }
+                    }
+                }
+            }
+        }
         TabRow(selectedTabIndex = tab) {
             listOf("历史", "应用", "规则与保留").forEachIndexed { index, label ->
                 Tab(
@@ -118,9 +155,19 @@ private fun NotificationEntitlementGate(modifier: Modifier) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun NotificationHistorySection(state: NotificationHubState) {
     val scope = rememberCoroutineScope()
+    val appLabels = remember { mutableStateMapOf<String, String>() }
+    val filterPackages = remember(state.items.toList()) {
+        state.items.map { it.sourcePackage }.distinct().take(8)
+    }
+    LaunchedEffect(filterPackages) {
+        filterPackages.forEach { packageName ->
+            if (!appLabels.containsKey(packageName)) appLabels[packageName] = state.appLabel(packageName)
+        }
+    }
     Column(Modifier.fillMaxSize()) {
         OutlinedTextField(
             value = state.search,
@@ -129,10 +176,9 @@ private fun NotificationHistorySection(state: NotificationHubState) {
             singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         )
-        Row(
+        FlowRow(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("包含已移除", style = MaterialTheme.typography.bodySmall)
             Switch(
@@ -142,27 +188,52 @@ private fun NotificationHistorySection(state: NotificationHubState) {
                     scope.launch { state.refresh() }
                 },
             )
-            Spacer(Modifier.fillMaxWidth(0.1f))
             if (state.selected.isEmpty()) {
                 OutlinedButton(onClick = { state.selectAll() }) { Text("全选") }
             } else {
                 OutlinedButton(onClick = { state.clearSelection() }) { Text("取消选择") }
             }
-        }
-        if (state.selected.isNotEmpty()) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+            if (state.selected.isNotEmpty()) {
                 Button(onClick = { scope.launch { state.deleteSelected() } }) {
                     Text("删除所选 (${state.selected.size})")
                 }
-                Spacer(Modifier.fillMaxWidth(0.05f))
                 OutlinedButton(onClick = { scope.launch { state.clearAll() } }) { Text("清空全部") }
             }
         }
+
+        // 按 App 筛选是列表级操作：一条通知卡片上只保留选择与删除。
+        FlowRow(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FilterChip(
+                selected = state.appFilter.isBlank(),
+                onClick = { scope.launch { state.setAppFilter("") } },
+                label = { Text("全部应用", maxLines = 1, softWrap = false) },
+            )
+            filterPackages.forEach { packageName ->
+                FilterChip(
+                    selected = state.appFilter == packageName,
+                    onClick = {
+                        scope.launch { state.setAppFilter(if (state.appFilter == packageName) "" else packageName) }
+                    },
+                    label = {
+                        Text(appLabels[packageName] ?: packageName, maxLines = 1, softWrap = false)
+                    },
+                )
+            }
+        }
         if (state.appFilter.isNotBlank()) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("仅看：${state.appFilter}", style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.fillMaxWidth(0.05f))
-                OutlinedButton(onClick = { scope.launch { state.setAppFilter("") } }) { Text("清除筛选") }
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "仅看：${appLabels[state.appFilter] ?: state.appFilter}",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = { scope.launch { state.setAppFilter("") } }) { Text("清除筛选") }
             }
         }
         when {
@@ -176,7 +247,6 @@ private fun NotificationHistorySection(state: NotificationHubState) {
                     NotificationHistoryCard(
                         state = state,
                         item = item,
-                        onOpenApp = { packageName -> scope.launch { state.setAppFilter(packageName) } },
                         onDelete = { scope.launch { state.deleteOne(item.instanceId) } },
                     )
                 }
@@ -189,7 +259,6 @@ private fun NotificationHistorySection(state: NotificationHubState) {
 private fun NotificationHistoryCard(
     state: NotificationHubState,
     item: NotificationHistoryItem,
-    onOpenApp: (String) -> Unit,
     onDelete: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -201,11 +270,16 @@ private fun NotificationHistoryCard(
                 checked = state.selected.contains(item.instanceId),
                 onCheckedChange = { scope.launch { state.toggleSelection(item.instanceId) } },
             )
-            Column(Modifier.fillMaxWidth(0.75f)) {
+            Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(label ?: item.sourcePackage, style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        label ?: item.sourcePackage,
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
                     if (item.status == "removed") {
-                        Spacer(Modifier.fillMaxWidth(0.03f))
+                        Spacer(Modifier.width(6.dp))
                         Text("已移除", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                     }
                 }
@@ -226,10 +300,12 @@ private fun NotificationHistoryCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Column(horizontalAlignment = Alignment.End) {
-                OutlinedButton(onClick = { onOpenApp(item.sourcePackage) }) { Text("筛选") }
-                Spacer(Modifier.height(4.dp))
-                OutlinedButton(onClick = onDelete) { Text("删除") }
+            IconButton(onClick = onDelete, modifier = Modifier.size(40.dp)) {
+                Icon(
+                    androidx.compose.material.icons.Icons.Default.Delete,
+                    contentDescription = "删除这条通知",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -241,7 +317,7 @@ private fun formatTime(value: Long): String =
 @Composable
 private fun NotificationAppsSection(state: NotificationHubState, scope: kotlinx.coroutines.CoroutineScope) {
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = { scope.launch { state.setAllAppPolicies(true) } }) { Text("全选") }
             OutlinedButton(onClick = { scope.launch { state.setAllAppPolicies(false) } }) { Text("全不选") }
             OutlinedButton(onClick = { scope.launch { state.refreshApps() } }) { Text("刷新") }
@@ -258,7 +334,7 @@ private fun NotificationAppsSection(state: NotificationHubState, scope: kotlinx.
                     Modifier.fillMaxWidth().padding(vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(Modifier.fillMaxWidth(0.75f)) {
+                    Column(Modifier.weight(1f)) {
                         Text(entry.label, style = MaterialTheme.typography.bodyLarge)
                         if (!entry.installed) {
                             Text("已卸载", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
@@ -274,7 +350,7 @@ private fun NotificationAppsSection(state: NotificationHubState, scope: kotlinx.
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun NotificationRulesSection(state: NotificationHubState, scope: kotlinx.coroutines.CoroutineScope) {
     var includeKeywords by remember { mutableStateOf("") }
@@ -284,12 +360,17 @@ private fun NotificationRulesSection(state: NotificationHubState, scope: kotlinx
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text("保留期限", style = MaterialTheme.typography.titleMedium)
-        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(
+            Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             retentionOptions.forEach { (days, label) ->
                 if (state.settingsRetentionDays == days) {
-                    Button(onClick = {}) { Text(label) }
+                    Button(onClick = {}) { Text(label, maxLines = 1, softWrap = false) }
                 } else {
-                    OutlinedButton(onClick = { scope.launch { state.updateRetention(days) } }) { Text(label) }
+                    OutlinedButton(onClick = { scope.launch { state.updateRetention(days) } }) {
+                        Text(label, maxLines = 1, softWrap = false)
+                    }
                 }
             }
         }
@@ -342,7 +423,7 @@ private fun NotificationRulesSection(state: NotificationHubState, scope: kotlinx
         LazyColumn {
             items(state.rules, key = { it.ruleId }) { rule ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.fillMaxWidth(0.75f)) {
+                    Column(Modifier.weight(1f)) {
                         Text(rule.name, style = MaterialTheme.typography.bodyLarge)
                         Text(
                             "包含：${rule.includeKeywords.ifBlank { "—" }} · 排除：${rule.excludeKeywords.ifBlank { "—" }}",

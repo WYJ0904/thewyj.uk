@@ -80,9 +80,29 @@ native.navigate("/tools");
 const lastNavigation = native.navigate("/finance");
 releaseRoute();
 await Promise.all([firstNavigation, lastNavigation]);
-assert.deepEqual(nativeRendered, ["/language", "/finance"], "rapid tabs keep the final route without concurrent rendering");
+// Rapids taps may coalesce intermediate destinations, but the last tap must
+// always be applied and a slow first page must never hold it back.
+assert.deepEqual(nativeVisited, ["/language", "/finance"], "rapid taps coalesce to the final route");
+assert.deepEqual(nativeRendered, ["/language", "/finance"], "hydration follows the applied routes without blocking");
+assert.equal(nativeVisited.at(-1), "/finance", "the last tap is always the route that wins");
 assert.equal(await native.navigate("/api/me"), false);
 assert.equal(nativeVisited.length, 2, "native routing cannot call an auth/API endpoint");
+
+let renderFinished = false;
+let releasePendingRender;
+const pendingRender = new Promise(resolve => { releasePendingRender = resolve; });
+const immediateVisited = [];
+const immediate = createNativeNavigation({
+  origin: "https://thewyj.uk",
+  pushRoute: path => immediateVisited.push(path),
+  renderRoute: async () => { await pendingRender; renderFinished = true; },
+});
+await immediate.navigate("/finance");
+assert.deepEqual(immediateVisited, ["/finance"], "the tap applies its route without waiting for data");
+assert.equal(renderFinished, false, "navigate() must not wait for the page data to load");
+releasePendingRender();
+await new Promise(resolve => setTimeout(resolve, 0));
+assert.equal(renderFinished, true, "background hydration still completes after the tap");
 
 assert.equal(restoreAccountSession(), "legacy-session");
 assert.equal(localStorage.getItem(ACCOUNT_SESSION_KEY), "legacy-session");

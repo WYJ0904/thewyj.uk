@@ -140,6 +140,18 @@ export const TOOLS = Object.entries(toolRows).flatMap(([category, rows]) => rows
 export const TOOL_MAP = new Map(TOOLS.map((tool) => [tool.id, tool]));
 export const CATEGORY_MAP = new Map(CATEGORY_DEFINITIONS.map((category) => [category.id, category]));
 
+/**
+ * Retired entries stay resolvable so existing links, favorites and saved
+ * configurations keep working, but they are no longer offered in the toolbox
+ * catalog. `temporary-file` is superseded by the Task 22 file transfer page
+ * (/transfer), which provides the same sharing lifecycle with resumable
+ * multipart uploads, Range downloads and quota accounting.
+ */
+export const RETIRED_TOOL_IDS = Object.freeze(["temporary-file"]);
+const RETIRED_TOOL_SET = new Set(RETIRED_TOOL_IDS);
+export const CATALOG_TOOLS = Object.freeze(TOOLS.filter((tool) => !RETIRED_TOOL_SET.has(tool.id)));
+export const CATALOG_TOOL_MAP = new Map(CATALOG_TOOLS.map((tool) => [tool.id, tool]));
+
 export function normalizeSearch(value) {
   return String(value || "")
     .normalize("NFKC")
@@ -243,8 +255,9 @@ export function fuzzyToolScore(tool, query) {
   return total;
 }
 
-export function searchTools(query = "", category = "all") {
-  const candidates = TOOLS.filter((tool) => category === "all" || tool.category === category);
+export function searchTools(query = "", category = "all", options = {}) {
+  const source = options.includeRetired ? TOOLS : CATALOG_TOOLS;
+  const candidates = source.filter((tool) => category === "all" || tool.category === category);
   if (!normalizeSearch(query)) return candidates;
   return candidates
     .map((tool) => ({ tool, score: fuzzyToolScore(tool, query) }))

@@ -1,4 +1,4 @@
-import { joinBytes } from "./file.js?v=20260910-task23-android-release-r1";
+import { joinBytes } from "./file.js?v=20260911-permissions-nav-dictation-r1";
 
 function colorRgb(hex) {
   const normalized = String(hex || "").trim().replace(/^#/, "");

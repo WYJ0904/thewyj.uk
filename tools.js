@@ -1,14 +1,16 @@
 import {
+  CATALOG_TOOLS,
+  CATALOG_TOOL_MAP,
   CATEGORY_DEFINITIONS,
   CATEGORY_MAP,
   TOOL_MAP,
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20260910-task23-android-release-r1";
-import { randomToolResult } from "./js/tools/random.js?v=20260910-task23-android-release-r1";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260910-task23-android-release-r1";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260910-task23-android-release-r1";
+} from "./js/tools/catalog.js?v=20260911-permissions-nav-dictation-r1";
+import { randomToolResult } from "./js/tools/random.js?v=20260911-permissions-nav-dictation-r1";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260911-permissions-nav-dictation-r1";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260911-permissions-nav-dictation-r1";
 import {
   csvString,
   decodeLocalText,
@@ -17,15 +19,15 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20260910-task23-android-release-r1";
+} from "./js/tools/file.js?v=20260911-permissions-nav-dictation-r1";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20260910-task23-android-release-r1";
-import { runToolRenderer } from "./js/tools/runner.js?v=20260910-task23-android-release-r1";
+} from "./js/tools/image.js?v=20260911-permissions-nav-dictation-r1";
+import { runToolRenderer } from "./js/tools/runner.js?v=20260911-permissions-nav-dictation-r1";
 (() => {
   "use strict";
 
@@ -175,7 +177,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260910-task23-android-
     const target = byId("toolCategoryList");
     if (!target) return;
     target.innerHTML = CATEGORY_DEFINITIONS.map((category) => {
-      const count = TOOLS.filter((tool) => tool.category === category.id).length;
+      const count = CATALOG_TOOLS.filter((tool) => tool.category === category.id).length;
       return `<button class="tool-category-card${currentCategory === category.id ? " active" : ""}" type="button" data-tool-category="${category.id}">
         <span class="tool-category-mark" aria-hidden="true">${iconSvg(category.id)}</span>
         <span><strong>${category.name}</strong><small>${category.description}</small><em>${count} 个工具</em></span>
@@ -218,8 +220,14 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260910-task23-android-
   }
 
   function renderShelves() {
-    const favoriteTools = preferences.favorites.map((item) => TOOL_MAP.get(item.tool_id)).filter(Boolean);
-    const recentTools = preferences.recent.map((item) => TOOL_MAP.get(item.tool_id)).filter(Boolean);
+    // Retired tools keep resolving through TOOL_MAP for saved links, but the
+    // shelves only advertise tools that are still offered in the catalog.
+    const favoriteTools = preferences.favorites
+      .map((item) => TOOL_MAP.get(item.tool_id))
+      .filter((tool) => tool && CATALOG_TOOL_MAP.has(tool.id));
+    const recentTools = preferences.recent
+      .map((item) => TOOL_MAP.get(item.tool_id))
+      .filter((tool) => tool && CATALOG_TOOL_MAP.has(tool.id));
     const favoriteSection = byId("favoriteToolsSection");
     const recentSection = byId("recentToolsSection");
     favoriteSection?.classList.toggle("hidden", !favoriteTools.length);
@@ -557,7 +565,18 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260910-task23-android-
     window.WYJWorkflows?.init?.(context);
   }
 
-  window.WYJTools = { init, show, hide, openTool, closeWorkbench, searchTools, getSummary, tools: TOOLS, test: { buildWifiPayload, buildVcardPayload } };
+  window.WYJTools = {
+    init,
+    show,
+    hide,
+    openTool,
+    closeWorkbench,
+    searchTools,
+    getSummary,
+    tools: TOOLS,
+    catalogTools: CATALOG_TOOLS,
+    test: { buildWifiPayload, buildVcardPayload },
+  };
 
   function pdfBytesFromJpegs(images) {
     const encoder = new TextEncoder();

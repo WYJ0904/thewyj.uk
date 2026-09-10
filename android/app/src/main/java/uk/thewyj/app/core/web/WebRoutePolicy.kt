@@ -6,6 +6,8 @@ sealed interface NavigationDecision {
     data object Internal : NavigationDecision
     data object RefreshSession : NavigationDecision
     data object Logout : NavigationDecision
+    /** Native dictation playback requested by the trusted web app. */
+    data object Speech : NavigationDecision
     data object External : NavigationDecision
     data object Blocked : NavigationDecision
 }
@@ -21,10 +23,16 @@ class WebRoutePolicy(baseUrl: String) {
     fun decide(rawUrl: String): NavigationDecision {
         val uri = runCatching { URI(rawUrl) }.getOrNull() ?: return NavigationDecision.Blocked
         if (uri.scheme.equals("thewyj", ignoreCase = true)) {
-            if (!uri.host.equals("session", ignoreCase = true)) return NavigationDecision.Blocked
-            return when (uri.path) {
-                "/refresh" -> NavigationDecision.RefreshSession
-                "/logout" -> NavigationDecision.Logout
+            return when (uri.host?.lowercase()) {
+                "session" -> when (uri.path) {
+                    "/refresh" -> NavigationDecision.RefreshSession
+                    "/logout" -> NavigationDecision.Logout
+                    else -> NavigationDecision.Blocked
+                }
+                "speech" -> when (uri.path) {
+                    "/speak", "/stop" -> NavigationDecision.Speech
+                    else -> NavigationDecision.Blocked
+                }
                 else -> NavigationDecision.Blocked
             }
         }

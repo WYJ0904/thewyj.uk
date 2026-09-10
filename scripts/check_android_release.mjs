@@ -41,6 +41,10 @@ for (const [label, vars] of [
   require(String(vars.ANDROID_APK_FILE_NAME) === metadata.apkFileName, `${label} apk file name mismatch`);
   require(String(vars.ANDROID_APK_KEY) === metadata.apkKey, `${label} apk object key mismatch`);
   require(String(vars.ANDROID_RELEASE_BUILD) === metadata.releaseBuild, `${label} release build mismatch`);
+  require(
+    String(vars.ANDROID_RELEASE_NOTES || "") === String(metadata.releaseNotes || ""),
+    `${label} release notes mismatch`,
+  );
   const sha = String(vars.ANDROID_APK_SHA256 || "");
   require(/^[0-9a-f]{64}$/.test(sha), `${label} ANDROID_APK_SHA256 must be a published sha256 (got "${sha}")`);
   if (metadata.apkSha256) require(sha === metadata.apkSha256, `${label} sha256 differs from release metadata`);

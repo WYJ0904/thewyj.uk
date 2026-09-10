@@ -9,20 +9,20 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260910-task23-android-release-r1";
+} from "./js/core/config.js?v=20260911-permissions-nav-dictation-r1";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20260910-task23-android-release-r1";
+} from "./js/core/api.js?v=20260911-permissions-nav-dictation-r1";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260910-task23-android-release-r1";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20260910-task23-android-release-r1";
+} from "./js/core/changelog.js?v=20260911-permissions-nav-dictation-r1";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20260911-permissions-nav-dictation-r1";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -33,22 +33,23 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20260910-task23-android-release-r1";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260910-task23-android-release-r1";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260910-task23-android-release-r1";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260910-task23-android-release-r1";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20260910-task23-android-release-r1";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260910-task23-android-release-r1";
-import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20260910-task23-android-release-r1";
-import { createTransferController } from "./js/transfer/app.js?v=20260910-task23-android-release-r1";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260910-task23-android-release-r1";
+} from "./js/core/session.js?v=20260911-permissions-nav-dictation-r1";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260911-permissions-nav-dictation-r1";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260911-permissions-nav-dictation-r1";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260911-permissions-nav-dictation-r1";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20260911-permissions-nav-dictation-r1";
+import { speakText, stopSpeech } from "./js/language/speech.js?v=20260911-permissions-nav-dictation-r1";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260911-permissions-nav-dictation-r1";
+import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20260911-permissions-nav-dictation-r1";
+import { createTransferController } from "./js/transfer/app.js?v=20260911-permissions-nav-dictation-r1";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260911-permissions-nav-dictation-r1";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260910-task23-android-release-r1";
+} from "./js/language/history.js?v=20260911-permissions-nav-dictation-r1";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -83,16 +84,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260910-task23-android-release-r1";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260910-task23-android-release-r1";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20260910-task23-android-release-r1";
+} from "./js/language/quiz.js?v=20260911-permissions-nav-dictation-r1";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260911-permissions-nav-dictation-r1";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260911-permissions-nav-dictation-r1";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260910-task23-android-release-r1";
+} from "./js/language/wrong-book.js?v=20260911-permissions-nav-dictation-r1";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -101,7 +102,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260910-task23-android-release-r1";
+} from "./js/membership/account.js?v=20260911-permissions-nav-dictation-r1";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -109,19 +110,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260910-task23-android-release-r1";
+} from "./js/membership/plans.js?v=20260911-permissions-nav-dictation-r1";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260910-task23-android-release-r1";
+} from "./js/membership/recharge.js?v=20260911-permissions-nav-dictation-r1";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260910-task23-android-release-r1";
+} from "./js/admin/formatters.js?v=20260911-permissions-nav-dictation-r1";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -243,6 +244,7 @@ let financeController = null;
 let financeCandidatesController = null;
 let transferController = null;
 let routeRender = Promise.resolve();
+let routeGeneration = 0;
 let adminUsers = [];
 let adminMessageTargetUsers = [];
 let adminRoleCandidateUsers = [];
@@ -3781,7 +3783,7 @@ function stopProjectActivity() {
   }
   if (judgeController) judgeController.abort();
   clearNextTimer();
-  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  stopSpeech(window, { native: isThewyjAndroidApp() });
 }
 
 function showModulePicker(pushHistory = true, message = "") {
@@ -3835,6 +3837,14 @@ function showMainShell() {
 
 function applyPendingScreen() {
   if (!currentProject) return;
+  // Background session refreshes, network recovery and return-to-foreground
+  // events all land here. They may only restore the shell while the user is
+  // actually on a shell route: a late refresh must never replace the toolbox,
+  // finance, transfer, admin or share page with a previously opened test.
+  const path = currentRoutePath();
+  const shellRoute = ["/", "/select", "/login", "/register", "/language"].includes(path)
+    || path.startsWith("/language/");
+  if (!shellRoute) return;
   if (pendingScreen === "workspace") showWorkspace();
   else showAuth(pendingAuthMessage);
 }
@@ -3911,43 +3921,67 @@ function showWorkspace() {
   restoreProjectRuntime();
 }
 
-async function showTools(path = "/tools", pushHistory = true) {
+async function showTools(path = "/tools", pushHistory = true, generation = routeGeneration) {
   if (!state.session || !state.account) {
     showAuth("请先登录后使用在线工具箱", { replace: true });
     return;
   }
-  try {
-    let access = null;
-    let offline = false;
+  const cachedAccess = isSuperAdmin() || hasAccountEntitlement("tools_access");
+  let access = null;
+  let offline = false;
+  if (!cachedAccess) {
+    // Locked accounts resolve access first, so a non-member sees the upgrade
+    // prompt instead of a flash of a toolbox they cannot use.
     try {
       access = await apiGet("/api/tools/access");
     } catch (error) {
-      const cachedAccess = isSuperAdmin() || hasAccountEntitlement("tools_access");
-      if (error.code === "membership_required" || !cachedAccess) throw error;
-      offline = true;
+      await handleToolsAccessFailure(error, generation);
+      return;
     }
-    stopProjectActivity();
-    currentProject = "";
-    state.quizLanguage = "";
-    hidePrimaryScreens();
-    if (pushHistory) pushRoute(path);
+    if (!isRouteGenerationCurrent(generation)) return;
+  }
+  // Entitled members switch the surface immediately: the verification request
+  // can take seconds on a slow network and must never keep the previous page
+  // on screen after the tab was tapped.
+  stopProjectActivity();
+  currentProject = "";
+  state.quizLanguage = "";
+  hidePrimaryScreens();
+  $("toolsPanel")?.classList.remove("hidden");
+  $("toolsPanel")?.setAttribute("aria-hidden", "false");
+  if (pushHistory) pushRoute(path);
+  document.body.classList.remove("project-picker-active");
+  renderAccountUi();
+  try {
+    if (!access) {
+      try {
+        access = await apiGet("/api/tools/access");
+      } catch (error) {
+        if (error.code === "membership_required" || !cachedAccess) throw error;
+        offline = true;
+      }
+    }
+    if (!isRouteGenerationCurrent(generation)) return;
     await window.WYJTools.show(path, { access, offline });
-    document.body.classList.remove("project-picker-active");
-    renderAccountUi();
   } catch (error) {
-    const accessMessage = error.code === "membership_required"
-      ? ""
-      : `在线工具箱暂时无法打开：${error.message || "请稍后重试"}`;
-    showModulePicker(false, accessMessage);
-    pushRoute("/select", true);
-    if (error.code === "membership_required") {
-      $("rechargeMessage").textContent = "当前会员不包含在线工具箱，请选择工具箱或全功能会员。";
-      await openMembershipModal({ goal: "tools" });
-    }
+    await handleToolsAccessFailure(error, generation);
   }
 }
 
-async function showFinance(pushHistory = true) {
+async function handleToolsAccessFailure(error, generation) {
+  if (!isRouteGenerationCurrent(generation)) return;
+  const accessMessage = error.code === "membership_required"
+    ? ""
+    : `在线工具箱暂时无法打开：${error.message || "请稍后重试"}`;
+  showModulePicker(false, accessMessage);
+  pushRoute("/select", true);
+  if (error.code === "membership_required") {
+    $("rechargeMessage").textContent = "当前会员不包含在线工具箱，请选择工具箱或全功能会员。";
+    await openMembershipModal({ goal: "tools" });
+  }
+}
+
+async function showFinance(pushHistory = true, generation = routeGeneration) {
   if (!state.session || !state.account) {
     showAuth("请先登录后使用财务账本", { replace: true });
     return;
@@ -3963,9 +3997,11 @@ async function showFinance(pushHistory = true) {
   renderAccountUi();
   try {
     const financeVisible = await financeController?.show?.();
+    if (!isRouteGenerationCurrent(generation)) return;
     if (financeVisible) await financeCandidatesController?.show?.();
     else financeCandidatesController?.hide?.();
   } catch (error) {
+    if (!isRouteGenerationCurrent(generation)) return;
     const message = $("financeMessage");
     if (message) {
       message.textContent = error?.message || "财务账本暂时无法加载，本机数据仍然保留。";
@@ -3974,7 +4010,7 @@ async function showFinance(pushHistory = true) {
   }
 }
 
-async function showTransfer(pushHistory = true) {
+async function showTransfer(pushHistory = true, generation = routeGeneration) {
   stopProjectActivity();
   currentProject = "";
   state.quizLanguage = "";
@@ -3987,6 +4023,7 @@ async function showTransfer(pushHistory = true) {
   try {
     await transferController?.show?.();
   } catch (error) {
+    if (!isRouteGenerationCurrent(generation)) return;
     const message = $("transferMessage");
     if (message) {
       message.textContent = error?.message || "文件传输暂时无法加载。";
@@ -4006,13 +4043,28 @@ function showShareRoute(path) {
   return true;
 }
 
+function currentRoutePath() {
+  return location.pathname.replace(/\/+$/, "") || "/";
+}
+
+function isRouteGenerationCurrent(generation) {
+  return generation === routeGeneration;
+}
+
 function routeCurrent() {
-  routeRender = routeRender.catch(() => {}).then(renderCurrentRoute);
+  // Capture the target path with the render so a stale render can never read a
+  // newer URL, and bump a generation so slow async work from an earlier route
+  // can no longer paint over the route the user actually opened.
+  const path = currentRoutePath();
+  const generation = ++routeGeneration;
+  routeRender = Promise.resolve()
+    .then(() => renderCurrentRoute(path, generation))
+    .catch(() => {});
   return routeRender;
 }
 
-async function renderCurrentRoute() {
-    const path = location.pathname.replace(/\/+$/, "") || "/";
+async function renderCurrentRoute(path, generation = routeGeneration) {
+    if (!isRouteGenerationCurrent(generation)) return;
     if (path.startsWith("/share/")) {
       if (!showShareRoute(path)) pushRoute(state.session && state.account ? "/select" : "/login", true);
       return;
@@ -4074,15 +4126,15 @@ async function renderCurrentRoute() {
       return;
     }
     if (path === "/tools" || path.startsWith("/tools/")) {
-      await showTools(path, false);
+      await showTools(path, false, generation);
       return;
     }
     if (path === "/finance") {
-      await showFinance(false);
+      await showFinance(false, generation);
       return;
     }
     if (path === "/transfer") {
-      await showTransfer(false);
+      await showTransfer(false, generation);
       return;
     }
     if (path === "/admin") {
@@ -4822,12 +4874,14 @@ function speechLang() {
 
 function speakCurrentWord() {
   const word = state.words[state.index];
-  if (!word || !("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) return;
-  const utterance = new SpeechSynthesisUtterance(word);
-  utterance.lang = speechLang();
-  utterance.rate = state.quizLanguage === "japanese" ? 0.82 : 0.9;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
+  if (!word) return;
+  const result = speakText(window, {
+    text: word,
+    lang: speechLang(),
+    rate: state.quizLanguage === "japanese" ? 0.82 : 0.9,
+    native: isThewyjAndroidApp(),
+  });
+  if (!result.ok) showAchievementToast(result.message);
 }
 
 function normalizeDictationAnswer(value) {
@@ -6440,7 +6494,13 @@ function dismissTopOverlay() {
 }
 
 function installNativeNavigation() {
-  if (!isThewyjAndroidApp()) return;
+  // The Android WebView always installs this bridge. `?native-navigation=1`
+  // exposes the exact same same-origin route entry point to the browser
+  // regression matrix; it grants no extra capability (the page can already
+  // push routes) and does not change session handling.
+  const nativeBridgeRequested = isThewyjAndroidApp()
+    || new URLSearchParams(location.search).has("native-navigation");
+  if (!nativeBridgeRequested) return;
   const navigation = createNativeNavigation({
     origin: location.origin,
     pushRoute,
@@ -6778,6 +6838,7 @@ async function boot() {
   $("languageBackBtn").addEventListener("click", () => showModulePicker(true));
   $("backProjectBtn").addEventListener("click", () => showProjectPicker(true));
   $("leaveToolsBtn").addEventListener("click", () => showModulePicker(true));
+  $("toolsTransferBtn")?.addEventListener("click", () => { void showTransfer(true); });
   $("toolsAccountBtn").addEventListener("click", () => { pushRoute("/account"); openModal("accountModal"); });
   $("dashboardMembershipBtn")?.addEventListener("click", () => { pushRoute("/recharge"); openMembershipModal(); });
   $("dashboardFinanceBtn")?.addEventListener("click", () => showFinance(true));

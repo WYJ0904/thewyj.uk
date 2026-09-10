@@ -38,6 +38,13 @@ def tool_catalog_from_source(source: str) -> dict[str, list[str]]:
     return catalog
 
 
+def retired_tools_from_source(source: str) -> list[str]:
+    match = re.search(r"const RETIRED_TOOL_IDS = Object\.freeze\(\[(.*?)\]\)", source, re.S)
+    if not match:
+        fail("js/tools/catalog.js retired tool list could not be located")
+    return re.findall(r'"([a-z0-9-]+)"', match.group(1))
+
+
 def flatten_modes(groups: dict[str, list[str]]) -> set[str]:
     return {
         f"{group}.{value}"
@@ -106,6 +113,35 @@ def main() -> int:
     all_ids = [tool_id for ids in actual_catalog.values() for tool_id in ids]
     if len(all_ids) != 103 or len(set(all_ids)) != 103:
         fail(f"expected 103 unique tools, found {len(all_ids)} entries / {len(set(all_ids))} unique")
+
+    actual_retired = retired_tools_from_source(tool_catalog_source)
+    expected_retired = matrix.get("retired_tools", [])
+    if actual_retired != expected_retired:
+        fail(
+            "retired tool list differs from qa/functional-audit.json\n"
+            f"source={actual_retired}\nmatrix={expected_retired}"
+        )
+    for tool_id in actual_retired:
+        if tool_id not in all_ids:
+            fail(f"retired tool {tool_id} is not part of the source catalog")
+        if f"openTool({json.dumps(tool_id)})" not in tool_test_source:
+            fail(f"retired tool {tool_id} is no longer exercised for compatibility in the browser matrix")
+    # The retired entries must disappear from the visible catalog, and the
+    # replacement file transfer entry must be wired, not just documented.
+    for required in (
+        "export const CATALOG_TOOLS = Object.freeze(TOOLS.filter(",
+        "export const CATALOG_TOOL_MAP = new Map(",
+    ):
+        if required not in tool_catalog_source:
+            fail(f"tool catalog compatibility split is incomplete: missing {required}")
+    if "searchTools(query, currentCategory)" not in tools_source:
+        fail("toolbox search no longer uses the visible catalog")
+    if "CATALOG_TOOLS.filter((tool) => tool.category === category.id)" not in tools_source:
+        fail("toolbox category counts no longer use the visible catalog")
+    if 'id="toolsTransferBtn"' not in html_source:
+        fail("toolbox has no file transfer replacement entry")
+    if "toolsTransferBtn" not in app_source or "showTransfer(true)" not in app_source:
+        fail("toolbox file transfer replacement entry is not wired to /transfer")
 
     actual_flows = re.findall(r'await check\("([^"]+)"', app_test_source)
     expected_flows = matrix.get("browser_flows", [])

@@ -128,12 +128,14 @@ try {
       env: {
         ANDROID_APK_SHA256: "D110DA8CAFC3D79A500D2FB29A9993AC14E940B6773128B1DC41C69DD0871342",
         ANDROID_APK_SIZE_BYTES: "1679711",
-        ANDROID_RELEASE_DATE: "2026-09-10",
+        ANDROID_RELEASE_DATE: "2026-09-11",
+        ANDROID_RELEASE_NOTES: "权限中心与导航修复。",
       },
     });
     assert.equal(withRelease.payload.app.apk_sha256, "d110da8cafc3d79a500d2fb29a9993ac14e940b6773128b1dc41c69dd0871342");
     assert.equal(withRelease.payload.app.apk_size_bytes, 1679711);
-    assert.equal(withRelease.payload.app.release_date, "2026-09-10");
+    assert.equal(withRelease.payload.app.release_date, "2026-09-11");
+    assert.equal(withRelease.payload.app.release_notes, "权限中心与导航修复。");
   });
 
   await test("feature flag keeps Android session endpoints closed by default", async () => {

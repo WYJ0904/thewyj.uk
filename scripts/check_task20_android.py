@@ -60,6 +60,9 @@ def main() -> int:
             # notifications and reads newly received bank SMS.
             "android.permission.POST_NOTIFICATIONS",
             "android.permission.RECEIVE_SMS",
+            # In-app updater: the downloaded APK is handed to the official
+            # Android package installer (never installed silently).
+            "android.permission.REQUEST_INSTALL_PACKAGES",
         },
         f"Task 20 permission surface changed: {sorted(permissions)}",
     )
