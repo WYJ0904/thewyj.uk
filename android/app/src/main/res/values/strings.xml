@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">thewyj</string>
     <string name="notification_listener_label">thewyj 通知保存</string>
+    <string name="thewyj_accessibility_description">在收到疑似支付通知后，您主动打开对应支付或银行 App 时，协助核实该笔交易的金额与方向。仅读取当前交易页面的最少信息，不截图、不记录密码或验证码。</string>
+    <string name="payment_accessibility_label">thewyj 支付金额核实</string>
 </resources>

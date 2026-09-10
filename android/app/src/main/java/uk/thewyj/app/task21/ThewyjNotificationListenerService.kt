@@ -9,6 +9,7 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import uk.thewyj.app.BuildConfig
 import uk.thewyj.app.task21.store.NotificationArchiveSinkFactory
+import uk.thewyj.app.task21.payment.AndroidPaymentRecognitionHook
 import java.util.concurrent.Executors
 
 /**
@@ -31,6 +32,7 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
             transport = HttpNotificationIngestTransport(BuildConfig.THEWYJ_BASE_URL),
             account = provider::currentAccount,
             archiveSink = NotificationArchiveSinkFactory.forContext(this),
+            paymentHook = AndroidPaymentRecognitionHook.get(this),
         )
         // A reconnect replays the currently active notifications; the store
         // treats an unchanged revision as a replay and stores nothing new.

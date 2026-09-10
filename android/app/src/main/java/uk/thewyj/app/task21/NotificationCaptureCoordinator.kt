@@ -20,6 +20,7 @@ class NotificationCaptureCoordinator(
     private val transport: NotificationIngestTransport,
     private val account: () -> CaptureAccount?,
     private val archiveSink: NotificationArchiveSink? = null,
+    private val paymentHook: PaymentRecognitionHook? = null,
 ) {
     data class FlushResult(
         val uploaded: Int,
@@ -144,6 +145,10 @@ class NotificationCaptureCoordinator(
         // events the parser considers transaction-like. Ordinary chat never
         // becomes an ingest payload.
         if (!current.financeEntitled || output == null) return
+        // Payment recognition runs on every finance-entitled capture (memory
+        // only): chat is classified and discarded, payment-like events become
+        // hints/candidates/notifications.
+        paymentHook?.onCapture(current.accountId, input, "")
         if (output.parseStatus == ParseStatus.UNPARSED && output.eventType !in setOf(
                 NotificationEventType.TRANSACTION, NotificationEventType.REFUND,
             )

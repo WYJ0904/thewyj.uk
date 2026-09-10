@@ -62,6 +62,15 @@ interface NotificationArchiveSink {
     fun markRemoved(accountId: String, input: NotificationCaptureInput)
 }
 
+/**
+ * Finance side of the capture pipeline. Implemented by the payment recognition
+ * coordinator so notification/SMS/accessibility all share one pipeline. It is
+ * only called for finance-entitled accounts and receives local-only content.
+ */
+interface PaymentRecognitionHook {
+    fun onCapture(accountId: String, input: NotificationCaptureInput, sourceAppLabel: String)
+}
+
 enum class NotificationEventType { TRANSACTION, REFUND, MARKETING, VERIFICATION, OTHER }
 
 enum class ParseStatus { PARSED, CANDIDATE, UNPARSED }
