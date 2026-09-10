@@ -11,6 +11,7 @@ import uk.thewyj.app.task22.TransferApiClient
 import uk.thewyj.app.task22.TransferItemStatus
 import uk.thewyj.app.task22.TransferQueueStore
 import uk.thewyj.app.task22.TransferUploadWorker
+import java.io.File
 
 /**
  * Runs in a SEPARATE instrumentation invocation after the host force-stops the
@@ -38,8 +39,12 @@ class Task22RestartResumeTest : Task22AcceptanceHarness() {
 
         val api = TransferApiClient(context)
         val share = api.complete(done.sessionId)
-        assertEquals(300L * 1024 * 1024, downloadToFile(share.id, done.fileId).size.toLong())
-        assertEquals(sha256OfUri(Uri.parse(item.source.uri)), sha256(downloadToFile(share.id, done.fileId)))
+        val target = File(context.filesDir, "accept-300.restart")
+        target.delete()
+        val result = downloadToDestination(share.id, done.fileId, target)
+        assertEquals(300L * 1024 * 1024, result.bytes)
+        assertEquals(sha256OfUri(Uri.parse(item.source.uri)), result.sha256)
+        target.delete()
         api.revoke(share.id)
     }
 }

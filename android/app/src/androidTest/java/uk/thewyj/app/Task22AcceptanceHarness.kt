@@ -103,7 +103,9 @@ abstract class Task22AcceptanceHarness {
         return emptySet()
     }
 
-    fun downloadToFile(shareId: String, fileId: String): ByteArray {
+    data class DownloadResult(val bytes: Long, val sha256: String)
+
+    private fun authorizeToken(shareId: String): String {
         val base = BuildConfig.THEWYJ_BASE_URL.trimEnd('/')
         val authorizeConnection = URL("$base/api/transfer/shares/$shareId/authorize").openConnection() as HttpURLConnection
         authorizeConnection.requestMethod = "POST"
@@ -112,13 +114,91 @@ abstract class Task22AcceptanceHarness {
         authorizeConnection.outputStream.use { it.write("{}".toByteArray(Charsets.UTF_8)) }
         val authorize = JSONObject(authorizeConnection.inputStream.bufferedReader().use { it.readText() })
         authorizeConnection.disconnect()
-        val token = authorize.getJSONObject("download").getString("token")
-        val connection = URL("$base/api/transfer/shares/$shareId/download?file=$fileId&grant=$token").openConnection() as HttpURLConnection
-        return connection.inputStream.use { it.readBytes() }
+        return authorize.getJSONObject("download").getString("token")
     }
 
-    fun sha256(bytes: ByteArray): String =
-        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+    fun shareFileSize(shareId: String, fileId: String): Long {
+        val metadata = TransferApiClient(context).shareMetadata(shareId, "")
+        val files = metadata.getJSONObject("share").getJSONArray("files")
+        for (index in 0 until files.length()) {
+            val file = files.getJSONObject(index)
+            if (file.getString("file_id") == fileId) return file.getLong("size_bytes")
+        }
+        error("share file $fileId not found in metadata")
+    }
+
+    /**
+     * Bounded-memory ranged download. Bytes are written straight to
+     * [destination] while a MessageDigest and byte counter advance, so a
+     * 1 GiB transfer never becomes a ByteArray or Blob in RAM. When the
+     * destination already holds a prefix, the transfer resumes from that
+     * offset and the digest covers the whole file.
+     */
+    fun downloadToDestination(
+        shareId: String,
+        fileId: String,
+        destination: File,
+        limitBytes: Long = Long.MAX_VALUE,
+    ): DownloadResult {
+        val base = BuildConfig.THEWYJ_BASE_URL.trimEnd('/')
+        val token = authorizeToken(shareId)
+        val size = shareFileSize(shareId, fileId)
+        val target = minOf(size, limitBytes)
+        val start = if (destination.exists()) destination.length() else 0L
+        check(start <= target) { "destination already holds $start bytes, target is $target" }
+        val digest = MessageDigest.getInstance("SHA-256")
+        if (start > 0) {
+            destination.inputStream().use { input ->
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read < 0) break
+                    digest.update(buffer, 0, read)
+                }
+            }
+        }
+        val rangeSize = 8L * 1024 * 1024
+        var offset = start
+        java.io.FileOutputStream(destination, start > 0).use { output ->
+            val buffer = ByteArray(64 * 1024)
+            while (offset < target) {
+                val length = minOf(rangeSize, target - offset)
+                val connection = URL(
+                    "$base/api/transfer/shares/$shareId/download?file=$fileId&grant=$token",
+                ).openConnection() as HttpURLConnection
+                connection.setRequestProperty("Range", "bytes=$offset-${offset + length - 1}")
+                val status = connection.responseCode
+                check(status == 206) { "range download failed with $status" }
+                var written = 0L
+                connection.inputStream.use { input ->
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        output.write(buffer, 0, read)
+                        digest.update(buffer, 0, read)
+                        written += read
+                    }
+                }
+                connection.disconnect()
+                check(written == length) { "range chunk truncated: $written/$length" }
+                offset += length
+            }
+        }
+        return DownloadResult(target, digest.digest().joinToString("") { "%02x".format(it) })
+    }
+
+    fun sha256OfFile(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
 
     fun sha256OfUri(uri: Uri): String {
         val digest = MessageDigest.getInstance("SHA-256")
