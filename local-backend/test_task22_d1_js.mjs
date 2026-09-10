@@ -184,10 +184,9 @@ try {
       method: "PUT", token: USERS.other.token, bodyBytes: raceBytes, headers: { "X-Part-Sha256": raceHash },
     })));
   assert.ok(racedParts.every(result => result.response.status < 300), "duplicate part uploads must be idempotent");
-  const committedPart = await db.prepare("SELECT object_key FROM task22_upload_parts WHERE session_id = ?1").bind(raceSession).first();
-  const storedPart = await storage.get(committedPart.object_key);
-  assert.ok(storedPart, "losing concurrent writer must not delete the winning object");
-  assert.deepEqual(new Uint8Array(await storedPart.arrayBuffer()), raceBytes);
+  const committedPart = await db.prepare("SELECT object_key, etag FROM task22_upload_parts WHERE session_id = ?1").bind(raceSession).first();
+  assert.match(committedPart.object_key, /\/objects\/concurrent-part-file\/file$/u);
+  assert.ok(committedPart.etag, "losing concurrent writer must not clear the winning part");
 
   const expiredAllocation = await createSession(db, storage, { token: USERS.other.token, totalBytes: 16 });
   const expiredFileId = "expired-part-000001";
@@ -196,9 +195,9 @@ try {
     fileName: "old.bin", mimeType: "application/octet-stream", sizeBytes: 16,
   });
   await putPart(db, storage, expiredAllocation, expiredFileId, 1, 16, 5, { token: USERS.other.token });
-  const expiredPartKey = (await db.prepare(
-    "SELECT object_key FROM task22_upload_parts WHERE session_id = ?1",
-  ).bind(expiredAllocation).first())?.object_key;
+  const expiredPart = await db.prepare(
+    "SELECT object_key, etag FROM task22_upload_parts WHERE session_id = ?1",
+  ).bind(expiredAllocation).first();
   await db.prepare("UPDATE task22_upload_sessions SET expires_at = '2000-01-01T00:00:00Z' WHERE id = ?1").bind(expiredAllocation).run();
   const expiredResult = await request(db, storage, "/api/transfer/uploads/files", {
     method: "POST", token: USERS.other.token,
@@ -206,10 +205,15 @@ try {
   });
   assert.equal(expiredResult.response.status, 410);
   assert.equal(expiredResult.payload.code, "transfer_session_expired");
-  // The expired allocate path must reach the real R2 binding and clean up the
-  // abandoned part instead of throwing on an undefined storage handle.
-  assert.ok(expiredPartKey, "expired session part must have been uploaded first");
-  assert.equal(await storage.get(expiredPartKey), null, "expired session objects must be deleted from R2");
+  // The expired allocate path must reach the real R2 binding and release the
+  // abandoned multipart upload instead of throwing on an undefined storage handle.
+  assert.ok(expiredPart?.etag, "expired session part must have been uploaded first");
+  const expiredRows = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task22_upload_parts WHERE session_id = ?1",
+  ).bind(expiredAllocation).first();
+  assert.equal(Number(expiredRows.count), 0, "expired session parts must be released");
+  const expiredObjects = await storage.list({ prefix: "transfers/v2/preview/objects/expired-part-000001" });
+  assert.equal((expiredObjects.objects || []).length, 0, "expired session objects must be aborted");
 
   for (const [fileCount, totalBytes] of [[2, 16], [1, 17]]) {
     const incompleteSession = await createSession(db, storage, { token: USERS.other.token, fileCount, totalBytes });
@@ -617,6 +621,13 @@ try {
     });
     assert.equal(multiComplete.response.status, 200, JSON.stringify(multiComplete.payload));
     const multiShareId = multiComplete.payload.share.id;
+    const multiObjectKey = `transfers/v2/preview/objects/${multiFileId}/file`;
+    assert.equal(Number((await storage.head(multiObjectKey))?.size || 0), fileSize,
+      "publishing must finish the single R2 object for the file");
+    const multiShareFile = await db.prepare(
+      "SELECT object_key FROM task22_share_files WHERE share_id = ?1",
+    ).bind(multiShareId).first();
+    assert.equal(multiShareFile.object_key, multiObjectKey);
     const multiGrant = await request(db, storage, `/api/transfer/shares/${multiShareId}/authorize`, {
       method: "POST", body: {},
     });
@@ -648,6 +659,63 @@ try {
       method: "POST", token: USERS.other.token, body: {},
     });
     assert.equal(multiRevoked.response.status, 200);
+    assert.equal(await storage.head(multiObjectKey), null, "revoke must delete the uploaded object");
+  }
+
+  // 14. Fail closed: an incomplete or unresolvable upload never publishes.
+  {
+    const brokenSize = 64 * 1024;
+    const brokenSession = await createSession(db, storage, {
+      token: USERS.other.token, fileCount: 1, totalBytes: brokenSize,
+    });
+    const brokenFileId = "file-broken-000001";
+    await allocateFile(db, storage, brokenSession, {
+      token: USERS.other.token, fileId: brokenFileId, relativePath: "broken.bin",
+      fileName: "broken.bin", mimeType: "application/octet-stream", sizeBytes: brokenSize,
+    });
+    await request(db, storage,
+      `/api/transfer/uploads/${brokenSession}/files/${brokenFileId}/parts/1`, {
+        method: "PUT", token: USERS.other.token, bodyBytes: bytesOf(7, brokenSize),
+      });
+    await db.prepare(
+      "DELETE FROM task22_upload_parts WHERE file_id = ?1 AND part_number = 1",
+    ).bind(brokenFileId).run();
+    const brokenComplete = await request(db, storage, `/api/transfer/uploads/${brokenSession}/complete`, {
+      method: "POST", token: USERS.other.token, body: {},
+    });
+    assert.equal(brokenComplete.response.status, 409, JSON.stringify(brokenComplete.payload));
+    assert.equal(brokenComplete.payload.code, "transfer_incomplete_upload");
+    const brokenShares = await db.prepare(
+      "SELECT COUNT(*) AS count FROM task22_shares WHERE owner_ref = ?1",
+    ).bind(USERS.other.id).first();
+    assert.equal(Number(brokenShares.count), 0, "an incomplete upload must not publish a share");
+
+    // A multipart upload that R2 no longer holds must fail closed as well.
+    const abortedSize = 128 * 1024;
+    const abortedSession = await createSession(db, storage, {
+      token: USERS.other.token, fileCount: 1, totalBytes: abortedSize,
+    });
+    const abortedFileId = "file-aborted-00001";
+    await allocateFile(db, storage, abortedSession, {
+      token: USERS.other.token, fileId: abortedFileId, relativePath: "aborted.bin",
+      fileName: "aborted.bin", mimeType: "application/octet-stream", sizeBytes: abortedSize,
+    });
+    await request(db, storage,
+      `/api/transfer/uploads/${abortedSession}/files/${abortedFileId}/parts/1`, {
+        method: "PUT", token: USERS.other.token, bodyBytes: bytesOf(11, abortedSize),
+      });
+    const abortedFile = await db.prepare(
+      "SELECT object_key, upload_id FROM task22_upload_files WHERE id = ?1",
+    ).bind(abortedFileId).first();
+    await storage.resumeMultipartUpload(abortedFile.object_key, abortedFile.upload_id).abort();
+    const abortedComplete = await request(db, storage, `/api/transfer/uploads/${abortedSession}/complete`, {
+      method: "POST", token: USERS.other.token, body: {},
+    });
+    assert.ok(abortedComplete.response.status >= 500, JSON.stringify(abortedComplete.payload));
+    const abortedShares = await db.prepare(
+      "SELECT COUNT(*) AS count FROM task22_shares WHERE owner_ref = ?1",
+    ).bind(USERS.other.id).first();
+    assert.equal(Number(abortedShares.count), 0, "a lost upload must not publish a share");
   }
 
   console.log("Task 22 file transfer checks passed (tiered quota, guest isolation, multipart resume, idempotent complete/abort, password, downloads, one-time, range, policy types, legacy compatibility).");

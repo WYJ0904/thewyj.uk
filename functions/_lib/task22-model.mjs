@@ -1,5 +1,5 @@
-export const TASK22_SCHEMA_VERSION = "1";
-export const TASK22_BUILD = "2026-09-09-task22-file-transfer-2";
+export const TASK22_SCHEMA_VERSION = "2";
+export const TASK22_BUILD = "2026-09-10-task22-single-object-downloads";
 
 export const PART_SIZE_BYTES = 16 * 1024 * 1024;
 export const MIN_PART_SIZE_BYTES = 5 * 1024 * 1024;
