@@ -54,6 +54,8 @@ def main() -> int:
         permissions == {
             "android.permission.INTERNET",
             "android.permission.ACCESS_NETWORK_STATE",
+            "android.permission.FOREGROUND_SERVICE",
+            "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
         },
         f"Task 20 permission surface changed: {sorted(permissions)}",
     )

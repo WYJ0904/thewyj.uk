@@ -130,15 +130,7 @@ class TransferApiClient(context: Context) {
             connection.doOutput = true
             connection.setFixedLengthStreamingMode(partLength)
             connection.outputStream.use { output ->
-                val buffer = ByteArray(64 * 1024)
-                var written = 0L
-                while (true) {
-                    val read = input.read(buffer)
-                    if (read < 0) break
-                    output.write(buffer, 0, read)
-                    written += read
-                    onProgress(written)
-                }
+                readExactly(input, partLength, output, onProgress)
             }
             val status = connection.responseCode
             if (status !in 200..299) throw readError(connection, "分片上传失败")
@@ -191,4 +183,26 @@ class TransferApiClient(context: Context) {
     }
 
     fun deviceId(): String = deviceIdentity.getOrCreate()
+
+    companion object {
+        /** Streams exactly [length] bytes without over-reading into the next part. */
+        fun readExactly(
+            input: InputStream,
+            length: Int,
+            output: java.io.OutputStream,
+            onProgress: (Long) -> Unit,
+        ): Int {
+            val buffer = ByteArray(64 * 1024)
+            var written = 0
+            while (written < length) {
+                val remaining = length - written
+                val read = input.read(buffer, 0, minOf(remaining, buffer.size))
+                if (read < 0) throw java.io.EOFException("File ended before the declared part length")
+                output.write(buffer, 0, read)
+                written += read
+                onProgress(written.toLong())
+            }
+            return written
+        }
+    }
 }
