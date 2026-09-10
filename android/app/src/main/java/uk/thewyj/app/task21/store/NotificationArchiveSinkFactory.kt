@@ -1,0 +1,70 @@
+package uk.thewyj.app.task21.store
+
+import android.content.Context
+import uk.thewyj.app.task21.NotificationArchiveSink
+import uk.thewyj.app.task21.NotificationCaptureInput
+import uk.thewyj.app.task21.StructuredNotificationEvent
+
+/**
+ * Bridges the capture pipeline to the Room store: applies the per-account app
+ * policy, runs the one-time v1 archive import and writes instances/revisions.
+ */
+object NotificationArchiveSinkFactory {
+    fun forContext(context: Context): NotificationArchiveSink =
+        RoomNotificationArchiveSink(context.applicationContext)
+}
+
+class RoomNotificationArchiveSink(private val context: Context) : NotificationArchiveSink {
+    private val database get() = NotificationDatabase.get(context)
+    private val store get() = RoomNotificationStore(database)
+
+    override fun store(accountId: String, input: NotificationCaptureInput, parsed: StructuredNotificationEvent?): Boolean {
+        if (accountId.isBlank() || input.sourcePackage.isBlank()) return false
+        runCatching { LegacyArchiveMigration(database).migrateIfNeeded(context.filesDir, accountId) }
+        if (!isAllowed(accountId, input.sourcePackage)) return false
+        store.record(accountId, captureOf(input, parsed))
+        return true
+    }
+
+    override fun markRemoved(accountId: String, input: NotificationCaptureInput) {
+        if (input.notificationKey.isBlank()) return
+        store.markRemoved(accountId, input.notificationKey)
+    }
+
+    /**
+     * Default is "capture" until the user configures the app selector, so an
+     * upgrade never silently stops saving notifications; once any policy exists
+     * the explicit selection decides.
+     */
+    private fun isAllowed(accountId: String, sourcePackage: String): Boolean {
+        val policies = store.appPolicies(accountId)
+        if (policies.isEmpty()) return true
+        return policies.firstOrNull { it.sourcePackage == sourcePackage }?.enabled == 1
+    }
+
+    private fun captureOf(input: NotificationCaptureInput, parsed: StructuredNotificationEvent?) = NotificationCapture(
+        sourcePackage = input.sourcePackage,
+        sourceType = input.sourceType,
+        notificationKey = input.notificationKey,
+        notificationId = input.notificationId,
+        tag = input.tag,
+        groupKey = input.groupKey,
+        channelId = input.channelId,
+        postTime = if (input.postTime > 0) input.postTime else input.receivedAtMs,
+        isGroup = input.isGroup,
+        isGroupSummary = input.isGroupSummary,
+        title = input.title,
+        text = input.text,
+        bigText = input.bigText,
+        subText = input.subText,
+        infoText = input.infoText,
+        summaryText = input.summaryText,
+        textLines = input.textLines,
+        parseStatus = parsed?.parseStatus?.name ?: "UNPARSED",
+        direction = parsed?.direction?.name ?: "UNKNOWN",
+        amountMinor = parsed?.amountMinor ?: 0,
+        currency = parsed?.currency ?: "CNY",
+        merchant = parsed?.merchant.orEmpty(),
+        confidence = parsed?.confidence ?: 0,
+    )
+}

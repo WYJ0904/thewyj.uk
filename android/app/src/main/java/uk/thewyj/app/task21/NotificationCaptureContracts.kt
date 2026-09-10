@@ -24,6 +24,44 @@ interface AndroidCapturePermissionGateway {
 
 enum class FinanceDirection { INCOME, EXPENSE, REFUND, UNKNOWN }
 
+/**
+ * Everything a system notification gives us, captured without interpretation.
+ *
+ * [notificationKey] / [notificationId] / [tag] / [postTime] are the identity
+ * inputs: two notifications with identical text but different identity are two
+ * real notifications, and content is never used to merge them.
+ */
+data class NotificationCaptureInput(
+    val sourcePackage: String,
+    val sourceType: String = "notification",
+    val notificationKey: String = "",
+    val notificationId: Int = 0,
+    val tag: String = "",
+    val groupKey: String = "",
+    val channelId: String = "",
+    val postTime: Long = 0L,
+    val isGroup: Boolean = false,
+    val isGroupSummary: Boolean = false,
+    val title: String = "",
+    val text: String = "",
+    val bigText: String = "",
+    val subText: String = "",
+    val infoText: String = "",
+    val summaryText: String = "",
+    val textLines: List<String> = emptyList(),
+    val receivedAtMs: Long = 0L,
+)
+
+/**
+ * Local archive writer. Implemented by the Room store; kept as an interface so
+ * the capture pipeline stays testable without an Android database.
+ */
+interface NotificationArchiveSink {
+    /** True when the capture was persisted (false = filtered out). */
+    fun store(accountId: String, input: NotificationCaptureInput, parsed: StructuredNotificationEvent?): Boolean
+    fun markRemoved(accountId: String, input: NotificationCaptureInput)
+}
+
 enum class NotificationEventType { TRANSACTION, REFUND, MARKETING, VERIFICATION, OTHER }
 
 enum class ParseStatus { PARSED, CANDIDATE, UNPARSED }

@@ -8,6 +8,10 @@ data class ParserInput(
     val text: String,
     val bigText: String,
     val subText: String,
+    /** Additional local-only payload fields; never uploaded. */
+    val infoText: String = "",
+    val summaryText: String = "",
+    val textLines: List<String> = emptyList(),
 )
 
 data class ParserOutput(
@@ -69,7 +73,8 @@ private val amountRegex = listOf(
 )
 
 private fun normalizeText(input: ParserInput): String {
-    return listOf(input.title, input.text, input.bigText, input.subText)
+    return (listOf(input.title, input.text, input.bigText, input.subText, input.infoText, input.summaryText)
+        + input.textLines)
         .filter { it.isNotBlank() }
         .joinToString(" ")
         .replace(Regex("""[\r\n\u3000]+"""), " ")
