@@ -227,7 +227,11 @@ export async function handleTask20Request(context) {
     return apiError("task20_android_app_disabled", "Android App 云端会话尚未启用", 503, requestId(context), { retryable: true });
   }
   try {
-    if (url.pathname !== "/api/app/config") requireTask20AndroidClient(context.request);
+    // Config and the official APK download are public distribution endpoints:
+    // browsers must be able to read the release metadata and install the app.
+    if (!["/api/app/config", "/api/app/download"].includes(url.pathname)) {
+      requireTask20AndroidClient(context.request);
+    }
     if (descriptor.schema !== false && !await ensureTask20Schema(context.env.WYJ_DB)) {
       throw new Task12Error("Android 设备会话数据结构尚未就绪", 503, "task20_schema_not_ready", true);
     }
