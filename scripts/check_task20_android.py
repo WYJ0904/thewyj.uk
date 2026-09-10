@@ -56,6 +56,10 @@ def main() -> int:
             "android.permission.ACCESS_NETWORK_STATE",
             "android.permission.FOREGROUND_SERVICE",
             "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+            # Task 21 final closure: the app posts its own payment recognition
+            # notifications and reads newly received bank SMS.
+            "android.permission.POST_NOTIFICATIONS",
+            "android.permission.RECEIVE_SMS",
         },
         f"Task 20 permission surface changed: {sorted(permissions)}",
     )
@@ -68,8 +72,21 @@ def main() -> int:
         'android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"' in manifest_source,
         "Task 21 notification listener service lost its system binding permission",
     )
-    require("AccessibilityService" not in manifest_source, "Task 21 accessibility service was added early")
-    require("READ_SMS" not in manifest_source and "RECEIVE_SMS" not in manifest_source, "Task 21 SMS permission was added early")
+    require(
+        "ThewyjPaymentAccessibilityService" in manifest_source
+        and 'android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"' in manifest_source
+        and '@xml/thewyj_accessibility_service' in manifest_source,
+        "Task 21 payment accessibility service must be declared with the system binding permission and its config",
+    )
+    require(
+        "RECEIVE_SMS" in manifest_source and "READ_SMS" not in manifest_source,
+        "Task 21 SMS capture may only receive new SMS and must never request READ_SMS",
+    )
+    require(
+        "BankSmsReceiver" in manifest_source
+        and "android.provider.Telephony.SMS_RECEIVED" in manifest_source,
+        "Task 21 bank SMS receiver is missing or misconfigured",
+    )
     require("addJavascriptInterface" not in kotlin, "unsafe universal JavaScript bridge is forbidden")
     for contract in ("NOTIFICATION_ACCESS", "SMS_PERMISSION", "ACCESSIBILITY_SERVICE"):
         require(contract in kotlin, f"missing Task 21 capability boundary {contract}")
