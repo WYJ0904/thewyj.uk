@@ -185,6 +185,7 @@ export async function handleTask21Request(context) {
       request_id: requestId(context),
       route: url.pathname,
       error_name: String(error?.name || "Error"),
+      error_message: String(error?.message || "").slice(0, 200),
     }));
     const classification = classifyCloudError(error);
     return apiError(`task21_${classification}`, "通知归档服务暂时不可用，请稍后重试", 503, requestId(context), { retryable: true });

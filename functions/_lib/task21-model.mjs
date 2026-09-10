@@ -1,4 +1,7 @@
+/** Client ingest protocol version (Android payloads send this value). */
 export const TASK21_SCHEMA_VERSION = "1";
+/** Local D1 schema version; bumped by cloudflare/migrations/0020. */
+export const TASK21_DB_SCHEMA_VERSION = "2";
 export const TASK21_BUILD = "2026-09-08-task21-notification";
 export const NOTIFICATION_ENTITLEMENT = "notification_archive_access";
 export const MAX_INGEST_OPERATIONS = 100;

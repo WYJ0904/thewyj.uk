@@ -205,7 +205,8 @@ try {
   ).bind(USERS.subscriber.id).first();
   assert.equal(Number(partialTxnCount.count), 1);
 
-  // 7. A different event with the same fingerprint dedupes to the same record.
+  // 7. Two real payments with identical text are two events: the content
+  // fingerprint must never merge them.
   const dupFingerprint = await request(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
@@ -215,7 +216,22 @@ try {
     }),
   });
   assert.equal(dupFingerprint.response.status, 200);
-  assert.equal(dupFingerprint.payload.operation_results[0].duplicate, true);
+  assert.equal(dupFingerprint.payload.operation_results[0].duplicate, false);
+  assert.equal(dupFingerprint.payload.operation_results[0].event.event_id, "evt-task21-00000002");
+  const identicalTextTransactions = await db.prepare(
+    `SELECT COUNT(*) AS count FROM task16_finance_transactions
+     WHERE user_id = ?1 AND amount_minor = 1280 AND direction = 'expense' AND status = 'active'`,
+  ).bind(USERS.subscriber.id).first();
+  assert.equal(Number(identicalTextTransactions.count), 2, "identical text must stay two real payments");
+
+  // 7b. Replaying the same event id is the duplicate case.
+  const replaySameEvent = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-replay-same-event", transactionEvent()),
+  });
+  assert.equal(replaySameEvent.response.status, 200);
+  assert.equal(replaySameEvent.payload.operation_results[0].duplicate, true);
 
   // 8. Low-confidence structured event becomes a review candidate, not finance.
   const low = await request(db, "/api/notification/ingest", {
@@ -252,6 +268,9 @@ try {
   assert.equal(crossConfirm.response.status, 403);
 
   // Confirm is idempotent: a second confirm must not create another finance transaction.
+  const confirmedTxnCountBefore = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND source_kind = 'automatic' AND amount_minor = 1280",
+  ).bind(USERS.subscriber.id).first();
   const confirmAgain = await request(db, "/api/notification/candidates/confirm", {
     method: "POST",
     token: USERS.subscriber.token,
@@ -259,10 +278,14 @@ try {
   });
   assert.equal(confirmAgain.response.status, 200);
   assert.equal(confirmAgain.payload.no_change, true);
-  const confirmedTxnCount = await db.prepare(
+  const confirmedTxnCountAfter = await db.prepare(
     "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND source_kind = 'automatic' AND amount_minor = 1280",
   ).bind(USERS.subscriber.id).first();
-  assert.equal(Number(confirmedTxnCount.count), 2, "confirming a candidate twice must not duplicate finance");
+  assert.equal(
+    Number(confirmedTxnCountAfter.count),
+    Number(confirmedTxnCountBefore.count),
+    "confirming a candidate twice must not duplicate finance",
+  );
 
   // Reject is idempotent and final: reject then confirm is rejected.
   const reject = await request(db, "/api/notification/candidates/reject", {
@@ -514,6 +537,138 @@ try {
   assert.equal(writeOff.payload.code, "task21_notification_not_enabled");
   const candidatesOff = await request(db, "/api/notification/candidates", { token: USERS.subscriber.token }, flagsOff);
   assert.equal(candidatesOff.response.status, 503);
+
+  // 18. Multi-source evidence: a bank SMS describing the same payment links to
+  // the existing candidate instead of creating a second one.
+  const multiPrimary = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-multi-primary", {
+      ...transactionEvent(),
+      event_id: "evt-task21-00000101",
+      fingerprint: fingerprint("bb01"),
+      parse_status: "candidate",
+      confidence: 700,
+      amount_minor: 3360,
+      occurred_at_ms: 1_700_000_100_000,
+      received_at_ms: 1_700_000_100_100,
+    }),
+  });
+  assert.equal(multiPrimary.response.status, 200, JSON.stringify(multiPrimary.payload));
+  const multiCandidateId = multiPrimary.payload.operation_results[0].candidate_id;
+  assert.match(multiCandidateId, /^cand:/);
+
+  const multiEvidence = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-multi-evidence", {
+      ...transactionEvent(),
+      event_id: "evt-task21-00000102",
+      fingerprint: fingerprint("bb02"),
+      source_package: "com.chinamworld.main",
+      source_type: "sms",
+      parser_version: "bank-sms-2",
+      parse_status: "candidate",
+      confidence: 720,
+      amount_minor: 3360,
+      occurred_at_ms: 1_700_000_130_000,
+      received_at_ms: 1_700_000_130_100,
+    }),
+  });
+  assert.equal(multiEvidence.response.status, 200, JSON.stringify(multiEvidence.payload));
+  assert.equal(
+    multiEvidence.payload.operation_results[0].candidate_id,
+    multiCandidateId,
+    "a second source describing the same payment must reuse the candidate",
+  );
+  const evidenceRows = await db.prepare(
+    "SELECT event_id, source_type, candidate_id FROM task21_notification_evidence WHERE user_id = ?1 AND candidate_id = ?2 ORDER BY event_id",
+  ).bind(USERS.subscriber.id, multiCandidateId).all();
+  assert.equal(evidenceRows.results.length, 2, "both sources must be kept as evidence");
+  assert.equal(evidenceRows.results[0].source_type, "notification");
+  assert.equal(evidenceRows.results[1].source_type, "sms");
+  const multiCandidate = await db.prepare(
+    "SELECT evidence_count, amount_minor FROM task21_notification_candidates WHERE user_id = ?1 AND id = ?2",
+  ).bind(USERS.subscriber.id, multiCandidateId).first();
+  assert.equal(Number(multiCandidate.evidence_count), 2);
+  assert.equal(Number(multiCandidate.amount_minor), 3360);
+
+  // 18b. A different amount in the same window stays a separate candidate.
+  const differentAmount = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-multi-different", {
+      ...transactionEvent(),
+      event_id: "evt-task21-00000103",
+      fingerprint: fingerprint("bb03"),
+      parse_status: "candidate",
+      confidence: 700,
+      amount_minor: 3370,
+      occurred_at_ms: 1_700_000_140_000,
+      received_at_ms: 1_700_000_140_100,
+    }),
+  });
+  assert.equal(differentAmount.response.status, 200);
+  assert.notEqual(differentAmount.payload.operation_results[0].candidate_id, multiCandidateId);
+
+  // 19. Edit before confirm: the user's values win, machine evidence is kept.
+  const editable = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-edit-before-confirm", {
+      ...transactionEvent(),
+      event_id: "evt-task21-00000104",
+      fingerprint: fingerprint("cc01"),
+      parse_status: "candidate",
+      confidence: 640,
+      amount_minor: 2000,
+      direction: "expense",
+      occurred_at_ms: 1_700_000_200_000,
+      received_at_ms: 1_700_000_200_100,
+    }),
+  });
+  const editableCandidateId = editable.payload.operation_results[0].candidate_id;
+  const editedConfirm = await request(db, "/api/notification/candidates/confirm", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: {
+      candidate_id: editableCandidateId,
+      device_id: "device-task21-000001",
+      edits: { amount_minor: 1850, direction: "income", merchant: "修正商户", note: "用户修正" },
+    },
+  });
+  assert.equal(editedConfirm.response.status, 200, JSON.stringify(editedConfirm.payload));
+  assert.deepEqual(editedConfirm.payload.edited_fields.sort(), ["amount_minor", "direction", "merchant", "note"]);
+  const editedTransaction = await db.prepare(
+    `SELECT direction, amount_minor, merchant FROM task16_finance_transactions
+     WHERE user_id = ?1 AND id = ?2`,
+  ).bind(USERS.subscriber.id, editedConfirm.payload.transaction_id).first();
+  assert.equal(editedTransaction.direction, "income");
+  assert.equal(Number(editedTransaction.amount_minor), 1850);
+  assert.equal(editedTransaction.merchant, "修正商户");
+  const machineEvidence = await db.prepare(
+    "SELECT direction, amount_minor FROM task21_notification_candidates WHERE user_id = ?1 AND id = ?2",
+  ).bind(USERS.subscriber.id, editableCandidateId).first();
+  assert.equal(machineEvidence.direction, "expense", "machine direction must never be overwritten");
+  assert.equal(Number(machineEvidence.amount_minor), 2000, "machine amount must never be overwritten");
+  const editedJson = await db.prepare(
+    "SELECT edited_json, correction_count FROM task21_notification_candidates WHERE user_id = ?1 AND id = ?2",
+  ).bind(USERS.subscriber.id, editableCandidateId).first();
+  assert.match(editedJson.edited_json, /"amount_minor":1850/);
+  assert.equal(Number(editedJson.correction_count), 1);
+
+  // 19b. Illegal edits are rejected and change nothing.
+  const invalidEdit = await request(db, "/api/notification/candidates/confirm", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: {
+      candidate_id: editableCandidateId,
+      device_id: "device-task21-000001",
+      edits: { amount_minor: -5 },
+    },
+  });
+  assert.equal(invalidEdit.response.status, 400);
+  assert.equal(invalidEdit.payload.code, "candidate_edits_invalid");
 
   console.log("Task 21 notification checks passed (privacy boundary, entitlement lifecycle, idempotent ingest, dedupe, finance integration, candidate state machine, feature flags).");
 } finally {
