@@ -3,7 +3,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { searchTools, TOOLS } from "../js/tools/catalog.js";
+import {
+  CATALOG_TOOLS,
+  RETIRED_TOOL_IDS,
+  TOOL_MAP,
+  TOOLS,
+  searchTools,
+} from "../js/tools/catalog.js";
 import {
   csvString,
   md5Bytes,
@@ -94,6 +100,14 @@ assert.throws(() => buildVcardPayload({ website: "javascript:alert(1)" }), /http
 assert.equal(TOOLS.length, 103);
 assert.equal(new Set(TOOLS.map((tool) => tool.id)).size, 103);
 assert.ok(searchTools("jsoon").some((tool) => tool.id === "csv-json"));
+// The retired temporary-file share stays resolvable for existing links but is
+// no longer offered by the visible catalog (Task 22 file transfer replaces it).
+assert.deepEqual([...RETIRED_TOOL_IDS], ["temporary-file"]);
+assert.equal(CATALOG_TOOLS.length, 102);
+assert.ok(!CATALOG_TOOLS.some((tool) => tool.id === "temporary-file"));
+assert.ok(TOOL_MAP.has("temporary-file"));
+assert.ok(!searchTools("临时文件分享").some((tool) => tool.id === "temporary-file"));
+assert.ok(searchTools("临时文件分享", "all", { includeRetired: true }).some((tool) => tool.id === "temporary-file"));
 assert.match(secureUuid(), /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
 assert.match(randomToolResult("dice-d20", {}), /^(?:[1-9]|1\d|20)$/);
 assert.equal(runToolRenderer({ category: "text" }, { text: () => "rendered" }), "rendered");

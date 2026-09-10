@@ -159,6 +159,7 @@ async function executeRoute(context, descriptor, account) {
         apk_sha256: String(context.env.ANDROID_APK_SHA256 || "").slice(0, 64).toLowerCase(),
         apk_size_bytes: Math.max(0, Number.parseInt(String(context.env.ANDROID_APK_SIZE_BYTES || "0"), 10) || 0),
         release_notes_build: String(context.env.ANDROID_RELEASE_BUILD || "").slice(0, 80),
+        release_notes: String(context.env.ANDROID_RELEASE_NOTES || "").slice(0, 400),
       },
     }, 200, context);
   }

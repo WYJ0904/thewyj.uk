@@ -12,6 +12,7 @@ import uk.thewyj.app.core.auth.SecureCredentialStore
 import uk.thewyj.app.core.network.ThewyjApiClient
 import uk.thewyj.app.core.session.SessionRefreshWorker
 import uk.thewyj.app.core.session.SessionRepository
+import uk.thewyj.app.core.update.AppUpdateInstaller
 import uk.thewyj.app.core.web.WebSessionBridge
 import java.util.concurrent.TimeUnit
 
@@ -39,6 +40,9 @@ object AppGraph {
     lateinit var sessionRepository: SessionRepository
         private set
 
+    lateinit var updateInstaller: AppUpdateInstaller
+        private set
+
     fun initialize(application: Application) {
         if (::sessionRepository.isInitialized) return
         sessionRepository = SessionRepository(
@@ -47,5 +51,6 @@ object AppGraph {
             api = ThewyjApiClient(),
             webSession = WebSessionBridge(application, BuildConfig.THEWYJ_BASE_URL),
         )
+        updateInstaller = AppUpdateInstaller(application)
     }
 }

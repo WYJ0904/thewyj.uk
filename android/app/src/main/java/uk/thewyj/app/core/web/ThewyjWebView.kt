@@ -32,6 +32,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import uk.thewyj.app.BuildConfig
+import uk.thewyj.app.core.speech.AndroidSpeechBridge
 import java.net.URI
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
@@ -63,6 +64,7 @@ fun ThewyjWebView(
     val errorCallback = rememberUpdatedState(onMainFrameError)
     val unhandledBackCallback = rememberUpdatedState(onUnhandledBack)
     val pendingFileSelection = remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
+    val speechBridge = remember { AndroidSpeechBridge(context) }
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val callback = pendingFileSelection.value
         pendingFileSelection.value = null
@@ -83,6 +85,7 @@ fun ThewyjWebView(
             onRouteChanged = { routeCallback.value(it) },
             onCanGoBackChanged = { canGoBackCallback.value(it) },
             onMainFrameError = { errorCallback.value(it) },
+            speechBridge = speechBridge,
             onChooseFiles = { callback, params ->
                 pendingFileSelection.value?.onReceiveValue(null)
                 pendingFileSelection.value = callback
@@ -123,6 +126,7 @@ fun ThewyjWebView(
             pendingFileSelection.value?.onReceiveValue(null)
             pendingFileSelection.value = null
             webView.stopLoading()
+            speechBridge.shutdown()
             webView.removeAllViews()
             webView.destroy()
         }
@@ -138,6 +142,7 @@ private fun createWebView(
     onRouteChanged: (String) -> Unit,
     onCanGoBackChanged: (Boolean) -> Unit,
     onMainFrameError: (String) -> Unit,
+    speechBridge: AndroidSpeechBridge,
     onChooseFiles: (ValueCallback<Array<Uri>>, WebChromeClient.FileChooserParams) -> Boolean,
 ): WebView = WebView(context).apply {
     // WRAP_CONTENT lets Chromium compute a zero CSS viewport inside AndroidView.
@@ -210,7 +215,11 @@ private fun createWebView(
                 view.navigateWithinDocument(policy, request.url.toString())
                 return true
             }
-            return handleNavigation(context, request.url.toString(), policy, onRefreshSession, onLogout)
+            return handleNavigation(
+                context, request.url.toString(), policy, onRefreshSession, onLogout,
+                onSpeech = { speechBridge.handle(it) },
+                onSpeechError = onMainFrameError,
+            )
         }
 
         @Deprecated("Deprecated by Android")
@@ -219,7 +228,11 @@ private fun createWebView(
                 view.navigateWithinDocument(policy, url)
                 return true
             }
-            return handleNavigation(context, url, policy, onRefreshSession, onLogout)
+            return handleNavigation(
+                context, url, policy, onRefreshSession, onLogout,
+                onSpeech = { speechBridge.handle(it) },
+                onSpeechError = onMainFrameError,
+            )
         }
 
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -287,10 +300,16 @@ private fun handleNavigation(
     policy: WebRoutePolicy,
     onRefreshSession: () -> Unit,
     onLogout: () -> Unit,
+    onSpeech: (Uri) -> String = { "" },
+    onSpeechError: (String) -> Unit = {},
 ): Boolean = when (policy.decide(url)) {
     NavigationDecision.Internal -> false
     NavigationDecision.RefreshSession -> true.also { onRefreshSession() }
     NavigationDecision.Logout -> true.also { onLogout() }
+    NavigationDecision.Speech -> true.also {
+        val message = onSpeech(Uri.parse(url))
+        if (message.isNotBlank()) onSpeechError(message)
+    }
     NavigationDecision.External -> true.also {
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }

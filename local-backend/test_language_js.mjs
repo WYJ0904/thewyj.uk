@@ -13,6 +13,14 @@ import {
   parseWordTextModel,
   sanitizePendingAdvance,
 } from "../js/language/quiz.js";
+import {
+  chooseSpeechEngine,
+  nativeSpeechUrl,
+  normalizeSpeechLanguage,
+  resetSpeechState,
+  speakText,
+  stopSpeech,
+} from "../js/language/speech.js";
 import { createLearningSyncAdapter } from "../js/language/sync-adapter.js";
 import { mergeWrongBooks, sanitizeWrongBook, updateWrongEntry } from "../js/language/wrong-book.js";
 
@@ -81,4 +89,62 @@ const adapter = createLearningSyncAdapter(() => syncApi);
 assert.equal(adapter.groupPrefix("wrong", "me", "history"), "wrong|me|history|");
 assert.equal(adapter.record("wrong_book", "wrong", ["me", "history", "word"], {}).record_id, "wrong|me|history|word");
 
-console.log("Language JS module tests passed (quiz, Japanese, wrong book, history, achievements, sync adapter).");
+// Dictation speech: the native TextToSpeech bridge wins inside the Android
+// WebView, the Web Speech API stays the browser path, and a missing engine must
+// surface a readable message instead of failing silently.
+assert.equal(normalizeSpeechLanguage("ja-JP"), "ja-JP");
+assert.equal(normalizeSpeechLanguage("ja"), "ja-JP");
+assert.equal(normalizeSpeechLanguage("en-US"), "en-US");
+assert.equal(normalizeSpeechLanguage(""), "en-US");
+assert.equal(chooseSpeechEngine({}), "none");
+assert.equal(chooseSpeechEngine({ speechSynthesis: {}, SpeechSynthesisUtterance: function () {} }), "web");
+assert.equal(chooseSpeechEngine({}, { native: true }), "native");
+
+const nativeNavigations = [];
+const nativeResult = speakText({
+  location: { set href(value) { nativeNavigations.push(value); } },
+  speechSynthesis: { cancel() {}, speak() { throw new Error("web engine must not be used"); } },
+}, { text: "hello world", lang: "en", rate: 0.9, native: true });
+assert.deepEqual(nativeResult, { ok: true, engine: "native", message: "" });
+assert.equal(nativeNavigations.length, 1);
+assert.ok(nativeNavigations[0].startsWith("thewyj://speech/speak?"));
+assert.ok(nativeNavigations[0].includes("text=hello+world"));
+assert.ok(nativeNavigations[0].includes("lang=en-US"));
+assert.ok(nativeNavigations[0].includes("rate=0.9"));
+assert.equal(nativeSpeechUrl({ text: "汉字", lang: "ja", rate: 0.82 }).includes("lang=ja-JP"), true);
+
+const webCalls = [];
+function FakeUtterance(value) { this.text = value; }
+const webResult = speakText({
+  speechSynthesis: { cancel() { webCalls.push("cancel"); }, speak(utterance) { webCalls.push(utterance); } },
+  SpeechSynthesisUtterance: FakeUtterance,
+}, { text: "world", lang: "ja", rate: 0.82 });
+assert.equal(webResult.ok, true);
+assert.equal(webResult.engine, "web");
+assert.equal(webCalls[1].text, "world");
+assert.equal(webCalls[1].lang, "ja-JP");
+assert.equal(webCalls[1].rate, 0.82);
+
+const missingEngine = speakText({}, { text: "hello" });
+assert.equal(missingEngine.ok, false);
+assert.equal(missingEngine.engine, "none");
+assert.match(missingEngine.message, /语音引擎/);
+assert.equal(speakText({}, { text: "   " }).ok, false);
+const stopCalls = [];
+// A route change without any native playback must not launch the native
+// scheme at all (a plain browser logs a protocol error for it).
+resetSpeechState();
+stopSpeech({ location: { set href(value) { stopCalls.push(value); } }, speechSynthesis: { cancel() {} } }, { native: true });
+assert.deepEqual(stopCalls, []);
+speakText({ location: { set href(_value) {} } }, { text: "hello", native: true });
+stopSpeech({
+  location: { set href(value) { stopCalls.push(value); } },
+  speechSynthesis: { cancel() { stopCalls.push("web-cancel"); } },
+}, { native: true });
+assert.equal(stopCalls.includes("thewyj://speech/stop"), true);
+assert.equal(stopCalls.includes("web-cancel"), true);
+const afterStop = [];
+stopSpeech({ location: { set href(value) { afterStop.push(value); } }, speechSynthesis: { cancel() {} } }, { native: true });
+assert.deepEqual(afterStop, []);
+
+console.log("Language JS module tests passed (quiz, Japanese, wrong book, history, achievements, sync adapter, speech).");

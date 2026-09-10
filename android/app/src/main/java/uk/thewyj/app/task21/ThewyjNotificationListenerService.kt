@@ -11,6 +11,7 @@ import uk.thewyj.app.BuildConfig
 import uk.thewyj.app.task21.store.NotificationArchiveSinkFactory
 import uk.thewyj.app.task21.payment.AndroidPaymentRecognitionHook
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Notification listener. It captures the platform's notification identity
@@ -19,7 +20,15 @@ import java.util.concurrent.Executors
  * coordinator. It does not read SMS or accessibility content.
  */
 class ThewyjNotificationListenerService : NotificationListenerService() {
+    /**
+     * Capture must never wait for the network. `onNotificationPosted` writes to
+     * Room on this single thread; uploads to the backend run on a separate
+     * single thread guarded by [flushRunning] so a slow or unreachable API can
+     * no longer delay (or drop) incoming notifications.
+     */
     private val executor = Executors.newSingleThreadExecutor()
+    private val uploadExecutor = Executors.newSingleThreadExecutor()
+    private val flushRunning = AtomicBoolean(false)
     private var coordinator: NotificationCaptureCoordinator? = null
     private var sessionProvider: NotificationSessionProvider? = null
 
@@ -45,16 +54,38 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
         val notification = sbn ?: return
         if (notification.isOngoing) return
         val input = captureInput(notification)
-        executor.execute {
-            coordinator?.onNotification(input)
-            coordinator?.flush()
-        }
+        val capture = executor.submit { coordinator?.onNotification(input) }
+        scheduleFlush(capture)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
         val notification = sbn ?: return
         val input = captureInput(notification)
         executor.execute { coordinator?.onRemoved(input) }
+    }
+
+    override fun onDestroy() {
+        executor.shutdown()
+        uploadExecutor.shutdown()
+        super.onDestroy()
+    }
+
+    private fun scheduleFlush(capture: java.util.concurrent.Future<*>? = null) {
+        if (!flushRunning.compareAndSet(false, true)) return
+        uploadExecutor.execute {
+            try {
+                runCatching { capture?.get(5, java.util.concurrent.TimeUnit.SECONDS) }
+                // Drain in bounded rounds so notifications that arrive while an
+                // upload is in flight are still delivered, without spinning on
+                // a failing network.
+                for (round in 0 until 3) {
+                    val result = coordinator?.flushDetailed() ?: break
+                    if (result.pending == 0 || result.authenticationRequired || result.retryableFailures > 0) break
+                }
+            } finally {
+                flushRunning.set(false)
+            }
+        }
     }
 
     private fun captureInput(sbn: StatusBarNotification): NotificationCaptureInput {

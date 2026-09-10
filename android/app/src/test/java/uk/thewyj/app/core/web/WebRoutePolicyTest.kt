@@ -35,6 +35,19 @@ class WebRoutePolicyTest {
     }
 
     @Test
+    fun dictationSpeechUsesTheNarrowNativeChannelOnly() {
+        assertEquals(
+            NavigationDecision.Speech,
+            policy.decide("thewyj://speech/speak?text=hello&lang=en-US&rate=0.9"),
+        )
+        assertEquals(NavigationDecision.Speech, policy.decide("thewyj://speech/stop"))
+        assertEquals(NavigationDecision.Blocked, policy.decide("thewyj://speech/other"))
+        assertEquals(NavigationDecision.Blocked, policy.decide("thewyj://files/open?path=/data"))
+        assertEquals(NavigationDecision.RefreshSession, policy.decide("thewyj://session/refresh?reason=expired"))
+        assertEquals(NavigationDecision.Logout, policy.decide("thewyj://session/logout"))
+    }
+
+    @Test
     fun activeContentAndCleartextSchemesAreBlocked() {
         assertEquals(NavigationDecision.Blocked, policy.decide("javascript:alert(1)"))
         assertEquals(NavigationDecision.Blocked, policy.decide("file:///data/local/private"))

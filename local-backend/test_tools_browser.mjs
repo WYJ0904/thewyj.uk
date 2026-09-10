@@ -567,6 +567,33 @@ async function main() {
     assert.equal(new Set(catalog.map((tool) => tool.id)).size, 103);
     assert.ok(catalog.every((tool) => tool.name && tool.description));
 
+    // Task 22 replaced the temporary-file share tool with the file transfer
+    // page. The catalog must stop offering the old entry while the tool itself
+    // stays resolvable for saved links and configurations.
+    const catalogTools = await evaluate("window.WYJTools.catalogTools.map((tool) => tool.id)");
+    assert.equal(catalogTools.length, 102);
+    assert.ok(!catalogTools.includes("temporary-file"));
+    const renderedCards = await evaluate(
+      "Array.from(document.querySelectorAll('#toolCatalog [data-tool-card]')).map((element) => element.dataset.toolCard)",
+    );
+    assert.ok(!renderedCards.includes("temporary-file"), "retired tool is still advertised in the catalog");
+    assert.equal(await evaluate("document.querySelector('#toolsTransferBtn')?.textContent || ''"), "文件传输");
+    await openTool("temporary-file");
+    await evaluate("window.WYJTools.closeWorkbench(false)");
+    await waitFor("!document.querySelector('#toolsPanel')?.classList.contains('hidden')", 5_000, "toolbox after retirement check");
+    await click("#toolsTransferBtn");
+    await waitFor(
+      "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+      6_000,
+      "toolbox file transfer entry",
+    );
+    await send("Page.navigate", { url: `${BASE_URL}/tools?tool-matrix=2` });
+    await waitFor(
+      "window.WYJTools?.tools?.length === 103 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')",
+      15_000,
+      "toolbox after transfer entry",
+    );
+
     const searchResult = await evaluate("window.WYJTools.searchTools('jso 格').map(tool => tool.id)");
     assert.ok(searchResult.includes("json-format"));
     assert.ok(searchResult.includes("csv-json") || searchResult.includes("json-csv"));

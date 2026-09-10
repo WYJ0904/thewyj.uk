@@ -7,6 +7,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -60,6 +62,7 @@ import uk.thewyj.app.task22.QueuedTransfer
 import java.util.UUID
 import java.util.Locale
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
     val context = LocalContext.current
@@ -189,21 +192,21 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
                 ThewyjCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(ThewyjSpacing.Xl), verticalArrangement = Arrangement.spacedBy(ThewyjSpacing.Md)) {
                         Text("分享设置", style = MaterialTheme.typography.titleMedium)
-                        Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Md)) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Md)) {
                             OutlinedButton(onClick = { filesLauncher.launch(arrayOf("*/*")) }, shape = ThewyjRadius.Medium) { Text("选择文件") }
                             OutlinedButton(onClick = { folderLauncher.launch(null) }, shape = ThewyjRadius.Medium) { Text("选择文件夹") }
                         }
                         HorizontalDivider()
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("有效期", Modifier.width(96.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(ThewyjSpacing.Xs)) {
+                            Text("有效期", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
                                 listOf(60 to "1小时", 1440 to "1天", 4320 to "3天", 10080 to "7天").forEach { (value, label) ->
                                     OutlinedButton(
                                         onClick = { minutes = value; persistConfig() },
                                         shape = ThewyjRadius.Small,
                                         colors = if (minutes == value) ButtonDefaults.outlinedButtonColors()
                                         else ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
-                                    ) { Text(label) }
+                                    ) { Text(label, maxLines = 1, softWrap = false) }
                                 }
                             }
                         }
@@ -299,6 +302,7 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
                                         Text("${share.fileCount} 个文件 · ${formatBytes(share.totalBytes)}")
                                         Text("下载 ${share.downloadCount}/${share.maxDownloads}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
+                                    Spacer(Modifier.fillMaxWidth(0.05f))
                                     OutlinedButton(
                                         onClick = {
                                             scope.launch {

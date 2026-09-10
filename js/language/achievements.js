@@ -1,4 +1,4 @@
-import { calculateLongestStudyStreak, localDayKey } from "./history.js?v=20260910-task23-android-release-r1";
+import { calculateLongestStudyStreak, localDayKey } from "./history.js?v=20260911-permissions-nav-dictation-r1";
 
 export const ACHIEVEMENT_TIERS = Object.freeze({
   bronze: { label: "初阶", points: 10 },

@@ -695,13 +695,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260910-task23-android-release-r1');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20260910-task23-android-release-r1');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260910-task23-android-release-r1');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260910-task23-android-release-r1');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260910-task23-android-release-r1');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260910-task23-android-release-r1');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260910-task23-android-release-r1');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260911-permissions-nav-dictation-r1');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20260911-permissions-nav-dictation-r1');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260911-permissions-nav-dictation-r1');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260911-permissions-nav-dictation-r1');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260911-permissions-nav-dictation-r1');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260911-permissions-nav-dictation-r1');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260911-permissions-nav-dictation-r1');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -714,10 +714,10 @@ async function main() {
       assert.equal(pwa.cachedLearningSync, true);
       assert.equal(pwa.cachedWorkflows, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.09.10.2");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.09.11.1");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-09-10-task23-android-release");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-09-11-permissions-nav-dictation");
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
       const mobilePublic = await evaluate(`({
         viewport: document.documentElement.clientWidth,
@@ -832,7 +832,7 @@ async function main() {
       );
       assert.equal(await evaluate("document.querySelector('#changelogPage').textContent.includes('可配置工具工作流')"), true);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.09.10.2");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.09.11.1");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
@@ -2268,6 +2268,118 @@ async function main() {
       fs.writeFileSync(path.join(TEST_ROOT, `mobile-app-${RUN_ID}.png`), Buffer.from(shot.data, "base64"));
       await send("Emulation.clearDeviceMetricsOverride");
       await send("Emulation.setEmulatedMedia", { features: [] });
+    });
+
+    await check("native tab navigation opens the tapped page immediately", async () => {
+      // The deletion check above ends without a session; restore the matrix
+      // user (its secret was rotated earlier in the suite) before exercising
+      // the native tab bar. The Android app installs the same navigation
+      // bridge automatically; `?native-navigation=1` exposes it to this
+      // browser matrix without the native HttpOnly cookie.
+      const refreshedMember = await api("/api/login", { username: USERNAME, secret: USER_SECRET_NEW });
+      assert.ok(String(refreshedMember.session || "").length > 20, "matrix user could not sign in again");
+      await evaluate(`localStorage.setItem('wyjAccountSession', ${JSON.stringify(refreshedMember.session)}); location.href = '/select?native-navigation=1'; true`);
+      await waitFor("!!window.WYJAndroidNavigation", 10_000, "native navigation bridge");
+      await waitFor("!document.querySelector('#modulePicker')?.classList.contains('hidden')", 10_000, "module picker for native navigation");
+      const initial = await evaluate(
+        "location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')",
+      );
+      assert.equal(initial, true);
+
+      // Every tap applies the URL and the surface immediately, even while the
+      // previous tab is still loading data.
+      const targets = [
+        { route: "/select", surface: "#modulePicker" },
+        { route: "/language", surface: "#projectPicker" },
+        { route: "/tools", surface: "#toolsPanel" },
+        { route: "/finance", surface: "#financePage" },
+        { route: "/transfer", surface: "#transferPage" },
+        { route: "/select", surface: "#modulePicker" },
+      ];
+      for (const target of targets) {
+        const started = await evaluate(
+          `(window.__wyjNavStart = performance.now(), window.WYJAndroidNavigation.navigate(${JSON.stringify(target.route)}), window.__wyjNavStart)`,
+        );
+        assert.ok(Number.isFinite(Number(started)), `native navigate did not start for ${target.route}`);
+        await waitFor(
+          `location.pathname === ${JSON.stringify(target.route)}`
+            + ` && !document.querySelector(${JSON.stringify(target.surface)})?.classList.contains('hidden')`,
+          3_000,
+          `native tab ${target.route}`,
+        );
+        const elapsed = Number(await evaluate("performance.now() - window.__wyjNavStart"));
+        assert.ok(elapsed < 1_000, `native tab ${target.route} took ${Math.round(elapsed)} ms to show its surface`);
+      }
+
+      // Rapid taps coalesce to the last destination instead of replaying every
+      // queued page.
+      await evaluate(`(() => {
+        const navigation = window.WYJAndroidNavigation;
+        for (const route of ['/language/japanese', '/tools', '/finance', '/transfer', '/select']) {
+          navigation.navigate(route);
+        }
+        window.__wyjRapidStart = performance.now();
+        return true;
+      })()`);
+      await waitFor(
+        "location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')",
+        3_000,
+        "coalesced rapid navigation",
+      );
+      const rapidElapsed = Number(await evaluate("performance.now() - window.__wyjRapidStart"));
+      assert.ok(rapidElapsed < 1_000, `rapid native taps took ${Math.round(rapidElapsed)} ms`);
+    });
+
+    await check("background session refresh never replaces the opened page", async () => {
+      // P0 regression: pressing「管理后台」while the last project was 日语测试
+      // must land on the admin panel and stay there when a background session
+      // refresh completes.
+      await evaluate(`localStorage.setItem('wyjAccountSession', ${JSON.stringify(admin.session)}); location.href = '/admin?native-navigation=1'; true`);
+      await waitFor("!document.querySelector('#adminPanel')?.classList.contains('hidden')", 12_000, "admin panel for navigation regression");
+      await waitFor("!!window.WYJAndroidNavigation", 10_000, "native navigation bridge after admin");
+      await evaluate("window.WYJAndroidNavigation.navigate('/language/japanese')");
+      await waitFor(
+        "location.pathname === '/language/japanese' && !document.querySelector('#projectApp')?.classList.contains('hidden')",
+        5_000,
+        "japanese workspace",
+      );
+      await evaluate("window.WYJAndroidNavigation.navigate('/admin')");
+      await waitFor(
+        "location.pathname === '/admin' && !document.querySelector('#adminPanel')?.classList.contains('hidden')",
+        6_000,
+        "admin panel navigation",
+      );
+      // Simulate the return-to-foreground/network refresh that used to re-apply
+      // the stale workspace screen.
+      await evaluate("window.dispatchEvent(new Event('online')); document.dispatchEvent(new Event('visibilitychange')); true");
+      await new Promise((resolve) => setTimeout(resolve, 2_500));
+      const afterRefresh = await evaluate(`({
+        pathname: location.pathname,
+        adminVisible: !document.querySelector('#adminPanel')?.classList.contains('hidden'),
+        workspaceVisible: !document.querySelector('#workspace')?.classList.contains('hidden'),
+        projectVisible: !document.querySelector('#projectApp')?.classList.contains('hidden'),
+      })`);
+      assert.equal(afterRefresh.pathname, "/admin");
+      assert.equal(afterRefresh.adminVisible, true);
+      assert.equal(afterRefresh.workspaceVisible, false);
+      assert.equal(afterRefresh.projectVisible, false);
+
+      // A second refresh cycle after navigating to the toolbox must not move
+      // the user back to the previous test either.
+      await evaluate("window.WYJAndroidNavigation.navigate('/tools')");
+      await waitFor(
+        "location.pathname === '/tools' && !document.querySelector('#toolsPanel')?.classList.contains('hidden')",
+        6_000,
+        "toolbox after admin",
+      );
+      await evaluate("window.dispatchEvent(new Event('online')); true");
+      await new Promise((resolve) => setTimeout(resolve, 2_000));
+      assert.equal(await evaluate("location.pathname"), "/tools");
+      assert.equal(await evaluate("!document.querySelector('#toolsPanel')?.classList.contains('hidden')"), true);
+      assert.equal(await evaluate("document.querySelector('#projectApp')?.classList.contains('hidden')"), true);
+
+      await navigate(`/login?native-nav-cleanup=${RUN_ID}`);
+      await waitFor("location.pathname === '/login'", 8_000, "native navigation cleanup");
     });
 
     const expectedDeniedPaths = new Set(["/api/tools/access", "/api/quiz/start"]);

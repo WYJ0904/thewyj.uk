@@ -32,6 +32,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -60,8 +61,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import uk.thewyj.app.BuildConfig
-import uk.thewyj.app.core.network.AppUpdatePolicy
 import uk.thewyj.app.R
 import uk.thewyj.app.core.auth.AccountSnapshot
 import uk.thewyj.app.core.auth.AuthInputPolicy
@@ -74,6 +75,7 @@ import uk.thewyj.app.core.design.statusContainerColor
 import uk.thewyj.app.core.design.statusContentColor
 import uk.thewyj.app.core.session.ConnectionMode
 import uk.thewyj.app.core.session.SessionState
+import uk.thewyj.app.core.update.UpdateUiState
 import uk.thewyj.app.core.web.ThewyjWebView
 
 @Composable
@@ -84,9 +86,15 @@ fun ThewyjApp(viewModel: AppViewModel) {
     val webEpoch by viewModel.webEpoch.collectAsStateWithLifecycle()
     val navigationEpoch by viewModel.navigationEpoch.collectAsStateWithLifecycle()
     val notice by viewModel.notice.collectAsStateWithLifecycle()
-    val update by viewModel.update.collectAsStateWithLifecycle()
+    val updateState by viewModel.updateState.collectAsStateWithLifecycle()
     val authBusy by viewModel.authBusy.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshUpdatePermission()
+        onPauseOrDispose { }
+    }
 
     LaunchedEffect(notice) {
         if (notice.isNotBlank()) {
@@ -116,13 +124,19 @@ fun ThewyjApp(viewModel: AppViewModel) {
                 webRoute = webRoute,
                 webEpoch = webEpoch,
                 navigationEpoch = navigationEpoch,
-                update = update,
+                updateState = updateState,
                 onDestination = viewModel::select,
                 onOpenRoute = viewModel::openRoute,
                 onWebRouteChanged = viewModel::onWebRouteChanged,
                 onRefresh = viewModel::refreshSession,
                 onLogout = viewModel::logout,
                 onCheckUpdate = viewModel::checkForUpdate,
+                onStartUpdate = viewModel::startUpdate,
+                onInstallUpdate = {
+                    viewModel.prepareInstall()?.let { intent ->
+                        runCatching { context.startActivity(intent) }
+                    }
+                },
                 onWebError = viewModel::setNotice,
             )
         }
@@ -255,21 +269,25 @@ private fun AuthenticatedShell(
     webRoute: String,
     webEpoch: Int,
     navigationEpoch: Int,
-    update: uk.thewyj.app.core.network.AppConfig?,
+    updateState: UpdateUiState,
     onDestination: (AppDestination) -> Unit,
     onOpenRoute: (String) -> Unit,
     onWebRouteChanged: (String) -> Unit,
     onRefresh: () -> Unit,
     onLogout: () -> Unit,
     onCheckUpdate: () -> Unit,
+    onStartUpdate: () -> Unit,
+    onInstallUpdate: () -> Unit,
     onWebError: (String) -> Unit,
 ) {
     val activity = LocalActivity.current
     var backNavigationRequest by remember { mutableIntStateOf(0) }
     var showNotificationArchive by remember { mutableStateOf(false) }
     var showTransfer by remember { mutableStateOf(false) }
+    var showPermissions by remember { mutableStateOf(false) }
     BackHandler {
-        if (showNotificationArchive) showNotificationArchive = false
+        if (showPermissions) showPermissions = false
+        else if (showNotificationArchive) showNotificationArchive = false
         else if (showTransfer) showTransfer = false
         else if (destination == AppDestination.MY) onDestination(AppDestination.HOME)
         else backNavigationRequest += 1
@@ -310,17 +328,21 @@ private fun AuthenticatedShell(
                     account = state.account,
                     mode = state.mode,
                     message = state.message,
-                    update = update,
+                    updateState = updateState,
                     onOpenRoute = onOpenRoute,
                     onOpenNotifications = { onDestination(AppDestination.NOTIFICATIONS) },
                     onOpenTransfer = { showTransfer = true },
+                    onOpenPermissions = { showPermissions = true },
                     onRefresh = onRefresh,
                     onCheckUpdate = onCheckUpdate,
+                    onStartUpdate = onStartUpdate,
+                    onInstallUpdate = onInstallUpdate,
                     onLogout = onLogout,
                 )
             } else if (destination == AppDestination.NOTIFICATIONS) {
                 NotificationHubScreen(
                     account = state.account,
+                    onOpenPermissions = { showPermissions = true },
                     modifier = Modifier.fillMaxSize(),
                 )
             } else if (state.mode != ConnectionMode.ONLINE) {
@@ -342,6 +364,9 @@ private fun AuthenticatedShell(
                     onBack = { showTransfer = false },
                 )
             }
+            if (showPermissions) {
+                PermissionCenterScreen(onBack = { showPermissions = false })
+            }
         }
     }
 }
@@ -351,15 +376,17 @@ private fun MyScreen(
     account: AccountSnapshot,
     mode: ConnectionMode,
     message: String,
-    update: uk.thewyj.app.core.network.AppConfig?,
+    updateState: UpdateUiState,
     onOpenRoute: (String) -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenTransfer: () -> Unit,
+    onOpenPermissions: () -> Unit,
     onRefresh: () -> Unit,
     onCheckUpdate: () -> Unit,
+    onStartUpdate: () -> Unit,
+    onInstallUpdate: () -> Unit,
     onLogout: () -> Unit,
 ) {
-    val context = LocalContext.current
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(ThewyjSpacing.Lg),
@@ -408,35 +435,16 @@ private fun MyScreen(
                     SettingsAction("通知保存", "通知权限、本机历史与自动记账候选") { onOpenNotifications() }
                     HorizontalDivider()
                     SettingsAction("文件传输", "SAF 大文件分片上传、续传与链接分享") { onOpenTransfer() }
+                    HorizontalDivider()
+                    SettingsAction("权限中心", "通知访问、无障碍、短信与安装权限的逐项说明") { onOpenPermissions() }
                 }
             }
-            ThewyjCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(ThewyjSpacing.Xl)) {
-                    Text("App 更新", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "当前 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(ThewyjSpacing.Md))
-                    Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
-                        OutlinedButton(onClick = onCheckUpdate, shape = ThewyjRadius.Medium) { Text("检查更新") }
-                        if (update != null && AppUpdatePolicy.decide(
-                                BuildConfig.VERSION_CODE,
-                                update.latestVersionCode,
-                                update.minimumVersionCode,
-                                update.downloadUrl,
-                            ) != AppUpdatePolicy.Decision.UP_TO_DATE
-                        ) {
-                            ThewyjPrimaryButton(
-                                text = { Text("打开下载页") },
-                                onClick = {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.downloadUrl)))
-                                },
-                            )
-                        }
-                    }
-                }
-            }
+            AppUpdateCard(
+                updateState = updateState,
+                onCheckUpdate = onCheckUpdate,
+                onStartUpdate = onStartUpdate,
+                onInstallUpdate = onInstallUpdate,
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
                 OutlinedButton(onClick = onRefresh, shape = ThewyjRadius.Medium) { Text("立即同步会话") }
                 OutlinedButton(
@@ -460,6 +468,72 @@ private fun SettingsAction(title: String, subtitle: String, onClick: () -> Unit)
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
             Text(title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
             Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+/**
+ * Real in-app update flow: check, download with progress, SHA-256 verification,
+ * then the official Android package installer (or the "install unknown apps"
+ * settings screen when that permission is missing).
+ */
+@Composable
+private fun AppUpdateCard(
+    updateState: UpdateUiState,
+    onCheckUpdate: () -> Unit,
+    onStartUpdate: () -> Unit,
+    onInstallUpdate: () -> Unit,
+) {
+    val busy = updateState is UpdateUiState.Checking ||
+        updateState is UpdateUiState.Downloading ||
+        updateState is UpdateUiState.Verifying
+    ThewyjCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(ThewyjSpacing.Xl), verticalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
+            Text("App 更新", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "当前 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val detail = when (updateState) {
+                is UpdateUiState.UpToDate -> "当前已是最新版。"
+                is UpdateUiState.Available ->
+                    "新版本 v${updateState.versionName} (${updateState.versionCode})" +
+                        if (updateState.notes.isNotBlank()) "\n更新说明：${updateState.notes}" else ""
+                is UpdateUiState.NeedsInstallPermission ->
+                    "请先允许 thewyj 安装应用；返回应用后继续更新流程。"
+                is UpdateUiState.ReadyToInstall -> "安装包已通过 SHA-256 校验，即将打开系统安装器。"
+                is UpdateUiState.Failed -> updateState.message
+                else -> "更新使用官网正式地址，下载完成后由 Android 系统安装器确认安装。"
+            }
+            Text(detail, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            when (updateState) {
+                is UpdateUiState.Downloading -> LinearProgressIndicator(
+                    progress = { updateState.percent / 100f },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                is UpdateUiState.Verifying -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                else -> Unit
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
+                OutlinedButton(onClick = onCheckUpdate, shape = ThewyjRadius.Medium, enabled = !busy) {
+                    Text("检查更新")
+                }
+                when (updateState) {
+                    is UpdateUiState.Available -> ThewyjPrimaryButton(
+                        text = { Text("下载并安装") },
+                        onClick = onStartUpdate,
+                    )
+                    is UpdateUiState.ReadyToInstall -> ThewyjPrimaryButton(
+                        text = { Text("打开系统安装器") },
+                        onClick = onInstallUpdate,
+                    )
+                    is UpdateUiState.NeedsInstallPermission -> ThewyjPrimaryButton(
+                        text = { Text("去允许安装") },
+                        onClick = onInstallUpdate,
+                    )
+                    else -> Unit
+                }
+            }
         }
     }
 }

@@ -450,9 +450,9 @@ node local-backend/test_app_browser.mjs
 node local-backend/test_tools_browser.mjs
 ```
 
-当前 Python 自动化套件共 180 项，另配有学习同步客户端协议测试、38 项 JavaScript 工具模块自检、11 组工作流核心自检和 4 项 Pages 代理韧性检查，以及 `qa/functional-audit.json` 驱动的全功能覆盖门禁。门禁必须精确覆盖 21 个路由、22 条应用流程、103 个工具、51 个工具子模式、7 个复选控制、12 个工作流能力和 27 个工作流浏览器行为；源码和 QA 清单任一方向出现缺项都会直接失败。
+当前 Python 自动化套件共 182 项，另配有学习同步客户端协议测试、38 项 JavaScript 工具模块自检、11 组工作流核心自检和 4 项 Pages 代理韧性检查，以及 `qa/functional-audit.json` 驱动的全功能覆盖门禁。门禁必须精确覆盖 23 个路由、24 条应用流程、103 个工具（用户目录展示 102 个，`temporary-file` 作为兼容条目保留）、51 个工具子模式、7 个复选控制、12 个工作流能力和 27 个工作流浏览器行为；源码和 QA 清单任一方向出现缺项都会直接失败。
 
-`test_app_browser.mjs` 使用真实 Chrome 覆盖 22 条完整用户流程，其中包含公开导航的鼠标、键盘与移动触控回归、登录态产品主页、主题保持、学习数据离线排队、恢复连接、第二设备目标合并、账号绑定备份校验，以及 390px 手机视口下的错题重新判定、统一反馈计时、A-H 切页/刷新状态完整性、WCAG AA 对比度回归、结构化更新日志、私有反馈提交、管理员反馈处理与功能投票。`test_tools_browser.mjs` 会为每次运行创建全新的浏览器上下文，逐项操作 103 个工具（文本 29、文件 17、图片 30、随机 22、临时 5）及 51 个子模式，并额外真实操作工作流创建、编辑、保存、导入导出、四个模板、批量失败隔离、取消、离线运行和 390/1366/1920 响应式布局。文件、图片、PDF、ZIP、二维码、vCard 和工作流产物不使用被测页面自行判定，而由 `qa/verify_tool_artifacts.py` 通过标准库、Pillow、pypdf、OpenCV 和 vobject 独立重新打开并验证语义；本地首次运行前执行 `python -m pip install -r qa/requirements.txt`。
+`test_app_browser.mjs` 使用真实 Chrome 覆盖 24 条完整用户流程，其中包含公开导航的鼠标、键盘与移动触控回归、登录态产品主页、主题保持、学习数据离线排队、恢复连接、第二设备目标合并、账号绑定备份校验，以及 390px 手机视口下的错题重新判定、统一反馈计时、A-H 切页/刷新状态完整性、WCAG AA 对比度回归、结构化更新日志、私有反馈提交、管理员反馈处理与功能投票。`test_tools_browser.mjs` 会为每次运行创建全新的浏览器上下文，逐项操作 103 个工具（文本 29、文件 17、图片 30、随机 22、临时 5）及 51 个子模式，并额外真实操作工作流创建、编辑、保存、导入导出、四个模板、批量失败隔离、取消、离线运行和 390/1366/1920 响应式布局。文件、图片、PDF、ZIP、二维码、vCard 和工作流产物不使用被测页面自行判定，而由 `qa/verify_tool_artifacts.py` 通过标准库、Pillow、pypdf、OpenCV 和 vobject 独立重新打开并验证语义；本地首次运行前执行 `python -m pip install -r qa/requirements.txt`。
 
 完整覆盖还包括公开首页、更新日志、有限匿名试用、受保护路由、注册登录、个人首页本地摘要与服务状态、断网后会话保留与自动恢复、微信 WebView 兼容、登录位置审计、会话摘要迁移、封禁、管理员安全重置密钥、用户自助改密、密钥与哈希防泄露、老会员迁移、六种在售方案、支付方式锁定、私有二维码鉴权、完整支付状态机、微信与支付宝订单刷新恢复、原子审批与唯一履约、包月续期与永久会员幂等、权益隔离与合并、过期降级、管理员审计、反馈隐私与投票去重、错题实际重新判定与幂等审计、本地优先分级搜索、NFKC/大小写/假名归一化、英语词形匹配、稳定排序、TTL/LRU 缓存、完整排除词缓存键、工具权限、收藏/历史/配置、双客户端留言自动同步、文件签名、跨站拒绝、限流、AI 兜底选词、日语汉字自动标音、纯假名直接出题、汉字与假名听写判卷、错题 PDF、HTML ID、PWA 缓存、390/1366/1920 像素布局与关键文字对比度、CSV 引号换行、MD5、颜色转换、JPEG 元数据清理、Wi-Fi/联系人二维码和 OpenCC 词典完整性。额外压力矩阵验证 300 次状态请求、200 次并发工具写入和 24 次并发 PDF 导出均为 0 错误。
 
@@ -786,7 +786,7 @@ Preview 应先按 `qa/TASK18_ADMIN_MESSAGES_AUDIT.md` 核对 active owner 数量
 
 ### Task 20 Android 客户端
 
-`android/` 是正式 `thewyj` Android 客户端，release `applicationId` 固定为 `uk.thewyj.app`。Compose 原生层负责安全登录、设备会话、启动/离线恢复、五项底部导航、账户与更新入口；学习、103 个工具、财务、会员与支付、临时分享、管理员和站内消息继续使用同一套 Cloudflare API 与一份受控 WebView 中的 Design System 2.0 页面。Android 不保存第二套 plan、price、entitlement 或二维码映射，财务会员微信/支付宝仍由 Task 13/17 的服务端订单快照与私有 R2 映射决定。
+`android/` 是正式 `thewyj` Android 客户端，release `applicationId` 固定为 `uk.thewyj.app`。Compose 原生层负责安全登录、设备会话、启动/离线恢复、六项底部导航、权限中心（通知访问、无障碍、短信、自身通知与「安装未知应用」，含 Android 13+ 受限设置说明）、账户与 App 内更新（下载进度、SHA-256 校验、系统安装器）；学习、103 个工具、财务、会员与支付、临时分享、管理员和站内消息继续使用同一套 Cloudflare API 与一份受控 WebView 中的 Design System 2.0 页面。Android 不保存第二套 plan、price、entitlement 或二维码映射，财务会员微信/支付宝仍由 Task 13/17 的服务端订单快照与私有 R2 映射决定。
 
 `cloudflare/migrations/0015_android_device_sessions.sql` 在 Task 12 stable user ID 上增加 Android 设备会话和已使用 refresh receipt。访问凭据为 15 分钟；refresh credential 为 180 天滑动、每次轮换并支持同一 request ID 的幂等重试，换 request ID 重放会撤销 token family。D1 只保存摘要，App 的 refresh credential 只以 Android Keystore AES-GCM 密文落盘，WebView 只接收短期 HttpOnly Cookie。网络超时、429、5xx、Wi-Fi/移动数据、IP/NAT 或 VPN 变化只进入可恢复/离线状态，不清除登录；封禁、删除、改密/退出全部设备、明确撤销、过期或 replay 才要求重新登录。
 

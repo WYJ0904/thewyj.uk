@@ -31,6 +31,11 @@ data class AppConfig(
     val latestVersionName: String,
     val minimumVersionCode: Int,
     val downloadUrl: String,
+    val releaseNotes: String = "",
+    val releaseDate: String = "",
+    val apkFileName: String = "",
+    val apkSha256: String = "",
+    val apkSizeBytes: Long = 0,
 )
 
 interface AccountApi {
@@ -128,6 +133,11 @@ class ThewyjApiClient(
                 latestVersionName = app.optString("latest_version_name", "1.0.0"),
                 minimumVersionCode = app.optInt("minimum_version_code", 1),
                 downloadUrl = app.optString("download_url").takeIf(::isSafeDownloadUrl).orEmpty(),
+                releaseNotes = app.optString("release_notes").trim().take(400),
+                releaseDate = app.optString("release_date").trim().take(20),
+                apkFileName = app.optString("apk_file_name").trim().take(120),
+                apkSha256 = app.optString("apk_sha256").trim().lowercase().take(64),
+                apkSizeBytes = app.optLong("apk_size_bytes", 0).coerceAtLeast(0),
             )
         }
     }

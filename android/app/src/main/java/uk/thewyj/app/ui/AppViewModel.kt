@@ -1,5 +1,6 @@
 package uk.thewyj.app.ui
 
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
@@ -14,6 +15,8 @@ import uk.thewyj.app.core.network.AppConfig
 import uk.thewyj.app.core.session.RefreshWorkResult
 import uk.thewyj.app.core.session.SessionState
 import uk.thewyj.app.core.session.ConnectionMode
+import uk.thewyj.app.core.update.UpdateFlow
+import uk.thewyj.app.core.update.UpdateUiState
 import uk.thewyj.app.core.web.NavigationDecision
 import uk.thewyj.app.core.web.WebRoutePolicy
 
@@ -51,13 +54,16 @@ class AppViewModel : ViewModel() {
     private val mutableNotice = MutableStateFlow("")
     val notice = mutableNotice.asStateFlow()
 
-    private val mutableUpdate = MutableStateFlow<AppConfig?>(null)
-    val update = mutableUpdate.asStateFlow()
+    private val updateInstaller = AppGraph.updateInstaller
+    private val mutableUpdateState = MutableStateFlow<UpdateUiState>(UpdateUiState.Idle)
+    val updateState = mutableUpdateState.asStateFlow()
+    private var latestConfig: AppConfig? = null
 
     private val mutableAuthBusy = MutableStateFlow(false)
     val authBusy = mutableAuthBusy.asStateFlow()
     private var refreshJob: Job? = null
     private var networkRecoveryJob: Job? = null
+    private var updateJob: Job? = null
 
     init {
         viewModelScope.launch { repository.restore() }
@@ -141,18 +147,78 @@ class AppViewModel : ViewModel() {
     }
 
     fun checkForUpdate() {
-        viewModelScope.launch {
+        if (updateJob?.isActive == true) return
+        updateJob = viewModelScope.launch {
+            mutableUpdateState.value = UpdateUiState.Checking
             when (val result = repository.appConfig()) {
                 is ApiCall.Success -> {
-                    mutableUpdate.value = result.value
-                    mutableNotice.value = if (result.value.latestVersionCode > BuildConfig.VERSION_CODE) {
-                        "发现新版本 ${result.value.latestVersionName}"
-                    } else {
-                        "当前已是最新版本"
-                    }
+                    latestConfig = result.value
+                    mutableUpdateState.value = UpdateFlow.checkResult(
+                        BuildConfig.VERSION_CODE,
+                        BuildConfig.VERSION_NAME,
+                        result.value,
+                    )
                 }
-                is ApiCall.Failure -> mutableNotice.value = result.message
+                is ApiCall.Failure -> {
+                    mutableUpdateState.value = UpdateUiState.Failed(result.message)
+                    mutableNotice.value = result.message
+                }
             }
         }
     }
+
+    /** Downloads the official APK and verifies the published SHA-256. */
+    fun startUpdate() {
+        val config = latestConfig ?: return
+        if (updateJob?.isActive == true) return
+        updateJob = viewModelScope.launch {
+            try {
+                if (!updateInstaller.canInstallPackages()) {
+                    mutableUpdateState.value = UpdateUiState.NeedsInstallPermission(config.latestVersionName)
+                    return@launch
+                }
+                val downloadId = updateInstaller.enqueueDownload(config)
+                val completed = updateInstaller.awaitDownload(downloadId) { progress ->
+                    mutableUpdateState.value = progress
+                }
+                if (!completed) {
+                    mutableUpdateState.value = UpdateFlow.downloadFailed("安装包下载失败，请检查网络后重试。")
+                    return@launch
+                }
+                mutableUpdateState.value = UpdateUiState.Verifying(config.latestVersionName)
+                val verified = updateInstaller.verify(config)
+                mutableUpdateState.value = UpdateFlow.afterDownload(
+                    config.latestVersionName,
+                    updateInstaller.canInstallPackages(),
+                    verified,
+                )
+            } catch (error: Throwable) {
+                mutableUpdateState.value = UpdateFlow.downloadFailed(error.message.orEmpty())
+            }
+        }
+    }
+
+    /**
+     * Opens the Android package installer, or the "install unknown apps"
+     * settings screen when that permission is still missing. The caller starts
+     * the returned intent.
+     */
+    fun prepareInstall(): Intent? {
+        val config = latestConfig ?: return null
+        if (!updateInstaller.canInstallPackages()) {
+            mutableUpdateState.value = UpdateUiState.NeedsInstallPermission(config.latestVersionName)
+            return updateInstaller.installPermissionIntent()
+        }
+        mutableUpdateState.value = UpdateUiState.ReadyToInstall(config.latestVersionName)
+        return updateInstaller.installIntent(config)
+    }
+
+    /** Re-reads the install permission after the user returns from settings. */
+    fun refreshUpdatePermission() {
+        val config = latestConfig ?: return
+        if (mutableUpdateState.value is UpdateUiState.NeedsInstallPermission && updateInstaller.canInstallPackages()) {
+            mutableUpdateState.value = UpdateFlow.afterDownload(config.latestVersionName, true, verified = true)
+        }
+    }
+
 }
