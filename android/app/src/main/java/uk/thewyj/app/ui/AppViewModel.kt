@@ -22,6 +22,7 @@ enum class AppDestination(val label: String, val route: String?) {
     LEARNING("学习", "/language"),
     TOOLS("工具", "/tools"),
     FINANCE("财务", "/finance"),
+    NOTIFICATIONS("通知", null),
     MY("我的", null),
 }
 

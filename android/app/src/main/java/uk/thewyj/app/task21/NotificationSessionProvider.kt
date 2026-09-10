@@ -24,15 +24,19 @@ class NotificationSessionProvider(context: Context) {
         } ?: return null
 
         val account = credentials.account
-        val entitled = account.isAdmin
-            || account.entitlements.contains("notification_archive_access")
-            || account.entitlements.contains("all_features_access")
-        if (!entitled || credentials.accessToken.isBlank()) return null
+        val allFeatures = account.isAdmin || account.entitlements.contains("all_features_access")
+        // Finance recognition and notification archiving are separate
+        // capabilities: finance-only accounts classify in memory and never write
+        // ordinary chat into the notification archive.
+        val financeEntitled = allFeatures || account.entitlements.contains("finance_access")
+        val archiveEntitled = allFeatures || account.entitlements.contains("notification_archive_access")
+        if ((!financeEntitled && !archiveEntitled) || credentials.accessToken.isBlank()) return null
         return CaptureAccount(
             accountId = account.id,
             deviceId = deviceIdentity.getOrCreate(),
             sessionToken = credentials.accessToken,
-            notificationEntitled = true,
+            financeEntitled = financeEntitled,
+            archiveEntitled = archiveEntitled,
         )
     }
 }

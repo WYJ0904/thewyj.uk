@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Payment enrichment service configuration. Window content access is required
+  to read the transaction fields of the page that owns an active 90 second
+  ticket; the service itself caps traversal depth/nodes and skips password
+  fields. It never captures screenshots or injects gestures.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/thewyj_accessibility_description"
+    android:notificationTimeout="300"
+    android:settingsActivity="uk.thewyj.app.MainActivity" />

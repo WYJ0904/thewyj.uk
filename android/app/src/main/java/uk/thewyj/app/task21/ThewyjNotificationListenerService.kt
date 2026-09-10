@@ -8,13 +8,15 @@ import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import uk.thewyj.app.BuildConfig
+import uk.thewyj.app.task21.store.NotificationArchiveSinkFactory
+import uk.thewyj.app.task21.payment.AndroidPaymentRecognitionHook
 import java.util.concurrent.Executors
 
 /**
- * Notification listener service. Real capture requires the user to grant
- * notification access and a physical device; this class only extracts fields
- * and delegates to the testable coordinator, and it does not read SMS or
- * accessibility content.
+ * Notification listener. It captures the platform's notification identity
+ * (key/id/tag/postTime/groupKey/channel) plus the local-only payload, and
+ * delegates classification, archiving and enrichment tickets to the
+ * coordinator. It does not read SMS or accessibility content.
  */
 class ThewyjNotificationListenerService : NotificationListenerService() {
     private val executor = Executors.newSingleThreadExecutor()
@@ -29,22 +31,59 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
             queueFor = { accountId -> NotificationOfflineQueue.inDirectory(filesDir, accountId) },
             transport = HttpNotificationIngestTransport(BuildConfig.THEWYJ_BASE_URL),
             account = provider::currentAccount,
+            archiveSink = NotificationArchiveSinkFactory.forContext(this),
+            paymentHook = AndroidPaymentRecognitionHook.get(this),
         )
+        // A reconnect replays the currently active notifications; the store
+        // treats an unchanged revision as a replay and stores nothing new.
+        for (active in runCatching { activeNotifications }.getOrDefault(emptyArray())) {
+            onNotificationPosted(active)
+        }
     }
 
-    override fun onNotificationPosted(sbn: StatusBarNotification) {
-        if (sbn.isOngoing) return
-        val extras = sbn.notification.extras
-        val sourcePackage = sbn.packageName ?: ""
-        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
-        val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
-        val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString() ?: ""
-        val subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString() ?: ""
-        val receivedAtMs = System.currentTimeMillis()
+    override fun onNotificationPosted(sbn: StatusBarNotification?) {
+        val notification = sbn ?: return
+        if (notification.isOngoing) return
+        val input = captureInput(notification)
         executor.execute {
-            coordinator?.onNotification(sourcePackage, title, text, bigText, subText, receivedAtMs)
+            coordinator?.onNotification(input)
             coordinator?.flush()
         }
+    }
+
+    override fun onNotificationRemoved(sbn: StatusBarNotification?) {
+        val notification = sbn ?: return
+        val input = captureInput(notification)
+        executor.execute { coordinator?.onRemoved(input) }
+    }
+
+    private fun captureInput(sbn: StatusBarNotification): NotificationCaptureInput {
+        val extras = sbn.notification?.extras
+        val textLines = extras?.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
+            ?.map { it?.toString().orEmpty() }
+            ?.filter { it.isNotBlank() }
+            .orEmpty()
+        return NotificationCaptureInput(
+            sourcePackage = sbn.packageName.orEmpty(),
+            sourceType = "notification",
+            notificationKey = sbn.key.orEmpty(),
+            notificationId = sbn.id,
+            tag = sbn.tag.orEmpty(),
+            groupKey = sbn.groupKey.orEmpty(),
+            channelId = sbn.notification?.channelId.orEmpty(),
+            postTime = sbn.postTime,
+            isGroup = sbn.isGroup,
+            isGroupSummary = sbn.notification != null &&
+                (sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0,
+            title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty(),
+            text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty(),
+            bigText = extras?.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty(),
+            subText = extras?.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString().orEmpty(),
+            infoText = extras?.getCharSequence(Notification.EXTRA_INFO_TEXT)?.toString().orEmpty(),
+            summaryText = extras?.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString().orEmpty(),
+            textLines = textLines,
+            receivedAtMs = System.currentTimeMillis(),
+        )
     }
 }
 

@@ -21,6 +21,7 @@ import {
   listNotificationEvents,
   rejectNotificationCandidate,
   requireNotificationAccess,
+  requireFinanceRecognitionAccess,
 } from "./task21-service.mjs";
 
 const ROUTES = new Map([
@@ -33,6 +34,12 @@ const ROUTES = new Map([
 ]);
 
 const METHODS_BY_PATH = new Map();
+const FINANCE_RECOGNITION_PATHS = new Set([
+  "/api/notification/ingest",
+  "/api/notification/candidates",
+  "/api/notification/candidates/confirm",
+  "/api/notification/candidates/reject",
+]);
 for (const key of ROUTES.keys()) {
   const splitAt = key.indexOf(" ");
   const method = key.slice(0, splitAt);
@@ -158,7 +165,11 @@ export async function handleTask21Request(context) {
     const authenticated = await resolveTask12Account(context);
     if (!authenticated.authenticated) return authenticationError(authenticated, context);
     const account = await enrichAccountWithTask13(context.env.WYJ_DB, authenticated.account);
-    requireNotificationAccess(account);
+    // Route level entitlement split: payment recognition belongs to
+    // finance_access, browsing the notification archive needs
+    // notification_archive_access.
+    if (FINANCE_RECOGNITION_PATHS.has(url.pathname)) requireFinanceRecognitionAccess(account);
+    else requireNotificationAccess(account);
     const rate = await enforceD1RateLimit(context, {
       enabled: flags.d1RateLimit,
       limit: descriptor.limit,
@@ -185,6 +196,7 @@ export async function handleTask21Request(context) {
       request_id: requestId(context),
       route: url.pathname,
       error_name: String(error?.name || "Error"),
+      error_message: String(error?.message || "").slice(0, 200),
     }));
     const classification = classifyCloudError(error);
     return apiError(`task21_${classification}`, "通知归档服务暂时不可用，请稍后重试", 503, requestId(context), { retryable: true });

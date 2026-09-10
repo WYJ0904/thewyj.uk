@@ -694,13 +694,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260909-task22-transfer-r1');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20260909-task22-transfer-r1');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260909-task22-transfer-r1');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260909-task22-transfer-r1');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260909-task22-transfer-r1');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260909-task22-transfer-r1');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260909-task22-transfer-r1');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260910-task21-final-closure-r1');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20260910-task21-final-closure-r1');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260910-task21-final-closure-r1');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260910-task21-final-closure-r1');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260910-task21-final-closure-r1');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260910-task21-final-closure-r1');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260910-task21-final-closure-r1');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -713,10 +713,10 @@ async function main() {
       assert.equal(pwa.cachedLearningSync, true);
       assert.equal(pwa.cachedWorkflows, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.08.31");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.09.10");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-09-01-task19-production-final");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-09-10-task21-notification-closure");
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
       const mobilePublic = await evaluate(`({
         viewport: document.documentElement.clientWidth,
@@ -831,7 +831,7 @@ async function main() {
       );
       assert.equal(await evaluate("document.querySelector('#changelogPage').textContent.includes('可配置工具工作流')"), true);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.08.31");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.09.10");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);

@@ -5,6 +5,13 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <!-- SMS capture is optional: tablets and Chromebooks without telephony
+         still get the notification and accessibility pipelines. -->
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
     <application
         android:name=".ThewyjApplication"
         android:allowBackup="false"
@@ -51,5 +58,29 @@
             android:foregroundServiceType="dataSync"
             tools:replace="android:foregroundServiceType"
             tools:node="merge" />
+        <!-- Payment amount verification. Only runs while a 90 second ticket is
+             active for the foreground package and the account is
+             finance-entitled; see task21/payment. -->
+        <service
+            android:name=".task21.payment.ThewyjPaymentAccessibilityService"
+            android:exported="true"
+            android:label="@string/payment_accessibility_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/thewyj_accessibility_service" />
+        </service>
+        <!-- Bank SMS capture for finance-entitled accounts. -->
+        <receiver
+            android:name=".task21.payment.BankSmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter android:priority="100">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
