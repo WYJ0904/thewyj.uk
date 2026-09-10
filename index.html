@@ -64,6 +64,7 @@
               <p>开始</p>
               <a href="/" data-site-nav="home" id="navHomeLink"><span id="navHomeLabel">首页</span><small>产品概览与入口</small></a>
               <a href="/changelog" data-site-nav="changelog"><span>更新日志</span><small>最近上线与修复</small></a>
+              <a href="/download" data-site-nav="download"><span>下载 App</span><small>Android 正式版安装包</small></a>
             </div>
             <div class="site-nav-card">
               <p>学习</p>
@@ -183,7 +184,7 @@
             <article class="public-plan-card"><h3>按模块订阅</h3><p>可分别选择语言学习、工具箱、财务账本或组合套餐。</p></article>
             <article class="public-plan-card"><h3>永久权益</h3><p>提供双语言和全功能永久方案。</p></article>
           </div>
-          <div class="public-actions"><button class="primary" id="publicPlansBtn" type="button">登录后查看套餐</button><button class="button-ghost" id="publicChangelogBtn" type="button">查看更新日志</button></div>
+          <div class="public-actions"><button class="primary" id="publicPlansBtn" type="button">登录后查看套餐</button><a class="primary" id="publicDownloadBtn" href="/download">下载 Android App</a><button class="button-ghost" id="publicChangelogBtn" type="button">查看更新日志</button></div>
         </section>
       </section>
 
@@ -191,6 +192,29 @@
         <header class="public-page-header"><p class="section-kicker">更新日志</p><h1 id="changelogTitle">近期改进</h1><p>按版本记录新功能、优化、修复和安全更新。当前版本：<strong id="changelogCurrentVersion">v2026.09.10</strong></p></header>
         <div class="changelog-list" id="changelogList" aria-live="polite"></div>
         <div class="public-actions"><button class="primary" id="changelogTrialBtn" type="button">免费试用</button><a class="button-link button-secondary" href="https://github.com/WYJ0904/thewyj.uk/commits/main/" target="_blank" rel="noopener noreferrer">完整提交记录</a></div>
+      </section>
+      <section class="public-page hidden" id="downloadPage" aria-labelledby="downloadTitle" aria-hidden="true">
+        <header class="public-page-header">
+          <p class="section-kicker">Android App</p>
+          <h1 id="downloadTitle">下载正式版 App</h1>
+          <p>thewyj 官方 Android 安装包，与网页端共用同一套账号、财务与通知保存服务。<span id="downloadNotice">下载后可用 SHA-256 校验安装包完整性。</span></p>
+        </header>
+        <div class="download-card" id="downloadCard">
+          <dl class="download-meta">
+            <div><dt>当前版本</dt><dd id="downloadVersion">v1.0.0</dd></div>
+            <div><dt>发布日期</dt><dd id="downloadReleaseDate">待发布</dd></div>
+            <div><dt>文件大小</dt><dd id="downloadApkSize">未知大小</dd></div>
+            <div><dt>文件名</dt><dd id="downloadApkName">thewyj-android.apk</dd></div>
+            <div class="download-sha"><dt>SHA-256</dt><dd id="downloadSha">待校验值</dd></div>
+          </dl>
+          <div class="public-actions">
+            <a class="primary" id="downloadMainBtn" href="/api/app/download">下载 APK</a>
+            <a class="button-link button-secondary" id="downloadSecondaryBtn" href="/api/app/download">备用下载链接</a>
+            <button class="button-ghost" id="downloadCopyShaBtn" type="button">复制校验值</button>
+          </div>
+          <p class="download-hint">安装说明：下载后在系统提示中允许安装；首次使用需登录 thewyj 账号。升级安装会保留登录状态与本地数据。</p>
+        </div>
+        <div class="public-actions"><a class="button-link button-secondary" href="/changelog" data-site-nav="changelog">查看更新日志</a></div>
       </section>
 
       <section class="trial-page hidden" id="trialPage" aria-labelledby="trialPageTitle" aria-hidden="true">

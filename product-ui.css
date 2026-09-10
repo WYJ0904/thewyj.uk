@@ -819,6 +819,62 @@ textarea::placeholder {
   border-top: 1px solid var(--color-border);
 }
 
+.download-card {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-8);
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface, rgba(255, 255, 255, 0.02));
+}
+
+.download-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.download-meta div {
+  min-width: 0;
+}
+
+.download-meta dt {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #8a8f98);
+}
+
+.download-meta dd {
+  margin: 0;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.download-sha dd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.download-hint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted, #8a8f98);
+}
+
+@media (max-width: 640px) {
+  .download-card {
+    padding: var(--space-4);
+  }
+
+  .download-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
 .changelog-list article {
   display: grid;
   grid-template-columns: 150px minmax(0, 1fr);

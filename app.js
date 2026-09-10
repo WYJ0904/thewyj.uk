@@ -37,6 +37,7 @@ import {
 import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260910-task21-final-closure-r1";
 import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260910-task21-final-closure-r1";
 import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260910-task21-final-closure-r1";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20260910-task21-final-closure-r1";
 import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260910-task21-final-closure-r1";
 import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20260910-task21-final-closure-r1";
 import { createTransferController } from "./js/transfer/app.js?v=20260910-task21-final-closure-r1";
@@ -3685,6 +3686,22 @@ function showChangelog(pushHistory = true) {
   renderAccountUi();
 }
 
+let androidDownloadController = null;
+
+function showDownload(pushHistory = true) {
+  stopProjectActivity();
+  currentProject = "";
+  state.quizLanguage = "";
+  hidePrimaryScreens();
+  setExperienceMode("public");
+  $("downloadPage").classList.remove("hidden");
+  $("downloadPage").setAttribute("aria-hidden", "false");
+  document.body.classList.remove("project-picker-active");
+  androidDownloadController?.show();
+  if (pushHistory) pushRoute("/download");
+  renderAccountUi();
+}
+
 function showTrial(pushHistory = true, tool = "") {
   stopProjectActivity();
   currentProject = "";
@@ -3741,7 +3758,7 @@ function showLanguageGate() {
 function hidePrimaryScreens() {
   setExperienceMode("workspace");
   const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
-  ["sessionRecovery", "publicHome", "changelogPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "transferPage", "shareViewer", "adminPanel"].forEach((id) => {
+  ["sessionRecovery", "publicHome", "changelogPage", "downloadPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "transferPage", "shareViewer", "adminPanel"].forEach((id) => {
     const element = $(id);
     if (!element) return;
     element.classList.add("hidden");
@@ -4017,6 +4034,10 @@ async function renderCurrentRoute() {
         showChangelog(false);
         return;
       }
+      if (path === "/download") {
+        showDownload(false);
+        return;
+      }
       if (path === "/transfer") {
         showTransfer(false);
         return;
@@ -4027,6 +4048,10 @@ async function renderCurrentRoute() {
     }
     if (path === "/changelog") {
       showChangelog(false);
+      return;
+    }
+    if (path === "/download") {
+      showDownload(false);
       return;
     }
     if (path === "/trial") {
@@ -6448,6 +6473,10 @@ async function navigateFromSiteNav(destination) {
     showChangelog(true);
     return;
   }
+  if (destination === "download") {
+    showDownload(true);
+    return;
+  }
   if (destination === "language") {
     if (state.session && state.account) showProjectPicker(true);
     else showTrial(true, "quiz");
@@ -6487,6 +6516,12 @@ async function boot() {
   updatePracticeUi();
   renderChangelog();
   renderAccountUi();
+  androidDownloadController = createAndroidDownloadController({
+    apiGet,
+    onMessage: (message) => {
+      if ($("downloadNotice")) $("downloadNotice").textContent = message;
+    },
+  });
 
   $("loginForm").addEventListener("submit", login);
   $("registerForm").addEventListener("submit", registerAccount);
@@ -6494,7 +6529,7 @@ async function boot() {
   $("showRegisterBtn").addEventListener("click", () => showAuthMode("register", true));
   $("navLoginBtn").addEventListener("click", () => showAuth("", { mode: "login", path: "/login" }));
   $("navRegisterBtn").addEventListener("click", () => showAuth("", { mode: "register", path: "/register" }));
-  const siteNavigationDestinations = new Set(["home", "changelog", "language", "trial", "tools", "finance"]);
+  const siteNavigationDestinations = new Set(["home", "changelog", "download", "language", "trial", "tools", "finance"]);
   document.querySelectorAll("[data-site-nav]").forEach((link) => link.addEventListener("click", async (event) => {
     const destination = link.dataset.siteNav;
     if (!siteNavigationDestinations.has(destination)) return;
@@ -6853,6 +6888,10 @@ async function boot() {
       }
       if (initialPath === "/changelog") {
         showChangelog(false);
+        return;
+      }
+      if (initialPath === "/download") {
+        showDownload(false);
         return;
       }
     }

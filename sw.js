@@ -20,6 +20,7 @@ const CORE_SHELL = [
   "/js/core/storage.js?v=20260910-task21-final-closure-r1",
   "/js/core/ui.js?v=20260910-task21-final-closure-r1",
   "/js/core/design-system.js?v=20260910-task21-final-closure-r1",
+  "/js/core/download.js?v=20260910-task21-final-closure-r1",
   "/js/finance/app.js?v=20260910-task21-final-closure-r1",
   "/js/finance/candidates.js?v=20260910-task21-final-closure-r1",
   "/js/transfer/app.js?v=20260910-task21-final-closure-r1",

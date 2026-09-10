@@ -113,11 +113,27 @@ try {
     const unsafe = await requestHandler(db, "/api/app/config", {
       env: { ANDROID_DOWNLOAD_URL: "intent://untrusted-app/#Intent;end" },
     });
-    assert.equal(unsafe.payload.app.download_url, "");
+    // An unsafe override is ignored; the stable R2 download route is served
+    // from the request origin instead (Task 23).
+    assert.equal(unsafe.payload.app.download_url, "https://thewyj.uk/api/app/download");
     const secure = await requestHandler(db, "/api/app/config", {
       env: { ANDROID_DOWNLOAD_URL: "https://thewyj.uk/download/android" },
     });
     assert.equal(secure.payload.app.download_url, "https://thewyj.uk/download/android");
+    const defaults = await requestHandler(db, "/api/app/config");
+    assert.equal(defaults.payload.app.download_url, "https://thewyj.uk/api/app/download");
+    assert.ok(Number(defaults.payload.app.latest_version_code) >= 1);
+    assert.equal(typeof defaults.payload.app.apk_sha256, "string");
+    const withRelease = await requestHandler(db, "/api/app/config", {
+      env: {
+        ANDROID_APK_SHA256: "D110DA8CAFC3D79A500D2FB29A9993AC14E940B6773128B1DC41C69DD0871342",
+        ANDROID_APK_SIZE_BYTES: "1679711",
+        ANDROID_RELEASE_DATE: "2026-09-10",
+      },
+    });
+    assert.equal(withRelease.payload.app.apk_sha256, "d110da8cafc3d79a500d2fb29a9993ac14e940b6773128b1dc41c69dd0871342");
+    assert.equal(withRelease.payload.app.apk_size_bytes, 1679711);
+    assert.equal(withRelease.payload.app.release_date, "2026-09-10");
   });
 
   await test("feature flag keeps Android session endpoints closed by default", async () => {
