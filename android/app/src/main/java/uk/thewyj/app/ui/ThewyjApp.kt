@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -310,11 +311,16 @@ private fun AuthenticatedShell(
                     message = state.message,
                     update = update,
                     onOpenRoute = onOpenRoute,
-                    onOpenNotifications = { showNotificationArchive = true },
+                    onOpenNotifications = { onDestination(AppDestination.NOTIFICATIONS) },
                     onOpenTransfer = { showTransfer = true },
                     onRefresh = onRefresh,
                     onCheckUpdate = onCheckUpdate,
                     onLogout = onLogout,
+                )
+            } else if (destination == AppDestination.NOTIFICATIONS) {
+                NotificationHubScreen(
+                    account = state.account,
+                    modifier = Modifier.fillMaxSize(),
                 )
             } else if (state.mode != ConnectionMode.ONLINE) {
                 StatusPanel(
@@ -468,5 +474,6 @@ private fun destinationIcon(destination: AppDestination): ImageVector = when (de
     AppDestination.LEARNING -> Icons.Default.Edit
     AppDestination.TOOLS -> Icons.Default.Build
     AppDestination.FINANCE -> Icons.AutoMirrored.Filled.List
+    AppDestination.NOTIFICATIONS -> Icons.Default.Email
     AppDestination.MY -> Icons.Default.Person
 }
