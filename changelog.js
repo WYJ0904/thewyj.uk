@@ -1,7 +1,7 @@
 (() => {
   const entries = [
     {
-      version: "2026.09.10",
+      version: "2026.09.10.1",
       build: "2026-09-10-task23-android-release",
       date: "2026-09-10",
       title: "Android 正式版发布与更新机制",
@@ -24,9 +24,9 @@
       ],
     },
     {
-      version: "2026.09.10",
+      version: "2026.09.09",
       build: "2026-09-10-task22-single-object-downloads",
-      date: "2026-09-10",
+      date: "2026-09-09",
       title: "文件传输 2.0",
       features: [
         "文件传输 2.0 正式上线：大文件分片上传到私有 R2 存储，支持中断后从已上传分片继续，不需要整文件重新上传。",
