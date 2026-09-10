@@ -122,22 +122,32 @@ class Task22LargeTransferTest : Task22AcceptanceHarness() {
             }
         }
         val before = store.load().first { it.localId == item.localId }
+        val partsBeforeDrop = serverParts(before.sessionId, before.fileId)
         assertTrue("expected at least 3 uploaded parts before the network drop",
-            serverParts(before.sessionId, before.fileId).size >= 3)
+            partsBeforeDrop.size >= 3)
+        val uploadedBeforeDrop = before.uploadedParts.size
         shell("svc wifi disable")
         shell("svc data disable")
-        delay(15_000)
-        val during = store.load().first { it.localId == item.localId }
-        val partsDuring = serverParts(during.sessionId, during.fileId)
-
-        shell("svc wifi enable")
-        shell("svc data enable")
+        try {
+            delay(15_000)
+            val during = store.load().first { it.localId == item.localId }
+            assertTrue(
+                "offline uploads must not be recorded as uploaded (before=$uploadedBeforeDrop during=${during.uploadedParts.size})",
+                during.uploadedParts.size <= uploadedBeforeDrop,
+            )
+        } finally {
+            // Always restore connectivity, even if the offline assertions fail.
+            shell("svc wifi enable")
+            shell("svc data enable")
+        }
         delay(20_000)
         runWorkerToDone(item, timeoutMs = 30 * 60_000)
         val done = store.load().first { it.localId == item.localId }
-        assertTrue("resumed upload must keep earlier parts (during=$partsDuring final=${done.uploadedParts.size})",
-            done.uploadedParts.size >= partsDuring.size)
+        assertTrue("resumed upload must keep earlier parts (before=${partsBeforeDrop.size} final=${done.uploadedParts.size})",
+            done.uploadedParts.size >= partsBeforeDrop.size)
         assertTrue("all parts must finish (${done.uploadedParts.size}/${done.partCount})", done.uploadedParts.size == done.partCount)
+        assertTrue("server must still hold the parts uploaded before the drop",
+            serverParts(done.sessionId, done.fileId) == done.uploadedParts.toSet())
         val api = TransferApiClient(context)
         val share = api.complete(done.sessionId)
         val target = File(context.filesDir, "accept-300.network")
@@ -163,10 +173,27 @@ class Task22LargeTransferTest : Task22AcceptanceHarness() {
         }
         val before = store.load().first { it.localId == item.localId }
         store.upsert(before.copy(status = TransferItemStatus.PAUSED))
+        // A part that was already in flight when the pause landed may still be
+        // committed by R2; wait until the upload stops advancing before
+        // asserting that pausing stopped the pipeline.
+        runBlocking {
+            var previous = serverParts(before.sessionId, before.fileId)
+            val deadline = System.currentTimeMillis() + 90_000
+            while (System.currentTimeMillis() < deadline) {
+                delay(4_000)
+                val current = serverParts(before.sessionId, before.fileId)
+                if (current == previous) break
+                previous = current
+            }
+        }
         val pausedParts = serverParts(before.sessionId, before.fileId)
         delay(12_000)
         val stillPaused = serverParts(before.sessionId, before.fileId)
         assertEquals("no new parts while paused", pausedParts, stillPaused)
+        assertTrue(
+            "pausing must keep the parts uploaded before the pause (before=${before.uploadedParts} paused=$pausedParts)",
+            pausedParts.containsAll(before.uploadedParts),
+        )
         store.upsert(store.load().first { it.localId == item.localId }.copy(status = TransferItemStatus.PENDING))
         TransferUploadWorker.enqueue(context)
         runWorkerToDone(item, timeoutMs = 30 * 60_000)

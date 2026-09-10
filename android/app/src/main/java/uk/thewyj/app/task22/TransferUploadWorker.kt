@@ -133,6 +133,11 @@ class TransferUploadWorker(
                             partLength = length.toInt(),
                             input = input,
                             onProgress = { /* per-part progress is reflected in the queue bytes below */ },
+                            shouldStop = {
+                                isStopped || store.load()
+                                    .firstOrNull { it.localId == current.localId }
+                                    ?.status == TransferItemStatus.PAUSED
+                            },
                           )
                         }
                         current = store.update(current.localId) { latest ->
@@ -154,6 +159,13 @@ class TransferUploadWorker(
                     return Result.success()
                 }
                 return Result.retry()
+            } catch (error: TransferUploadPausedException) {
+                // The user paused while this part was in flight; the part is not
+                // recorded, so resume re-uploads it and stays consistent.
+                Log.i("T22WORKER", "paused during part upload")
+                val latest = store.load().firstOrNull { it.localId == item.localId } ?: item
+                store.upsert(latest.copy(status = TransferItemStatus.PAUSED))
+                return Result.success()
             } catch (error: TransferApiException) {
                 Log.w("T22WORKER", "api error ${error.status} ${error.code}: ${error.message}")
                 when {

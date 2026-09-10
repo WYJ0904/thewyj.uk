@@ -12,6 +12,9 @@ import java.net.URL
 
 class TransferApiException(message: String, val status: Int, val code: String) : Exception(message)
 
+/** Raised when the user pauses an upload while a part is in flight. */
+class TransferUploadPausedException : Exception("上传已暂停")
+
 class TransferApiClient(context: Context) {
     private val credentialStore = SecureCredentialStore(context.applicationContext)
     private val deviceIdentity = DeviceIdentityStore(context.applicationContext)
@@ -118,6 +121,7 @@ class TransferApiClient(context: Context) {
         partLength: Int,
         input: InputStream,
         onProgress: (Long) -> Unit,
+        shouldStop: (() -> Boolean)? = null,
     ) {
         val (token, _) = credentials() ?: throw TransferApiException("登录会话需要恢复", 401, "authentication_required")
         val connection = open(
@@ -130,11 +134,12 @@ class TransferApiClient(context: Context) {
             connection.doOutput = true
             connection.setFixedLengthStreamingMode(partLength)
             connection.outputStream.use { output ->
-                readExactly(input, partLength, output, onProgress)
+                readExactly(input, partLength, output, onProgress, shouldStop)
             }
             val status = connection.responseCode
             if (status !in 200..299) throw readError(connection, "分片上传失败")
         } finally {
+            // Aborts the request early when shouldStop cancelled the body.
             connection.disconnect()
         }
     }
@@ -191,10 +196,18 @@ class TransferApiClient(context: Context) {
             length: Int,
             output: java.io.OutputStream,
             onProgress: (Long) -> Unit,
+            shouldStop: (() -> Boolean)? = null,
         ): Int {
             val buffer = ByteArray(64 * 1024)
             var written = 0
+            var checkedAt = 0
             while (written < length) {
+                // Pausing must take effect long before a 16 MiB part finishes:
+                // poll the queue at most once per MiB and abort the request.
+                if (shouldStop != null && written - checkedAt >= 1024 * 1024) {
+                    checkedAt = written
+                    if (shouldStop()) throw TransferUploadPausedException()
+                }
                 val remaining = length - written
                 val read = input.read(buffer, 0, minOf(remaining, buffer.size))
                 if (read < 0) throw java.io.EOFException("File ended before the declared part length")

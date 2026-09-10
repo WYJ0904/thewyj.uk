@@ -92,6 +92,21 @@ abstract class Task22AcceptanceHarness {
     }
 
     fun serverParts(sessionId: String, fileId: String): Set<Int> {
+        var lastError: Exception? = null
+        for (attempt in 1..5) {
+            try {
+                return serverPartsOnce(sessionId, fileId)
+            } catch (error: Exception) {
+                // Mobile networks drop connections mid-handshake; the product
+                // worker retries, so the harness polls the same way.
+                lastError = error
+                Thread.sleep(1_000L * attempt)
+            }
+        }
+        throw lastError ?: IllegalStateException("server part state unavailable")
+    }
+
+    private fun serverPartsOnce(sessionId: String, fileId: String): Set<Int> {
         val state = TransferApiClient(context).sessionState(sessionId)
         val files = state.optJSONArray("files") ?: return emptySet()
         for (index in 0 until files.length()) {
