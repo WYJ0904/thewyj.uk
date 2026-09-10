@@ -17,6 +17,7 @@ import {
   chooseSpeechEngine,
   nativeSpeechUrl,
   normalizeSpeechLanguage,
+  resetSpeechState,
   speakText,
   stopSpeech,
 } from "../js/language/speech.js";
@@ -130,11 +131,20 @@ assert.equal(missingEngine.engine, "none");
 assert.match(missingEngine.message, /语音引擎/);
 assert.equal(speakText({}, { text: "   " }).ok, false);
 const stopCalls = [];
+// A route change without any native playback must not launch the native
+// scheme at all (a plain browser logs a protocol error for it).
+resetSpeechState();
+stopSpeech({ location: { set href(value) { stopCalls.push(value); } }, speechSynthesis: { cancel() {} } }, { native: true });
+assert.deepEqual(stopCalls, []);
+speakText({ location: { set href(_value) {} } }, { text: "hello", native: true });
 stopSpeech({
   location: { set href(value) { stopCalls.push(value); } },
   speechSynthesis: { cancel() { stopCalls.push("web-cancel"); } },
 }, { native: true });
 assert.equal(stopCalls.includes("thewyj://speech/stop"), true);
 assert.equal(stopCalls.includes("web-cancel"), true);
+const afterStop = [];
+stopSpeech({ location: { set href(value) { afterStop.push(value); } }, speechSynthesis: { cancel() {} } }, { native: true });
+assert.deepEqual(afterStop, []);
 
 console.log("Language JS module tests passed (quiz, Japanese, wrong book, history, achievements, sync adapter, speech).");

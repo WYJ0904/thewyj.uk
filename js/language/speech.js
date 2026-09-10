@@ -13,6 +13,14 @@ export function normalizeSpeechLanguage(value) {
   return String(value || "").toLowerCase().startsWith("ja") ? "ja-JP" : "en-US";
 }
 
+/**
+ * Tracks whether the native engine is currently playing something, so route
+ * changes only send `thewyj://speech/stop` after a native utterance started.
+ * Browsers that merely present an Android user agent must never be asked to
+ * launch the native scheme for no reason.
+ */
+let nativeSpeechActive = false;
+
 export function chooseSpeechEngine(globalObject = {}, options = {}) {
   if (options.native === true) return "native";
   if (globalObject.speechSynthesis && typeof globalObject.SpeechSynthesisUtterance === "function") return "web";
@@ -38,6 +46,7 @@ export function speakText(globalObject, { text, lang, rate, native = false } = {
     try {
       // The Android WebView intercepts this scheme and plays through the
       // system TextToSpeech engine; failures surface as a native notice.
+      nativeSpeechActive = true;
       globalObject.location.href = nativeSpeechUrl({ text: value, lang: language, rate: speed });
       return { ok: true, engine, message: "" };
     } catch (_) {
@@ -46,6 +55,7 @@ export function speakText(globalObject, { text, lang, rate, native = false } = {
   }
   if (engine === "web") {
     try {
+      nativeSpeechActive = false;
       const synth = globalObject.speechSynthesis;
       const utterance = new globalObject.SpeechSynthesisUtterance(value);
       utterance.lang = language;
@@ -66,7 +76,8 @@ export function speakText(globalObject, { text, lang, rate, native = false } = {
 
 export function stopSpeech(globalObject = {}, { native = false } = {}) {
   try {
-    if (native) {
+    if (native && nativeSpeechActive) {
+      nativeSpeechActive = false;
       globalObject.location.href = "thewyj://speech/stop";
     }
   } catch (_) {
@@ -79,4 +90,9 @@ export function stopSpeech(globalObject = {}, { native = false } = {}) {
   } catch (_) {
     // Same as above.
   }
+}
+
+/** Test-only: clear the native playback marker between cases. */
+export function resetSpeechState() {
+  nativeSpeechActive = false;
 }
