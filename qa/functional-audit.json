@@ -319,6 +319,7 @@
       "random-decision"
     ],
     "temporary": [
+      "file-transfer",
       "temporary-text",
       "temporary-file",
       "temporary-clipboard",
