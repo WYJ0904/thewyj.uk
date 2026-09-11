@@ -957,6 +957,24 @@ async function main() {
         false,
         "legacy temporary-file uploader must not exist",
       );
+      // Real data path through the canonical implementation: select a file,
+      // upload it, publish the share and download it back with a SHA check.
+      const canonicalOriginal = path.join(TEST_ROOT, `transfer-canonical-${RUN_ID}.bin`);
+      fs.writeFileSync(canonicalOriginal, Buffer.alloc(1024 * 1024, 7));
+      await evaluate(`transferController.addFiles([
+        new File([new Uint8Array(1024 * 1024).fill(7)], ${JSON.stringify(path.basename(canonicalOriginal))}, { type: "application/octet-stream" }),
+      ])`);
+      await waitFor("document.querySelectorAll('[data-transfer-item]').length === 1", 15_000, "canonical transfer item");
+      await waitFor("!document.getElementById('transferCompleteBtn')?.disabled", 90_000, "canonical transfer upload complete");
+      await click("#transferCompleteBtn");
+      await waitFor("!document.querySelector('#transferShareCard')?.classList.contains('hidden')", 20_000, "canonical share card");
+      const canonicalLink = await evaluate("document.getElementById('transferShareLink')?.value || ''");
+      assert.match(canonicalLink, /^https?:\/\/[^/]+\/transfer#share=/);
+      const canonicalDownload = await verifyDownload("[data-transfer-download]", 120_000);
+      assert.equal(path.basename(canonicalDownload), path.basename(canonicalOriginal));
+      assert.equal(fileSha256(canonicalDownload), fileSha256(canonicalOriginal), "canonical transfer SHA-256 mismatch");
+      artifactManifest.temporary_files.push({ original: canonicalOriginal, downloaded: canonicalDownload });
+      await evaluate("document.querySelector('[data-transfer-revoke]')?.click(); true");
       await send("Page.navigate", { url: `${BASE_URL}/tools` });
       await waitFor("window.WYJTools?.tools?.length === 104", 15_000, "toolbox reload after transfer check");
       await click("#toolsTransferBtn");
