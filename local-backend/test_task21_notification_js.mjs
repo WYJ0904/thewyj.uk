@@ -402,16 +402,61 @@ try {
   assert.ok(paid100Txn, "已支付100 must exist in the real finance ledger");
   assert.equal(paid100Txn.direction, "expense");
 
-  // 9c. Amount-unknown hints ("向张三转账" without an amount) become a real
-  // pending candidate with amount 0; confirming it requires the user's edits so
-  // no amount is ever invented.
+  // 9c. An amount-known hint ("转账 50") is a real pending candidate; the user
+  // confirms it (with an edit) and it lands in the real finance ledger.
+  const amountHint = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-amount-hint", {
+      ...transactionEvent(),
+      event_id: "evt-task21-amount-hint",
+      fingerprint: fingerprint("f460"),
+      parser_version: "payment-wechat",
+      parse_status: "candidate",
+      direction: "expense",
+      amount_minor: 5000,
+      confidence: 700,
+    }),
+  });
+  assert.equal(amountHint.response.status, 200, JSON.stringify(amountHint.payload));
+  const hintCandidateId = amountHint.payload.operation_results[0].candidate_id;
+  assert.match(hintCandidateId, /^cand:/, "amount-known hint must create a review candidate");
+  const hintRow = await db.prepare(
+    "SELECT * FROM task21_notification_candidates WHERE id = ?1",
+  ).bind(hintCandidateId).first();
+  assert.equal(Number(hintRow.amount_minor), 5000);
+  assert.equal(hintRow.status, "pending");
+
+  const hintTxnBefore = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 5000",
+  ).bind(USERS.subscriber.id).first();
+  assert.equal(Number(hintTxnBefore.count), 0, "a pending candidate must not book before confirmation");
+
+  const confirmHint = await request(db, "/api/notification/candidates/confirm", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: {
+      candidate_id: hintCandidateId,
+      device_id: "device-task21-000001",
+      edits: { merchant: "待确认转账" },
+    },
+  });
+  assert.equal(confirmHint.response.status, 200, JSON.stringify(confirmHint.payload));
+  assert.match(confirmHint.payload.transaction_id, /^txn:/);
+  const hintTxnAfter = await db.prepare(
+    "SELECT * FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 5000",
+  ).bind(USERS.subscriber.id).first();
+  assert.ok(hintTxnAfter, "user-confirmed candidate must reach the real finance ledger");
+
+  // Amount-unknown hints are rejected upstream on purpose: the device keeps
+  // them in the local enrichment flow and never invents an amount.
   const unknownHint = await request(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-unknown-amount-hint", {
       ...transactionEvent(),
       event_id: "evt-task21-hint-amount",
-      fingerprint: fingerprint("f460"),
+      fingerprint: fingerprint("f461"),
       parser_version: "payment-wechat",
       parse_status: "candidate",
       direction: "expense",
@@ -419,42 +464,7 @@ try {
       confidence: 460,
     }),
   });
-  assert.equal(unknownHint.response.status, 200, JSON.stringify(unknownHint.payload));
-  const hintCandidateId = unknownHint.payload.operation_results[0].candidate_id;
-  assert.match(hintCandidateId, /^cand:/, "amount-unknown hint must create a review candidate");
-  const hintRow = await db.prepare(
-    "SELECT * FROM task21_notification_candidates WHERE id = ?1",
-  ).bind(hintCandidateId).first();
-  assert.equal(Number(hintRow.amount_minor), 0);
-  assert.equal(hintRow.status, "pending");
-
-  const confirmWithoutAmount = await request(db, "/api/notification/candidates/confirm", {
-    method: "POST",
-    token: USERS.subscriber.token,
-    body: { candidate_id: hintCandidateId, device_id: "device-task21-000001" },
-  });
-  assert.equal(confirmWithoutAmount.response.status, 400);
-  assert.equal(confirmWithoutAmount.payload.code, "candidate_amount_required");
-  const hintTxnBefore = await db.prepare(
-    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 5000",
-  ).bind(USERS.subscriber.id).first();
-  assert.equal(Number(hintTxnBefore.count), 0, "an incomplete candidate must never book a transaction");
-
-  const confirmWithEdits = await request(db, "/api/notification/candidates/confirm", {
-    method: "POST",
-    token: USERS.subscriber.token,
-    body: {
-      candidate_id: hintCandidateId,
-      device_id: "device-task21-000001",
-      edits: { amount_minor: 5000, direction: "expense" },
-    },
-  });
-  assert.equal(confirmWithEdits.response.status, 200, JSON.stringify(confirmWithEdits.payload));
-  assert.match(confirmWithEdits.payload.transaction_id, /^txn:/);
-  const hintTxnAfter = await db.prepare(
-    "SELECT * FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 5000",
-  ).bind(USERS.subscriber.id).first();
-  assert.ok(hintTxnAfter, "user-confirmed amount must reach the real finance ledger");
+  assert.equal(unknownHint.response.status, 400, "amount-unknown hints must stay on the device");
 
   // 10. Malformed amount and unsupported currency are rejected.
   const badAmount = await request(db, "/api/notification/ingest", {

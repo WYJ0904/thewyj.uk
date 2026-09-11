@@ -183,12 +183,11 @@ class NotificationCaptureCoordinator(
         // hints/candidates/notifications.
         paymentHook?.onCapture(current.accountId, input, "")
         if (payment != null) {
-            // Confirmed payments and any hint that already carries an amount or
-            // a direction reach the backend: they become transactions or real
-            // review candidates. A hint where both are unknown stays local (the
-            // 90 second enrichment ticket) instead of inventing fields.
-            val actionable = payment.amountMinor > 0 || payment.direction != FinanceDirection.UNKNOWN
-            if (!actionable) return
+            // Confirmed payments and amount-known hints reach the backend: they
+            // become transactions or real review candidates. A hint without an
+            // amount stays local (90 second enrichment ticket) instead of
+            // inventing an amount.
+            if (payment.amountMinor <= 0) return
             val payloadForPayment = StructuredEventJson.ingestPayload("1", current.deviceId, eventId, structured)
             queueFor(current.accountId).enqueue(eventId, payloadForPayment)
             return
