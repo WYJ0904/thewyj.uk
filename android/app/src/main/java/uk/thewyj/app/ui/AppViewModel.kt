@@ -54,6 +54,22 @@ class AppViewModel : ViewModel() {
     private val mutableNotice = MutableStateFlow("")
     val notice = mutableNotice.asStateFlow()
 
+    /**
+     * Set when the user taps the payment notification or its「核实交易金额」
+     * action. The shell opens the native pending-verification surface so the
+     * promise made by the notification always has a destination.
+     */
+    private val mutablePaymentVerification = MutableStateFlow<String?>(null)
+    val paymentVerification = mutablePaymentVerification.asStateFlow()
+
+    fun openPaymentVerification(recognitionId: String) {
+        mutablePaymentVerification.value = recognitionId
+    }
+
+    fun closePaymentVerification() {
+        mutablePaymentVerification.value = null
+    }
+
     /** Resolved web theme; null until the page reports it. */
     private val mutableNativeDark = MutableStateFlow<Boolean?>(null)
     val nativeDark = mutableNativeDark.asStateFlow()

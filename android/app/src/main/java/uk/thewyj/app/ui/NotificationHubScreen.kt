@@ -77,6 +77,7 @@ fun NotificationHubScreen(
     account: AccountSnapshot,
     onOpenPermissions: () -> Unit = {},
     onOpenFinance: () -> Unit = {},
+    onOpenPaymentVerification: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val entitled = account.entitlements.contains("notification_archive_access") ||
@@ -148,14 +149,21 @@ fun NotificationHubScreen(
         if (state.pendingPayments > 0) {
             Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("${state.pendingPayments} 笔交易等待确认", fontWeight = FontWeight.SemiBold)
+                    Text("${state.pendingPayments} 笔交易待核实或待确认", fontWeight = FontWeight.SemiBold)
                     Text(
-                        "识别到的支付还没有进入账本。请到财务页确认，或补充金额与方向后再记账。",
+                        "识别到的支付还没进入账本。可以在这里核实金额、修改并记账，确认后会写入同一个财务账本。",
                         style = MaterialTheme.typography.bodySmall,
                     )
+                    if (state.remotePendingPayments > 0) {
+                        Text(
+                            "云端还有 ${state.remotePendingPayments} 笔候选可在财务页确认。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = onOpenFinance) { Text("去财务处理") }
-                        TextButton(onClick = onOpenFinance) { Text("查看待确认") }
+                        Button(onClick = onOpenPaymentVerification) { Text("去处理") }
+                        TextButton(onClick = onOpenFinance) { Text("查看财务") }
                     }
                 }
             }

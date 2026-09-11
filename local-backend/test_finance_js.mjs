@@ -68,4 +68,49 @@ assert.equal(applyFinanceChange(store, {
 }), true);
 assert.equal(store.budgets["budget:food"].amount_minor, 50000, "budget changes hydrate the budgets collection");
 
-console.log("Finance Web model tests passed (money, summary, filters, entity collections, tombstones, revision merge).");
+// Regression: "通知历史已识别支付，但财务 → 账目显示 0 笔".
+// An automatic Android booking must arrive as a transaction change so an
+// already hydrated ledger shows it without a full re-read. A raw_event change
+// is evidence only and must never be mistaken for a ledger entry.
+assert.equal(applyFinanceChange(store, {
+  version: 8,
+  entity_type: "raw_event",
+  entity_id: "raw:auto-1",
+  payload: { raw_event: { id: "raw:auto-1", source_type: "notification", sync_version: 8 } },
+}), false, "raw_event evidence is not a ledger entity");
+assert.deepEqual(Object.keys(store.transactions), ["txn:income:1"], "raw_event changes must not fabricate ledger rows");
+assert.equal(applyFinanceChange(store, {
+  version: 9,
+  entity_type: "transaction",
+  entity_id: "txn:auto:1",
+  operation: "upsert",
+  payload: {
+    transaction: {
+      id: "txn:auto:1",
+      direction: "expense",
+      amount_minor: 100000,
+      currency: "CNY",
+      category_id: "",
+      merchant: "微信支付",
+      counterparty: "微信支付",
+      note: "",
+      occurred_at_ms: january + 4000,
+      source_kind: "automatic",
+      reconciliation_state: "automatic",
+      status: "active",
+      revision: 1,
+      sync_version: 9,
+    },
+  },
+}), true);
+assert.equal(store.transactions["txn:auto:1"].source_kind, "automatic");
+assert.deepEqual(
+  filterFinanceTransactions(Object.values(store.transactions), { month: "2026-01", status: "active" })
+    .filter((item) => item.source_kind === "automatic")
+    .map((item) => item.id),
+  ["txn:auto:1"],
+  "an automatic booking change must be visible in the ledger list",
+);
+assert.equal(store.server_version, 9);
+
+console.log("Finance Web model tests passed (money, summary, filters, entity collections, tombstones, revision merge, automatic booking change feed).");

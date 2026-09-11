@@ -1902,6 +1902,65 @@ textarea::placeholder {
   gap: var(--space-3);
 }
 
+/* Mobile "折叠式信息架构": the default view of a phone page shows only the
+   primary content, and secondary controls (filters, statistics, budgets) are
+   disclosed on demand. Desktop keeps every disclosure open. */
+.ds-collapse {
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.ds-collapse > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: 10px var(--space-4);
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.ds-collapse > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ds-collapse > summary::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.16s ease;
+  flex: none;
+}
+
+.ds-collapse[open] > summary::after {
+  transform: rotate(225deg);
+}
+
+.ds-collapse > summary small {
+  margin-left: auto;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.ds-collapse > .finance-filter-grid,
+.ds-collapse > .finance-side-column {
+  padding: 0 var(--space-4) var(--space-4);
+  margin-bottom: 0;
+}
+
+.ds-collapse-panel > .finance-side-column {
+  padding-top: 0;
+}
+
 .finance-filter-grid {
   grid-template-columns: minmax(180px, 1.5fr) repeat(4, minmax(120px, 0.8fr));
   margin-bottom: var(--space-4);

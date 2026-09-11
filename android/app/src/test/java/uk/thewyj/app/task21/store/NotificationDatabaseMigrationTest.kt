@@ -46,7 +46,7 @@ class NotificationDatabaseMigrationTest {
         createV1Database(schema)
 
         database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
-            .addMigrations(NotificationDatabase.MIGRATION_1_2)
+            .addMigrations(NotificationDatabase.MIGRATION_1_2, NotificationDatabase.MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
         val notificationStore = RoomNotificationStore(database!!)
@@ -91,6 +91,89 @@ class NotificationDatabaseMigrationTest {
             error("exported v1 schema missing at ${file.absolutePath}")
         }
         return JSONObject(file.readText()).getJSONObject("database")
+    }
+
+    /**
+     * v2 -> v3 adds `payment_recognitions.uploadEventId`, which records whether
+     * a recognised payment was uploaded (server owns the booking) or stayed
+     * local (the device books it after verification). Existing recognitions,
+     * tickets, candidates and notification history must survive.
+     */
+    @Test fun migrationFromV2AddsUploadIdentityAndKeepsPaymentData() {
+        val schema = loadSchema(2)
+        createDatabaseFromSchema(schema, version = 2)
+        insertV2PaymentRows()
+
+        database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
+            .addMigrations(NotificationDatabase.MIGRATION_1_2, NotificationDatabase.MIGRATION_2_3)
+            .allowMainThreadQueries()
+            .build()
+        val store = RoomPaymentRecognitionStore(database!!)
+
+        val recognition = store.recognition("account-a", "rec-2")
+        assertNotNull("v2 recognition must survive the v3 migration", recognition)
+        assertEquals("", recognition!!.uploadEventId)
+        assertEquals(2800L, recognition.amountMinor)
+        assertEquals("WAITING_FOR_ENRICHMENT", recognition.state)
+        assertEquals(1, store.ticketsForRecognition("account-a", "rec-2").size)
+        assertEquals(1, store.pendingCandidateCount("account-a"))
+
+        // The new column is writable through the normal store API.
+        store.saveRecognition(recognition.copy(uploadEventId = "evt-uploaded-2"))
+        assertEquals("evt-uploaded-2", store.recognition("account-a", "rec-2")?.uploadEventId)
+    }
+
+    private fun loadSchema(version: Int): JSONObject {
+        val file = File("schemas/uk.thewyj.app.task21.store.NotificationDatabase/$version.json")
+        if (!file.exists()) error("exported v$version schema missing at ${file.absolutePath}")
+        return JSONObject(file.readText()).getJSONObject("database")
+    }
+
+    private fun createDatabaseFromSchema(schema: JSONObject, version: Int) {
+        val sqlite = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
+        val entities = schema.getJSONArray("entities")
+        for (index in 0 until entities.length()) {
+            val entity = entities.getJSONObject(index)
+            sqlite.execSQL(entity.getString("createSql").replace("${'$'}{TABLE_NAME}", entity.getString("tableName")))
+            val indices = entity.optJSONArray("indices") ?: continue
+            for (indexIndex in 0 until indices.length()) {
+                val indexJson = indices.getJSONObject(indexIndex)
+                sqlite.execSQL(indexJson.getString("createSql").replace("${'$'}{TABLE_NAME}", entity.getString("tableName")))
+            }
+        }
+        sqlite.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
+        sqlite.execSQL(
+            "INSERT OR REPLACE INTO room_master_table (id, identity_hash) VALUES (42, ?)",
+            arrayOf(schema.getString("identityHash")),
+        )
+        sqlite.version = version
+        sqlite.close()
+    }
+
+    private fun insertV2PaymentRows() {
+        val sqlite = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
+        sqlite.execSQL(
+            "INSERT INTO payment_recognitions (recognitionId, accountId, state, notificationId, sourcePackage, " +
+                "sourceType, sourceEventId, paymentChannel, amountMinor, hasAmount, currency, direction, merchant, " +
+                "providerReference, createdAtMs, updatedAtMs) VALUES ('rec-2', 'account-a', 'WAITING_FOR_ENRICHMENT', 7, " +
+                "'com.tencent.mm', 'NOTIFICATION', 'notification#k#2', 'wechat', 2800, 1, 'CNY', 'EXPENSE', '示例商户', '', 2000, 2000)",
+        )
+        sqlite.execSQL(
+            "INSERT INTO payment_tickets (ticketId, accountId, recognitionId, sourcePackage, sourceEventId, " +
+                "paymentChannel, amountHintMinor, hasAmountHint, missingFields, state, attempts, createdAtMs, " +
+                "expiresAtMs, enrichedAmountMinor, hasEnrichedAmount, enrichedDirection, enrichedMerchant, " +
+                "enrichedProviderReference, enrichedAtMs) VALUES ('ticket-2', 'account-a', 'rec-2', 'com.tencent.mm', " +
+                "'notification#k#2', 'wechat', 0, 0, 'amount', 'WAITING_FOR_ACCESSIBILITY', 0, 2000, 92000, 0, 0, '', '', '', 0)",
+        )
+        sqlite.execSQL(
+            "INSERT INTO payment_candidates (candidateId, accountId, recognitionId, status, amountMinor, hasAmount, " +
+                "direction, category, merchant, occurredAtMs, channel, confidence, reason, editedAmountMinor, " +
+                "hasEditedAmount, editedDirection, editedCategory, editedMerchant, editedOccurredAtMs, " +
+                "hasEditedOccurredAt, editedNote, financeTransactionId, createdAtMs, updatedAtMs) VALUES " +
+                "('cand-2', 'account-a', 'rec-2', 'pending', 2800, 1, 'EXPENSE', '', '示例商户', 2000, 'wechat', 940, '', " +
+                "0, 0, '', '', '', 0, 0, '', '', 2000, 2000)",
+        )
+        sqlite.close()
     }
 
     private fun createV1Database(schema: JSONObject) {

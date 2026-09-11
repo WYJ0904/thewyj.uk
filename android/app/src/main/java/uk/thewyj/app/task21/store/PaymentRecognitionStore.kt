@@ -20,6 +20,9 @@ interface PaymentRecognitionStoreContract {
     fun ticket(accountId: String, ticketId: String): PaymentTicket?
     fun activeTicketForPackage(accountId: String, sourcePackage: String): PaymentTicket?
     fun ticketsForRecognition(accountId: String, recognitionId: String): List<PaymentTicket>
+    fun activeTicketPackages(accountId: String, nowMs: Long): Set<String>
+    fun openTickets(accountId: String, limit: Int = 50): List<PaymentTicket>
+    fun recognitionsByState(accountId: String, states: List<String>, limit: Int = 100): List<PaymentRecognitionRecord>
 
     fun saveCandidate(candidate: PaymentCandidate)
     fun candidate(accountId: String, candidateId: String): PaymentCandidate?
@@ -59,6 +62,15 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
     override fun ticketsForRecognition(accountId: String, recognitionId: String): List<PaymentTicket> =
         dao.ticketsForRecognition(accountId, recognitionId).map { it.toModel() }
 
+    override fun activeTicketPackages(accountId: String, nowMs: Long): Set<String> =
+        dao.activeTicketPackages(accountId, nowMs).toSet()
+
+    override fun openTickets(accountId: String, limit: Int): List<PaymentTicket> =
+        dao.openTickets(accountId, limit).map { it.toModel() }
+
+    override fun recognitionsByState(accountId: String, states: List<String>, limit: Int): List<PaymentRecognitionRecord> =
+        dao.recognitionsByState(accountId, states, limit).map { it.toModel() }
+
     override fun saveCandidate(candidate: PaymentCandidate) = dao.upsertCandidate(candidate.toEntity())
 
     override fun candidate(accountId: String, candidateId: String): PaymentCandidate? =
@@ -97,6 +109,7 @@ internal fun PaymentRecognitionRecord.toEntity() = PaymentRecognitionEntity(
     sourcePackage = sourcePackage,
     sourceType = sourceType,
     sourceEventId = sourceEventId,
+    uploadEventId = uploadEventId,
     paymentChannel = paymentChannel,
     amountMinor = amountMinor ?: 0L,
     hasAmount = if (amountMinor != null) 1 else 0,
@@ -116,6 +129,7 @@ internal fun PaymentRecognitionEntity.toModel() = PaymentRecognitionRecord(
     sourcePackage = sourcePackage,
     sourceType = sourceType,
     sourceEventId = sourceEventId,
+    uploadEventId = uploadEventId,
     paymentChannel = paymentChannel,
     amountMinor = if (hasAmount == 1) amountMinor else null,
     currency = currency,

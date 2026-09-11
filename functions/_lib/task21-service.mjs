@@ -1,4 +1,5 @@
 import { sha256Hex } from "./cloudflare-foundation.mjs";
+import { publicTransaction } from "./task16-model.mjs";
 import {
   AUTO_INGEST_CONFIDENCE_MILLI,
   MAX_EVENT_PAGE,
@@ -185,13 +186,36 @@ async function createAutomaticFinanceTransaction(db, account, deviceId, event) {
     .bind(crypto.randomUUID(), account.id, deviceId, rawId,
       JSON.stringify({ classification: "accepted", transaction_id: transactionId, source: "task21_notification" }), now);
 
+  // The change feed must describe the *transaction*: clients only project
+  // transaction/category/budget changes, so an automatic booking previously
+  // only emitted a "raw_event" row and every already hydrated Web/Android
+  // ledger silently missed the new entry ("通知已识别支付，但财务 0 笔").
+  // The raw event row and the transaction↔evidence link above stay as the
+  // immutable audit trail; this row is what makes the ledger converge.
   const changeStatement = db.prepare(`INSERT INTO task16_finance_changes (
     user_id, version, entity_type, entity_id, operation, revision, payload_json, created_at
-  ) VALUES (?1, ?2, 'raw_event', ?3, 'ingest', 1, ?4, ?5)`)
-    .bind(account.id, version, rawId,
+  ) VALUES (?1, ?2, 'transaction', ?3, 'upsert', 1, ?4, ?5)`)
+    .bind(account.id, version, transactionId,
       JSON.stringify({
-        raw_event: { id: rawId, source_type: "notification", source_event_id: event.event_id, direction: event.direction, amount_minor: event.amount_minor, currency: event.currency },
-        transaction_id: transactionId,
+        transaction: publicTransaction({
+          id: transactionId,
+          direction: event.direction,
+          amount_minor: event.amount_minor,
+          currency: event.currency,
+          category_id: "",
+          merchant: event.merchant,
+          counterparty: event.counterparty,
+          note: "",
+          occurred_at_ms: occurredAtMs,
+          source_kind: "automatic",
+          reconciliation_state: "automatic",
+          status: "active",
+          revision: 1,
+          sync_version: version,
+          created_at: now,
+          updated_at: now,
+          deleted_at: "",
+        }),
       }), now);
 
   try {

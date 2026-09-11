@@ -9,6 +9,8 @@ data class PaymentRecognitionRecord(
     val sourcePackage: String,
     val sourceType: String,
     val sourceEventId: String,
+    /** Structured-event id that was uploaded, or blank when local-only. */
+    val uploadEventId: String = "",
     val paymentChannel: String,
     val amountMinor: Long?,
     val currency: String,

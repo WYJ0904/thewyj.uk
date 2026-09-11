@@ -56,10 +56,23 @@ class MainActivity : ComponentActivity() {
     private fun routeIntent(intent: Intent?) {
         // Payment recognition notifications deep link into the finance page so
         // the user can review the candidate or re-verify the amount.
-        if (intent?.hasExtra(PAYMENT_NOTIFICATION_EXTRA) == true
-            || intent?.hasExtra(PAYMENT_VERIFY_EXTRA) == true
-        ) {
-            viewModel.openRoute("/finance")
+        val verifyRecognitionId = intent?.getStringExtra(PAYMENT_VERIFY_EXTRA).orEmpty()
+        val notificationRecognitionId = intent?.getStringExtra(PAYMENT_NOTIFICATION_EXTRA).orEmpty()
+        if (verifyRecognitionId.isNotBlank() || notificationRecognitionId.isNotBlank()) {
+            val recognitionId = verifyRecognitionId.ifBlank { notificationRecognitionId }
+            // 「核实交易金额」 must really start a new 90 second ticket: the
+            // notification used to open /finance and do nothing, which is why
+            // the pending payment flow never closed. The ticket is created off
+            // the main thread, then the native pending surface is shown.
+            Thread {
+                runCatching {
+                    val center = uk.thewyj.app.task21.payment.PaymentVerificationCenter(applicationContext)
+                    if (verifyRecognitionId.isNotBlank()) center.startVerification(verifyRecognitionId)
+                }
+                runOnUiThread {
+                    viewModel.openPaymentVerification(recognitionId)
+                }
+            }.start()
             return
         }
         val uri = intent?.data ?: return

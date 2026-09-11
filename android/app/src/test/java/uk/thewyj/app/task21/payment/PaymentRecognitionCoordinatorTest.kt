@@ -58,6 +58,21 @@ class PaymentRecognitionCoordinatorTest {
                 .maxByOrNull { it.createdAtMs }
         override fun ticketsForRecognition(accountId: String, recognitionId: String) =
             tickets.values.filter { it.accountId == accountId && it.recognitionId == recognitionId }
+        override fun activeTicketPackages(accountId: String, nowMs: Long) =
+            tickets.values
+                .filter { it.accountId == accountId && it.state.active && it.expiresAtMs > nowMs }
+                .map { it.sourcePackage }
+                .toSet()
+        override fun openTickets(accountId: String, limit: Int) =
+            tickets.values
+                .filter { it.accountId == accountId && it.state in setOf(PaymentTicketState.CREATED, PaymentTicketState.WAITING_FOR_ACCESSIBILITY) }
+                .sortedByDescending { it.createdAtMs }
+                .take(limit)
+        override fun recognitionsByState(accountId: String, states: List<String>, limit: Int) =
+            recognitions.values
+                .filter { it.accountId == accountId && it.state in states }
+                .sortedByDescending { it.updatedAtMs }
+                .take(limit)
 
         override fun saveCandidate(candidate: PaymentCandidate) {
             candidates[candidate.candidateId] = candidate
@@ -121,6 +136,49 @@ class PaymentRecognitionCoordinatorTest {
         assertTrue(notifier.messages.last().body.contains("28.00"))
     }
 
+    /**
+     * The device has to know whether the booking authority for a payment is the
+     * server (the event was uploaded as a candidate) or itself (the amount was
+     * unknown, so the event stays local until the user verifies it). Without
+     * this the in-app verification screen could book a payment twice.
+     */
+    @Test fun uploadedCaptureRecordsItsStructuredEventIdentity() {
+        val store = FakeStore()
+        val coordinator = coordinator(store, FakeNotifier(), Clock())
+        val outcome = coordinator.onSourceEvent(
+            accountId = "account-a",
+            sourcePackage = "com.tencent.mm",
+            sourceType = PaymentSourceType.NOTIFICATION,
+            sourceEventId = "notification#key-9#9000",
+            title = "微信支付",
+            text = "已支付 ¥100.00",
+            sourceAppLabel = "微信",
+            uploadEventId = "evt-uploaded-1",
+        )
+        assertEquals(
+            "evt-uploaded-1",
+            store.recognition("account-a", outcome.recognitionId)?.uploadEventId,
+        )
+    }
+
+    @Test fun localOnlyHintKeepsUploadIdentityEmpty() {
+        val store = FakeStore()
+        val coordinator = coordinator(store, FakeNotifier(), Clock())
+        val outcome = coordinator.onSourceEvent(
+            accountId = "account-a",
+            sourcePackage = "com.tencent.mm",
+            sourceType = PaymentSourceType.NOTIFICATION,
+            sourceEventId = "notification#key-10#10000",
+            title = "微信支付",
+            text = "转账",
+            sourceAppLabel = "微信",
+        )
+        assertEquals("", store.recognition("account-a", outcome.recognitionId)?.uploadEventId)
+        // The 90 second ticket is the only local record; nothing is uploaded.
+        assertTrue(outcome.ticketId.isNotBlank())
+        assertEquals(0, store.pendingCandidateCount("account-a"))
+    }
+
     @Test fun duplicateSourceEventIsIgnoredWithoutASecondNotification() {
         val store = FakeStore()
         val notifier = FakeNotifier()
@@ -154,6 +212,40 @@ class PaymentRecognitionCoordinatorTest {
         val ticket = store.tickets.values.first()
         assertEquals(90_000L, ticket.expiresAtMs - ticket.createdAtMs)
         assertTrue(notifier.messages.any { it.body.contains("90 秒") })
+    }
+
+    /**
+     * Real device: WeChat exposes no text at all to the accessibility tree, so a
+     * page read legitimately returns nothing. The automatic attempt must end
+     * honestly (one notification, state VERIFICATION_FAILED) instead of looping
+     * forever or pretending the amount was verified.
+     */
+    @Test fun repeatedMissesFailVerificationOnceAndKeepManualPath() {
+        val store = FakeStore()
+        val notifier = FakeNotifier()
+        val clock = Clock()
+        val coordinator = coordinator(store, notifier, clock)
+        val outcome = coordinator.onSourceEvent(
+            "account-a", "com.tencent.mm", PaymentSourceType.NOTIFICATION,
+            "notification#key-4#4000", "", "转账", sourceAppLabel = "微信",
+        )
+        val messagesAfterHint = notifier.messages.size
+
+        assertFalse(coordinator.onAccessibilityMiss("account-a", "com.tencent.mm"))
+        assertEquals(messagesAfterHint, notifier.messages.size)
+        assertTrue(coordinator.onAccessibilityMiss("account-a", "com.tencent.mm"))
+
+        assertEquals(
+            PaymentRecognitionState.VERIFICATION_FAILED.name,
+            store.recognition("account-a", outcome.recognitionId)?.state,
+        )
+        val ticketAfterFailure = store.tickets.values.first()
+        assertFalse(ticketAfterFailure.state.active)
+        assertEquals(1, notifier.messages.count { it.title.contains("可靠的交易金额") })
+        assertEquals(1, notifier.messages.count { it.offerManualVerification })
+        // The hint itself is never deleted and the manual path still exists.
+        assertEquals(1, store.recognitions.size)
+        assertTrue(notifier.messages.last().offerManualVerification)
     }
 
     @Test fun accessibilityEnrichmentVerifiesAndCreatesCandidate() {

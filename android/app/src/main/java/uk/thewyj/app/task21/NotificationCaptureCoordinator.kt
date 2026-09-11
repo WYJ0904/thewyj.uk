@@ -28,6 +28,15 @@ class NotificationCaptureCoordinator(
         val discardedInvalid: Int,
         val authenticationRequired: Boolean,
         val retryableFailures: Int,
+        /** One entry per accepted operation: the real ledger identity it produced. */
+        val outcomes: List<IngestOutcome> = emptyList(),
+    )
+
+    data class IngestOutcome(
+        val operationId: String,
+        val eventId: String,
+        val transactionId: String,
+        val candidateId: String,
     )
 
     data class CaptureAccount(
@@ -181,7 +190,15 @@ class NotificationCaptureCoordinator(
         // Payment recognition runs on every finance-entitled capture (memory
         // only): chat is classified and discarded, payment-like events become
         // hints/candidates/notifications.
-        paymentHook?.onCapture(current.accountId, input, "")
+        // The recognition learns whether this capture is uploaded (amount known:
+        // it becomes a server candidate/transaction) or stays local (amount
+        // unknown: this device must book it after verification).
+        paymentHook?.onCapture(
+            current.accountId,
+            input,
+            "",
+            if (payment != null && payment.amountMinor > 0) eventId else "",
+        )
         if (payment != null) {
             // One trace line per payment event so a real device log shows the
             // exact identity that later has to appear in the finance ledger.
@@ -227,6 +244,30 @@ class NotificationCaptureCoordinator(
     /** Drains the current account's offline queue. Retryable failures stay queued. */
     fun flushDetailed(): FlushResult {
         val current = account() ?: return FlushResult(0, 0, 0, authenticationRequired = true, retryableFailures = 0)
+        return flushDetailed(current)
+    }
+
+    /**
+     * Queues one structured event for the current account. Used by the in-app
+     * verification screen when a local-only payment is confirmed; the same
+     * queue, transport and idempotency rules apply.
+     */
+    fun enqueue(operationId: String, payload: String): Boolean {
+        if (operationId.isBlank() || payload.isBlank()) return false
+        val current = account() ?: return false
+        if (!current.financeEntitled) return false
+        return runCatching { queueFor(current.accountId).enqueue(operationId, payload) }.isSuccess
+    }
+
+    /** Operation ids still waiting for an upload for the current account. */
+    fun queuedOperationIds(): Set<String> {
+        val current = account() ?: return emptySet()
+        return runCatching {
+            queueFor(current.accountId).peekRequests().map { it.operationId }.toSet()
+        }.getOrDefault(emptySet())
+    }
+
+    private fun flushDetailed(current: CaptureAccount): FlushResult {
         val ingestQueue = queueFor(current.accountId)
         if (!current.financeEntitled) {
             return FlushResult(0, ingestQueue.pendingCount(), 0, authenticationRequired = false, retryableFailures = 0)
@@ -235,6 +276,7 @@ class NotificationCaptureCoordinator(
         var discardedInvalid = 0
         var authenticationRequired = false
         var retryableFailures = 0
+        val outcomes = mutableListOf<IngestOutcome>()
         for (request in ingestQueue.peekRequests()) {
             val response = runCatching {
                 transport.post(request.path, current.sessionToken, request.body)
@@ -254,6 +296,14 @@ class NotificationCaptureCoordinator(
                         val transactionId = result?.optString("transaction_id").orEmpty()
                         val candidateId = result?.optString("candidate_id").orEmpty()
                         val eventId = result?.optJSONObject("event")?.optString("event_id").orEmpty()
+                        outcomes.add(
+                            IngestOutcome(
+                                operationId = request.operationId,
+                                eventId = eventId.ifBlank { request.operationId },
+                                transactionId = transactionId,
+                                candidateId = candidateId,
+                            ),
+                        )
                         CaptureTrace.stage(
                             eventId.ifBlank { request.operationId },
                             "finance-api-ok",
@@ -281,6 +331,7 @@ class NotificationCaptureCoordinator(
             discardedInvalid = discardedInvalid,
             authenticationRequired = authenticationRequired,
             retryableFailures = retryableFailures,
+            outcomes = outcomes,
         )
     }
 
