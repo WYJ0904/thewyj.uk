@@ -98,20 +98,38 @@ class NotificationRepository(
 
     suspend fun updateRetention(days: Int): NotificationSettingsEntity = withContext(Dispatchers.IO) {
         val current = store.ensureSettings(accountId)
-        val updated = current.copy(retentionDays = days)
+        val updated = current.copy(retentionDays = normalizeRetention(days))
         store.updateSettings(updated)
         updated
     }
 
+    suspend fun setPinned(instanceId: String, pinned: Boolean): Boolean = withContext(Dispatchers.IO) {
+        store.setPinned(accountId, instanceId, pinned)
+    }
+
+    suspend fun pinnedCount(): Int = withContext(Dispatchers.IO) { store.pinnedCount(accountId) }
+
     /** Preview of what a shorter retention would delete before the user agrees. */
     suspend fun retentionPreview(days: Int): Int = withContext(Dispatchers.IO) {
-        if (days < 0) return@withContext 0
-        store.estimatedPurgeCount(accountId, cutoffFor(days))
+        val normalized = normalizeRetention(days)
+        if (normalized == PERMANENT_RETENTION_DAYS) return@withContext 0
+        store.estimatedPurgeCount(accountId, cutoffFor(normalized))
     }
 
     suspend fun applyRetention(days: Int): Int = withContext(Dispatchers.IO) {
-        if (days < 0) return@withContext 0
-        store.purgeExpired(accountId, cutoffFor(days))
+        val normalized = normalizeRetention(days)
+        if (normalized == PERMANENT_RETENTION_DAYS) return@withContext 0
+        store.purgeExpired(accountId, cutoffFor(normalized))
+    }
+
+    /**
+     * Favourites survive every retention period, so the UI can explain exactly
+     * how many entries are protected instead of silently keeping them.
+     */
+    suspend fun pinnedProtectedCount(days: Int): Int = withContext(Dispatchers.IO) {
+        val normalized = normalizeRetention(days)
+        if (normalized == PERMANENT_RETENTION_DAYS) return@withContext store.pinnedCount(accountId)
+        store.pinnedOlderThan(accountId, cutoffFor(normalized))
     }
 
     suspend fun appLabel(packageName: String): String = withContext(Dispatchers.IO) {
@@ -123,4 +141,23 @@ class NotificationRepository(
 
     private fun cutoffFor(days: Int): Long =
         System.currentTimeMillis() - days.toLong() * 24L * 60L * 60L * 1000L
+
+    companion object {
+        /** 0 means "keep forever" and disables automatic deletion entirely. */
+        const val PERMANENT_RETENTION_DAYS = 0
+
+        /** The retention periods the UI offers, newest Task 24.1 spec first. */
+        val RETENTION_OPTIONS = listOf(7, 30, 90, 365, PERMANENT_RETENTION_DAYS)
+
+        /** Values already stored by earlier versions stay valid. */
+        private val LEGACY_RETENTION_DAYS = setOf(1, 3)
+
+        fun normalizeRetention(days: Int): Int = when {
+            days < 0 -> PERMANENT_RETENTION_DAYS
+            RETENTION_OPTIONS.contains(days) || LEGACY_RETENTION_DAYS.contains(days) -> days
+            else -> DEFAULT_RETENTION_DAYS
+        }
+
+        const val DEFAULT_RETENTION_DAYS = 30
+    }
 }

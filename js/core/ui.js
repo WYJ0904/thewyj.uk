@@ -1,4 +1,4 @@
-import { BUSINESS_TIME_ZONE } from "./config.js?v=20260911-task24-final-closure-r4";
+import { BUSINESS_TIME_ZONE } from "./config.js?v=20260911-task24-1-closure-r1";
 
 export const $ = (id) => document.getElementById(id);
 

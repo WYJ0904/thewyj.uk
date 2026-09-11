@@ -35,6 +35,9 @@ class NotificationHubState(
     /** Latest stored notification identity, used for the capture timing trace. */
     val latestChange = repository.latestChangeIdentity()
 
+    /** Favourite count, shown in the retention section. */
+    var pinnedCount by mutableStateOf(0)
+
     var search by mutableStateOf("")
     var appFilter by mutableStateOf("")
     var includeRemoved by mutableStateOf(true)
@@ -76,6 +79,7 @@ class NotificationHubState(
             selected.clear()
             stats = repository.stats()
             settingsRetentionDays = repository.settings().retentionDays
+            pinnedCount = repository.pinnedCount()
         } catch (failure: Throwable) {
             error = failure.message ?: "读取通知历史失败"
         } finally {
@@ -152,6 +156,16 @@ class NotificationHubState(
         val removed = repository.delete(listOf(instanceId))
         refresh()
         return removed
+    }
+
+    /** Favourite / unfavourite one notification; favourites survive retention. */
+    suspend fun togglePinned(item: NotificationHistoryItem): Boolean {
+        val wasDetailOpen = detail?.instanceId == item.instanceId
+        val next = !item.pinned
+        repository.setPinned(item.instanceId, next)
+        refresh()
+        if (wasDetailOpen) detail = items.firstOrNull { it.instanceId == item.instanceId }
+        return next
     }
 
     suspend fun clearAll(): Int {

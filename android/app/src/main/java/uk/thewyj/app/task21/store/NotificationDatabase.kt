@@ -31,7 +31,7 @@ abstract class NotificationDatabase : RoomDatabase() {
     abstract fun paymentDao(): PaymentDao
 
     companion object {
-        const val SCHEMA_VERSION = 3
+        const val SCHEMA_VERSION = 4
         const val DATABASE_NAME = "wyj-notifications.db"
 
         @Volatile
@@ -45,7 +45,7 @@ abstract class NotificationDatabase : RoomDatabase() {
                     DATABASE_NAME,
                 )
                     // The local archive is user data: never drop it on upgrade.
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .fallbackToDestructiveMigrationOnDowngrade(false)
                     .build()
                     .also { instance = it }
@@ -72,6 +72,17 @@ abstract class NotificationDatabase : RoomDatabase() {
                 db.execSQL(
                     "ALTER TABLE `payment_recognitions` ADD COLUMN `uploadEventId` TEXT NOT NULL DEFAULT ''",
                 )
+            }
+        }
+
+        /**
+         * v3 -> v4 adds the notification favourite flag used by retention
+         * ("收藏的通知不自动删除"). Existing history is untouched.
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `notification_instances` ADD COLUMN `pinned` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `notification_instances` ADD COLUMN `pinnedAt` INTEGER NOT NULL DEFAULT 0")
             }
         }
 

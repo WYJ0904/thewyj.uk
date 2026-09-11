@@ -257,7 +257,12 @@ class NotificationCaptureReliabilityTest {
      * background-service notices must be archived like any other notification;
      * being ongoing/system/non-payment may never cause a silent drop.
      */
-    @Test fun systemProgressAndGroupNotificationsAreArchived() {
+    /**
+     * Task 24.1: group summaries are still archived, but progress, ongoing and
+     * foreground-service status notifications are classified out of the archive
+     * so a live readout can never flood the history or the UI.
+     */
+    @Test fun groupSummaryIsArchivedWhileProgressAndOngoingAreFiltered() {
         onWorker {
             val coordinator = coordinator(RecordingTransport())
             val systemNotice = input("com.android.systemui", 91, "系统", "已截屏", 2_000L).copy(
@@ -265,13 +270,15 @@ class NotificationCaptureReliabilityTest {
                 isGroupSummary = true,
             )
             val downloadProgress = input("com.android.providers.downloads", 92, "下载", "正在下载 42%", 2_100L)
+                .copy(isOngoing = true)
             val serviceNotice = input("com.example.background", 93, "后台服务", "正在同步", 2_200L).copy(
                 isGroup = true,
+                isForegroundService = true,
             )
             coordinator.onNotification(systemNotice)
             coordinator.onNotification(downloadProgress)
             coordinator.onNotification(serviceNotice)
-            assertEquals(3, historyIds().size)
+            assertEquals(1, historyIds().size)
         }
     }
 

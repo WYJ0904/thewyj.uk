@@ -42,6 +42,10 @@ data class NotificationCaptureInput(
     val postTime: Long = 0L,
     val isGroup: Boolean = false,
     val isGroupSummary: Boolean = false,
+    /** `Notification.FLAG_ONGOING_EVENT`: continuous status, never a message. */
+    val isOngoing: Boolean = false,
+    /** `Notification.FLAG_FOREGROUND_SERVICE`: the app is running a service. */
+    val isForegroundService: Boolean = false,
     val title: String = "",
     val text: String = "",
     val bigText: String = "",

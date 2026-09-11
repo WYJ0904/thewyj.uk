@@ -6,12 +6,12 @@
     <meta name="theme-color" content="#ffffff" />
     <title>thewyj — 学习、工具、财务与分享</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260911-task24-final-closure-r4" />
-    <link rel="stylesheet" href="/styles.css?v=20260911-task24-final-closure-r4" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260911-task24-final-closure-r4" />
-    <link rel="stylesheet" href="/design-system.css?v=20260911-task24-final-closure-r4" />
-    <link rel="stylesheet" href="/public-experience.css?v=20260911-task24-final-closure-r4" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20260911-task24-final-closure-r4" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260911-task24-1-closure-r1" />
+    <link rel="stylesheet" href="/styles.css?v=20260911-task24-1-closure-r1" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260911-task24-1-closure-r1" />
+    <link rel="stylesheet" href="/design-system.css?v=20260911-task24-1-closure-r1" />
+    <link rel="stylesheet" href="/public-experience.css?v=20260911-task24-1-closure-r1" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20260911-task24-1-closure-r1" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 thewyj" aria-hidden="false">
@@ -32,7 +32,7 @@
         <div class="site-nav-bar">
           <a class="site-brand" href="/" data-site-nav="home" aria-label="thewyj 首页">
             <img src="/icon-192.png" alt="" />
-            <span class="site-brand-copy"><strong>thewyj</strong><small id="siteVersionLabel">v2026.09.11.6</small></span>
+            <span class="site-brand-copy"><strong>thewyj</strong><small id="siteVersionLabel">v2026.09.11.7</small></span>
           </a>
           <button class="site-nav-toggle" id="siteNavToggle" type="button" aria-expanded="false" aria-controls="siteNavPanel" aria-label="打开主导航">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
@@ -189,7 +189,7 @@
       </section>
 
       <section class="public-page hidden" id="changelogPage" aria-labelledby="changelogTitle" aria-hidden="true">
-        <header class="public-page-header"><p class="section-kicker">更新日志</p><h1 id="changelogTitle">近期改进</h1><p>按版本记录新功能、优化、修复和安全更新。当前版本：<strong id="changelogCurrentVersion">v2026.09.11.6</strong></p></header>
+        <header class="public-page-header"><p class="section-kicker">更新日志</p><h1 id="changelogTitle">近期改进</h1><p>按版本记录新功能、优化、修复和安全更新。当前版本：<strong id="changelogCurrentVersion">v2026.09.11.7</strong></p></header>
         <div class="changelog-list" id="changelogList" aria-live="polite"></div>
         <div class="public-actions"><button class="primary" id="changelogTrialBtn" type="button">免费试用</button><a class="button-link button-secondary" href="https://github.com/WYJ0904/thewyj.uk/commits/main/" target="_blank" rel="noopener noreferrer">完整提交记录</a></div>
       </section>
@@ -652,6 +652,9 @@
                 </label>
               </div>
 
+              <!-- 手机端默认收起：首屏只保留词表输入与开始，智能选词按需展开。 -->
+              <details class="ds-collapse" id="languageAiDisclosure" data-responsive-collapse open>
+                <summary><span>分级智能选词</span><small>按需生成词表</small></summary>
               <section class="ai-suggest-section" aria-labelledby="aiSuggestTitle">
                 <div class="ai-suggest-heading">
                   <h3 id="aiSuggestTitle">分级智能选词</h3>
@@ -682,6 +685,7 @@
                 <div class="ai-search-results hidden" id="aiSearchResults" aria-live="polite"></div>
                 <p class="meta-line ai-suggest-message" id="aiSuggestMessage" aria-live="polite"></p>
               </section>
+              </details>
 
               <textarea id="wordInput" maxlength="120000" placeholder="输入词表，每行一个词"></textarea>
               <p class="meta-line" id="wordLimitHint" aria-live="polite"></p>
@@ -697,11 +701,15 @@
               </div>
               <input id="wordFileInput" class="hidden" type="file" accept=".txt,.csv,.json,text/plain,application/json" />
             </div>
-            <div class="stats-grid">
-              <div><strong id="statWords">0</strong><span>词</span></div>
-              <div><strong id="statWrong">0</strong><span>本轮错题</span></div>
-              <div><strong id="statScore">0</strong><span>得分</span></div>
-            </div>
+            <!-- 手机端默认收起：首屏不与输入区争夺空间。 -->
+            <details class="ds-collapse" id="languageStatsDisclosure" data-responsive-collapse open>
+              <summary><span>本轮统计</span><small>词数 / 错题 / 得分</small></summary>
+              <div class="stats-grid">
+                <div><strong id="statWords">0</strong><span>词</span></div>
+                <div><strong id="statWrong">0</strong><span>本轮错题</span></div>
+                <div><strong id="statScore">0</strong><span>得分</span></div>
+              </div>
+            </details>
           </section>
 
           <section class="view" id="quizView">
@@ -1217,10 +1225,10 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20260911-task24-final-closure-r4"></script>
-    <script type="module" src="/tools.js?v=20260911-task24-final-closure-r4"></script>
-    <script src="/workflows.js?v=20260911-task24-final-closure-r4"></script>
-    <script src="/learning-sync.js?v=20260911-task24-final-closure-r4"></script>
-    <script type="module" src="/app.js?v=20260911-task24-final-closure-r4"></script>
+    <script src="/changelog.js?v=20260911-task24-1-closure-r1"></script>
+    <script type="module" src="/tools.js?v=20260911-task24-1-closure-r1"></script>
+    <script src="/workflows.js?v=20260911-task24-1-closure-r1"></script>
+    <script src="/learning-sync.js?v=20260911-task24-1-closure-r1"></script>
+    <script type="module" src="/app.js?v=20260911-task24-1-closure-r1"></script>
   </body>
 </html>
