@@ -6959,6 +6959,9 @@ async function boot() {
       copyText: writeClipboardText,
       formatDate: formatLocalDateTime,
       navigate: (path) => pushRoute(path),
+      // Canonical File Transfer handover for the toolbox (Task 24.1): the same
+      // showTransfer() path the 文件传输 button and 我的 entry already use.
+      openTransfer: () => { void showTransfer(true); },
       account: () => state.account,
       accountId: () => accountStorageId(),
       onPreferencesChanged: renderDashboard,

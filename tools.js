@@ -478,7 +478,10 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260912-transfer-r1";
     if (toolId === "temporary-file" || toolId === "file-transfer") {
       viewRevision++;
       currentTool = null;
-      bridge.navigate("/transfer");
+      // Use the canonical transfer entry the toolbox button also uses; the SPA
+      // route alone is not enough when the tools panel owns the viewport.
+      if (typeof bridge.openTransfer === "function") bridge.openTransfer();
+      else bridge.navigate("/transfer");
       return;
     }
     const tool = TOOL_MAP.get(toolId);
