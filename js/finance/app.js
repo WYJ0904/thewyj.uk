@@ -432,6 +432,16 @@ export function createFinanceController({
       month: currentMonth(),
     });
     if (element("financeTransactionCount")) element("financeTransactionCount").textContent = `${filtered.length} 笔`;
+    // Collapsed on phones: the summary line has to state the current filter so
+    // the list is never silently filtered by hidden controls.
+    const filterSummary = element("financeFilterSummary");
+    if (filterSummary) {
+      const month = currentMonth();
+      const direction = { income: "收入", expense: "支出", refund: "退款" }[element("financeDirectionFilter")?.value || ""] || "全部类型";
+      const status = { deleted: "已删除", all: "全部状态" }[element("financeStatusFilter")?.value || "active"] || "当前账目";
+      const query = safeText(element("financeSearchInput")?.value, 24);
+      filterSummary.textContent = [month, direction, status, query ? `“${query}”` : ""].filter(Boolean).join(" · ");
+    }
     if (!filtered.length) {
       list.innerHTML = '<div class="finance-empty"><strong>暂无符合条件的账目</strong><p>可以新增一笔，或调整月份和筛选条件。</p></div>';
       return;
@@ -587,7 +597,10 @@ export function createFinanceController({
     const bootstrap = await apiGet("/api/finance/bootstrap");
     for (const category of bootstrap.categories || []) mergeServerEntity("category", category);
     for (const budget of bootstrap.budgets || []) mergeServerEntity("budget", budget);
-    if (!store.hydrated || Number(bootstrap.transaction_count || 0) > Object.values(store.transactions).filter((item) => item.status === "active").length) {
+    // A count mismatch means something never reached this client through the
+    // change feed; re-read the server pages instead of trusting the cursor.
+    const localActive = Object.values(store.transactions).filter((item) => item.status === "active").length;
+    if (!store.hydrated || Number(bootstrap.transaction_count || 0) > localActive) {
       const serverTransactions = await fetchAllTransactions(true);
       for (const item of Object.values(serverTransactions)) mergeServerEntity("transaction", item);
       store.hydrated = true;
@@ -610,8 +623,14 @@ export function createFinanceController({
     conflictPending = false;
     store.last_error = "";
     renderAll();
-    if (!store.hydrated) await hydrate();
-    else await pullChanges();
+    // Always ask for the bootstrap summary. It is a cheap read and it is the
+    // repair path for a ledger that already advanced its cursor past a change
+    // it never projected (for example an automatic Android booking that used
+    // to be published as a raw_event change): when the server reports more
+    // active transactions than this client holds, hydrate() re-pages the full
+    // transaction list and merges it.
+    await hydrate();
+    await pullChanges();
     while (store.pending.length) {
       const batch = store.pending.slice(0, SYNC_BATCH_SIZE);
       const payloadOperations = batch.map(({ queued_at_ms: _queuedAt, ...operation }) => operation);

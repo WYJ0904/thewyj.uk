@@ -25,6 +25,8 @@ data class PaymentRecognitionEntity(
     val sourcePackage: String,
     val sourceType: String,
     val sourceEventId: String,
+    /** Structured-event id that was uploaded for finance, or blank when local-only. */
+    val uploadEventId: String,
     val paymentChannel: String,
     val amountMinor: Long,
     val hasAmount: Int,

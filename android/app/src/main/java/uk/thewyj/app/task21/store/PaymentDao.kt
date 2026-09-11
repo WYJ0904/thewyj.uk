@@ -39,6 +39,38 @@ interface PaymentDao {
     @Query("SELECT * FROM payment_tickets WHERE accountId = :accountId AND recognitionId = :recognitionId ORDER BY createdAtMs DESC")
     fun ticketsForRecognition(accountId: String, recognitionId: String): List<PaymentTicketEntity>
 
+    /**
+     * Packages that currently own an active enrichment ticket. The accessibility
+     * service uses this as a cheap gate so it never touches the database (or the
+     * node tree) for SystemUI/launcher/IME noise.
+     */
+    @Query(
+        """
+        SELECT DISTINCT sourcePackage FROM payment_tickets
+        WHERE accountId = :accountId AND expiresAtMs > :nowMs
+          AND state IN ('CREATED', 'WAITING_FOR_ACCESSIBILITY', 'ENRICHED', 'CANDIDATE_CREATED')
+        """,
+    )
+    fun activeTicketPackages(accountId: String, nowMs: Long): List<String>
+
+    @Query(
+        """
+        SELECT * FROM payment_tickets
+        WHERE accountId = :accountId AND state IN ('CREATED', 'WAITING_FOR_ACCESSIBILITY')
+        ORDER BY createdAtMs DESC LIMIT :limit
+        """,
+    )
+    fun openTickets(accountId: String, limit: Int): List<PaymentTicketEntity>
+
+    @Query(
+        """
+        SELECT * FROM payment_recognitions
+        WHERE accountId = :accountId AND state IN (:states)
+        ORDER BY updatedAtMs DESC LIMIT :limit
+        """,
+    )
+    fun recognitionsByState(accountId: String, states: List<String>, limit: Int): List<PaymentRecognitionEntity>
+
     @Query("SELECT COUNT(*) FROM payment_tickets WHERE accountId = :accountId")
     fun ticketCount(accountId: String): Int
 

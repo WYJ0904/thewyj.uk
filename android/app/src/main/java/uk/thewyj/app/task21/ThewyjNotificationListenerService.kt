@@ -35,14 +35,8 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         val provider = sessionProvider ?: NotificationSessionProvider(this).also { sessionProvider = it }
-        coordinator = coordinator ?: NotificationCaptureCoordinator(
-            archiveFor = { accountId -> LocalNotificationArchive.inDirectory(filesDir, accountId) },
-            queueFor = { accountId -> NotificationOfflineQueue.inDirectory(filesDir, accountId) },
-            transport = HttpNotificationIngestTransport(BuildConfig.THEWYJ_BASE_URL),
-            account = provider::currentAccount,
-            archiveSink = NotificationArchiveSinkFactory.forContext(this),
-            paymentHook = AndroidPaymentRecognitionHook.get(this),
-        )
+        // Same pipeline instance wiring as the in-app verification screen.
+        coordinator = coordinator ?: NotificationCapturePipeline.create(this, provider)
         // A reconnect replays the currently active notifications; the store
         // treats an unchanged revision as a replay and stores nothing new.
         for (active in runCatching { activeNotifications }.getOrDefault(emptyArray())) {

@@ -6,6 +6,7 @@ import path from "node:path";
 import { Miniflare } from "miniflare";
 
 import { handleTask21Request } from "../functions/_lib/task21-api.mjs";
+import { handleTask16Request } from "../functions/_lib/task16-api.mjs";
 import { sessionStorageKey } from "../functions/_lib/task12-crypto.mjs";
 import { __testing as task21Testing } from "../functions/_lib/task21-service.mjs";
 
@@ -82,6 +83,25 @@ async function request(db, route, options = {}, environment = ENVIRONMENT) {
 
 function ingestBody(deviceId, operationId, event) {
   return { schema_version: "1", device_id: deviceId, operations: [{ operation_id: operationId, type: "event.ingest", payload: event }] };
+}
+
+async function requestTask16(db, route, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if (options.token) headers.set("X-Session-Token", options.token);
+  if (options.body !== undefined) headers.set("Content-Type", "application/json");
+  const response = await handleTask16Request({
+    env: { ...ENVIRONMENT, WYJ_DB: db },
+    data: { requestId: crypto.randomUUID() },
+    request: new Request("https://preview.thewyj.uk" + route, {
+      method: options.method || "GET",
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    }),
+  });
+  let payload = null;
+  const contentType = response.headers.get("Content-Type") || "";
+  if (contentType.startsWith("application/json")) payload = await response.json();
+  return { response, payload };
 }
 
 function transactionEvent(overrides = {}) {
@@ -186,6 +206,37 @@ try {
   assert.ok(financeTxn, "high-confidence event must create a finance transaction");
   assert.equal(financeTxn.direction, "expense");
   assert.equal(financeTxn.amount_minor, 1280);
+
+  // 5b. Regression: "通知历史已识别支付，但财务显示 0 笔".
+  // The automatic booking must be published as a *transaction* change, because
+  // an already hydrated Web/Android ledger only projects
+  // transaction/category/budget changes and never re-reads the full list.
+  const financeChangeFeed = await requestTask16(db, "/api/finance/changes?since=0", {
+    token: USERS.subscriber.token,
+  });
+  assert.equal(financeChangeFeed.response.status, 200, JSON.stringify(financeChangeFeed.payload));
+  const transactionChange = (financeChangeFeed.payload.changes || []).find(
+    (change) => change.entity_type === "transaction" && change.entity_id === financeTxn.id,
+  );
+  assert.ok(transactionChange, "automatic booking must reach the ledger change feed as a transaction");
+  assert.equal(transactionChange.operation, "upsert");
+  assert.equal(Number(transactionChange.version), Number(financeTxn.sync_version));
+  assert.equal(transactionChange.payload.transaction.id, financeTxn.id);
+  assert.equal(transactionChange.payload.transaction.amount_minor, 1280);
+  assert.equal(transactionChange.payload.transaction.direction, "expense");
+  assert.equal(transactionChange.payload.transaction.status, "active");
+  assert.equal(transactionChange.payload.transaction.source_kind, "automatic");
+  assert.equal(Number(transactionChange.payload.transaction.revision), 1);
+  // The evidence rows stay in place: raw event + link + audit log.
+  const evidence = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_transaction_events WHERE transaction_id = ?1 AND relation_status = 'active'",
+  ).bind(financeTxn.id).first();
+  assert.equal(Number(evidence.count), 1, "automatic booking must keep its evidence link");
+  // One change row per version: the transaction change replaces the raw_event row.
+  const rawEventChanges = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_changes WHERE user_id = ?1 AND version = ?2 AND entity_type = 'raw_event'",
+  ).bind(USERS.subscriber.id, Number(financeTxn.sync_version)).first();
+  assert.equal(Number(rawEventChanges.count), 0);
 
   // 6. Replaying the same operation is idempotent and does not duplicate finance.
   const replay = await request(db, "/api/notification/ingest", {

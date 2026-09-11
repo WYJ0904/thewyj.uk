@@ -85,7 +85,19 @@ data class PaymentIngestOutcome(
 )
 
 interface PaymentRecognitionHook {
-    fun onCapture(accountId: String, input: NotificationCaptureInput, sourceAppLabel: String)
+    /**
+     * [uploadEventId] is the structured-event identity that this capture was
+     * queued under, or blank when the event stays local (an amount-unknown
+     * payment hint). The recognition stores it so the app knows whether the
+     * booking authority for that payment is the server candidate list (already
+     * uploaded) or this device (local-only enrichment).
+     */
+    fun onCapture(
+        accountId: String,
+        input: NotificationCaptureInput,
+        sourceAppLabel: String,
+        uploadEventId: String = "",
+    )
 
     /**
      * Pure parse result for the same capture. Returns null when the message is

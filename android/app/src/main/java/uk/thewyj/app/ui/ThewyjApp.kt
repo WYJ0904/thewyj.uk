@@ -89,6 +89,7 @@ fun ThewyjApp(viewModel: AppViewModel) {
     val updateState by viewModel.updateState.collectAsStateWithLifecycle()
     val nativeDark by viewModel.nativeDark.collectAsStateWithLifecycle()
     val authBusy by viewModel.authBusy.collectAsStateWithLifecycle()
+    val paymentVerification by viewModel.paymentVerification.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -134,6 +135,8 @@ fun ThewyjApp(viewModel: AppViewModel) {
                 onCheckUpdate = viewModel::checkForUpdate,
                 onStartUpdate = viewModel::startUpdate,
                 onWebThemeChanged = viewModel::onWebThemeChanged,
+                paymentVerificationRecognitionId = paymentVerification,
+                onClosePaymentVerification = viewModel::closePaymentVerification,
                 onInstallUpdate = {
                     viewModel.prepareInstall()?.let { intent ->
                         runCatching { context.startActivity(intent) }
@@ -282,10 +285,19 @@ private fun AuthenticatedShell(
     onWebThemeChanged: (Boolean) -> Unit = {},
     onInstallUpdate: () -> Unit,
     onWebError: (String) -> Unit,
+    paymentVerificationRecognitionId: String? = null,
+    onClosePaymentVerification: () -> Unit = {},
 ) {
     val activity = LocalActivity.current
     var backNavigationRequest by remember { mutableIntStateOf(0) }
     var overlays by remember { mutableStateOf(ShellOverlayState()) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val paymentState = remember(state.account.id) {
+        PaymentVerificationState(context, state.account.id)
+    }
+    LaunchedEffect(paymentVerificationRecognitionId) {
+        if (paymentVerificationRecognitionId != null) overlays = overlays.copy(paymentVerification = true)
+    }
     BackHandler {
         if (overlays.anyVisible) overlays = ShellOverlayState()
         else if (destination == AppDestination.MY) onDestination(AppDestination.HOME)
@@ -348,6 +360,7 @@ private fun AuthenticatedShell(
                     account = state.account,
                     onOpenPermissions = { overlays = overlays.copy(permissions = true) },
                     onOpenFinance = { onOpenRoute("/finance") },
+                    onOpenPaymentVerification = { overlays = overlays.copy(paymentVerification = true) },
                     modifier = Modifier.fillMaxSize(),
                 )
             } else if (state.mode != ConnectionMode.ONLINE) {
@@ -371,6 +384,27 @@ private fun AuthenticatedShell(
             }
             if (overlays.permissions) {
                 PermissionCenterScreen(onBack = { overlays = overlays.copy(permissions = false) })
+            }
+            if (overlays.paymentVerification) {
+                PaymentVerificationScreen(
+                    state = paymentState,
+                    onBack = {
+                        overlays = overlays.copy(paymentVerification = false)
+                        onClosePaymentVerification()
+                    },
+                    onOpenFinance = {
+                        overlays = overlays.copy(paymentVerification = false)
+                        onClosePaymentVerification()
+                        onOpenRoute("/finance")
+                    },
+                    onOpenApp = { sourcePackage ->
+                        runCatching {
+                            context.packageManager.getLaunchIntentForPackage(sourcePackage)
+                                ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                ?.let { context.startActivity(it) }
+                        }
+                    },
+                )
             }
         }
     }

@@ -76,6 +76,7 @@ class PaymentStatusStateMachine(private val now: () -> Long = System::currentTim
         sourceAppLabel: String,
         amountLabel: String = "",
         directionLabel: String = "",
+        sourcePackage: String = "",
     ): PaymentStatusTransition {
         val existing = current
         if (existing != null && existing.state == next) {
@@ -93,7 +94,10 @@ class PaymentStatusStateMachine(private val now: () -> Long = System::currentTim
             updatedAtMs = now(),
             notificationId = existing?.notificationId ?: stableNotificationId(recognitionId),
         )
-        return PaymentStatusTransition.Updated(record, messageFor(record, sourceAppLabel, amountLabel, directionLabel))
+        return PaymentStatusTransition.Updated(
+            record,
+            messageFor(record, sourceAppLabel, amountLabel, directionLabel, sourcePackage),
+        )
     }
 
     private fun isLegal(from: PaymentRecognitionState?, to: PaymentRecognitionState): Boolean {
@@ -147,6 +151,14 @@ class PaymentStatusStateMachine(private val now: () -> Long = System::currentTim
                     PaymentRecognitionState.VERIFICATION_FAILED,
                     PaymentRecognitionState.IGNORED,
                 )
+            // A failed automatic read can be retried by the user ("核实交易金额"
+            // creates a new 90 second ticket) or finished by hand.
+            PaymentRecognitionState.VERIFICATION_FAILED ->
+                to in setOf(
+                    PaymentRecognitionState.WAITING_FOR_ENRICHMENT,
+                    PaymentRecognitionState.ENRICHMENT_VERIFIED,
+                    PaymentRecognitionState.IGNORED,
+                )
             else -> false
         }
     }
@@ -156,6 +168,7 @@ class PaymentStatusStateMachine(private val now: () -> Long = System::currentTim
         sourceAppLabel: String,
         amountLabel: String,
         directionLabel: String,
+        sourcePackage: String,
     ): PaymentStatusNotificationMessage {
         val app = sourceAppLabel.ifBlank { "该应用" }
         return when (record.state) {
@@ -170,7 +183,9 @@ class PaymentStatusStateMachine(private val now: () -> Long = System::currentTim
                 recognitionId = record.recognitionId,
                 title = "thewyj · 发现疑似交易",
                 body = "暂未识别到金额。请在 90 秒内打开「$app」查看这笔交易，thewyj 将尝试自动核实金额。",
-                openPackage = "",
+                // One tap opens the payment app; the user still has to navigate
+                // to the real transaction page themselves.
+                openPackage = sourcePackage,
                 offerManualVerification = false,
             )
             PaymentRecognitionState.WAITING_FOR_ENRICHMENT -> PaymentStatusNotificationMessage(
@@ -178,6 +193,7 @@ class PaymentStatusStateMachine(private val now: () -> Long = System::currentTim
                 recognitionId = record.recognitionId,
                 title = "thewyj · 等待核实金额",
                 body = "请在 90 秒内打开「$app」对应交易页面，thewyj 将尝试自动核实金额。",
+                openPackage = sourcePackage,
             )
             PaymentRecognitionState.ENRICHMENT_VERIFIED -> PaymentStatusNotificationMessage(
                 notificationId = record.notificationId,
@@ -190,6 +206,7 @@ class PaymentStatusStateMachine(private val now: () -> Long = System::currentTim
                 recognitionId = record.recognitionId,
                 title = "thewyj · 交易金额尚未核实",
                 body = "未能识别这笔交易的金额。请打开 thewyj，点击「核实交易金额」，然后打开「$app」对应交易页面。",
+                openPackage = sourcePackage,
                 offerManualVerification = true,
             )
             PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION -> PaymentStatusNotificationMessage(

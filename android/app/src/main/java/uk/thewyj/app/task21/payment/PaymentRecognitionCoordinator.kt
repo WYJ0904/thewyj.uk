@@ -39,6 +39,7 @@ class PaymentRecognitionCoordinator(
         bigText: String = "",
         subText: String = "",
         sourceAppLabel: String = "",
+        uploadEventId: String = "",
         occurredAtMs: Long = now(),
     ): Outcome {
         if (accountId.isBlank() || sourcePackage.isBlank() || sourceEventId.isBlank()) {
@@ -81,6 +82,7 @@ class PaymentRecognitionCoordinator(
             sourceAppLabel = sourceAppLabel,
             amountLabel = amountLabel,
             directionLabel = directionLabel,
+            sourcePackage = sourcePackage,
         )
         var record = (transition as PaymentStatusTransition.Updated).record
         notificationPosted = post(transition)
@@ -105,6 +107,7 @@ class PaymentRecognitionCoordinator(
                 recognitionId = recognitionId,
                 sourceAppLabel = sourceAppLabel,
                 amountLabel = amountLabel,
+                sourcePackage = sourcePackage,
             )
             if (transition is PaymentStatusTransition.Updated) {
                 record = transition.record
@@ -146,6 +149,7 @@ class PaymentRecognitionCoordinator(
                 sourcePackage = sourcePackage,
                 sourceType = sourceType.name,
                 sourceEventId = sourceEventId,
+                uploadEventId = uploadEventId,
                 paymentChannel = parsed.paymentChannel,
                 amountMinor = parsed.amountMinor,
                 currency = parsed.currency ?: "CNY",
@@ -269,6 +273,44 @@ class PaymentRecognitionCoordinator(
         return expired
     }
 
+    /**
+     * The page was read but produced no usable amount (or nothing at all: some
+     * apps, WeChat included, expose no text to the accessibility tree at all).
+     *
+     * Two misses close the automatic attempt honestly: the ticket is marked
+     * failed so the service stops reading the package, the recognition becomes
+     * VERIFICATION_FAILED and the user is told once, with the manual entry path
+     * still available.
+     */
+    fun onAccessibilityMiss(accountId: String, sourcePackage: String): Boolean {
+        val ticket = store.activeTicketForPackage(accountId, sourcePackage) ?: return false
+        val missed = ticket.copy(attempts = ticket.attempts + 1)
+        if (missed.attempts < MISSES_BEFORE_FAILING) {
+            store.saveTicket(missed)
+            return false
+        }
+        store.saveTicket(tickets.markFailed(missed))
+        val recognition = store.recognition(accountId, ticket.recognitionId) ?: return true
+        val transition = statusMachine.transition(
+            current = PaymentStatusRecord(
+                recognitionId = recognition.recognitionId,
+                state = runCatching { PaymentRecognitionState.valueOf(recognition.state) }
+                    .getOrDefault(PaymentRecognitionState.WAITING_FOR_ENRICHMENT),
+                updatedAtMs = recognition.updatedAtMs,
+                notificationId = recognition.notificationId,
+            ),
+            next = PaymentRecognitionState.VERIFICATION_FAILED,
+            recognitionId = recognition.recognitionId,
+            sourceAppLabel = "",
+            sourcePackage = sourcePackage,
+        )
+        if (transition is PaymentStatusTransition.Updated) post(transition)
+        store.saveRecognition(
+            recognition.copy(state = PaymentRecognitionState.VERIFICATION_FAILED.name, updatedAtMs = now()),
+        )
+        return true
+    }
+
     private fun expireRecognition(accountId: String, recognitionId: String) {
         val recognition = store.recognition(accountId, recognitionId) ?: return
         val transition = statusMachine.transition(
@@ -282,6 +324,7 @@ class PaymentRecognitionCoordinator(
             next = PaymentRecognitionState.ENRICHMENT_EXPIRED,
             recognitionId = recognition.recognitionId,
             sourceAppLabel = "",
+            sourcePackage = recognition.sourcePackage,
         )
         if (transition is PaymentStatusTransition.Updated) {
             post(transition)
@@ -523,6 +566,9 @@ class PaymentRecognitionCoordinator(
     companion object {
         /** Two sources within three minutes are treated as the same payment. */
         const val RECONCILIATION_WINDOW_MS = 3 * 60 * 1000L
+
+        /** Failed page reads before the automatic attempt is reported as failed. */
+        const val MISSES_BEFORE_FAILING = 2
 
         fun formatAmount(amountMinor: Long): String {
             val value = amountMinor / 100.0

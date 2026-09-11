@@ -53,7 +53,11 @@ class NotificationHubState(
      * hub shows the same backend number whenever it is reachable (falling back
      * to the local count offline) and the two screens can never disagree.
      */
+    /** Recognitions this device still has to verify or confirm. */
     var pendingPayments by mutableStateOf(0)
+
+    /** Candidates the Finance page still lists for confirmation. */
+    var remotePendingPayments by mutableStateOf(0)
 
     private fun query() = NotificationQuery(
         search = search,
@@ -92,7 +96,15 @@ class NotificationHubState(
         // thread, otherwise Android throws
         // "Cannot access database on the main thread" from the Compose frame.
         pendingPayments = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            val local = paymentStore.pendingCandidateCount(accountId)
+            // The banner is the entry point to the native pending-verification
+            // screen, so it counts exactly what that screen lists: local
+            // recognitions that still need the user. Backend candidates are
+            // reported separately instead of being summed, otherwise an
+            // uploaded payment would be counted twice.
+            val local = paymentStore.recognitionsByState(
+                accountId,
+                uk.thewyj.app.task21.payment.PaymentVerificationCenter.ATTENTION_STATES,
+            ).size
             val credentials = runCatching { credentialStore.loadActive() }.getOrNull()
             val remote = if (credentials != null && credentials.accessToken.isNotBlank()) {
                 when (val result = api.pendingCandidateCount(credentials.accessToken)) {
@@ -102,7 +114,8 @@ class NotificationHubState(
             } else {
                 null
             }
-            remote ?: local
+            remotePendingPayments = remote ?: 0
+            local
         }
     }
 

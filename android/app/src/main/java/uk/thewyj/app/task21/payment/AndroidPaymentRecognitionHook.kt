@@ -19,12 +19,20 @@ class AndroidPaymentRecognitionHook private constructor(private val appContext: 
         )
     }
 
-    override fun onCapture(accountId: String, input: NotificationCaptureInput, sourceAppLabel: String) {
+    override fun onCapture(
+        accountId: String,
+        input: NotificationCaptureInput,
+        sourceAppLabel: String,
+        uploadEventId: String,
+    ) {
         val sourceType = when {
             input.sourceType == "sms" -> PaymentSourceType.SMS
             input.sourceType == "bank" -> PaymentSourceType.BANK_NOTIFICATION
             else -> PaymentSourceType.NOTIFICATION
         }
+        // The user must always see the real app name ("微信"), never the package
+        // name and never the generic 「该应用」 the notifications used to show.
+        val label = sourceAppLabel.ifBlank { PaymentAppLabels.resolve(appContext, input.sourcePackage) }
         coordinator.onSourceEvent(
             accountId = accountId,
             sourcePackage = input.sourcePackage,
@@ -34,7 +42,8 @@ class AndroidPaymentRecognitionHook private constructor(private val appContext: 
             text = input.text,
             bigText = input.bigText,
             subText = input.subText,
-            sourceAppLabel = sourceAppLabel,
+            sourceAppLabel = label,
+            uploadEventId = uploadEventId,
             occurredAtMs = if (input.postTime > 0) input.postTime else input.receivedAtMs,
         )
     }
@@ -94,6 +103,10 @@ class AndroidPaymentRecognitionHook private constructor(private val appContext: 
 
     fun onAccessibilityEnrichment(accountId: String, enrichment: PaymentEnrichment): EnrichmentOutcome =
         coordinator.onAccessibilityEnrichment(accountId, enrichment)
+
+    /** The page produced no usable amount; counts toward the honest failure path. */
+    fun onAccessibilityMiss(accountId: String, sourcePackage: String): Boolean =
+        coordinator.onAccessibilityMiss(accountId, sourcePackage)
 
     fun coordinator(): PaymentRecognitionCoordinator = coordinator
 

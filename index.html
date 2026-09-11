@@ -6,12 +6,12 @@
     <meta name="theme-color" content="#ffffff" />
     <title>thewyj — 学习、工具、财务与分享</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260911-task24-final-closure-r1" />
-    <link rel="stylesheet" href="/styles.css?v=20260911-task24-final-closure-r1" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260911-task24-final-closure-r1" />
-    <link rel="stylesheet" href="/design-system.css?v=20260911-task24-final-closure-r1" />
-    <link rel="stylesheet" href="/public-experience.css?v=20260911-task24-final-closure-r1" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20260911-task24-final-closure-r1" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260911-task24-final-closure-r4" />
+    <link rel="stylesheet" href="/styles.css?v=20260911-task24-final-closure-r4" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260911-task24-final-closure-r4" />
+    <link rel="stylesheet" href="/design-system.css?v=20260911-task24-final-closure-r4" />
+    <link rel="stylesheet" href="/public-experience.css?v=20260911-task24-final-closure-r4" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20260911-task24-final-closure-r4" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 thewyj" aria-hidden="false">
@@ -32,7 +32,7 @@
         <div class="site-nav-bar">
           <a class="site-brand" href="/" data-site-nav="home" aria-label="thewyj 首页">
             <img src="/icon-192.png" alt="" />
-            <span class="site-brand-copy"><strong>thewyj</strong><small id="siteVersionLabel">v2026.09.11.5</small></span>
+            <span class="site-brand-copy"><strong>thewyj</strong><small id="siteVersionLabel">v2026.09.11.6</small></span>
           </a>
           <button class="site-nav-toggle" id="siteNavToggle" type="button" aria-expanded="false" aria-controls="siteNavPanel" aria-label="打开主导航">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
@@ -189,7 +189,7 @@
       </section>
 
       <section class="public-page hidden" id="changelogPage" aria-labelledby="changelogTitle" aria-hidden="true">
-        <header class="public-page-header"><p class="section-kicker">更新日志</p><h1 id="changelogTitle">近期改进</h1><p>按版本记录新功能、优化、修复和安全更新。当前版本：<strong id="changelogCurrentVersion">v2026.09.11.5</strong></p></header>
+        <header class="public-page-header"><p class="section-kicker">更新日志</p><h1 id="changelogTitle">近期改进</h1><p>按版本记录新功能、优化、修复和安全更新。当前版本：<strong id="changelogCurrentVersion">v2026.09.11.6</strong></p></header>
         <div class="changelog-list" id="changelogList" aria-live="polite"></div>
         <div class="public-actions"><button class="primary" id="changelogTrialBtn" type="button">免费试用</button><a class="button-link button-secondary" href="https://github.com/WYJ0904/thewyj.uk/commits/main/" target="_blank" rel="noopener noreferrer">完整提交记录</a></div>
       </section>
@@ -419,21 +419,29 @@
           <section class="finance-content-grid">
             <div class="finance-ledger-panel">
               <div class="finance-section-heading"><div><h2>账目</h2><p id="financeTransactionCount">0 笔</p></div></div>
-              <div class="finance-filter-grid" aria-label="筛选账目">
-                <label><span>搜索</span><input id="financeSearchInput" type="search" maxlength="120" placeholder="商户、对手方或备注" /></label>
-                <label><span>月份</span><input id="financeMonthFilter" type="month" /></label>
-                <label><span>类型</span><select id="financeDirectionFilter"><option value="">全部类型</option><option value="income">收入</option><option value="expense">支出</option><option value="refund">退款</option></select></label>
-                <label><span>分类</span><select id="financeCategoryFilter"><option value="">全部分类</option></select></label>
-                <label><span>状态</span><select id="financeStatusFilter"><option value="active">当前账目</option><option value="deleted">已删除</option><option value="all">全部状态</option></select></label>
-              </div>
+              <!-- 手机端默认收起：默认视图只保留概览与账目列表，
+                   搜索/月份/类型/分类/状态按需展开（详情见 setupResponsiveDisclosures）。 -->
+              <details class="ds-collapse" id="financeFilterDisclosure" data-responsive-collapse open>
+                <summary><span>筛选账目</span><small id="financeFilterSummary">全部账目</small></summary>
+                <div class="finance-filter-grid" aria-label="筛选账目">
+                  <label><span>搜索</span><input id="financeSearchInput" type="search" maxlength="120" placeholder="商户、对手方或备注" /></label>
+                  <label><span>月份</span><input id="financeMonthFilter" type="month" /></label>
+                  <label><span>类型</span><select id="financeDirectionFilter"><option value="">全部类型</option><option value="income">收入</option><option value="expense">支出</option><option value="refund">退款</option></select></label>
+                  <label><span>分类</span><select id="financeCategoryFilter"><option value="">全部分类</option></select></label>
+                  <label><span>状态</span><select id="financeStatusFilter"><option value="active">当前账目</option><option value="deleted">已删除</option><option value="all">全部状态</option></select></label>
+                </div>
+              </details>
               <div class="finance-undo hidden" id="financeUndoBar"><span>账目已删除。</span><button id="financeUndoBtn" type="button">撤销</button></div>
               <div class="finance-transaction-list" id="financeTransactionList" aria-live="polite"></div>
             </div>
 
-            <aside class="finance-side-column">
-              <section class="finance-side-panel"><div class="finance-section-heading"><div><h2>预算状态</h2><p>到期不删除历史账目</p></div><button class="button-ghost" id="financeManageBudgetsBtn" type="button">管理</button></div><div id="financeBudgetSummary"></div></section>
-              <section class="finance-side-panel"><div class="finance-section-heading"><div><h2>分类统计</h2><p>按当前筛选月份的支出</p></div><button class="button-ghost" id="financeManageCategoriesBtn" type="button">管理</button></div><div id="financeCategoryStats"></div></section>
-            </aside>
+            <details class="ds-collapse ds-collapse-panel" id="financeInsightDisclosure" data-responsive-collapse open>
+              <summary><span>预算与分类统计</span><small>按月统计</small></summary>
+              <aside class="finance-side-column">
+                <section class="finance-side-panel"><div class="finance-section-heading"><div><h2>预算状态</h2><p>到期不删除历史账目</p></div><button class="button-ghost" id="financeManageBudgetsBtn" type="button">管理</button></div><div id="financeBudgetSummary"></div></section>
+                <section class="finance-side-panel"><div class="finance-section-heading"><div><h2>分类统计</h2><p>按当前筛选月份的支出</p></div><button class="button-ghost" id="financeManageCategoriesBtn" type="button">管理</button></div><div id="financeCategoryStats"></div></section>
+              </aside>
+            </details>
           </section>
           <p class="meta-line" id="financeMessage" aria-live="polite"></p>
         </div>
@@ -1209,10 +1217,10 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20260911-task24-final-closure-r1"></script>
-    <script type="module" src="/tools.js?v=20260911-task24-final-closure-r1"></script>
-    <script src="/workflows.js?v=20260911-task24-final-closure-r1"></script>
-    <script src="/learning-sync.js?v=20260911-task24-final-closure-r1"></script>
-    <script type="module" src="/app.js?v=20260911-task24-final-closure-r1"></script>
+    <script src="/changelog.js?v=20260911-task24-final-closure-r4"></script>
+    <script type="module" src="/tools.js?v=20260911-task24-final-closure-r4"></script>
+    <script src="/workflows.js?v=20260911-task24-final-closure-r4"></script>
+    <script src="/learning-sync.js?v=20260911-task24-final-closure-r4"></script>
+    <script type="module" src="/app.js?v=20260911-task24-final-closure-r4"></script>
   </body>
 </html>

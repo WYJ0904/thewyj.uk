@@ -12,8 +12,9 @@ data class ShellOverlayState(
     val permissions: Boolean = false,
     val archive: Boolean = false,
     val transfer: Boolean = false,
+    val paymentVerification: Boolean = false,
 ) {
-    val anyVisible: Boolean get() = permissions || archive || transfer
+    val anyVisible: Boolean get() = permissions || archive || transfer || paymentVerification
 }
 
 data class ShellNavigationResult(

@@ -25,8 +25,13 @@ object PaymentAccessibilityStatus {
         private set
     @Volatile var lastParserResult: String = "none"
         private set
+    @Volatile var activeTicketPackages: String = ""
+        private set
+    @Volatile var lastSkipped: String = "none"
+        private set
 
     private var lastLoggedAtMs = 0L
+    private val parserThrottle = PaymentLogThrottle()
 
     fun onConnected() {
         connected = true
@@ -55,7 +60,26 @@ object PaymentAccessibilityStatus {
 
     fun onParserResult(result: String) {
         lastParserResult = result
-        emit("accessibility-parser result=$result lines=$lastTextLineCount")
+        // A ticket is open, so every result matters; still collapse identical
+        // repeats so a chatty page cannot flood the log.
+        if (parserThrottle.allow(result)) {
+            emit("accessibility-parser result=$result lines=$lastTextLineCount")
+        }
+    }
+
+    /**
+     * An event was skipped before any page read (no ticket for that package).
+     * These are the SystemUI/launcher/IME events that used to flood the log.
+     */
+    fun onSkipped(sourcePackage: String, reason: String) {
+        lastSkipped = reason
+        if (parserThrottle.allow("skip:$reason")) {
+            emit("accessibility-skip reason=$reason pkg=$sourcePackage")
+        }
+    }
+
+    fun onTicketPackages(packages: Collection<String>) {
+        activeTicketPackages = packages.sorted().joinToString(",")
     }
 
     fun snapshot(): String = buildString {
@@ -65,6 +89,8 @@ object PaymentAccessibilityStatus {
         append(" lastEventAt=").append(lastEventAtMs)
         append(" lastLines=").append(lastTextLineCount)
         append(" parser=").append(lastParserResult)
+        append(" tickets=").append(activeTicketPackages.ifBlank { "-" })
+        append(" skipped=").append(lastSkipped)
     }
 
     fun eventTypeName(eventType: Int): String = when (eventType) {

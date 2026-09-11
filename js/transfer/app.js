@@ -1,5 +1,5 @@
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260911-task24-final-closure-r1";
-import { getSafeStorage } from "../core/storage.js?v=20260911-task24-final-closure-r1";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260911-task24-final-closure-r4";
+import { getSafeStorage } from "../core/storage.js?v=20260911-task24-final-closure-r4";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";

@@ -9,20 +9,20 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260911-task24-final-closure-r1";
+} from "./js/core/config.js?v=20260911-task24-final-closure-r4";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20260911-task24-final-closure-r1";
+} from "./js/core/api.js?v=20260911-task24-final-closure-r4";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260911-task24-final-closure-r1";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20260911-task24-final-closure-r1";
+} from "./js/core/changelog.js?v=20260911-task24-final-closure-r4";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20260911-task24-final-closure-r4";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -33,27 +33,27 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20260911-task24-final-closure-r1";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260911-task24-final-closure-r1";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260911-task24-final-closure-r1";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260911-task24-final-closure-r1";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20260911-task24-final-closure-r1";
-import { speakText, stopSpeech } from "./js/language/speech.js?v=20260911-task24-final-closure-r1";
+} from "./js/core/session.js?v=20260911-task24-final-closure-r4";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260911-task24-final-closure-r4";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260911-task24-final-closure-r4";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260911-task24-final-closure-r4";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20260911-task24-final-closure-r4";
+import { speakText, stopSpeech } from "./js/language/speech.js?v=20260911-task24-final-closure-r4";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?v=20260911-task24-final-closure-r1";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260911-task24-final-closure-r1";
-import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20260911-task24-final-closure-r1";
-import { createTransferController } from "./js/transfer/app.js?v=20260911-task24-final-closure-r1";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260911-task24-final-closure-r1";
+} from "./js/language/speech-rate.js?v=20260911-task24-final-closure-r4";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260911-task24-final-closure-r4";
+import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20260911-task24-final-closure-r4";
+import { createTransferController } from "./js/transfer/app.js?v=20260911-task24-final-closure-r4";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260911-task24-final-closure-r4";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260911-task24-final-closure-r1";
+} from "./js/language/history.js?v=20260911-task24-final-closure-r4";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -90,16 +90,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260911-task24-final-closure-r1";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260911-task24-final-closure-r1";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20260911-task24-final-closure-r1";
+} from "./js/language/quiz.js?v=20260911-task24-final-closure-r4";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260911-task24-final-closure-r4";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260911-task24-final-closure-r4";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260911-task24-final-closure-r1";
+} from "./js/language/wrong-book.js?v=20260911-task24-final-closure-r4";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -108,7 +108,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260911-task24-final-closure-r1";
+} from "./js/membership/account.js?v=20260911-task24-final-closure-r4";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -116,19 +116,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260911-task24-final-closure-r1";
+} from "./js/membership/plans.js?v=20260911-task24-final-closure-r4";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260911-task24-final-closure-r1";
+} from "./js/membership/recharge.js?v=20260911-task24-final-closure-r4";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260911-task24-final-closure-r1";
+} from "./js/admin/formatters.js?v=20260911-task24-final-closure-r4";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -6558,14 +6558,49 @@ function installNativeNavigation() {
 
 // The native Compose shell follows the web theme so 我的 / 通知 / 权限中心 /
 // 文件传输 / 底部导航 / 对话框 switch together with the WebView pages.
+// Mobile information architecture: secondary panels start collapsed on a phone
+// and stay open on desktop. A manual toggle always wins.
+function setupResponsiveDisclosures() {
+  const nodes = Array.from(document.querySelectorAll("details[data-responsive-collapse]"));
+  if (!nodes.length) return;
+  const desktop = window.matchMedia?.("(min-width: 900px)");
+  let syncing = false;
+  const sync = () => {
+    const wantOpen = Boolean(desktop?.matches);
+    syncing = true;
+    nodes.forEach((node) => {
+      if (node.dataset.userToggled === "1") return;
+      node.open = wantOpen;
+    });
+    syncing = false;
+  };
+  nodes.forEach((node) => {
+    node.addEventListener("toggle", () => {
+      if (syncing) return;
+      node.dataset.userToggled = "1";
+    });
+  });
+  desktop?.addEventListener?.("change", () => {
+    // A breakpoint change is a layout change, not a user preference: reapply.
+    nodes.forEach((node) => { delete node.dataset.userToggled; });
+    sync();
+  });
+  sync();
+}
+
 function installNativeThemeBridge() {
   if (!isThewyjAndroidApp()) return;
-  document.addEventListener("wyj:theme-changed", (event) => {
-    const resolved = event?.detail?.resolved === "dark" ? "dark" : "light";
+  const pushTheme = (resolved) => {
     if (window.__wyjNativeTheme === resolved) return;
     window.__wyjNativeTheme = resolved;
     window.location.href = `thewyj://theme/${resolved}`;
+  };
+  document.addEventListener("wyj:theme-changed", (event) => {
+    pushTheme(event?.detail?.resolved === "dark" ? "dark" : "light");
   });
+  // The initial theme is *read* by the native shell after the page loads
+  // (ThewyjWebView.onPageFinished) instead of being pushed from here: a
+  // navigation during boot would race the first paint and the route renderer.
 }
 
 async function navigateFromSiteNav(destination) {
@@ -7017,6 +7052,7 @@ async function boot() {
   await routeCurrent();
   installNativeNavigation();
   installNativeThemeBridge();
+  setupResponsiveDisclosures();
   maybeShowVersionNotice();
 }
 

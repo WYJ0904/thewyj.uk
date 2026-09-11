@@ -220,6 +220,27 @@ private fun createWebView(
         }
     }
     webViewClient = object : WebViewClient() {
+        /**
+         * The web page is the single theme source of truth. It reports later
+         * changes with `thewyj://theme/...`, but the theme it resolved during
+         * booting has to be read here: otherwise the native shell kept the
+         * system theme while the page was light (or the reverse), and
+         * 通知/我的 looked like a second app.
+         */
+        override fun onPageFinished(view: WebView, url: String?) {
+            super.onPageFinished(view, url)
+            runCatching {
+                view.evaluateJavascript(
+                    "(document.documentElement && document.documentElement.dataset.theme) || ''",
+                ) { value ->
+                    val theme = value?.trim()?.trim('"')?.lowercase().orEmpty()
+                    if (theme == "dark" || theme == "light") {
+                        onThemeChanged(theme == "dark")
+                    }
+                }
+            }
+        }
+
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             if (request.isForMainFrame && policy.spaRoute(request.url.toString()) != null) {
                 view.navigateWithinDocument(policy, request.url.toString())

@@ -31,7 +31,7 @@ abstract class NotificationDatabase : RoomDatabase() {
     abstract fun paymentDao(): PaymentDao
 
     companion object {
-        const val SCHEMA_VERSION = 2
+        const val SCHEMA_VERSION = 3
         const val DATABASE_NAME = "wyj-notifications.db"
 
         @Volatile
@@ -45,7 +45,7 @@ abstract class NotificationDatabase : RoomDatabase() {
                     DATABASE_NAME,
                 )
                     // The local archive is user data: never drop it on upgrade.
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .fallbackToDestructiveMigrationOnDowngrade(false)
                     .build()
                     .also { instance = it }
@@ -58,6 +58,20 @@ abstract class NotificationDatabase : RoomDatabase() {
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 PAYMENT_V2_DDL.forEach { statement -> db.execSQL(statement) }
+            }
+        }
+
+        /**
+         * v2 -> v3 records which structured-event identity a payment recognition
+         * was uploaded under. Blank means the payment hint is local-only (the
+         * amount was unknown at capture time), so this device owns the booking.
+         * Notification history, tickets and candidates are untouched.
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `payment_recognitions` ADD COLUMN `uploadEventId` TEXT NOT NULL DEFAULT ''",
+                )
             }
         }
 
