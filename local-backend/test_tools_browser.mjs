@@ -555,7 +555,9 @@ async function main() {
     await send("Page.navigate", { url: `${BASE_URL}/login?tool-matrix=1` });
     await waitFor("document.querySelector('#usernameInput')", 12_000, "login page");
     await evaluate(`localStorage.setItem('wyjAccountSession', ${JSON.stringify(member.session)}); location.href = '/tools?tool-matrix=1'; true`);
-    await waitFor("window.WYJTools?.tools?.length === 103 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox dashboard");
+    // Task 24.1: the catalog gained the canonical "文件传输" entry (104 total,
+    // 103 visible after the retired legacy temporary-file share).
+    await waitFor("window.WYJTools?.tools?.length === 104 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox dashboard");
     await evaluate(`(() => {
       const notice = document.querySelector('#versionNotice');
       if (notice && !notice.classList.contains('hidden')) document.querySelector('#dismissVersionNoticeBtn')?.click();
@@ -563,24 +565,32 @@ async function main() {
     })()`);
 
     const catalog = await evaluate("window.WYJTools.tools.map(({id,name,description,category}) => ({id,name,description,category}))");
-    assert.equal(catalog.length, 103);
-    assert.equal(new Set(catalog.map((tool) => tool.id)).size, 103);
+    assert.equal(catalog.length, 104);
+    assert.equal(new Set(catalog.map((tool) => tool.id)).size, 104);
     assert.ok(catalog.every((tool) => tool.name && tool.description));
 
     // Task 22 replaced the temporary-file share tool with the file transfer
     // page. The catalog must stop offering the old entry while the tool itself
     // stays resolvable for saved links and configurations.
     const catalogTools = await evaluate("window.WYJTools.catalogTools.map((tool) => tool.id)");
-    assert.equal(catalogTools.length, 102);
+    assert.equal(catalogTools.length, 103);
     assert.ok(!catalogTools.includes("temporary-file"));
+    assert.ok(catalogTools.includes("file-transfer"));
     const renderedCards = await evaluate(
       "Array.from(document.querySelectorAll('#toolCatalog [data-tool-card]')).map((element) => element.dataset.toolCard)",
     );
     assert.ok(!renderedCards.includes("temporary-file"), "retired tool is still advertised in the catalog");
     assert.equal(await evaluate("document.querySelector('#toolsTransferBtn')?.textContent || ''"), "文件传输");
+    // The retired id is still resolvable for old links, but it must hand over to
+    // the canonical /transfer page instead of rendering a second uploader.
     await openTool("temporary-file");
-    await evaluate("window.WYJTools.closeWorkbench(false)");
-    await waitFor("!document.querySelector('#toolsPanel')?.classList.contains('hidden')", 5_000, "toolbox after retirement check");
+    await waitFor(
+      "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+      6_000,
+      "retired temporary-file redirect",
+    );
+    await send("Page.navigate", { url: `${BASE_URL}/tools?tool-matrix=1b` });
+    await waitFor("window.WYJTools?.tools?.length === 104 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox after retirement check");
     await click("#toolsTransferBtn");
     await waitFor(
       "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
@@ -921,19 +931,37 @@ async function main() {
       coverMode("temporary.destruction.destroy-after-read");
     });
 
-    await record("temporary", "temporary-file", async () => {
+    // Task 24.1: the legacy temporary-file workbench is gone. File sharing has a
+    // single canonical implementation (/transfer, Task 22); the toolbox entry and
+    // the retired id both navigate there and no second uploader exists.
+    await record("temporary", "file-transfer-canonical", async () => {
       await openTool("temporary-file");
-      await setFiles("#tempFileInput", [samples.large]);
-      await click("#createTempBtn");
-      await waitFor("document.querySelector('#temporaryResult code')?.textContent.includes('/share/file/')", 120_000, "20 MB temporary file link");
-      const state = await readState();
-      await send("Page.navigate", { url: state.temporaryCode });
-      await waitFor("!document.querySelector('#shareViewer')?.classList.contains('hidden') && document.querySelector('#openShareBtn')", 12_000, "public temporary file viewer");
-      const downloaded = await verifyDownload("#openShareBtn", 120_000);
-      assert.equal(path.basename(downloaded), "twenty-megabytes.txt");
-      assert.equal(fileSha256(downloaded), fileSha256(samples.large), "temporary file SHA-256 mismatch");
-      artifactManifest.temporary_files.push({ original: samples.large, downloaded });
+      await waitFor(
+        "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+        6_000,
+        "retired temporary-file opens canonical transfer",
+      );
+      assert.equal(
+        await evaluate("Boolean(document.querySelector('#tempFileInput'))"),
+        false,
+        "legacy temporary-file uploader must not exist",
+      );
       await send("Page.navigate", { url: `${BASE_URL}/tools` });
+      await waitFor("window.WYJTools?.tools?.length === 104", 15_000, "toolbox reload after transfer check");
+      await click("#toolsTransferBtn");
+      await waitFor(
+        "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+        6_000,
+        "toolbox file transfer entry",
+      );
+      await openTool("file-transfer");
+      await waitFor(
+        "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+        6_000,
+        "canonical file-transfer catalog entry",
+      );
+      await send("Page.navigate", { url: `${BASE_URL}/tools` });
+      await waitFor("window.WYJTools?.tools?.length === 104", 15_000, "toolbox reload after canonical check");
       await waitFor("window.WYJTools?.tools?.length === 103 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox after public file download");
     });
 
