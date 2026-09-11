@@ -6598,11 +6598,9 @@ function installNativeThemeBridge() {
   document.addEventListener("wyj:theme-changed", (event) => {
     pushTheme(event?.detail?.resolved === "dark" ? "dark" : "light");
   });
-  // The design system resolves the theme while the document is parsing, which is
-  // before this listener exists. Without the initial push the native shell kept
-  // using the system theme while the WebView page was light (or the reverse),
-  // so 通知/我的 looked like a second app.
-  pushTheme(document.documentElement?.dataset?.theme === "dark" ? "dark" : "light");
+  // The initial theme is *read* by the native shell after the page loads
+  // (ThewyjWebView.onPageFinished) instead of being pushed from here: a
+  // navigation during boot would race the first paint and the route renderer.
 }
 
 async function navigateFromSiteNav(destination) {
