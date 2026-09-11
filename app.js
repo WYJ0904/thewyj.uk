@@ -9,20 +9,20 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260911-finance-linkage-tts-nav-r1";
+} from "./js/core/config.js?v=20260911-task24-bug-closure-r1";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20260911-finance-linkage-tts-nav-r1";
+} from "./js/core/api.js?v=20260911-task24-bug-closure-r1";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260911-finance-linkage-tts-nav-r1";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20260911-finance-linkage-tts-nav-r1";
+} from "./js/core/changelog.js?v=20260911-task24-bug-closure-r1";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20260911-task24-bug-closure-r1";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -33,23 +33,23 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20260911-finance-linkage-tts-nav-r1";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260911-finance-linkage-tts-nav-r1";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260911-finance-linkage-tts-nav-r1";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260911-finance-linkage-tts-nav-r1";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20260911-finance-linkage-tts-nav-r1";
-import { speakText, stopSpeech } from "./js/language/speech.js?v=20260911-finance-linkage-tts-nav-r1";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260911-finance-linkage-tts-nav-r1";
-import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20260911-finance-linkage-tts-nav-r1";
-import { createTransferController } from "./js/transfer/app.js?v=20260911-finance-linkage-tts-nav-r1";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260911-finance-linkage-tts-nav-r1";
+} from "./js/core/session.js?v=20260911-task24-bug-closure-r1";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260911-task24-bug-closure-r1";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260911-task24-bug-closure-r1";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260911-task24-bug-closure-r1";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20260911-task24-bug-closure-r1";
+import { speakText, stopSpeech } from "./js/language/speech.js?v=20260911-task24-bug-closure-r1";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260911-task24-bug-closure-r1";
+import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20260911-task24-bug-closure-r1";
+import { createTransferController } from "./js/transfer/app.js?v=20260911-task24-bug-closure-r1";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260911-task24-bug-closure-r1";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260911-finance-linkage-tts-nav-r1";
+} from "./js/language/history.js?v=20260911-task24-bug-closure-r1";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -61,6 +61,8 @@ import {
   formatWordsForInput,
   hasJapaneseKanji,
   japaneseDictationRequiresBoth as japaneseDictationRequiresBothModel,
+  japaneseDictationNeedsResolution as japaneseDictationNeedsResolutionModel,
+  japaneseDictationSpokenText as japaneseDictationSpokenTextModel,
   japaneseReadingFor as japaneseReadingForModel,
   japaneseWrittenFormFor as japaneseWrittenFormForModel,
   limitText,
@@ -84,16 +86,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260911-finance-linkage-tts-nav-r1";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260911-finance-linkage-tts-nav-r1";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20260911-finance-linkage-tts-nav-r1";
+} from "./js/language/quiz.js?v=20260911-task24-bug-closure-r1";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260911-task24-bug-closure-r1";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260911-task24-bug-closure-r1";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260911-finance-linkage-tts-nav-r1";
+} from "./js/language/wrong-book.js?v=20260911-task24-bug-closure-r1";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -102,7 +104,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260911-finance-linkage-tts-nav-r1";
+} from "./js/membership/account.js?v=20260911-task24-bug-closure-r1";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -110,19 +112,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260911-finance-linkage-tts-nav-r1";
+} from "./js/membership/plans.js?v=20260911-task24-bug-closure-r1";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260911-finance-linkage-tts-nav-r1";
+} from "./js/membership/recharge.js?v=20260911-task24-bug-closure-r1";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260911-finance-linkage-tts-nav-r1";
+} from "./js/admin/formatters.js?v=20260911-task24-bug-closure-r1";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -4875,8 +4877,13 @@ function speechLang() {
 function speakCurrentWord() {
   const word = state.words[state.index];
   if (!word) return;
+  // Japanese dictation speaks the entry's bound kana reading when one exists,
+  // so 先生 is pronounced せんせい while the kanji stays the surface form.
+  const spoken = state.quizLanguage === "japanese"
+    ? japaneseDictationSpokenTextModel(word, state.japaneseReadings, state.japaneseWrittenForms)
+    : word;
   const result = speakText(window, {
-    text: word,
+    text: spoken,
     lang: speechLang(),
     rate: state.quizLanguage === "japanese" ? 0.82 : 0.9,
     native: isThewyjAndroidApp(),
@@ -5214,11 +5221,14 @@ async function ensureJapaneseQuestionForms(words) {
   const dictation = state.practiceMode === "dictation";
   const required = words.filter((word) => wordMatchesLanguage(word, "japanese"));
   const missing = required.filter((word) => {
-    const hasReading = Boolean(japaneseReadingFor(word));
-    if (!dictation) return hasJapaneseKanji(word) && !hasReading;
-    const hasWrittenResolution = hasJapaneseKanji(word)
-      || Object.prototype.hasOwnProperty.call(state.japaneseWrittenForms, word);
-    return !hasReading || !hasWrittenResolution;
+    // A kanji surface such as 先生 is already complete; the bound kana reading
+    // is enrichment for TTS and must never block the round.
+    return japaneseDictationNeedsResolutionModel(
+      word,
+      state.japaneseReadings,
+      state.japaneseWrittenForms,
+      dictation,
+    );
   });
   if (!missing.length) return true;
   if (!backendAvailable || !state.session) {
@@ -5242,11 +5252,12 @@ async function ensureJapaneseQuestionForms(words) {
   }
 
   const unresolved = required.filter((word) => {
-    const hasReading = Boolean(japaneseReadingFor(word));
-    if (!dictation) return hasJapaneseKanji(word) && !hasReading;
-    const hasWrittenResolution = hasJapaneseKanji(word)
-      || Object.prototype.hasOwnProperty.call(state.japaneseWrittenForms, word);
-    return !hasReading || !hasWrittenResolution;
+    return japaneseDictationNeedsResolutionModel(
+      word,
+      state.japaneseReadings,
+      state.japaneseWrittenForms,
+      dictation,
+    );
   });
   if (unresolved.length) {
     const preview = unresolved.slice(0, 5).join("、");
@@ -6522,6 +6533,18 @@ function installNativeNavigation() {
   if (pending) void navigation.navigate(pending);
 }
 
+// The native Compose shell follows the web theme so 我的 / 通知 / 权限中心 /
+// 文件传输 / 底部导航 / 对话框 switch together with the WebView pages.
+function installNativeThemeBridge() {
+  if (!isThewyjAndroidApp()) return;
+  document.addEventListener("wyj:theme-changed", (event) => {
+    const resolved = event?.detail?.resolved === "dark" ? "dark" : "light";
+    if (window.__wyjNativeTheme === resolved) return;
+    window.__wyjNativeTheme = resolved;
+    window.location.href = `thewyj://theme/${resolved}`;
+  });
+}
+
 async function navigateFromSiteNav(destination) {
   closeAccountMenu();
   if (destination === "home") {
@@ -6965,6 +6988,7 @@ async function boot() {
   await backendPromise;
   await routeCurrent();
   installNativeNavigation();
+  installNativeThemeBridge();
   maybeShowVersionNotice();
 }
 

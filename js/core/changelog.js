@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?v=20260911-finance-linkage-tts-nav-r1";
+import { fetchWithTimeout } from "./api.js?v=20260911-task24-bug-closure-r1";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 

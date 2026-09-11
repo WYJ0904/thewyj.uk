@@ -243,6 +243,24 @@ export function japaneseDictationRequiresBoth(word, readings = {}, writtenForms 
   return Boolean(hasJapaneseKanji(written) && reading && normalizeKana(written) !== normalizeKana(reading));
 }
 
+/**
+ * A kanji entry such as 先生 is already a complete surface form. Dictation only
+ * needs a reading when the entry has no kanji at all (pure kana already *is* its
+ * own reading); the reading is enrichment for TTS, never a blocker.
+ */
+export function japaneseDictationNeedsResolution(word, readings = {}, writtenForms = {}, dictation = true) {
+  const written = japaneseWrittenFormFor(word, writtenForms);
+  const hasReading = Boolean(japaneseReadingFor(word, readings));
+  if (!dictation) return hasJapaneseKanji(written) && !hasReading;
+  return !hasReading && !hasJapaneseKanji(written);
+}
+
+/** Japanese dictation speaks the bound kana reading when one exists. */
+export function japaneseDictationSpokenText(word, readings = {}, writtenForms = {}) {
+  const written = japaneseWrittenFormFor(word, writtenForms);
+  return japaneseReadingFor(word, readings) || written || String(word || "");
+}
+
 export function formatJapaneseDictationAnswer(word, readings = {}, writtenForms = {}) {
   const written = japaneseWrittenFormFor(word, writtenForms);
   const reading = japaneseReadingFor(word, readings);

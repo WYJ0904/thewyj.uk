@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -48,10 +50,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Surface
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
 import uk.thewyj.app.core.auth.AccountSnapshot
 import uk.thewyj.app.core.permission.PermissionCenter
+import uk.thewyj.app.core.design.ThewyjRadius
 import uk.thewyj.app.task21.store.NotificationHistoryItem
 import uk.thewyj.app.task21.store.NotificationRuleEntity
 import java.text.SimpleDateFormat
@@ -83,7 +87,6 @@ fun NotificationHubScreen(
     val scope = rememberCoroutineScope()
     var tab by remember { mutableIntStateOf(0) }
     var notificationAccess by remember { mutableStateOf(PermissionCenter.notificationListenerGranted(context)) }
-    var pendingPayments by remember { mutableIntStateOf(0) }
 
     LifecycleResumeEffect(Unit) {
         notificationAccess = PermissionCenter.notificationListenerGranted(context)
@@ -99,13 +102,30 @@ fun NotificationHubScreen(
         state.changes.collectLatest {
             state.refresh()
             state.refreshApps()
+            state.refreshPendingPayments()
         }
     }
     LaunchedEffect(account.id) {
-        state.pendingPayments.collectLatest { count -> pendingPayments = count }
+        state.refreshPendingPayments()
+    }
+    LaunchedEffect(account.id) {
+        state.latestChange.collectLatest { identity ->
+            if (identity.isNullOrBlank()) return@collectLatest
+            uk.thewyj.app.task21.CaptureTrace.stage(identity, "flow-emitted")
+            state.refresh()
+            state.refreshApps()
+            uk.thewyj.app.task21.CaptureTrace.stage(identity, "ui-rendered", "items=${state.items.size}")
+        }
     }
 
-    Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    // One natural vertical page: pending card + tabs + search/filter + list all
+    // scroll together instead of a fixed header over a small scrolling list.
+    Column(
+        modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .background(MaterialTheme.colorScheme.background),
+    ) {
         Text(
             "通知历史",
             style = MaterialTheme.typography.headlineSmall,
@@ -135,10 +155,10 @@ fun NotificationHubScreen(
                 }
             }
         }
-        if (pendingPayments > 0) {
+        if (state.pendingPayments > 0) {
             Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("$pendingPayments 笔交易等待确认", fontWeight = FontWeight.SemiBold)
+                    Text("${state.pendingPayments} 笔交易等待确认", fontWeight = FontWeight.SemiBold)
                     Text(
                         "识别到的支付还没有进入账本。请到财务页确认，或补充金额与方向后再记账。",
                         style = MaterialTheme.typography.bodySmall,
@@ -195,7 +215,7 @@ private fun NotificationHistorySection(state: NotificationHubState) {
             if (!appLabels.containsKey(packageName)) appLabels[packageName] = state.appLabel(packageName)
         }
     }
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = state.search,
             onValueChange = { value -> scope.launch { state.setSearch(value) } },
@@ -264,13 +284,13 @@ private fun NotificationHistorySection(state: NotificationHubState) {
             }
         }
         when {
-            state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("正在读取本地通知…") }
-            state.error.isNotBlank() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(state.error) }
-            state.items.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            state.loading -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { Text("正在读取本地通知…") }
+            state.error.isNotBlank() -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { Text(state.error) }
+            state.items.isEmpty() -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                 Text("还没有保存任何通知。授权通知访问后，被选中的应用会出现在这里。")
             }
-            else -> LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
-                items(state.items, key = { it.instanceId }) { item ->
+            else -> Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+                state.items.forEach { item ->
                     NotificationHistoryCard(
                         state = state,
                         item = item,
@@ -305,10 +325,6 @@ private fun NotificationHistoryCard(
                         maxLines = 1,
                         softWrap = false,
                     )
-                    if (item.status == "removed") {
-                        Spacer(Modifier.width(6.dp))
-                        Text("已移除", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    }
                 }
                 Text(
                     item.title.ifBlank { "(无标题)" },
@@ -326,6 +342,22 @@ private fun NotificationHistoryCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // History keeps removed notifications; the state is shown as a
+                // readable low-weight badge instead of nearly invisible text.
+                if (item.status == "removed") {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        shape = ThewyjRadius.Small,
+                        modifier = Modifier.padding(top = 2.dp),
+                    ) {
+                        Text(
+                            "已从系统通知栏移除",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
+                }
             }
             IconButton(onClick = onDelete, modifier = Modifier.size(40.dp)) {
                 Icon(
@@ -343,7 +375,7 @@ private fun formatTime(value: Long): String =
 
 @Composable
 private fun NotificationAppsSection(state: NotificationHubState, scope: kotlinx.coroutines.CoroutineScope) {
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxWidth()) {
         FlowRow(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = { scope.launch { state.setAllAppPolicies(true) } }) { Text("全选") }
             OutlinedButton(onClick = { scope.launch { state.setAllAppPolicies(false) } }) { Text("全不选") }
@@ -355,8 +387,8 @@ private fun NotificationAppsSection(state: NotificationHubState, scope: kotlinx.
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
-        LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
-            items(state.appEntries, key = { it.packageName }) { entry ->
+        Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+            state.appEntries.forEach { entry ->
                 Row(
                     Modifier.fillMaxWidth().padding(vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -385,7 +417,7 @@ private fun NotificationRulesSection(state: NotificationHubState, scope: kotlinx
     var ruleName by remember { mutableStateOf("") }
     val retentionOptions = listOf(-1 to "永久", 1 to "1 天", 3 to "3 天", 7 to "7 天", 30 to "30 天", 90 to "90 天", 365 to "1 年")
 
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
+    Column(Modifier.fillMaxWidth().padding(16.dp)) {
         Text("保留期限", style = MaterialTheme.typography.titleMedium)
         FlowRow(
             Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -447,8 +479,8 @@ private fun NotificationRulesSection(state: NotificationHubState, scope: kotlinx
             }
         }) { Text("保存规则") }
         Spacer(Modifier.height(12.dp))
-        LazyColumn {
-            items(state.rules, key = { it.ruleId }) { rule ->
+        Column(Modifier.fillMaxWidth()) {
+            state.rules.forEach { rule ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(rule.name, style = MaterialTheme.typography.bodyLarge)

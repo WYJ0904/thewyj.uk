@@ -10,6 +10,8 @@ import {
   analyzeWordList,
   evaluateDictation,
   evaluateLocalMeaning,
+  japaneseDictationNeedsResolution,
+  japaneseDictationSpokenText,
   parseWordTextModel,
   sanitizePendingAdvance,
 } from "../js/language/quiz.js";
@@ -131,6 +133,19 @@ assert.equal(missingEngine.engine, "none");
 assert.match(missingEngine.message, /语音引擎/);
 assert.equal(speakText({}, { text: "   " }).ok, false);
 const stopCalls = [];
+// Japanese dictation: kanji surfaces are complete entries. A missing reading
+// must not block the round (real-device 私/人/子供/先生/学生 report), the bound
+// kana reading is used for TTS when it exists, and pure kana stays untouched.
+const japaneseWords = { "私": "わたし", "人": "ひと", "子供": "こども", "先生": "せんせい", "学生": "がくせい" };
+for (const [surface, reading] of Object.entries(japaneseWords)) {
+  assert.equal(japaneseDictationNeedsResolution(surface, {}, {}, true), false, `${surface} must not block dictation`);
+  assert.equal(japaneseDictationSpokenText(surface, { [surface]: reading }, {}), reading, `${surface} must speak its reading`);
+}
+assert.equal(japaneseDictationSpokenText("先生", {}, {}), "先生", "unbound kanji falls back to the surface");
+assert.equal(japaneseDictationSpokenText("みず", {}, {}), "みず", "pure kana stays unchanged");
+assert.equal(japaneseDictationNeedsResolution("みず", {}, {}, true), false);
+assert.equal(japaneseDictationNeedsResolution("先生", {}, {}, false), true, "meaning practice still asks for a reading");
+
 // A route change without any native playback must not launch the native
 // scheme at all (a plain browser logs a protocol error for it).
 resetSpeechState();

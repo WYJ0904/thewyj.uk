@@ -21,7 +21,16 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
     override fun store(accountId: String, input: NotificationCaptureInput, parsed: StructuredNotificationEvent?): Boolean {
         if (accountId.isBlank() || input.sourcePackage.isBlank()) return false
         runCatching { LegacyArchiveMigration(database).migrateIfNeeded(context.filesDir, accountId) }
-        if (!isAllowed(accountId, input.sourcePackage)) return false
+        val traceId = uk.thewyj.app.task21.CaptureTrace.traceId(
+            input.notificationKey,
+            input.sourcePackage,
+            input.notificationId,
+        )
+        if (!isAllowed(accountId, input.sourcePackage)) {
+            uk.thewyj.app.task21.CaptureTrace.stage(traceId, "archive-skipped-app-disabled", "pkg=${input.sourcePackage}")
+            return false
+        }
+        uk.thewyj.app.task21.CaptureTrace.stage(traceId, "archive-accepted", "pkg=${input.sourcePackage}")
         store.record(accountId, captureOf(input, parsed))
         return true
     }

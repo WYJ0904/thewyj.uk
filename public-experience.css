@@ -273,11 +273,26 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
   padding: var(--ds-space-12) max(var(--ds-space-6), calc((100vw - var(--ds-container-default)) / 2));
   border: 0;
   color: var(--ds-stage-text);
-  background: var(--ds-stage);
+  /* Blend the hero into the page canvas so the boundary reads as one page. */
+  background: linear-gradient(
+    to bottom,
+    var(--ds-stage) 0%,
+    var(--ds-stage) 78%,
+    var(--ds-workspace-canvas) 100%
+  );
 }
 
 .public-hero::after {
-  display: none;
+  content: "";
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 120px;
+  background: linear-gradient(to bottom, transparent, var(--ds-workspace-canvas));
+  pointer-events: none;
+  z-index: 2;
 }
 
 .public-hero .public-intro-copy {
@@ -465,13 +480,9 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
 }
 
 .hero-scene-line {
-  position: absolute;
-  top: 0;
-  right: 34%;
-  width: 1px;
-  height: 100%;
-  background: var(--ds-stage-border);
-  opacity: 0.42;
+  /* Decorative full-height rule used to read as a hard seam between the two
+     desktop hero columns; the layout already separates them. */
+  display: none;
 }
 
 .public-capabilities {

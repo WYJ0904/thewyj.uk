@@ -43,6 +43,14 @@ object WeChatPaymentParser : PaymentMessageParser {
                 reasons = listOf("wechat_amount_without_payment_context"),
             )
         }
+        // WeChat chat and WeChat Pay share the same package: a chat sentence
+        // that merely mentions 转账 must stay out of the finance pipeline.
+        if (hint && !completion && amount == null && PaymentText.isChatLike(normalized)) {
+            return ParsedPaymentMessage(
+                PaymentRecognitionStatus.NOT_PAYMENT,
+                reasons = listOf("wechat_chat_context"),
+            )
+        }
         val missing = buildSet {
             if (amount == null) add("amount")
             if (direction == null) add("direction")

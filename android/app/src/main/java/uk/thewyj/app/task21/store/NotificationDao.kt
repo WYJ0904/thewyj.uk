@@ -33,6 +33,13 @@ interface NotificationDao {
     @Query("SELECT COUNT(*) FROM notification_revisions WHERE accountId = :accountId")
     fun observeRevisionCount(accountId: String): Flow<Int>
 
+    /** Latest stored notification identity; drives the UI render trace. */
+    @Query(
+        "SELECT identityKey FROM notification_instances WHERE accountId = :accountId "
+            + "ORDER BY lastSeenAt DESC, instanceId DESC LIMIT 1",
+    )
+    fun observeLatestIdentity(accountId: String): Flow<String?>
+
     @Query("SELECT * FROM notification_instances WHERE accountId = :accountId AND notificationKey = :notificationKey AND status = 'active' ORDER BY lastSeenAt DESC LIMIT 1")
     fun activeInstanceByNotificationKey(accountId: String, notificationKey: String): NotificationInstanceEntity?
 

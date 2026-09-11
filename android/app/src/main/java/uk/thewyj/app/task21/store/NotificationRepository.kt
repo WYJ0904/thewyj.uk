@@ -35,6 +35,9 @@ class NotificationRepository(
     /** Real-time change signal for the history list (no polling). */
     fun historyChanges(): Flow<Unit> = store.observeChanges(accountId)
 
+    /** Latest stored notification identity for the end-to-end capture trace. */
+    fun latestChangeIdentity(): Flow<String?> = store.observeLatestIdentity(accountId)
+
     suspend fun historyCount(query: NotificationQuery): Int = withContext(Dispatchers.IO) {
         store.historyCount(accountId, query)
     }

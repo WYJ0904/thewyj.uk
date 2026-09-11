@@ -87,6 +87,7 @@ fun ThewyjApp(viewModel: AppViewModel) {
     val navigationEpoch by viewModel.navigationEpoch.collectAsStateWithLifecycle()
     val notice by viewModel.notice.collectAsStateWithLifecycle()
     val updateState by viewModel.updateState.collectAsStateWithLifecycle()
+    val nativeDark by viewModel.nativeDark.collectAsStateWithLifecycle()
     val authBusy by viewModel.authBusy.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -132,6 +133,7 @@ fun ThewyjApp(viewModel: AppViewModel) {
                 onLogout = viewModel::logout,
                 onCheckUpdate = viewModel::checkForUpdate,
                 onStartUpdate = viewModel::startUpdate,
+                onWebThemeChanged = viewModel::onWebThemeChanged,
                 onInstallUpdate = {
                     viewModel.prepareInstall()?.let { intent ->
                         runCatching { context.startActivity(intent) }
@@ -277,6 +279,7 @@ private fun AuthenticatedShell(
     onLogout: () -> Unit,
     onCheckUpdate: () -> Unit,
     onStartUpdate: () -> Unit,
+    onWebThemeChanged: (Boolean) -> Unit = {},
     onInstallUpdate: () -> Unit,
     onWebError: (String) -> Unit,
 ) {
@@ -318,6 +321,7 @@ private fun AuthenticatedShell(
                 onRouteChanged = onWebRouteChanged,
                 onCanGoBackChanged = {},
                 onMainFrameError = onWebError,
+                onThemeChanged = onWebThemeChanged,
                 onUnhandledBack = {
                     if (destination != AppDestination.HOME) onDestination(AppDestination.HOME)
                     else activity?.moveTaskToBack(true)

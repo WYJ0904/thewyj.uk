@@ -251,4 +251,43 @@ class NotificationCaptureReliabilityTest {
             assertEquals("unknown app must still be captured", 1, historyIds().size)
         }
     }
+
+    /**
+     * Real-device regression: download progress, system screenshots and
+     * background-service notices must be archived like any other notification;
+     * being ongoing/system/non-payment may never cause a silent drop.
+     */
+    @Test fun systemProgressAndGroupNotificationsAreArchived() {
+        onWorker {
+            val coordinator = coordinator(RecordingTransport())
+            val systemNotice = input("com.android.systemui", 91, "系统", "已截屏", 2_000L).copy(
+                sourceType = "notification",
+                isGroupSummary = true,
+            )
+            val downloadProgress = input("com.android.providers.downloads", 92, "下载", "正在下载 42%", 2_100L)
+            val serviceNotice = input("com.example.background", 93, "后台服务", "正在同步", 2_200L).copy(
+                isGroup = true,
+            )
+            coordinator.onNotification(systemNotice)
+            coordinator.onNotification(downloadProgress)
+            coordinator.onNotification(serviceNotice)
+            assertEquals(3, historyIds().size)
+        }
+    }
+
+    @Test fun paymentAndArchiveLifecyclesAreIndependent() {
+        onWorker {
+            val transport = RecordingTransport()
+            val coordinator = coordinator(transport, financeEntitled = true, archiveEntitled = true)
+            // A payment notification is archived and uploaded.
+            coordinator.onNotification(input("com.tencent.mm", 61, "微信支付", "已支付100", 3_000L))
+            assertEquals(1, historyIds().size)
+            assertEquals(1, coordinator.flush())
+            // A plain chat notification is archived but never uploaded.
+            coordinator.onNotification(input("com.tencent.mm", 62, "微信", "张三：明天见面聊", 3_100L))
+            assertEquals(2, historyIds().size)
+            assertEquals(0, coordinator.flush())
+            assertEquals(1, transport.calls.get())
+        }
+    }
 }

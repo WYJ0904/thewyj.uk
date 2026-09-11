@@ -1,13 +1,13 @@
 {
   "applicationId": "uk.thewyj.app",
-  "versionName": "1.2.1",
-  "versionCode": 4,
+  "versionName": "1.2.2",
+  "versionCode": 5,
   "minimumVersionCode": 1,
   "releaseDate": "2026-09-11",
-  "releaseBuild": "2026-09-11-finance-linkage-tts-nav",
-  "releaseNotes": "修复“已支付100”等无货币符号金额识别；确认支付自动记账并进入正式账本；等待确认交易可在财务页补齐金额；通知历史实时更新；权限中心底栏导航；英语听写改为系统语音引擎且不再卡顿。",
-  "apkFileName": "thewyj-android-1.2.1.apk",
-  "apkKey": "app/android/thewyj-android-1.2.1.apk",
-  "apkSha256": "75e6f876b6c808e4571272518561a00ae85e2108dc36a04b58b4cf6808bb03f0",
+  "releaseBuild": "2026-09-11-task24-bug-closure",
+  "releaseNotes": "通知默认全部归档（含下载进度、系统截图、后台服务通知）；修复通知延迟并加入全链路时序日志；支付识别与财务账本打通，确认金额即自动记账；通知页与财务页待确认数量一致；微信聊天不再被当成支付；通知页整体滚动；英语/日语语音完整回退；汉字词听写不再被错误拦截；浅色主题同步到我的/通知等原生页面；首页区域分界线修复。",
+  "apkFileName": "thewyj-android-1.2.2.apk",
+  "apkKey": "app/android/thewyj-android-1.2.2.apk",
+  "apkSha256": "e09abb813c349b67474711369802ebcb52f5c8af0e93ecdd3ab0cd6e86dabd93",
   "apkSizeBytes": 1745771
 }

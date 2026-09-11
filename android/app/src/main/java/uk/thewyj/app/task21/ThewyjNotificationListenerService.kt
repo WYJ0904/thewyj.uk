@@ -52,8 +52,12 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         val notification = sbn ?: return
-        if (notification.isOngoing) return
         val input = captureInput(notification)
+        // Archive by default: ongoing/progress/system/group-summary notices are
+        // real notifications in the shade and must be recorded unless the user
+        // explicitly disabled the app in the selector.
+        val traceId = CaptureTrace.traceId(input.notificationKey, input.sourcePackage, input.notificationId)
+        CaptureTrace.begin(traceId, input.sourcePackage, input.postTime, input.channelId)
         val capture = executor.submit { coordinator?.onNotification(input) }
         scheduleFlush(capture)
     }

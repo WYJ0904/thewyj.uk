@@ -93,6 +93,11 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
         if (account.isEmpty()) return null
         val packageName = capture.sourcePackage.trim()
         if (packageName.isEmpty()) return null
+        val traceId = uk.thewyj.app.task21.CaptureTrace.traceId(
+            capture.notificationKey,
+            packageName,
+            capture.notificationId,
+        )
         val contentHash = contentHash(capture)
         val identityKey = identityKey(capture)
         val instanceId = "inst-" + UUID.randomUUID()
@@ -150,7 +155,13 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
                 )
             },
         )
-        return if (result.revisionAdded) result.instanceId else null
+        return if (result.revisionAdded) {
+            uk.thewyj.app.task21.CaptureTrace.stage(traceId, "room-committed", "instance=${result.instanceId}")
+            result.instanceId
+        } else {
+            uk.thewyj.app.task21.CaptureTrace.stage(traceId, "room-replay-no-change")
+            null
+        }
     }
 
     fun markRemoved(accountId: String, notificationKey: String, removedAt: Long = System.currentTimeMillis()): Int {
@@ -207,6 +218,10 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
             dao.observeRevisionCount(account),
         ) { _, _ -> Unit }
     }
+
+    /** Latest stored notification identity, used for the render timing trace. */
+    fun observeLatestIdentity(accountId: String): Flow<String?> =
+        dao.observeLatestIdentity(accountId.trim())
 
     fun historyCount(accountId: String, query: NotificationQuery): Int = dao.historyCount(
         accountId = accountId.trim(),

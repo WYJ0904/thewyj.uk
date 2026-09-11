@@ -10,6 +10,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uk.thewyj.app.core.design.ThewyjTheme
 import uk.thewyj.app.ui.AppViewModel
 import uk.thewyj.app.ui.ThewyjApp
@@ -28,7 +30,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         routeIntent(intent)
         setContent {
-            ThewyjTheme(darkTheme = isSystemInDarkTheme()) {
+            val webDark by viewModel.nativeDark.collectAsStateWithLifecycle()
+            ThewyjTheme(darkTheme = webDark ?: isSystemInDarkTheme()) {
                 ThewyjApp(viewModel)
             }
         }

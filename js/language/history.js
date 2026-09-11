@@ -1,4 +1,4 @@
-import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20260911-finance-linkage-tts-nav-r1";
+import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20260911-task24-bug-closure-r1";
 
 export const MAX_STUDY_RECORDS = 500;
 
