@@ -56,6 +56,15 @@ class NotificationRepository(
         store.delete(accountId, instanceIds)
     }
 
+    /**
+     * Deletes chosen history snapshots. The list shows one row per saved
+     * snapshot, so deleting a message must never remove its siblings from the
+     * same conversation.
+     */
+    suspend fun deleteSnapshots(revisionIds: List<String>): Int = withContext(Dispatchers.IO) {
+        store.deleteRevisions(accountId, revisionIds)
+    }
+
     suspend fun clear(): Int = withContext(Dispatchers.IO) { store.clearAccount(accountId) }
 
     suspend fun appEntries(): List<AppEntry> = withContext(Dispatchers.IO) {

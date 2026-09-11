@@ -1,5 +1,29 @@
 # Task 24.1 状态矩阵（已知问题修复与真机闭环）
 
+> **Round 2（真机验收失败后）**：2026-09-11 真机验收结论为
+> `TASK 24.1 PHYSICAL ACCEPTANCE FAILED`。第一轮把「识别到支付 → Finance」标记为
+> FIXED 是**错误**的：真机上仍然 0 笔。第二轮找到并修复了真正的 root cause（见下表
+> T24.1-17/18），并把通知历史改为逐条快照（T24.1-19）。当前准确状态：
+> `TASK 24.1 SOFTWARE FIXED / PHYSICAL ACCEPTANCE PENDING`，未宣布 COMPLETE。
+
+状态取值（第二轮起）：`FAIL` / `FIXED / NOT PHYSICALLY VERIFIED` /
+`PASS AUTOMATED` / `PASS PHYSICAL` / `BLOCKED`。
+
+### Round 2 新增条目
+
+| ID | Severity | 用户现象 | 复现 | Root cause | 修复 | Regression test | CI | Preview | Production | Physical device | Final status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| T24.1-17 | P0 | 识别到支付（含招商银行「识别到 ¥50.00，等待确认记账」）但 Finance 0 笔 | 真机任意银行/微信支付通知 → 财务 | Android 解析器输出 `payment_channel=bank` / `bank_sms`，服务端白名单只有 `bank_card` → `/api/notification/ingest` 返回 400 `payment_channel_invalid`；客户端把 400 当作「无效丢弃」删掉队列项，于是 UI 永远停在「等待同步」 | 通道改为规范值 `bank_card`；服务端兼容旧值；4xx 不再静默丢弃（保留 payload + 记录/展示原因，仅幂等 replay 丢弃） | `test_task21_notification_js.mjs`（bank 事件必须入账）、`test_static.py`（Android 通道 ⊆ 服务端白名单）、`NotificationCaptureCoordinatorTest`（400 保留 + 原因、409 幂等丢弃） | PASS | 1.2.7 | 1.2.7 | FAIL（1.2.6）→ 待用 1.2.7 复验 | FIXED / NOT PHYSICALLY VERIFIED |
+| T24.1-18 | P0 | 金额已识别但方向未知的事件永远无法入账 | 微信「已收款 ¥10」类无方向通知 | 客户端把它作为 `candidate` 上传，服务端 `structured_fields_required` 返回 400 → 同样被静默丢弃 | 方向未知/金额未知的提示不再上传，留在本机待用户补全方向后记账 | `NotificationCaptureCoordinatorTest.directionUnknownPaymentIsNeverUploaded` / `completePaymentIsUploaded` | PASS | 1.2.7 | 1.2.7 | 待复验 | FIXED / NOT PHYSICALLY VERIFIED |
+| T24.1-19 | P0 | 消息撤回后历史里对应内容偶发消失 | 微信消息被撤回 → 查看通知历史 | 历史查询只 JOIN 每个 instance 的 *最新* revision，撤回后的新 revision 覆盖显示，旧正文仍在库里但用户看不到 | 历史改为逐条快照（`JOIN notification_revisions`），删除按 revision 精确删除，撤回只更新元数据 | `NotificationStoreJvmTest.removedNotificationKeepsEverySavedSnapshot`、`NotificationCaptureReliabilityTest.updatingOneNotificationAndListsEverySnapshot` | PASS | 1.2.7 | 1.2.7 | 待复验 | FIXED / NOT PHYSICALLY VERIFIED |
+| T24.1-20 | P1 | 桌面 Web 也被做成折叠布局 | 桌面 Chrome 打开财务/学习 | 折叠控件（summary/chevron/边框）在所有宽度都渲染 | `min-width: 900px` 下隐藏 summary 并还原完整布局；手机端改为轻量分区标题（不再卡片套卡片） | `test_app_browser.mjs` 桌面/390px 布局断言 | PASS | 1.2.7 | 1.2.7 | 待复验 | FIXED / NOT PHYSICALLY VERIFIED |
+| T24.1-21 | P1 | 工具页与「我的」未完成折叠 | 390dp 手机 | 第一轮只做了 Finance + 学习部分 | 工具页手机端紧凑两列；「我的」页新增真实权限状态 + 「更新与高级」折叠区 | 静态检查 + 真机（待） | PASS | 1.2.7 | 1.2.7 | 待复验 | FIXED / NOT PHYSICALLY VERIFIED |
+| T24.1-22 | P1 | 微信交易详情页读不到金额 | 真机打开微信交易页 | 微信当前版本不向无障碍树暴露任何文本（`uiautomator dump` 也是 0 条文本） | 保持诚实降级：两次读取失败 → `VERIFICATION_FAILED` + 提示手动填写；新增确定性页面语义 fixture 测试 | `PaymentPageSemanticsFixtureTest`（含支付宝/银行页面、密码页、空页面、聊天页） | PASS | 1.2.7 | 1.2.7 | PASS PHYSICAL（失败闭环）；金额自动核实对微信 BLOCKED | BLOCKED（微信侧限制）/ 其余 FIXED |
+| T24.1-23 | P2 | 通知历史缺少截图缩略图等富内容 | 三星「屏幕截图已保存」通知 | 未读取/保存 `Notification` 暴露的 bitmap | 未实现 | 无 | — | — | — | — | FAIL（本轮未完成） |
+| T24.1-24 | P1 | payee 文案被当成收入方向 | 支付宝「付款成功 … 收款方 X」页 | `direction()` 先匹配「收款」关键词 | 明确完成语（付款成功/已支付…）优先；对账方标签（收款方/收款账户）先剔除再匹配 | `PaymentPageSemanticsFixtureTest.alipayStyleTransactionPageYieldsAmountAndDirection` | PASS | 1.2.7 | 1.2.7 | 待复验 | FIXED / NOT PHYSICALLY VERIFIED |
+
+### Round 1 条目（保留，状态按第二轮结论修正）
+
 状态取值：`OPEN` / `INVESTIGATING` / `FIXED` / `PASS` / `BLOCKED`。
 真机一列只有实际在 SM-S9360 上验证过的才写 PASS，其余写 `PENDING USER PHYSICAL ACCEPTANCE`。
 
@@ -7,7 +31,7 @@
 
 | ID | 用户现象 | 级别 | 复现 | Root cause | 修复 | 回归测试 | CI | Preview | Production | 真机 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| T24.1-01 | 通知识别到支付金额，财务仍为空 | P0 | 微信支付通知 → 财务 | 自动记账只写 `raw_event` 变更，客户端只投影 `transaction`；已 hydrated 账本永不更新 | `task21-service.mjs` 发布 `transaction` 变更 + 客户端每次同步执行 bootstrap 全量修复 | `test_task21_notification_js.mjs`（变更流断言）、`test_finance_js.mjs`（变更投影 + 自动账目可见） | PASS | 已随 1.2.5/1.2.6 部署 | 1.2.5 已上线，`/api/app/config` 返回 1.2.6 | 财务列表已显示自动账目（QA 构建）；真实支付 → 记账待用户验收 | FIXED / PASS(软件) |
+| T24.1-01 | 通知识别到支付金额，财务仍为空 | P0 | 微信支付通知 → 财务 | ① 自动记账只写 `raw_event` 变更（已修）② 银行通道被 400 拒绝且被静默丢弃（Round 2 修复，T24.1-17） | 变更流 + 客户端 repair + 通道规范化 + 不再静默丢弃 | `test_task21_notification_js.mjs`、`test_finance_js.mjs`、`NotificationCaptureCoordinatorTest` | PASS | 1.2.7 | 1.2.7 | FAIL(1.2.6) → 待 1.2.7 复验 | FIXED / NOT PHYSICALLY VERIFIED |
 | T24.1-02 | Android 与 Web 财务不一致 | P0 | Android 记账后 Web 查看 | 同上（变更流缺失）+ 客户端仅首次 hydrated | 同上；D1 为唯一 source of truth，客户端 repair 全量补齐 | 同上 + `test_task17_d1_js.mjs` | PASS | 已部署 | 已部署 | 待用户真机验收 | FIXED |
 | T24.1-03 | 只有 Finance 完成 Accordion | P1 | 390×844 打开学习/财务/通知/我的 | 移动端页面把所有设置堆在首屏 | 财务筛选/统计（1.2.5）+ 语言学习「智能选词 / 本轮统计」（1.2.6）改为手机端默认收起；工具/通知/我的原生分组 | `test_app_browser.mjs` 390px 布局检查、`data-responsive-collapse` 静态检查 | PASS | 待部署 | 待部署 | 待用户真机验收 | FIXED(部分) |
 | T24.1-04 | 通知延迟、漏记、崩溃、状态不一致 | P0 | 真机持续使用通知页 | 通知在主线程序列化写入 + 解析器异常传播；R3 已修崩溃 | 监听服务单线程写入、立即落库、解析隔离；本轮补分类层 | `NotificationCaptureReliabilityTest`、`NotificationHubMainThreadTest` | PASS | 已部署 | 已部署 | 待用户真机验收 | FIXED |

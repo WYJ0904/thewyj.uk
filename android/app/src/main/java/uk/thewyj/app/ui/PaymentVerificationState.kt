@@ -51,8 +51,13 @@ class PaymentVerificationState(
     }
 
     suspend fun flush() {
-        val uploaded = withContext(Dispatchers.IO) { center.flush() }
-        message = if (uploaded > 0) "已同步 $uploaded 条记账结果" else "没有需要同步的记账结果"
+        val outcome = withContext(Dispatchers.IO) { center.flush() }
+        message = when {
+            outcome.rejected.isNotEmpty() ->
+                "有 ${outcome.rejected.size} 笔记账被云端拒绝（${outcome.rejected.first()}），已保留在本机"
+            outcome.uploaded > 0 -> "已同步 ${outcome.uploaded} 条记账结果"
+            else -> "没有需要同步的记账结果"
+        }
         refresh()
     }
 

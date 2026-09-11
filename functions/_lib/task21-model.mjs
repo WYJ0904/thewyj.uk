@@ -20,7 +20,21 @@ export const SOURCE_TYPES = Object.freeze(["notification", "sms", "accessibility
 export const EVENT_TYPES = Object.freeze(["transaction", "refund", "marketing", "verification", "other"]);
 export const PARSE_STATUSES = Object.freeze(["parsed", "candidate", "unparsed"]);
 export const DIRECTIONS = Object.freeze(["income", "expense", "refund"]);
-export const PAYMENT_CHANNELS = Object.freeze(["", "wechat", "alipay", "bank_card", "other"]);
+/**
+ * Canonical payment channels. `bank` / `bank_sms` are accepted because shipped
+ * Android builds emit them for bank notifications and bank SMS; the device
+ * normalises to `bank_card` from 1.2.7 on, and the older spellings must keep
+ * working for any event already queued on a device.
+ */
+export const PAYMENT_CHANNELS = Object.freeze([
+  "",
+  "wechat",
+  "alipay",
+  "bank_card",
+  "bank",
+  "bank_sms",
+  "other",
+]);
 export const CANDIDATE_STATUSES = Object.freeze(["pending", "confirmed", "rejected"]);
 
 // Raw notification content fields are a hard privacy boundary. If a client

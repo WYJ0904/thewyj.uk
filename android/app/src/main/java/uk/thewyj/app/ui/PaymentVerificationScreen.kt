@@ -273,6 +273,8 @@ private fun syncLine(item: PaymentVerificationCenter.Item): String? = when (item
         if (item.financeTransactionId.isNotBlank()) "财务流水号 ${item.financeTransactionId.take(18)}…" else "已记录到财务"
     PaymentVerificationCenter.SyncState.PENDING_SYNC -> "已保存在本机，等待同步到云端账本"
     PaymentVerificationCenter.SyncState.SYNC_FAILED -> "云端同步失败，数据仍保留在本机，可点击「同步记账」重试"
+    PaymentVerificationCenter.SyncState.SYNC_REJECTED ->
+        "云端拒绝这笔记账${if (item.notice.isNotBlank()) "（${item.notice}）" else ""}，数据仍保留在本机"
     PaymentVerificationCenter.SyncState.LOCAL_ONLY -> null
     PaymentVerificationCenter.SyncState.NONE -> null
 }

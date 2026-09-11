@@ -207,6 +207,56 @@ try {
   assert.equal(financeTxn.direction, "expense");
   assert.equal(financeTxn.amount_minor, 1280);
 
+  // 5c. Real-device regression: a bank notification/SMS used to be sent with
+  // payment_channel "bank" / "bank_sms", which the API rejected with 400
+  // payment_channel_invalid. The Android client discarded 4xx answers, so the
+  // payment stayed "waiting to sync" forever and Finance stayed at 0 entries.
+  const bankEvent = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-bank-01", "op-bank-1", transactionEvent({
+      event_id: "evt-task21-bank-00001",
+      fingerprint: fingerprint("bb22"),
+      source_package: "cmb.pb",
+      payment_channel: "bank",
+      amount_minor: 5100,
+      confidence: 950,
+    })),
+  });
+  assert.equal(bankEvent.response.status, 200, JSON.stringify(bankEvent.payload));
+  assert.match(bankEvent.payload.operation_results[0].transaction_id, /^txn:/, "bank payment must book");
+  const bankTxn = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 5100 AND source_kind = 'automatic'",
+  ).bind(USERS.subscriber.id).first();
+  assert.equal(Number(bankTxn.count), 1, "bank payment must create exactly one transaction");
+  // The canonical channel used from 1.2.7 on must work as well.
+  const bankCardEvent = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-bank-01", "op-bank-2", transactionEvent({
+      event_id: "evt-task21-bank-00002",
+      fingerprint: fingerprint("bb33"),
+      source_package: "cmb.pb",
+      payment_channel: "bank_card",
+      amount_minor: 6200,
+      confidence: 950,
+    })),
+  });
+  assert.equal(bankCardEvent.response.status, 200, JSON.stringify(bankCardEvent.payload));
+  // A payload the server refuses must stay a hard error (the client now keeps
+  // it and reports the reason instead of deleting it).
+  const invalidChannel = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-bank-01", "op-bank-3", transactionEvent({
+      event_id: "evt-task21-bank-00003",
+      fingerprint: fingerprint("bb44"),
+      payment_channel: "totally_unknown_channel",
+    })),
+  });
+  assert.equal(invalidChannel.response.status, 400);
+  assert.equal(invalidChannel.payload.code, "payment_channel_invalid");
+
   // 5b. Regression: "通知历史已识别支付，但财务显示 0 笔".
   // The automatic booking must be published as a *transaction* change, because
   // an already hydrated Web/Android ledger only projects
@@ -247,7 +297,7 @@ try {
   assert.equal(replay.response.status, 200);
   assert.equal(replay.payload.operation_results[0].idempotent_replay, true);
   const txnCount = await db.prepare(
-    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND source_kind = 'automatic'",
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND source_kind = 'automatic' AND amount_minor = 1280",
   ).bind(USERS.subscriber.id).first();
   assert.equal(Number(txnCount.count), 1, "replayed ingest must not create a second finance transaction");
 

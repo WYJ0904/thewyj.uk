@@ -88,14 +88,41 @@ class NotificationStoreJvmTest {
         assertEquals(1, store.revisions("account-a", instanceId).size)
     }
 
-    @Test fun contentUpdateCreatesARevisionOnTheSameInstance() {
-        val instanceId = store.record("account-a", capture(text = "第一条"))!!
-        store.record("account-a", capture(text = "第二条"))
+    /**
+     * Task 24.1: every content change is its own immutable snapshot. The list
+     * therefore shows both messages instead of only the newest revision, which
+     * is what made a retracted/replaced WeChat message look like it "disappeared"
+     * from history.
+     */
+    @Test fun contentUpdateKeepsBothSnapshotsOnTheSameInstance() {
+        val instanceId = store.record("account-a", capture(text = "第一条", postTime = 1_000L))!!
+        store.record("account-a", capture(text = "第二条", postTime = 2_000L))
         val history = store.history("account-a", NotificationQuery())
-        assertEquals(1, history.size)
-        assertEquals("第二条", history.first().text)
+        assertEquals(2, history.size)
+        assertEquals(listOf("第二条", "第一条"), history.map { it.text })
         assertEquals(2, history.first().revisionCount)
         assertEquals(2, store.revisions("account-a", instanceId).size)
+        assertEquals(instanceId, history.first().instanceId)
+        assertEquals(instanceId, history.last().instanceId)
+    }
+
+    /**
+     * Real-device report: a message that was later retracted disappeared from
+     * history. Removal may only update metadata - the saved snapshots stay.
+     */
+    @Test fun removedNotificationKeepsEverySavedSnapshot() {
+        store.record("account-a", capture(text = "撤回前的原文"))
+        store.record("account-a", capture(text = "对方撤回了一条消息"))
+        store.markRemoved("account-a", capture().notificationKey)
+        val history = store.history("account-a", NotificationQuery(includeRemoved = true))
+        assertEquals(2, history.size)
+        assertTrue(history.any { it.text == "撤回前的原文" })
+        assertTrue(history.any { it.text == "对方撤回了一条消息" })
+        assertTrue(history.all { it.status == "removed" })
+        // Deleting one snapshot leaves the other one readable.
+        assertEquals(1, store.deleteRevisions("account-a", listOf(history.first().revisionId)))
+        val remaining = store.history("account-a", NotificationQuery(includeRemoved = true))
+        assertEquals(1, remaining.size)
     }
 
     @Test fun sameTextWithDifferentKeysStaysTwoNotifications() {

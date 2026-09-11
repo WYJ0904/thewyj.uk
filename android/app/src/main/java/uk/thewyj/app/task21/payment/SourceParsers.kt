@@ -228,7 +228,13 @@ object AlipayPaymentParser : PaymentMessageParser {
 /** Bank app notifications: strong evidence once an amount is visible. */
 object BankNotificationParser : PaymentMessageParser {
     override val version = "bank-notification-2"
-    override val channel = "bank"
+    /**
+     * Canonical channel shared with the server allow-list. The previous
+     * `"bank"` spelling was rejected by `/api/notification/ingest` with
+     * `payment_channel_invalid`, and the client discarded 400 responses, so a
+     * bank payment could be recognised on the device yet never reach Finance.
+     */
+    override val channel = "bank_card"
 
     private val bankPackages = setOf(
         "com.icbc", "com.chinamworld.main", "com.ccb.longjiLife", "cmb.pb", "com.bankcomm.Bankcomm",
@@ -322,7 +328,8 @@ object BankNotificationParser : PaymentMessageParser {
  */
 object BankSmsParser : PaymentMessageParser {
     override val version = "bank-sms-2"
-    override val channel = "bank_sms"
+    /** Canonical channel: see BankNotificationParser for why this is not "bank_sms". */
+    override val channel = "bank_card"
 
     private val institutions = listOf(
         "工商银行", "农业银行", "中国银行", "建设银行", "交通银行", "招商银行", "邮储银行", "邮政储蓄",

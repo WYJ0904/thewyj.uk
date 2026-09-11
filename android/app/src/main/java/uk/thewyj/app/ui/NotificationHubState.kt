@@ -133,13 +133,14 @@ class NotificationHubState(
         refresh()
     }
 
-    suspend fun toggleSelection(instanceId: String) {
-        if (selected.contains(instanceId)) selected.remove(instanceId) else selected.add(instanceId)
+    /** Selection tracks saved snapshots, matching what the list shows. */
+    suspend fun toggleSelection(revisionId: String) {
+        if (selected.contains(revisionId)) selected.remove(revisionId) else selected.add(revisionId)
     }
 
     fun selectAll() {
         selected.clear()
-        selected.addAll(items.map { it.instanceId })
+        selected.addAll(items.map { it.revisionId })
     }
 
     fun clearSelection() {
@@ -147,24 +148,25 @@ class NotificationHubState(
     }
 
     suspend fun deleteSelected(): Int {
-        val removed = repository.delete(selected.toList())
+        // The list is per saved snapshot: delete exactly what the user selected.
+        val removed = repository.deleteSnapshots(selected.toList())
         refresh()
         return removed
     }
 
-    suspend fun deleteOne(instanceId: String): Int {
-        val removed = repository.delete(listOf(instanceId))
+    suspend fun deleteOne(revisionId: String): Int {
+        val removed = repository.deleteSnapshots(listOf(revisionId))
         refresh()
         return removed
     }
 
     /** Favourite / unfavourite one notification; favourites survive retention. */
     suspend fun togglePinned(item: NotificationHistoryItem): Boolean {
-        val wasDetailOpen = detail?.instanceId == item.instanceId
+        val wasDetailOpen = detail?.revisionId == item.revisionId
         val next = !item.pinned
         repository.setPinned(item.instanceId, next)
         refresh()
-        if (wasDetailOpen) detail = items.firstOrNull { it.instanceId == item.instanceId }
+        if (wasDetailOpen) detail = items.firstOrNull { it.revisionId == item.revisionId }
         return next
     }
 

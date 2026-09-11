@@ -90,6 +90,25 @@ internal object PaymentText {
 
     val refundTerms = listOf("退款", "退回", "退还", "退還", "已退款", "原路退回", "冲正", "沖正", "返还", "返還")
 
+    /** Unambiguous "money left my account" wording. */
+    private val outgoingCompletionTerms = listOf(
+        "付款成功", "支付成功", "已支付", "已付款", "付款完成", "支付完成", "扣款成功", "已扣款", "消费成功",
+    )
+
+    /** Unambiguous "money arrived" wording. */
+    private val incomingCompletionTerms = listOf(
+        "收款成功", "已收款", "收款到账", "到账", "到賬", "入账", "入賬", "入帳", "收到转账", "收到轉賬",
+    )
+
+    /**
+     * Labels that describe the *other side* of a payment. They must not decide
+     * the direction: 「收款方 示例商户」 on an outgoing payment page is a payee,
+     * not income.
+     */
+    private val payeeLabelTerms = listOf(
+        "收款方", "收款账户", "收款賬戶", "收款人", "收款账号", "收款帳號", "收款方名称", "收款方名稱",
+    )
+
     /**
      * Ordinary chat wording. WeChat chat and WeChat Pay share one package, so a
      * message like "明天给你转账" must never become a finance candidate just
@@ -153,11 +172,24 @@ internal object PaymentText {
         return null
     }
 
-    fun direction(normalized: String): FinanceDirection? = when {
-        refundTerms.any { normalized.contains(it) } -> FinanceDirection.REFUND
-        incomeTerms.any { normalized.contains(it) } -> FinanceDirection.INCOME
-        expenseTerms.any { normalized.contains(it) } -> FinanceDirection.EXPENSE
-        else -> null
+    /**
+     * Real-device finding (Alipay/bank detail pages): the payee label 收款方 /
+     * 收款账户 contains the income keyword 收款, so a page that says 付款成功
+     * was classified as income. Explicit completion wording now wins, and payee
+     * labels are removed before the weaker keyword scan.
+     */
+    fun direction(normalized: String): FinanceDirection? {
+        if (refundTerms.any { normalized.contains(it) }) return FinanceDirection.REFUND
+        val outgoing = outgoingCompletionTerms.any { normalized.contains(it) }
+        val incoming = incomingCompletionTerms.any { normalized.contains(it) }
+        if (outgoing && !incoming) return FinanceDirection.EXPENSE
+        if (incoming && !outgoing) return FinanceDirection.INCOME
+        val sanitized = payeeLabelTerms.fold(normalized) { text, label -> text.replace(label, "") }
+        return when {
+            incomeTerms.any { sanitized.contains(it) } -> FinanceDirection.INCOME
+            expenseTerms.any { sanitized.contains(it) } -> FinanceDirection.EXPENSE
+            else -> null
+        }
     }
 
     fun isNegative(normalized: String): Boolean = negativeTerms.any { normalized.contains(it) }

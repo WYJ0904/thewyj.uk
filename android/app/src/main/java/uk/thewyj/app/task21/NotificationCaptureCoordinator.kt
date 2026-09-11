@@ -38,7 +38,14 @@ class NotificationCaptureCoordinator(
         val retryableFailures: Int,
         /** One entry per accepted operation: the real ledger identity it produced. */
         val outcomes: List<IngestOutcome> = emptyList(),
+        /**
+         * Operations the server refused for a non-retryable reason. The payload
+         * is kept so nothing is silently lost; the UI reports the reason.
+         */
+        val rejected: List<RejectedIngest> = emptyList(),
     )
+
+    data class RejectedIngest(val operationId: String, val reason: String, val attempts: Int)
 
     data class IngestOutcome(
         val operationId: String,
@@ -185,7 +192,18 @@ class NotificationCaptureCoordinator(
             accountId = current.accountId,
             financeEntitled = current.financeEntitled,
             input = input,
-            uploadEventId = if (payment != null && payment.amountMinor > 0) eventId else "",
+            // The recognition only learns "this capture was uploaded" when the
+            // payload is actually queued below; otherwise the device owns the
+            // booking and the user completes it in the pending screen.
+            uploadEventId = if (
+                payment != null &&
+                payment.amountMinor > 0 &&
+                payment.direction != FinanceDirection.UNKNOWN
+            ) {
+                eventId
+            } else {
+                ""
+            },
         )
         if (!current.financeEntitled) return
         if (payment != null) {
@@ -200,11 +218,14 @@ class NotificationCaptureCoordinator(
                     "status=${if (payment.confirmed) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY"} " +
                     "confidence=${structured.confidence}",
             )
-            // Confirmed payments and amount-known hints reach the backend: they
-            // become transactions or real review candidates. A hint without an
-            // amount stays local (90 second enrichment ticket) instead of
-            // inventing an amount.
-            if (payment.amountMinor <= 0) return
+            // Only a payment with a *complete* money shape may leave the device:
+            // the server rejects parsed/candidate events without an amount or a
+            // direction (`structured_fields_required`), and an event the server
+            // rejects can never become a Finance transaction. Amount-unknown and
+            // direction-unknown hints stay local (90 second enrichment ticket)
+            // where the user completes them, and the confirmed booking is
+            // uploaded afterwards with the real direction.
+            if (payment.amountMinor <= 0 || payment.direction == FinanceDirection.UNKNOWN) return
             val payloadForPayment = StructuredEventJson.ingestPayload("1", current.deviceId, eventId, structured)
             queueFor(current.accountId).enqueue(eventId, payloadForPayment)
             return
@@ -256,6 +277,12 @@ class NotificationCaptureCoordinator(
         }.getOrDefault(emptySet())
     }
 
+    /** Full queued uploads, including the last server rejection reason. */
+    fun queuedRequests(): List<QueuedNotificationRequest> {
+        val current = account() ?: return emptyList()
+        return runCatching { queueFor(current.accountId).peekRequests() }.getOrDefault(emptyList())
+    }
+
     private fun flushDetailed(current: CaptureAccount): FlushResult {
         val ingestQueue = queueFor(current.accountId)
         if (!current.financeEntitled) {
@@ -266,7 +293,15 @@ class NotificationCaptureCoordinator(
         var authenticationRequired = false
         var retryableFailures = 0
         val outcomes = mutableListOf<IngestOutcome>()
+        val rejected = mutableListOf<RejectedIngest>()
         for (request in ingestQueue.peekRequests()) {
+            // A payload the server already refused repeatedly would spin on
+            // every flush; keep it (nothing is deleted) but stop re-uploading
+            // until the app is updated or the user removes the account data.
+            if (request.attempts >= OfflineNotificationQueue.MAX_UPLOAD_ATTEMPTS) {
+                rejected += RejectedIngest(request.operationId, request.lastError.ifBlank { "反复被服务端拒绝" }, request.attempts)
+                continue
+            }
             val response = runCatching {
                 transport.post(request.path, current.sessionToken, request.body)
             }.getOrElse {
@@ -301,8 +336,23 @@ class NotificationCaptureCoordinator(
                     }
                 }
                 response.status in setOf(400, 404, 409) -> {
-                    ingestQueue.remove(request.operationId)
-                    discardedInvalid += 1
+                    val reason = ingestFailureReason(response)
+                    if (ingestWasAlreadyHandled(response.body)) {
+                        // The server already has this exact event: nothing to
+                        // keep (a replay is not a lost payment).
+                        ingestQueue.remove(request.operationId)
+                        discardedInvalid += 1
+                    } else {
+                        // Real client/server contract failure. Never drop the
+                        // payload silently: record why and surface it.
+                        val updated = ingestQueue.markRejected(request.operationId, reason)
+                        rejected += RejectedIngest(
+                            operationId = request.operationId,
+                            reason = reason,
+                            attempts = updated?.attempts ?: (request.attempts + 1),
+                        )
+                        CaptureTrace.stage(request.operationId, "finance-api-rejected", "status=${response.status} reason=$reason")
+                    }
                 }
                 response.status in setOf(401, 403) -> {
                     authenticationRequired = true
@@ -321,8 +371,40 @@ class NotificationCaptureCoordinator(
             authenticationRequired = authenticationRequired,
             retryableFailures = retryableFailures,
             outcomes = outcomes,
+            rejected = rejected,
         )
     }
 
     fun flush(): Int = flushDetailed().uploaded
+
+    companion object {
+        /**
+         * Reads the stable error code the API returns so the user sees
+         * 「同步被拒绝：payment_channel_invalid」 instead of an endless
+         * 「等待同步」. Falls back to the HTTP status.
+         */
+        fun ingestFailureReason(response: IngestResponse): String {
+            val code = runCatching {
+                org.json.JSONObject(response.body).optString("code").orEmpty()
+            }.getOrDefault("")
+            if (code.isNotBlank()) return code.take(60)
+            val error = runCatching {
+                org.json.JSONObject(response.body).optString("error").orEmpty()
+            }.getOrDefault("")
+            return error.ifBlank { "http_${response.status}" }.take(60)
+        }
+
+        /**
+         * True when a 4xx answer proves the server already owns this event
+         * (idempotent replay or an accepted duplicate), which is the only case
+         * where removing the queued payload loses nothing.
+         */
+        fun ingestWasAlreadyHandled(body: String): Boolean = runCatching {
+            val json = org.json.JSONObject(body)
+            val result = json.optJSONArray("operation_results")?.optJSONObject(0)
+            json.optBoolean("duplicate") ||
+                result?.optBoolean("duplicate") == true ||
+                result?.optBoolean("idempotent_replay") == true
+        }.getOrDefault(false)
+    }
 }
