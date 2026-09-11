@@ -175,6 +175,7 @@ jobs:
             node --check local-backend/test_task20_d1_js.mjs
             node --check local-backend/test_task21_payment_js.mjs
             node --check local-backend/test_task21_notification_js.mjs
+            node --check local-backend/test_task21_hints_js.mjs
             node --check local-backend/test_task22_d1_js.mjs
             node --check js/finance/candidates.js
             node --check qa/task20_overlay_device.mjs
@@ -308,6 +309,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_task21_notification_js.mjs 2>&1 | tee artifacts/task21-notification.log
+
+      - name: Test Task 21 pending hints (single pending source)
+        run: |
+          set -euo pipefail
+          node local-backend/test_task21_hints_js.mjs 2>&1 | tee artifacts/task21-hints.log
 
       - name: Test Task 22 file transfer multipart, quota and share lifecycle
         run: |
