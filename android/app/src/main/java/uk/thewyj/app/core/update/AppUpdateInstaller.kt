@@ -101,7 +101,20 @@ class AppUpdateInstaller(private val context: Context) {
         val file = localApk(config)
         if (!file.isFile) return false
         val digest = withContext(Dispatchers.IO) { sha256(file) }
-        return digest.equals(expected, ignoreCase = true)
+        val actualSize = file.length()
+        val matches = digest.equals(expected, ignoreCase = true) && actualSize == config.apkSizeBytes.coerceAtLeast(0)
+        android.util.Log.i(
+            TAG,
+            "update-verify expectedSha=${expected.take(16)}… actualSha=${digest.take(16)}… " +
+                "expectedSize=${config.apkSizeBytes} actualSize=$actualSize matches=$matches",
+        )
+        if (!matches) {
+            // A file that failed verification must never be resumed or reused:
+            // delete it so the next attempt starts again from byte 0.
+            runCatching { file.delete() }
+            android.util.Log.w(TAG, "update-verify-failed-deleted temp=${file.name}")
+        }
+        return matches
     }
 
     fun installIntent(config: AppConfig): Intent {
@@ -123,5 +136,9 @@ class AppUpdateInstaller(private val context: Context) {
             }
         }
         return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    private companion object {
+        const val TAG = "ThewyjUpdate"
     }
 }

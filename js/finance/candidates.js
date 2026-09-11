@@ -209,9 +209,9 @@ export function createFinanceCandidatesController({
           ...(edits && Object.keys(edits).length ? { edits } : {}),
         }
         : { candidate_id: id };
-      await api(`/api/notification/candidates/${confirm ? "confirm" : "reject"}`, body);
+      const response = await api(`/api/notification/candidates/${confirm ? "confirm" : "reject"}`, body);
       succeeded = true;
-      onCandidateChanged();
+      onCandidateChanged(confirm ? String(response?.transaction_id || "") : "");
     } catch (error) {
       render(currentCandidates, `操作失败：${error?.message || "请稍后重试"}`);
     } finally {

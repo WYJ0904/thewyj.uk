@@ -164,6 +164,23 @@ internal object PaymentText {
 
     fun isChatLike(normalized: String): Boolean = chatTerms.any { normalized.contains(it) }
 
+    /**
+     * Payment-channel notification titles (微信支付 / 收款助手 / 支付宝 …).
+     * WeChat chat and WeChat Pay share one package, so the title is the strongest
+     * signal that a "转账199元" message is a real payment instead of a chat line.
+     */
+    private val paymentChannelTitles = listOf(
+        "微信支付", "微信收款", "收款助手", "支付助手", "转账助手", "服务通知", "微信支付凭证",
+        "支付宝", "余额宝", "花呗", "收钱码",
+    )
+
+    fun isPaymentChannelTitle(value: String): Boolean =
+        paymentChannelTitles.any { value.contains(it) }
+
+    /** "张三：转账199元" — a chat bubble with a sender prefix. */
+    fun hasSenderPrefix(value: String): Boolean =
+        Regex("""^[^:：\n]{1,12}[:：]\s*\S""").containsMatchIn(value.trim())
+
     fun isBankExcluded(normalized: String): Boolean = bankExcludedTerms.any { normalized.contains(it) }
 
     fun hasPaymentHint(normalized: String): Boolean = paymentHints.any { normalized.contains(it) }

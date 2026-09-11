@@ -679,6 +679,31 @@ export function createFinanceController({
     return syncPromise;
   }
 
+  /**
+   * Confirming a notification candidate creates a server transaction. Pull the
+   * ledger again and verify the returned id is really present locally; if the
+   * cursor path missed it, force a full transaction pull before reporting
+   * success, so the UI can never claim "记账成功" while the list stays empty.
+   */
+  async function verifyTransaction(transactionId) {
+    ensureStore();
+    await syncNow();
+    if (!transactionId) return true;
+    if (store.transactions[transactionId]) {
+      renderAll();
+      return true;
+    }
+    try {
+      const remote = await fetchAllTransactions(true);
+      for (const item of Object.values(remote)) mergeServerEntity("transaction", item);
+      persist();
+      renderAll();
+    } catch (_) {
+      // Fall through: the caller reports the honest result.
+    }
+    return Boolean(store.transactions[transactionId]);
+  }
+
   async function resolveConflict() {
     ensureStore();
     const remoteTransactions = await fetchAllTransactions(true);
@@ -1023,5 +1048,5 @@ export function createFinanceController({
     return { ...summary, pending: store.pending.length, available: hasAccess(), last_sync_at: store.last_sync_at };
   }
 
-  return Object.freeze({ show, hide, syncNow, resetAccount, accountUpdated, dashboardSummary, render: renderAll });
+  return Object.freeze({ show, hide, syncNow, verifyTransaction, resetAccount, accountUpdated, dashboardSummary, render: renderAll });
 }

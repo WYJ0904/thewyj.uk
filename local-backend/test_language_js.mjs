@@ -23,6 +23,13 @@ import {
   speakText,
   stopSpeech,
 } from "../js/language/speech.js";
+import {
+  SPEECH_RATE_DEFAULT,
+  loadSpeechRate,
+  normalizeSpeechRate,
+  saveSpeechRate,
+  speechRateStorageKey,
+} from "../js/language/speech-rate.js";
 import { createLearningSyncAdapter } from "../js/language/sync-adapter.js";
 import { mergeWrongBooks, sanitizeWrongBook, updateWrongEntry } from "../js/language/wrong-book.js";
 
@@ -145,6 +152,24 @@ assert.equal(japaneseDictationSpokenText("先生", {}, {}), "先生", "unbound k
 assert.equal(japaneseDictationSpokenText("みず", {}, {}), "みず", "pure kana stays unchanged");
 assert.equal(japaneseDictationNeedsResolution("みず", {}, {}, true), false);
 assert.equal(japaneseDictationNeedsResolution("先生", {}, {}, false), true, "meaning practice still asks for a reading");
+
+// Dictation speech rate: 0.5x–1.5x in 0.1 steps, per-language storage.
+const rateStorage = new Map();
+const fakeRateStorage = {
+  getItem: (key) => (rateStorage.has(key) ? rateStorage.get(key) : null),
+  setItem: (key, value) => rateStorage.set(key, String(value)),
+};
+assert.equal(speechRateStorageKey("english"), "wyjSpeechRateEnglish");
+assert.equal(speechRateStorageKey("japanese"), "wyjSpeechRateJapanese");
+assert.equal(loadSpeechRate(fakeRateStorage, "english"), SPEECH_RATE_DEFAULT);
+assert.equal(saveSpeechRate(fakeRateStorage, "english", 0.8), 0.8);
+assert.equal(saveSpeechRate(fakeRateStorage, "japanese", 1.5), 1.5);
+assert.equal(loadSpeechRate(fakeRateStorage, "english"), 0.8, "English rate must not be overwritten by Japanese");
+assert.equal(loadSpeechRate(fakeRateStorage, "japanese"), 1.5, "Japanese rate must stay independent");
+assert.equal(saveSpeechRate(fakeRateStorage, "english", 0.2), 0.5, "values below the range clamp up");
+assert.equal(saveSpeechRate(fakeRateStorage, "english", 9), 1.5, "values above the range clamp down");
+assert.equal(saveSpeechRate(fakeRateStorage, "english", 1.24), 1.2, "values snap to 0.1 steps");
+assert.equal(normalizeSpeechRate("not-a-number"), 1.0);
 
 // A route change without any native playback must not launch the native
 // scheme at all (a plain browser logs a protocol error for it).

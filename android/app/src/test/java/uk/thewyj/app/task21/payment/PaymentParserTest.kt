@@ -135,10 +135,32 @@ class PaymentParserTest {
         assertEquals(PaymentRecognitionStatus.CONFIRMED_PAYMENT, real.status)
         assertEquals(10_000L, real.amountMinor)
         val realTransfer = wechat("微信支付", "转账100元")
-        // A bare 转账100元 has a clear amount but no completion verb: it stays a
-        // review candidate instead of auto-booking.
-        assertEquals(PaymentRecognitionStatus.PAYMENT_LIKELY, realTransfer.status)
+        // A payment-channel notification with 转账 + amount auto-books.
+        assertEquals(PaymentRecognitionStatus.CONFIRMED_PAYMENT, realTransfer.status)
         assertEquals(10_000L, realTransfer.amountMinor)
+    }
+
+    /**
+     * Real-device acceptance rule: the same wording is a payment from the
+     * WeChat Pay channel and plain chat from a friend.
+     */
+    @Test fun paymentChannelAndChatShareTheSameWordingButNotTheSameOutcome() {
+        val payment = wechat("微信支付", "转账199元")
+        assertEquals(PaymentRecognitionStatus.CONFIRMED_PAYMENT, payment.status)
+        assertEquals(19_900L, payment.amountMinor)
+        assertEquals(FinanceDirection.EXPENSE, payment.direction)
+
+        val chat = wechat("张三", "张三：转账199元")
+        assertEquals(PaymentRecognitionStatus.NOT_PAYMENT, chat.status)
+        assertNull(chat.amountMinor)
+
+        val chatPaid = wechat("张三", "张三：已支付100")
+        assertEquals(PaymentRecognitionStatus.NOT_PAYMENT, chatPaid.status)
+        assertNull(chatPaid.amountMinor)
+
+        val channelPaid = wechat("微信支付", "已支付100")
+        assertEquals(PaymentRecognitionStatus.CONFIRMED_PAYMENT, channelPaid.status)
+        assertEquals(10_000L, channelPaid.amountMinor)
     }
 
     @Test fun wechatIncomingPaymentIsIncome() {

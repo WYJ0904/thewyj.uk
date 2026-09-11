@@ -1,5 +1,5 @@
-export const APP_VERSION = "2026-09-11-task24-bug-closure";
-export const ASSET_RELEASE = "20260911-task24-bug-closure-r1";
+export const APP_VERSION = "2026-09-11-task24-crash-finance-closure";
+export const ASSET_RELEASE = "20260911-task24-crash-finance-r1";
 
 export const API_TIMEOUT_MS = 30000;
 export const AI_TIMEOUT_MS = 25000;

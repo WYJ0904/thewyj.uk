@@ -1,6 +1,8 @@
 package uk.thewyj.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -120,6 +122,7 @@ fun NotificationHubScreen(
 
     // One natural vertical page: pending card + tabs + search/filter + list all
     // scroll together instead of a fixed header over a small scrolling list.
+    Box(Modifier.fillMaxSize()) {
     Column(
         modifier
             .fillMaxSize()
@@ -185,6 +188,89 @@ fun NotificationHubScreen(
             else -> NotificationRulesSection(state, scope)
         }
     }
+        // Detail overlay: renders only from the already-loaded safe DTO, so a
+        // malformed/null field can never crash the process.
+        state.detail?.let { item ->
+            NotificationDetailOverlay(
+                item = item,
+                onClose = { state.detail = null },
+            )
+        }
+    }
+}
+
+@Composable
+private fun NotificationDetailOverlay(item: NotificationHistoryItem, onClose: () -> Unit) {
+    BackHandler(enabled = true) { onClose() }
+    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(onClick = onClose, shape = ThewyjRadius.Medium) { Text("返回") }
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    item.sourcePackage.ifBlank { "未知应用" },
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                )
+            }
+            Text(
+                formatTime(item.postTime) + " · 版本 ${item.revisionCount}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (item.status == "removed") {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    shape = ThewyjRadius.Small,
+                ) {
+                    Text(
+                        "已从系统通知栏移除",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    )
+                }
+            }
+            DetailField("标题", item.title)
+            DetailField("内容", item.bigText.ifBlank { item.text })
+            if (item.subText.isNotBlank()) DetailField("副标题", item.subText)
+            if (item.summaryText.isNotBlank()) DetailField("摘要", item.summaryText)
+            if (item.textLines.isNotEmpty()) DetailField("多行内容", item.textLines.joinToString("\n"))
+            if (item.merchant.isNotBlank() || item.amountMinor > 0 || item.parseStatus != "UNPARSED") {
+                DetailField(
+                    "识别结果",
+                    buildString {
+                        append(item.parseStatus.ifBlank { "UNPARSED" })
+                        if (item.direction.isNotBlank() && item.direction != "UNKNOWN") append(" · ${item.direction}")
+                        if (item.amountMinor > 0) append(" · ${formatMinor(item.amountMinor, item.currency)}")
+                        if (item.merchant.isNotBlank()) append(" · ${item.merchant}")
+                        if (item.financeLinked) append(" · 已关联财务")
+                    },
+                )
+            }
+            DetailField("来源应用", item.sourcePackage.ifBlank { "未知" })
+        }
+    }
+}
+
+@Composable
+private fun DetailField(label: String, value: String) {
+    Column(Modifier.fillMaxWidth()) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            value.ifBlank { "暂无内容" },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+private fun formatMinor(amountMinor: Long, currency: String): String {
+    val symbol = if (currency.equals("CNY", ignoreCase = true)) "¥" else "$currency "
+    return "$symbol${"%.2f".format(amountMinor / 100.0)}"
 }
 
 @Composable
@@ -294,6 +380,7 @@ private fun NotificationHistorySection(state: NotificationHubState) {
                     NotificationHistoryCard(
                         state = state,
                         item = item,
+                        onOpen = { state.detail = item },
                         onDelete = { scope.launch { state.deleteOne(item.instanceId) } },
                     )
                 }
@@ -306,12 +393,13 @@ private fun NotificationHistorySection(state: NotificationHubState) {
 private fun NotificationHistoryCard(
     state: NotificationHubState,
     item: NotificationHistoryItem,
+    onOpen: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     var label by remember(item.sourcePackage) { mutableStateOf<String?>(null) }
     LaunchedEffect(item.sourcePackage) { label = state.appLabel(item.sourcePackage) }
-    Card(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+    Card(Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable(onClick = onOpen)) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.Top) {
             Checkbox(
                 checked = state.selected.contains(item.instanceId),

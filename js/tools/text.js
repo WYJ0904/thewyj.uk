@@ -1,4 +1,4 @@
-import { secureInt } from "./random.js?v=20260911-task24-bug-closure-r1";
+import { secureInt } from "./random.js?v=20260911-task24-crash-finance-r1";
 
 const TRADITIONAL_PAIRS = [
   ["后", "後"], ["发", "發"], ["里", "裡"], ["云", "雲"], ["台", "臺"], ["万", "萬"], ["与", "與"], ["专", "專"], ["业", "業"], ["东", "東"],

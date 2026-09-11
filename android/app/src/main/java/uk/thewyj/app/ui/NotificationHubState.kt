@@ -88,17 +88,22 @@ class NotificationHubState(
     }
 
     suspend fun refreshPendingPayments() {
-        val local = paymentStore.pendingCandidateCount(accountId)
-        val credentials = runCatching { credentialStore.loadActive() }.getOrNull()
-        val remote = if (credentials != null && credentials.accessToken.isNotBlank()) {
-            when (val result = api.pendingCandidateCount(credentials.accessToken)) {
-                is uk.thewyj.app.core.network.ApiCall.Success -> result.value
-                is uk.thewyj.app.core.network.ApiCall.Failure -> null
+        // Real-device crash fix: Room/Keystore access must never run on the main
+        // thread, otherwise Android throws
+        // "Cannot access database on the main thread" from the Compose frame.
+        pendingPayments = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val local = paymentStore.pendingCandidateCount(accountId)
+            val credentials = runCatching { credentialStore.loadActive() }.getOrNull()
+            val remote = if (credentials != null && credentials.accessToken.isNotBlank()) {
+                when (val result = api.pendingCandidateCount(credentials.accessToken)) {
+                    is uk.thewyj.app.core.network.ApiCall.Success -> result.value
+                    is uk.thewyj.app.core.network.ApiCall.Failure -> null
+                }
+            } else {
+                null
             }
-        } else {
-            null
+            remote ?: local
         }
-        pendingPayments = remote ?: local
     }
 
     suspend fun setSearch(value: String) {

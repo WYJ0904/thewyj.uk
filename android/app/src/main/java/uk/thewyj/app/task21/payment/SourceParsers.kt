@@ -29,7 +29,20 @@ object WeChatPaymentParser : PaymentMessageParser {
         }
         val amount = PaymentText.amountMinor(normalized)
         val direction = PaymentText.direction(normalized)
-        val completion = PaymentText.hasCompletion(normalized)
+        // A payment-channel notification ("微信支付 / 转账199元") is a real
+        // settlement even without the "转账成功" wording; ordinary chat with a
+        // sender prefix or chat wording stays out of the finance pipeline.
+        val paymentTitle = PaymentText.isPaymentChannelTitle(title)
+        // "张三：已支付100" is a chat bubble: the sender prefix wins over any
+        // verb inside the message, so a friend cannot fake a ledger entry.
+        if (!paymentTitle && PaymentText.hasSenderPrefix(normalized)) {
+            return ParsedPaymentMessage(
+                PaymentRecognitionStatus.NOT_PAYMENT,
+                reasons = listOf("wechat_chat_sender_prefix"),
+            )
+        }
+        val explicitCompletion = PaymentText.hasCompletion(normalized)
+        val completion = explicitCompletion || (paymentTitle && amount != null && direction != null)
         val hint = PaymentText.hasPaymentHint(normalized)
         val merchant = PaymentText.merchant(normalized)
         val reference = PaymentText.providerReference(normalized)
@@ -45,7 +58,8 @@ object WeChatPaymentParser : PaymentMessageParser {
         }
         // WeChat chat and WeChat Pay share the same package: a chat sentence
         // that merely mentions 转账 must stay out of the finance pipeline.
-        if (hint && !completion && amount == null && PaymentText.isChatLike(normalized)) {
+        val chatContext = PaymentText.isChatLike(normalized) || PaymentText.hasSenderPrefix(normalized)
+        if (!explicitCompletion && !paymentTitle && chatContext) {
             return ParsedPaymentMessage(
                 PaymentRecognitionStatus.NOT_PAYMENT,
                 reasons = listOf("wechat_chat_context"),
@@ -130,7 +144,15 @@ object AlipayPaymentParser : PaymentMessageParser {
         }
         val amount = PaymentText.amountMinor(normalized)
         val direction = PaymentText.direction(normalized)
-        val completion = PaymentText.hasCompletion(normalized)
+        val paymentTitle = PaymentText.isPaymentChannelTitle(title)
+        if (!paymentTitle && PaymentText.hasSenderPrefix(normalized)) {
+            return ParsedPaymentMessage(
+                PaymentRecognitionStatus.NOT_PAYMENT,
+                reasons = listOf("alipay_chat_sender_prefix"),
+            )
+        }
+        val explicitCompletion = PaymentText.hasCompletion(normalized)
+        val completion = explicitCompletion || (paymentTitle && amount != null && direction != null)
         val hint = PaymentText.hasPaymentHint(normalized)
         if (!hint && amount == null) {
             return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("alipay_not_payment"))
@@ -139,6 +161,14 @@ object AlipayPaymentParser : PaymentMessageParser {
             return ParsedPaymentMessage(
                 PaymentRecognitionStatus.NOT_PAYMENT,
                 reasons = listOf("alipay_amount_without_payment_context"),
+            )
+        }
+        if (!explicitCompletion && !paymentTitle &&
+            (PaymentText.isChatLike(normalized) || PaymentText.hasSenderPrefix(normalized))
+        ) {
+            return ParsedPaymentMessage(
+                PaymentRecognitionStatus.NOT_PAYMENT,
+                reasons = listOf("alipay_chat_context"),
             )
         }
         val merchant = PaymentText.merchant(normalized)

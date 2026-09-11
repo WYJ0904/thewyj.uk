@@ -4518,3 +4518,38 @@ progress {
     transform: scaleX(1);
   }
 }
+
+/* Dictation speech rate: compact single row, one slider per language. */
+.speech-rate-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-3);
+  margin-top: var(--ds-space-2);
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+}
+
+.speech-rate-row label {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.speech-rate-row input[type="range"] {
+  flex: 1 1 auto;
+  min-width: 120px;
+  accent-color: var(--ds-brand);
+}
+
+.speech-rate-row output {
+  flex: 0 0 auto;
+  min-width: 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text);
+}
+
+@media (max-width: 768px) {
+  .speech-rate-row {
+    margin-top: var(--ds-space-1);
+  }
+}
