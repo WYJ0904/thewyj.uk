@@ -394,6 +394,17 @@ async function main() {
   })()`);
 
   const openTool = async (id) => {
+    // Task 24.1: file transfer has one canonical implementation. Opening either
+    // id hands over to /transfer instead of rendering a toolbox workbench.
+    if (id === "temporary-file" || id === "file-transfer") {
+      await evaluate(`window.WYJTools.openTool(${JSON.stringify(id)}, false)`);
+      await waitFor(
+        "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+        8_000,
+        `tool ${id} opens canonical transfer`,
+      );
+      return;
+    }
     await evaluate(`window.WYJTools.openTool(${JSON.stringify(id)}, false)`);
     await waitFor(`document.querySelector('#toolWorkbenchTitle')?.textContent === window.WYJTools.tools.find(item => item.id === ${JSON.stringify(id)})?.name`, 5_000, `tool ${id}`);
     const description = await evaluate("document.querySelector('#toolWorkbenchDescription')?.textContent || ''");
