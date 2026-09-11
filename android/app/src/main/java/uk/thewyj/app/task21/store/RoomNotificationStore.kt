@@ -49,6 +49,8 @@ data class NotificationHistoryItem(
     val removedAt: Long,
     val revisionCount: Int,
     val financeLinked: Boolean,
+    /** User favourite: shown in the UI and skipped by retention. */
+    val pinned: Boolean = false,
     val title: String,
     val text: String,
     val bigText: String,
@@ -191,6 +193,7 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
                 removedAt = row.removedAt,
                 revisionCount = row.revisionCount,
                 financeLinked = row.financeLinked == 1,
+                pinned = row.pinned == 1,
                 title = row.title,
                 text = row.text,
                 bigText = row.bigText,
@@ -275,6 +278,26 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
         dao.upsertAppPolicy(
             NotificationAppPolicyEntity(accountId.trim(), sourcePackage.trim(), if (enabled) 1 else 0, updatedAt),
         )
+
+    /**
+     * Favourite / unfavourite a notification. Retention never removes a pinned
+     * entry, which is the NotiStar-style guarantee the user asked for.
+     */
+    fun setPinned(
+        accountId: String,
+        instanceId: String,
+        pinned: Boolean,
+        now: Long = System.currentTimeMillis(),
+    ): Boolean {
+        if (instanceId.isBlank()) return false
+        return dao.setPinned(accountId.trim(), instanceId, if (pinned) 1 else 0, if (pinned) now else 0) > 0
+    }
+
+    fun pinnedCount(accountId: String): Int = dao.pinnedCount(accountId.trim())
+
+    /** Pinned entries a retention period would have deleted. */
+    fun pinnedOlderThan(accountId: String, cutoffMs: Long): Int =
+        if (cutoffMs <= 0) 0 else dao.pinnedOlderThan(accountId.trim(), cutoffMs)
 
     fun appPolicies(accountId: String): List<NotificationAppPolicyEntity> = dao.appPolicies(accountId.trim())
 

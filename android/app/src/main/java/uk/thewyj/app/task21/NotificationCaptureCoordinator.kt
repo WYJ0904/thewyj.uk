@@ -22,6 +22,14 @@ class NotificationCaptureCoordinator(
     private val archiveSink: NotificationArchiveSink? = null,
     private val paymentHook: PaymentRecognitionHook? = null,
 ) {
+    /**
+     * Task 24.1: the raw event feeds two independent pipelines. The archive
+     * pipeline owns classification/retention, the payment pipeline owns
+     * recognition/Finance. Neither can silently consume the other's decision.
+     */
+    private val archivePipeline = NotificationArchivePipeline(archiveFor, archiveSink)
+    private val paymentPipeline = PaymentRecognitionPipeline(paymentHook)
+
     data class FlushResult(
         val uploaded: Int,
         val pending: Int,
@@ -157,48 +165,29 @@ class NotificationCaptureCoordinator(
             )
         }
 
-        if (current.archiveEntitled) {
-            if (archiveSink != null) {
-                archiveSink.store(current.accountId, input, structured)
-            } else {
-                archiveFor(current.accountId).append(
-                    LocalNotificationRecord(
-                        id = eventId,
-                        eventId = eventId,
-                        fingerprint = fingerprint,
-                        sourcePackage = input.sourcePackage,
-                        title = input.title,
-                        text = input.text,
-                        bigText = input.bigText,
-                        subText = input.subText,
-                        receivedAtMs = input.receivedAtMs,
-                        parseStatus = structured.parseStatus,
-                        direction = structured.direction,
-                        amountMinor = structured.amountMinor,
-                        currency = structured.currency,
-                        merchant = structured.merchant,
-                        confidence = structured.confidence,
-                    ),
-                )
-            }
-        }
-
-        // Finance pipeline: only for finance-entitled accounts, and only for
-        // events the parser considers transaction-like. Ordinary chat never
-        // becomes an ingest payload.
-        if (!current.financeEntitled) return
-        // Payment recognition runs on every finance-entitled capture (memory
-        // only): chat is classified and discarded, payment-like events become
-        // hints/candidates/notifications.
-        // The recognition learns whether this capture is uploaded (amount known:
-        // it becomes a server candidate/transaction) or stays local (amount
-        // unknown: this device must book it after verification).
-        paymentHook?.onCapture(
-            current.accountId,
-            input,
-            "",
-            if (payment != null && payment.amountMinor > 0) eventId else "",
+        // Pipeline 1 - Notification Archive (NotiStar-style). The classifier
+        // drops ongoing/progress/live readouts here; nothing below this line is
+        // allowed to influence it, and it never writes Finance data.
+        archivePipeline.consume(
+            accountId = current.accountId,
+            archiveEntitled = current.archiveEntitled,
+            input = input,
+            structured = structured,
+            identityKey = input.notificationKey.ifBlank {
+                "${input.sourcePackage}|${input.notificationId}|${input.tag}"
+            },
         )
+
+        // Pipeline 2 - Payment Recognition. It runs on every finance-entitled
+        // capture, independent of archiving: a finance-only account whose
+        // history is not saved still books its payments.
+        paymentPipeline.consume(
+            accountId = current.accountId,
+            financeEntitled = current.financeEntitled,
+            input = input,
+            uploadEventId = if (payment != null && payment.amountMinor > 0) eventId else "",
+        )
+        if (!current.financeEntitled) return
         if (payment != null) {
             // One trace line per payment event so a real device log shows the
             // exact identity that later has to appear in the finance ledger.

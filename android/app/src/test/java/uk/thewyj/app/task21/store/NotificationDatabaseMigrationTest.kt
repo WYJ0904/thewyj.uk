@@ -46,7 +46,11 @@ class NotificationDatabaseMigrationTest {
         createV1Database(schema)
 
         database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
-            .addMigrations(NotificationDatabase.MIGRATION_1_2, NotificationDatabase.MIGRATION_2_3)
+            .addMigrations(
+                NotificationDatabase.MIGRATION_1_2,
+                NotificationDatabase.MIGRATION_2_3,
+                NotificationDatabase.MIGRATION_3_4,
+            )
             .allowMainThreadQueries()
             .build()
         val notificationStore = RoomNotificationStore(database!!)
@@ -105,7 +109,11 @@ class NotificationDatabaseMigrationTest {
         insertV2PaymentRows()
 
         database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
-            .addMigrations(NotificationDatabase.MIGRATION_1_2, NotificationDatabase.MIGRATION_2_3)
+            .addMigrations(
+                NotificationDatabase.MIGRATION_1_2,
+                NotificationDatabase.MIGRATION_2_3,
+                NotificationDatabase.MIGRATION_3_4,
+            )
             .allowMainThreadQueries()
             .build()
         val store = RoomPaymentRecognitionStore(database!!)
@@ -121,6 +129,60 @@ class NotificationDatabaseMigrationTest {
         // The new column is writable through the normal store API.
         store.saveRecognition(recognition.copy(uploadEventId = "evt-uploaded-2"))
         assertEquals("evt-uploaded-2", store.recognition("account-a", "rec-2")?.uploadEventId)
+    }
+
+    /**
+     * v3 -> v4 adds the notification favourite flag used by retention
+     * ("收藏的通知不自动删除"). History must survive and the new columns must be
+     * usable through the normal store API.
+     */
+    @Test fun migrationFromV3AddsFavouriteFlagAndKeepsHistory() {
+        val schema = loadSchema(3)
+        createDatabaseFromSchema(schema, version = 3)
+        insertV3HistoryRow()
+
+        database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
+            .addMigrations(
+                NotificationDatabase.MIGRATION_1_2,
+                NotificationDatabase.MIGRATION_2_3,
+                NotificationDatabase.MIGRATION_3_4,
+            )
+            .allowMainThreadQueries()
+            .build()
+        val store = RoomNotificationStore(database!!)
+
+        val history = store.history("account-a", NotificationQuery())
+        assertEquals(1, history.size)
+        assertEquals("微信支付", history.first().title)
+        assertEquals(false, history.first().pinned)
+        assertEquals(0, store.pinnedCount("account-a"))
+
+        assertTrue(store.setPinned("account-a", history.first().instanceId, pinned = true))
+        assertEquals(1, store.pinnedCount("account-a"))
+        assertEquals(true, store.history("account-a", NotificationQuery()).first().pinned)
+
+        // A favourite survives every retention period.
+        assertEquals(0, store.purgeExpired("account-a", System.currentTimeMillis() + 1))
+        assertTrue(store.setPinned("account-a", history.first().instanceId, pinned = false))
+        assertEquals(1, store.purgeExpired("account-a", System.currentTimeMillis() + 1))
+    }
+
+    private fun insertV3HistoryRow() {
+        val sqlite = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
+        sqlite.execSQL(
+            "INSERT INTO notification_instances (instanceId, accountId, identityKey, sourcePackage, sourceType, " +
+                "notificationKey, notificationId, tag, groupKey, channelId, postTime, firstSeenAt, lastSeenAt, " +
+                "removedAt, status, revisionCount, latestRevisionId, isGroup, isGroupSummary, financeLinked) VALUES " +
+                "('inst-3', 'account-a', 'key:k3', 'com.tencent.mm', 'notification', 'k3', 3, '', '', 'chat', 1000, " +
+                "1000, 1000, 0, 'active', 1, 'rev-3', 0, 0, 0)",
+        )
+        sqlite.execSQL(
+            "INSERT INTO notification_revisions (revisionId, instanceId, accountId, title, text, bigText, subText, " +
+                "infoText, summaryText, textLines, contentHash, capturedAt, parseStatus, direction, amountMinor, " +
+                "currency, merchant, confidence) VALUES ('rev-3', 'inst-3', 'account-a', '微信支付', '已支付 ￥28.00', " +
+                "'', '', '', '', '', 'hash-3', 1000, 'PARSED', 'EXPENSE', 2800, 'CNY', '', 900)",
+        )
+        sqlite.close()
     }
 
     private fun loadSchema(version: Int): JSONObject {

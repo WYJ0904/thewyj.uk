@@ -72,6 +72,7 @@ interface NotificationDao {
         SELECT i.instanceId AS instanceId, i.sourcePackage AS sourcePackage, i.postTime AS postTime,
                i.status AS status, i.removedAt AS removedAt, i.revisionCount AS revisionCount,
                i.latestRevisionId AS latestRevisionId, i.financeLinked AS financeLinked,
+               i.pinned AS pinned,
                r.revisionId AS revisionId, r.title AS title, r.text AS text, r.bigText AS bigText,
                r.subText AS subText, r.summaryText AS summaryText, r.textLines AS textLines,
                r.parseStatus AS parseStatus, r.direction AS direction, r.amountMinor AS amountMinor,
@@ -161,11 +162,21 @@ interface NotificationDao {
     @Query(
         """
         SELECT instanceId FROM notification_instances
-        WHERE accountId = :accountId AND postTime < :cutoffMs AND status = 'removed' AND financeLinked = 0
+        WHERE accountId = :accountId AND postTime < :cutoffMs
+          AND financeLinked = 0 AND pinned = 0
         ORDER BY postTime ASC LIMIT :limit
         """,
     )
     fun purgeCandidates(accountId: String, cutoffMs: Long, limit: Int): List<String>
+
+    @Query("UPDATE notification_instances SET pinned = :pinned, pinnedAt = :pinnedAt WHERE accountId = :accountId AND instanceId = :instanceId")
+    fun setPinned(accountId: String, instanceId: String, pinned: Int, pinnedAt: Long): Int
+
+    @Query("SELECT COUNT(*) FROM notification_instances WHERE accountId = :accountId AND pinned = 1")
+    fun pinnedCount(accountId: String): Int
+
+    @Query("SELECT COUNT(*) FROM notification_instances WHERE accountId = :accountId AND pinned = 1 AND postTime < :cutoffMs")
+    fun pinnedOlderThan(accountId: String, cutoffMs: Long): Int
 
     @Query(
         """
@@ -253,6 +264,7 @@ data class NotificationHistoryRow(
     val revisionCount: Int,
     val latestRevisionId: String,
     val financeLinked: Int,
+    val pinned: Int = 0,
     val revisionId: String,
     val title: String,
     val text: String,

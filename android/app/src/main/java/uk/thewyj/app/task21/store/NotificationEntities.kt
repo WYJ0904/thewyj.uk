@@ -49,6 +49,9 @@ data class NotificationInstanceEntity(
     val isGroupSummary: Int,
     /** Set when a finance candidate/transaction references this instance. */
     val financeLinked: Int,
+    /** User favourite (Task 24.1): retention never removes a pinned notification. */
+    val pinned: Int = 0,
+    val pinnedAt: Long = 0,
 )
 
 @Entity(

@@ -61,6 +61,7 @@ import uk.thewyj.app.core.permission.PermissionCenter
 import uk.thewyj.app.core.design.ThewyjRadius
 import uk.thewyj.app.core.design.ThewyjPrimaryButton
 import uk.thewyj.app.task21.store.NotificationHistoryItem
+import uk.thewyj.app.task21.store.NotificationRepository
 import uk.thewyj.app.task21.store.NotificationRuleEntity
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -189,13 +190,18 @@ fun NotificationHubScreen(
             NotificationDetailOverlay(
                 item = item,
                 onClose = { state.detail = null },
+                onTogglePinned = { scope.launch { state.togglePinned(item) } },
             )
         }
     }
 }
 
 @Composable
-private fun NotificationDetailOverlay(item: NotificationHistoryItem, onClose: () -> Unit) {
+private fun NotificationDetailOverlay(
+    item: NotificationHistoryItem,
+    onClose: () -> Unit,
+    onTogglePinned: () -> Unit = {},
+) {
     BackHandler(enabled = true) { onClose() }
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(
@@ -216,6 +222,17 @@ private fun NotificationDetailOverlay(item: NotificationHistoryItem, onClose: ()
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onTogglePinned, shape = ThewyjRadius.Medium) {
+                    Text(if (item.pinned) "取消收藏" else "收藏这条通知")
+                }
+                Text(
+                    if (item.pinned) "已收藏：保存期限内不会被自动删除" else "收藏后不会被自动删除",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                )
+            }
             if (item.status == "removed") {
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant,
@@ -469,6 +486,20 @@ private fun NotificationHistoryCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (item.pinned) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        shape = ThewyjRadius.Small,
+                        modifier = Modifier.padding(top = 2.dp),
+                    ) {
+                        Text(
+                            "已收藏 · 不会被自动删除",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
+                }
                 // History keeps removed notifications; the state is shown as a
                 // readable low-weight badge instead of nearly invisible text.
                 if (item.status == "removed") {
@@ -542,7 +573,14 @@ private fun NotificationRulesSection(state: NotificationHubState, scope: kotlinx
     var includeKeywords by remember { mutableStateOf("") }
     var excludeKeywords by remember { mutableStateOf("") }
     var ruleName by remember { mutableStateOf("") }
-    val retentionOptions = listOf(-1 to "永久", 1 to "1 天", 3 to "3 天", 7 to "7 天", 30 to "30 天", 90 to "90 天", 365 to "1 年")
+    // Task 24.1: 7 天 / 30 天 / 90 天 / 1 年 / 永久（0 = 不自动删除）。
+    val retentionOptions: List<Pair<Int, String>> = listOf(
+        7 to "7 天",
+        30 to "30 天",
+        90 to "90 天",
+        365 to "1 年",
+        NotificationRepository.PERMANENT_RETENTION_DAYS to "永久",
+    )
 
     Column(Modifier.fillMaxWidth().padding(16.dp)) {
         Text("保留期限", style = MaterialTheme.typography.titleMedium)
@@ -561,7 +599,17 @@ private fun NotificationRulesSection(state: NotificationHubState, scope: kotlinx
             }
         }
         Text(
-            "缩短保留期限只会删除已移除且未关联财务的旧通知；财务流水永远不受影响。",
+            "缩短保留期限只会删除超过期限的旧通知；收藏的通知不自动删除，关联财务的记录永远不受影响。" +
+                if (state.pinnedCount > 0) " 当前收藏 ${state.pinnedCount} 条。" else "",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            if (state.settingsRetentionDays == NotificationRepository.PERMANENT_RETENTION_DAYS) {
+                "当前为永久保存，不会自动删除任何通知。"
+            } else {
+                "当前保留 ${state.settingsRetentionDays} 天；占用约 ${state.stats.storedCharacters / 1024} KB / ${state.stats.revisionCount} 个版本。"
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

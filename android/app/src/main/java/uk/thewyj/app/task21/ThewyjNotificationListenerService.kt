@@ -100,6 +100,7 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
 
     private fun captureInput(sbn: StatusBarNotification): NotificationCaptureInput {
         val extras = sbn.notification?.extras
+        val flags = sbn.notification?.flags ?: 0
         val textLines = extras?.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
             ?.map { it?.toString().orEmpty() }
             ?.filter { it.isNotBlank() }
@@ -116,6 +117,10 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
             isGroup = sbn.isGroup,
             isGroupSummary = sbn.notification != null &&
                 (sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0,
+            // The classification layer uses the real platform flags: ongoing and
+            // foreground-service status must never flood the archive.
+            isOngoing = (flags and Notification.FLAG_ONGOING_EVENT) != 0,
+            isForegroundService = (flags and Notification.FLAG_FOREGROUND_SERVICE) != 0,
             title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty(),
             text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty(),
             bigText = extras?.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty(),
