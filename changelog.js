@@ -25,7 +25,7 @@
     },
     {
       version: "2026.09.11.6",
-      build: "2026-09-11-task24-1-closure",
+      build: "2026-09-11-task24-final-closure-r4",
       date: "2026-09-11",
       title: "无障碍金额核实、自动记账入账与手机端折叠布局",
       features: [
@@ -49,7 +49,7 @@
     },
     {
       version: "2026.09.11.5",
-      build: "2026-09-11-task24-1-closure",
+      build: "2026-09-11-task24-final-closure",
       date: "2026-09-11",
       title: "无障碍、通知稳定性与移动端界面收口",
       features: [

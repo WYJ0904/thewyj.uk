@@ -25,6 +25,7 @@ class StaticSiteTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.html = (ROOT / "index.html").read_text(encoding="utf-8")
+        cls.changelog = (ROOT / "changelog.js").read_text(encoding="utf-8")
         cls.app = (ROOT / "app.js").read_text(encoding="utf-8")
         cls.core = "\n".join(
             path.read_text(encoding="utf-8")
@@ -973,6 +974,15 @@ class StaticSiteTests(unittest.TestCase):
         audit_source = (ROOT / "local-backend" / "account_store.py").read_text(encoding="utf-8")
         audit_source = audit_source.split("def record_login_event", 1)[1].split("def list_login_audit_logs", 1)[0]
         self.assertNotIn("secret", audit_source)
+
+    def test_changelog_build_ids_are_unique_and_newest_first(self):
+        """A duplicated build id silently hides an entry: the client merges by build."""
+        builds = re.findall(r'build:\s*"([^"]+)"', self.changelog)
+        versions = re.findall(r'version:\s*"([^"]+)"', self.changelog)
+        self.assertGreaterEqual(len(builds), 10)
+        self.assertEqual(len(builds), len(set(builds)), "changelog build ids must be unique")
+        self.assertEqual(len(versions), len(builds), "every entry needs a version and a build")
+        self.assertEqual(versions, sorted(versions, reverse=True), "changelog must be newest first")
 
     def test_migration_is_idempotent_and_rollback_preserves_legacy_tables(self):
         migrations = ROOT / "local-backend" / "migrations"
