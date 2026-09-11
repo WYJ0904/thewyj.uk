@@ -10,6 +10,7 @@
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows|flagIncludeNotImportantViews"
     android:canRetrieveWindowContent="true"
+    android:canTakeScreenshot="true"
     android:description="@string/thewyj_accessibility_description"
     android:notificationTimeout="300"
     android:settingsActivity="uk.thewyj.app.MainActivity" />

@@ -76,7 +76,7 @@ class NotificationCaptureCoordinatorTest {
      * payload the client deleted, so a recognised payment could never reach
      * Finance. Such a hint stays local until the user completes it.
      */
-    @Test fun directionUnknownPaymentIsNeverUploaded() {
+    @Test fun directionUnknownPaymentBecomesAPendingHintNotATransaction() {
         val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
         try {
             val transport = FakeTransport()
@@ -86,9 +86,14 @@ class NotificationCaptureCoordinatorTest {
                 parsedOutcome(2800, FinanceDirection.UNKNOWN, confirmed = false),
             )
             coordinator.onNotification("com.tencent.mm", "微信支付", "已支付 ¥28.00", "", "", 1L)
-            assertEquals(0, coordinator.flush())
-            assertEquals(0, transport.calls.size)
-            assertEquals(0, coordinator.queuedRequests().size)
+            val queued = coordinator.queuedRequests()
+            assertEquals(1, queued.size)
+            // It goes to the unified pending-hint endpoint only: never an event
+            // ingest that could book a transaction without a direction.
+            assertTrue(queued.first().path.endsWith("/api/notification/hints"))
+            assertTrue(transport.calls.none { it.contains("/api/notification/ingest") })
+            assertEquals(1, coordinator.flush())
+            assertTrue(coordinator.flushDetailed().outcomes.isEmpty())
         } finally {
             dir.deleteRecursively()
         }

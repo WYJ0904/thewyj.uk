@@ -105,6 +105,10 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.kotlinx.coroutines.android)
+    // Task 24.1: on-device OCR for the WeChat visual verification fallback.
+    // Unbundled variant: the Chinese/Latin model is downloaded by Play services
+    // on demand, so the APK stays small. Text never leaves the device.
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition-chinese:16.0.1")
 
     testImplementation(libs.junit)
     testImplementation("org.json:json:20240303")
