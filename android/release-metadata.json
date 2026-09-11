@@ -1,13 +1,13 @@
 {
   "applicationId": "uk.thewyj.app",
-  "versionName": "1.2.3",
-  "versionCode": 6,
+  "versionName": "1.2.4",
+  "versionCode": 7,
   "minimumVersionCode": 1,
   "releaseDate": "2026-09-11",
-  "releaseBuild": "2026-09-11-task24-crash-finance-closure",
-  "releaseNotes": "修复点击通知条目导致 App 崩溃（Room 主线程访问）；通知默认归档并实时刷新；支付确认后真正进入正式账本并校验写入；真实支付自动记账、聊天不记账；新增英语/日语朗读语速滑块；改进 App 内检查更新（校验失败删除临时文件并重新下载）；修复通知详情/已移除状态展示。",
-  "apkFileName": "thewyj-android-1.2.3.apk",
-  "apkKey": "app/android/thewyj-android-1.2.3.apk",
-  "apkSha256": "6f1a5bd54db744a5b996571ac1d31bd0d767f27606a49f9eae987ce6d68483ad",
-  "apkSizeBytes": 1745771
+  "releaseBuild": "2026-09-11-task24-final-closure",
+  "releaseNotes": "修复 Android 无障碍能力无法实际工作并新增可审计状态；通知历史改为进入页面刷新 + 手动刷新（消除闪烁）；通知应用筛选改为弹窗；通知/我的与 Web 统一 light/dark 设计 token；支付确认闭环与自动记账稳定性；保留通知详情、TTS 语速、日语识别、更新校验等修复。",
+  "apkFileName": "thewyj-android-1.2.4.apk",
+  "apkKey": "app/android/thewyj-android-1.2.4.apk",
+  "apkSha256": "f849b2bb4735706b2b9b6ba6d41179e92c334edf109ad238a03d50e7f572d45c",
+  "apkSizeBytes": 1816779
 }

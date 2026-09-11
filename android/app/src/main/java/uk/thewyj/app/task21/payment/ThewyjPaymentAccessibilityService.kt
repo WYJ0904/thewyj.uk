@@ -19,32 +19,63 @@ import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
 class ThewyjPaymentAccessibilityService : AccessibilityService() {
     private val tickets = PaymentTicketEngine()
 
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        PaymentAccessibilityStatus.onConnected()
+    }
+
+    override fun onUnbind(intent: android.content.Intent?): Boolean {
+        PaymentAccessibilityStatus.onDisconnected()
+        return super.onUnbind(intent)
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val currentEvent = event ?: return
         val eventType = currentEvent.eventType
+        val eventPackage = currentEvent.packageName?.toString().orEmpty()
+        PaymentAccessibilityStatus.onEvent(eventPackage, eventType)
         if (eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
-            eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+            eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED &&
+            eventType != AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED &&
+            eventType != AccessibilityEvent.TYPE_WINDOWS_CHANGED
         ) {
             return
         }
         val packageName = currentEvent.packageName?.toString().orEmpty()
         if (packageName.isEmpty() || packageName == this.packageName) return
-        val account = runCatching { NotificationSessionProvider(this).currentAccount() }.getOrNull() ?: return
-        if (!account.financeEntitled) return
+        val account = runCatching { NotificationSessionProvider(this).currentAccount() }.getOrNull()
+        if (account == null || !account.financeEntitled) {
+            PaymentAccessibilityStatus.onParserResult("no_finance_account")
+            return
+        }
 
         val store = RoomPaymentRecognitionStore(NotificationDatabase.get(this))
-        val ticket = runCatching { store.activeTicketForPackage(account.accountId, packageName) }.getOrNull() ?: return
-        if (!tickets.isActive(ticket)) return
+        val ticket = runCatching { store.activeTicketForPackage(account.accountId, packageName) }.getOrNull()
+        if (ticket == null || !tickets.isActive(ticket)) {
+            PaymentAccessibilityStatus.onParserResult("no_active_ticket")
+            return
+        }
 
         val lines = collectText(rootInActiveWindow)
-        if (lines.isEmpty()) return
+        PaymentAccessibilityStatus.onPageRead(lines.size)
+        if (lines.isEmpty()) {
+            PaymentAccessibilityStatus.onParserResult("no_text")
+            return
+        }
         val enrichment = PaymentPageSemantics.extract(
             PaymentPageSnapshot(
                 sourcePackage = packageName,
                 textLines = lines,
                 capturedAtMs = System.currentTimeMillis(),
             ),
-        ) ?: return
+        )
+        if (enrichment == null) {
+            PaymentAccessibilityStatus.onParserResult("unparsed")
+            return
+        }
+        PaymentAccessibilityStatus.onParserResult(
+            "amount=${enrichment.amountMinor ?: "unknown"} direction=${enrichment.direction ?: "unknown"}",
+        )
         runCatching {
             AndroidPaymentRecognitionHook.get(this)
                 .onAccessibilityEnrichment(account.accountId, enrichment)

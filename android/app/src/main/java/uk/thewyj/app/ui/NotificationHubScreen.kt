@@ -53,11 +53,13 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Surface
+import androidx.compose.material3.ModalBottomSheet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
 import uk.thewyj.app.core.auth.AccountSnapshot
 import uk.thewyj.app.core.permission.PermissionCenter
 import uk.thewyj.app.core.design.ThewyjRadius
+import uk.thewyj.app.core.design.ThewyjPrimaryButton
 import uk.thewyj.app.task21.store.NotificationHistoryItem
 import uk.thewyj.app.task21.store.NotificationRuleEntity
 import java.text.SimpleDateFormat
@@ -96,28 +98,13 @@ fun NotificationHubScreen(
     }
 
     LaunchedEffect(account.id) {
+        // Snapshot semantics: entering the page loads once. While the user stays
+        // here the list never auto-refreshes (no flicker, no scroll jump); new
+        // notifications keep being stored in the background.
         state.refresh()
         state.refreshApps()
         state.refreshRules()
-        // Live database observation: a notification written by the listener is
-        // rendered immediately instead of waiting for a manual refresh.
-        state.changes.collectLatest {
-            state.refresh()
-            state.refreshApps()
-            state.refreshPendingPayments()
-        }
-    }
-    LaunchedEffect(account.id) {
         state.refreshPendingPayments()
-    }
-    LaunchedEffect(account.id) {
-        state.latestChange.collectLatest { identity ->
-            if (identity.isNullOrBlank()) return@collectLatest
-            uk.thewyj.app.task21.CaptureTrace.stage(identity, "flow-emitted")
-            state.refresh()
-            state.refreshApps()
-            uk.thewyj.app.task21.CaptureTrace.stage(identity, "ui-rendered", "items=${state.items.size}")
-        }
     }
 
     // One natural vertical page: pending card + tabs + search/filter + list all
@@ -288,27 +275,52 @@ private fun NotificationEntitlementGate(modifier: Modifier) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun NotificationHistorySection(state: NotificationHubState) {
     val scope = rememberCoroutineScope()
     val appLabels = remember { mutableStateMapOf<String, String>() }
+    var filterSheet by remember { mutableStateOf(false) }
+    var refreshing by remember { mutableStateOf(false) }
     val filterPackages = remember(state.items.toList()) {
-        state.items.map { it.sourcePackage }.distinct().take(8)
+        state.items.map { it.sourcePackage }.distinct().take(12)
     }
     LaunchedEffect(filterPackages) {
         filterPackages.forEach { packageName ->
             if (!appLabels.containsKey(packageName)) appLabels[packageName] = state.appLabel(packageName)
         }
     }
+
+    fun manualRefresh() {
+        scope.launch {
+            refreshing = true
+            state.refresh()
+            state.refreshApps()
+            state.refreshPendingPayments()
+            refreshing = false
+        }
+    }
+
     Column(Modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            value = state.search,
-            onValueChange = { value -> scope.launch { state.setSearch(value) } },
-            label = { Text("搜索标题或内容") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        )
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedTextField(
+                value = state.search,
+                onValueChange = { value -> scope.launch { state.setSearch(value) } },
+                label = { Text("搜索标题或内容") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedButton(onClick = { filterSheet = true }, shape = ThewyjRadius.Medium) {
+                Text(if (state.appFilter.isBlank()) "筛选" else "已筛选")
+            }
+            OutlinedButton(onClick = { manualRefresh() }, enabled = !refreshing, shape = ThewyjRadius.Medium) {
+                Text(if (refreshing) "刷新中…" else "刷新")
+            }
+        }
         FlowRow(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -333,40 +345,59 @@ private fun NotificationHistorySection(state: NotificationHubState) {
                 OutlinedButton(onClick = { scope.launch { state.clearAll() } }) { Text("清空全部") }
             }
         }
-
-        // 按 App 筛选是列表级操作：一条通知卡片上只保留选择与删除。
-        FlowRow(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            FilterChip(
-                selected = state.appFilter.isBlank(),
-                onClick = { scope.launch { state.setAppFilter("") } },
-                label = { Text("全部应用", maxLines = 1, softWrap = false) },
-            )
-            filterPackages.forEach { packageName ->
-                FilterChip(
-                    selected = state.appFilter == packageName,
-                    onClick = {
-                        scope.launch { state.setAppFilter(if (state.appFilter == packageName) "" else packageName) }
-                    },
-                    label = {
-                        Text(appLabels[packageName] ?: packageName, maxLines = 1, softWrap = false)
-                    },
-                )
-            }
-        }
         if (state.appFilter.isNotBlank()) {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "仅看：${appLabels[state.appFilter] ?: state.appFilter}",
+                    "已筛选：${appLabels[state.appFilter] ?: state.appFilter}",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = { scope.launch { state.setAppFilter("") } }) { Text("清除筛选") }
+            }
+        }
+        if (filterSheet) {
+            ModalBottomSheet(onDismissRequest = { filterSheet = false }) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("按应用筛选", style = MaterialTheme.typography.titleMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = state.appFilter.isBlank(),
+                            onClick = { scope.launch { state.setAppFilter("") } },
+                            label = { Text("全部应用", maxLines = 1, softWrap = false) },
+                        )
+                        filterPackages.forEach { packageName ->
+                            FilterChip(
+                                selected = state.appFilter == packageName,
+                                onClick = {
+                                    scope.launch {
+                                        state.setAppFilter(if (state.appFilter == packageName) "" else packageName)
+                                    }
+                                },
+                                label = { Text(appLabels[packageName] ?: packageName, maxLines = 1, softWrap = false) },
+                            )
+                        }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("包含已移除", modifier = Modifier.weight(1f))
+                        Switch(
+                            checked = state.includeRemoved,
+                            onCheckedChange = { value ->
+                                state.includeRemoved = value
+                                scope.launch { state.refresh() }
+                            },
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = {
+                            state.includeRemoved = true
+                            scope.launch { state.setAppFilter("") }
+                        }) { Text("重置") }
+                        ThewyjPrimaryButton(text = { Text("完成") }, onClick = { filterSheet = false })
+                    }
+                }
             }
         }
         when {
