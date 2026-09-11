@@ -8,6 +8,8 @@ sealed interface NavigationDecision {
     data object Logout : NavigationDecision
     /** Native dictation playback requested by the trusted web app. */
     data object Speech : NavigationDecision
+    /** The web app reports its resolved theme so the shell can match it. */
+    data object Theme : NavigationDecision
     data object External : NavigationDecision
     data object Blocked : NavigationDecision
 }
@@ -31,6 +33,10 @@ class WebRoutePolicy(baseUrl: String) {
                 }
                 "speech" -> when (uri.path) {
                     "/speak", "/stop" -> NavigationDecision.Speech
+                    else -> NavigationDecision.Blocked
+                }
+                "theme" -> when (uri.path) {
+                    "/dark", "/light" -> NavigationDecision.Theme
                     else -> NavigationDecision.Blocked
                 }
                 else -> NavigationDecision.Blocked

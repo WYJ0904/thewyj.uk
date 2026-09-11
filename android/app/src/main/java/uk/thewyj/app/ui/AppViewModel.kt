@@ -54,6 +54,14 @@ class AppViewModel : ViewModel() {
     private val mutableNotice = MutableStateFlow("")
     val notice = mutableNotice.asStateFlow()
 
+    /** Resolved web theme; null until the page reports it. */
+    private val mutableNativeDark = MutableStateFlow<Boolean?>(null)
+    val nativeDark = mutableNativeDark.asStateFlow()
+
+    fun onWebThemeChanged(dark: Boolean) {
+        mutableNativeDark.value = dark
+    }
+
     private val updateInstaller = AppGraph.updateInstaller
     private val mutableUpdateState = MutableStateFlow<UpdateUiState>(UpdateUiState.Idle)
     val updateState = mutableUpdateState.asStateFlow()

@@ -304,4 +304,6 @@ private class FakeApi : AccountApi {
     override suspend fun currentAccount(accessToken: String) = currentResult
     override suspend fun logout(refreshToken: String, accessToken: String, deviceId: String) = logoutResult
     override suspend fun appConfig() = ApiCall.Success(AppConfig(1, "1.0.0", 1, ""))
+
+    override suspend fun pendingCandidateCount(accessToken: String) = ApiCall.Success(0)
 }

@@ -91,6 +91,17 @@ internal object PaymentText {
     val refundTerms = listOf("退款", "退回", "退还", "退還", "已退款", "原路退回", "冲正", "沖正", "返还", "返還")
 
     /**
+     * Ordinary chat wording. WeChat chat and WeChat Pay share one package, so a
+     * message like "明天给你转账" must never become a finance candidate just
+     * because it contains 转账.
+     */
+    val chatTerms = listOf(
+        "撤回了一条消息", "拍了拍", "邀请你加入群聊", "群聊", "朋友圈", "公众号", "订阅号",
+        "语音通话", "视频通话", "新消息", "未读", "在吗", "下班", "明天", "后天", "晚点",
+        "一会儿", "帮我", "记得", "哈哈", "笑死", "有空", "见面", "聊", "约", "先这样",
+    )
+
+    /**
      * Bank notifications may legitimately say "请登录查看"; only these terms
      * mean the message itself is not a transaction.
      */
@@ -150,6 +161,8 @@ internal object PaymentText {
     }
 
     fun isNegative(normalized: String): Boolean = negativeTerms.any { normalized.contains(it) }
+
+    fun isChatLike(normalized: String): Boolean = chatTerms.any { normalized.contains(it) }
 
     fun isBankExcluded(normalized: String): Boolean = bankExcludedTerms.any { normalized.contains(it) }
 

@@ -49,6 +49,9 @@ interface AccountApi {
     suspend fun currentAccount(accessToken: String): ApiCall<AccountSnapshot>
     suspend fun logout(refreshToken: String, accessToken: String, deviceId: String): ApiCall<Unit>
     suspend fun appConfig(): ApiCall<AppConfig>
+
+    /** Number of backend payment candidates waiting for review. */
+    suspend fun pendingCandidateCount(accessToken: String): ApiCall<Int>
 }
 
 class ThewyjApiClient(
@@ -139,6 +142,16 @@ class ThewyjApiClient(
                 apkSha256 = app.optString("apk_sha256").trim().lowercase().take(64),
                 apkSizeBytes = app.optLong("apk_size_bytes", 0).coerceAtLeast(0),
             )
+        }
+    }
+
+    override suspend fun pendingCandidateCount(accessToken: String): ApiCall<Int> {
+        return request(
+            path = "/api/notification/candidates?status=pending&limit=50",
+            method = "GET",
+            accessToken = accessToken,
+        ).map { json ->
+            json.optJSONArray("candidates")?.length() ?: 0
         }
     }
 

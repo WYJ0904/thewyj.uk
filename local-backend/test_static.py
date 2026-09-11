@@ -109,17 +109,17 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260911-finance-linkage-tts-nav-r1"
+        release_token = "20260911-task24-bug-closure-r1"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "design-system.css", "public-experience.css", "workspace-experience.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
-        self.assertIn('export const APP_VERSION = "2026-09-11-finance-linkage-tts-nav"', self.core)
+        self.assertIn('export const APP_VERSION = "2026-09-11-task24-bug-closure"', self.core)
         self.assertIn(f'export const ASSET_RELEASE = "{release_token}"', self.core)
         self.assertIn('navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)', self.app)
         for module in ("api", "config", "router", "session", "storage", "ui", "design-system"):
             self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20260911-finance-linkage-tts-nav-r1"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20260911-task24-bug-closure-r1"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         for asset in ("design-system.css", "public-experience.css", "workspace-experience.css"):
@@ -133,7 +133,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertFalse((ROOT / "404.html").exists())
 
     def test_browser_module_graph_uses_one_release_version(self):
-        release_token = "20260911-finance-linkage-tts-nav-r1"
+        release_token = "20260911-task24-bug-closure-r1"
         import_pattern = re.compile(
             r'(?:from\s+|import\s+)["\'](\.{1,2}/[^"\']+\.js(?:\?[^"\']*)?)["\']'
         )
@@ -251,9 +251,9 @@ class StaticSiteTests(unittest.TestCase):
         self.assertNotRegex(self.html, r">\s*[文+×↕]\s*<")
 
     def test_task19_design_system_two_contract(self):
-        self.assertIn('href="/design-system.css?v=20260911-finance-linkage-tts-nav-r1"', self.html)
-        self.assertIn('href="/public-experience.css?v=20260911-finance-linkage-tts-nav-r1"', self.html)
-        self.assertIn('href="/workspace-experience.css?v=20260911-finance-linkage-tts-nav-r1"', self.html)
+        self.assertIn('href="/design-system.css?v=20260911-task24-bug-closure-r1"', self.html)
+        self.assertIn('href="/public-experience.css?v=20260911-task24-bug-closure-r1"', self.html)
+        self.assertIn('href="/workspace-experience.css?v=20260911-task24-bug-closure-r1"', self.html)
         self.assertIn('id="siteNavToggle"', self.html)
         self.assertIn('id="siteNavPanel"', self.html)
         self.assertIn('id="themeToggleBtn"', self.html)
@@ -575,7 +575,14 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('$("wordReading").textContent = reading;', self.app)
         self.assertIn('id="wordReading"', self.html)
         question_forms = self.app.split("async function ensureJapaneseQuestionForms", 1)[1].split("async function startQuiz", 1)[0]
-        self.assertIn("if (!dictation) return hasJapaneseKanji(word) && !hasReading;", question_forms)
+        # Real-device regression: a kanji surface (先生) is a complete entry; the
+        # bound kana reading enriches TTS and must never block dictation.
+        self.assertEqual(question_forms.count("japaneseDictationNeedsResolutionModel("), 2)
+        self.assertIn("japaneseDictationNeedsResolution as japaneseDictationNeedsResolutionModel", self.app)
+        self.assertIn("japaneseDictationSpokenText as japaneseDictationSpokenTextModel", self.app)
+        quiz_source = (ROOT / "js" / "language" / "quiz.js").read_text(encoding="utf-8")
+        self.assertIn("export function japaneseDictationNeedsResolution", quiz_source)
+        self.assertIn("return !hasReading && !hasJapaneseKanji(written);", quiz_source)
         self.assertIn('$("navGuestActions")?.classList.toggle("hidden", Boolean(account));', self.app)
         self.assertIn('$("accountMenu")?.classList.toggle("hidden", !account);', self.app)
         boot_source = self.app.split("async function boot()", 1)[1]

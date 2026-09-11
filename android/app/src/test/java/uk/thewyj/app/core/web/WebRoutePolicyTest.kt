@@ -48,6 +48,13 @@ class WebRoutePolicyTest {
     }
 
     @Test
+    fun webThemeStateUsesTheNarrowNativeChannelOnly() {
+        assertEquals(NavigationDecision.Theme, policy.decide("thewyj://theme/dark"))
+        assertEquals(NavigationDecision.Theme, policy.decide("thewyj://theme/light"))
+        assertEquals(NavigationDecision.Blocked, policy.decide("thewyj://theme/other"))
+    }
+
+    @Test
     fun activeContentAndCleartextSchemesAreBlocked() {
         assertEquals(NavigationDecision.Blocked, policy.decide("javascript:alert(1)"))
         assertEquals(NavigationDecision.Blocked, policy.decide("file:///data/local/private"))

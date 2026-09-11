@@ -183,6 +183,17 @@ class NotificationCaptureCoordinator(
         // hints/candidates/notifications.
         paymentHook?.onCapture(current.accountId, input, "")
         if (payment != null) {
+            // One trace line per payment event so a real device log shows the
+            // exact identity that later has to appear in the finance ledger.
+            CaptureTrace.stage(
+                CaptureTrace.traceId(input.notificationKey, input.sourcePackage, input.notificationId),
+                "finance-parsed",
+                "eventId=$eventId pkg=${input.sourcePackage} channel=${input.channelId.ifBlank { "-" }} " +
+                    "source=${input.sourceType} amount=${payment.amountMinor} direction=${payment.direction} " +
+                    "merchant=${(payment.merchant.ifBlank { payment.counterparty }).take(40).ifBlank { "-" }} " +
+                    "status=${if (payment.confirmed) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY"} " +
+                    "confidence=${structured.confidence}",
+            )
             // Confirmed payments and amount-known hints reach the backend: they
             // become transactions or real review candidates. A hint without an
             // amount stays local (90 second enrichment ticket) instead of
@@ -235,6 +246,20 @@ class NotificationCaptureCoordinator(
                 response.ok -> {
                     ingestQueue.remove(request.operationId)
                     uploaded += 1
+                    // Record the backend result for the same event id so the
+                    // device log ends with the real transaction id.
+                    runCatching {
+                        val json = org.json.JSONObject(response.body)
+                        val result = json.optJSONArray("operation_results")?.optJSONObject(0)
+                        val transactionId = result?.optString("transaction_id").orEmpty()
+                        val candidateId = result?.optString("candidate_id").orEmpty()
+                        val eventId = result?.optJSONObject("event")?.optString("event_id").orEmpty()
+                        CaptureTrace.stage(
+                            eventId.ifBlank { request.operationId },
+                            "finance-api-ok",
+                            "transactionId=${transactionId.ifBlank { "-" }} candidateId=${candidateId.ifBlank { "-" }}",
+                        )
+                    }
                 }
                 response.status in setOf(400, 404, 409) -> {
                     ingestQueue.remove(request.operationId)

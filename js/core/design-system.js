@@ -52,6 +52,8 @@ function setupTheme() {
     }
     const themeMeta = document.querySelector('meta[name="theme-color"]');
     if (themeMeta) themeMeta.content = resolved === "dark" ? "#111318" : "#f3f2ef";
+    // Native shell follows the web preference: one theme source of truth.
+    document.dispatchEvent(new CustomEvent("wyj:theme-changed", { detail: { preference, resolved } }));
   };
 
   button?.addEventListener("click", () => {

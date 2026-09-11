@@ -26,12 +26,14 @@ class NotificationHubState(
     private val repository = NotificationRepository(context.applicationContext, accountId)
     private val paymentStore: PaymentRecognitionStoreContract =
         RoomPaymentRecognitionStore(NotificationDatabase.get(context.applicationContext))
+    private val credentialStore = uk.thewyj.app.core.auth.SecureCredentialStore(context.applicationContext)
+    private val api = uk.thewyj.app.core.network.ThewyjApiClient()
 
     /** Emits whenever the listener stores or updates a notification. */
     val changes = repository.historyChanges()
 
-    /** Emits whenever a payment candidate needs confirmation. */
-    val pendingPayments = paymentStore.observePendingCandidateCount(accountId)
+    /** Latest stored notification identity, used for the capture timing trace. */
+    val latestChange = repository.latestChangeIdentity()
 
     var search by mutableStateOf("")
     var appFilter by mutableStateOf("")
@@ -45,6 +47,13 @@ class NotificationHubState(
     val items: SnapshotStateList<NotificationHistoryItem> = mutableStateListOf()
     val selected: SnapshotStateList<String> = mutableStateListOf()
     var detail by mutableStateOf<NotificationHistoryItem?>(null)
+
+    /**
+     * Pending review count. The finance page lists backend candidates, so the
+     * hub shows the same backend number whenever it is reachable (falling back
+     * to the local count offline) and the two screens can never disagree.
+     */
+    var pendingPayments by mutableStateOf(0)
 
     private fun query() = NotificationQuery(
         search = search,
@@ -76,6 +85,20 @@ class NotificationHubState(
 
     suspend fun refreshRules() {
         rules = repository.rules()
+    }
+
+    suspend fun refreshPendingPayments() {
+        val local = paymentStore.pendingCandidateCount(accountId)
+        val credentials = runCatching { credentialStore.loadActive() }.getOrNull()
+        val remote = if (credentials != null && credentials.accessToken.isNotBlank()) {
+            when (val result = api.pendingCandidateCount(credentials.accessToken)) {
+                is uk.thewyj.app.core.network.ApiCall.Success -> result.value
+                is uk.thewyj.app.core.network.ApiCall.Failure -> null
+            }
+        } else {
+            null
+        }
+        pendingPayments = remote ?: local
     }
 
     suspend fun setSearch(value: String) {

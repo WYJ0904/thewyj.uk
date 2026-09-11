@@ -115,6 +115,32 @@ class PaymentParserTest {
         assertEquals(PaymentRecognitionStatus.NOT_PAYMENT, result.status)
     }
 
+    /**
+     * WeChat chat and WeChat Pay share one package. Ordinary chat that merely
+     * mentions a transfer must never enter the finance pipeline, while a real
+     * payment message with a clear amount still auto-books.
+     */
+    @Test fun wechatChatIsNotAPaymentButRealPaymentStillIs() {
+        listOf(
+            "张三：明天给你转账",
+            "李四：一会儿转给你",
+            "群里：撤回了一条消息 转账",
+            "王五：在吗，帮我转个账",
+        ).forEach { message ->
+            val chat = wechat("微信", message)
+            assertEquals("$message must stay chat", PaymentRecognitionStatus.NOT_PAYMENT, chat.status)
+            assertNull(chat.amountMinor)
+        }
+        val real = wechat("微信支付", "已支付100")
+        assertEquals(PaymentRecognitionStatus.CONFIRMED_PAYMENT, real.status)
+        assertEquals(10_000L, real.amountMinor)
+        val realTransfer = wechat("微信支付", "转账100元")
+        // A bare 转账100元 has a clear amount but no completion verb: it stays a
+        // review candidate instead of auto-booking.
+        assertEquals(PaymentRecognitionStatus.PAYMENT_LIKELY, realTransfer.status)
+        assertEquals(10_000L, realTransfer.amountMinor)
+    }
+
     @Test fun wechatIncomingPaymentIsIncome() {
         val result = wechat("微信支付", "微信转账：收款成功 ￥50.00 已到账")
         assertEquals(PaymentRecognitionStatus.CONFIRMED_PAYMENT, result.status)

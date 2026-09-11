@@ -50,6 +50,7 @@ fun ThewyjWebView(
     onRouteChanged: (String) -> Unit,
     onCanGoBackChanged: (Boolean) -> Unit,
     onMainFrameError: (String) -> Unit,
+    onThemeChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
     onUnhandledBack: () -> Unit = {},
 ) {
@@ -62,6 +63,7 @@ fun ThewyjWebView(
     val routeCallback = rememberUpdatedState(onRouteChanged)
     val canGoBackCallback = rememberUpdatedState(onCanGoBackChanged)
     val errorCallback = rememberUpdatedState(onMainFrameError)
+    val themeCallback = rememberUpdatedState(onThemeChanged)
     val unhandledBackCallback = rememberUpdatedState(onUnhandledBack)
     val pendingFileSelection = remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
     // Speech runs fully off the navigation callback: handle() only enqueues and
@@ -88,6 +90,7 @@ fun ThewyjWebView(
             onCanGoBackChanged = { canGoBackCallback.value(it) },
             onMainFrameError = { errorCallback.value(it) },
             speechBridge = speechBridge,
+            onThemeChanged = { dark -> themeCallback.value(dark) },
             onChooseFiles = { callback, params ->
                 pendingFileSelection.value?.onReceiveValue(null)
                 pendingFileSelection.value = callback
@@ -145,6 +148,7 @@ private fun createWebView(
     onCanGoBackChanged: (Boolean) -> Unit,
     onMainFrameError: (String) -> Unit,
     speechBridge: AndroidSpeechBridge,
+    onThemeChanged: (Boolean) -> Unit,
     onChooseFiles: (ValueCallback<Array<Uri>>, WebChromeClient.FileChooserParams) -> Boolean,
 ): WebView = WebView(context).apply {
     // WRAP_CONTENT lets Chromium compute a zero CSS viewport inside AndroidView.
@@ -225,6 +229,7 @@ private fun createWebView(
                 context, request.url.toString(), policy, onRefreshSession, onLogout,
                 onSpeech = { speechBridge.handle(it) },
                 onSpeechError = onMainFrameError,
+                onTheme = onThemeChanged,
             )
         }
 
@@ -238,6 +243,7 @@ private fun createWebView(
                 context, url, policy, onRefreshSession, onLogout,
                 onSpeech = { speechBridge.handle(it) },
                 onSpeechError = onMainFrameError,
+                onTheme = onThemeChanged,
             )
         }
 
@@ -308,6 +314,7 @@ private fun handleNavigation(
     onLogout: () -> Unit,
     onSpeech: (Uri) -> String = { "" },
     onSpeechError: (String) -> Unit = {},
+    onTheme: (Boolean) -> Unit = {},
 ): Boolean = when (policy.decide(url)) {
     NavigationDecision.Internal -> false
     NavigationDecision.RefreshSession -> true.also { onRefreshSession() }
@@ -315,6 +322,9 @@ private fun handleNavigation(
     NavigationDecision.Speech -> true.also {
         val message = onSpeech(Uri.parse(url))
         if (message.isNotBlank()) onSpeechError(message)
+    }
+    NavigationDecision.Theme -> true.also {
+        onTheme(Uri.parse(url).path == "/dark")
     }
     NavigationDecision.External -> true.also {
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }

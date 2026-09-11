@@ -24,19 +24,37 @@ data class SpeechVoiceInfo(
  * accepted whatever voice the engine defaulted to, which is why the English
  * pronunciation sounded wrong on some devices.
  */
+data class SpeechPlan(
+    /** null means "let the engine decide for this locale". */
+    val voice: SpeechVoiceInfo?,
+    val language: String,
+    val stage: String,
+)
+
 object SpeechVoicePolicy {
-    fun select(voices: List<SpeechVoiceInfo>, language: String): SpeechVoiceInfo? {
-        val target = language.trim().lowercase().substringBefore('-')
-        if (target.isEmpty()) return null
-        val candidates = voices.filter { it.language.lowercase() == target }
-        if (candidates.isEmpty()) return null
-        val offline = candidates.filter { !it.requiresNetwork }
-        val pool = offline.ifEmpty { candidates }
-        return pool.sortedWith(
-            compareByDescending<SpeechVoiceInfo> { it.localeTag.equals(language, ignoreCase = true) }
-                .thenByDescending { it.quality }
-                .thenBy { it.name },
-        ).first()
+    /**
+     * Fallback ladder: preferred local voice → any installed local voice of the
+     * language → network voice of the language → engine locale default. Only
+     * when even the locale is unavailable does the UI ask for voice data.
+     * A missing en-US voice must never mean "no English TTS".
+     */
+    fun plan(voices: List<SpeechVoiceInfo>, language: String): SpeechPlan {
+        val wanted = language.trim().ifBlank { "en-US" }
+        val target = wanted.lowercase().substringBefore('-')
+        val exact = voices.filter { it.localeTag.equals(wanted, ignoreCase = true) }
+        val sameLanguage = voices.filter { it.language.lowercase() == target }
+        val byPreference = compareByDescending<SpeechVoiceInfo> { it.localeTag.equals(wanted, ignoreCase = true) }
+            .thenByDescending { it.quality }
+            .thenBy { it.name }
+        val ladder = listOf(
+            "preferred-local" to exact.filter { !it.requiresNetwork },
+            "any-local" to sameLanguage.filter { !it.requiresNetwork },
+            "network" to (exact + sameLanguage).filter { it.requiresNetwork },
+        )
+        for ((stage, pool) in ladder) {
+            if (pool.isNotEmpty()) return SpeechPlan(pool.sortedWith(byPreference).first(), wanted, stage)
+        }
+        return SpeechPlan(null, wanted, "locale-default")
     }
 }
 
@@ -160,18 +178,22 @@ class AndroidSpeechBridge(
                 quality = voice.quality,
             )
         }.orEmpty()
-        val selected = SpeechVoicePolicy.select(voices, request.language)
-        if (selected == null) {
-            val label = if (request.language.lowercase().startsWith("ja")) "日语" else "英语"
-            val message = "系统缺少${label}语音包，请在系统设置中下载${label}语音数据后重试。"
-            Log.w(TAG, "tts-missing-voice lang=${request.language}")
-            onError(message)
-            return
+        val plan = SpeechVoicePolicy.plan(voices, request.language)
+        val locale = Locale.forLanguageTag(plan.language)
+        val availability = engine.isLanguageAvailable(locale)
+        Log.i(
+            TAG,
+            "tts-plan stage=${plan.stage} engine=${engine.defaultEngine ?: "-"} voices=${voices.size} " +
+                "selected=${plan.voice?.name ?: "-"} locale=${plan.voice?.localeTag ?: plan.language} " +
+                "network=${plan.voice?.requiresNetwork ?: false} isLanguageAvailable=$availability",
+        )
+        plan.voice?.let { selected ->
+            engine.voices?.firstOrNull { it.name == selected.name }?.let { engine.voice = it }
         }
-        engine.voices?.firstOrNull { it.name == selected.name }?.let { engine.voice = it }
-        val availability = engine.setLanguage(Locale.forLanguageTag(selected.localeTag))
+        engine.setLanguage(locale)
         if (availability == TextToSpeech.LANG_MISSING_DATA || availability == TextToSpeech.LANG_NOT_SUPPORTED) {
-            onError("系统语音引擎不支持所选语言，请在系统设置中安装对应语音包。")
+            val label = if (plan.language.lowercase().startsWith("ja")) "日语" else "英语"
+            onError("系统语音引擎不支持${label}，请在系统设置中安装${label}语音数据后重试。")
             return
         }
         engine.setSpeechRate(request.rate.coerceIn(0.4f, 2.0f))
