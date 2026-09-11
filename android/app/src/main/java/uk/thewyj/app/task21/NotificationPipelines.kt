@@ -43,6 +43,7 @@ class NotificationArchivePipeline(
                 isOngoing = input.isOngoing,
                 isForegroundService = input.isForegroundService,
                 isGroupSummary = input.isGroupSummary,
+                hasMedia = input.mediaState == "available" || input.mediaState == "unavailable",
                 // Coalescing is only safe with a real Android identity. Calls
                 // that carry no key/id/tag (legacy entry points) must never be
                 // treated as a repeating readout.

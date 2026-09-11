@@ -39,6 +39,9 @@ data class NotificationCapture(
     val currency: String = "CNY",
     val merchant: String = "",
     val confidence: Int = 0,
+    val mediaPath: String = "",
+    val mediaMime: String = "",
+    val mediaState: String = "none",
 )
 
 data class NotificationHistoryItem(
@@ -68,6 +71,9 @@ data class NotificationHistoryItem(
     val currency: String,
     val merchant: String,
     val capturedAt: Long,
+    val mediaPath: String = "",
+    val mediaMime: String = "",
+    val mediaState: String = "none",
 )
 
 data class NotificationQuery(
@@ -159,6 +165,9 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
                     currency = capture.currency,
                     merchant = capture.merchant,
                     confidence = capture.confidence,
+                    mediaPath = capture.mediaPath,
+                    mediaMime = capture.mediaMime,
+                    mediaState = capture.mediaState,
                 )
             },
         )
@@ -212,6 +221,9 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
                 currency = row.currency,
                 merchant = row.merchant,
                 capturedAt = row.capturedAt,
+                mediaPath = row.mediaPath,
+                mediaMime = row.mediaMime,
+                mediaState = row.mediaState,
             )
         }
 
@@ -279,6 +291,31 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
         }
         return removed
     }
+
+    /** Local picture files owned by the given snapshots, so callers can delete them. */
+    fun mediaPathsOfRevisions(accountId: String, revisionIds: List<String>): List<String> =
+        if (revisionIds.isEmpty()) emptyList() else dao.mediaPathsOfRevisions(accountId.trim(), revisionIds)
+
+    /** Local picture files owned by the given instances (retention path). */
+    fun mediaPathsOfInstances(accountId: String, instanceIds: List<String>): List<String> =
+        if (instanceIds.isEmpty()) emptyList() else dao.mediaPathsOfInstances(accountId.trim(), instanceIds)
+
+    /**
+     * Retention purge that also reports the picture files to delete. Favourites
+     * and finance-linked snapshots are excluded inside the DAO, so their media
+     * is never touched.
+     */
+    fun purgeExpiredDetailed(accountId: String, cutoffMs: Long, limit: Int = 500): PurgeResult {
+        if (cutoffMs <= 0) return PurgeResult(0, emptyList())
+        val account = accountId.trim()
+        val candidates = dao.purgeCandidates(account, cutoffMs, limit)
+        if (candidates.isEmpty()) return PurgeResult(0, emptyList())
+        val mediaPaths = dao.mediaPathsOfInstances(account, candidates)
+        val removed = dao.deleteInstances(account, candidates)
+        return PurgeResult(removed, mediaPaths)
+    }
+
+    data class PurgeResult(val removed: Int, val mediaPaths: List<String>)
 
     fun clearAccount(accountId: String): Int = dao.clearAccount(accountId.trim())
 

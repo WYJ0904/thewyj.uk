@@ -178,6 +178,9 @@ class NotificationHubState(
 
     suspend fun appLabel(packageName: String): String = repository.appLabel(packageName)
 
+    /** Local picture file for a snapshot (Task 24.1 P0-1 media history). */
+    suspend fun mediaFile(relativePath: String): java.io.File? = repository.mediaFile(relativePath)
+
     suspend fun setAppPolicy(packageName: String, enabled: Boolean) {
         repository.setAppPolicy(packageName, enabled)
         refreshApps()

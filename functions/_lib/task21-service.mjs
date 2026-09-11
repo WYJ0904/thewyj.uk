@@ -132,7 +132,7 @@ async function financeTransactionIdForRaw(db, rawId) {
   return String(row?.transaction_id || "");
 }
 
-async function createAutomaticFinanceTransaction(db, account, deviceId, event) {
+export async function createAutomaticFinanceTransaction(db, account, deviceId, event) {
   const existing = await findFinanceRawBySourceEvent(db, account.id, event.event_id);
   if (existing) {
     return { transaction_id: await financeTransactionIdForRaw(db, existing.id), duplicate: true };

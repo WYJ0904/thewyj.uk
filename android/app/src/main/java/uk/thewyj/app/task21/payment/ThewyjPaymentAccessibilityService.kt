@@ -21,6 +21,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 class ThewyjPaymentAccessibilityService : AccessibilityService() {
     private val tickets = PaymentTicketEngine()
     private val ticketPackages = PaymentTicketPackageCache()
+    @Volatile private var ocrVerifier: PaymentScreenshotVerifier? = null
+    @Volatile private var lastScreenshotAtMs = 0L
     /**
      * Room must never be touched on the main thread (the framework throws
      * "Cannot access database on the main thread"), so every ticket lookup and
@@ -79,6 +81,10 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         PaymentAccessibilityStatus.onPageRead(lines.size)
         if (lines.isEmpty()) {
             PaymentAccessibilityStatus.onParserResult("no_text")
+            // WeChat exposes no text at all: fall back to a local screenshot +
+            // on-device OCR. The image never leaves the device and never creates
+            // a transaction by itself.
+            requestScreenshotVerification(packageName)
             runCatching { worker.execute { reportMiss(packageName) } }
             return
         }
@@ -114,6 +120,7 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         )
         if (enrichment == null) {
             PaymentAccessibilityStatus.onParserResult("unparsed")
+            requestScreenshotVerification(sourcePackage)
             runCatching { worker.execute { reportMiss(sourcePackage) } }
             return
         }
@@ -129,6 +136,70 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         }.onFailure { error ->
             Log.w("T22PAY", "enrichment failed: ${error.javaClass.simpleName}")
         }
+    }
+
+    /**
+     * Takes at most one screenshot every few seconds, only while a ticket is
+     * open, and hands it to the local OCR verifier. Every failure mode
+     * (secure window, rate limit, OCR error) simply leaves the manual path.
+     */
+    private fun requestScreenshotVerification(sourcePackage: String) {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) return
+        val now = System.currentTimeMillis()
+        if (now - lastScreenshotAtMs < SCREENSHOT_MIN_INTERVAL_MS) return
+        lastScreenshotAtMs = now
+        val verifier = ocrVerifier ?: PaymentScreenshotVerifier(MlKitOcrEngine(this)).also { ocrVerifier = it }
+        val service = this
+        val callback = object : TakeScreenshotCallback {
+            override fun onSuccess(result: ScreenshotResult) {
+                val bitmap = android.graphics.Bitmap.wrapHardwareBuffer(result.hardwareBuffer, result.colorSpace)
+                    ?.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
+                result.hardwareBuffer.close()
+                if (bitmap == null) {
+                    PaymentAccessibilityStatus.onParserResult("ocr_no_bitmap")
+                    return
+                }
+                runCatching {
+                    service.worker.execute {
+                        val enrichment = runCatching {
+                            kotlinx.coroutines.runBlocking {
+                                verifier.verify(bitmap, sourcePackage, System.currentTimeMillis())
+                            }
+                        }.getOrNull()
+                        bitmap.recycle()
+                        if (enrichment == null) {
+                            PaymentAccessibilityStatus.onParserResult("ocr_unparsed")
+                            return@execute
+                        }
+                        PaymentAccessibilityStatus.onParserResult(
+                            "ocr amount=${enrichment.amountMinor ?: "unknown"} direction=${enrichment.direction ?: "unknown"}",
+                        )
+                        val account = runCatching {
+                            NotificationSessionProvider(service).currentAccount()
+                        }.getOrNull()
+                        if (account != null && account.financeEntitled) {
+                            // Completes the *existing* candidate/hint for this
+                            // package; it never creates a second transaction.
+                            runCatching {
+                                AndroidPaymentRecognitionHook.get(service)
+                                    .onAccessibilityEnrichment(account.accountId, enrichment)
+                            }
+                        }
+                    }
+                }.onFailure { bitmap.recycle() }
+            }
+
+            override fun onFailure(errorCode: Int) {
+                PaymentAccessibilityStatus.onParserResult("ocr_screenshot_failed_$errorCode")
+            }
+        }
+        runCatching {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                takeScreenshotOfWindow(android.view.Display.DEFAULT_DISPLAY, mainExecutor, callback)
+            } else {
+                takeScreenshot(android.view.Display.DEFAULT_DISPLAY, mainExecutor, callback)
+            }
+        }.onFailure { PaymentAccessibilityStatus.onParserResult("ocr_screenshot_unavailable") }
     }
 
     /**
@@ -188,6 +259,8 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         private const val MAX_DEPTH = 12
         private const val MAX_TEXT_LINES = 60
         private const val TAG = "ThewyjAccessibility"
+        /** One OCR attempt per window; never a screenshot loop. */
+        private const val SCREENSHOT_MIN_INTERVAL_MS = 4_000L
     }
 
     /**

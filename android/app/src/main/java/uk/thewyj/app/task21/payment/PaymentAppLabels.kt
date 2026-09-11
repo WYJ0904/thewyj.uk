@@ -34,13 +34,26 @@ object PaymentAppLabels {
     fun resolve(context: Context, sourcePackage: String): String {
         val packageName = sourcePackage.trim()
         if (packageName.isEmpty()) return "未知应用"
-        val system = runCatching {
-            val manager = context.packageManager
-            manager.getApplicationLabel(manager.getApplicationInfo(packageName, 0)).toString()
-        }.getOrNull()
-        if (!system.isNullOrBlank() && system != packageName) return system
-        return KNOWN[packageName] ?: packageName
+        // 1. Android application label (what the launcher shows).
+        val system = systemLabel(context, packageName)
+        if (!system.isNullOrBlank()) return system
+        // 2. Curated label for the payment apps we support (dual-app / Secure
+        //    Folder installs live outside the current user, so step 1 can fail).
+        KNOWN[packageName]?.let { return it }
+        // 3. Last resort. Callers must treat this as a technical fallback and
+        //    never show it as the primary name for a known app.
+        return packageName
     }
+
+    private fun systemLabel(context: Context, packageName: String): String? = runCatching {
+        val manager = context.packageManager
+        val label = manager.getApplicationLabel(manager.getApplicationInfo(packageName, 0)).toString()
+        label.takeIf { it.isNotBlank() && it != packageName }
+    }.getOrNull()
+
+    /** True when [label] came from Android or the curated table, not the package name. */
+    fun isResolved(label: String, sourcePackage: String): Boolean =
+        label.isNotBlank() && label != sourcePackage.trim()
 
     /** Financial apps recognised without a PackageManager lookup (tests/SMS senders). */
     fun known(sourcePackage: String): String? = KNOWN[sourcePackage.trim()]

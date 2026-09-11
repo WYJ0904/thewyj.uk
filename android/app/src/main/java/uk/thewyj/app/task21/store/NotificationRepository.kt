@@ -19,6 +19,7 @@ class NotificationRepository(
 ) {
     private val database get() = NotificationDatabase.get(context)
     private val store get() = RoomNotificationStore(database)
+    private val media by lazy { NotificationMediaStore(context.applicationContext) }
 
     data class AppEntry(
         val packageName: String,
@@ -62,7 +63,15 @@ class NotificationRepository(
      * same conversation.
      */
     suspend fun deleteSnapshots(revisionIds: List<String>): Int = withContext(Dispatchers.IO) {
-        store.deleteRevisions(accountId, revisionIds)
+        val mediaPaths = store.mediaPathsOfRevisions(accountId, revisionIds)
+        val removed = store.deleteRevisions(accountId, revisionIds)
+        if (mediaPaths.isNotEmpty()) media.deleteAll(mediaPaths)
+        removed
+    }
+
+    /** Local picture file for a stored snapshot, or null when none/unreadable. */
+    suspend fun mediaFile(relativePath: String): java.io.File? = withContext(Dispatchers.IO) {
+        media.file(relativePath)
     }
 
     suspend fun clear(): Int = withContext(Dispatchers.IO) { store.clearAccount(accountId) }
@@ -128,7 +137,9 @@ class NotificationRepository(
     suspend fun applyRetention(days: Int): Int = withContext(Dispatchers.IO) {
         val normalized = normalizeRetention(days)
         if (normalized == PERMANENT_RETENTION_DAYS) return@withContext 0
-        store.purgeExpired(accountId, cutoffFor(normalized))
+        val result = store.purgeExpiredDetailed(accountId, cutoffFor(normalized))
+        if (result.mediaPaths.isNotEmpty()) media.deleteAll(result.mediaPaths)
+        result.removed
     }
 
     /**
@@ -142,10 +153,10 @@ class NotificationRepository(
     }
 
     suspend fun appLabel(packageName: String): String = withContext(Dispatchers.IO) {
-        runCatching {
-            val manager = context.packageManager
-            manager.getApplicationLabel(manager.getApplicationInfo(packageName, 0)).toString()
-        }.getOrDefault(packageName)
+        // One resolver for every surface (list, detail, pending): the Android
+        // application label first, the curated table second, package name only as
+        // a last-resort technical fallback (Task 24.1 P1-1).
+        uk.thewyj.app.task21.payment.PaymentAppLabels.resolve(context.applicationContext, packageName)
     }
 
     private fun cutoffFor(days: Int): Long =

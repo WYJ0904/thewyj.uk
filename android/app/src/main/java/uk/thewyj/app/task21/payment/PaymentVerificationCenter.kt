@@ -34,6 +34,7 @@ class PaymentVerificationCenter(context: Context) {
         RoomPaymentRecognitionStore(NotificationDatabase.get(app))
     private val hook = AndroidPaymentRecognitionHook.get(app)
     private val tickets = PaymentTicketEngine()
+    private val hintSync = PaymentHintSync(app)
 
     data class Item(
         val recognitionId: String,
@@ -89,6 +90,9 @@ class PaymentVerificationCenter(context: Context) {
 
     /** Items that still need the user, newest first. */
     fun items(accountId: String): List<Item> {
+        // P0-2/P0-3: refresh from the shared pending source first, so a hint the
+        // user completed on Web /finance is already reflected here.
+        runCatching { hintSync.sync() }
         val recognitions = store.recognitionsByState(accountId, ATTENTION_STATES, 60)
         val queued = pipeline.queuedRequests()
         val queue = queued.map { it.operationId }.toSet()

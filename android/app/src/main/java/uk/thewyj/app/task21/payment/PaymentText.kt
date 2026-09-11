@@ -152,6 +152,55 @@ internal object PaymentText {
         return bareAmountMinor(normalized)
     }
 
+    /**
+     * Every distinct amount on the page, in reading order. Used to detect
+     * ambiguous pages (order total + fee + balance) that must stay manual.
+     */
+    fun amountsMinor(normalized: String): List<Long> {
+        val found = mutableListOf<Long>()
+        for (pattern in amountPatterns) {
+            for (match in pattern.findAll(normalized)) {
+                val raw = match.groupValues.getOrNull(1).orEmpty().replace(",", "")
+                val value = raw.toDoubleOrNull() ?: continue
+                if (value <= 0.0 || value > 10_000_000.0) continue
+                found.add(Math.round(value * 100.0))
+            }
+        }
+        bareAmountMinor(normalized)?.let { found.add(it) }
+        return found.distinct()
+    }
+
+    /**
+     * Labels that make one amount authoritative even when the page shows more
+     * than one (实付 / 订单金额 / 付款金额).
+     */
+    fun hasDecisiveAmountLabel(normalized: String): Boolean =
+        decisiveAmountLabels.any { normalized.contains(it) }
+
+    /**
+     * The amount that follows a decisive label (实付 / 订单金额 / 付款金额 …). On a
+     * page with several numbers this is the only one that may be booked.
+     */
+    fun decisiveAmountMinor(normalized: String): Long? {
+        for (label in decisiveAmountLabels) {
+            val index = normalized.indexOf(label)
+            if (index < 0) continue
+            val window = normalized.substring(index, minOf(normalized.length, index + label.length + 20))
+            for (pattern in amountPatterns) {
+                val match = pattern.find(window) ?: continue
+                val raw = match.groupValues.getOrNull(1).orEmpty().replace(",", "")
+                val value = raw.toDoubleOrNull() ?: continue
+                if (value <= 0.0 || value > 10_000_000.0) continue
+                return Math.round(value * 100.0)
+            }
+        }
+        return null
+    }
+
+    private val decisiveAmountLabels = listOf(
+        "实付", "实付款", "付款金额", "订单金额", "支付金额", "交易金额", "扣款金额", "转账金额", "收款金额",
+    )
+
     /** Amount that is only implied by "payment verb + plain number". */
     fun bareAmountMinor(normalized: String): Long? {
         for (match in bareAmountPatterns.flatMap { pattern -> pattern.findAll(normalized).map { pattern to it } }

@@ -29,7 +29,14 @@ object PaymentPageSemantics {
             // A password / OTP page is never enrichment material.
             return null
         }
-        val amount = PaymentText.amountMinor(joined) ?: return null
+        // OCR / real pages can show several amounts (order total, fee, balance).
+        // Without a decisive label the page is ambiguous and must go to manual
+        // confirmation instead of guessing one number.
+        val amounts = PaymentText.amountsMinor(joined)
+        if (amounts.size > 1 && !PaymentText.hasDecisiveAmountLabel(joined)) return null
+        // With a decisive label the labelled amount wins over the first number on
+        // the page (商品 ¥100 运费 ¥12 实付 ¥112 must book 112).
+        val amount = PaymentText.decisiveAmountMinor(joined) ?: amounts.firstOrNull() ?: return null
         val direction = PaymentText.direction(joined) ?: FinanceDirection.EXPENSE.takeIf {
             PaymentText.hasCompletion(joined)
         }

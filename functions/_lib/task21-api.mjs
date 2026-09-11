@@ -23,6 +23,12 @@ import {
   requireNotificationAccess,
   requireFinanceRecognitionAccess,
 } from "./task21-service.mjs";
+import {
+  confirmNotificationHint,
+  ignoreNotificationHint,
+  listNotificationHints,
+  upsertNotificationHints,
+} from "./task21-hints.mjs";
 
 const ROUTES = new Map([
   ["POST /api/notification/ingest", { mode: "write", body: 256 * 1024, limit: 60, window: 60 }],
@@ -31,6 +37,10 @@ const ROUTES = new Map([
   ["POST /api/notification/candidates/confirm", { mode: "write", body: 16 * 1024, limit: 30, window: 60 }],
   ["POST /api/notification/candidates/reject", { mode: "write", body: 16 * 1024, limit: 30, window: 60 }],
   ["POST /api/notification/events/delete", { mode: "write", body: 16 * 1024, limit: 60, window: 60 }],
+  ["POST /api/notification/hints", { mode: "write", body: 64 * 1024, limit: 60, window: 60 }],
+  ["GET /api/notification/hints", { mode: "read", body: 0, limit: 120, window: 60 }],
+  ["POST /api/notification/hints/confirm", { mode: "write", body: 16 * 1024, limit: 30, window: 60 }],
+  ["POST /api/notification/hints/ignore", { mode: "write", body: 16 * 1024, limit: 30, window: 60 }],
 ]);
 
 const METHODS_BY_PATH = new Map();
@@ -39,6 +49,9 @@ const FINANCE_RECOGNITION_PATHS = new Set([
   "/api/notification/candidates",
   "/api/notification/candidates/confirm",
   "/api/notification/candidates/reject",
+  "/api/notification/hints",
+  "/api/notification/hints/confirm",
+  "/api/notification/hints/ignore",
 ]);
 for (const key of ROUTES.keys()) {
   const splitAt = key.indexOf(" ");
@@ -110,6 +123,17 @@ async function execute(context, path, account) {
         build: TASK21_BUILD,
       }, 200, context);
     }
+    if (path === "/api/notification/hints") {
+      // Same pending source of truth for Android and Web /finance.
+      return response({
+        ok: true,
+        ...await listNotificationHints(db, account, {
+          state: url.searchParams.get("state") || "pending",
+          limit: url.searchParams.get("limit") || "",
+        }),
+        build: TASK21_BUILD,
+      }, 200, context);
+    }
   }
 
   const payload = await readJson(context.request, ROUTES.get(`${context.request.method.toUpperCase()} ${path}`).body);
@@ -129,6 +153,15 @@ async function execute(context, path, account) {
       ...await rejectNotificationCandidate(db, account, payload),
       build: TASK21_BUILD,
     }, 200, context);
+  }
+  if (path === "/api/notification/hints") {
+    return response({ ok: true, ...await upsertNotificationHints(db, account, payload), build: TASK21_BUILD }, 200, context);
+  }
+  if (path === "/api/notification/hints/confirm") {
+    return response({ ok: true, ...await confirmNotificationHint(db, account, payload), build: TASK21_BUILD }, 200, context);
+  }
+  if (path === "/api/notification/hints/ignore") {
+    return response({ ok: true, ...await ignoreNotificationHint(db, account, payload), build: TASK21_BUILD }, 200, context);
   }
   if (path === "/api/notification/events/delete") {
     return response({

@@ -50,6 +50,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_1_2,
                 NotificationDatabase.MIGRATION_2_3,
                 NotificationDatabase.MIGRATION_3_4,
+                NotificationDatabase.MIGRATION_4_5,
             )
             .allowMainThreadQueries()
             .build()
@@ -113,6 +114,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_1_2,
                 NotificationDatabase.MIGRATION_2_3,
                 NotificationDatabase.MIGRATION_3_4,
+                NotificationDatabase.MIGRATION_4_5,
             )
             .allowMainThreadQueries()
             .build()
@@ -146,6 +148,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_1_2,
                 NotificationDatabase.MIGRATION_2_3,
                 NotificationDatabase.MIGRATION_3_4,
+                NotificationDatabase.MIGRATION_4_5,
             )
             .allowMainThreadQueries()
             .build()

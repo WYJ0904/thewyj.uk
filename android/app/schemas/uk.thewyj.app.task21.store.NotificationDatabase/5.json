@@ -1,0 +1,1024 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 5,
+    "identityHash": "3a6012bf0835f5f30013cb7e0e899308",
+    "entities": [
+      {
+        "tableName": "notification_instances",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`instanceId` TEXT NOT NULL, `accountId` TEXT NOT NULL, `identityKey` TEXT NOT NULL, `sourcePackage` TEXT NOT NULL, `sourceType` TEXT NOT NULL, `notificationKey` TEXT NOT NULL, `notificationId` INTEGER NOT NULL, `tag` TEXT NOT NULL, `groupKey` TEXT NOT NULL, `channelId` TEXT NOT NULL, `postTime` INTEGER NOT NULL, `firstSeenAt` INTEGER NOT NULL, `lastSeenAt` INTEGER NOT NULL, `removedAt` INTEGER NOT NULL, `status` TEXT NOT NULL, `revisionCount` INTEGER NOT NULL, `latestRevisionId` TEXT NOT NULL, `isGroup` INTEGER NOT NULL, `isGroupSummary` INTEGER NOT NULL, `financeLinked` INTEGER NOT NULL, `pinned` INTEGER NOT NULL, `pinnedAt` INTEGER NOT NULL, PRIMARY KEY(`instanceId`))",
+        "fields": [
+          {
+            "fieldPath": "instanceId",
+            "columnName": "instanceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountId",
+            "columnName": "accountId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "identityKey",
+            "columnName": "identityKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourcePackage",
+            "columnName": "sourcePackage",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceType",
+            "columnName": "sourceType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notificationKey",
+            "columnName": "notificationKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notificationId",
+            "columnName": "notificationId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tag",
+            "columnName": "tag",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "groupKey",
+            "columnName": "groupKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "channelId",
+            "columnName": "channelId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "postTime",
+            "columnName": "postTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstSeenAt",
+            "columnName": "firstSeenAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSeenAt",
+            "columnName": "lastSeenAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "removedAt",
+            "columnName": "removedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revisionCount",
+            "columnName": "revisionCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latestRevisionId",
+            "columnName": "latestRevisionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isGroup",
+            "columnName": "isGroup",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isGroupSummary",
+            "columnName": "isGroupSummary",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "financeLinked",
+            "columnName": "financeLinked",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pinned",
+            "columnName": "pinned",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pinnedAt",
+            "columnName": "pinnedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "instanceId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_notification_instances_accountId_postTime",
+            "unique": false,
+            "columnNames": [
+              "accountId",
+              "postTime"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notification_instances_accountId_postTime` ON `${TABLE_NAME}` (`accountId`, `postTime`)"
+          },
+          {
+            "name": "index_notification_instances_accountId_sourcePackage_postTime",
+            "unique": false,
+            "columnNames": [
+              "accountId",
+              "sourcePackage",
+              "postTime"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notification_instances_accountId_sourcePackage_postTime` ON `${TABLE_NAME}` (`accountId`, `sourcePackage`, `postTime`)"
+          },
+          {
+            "name": "index_notification_instances_accountId_status_postTime",
+            "unique": false,
+            "columnNames": [
+              "accountId",
+              "status",
+              "postTime"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notification_instances_accountId_status_postTime` ON `${TABLE_NAME}` (`accountId`, `status`, `postTime`)"
+          },
+          {
+            "name": "index_notification_instances_accountId_identityKey_status",
+            "unique": false,
+            "columnNames": [
+              "accountId",
+              "identityKey",
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notification_instances_accountId_identityKey_status` ON `${TABLE_NAME}` (`accountId`, `identityKey`, `status`)"
+          },
+          {
+            "name": "index_notification_instances_accountId_notificationKey_status",
+            "unique": false,
+            "columnNames": [
+              "accountId",
+              "notificationKey",
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notification_instances_accountId_notificationKey_status` ON `${TABLE_NAME}` (`accountId`, `notificationKey`, `status`)"
+          }
+        ]
+      },
+      {
+        "tableName": "notification_revisions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`revisionId` TEXT NOT NULL, `instanceId` TEXT NOT NULL, `accountId` TEXT NOT NULL, `title` TEXT NOT NULL, `text` TEXT NOT NULL, `bigText` TEXT NOT NULL, `subText` TEXT NOT NULL, `infoText` TEXT NOT NULL, `summaryText` TEXT NOT NULL, `textLines` TEXT NOT NULL, `contentHash` TEXT NOT NULL, `capturedAt` INTEGER NOT NULL, `parseStatus` TEXT NOT NULL, `direction` TEXT NOT NULL, `amountMinor` INTEGER NOT NULL, `currency` TEXT NOT NULL, `merchant` TEXT NOT NULL, `confidence` INTEGER NOT NULL, `mediaPath` TEXT NOT NULL, `mediaMime` TEXT NOT NULL, `mediaState` TEXT NOT NULL, PRIMARY KEY(`revisionId`), FOREIGN KEY(`instanceId`) REFERENCES `notification_instances`(`instanceId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "revisionId",
+            "columnName": "revisionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "instanceId",
+            "columnName": "instanceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountId",
+            "columnName": "accountId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bigText",
+            "columnName": "bigText",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "subText",
+            "columnName": "subText",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "infoText",
+            "columnName": "infoText",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "summaryText",
+            "columnName": "summaryText",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "textLines",
+            "columnName": "textLines",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contentHash",
+            "columnName": "contentHash",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capturedAt",
+            "columnName": "capturedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parseStatus",
+            "columnName": "parseStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "direction",
+            "columnName": "direction",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amountMinor",
+            "columnName": "amountMinor",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currency",
+            "columnName": "currency",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "merchant",
+            "columnName": "merchant",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mediaPath",
+            "columnName": "mediaPath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mediaMime",
+            "columnName": "mediaMime",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mediaState",
+            "columnName": "mediaState",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "revisionId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_notification_revisions_instanceId_capturedAt",
+            "unique": false,
+            "columnNames": [
+              "instanceId",
+              "capturedAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notification_revisions_instanceId_capturedAt` ON `${TABLE_NAME}` (`instanceId`, `capturedAt`)"
+          },
+          {
+            "name": "index_notification_revisions_accountId_capturedAt",
+            "unique": false,
+            "columnNames": [
+              "accountId",
+              "capturedAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notification_revisions_accountId_capturedAt` ON `${TABLE_NAME}` (`accountId`, `capturedAt`)"
+          },
+          {
+            "name": "index_notification_revisions_contentHash",
+            "unique": false,
+            "columnNames": [
+              "contentHash"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notification_revisions_contentHash` ON `${TABLE_NAME}` (`contentHash`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "notification_instances",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "instanceId"
+            ],
+            "referencedColumns": [
+              "instanceId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "notification_app_policies",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`accountId` TEXT NOT NULL, `sourcePackage` TEXT NOT NULL, `enabled` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `sourcePackage`))",
+        "fields": [
+          {
+            "fieldPath": "accountId",
+            "columnName": "accountId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourcePackage",
+            "columnName": "sourcePackage",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enabled",
+            "columnName": "enabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "accountId",
+            "sourcePackage"
+          ]
+        }
+      },
+      {
+        "tableName": "notification_rules",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`ruleId` TEXT NOT NULL, `accountId` TEXT NOT NULL, `name` TEXT NOT NULL, `enabled` INTEGER NOT NULL, `appScope` TEXT NOT NULL, `includeKeywords` TEXT NOT NULL, `excludeKeywords` TEXT NOT NULL, `matchAll` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`ruleId`))",
+        "fields": [
+          {
+            "fieldPath": "ruleId",
+            "columnName": "ruleId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountId",
+            "columnName": "accountId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enabled",
+            "columnName": "enabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "appScope",
+            "columnName": "appScope",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "includeKeywords",
+            "columnName": "includeKeywords",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "excludeKeywords",
+            "columnName": "excludeKeywords",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "matchAll",
+            "columnName": "matchAll",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "ruleId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_notification_rules_accountId_enabled",
+            "unique": false,
+            "columnNames": [
+              "accountId",
+              "enabled"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notification_rules_accountId_enabled` ON `${TABLE_NAME}` (`accountId`, `enabled`)"
+          }
+        ]
+      },
+      {
+        "tableName": "notification_settings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`accountId` TEXT NOT NULL, `retentionDays` INTEGER NOT NULL, `legacyMigrationState` TEXT NOT NULL, `legacyImportedCount` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`accountId`))",
+        "fields": [
+          {
+            "fieldPath": "accountId",
+            "columnName": "accountId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "retentionDays",
+            "columnName": "retentionDays",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyMigrationState",
+            "columnName": "legacyMigrationState",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyImportedCount",
+            "columnName": "legacyImportedCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "accountId"
+          ]
+        }
+      },
+      {
+        "tableName": "payment_recognitions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`recognitionId` TEXT NOT NULL, `accountId` TEXT NOT NULL, `state` TEXT NOT NULL, `notificationId` INTEGER NOT NULL, `sourcePackage` TEXT NOT NULL, `sourceType` TEXT NOT NULL, `sourceEventId` TEXT NOT NULL, `uploadEventId` TEXT NOT NULL, `paymentChannel` TEXT NOT NULL, `amountMinor` INTEGER NOT NULL, `hasAmount` INTEGER NOT NULL, `currency` TEXT NOT NULL, `direction` TEXT NOT NULL, `merchant` TEXT NOT NULL, `providerReference` TEXT NOT NULL, `createdAtMs` INTEGER NOT NULL, `updatedAtMs` INTEGER NOT NULL, PRIMARY KEY(`recognitionId`))",
+        "fields": [
+          {
+            "fieldPath": "recognitionId",
+            "columnName": "recognitionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountId",
+            "columnName": "accountId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notificationId",
+            "columnName": "notificationId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourcePackage",
+            "columnName": "sourcePackage",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceType",
+            "columnName": "sourceType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceEventId",
+            "columnName": "sourceEventId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uploadEventId",
+            "columnName": "uploadEventId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "paymentChannel",
+            "columnName": "paymentChannel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amountMinor",
+            "columnName": "amountMinor",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasAmount",
+            "columnName": "hasAmount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currency",
+            "columnName": "currency",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "direction",
+            "columnName": "direction",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "merchant",
+            "columnName": "merchant",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "providerReference",
+            "columnName": "providerReference",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtMs",
+            "columnName": "createdAtMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMs",
+            "columnName": "updatedAtMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "recognitionId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_payment_recognitions_accountId_updatedAtMs",
+            "unique": false,
+            "columnNames": [
+              "accountId",
+              "updatedAtMs"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_payment_recognitions_accountId_updatedAtMs` ON `${TABLE_NAME}` (`accountId`, `updatedAtMs`)"
+          },
+          {
+            "name": "index_payment_recognitions_accountId_sourceEventId",
+            "unique": false,
+            "columnNames": [
+              "accountId",
+              "sourceEventId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_payment_recognitions_accountId_sourceEventId` ON `${TABLE_NAME}` (`accountId`, `sourceEventId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "payment_tickets",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`ticketId` TEXT NOT NULL, `accountId` TEXT NOT NULL, `recognitionId` TEXT NOT NULL, `sourcePackage` TEXT NOT NULL, `sourceEventId` TEXT NOT NULL, `paymentChannel` TEXT NOT NULL, `amountHintMinor` INTEGER NOT NULL, `hasAmountHint` INTEGER NOT NULL, `missingFields` TEXT NOT NULL, `state` TEXT NOT NULL, `attempts` INTEGER NOT NULL, `createdAtMs` INTEGER NOT NULL, `expiresAtMs` INTEGER NOT NULL, `enrichedAmountMinor` INTEGER NOT NULL, `hasEnrichedAmount` INTEGER NOT NULL, `enrichedDirection` TEXT NOT NULL, `enrichedMerchant` TEXT NOT NULL, `enrichedProviderReference` TEXT NOT NULL, `enrichedAtMs` INTEGER NOT NULL, PRIMARY KEY(`ticketId`))",
+        "fields": [
+          {
+            "fieldPath": "ticketId",
+            "columnName": "ticketId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountId",
+            "columnName": "accountId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recognitionId",
+            "columnName": "recognitionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourcePackage",
+            "columnName": "sourcePackage",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceEventId",
+            "columnName": "sourceEventId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "paymentChannel",
+            "columnName": "paymentChannel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amountHintMinor",
+            "columnName": "amountHintMinor",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasAmountHint",
+            "columnName": "hasAmountHint",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "missingFields",
+            "columnName": "missingFields",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attempts",
+            "columnName": "attempts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtMs",
+            "columnName": "createdAtMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "expiresAtMs",
+            "columnName": "expiresAtMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enrichedAmountMinor",
+            "columnName": "enrichedAmountMinor",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasEnrichedAmount",
+            "columnName": "hasEnrichedAmount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enrichedDirection",
+            "columnName": "enrichedDirection",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enrichedMerchant",
+            "columnName": "enrichedMerchant",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enrichedProviderReference",
+            "columnName": "enrichedProviderReference",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enrichedAtMs",
+            "columnName": "enrichedAtMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "ticketId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_payment_tickets_accountId_state",
+            "unique": false,
+            "columnNames": [
+              "accountId",
+              "state"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_payment_tickets_accountId_state` ON `${TABLE_NAME}` (`accountId`, `state`)"
+          },
+          {
+            "name": "index_payment_tickets_recognitionId",
+            "unique": false,
+            "columnNames": [
+              "recognitionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_payment_tickets_recognitionId` ON `${TABLE_NAME}` (`recognitionId`)"
+          },
+          {
+            "name": "index_payment_tickets_accountId_sourcePackage_state",
+            "unique": false,
+            "columnNames": [
+              "accountId",
+              "sourcePackage",
+              "state"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_payment_tickets_accountId_sourcePackage_state` ON `${TABLE_NAME}` (`accountId`, `sourcePackage`, `state`)"
+          }
+        ]
+      },
+      {
+        "tableName": "payment_candidates",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`candidateId` TEXT NOT NULL, `accountId` TEXT NOT NULL, `recognitionId` TEXT NOT NULL, `status` TEXT NOT NULL, `amountMinor` INTEGER NOT NULL, `hasAmount` INTEGER NOT NULL, `direction` TEXT NOT NULL, `category` TEXT NOT NULL, `merchant` TEXT NOT NULL, `occurredAtMs` INTEGER NOT NULL, `channel` TEXT NOT NULL, `confidence` INTEGER NOT NULL, `reason` TEXT NOT NULL, `editedAmountMinor` INTEGER NOT NULL, `hasEditedAmount` INTEGER NOT NULL, `editedDirection` TEXT NOT NULL, `editedCategory` TEXT NOT NULL, `editedMerchant` TEXT NOT NULL, `editedOccurredAtMs` INTEGER NOT NULL, `hasEditedOccurredAt` INTEGER NOT NULL, `editedNote` TEXT NOT NULL, `financeTransactionId` TEXT NOT NULL, `createdAtMs` INTEGER NOT NULL, `updatedAtMs` INTEGER NOT NULL, PRIMARY KEY(`candidateId`))",
+        "fields": [
+          {
+            "fieldPath": "candidateId",
+            "columnName": "candidateId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountId",
+            "columnName": "accountId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recognitionId",
+            "columnName": "recognitionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amountMinor",
+            "columnName": "amountMinor",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasAmount",
+            "columnName": "hasAmount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "direction",
+            "columnName": "direction",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "merchant",
+            "columnName": "merchant",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "occurredAtMs",
+            "columnName": "occurredAtMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "channel",
+            "columnName": "channel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reason",
+            "columnName": "reason",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "editedAmountMinor",
+            "columnName": "editedAmountMinor",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasEditedAmount",
+            "columnName": "hasEditedAmount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "editedDirection",
+            "columnName": "editedDirection",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "editedCategory",
+            "columnName": "editedCategory",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "editedMerchant",
+            "columnName": "editedMerchant",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "editedOccurredAtMs",
+            "columnName": "editedOccurredAtMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasEditedOccurredAt",
+            "columnName": "hasEditedOccurredAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "editedNote",
+            "columnName": "editedNote",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "financeTransactionId",
+            "columnName": "financeTransactionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtMs",
+            "columnName": "createdAtMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMs",
+            "columnName": "updatedAtMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "candidateId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_payment_candidates_accountId_status_createdAtMs",
+            "unique": false,
+            "columnNames": [
+              "accountId",
+              "status",
+              "createdAtMs"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_payment_candidates_accountId_status_createdAtMs` ON `${TABLE_NAME}` (`accountId`, `status`, `createdAtMs`)"
+          },
+          {
+            "name": "index_payment_candidates_recognitionId",
+            "unique": false,
+            "columnNames": [
+              "recognitionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_payment_candidates_recognitionId` ON `${TABLE_NAME}` (`recognitionId`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3a6012bf0835f5f30013cb7e0e899308')"
+    ]
+  }
+}

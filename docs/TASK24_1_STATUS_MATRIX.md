@@ -24,6 +24,15 @@
 
 ### Round 1 条目（保留，状态按第二轮结论修正）
 
+### Round 3（1.2.8 候选）条目
+
+| ID | Severity | 用户现象 | Reproduction | Root cause | Fix | Regression test | CI | Preview | Production | Physical device | Final status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| T24.1-25 | P0 | 截图/图片通知整条丢失 | 真机截图后查看通知历史 | 分类层 channel 关键词过宽（`status`/`media`/`sync` 等）命中 Samsung 截图类 channel → 判定 LIVE → **不写库**；且没有媒体模型 | channel 关键词收窄为 `progress/speed/traffic/vpn/proxy`；**带图片的通知永不按 LIVE 过滤**；新增媒体模型（Room v5 `mediaPath/mediaMime/mediaState`）+ 本地文件保存/清理 | `NotificationMediaHistoryTest`（空正文+图片仍入库、status channel 不再丢、媒体文件读写与删除、路径穿越拒绝）、`NotificationClassificationTest`（Clash/VPN 仍过滤） | 待 CI | 待 1.2.8 | 待 1.2.8 | FAIL(1.2.7) → 待 1.2.8 复验 | FIXED / NOT PHYSICALLY VERIFIED |
+| T24.1-26 | P0 | 已入账仍显示待确认（自动入账） | 支付通知自动记账后查看通知页 | flush 成功拿到 `transaction_id` 时只写日志，未回写本地 recognition/candidate → 本地一直 pending | flush 成功后调用 `PaymentRecognitionHook.onFinanceOutcome` → 通过 `uploadEventId` 定位识别并 `markFinanceRecorded` | `PaymentRecognitionCoordinatorTest`（upload 身份）+ 待补 flush 回路单测 | 待 CI | 待 1.2.8 | 待 1.2.8 | 待复验 | FIXED / NOT PHYSICALLY VERIFIED |
+| T24.1-27 | P0 | Finance「通知待确认」为空、通知页却有 pending | 有金额未知/方向未知的待确认项 | 这类 hint 设计上只存本机（服务端 candidate 表有 `amount_minor > 0` CHECK），Web 端看不到 | **未修复**：需要真正的 pending-hint 模型（新表或放宽 CHECK + confirm 仍要求金额/方向）。本轮已尝试放宽解析约束，因与 D1 CHECK 冲突且破坏既有隐私边界而回滚 | — | — | — | — | FAIL | OPEN（设计已明确，待实现） |
+| T24.1-28 | P1 | 通知历史主标题显示 `com.tencent.mm` | 查看通知列表/详情 | 详情弹层直接用 `sourcePackage`；列表回退到包名 | `PaymentAppLabels` 升级为统一 resolver（系统 label → 支付类回退表 → 包名兜底），列表/详情/待确认页共用 | `NotificationMediaHistoryTest.appLabelsResolveToUserFacingNames`、`repositoryAppLabelNeverPrefersThePackageName` | 待 CI | 待 1.2.8 | 待 1.2.8 | 待复验 | FIXED / NOT PHYSICALLY VERIFIED |
+
 状态取值：`OPEN` / `INVESTIGATING` / `FIXED` / `PASS` / `BLOCKED`。
 真机一列只有实际在 SM-S9360 上验证过的才写 PASS，其余写 `PENDING USER PHYSICAL ACCEPTANCE`。
 

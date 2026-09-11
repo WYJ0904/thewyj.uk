@@ -64,6 +64,52 @@ internal object StructuredEventJson {
     fun ingestPayload(schemaVersion: String, deviceId: String, operationId: String, event: StructuredNotificationEvent): String {
         return """{"schema_version":"$schemaVersion","device_id":"${escape(deviceId)}","operations":[{"operation_id":"${escape(operationId)}","type":"event.ingest","payload":${eventJson(event)}}]}"""
     }
+
+    /**
+     * Task 24.1 P0-3: a pending hint for a payment the device recognised but
+     * cannot complete. Identity is the structured-event id, so replaying the
+     * same capture can never create a second hint server-side.
+     */
+    fun hintPayload(
+        deviceId: String,
+        sourceEventId: String,
+        sourceType: String,
+        sourcePackage: String,
+        appLabel: String,
+        amountMinor: Long?,
+        direction: String,
+        merchant: String,
+        currency: String,
+        confidence: Int,
+        recognitionStatus: String,
+        reasons: List<String>,
+        parserVersion: String,
+    ): String {
+        val directionValue = if (direction.isBlank() || direction == "UNKNOWN") "" else direction.lowercase()
+        val evidence = buildString {
+            append("{\"source_type\":\"${escape(sourceType)}\",")
+            append("\"confidence\":$confidence,")
+            append("\"reasons\":[")
+            append(reasons.joinToString(",") { "\"${escape(it)}\"" })
+            append("],")
+            append("\"parser_version\":\"${escape(parserVersion)}\"}")
+        }
+        return buildString {
+            append("{\"device_id\":\"${escape(deviceId)}\",\"hints\":[{")
+            append("\"source_event_id\":\"${escape(sourceEventId)}\",")
+            append("\"source_type\":\"${escape(sourceType)}\",")
+            append("\"source_package\":\"${escape(sourcePackage)}\",")
+            append("\"app_label\":\"${escape(appLabel)}\",")
+            append("\"amount_minor\":${amountMinor ?: "null"},")
+            append("\"direction\":${if (directionValue.isBlank()) "null" else "\"$directionValue\""},")
+            append("\"merchant\":\"${escape(merchant)}\",")
+            append("\"currency\":\"${escape(currency)}\",")
+            append("\"confidence\":$confidence,")
+            append("\"recognition_status\":\"${escape(recognitionStatus)}\",")
+            append("\"evidence\":$evidence")
+            append("}]}")
+        }
+    }
 }
 
 class HttpNotificationIngestTransport(
@@ -113,6 +159,11 @@ class OfflineNotificationQueue(private val file: File) {
 
     fun enqueue(operationId: String, payload: String) {
         enqueueRequest(operationId, INGEST_PATH, payload)
+    }
+
+    /** Queues one pending-hint upload (idempotent by operation id). */
+    fun enqueueHint(operationId: String, payload: String) {
+        enqueueRequest(operationId, HINTS_PATH, payload)
     }
 
     fun enqueueRequest(operationId: String, path: String, payload: String) {
@@ -230,7 +281,9 @@ class OfflineNotificationQueue(private val file: File) {
         const val MAX_UPLOAD_ATTEMPTS = 5
         const val INGEST_PATH = "/api/notification/ingest"
         const val DELETE_PATH = "/api/notification/events/delete"
-        val ALLOWED_PATHS = setOf(INGEST_PATH, DELETE_PATH)
+        /** Unified pending-hint endpoint (Task 24.1 P0-3). */
+        const val HINTS_PATH = "/api/notification/hints"
+        val ALLOWED_PATHS = setOf(INGEST_PATH, DELETE_PATH, HINTS_PATH)
     }
 }
 

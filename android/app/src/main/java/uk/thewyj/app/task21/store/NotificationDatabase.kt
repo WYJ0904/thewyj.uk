@@ -31,7 +31,7 @@ abstract class NotificationDatabase : RoomDatabase() {
     abstract fun paymentDao(): PaymentDao
 
     companion object {
-        const val SCHEMA_VERSION = 4
+        const val SCHEMA_VERSION = 5
         const val DATABASE_NAME = "wyj-notifications.db"
 
         @Volatile
@@ -45,7 +45,7 @@ abstract class NotificationDatabase : RoomDatabase() {
                     DATABASE_NAME,
                 )
                     // The local archive is user data: never drop it on upgrade.
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .fallbackToDestructiveMigrationOnDowngrade(false)
                     .build()
                     .also { instance = it }
@@ -83,6 +83,20 @@ abstract class NotificationDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `notification_instances` ADD COLUMN `pinned` INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE `notification_instances` ADD COLUMN `pinnedAt` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /**
+         * v4 -> v5 stores the picture Android already exposed on a notification
+         * (screenshot thumbnail / BigPictureStyle / large icon) as a local file
+         * reference. Existing history is untouched; mediaState records
+         * "unavailable" when an image notification could not be read.
+         */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `notification_revisions` ADD COLUMN `mediaPath` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `notification_revisions` ADD COLUMN `mediaMime` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `notification_revisions` ADD COLUMN `mediaState` TEXT NOT NULL DEFAULT 'none'")
             }
         }
 

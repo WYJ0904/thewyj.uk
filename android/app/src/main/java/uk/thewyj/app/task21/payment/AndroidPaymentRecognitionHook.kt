@@ -108,6 +108,24 @@ class AndroidPaymentRecognitionHook private constructor(private val appContext: 
     fun onAccessibilityMiss(accountId: String, sourcePackage: String): Boolean =
         coordinator.onAccessibilityMiss(accountId, sourcePackage)
 
+    /**
+     * P0-2: the backend created the transaction for an uploaded event. The local
+     * recognition/candidate must move to "recorded" immediately, otherwise the
+     * notification page keeps showing 「等待确认记账」 for a booked payment.
+     */
+    override fun onFinanceOutcome(accountId: String, eventId: String, transactionId: String) {
+        if (accountId.isBlank() || eventId.isBlank() || transactionId.isBlank()) return
+        val store = RoomPaymentRecognitionStore(NotificationDatabase.get(appContext))
+        val recognition = runCatching { store.recognitionByUploadEvent(accountId, eventId) }.getOrNull() ?: return
+        val candidate = runCatching {
+            store.candidateForRecognition(accountId, recognition.recognitionId)
+        }.getOrNull() ?: return
+        runCatching { coordinator.markFinanceRecorded(accountId, candidate.candidateId, transactionId) }
+    }
+
+    override fun appLabelFor(input: NotificationCaptureInput): String =
+        PaymentAppLabels.resolve(appContext, input.sourcePackage)
+
     fun coordinator(): PaymentRecognitionCoordinator = coordinator
 
     companion object {

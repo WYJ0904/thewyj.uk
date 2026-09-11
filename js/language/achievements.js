@@ -1,4 +1,4 @@
-import { calculateLongestStudyStreak, localDayKey } from "./history.js?v=20260911-task24-1-closure-r2";
+import { calculateLongestStudyStreak, localDayKey } from "./history.js?v=20260911-task24-1-closure-r3";
 
 export const ACHIEVEMENT_TIERS = Object.freeze({
   bronze: { label: "初阶", points: 10 },

@@ -148,6 +148,11 @@ export function normalizeNotificationEvent(value = {}) {
   // Parsed and candidate events must carry the money fields. An amount-unknown
   // hint ("向张三转账" without a number) stays local on the device through the
   // enrichment ticket flow instead of inventing an amount here.
+  // Parsed and candidate events must carry the money fields. The candidate table
+  // has a `amount_minor > 0` CHECK, and an amount-unknown hint deliberately stays
+  // on the device through the 90 second enrichment ticket flow instead of
+  // inventing an amount here. (Showing those hints on the web Finance page needs
+  // a real pending-hint model, not a relaxed constraint.)
   if ((parseStatus === "parsed" || parseStatus === "candidate") && (!direction || amountMinor <= 0)) {
     throw new Task21Error("已解析事件缺少金额或收支方向", 400, "structured_fields_required");
   }
