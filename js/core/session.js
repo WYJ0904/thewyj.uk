@@ -1,4 +1,4 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260911-task24-crash-finance-r1";
+import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260911-task24-final-closure-r1";
 
 export const ACCOUNT_SESSION_KEY = "wyjAccountSession";
 export const ACCOUNT_CACHE_KEY = "wyjAccountCache";

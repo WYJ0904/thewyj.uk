@@ -40,9 +40,11 @@ object ThewyjColors {
     val Error = Color(0xFFC23333)
     val ErrorSoft = Color(0xFFFFF0F0)
 
-    val DarkCanvas = Color(0xFF161715)
-    val DarkSurface = Color(0xFF1B1E24)
-    val DarkSurfaceSubtle = Color(0xFF22262D)
+    // Aligned with the web design tokens (--ds-workspace-canvas / --ds-surface)
+    // so the native通知/我的 pages no longer look like a second app.
+    val DarkCanvas = Color(0xFF07090D)
+    val DarkSurface = Color(0xFF111318)
+    val DarkSurfaceSubtle = Color(0xFF171B22)
     val DarkText = Color(0xFFF4F6F8)
     val DarkTextSecondary = Color(0xFFCBD2DC)
     val DarkBorder = Color(0xFF363D48)
