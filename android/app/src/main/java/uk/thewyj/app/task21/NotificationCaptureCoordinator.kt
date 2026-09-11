@@ -328,6 +328,16 @@ class NotificationCaptureCoordinator(
                                 candidateId = candidateId,
                             ),
                         )
+                        // P0-2: a booked event closes its local pending state.
+                        if (transactionId.isNotBlank()) {
+                            runCatching {
+                                paymentHook?.onFinanceOutcome(
+                                    accountId = current.accountId,
+                                    eventId = eventId.ifBlank { request.operationId },
+                                    transactionId = transactionId,
+                                )
+                            }
+                        }
                         CaptureTrace.stage(
                             eventId.ifBlank { request.operationId },
                             "finance-api-ok",

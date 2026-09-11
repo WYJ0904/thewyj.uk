@@ -76,7 +76,8 @@ interface NotificationDao {
                r.revisionId AS revisionId, r.title AS title, r.text AS text, r.bigText AS bigText,
                r.subText AS subText, r.summaryText AS summaryText, r.textLines AS textLines,
                r.parseStatus AS parseStatus, r.direction AS direction, r.amountMinor AS amountMinor,
-               r.currency AS currency, r.merchant AS merchant, r.capturedAt AS capturedAt
+               r.currency AS currency, r.merchant AS merchant, r.capturedAt AS capturedAt,
+               r.mediaPath AS mediaPath, r.mediaMime AS mediaMime, r.mediaState AS mediaState
         FROM notification_instances AS i
         JOIN notification_revisions AS r ON r.instanceId = i.instanceId
         WHERE i.accountId = :accountId
@@ -167,6 +168,12 @@ interface NotificationDao {
 
     @Query("SELECT * FROM notification_revisions WHERE accountId = :accountId AND revisionId IN (:revisionIds)")
     fun revisionsByIds(accountId: String, revisionIds: List<String>): List<NotificationRevisionEntity>
+
+    @Query("SELECT mediaPath FROM notification_revisions WHERE accountId = :accountId AND revisionId IN (:revisionIds) AND mediaPath != ''")
+    fun mediaPathsOfRevisions(accountId: String, revisionIds: List<String>): List<String>
+
+    @Query("SELECT mediaPath FROM notification_revisions WHERE accountId = :accountId AND instanceId IN (:instanceIds) AND mediaPath != ''")
+    fun mediaPathsOfInstances(accountId: String, instanceIds: List<String>): List<String>
 
     @Query("DELETE FROM notification_instances WHERE accountId = :accountId AND instanceId = :instanceId AND (SELECT COUNT(*) FROM notification_revisions WHERE instanceId = :instanceId) = 0")
     fun deleteInstanceIfEmpty(accountId: String, instanceId: String): Int
@@ -293,6 +300,9 @@ data class NotificationHistoryRow(
     val currency: String,
     val merchant: String,
     val capturedAt: Long,
+    val mediaPath: String = "",
+    val mediaMime: String = "",
+    val mediaState: String = "none",
 )
 
 data class NotificationPackageCount(

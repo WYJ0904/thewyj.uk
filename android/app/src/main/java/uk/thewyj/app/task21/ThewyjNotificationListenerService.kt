@@ -101,6 +101,18 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
     private fun captureInput(sbn: StatusBarNotification): NotificationCaptureInput {
         val extras = sbn.notification?.extras
         val flags = sbn.notification?.flags ?: 0
+        // Task 24.1 P0-1: screenshots and image notifications must keep their
+        // picture (and must never be dropped just because the body is empty).
+        val picture = runCatching {
+            (extras?.get(Notification.EXTRA_PICTURE) as? android.graphics.Bitmap)
+                ?: (extras?.get(Notification.EXTRA_LARGE_ICON_BIG) as? android.graphics.Bitmap)
+                ?: (extras?.get(Notification.EXTRA_LARGE_ICON) as? android.graphics.Bitmap)
+        }.getOrNull()
+        val mediaHint = runCatching {
+            extras?.containsKey(Notification.EXTRA_PICTURE) == true ||
+                extras?.containsKey(Notification.EXTRA_PICTURE_ICON) == true ||
+                extras?.containsKey(Notification.EXTRA_LARGE_ICON_BIG) == true
+        }.getOrDefault(false)
         val textLines = extras?.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
             ?.map { it?.toString().orEmpty() }
             ?.filter { it.isNotBlank() }
@@ -128,6 +140,12 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
             infoText = extras?.getCharSequence(Notification.EXTRA_INFO_TEXT)?.toString().orEmpty(),
             summaryText = extras?.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString().orEmpty(),
             textLines = textLines,
+            mediaBitmap = picture,
+            mediaState = when {
+                picture != null -> "available"
+                mediaHint -> "unavailable"
+                else -> "none"
+            },
             receivedAtMs = System.currentTimeMillis(),
         )
     }

@@ -17,6 +17,13 @@ interface PaymentDao {
     @Query("SELECT * FROM payment_recognitions WHERE accountId = :accountId AND sourceEventId = :sourceEventId LIMIT 1")
     fun recognitionBySourceEvent(accountId: String, sourceEventId: String): PaymentRecognitionEntity?
 
+    /**
+     * Looks a recognition up by the structured-event identity it was uploaded
+     * under, so a confirmed ledger booking can close the local pending state.
+     */
+    @Query("SELECT * FROM payment_recognitions WHERE accountId = :accountId AND uploadEventId = :uploadEventId LIMIT 1")
+    fun recognitionByUploadEvent(accountId: String, uploadEventId: String): PaymentRecognitionEntity?
+
     @Query("SELECT COUNT(*) FROM payment_recognitions WHERE accountId = :accountId")
     fun recognitionCount(accountId: String): Int
 

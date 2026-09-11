@@ -17,6 +17,7 @@ object NotificationArchiveSinkFactory {
 class RoomNotificationArchiveSink(private val context: Context) : NotificationArchiveSink {
     private val database get() = NotificationDatabase.get(context)
     private val store get() = RoomNotificationStore(database)
+    private val media get() = NotificationMediaStore(context)
 
     override fun store(accountId: String, input: NotificationCaptureInput, parsed: StructuredNotificationEvent?): Boolean {
         if (accountId.isBlank() || input.sourcePackage.isBlank()) return false
@@ -30,8 +31,12 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
             uk.thewyj.app.task21.CaptureTrace.stage(traceId, "archive-skipped-app-disabled", "pkg=${input.sourcePackage}")
             return false
         }
-        uk.thewyj.app.task21.CaptureTrace.stage(traceId, "archive-accepted", "pkg=${input.sourcePackage}")
-        store.record(accountId, captureOf(input, parsed))
+        uk.thewyj.app.task21.CaptureTrace.stage(
+            traceId,
+            "archive-accepted",
+            "pkg=${input.sourcePackage} media=${input.mediaState}",
+        )
+        store.record(accountId, captureOf(accountId, input, parsed))
         return true
     }
 
@@ -51,7 +56,26 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
         return policies.firstOrNull { it.sourcePackage == sourcePackage }?.enabled != 0
     }
 
-    private fun captureOf(input: NotificationCaptureInput, parsed: StructuredNotificationEvent?) = NotificationCapture(
+    private fun captureOf(
+        accountId: String,
+        input: NotificationCaptureInput,
+        parsed: StructuredNotificationEvent?,
+    ): NotificationCapture {
+        // The picture is written here because only this layer knows the account
+        // the snapshot belongs to.
+        val mediaRef = media.save(
+            accountId = accountId,
+            identity = input.notificationKey.ifBlank { "${input.sourcePackage}|${input.notificationId}|${input.tag}" },
+            bitmap = input.mediaBitmap,
+        )
+        return captureOf(input, parsed, mediaRef)
+    }
+
+    private fun captureOf(
+        input: NotificationCaptureInput,
+        parsed: StructuredNotificationEvent?,
+        mediaRef: NotificationMediaRef?,
+    ) = NotificationCapture(
         sourcePackage = input.sourcePackage,
         sourceType = input.sourceType,
         notificationKey = input.notificationKey,
@@ -75,5 +99,12 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
         currency = parsed?.currency ?: "CNY",
         merchant = parsed?.merchant.orEmpty(),
         confidence = parsed?.confidence ?: 0,
+        mediaPath = mediaRef?.relativePath ?: input.mediaPath,
+        mediaMime = mediaRef?.mimeType ?: input.mediaMime,
+        mediaState = when {
+            mediaRef != null -> "available"
+            input.mediaState == "available" -> "unavailable"
+            else -> input.mediaState
+        },
     )
 }

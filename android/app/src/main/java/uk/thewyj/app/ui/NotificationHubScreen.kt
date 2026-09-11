@@ -46,6 +46,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -191,6 +192,7 @@ fun NotificationHubScreen(
                 item = item,
                 onClose = { state.detail = null },
                 onTogglePinned = { scope.launch { state.togglePinned(item) } },
+                loadMedia = { path -> state.mediaFile(path) },
             )
         }
     }
@@ -201,7 +203,21 @@ private fun NotificationDetailOverlay(
     item: NotificationHistoryItem,
     onClose: () -> Unit,
     onTogglePinned: () -> Unit = {},
+    loadMedia: suspend (String) -> java.io.File? = { null },
 ) {
+    val context = LocalContext.current
+    val appName = remember(item.sourcePackage) {
+        uk.thewyj.app.task21.payment.PaymentAppLabels.resolve(context, item.sourcePackage)
+    }
+    var bitmap by remember(item.revisionId) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var mediaUnavailable by remember(item.revisionId) { mutableStateOf(item.mediaState == "unavailable") }
+    LaunchedEffect(item.revisionId) {
+        if (item.mediaPath.isBlank()) return@LaunchedEffect
+        val file = runCatching { loadMedia(item.mediaPath) }.getOrNull()
+        val decoded = file?.let { android.graphics.BitmapFactory.decodeFile(it.absolutePath) }
+        bitmap = decoded
+        if (decoded == null) mediaUnavailable = true
+    }
     BackHandler(enabled = true) { onClose() }
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(
@@ -212,7 +228,7 @@ private fun NotificationDetailOverlay(
                 OutlinedButton(onClick = onClose, shape = ThewyjRadius.Medium) { Text("返回") }
                 Spacer(Modifier.width(12.dp))
                 Text(
-                    item.sourcePackage.ifBlank { "未知应用" },
+                    appName,
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                 )
@@ -248,6 +264,24 @@ private fun NotificationDetailOverlay(
             }
             DetailField("标题", item.title)
             DetailField("内容", item.bigText.ifBlank { item.text })
+            // Task 24.1 P0-1: the picture Android exposed is shown here; when it
+            // could not be read the notification still exists and says so.
+            when {
+                bitmap != null -> Column(Modifier.fillMaxWidth()) {
+                    Text("图片", style = MaterialTheme.typography.labelLarge)
+                    androidx.compose.foundation.Image(
+                        bitmap = bitmap!!.asImageBitmap(),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                        contentDescription = "通知图片",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                    )
+                }
+                item.mediaState != "none" || mediaUnavailable ->
+                    DetailField("图片内容不可用", "该通知包含图片，但 Android 未提供可读取的图片数据；通知元数据已保存。")
+                else -> Unit
+            }
             if (item.subText.isNotBlank()) DetailField("副标题", item.subText)
             if (item.summaryText.isNotBlank()) DetailField("摘要", item.summaryText)
             if (item.textLines.isNotEmpty()) DetailField("多行内容", item.textLines.joinToString("\n"))
@@ -495,6 +529,20 @@ private fun NotificationHistoryCard(
                     ) {
                         Text(
                             "已收藏 · 不会被自动删除",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
+                }
+                if (item.mediaState == "available" || item.mediaState == "unavailable") {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        shape = ThewyjRadius.Small,
+                        modifier = Modifier.padding(top = 2.dp),
+                    ) {
+                        Text(
+                            if (item.mediaState == "available") "含图片" else "图片内容不可用",
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                         )

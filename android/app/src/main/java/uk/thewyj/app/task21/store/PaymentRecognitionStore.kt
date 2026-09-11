@@ -15,6 +15,7 @@ interface PaymentRecognitionStoreContract {
     fun saveRecognition(record: PaymentRecognitionRecord)
     fun recognition(accountId: String, recognitionId: String): PaymentRecognitionRecord?
     fun recognitionBySourceEvent(accountId: String, sourceEventId: String): PaymentRecognitionRecord?
+    fun recognitionByUploadEvent(accountId: String, uploadEventId: String): PaymentRecognitionRecord?
 
     fun saveTicket(ticket: PaymentTicket)
     fun ticket(accountId: String, ticketId: String): PaymentTicket?
@@ -50,6 +51,9 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
 
     override fun recognitionBySourceEvent(accountId: String, sourceEventId: String): PaymentRecognitionRecord? =
         dao.recognitionBySourceEvent(accountId, sourceEventId)?.toModel()
+
+    override fun recognitionByUploadEvent(accountId: String, uploadEventId: String): PaymentRecognitionRecord? =
+        dao.recognitionByUploadEvent(accountId, uploadEventId)?.toModel()
 
     override fun saveTicket(ticket: PaymentTicket) = dao.upsertTicket(ticket.toEntity())
 

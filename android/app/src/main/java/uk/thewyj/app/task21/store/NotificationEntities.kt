@@ -91,6 +91,14 @@ data class NotificationRevisionEntity(
     val currency: String,
     val merchant: String,
     val confidence: Int,
+    /**
+     * Local picture Android exposed on the notification (screenshot thumbnail,
+     * BigPictureStyle, large icon). Empty when the notification had none.
+     */
+    val mediaPath: String = "",
+    val mediaMime: String = "",
+    /** none | available | unavailable */
+    val mediaState: String = "none",
 )
 
 @Entity(tableName = "notification_app_policies", primaryKeys = ["accountId", "sourcePackage"])

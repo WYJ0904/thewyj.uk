@@ -46,6 +46,8 @@ class PaymentRecognitionCoordinatorTest {
             recognitions[recognitionId]?.takeIf { it.accountId == accountId }
         override fun recognitionBySourceEvent(accountId: String, sourceEventId: String) =
             recognitions.values.firstOrNull { it.accountId == accountId && it.sourceEventId == sourceEventId }
+        override fun recognitionByUploadEvent(accountId: String, uploadEventId: String) =
+            recognitions.values.firstOrNull { it.accountId == accountId && it.uploadEventId == uploadEventId }
 
         override fun saveTicket(ticket: PaymentTicket) {
             tickets[ticket.ticketId] = ticket

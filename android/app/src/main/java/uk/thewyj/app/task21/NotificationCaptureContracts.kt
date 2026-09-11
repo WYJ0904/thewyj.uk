@@ -53,6 +53,19 @@ data class NotificationCaptureInput(
     val infoText: String = "",
     val summaryText: String = "",
     val textLines: List<String> = emptyList(),
+    /**
+     * Picture Android exposed on the notification, already written to local
+     * storage. `mediaState` is "none" (no picture), "available" (stored) or
+     * "unavailable" (the notification claimed a picture we could not read).
+     */
+    val mediaPath: String = "",
+    val mediaMime: String = "",
+    val mediaState: String = "none",
+    /**
+     * Bitmap Android exposed on the notification, kept only in memory until the
+     * archive sink writes it to private storage. Never uploaded.
+     */
+    val mediaBitmap: android.graphics.Bitmap? = null,
     val receivedAtMs: Long = 0L,
 )
 
@@ -108,6 +121,13 @@ interface PaymentRecognitionHook {
      * not a payment at all, so the notification parser stays in charge.
      */
     fun outcomeFor(input: NotificationCaptureInput): PaymentIngestOutcome? = null
+
+    /**
+     * The backend confirmed the real ledger identity for an uploaded event.
+     * P0-2: this is what closes the local pending state, so a booked transaction
+     * stops appearing in 「待核实 / 待确认」.
+     */
+    fun onFinanceOutcome(accountId: String, eventId: String, transactionId: String) = Unit
 }
 
 enum class NotificationEventType { TRANSACTION, REFUND, MARKETING, VERIFICATION, OTHER }

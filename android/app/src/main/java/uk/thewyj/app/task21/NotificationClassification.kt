@@ -47,6 +47,8 @@ data class NotificationClassificationInput(
     val isOngoing: Boolean = false,
     val isForegroundService: Boolean = false,
     val isGroupSummary: Boolean = false,
+    /** The notification carried a picture/thumbnail Android exposed to us. */
+    val hasMedia: Boolean = false,
     val identityKey: String = "",
     val occurredAtMs: Long = 0L,
 )
@@ -72,8 +74,17 @@ object NotificationClassifier {
     private val LIVE_PACKAGE_MARKERS = listOf("clash", "v2ray", "xray", "shadowsocks", "sing-box", "wireguard", "openvpn")
 
     /** Channel fragments used by progress and status notifications. */
+    /**
+     * Only genuinely continuous channels are listed here. The earlier list also
+     * contained generic words like "status", "media" and "sync", which matched
+     * Samsung screenshot/media channels and made a real notification disappear
+     * from history entirely (real-device P0-1).
+     */
     private val LIVE_CHANNEL_MARKERS = listOf(
-        "status", "progress", "download", "upload", "speed", "traffic", "vpn", "proxy", "sync", "media", "playback",
+        // Deliberately narrow: "status"/"media"/"sync"/"download" also appear on
+        // perfectly normal notifications (a screenshot channel is often
+        // "*_status"), and dropping those loses real history.
+        "progress", "speed", "traffic", "vpn", "proxy",
     )
 
     /** A person reading a chat message rarely repeats the identical shape within this window. */
@@ -83,6 +94,12 @@ object NotificationClassifier {
 
     fun classify(input: NotificationClassificationInput): NotificationClassification {
         val packageName = input.sourcePackage.lowercase(Locale.ROOT)
+        // A notification that carries a picture is user content, never a live
+        // readout: a screenshot/media notification must be archived even when its
+        // channel or package looks like a status channel.
+        if (input.hasMedia) {
+            return NotificationClassification(NotificationClass.MESSAGE, true, "media_content")
+        }
         if (input.isGroupSummary) {
             return NotificationClassification(NotificationClass.GROUP_SUMMARY, true, "group_summary")
         }
