@@ -3,6 +3,7 @@ package uk.thewyj.app.task21.store
 import android.content.Context
 import android.content.pm.PackageManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
 /**
@@ -30,6 +31,9 @@ class NotificationRepository(
         runCatching { LegacyArchiveMigration(database).migrateIfNeeded(context.filesDir, accountId) }
         store.history(accountId, query)
     }
+
+    /** Real-time change signal for the history list (no polling). */
+    fun historyChanges(): Flow<Unit> = store.observeChanges(accountId)
 
     suspend fun historyCount(query: NotificationQuery): Int = withContext(Dispatchers.IO) {
         store.historyCount(accountId, query)

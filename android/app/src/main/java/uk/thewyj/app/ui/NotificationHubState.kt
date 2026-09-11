@@ -11,6 +11,9 @@ import uk.thewyj.app.task21.store.NotificationQuery
 import uk.thewyj.app.task21.store.NotificationRepository
 import uk.thewyj.app.task21.store.NotificationRuleEntity
 import uk.thewyj.app.task21.store.NotificationStoreStats
+import uk.thewyj.app.task21.store.PaymentRecognitionStoreContract
+import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
+import uk.thewyj.app.task21.store.NotificationDatabase
 
 /**
  * Screen state for the native notification hub. Kept outside the composables so
@@ -21,6 +24,14 @@ class NotificationHubState(
     val accountId: String,
 ) {
     private val repository = NotificationRepository(context.applicationContext, accountId)
+    private val paymentStore: PaymentRecognitionStoreContract =
+        RoomPaymentRecognitionStore(NotificationDatabase.get(context.applicationContext))
+
+    /** Emits whenever the listener stores or updates a notification. */
+    val changes = repository.historyChanges()
+
+    /** Emits whenever a payment candidate needs confirmation. */
+    val pendingPayments = paymentStore.observePendingCandidateCount(accountId)
 
     var search by mutableStateOf("")
     var appFilter by mutableStateOf("")

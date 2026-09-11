@@ -1,5 +1,5 @@
-export const APP_VERSION = "2026-09-11-permissions-nav-dictation";
-export const ASSET_RELEASE = "20260911-permissions-nav-dictation-r1";
+export const APP_VERSION = "2026-09-11-finance-linkage-tts-nav";
+export const ASSET_RELEASE = "20260911-finance-linkage-tts-nav-r1";
 
 export const API_TIMEOUT_MS = 30000;
 export const AI_TIMEOUT_MS = 25000;

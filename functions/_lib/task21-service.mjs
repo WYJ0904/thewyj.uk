@@ -534,13 +534,24 @@ export async function confirmNotificationCandidate(db, account, input) {
   validateDeviceId(input.device_id);
   const event = await eventById(db, account, row.event_id);
   if (event.status !== "active") throw new Task21Error("该候选关联通知已删除", 409, "candidate_status_invalid");
+  // A pending candidate may still be missing money fields (amount-unknown
+  // hint). The user's edits are the only source that may fill them; an
+  // incomplete candidate can never create a zero-amount transaction.
+  const amountMinor = edits.amount_minor || Number(row.amount_minor);
+  const direction = edits.direction || String(row.direction || "");
+  if (!(amountMinor > 0)) {
+    throw new Task21Error("请先填写金额后再确认", 400, "candidate_amount_required");
+  }
+  if (!direction) {
+    throw new Task21Error("请先选择收支方向后再确认", 400, "candidate_direction_required");
+  }
   // Edit-before-confirm: the user's corrections win and are recorded next to
   // the untouched machine evidence in the same candidate row.
   const finance = await createAutomaticFinanceTransaction(db, account, event.device_id, {
     event_id: event.event_id,
     fingerprint: event.fingerprint,
-    direction: edits.direction || row.direction,
-    amount_minor: edits.amount_minor || Number(row.amount_minor),
+    direction,
+    amount_minor: amountMinor,
     currency: row.currency,
     merchant: edits.merchant ?? row.merchant,
     counterparty: edits.counterparty ?? row.counterparty,

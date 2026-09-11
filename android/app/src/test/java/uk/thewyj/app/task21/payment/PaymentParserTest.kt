@@ -55,6 +55,66 @@ class PaymentParserTest {
         assertTrue(result.isTransactionLike)
     }
 
+    /**
+     * Real-device regression: "已支付100" carries a strong payment verb and a
+     * clear number, so it is a confirmed payment even without a currency
+     * symbol. All of these normalize to the same amount.
+     */
+    @Test fun paymentVerbPlusPlainNumberIsAConfirmedAmount() {
+        val cases = mapOf(
+            "已支付100" to 10_000L,
+            "已支付 100" to 10_000L,
+            "已支付100元" to 10_000L,
+            "支付100" to 10_000L,
+            "支付 100 元" to 10_000L,
+            "付款100" to 10_000L,
+            "付款100元" to 10_000L,
+            "¥100" to 10_000L,
+            "￥100" to 10_000L,
+            "CNY 100" to 10_000L,
+            "100 CNY" to 10_000L,
+            "RMB 100" to 10_000L,
+            "转账100元" to 10_000L,
+            "已支付 ¥1000" to 100_000L,
+            "已支付1,000.50元" to 100_050L,
+        )
+        for ((message, expected) in cases) {
+            val result = wechat("微信支付", message)
+            assertEquals("amount for $message", expected, result.amountMinor)
+            assertTrue("$message must be transaction-like", result.isTransactionLike)
+            assertNotNull("$message needs a direction", result.direction)
+        }
+    }
+
+    @Test fun paymentVerbPlusPlainNumberStaysConfirmedPaymentForWeChatCompletion() {
+        val result = wechat("微信支付", "已支付100")
+        assertEquals(PaymentRecognitionStatus.CONFIRMED_PAYMENT, result.status)
+        assertEquals(10_000L, result.amountMinor)
+        assertEquals(FinanceDirection.EXPENSE, result.direction)
+    }
+
+    /** Reference numbers, dates, phone numbers and OTPs are never money. */
+    @Test fun plainNumbersThatAreNotMoneyStayUnknown() {
+        val cases = listOf(
+            "支付订单号 202609110001",
+            "订单号10000000001 支付成功",
+            "支付时间 2026-09-11 12:30",
+            "支付验证码 123456",
+            "支付尾号1234",
+            "支付电话13800138000",
+        )
+        for (message in cases) {
+            val result = wechat("微信支付", message)
+            assertNull("$message must not invent an amount", result.amountMinor)
+        }
+    }
+
+    @Test fun amountWithoutPaymentSemanticsIsNeverInvented() {
+        val result = wechat("微信", "张三：明天见面聊 100 元的事")
+        assertNull(result.amountMinor)
+        assertEquals(PaymentRecognitionStatus.NOT_PAYMENT, result.status)
+    }
+
     @Test fun wechatIncomingPaymentIsIncome() {
         val result = wechat("微信支付", "微信转账：收款成功 ￥50.00 已到账")
         assertEquals(PaymentRecognitionStatus.CONFIRMED_PAYMENT, result.status)

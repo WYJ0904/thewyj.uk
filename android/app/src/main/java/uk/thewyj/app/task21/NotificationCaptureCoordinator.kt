@@ -97,23 +97,56 @@ class NotificationCaptureCoordinator(
             null
         }
 
-        val structured = StructuredNotificationEvent(
-            eventId = eventId,
-            fingerprint = fingerprint,
-            sourcePackage = input.sourcePackage,
-            eventType = output?.eventType ?: NotificationEventType.OTHER,
-            parserVersion = parser?.version ?: "unknown",
-            parseStatus = output?.parseStatus ?: ParseStatus.UNPARSED,
-            direction = output?.direction ?: FinanceDirection.UNKNOWN,
-            amountMinor = output?.amountMinor ?: 0,
-            currency = output?.currency ?: "CNY",
-            paymentChannel = output?.paymentChannel ?: "",
-            merchant = output?.merchant ?: "",
-            counterparty = output?.counterparty ?: "",
-            confidence = output?.confidence ?: 0,
-            occurredAtMs = output?.occurredAtMs ?: input.receivedAtMs,
-            receivedAtMs = input.receivedAtMs,
-        )
+        // Payment apps are classified by the payment parser (one source of
+        // truth). Everything else keeps the notification parser. A confirmed
+        // payment therefore reaches the backend with confidence >= 900 and is
+        // written to the real finance ledger instead of "recognised but never
+        // recorded"; anything weaker becomes a reviewable candidate.
+        val payment = if (current.financeEntitled) paymentHook?.outcomeFor(input) else null
+        val structured = if (payment != null) {
+            val refund = payment.direction == FinanceDirection.REFUND
+            val parsedPayment = payment.confirmed && payment.amountMinor > 0 &&
+                payment.direction != FinanceDirection.UNKNOWN
+            StructuredNotificationEvent(
+                eventId = eventId,
+                fingerprint = fingerprint,
+                sourcePackage = input.sourcePackage,
+                eventType = if (refund) NotificationEventType.REFUND else NotificationEventType.TRANSACTION,
+                parserVersion = payment.parserVersion,
+                parseStatus = if (parsedPayment) ParseStatus.PARSED else ParseStatus.CANDIDATE,
+                direction = payment.direction,
+                amountMinor = payment.amountMinor,
+                currency = "CNY",
+                paymentChannel = payment.paymentChannel,
+                merchant = payment.merchant,
+                counterparty = payment.counterparty,
+                confidence = if (parsedPayment) {
+                    payment.confidence.coerceAtLeast(900)
+                } else {
+                    payment.confidence.coerceIn(0, 899)
+                },
+                occurredAtMs = input.receivedAtMs,
+                receivedAtMs = input.receivedAtMs,
+            )
+        } else {
+            StructuredNotificationEvent(
+                eventId = eventId,
+                fingerprint = fingerprint,
+                sourcePackage = input.sourcePackage,
+                eventType = output?.eventType ?: NotificationEventType.OTHER,
+                parserVersion = parser?.version ?: "unknown",
+                parseStatus = output?.parseStatus ?: ParseStatus.UNPARSED,
+                direction = output?.direction ?: FinanceDirection.UNKNOWN,
+                amountMinor = output?.amountMinor ?: 0,
+                currency = output?.currency ?: "CNY",
+                paymentChannel = output?.paymentChannel ?: "",
+                merchant = output?.merchant ?: "",
+                counterparty = output?.counterparty ?: "",
+                confidence = output?.confidence ?: 0,
+                occurredAtMs = output?.occurredAtMs ?: input.receivedAtMs,
+                receivedAtMs = input.receivedAtMs,
+            )
+        }
 
         if (current.archiveEntitled) {
             if (archiveSink != null) {
@@ -144,11 +177,23 @@ class NotificationCaptureCoordinator(
         // Finance pipeline: only for finance-entitled accounts, and only for
         // events the parser considers transaction-like. Ordinary chat never
         // becomes an ingest payload.
-        if (!current.financeEntitled || output == null) return
+        if (!current.financeEntitled) return
         // Payment recognition runs on every finance-entitled capture (memory
         // only): chat is classified and discarded, payment-like events become
         // hints/candidates/notifications.
         paymentHook?.onCapture(current.accountId, input, "")
+        if (payment != null) {
+            // Confirmed payments and any hint that already carries an amount or
+            // a direction reach the backend: they become transactions or real
+            // review candidates. A hint where both are unknown stays local (the
+            // 90 second enrichment ticket) instead of inventing fields.
+            val actionable = payment.amountMinor > 0 || payment.direction != FinanceDirection.UNKNOWN
+            if (!actionable) return
+            val payloadForPayment = StructuredEventJson.ingestPayload("1", current.deviceId, eventId, structured)
+            queueFor(current.accountId).enqueue(eventId, payloadForPayment)
+            return
+        }
+        if (output == null) return
         if (output.parseStatus == ParseStatus.UNPARSED && output.eventType !in setOf(
                 NotificationEventType.TRANSACTION, NotificationEventType.REFUND,
             )

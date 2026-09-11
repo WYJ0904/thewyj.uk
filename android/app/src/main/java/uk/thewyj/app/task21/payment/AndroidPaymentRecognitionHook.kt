@@ -2,6 +2,7 @@ package uk.thewyj.app.task21.payment
 
 import android.content.Context
 import uk.thewyj.app.task21.NotificationCaptureInput
+import uk.thewyj.app.task21.PaymentIngestOutcome
 import uk.thewyj.app.task21.PaymentRecognitionHook
 import uk.thewyj.app.task21.store.NotificationDatabase
 import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
@@ -35,6 +36,46 @@ class AndroidPaymentRecognitionHook private constructor(private val appContext: 
             subText = input.subText,
             sourceAppLabel = sourceAppLabel,
             occurredAtMs = if (input.postTime > 0) input.postTime else input.receivedAtMs,
+        )
+    }
+
+    /**
+     * The structured event uploaded for finance uses the same payment parser as
+     * the local recognition pipeline, so the two can never disagree about a
+     * payment (the previous duplicate term lists caused "已支付 ¥1000" to be
+     * recognised locally but only become a candidate upstream).
+     */
+    override fun outcomeFor(input: NotificationCaptureInput): PaymentIngestOutcome? {
+        val sourceType = when {
+            input.sourceType == "sms" -> PaymentSourceType.SMS
+            input.sourceType == "bank" -> PaymentSourceType.BANK_NOTIFICATION
+            else -> PaymentSourceType.NOTIFICATION
+        }
+        val parsed = PaymentParserRegistry.parse(
+            sourcePackage = input.sourcePackage,
+            sourceType = sourceType,
+            title = input.title,
+            text = input.text,
+            bigText = input.bigText,
+            subText = input.subText,
+            capturedAtMs = if (input.postTime > 0) input.postTime else input.receivedAtMs,
+        )
+        if (parsed.status == PaymentRecognitionStatus.NOT_PAYMENT ||
+            parsed.status == PaymentRecognitionStatus.PARSE_ERROR
+        ) {
+            return null
+        }
+        val confirmed = parsed.status == PaymentRecognitionStatus.CONFIRMED_PAYMENT &&
+            (parsed.amountMinor ?: 0) > 0
+        return PaymentIngestOutcome(
+            confirmed = confirmed,
+            amountMinor = parsed.amountMinor ?: 0,
+            direction = parsed.direction ?: uk.thewyj.app.task21.FinanceDirection.UNKNOWN,
+            confidence = parsed.confidence,
+            merchant = parsed.merchant.orEmpty(),
+            counterparty = parsed.counterparty.orEmpty(),
+            paymentChannel = parsed.paymentChannel.orEmpty(),
+            parserVersion = "payment-" + parsed.paymentChannel.ifBlank { "generic" },
         )
     }
 

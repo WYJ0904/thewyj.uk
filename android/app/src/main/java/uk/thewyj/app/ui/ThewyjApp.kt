@@ -282,13 +282,9 @@ private fun AuthenticatedShell(
 ) {
     val activity = LocalActivity.current
     var backNavigationRequest by remember { mutableIntStateOf(0) }
-    var showNotificationArchive by remember { mutableStateOf(false) }
-    var showTransfer by remember { mutableStateOf(false) }
-    var showPermissions by remember { mutableStateOf(false) }
+    var overlays by remember { mutableStateOf(ShellOverlayState()) }
     BackHandler {
-        if (showPermissions) showPermissions = false
-        else if (showNotificationArchive) showNotificationArchive = false
-        else if (showTransfer) showTransfer = false
+        if (overlays.anyVisible) overlays = ShellOverlayState()
         else if (destination == AppDestination.MY) onDestination(AppDestination.HOME)
         else backNavigationRequest += 1
     }
@@ -299,7 +295,11 @@ private fun AuthenticatedShell(
                 AppDestination.entries.forEach { item ->
                     NavigationBarItem(
                         selected = destination == item,
-                        onClick = { onDestination(item) },
+                        onClick = {
+                            val selection = bottomNavigationSelection(item, overlays)
+                            overlays = selection.overlays
+                            onDestination(selection.destination)
+                        },
                         icon = { Icon(destinationIcon(item), contentDescription = null) },
                         label = { Text(item.label) },
                     )
@@ -331,8 +331,8 @@ private fun AuthenticatedShell(
                     updateState = updateState,
                     onOpenRoute = onOpenRoute,
                     onOpenNotifications = { onDestination(AppDestination.NOTIFICATIONS) },
-                    onOpenTransfer = { showTransfer = true },
-                    onOpenPermissions = { showPermissions = true },
+                    onOpenTransfer = { overlays = overlays.copy(transfer = true) },
+                    onOpenPermissions = { overlays = overlays.copy(permissions = true) },
                     onRefresh = onRefresh,
                     onCheckUpdate = onCheckUpdate,
                     onStartUpdate = onStartUpdate,
@@ -342,7 +342,8 @@ private fun AuthenticatedShell(
             } else if (destination == AppDestination.NOTIFICATIONS) {
                 NotificationHubScreen(
                     account = state.account,
-                    onOpenPermissions = { showPermissions = true },
+                    onOpenPermissions = { overlays = overlays.copy(permissions = true) },
+                    onOpenFinance = { onOpenRoute("/finance") },
                     modifier = Modifier.fillMaxSize(),
                 )
             } else if (state.mode != ConnectionMode.ONLINE) {
@@ -352,20 +353,20 @@ private fun AuthenticatedShell(
                     modifier = Modifier.fillMaxWidth().padding(ThewyjSpacing.Md),
                 )
             }
-            if (showNotificationArchive) {
+            if (overlays.archive) {
                 NotificationArchiveScreen(
                     account = state.account,
-                    onBack = { showNotificationArchive = false },
+                    onBack = { overlays = overlays.copy(archive = false) },
                 )
             }
-            if (showTransfer) {
+            if (overlays.transfer) {
                 TransferScreen(
                     account = state.account,
-                    onBack = { showTransfer = false },
+                    onBack = { overlays = overlays.copy(transfer = false) },
                 )
             }
-            if (showPermissions) {
-                PermissionCenterScreen(onBack = { showPermissions = false })
+            if (overlays.permissions) {
+                PermissionCenterScreen(onBack = { overlays = overlays.copy(permissions = false) })
             }
         }
     }

@@ -70,6 +70,18 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
         super.onDestroy()
     }
 
+    /**
+     * Android may drop the listener while the device is idle. Rebind so the app
+     * keeps receiving notifications instead of silently going stale until the
+     * user reopens the app.
+     */
+    override fun onListenerDisconnected() {
+        super.onListenerDisconnected()
+        runCatching {
+            requestRebind(ComponentName(this, ThewyjNotificationListenerService::class.java))
+        }
+    }
+
     private fun scheduleFlush(capture: java.util.concurrent.Future<*>? = null) {
         if (!flushRunning.compareAndSet(false, true)) return
         uploadExecutor.execute {

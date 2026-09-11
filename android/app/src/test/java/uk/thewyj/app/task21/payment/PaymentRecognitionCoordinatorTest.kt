@@ -70,6 +70,8 @@ class PaymentRecognitionCoordinatorTest {
             candidates.values.filter { it.accountId == accountId && it.status == status }.take(limit)
         override fun pendingCandidateCount(accountId: String) =
             candidates.values.count { it.accountId == accountId && it.status == "pending" }
+        override fun observePendingCandidateCount(accountId: String) =
+            kotlinx.coroutines.flow.flowOf(pendingCandidateCount(accountId))
         override fun reconciliationMatch(
             accountId: String,
             amountMinor: Long,

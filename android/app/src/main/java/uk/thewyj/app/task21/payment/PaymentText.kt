@@ -9,10 +9,44 @@ import uk.thewyj.app.task21.FinanceDirection
 internal object PaymentText {
     private val amountPatterns = listOf(
         Regex("""(?:人民币|人民幣|RMB|CNY|￥|¥)\s*([0-9][0-9,]*\.?[0-9]{0,2})""", RegexOption.IGNORE_CASE),
-        Regex("""([0-9][0-9,]*\.?[0-9]{0,2})\s*(?:元|圓|块|塊)"""),
+        Regex("""([0-9][0-9,]*\.?[0-9]{0,2})\s*(?:元|圓|块|塊|CNY|RMB|人民币|人民幣)""", RegexOption.IGNORE_CASE),
         Regex(
             """(?:交易金额|交易金額|付款金额|付款金額|支付金额|支付金額|收款金额|收款金額|扣款金额|扣款金額|退款金额|退款金額|消费金额|消費金額|金额|金額)[:：]?\s*([0-9][0-9,]*\.?[0-9]{0,2})""",
         ),
+    )
+
+    /**
+     * "明确支付语义 + 明确数字" is a real amount even without a currency
+     * symbol: 已支付100 / 支付 100 / 付款100 元 all mean 100 CNY. The number has
+     * to sit directly behind a payment verb, and order/reference/date-like
+     * windows are rejected so phone numbers and order ids never become money.
+     */
+    private val paymentVerbs = listOf(
+        "已支付", "已付款", "支付成功", "付款成功", "已扣款", "已扣费", "扣款成功", "扣费成功",
+        "交易成功", "收款成功", "已收款", "已到账", "到账", "已入账", "入账", "退款成功", "已退款",
+        "转账成功", "转出成功", "转入成功", "支付", "付款", "扣款", "扣费", "消费", "收款",
+        "转账", "轉賬", "转帐", "轉帳", "转出", "轉出", "转入", "轉入", "退款", "退回",
+    )
+
+    private val verbAlternation = paymentVerbs.joinToString("|")
+
+    private val bareAmountPatterns = listOf(
+        // 已支付100 / 支付 100
+        Regex(
+            """(?:$verbAlternation)\s*[:：]?\s*([0-9][0-9,]{0,12}(?:\.[0-9]{1,2})?)(?![0-9A-Za-z\-/:])""",
+        ),
+        // 100 已支付 / 100元 支付成功
+        Regex(
+            """(?<![0-9A-Za-z])([0-9][0-9,]{0,12}(?:\.[0-9]{1,2})?)\s*(?:元|圓|块|塊)?\s*(?:$verbAlternation)""",
+        ),
+    )
+
+    private val amountNoiseTerms = listOf(
+        "订单号", "訂單號", "单号", "單號", "交易号", "交易號", "流水号", "流水號", "参考号", "參考號",
+        "凭证号", "憑證號", "编号", "編號", "序号", "序號", "工号", "尾号", "尾號", "卡号", "卡號",
+        "账号", "賬號", "账户", "賬戶", "电话", "電話", "手机", "手機", "验证码", "驗證碼", "校验码",
+        "校驗碼", "动态码", "動態碼", "日期", "时间", "時間", "余额", "餘額", "额度", "額度", "积分",
+        "積分", "订单", "訂單", "物流", "快递", "快遞", "车牌", "車牌", "房间", "房號", "有效期",
     )
 
     val completionTerms = listOf(
@@ -49,6 +83,9 @@ internal object PaymentText {
     val expenseTerms = listOf(
         "支付", "付款", "消费", "消費", "扣款", "扣费", "扣費", "支出", "转出", "轉出", "扫码付款",
         "掃碼付款", "向商家付款", "已扣款", "已扣費",
+        // "向张三转账" / "转账给商家" describe an outgoing transfer. Incoming
+        // wording (收款/到账/向你转账) is checked before expenses, so it wins.
+        "转账", "轉賬", "转帐", "轉帳", "转给",
     )
 
     val refundTerms = listOf("退款", "退回", "退还", "退還", "已退款", "原路退回", "冲正", "沖正", "返还", "返還")
@@ -82,6 +119,26 @@ internal object PaymentText {
             if (value <= 0.0 || value > 10_000_000.0) continue
             return Math.round(value * 100.0)
         }
+        return bareAmountMinor(normalized)
+    }
+
+    /** Amount that is only implied by "payment verb + plain number". */
+    fun bareAmountMinor(normalized: String): Long? {
+        for (match in bareAmountPatterns.flatMap { pattern -> pattern.findAll(normalized).map { pattern to it } }
+            .sortedBy { (_, match) -> match.range.first }) {
+            val (_, hit) = match
+            val raw = hit.groupValues.getOrNull(1).orEmpty().replace(",", "")
+            val digits = raw.substringBefore('.').length
+            val value = raw.toDoubleOrNull() ?: continue
+            if (value <= 0.0 || value > 10_000_000.0) continue
+            // A bare 8+ digit run is a reference number, not money.
+            if (!raw.contains('.') && digits > 7) continue
+            val start = (hit.range.first - 12).coerceAtLeast(0)
+            val end = (hit.range.last + 13).coerceAtMost(normalized.length)
+            val window = normalized.substring(start, end)
+            if (amountNoiseTerms.any { window.contains(it) }) continue
+            return Math.round(value * 100.0)
+        }
         return null
     }
 
@@ -97,6 +154,17 @@ internal object PaymentText {
     fun isBankExcluded(normalized: String): Boolean = bankExcludedTerms.any { normalized.contains(it) }
 
     fun hasPaymentHint(normalized: String): Boolean = paymentHints.any { normalized.contains(it) }
+
+    /**
+     * A currency symbol or an explicit amount label. Plain "100 元" inside a
+     * chat sentence is not enough on its own: without a payment word or a
+     * symbol it would turn ordinary chat into a finance candidate.
+     */
+    fun hasStrongCurrencyMarker(normalized: String): Boolean =
+        listOf("¥", "￥", "CNY", "RMB", "人民币", "人民幣", "交易金额", "交易金額", "付款金额",
+            "付款金額", "支付金额", "支付金額", "收款金额", "收款金額", "扣款金额", "扣款金額",
+            "退款金额", "退款金額", "消费金额", "消費金額", "金额", "金額")
+            .any { marker -> normalized.contains(marker, ignoreCase = true) }
 
     fun hasCompletion(normalized: String): Boolean = completionTerms.any { normalized.contains(it) }
 

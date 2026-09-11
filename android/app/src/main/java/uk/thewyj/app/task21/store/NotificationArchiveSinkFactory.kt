@@ -32,14 +32,14 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
     }
 
     /**
-     * Default is "capture" until the user configures the app selector, so an
-     * upgrade never silently stops saving notifications; once any policy exists
-     * the explicit selection decides.
+     * Unknown apps default to capture: only an explicit "off" row blocks a
+     * package. The previous rule denied every app that was not in the selector
+     * once any policy existed, which silently dropped notifications from newly
+     * installed apps.
      */
     private fun isAllowed(accountId: String, sourcePackage: String): Boolean {
         val policies = store.appPolicies(accountId)
-        if (policies.isEmpty()) return true
-        return policies.firstOrNull { it.sourcePackage == sourcePackage }?.enabled == 1
+        return policies.firstOrNull { it.sourcePackage == sourcePackage }?.enabled != 0
     }
 
     private fun captureOf(input: NotificationCaptureInput, parsed: StructuredNotificationEvent?) = NotificationCapture(

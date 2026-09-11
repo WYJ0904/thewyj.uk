@@ -100,19 +100,20 @@ export function createFinanceCandidatesController({
       const evidenceCount = Math.max(evidence.length, Number(candidate.evidence_count) || 1);
       const editedCount = Number(candidate.correction_count) || 0;
       const missing = [];
-      if (!Number(candidate.amount_minor)) missing.push("金额");
+      const amountUnknown = !Number(candidate.amount_minor);
+      if (amountUnknown) missing.push("金额");
       if (!String(candidate.merchant || candidate.counterparty || "")) missing.push("商户");
       const missingLabel = missing.length ? ` · 缺少：${missing.join("、")}` : "";
       return `<article class="finance-candidate" data-finance-candidate="${escapeHtml(id)}">
         <div class="finance-candidate-main">
           <span class="finance-direction is-${escapeHtml(direction)}">${label}</span>
-          <div><strong>${escapeHtml(formatMinor(candidate.amount_minor, candidate.currency))}</strong>
+          <div><strong>${amountUnknown ? "金额待填写" : escapeHtml(formatMinor(candidate.amount_minor, candidate.currency))}</strong>
           <small>${escapeHtml(merchant)} · ${escapeHtml(occurred)} · 置信度 ${confidence}/1000</small>
           <small>来源：${escapeHtml(sources)} · 证据 ${evidenceCount} 条${editedCount ? ` · 已修改 ${editedCount} 次` : ""}${escapeHtml(missingLabel)}</small></div>
         </div>
         <div class="finance-candidate-actions">
           <button class="button-ghost" type="button" data-finance-candidate-edit="${escapeHtml(id)}" ${busy ? "disabled" : ""}>编辑并确认</button>
-          <button type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>确认记账</button>
+          <button type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${amountUnknown ? "填写金额并确认" : "确认记账"}</button>
           <button class="danger-text" type="button" data-finance-candidate-reject="${escapeHtml(id)}" ${busy ? "disabled" : ""}>拒绝</button>
         </div>
         <form class="finance-candidate-editor hidden" data-finance-candidate-editor="${escapeHtml(id)}">
@@ -260,7 +261,21 @@ export function createFinanceCandidatesController({
     }
     const confirmButton = event.target.closest("[data-finance-candidate-confirm]");
     if (confirmButton) {
-      decide(confirmButton.dataset.financeCandidateConfirm, true);
+      const id = confirmButton.dataset.financeCandidateConfirm;
+      const candidate = currentCandidates.find((item) => String(item.id) === String(id));
+      // An amount-unknown hint can never be confirmed as-is: open the editor so
+      // the user fills the missing money fields instead of sending a
+      // zero-amount transaction.
+      if (!Number(candidate?.amount_minor)) {
+        const form = document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`);
+        if (form) {
+          form.classList.remove("hidden");
+          form.elements.amount?.focus();
+          render(currentCandidates, "这笔交易缺少金额：请填写金额与方向后保存确认。");
+        }
+        return;
+      }
+      decide(id, true);
       return;
     }
     const rejectButton = event.target.closest("[data-finance-candidate-reject]");

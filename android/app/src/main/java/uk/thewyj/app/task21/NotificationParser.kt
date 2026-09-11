@@ -47,11 +47,13 @@ private object NotificationTerms {
     val expense = listOf(
         "消费", "支付成功", "付款成功", "已付款", "扣款成功", "扣费成功", "已扣款", "已扣费", "支出",
         "扫码付款", "向商家付款", "信用卡消费", "银行卡支付", "转出", "转账成功", "账户转出",
+        "已支付", "已消费", "已付款",
         "消費", "扣費成功", "已扣費", "掃碼付款", "信用卡消費", "銀行卡支付", "轉出", "轉賬成功",
     )
     val strongCompletion = listOf(
         "支付成功", "付款成功", "扣款成功", "扣费成功", "已扣款", "已扣费", "退款成功", "退款到账",
         "收款成功", "已到账", "已入账", "转账成功", "支付已完成", "交易成功",
+        "已支付", "已付款", "已消费", "已消費", "已转账", "已轉賬",
         "扣費成功", "已扣費", "退款到賬", "已到賬", "已入賬", "轉賬成功", "交易成功",
     )
     val marketing = listOf(
@@ -65,12 +67,6 @@ private object NotificationTerms {
         "驗證碼", "驗證碼", "校驗碼", "動態碼", "登錄驗證", "身份驗證", "安全驗證",
     )
 }
-
-private val amountRegex = listOf(
-    Regex("""(?:人民币|人民幣|RMB|CNY|￥|¥)\s*([0-9][0-9,]*\.?[0-9]{0,2})""", RegexOption.IGNORE_CASE),
-    Regex("""([0-9][0-9,]*\.?[0-9]{0,2})\s*(?:元|圓|块|塊)"""),
-    Regex("""(?:交易金额|交易金額|付款金额|付款金額|收款金额|收款金額|扣款金额|扣款金額|退款金额|退款金額)[:：]?\s*([0-9][0-9,]*\.?[0-9]{0,2})"""),
-)
 
 private fun normalizeText(input: ParserInput): String {
     return (listOf(input.title, input.text, input.bigText, input.subText, input.infoText, input.summaryText)
@@ -86,15 +82,10 @@ private fun normalizeText(input: ParserInput): String {
 private fun containsAny(text: String, terms: List<String>): Boolean = terms.any { text.contains(it) }
 
 private fun extractAmountMinor(text: String): Long {
-    for (pattern in amountRegex) {
-        val match = pattern.find(text) ?: continue
-        val raw = match.groupValues[1].replace(",", "")
-        val amount = raw.toDoubleOrNull() ?: continue
-        if (amount > 0 && amount <= 100_000_000_000) {
-            return (amount * 100).roundToLong()
-        }
-    }
-    return 0
+    // One shared normalizer for every payment parser: currency symbols, 元/块,
+    // explicit amount labels and "payment verb + plain number" (已支付100).
+    val minor = uk.thewyj.app.task21.payment.PaymentText.amountMinor(text) ?: return 0
+    return if (minor in 1..100_000_000_000L) minor else 0
 }
 
 private fun extractMerchant(text: String, direction: FinanceDirection): String {
@@ -164,6 +155,9 @@ private class StructuredParser(
         if (completed) confidence += 300
         if (amountMinor > 0) confidence += 300
         if (merchant.isNotBlank()) confidence += 150
+        // The parser only matches supported payment packages, so a structured
+        // payment notification is stronger evidence than plain text.
+        if (paymentChannel.isNotBlank()) confidence += 100
         confidence = confidence.coerceIn(0, 1000)
 
         val parseStatus = when {

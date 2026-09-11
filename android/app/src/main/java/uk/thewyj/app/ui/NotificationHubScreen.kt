@@ -49,6 +49,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 import uk.thewyj.app.core.auth.AccountSnapshot
 import uk.thewyj.app.core.permission.PermissionCenter
 import uk.thewyj.app.task21.store.NotificationHistoryItem
@@ -67,6 +68,7 @@ import java.util.UUID
 fun NotificationHubScreen(
     account: AccountSnapshot,
     onOpenPermissions: () -> Unit = {},
+    onOpenFinance: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val entitled = account.entitlements.contains("notification_archive_access") ||
@@ -81,6 +83,7 @@ fun NotificationHubScreen(
     val scope = rememberCoroutineScope()
     var tab by remember { mutableIntStateOf(0) }
     var notificationAccess by remember { mutableStateOf(PermissionCenter.notificationListenerGranted(context)) }
+    var pendingPayments by remember { mutableIntStateOf(0) }
 
     LifecycleResumeEffect(Unit) {
         notificationAccess = PermissionCenter.notificationListenerGranted(context)
@@ -91,6 +94,15 @@ fun NotificationHubScreen(
         state.refresh()
         state.refreshApps()
         state.refreshRules()
+        // Live database observation: a notification written by the listener is
+        // rendered immediately instead of waiting for a manual refresh.
+        state.changes.collectLatest {
+            state.refresh()
+            state.refreshApps()
+        }
+    }
+    LaunchedEffect(account.id) {
+        state.pendingPayments.collectLatest { count -> pendingPayments = count }
     }
 
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -119,6 +131,21 @@ fun NotificationHubScreen(
                         TextButton(onClick = { notificationAccess = PermissionCenter.notificationListenerGranted(context) }) {
                             Text("重新检查")
                         }
+                    }
+                }
+            }
+        }
+        if (pendingPayments > 0) {
+            Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("$pendingPayments 笔交易等待确认", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "识别到的支付还没有进入账本。请到财务页确认，或补充金额与方向后再记账。",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = onOpenFinance) { Text("去财务处理") }
+                        TextButton(onClick = onOpenFinance) { Text("查看待确认") }
                     }
                 }
             }
@@ -323,7 +350,7 @@ private fun NotificationAppsSection(state: NotificationHubState, scope: kotlinx.
             OutlinedButton(onClick = { scope.launch { state.refreshApps() } }) { Text("刷新") }
         }
         Text(
-            "只有被选中的应用才会进入本地通知档案；财务识别不受此列表限制。",
+            "被关闭的应用不会进入本地通知档案，其余应用默认保存；财务识别不受此列表限制。",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp),

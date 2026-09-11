@@ -379,6 +379,83 @@ try {
   });
   assert.equal(confirmDeleted.response.status, 409);
 
+  // 9b. Real-device regression: "已支付100" normalizes to amount 10000 with a
+  // completion verb, so the structured event is parsed at high confidence and
+  // must create the finance transaction immediately (no manual confirmation).
+  const paid100 = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-paid-100", {
+      ...transactionEvent(),
+      event_id: "evt-task21-paid-100",
+      fingerprint: fingerprint("e101"),
+      parser_version: "payment-wechat",
+      amount_minor: 10_000,
+      confidence: 940,
+    }),
+  });
+  assert.equal(paid100.response.status, 200);
+  assert.match(paid100.payload.operation_results[0].transaction_id, /^txn:/, "已支付100 must be booked automatically");
+  const paid100Txn = await db.prepare(
+    "SELECT * FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 10000",
+  ).bind(USERS.subscriber.id).first();
+  assert.ok(paid100Txn, "已支付100 must exist in the real finance ledger");
+  assert.equal(paid100Txn.direction, "expense");
+
+  // 9c. Amount-unknown hints ("向张三转账" without an amount) become a real
+  // pending candidate with amount 0; confirming it requires the user's edits so
+  // no amount is ever invented.
+  const unknownHint = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-unknown-amount-hint", {
+      ...transactionEvent(),
+      event_id: "evt-task21-hint-amount",
+      fingerprint: fingerprint("f460"),
+      parser_version: "payment-wechat",
+      parse_status: "candidate",
+      direction: "expense",
+      amount_minor: 0,
+      confidence: 460,
+    }),
+  });
+  assert.equal(unknownHint.response.status, 200, JSON.stringify(unknownHint.payload));
+  const hintCandidateId = unknownHint.payload.operation_results[0].candidate_id;
+  assert.match(hintCandidateId, /^cand:/, "amount-unknown hint must create a review candidate");
+  const hintRow = await db.prepare(
+    "SELECT * FROM task21_notification_candidates WHERE id = ?1",
+  ).bind(hintCandidateId).first();
+  assert.equal(Number(hintRow.amount_minor), 0);
+  assert.equal(hintRow.status, "pending");
+
+  const confirmWithoutAmount = await request(db, "/api/notification/candidates/confirm", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: { candidate_id: hintCandidateId, device_id: "device-task21-000001" },
+  });
+  assert.equal(confirmWithoutAmount.response.status, 400);
+  assert.equal(confirmWithoutAmount.payload.code, "candidate_amount_required");
+  const hintTxnBefore = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 5000",
+  ).bind(USERS.subscriber.id).first();
+  assert.equal(Number(hintTxnBefore.count), 0, "an incomplete candidate must never book a transaction");
+
+  const confirmWithEdits = await request(db, "/api/notification/candidates/confirm", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: {
+      candidate_id: hintCandidateId,
+      device_id: "device-task21-000001",
+      edits: { amount_minor: 5000, direction: "expense" },
+    },
+  });
+  assert.equal(confirmWithEdits.response.status, 200, JSON.stringify(confirmWithEdits.payload));
+  assert.match(confirmWithEdits.payload.transaction_id, /^txn:/);
+  const hintTxnAfter = await db.prepare(
+    "SELECT * FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 5000",
+  ).bind(USERS.subscriber.id).first();
+  assert.ok(hintTxnAfter, "user-confirmed amount must reach the real finance ledger");
+
   // 10. Malformed amount and unsupported currency are rejected.
   const badAmount = await request(db, "/api/notification/ingest", {
     method: "POST",
@@ -413,7 +490,9 @@ try {
   }
   const candidates = await request(db, "/api/notification/candidates?status=confirmed", { token: USERS.subscriber.token });
   assert.equal(candidates.response.status, 200);
-  assert.equal(candidates.payload.candidates.length, 1);
+  // Two candidates confirmed above: the low-confidence one and the
+  // amount-unknown hint the user completed with an explicit edit.
+  assert.equal(candidates.payload.candidates.length, 2);
   const invalidCandidateFilter = await request(db, "/api/notification/candidates?status=unknown", {
     token: USERS.subscriber.token,
   });

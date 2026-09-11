@@ -4,7 +4,7 @@ import {
   sanitizeAccepted,
   sanitizeStoredRubric,
   wordMatchesLanguage,
-} from "./quiz.js?v=20260911-permissions-nav-dictation-r1";
+} from "./quiz.js?v=20260911-finance-linkage-tts-nav-r1";
 
 export const MAX_WRONG_BOOK_ITEMS = 250;
 

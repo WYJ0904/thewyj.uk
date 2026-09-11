@@ -2,6 +2,8 @@ package uk.thewyj.app.task21.store
 
 import java.security.MessageDigest
 import java.util.UUID
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 
 /**
  * Everything the capture pipeline needs to persist and query notifications.
@@ -192,6 +194,19 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
                 capturedAt = row.capturedAt,
             )
         }
+
+    /**
+     * Emits whenever anything is stored for the account. The notification hub
+     * collects this flow, so a captured notification appears in the UI as soon
+     * as the listener writes it instead of waiting for a manual refresh.
+     */
+    fun observeChanges(accountId: String): Flow<Unit> {
+        val account = accountId.trim()
+        return combine(
+            dao.observeInstanceCount(account),
+            dao.observeRevisionCount(account),
+        ) { _, _ -> Unit }
+    }
 
     fun historyCount(accountId: String, query: NotificationQuery): Int = dao.historyCount(
         accountId = accountId.trim(),

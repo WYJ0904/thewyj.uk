@@ -37,6 +37,12 @@ object WeChatPaymentParser : PaymentMessageParser {
         if (!hint && amount == null) {
             return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("wechat_not_payment"))
         }
+        if (!hint && !completion && amount != null && !PaymentText.hasStrongCurrencyMarker(normalized)) {
+            return ParsedPaymentMessage(
+                PaymentRecognitionStatus.NOT_PAYMENT,
+                reasons = listOf("wechat_amount_without_payment_context"),
+            )
+        }
         val missing = buildSet {
             if (amount == null) add("amount")
             if (direction == null) add("direction")
@@ -120,6 +126,12 @@ object AlipayPaymentParser : PaymentMessageParser {
         val hint = PaymentText.hasPaymentHint(normalized)
         if (!hint && amount == null) {
             return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("alipay_not_payment"))
+        }
+        if (!hint && !completion && amount != null && !PaymentText.hasStrongCurrencyMarker(normalized)) {
+            return ParsedPaymentMessage(
+                PaymentRecognitionStatus.NOT_PAYMENT,
+                reasons = listOf("alipay_amount_without_payment_context"),
+            )
         }
         val merchant = PaymentText.merchant(normalized)
         val reference = PaymentText.providerReference(normalized)

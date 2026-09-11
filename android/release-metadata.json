@@ -1,13 +1,13 @@
 {
   "applicationId": "uk.thewyj.app",
-  "versionName": "1.2.0",
-  "versionCode": 3,
+  "versionName": "1.2.1",
+  "versionCode": 4,
   "minimumVersionCode": 1,
   "releaseDate": "2026-09-11",
-  "releaseBuild": "2026-09-11-permissions-nav-dictation",
-  "releaseNotes": "权限中心与通知访问引导；底栏导航与随机错页修复；通知采集完整性提升；英语听写改用系统语音；App 内更新可直接下载并调起系统安装器。",
-  "apkFileName": "thewyj-android-1.2.0.apk",
-  "apkKey": "app/android/thewyj-android-1.2.0.apk",
-  "apkSha256": "0793ceb7be6ea0bc5d47e1fb96b5b7578e27f216864d80cf25b6eff21689fa79",
-  "apkSizeBytes": 1729391
+  "releaseBuild": "2026-09-11-finance-linkage-tts-nav",
+  "releaseNotes": "修复“已支付100”等无货币符号金额识别；确认支付自动记账并进入正式账本；等待确认交易可在财务页补齐金额；通知历史实时更新；权限中心底栏导航；英语听写改为系统语音引擎且不再卡顿。",
+  "apkFileName": "thewyj-android-1.2.1.apk",
+  "apkKey": "app/android/thewyj-android-1.2.1.apk",
+  "apkSha256": "75e6f876b6c808e4571272518561a00ae85e2108dc36a04b58b4cf6808bb03f0",
+  "apkSizeBytes": 1745771
 }

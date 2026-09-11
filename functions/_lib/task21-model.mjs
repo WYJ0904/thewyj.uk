@@ -131,8 +131,15 @@ export function normalizeNotificationEvent(value = {}) {
   if (parseStatus !== "unparsed" && eventType !== "transaction" && eventType !== "refund") {
     throw new Task21Error("非交易事件不能声明为已解析", 400, "event_type_conflicts_with_parse_status");
   }
-  if ((parseStatus === "parsed" || parseStatus === "candidate") && (!direction || amountMinor <= 0)) {
+  // A "parsed" event must carry the full money fields. A "candidate" may be
+  // missing the amount ("向张三转账" without a number): it stays a real review
+  // item with amount 0 and the identified direction, and the user supplies the
+  // amount before it can be confirmed. No amount is ever invented here.
+  if (parseStatus === "parsed" && (!direction || amountMinor <= 0)) {
     throw new Task21Error("已解析事件缺少金额或收支方向", 400, "structured_fields_required");
+  }
+  if (parseStatus === "candidate" && !direction) {
+    throw new Task21Error("待确认事件缺少收支方向", 400, "structured_direction_required");
   }
 
   return {

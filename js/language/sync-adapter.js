@@ -1,4 +1,4 @@
-import { sanitizeProfile } from "./quiz.js?v=20260911-permissions-nav-dictation-r1";
+import { sanitizeProfile } from "./quiz.js?v=20260911-finance-linkage-tts-nav-r1";
 
 export function createLearningSyncAdapter(getApi) {
   const api = () => getApi() || null;

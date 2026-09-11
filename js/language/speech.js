@@ -47,6 +47,9 @@ export function speakText(globalObject, { text, lang, rate, native = false } = {
       // The Android WebView intercepts this scheme and plays through the
       // system TextToSpeech engine; failures surface as a native notice.
       nativeSpeechActive = true;
+      // Correlation marker: the native side logs the matching tts-request and
+      // tts-utterance-start elapsed time.
+      globalObject.console?.info?.("WYJ_SPEECH:request");
       globalObject.location.href = nativeSpeechUrl({ text: value, lang: language, rate: speed });
       return { ok: true, engine, message: "" };
     } catch (_) {

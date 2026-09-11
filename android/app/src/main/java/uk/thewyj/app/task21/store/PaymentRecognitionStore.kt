@@ -27,6 +27,8 @@ interface PaymentRecognitionStoreContract {
     fun candidates(accountId: String, status: String, limit: Int = 100): List<PaymentCandidate>
     fun pendingCandidateCount(accountId: String): Int
 
+    fun observePendingCandidateCount(accountId: String): kotlinx.coroutines.flow.Flow<Int>
+
     fun reconciliationMatch(
         accountId: String,
         amountMinor: Long,
@@ -69,6 +71,9 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
         dao.candidatesByStatus(accountId, status, limit).map { it.toModel() }
 
     override fun pendingCandidateCount(accountId: String): Int = dao.pendingCandidateCount(accountId)
+
+    override fun observePendingCandidateCount(accountId: String): kotlinx.coroutines.flow.Flow<Int> =
+        dao.observePendingCandidateCount(accountId)
 
     override fun reconciliationMatch(
         accountId: String,

@@ -64,7 +64,9 @@ fun ThewyjWebView(
     val errorCallback = rememberUpdatedState(onMainFrameError)
     val unhandledBackCallback = rememberUpdatedState(onUnhandledBack)
     val pendingFileSelection = remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
-    val speechBridge = remember { AndroidSpeechBridge(context) }
+    // Speech runs fully off the navigation callback: handle() only enqueues and
+    // reports failures through the same notice channel as page errors.
+    val speechBridge = remember { AndroidSpeechBridge(context) { message -> errorCallback.value(message) } }
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val callback = pendingFileSelection.value
         pendingFileSelection.value = null
@@ -193,6 +195,10 @@ private fun createWebView(
             val marker = message.message().removePrefix("WYJ_AUTH_UI:")
             if (BuildConfig.DEBUG && message.message().startsWith("WYJ_AUTH_UI:") && marker in allowed) {
                 Log.i("ThewyjSession", "web-ui=$marker")
+                return true
+            }
+            if (message.message() == "WYJ_SPEECH:request") {
+                Log.i("ThewyjSpeech", "tts-request-from-web")
                 return true
             }
             return false

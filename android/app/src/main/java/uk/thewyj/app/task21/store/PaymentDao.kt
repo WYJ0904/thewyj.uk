@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PaymentDao {
@@ -55,6 +56,10 @@ interface PaymentDao {
 
     @Query("SELECT COUNT(*) FROM payment_candidates WHERE accountId = :accountId AND status = 'pending'")
     fun pendingCandidateCount(accountId: String): Int
+
+    /** Live pending count for the "待确认交易" banner. */
+    @Query("SELECT COUNT(*) FROM payment_candidates WHERE accountId = :accountId AND status = 'pending'")
+    fun observePendingCandidateCount(accountId: String): Flow<Int>
 
     @Query(
         """

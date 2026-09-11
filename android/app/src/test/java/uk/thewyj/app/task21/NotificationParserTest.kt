@@ -70,5 +70,32 @@ class NotificationParserTest {
         val b = NotificationFingerprint.fingerprint("com.tencent.mm", "标题", "支付成功 ￥1.00", "", "")
         assertEquals(a, b)
     }
+
+    /**
+     * Real-device regression: "已支付 ¥1000" must be a fully parsed payment
+     * with confidence high enough for the backend to write the finance
+     * transaction automatically (threshold 900).
+     */
+    @Test fun completedWeChatPaymentReachesAutoBookConfidence() {
+        val output = parse("com.tencent.mm", "微信支付", "已支付 ¥1000")
+        assertEquals(ParseStatus.PARSED, output.parseStatus)
+        assertEquals(100_000L, output.amountMinor)
+        assertEquals(FinanceDirection.EXPENSE, output.direction)
+        assertTrue("confidence=${output.confidence}", output.confidence >= 900)
+    }
+
+    @Test fun paymentVerbWithPlainNumberIsParsed() {
+        val output = parse("com.tencent.mm", "微信支付", "已支付100")
+        assertEquals(ParseStatus.PARSED, output.parseStatus)
+        assertEquals(10_000L, output.amountMinor)
+        assertTrue(output.confidence >= 900)
+    }
+
+    @Test fun referenceNumbersAndChatAmountsStayUnparsed() {
+        listOf("支付订单号 202609110001", "支付时间 2026-09-11", "支付验证码 123456", "张三：100 元的事明天聊").forEach {
+            val output = parse("com.tencent.mm", "微信", it)
+            assertEquals("$it must not produce an amount", 0L, output.amountMinor)
+        }
+    }
 }
 

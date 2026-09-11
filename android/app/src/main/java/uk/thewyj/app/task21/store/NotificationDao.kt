@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface NotificationDao {
@@ -20,6 +21,17 @@ interface NotificationDao {
 
     @Query("SELECT * FROM notification_instances WHERE accountId = :accountId AND identityKey = :identityKey AND status = 'active' ORDER BY lastSeenAt DESC LIMIT 1")
     fun activeInstanceByIdentity(accountId: String, identityKey: String): NotificationInstanceEntity?
+
+    /**
+     * Change signal for the UI: Room re-emits whenever an instance or revision
+     * row is written, so the history list observes the database instead of
+     * polling on a timer.
+     */
+    @Query("SELECT COUNT(*) FROM notification_instances WHERE accountId = :accountId")
+    fun observeInstanceCount(accountId: String): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM notification_revisions WHERE accountId = :accountId")
+    fun observeRevisionCount(accountId: String): Flow<Int>
 
     @Query("SELECT * FROM notification_instances WHERE accountId = :accountId AND notificationKey = :notificationKey AND status = 'active' ORDER BY lastSeenAt DESC LIMIT 1")
     fun activeInstanceByNotificationKey(accountId: String, notificationKey: String): NotificationInstanceEntity?

@@ -16,6 +16,13 @@ import uk.thewyj.app.task21.store.NotificationQuery
 import uk.thewyj.app.task21.store.RoomNotificationStore
 import java.io.File
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
@@ -199,6 +206,49 @@ class NotificationCaptureReliabilityTest {
             assertEquals(0, historyIds().size)
             assertEquals(1, coordinator.flush())
             assertEquals(1, transport.calls.get())
+        }
+    }
+
+    /**
+     * The UI must observe the database: a notification written by the listener
+     * is visible through the change flow without any polling or refresh call.
+     */
+    @Test fun storedNotificationIsObservableImmediately() {
+        runBlocking {
+            val emissions = CopyOnWriteArrayList<Unit>()
+            val job = launch(Dispatchers.IO) { store.observeChanges(accountId).collect { emissions.add(it) } }
+            try {
+                delay(300)
+                val baseline = emissions.size
+                withContext(Dispatchers.IO) {
+                    coordinator(RecordingTransport()).onNotification(
+                        input("com.tencent.mm", 77, "微信支付", "已支付100", 5_000L),
+                    )
+                }
+                delay(600)
+                assertTrue(
+                    "history change flow must emit after a capture (baseline=$baseline, now=${emissions.size})",
+                    emissions.size > baseline,
+                )
+            } finally {
+                job.cancel()
+            }
+        }
+    }
+
+    /**
+     * Only an explicit "off" row blocks a package. Unknown/new apps must keep
+     * being captured, otherwise notifications silently disappear after the user
+     * touches the app selector.
+     */
+    @Test fun unknownAppsStayCapturedOncePoliciesExist() {
+        onWorker {
+            val coordinator = coordinator(RecordingTransport())
+            store.setAppPolicy(accountId, "com.tencent.mm", enabled = false)
+            coordinator.onNotification(input("com.tencent.mm", 51, "微信", "普通消息", 1_000L))
+            assertEquals("explicitly disabled app must be skipped", 0, historyIds().size)
+            coordinator.onNotification(input("com.newly.installed.app", 52, "新应用", "普通消息", 1_100L))
+            assertEquals("unknown app must still be captured", 1, historyIds().size)
         }
     }
 }

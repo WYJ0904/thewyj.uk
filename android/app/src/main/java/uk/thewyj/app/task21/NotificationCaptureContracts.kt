@@ -67,8 +67,31 @@ interface NotificationArchiveSink {
  * coordinator so notification/SMS/accessibility all share one pipeline. It is
  * only called for finance-entitled accounts and receives local-only content.
  */
+/**
+ * One payment outcome shared by the local recognition pipeline and the
+ * structured event that is uploaded for finance. `confirmed` means the message
+ * itself proves a completed payment (verb + amount); everything else stays a
+ * review candidate instead of becoming a ledger entry.
+ */
+data class PaymentIngestOutcome(
+    val confirmed: Boolean,
+    val amountMinor: Long,
+    val direction: FinanceDirection,
+    val confidence: Int,
+    val merchant: String,
+    val counterparty: String,
+    val paymentChannel: String,
+    val parserVersion: String,
+)
+
 interface PaymentRecognitionHook {
     fun onCapture(accountId: String, input: NotificationCaptureInput, sourceAppLabel: String)
+
+    /**
+     * Pure parse result for the same capture. Returns null when the message is
+     * not a payment at all, so the notification parser stays in charge.
+     */
+    fun outcomeFor(input: NotificationCaptureInput): PaymentIngestOutcome? = null
 }
 
 enum class NotificationEventType { TRANSACTION, REFUND, MARKETING, VERIFICATION, OTHER }
