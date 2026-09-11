@@ -961,9 +961,9 @@ async function main() {
       // upload it, publish the share and download it back with a SHA check.
       const canonicalOriginal = path.join(TEST_ROOT, `transfer-canonical-${RUN_ID}.bin`);
       fs.writeFileSync(canonicalOriginal, Buffer.alloc(1024 * 1024, 7));
-      await evaluate(`transferController.addFiles([
-        new File([new Uint8Array(1024 * 1024).fill(7)], ${JSON.stringify(path.basename(canonicalOriginal))}, { type: "application/octet-stream" }),
-      ])`);
+      // Drive the real UI: the transfer page's own file input (the Android
+      // WebChromeClient path uses exactly this input).
+      await setFiles("#transferFileInput", [canonicalOriginal]);
       await waitFor("document.querySelectorAll('[data-transfer-item]').length === 1", 15_000, "canonical transfer item");
       await waitFor("!document.getElementById('transferCompleteBtn')?.disabled", 90_000, "canonical transfer upload complete");
       await click("#transferCompleteBtn");
