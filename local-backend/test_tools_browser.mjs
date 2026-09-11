@@ -610,7 +610,7 @@ async function main() {
     );
     await send("Page.navigate", { url: `${BASE_URL}/tools?tool-matrix=2` });
     await waitFor(
-      "window.WYJTools?.tools?.length === 103 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')",
+      "window.WYJTools?.tools?.length === 104 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')",
       15_000,
       "toolbox after transfer entry",
     );
@@ -973,7 +973,7 @@ async function main() {
       );
       await send("Page.navigate", { url: `${BASE_URL}/tools` });
       await waitFor("window.WYJTools?.tools?.length === 104", 15_000, "toolbox reload after canonical check");
-      await waitFor("window.WYJTools?.tools?.length === 103 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox after public file download");
+      await waitFor("window.WYJTools?.tools?.length === 104 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox after public file download");
     });
 
     await record("temporary", "temporary-clipboard", async () => {
