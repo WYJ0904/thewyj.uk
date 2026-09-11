@@ -1,13 +1,13 @@
 {
   "applicationId": "uk.thewyj.app",
-  "versionName": "1.2.7",
-  "versionCode": 10,
+  "versionName": "1.2.8",
+  "versionCode": 11,
   "minimumVersionCode": 1,
   "releaseDate": "2026-09-11",
-  "releaseBuild": "2026-09-11-task24-1-closure-r2",
-  "releaseNotes": "银行通知与银行短信现在能真正进入财务账本（修复支付渠道不匹配与方向缺失事件被服务端拒绝）；记账同步被云端拒绝时不再静默丢弃，而是保留本机数据并显示真实原因；通知历史改为逐条快照，撤回或替换不会让早先消息消失；桌面端恢复完整页面布局，折叠只用于手机窄屏；手机端折叠样式更轻量，「我的」显示真实权限状态，工具页改为紧凑两列；修复付款详情页把「收款方」误判为收入。",
-  "apkFileName": "thewyj-android-1.2.7.apk",
-  "apkKey": "app/android/thewyj-android-1.2.7.apk",
-  "apkSha256": "c2d22af99277f931e1dc7749bf76db08bebd4a9fae13015aa47a186ca82c79a1",
-  "apkSizeBytes": 1849547
+  "releaseBuild": "2026-09-11-task24-1-closure-r3",
+  "releaseNotes": "统一待确认交易数据源：Android 与网页财务读取同一 pending 接口，缺金额/缺方向可直接补全确认或忽略；微信无障碍读不到文字时改用本机截图 + 本地 OCR 核实，只补全已有待确认交易且截图不上传；截图与图片通知保存记录与本机缩略图，无法读取时明确提示；通知历史支持收藏与 7/30/90/365 天/永久保存；应用名称显示系统名；自动入账后待确认状态立即关闭；修复银行通知无法入账、撤回消息历史丢失、图片通知整条丢失。",
+  "apkFileName": "thewyj-android-1.2.8.apk",
+  "apkKey": "app/android/thewyj-android-1.2.8.apk",
+  "apkSha256": "8c62598f619c9c45f0b325fce2081e4e1dcb0bd42b0be74e6581a51e07267ada",
+  "apkSizeBytes": 2398961
 }
