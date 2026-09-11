@@ -128,6 +128,9 @@ interface PaymentRecognitionHook {
      * stops appearing in 「待核实 / 待确认」.
      */
     fun onFinanceOutcome(accountId: String, eventId: String, transactionId: String) = Unit
+
+    /** User-facing application name for a capture, resolved by the platform. */
+    fun appLabelFor(input: NotificationCaptureInput): String = ""
 }
 
 enum class NotificationEventType { TRANSACTION, REFUND, MARKETING, VERIFICATION, OTHER }

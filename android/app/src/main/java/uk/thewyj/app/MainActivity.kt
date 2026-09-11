@@ -40,6 +40,11 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         runCatching { connectivityManager.registerDefaultNetworkCallback(networkCallback) }
+        // P0-2/P0-3: cold start and resume both reconcile the shared pending-hint
+        // state, so web-side confirmations reach the app without a manual refresh.
+        Thread {
+            runCatching { uk.thewyj.app.task21.payment.PaymentHintSync(applicationContext).sync() }
+        }.start()
     }
 
     override fun onStop() {

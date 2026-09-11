@@ -225,7 +225,34 @@ class NotificationCaptureCoordinator(
             // direction-unknown hints stay local (90 second enrichment ticket)
             // where the user completes them, and the confirmed booking is
             // uploaded afterwards with the real direction.
-            if (payment.amountMinor <= 0 || payment.direction == FinanceDirection.UNKNOWN) return
+            if (payment.amountMinor <= 0 || payment.direction == FinanceDirection.UNKNOWN) {
+                // Incomplete but real: publish it as a pending hint so /finance and
+                // the app share one pending source of truth (P0-3). A hint can
+                // never create a transaction on its own.
+                enqueuePendingHint(
+                    accountId = current.accountId,
+                    sourceEventId = eventId,
+                    sourceType = when (input.sourceType) {
+                        "sms" -> "sms"
+                        "bank" -> "bank"
+                        else -> "notification"
+                    },
+                    sourcePackage = input.sourcePackage,
+                    appLabel = paymentHook?.appLabelFor(input).orEmpty(),
+                    amountMinor = payment.amountMinor.takeIf { it > 0 },
+                    direction = payment.direction.name,
+                    merchant = payment.merchant.ifBlank { payment.counterparty },
+                    currency = "CNY",
+                    confidence = structured.confidence,
+                    recognitionStatus = when {
+                        payment.amountMinor > 0 -> "PAYMENT_LIKELY"
+                        else -> "INSUFFICIENT_INFORMATION"
+                    },
+                    reasons = listOf("local_incomplete_payment"),
+                    parserVersion = payment.parserVersion,
+                )
+                return
+            }
             val payloadForPayment = StructuredEventJson.ingestPayload("1", current.deviceId, eventId, structured)
             queueFor(current.accountId).enqueue(eventId, payloadForPayment)
             return
@@ -275,6 +302,49 @@ class NotificationCaptureCoordinator(
         return runCatching {
             queueFor(current.accountId).peekRequests().map { it.operationId }.toSet()
         }.getOrDefault(emptySet())
+    }
+
+    /**
+     * Task 24.1 P0-3: queues the pending hint for an incomplete payment so the
+     * same pending state is visible on Web /finance. Identity is the capture's
+     * structured event id, so replays and restarts never duplicate it.
+     */
+    fun enqueuePendingHint(
+        accountId: String,
+        sourceEventId: String,
+        sourceType: String,
+        sourcePackage: String,
+        appLabel: String,
+        amountMinor: Long?,
+        direction: String,
+        merchant: String,
+        currency: String,
+        confidence: Int,
+        recognitionStatus: String,
+        reasons: List<String>,
+        parserVersion: String,
+    ): Boolean {
+        if (accountId.isBlank() || sourceEventId.isBlank()) return false
+        val current = account() ?: return false
+        if (!current.financeEntitled) return false
+        val payload = StructuredEventJson.hintPayload(
+            deviceId = current.deviceId,
+            sourceEventId = sourceEventId,
+            sourceType = sourceType,
+            sourcePackage = sourcePackage,
+            appLabel = appLabel,
+            amountMinor = amountMinor,
+            direction = direction,
+            merchant = merchant,
+            currency = currency,
+            confidence = confidence,
+            recognitionStatus = recognitionStatus,
+            reasons = reasons,
+            parserVersion = parserVersion,
+        )
+        return runCatching {
+            queueFor(current.accountId).enqueueHint("hint:$sourceEventId", payload)
+        }.isSuccess
     }
 
     /** Full queued uploads, including the last server rejection reason. */

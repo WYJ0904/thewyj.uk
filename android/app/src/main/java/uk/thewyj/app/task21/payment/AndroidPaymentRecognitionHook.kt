@@ -123,6 +123,9 @@ class AndroidPaymentRecognitionHook private constructor(private val appContext: 
         runCatching { coordinator.markFinanceRecorded(accountId, candidate.candidateId, transactionId) }
     }
 
+    override fun appLabelFor(input: NotificationCaptureInput): String =
+        PaymentAppLabels.resolve(appContext, input.sourcePackage)
+
     fun coordinator(): PaymentRecognitionCoordinator = coordinator
 
     companion object {

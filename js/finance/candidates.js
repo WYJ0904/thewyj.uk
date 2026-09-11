@@ -183,7 +183,12 @@ export function createFinanceCandidatesController({
     render([], "");
     try {
       const payload = await apiGet(`/api/notification/candidates?status=pending&limit=${CANDIDATE_PAGE_LIMIT}`);
-      render(Array.isArray(payload?.candidates) ? payload.candidates : []);
+      const candidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
+      // Task 24.1 P0-3: the same list also shows the unified pending hints, so a
+      // payment the device could not complete is actionable here instead of only
+      // inside the app. Identity stays the hint id; the server owns the state.
+      const hints = await loadPendingHints();
+      render([...hints, ...candidates]);
     } catch (error) {
       if (error?.code === "task21_notification_not_enabled") {
         render([], "通知归档功能尚未启用。");
@@ -196,20 +201,58 @@ export function createFinanceCandidatesController({
     }
   }
 
+  /** Pending hints mapped onto the candidate render shape (id stays the hint id). */
+  async function loadPendingHints() {
+    try {
+      const payload = await apiGet("/api/notification/hints?state=pending&limit=100");
+      const rows = Array.isArray(payload?.hints) ? payload.hints : [];
+      return rows.map((hint) => ({
+        id: String(hint.id || ""),
+        hint: true,
+        event_id: String(hint.source_event_id || ""),
+        direction: String(hint.direction || ""),
+        amount_minor: Number(hint.amount_minor) || 0,
+        currency: String(hint.currency || "CNY"),
+        merchant: String(hint.merchant || hint.app_label || ""),
+        counterparty: "",
+        payment_channel: "",
+        occurred_at_ms: Date.parse(String(hint.created_at || "")) || 0,
+        confidence: Number(hint.confidence) || 0,
+        status: "pending",
+        evidence: [{ source_type: String(hint.source_type || "notification") }],
+        evidence_count: 1,
+        correction_count: 0,
+      })).filter((item) => item.id);
+    } catch (_) {
+      // A missing hint endpoint must not hide the candidate list.
+      return [];
+    }
+  }
+
   async function decide(id, confirm, edits = null) {
     if (!id || busyIds.has(id)) return;
     busyIds = new Set(busyIds).add(id);
     reloadListState();
     let succeeded = false;
     try {
-      const body = confirm
+      const isHint = currentCandidates.some((item) => String(item.id) === id && item.hint === true);
+      const body = isHint
         ? {
-          candidate_id: id,
-          device_id: deviceId(),
-          ...(edits && Object.keys(edits).length ? { edits } : {}),
+          hint_id: id,
+          ...(confirm ? { device_id: deviceId() } : {}),
+          ...(confirm && edits && Object.keys(edits).length ? { edits } : {}),
         }
-        : { candidate_id: id };
-      const response = await api(`/api/notification/candidates/${confirm ? "confirm" : "reject"}`, body);
+        : confirm
+          ? {
+            candidate_id: id,
+            device_id: deviceId(),
+            ...(edits && Object.keys(edits).length ? { edits } : {}),
+          }
+          : { candidate_id: id };
+      const path = isHint
+        ? `/api/notification/hints/${confirm ? "confirm" : "ignore"}`
+        : `/api/notification/candidates/${confirm ? "confirm" : "reject"}`;
+      const response = await api(path, body);
       succeeded = true;
       onCandidateChanged(confirm ? String(response?.transaction_id || "") : "");
     } catch (error) {
