@@ -59,7 +59,7 @@ class PaymentVerificationCenter(context: Context) {
         val deviceBooks: Boolean get() = authority == Authority.DEVICE
     }
 
-    enum class SyncState { NONE, LOCAL_ONLY, PENDING_SYNC, SYNCED, SYNC_FAILED }
+    enum class SyncState { NONE, LOCAL_ONLY, PENDING_SYNC, SYNCED, SYNC_FAILED, SYNC_REJECTED }
 
     /**
      * Which side owns the booking. A recognition that captured an amount was
@@ -76,6 +76,8 @@ class PaymentVerificationCenter(context: Context) {
         val syncState: SyncState = SyncState.NONE,
     )
 
+    data class FlushOutcome(val uploaded: Int, val rejected: List<String>)
+
     /** Creates a fresh 90 second ticket for a recognition the user asked for. */
     fun startVerification(recognitionId: String): PaymentTicket? {
         val account = sessions.currentAccount() ?: return null
@@ -88,7 +90,9 @@ class PaymentVerificationCenter(context: Context) {
     /** Items that still need the user, newest first. */
     fun items(accountId: String): List<Item> {
         val recognitions = store.recognitionsByState(accountId, ATTENTION_STATES, 60)
-        val queue = pipeline.queuedOperationIds()
+        val queued = pipeline.queuedRequests()
+        val queue = queued.map { it.operationId }.toSet()
+        val rejections = queued.filter { it.lastError.isNotBlank() }.associate { it.operationId to it.lastError }
         return recognitions.map { recognition ->
             val candidate = store.candidateForRecognition(accountId, recognition.recognitionId)
             val ticket = store.ticketsForRecognition(accountId, recognition.recognitionId)
@@ -115,13 +119,14 @@ class PaymentVerificationCenter(context: Context) {
                 financeTransactionId = transactionId,
                 syncState = when {
                     transactionId.isNotBlank() -> SyncState.SYNCED
+                    rejections.containsKey(bookingId) -> SyncState.SYNC_REJECTED
                     queue.contains(bookingId) -> SyncState.PENDING_SYNC
                     bookingAttempted -> SyncState.SYNC_FAILED
                     uploaded -> SyncState.PENDING_SYNC
                     else -> SyncState.LOCAL_ONLY
                 },
                 authority = authorityOf(recognition),
-                notice = "",
+                notice = rejections[bookingId].orEmpty(),
             )
         }
     }
@@ -243,6 +248,16 @@ class PaymentVerificationCenter(context: Context) {
             }
             return BookResult(true, "已记录到财务", outcome.transactionId, SyncState.SYNCED)
         }
+        // The server refused the payload: report the real reason instead of an
+        // endless "waiting to sync" that never completes.
+        val rejection = flush?.rejected?.firstOrNull { it.operationId == eventId }
+        if (rejection != null) {
+            return BookResult(
+                ok = false,
+                message = "云端拒绝这笔记账（${rejection.reason}），已保留在本机，请联系管理员处理",
+                syncState = SyncState.SYNC_REJECTED,
+            )
+        }
         val stillQueued = pipeline.queuedOperationIds().contains(eventId)
         return if (stillQueued) {
             BookResult(
@@ -269,7 +284,10 @@ class PaymentVerificationCenter(context: Context) {
     }
 
     /** Flushes queued bookings so the cloud ledger catches up. */
-    fun flush(): Int = runCatching { pipeline.flushDetailed().uploaded }.getOrDefault(0)
+    fun flush(): FlushOutcome = runCatching {
+        val result = pipeline.flushDetailed()
+        FlushOutcome(result.uploaded, result.rejected.map { it.reason }.distinct())
+    }.getOrDefault(FlushOutcome(0, emptyList()))
 
     private fun accountDeviceId(): String = sessions.currentAccount()?.deviceId.orEmpty()
 

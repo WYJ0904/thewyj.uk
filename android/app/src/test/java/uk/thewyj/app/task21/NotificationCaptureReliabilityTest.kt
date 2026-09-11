@@ -149,15 +149,21 @@ class NotificationCaptureReliabilityTest {
         }
     }
 
-    @Test fun updatingOneNotificationKeepsOneInstanceAndCountsRevisions() {
+    /**
+     * Task 24.1: the list shows one row per saved snapshot, so three content
+     * changes are three history entries of the same conversation instance.
+     */
+    @Test fun updatingOneNotificationKeepsOneInstanceAndListsEverySnapshot() {
         onWorker {
             val coordinator = coordinator(RecordingTransport())
             coordinator.onNotification(input("com.tencent.mm", 7, "转账", "已收款 ¥10.00", 1_000L))
             coordinator.onNotification(input("com.tencent.mm", 7, "转账", "已收款 ¥20.00", 2_000L))
             coordinator.onNotification(input("com.tencent.mm", 7, "转账", "已收款 ¥30.00", 3_000L))
             val history = store.history(accountId, NotificationQuery(includeRemoved = true, limit = 10))
-            assertEquals(1, history.size)
+            assertEquals(3, history.size)
             assertEquals(3, history.first().revisionCount)
+            assertEquals(1, history.map { it.instanceId }.distinct().size)
+            assertEquals(listOf("已收款 ¥30.00", "已收款 ¥20.00", "已收款 ¥10.00"), history.map { it.text })
         }
     }
 

@@ -43,6 +43,11 @@ data class NotificationCapture(
 
 data class NotificationHistoryItem(
     val instanceId: String,
+    /**
+     * Identity of this saved snapshot. History lists one row per snapshot, so a
+     * message that was later replaced or retracted keeps its own entry.
+     */
+    val revisionId: String = "",
     val sourcePackage: String,
     val postTime: Long,
     val status: String,
@@ -187,6 +192,7 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
         ).map { row ->
             NotificationHistoryItem(
                 instanceId = row.instanceId,
+                revisionId = row.revisionId,
                 sourcePackage = row.sourcePackage,
                 postTime = row.postTime,
                 status = row.status,
@@ -253,6 +259,25 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
     fun delete(accountId: String, instanceIds: List<String>): Int {
         if (instanceIds.isEmpty()) return 0
         return dao.deleteInstances(accountId.trim(), instanceIds)
+    }
+
+    /**
+     * Deletes one saved snapshot. History keeps every revision, so removing a
+     * single message must not touch the other snapshots of the same
+     * conversation; the instance row is dropped only when it has no revisions
+     * left.
+     */
+    fun deleteRevisions(accountId: String, revisionIds: List<String>): Int {
+        val account = accountId.trim()
+        if (revisionIds.isEmpty()) return 0
+        // Resolve the owning instances before deleting so an instance whose last
+        // snapshot disappeared can be cleaned up without a second history query.
+        val owners = dao.revisionsByIds(account, revisionIds).map { it.instanceId }.distinct()
+        val removed = dao.deleteRevisions(account, revisionIds)
+        owners.forEach { instanceId ->
+            if (dao.revisionCountOf(account, instanceId) == 0) dao.deleteInstanceIfEmpty(account, instanceId)
+        }
+        return removed
     }
 
     fun clearAccount(accountId: String): Int = dao.clearAccount(accountId.trim())

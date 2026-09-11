@@ -9,20 +9,20 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20260911-task24-1-closure-r1";
+} from "./js/core/config.js?v=20260911-task24-1-closure-r2";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20260911-task24-1-closure-r1";
+} from "./js/core/api.js?v=20260911-task24-1-closure-r2";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20260911-task24-1-closure-r1";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20260911-task24-1-closure-r1";
+} from "./js/core/changelog.js?v=20260911-task24-1-closure-r2";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20260911-task24-1-closure-r2";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -33,27 +33,27 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20260911-task24-1-closure-r1";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260911-task24-1-closure-r1";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260911-task24-1-closure-r1";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260911-task24-1-closure-r1";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20260911-task24-1-closure-r1";
-import { speakText, stopSpeech } from "./js/language/speech.js?v=20260911-task24-1-closure-r1";
+} from "./js/core/session.js?v=20260911-task24-1-closure-r2";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20260911-task24-1-closure-r2";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20260911-task24-1-closure-r2";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20260911-task24-1-closure-r2";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20260911-task24-1-closure-r2";
+import { speakText, stopSpeech } from "./js/language/speech.js?v=20260911-task24-1-closure-r2";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?v=20260911-task24-1-closure-r1";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260911-task24-1-closure-r1";
-import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20260911-task24-1-closure-r1";
-import { createTransferController } from "./js/transfer/app.js?v=20260911-task24-1-closure-r1";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260911-task24-1-closure-r1";
+} from "./js/language/speech-rate.js?v=20260911-task24-1-closure-r2";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260911-task24-1-closure-r2";
+import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20260911-task24-1-closure-r2";
+import { createTransferController } from "./js/transfer/app.js?v=20260911-task24-1-closure-r2";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260911-task24-1-closure-r2";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20260911-task24-1-closure-r1";
+} from "./js/language/history.js?v=20260911-task24-1-closure-r2";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -90,16 +90,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20260911-task24-1-closure-r1";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260911-task24-1-closure-r1";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20260911-task24-1-closure-r1";
+} from "./js/language/quiz.js?v=20260911-task24-1-closure-r2";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20260911-task24-1-closure-r2";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20260911-task24-1-closure-r2";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20260911-task24-1-closure-r1";
+} from "./js/language/wrong-book.js?v=20260911-task24-1-closure-r2";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -108,7 +108,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20260911-task24-1-closure-r1";
+} from "./js/membership/account.js?v=20260911-task24-1-closure-r2";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -116,19 +116,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20260911-task24-1-closure-r1";
+} from "./js/membership/plans.js?v=20260911-task24-1-closure-r2";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20260911-task24-1-closure-r1";
+} from "./js/membership/recharge.js?v=20260911-task24-1-closure-r2";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20260911-task24-1-closure-r1";
+} from "./js/admin/formatters.js?v=20260911-task24-1-closure-r2";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");

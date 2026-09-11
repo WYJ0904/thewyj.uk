@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,6 +76,8 @@ import uk.thewyj.app.core.design.ThewyjTouch
 import uk.thewyj.app.core.design.statusContainerColor
 import uk.thewyj.app.core.design.statusContentColor
 import uk.thewyj.app.core.session.ConnectionMode
+import uk.thewyj.app.core.permission.PermissionCenter
+import uk.thewyj.app.task21.payment.PaymentAccessibilityStatus
 import uk.thewyj.app.core.session.SessionState
 import uk.thewyj.app.core.update.UpdateUiState
 import uk.thewyj.app.core.web.ThewyjWebView
@@ -464,49 +468,24 @@ private fun MyScreen(
                     }
                 }
             }
-            ThewyjCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(ThewyjSpacing.Lg)) {
-                    Text("Android 能力", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "后台会话维护已启用，低频运行且仅在联网时执行。",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    SettingsAction("通知保存", "通知权限、本机历史与自动记账候选") { onOpenNotifications() }
-                    HorizontalDivider()
-                    SettingsAction("文件传输", "SAF 大文件分片上传、续传与链接分享") { onOpenTransfer() }
-                    HorizontalDivider()
-                    SettingsAction("权限中心", "通知访问、无障碍、短信与安装权限的逐项说明") { onOpenPermissions() }
-                }
-            }
-            AppUpdateCard(
+            // Mobile information hierarchy (Task 24.1 §6): the account card above
+            // stays visible; device capability status is one line, and the rare
+            // actions live in a collapsed section instead of a second full page
+            // of cards.
+            MyAndroidCapabilitySection(
+                onOpenNotifications = onOpenNotifications,
+                onOpenTransfer = onOpenTransfer,
+                onOpenPermissions = onOpenPermissions,
+            )
+            MyAdvancedSection(
                 updateState = updateState,
                 onCheckUpdate = onCheckUpdate,
                 onStartUpdate = onStartUpdate,
                 onInstallUpdate = onInstallUpdate,
+                onRefresh = onRefresh,
+                onLogout = onLogout,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
-                OutlinedButton(onClick = onRefresh, shape = ThewyjRadius.Medium) { Text("立即同步会话") }
-                OutlinedButton(
-                    onClick = onLogout,
-                    shape = ThewyjRadius.Medium,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) { Text("退出登录") }
-            }
             Spacer(Modifier.height(ThewyjSpacing.Lg))
-        }
-    }
-}
-
-@Composable
-private fun SettingsAction(title: String, subtitle: String, onClick: () -> Unit) {
-    TextButton(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(vertical = ThewyjSpacing.Md),
-    ) {
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-            Text(title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -596,4 +575,127 @@ private fun destinationIcon(destination: AppDestination): ImageVector = when (de
     AppDestination.FINANCE -> Icons.AutoMirrored.Filled.List
     AppDestination.NOTIFICATIONS -> Icons.Default.Email
     AppDestination.MY -> Icons.Default.Person
+}
+/**
+ * Light mobile section: a header row with a chevron and a one-line status,
+ * then the content. Hierarchy comes from spacing and a divider, so the phone
+ * layout is not a stack of nested cards (Task 24.1 §6.3).
+ */
+@Composable
+private fun MyCollapsibleSection(
+    title: String,
+    status: String,
+    initiallyExpanded: Boolean,
+    content: @Composable () -> Unit,
+) {
+    var expanded by rememberSaveable { mutableStateOf(initiallyExpanded) }
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(vertical = ThewyjSpacing.Md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                if (status.isNotBlank()) {
+                    Text(
+                        status,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Text(
+                if (expanded) "收起" else "展开",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        HorizontalDivider()
+        if (expanded) {
+            Spacer(Modifier.height(ThewyjSpacing.Sm))
+            content()
+        }
+    }
+}
+
+/** Real device/permission status, so「我的」never claims a capability it lacks. */
+@Composable
+private fun MyAndroidCapabilitySection(
+    onOpenNotifications: () -> Unit,
+    onOpenTransfer: () -> Unit,
+    onOpenPermissions: () -> Unit,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var notificationAccess by remember { mutableStateOf(PermissionCenter.notificationListenerGranted(context)) }
+    var accessibilityConnected by remember { mutableStateOf(PaymentAccessibilityStatus.connected) }
+    LifecycleResumeEffect(Unit) {
+        notificationAccess = PermissionCenter.notificationListenerGranted(context)
+        accessibilityConnected = PaymentAccessibilityStatus.connected
+        onPauseOrDispose { }
+    }
+    val status = buildString {
+        append(if (notificationAccess) "通知访问已开启" else "通知访问未开启")
+        append(" · ")
+        append(if (accessibilityConnected) "无障碍已连接" else "无障碍未连接")
+    }
+    MyCollapsibleSection(title = "Android 能力", status = status, initiallyExpanded = true) {
+        ThewyjCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(ThewyjSpacing.Lg)) {
+                SettingsAction("通知保存", "通知权限、本机历史与自动记账候选") { onOpenNotifications() }
+                HorizontalDivider()
+                SettingsAction("文件传输", "SAF 大文件分片上传、续传与链接分享") { onOpenTransfer() }
+                HorizontalDivider()
+                SettingsAction("权限中心", "通知访问、无障碍、短信与安装权限的逐项说明") { onOpenPermissions() }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MyAdvancedSection(
+    updateState: UpdateUiState,
+    onCheckUpdate: () -> Unit,
+    onStartUpdate: () -> Unit,
+    onInstallUpdate: () -> Unit,
+    onRefresh: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    MyCollapsibleSection(
+        title = "更新与高级",
+        status = "版本检查、会话同步与退出登录",
+        initiallyExpanded = false,
+    ) {
+        AppUpdateCard(
+            updateState = updateState,
+            onCheckUpdate = onCheckUpdate,
+            onStartUpdate = onStartUpdate,
+            onInstallUpdate = onInstallUpdate,
+        )
+        Spacer(Modifier.height(ThewyjSpacing.Md))
+        Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
+            OutlinedButton(onClick = onRefresh, shape = ThewyjRadius.Medium) { Text("立即同步会话") }
+            OutlinedButton(
+                onClick = onLogout,
+                shape = ThewyjRadius.Medium,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            ) { Text("退出登录") }
+        }
+    }
+}
+
+@Composable
+private fun SettingsAction(title: String, subtitle: String, onClick: () -> Unit) {
+    TextButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(vertical = ThewyjSpacing.Md),
+    ) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
+            Text(title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
 }

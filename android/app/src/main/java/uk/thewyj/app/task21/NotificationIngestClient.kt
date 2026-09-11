@@ -9,7 +9,15 @@ import java.nio.file.StandardCopyOption
 import java.util.Base64
 
 data class IngestResponse(val ok: Boolean, val status: Int, val body: String)
-data class QueuedNotificationRequest(val operationId: String, val path: String, val body: String)
+data class QueuedNotificationRequest(
+    val operationId: String,
+    val path: String,
+    val body: String,
+    /** Upload attempts that ended in a non-retryable server rejection. */
+    val attempts: Int = 0,
+    /** Server error code/reason of the last rejection, shown to the user. */
+    val lastError: String = "",
+)
 
 interface NotificationIngestTransport {
     fun post(path: String, sessionToken: String, body: String): IngestResponse
@@ -129,6 +137,26 @@ class OfflineNotificationQueue(private val file: File) {
         }
     }
 
+    /**
+     * Records a non-retryable server rejection without deleting the payload.
+     * The entry keeps its bytes, reports why it was refused, and is skipped
+     * after [MAX_UPLOAD_ATTEMPTS] so a poison payload cannot block the queue.
+     */
+    fun markRejected(operationId: String, reason: String): QueuedNotificationRequest? {
+        synchronized(lock) {
+            val entries = readRequestsLocked().toMutableList()
+            val index = entries.indexOfFirst { it.operationId == operationId }
+            if (index < 0) return null
+            val updated = entries[index].copy(
+                attempts = entries[index].attempts + 1,
+                lastError = reason.take(120),
+            )
+            entries[index] = updated
+            writeAllLocked(entries)
+            return updated
+        }
+    }
+
     fun remove(operationId: String) {
         synchronized(lock) {
             val remaining = readRequestsLocked().filter { it.operationId != operationId }
@@ -152,10 +180,14 @@ class OfflineNotificationQueue(private val file: File) {
                 runCatching {
                     val parts = line.split("\t")
                     val operationId = decode(parts[0])
-                    val path = if (parts.size == 2) INGEST_PATH else decode(parts[1])
-                    val body = decode(parts[if (parts.size == 2) 1 else 2])
-                    require(parts.size in 2..3 && path in ALLOWED_PATHS)
-                    QueuedNotificationRequest(operationId, path, body)
+                    val path = if (parts.size <= 2) INGEST_PATH else decode(parts[1])
+                    val body = decode(parts[if (parts.size <= 2) 1 else 2])
+                    // attempts/lastError are optional trailing columns so
+                    // queues written by older builds keep loading.
+                    val attempts = parts.getOrNull(3)?.let { decode(it).toIntOrNull() } ?: 0
+                    val lastError = parts.getOrNull(4)?.let { decode(it) }.orEmpty()
+                    require(parts.size in 2..5 && path in ALLOWED_PATHS)
+                    QueuedNotificationRequest(operationId, path, body, attempts, lastError)
                 }.getOrNull()
             }
     }
@@ -169,7 +201,8 @@ class OfflineNotificationQueue(private val file: File) {
         file.parentFile?.mkdirs()
         val tmp = File(file.parentFile, file.name + ".tmp")
         val content = entries.joinToString("") {
-            encode(it.operationId) + "\t" + encode(it.path) + "\t" + encode(it.body) + "\n"
+            encode(it.operationId) + "\t" + encode(it.path) + "\t" + encode(it.body) + "\t" +
+                encode(it.attempts.toString()) + "\t" + encode(it.lastError) + "\n"
         }
         FileOutputStream(tmp).use { output ->
             output.write(content.toByteArray(Charsets.UTF_8))
@@ -193,6 +226,8 @@ class OfflineNotificationQueue(private val file: File) {
 
     companion object {
         const val MAX_QUEUE_ENTRIES = 500
+        /** Rejections before a payload is skipped instead of retried forever. */
+        const val MAX_UPLOAD_ATTEMPTS = 5
         const val INGEST_PATH = "/api/notification/ingest"
         const val DELETE_PATH = "/api/notification/events/delete"
         val ALLOWED_PATHS = setOf(INGEST_PATH, DELETE_PATH)

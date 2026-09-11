@@ -437,7 +437,7 @@ private fun NotificationHistorySection(state: NotificationHubState) {
                         state = state,
                         item = item,
                         onOpen = { state.detail = item },
-                        onDelete = { scope.launch { state.deleteOne(item.instanceId) } },
+                        onDelete = { scope.launch { state.deleteOne(item.revisionId) } },
                     )
                 }
             }
@@ -458,8 +458,8 @@ private fun NotificationHistoryCard(
     Card(Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable(onClick = onOpen)) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.Top) {
             Checkbox(
-                checked = state.selected.contains(item.instanceId),
-                onCheckedChange = { scope.launch { state.toggleSelection(item.instanceId) } },
+                checked = state.selected.contains(item.revisionId),
+                onCheckedChange = { scope.launch { state.toggleSelection(item.revisionId) } },
             )
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

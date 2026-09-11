@@ -31,6 +31,130 @@ class NotificationCaptureCoordinatorTest {
         account = account,
     )
 
+    /** Payment hook that returns a fixed parse outcome for every capture. */
+    private class FixedPaymentHook(private val parsed: PaymentIngestOutcome) : PaymentRecognitionHook {
+        override fun onCapture(
+            accountId: String,
+            input: NotificationCaptureInput,
+            sourceAppLabel: String,
+            uploadEventId: String,
+        ) = Unit
+
+        override fun outcomeFor(input: NotificationCaptureInput): PaymentIngestOutcome = parsed
+    }
+
+    private fun paymentCoordinator(
+        root: File,
+        transport: NotificationIngestTransport,
+        parsed: PaymentIngestOutcome,
+    ) = NotificationCaptureCoordinator(
+        archiveFor = { id -> LocalNotificationArchive.inDirectory(root, id) },
+        queueFor = { id -> NotificationOfflineQueue.inDirectory(root, id) },
+        transport = transport,
+        account = { NotificationCaptureCoordinator.CaptureAccount("a", "device-a", "token-a", true) },
+        paymentHook = FixedPaymentHook(parsed),
+    )
+
+    private fun parsedOutcome(
+        amountMinor: Long,
+        direction: FinanceDirection,
+        confirmed: Boolean = true,
+    ) = PaymentIngestOutcome(
+        confirmed = confirmed,
+        amountMinor = amountMinor,
+        direction = direction,
+        confidence = 950,
+        merchant = "示例商户",
+        counterparty = "示例商户",
+        paymentChannel = "wechat",
+        parserVersion = "test",
+    )
+
+    /**
+     * Real-device root cause: the API rejects parsed/candidate events without a
+     * direction (`structured_fields_required`). Sending them produced a 400 whose
+     * payload the client deleted, so a recognised payment could never reach
+     * Finance. Such a hint stays local until the user completes it.
+     */
+    @Test fun directionUnknownPaymentIsNeverUploaded() {
+        val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
+        try {
+            val transport = FakeTransport()
+            val coordinator = paymentCoordinator(
+                dir,
+                transport,
+                parsedOutcome(2800, FinanceDirection.UNKNOWN, confirmed = false),
+            )
+            coordinator.onNotification("com.tencent.mm", "微信支付", "已支付 ¥28.00", "", "", 1L)
+            assertEquals(0, coordinator.flush())
+            assertEquals(0, transport.calls.size)
+            assertEquals(0, coordinator.queuedRequests().size)
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
+    @Test fun completePaymentIsUploaded() {
+        val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
+        try {
+            val transport = FakeTransport()
+            val coordinator = paymentCoordinator(dir, transport, parsedOutcome(2800, FinanceDirection.EXPENSE))
+            coordinator.onNotification("com.tencent.mm", "微信支付", "已支付 ¥28.00", "", "", 1L)
+            assertEquals(1, coordinator.flush())
+            assertEquals(1, transport.calls.size)
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
+    /**
+     * A 400 used to delete the queued payload, which is why the app could show
+     * 「等待同步到云端账本」 forever while Finance stayed at 0 entries. The payload
+     * must survive and the reason must be reported.
+     */
+    @Test fun rejectedUploadKeepsPayloadAndReportsTheReason() {
+        val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
+        try {
+            val transport = object : NotificationIngestTransport {
+                override fun post(path: String, sessionToken: String, body: String): IngestResponse =
+                    IngestResponse(
+                        false,
+                        400,
+                        """{"error":"支付渠道无效","code":"payment_channel_invalid"}""",
+                    )
+            }
+            val coordinator = paymentCoordinator(dir, transport, parsedOutcome(2800, FinanceDirection.EXPENSE))
+            coordinator.onNotification("cmb.pb", "招商银行", "已支付 ¥28.00", "", "", 1L)
+            val result = coordinator.flushDetailed()
+            assertEquals(0, result.uploaded)
+            assertEquals(1, result.rejected.size)
+            assertEquals("payment_channel_invalid", result.rejected.first().reason)
+            assertEquals("the payload must not be deleted", 1, coordinator.queuedRequests().size)
+            assertEquals(1, coordinator.queuedRequests().first().attempts)
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
+    /** A replay the server already accepted loses nothing when it is dropped. */
+    @Test fun idempotentReplayIsNotTreatedAsARejection() {
+        val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
+        try {
+            val transport = object : NotificationIngestTransport {
+                override fun post(path: String, sessionToken: String, body: String): IngestResponse =
+                    IngestResponse(false, 409, """{"ok":true,"duplicate":true}""")
+            }
+            val coordinator = paymentCoordinator(dir, transport, parsedOutcome(2800, FinanceDirection.EXPENSE))
+            coordinator.onNotification("cmb.pb", "招商银行", "已支付 ¥28.00", "", "", 1L)
+            val result = coordinator.flushDetailed()
+            assertEquals(1, result.discardedInvalid)
+            assertEquals(0, result.rejected.size)
+            assertEquals(0, coordinator.queuedRequests().size)
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
     @Test fun entitledAccountArchivesAndFlushesOnlyItsOwnQueue() {
         val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
         try {

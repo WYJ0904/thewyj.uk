@@ -78,16 +78,16 @@ interface NotificationDao {
                r.parseStatus AS parseStatus, r.direction AS direction, r.amountMinor AS amountMinor,
                r.currency AS currency, r.merchant AS merchant, r.capturedAt AS capturedAt
         FROM notification_instances AS i
-        JOIN notification_revisions AS r ON r.revisionId = i.latestRevisionId
+        JOIN notification_revisions AS r ON r.instanceId = i.instanceId
         WHERE i.accountId = :accountId
           AND (:includeRemoved = 1 OR i.status = 'active')
           AND (:packageFilter = '' OR i.sourcePackage = :packageFilter)
-          AND (:fromTime = 0 OR i.postTime >= :fromTime)
-          AND (:toTime = 0 OR i.postTime <= :toTime)
+          AND (:fromTime = 0 OR r.capturedAt >= :fromTime)
+          AND (:toTime = 0 OR r.capturedAt <= :toTime)
           AND (:query = '' OR r.title LIKE '%' || :query || '%' OR r.text LIKE '%' || :query || '%'
                OR r.bigText LIKE '%' || :query || '%' OR r.subText LIKE '%' || :query || '%'
                OR r.summaryText LIKE '%' || :query || '%')
-        ORDER BY i.postTime DESC, i.instanceId DESC
+        ORDER BY r.capturedAt DESC, r.revisionId DESC
         LIMIT :limit OFFSET :offset
         """,
     )
@@ -105,12 +105,12 @@ interface NotificationDao {
     @Query(
         """
         SELECT COUNT(*) FROM notification_instances AS i
-        JOIN notification_revisions AS r ON r.revisionId = i.latestRevisionId
+        JOIN notification_revisions AS r ON r.instanceId = i.instanceId
         WHERE i.accountId = :accountId
           AND (:includeRemoved = 1 OR i.status = 'active')
           AND (:packageFilter = '' OR i.sourcePackage = :packageFilter)
-          AND (:fromTime = 0 OR i.postTime >= :fromTime)
-          AND (:toTime = 0 OR i.postTime <= :toTime)
+          AND (:fromTime = 0 OR r.capturedAt >= :fromTime)
+          AND (:toTime = 0 OR r.capturedAt <= :toTime)
           AND (:query = '' OR r.title LIKE '%' || :query || '%' OR r.text LIKE '%' || :query || '%'
                OR r.bigText LIKE '%' || :query || '%' OR r.subText LIKE '%' || :query || '%'
                OR r.summaryText LIKE '%' || :query || '%')
@@ -155,6 +155,21 @@ interface NotificationDao {
 
     @Query("DELETE FROM notification_instances WHERE accountId = :accountId AND instanceId IN (:instanceIds)")
     fun deleteInstances(accountId: String, instanceIds: List<String>): Int
+
+    @Query("DELETE FROM notification_revisions WHERE accountId = :accountId AND revisionId IN (:revisionIds)")
+    fun deleteRevisions(accountId: String, revisionIds: List<String>): Int
+
+    @Query("SELECT * FROM notification_revisions WHERE accountId = :accountId AND instanceId = :instanceId ORDER BY capturedAt DESC, revisionId DESC")
+    fun revisionsNewestFirst(accountId: String, instanceId: String): List<NotificationRevisionEntity>
+
+    @Query("SELECT COUNT(*) FROM notification_revisions WHERE accountId = :accountId AND instanceId = :instanceId")
+    fun revisionCountOf(accountId: String, instanceId: String): Int
+
+    @Query("SELECT * FROM notification_revisions WHERE accountId = :accountId AND revisionId IN (:revisionIds)")
+    fun revisionsByIds(accountId: String, revisionIds: List<String>): List<NotificationRevisionEntity>
+
+    @Query("DELETE FROM notification_instances WHERE accountId = :accountId AND instanceId = :instanceId AND (SELECT COUNT(*) FROM notification_revisions WHERE instanceId = :instanceId) = 0")
+    fun deleteInstanceIfEmpty(accountId: String, instanceId: String): Int
 
     @Query("DELETE FROM notification_instances WHERE accountId = :accountId")
     fun clearAccount(accountId: String): Int
