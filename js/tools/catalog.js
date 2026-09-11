@@ -126,6 +126,11 @@ export const toolRows = {
     ["random-decision", "随机决定器", "在多个方案之间随机帮你做决定。", "选择 困难"],
   ],
   temporary: [
+    // Canonical File Transfer 2.0 entry: it opens the same /transfer page as
+    // 我的 → 文件传输 (multipart, resume, Range, shared quota). The retired
+    // `temporary-file` workbench is only kept resolvable for old links and is
+    // redirected by tools.js.
+    ["file-transfer", "文件传输", "大文件分片上传、断点续传与分享链接。", "传文件 下载 分享 大文件"],
     ["temporary-text", "临时文本分享", "创建带密码、过期和访问次数限制的文本链接。", "阅后即焚 分享"],
     ["temporary-file", "临时文件分享", "创建有期限和下载次数限制的文件链接。", "传文件 下载"],
     ["temporary-clipboard", "临时剪贴板", "用六位连接码在设备间临时传递文本。", "跨设备 复制"],

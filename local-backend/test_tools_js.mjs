@@ -97,13 +97,19 @@ assert.match(vcard, /NOTE:第一行\\n第二行/);
 assert.throws(() => buildVcardPayload({ email: "broken" }), /邮箱/);
 assert.throws(() => buildVcardPayload({ website: "javascript:alert(1)" }), /http/);
 
-assert.equal(TOOLS.length, 103);
-assert.equal(new Set(TOOLS.map((tool) => tool.id)).size, 103);
+// Task 24.1: the temporary category gained the canonical "文件传输" entry that
+// routes to /transfer, so the catalog holds one more tool than before.
+assert.equal(TOOLS.length, 104);
+assert.equal(new Set(TOOLS.map((tool) => tool.id)).size, 104);
+assert.ok(searchTools("文件传输").some((tool) => tool.id === "file-transfer"));
 assert.ok(searchTools("jsoon").some((tool) => tool.id === "csv-json"));
 // The retired temporary-file share stays resolvable for existing links but is
 // no longer offered by the visible catalog (Task 22 file transfer replaces it).
 assert.deepEqual([...RETIRED_TOOL_IDS], ["temporary-file"]);
-assert.equal(CATALOG_TOOLS.length, 102);
+// 104 total tools minus the single retired legacy entry (temporary-file); the
+// canonical "file-transfer" entry takes its place in the visible catalog.
+assert.equal(CATALOG_TOOLS.length, 103);
+assert.ok(CATALOG_TOOLS.some((tool) => tool.id === "file-transfer"));
 assert.ok(!CATALOG_TOOLS.some((tool) => tool.id === "temporary-file"));
 assert.ok(TOOL_MAP.has("temporary-file"));
 assert.ok(!searchTools("临时文件分享").some((tool) => tool.id === "temporary-file"));

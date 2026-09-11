@@ -110,17 +110,17 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20260911-task24-1-closure-r3"
+        release_token = "20260912-transfer-r1"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "design-system.css", "public-experience.css", "workspace-experience.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
-        self.assertIn('export const APP_VERSION = "2026-09-11-task24-1-closure-r3"', self.core)
+        self.assertIn('export const APP_VERSION = "2026-09-12-task24-1-transfer"', self.core)
         self.assertIn(f'export const ASSET_RELEASE = "{release_token}"', self.core)
         self.assertIn('navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)', self.app)
         for module in ("api", "config", "router", "session", "storage", "ui", "design-system"):
             self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20260911-task24-1-closure-r3"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20260912-transfer-r1"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         for asset in ("design-system.css", "public-experience.css", "workspace-experience.css"):
@@ -134,7 +134,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertFalse((ROOT / "404.html").exists())
 
     def test_browser_module_graph_uses_one_release_version(self):
-        release_token = "20260911-task24-1-closure-r3"
+        release_token = "20260912-transfer-r1"
         import_pattern = re.compile(
             r'(?:from\s+|import\s+)["\'](\.{1,2}/[^"\']+\.js(?:\?[^"\']*)?)["\']'
         )
@@ -252,9 +252,9 @@ class StaticSiteTests(unittest.TestCase):
         self.assertNotRegex(self.html, r">\s*[文+×↕]\s*<")
 
     def test_task19_design_system_two_contract(self):
-        self.assertIn('href="/design-system.css?v=20260911-task24-1-closure-r3"', self.html)
-        self.assertIn('href="/public-experience.css?v=20260911-task24-1-closure-r3"', self.html)
-        self.assertIn('href="/workspace-experience.css?v=20260911-task24-1-closure-r3"', self.html)
+        self.assertIn('href="/design-system.css?v=20260912-transfer-r1"', self.html)
+        self.assertIn('href="/public-experience.css?v=20260912-transfer-r1"', self.html)
+        self.assertIn('href="/workspace-experience.css?v=20260912-transfer-r1"', self.html)
         self.assertIn('id="siteNavToggle"', self.html)
         self.assertIn('id="siteNavPanel"', self.html)
         self.assertIn('id="themeToggleBtn"', self.html)
@@ -365,7 +365,9 @@ class StaticSiteTests(unittest.TestCase):
 
     def test_tool_catalog_is_complete_and_unique(self):
         source = self.tool_catalog.split("const toolRows = {", 1)[1].split("const TOOLS =", 1)[0]
-        expected_counts = {"text": 29, "file": 17, "image": 30, "random": 22, "temporary": 5}
+        # Task 24.1: the temporary category gained the canonical "文件传输" entry
+        # that routes to /transfer, so it holds one more row than before.
+        expected_counts = {"text": 29, "file": 17, "image": 30, "random": 22, "temporary": 6}
         all_ids = []
         for category, expected_count in expected_counts.items():
             match = re.search(rf"\n\s+{category}: \[(.*?)\n\s+\],", source, re.S)
@@ -378,8 +380,8 @@ class StaticSiteTests(unittest.TestCase):
             self.assertEqual(len(ids), expected_count, category)
             self.assertTrue(all(row[1].strip() and row[2].strip() for row in rows), category)
             all_ids.extend(ids)
-        self.assertEqual(len(all_ids), 103)
-        self.assertEqual(len(set(all_ids)), 103)
+        self.assertEqual(len(all_ids), 104)
+        self.assertEqual(len(set(all_ids)), 104)
         self.assertIn("function fuzzyToolScore", self.tool_catalog)
         self.assertIn("function boundedEditDistance", self.tool_catalog)
         self.assertIn("searchTools", self.tool_catalog)
@@ -409,10 +411,13 @@ class StaticSiteTests(unittest.TestCase):
         task14_service = (ROOT / "functions" / "_lib" / "task14-service.mjs").read_text(encoding="utf-8")
         self.assertIn("const TEMP_FILE_MAX_BYTES = 20 * 1024 * 1024", self.tools)
         self.assertIn("const TEMP_VIDEO_MAX_BYTES = 30 * 1024 * 1024", self.tools)
-        self.assertIn('".mp4": "video/mp4"', self.tools)
-        self.assertIn('bridge.api("/api/temporary/file/init"', self.tools)
-        self.assertIn('bridge.uploadBinaryApi(initialized.upload.upload_url', self.tools)
-        self.assertIn('bridge.api("/api/temporary/file/cancel"', self.tools)
+        # Task 24.1: the toolbox no longer renders its own file uploader - file
+        # transfer is the canonical /transfer page - so the legacy mime map and
+        # the legacy init/upload/cancel calls must stay out of the bundle.
+        self.assertNotIn('bridge.api("/api/temporary/file/init"', self.tools)
+        self.assertNotIn('bridge.api("/api/temporary/file/cancel"', self.tools)
+        transfer = (ROOT / "js" / "transfer" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("/api/transfer/", transfer)
         self.assertIn("requestJsonGet,", self.app)
         self.assertIn("uploadBinaryApi,", self.app)
         self.assertIn("MAX_TEMP_FILE_BYTES = 20 * 1024 * 1024", task14_model)
@@ -983,6 +988,37 @@ class StaticSiteTests(unittest.TestCase):
         self.assertEqual(len(builds), len(set(builds)), "changelog build ids must be unique")
         self.assertEqual(len(versions), len(builds), "every entry needs a version and a build")
         self.assertEqual(versions, sorted(versions, reverse=True), "changelog must be newest first")
+
+    def test_one_canonical_file_transfer_implementation(self):
+        """Task 24.1 final blocker: 工具箱 and 我的 must share one File Transfer.
+
+        The retired Task 14 `temporary-file` workbench (its own uploader,
+        `/api/temporary/file/*` and its own 500 MB quota) must not be renderable
+        and must not be referenced by the production bundle.
+        """
+        catalog = (ROOT / "js" / "tools" / "catalog.js").read_text(encoding="utf-8")
+        tools = (ROOT / "tools.js").read_text(encoding="utf-8")
+        transfer = (ROOT / "js" / "transfer" / "app.js").read_text(encoding="utf-8")
+
+        # 1. The legacy uploader is gone from the bundle.
+        self.assertNotIn("renderTemporaryFile", tools)
+        self.assertNotIn("/api/temporary/file/init", tools)
+        self.assertNotIn("/api/temporary/file/cancel", tools)
+        self.assertNotIn("tempFileInput", tools)
+
+        # 2. Both ids route to the canonical /transfer page.
+        self.assertIn('toolId === "temporary-file" || toolId === "file-transfer"', tools)
+        self.assertIn('bridge.navigate("/transfer")', tools)
+
+        # 3. 工具箱 offers a canonical 文件传输 entry; the legacy id stays retired
+        #    (resolvable for old links only, never listed).
+        self.assertIn('["file-transfer", "文件传输"', catalog)
+        self.assertIn('RETIRED_TOOL_IDS = Object.freeze(["temporary-file"])', catalog)
+
+        # 4. The canonical page is the Task 22 transfer implementation (shared
+        #    quota + multipart + Range), not the legacy temporary-share API.
+        self.assertIn("/api/transfer/", transfer)
+        self.assertNotIn("/api/temporary/file/init", transfer)
 
     def test_android_payment_channels_are_accepted_by_the_api(self):
         """Real-device regression: the Android parsers emitted "bank"/"bank_sms"

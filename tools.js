@@ -7,10 +7,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20260911-task24-1-closure-r3";
-import { randomToolResult } from "./js/tools/random.js?v=20260911-task24-1-closure-r3";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260911-task24-1-closure-r3";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260911-task24-1-closure-r3";
+} from "./js/tools/catalog.js?v=20260912-transfer-r1";
+import { randomToolResult } from "./js/tools/random.js?v=20260912-transfer-r1";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260912-transfer-r1";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260912-transfer-r1";
 import {
   csvString,
   decodeLocalText,
@@ -19,15 +19,15 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20260911-task24-1-closure-r3";
+} from "./js/tools/file.js?v=20260912-transfer-r1";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20260911-task24-1-closure-r3";
-import { runToolRenderer } from "./js/tools/runner.js?v=20260911-task24-1-closure-r3";
+} from "./js/tools/image.js?v=20260912-transfer-r1";
+import { runToolRenderer } from "./js/tools/runner.js?v=20260912-transfer-r1";
 (() => {
   "use strict";
 
@@ -471,6 +471,16 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260911-task24-1-closur
   }
 
   async function openTool(toolId, pushRoute = true) {
+    // Task 24.1 final blocker: File Transfer has exactly one implementation.
+    // The retired Task 14 `temporary-file` workbench (its own uploader, its own
+    // `/api/temporary/file/*` calls and its own 500 MB quota) must never render
+    // again: both 工具箱 and 我的 route to the canonical Task 22 /transfer page.
+    if (toolId === "temporary-file" || toolId === "file-transfer") {
+      viewRevision++;
+      currentTool = null;
+      bridge.navigate("/transfer");
+      return;
+    }
     const tool = TOOL_MAP.get(toolId);
     if (!tool) return;
     viewRevision++;
@@ -1018,28 +1028,6 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260911-task24-1-closur
     return temporaryCapabilitiesPromise;
   }
 
-  function temporaryFileLimit(file, capabilities = {}) {
-    const extension = String(file?.name || "").split(".").pop().toLowerCase();
-    const video = TEMP_VIDEO_EXTENSIONS.has(extension);
-    const limits = capabilities.limits || {};
-    return {
-      video,
-      bytes: Number(video ? limits.video_bytes : limits.file_bytes) || (video ? TEMP_VIDEO_MAX_BYTES : TEMP_FILE_MAX_BYTES),
-    };
-  }
-
-  function temporaryFileMime(file) {
-    if (String(file?.type || "").trim()) return String(file.type).trim().toLowerCase();
-    const extension = String(file?.name || "").toLowerCase().match(/(\.[a-z0-9]+)$/)?.[1] || "";
-    return ({
-      ".txt": "text/plain", ".csv": "text/csv", ".json": "application/json",
-      ".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg",
-      ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif",
-      ".zip": "application/zip", ".mp4": "video/mp4", ".m4v": "video/x-m4v",
-      ".mov": "video/quicktime", ".webm": "video/webm",
-    })[extension] || "application/octet-stream";
-  }
-
   function qrPngDataUrl(qr, cellSize = 8, quietModules = 4) {
     const moduleCount = qr.getModuleCount();
     const pixels = (moduleCount + quietModules * 2) * cellSize;
@@ -1126,82 +1114,6 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260911-task24-1-closur
     activeUploadController.abort();
     activeUploadController = null;
     if (showMessage) setMessage("已取消上传");
-  }
-
-  function renderTemporaryFile(tool) {
-    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form temporary-tool-form">
-      <label class="file-drop"><span>选择临时文件（普通文件 20 MB，视频 30 MB）</span><input id="tempFileInput" type="file" accept=".txt,.csv,.json,.pdf,.png,.jpg,.jpeg,.webp,.gif,.zip,.mp4,.m4v,.mov,.webm" /></label>
-      ${temporaryCommonFields(60)}
-      <label><span>最大下载次数</span><input id="tempMaxDownloads" data-config="maxDownloads" type="number" min="1" max="100" value="5" /></label>
-      <div class="tool-command-row"><button class="primary" id="createTempBtn" type="button">上传并生成链接</button><button id="cancelTempUploadBtn" class="hidden" type="button">取消上传</button></div>
-      <div class="upload-progress hidden" id="tempUploadProgressWrap"><progress id="tempUploadProgress" max="100" value="0"></progress><span id="tempUploadProgressText">0%</span></div>
-      <div class="temporary-result" id="temporaryResult"></div>${renderConfigControls(tool.id)}
-    </div>`;
-    const createButton = byId("createTempBtn");
-    const cancelButton = byId("cancelTempUploadBtn");
-    const progressWrap = byId("tempUploadProgressWrap");
-    const progress = byId("tempUploadProgress");
-    const progressText = byId("tempUploadProgressText");
-    const updateProgress = (value, label) => {
-      const percent = Math.round(Math.max(0, Math.min(1, value)) * 100);
-      progress.value = percent;
-      progressText.textContent = label || `${percent}%`;
-    };
-    cancelButton.addEventListener("click", () => cancelActiveUpload(true));
-    createButton.addEventListener("click", async () => {
-      if (activeUploadController) return;
-      const controller = new AbortController();
-      activeUploadController = controller;
-      createButton.disabled = true;
-      cancelButton.classList.remove("hidden");
-      progressWrap.classList.remove("hidden");
-      updateProgress(0, "准备读取…");
-      let reservationId = "";
-      try {
-        const selected = byId("tempFileInput").files?.[0];
-        if (!selected) throw new Error("请选择文件");
-        const capabilities = await temporaryCapabilities(true);
-        if (!capabilities.available) throw new Error("暂时无法确认临时分享服务状态，请检查网络后重试");
-        if (!capabilities.cloud_upload) throw new Error("云端临时文件上传暂不可用，请稍后重试");
-        const limit = temporaryFileLimit(selected, capabilities);
-        if (selected.size > limit.bytes) {
-          throw new Error(`临时${limit.video ? "视频" : "文件"}不能超过 ${limit.bytes / (1024 * 1024)} MB`);
-        }
-        updateProgress(0, "正在创建安全上传…");
-        const initialized = await bridge.api("/api/temporary/file/init", {
-          file_name: selected.name,
-          mime_type: temporaryFileMime(selected),
-          size_bytes: selected.size,
-          password: byId("tempPassword").value,
-          minutes: byId("tempMinutes").value,
-          max_downloads: byId("tempMaxDownloads").value,
-          destroy_after_download: byId("tempDestroy").checked,
-        }, { timeoutMs: 30000 });
-        reservationId = initialized.upload.id;
-        const data = await bridge.uploadBinaryApi(initialized.upload.upload_url, selected, {
-          controller,
-          timeoutMs: 600000,
-          contentType: temporaryFileMime(selected),
-          onProgress: (ratio) => updateProgress(ratio, `上传 ${Math.round(ratio * 100)}%`),
-        });
-        const url = shareUrl("file", data.file.id);
-        renderTemporaryResult(byId("temporaryResult"), "下载链接", url, url);
-        updateProgress(1, "上传完成");
-        setMessage(`已安全保存，${formatBytes(data.file.size_bytes)}，有效至 ${bridge.formatDate(data.file.expires_at)}`);
-      } catch (error) {
-        if (reservationId) {
-          bridge.api("/api/temporary/file/cancel", { id: reservationId }, { timeoutMs: 10000 }).catch(() => undefined);
-        }
-        if (error.name !== "AbortError" || !controller.silentCancel) {
-          setMessage(error.message, error.name !== "AbortError");
-        }
-      } finally {
-        if (activeUploadController === controller) activeUploadController = null;
-        createButton.disabled = false;
-        cancelButton.classList.add("hidden");
-      }
-    });
-    bindConfigControls();
   }
 
   function renderTemporaryClipboard(tool) {
@@ -1505,7 +1417,6 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260911-task24-1-closur
 
   function renderTemporaryTool(tool) {
     if (tool.id === "temporary-text") renderTemporaryText(tool);
-    else if (tool.id === "temporary-file") renderTemporaryFile(tool);
     else if (tool.id === "temporary-clipboard") renderTemporaryClipboard(tool);
     else if (tool.id === "temporary-qr") renderTemporaryQr(tool);
     else renderTemporaryRoom(tool);
