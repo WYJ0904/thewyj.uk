@@ -45,14 +45,28 @@ class AndroidPaymentStatusNotifier(private val context: Context) : PaymentStatus
                 verificationIntent(message.recognitionId),
             )
         }
+        // Task 24.x P0: "打开应用" used to launch the *source* app package
+        // (e.g. com.tencent.mm). That is wrong twice over: the user expects
+        // thewyj, and a disabled/removed source app made the tap do nothing at
+        // all. thewyj actions now always target thewyj; the source app keeps a
+        // clearly separate, explicitly labelled action.
+        builder.addAction(
+            0,
+            "查看交易",
+            openAppIntent(message.recognitionId),
+        )
         if (message.openPackage.isNotBlank()) {
             launchIntent(message.openPackage)?.let { intent ->
-                builder.addAction(0, "打开应用", PendingIntent.getActivity(
-                    context,
-                    message.notificationId + 1,
-                    intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                ))
+                builder.addAction(
+                    0,
+                    "打开来源应用",
+                    PendingIntent.getActivity(
+                        context,
+                        message.notificationId + 1,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    ),
+                )
             }
         }
         return runCatching {
