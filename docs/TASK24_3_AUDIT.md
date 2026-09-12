@@ -97,6 +97,21 @@ canonical 状态机闭合，Production 与正式 APK 复测通过。
   发布大小只在服务器确实提供（>0）时作为附加校验。
 - Regression：`AppUpdateInstallerVerifyTest`（缺失哈希、畸形哈希、哈希+大小通过、
   仅有哈希通过、大小不符失败、内容被篡改后删除）。
+- Commit：`b84f67c`。
+
+### T24.3-06 离线捕获后联网不会自动补传（P2 数据迟到/待同步悬置）
+
+- Root cause：单条通知上传失败（离线、超时）后，重试只发生在「下一条通知到来」或
+  用户打开通知历史/待核实界面；监听服务 `onListenerConnected` 只在通知栏里有活跃通知时
+  通过回放间接触发排空（空通知栏什么都不触发），`SessionRefreshWorker` 只刷新会话，
+  `MainActivity` 的网络回调只做会话恢复。结果是金额已在本机识别，联网恢复后仍可能长时间
+  不进 Finance，停在「待同步」。
+- 修复：监听服务新增两个维护触发——`onListenerConnected` 无条件请求一次排空
+  （进程启动/系统重绑），并注册默认网络回调，网络恢复（`onAvailable`）时请求排空；
+  请求复用既有 `AtomicBoolean` 合并，不会并发重复上传。新增测试注入
+  `pendingFlushOverride`（生产默认仍走真实 `scheduleFlush`）。
+- Regression：`NotificationListenerRetryTriggerTest.networkAvailableRetriesThePendingIngestQueue`、
+  `NotificationListenerRetryTriggerTest.listenerReconnectRetriesThePendingIngestQueueEvenWithAnEmptyShade`。
 - Commit：`<pending>`。
 
 ## 审计队列状态（内部继续用）
