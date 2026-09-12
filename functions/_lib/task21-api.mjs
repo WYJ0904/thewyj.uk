@@ -125,10 +125,17 @@ async function execute(context, path, account) {
     }
     if (path === "/api/notification/hints") {
       // Same pending source of truth for Android and Web /finance.
+      // An explicit empty `state=` means "every state": the Android pull needs
+      // confirmed/ignored hints to close local pending items (real device:
+      // ¥104.49 stayed pending after a Web confirm because `'' || "pending"`
+      // silently returned the pending default).
+      const stateParam = url.searchParams.has("state")
+        ? url.searchParams.get("state")
+        : "pending";
       return response({
         ok: true,
         ...await listNotificationHints(db, account, {
-          state: url.searchParams.get("state") || "pending",
+          state: stateParam ?? "",
           limit: url.searchParams.get("limit") || "",
         }),
         build: TASK21_BUILD,
