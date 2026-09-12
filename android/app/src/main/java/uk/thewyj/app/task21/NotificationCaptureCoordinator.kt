@@ -440,12 +440,25 @@ class NotificationCaptureCoordinator(
                 }
                 response.status in setOf(400, 404, 409) -> {
                     val reason = ingestFailureReason(response)
-                    if (ingestWasAlreadyHandled(response.body)) {
+                    // P0 root cause: a "duplicate" answer used to be trusted on
+                    // its own, so an event the server had *seen* but never
+                    // actually booked (no transaction, no candidate) was deleted
+                    // from the queue - the amount was recognised and the payment
+                    // silently never reached Finance. Only a duplicate that
+                    // carries a real ledger identity may drop the payload.
+                    if (ingestWasAlreadyHandled(response.body) && ingestOwnsLedgerIdentity(response.body)) {
                         // The server already has this exact event: nothing to
                         // keep (a replay is not a lost payment).
                         ingestQueue.remove(request.operationId)
                         discardedInvalid += 1
                     } else {
+                        if (ingestWasAlreadyHandled(response.body)) {
+                            CaptureTrace.stage(
+                                request.operationId,
+                                "finance-api-duplicate-without-ledger",
+                                "status=${response.status} reason=$reason",
+                            )
+                        }
                         // Real client/server contract failure. Never drop the
                         // payload silently: record why and surface it.
                         val updated = ingestQueue.markRejected(request.operationId, reason)
@@ -509,6 +522,18 @@ class NotificationCaptureCoordinator(
             json.optBoolean("duplicate") ||
                 result?.optBoolean("duplicate") == true ||
                 result?.optBoolean("idempotent_replay") == true
+        }.getOrDefault(false)
+
+        /**
+         * True only when the server's answer proves it owns a real ledger record
+         * for this event (a booked transaction or a reviewable candidate).
+         * A bare `duplicate: true` without either id means the event was seen but
+         * never persisted, so the device must keep it and report the failure.
+         */
+        fun ingestOwnsLedgerIdentity(body: String): Boolean = runCatching {
+            val json = org.json.JSONObject(body)
+            val result = json.optJSONArray("operation_results")?.optJSONObject(0) ?: return@runCatching false
+            result.optString("transaction_id").isNotBlank() || result.optString("candidate_id").isNotBlank()
         }.getOrDefault(false)
     }
 }
