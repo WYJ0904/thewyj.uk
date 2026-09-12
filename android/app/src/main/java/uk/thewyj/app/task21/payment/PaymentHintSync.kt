@@ -18,19 +18,28 @@ import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
  * ignored) on the web page disappears from the app's 待核实 list on the next
  * sync, and a confirmed hint records the real finance entry id.
  */
-class PaymentHintSync(context: Context) {
+class PaymentHintSync(
+    context: Context,
+    // Injectable for the Phase 1 cross-client test: Web confirm must reach the
+    // Android archive through exactly this pull path.
+    hintedTransport: uk.thewyj.app.task21.NotificationIngestTransport? = null,
+    hintedStore: PaymentRecognitionStoreContract? = null,
+    private val archiveSink: uk.thewyj.app.task21.NotificationArchiveSink? = null,
+    private val accountOverride: (() -> uk.thewyj.app.task21.NotificationCaptureCoordinator.CaptureAccount?)? = null,
+) {
     private val app = context.applicationContext
     private val sessions = NotificationSessionProvider(app)
     private val store: PaymentRecognitionStoreContract =
-        RoomPaymentRecognitionStore(NotificationDatabase.get(app))
-    private val transport = HttpNotificationIngestTransport(BuildConfig.THEWYJ_BASE_URL)
+        hintedStore ?: RoomPaymentRecognitionStore(NotificationDatabase.get(app))
+    private val transport = hintedTransport ?: HttpNotificationIngestTransport(BuildConfig.THEWYJ_BASE_URL)
     private val hook = AndroidPaymentRecognitionHook.get(app)
 
     data class Result(val refreshed: Int, val confirmed: Int, val ignored: Int, val ok: Boolean)
 
     /** Pulls every hint state for the current account. Safe to call often. */
     fun sync(): Result {
-        val account = runCatching { sessions.currentAccount() }.getOrNull() ?: return Result(0, 0, 0, false)
+        val account = (accountOverride?.invoke()
+            ?: runCatching { sessions.currentAccount() }.getOrNull()) ?: return Result(0, 0, 0, false)
         if (!account.financeEntitled) return Result(0, 0, 0, false)
         val response = runCatching {
             transport.get("/api/notification/hints?state=&limit=200", account.sessionToken)
@@ -67,7 +76,7 @@ class PaymentHintSync(context: Context) {
         // row: a Web/Android confirm must close the notification-side state even
         // when this device never created a local candidate for that event.
         runCatching {
-            NotificationArchiveSinkFactory.forContext(app)
+            (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
                 .markFinanceOutcome(accountId, eventId, "confirmed", financeEntryId)
         }
         val recognition = runCatching { store.recognitionByUploadEvent(accountId, eventId) }.getOrNull() ?: return
@@ -95,7 +104,7 @@ class PaymentHintSync(context: Context) {
 
     private fun applyIgnored(accountId: String, eventId: String) {
         runCatching {
-            NotificationArchiveSinkFactory.forContext(app)
+            (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
                 .markFinanceOutcome(accountId, eventId, "ignored")
         }
         val recognition = runCatching { store.recognitionByUploadEvent(accountId, eventId) }.getOrNull() ?: return

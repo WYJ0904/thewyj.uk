@@ -63,8 +63,17 @@ class MainActivity : ComponentActivity() {
         // the user can review the candidate or re-verify the amount.
         val verifyRecognitionId = intent?.getStringExtra(PAYMENT_VERIFY_EXTRA).orEmpty()
         val notificationRecognitionId = intent?.getStringExtra(PAYMENT_NOTIFICATION_EXTRA).orEmpty()
-        if (verifyRecognitionId.isNotBlank() || notificationRecognitionId.isNotBlank()) {
-            val recognitionId = verifyRecognitionId.ifBlank { notificationRecognitionId }
+        val uri = intent?.data
+        val decision = uk.thewyj.app.task21.payment.NotificationRoutePolicy.resolve(
+            verifyRecognitionId = verifyRecognitionId,
+            notificationRecognitionId = notificationRecognitionId,
+            uriScheme = uri?.scheme,
+            uriHost = uri?.host,
+            uriPath = uri?.encodedPath,
+            routeParam = uri?.getQueryParameter("route"),
+        )
+        when (decision) {
+            is uk.thewyj.app.task21.payment.NotificationRoutePolicy.Target.Payment -> {
             // 「核实交易金额」 must really start a new 90 second ticket: the
             // notification used to open /finance and do nothing, which is why
             // the pending payment flow never closed. The ticket is created off
@@ -72,21 +81,17 @@ class MainActivity : ComponentActivity() {
             Thread {
                 runCatching {
                     val center = uk.thewyj.app.task21.payment.PaymentVerificationCenter(applicationContext)
-                    if (verifyRecognitionId.isNotBlank()) center.startVerification(verifyRecognitionId)
+                    if (decision.verify) center.startVerification(decision.recognitionId)
                 }
                 runOnUiThread {
-                    viewModel.openPaymentVerification(recognitionId)
+                    viewModel.openPaymentVerification(decision.recognitionId)
                 }
             }.start()
-            return
+            }
+            is uk.thewyj.app.task21.payment.NotificationRoutePolicy.Target.Route ->
+                viewModel.openRoute(decision.path)
+            uk.thewyj.app.task21.payment.NotificationRoutePolicy.Target.None -> Unit
         }
-        val uri = intent?.data ?: return
-        val route = when (uri.scheme) {
-            "https" -> if (uri.host == "thewyj.uk") uri.encodedPath.orEmpty() else ""
-            "thewyj" -> uri.getQueryParameter("route").orEmpty()
-            else -> ""
-        }
-        if (route.isNotBlank()) viewModel.openRoute(route)
     }
 
     companion object {

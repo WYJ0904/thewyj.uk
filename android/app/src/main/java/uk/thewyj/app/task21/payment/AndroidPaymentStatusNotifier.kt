@@ -56,16 +56,11 @@ class AndroidPaymentStatusNotifier(private val context: Context) : PaymentStatus
             openAppIntent(message.recognitionId),
         )
         if (message.openPackage.isNotBlank()) {
-            launchIntent(message.openPackage)?.let { intent ->
+            sourceAppAction(message.openPackage)?.let { pending ->
                 builder.addAction(
                     0,
                     "打开来源应用",
-                    PendingIntent.getActivity(
-                        context,
-                        message.notificationId + 1,
-                        intent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                    ),
+                    pending,
                 )
             }
         }
@@ -129,9 +124,36 @@ class AndroidPaymentStatusNotifier(private val context: Context) : PaymentStatus
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
 
+    /**
+     * The 来源 App action is only offered when Android can actually launch that
+     * package. A removed, disabled or suspended source app used to leave a
+     * button that did nothing at all; the notification now simply omits it.
+     */
+    private fun sourceAppAction(packageName: String): PendingIntent? {
+        val intent = launchIntent(packageName) ?: return null
+        val enabled = runCatching {
+            context.packageManager.getApplicationInfo(packageName, 0).enabled
+        }.getOrDefault(false)
+        val resolvable = runCatching {
+            context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY) != null
+        }.getOrDefault(false)
+        if (!SourceAppActionPolicy.shouldOffer(enabled = enabled, resolvable = resolvable)) return null
+        return PendingIntent.getActivity(
+            context,
+            packageName.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
     companion object {
         const val CHANNEL_ID = "thewyj_financial_recognition"
         const val EXTRA_RECOGNITION_ID = "thewyj_recognition_id"
         const val EXTRA_VERIFY_RECOGNITION_ID = "thewyj_verify_recognition_id"
     }
+}
+
+/** Pure decision so the "dead button" rule is unit-tested without a device. */
+object SourceAppActionPolicy {
+    fun shouldOffer(enabled: Boolean, resolvable: Boolean): Boolean = enabled && resolvable
 }
