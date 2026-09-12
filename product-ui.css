@@ -1592,10 +1592,17 @@ textarea::placeholder {
 
 .transfer-page {
   max-width: 1080px;
+  /* Grid/flex children must be allowed to shrink below their content width. */
+  min-width: 0;
   margin: 0 auto;
   padding: var(--space-5) var(--space-4) var(--space-8);
   display: grid;
   gap: var(--space-4);
+}
+
+.transfer-page > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .transfer-header,
@@ -1605,6 +1612,40 @@ textarea::placeholder {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+}
+
+/*
+ * Real-device regression: on a 360px viewport the header row (title/description
+ * + quota badge + 返回) had a min-content width of 412px, so the whole page
+ * scrolled horizontally and the 返回 button sat outside the viewport. The header
+ * now wraps, the text column can shrink, and the action group never forces the
+ * page wider than the screen.
+ */
+.transfer-header {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.transfer-header > div:first-child {
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
+.transfer-header-actions {
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.transfer-header-actions .status-badge {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.transfer-header p,
+.transfer-section-heading p {
+  overflow-wrap: anywhere;
 }
 
 .transfer-header h1,
@@ -1637,7 +1678,17 @@ textarea::placeholder {
 .transfer-config label {
   display: grid;
   gap: var(--space-2);
-  min-width: 160px;
+  /* min-width: 160px used to force a 2-up row wider than a 360px screen. */
+  min-width: 0;
+  flex: 1 1 180px;
+}
+
+.transfer-config select,
+.transfer-config input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .transfer-config label span {
@@ -1671,6 +1722,7 @@ textarea::placeholder {
 .transfer-drop-actions {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
   gap: var(--space-3);
   margin-top: var(--space-4);
 }
@@ -1721,6 +1773,13 @@ textarea::placeholder {
   overflow-wrap: anywhere;
 }
 
+.transfer-item-main strong,
+.transfer-share-row strong,
+.transfer-share-file strong {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .transfer-item-actions,
 .transfer-share-actions {
   display: flex;
@@ -1741,15 +1800,20 @@ textarea::placeholder {
 
 .transfer-share-link-row {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 
 .transfer-share-link-row input {
-  flex: 1;
+  flex: 1 1 200px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .transfer-qr {
   width: 180px;
+  max-width: 100%;
   height: 180px;
   image-rendering: pixelated;
   align-self: start;
@@ -1764,6 +1828,40 @@ textarea::placeholder {
 }
 
 @media (max-width: 720px) {
+  .transfer-page {
+    padding: var(--space-4) var(--space-3) var(--space-8);
+  }
+
+  .transfer-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .transfer-header-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .transfer-header-actions > * {
+    flex: 1 1 auto;
+  }
+
+  .transfer-config {
+    gap: var(--space-3);
+  }
+
+  .transfer-config label {
+    flex: 1 1 100%;
+  }
+
+  .transfer-drop-zone {
+    padding: var(--space-6) var(--space-3);
+  }
+
+  .transfer-drop-actions > * {
+    flex: 1 1 160px;
+  }
+
   .transfer-item,
   .transfer-share-row,
   .transfer-share-file {
@@ -1779,6 +1877,21 @@ textarea::placeholder {
   .transfer-item-actions > *,
   .transfer-share-actions > * {
     flex: 1;
+  }
+
+  .transfer-share-link-row input {
+    flex: 1 1 100%;
+  }
+
+  .transfer-share-link-row > button {
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 400px) {
+  .transfer-drop-actions > *,
+  .transfer-header-actions > * {
+    flex: 1 1 100%;
   }
 }
 

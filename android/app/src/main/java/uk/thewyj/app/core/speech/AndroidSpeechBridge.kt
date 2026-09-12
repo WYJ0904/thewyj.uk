@@ -10,6 +10,16 @@ import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import java.util.Locale
 
+/**
+ * OFFLINE FALLBACK ONLY (Task 24.2).
+ *
+ * Normal dictation playback uses the thewyj cloud TTS asset inside the WebView
+ * (`/api/tts`), so English/Japanese audio no longer depends on an installed
+ * device voice package. This bridge is reached only when the page reports that
+ * the cloud asset failed (offline / airplane mode); it then speaks through the
+ * platform TextToSpeech engine and the UI labels the result as 离线 fallback.
+ * A missing voice package must never block normal online dictation.
+ */
 /** Voice metadata used by the selection policy (pure data, unit testable). */
 data class SpeechVoiceInfo(
     val name: String,

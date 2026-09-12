@@ -1,3 +1,4 @@
+import { randomId } from "../core/capabilities.js?v=20260912-screenshot-r1";
 const CANDIDATE_PAGE_LIMIT = 100;
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款" });
@@ -58,7 +59,7 @@ export function createFinanceCandidatesController({
   function deviceId() {
     let value = String(storage.getItem(FINANCE_DEVICE_KEY) || "").trim();
     if (!/^web:[A-Za-z0-9-]{8,76}$/.test(value)) {
-      value = `web:${crypto.randomUUID()}`;
+      value = `web:${randomId()}`;
       storage.setItem(FINANCE_DEVICE_KEY, value);
     }
     return value;
