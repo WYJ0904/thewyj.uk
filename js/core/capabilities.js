@@ -75,6 +75,10 @@ export function detectCapabilities(globalObject = globalThis) {
       && typeof globalObject?.ArrayBuffer === "function",
     textCodec: typeof globalObject?.TextEncoder === "function" && typeof globalObject?.TextDecoder === "function",
     audio: typeof globalObject?.Audio === "function",
+    // Device/browser speech engines are the documented offline fallback for
+    // dictation audio; without one, a runtime that cannot stream the cloud
+    // asset has no way to speak at all and the user must be told.
+    speechFallback: typeof globalObject?.speechSynthesis?.speak === "function",
     serviceWorker: Boolean(navigatorObject.serviceWorker),
     clipboard: typeof navigatorObject.clipboard?.writeText === "function",
     download: downloadSupport,
@@ -96,7 +100,7 @@ export function classifyCapabilities(capabilities = {}) {
     sessionStorage: state(capabilities.sessionStorage, true, CAPABILITY.OPTIONAL, true),
     fileApi: state(capabilities.fileApi, false),
     textCodec: state(capabilities.textCodec, false),
-    audio: state(capabilities.audio, true, CAPABILITY.REQUIRED, false),
+    audio: state(capabilities.audio, capabilities.speechFallback, CAPABILITY.REQUIRED, false),
     serviceWorker: state(capabilities.serviceWorker, true, CAPABILITY.OPTIONAL, true),
     clipboard: state(capabilities.clipboard, true, CAPABILITY.OPTIONAL, true),
     download: state(capabilities.download, false),
