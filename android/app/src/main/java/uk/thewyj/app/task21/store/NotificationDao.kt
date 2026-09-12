@@ -58,6 +58,36 @@ interface NotificationDao {
     @Query("UPDATE notification_instances SET financeLinked = 1 WHERE accountId = :accountId AND instanceId = :instanceId")
     fun markFinanceLinked(accountId: String, instanceId: String): Int
 
+    /**
+     * Canonical finance outcome for one saved snapshot. Called by the payment
+     * pipeline (pending) and again after the server confirms, so the archive
+     * itself carries the terminal state instead of the UI hiding a button.
+     */
+    @Query(
+        "UPDATE notification_instances SET financeLinked = 1, financeState = :state, " +
+            "financeTransactionId = :transactionId WHERE accountId = :accountId AND instanceId = :instanceId",
+    )
+    fun markFinanceOutcome(accountId: String, instanceId: String, state: String, transactionId: String): Int
+
+    /** Same update, resolved through the stable structured event id. */
+    @Query(
+        "UPDATE notification_instances SET financeLinked = 1, financeState = :state, " +
+            "financeTransactionId = :transactionId WHERE accountId = :accountId AND instanceId IN (" +
+            "SELECT instanceId FROM notification_revisions WHERE accountId = :accountId AND sourceEventId = :sourceEventId)",
+    )
+    fun markFinanceOutcomeByEventId(
+        accountId: String,
+        sourceEventId: String,
+        state: String,
+        transactionId: String,
+    ): Int
+
+    @Query(
+        "SELECT instanceId FROM notification_revisions WHERE accountId = :accountId " +
+            "AND sourceEventId = :sourceEventId ORDER BY capturedAt DESC LIMIT 1",
+    )
+    fun instanceIdForEventId(accountId: String, sourceEventId: String): String?
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     fun insertRevision(revision: NotificationRevisionEntity)
 

@@ -31,7 +31,7 @@ abstract class NotificationDatabase : RoomDatabase() {
     abstract fun paymentDao(): PaymentDao
 
     companion object {
-        const val SCHEMA_VERSION = 6
+        const val SCHEMA_VERSION = 7
         const val DATABASE_NAME = "wyj-notifications.db"
 
         @Volatile
@@ -45,7 +45,9 @@ abstract class NotificationDatabase : RoomDatabase() {
                     DATABASE_NAME,
                 )
                     // The local archive is user data: never drop it on upgrade.
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(
+                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+                    )
                     .fallbackToDestructiveMigrationOnDowngrade(false)
                     .build()
                     .also { instance = it }
@@ -115,6 +117,25 @@ abstract class NotificationDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_notification_revisions_mediaFingerprint` " +
                         "ON `notification_revisions` (`mediaFingerprint`)",
+                )
+            }
+        }
+
+        /**
+         * v6 -> v7 persists the finance outcome on the archive itself:
+         * `financeState` (pending/confirmed/ignored/failed) and
+         * `financeTransactionId`, plus the structured `sourceEventId` on the
+         * revision that links a saved notification to its candidate and
+         * transaction. Existing rows keep their content and stay "" (unknown).
+         */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `notification_instances` ADD COLUMN `financeState` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `notification_instances` ADD COLUMN `financeTransactionId` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `notification_revisions` ADD COLUMN `sourceEventId` TEXT NOT NULL DEFAULT ''")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_notification_revisions_accountId_sourceEventId` " +
+                        "ON `notification_revisions` (`accountId`, `sourceEventId`)",
                 )
             }
         }

@@ -248,6 +248,7 @@ class NotificationCaptureCoordinator(
                 // Incomplete but real: publish it as a pending hint so /finance and
                 // the app share one pending source of truth (P0-3). A hint can
                 // never create a transaction on its own.
+                archiveSink?.markFinanceOutcome(current.accountId, eventId, "pending")
                 enqueuePendingHint(
                     accountId = current.accountId,
                     sourceEventId = eventId,
@@ -273,6 +274,9 @@ class NotificationCaptureCoordinator(
                 return
             }
             val payloadForPayment = StructuredEventJson.ingestPayload("1", current.deviceId, eventId, structured)
+            // The archive now owns the non-terminal state: pending until the
+            // server answers with a transaction id (or fails).
+            archiveSink?.markFinanceOutcome(current.accountId, eventId, "pending")
             queueFor(current.accountId).enqueue(eventId, payloadForPayment)
             return
         }
@@ -445,6 +449,7 @@ class NotificationCaptureCoordinator(
                         // Real client/server contract failure. Never drop the
                         // payload silently: record why and surface it.
                         val updated = ingestQueue.markRejected(request.operationId, reason)
+                        archiveSink?.markFinanceOutcome(current.accountId, request.operationId, "failed")
                         rejected += RejectedIngest(
                             operationId = request.operationId,
                             reason = reason,

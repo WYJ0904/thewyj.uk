@@ -54,6 +54,8 @@ data class NotificationCapture(
     val mediaFingerprint: String = "",
     val mediaFingerprintAlt: String = "",
     val mediaOrigin: String = "",
+    /** Stable structured-event id shared with the payment pipeline. */
+    val sourceEventId: String = "",
 )
 
 data class NotificationHistoryItem(
@@ -183,6 +185,7 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
                     mediaFingerprint = capture.mediaFingerprint,
                     mediaFingerprintAlt = capture.mediaFingerprintAlt,
                     mediaOrigin = capture.mediaOrigin,
+                    sourceEventId = capture.sourceEventId,
                 )
             },
         )
@@ -336,6 +339,26 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
 
     fun markFinanceLinked(accountId: String, instanceId: String): Int =
         dao.markFinanceLinked(accountId.trim(), instanceId)
+
+    /**
+     * Persists the canonical finance outcome on the archived snapshot. Called
+     * with state="pending" when a payment candidate is created and again with
+     * state="confirmed" + the server transaction id when it is booked, so the
+     * notification side and Finance agree after refresh/restart/sync.
+     */
+    fun markFinanceOutcome(
+        accountId: String,
+        sourceEventId: String,
+        state: String,
+        transactionId: String = "",
+    ): Boolean {
+        val account = accountId.trim()
+        if (account.isEmpty() || sourceEventId.isBlank()) return false
+        val instanceId = runCatching { dao.instanceIdForEventId(account, sourceEventId) }.getOrNull() ?: return false
+        return runCatching {
+            dao.markFinanceOutcome(account, instanceId, state, transactionId) > 0
+        }.getOrDefault(false)
+    }
 
     /**
      * Task 24.1 R4: resolves one piece of screenshot evidence against the

@@ -5,6 +5,7 @@ import uk.thewyj.app.task21.NotificationCaptureInput
 import uk.thewyj.app.task21.PaymentIngestOutcome
 import uk.thewyj.app.task21.PaymentRecognitionHook
 import uk.thewyj.app.task21.store.NotificationDatabase
+import uk.thewyj.app.task21.store.NotificationArchiveSinkFactory
 import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
 
 /**
@@ -121,6 +122,13 @@ class AndroidPaymentRecognitionHook private constructor(private val appContext: 
             store.candidateForRecognition(accountId, recognition.recognitionId)
         }.getOrNull() ?: return
         runCatching { coordinator.markFinanceRecorded(accountId, candidate.candidateId, transactionId) }
+        // The archive carries the same terminal state, so the notification list
+        // can never show a confirmed payment as still pending after a refresh,
+        // a restart or a Web/Android sync.
+        runCatching {
+            NotificationArchiveSinkFactory.forContext(appContext)
+                .markFinanceOutcome(accountId, eventId, "confirmed", transactionId)
+        }
     }
 
     override fun appLabelFor(input: NotificationCaptureInput): String =
