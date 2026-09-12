@@ -1,11 +1,33 @@
-import { randomId } from "../core/capabilities.js?v=20260912-screenshot-r1";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260912-screenshot-r1";
-import { getSafeStorage } from "../core/storage.js?v=20260912-screenshot-r1";
+import { randomId } from "../core/capabilities.js?v=20260912-task24-3-r1";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260912-task24-3-r1";
+import { getSafeStorage } from "../core/storage.js?v=20260912-task24-3-r1";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
 const PART_SIZE_HINT = 16 * 1024 * 1024;
 const DEFAULT_EXPIRY_MINUTES = 1440;
+
+/**
+ * Account-scoped queue identity (Task 24.3 multi-account isolation). The queue
+ * used to live under one global key, so switching accounts could adopt or
+ * overwrite another user's pending uploads. Each owner now has its own key; the
+ * legacy payload is imported once when it really belongs to that owner.
+ */
+export function transferQueueStorageKey(owner) {
+  const safe = String(owner || "guest").trim().replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 96) || "guest";
+  return `wyjTransferQueue:v2:${safe}`;
+}
+
+/**
+ * A stored queue may only replace the in-memory queue when the owner really
+ * changed. Re-reading storage for the *same* owner (the transfer page being
+ * shown again, or an account refresh) used to replace every live item with its
+ * serialized copy - which has no File object - so a running upload silently
+ * turned into「已恢复，请重新选择同一文件继续」 and never finished.
+ */
+export function shouldAdoptStoredQueue(currentOwner, loadedOwner) {
+  return String(currentOwner || "") !== String(loadedOwner || "");
+}
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -40,6 +62,7 @@ export function createTransferController({
 }) {
   let initialized = false;
   let queue = [];
+  let queueOwner = "";
   let activeSession = null;
   let currentShare = null;
   let running = false;
@@ -89,20 +112,38 @@ export function createTransferController({
       account: value.account,
       queue: queue.map(({ file, controller, ...item }) => item),
     };
-    storage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(serializable));
+    storage.setItem(transferQueueStorageKey(value.account), JSON.stringify(serializable));
   }
 
   function restoreQueue() {
     try {
-      const saved = JSON.parse(storage.getItem(QUEUE_STORAGE_KEY) || "{}");
       const owner = authenticated() ? String(account().id) : `guest:${guestId()}`;
+      if (!shouldAdoptStoredQueue(owner, queueOwner)) return;
+      // The owner really changed: stop the previous owner's in-flight uploads
+      // before their queue is replaced. Their session and parts belong to the
+      // old owner and must not be attached to the new owner's account.
+      for (const item of queue) {
+        if (!item.file) continue;
+        item.status = "cancelled";
+        try { item.controller?.abort?.(); } catch (_) { /* controller already settled */ }
+      }
+      queueOwner = owner;
+      let saved = JSON.parse(storage.getItem(transferQueueStorageKey(owner)) || "{}");
+      // One-time import of the pre-account-scoping payload, only when it really
+      // belongs to this owner (multi-account isolation: another account's queue
+      // must never be adopted, and this account's queue must survive a switch).
+      if ((!saved.account || !Array.isArray(saved.queue)) && storage.getItem(QUEUE_STORAGE_KEY)) {
+        saved = JSON.parse(storage.getItem(QUEUE_STORAGE_KEY) || "{}");
+      }
       if (saved.account === owner && Array.isArray(saved.queue)) {
         queue = saved.queue.map((item) => ({ ...item, file: null, needsFile: true, controller: null, speed: 0, eta: 0 }));
+        persistQueue();
       }
     } catch (_) {
       queue = [];
     }
   }
+
 
   function renderQuota() {
     const used = capabilities.used_bytes || 0;

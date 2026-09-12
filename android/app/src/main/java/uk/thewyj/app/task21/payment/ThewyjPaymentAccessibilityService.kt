@@ -44,6 +44,10 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        // Never let a destroyed service instance leave a stale "connected"
+        // claim behind: the capability banner must fall back to the system
+        // grant instead of reporting a live connection that no longer exists.
+        PaymentAccessibilityStatus.onDisconnected()
         runCatching { worker.shutdown() }
         super.onDestroy()
     }

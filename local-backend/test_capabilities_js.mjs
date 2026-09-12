@@ -30,6 +30,7 @@ const modernGlobal = {
   TextEncoder: function TextEncoder() {},
   TextDecoder: function TextDecoder() {},
   Audio: function Audio() {},
+  speechSynthesis: { speak: () => {} },
 };
 
 function storage() {
@@ -56,13 +57,26 @@ assert.equal(legacy.audio, false);
 const legacyClassification = classifyCapabilities(legacy);
 assert.equal(legacyClassification.cryptoRandomUUID, CAPABILITY.FALLBACK_AVAILABLE);
 assert.equal(legacyClassification.cryptoSubtle, CAPABILITY.UNSUPPORTED);
-// Dictation audio still has the device-engine fallback, so it is reported as
-// available-with-fallback instead of blocking the whole app.
-assert.equal(legacyClassification.audio, CAPABILITY.FALLBACK_AVAILABLE);
+// No audio element and no speech engine at all: dictation cannot produce sound
+// in any path, so the runtime must surface a blocking capability message
+// instead of pretending a fallback exists.
+assert.equal(legacyClassification.audio, CAPABILITY.UNSUPPORTED);
 const messages = capabilityProblems(legacy);
 assert.ok(messages.some((message) => /WebCrypto/.test(message)), "WebCrypto gap must be explained");
 assert.ok(messages.some((message) => /本地存储/.test(message)), "storage gap must be explained");
 assert.ok(messages.some((message) => /TextEncoder/.test(message)), "text codec gap must be explained");
+assert.ok(messages.some((message) => /音频/.test(message)), "a runtime that cannot speak must say so");
+
+// With a device engine available, the missing audio element is still only a
+// fallback situation - dictation keeps working offline.
+const speechOnly = detectCapabilities({
+  speechSynthesis: { speak: () => {} },
+  navigator: {},
+  document: { createElement: () => ({}) },
+});
+assert.equal(speechOnly.audio, false);
+assert.equal(speechOnly.speechFallback, true);
+assert.equal(classifyCapabilities(speechOnly).audio, CAPABILITY.FALLBACK_AVAILABLE);
 
 // 3. Fallback id generation still yields a unique-looking id without randomUUID.
 const fallback = fallbackRandomId(legacyGlobal);

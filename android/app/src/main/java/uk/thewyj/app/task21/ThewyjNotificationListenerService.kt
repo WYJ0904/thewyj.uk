@@ -4,6 +4,8 @@ import android.app.Notification
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -36,6 +38,26 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
     private var sessionProvider: NotificationSessionProvider? = null
     private var screenshotObserver: ScreenshotMediaObserver? = null
     private val mediaStore by lazy { NotificationMediaStore(applicationContext) }
+    private var networkRetryRegistered = false
+
+    /**
+     * Test seam: replaces the real drain. Production leaves this null and every
+     * trigger runs [scheduleFlush].
+     */
+    internal var pendingFlushOverride: (() -> Unit)? = null
+
+    /**
+     * A captured notification that could not be uploaded (offline, timeout) used
+     * to wait for the *next* notification before anything retried it: the queue
+     * had no network-recovery trigger and an empty shade replayed nothing. The
+     * money was already identified on the device but stayed out of Finance until
+     * the user opened the archive or a new notification arrived.
+     */
+    internal val networkRetryCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            requestPendingFlush()
+        }
+    }
 
     override fun onListenerConnected() {
         super.onListenerConnected()
@@ -55,6 +77,10 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
             ?: NotificationCapturePipeline.createScreenshotObserver(this, provider, executor)
                 .also { screenshotObserver = it }
         observer.start()
+        registerNetworkRetry()
+        // Always try to drain the pending ingest queue, even when the shade is
+        // empty and nothing is replayed: this is the process-start/rebind path.
+        requestPendingFlush()
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
@@ -76,6 +102,7 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onDestroy() {
+        unregisterNetworkRetry()
         screenshotObserver?.stop()
         executor.shutdown()
         uploadExecutor.shutdown()
@@ -92,6 +119,33 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
         runCatching {
             requestRebind(ComponentName(this, ThewyjNotificationListenerService::class.java))
         }
+    }
+
+    internal fun requestPendingFlush() {
+        val override = pendingFlushOverride
+        if (override != null) {
+            override()
+            return
+        }
+        scheduleFlush()
+    }
+
+    private fun registerNetworkRetry() {
+        if (networkRetryRegistered) return
+        val manager = applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            ?: return
+        networkRetryRegistered = runCatching {
+            manager.registerDefaultNetworkCallback(networkRetryCallback)
+            true
+        }.getOrDefault(false)
+    }
+
+    private fun unregisterNetworkRetry() {
+        if (!networkRetryRegistered) return
+        networkRetryRegistered = false
+        val manager = applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            ?: return
+        runCatching { manager.unregisterNetworkCallback(networkRetryCallback) }
     }
 
     private fun scheduleFlush(capture: java.util.concurrent.Future<*>? = null) {

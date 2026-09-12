@@ -97,12 +97,23 @@ class AppUpdateInstaller(private val context: Context) {
 
     suspend fun verify(config: AppConfig): Boolean {
         val expected = config.apkSha256.lowercase().trim()
-        if (expected.length != 64) return true
         val file = localApk(config)
         if (!file.isFile) return false
+        // Fail closed. The published SHA-256 is the only integrity proof the
+        // update path has; returning `true` for a missing or malformed hash
+        // (the previous behaviour) turned a metadata gap into an unverified
+        // install while the UI was still showing「正在校验安装包」.
+        if (!SHA256_PATTERN.matches(expected)) {
+            android.util.Log.w(TAG, "update-verify-failed reason=missing_expected_hash")
+            runCatching { file.delete() }
+            return false
+        }
         val digest = withContext(Dispatchers.IO) { sha256(file) }
         val actualSize = file.length()
-        val matches = digest.equals(expected, ignoreCase = true) && actualSize == config.apkSizeBytes.coerceAtLeast(0)
+        // The hash is authoritative; the published size is an auxiliary check and
+        // is only compared when the server actually published one.
+        val sizeMatches = config.apkSizeBytes <= 0L || actualSize == config.apkSizeBytes
+        val matches = digest.equals(expected, ignoreCase = true) && sizeMatches
         android.util.Log.i(
             TAG,
             "update-verify expectedSha=${expected.take(16)}… actualSha=${digest.take(16)}… " +
@@ -140,5 +151,6 @@ class AppUpdateInstaller(private val context: Context) {
 
     private companion object {
         const val TAG = "ThewyjUpdate"
+        val SHA256_PATTERN = Regex("^[0-9a-f]{64}$")
     }
 }

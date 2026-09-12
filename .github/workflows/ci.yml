@@ -206,6 +206,11 @@ jobs:
           set -euo pipefail
           node local-backend/test_tools_js.mjs 2>&1 | tee artifacts/javascript-tools.log
 
+      - name: Test file transfer queue isolation
+        run: |
+          set -euo pipefail
+          node local-backend/test_transfer_isolation_js.mjs 2>&1 | tee artifacts/javascript-transfer-isolation.log
+
       - name: Test core JavaScript modules
         run: |
           set -euo pipefail

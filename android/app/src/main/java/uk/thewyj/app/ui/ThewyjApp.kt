@@ -77,6 +77,7 @@ import uk.thewyj.app.core.design.statusContainerColor
 import uk.thewyj.app.core.design.statusContentColor
 import uk.thewyj.app.core.session.ConnectionMode
 import uk.thewyj.app.core.permission.PermissionCenter
+import uk.thewyj.app.core.permission.PermissionDecisions
 import uk.thewyj.app.task21.payment.PaymentAccessibilityStatus
 import uk.thewyj.app.core.session.SessionState
 import uk.thewyj.app.core.update.UpdateUiState
@@ -630,16 +631,18 @@ private fun MyAndroidCapabilitySection(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var notificationAccess by remember { mutableStateOf(PermissionCenter.notificationListenerGranted(context)) }
+    var accessibilityGranted by remember { mutableStateOf(PermissionCenter.accessibilityGranted(context)) }
     var accessibilityConnected by remember { mutableStateOf(PaymentAccessibilityStatus.connected) }
     LifecycleResumeEffect(Unit) {
         notificationAccess = PermissionCenter.notificationListenerGranted(context)
+        accessibilityGranted = PermissionCenter.accessibilityGranted(context)
         accessibilityConnected = PaymentAccessibilityStatus.connected
         onPauseOrDispose { }
     }
     val status = buildString {
         append(if (notificationAccess) "通知访问已开启" else "通知访问未开启")
         append(" · ")
-        append(if (accessibilityConnected) "无障碍已连接" else "无障碍未连接")
+        append(PermissionDecisions.accessibilityStatus(accessibilityGranted, accessibilityConnected))
     }
     MyCollapsibleSection(title = "Android 能力", status = status, initiallyExpanded = true) {
         ThewyjCard(Modifier.fillMaxWidth()) {

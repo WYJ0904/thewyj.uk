@@ -12,7 +12,26 @@ import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
  * Android wiring for the payment pipeline: notification captures, SMS and
  * accessibility evidence all end up in the same coordinator instance.
  */
-class AndroidPaymentRecognitionHook private constructor(private val appContext: Context) : PaymentRecognitionHook {
+class AndroidPaymentRecognitionHook private constructor(
+    private val appContext: Context,
+    /** Injectable for tests; production always uses the Room-backed sink. */
+    private val archiveSink: uk.thewyj.app.task21.NotificationArchiveSink? = null,
+    private val recognitionStore: uk.thewyj.app.task21.store.PaymentRecognitionStoreContract? = null,
+) : PaymentRecognitionHook {
+
+    /** Test-only constructor so the archive ordering rule can be verified. */
+    internal constructor(
+        appContext: Context,
+        archiveSink: uk.thewyj.app.task21.NotificationArchiveSink,
+        recognitionStore: uk.thewyj.app.task21.store.PaymentRecognitionStoreContract? = null,
+        testing: Boolean,
+    ) : this(appContext, archiveSink, recognitionStore)
+
+    private val store: uk.thewyj.app.task21.store.PaymentRecognitionStoreContract
+        get() = recognitionStore ?: RoomPaymentRecognitionStore(NotificationDatabase.get(appContext))
+
+    private val sink: uk.thewyj.app.task21.NotificationArchiveSink
+        get() = archiveSink ?: NotificationArchiveSinkFactory.forContext(appContext)
     private val coordinator: PaymentRecognitionCoordinator by lazy {
         PaymentRecognitionCoordinator(
             store = RoomPaymentRecognitionStore(NotificationDatabase.get(appContext)),
@@ -116,18 +135,20 @@ class AndroidPaymentRecognitionHook private constructor(private val appContext: 
      */
     override fun onFinanceOutcome(accountId: String, eventId: String, transactionId: String) {
         if (accountId.isBlank() || eventId.isBlank() || transactionId.isBlank()) return
-        val store = RoomPaymentRecognitionStore(NotificationDatabase.get(appContext))
-        val recognition = runCatching { store.recognitionByUploadEvent(accountId, eventId) }.getOrNull() ?: return
-        val candidate = runCatching {
-            store.candidateForRecognition(accountId, recognition.recognitionId)
-        }.getOrNull() ?: return
-        runCatching { coordinator.markFinanceRecorded(accountId, candidate.candidateId, transactionId) }
-        // The archive carries the same terminal state, so the notification list
-        // can never show a confirmed payment as still pending after a refresh,
-        // a restart or a Web/Android sync.
+        // T24.3-03: the archive link is keyed by the structured event id and must
+        // close BEFORE the local recognition/candidate lookups. A payment the
+        // server booked automatically has no local candidate row, and the old
+        // order returned early - leaving the notification side stuck on
+        // 「等待确认记账」 even though Finance already owned the transaction.
         runCatching {
-            NotificationArchiveSinkFactory.forContext(appContext)
-                .markFinanceOutcome(accountId, eventId, "confirmed", transactionId)
+            sink.markFinanceOutcome(accountId, eventId, "confirmed", transactionId)
+        }
+        // Local recognition/candidate bookkeeping is best-effort and must never
+        // take the archive terminal state down with it.
+        runCatching {
+            val recognition = store.recognitionByUploadEvent(accountId, eventId) ?: return@runCatching
+            val candidate = store.candidateForRecognition(accountId, recognition.recognitionId) ?: return@runCatching
+            coordinator.markFinanceRecorded(accountId, candidate.candidateId, transactionId)
         }
     }
 
