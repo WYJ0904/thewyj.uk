@@ -244,6 +244,21 @@ try {
   const finalPending = await request(db, "/api/notification/hints", { token: USER.token });
   assert.equal(finalPending.payload.hints.length, 0);
 
+  // 11. Task 24.4 real-device regression (¥104.49 stayed pending forever):
+  // the Android pull asks for every state with an explicit empty `state=`.
+  // `'' || "pending"` used to collapse that into the pending default, so a
+  // Web-side confirm was never delivered to the device and the local pending
+  // row could never close. An explicit empty state must return every state,
+  // while an omitted state keeps the web default.
+  const everyState = await request(db, "/api/notification/hints?state=", { token: USER.token });
+  assert.equal(everyState.response.status, 200, JSON.stringify(everyState.payload));
+  const states = new Map(everyState.payload.hints.map((item) => [item.source_event_id, item.state]));
+  assert.equal(states.get("evt-hints-amount-unknown"), "confirmed");
+  assert.equal(states.get("evt-hints-direction-unknown"), "ignored");
+  assert.equal(everyState.payload.pending_count, 0);
+  const defaultState = await request(db, "/api/notification/hints", { token: USER.token });
+  assert.equal(defaultState.payload.hints.length, 0, "an omitted state still defaults to pending");
+
   // 11. Schema + row counts stay consistent after the whole flow.
   const hintCount = await db.prepare(
     "SELECT COUNT(*) AS count FROM task21_notification_pending_hints WHERE user_id = ?1",

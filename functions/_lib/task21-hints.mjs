@@ -154,7 +154,12 @@ export async function upsertNotificationHints(db, account, input) {
 
 export async function listNotificationHints(db, account, input = {}) {
   requireFinanceRecognitionAccess(account);
-  const state = String(input.state || "pending").trim().toLowerCase();
+  // Absent state keeps the web default (pending); an explicitly empty state is
+  // the Android pull asking for every state so it can close confirmed/ignored
+  // local rows. `||` used to collapse both cases to "pending".
+  const state = input.state === undefined || input.state === null
+    ? "pending"
+    : String(input.state).trim().toLowerCase();
   if (state && !STATES.has(state)) throw new Task21Error("待确认状态无效", 400, "hint_state_invalid");
   const limit = Math.min(200, Math.max(1, Number.parseInt(String(input.limit || 100), 10) || 100));
   const rows = await db.prepare(`SELECT * FROM task21_notification_pending_hints
