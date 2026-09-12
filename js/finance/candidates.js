@@ -1,4 +1,4 @@
-import { randomId } from "../core/capabilities.js?v=20260912-task24-4-r1";
+import { randomId } from "../core/capabilities.js?v=20260912-task24-4-r2";
 const CANDIDATE_PAGE_LIMIT = 100;
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款" });

@@ -1,13 +1,13 @@
 {
   "applicationId": "uk.thewyj.app",
-  "versionName": "1.3.1",
-  "versionCode": 14,
+  "versionName": "1.3.2",
+  "versionCode": 15,
   "minimumVersionCode": 1,
   "releaseDate": "2026-09-12",
-  "releaseBuild": "2026-09-12-task24-4",
-  "releaseNotes": "Task 24.4：财务页确认缺少收支方向的记录时会先引导选择方向再记账；已 100% 上传的文件刷新后仍可创建分享链接，中断上传重新选择同一文件可继续；Android 通知页会随财务确认或忽略立即收敛，不再残留已确认账目；上传完成以服务端分片校验为准。",
-  "apkFileName": "thewyj-android-1.3.1.apk",
-  "apkKey": "app/android/thewyj-android-1.3.1.apk",
-  "apkSha256": "14127d0b3df32b7c49fd581c29c46cb2bd228314701ffe57d60e683971078636",
+  "releaseBuild": "2026-09-12-task24-4-r2",
+  "releaseNotes": "Task 24.4 R2：财务确认或忽略后，本机「待核实 / 待确认」会立即收敛，包含升级前就已存在的历史记录；匹配服务端确认时同时校验设备、来源应用、金额与时间窗口，只在唯一命中时更新，来自其它设备或同额多笔时不猜测。",
+  "apkFileName": "thewyj-android-1.3.2.apk",
+  "apkKey": "app/android/thewyj-android-1.3.2.apk",
+  "apkSha256": "9708a7608177419f961fbf7cdb3bdb2114e79673976acac415c6a1c14e429b36",
   "apkSizeBytes": 47578521
 }
