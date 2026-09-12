@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 7,
-    "identityHash": "417b1cffe665eb66914000ab17b9700a",
+    "identityHash": "a7e2011851c42dacc269197369138e6c",
     "entities": [
       {
         "tableName": "notification_instances",
@@ -415,6 +415,16 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_notification_revisions_mediaFingerprint` ON `${TABLE_NAME}` (`mediaFingerprint`)"
+          },
+          {
+            "name": "index_notification_revisions_accountId_sourceEventId",
+            "unique": false,
+            "columnNames": [
+              "accountId",
+              "sourceEventId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notification_revisions_accountId_sourceEventId` ON `${TABLE_NAME}` (`accountId`, `sourceEventId`)"
           }
         ],
         "foreignKeys": [
@@ -1063,7 +1073,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '417b1cffe665eb66914000ab17b9700a')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a7e2011851c42dacc269197369138e6c')"
     ]
   }
 }

@@ -78,6 +78,7 @@ data class NotificationInstanceEntity(
         Index(value = ["accountId", "capturedAt"]),
         Index(value = ["contentHash"]),
         Index(value = ["mediaFingerprint"]),
+        Index(value = ["accountId", "sourceEventId"]),
     ],
 )
 data class NotificationRevisionEntity(
