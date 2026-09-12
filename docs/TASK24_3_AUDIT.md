@@ -51,3 +51,34 @@ canonical 状态机闭合，Production 与正式 APK 复测通过。
 - Regression：`local-backend/test_transfer_isolation_js.mjs`（不同账户 key 隔离、同账户稳定、
   guest 稳定、空白规范化、大小写敏感）；已接入 CI 的 JS job。`test_tools_js.mjs` 38 项仍通过。
 - Commit：`3abf209`。
+
+### T24.3-02 capability 审计误报「有离线语音回退」（P2 错误反馈）
+
+- Root cause：`classifyCapabilities` 对 `audio` 固定传入 `fallback: true`，
+  即使运行环境既没有 `Audio` 也没有 `speechSynthesis`，也不会产生任何用户可见提示。
+- 修复：新增 `speechFallback` 探测（`speechSynthesis.speak`），`audio` 只有在真的存在
+  设备/浏览器语音引擎时才算 FALLBACK_AVAILABLE，否则为 UNSUPPORTED 并输出提示。
+- Regression：`test_capabilities_js.mjs` 新增「无音频且无语音引擎必须提示」「仅有设备语音时是回退」两组断言。
+- Commit：`f31aa83`。
+
+### T24.3-03 服务端自动入账后通知侧仍显示待确认（P0 数据一致性）
+
+- Root cause：`AndroidPaymentRecognitionHook.onFinanceOutcome` 先查本地 recognition/candidate，
+  `?: return` 提前返回；服务端自动入账（无本地 candidate 行）时，archive 的
+  `financeState/financeTransactionId` 永远不会被写成 confirmed，通知侧停在「等待确认记账」。
+- 修复：archive 终态写入提前到方法开头（按 `sourceEventId` 关联，不依赖本地 candidate），
+  本地 recognition/candidate 更新降级为 best-effort（并整体 runCatching，避免本地库异常影响终态）。
+- 同时为可测性注入 `archiveSink` 与 `recognitionStore`（生产默认不变）。
+- Regression：`AndroidPaymentRecognitionHookArchiveTest.autoBookedPaymentStillClosesTheArchiveWithoutALocalCandidate`
+  （无本地 candidate 时 archive 仍为 confirmed + txn id）。
+- Commit：`<pending>`。
+
+## NO ISSUE FOUND（已核实）
+
+- 文件传输所有权/IDOR：`owner_kind + owner_ref` 强校验，`requireOwnedSession` 归属比对。
+- 支付二维码映射：`qrResourceIdFor` 强校验，不匹配 409 `payment_qr_mismatch`，无 fallback。
+- 管理员站内消息 XSS：全部字段 `escapeHtml`。
+- Android 长期凭据：KeyStore 加密，失败抛错，无明文回退。
+- Finance 本地队列：按 accountId 分键，账户切换清渲染状态。
+- 孤儿 multipart：`abortUploadSession` + owner 触发 `cleanupExpiredTransfers(scan_orphans)`。
+- Session 生命周期：digest 查询，deleted/banned/revoked/generation/expiry 全判，滑动续期仅对未撤销会话。
