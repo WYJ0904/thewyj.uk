@@ -131,7 +131,38 @@ canonical 状态机闭合，Production 与正式 APK 复测通过。
 - 追加（发布可达性）：Web 资源令牌 `20260912-screenshot-r1` → `20260912-task24-3-r1`。
   Service Worker 对同源静态资源是 URL 级 cache-first，不 bump 令牌则 T24.3-01/02 与本条
   JS 修复永远不会到达老用户；同步更新 `test_static.py` 断言与 SW 缓存名。
-- Commit：`<pending>`。
+- Commit：`3fcaed5`。
+
+## 收口记录（自动化部分，2026-09-12）
+
+- PR：#62（`main` ← `codex/task24-3-post-release-r1`）。PR CI 6/6 全绿：Python syntax and
+  unittest、JavaScript and static site checks、Sensitive files and static naming、
+  Android unit/lint/APK、Cloud-only browser (canonical session and toolbox)、
+  Browser flow (application)。
+- Merge：`bf8cdd2b1966fd4ad0ef42623313ffb6e0349367`（merge commit）。
+- main CI（merge commit `bf8cdd2`）：6/6 全绿，包含此前连续失败的 Cloud-only browser 作业。
+  该作业失败根因不是环境抖动，而是 T24.3-07（传输页重新进入把在途上传恢复成 needsFile）；
+  修复后 main 与 PR 两条流水线均通过。
+- Production 部署：`8ffabb70-ec4a-4c3b-a0fd-f366cf38851d`（source `bf8cdd2`，Cloudflare
+  Pages Git 集成自动部署，无需手动 `wrangler pages deploy`）。
+- Production smoke（正式环境，全部非破坏性）：
+  - `/api/app/config`：`1.3.0 / 13`，APK SHA `8a24e779…`，47,578,521 bytes（未变）。
+  - APK 下载实测：47,578,521 bytes，SHA-256 == config（本地重新计算，与 1.3.0 一致）。
+  - `/api/status?source=cloud`：`cloud_only=true`、`legacy_api_fallback=false`、D1/R2
+    binding=true。
+  - `/api/notification/hints` 未认证：HTTP 401。
+  - 新资源令牌在线：`/js/transfer/app.js?v=20260912-task24-3-r1` 含 `shouldAdoptStoredQueue`；
+    `/sw.js` 缓存名为 `wyj-shell-20260912-task24-3-r1-es-modules`。
+- Production D1 只读审计（未做任何写入）：active users 10、live sessions 5、payment orders 33、
+  active memberships 8、finance transactions 12、pending hints 1 / ignored hints 3、
+  admin roles 0；`task16_finance_transactions` 无空 user_id；非终止订单无 QR 缺失
+  （3 条无 QR 订单均为 LEGACY- 或已终止）；迁移已应用到 `0021_notification_pending_hints`。
+- 本地验证：JS 非浏览器套件 30/31（`test_transfer_responsive.mjs` 需要浏览器测试管理员密钥，
+  CI 不运行该文件）；`test_static.py` 31 OK；ES module graph / storage contract 通过；
+  Android `:app:testDebugUnitTest` 全量 BUILD SUCCESSFUL；本机遗留 Python 套件 126/127
+  （`test_pdf_export_handles_parallel_requests` 在 Windows 出现 WinError 10053 socket reset，
+  与代码无关，CI Ubuntu 为准）。
+- 未做：版本号/APK 发布（仍为 1.3.0 / versionCode 13）、D1 破坏性操作、Production 数据写入。
 
 ## 审计队列状态（内部继续用）
 
@@ -147,6 +178,11 @@ canonical 状态机闭合，Production 与正式 APK 复测通过。
 - 待继续：TTS/OCR 回归、Security（CSRF/secret/logging）、UI/UX、Performance/后台资源、
   Production D1/R2 只读审计；全部自动工作完成后走全量测试 → Android release build →
   PR → CI → merge → main CI → Production → smoke → WAITING FOR DEVICE ACCEPTANCE。
+
+（更新：以上待继续项已全部复核；Security（同源/CSRF、密钥、日志）、TTS/OCR、UI/UX、
+Performance/后台、Production D1 只读审计均 NO ISSUE FOUND，唯一发现并修复的是 T24.3-06/07。
+自动化链路已按 PR → CI → merge → main CI → Production → smoke 走完，见下方收口记录。
+剩余仅为真机验收，矩阵见 `docs/TASK24_3_DEVICE_ACCEPTANCE.md`。）
 
 ## NO ISSUE FOUND（已核实）
 
