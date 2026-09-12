@@ -150,6 +150,7 @@ jobs:
             node --check "functions/api/[[path]].js"
             node --check functions/api/status.js
             node --check local-backend/test_tools_js.mjs
+            node --check local-backend/test_finance_candidates_js.mjs
             node --check local-backend/test_core_js.mjs
             node --check local-backend/test_language_js.mjs
             node --check local-backend/test_membership_js.mjs
@@ -210,6 +211,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_transfer_isolation_js.mjs 2>&1 | tee artifacts/javascript-transfer-isolation.log
+
+      - name: Test finance candidate confirm eligibility
+        run: |
+          set -euo pipefail
+          node local-backend/test_finance_candidates_js.mjs 2>&1 | tee artifacts/javascript-finance-candidates.log
 
       - name: Test core JavaScript modules
         run: |

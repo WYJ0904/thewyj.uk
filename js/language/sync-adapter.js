@@ -1,4 +1,4 @@
-import { sanitizeProfile } from "./quiz.js?v=20260912-task24-3-r1";
+import { sanitizeProfile } from "./quiz.js?v=20260912-task24-4-r1";
 
 export function createLearningSyncAdapter(getApi) {
   const api = () => getApi() || null;

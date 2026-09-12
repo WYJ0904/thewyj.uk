@@ -1,6 +1,6 @@
-import { randomId } from "../core/capabilities.js?v=20260912-task24-3-r1";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260912-task24-3-r1";
-import { getSafeStorage } from "../core/storage.js?v=20260912-task24-3-r1";
+import { randomId } from "../core/capabilities.js?v=20260912-task24-4-r1";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260912-task24-4-r1";
+import { getSafeStorage } from "../core/storage.js?v=20260912-task24-4-r1";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -27,6 +27,44 @@ export function transferQueueStorageKey(owner) {
  */
 export function shouldAdoptStoredQueue(currentOwner, loadedOwner) {
   return String(currentOwner || "") !== String(loadedOwner || "");
+}
+
+/**
+ * Restore one persisted queue item.
+ *
+ * A page reload cannot carry the File object, so an unfinished upload needs the
+ * file again - except when every part was already uploaded (`uploaded >= size`).
+ * That upload only waits for the server-side completion and must not be shown
+ * as「已恢复，请重新选择同一文件继续」: Production evidence (2026-09-12,
+ * UbisoftConnectInstaller.exe 252.5 MB) showed 100% progress while
+ * 「创建分享链接」 kept answering「还有文件没有上传完成。」
+ *
+ * A persisted `uploading` status must also come back as `pending`: `run()` never
+ * resumes `uploading`, so re-selecting the file left the item stuck forever.
+ */
+export function restoreQueueEntry(item) {
+  const size = Number(item?.size) || 0;
+  const uploaded = Number(item?.uploaded) || 0;
+  const wasDone = String(item?.status || "") === "done";
+  const fullyUploaded = size > 0 && uploaded >= size;
+  const done = wasDone || fullyUploaded;
+  return {
+    ...item,
+    file: null,
+    controller: null,
+    speed: 0,
+    eta: 0,
+    needsFile: !done,
+    paused: Boolean(item?.paused) && !fullyUploaded,
+    status: done ? "done" : "pending",
+  };
+}
+
+/** Session that the persisted queue belongs to (survives a page reload). */
+export function sessionIdForQueue(items) {
+  const list = Array.isArray(items) ? items : [];
+  const restored = list.find((item) => String(item?.sessionId || "").trim());
+  return restored ? String(restored.sessionId) : "";
 }
 
 function escapeHtml(value) {
@@ -136,7 +174,7 @@ export function createTransferController({
         saved = JSON.parse(storage.getItem(QUEUE_STORAGE_KEY) || "{}");
       }
       if (saved.account === owner && Array.isArray(saved.queue)) {
-        queue = saved.queue.map((item) => ({ ...item, file: null, needsFile: true, controller: null, speed: 0, eta: 0 }));
+        queue = saved.queue.map(restoreQueueEntry);
         persistQueue();
       }
     } catch (_) {
@@ -361,7 +399,11 @@ export function createTransferController({
     running = true;
     try {
       for (const item of [...queue]) {
-        if (item.status === "pending" || item.status === "error") await uploadItem(item);
+        if (item.paused) continue;
+        if (item.status === "done" || item.status === "cancelled") continue;
+        // Only an item that still holds its File can be resumed; restored items
+        // stay in「待重新选择文件」until addFiles() attaches it again.
+        if (item.file && !item.controller) await uploadItem(item);
       }
     } finally {
       running = false;
@@ -369,7 +411,18 @@ export function createTransferController({
   }
 
   async function complete() {
-    if (!activeSession || !queue.length || queue.some((item) => item.status !== "done")) {
+    if (!queue.length || queue.some((item) => item.status !== "done")) {
+      setMessage("还有文件没有上传完成。", "error");
+      return;
+    }
+    if (!activeSession) {
+      // The queue survives a page reload; the in-memory session object does
+      // not. The persisted session id is the same server-side upload task, so
+      // an already uploaded queue can still be published.
+      const restoredSessionId = sessionIdForQueue(queue);
+      if (restoredSessionId) activeSession = { id: restoredSessionId, expiresAt: "" };
+    }
+    if (!activeSession) {
       setMessage("还有文件没有上传完成。", "error");
       return;
     }

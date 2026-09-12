@@ -1,4 +1,4 @@
-import { randomId } from "../core/capabilities.js?v=20260912-task24-3-r1";
+import { randomId } from "../core/capabilities.js?v=20260912-task24-4-r1";
 const CANDIDATE_PAGE_LIMIT = 100;
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款" });
@@ -6,6 +6,20 @@ const SOURCE_LABELS = Object.freeze({
   "com.tencent.mm": "微信",
   "com.eg.android.AlipayGphone": "支付宝",
 });
+
+/**
+ * A one-click confirm may only be sent when the record already carries every
+ * value the server requires. Production evidence (2026-09-12): a bank-card hint
+ * arrived with amount 10449 but an empty direction, the Finance page still
+ * offered「确认记账」, and the API correctly answered 400
+ * `hint_direction_required`. The record then stayed pending forever and looked
+ * like "confirmed but still in 通知待确认".
+ */
+export function candidateNeedsEditor(candidate) {
+  const amountMissing = !Number(candidate?.amount_minor);
+  const directionMissing = !String(candidate?.direction || "").trim();
+  return amountMissing || directionMissing;
+}
 
 function sourceLabel(evidence) {
   const packageName = String(evidence?.source_package || "");
@@ -102,9 +116,14 @@ export function createFinanceCandidatesController({
       const editedCount = Number(candidate.correction_count) || 0;
       const missing = [];
       const amountUnknown = !Number(candidate.amount_minor);
+      const directionUnknown = !String(candidate.direction || "").trim();
       if (amountUnknown) missing.push("金额");
+      if (directionUnknown) missing.push("方向");
       if (!String(candidate.merchant || candidate.counterparty || "")) missing.push("商户");
       const missingLabel = missing.length ? ` · 缺少：${missing.join("、")}` : "";
+      const confirmLabel = amountUnknown
+        ? "填写金额并确认"
+        : directionUnknown ? "选择方向并确认" : "确认记账";
       return `<article class="finance-candidate" data-finance-candidate="${escapeHtml(id)}">
         <div class="finance-candidate-main">
           <span class="finance-direction is-${escapeHtml(direction)}">${label}</span>
@@ -114,7 +133,7 @@ export function createFinanceCandidatesController({
         </div>
         <div class="finance-candidate-actions">
           <button class="button-ghost" type="button" data-finance-candidate-edit="${escapeHtml(id)}" ${busy ? "disabled" : ""}>编辑并确认</button>
-          <button type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${amountUnknown ? "填写金额并确认" : "确认记账"}</button>
+          <button type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${confirmLabel}</button>
           <button class="danger-text" type="button" data-finance-candidate-reject="${escapeHtml(id)}" ${busy ? "disabled" : ""}>拒绝</button>
         </div>
         <form class="finance-candidate-editor hidden" data-finance-candidate-editor="${escapeHtml(id)}">
@@ -307,15 +326,22 @@ export function createFinanceCandidatesController({
     if (confirmButton) {
       const id = confirmButton.dataset.financeCandidateConfirm;
       const candidate = currentCandidates.find((item) => String(item.id) === String(id));
-      // An amount-unknown hint can never be confirmed as-is: open the editor so
-      // the user fills the missing money fields instead of sending a
-      // zero-amount transaction.
-      if (!Number(candidate?.amount_minor)) {
+      // A hint without an amount or without a direction can never be confirmed
+      // as-is: the server rejects it (hint_amount_required /
+      // hint_direction_required). Open the editor so the user supplies the
+      // missing field instead of sending a request that silently fails.
+      if (candidateNeedsEditor(candidate)) {
+        const amountMissing = !Number(candidate?.amount_minor);
+        // Render first, then reveal the freshly rendered form: render()
+        // rebuilds the list HTML, so revealing the old node had no effect.
+        render(currentCandidates, amountMissing
+          ? "这笔交易缺少金额：请填写金额与方向后保存确认。"
+          : "这笔交易缺少收支方向：请选择方向后保存确认。");
         const form = document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`);
         if (form) {
           form.classList.remove("hidden");
-          form.elements.amount?.focus();
-          render(currentCandidates, "这笔交易缺少金额：请填写金额与方向后保存确认。");
+          if (amountMissing) form.elements.amount?.focus();
+          else form.elements.direction?.focus();
         }
         return;
       }
