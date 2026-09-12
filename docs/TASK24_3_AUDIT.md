@@ -87,14 +87,32 @@ canonical 状态机闭合，Production 与正式 APK 复测通过。
   `PaymentAccessibilityServiceGateTest.destroyedServiceNeverLeavesAConnectedClaim`。
 - Commit：`8151ebe`。
 
+### T24.3-05 更新包校验在缺失 SHA-256 时静默放行（P2 fail-open 完整性）
+
+- Root cause：`AppUpdateInstaller.verify` 在发布元数据缺失或格式错误（`apk_sha256` 不是
+  64 位十六进制）时直接 `return true`，把「无法校验」当成「校验通过」；界面同时还在显示
+  「正在校验安装包…」，随后把文件交给系统安装器。另外 `apkSizeBytes` 缺失（0）会被
+  `coerceAtLeast(0)` 变成「必须正好 0 字节」，导致只发布了哈希的元数据必然校验失败。
+- 修复：改为 fail-closed——哈希缺失/畸形一律判失败并删除已下载文件；哈希是权威校验，
+  发布大小只在服务器确实提供（>0）时作为附加校验。
+- Regression：`AppUpdateInstallerVerifyTest`（缺失哈希、畸形哈希、哈希+大小通过、
+  仅有哈希通过、大小不符失败、内容被篡改后删除）。
+- Commit：`<pending>`。
+
 ## 审计队列状态（内部继续用）
 
 - 本轮已复核：通知/无障碍权限状态与 PermissionCenter 能力比对（T24.3-04）、文件传输上传队列
   跨账户隔离（T24.3-01）、capability 离线语音回退误报（T24.3-02）、服务端自动入账终态断层
   （T24.3-03）、文件传输所有权/支付二维码映射/管理员站内消息 XSS/Android 长期凭据/Finance
-  本地队列/孤儿 multipart/Session 生命周期（均 NO ISSUE FOUND）。
-- 待继续：Admin/owner 越权矩阵、entitlement 叠加与过期、WebView 导航与更新流程、TTS/OCR
-  回归、Security（CSRF/secret/logging）、UI/UX、Performance/后台资源、Production D1/R2 只读审计。
+  本地队列/孤儿 multipart/Session 生命周期（均 NO ISSUE FOUND）、Admin/owner 越权矩阵
+  （`requireAdminTarget`/`targetAccount`/`setAdminRole` 全链路保护，NO ISSUE FOUND）、
+  entitlement 叠加与过期（懒过期 + 按 priority 取顶 + 权益并集 + override，NO ISSUE FOUND）、
+  WebView 导航与会话桥（scheme/SPA 白名单、cookie 作用域与 15 分钟上限、外部跳转仅
+  https/mailto/tel、文件选择器仅 content://、下载仅站内，NO ISSUE FOUND）、App update
+  （T24.3-05）。
+- 待继续：TTS/OCR 回归、Security（CSRF/secret/logging）、UI/UX、Performance/后台资源、
+  Production D1/R2 只读审计；全部自动工作完成后走全量测试 → Android release build →
+  PR → CI → merge → main CI → Production → smoke → WAITING FOR DEVICE ACCEPTANCE。
 
 ## NO ISSUE FOUND（已核实）
 
