@@ -1,6 +1,6 @@
-import { randomId } from "../core/capabilities.js?v=20260912-task24-4-r1";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260912-task24-4-r1";
-import { getSafeStorage } from "../core/storage.js?v=20260912-task24-4-r1";
+import { randomId } from "../core/capabilities.js?v=20260912-task24-4-r2";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260912-task24-4-r2";
+import { getSafeStorage } from "../core/storage.js?v=20260912-task24-4-r2";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";

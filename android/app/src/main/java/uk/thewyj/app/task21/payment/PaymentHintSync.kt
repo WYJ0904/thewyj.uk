@@ -4,6 +4,7 @@ import android.content.Context
 import org.json.JSONObject
 import uk.thewyj.app.BuildConfig
 import uk.thewyj.app.task21.HttpNotificationIngestTransport
+import uk.thewyj.app.task21.NotificationCaptureCoordinator
 import uk.thewyj.app.task21.NotificationSessionProvider
 import uk.thewyj.app.task21.store.NotificationDatabase
 import uk.thewyj.app.task21.store.NotificationArchiveSinkFactory
@@ -58,11 +59,11 @@ class PaymentHintSync(
             when (hint.optString("state")) {
                 "confirmed" -> {
                     val entryId = hint.optString("finance_entry_id").orEmpty()
-                    applyConfirmed(account.accountId, eventId, entryId)
+                    applyConfirmed(account, eventId, entryId, hint)
                     confirmed += 1
                 }
                 "ignored" -> {
-                    applyIgnored(account.accountId, eventId)
+                    applyIgnored(account, eventId, hint)
                     ignored += 1
                 }
                 else -> Unit
@@ -71,7 +72,13 @@ class PaymentHintSync(
         return Result(hints.length(), confirmed, ignored, true)
     }
 
-    private fun applyConfirmed(accountId: String, eventId: String, financeEntryId: String) {
+    private fun applyConfirmed(
+        account: NotificationCaptureCoordinator.CaptureAccount,
+        eventId: String,
+        financeEntryId: String,
+        hint: JSONObject,
+    ) {
+        val accountId = account.accountId
         // The archive link is canonical and independent of the local recognition
         // row: a Web/Android confirm must close the notification-side state even
         // when this device never created a local candidate for that event.
@@ -79,7 +86,7 @@ class PaymentHintSync(
             (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
                 .markFinanceOutcome(accountId, eventId, "confirmed", financeEntryId)
         }
-        val recognition = recognitionForHint(accountId, eventId) ?: return
+        val recognition = recognitionForHint(account, eventId, hint) ?: return
         val candidate = runCatching {
             store.candidateForRecognition(accountId, recognition.recognitionId)
         }.getOrNull()
@@ -102,12 +109,17 @@ class PaymentHintSync(
         }
     }
 
-    private fun applyIgnored(accountId: String, eventId: String) {
+    private fun applyIgnored(
+        account: NotificationCaptureCoordinator.CaptureAccount,
+        eventId: String,
+        hint: JSONObject,
+    ) {
+        val accountId = account.accountId
         runCatching {
             (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
                 .markFinanceOutcome(accountId, eventId, "ignored")
         }
-        val recognition = recognitionForHint(accountId, eventId) ?: return
+        val recognition = recognitionForHint(account, eventId, hint) ?: return
         runCatching {
             store.saveRecognition(
                 recognition.copy(
@@ -132,13 +144,36 @@ class PaymentHintSync(
      * through the archive identity of the same event id — otherwise a payment
      * confirmed on Web /finance stays pending in the Android list forever.
      */
-    private fun recognitionForHint(accountId: String, eventId: String): PaymentRecognitionRecord? {
+    private fun recognitionForHint(
+        account: NotificationCaptureCoordinator.CaptureAccount,
+        eventId: String,
+        hint: JSONObject,
+    ): PaymentRecognitionRecord? {
+        val accountId = account.accountId
         runCatching { store.recognitionByUploadEvent(accountId, eventId) }.getOrNull()?.let { return it }
         val sourceEventId = runCatching {
             (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
                 .recognitionSourceEventId(accountId, eventId)
         }.getOrNull().orEmpty()
-        if (sourceEventId.isBlank()) return null
-        return runCatching { store.recognitionBySourceEvent(accountId, sourceEventId) }.getOrNull()
+        if (sourceEventId.isNotBlank()) {
+            runCatching { store.recognitionBySourceEvent(accountId, sourceEventId) }.getOrNull()?.let { return it }
+        }
+        // Last resort for rows whose archive entry is gone and which never stored
+        // the hint id: the same device, package and amount inside the hint's own
+        // capture window. Never used when the hint came from another device, and
+        // never used when more than one local row matches.
+        val hintDevice = hint.optString("device_id").orEmpty()
+        if (hintDevice.isBlank() || hintDevice != account.deviceId) return null
+        val sourcePackage = hint.optString("source_package").orEmpty()
+        val amountMinor = hint.optLong("amount_minor", 0L)
+        val anchorMs = runCatching {
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).apply {
+                timeZone = java.util.TimeZone.getTimeZone("UTC")
+            }.parse(hint.optString("created_at").orEmpty())?.time ?: 0L
+        }.getOrDefault(0L)
+        if (anchorMs <= 0L) return null
+        return runCatching {
+            store.legacyRecognitionForHint(accountId, sourcePackage, amountMinor, anchorMs)
+        }.getOrNull()
     }
 }

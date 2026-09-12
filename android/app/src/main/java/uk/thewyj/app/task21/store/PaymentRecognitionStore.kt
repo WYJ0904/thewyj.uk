@@ -17,6 +17,20 @@ interface PaymentRecognitionStoreContract {
     fun recognitionBySourceEvent(accountId: String, sourceEventId: String): PaymentRecognitionRecord?
     fun recognitionByUploadEvent(accountId: String, uploadEventId: String): PaymentRecognitionRecord?
 
+    /**
+     * Legacy link for hints uploaded before the recognition recorded its hint
+     * event id: the same device, package and amount inside the hint's capture
+     * window, and only when exactly one local row matches. Returns null when the
+     * match is ambiguous (never guess an account's money).
+     */
+    fun legacyRecognitionForHint(
+        accountId: String,
+        sourcePackage: String,
+        amountMinor: Long,
+        aroundMs: Long,
+        windowMs: Long = DEFAULT_HINT_MATCH_WINDOW_MS,
+    ): PaymentRecognitionRecord? = null
+
     fun saveTicket(ticket: PaymentTicket)
     fun ticket(accountId: String, ticketId: String): PaymentTicket?
     fun activeTicketForPackage(accountId: String, sourcePackage: String): PaymentTicket?
@@ -39,6 +53,11 @@ interface PaymentRecognitionStoreContract {
         occurredAtMs: Long,
         windowMs: Long,
     ): PaymentCandidate?
+
+    companion object {
+        /** ±20 minutes: the hint upload follows the capture by at most a few. */
+        const val DEFAULT_HINT_MATCH_WINDOW_MS = 20L * 60L * 1000L
+    }
 }
 
 class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : PaymentRecognitionStoreContract {
@@ -54,6 +73,27 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
 
     override fun recognitionByUploadEvent(accountId: String, uploadEventId: String): PaymentRecognitionRecord? =
         dao.recognitionByUploadEvent(accountId, uploadEventId)?.toModel()
+
+    override fun legacyRecognitionForHint(
+        accountId: String,
+        sourcePackage: String,
+        amountMinor: Long,
+        aroundMs: Long,
+        windowMs: Long,
+    ): PaymentRecognitionRecord? {
+        val account = accountId.trim()
+        val packageName = sourcePackage.trim()
+        if (account.isEmpty() || packageName.isEmpty() || amountMinor <= 0 || aroundMs <= 0) return null
+        val from = aroundMs - windowMs
+        val to = aroundMs + windowMs
+        val rows = runCatching {
+            dao.legacyHintRecognitions(account, packageName, amountMinor, aroundMs, from, to)
+        }.getOrDefault(emptyList())
+        // Ambiguous money shape (two identical pending rows in the window) must
+        // never be closed by a guess.
+        if (rows.size != 1) return null
+        return rows.first().toModel()
+    }
 
     override fun saveTicket(ticket: PaymentTicket) = dao.upsertTicket(ticket.toEntity())
 

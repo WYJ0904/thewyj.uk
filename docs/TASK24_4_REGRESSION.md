@@ -107,6 +107,31 @@ Root cause（纯客户端）：
   `Page.reload`，断言恢复后的队列**不需要重新选择文件**即可发布（旧代码在此处会一直提示
   「还有文件没有上传完成」）。
 
+### T24.4-04 1.3.1 安装后历史条目仍残留（真机证据 → 1.3.2）
+
+- 真机（1.3.1，SM-S9360）：升级后打开「待核实 / 待确认」，¥104.49 仍显示「等待在财务中确认」。
+  说明该 capture 在本机归档中没有实例（archive 身份链路为空），1.3.1 的
+  `recognitionSourceEventId` 回退无匹配对象。
+- 修复（1.3.2）：新增「设备 + 来源应用 + 金额 + 时间窗口（±20 分钟）」唯一匹配
+  （`PaymentRecognitionStoreContract.legacyRecognitionForHint` /
+  `PaymentDao.legacyHintRecognitions`）。只有 `hint.device_id` 与本机一致才启用；窗口内
+  命中多于一条时保持 pending，不做任何猜测；来自其它设备的确认永不采用。
+- Regression：`legacyHintWithoutArchiveEntryClosesThroughTheUniqueMoneyShape`、
+  `ambiguousMoneyShapeIsNeverClosedByAGuess`、`moneyShapeFromAnotherDeviceIsNeverAdopted`。
+
+### 真机更新链（1.3.0 → 1.3.1，实测）
+
+1. 「我的 → 更新与高级 → 检查更新」：检测到 **v1.3.1 (14)** 并显示完整更新说明。
+2. 「下载并安装」：经官网正式地址 `/api/app/download` 下载（Content-Length 47,578,521，
+   `X-Apk-Sha256` 与本地构建一致）。
+3. **SHA-256 校验通过**：界面显示「安装包已通过 SHA-256 校验，即将打开系统安装器。」
+4. 系统安装器：`thewyj`、版本 1.3.1、来源 thewyj、「未发现安全威胁」→ 点击「更新」。
+5. Google Play 保护机制提示：选择「不扫描，直接安装」（不上传 APK）。
+6. Samsung 的安装验证要求生物识别确认（ADB 无法代替）→ 改用
+   `adb install -r app-release.apk` 完成**同一签名**的覆盖升级；`dumpsys package` 显示
+   versionCode 14 / versionName 1.3.1，`firstInstallTime` 保持 2026-09-11（未卸载、数据保留）。
+   `apksigner verify` 新旧 APK 证书一致（SHA-256 `2b322029…`）。
+
 ## 回归
 
 - `local-backend/test_finance_candidates_js.mjs`（新增，CI）：缺方向 → 必须走编辑器；

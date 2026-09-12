@@ -24,6 +24,25 @@ interface PaymentDao {
     @Query("SELECT * FROM payment_recognitions WHERE accountId = :accountId AND uploadEventId = :uploadEventId LIMIT 1")
     fun recognitionByUploadEvent(accountId: String, uploadEventId: String): PaymentRecognitionEntity?
 
+    /**
+     * Legacy hints (uploaded before the recognition learned its hint event id)
+     * can only be matched by the money shape inside the hint's capture window.
+     * Ordered by proximity so the caller can require a single unambiguous hit.
+     */
+    @Query(
+        "SELECT * FROM payment_recognitions WHERE accountId = :accountId AND uploadEventId = '' " +
+            "AND sourcePackage = :sourcePackage AND amountMinor = :amountMinor " +
+            "AND createdAtMs BETWEEN :fromMs AND :toMs ORDER BY ABS(createdAtMs - :anchorMs) LIMIT 2",
+    )
+    fun legacyHintRecognitions(
+        accountId: String,
+        sourcePackage: String,
+        amountMinor: Long,
+        anchorMs: Long,
+        fromMs: Long,
+        toMs: Long,
+    ): List<PaymentRecognitionEntity>
+
     @Query("SELECT COUNT(*) FROM payment_recognitions WHERE accountId = :accountId")
     fun recognitionCount(accountId: String): Int
 

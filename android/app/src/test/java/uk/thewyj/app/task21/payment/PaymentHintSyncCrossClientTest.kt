@@ -228,4 +228,87 @@ class PaymentHintSyncCrossClientTest {
             paymentStore.recognition(account, "rec-legacy")?.state,
         )
     }
+
+    private fun hintAnchorMs(): Long = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+        .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+        .parse("2026-09-12T04:28:24")!!
+        .time
+
+    private fun legacyMoneyShapeRecognition(recognitionId: String, createdAtMs: Long) = PaymentRecognitionRecord(
+        recognitionId = recognitionId,
+        accountId = account,
+        state = PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name,
+        notificationId = 9,
+        sourcePackage = "cmb.pb",
+        sourceType = "notification",
+        sourceEventId = "notification#bank#$createdAtMs",
+        uploadEventId = "",
+        paymentChannel = "bank",
+        amountMinor = 10449,
+        currency = "CNY",
+        direction = "UNKNOWN",
+        merchant = "招商银行",
+        providerReference = "",
+        createdAtMs = createdAtMs,
+        updatedAtMs = createdAtMs,
+    )
+
+    private val moneyShapeHint =
+        """{"source_event_id":"evt-money","state":"confirmed","finance_entry_id":"txn-money-1",""" +
+            """"device_id":"device-a","source_package":"cmb.pb","amount_minor":10449,""" +
+            """"created_at":"2026-09-12T04:28:24"}"""
+
+    /**
+     * Real-device evidence (1.3.1, 2026-09-12): the archive entry for the
+     * confirmed ¥104.49 hint did not exist, so the archive-identity link was
+     * empty and the Android row stayed pending. The same device, package and
+     * amount inside the hint's capture window is the last deterministic link.
+     */
+    @Test fun legacyHintWithoutArchiveEntryClosesThroughTheUniqueMoneyShape() {
+        paymentStore.saveRecognition(
+            legacyMoneyShapeRecognition("rec-money", hintAnchorMs() - 5L * 60L * 1000L),
+        )
+
+        val result = syncWith("""{"ok":true,"hints":[$moneyShapeHint]}""")
+
+        assertEquals(1, result.confirmed)
+        assertEquals(
+            PaymentRecognitionState.FINANCE_RECORDED.name,
+            paymentStore.recognition(account, "rec-money")?.state,
+        )
+    }
+
+    @Test fun ambiguousMoneyShapeIsNeverClosedByAGuess() {
+        val anchor = hintAnchorMs()
+        paymentStore.saveRecognition(legacyMoneyShapeRecognition("rec-money-a", anchor - 60_000L))
+        paymentStore.saveRecognition(legacyMoneyShapeRecognition("rec-money-b", anchor + 60_000L))
+
+        syncWith("""{"ok":true,"hints":[$moneyShapeHint]}""")
+
+        assertEquals(
+            PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name,
+            paymentStore.recognition(account, "rec-money-a")?.state,
+        )
+        assertEquals(
+            PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name,
+            paymentStore.recognition(account, "rec-money-b")?.state,
+        )
+    }
+
+    @Test fun moneyShapeFromAnotherDeviceIsNeverAdopted() {
+        paymentStore.saveRecognition(
+            legacyMoneyShapeRecognition("rec-other-device", hintAnchorMs() - 5L * 60L * 1000L),
+        )
+
+        syncWith(
+            """{"ok":true,"hints":[{"source_event_id":"evt-other","state":"confirmed","finance_entry_id":"txn-other",""" +
+                """"device_id":"device-b","source_package":"cmb.pb","amount_minor":10449,""" +
+                """"created_at":"2026-09-12T04:28:24"}]}""",
+        )
+
+        assertEquals(
+            PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name,
+            paymentStore.recognition(account, "rec-other-device")?.state,
+        )
+    }
 }
