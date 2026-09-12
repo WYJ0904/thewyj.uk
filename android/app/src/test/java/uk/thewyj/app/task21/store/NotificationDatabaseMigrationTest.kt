@@ -51,6 +51,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_2_3,
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
+                NotificationDatabase.MIGRATION_5_6,
             )
             .allowMainThreadQueries()
             .build()
@@ -115,6 +116,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_2_3,
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
+                NotificationDatabase.MIGRATION_5_6,
             )
             .allowMainThreadQueries()
             .build()
@@ -149,6 +151,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_2_3,
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
+                NotificationDatabase.MIGRATION_5_6,
             )
             .allowMainThreadQueries()
             .build()
@@ -168,6 +171,87 @@ class NotificationDatabaseMigrationTest {
         assertEquals(0, store.purgeExpired("account-a", System.currentTimeMillis() + 1))
         assertTrue(store.setPinned("account-a", history.first().instanceId, pinned = false))
         assertEquals(1, store.purgeExpired("account-a", System.currentTimeMillis() + 1))
+    }
+
+    /**
+     * v5 -> v6 adds the screenshot evidence columns. Existing picture references
+     * must survive untouched, and the evidence identity must be usable through
+     * the normal store API: Samsung replaces its screenshot notification in
+     * place, so the archive compares evidence instead of the notification key.
+     */
+    @Test fun migrationFromV5AddsScreenshotEvidenceAndKeepsMedia() {
+        val schema = loadSchema(5)
+        createDatabaseFromSchema(schema, version = 5)
+        insertV5MediaRow()
+
+        database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
+            .addMigrations(
+                NotificationDatabase.MIGRATION_1_2,
+                NotificationDatabase.MIGRATION_2_3,
+                NotificationDatabase.MIGRATION_3_4,
+                NotificationDatabase.MIGRATION_4_5,
+                NotificationDatabase.MIGRATION_5_6,
+            )
+            .allowMainThreadQueries()
+            .build()
+        val store = RoomNotificationStore(database!!)
+
+        val history = store.history("account-a", NotificationQuery())
+        assertEquals(1, history.size)
+        assertEquals("屏幕截图已保存", history.first().title)
+        assertEquals("account-a/shot.jpg", history.first().mediaPath)
+        assertEquals("image/jpeg", history.first().mediaMime)
+        assertEquals("available", history.first().mediaState)
+
+        // The new evidence columns are writable and already drive dedupe.
+        val first = store.record("account-a", screenshotCapture(fingerprint = "ms:1"))
+        assertNotNull("a new evidence identity creates a revision", first)
+        val replay = store.record("account-a", screenshotCapture(fingerprint = "ms:1"))
+        assertEquals("an exact replay must not create a second revision", null, replay)
+        assertEquals(2, store.history("account-a", NotificationQuery()).size)
+    }
+
+    private fun screenshotCapture(fingerprint: String) = NotificationCapture(
+        sourcePackage = "com.samsung.android.app.smartcapture",
+        sourceType = "screenshot_media_store",
+        notificationKey = "",
+        notificationId = 0,
+        tag = "",
+        groupKey = "",
+        channelId = "screenshots",
+        postTime = 2_000L,
+        isGroup = false,
+        isGroupSummary = false,
+        title = "屏幕截图已保存",
+        text = "",
+        bigText = "",
+        subText = "",
+        identityOverride = "shot:$fingerprint",
+        mediaPath = "account-a/shot-2.jpg",
+        mediaMime = "image/jpeg",
+        mediaState = "available",
+        mediaFingerprint = fingerprint,
+        mediaOrigin = "media_store",
+    )
+
+    private fun insertV5MediaRow() {
+        val sqlite = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
+        sqlite.execSQL(
+            "INSERT INTO notification_instances (instanceId, accountId, identityKey, sourcePackage, sourceType, " +
+                "notificationKey, notificationId, tag, groupKey, channelId, postTime, firstSeenAt, lastSeenAt, " +
+                "removedAt, status, revisionCount, latestRevisionId, isGroup, isGroupSummary, financeLinked, " +
+                "pinned, pinnedAt) VALUES ('inst-5', 'account-a', 'key:k5', 'com.samsung.android.app.smartcapture', " +
+                "'notification', 'k5', 5, '', '', 'screenshot_status', 1000, 1000, 1000, 0, 'active', 1, 'rev-5', " +
+                "0, 0, 0, 0, 0)",
+        )
+        sqlite.execSQL(
+            "INSERT INTO notification_revisions (revisionId, instanceId, accountId, title, text, bigText, subText, " +
+                "infoText, summaryText, textLines, contentHash, capturedAt, parseStatus, direction, amountMinor, " +
+                "currency, merchant, confidence, mediaPath, mediaMime, mediaState) VALUES ('rev-5', 'inst-5', " +
+                "'account-a', '屏幕截图已保存', '', '', '', '', '', '', 'hash-5', 1000, 'UNPARSED', 'UNKNOWN', 0, " +
+                "'CNY', '', 0, 'account-a/shot.jpg', 'image/jpeg', 'available')",
+        )
+        sqlite.close()
     }
 
     private fun insertV3HistoryRow() {

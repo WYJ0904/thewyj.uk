@@ -31,7 +31,7 @@ abstract class NotificationDatabase : RoomDatabase() {
     abstract fun paymentDao(): PaymentDao
 
     companion object {
-        const val SCHEMA_VERSION = 5
+        const val SCHEMA_VERSION = 6
         const val DATABASE_NAME = "wyj-notifications.db"
 
         @Volatile
@@ -45,7 +45,7 @@ abstract class NotificationDatabase : RoomDatabase() {
                     DATABASE_NAME,
                 )
                     // The local archive is user data: never drop it on upgrade.
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .fallbackToDestructiveMigrationOnDowngrade(false)
                     .build()
                     .also { instance = it }
@@ -97,6 +97,25 @@ abstract class NotificationDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE `notification_revisions` ADD COLUMN `mediaPath` TEXT NOT NULL DEFAULT ''")
                 db.execSQL("ALTER TABLE `notification_revisions` ADD COLUMN `mediaMime` TEXT NOT NULL DEFAULT ''")
                 db.execSQL("ALTER TABLE `notification_revisions` ADD COLUMN `mediaState` TEXT NOT NULL DEFAULT 'none'")
+            }
+        }
+
+        /**
+         * v5 -> v6 stores the screenshot evidence identity next to the picture.
+         * Samsung replaces its screenshot notification in place (same key, same
+         * text), so the archive must compare media evidence to decide between
+         * "replay" and "a new screenshot". Existing history keeps its content and
+         * simply has no evidence fingerprint yet.
+         */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `notification_revisions` ADD COLUMN `mediaFingerprint` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `notification_revisions` ADD COLUMN `mediaFingerprintAlt` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `notification_revisions` ADD COLUMN `mediaOrigin` TEXT NOT NULL DEFAULT ''")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_notification_revisions_mediaFingerprint` " +
+                        "ON `notification_revisions` (`mediaFingerprint`)",
+                )
             }
         }
 

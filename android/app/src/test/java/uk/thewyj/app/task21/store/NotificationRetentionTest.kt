@@ -39,6 +39,7 @@ class NotificationRetentionTest {
                 NotificationDatabase.MIGRATION_2_3,
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
+                NotificationDatabase.MIGRATION_5_6,
             )
             .allowMainThreadQueries()
             .build()
@@ -160,6 +161,7 @@ class NotificationRetentionTest {
                 NotificationDatabase.MIGRATION_2_3,
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
+                NotificationDatabase.MIGRATION_5_6,
             )
             .allowMainThreadQueries()
             .build()

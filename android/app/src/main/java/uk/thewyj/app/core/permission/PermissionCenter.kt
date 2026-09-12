@@ -14,6 +14,8 @@ import android.view.accessibility.AccessibilityManager
 import androidx.core.content.ContextCompat
 import uk.thewyj.app.task21.ThewyjNotificationListenerService
 import uk.thewyj.app.task21.payment.ThewyjPaymentAccessibilityService
+import uk.thewyj.app.task21.screenshot.MediaReadCapability
+import uk.thewyj.app.task21.screenshot.MediaReadPolicy
 
 /**
  * Real state of every permission the app needs, probed from the platform.
@@ -30,6 +32,7 @@ object PermissionCenter {
         val sms = runtimeGranted(context, Manifest.permission.RECEIVE_SMS)
         val installPackages = canInstallPackages(context)
         val battery = batteryOptimizationIgnored(context)
+        val mediaCapability = MediaReadPolicy.current(context)
         return listOf(
             AppPermissionState(
                 id = AppPermissionId.NOTIFICATION_LISTENER,
@@ -61,6 +64,17 @@ object PermissionCenter {
                 kind = PermissionKind.RUNTIME,
                 granted = postNotifications,
                 statusText = PermissionDecisions.runtimeStatus(postNotifications),
+            ),
+            AppPermissionState(
+                id = AppPermissionId.SCREENSHOT_MEDIA,
+                title = PermissionCopy.SCREENSHOT_MEDIA_TITLE,
+                purpose = PermissionCopy.SCREENSHOT_MEDIA_PURPOSE,
+                actionLabel = "允许读取截图",
+                kind = PermissionKind.RUNTIME,
+                // Selected Photos Access still delivers MediaStore change
+                // callbacks, so only the full grant counts as "已开启".
+                granted = mediaCapability == MediaReadCapability.FULL,
+                statusText = MediaReadPolicy.statusText(mediaCapability),
             ),
             AppPermissionState(
                 id = AppPermissionId.RECEIVE_SMS,
@@ -99,6 +113,8 @@ object PermissionCenter {
         AppPermissionId.POST_NOTIFICATIONS ->
             if (Build.VERSION.SDK_INT >= 33) arrayOf("android.permission.POST_NOTIFICATIONS") else emptyArray()
         AppPermissionId.RECEIVE_SMS -> arrayOf(Manifest.permission.RECEIVE_SMS)
+        // Requested together so Android 14+ shows 允许全部 / 选择照片 / 不允许.
+        AppPermissionId.SCREENSHOT_MEDIA -> MediaReadPolicy.runtimeRequest(Build.VERSION.SDK_INT)
         else -> emptyArray()
     }
 
@@ -113,6 +129,8 @@ object PermissionCenter {
             Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
         AppPermissionId.POST_NOTIFICATIONS -> notificationSettingsIntent(context)
         AppPermissionId.RECEIVE_SMS -> appDetailsIntent(context)
+        // Android 13+ exposes the photo/video permission in the app info screen.
+        AppPermissionId.SCREENSHOT_MEDIA -> appDetailsIntent(context)
     }?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
     /** App info is where Android 13+ exposes "允许受限设置". */

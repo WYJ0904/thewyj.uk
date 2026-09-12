@@ -67,6 +67,41 @@ interface NotificationDao {
     @Query("SELECT * FROM notification_revisions WHERE accountId = :accountId AND instanceId = :instanceId ORDER BY capturedAt ASC, revisionId ASC")
     fun revisions(accountId: String, instanceId: String): List<NotificationRevisionEntity>
 
+    /**
+     * Evidence lookup for screenshot archiving (Task 24.1 R4). Both the primary
+     * and the secondary fingerprint are searched so a listener replay and a
+     * MediaStore import of the same screenshot resolve to one revision.
+     */
+    @Query(
+        "SELECT * FROM notification_revisions WHERE accountId = :accountId AND mediaFingerprint != '' "
+            + "AND (mediaFingerprint = :fingerprint OR mediaFingerprintAlt = :fingerprint) "
+            + "ORDER BY capturedAt DESC, revisionId DESC LIMIT 1",
+    )
+    fun revisionByMediaFingerprint(accountId: String, fingerprint: String): NotificationRevisionEntity?
+
+    /** Oldest revision archived from one origin only (candidate for a merge). */
+    @Query(
+        "SELECT * FROM notification_revisions WHERE accountId = :accountId AND mediaOrigin = :origin "
+            + "AND capturedAt >= :since ORDER BY capturedAt ASC, revisionId ASC LIMIT 1",
+    )
+    fun oldestRevisionWithOrigin(accountId: String, origin: String, since: Long): NotificationRevisionEntity?
+
+    @Query(
+        "UPDATE notification_revisions SET mediaFingerprint = :fingerprint, mediaFingerprintAlt = :alt, "
+            + "mediaOrigin = :origin, mediaPath = :mediaPath, mediaMime = :mediaMime, mediaState = :mediaState "
+            + "WHERE accountId = :accountId AND revisionId = :revisionId",
+    )
+    fun updateRevisionMedia(
+        accountId: String,
+        revisionId: String,
+        fingerprint: String,
+        alt: String,
+        origin: String,
+        mediaPath: String,
+        mediaMime: String,
+        mediaState: String,
+    ): Int
+
     @Query(
         """
         SELECT i.instanceId AS instanceId, i.sourcePackage AS sourcePackage, i.postTime AS postTime,
@@ -258,7 +293,9 @@ interface NotificationDao {
         }
         val latest = latestRevision(existing.accountId, existing.instanceId)
         val candidate = revisionFactory(existing.instanceId, newRevisionId)
-        if (latest != null && latest.contentHash == candidate.contentHash) {
+        if (latest != null && latest.contentHash == candidate.contentHash &&
+            !mediaEvidenceChanged(latest, candidate)
+        ) {
             touchInstance(existing.accountId, existing.instanceId, now)
             return CaptureWriteResult(existing.instanceId, revisionAdded = false, instanceCreated = false)
         }
@@ -274,6 +311,20 @@ interface NotificationDao {
             ),
         )
         return CaptureWriteResult(existing.instanceId, revisionAdded = true, instanceCreated = false)
+    }
+
+    /**
+     * True when the capture carries media evidence that is different from the
+     * stored revision. Samsung reuses one notification key for every screenshot,
+     * so identical text with new media must always become a new revision.
+     */
+    private fun mediaEvidenceChanged(
+        latest: NotificationRevisionEntity,
+        candidate: NotificationRevisionEntity,
+    ): Boolean {
+        val incoming = candidate.mediaFingerprint.trim()
+        if (incoming.isEmpty()) return false
+        return incoming != latest.mediaFingerprint.trim() && incoming != latest.mediaFingerprintAlt.trim()
     }
 }
 

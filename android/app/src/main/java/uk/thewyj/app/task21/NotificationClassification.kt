@@ -94,6 +94,20 @@ object NotificationClassifier {
 
     fun classify(input: NotificationClassificationInput): NotificationClassification {
         val packageName = input.sourcePackage.lowercase(Locale.ROOT)
+        // A system screenshot notice is user content even when One UI marks it
+        // ongoing and reuses the same key for the next capture: it must never be
+        // coalesced away as a live readout.
+        if (uk.thewyj.app.task21.screenshot.ScreenshotEvidence.isScreenshotEvent(
+                sourcePackage = input.sourcePackage,
+                channelId = input.channelId,
+                title = input.title,
+                text = input.text,
+                bigText = input.bigText,
+                hasMedia = input.hasMedia,
+            )
+        ) {
+            return NotificationClassification(NotificationClass.MESSAGE, true, "screenshot_event")
+        }
         // A notification that carries a picture is user content, never a live
         // readout: a screenshot/media notification must be archived even when its
         // channel or package looks like a status channel.

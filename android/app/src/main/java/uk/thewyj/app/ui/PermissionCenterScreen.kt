@@ -49,7 +49,7 @@ fun PermissionCenterScreen(onBack: () -> Unit) {
     fun refresh() {
         states = PermissionCenter.states(context)
     }
-    val runtimeLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+    val runtimeLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         refresh()
     }
     val settingsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -83,7 +83,7 @@ fun PermissionCenterScreen(onBack: () -> Unit) {
                     state = state,
                     onRequestRuntime = {
                         val permissions = PermissionCenter.runtimePermissionsFor(state.id)
-                        if (permissions.isNotEmpty()) runtimeLauncher.launch(permissions.first()) else refresh()
+                        if (permissions.isNotEmpty()) runtimeLauncher.launch(permissions) else refresh()
                     },
                     onOpenSettings = {
                         PermissionCenter.settingsIntent(context, state.id)?.let { settingsLauncher.launch(it) } ?: refresh()

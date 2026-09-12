@@ -7,6 +7,19 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <!-- Task 24.1 R4: screenshot archive. MediaStore is the authoritative
+         screenshot source on Samsung, because One UI replaces its single
+         screenshot notification instead of posting a new one.
+         READ_MEDIA_IMAGES = full image read (Android 13+).
+         READ_MEDIA_VISUAL_USER_SELECTED = Android 14 Selected Photos Access; it
+         is requested together with the full grant so the system dialog offers
+         "允许全部" as well. Selected-only access never counts as readable
+         screenshots: see MediaReadPolicy. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
     <!-- The in-app updater hands the downloaded APK to the official Android
          package installer; nothing is installed silently. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />

@@ -68,6 +68,7 @@ data class NotificationInstanceEntity(
         Index(value = ["instanceId", "capturedAt"]),
         Index(value = ["accountId", "capturedAt"]),
         Index(value = ["contentHash"]),
+        Index(value = ["mediaFingerprint"]),
     ],
 )
 data class NotificationRevisionEntity(
@@ -99,6 +100,18 @@ data class NotificationRevisionEntity(
     val mediaMime: String = "",
     /** none | available | unavailable */
     val mediaState: String = "none",
+    /**
+     * Task 24.1 R4 evidence identity for media events, strongest first:
+     * `ms:<rowId>` (MediaStore row) > `uri:<sha>` > `nfb:<sha>` (sampled bitmap).
+     * Screenshots are deduplicated by this evidence, never by the notification
+     * key: One UI replaces its screenshot notification in place, so the key is
+     * stable while the content changes.
+     */
+    val mediaFingerprint: String = "",
+    /** Secondary evidence (the other origin that confirmed the same screenshot). */
+    val mediaFingerprintAlt: String = "",
+    /** "" | notification | media_store | media_store+notification */
+    val mediaOrigin: String = "",
 )
 
 @Entity(tableName = "notification_app_policies", primaryKeys = ["accountId", "sourcePackage"])

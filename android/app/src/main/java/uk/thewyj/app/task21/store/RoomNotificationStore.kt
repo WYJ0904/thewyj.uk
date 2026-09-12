@@ -4,6 +4,9 @@ import java.security.MessageDigest
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import uk.thewyj.app.task21.screenshot.ScreenshotEvidence
+import uk.thewyj.app.task21.screenshot.ScreenshotLinkAction
+import uk.thewyj.app.task21.screenshot.ScreenshotMediaOrigin
 
 /**
  * Everything the capture pipeline needs to persist and query notifications.
@@ -42,6 +45,15 @@ data class NotificationCapture(
     val mediaPath: String = "",
     val mediaMime: String = "",
     val mediaState: String = "none",
+    /**
+     * Explicit archive identity. Screenshot evidence (MediaStore row / bitmap
+     * fingerprint) overrides the platform notification key, because One UI
+     * reuses one key for every screenshot.
+     */
+    val identityOverride: String = "",
+    val mediaFingerprint: String = "",
+    val mediaFingerprintAlt: String = "",
+    val mediaOrigin: String = "",
 )
 
 data class NotificationHistoryItem(
@@ -112,7 +124,7 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
             capture.notificationId,
         )
         val contentHash = contentHash(capture)
-        val identityKey = identityKey(capture)
+        val identityKey = capture.identityOverride.trim().ifBlank { identityKey(capture) }
         val instanceId = "inst-" + UUID.randomUUID()
         val revisionId = "rev-" + UUID.randomUUID()
         val result = dao.recordCapture(
@@ -168,6 +180,9 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
                     mediaPath = capture.mediaPath,
                     mediaMime = capture.mediaMime,
                     mediaState = capture.mediaState,
+                    mediaFingerprint = capture.mediaFingerprint,
+                    mediaFingerprintAlt = capture.mediaFingerprintAlt,
+                    mediaOrigin = capture.mediaOrigin,
                 )
             },
         )
@@ -321,6 +336,123 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
 
     fun markFinanceLinked(accountId: String, instanceId: String): Int =
         dao.markFinanceLinked(accountId.trim(), instanceId)
+
+    /**
+     * Task 24.1 R4: resolves one piece of screenshot evidence against the
+     * archive. Returns what the caller must do: archive a new revision, treat the
+     * callback as a replay, or attach the second origin (notification vs
+     * MediaStore) to the revision that already holds the same screenshot.
+     */
+    data class ScreenshotLinkResult(
+        val action: ScreenshotLinkAction,
+        val instanceId: String,
+        val revisionId: String,
+    )
+
+    fun linkScreenshotEvidence(
+        accountId: String,
+        fingerprint: String,
+        origin: ScreenshotMediaOrigin,
+        eventAtMs: Long,
+        mediaPath: String = "",
+        mediaMime: String = "",
+        mediaState: String = "",
+    ): ScreenshotLinkResult {
+        val account = accountId.trim()
+        if (account.isEmpty() || fingerprint.isBlank() || origin == ScreenshotMediaOrigin.NONE) {
+            return ScreenshotLinkResult(ScreenshotLinkAction.NEW_EVENT, "", "")
+        }
+        val existing = dao.revisionByMediaFingerprint(account, fingerprint)
+        if (existing != null) {
+            val storedOrigin = ScreenshotMediaOrigin.fromWire(existing.mediaOrigin)
+            if (storedOrigin == origin || storedOrigin == ScreenshotMediaOrigin.MERGED) {
+                return ScreenshotLinkResult(ScreenshotLinkAction.DUPLICATE, existing.instanceId, existing.revisionId)
+            }
+            return mergeScreenshotRevision(
+                account = account,
+                revision = existing,
+                incomingFingerprint = fingerprint,
+                incomingOrigin = origin,
+                mediaPath = mediaPath,
+                mediaMime = mediaMime,
+                mediaState = mediaState,
+            )
+        }
+        val counterpart = if (origin == ScreenshotMediaOrigin.MEDIA_STORE) {
+            ScreenshotMediaOrigin.NOTIFICATION
+        } else {
+            ScreenshotMediaOrigin.MEDIA_STORE
+        }
+        val since = (if (eventAtMs > 0) eventAtMs else System.currentTimeMillis()) - ScreenshotEvidence.MERGE_WINDOW_MS
+        val candidate = dao.oldestRevisionWithOrigin(account, counterpart.wireValue, since.coerceAtLeast(0))
+        if (candidate != null && ScreenshotEvidence.isWithinMergeWindow(eventAtMs, candidate.capturedAt)) {
+            return mergeScreenshotRevision(
+                account = account,
+                revision = candidate,
+                incomingFingerprint = fingerprint,
+                incomingOrigin = origin,
+                mediaPath = mediaPath,
+                mediaMime = mediaMime,
+                mediaState = mediaState,
+            )
+        }
+        return ScreenshotLinkResult(ScreenshotLinkAction.NEW_EVENT, "", "")
+    }
+
+    private fun mergeScreenshotRevision(
+        account: String,
+        revision: NotificationRevisionEntity,
+        incomingFingerprint: String,
+        incomingOrigin: ScreenshotMediaOrigin,
+        mediaPath: String,
+        mediaMime: String,
+        mediaState: String,
+    ): ScreenshotLinkResult {
+        val primary = strongerFingerprint(revision.mediaFingerprint, incomingFingerprint)
+        val alt = when {
+            primary.isBlank() -> ""
+            primary == incomingFingerprint -> revision.mediaFingerprint
+            else -> incomingFingerprint
+        }
+        val keepIncomingMedia = mediaPath.isNotBlank() && (
+            revision.mediaPath.isBlank() ||
+                revision.mediaState != "available" ||
+                (incomingOrigin == ScreenshotMediaOrigin.MEDIA_STORE && mediaState == "available")
+            )
+        dao.updateRevisionMedia(
+            accountId = account,
+            revisionId = revision.revisionId,
+            fingerprint = primary,
+            alt = alt,
+            origin = ScreenshotMediaOrigin.MERGED.wireValue,
+            mediaPath = if (keepIncomingMedia) mediaPath else revision.mediaPath,
+            mediaMime = if (keepIncomingMedia) mediaMime else revision.mediaMime,
+            mediaState = when {
+                keepIncomingMedia -> mediaState.ifBlank { "available" }
+                else -> revision.mediaState
+            },
+        )
+        return ScreenshotLinkResult(ScreenshotLinkAction.MERGE, revision.instanceId, revision.revisionId)
+    }
+
+    /** MediaStore row id beats URI, URI beats a sampled bitmap fingerprint. */
+    private fun strongerFingerprint(first: String, second: String): String {
+        val rankFirst = fingerprintRank(first)
+        val rankSecond = fingerprintRank(second)
+        return when {
+            first.isBlank() -> second
+            second.isBlank() -> first
+            rankSecond > rankFirst -> second
+            else -> first
+        }
+    }
+
+    private fun fingerprintRank(fingerprint: String): Int = when {
+        fingerprint.startsWith(ScreenshotEvidence.MEDIA_STORE_PREFIX) -> 3
+        fingerprint.startsWith(ScreenshotEvidence.URI_PREFIX) -> 2
+        fingerprint.startsWith(ScreenshotEvidence.NOTIFICATION_PREFIX) -> 1
+        else -> 0
+    }
 
     /**
      * Retention purge. Finance-linked notifications are never deleted here, so

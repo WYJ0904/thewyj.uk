@@ -63,6 +63,17 @@ def main() -> int:
             # In-app updater: the downloaded APK is handed to the official
             # Android package installer (never installed silently).
             "android.permission.REQUEST_INSTALL_PACKAGES",
+            # Task 24.1 R4: screenshot archive. Samsung replaces its single
+            # screenshot notification in place, so MediaStore is the
+            # authoritative screenshot source:
+            #   READ_MEDIA_IMAGES                  = full image read (Android 13+)
+            #   READ_MEDIA_VISUAL_USER_SELECTED    = Android 14 Selected Photos
+            #                                        (limited; never treated as
+            #                                        readable screenshots)
+            #   READ_EXTERNAL_STORAGE (<= API 32)  = legacy full read
+            "android.permission.READ_MEDIA_IMAGES",
+            "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+            "android.permission.READ_EXTERNAL_STORAGE",
         },
         f"Task 20 permission surface changed: {sorted(permissions)}",
     )
