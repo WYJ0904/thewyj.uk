@@ -1,5 +1,7 @@
 package uk.thewyj.app.task21
 
+import uk.thewyj.app.task21.screenshot.ScreenshotEvidence
+
 /**
  * Device-local notification capture pipeline.
  *
@@ -172,16 +174,33 @@ class NotificationCaptureCoordinator(
             )
         }
 
+        // Screenshot events (Task 24.1 R4) archive under their evidence identity
+        // instead of the platform key: Samsung reuses one notification key for
+        // every screenshot, so key-based history silently kept only the first.
+        val archiveInput = if (input.screenshotEvent) {
+            val auxiliary = ScreenshotEvidence.auxiliaryIdentity(
+                input.sourcePackage,
+                input.eventTimeMs,
+                input.postTime,
+            )
+            val evidenceIdentity = ScreenshotEvidence.archiveIdentity(input.mediaFingerprint, auxiliary)
+            if (evidenceIdentity.isBlank()) input else input.copy(identityOverride = evidenceIdentity)
+        } else {
+            input
+        }
+
         // Pipeline 1 - Notification Archive (NotiStar-style). The classifier
         // drops ongoing/progress/live readouts here; nothing below this line is
         // allowed to influence it, and it never writes Finance data.
         archivePipeline.consume(
             accountId = current.accountId,
             archiveEntitled = current.archiveEntitled,
-            input = input,
+            input = archiveInput,
             structured = structured,
-            identityKey = input.notificationKey.ifBlank {
-                "${input.sourcePackage}|${input.notificationId}|${input.tag}"
+            identityKey = archiveInput.identityOverride.ifBlank {
+                archiveInput.notificationKey.ifBlank {
+                    "${archiveInput.sourcePackage}|${archiveInput.notificationId}|${archiveInput.tag}"
+                }
             },
         )
 

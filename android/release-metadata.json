@@ -1,13 +1,13 @@
 {
   "applicationId": "uk.thewyj.app",
-  "versionName": "1.2.8",
-  "versionCode": 11,
+  "versionName": "1.2.9",
+  "versionCode": 12,
   "minimumVersionCode": 1,
-  "releaseDate": "2026-09-11",
-  "releaseBuild": "2026-09-11-task24-1-closure-r3",
-  "releaseNotes": "统一待确认交易数据源：Android 与网页财务读取同一 pending 接口，缺金额/缺方向可直接补全确认或忽略；微信无障碍读不到文字时改用本机截图 + 本地 OCR 核实，只补全已有待确认交易且截图不上传；截图与图片通知保存记录与本机缩略图，无法读取时明确提示；通知历史支持收藏与 7/30/90/365 天/永久保存；应用名称显示系统名；自动入账后待确认状态立即关闭；修复银行通知无法入账、撤回消息历史丢失、图片通知整条丢失。",
-  "apkFileName": "thewyj-android-1.2.8.apk",
-  "apkKey": "app/android/thewyj-android-1.2.8.apk",
-  "apkSha256": "8c62598f619c9c45f0b325fce2081e4e1dcb0bd42b0be74e6581a51e07267ada",
-  "apkSizeBytes": 2398961
+  "releaseDate": "2026-09-12",
+  "releaseBuild": "2026-09-12-task24-1-screenshot-r4",
+  "releaseNotes": "截图归档修复：三星连续截图不再只保留第一张，每张截图都会独立保存并显示本机图片；系统通知没有携带图片时从系统相册补齐；Android 14–16 照片读取权限状态真实显示（完整读取 / 仅部分照片 / 未开启），读不到的截图明确显示「图片内容不可用」；同一张截图不会重复登记。保留 1.2.8 的待确认交易统一数据源、微信本地 OCR 与通知媒体历史能力。",
+  "apkFileName": "thewyj-android-1.2.9.apk",
+  "apkKey": "app/android/thewyj-android-1.2.9.apk",
+  "apkSha256": "44ef7cf25a5734cb8f577fc620a60abc9ee7cce98e599ecb3aaaab26ed465257",
+  "apkSizeBytes": 2415465
 }

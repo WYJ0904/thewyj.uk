@@ -1,9 +1,14 @@
 package uk.thewyj.app.task21.store
 
 import android.content.Context
+import uk.thewyj.app.task21.CaptureTrace
 import uk.thewyj.app.task21.NotificationArchiveSink
 import uk.thewyj.app.task21.NotificationCaptureInput
+import uk.thewyj.app.task21.ScreenshotMediaEvent
 import uk.thewyj.app.task21.StructuredNotificationEvent
+import uk.thewyj.app.task21.screenshot.ScreenshotArchiveOutcome
+import uk.thewyj.app.task21.screenshot.ScreenshotLinkAction
+import uk.thewyj.app.task21.screenshot.ScreenshotMediaOrigin
 
 /**
  * Bridges the capture pipeline to the Room store: applies the per-account app
@@ -36,13 +41,132 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
             "archive-accepted",
             "pkg=${input.sourcePackage} media=${input.mediaState}",
         )
-        store.record(accountId, captureOf(accountId, input, parsed))
+        val mediaRef = media.save(
+            accountId = accountId,
+            identity = mediaIdentity(input),
+            bitmap = input.mediaBitmap,
+        )
+        val capture = captureOf(input, parsed, mediaRef)
+        if (input.screenshotEvent) {
+            CaptureTrace.stage(
+                traceId,
+                if (mediaRef != null) "media-resolved" else "media-unavailable",
+                "origin=notification",
+            )
+            if (mediaRef != null) {
+                CaptureTrace.stage(
+                    traceId,
+                    "notification-fallback-used",
+                    "evidence=${input.mediaFingerprint.ifBlank { "-" }}",
+                )
+            }
+        }
+        if (input.screenshotEvent && input.mediaFingerprint.isNotBlank()) {
+            val link = store.linkScreenshotEvidence(
+                accountId = accountId,
+                fingerprint = input.mediaFingerprint,
+                origin = ScreenshotMediaOrigin.NOTIFICATION,
+                eventAtMs = capture.postTime,
+                mediaPath = capture.mediaPath,
+                mediaMime = capture.mediaMime,
+                mediaState = capture.mediaState,
+            )
+            when (link.action) {
+                ScreenshotLinkAction.DUPLICATE, ScreenshotLinkAction.MERGE -> {
+                    uk.thewyj.app.task21.CaptureTrace.stage(
+                        traceId,
+                        "duplicate-merged",
+                        "evidence=${input.mediaFingerprint} action=${link.action.name.lowercase()} " +
+                            "origin=notification",
+                    )
+                    return true
+                }
+                ScreenshotLinkAction.NEW_EVENT -> Unit
+            }
+        }
+        store.record(accountId, capture)
         return true
     }
 
     override fun markRemoved(accountId: String, input: NotificationCaptureInput) {
         if (input.notificationKey.isBlank()) return
         store.markRemoved(accountId, input.notificationKey)
+    }
+
+    /**
+     * Task 24.1 R4: a screenshot that MediaStore delivered (Samsung replaces the
+     * screenshot notification in place, so the listener cannot see later
+     * captures). The picture is copied into private storage first; when that
+     * fails the row is still archived with an explicit "unavailable" state and
+     * never with a content URI the app may not be allowed to read later.
+     */
+    override fun storeMediaStoreScreenshot(accountId: String, event: ScreenshotMediaEvent): ScreenshotArchiveOutcome {
+        if (accountId.isBlank() || event.fingerprint.isBlank() || event.sourcePackage.isBlank()) {
+            return ScreenshotArchiveOutcome.SKIPPED
+        }
+        if (!isAllowed(accountId, event.sourcePackage)) {
+            return ScreenshotArchiveOutcome.SKIPPED
+        }
+        val traceId = "shot:${event.fingerprint}"
+        val mediaRef = if (event.mediaState == "available") {
+            media.saveUri(accountId, event.fingerprint, event.mediaUri)
+        } else {
+            null
+        }
+        val mediaState = when {
+            mediaRef != null -> "available"
+            event.mediaState == "available" -> "unavailable"
+            else -> event.mediaState.ifBlank { "unavailable" }
+        }
+        val identity = "shot:${event.fingerprint}"
+        val link = store.linkScreenshotEvidence(
+            accountId = accountId,
+            fingerprint = event.fingerprint,
+            origin = ScreenshotMediaOrigin.MEDIA_STORE,
+            eventAtMs = event.capturedAtMs,
+            mediaPath = mediaRef?.relativePath.orEmpty(),
+            mediaMime = mediaRef?.mimeType ?: event.mediaMime,
+            mediaState = mediaState,
+        )
+        uk.thewyj.app.task21.CaptureTrace.stage(traceId, "media-store-fallback-used", "action=${link.action.name.lowercase()}")
+        when (link.action) {
+            ScreenshotLinkAction.DUPLICATE -> {
+                uk.thewyj.app.task21.CaptureTrace.stage(traceId, "duplicate-merged", "origin=media_store")
+                return ScreenshotArchiveOutcome.DUPLICATE
+            }
+            ScreenshotLinkAction.MERGE -> {
+                uk.thewyj.app.task21.CaptureTrace.stage(traceId, "duplicate-merged", "origin=media_store")
+                return ScreenshotArchiveOutcome.MERGED
+            }
+            ScreenshotLinkAction.NEW_EVENT -> Unit
+        }
+        val capture = NotificationCapture(
+            sourcePackage = event.sourcePackage,
+            sourceType = "screenshot_media_store",
+            notificationKey = "",
+            notificationId = 0,
+            tag = "",
+            groupKey = "",
+            channelId = "screenshots",
+            postTime = event.capturedAtMs,
+            isGroup = false,
+            isGroupSummary = false,
+            title = event.title,
+            text = event.text,
+            bigText = "",
+            subText = "",
+            identityOverride = identity,
+            mediaPath = mediaRef?.relativePath.orEmpty(),
+            mediaMime = mediaRef?.mimeType ?: event.mediaMime,
+            mediaState = mediaState,
+            mediaFingerprint = event.fingerprint,
+            mediaOrigin = ScreenshotMediaOrigin.MEDIA_STORE.wireValue,
+        )
+        val instanceId = store.record(accountId, capture)
+        return when {
+            instanceId != null -> ScreenshotArchiveOutcome.STORED
+            else -> ScreenshotArchiveOutcome.DUPLICATE
+        }
     }
 
     /**
@@ -56,19 +180,16 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
         return policies.firstOrNull { it.sourcePackage == sourcePackage }?.enabled != 0
     }
 
-    private fun captureOf(
-        accountId: String,
-        input: NotificationCaptureInput,
-        parsed: StructuredNotificationEvent?,
-    ): NotificationCapture {
-        // The picture is written here because only this layer knows the account
-        // the snapshot belongs to.
-        val mediaRef = media.save(
-            accountId = accountId,
-            identity = input.notificationKey.ifBlank { "${input.sourcePackage}|${input.notificationId}|${input.tag}" },
-            bitmap = input.mediaBitmap,
-        )
-        return captureOf(input, parsed, mediaRef)
+    /**
+     * File name seed for the imported picture. Evidence fingerprints are
+     * content addressed, so screenshot A keeps A's file even when the next
+     * capture reuses the same notification key.
+     */
+    private fun mediaIdentity(input: NotificationCaptureInput): String = when {
+        input.mediaFingerprint.isNotBlank() -> input.mediaFingerprint
+        input.identityOverride.isNotBlank() -> input.identityOverride
+        input.notificationKey.isNotBlank() -> input.notificationKey
+        else -> "${input.sourcePackage}|${input.notificationId}|${input.tag}"
     }
 
     private fun captureOf(
@@ -105,6 +226,12 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
             mediaRef != null -> "available"
             input.mediaState == "available" -> "unavailable"
             else -> input.mediaState
+        },
+        identityOverride = input.identityOverride,
+        mediaFingerprint = input.mediaFingerprint,
+        mediaOrigin = when {
+            input.mediaFingerprint.isBlank() -> ""
+            else -> ScreenshotMediaOrigin.NOTIFICATION.wireValue
         },
     )
 }

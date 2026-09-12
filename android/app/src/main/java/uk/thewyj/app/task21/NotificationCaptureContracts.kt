@@ -1,5 +1,7 @@
 package uk.thewyj.app.task21
 
+import uk.thewyj.app.task21.screenshot.ScreenshotArchiveOutcome
+
 /**
  * Notification capture contracts. Full notification content stays on-device in
  * the local archive; only the structured parser output is eligible to leave the
@@ -66,6 +68,18 @@ data class NotificationCaptureInput(
      * archive sink writes it to private storage. Never uploaded.
      */
     val mediaBitmap: android.graphics.Bitmap? = null,
+    /**
+     * True when this notification is the system screenshot notice. Screenshots
+     * get an evidence identity instead of the platform notification key,
+     * because One UI reuses that key for every screenshot it takes.
+     */
+    val screenshotEvent: Boolean = false,
+    /** Evidence fingerprint of the picture (`ms:` / `uri:` / `nfb:`). */
+    val mediaFingerprint: String = "",
+    /** Explicit archive identity for evidence-driven captures. */
+    val identityOverride: String = "",
+    /** `Notification.when`, used only for the degraded screenshot identity. */
+    val eventTimeMs: Long = 0L,
     val receivedAtMs: Long = 0L,
 )
 
@@ -77,7 +91,38 @@ interface NotificationArchiveSink {
     /** True when the capture was persisted (false = filtered out). */
     fun store(accountId: String, input: NotificationCaptureInput, parsed: StructuredNotificationEvent?): Boolean
     fun markRemoved(accountId: String, input: NotificationCaptureInput)
+
+    /**
+     * Task 24.1 R4: a screenshot that reached the device through MediaStore
+     * rather than the shade (Samsung replaces its screenshot notification in
+     * place, so the listener alone loses every later capture). The default keeps
+     * test doubles source compatible and reports SKIPPED instead of pretending
+     * the screenshot was archived.
+     */
+    fun storeMediaStoreScreenshot(accountId: String, event: ScreenshotMediaEvent): ScreenshotArchiveOutcome =
+        ScreenshotArchiveOutcome.SKIPPED
 }
+
+/**
+ * Local-only screenshot evidence resolved from MediaStore. The image itself is
+ * copied into the app's private storage by the sink; nothing here is uploaded.
+ */
+data class ScreenshotMediaEvent(
+    /** `ms:<rowId>` (or `uri:<sha>` when the row id is unknown). */
+    val fingerprint: String,
+    val rowId: Long,
+    /** App that owns the screenshot row; the system capture app by default. */
+    val sourcePackage: String,
+    val appLabel: String,
+    val title: String,
+    val text: String,
+    val capturedAtMs: Long,
+    /** Absolute content URI the sink imports from. Never persisted as-is. */
+    val mediaUri: String,
+    val mediaMime: String,
+    /** available | unavailable */
+    val mediaState: String,
+)
 
 /**
  * Finance side of the capture pipeline. Implemented by the payment recognition

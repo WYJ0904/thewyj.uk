@@ -8,7 +8,10 @@ import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import uk.thewyj.app.BuildConfig
+import uk.thewyj.app.task21.screenshot.ScreenshotEvidence
+import uk.thewyj.app.task21.screenshot.ScreenshotMediaObserver
 import uk.thewyj.app.task21.store.NotificationArchiveSinkFactory
+import uk.thewyj.app.task21.store.NotificationMediaStore
 import uk.thewyj.app.task21.payment.AndroidPaymentRecognitionHook
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -31,6 +34,8 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
     private val flushRunning = AtomicBoolean(false)
     private var coordinator: NotificationCaptureCoordinator? = null
     private var sessionProvider: NotificationSessionProvider? = null
+    private var screenshotObserver: ScreenshotMediaObserver? = null
+    private val mediaStore by lazy { NotificationMediaStore(applicationContext) }
 
     override fun onListenerConnected() {
         super.onListenerConnected()
@@ -42,6 +47,14 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
         for (active in runCatching { activeNotifications }.getOrDefault(emptyArray())) {
             onNotificationPosted(active)
         }
+        // Samsung replaces its screenshot notification in place, so the
+        // notification callback alone cannot prove how many screenshots exist.
+        // MediaStore is observed as an independent source while the full image
+        // read grant is held.
+        val observer = screenshotObserver
+            ?: NotificationCapturePipeline.createScreenshotObserver(this, provider, executor)
+                .also { screenshotObserver = it }
+        observer.start()
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
@@ -63,6 +76,7 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onDestroy() {
+        screenshotObserver?.stop()
         executor.shutdown()
         uploadExecutor.shutdown()
         super.onDestroy()
@@ -113,6 +127,30 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
                 extras?.containsKey(Notification.EXTRA_PICTURE_ICON) == true ||
                 extras?.containsKey(Notification.EXTRA_LARGE_ICON_BIG) == true
         }.getOrDefault(false)
+        val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
+        val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
+        val bigText = extras?.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty()
+        val screenshotEvent = ScreenshotEvidence.isScreenshotEvent(
+            sourcePackage = sbn.packageName.orEmpty(),
+            channelId = sbn.notification?.channelId.orEmpty(),
+            title = title,
+            text = text,
+            bigText = bigText,
+            hasMedia = picture != null || mediaHint,
+        )
+        // Only screenshots pay for the pixel fingerprint: One UI reuses one
+        // notification key for every capture, so their evidence - not the key -
+        // decides whether this is a new snapshot or a replay.
+        val mediaFingerprint = if (screenshotEvent) mediaStore.fingerprint(picture) else ""
+        if (screenshotEvent) {
+            CaptureTrace.stage(
+                CaptureTrace.traceId(sbn.key.orEmpty(), sbn.packageName.orEmpty(), sbn.id),
+                "screenshot-detected",
+                "origin=notification pkg=${sbn.packageName.orEmpty()} " +
+                    "media=${if (picture != null) "bitmap" else if (mediaHint) "hint" else "none"} " +
+                    "evidence=${mediaFingerprint.ifBlank { "-" }}",
+            )
+        }
         val textLines = extras?.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
             ?.map { it?.toString().orEmpty() }
             ?.filter { it.isNotBlank() }
@@ -133,9 +171,9 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
             // foreground-service status must never flood the archive.
             isOngoing = (flags and Notification.FLAG_ONGOING_EVENT) != 0,
             isForegroundService = (flags and Notification.FLAG_FOREGROUND_SERVICE) != 0,
-            title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty(),
-            text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty(),
-            bigText = extras?.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty(),
+            title = title,
+            text = text,
+            bigText = bigText,
             subText = extras?.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString().orEmpty(),
             infoText = extras?.getCharSequence(Notification.EXTRA_INFO_TEXT)?.toString().orEmpty(),
             summaryText = extras?.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString().orEmpty(),
@@ -146,6 +184,9 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
                 mediaHint -> "unavailable"
                 else -> "none"
             },
+            screenshotEvent = screenshotEvent,
+            mediaFingerprint = mediaFingerprint,
+            eventTimeMs = sbn.notification?.`when` ?: 0L,
             receivedAtMs = System.currentTimeMillis(),
         )
     }

@@ -279,7 +279,11 @@ private fun NotificationDetailOverlay(
                     )
                 }
                 item.mediaState != "none" || mediaUnavailable ->
-                    DetailField("图片内容不可用", "该通知包含图片，但 Android 未提供可读取的图片数据；通知元数据已保存。")
+                    DetailField(
+                        "图片内容不可用",
+                        "该通知包含图片，但 Android 未提供可读取的图片数据（或照片读取权限只允许「部分照片」）；" +
+                            "通知元数据已完整保存，可在权限中心开启完整截图读取后重新接收。",
+                    )
                 else -> Unit
             }
             if (item.subText.isNotBlank()) DetailField("副标题", item.subText)

@@ -2,9 +2,11 @@ package uk.thewyj.app.task21.store
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import java.io.File
 import java.io.FileOutputStream
 import java.security.MessageDigest
+import uk.thewyj.app.task21.screenshot.ScreenshotEvidence
 
 /**
  * Local-only storage for the pictures Android already exposes on a notification
@@ -53,6 +55,58 @@ class NotificationMediaStore(private val context: Context) {
         if (relativePath.isBlank() || relativePath.contains("..")) return null
         val target = File(root, relativePath)
         return target.takeIf { it.isFile }
+    }
+
+    /**
+     * Task 24.1 R4: imports a MediaStore screenshot that the notification payload
+     * did not carry. Only called with the full media read grant (see
+     * [uk.thewyj.app.task21.screenshot.MediaReadPolicy]); a SecurityException or
+     * an unreadable URI returns null so the archive can record an honest
+     * "unavailable" state instead of a dead URI.
+     */
+    fun saveUri(accountId: String, identity: String, uri: String): NotificationMediaRef? {
+        if (uri.isBlank()) return null
+        val bitmap = runCatching {
+            context.contentResolver.openInputStream(Uri.parse(uri)).use { stream ->
+                if (stream == null) null else android.graphics.BitmapFactory.decodeStream(stream)
+            }
+        }.getOrNull() ?: return null
+        return try {
+            save(accountId, identity, bitmap)
+        } finally {
+            runCatching { bitmap.recycle() }
+        }
+    }
+
+    /**
+     * Fingerprint of a bitmap's shape and sampled pixels. Deterministic for the
+     * same image, so a notification replay and the MediaStore import of the same
+     * screenshot resolve to one archive event.
+     */
+    fun fingerprint(bitmap: Bitmap?): String {
+        val source = bitmap ?: return ""
+        if (source.width <= 0 || source.height <= 0) return ""
+        return runCatching {
+            val software = when (source.config) {
+                Bitmap.Config.ARGB_8888, Bitmap.Config.RGB_565 -> source
+                else -> source.copy(Bitmap.Config.ARGB_8888, false) ?: return ""
+            }
+            val grid = ScreenshotEvidence.FINGERPRINT_GRID
+            val width = software.width
+            val height = software.height
+            val samples = IntArray(grid * grid)
+            var index = 0
+            for (row in 0 until grid) {
+                val y = ((row + 0.5f) * height / grid).toInt().coerceIn(0, height - 1)
+                for (column in 0 until grid) {
+                    val x = ((column + 0.5f) * width / grid).toInt().coerceIn(0, width - 1)
+                    samples[index++] = software.getPixel(x, y)
+                }
+            }
+            val result = ScreenshotEvidence.bitmapFingerprint(width, height, samples)
+            if (software !== source) software.recycle()
+            result
+        }.getOrDefault("")
     }
 
     /** Deletes one stored picture; used when its snapshot is deleted or expires. */

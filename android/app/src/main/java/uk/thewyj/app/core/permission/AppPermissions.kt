@@ -20,6 +20,8 @@ enum class AppPermissionId {
     POST_NOTIFICATIONS,
     NOTIFICATION_LISTENER,
     ACCESSIBILITY,
+    /** Screenshot archive: full photo read (Android 14+ Selected Photos aware). */
+    SCREENSHOT_MEDIA,
     RECEIVE_SMS,
     INSTALL_PACKAGES,
     BATTERY_OPTIMIZATION,
@@ -47,6 +49,10 @@ object PermissionCopy {
     const val ACCESSIBILITY_PURPOSE = "仅在你点击「核实交易金额」后的 90 秒内读取对应应用的交易页面，用于补全金额；不执行自动点击。"
     const val SMS_TITLE = "短信（银行通知）"
     const val SMS_PURPOSE = "读取银行短信中的金额与收支方向，用于财务识别；不读取验证码以外的其他短信用途。"
+    const val SCREENSHOT_MEDIA_TITLE = "截图归档（照片读取）"
+    const val SCREENSHOT_MEDIA_PURPOSE =
+        "三星手机每张新截图都会覆盖同一个系统通知，只有允许读取截图才能把每一张都保存到通知历史。" +
+            "Android 14 及以上如果只选择「部分照片」，新截图不会被读取，应用会如实显示该状态并退回通知自带图片。"
     const val INSTALL_TITLE = "安装未知应用"
     const val INSTALL_PURPOSE = "允许 thewyj 调起系统安装器安装新版本 APK。安装过程始终由 Android 系统界面确认。"
     const val BATTERY_TITLE = "后台运行（可选）"

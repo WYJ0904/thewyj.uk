@@ -1,4 +1,4 @@
-import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20260912-transfer-r1";
+import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20260912-screenshot-r1";
 
 export const MAX_STUDY_RECORDS = 500;
 

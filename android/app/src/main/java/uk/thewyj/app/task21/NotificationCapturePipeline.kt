@@ -1,8 +1,10 @@
 package uk.thewyj.app.task21
 
 import android.content.Context
+import java.util.concurrent.Executor
 import uk.thewyj.app.BuildConfig
 import uk.thewyj.app.task21.payment.AndroidPaymentRecognitionHook
+import uk.thewyj.app.task21.screenshot.ScreenshotMediaObserver
 import uk.thewyj.app.task21.store.NotificationArchiveSinkFactory
 
 /**
@@ -22,6 +24,26 @@ object NotificationCapturePipeline {
             account = provider::currentAccount,
             archiveSink = NotificationArchiveSinkFactory.forContext(app),
             paymentHook = AndroidPaymentRecognitionHook.get(app),
+        )
+    }
+
+    /**
+     * MediaStore screenshot fallback (Task 24.1 R4). It shares the listener's
+     * capture executor so a notification callback and its MediaStore row are
+     * serialised: the two origins can then merge into one archive event instead
+     * of racing each other.
+     */
+    fun createScreenshotObserver(
+        context: Context,
+        provider: NotificationSessionProvider,
+        executor: Executor,
+    ): ScreenshotMediaObserver {
+        val app = context.applicationContext
+        return ScreenshotMediaObserver(
+            context = app,
+            account = provider::currentAccount,
+            sink = { NotificationArchiveSinkFactory.forContext(app) },
+            executor = executor,
         )
     }
 }
