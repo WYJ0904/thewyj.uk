@@ -112,7 +112,7 @@ canonical 状态机闭合，Production 与正式 APK 复测通过。
   `pendingFlushOverride`（生产默认仍走真实 `scheduleFlush`）。
 - Regression：`NotificationListenerRetryTriggerTest.networkAvailableRetriesThePendingIngestQueue`、
   `NotificationListenerRetryTriggerTest.listenerReconnectRetriesThePendingIngestQueueEvenWithAnEmptyShade`。
-- Commit：`<pending>`。
+- Commit：`99ed2b3`。
 
 ## 审计队列状态（内部继续用）
 
