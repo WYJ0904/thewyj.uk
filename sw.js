@@ -14,6 +14,7 @@ const CORE_SHELL = [
   "/app.js?v=20260912-screenshot-r1",
   "/js/core/api.js?v=20260912-screenshot-r1",
   "/js/core/changelog.js?v=20260912-screenshot-r1",
+  "/js/core/capabilities.js?v=20260912-screenshot-r1",
   "/js/core/config.js?v=20260912-screenshot-r1",
   "/js/core/router.js?v=20260912-screenshot-r1",
   "/js/core/session.js?v=20260912-screenshot-r1",

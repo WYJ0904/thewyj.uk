@@ -44,7 +44,7 @@ def main() -> int:
 
     require('applicationId = "uk.thewyj.app"' in build, "formal applicationId changed")
     require('namespace = "uk.thewyj.app"' in build, "Android namespace changed")
-    require('minSdk = 26' in build, "minimum supported Android API changed without review")
+    require('minSdk = 30' in build, "minimum supported Android API changed without review")
 
     permissions = {
         node.attrib.get(f"{ANDROID_NS}name", "")

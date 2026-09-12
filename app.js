@@ -11,6 +11,11 @@ import {
   STATUS_TIMEOUT_MS,
 } from "./js/core/config.js?v=20260912-screenshot-r1";
 import {
+  capabilityProblems,
+  detectCapabilities,
+  randomId,
+} from "./js/core/capabilities.js?v=20260912-screenshot-r1";
+import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
@@ -2692,7 +2697,7 @@ async function sendAdminMessage(event) {
     expires_at: expiryValue ? new Date(expiryValue).toISOString() : "",
     requires_confirmation: $("adminMessageRequiresConfirmation").checked,
     confirm_bulk_send: scope !== "single",
-    idempotency_key: `admin-message:${crypto.randomUUID()}`,
+    idempotency_key: `admin-message:${randomId()}`,
   };
   const targetDescription = scope === "all" ? "全部用户" : `${targetUserIds.length} 个指定用户`;
   askConfirmation(`确认向${targetDescription}发送“${payload.title}”？发送后只能撤回，不能修改。`, async () => {
@@ -4910,7 +4915,18 @@ function speakCurrentWord() {
     rate: currentSpeechRate(),
     native: isThewyjAndroidApp(),
   });
-  if (!result.ok) showAchievementToast(result.message);
+  if (!result.ok) {
+    showAchievementToast(result.message);
+  } else if (result.pending) {
+    // The cloud asset is requested immediately (same user gesture); a failed
+    // request falls back to the device engine and must say so, never silently.
+    result.pending
+      .then((final) => {
+        if (!final?.ok) showAchievementToast(final?.message || "云端语音暂时不可用。");
+        else if (final.fallback) showAchievementToast(final.message);
+      })
+      .catch(() => showAchievementToast("云端语音暂时不可用，请稍后重试。"));
+  }
 }
 
 function normalizeDictationAnswer(value) {
@@ -6638,9 +6654,28 @@ async function navigateFromSiteNav(destination) {
   }
 }
 
+/**
+ * Task 24.2: every runtime capability the app really uses is checked once at
+ * startup. Missing pieces are explained to the user instead of failing later as
+ * `undefined is not a function`. Optional gaps (clipboard, service worker) stay
+ * silent because the app has a fallback for them.
+ */
+function auditRuntimeCapabilities() {
+  try {
+    const problems = capabilityProblems(detectCapabilities(window));
+    if (!problems.length) return;
+    problems.slice(0, 2).forEach((message, index) => {
+      window.setTimeout(() => showAchievementToast(message), 600 * (index + 1));
+    });
+  } catch (_) {
+    // The audit itself must never block startup.
+  }
+}
+
 async function boot() {
   initDesignSystem();
   installLocalTestBindings();
+  auditRuntimeCapabilities();
   if (state.account?.id) {
     loadAccountLocalState();
     startLearningDataSync();
