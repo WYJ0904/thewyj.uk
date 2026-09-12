@@ -74,6 +74,23 @@ object PermissionDecisions {
     fun optionalStatus(granted: Boolean): String = if (granted) "已开启" else "可选，未开启"
 
     /**
+     * Status line for the payment AccessibilityService.
+     *
+     * The system grant is the only authority for "on/off" (it is what the
+     * permission center and the platform settings screen report). The in-process
+     * connection flag may only add detail: right after a cold start, or after the
+     * service instance was destroyed without the user touching the setting, that
+     * flag is still false even though the capability is enabled. Deriving the
+     * headline from the flag made「我的 → Android 能力」contradict the permission
+     * center ("无障碍未连接" while the system reports 已开启).
+     */
+    fun accessibilityStatus(granted: Boolean, connected: Boolean): String = when {
+        !granted -> "无障碍未开启"
+        connected -> "无障碍已连接"
+        else -> "无障碍已开启、服务待连接"
+    }
+
+    /**
      * Android 13+ blocks accessibility for apps installed outside a store until
      * the user allows restricted settings. We can only detect the sideload
      * source, never the toggle itself, so the hint is shown for sideloaded

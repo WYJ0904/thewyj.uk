@@ -67,4 +67,25 @@ class PermissionCenterTest {
         assertTrue(PermissionDecisions.restrictedSettingsRisk(34, null))
         assertTrue(PermissionDecisions.restrictedSettingsRisk(34, "com.example.filemanager"))
     }
+
+    /**
+     * Real-device regression: after a cold start (or after the service instance
+     * was destroyed) the in-process connection flag is false while the system
+     * setting is still enabled.「我的 → Android 能力」must report the system
+     * grant, and may only use the flag as extra detail - otherwise the same app
+     * shows「无障碍未连接」next to a permission center that says 已开启.
+     */
+    @Test fun accessibilityStatusFollowsTheSystemGrantNotOnlyTheLiveConnection() {
+        assertEquals("无障碍未开启", PermissionDecisions.accessibilityStatus(granted = false, connected = false))
+        assertEquals(
+            "系统未授权时永远不能声称已连接",
+            "无障碍未开启",
+            PermissionDecisions.accessibilityStatus(granted = false, connected = true),
+        )
+        assertEquals(
+            "无障碍已开启、服务待连接",
+            PermissionDecisions.accessibilityStatus(granted = true, connected = false),
+        )
+        assertEquals("无障碍已连接", PermissionDecisions.accessibilityStatus(granted = true, connected = true))
+    }
 }

@@ -71,7 +71,30 @@ canonical 状态机闭合，Production 与正式 APK 复测通过。
 - 同时为可测性注入 `archiveSink` 与 `recognitionStore`（生产默认不变）。
 - Regression：`AndroidPaymentRecognitionHookArchiveTest.autoBookedPaymentStillClosesTheArchiveWithoutALocalCandidate`
   （无本地 candidate 时 archive 仍为 confirmed + txn id）。
+- Commit：`58b6037`。
+
+### T24.3-04 「我的 → Android 能力」无障碍状态与系统真实权限不一致（P2 错误状态反馈）
+
+- Root cause：能力横幅把 `PaymentAccessibilityStatus.connected`（进程内连接标志）当成无障碍
+  「开/关」的结论。冷启动后系统设置已开启但服务尚未连接、或服务实例已被销毁而标志未复位时，
+  横幅显示「无障碍未连接」，与权限中心 `PermissionCenter.accessibilityGranted`（实时读取
+  AccessibilityManager）给出的「已开启」直接矛盾——同一个 App 两处状态互相打脸。
+- 修复：横幅结论改用系统授权（`PermissionCenter.accessibilityGranted`），连接标志只作为细节；
+  新增纯函数 `PermissionDecisions.accessibilityStatus`（未开启 / 已开启、服务待连接 / 已连接）。
+  另外 `ThewyjPaymentAccessibilityService.onDestroy` 复位 `PaymentAccessibilityStatus.onDisconnected()`，
+  服务销毁后不会再残留「已连接」的过度声明。
+- Regression：`PermissionCenterTest.accessibilityStatusFollowsTheSystemGrantNotOnlyTheLiveConnection`、
+  `PaymentAccessibilityServiceGateTest.destroyedServiceNeverLeavesAConnectedClaim`。
 - Commit：`<pending>`。
+
+## 审计队列状态（内部继续用）
+
+- 本轮已复核：通知/无障碍权限状态与 PermissionCenter 能力比对（T24.3-04）、文件传输上传队列
+  跨账户隔离（T24.3-01）、capability 离线语音回退误报（T24.3-02）、服务端自动入账终态断层
+  （T24.3-03）、文件传输所有权/支付二维码映射/管理员站内消息 XSS/Android 长期凭据/Finance
+  本地队列/孤儿 multipart/Session 生命周期（均 NO ISSUE FOUND）。
+- 待继续：Admin/owner 越权矩阵、entitlement 叠加与过期、WebView 导航与更新流程、TTS/OCR
+  回归、Security（CSRF/secret/logging）、UI/UX、Performance/后台资源、Production D1/R2 只读审计。
 
 ## NO ISSUE FOUND（已核实）
 

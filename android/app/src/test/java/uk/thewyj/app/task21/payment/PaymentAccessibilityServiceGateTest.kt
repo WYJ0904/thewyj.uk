@@ -2,6 +2,7 @@ package uk.thewyj.app.task21.payment
 
 import android.view.accessibility.AccessibilityEvent
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -51,5 +52,20 @@ class PaymentAccessibilityServiceGateTest {
         service.onAccessibilityEvent(event)
         assertTrue(PaymentAccessibilityStatus.lastTextLineCount >= 0)
         assertEquals(0, PaymentAccessibilityStatus.lastTextLineCount)
+    }
+
+    /**
+     * A destroyed service instance must not leave the auditable status behind
+     * claiming `connected=true`, otherwise the capability banner keeps showing
+     * "无障碍已连接" for a service that no longer exists.
+     */
+    @Test fun destroyedServiceNeverLeavesAConnectedClaim() {
+        val controller = Robolectric.buildService(ThewyjPaymentAccessibilityService::class.java).create()
+        PaymentAccessibilityStatus.onConnected()
+        assertTrue(PaymentAccessibilityStatus.connected)
+
+        controller.destroy()
+
+        assertFalse(PaymentAccessibilityStatus.connected)
     }
 }
