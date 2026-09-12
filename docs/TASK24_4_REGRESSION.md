@@ -72,6 +72,41 @@ Root cause（纯客户端）：
 3. Web 资源令牌 `20260912-task24-3-r1` → `20260912-task24-4-r1`（SW 为 URL 级 cache-first，
    不 bump 令牌真机 WebView 会继续命中旧 JS），同步 `test_static.py` 断言。
 
+### T24.4-03 Android 通知页已确认账目仍留在待确认（P0/P1-2 的真机延续）
+
+- 真机复现（1.3.0）：在 Finance 确认 ¥104.49 后，服务端 hint 已 confirmed 且生成
+  `txn:83116a57-…`，但 Android「待核实 / 待确认」列表在后台→前台（触发 pull）后
+  **仍显示「等待在财务中确认」**。
+- Root cause：`NotificationCaptureCoordinator` 只在支付**金额与方向都齐全**时才把事件 id
+  写进本地 recognition 的 `uploadEventId`；缺方向的支付会作为 pending hint 上传（同一个
+  event id），本地却是空值。`PaymentHintSync.applyConfirmed/applyIgnored` 只能用
+  `uploadEventId` 反查本地记录，于是服务端确认永远写不回本机。
+- 修复：
+  1. 只要解析出支付（无论方向是否已知）就记录 `uploadEventId = eventId`，与服务端 hint/event
+     的身份一致；服务端确认后 pull 可确定性命中。
+  2. 兼容历史数据：新增 archive 身份链路
+     `RoomNotificationStore.recognitionSourceEventId()`（`notification#<notificationKey>#<postTime>`，
+     与 `AndroidPaymentRecognitionHook.sourceEventIdOf` 完全一致），`PaymentHintSync` 在
+     `uploadEventId` 查不到时按此链路回退，唯一命中才更新；无法确定时保持 pending 不猜测。
+- Regression：`PaymentHintSyncCrossClientTest.legacyHintWithoutALocalUploadEventIdStillClosesTheRecognition`、
+  `NotificationCaptureCoordinatorTest.incompletePaymentRecordsTheHintEventIdForTheServerPull`。
+
+### 发布（Android 产品代码变更 → 新版本 1.3.1）
+
+- `versionCode 14 / versionName 1.3.1`（`android/app/build.gradle.kts`）。
+- Release APK：`thewyj-android-1.3.1.apk`，47,578,521 bytes，
+  SHA-256 `14127d0b3df32b7c49fd581c29c46cb2bd228314701ffe57d60e683971078636`；
+  与设备上已安装的 1.3.0 使用同一签名证书（SHA-256
+  `2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03`），可覆盖安装。
+- R2：`app/android/thewyj-android-1.3.1.apk`（`wyj-cloud-production` 与 `wyj-cloud-preview`）。
+- 更新清单 / 官网：`wrangler.jsonc`（production + preview）已更新
+  `ANDROID_LATEST_VERSION_CODE/NAME`、`ANDROID_RELEASE_BUILD/NOTES`、`ANDROID_APK_FILE_NAME/KEY/SHA256`；
+  `/api/app/config` 即更新清单。
+- Changelog：`changelog.js` 新增 `2026.09.12.4 / 2026-09-12-task24-4`。
+- CI 回归：`local-backend/test_tools_browser.mjs` 在“上传 100% → 创建分享”之间插入
+  `Page.reload`，断言恢复后的队列**不需要重新选择文件**即可发布（旧代码在此处会一直提示
+  「还有文件没有上传完成」）。
+
 ## 回归
 
 - `local-backend/test_finance_candidates_js.mjs`（新增，CI）：缺方向 → 必须走编辑器；
@@ -83,9 +118,14 @@ Root cause（纯客户端）：
 
 ## 现场验证（待回填）
 
-- [ ] 真机 Finance：确认上述 hint → 服务端 1 笔财务记录、hint confirmed、Finance/通知待确认
-      立即消失，refresh / App restart / force stop 不回退。
-- [ ] 真机 Transfer：上述 session 恢复为可完成 → 创建分享成功（服务端 session published、
-      share 可下载），刷新/重进不回退。
+- [x] 真机 Finance（1.3.0 + 已部署 Web 修复）：点击「选择方向并确认」→ 编辑器默认支出 →
+      保存后 hint 变 `confirmed`（`finance_entry_id=txn:83116a57-67d4-46bd-b110-528513310045`），
+      D1 只新增 1 笔 10449 支出；Finance 页「通知待确认」变「暂无待确认通知」，账目 1 笔，
+      总支出 ¥104.49；Android 通知页的同一条目在 1.3.0 上仍残留（见 T24.4-03），1.3.1 修复后待复验。
+- [ ] 真机 Transfer：Ubisoft 现场 session 由用户浏览器完成发布（服务端只读校验：1/1 文件、
+      16/16 分片、etag 齐全、upload_id/object_key 存在 → 服务端校验可通过；CI 已覆盖
+      “上传 100% → 刷新 → 直接发布”路径）。
+- [ ] 真机更新链：1.3.0 → 检查更新 → 下载 → SHA 校验 → 系统安装器 → 覆盖升级到 1.3.1，
+      升级后确认 T24.4-03 的历史条目在 pull 后消失且本地数据保留。
 - [ ] Android/Web/Production 回归：duplicate/offline/reconnect/pull、小文件/大文件/多文件/
       pause/resume/account switch/cancel/expired session。

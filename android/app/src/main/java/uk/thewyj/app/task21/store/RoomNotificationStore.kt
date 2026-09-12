@@ -361,6 +361,25 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
     }
 
     /**
+     * Recognition identity ("notification#<identity>#<postTime>") of the capture
+     * archived under [sourceEventId]. Pending hints uploaded before the local
+     * recognition learned its hint event id are reconciled through this link.
+     */
+    fun recognitionSourceEventId(accountId: String, sourceEventId: String): String {
+        val account = accountId.trim()
+        if (account.isEmpty() || sourceEventId.isBlank()) return ""
+        val instanceId = runCatching { dao.instanceIdForEventId(account, sourceEventId) }.getOrNull() ?: return ""
+        val instance = runCatching { dao.instance(account, instanceId) }.getOrNull() ?: return ""
+        // Must match AndroidPaymentRecognitionHook.sourceEventIdOf exactly: the
+        // raw platform key (never the archive's prefixed identityKey "key:...").
+        val identity = instance.notificationKey.ifBlank {
+            "${instance.sourcePackage}|${instance.notificationId}|${instance.tag}"
+        }
+        if (identity.isBlank()) return ""
+        return "notification#$identity#${instance.postTime}"
+    }
+
+    /**
      * Task 24.1 R4: resolves one piece of screenshot evidence against the
      * archive. Returns what the caller must do: archive a new revision, treat the
      * callback as a replay, or attach the second origin (notification vs

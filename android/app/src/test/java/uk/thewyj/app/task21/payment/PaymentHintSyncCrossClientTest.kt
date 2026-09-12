@@ -26,6 +26,8 @@ import uk.thewyj.app.task21.store.NotificationQuery
 import uk.thewyj.app.task21.store.PaymentRecognitionStoreContract
 import uk.thewyj.app.task21.store.RoomNotificationStore
 import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
+import uk.thewyj.app.task21.payment.PaymentRecognitionRecord
+import uk.thewyj.app.task21.payment.PaymentRecognitionState
 
 /**
  * Phase 1 cross-client verification (no mocks of the chain under test):
@@ -81,6 +83,9 @@ class PaymentHintSyncCrossClientTest {
             state: String,
             transactionId: String,
         ): Boolean = store.markFinanceOutcome(accountId, sourceEventId, state, transactionId)
+
+        override fun recognitionSourceEventId(accountId: String, sourceEventId: String): String =
+            store.recognitionSourceEventId(accountId, sourceEventId)
     }
 
     private fun archivePayment(eventId: String) = store.record(
@@ -177,5 +182,50 @@ class PaymentHintSyncCrossClientTest {
         val history = store.history(account, NotificationQuery(includeRemoved = true, limit = 10))
         assertEquals(1, history.size)
         assertEquals("confirmed" to "txn-h", financeState("evt-history"))
+    }
+
+    /**
+     * Real-device regression (2026-09-12, ¥104.49 / 招商银行): the pending hint
+     * was confirmed on Web /finance, but the local recognition still carried
+     * `uploadEventId = ""` (it was captured before the coordinator recorded the
+     * hint identity), so the pull could not find it and the Android
+     * 「待核实 / 待确认」list kept showing a payment that already had a ledger
+     * entry. The archive identity of the same event id is the deterministic link.
+     */
+    @Test fun legacyHintWithoutALocalUploadEventIdStillClosesTheRecognition() {
+        archivePayment("evt-legacy")
+        store.markFinanceOutcome(account, "evt-legacy", "pending")
+        paymentStore.saveRecognition(
+            PaymentRecognitionRecord(
+                recognitionId = "rec-legacy",
+                accountId = account,
+                state = PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name,
+                notificationId = 7,
+                sourcePackage = "cmb.pb",
+                sourceType = "notification",
+                // Exactly what AndroidPaymentRecognitionHook writes for this capture.
+                sourceEventId = "notification#key:evt-legacy#1000",
+                uploadEventId = "",
+                paymentChannel = "bank",
+                amountMinor = 10449,
+                currency = "CNY",
+                direction = "UNKNOWN",
+                merchant = "招商银行",
+                providerReference = "",
+                createdAtMs = 1_000L,
+                updatedAtMs = 1_000L,
+            ),
+        )
+
+        val result = syncWith(
+            """{"ok":true,"hints":[{"source_event_id":"evt-legacy","state":"confirmed","finance_entry_id":"txn-legacy-1"}]}""",
+        )
+
+        assertEquals(1, result.confirmed)
+        assertEquals("confirmed" to "txn-legacy-1", financeState("evt-legacy"))
+        assertEquals(
+            PaymentRecognitionState.FINANCE_RECORDED.name,
+            paymentStore.recognition(account, "rec-legacy")?.state,
+        )
     }
 }

@@ -102,6 +102,10 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
         store.markFinanceOutcome(accountId, sourceEventId, state, transactionId)
     }.getOrDefault(false)
 
+    override fun recognitionSourceEventId(accountId: String, sourceEventId: String): String = runCatching {
+        store.recognitionSourceEventId(accountId, sourceEventId)
+    }.getOrDefault("")
+
     /**
      * Task 24.1 R4: a screenshot that MediaStore delivered (Samsung replaces the
      * screenshot notification in place, so the listener cannot see later

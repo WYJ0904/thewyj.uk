@@ -1050,6 +1050,36 @@ async function main() {
         `canonical transfer upload did not finish: ${JSON.stringify(transferState)}`,
       );
       progress("transfer: upload complete");
+      // Task 24.4 regression (real Production report, UbisoftConnectInstaller.exe
+      // 252.5 MB): reloading the page after the upload reached 100% used to leave
+      // the queue item unrestorable —「创建分享链接」answered
+      // 「还有文件没有上传完成。」forever because the in-memory session was gone
+      // and the persisted status stayed "uploading". A reloaded, fully uploaded
+      // queue must be publishable without re-selecting the file.
+      await send("Page.reload");
+      await waitFor(
+        "location.pathname === '/transfer' && document.querySelectorAll('[data-transfer-item]').length === 1",
+        30_000,
+        "restored transfer queue after reload",
+      );
+      await waitFor(
+        "Boolean(document.getElementById('transferCompleteBtn')) && !document.getElementById('transferCompleteBtn').disabled",
+        30_000,
+        "restored upload is publishable without re-selecting the file",
+      );
+      const restoredState = await evaluate(`(() => {
+        const item = document.querySelector('[data-transfer-item]');
+        return {
+          itemText: (item?.textContent || '').trim().slice(0, 160),
+          needsFile: Boolean(document.getElementById('transferFileInput')),
+        };
+      })()`);
+      assert.doesNotMatch(
+        String(restoredState?.itemText || ""),
+        /重新选择同一文件/,
+        `restored upload must not ask for the file again: ${JSON.stringify(restoredState)}`,
+      );
+      progress("transfer: reloaded queue is publishable");
       await click("#transferCompleteBtn");
       progress("transfer: publish clicked");
       await waitFor("!document.querySelector('#transferShareCard')?.classList.contains('hidden')", 20_000, "canonical share card");

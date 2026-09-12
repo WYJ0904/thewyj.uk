@@ -211,18 +211,14 @@ class NotificationCaptureCoordinator(
             accountId = current.accountId,
             financeEntitled = current.financeEntitled,
             input = input,
-            // The recognition only learns "this capture was uploaded" when the
-            // payload is actually queued below; otherwise the device owns the
-            // booking and the user completes it in the pending screen.
-            uploadEventId = if (
-                payment != null &&
-                payment.amountMinor > 0 &&
-                payment.direction != FinanceDirection.UNKNOWN
-            ) {
-                eventId
-            } else {
-                ""
-            },
+            // Every payment capture reaches the server under [eventId]: either as
+            // a structured event (amount + direction known) or as a pending hint
+            // (incomplete money shape, published below). The recognition must
+            // remember that identity for both, otherwise a hint confirmed on Web
+            // /finance can never be matched back to the local row and the Android
+            // 「待核实 / 待确认」list keeps showing an already confirmed payment
+            // (real device evidence 2026-09-12, ¥104.49 / 招商银行).
+            uploadEventId = if (payment != null) eventId else "",
         )
         if (!current.financeEntitled) return
         if (payment != null) {
