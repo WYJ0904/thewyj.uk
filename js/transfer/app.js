@@ -7,6 +7,17 @@ const GUEST_ID_KEY = "wyjTransferGuest:v1";
 const PART_SIZE_HINT = 16 * 1024 * 1024;
 const DEFAULT_EXPIRY_MINUTES = 1440;
 
+/**
+ * Account-scoped queue identity (Task 24.3 multi-account isolation). The queue
+ * used to live under one global key, so switching accounts could adopt or
+ * overwrite another user's pending uploads. Each owner now has its own key; the
+ * legacy payload is imported once when it really belongs to that owner.
+ */
+export function transferQueueStorageKey(owner) {
+  const safe = String(owner || "guest").trim().replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 96) || "guest";
+  return `wyjTransferQueue:v2:${safe}`;
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -89,20 +100,28 @@ export function createTransferController({
       account: value.account,
       queue: queue.map(({ file, controller, ...item }) => item),
     };
-    storage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(serializable));
+    storage.setItem(transferQueueStorageKey(value.account), JSON.stringify(serializable));
   }
 
   function restoreQueue() {
     try {
-      const saved = JSON.parse(storage.getItem(QUEUE_STORAGE_KEY) || "{}");
       const owner = authenticated() ? String(account().id) : `guest:${guestId()}`;
+      let saved = JSON.parse(storage.getItem(transferQueueStorageKey(owner)) || "{}");
+      // One-time import of the pre-account-scoping payload, only when it really
+      // belongs to this owner (multi-account isolation: another account's queue
+      // must never be adopted, and this account's queue must survive a switch).
+      if ((!saved.account || !Array.isArray(saved.queue)) && storage.getItem(QUEUE_STORAGE_KEY)) {
+        saved = JSON.parse(storage.getItem(QUEUE_STORAGE_KEY) || "{}");
+      }
       if (saved.account === owner && Array.isArray(saved.queue)) {
         queue = saved.queue.map((item) => ({ ...item, file: null, needsFile: true, controller: null, speed: 0, eta: 0 }));
+        persistQueue();
       }
     } catch (_) {
       queue = [];
     }
   }
+
 
   function renderQuota() {
     const used = capabilities.used_bytes || 0;
