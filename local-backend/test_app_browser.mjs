@@ -2390,6 +2390,10 @@ async function main() {
       "/api/notification/candidates",
       "/api/transfer/capabilities",
       "/api/transfer/shares",
+      // Cloud TTS is a Cloudflare-only route; the local legacy backend matrix
+      // answers 404 and dictation falls back to the device engine exactly as
+      // the capability contract describes.
+      "/api/tts",
     ]);
     const unexpectedHttpErrors = networkHttpErrors.filter((item) => {
       const pathname = new URL(item.url).pathname;
