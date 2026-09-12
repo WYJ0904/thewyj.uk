@@ -22,6 +22,12 @@ export const TTS_RATE_LIMIT = 120;
 export const TTS_RATE_WINDOW_SECONDS = 60;
 export const TTS_DEFAULT_VOICE = "default";
 
+/**
+ * Declared in the same `"METHOD /api/path"` shape the legacy-route gate scans
+ * for, so the frontend `/api/tts` call is proven to have a Cloudflare handler.
+ */
+export const TTS_ROUTES = Object.freeze(["GET /api/tts", "POST /api/tts"]);
+
 const LANGUAGE_ALIASES = new Map([
   ["en", "en"],
   ["eng", "en"],
