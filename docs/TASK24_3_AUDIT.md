@@ -85,7 +85,7 @@ canonical 状态机闭合，Production 与正式 APK 复测通过。
   服务销毁后不会再残留「已连接」的过度声明。
 - Regression：`PermissionCenterTest.accessibilityStatusFollowsTheSystemGrantNotOnlyTheLiveConnection`、
   `PaymentAccessibilityServiceGateTest.destroyedServiceNeverLeavesAConnectedClaim`。
-- Commit：`<pending>`。
+- Commit：`8151ebe`。
 
 ## 审计队列状态（内部继续用）
 
