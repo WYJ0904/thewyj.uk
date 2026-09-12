@@ -982,8 +982,9 @@ async function main() {
 
     // Task 24.1: the legacy temporary-file workbench is gone. File sharing has a
     // single canonical implementation (/transfer, Task 22); the toolbox entry and
-    // the retired id both navigate there and no second uploader exists.
-    await record("temporary", "file-transfer-canonical", async () => {
+    // the retired id both navigate there and no second uploader exists. Both
+    // catalog ids are recorded so "every catalog tool was exercised" still holds.
+    await record("temporary", "temporary-file", async () => {
       progress("transfer: open retired temporary-file id");
       await openTool("temporary-file");
       progress("transfer: waiting for canonical page");
@@ -997,6 +998,18 @@ async function main() {
         await evaluate("Boolean(document.querySelector('#tempFileInput'))"),
         false,
         "legacy temporary-file uploader must not exist",
+      );
+      await send("Page.navigate", { url: `${BASE_URL}/tools` });
+      await waitFor("window.WYJTools?.tools?.length === 104", 15_000, "toolbox reload after retirement check");
+    });
+
+    await record("temporary", "file-transfer", async () => {
+      progress("transfer: open canonical file-transfer id");
+      await openTool("file-transfer");
+      await waitFor(
+        "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+        6_000,
+        "canonical file-transfer catalog entry",
       );
       // Real data path through the canonical implementation: select a file,
       // upload it, publish the share and download it back with a SHA check.
