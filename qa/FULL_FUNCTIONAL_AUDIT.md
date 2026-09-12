@@ -78,7 +78,9 @@
 
 ### 临时工具（5）
 
-`temporary-text`, `temporary-file`, `temporary-clipboard`, `temporary-qr`, `temporary-room`。
+`file-transfer`, `temporary-text`, `temporary-file`, `temporary-clipboard`, `temporary-qr`, `temporary-room`。
+
+Task 24.1 收口：`file-transfer` 是工具箱的正式「文件传输」入口，与「我的 → 文件传输」一样导航到 canonical `/transfer`（Task 22：分片上传、续传、Range、统一配额）。`temporary-file` 仅保留用于旧链接解析（已 retired，不在可见目录中），其遗留上传器已删除。
 
 二维码拆分为文本、URL、Wi-Fi（WPA/WEP/无密码、可见/隐藏网络）、联系人、动态链接；临时内容分别验证无密码/有密码、保留/读取后销毁、次数限制、过期和公开分享页。留言房间验证创建、打开、发送、轮询去重、密码、上限和清空。
 

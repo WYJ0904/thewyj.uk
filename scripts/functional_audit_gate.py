@@ -111,8 +111,10 @@ def main() -> int:
             f"matrix={json.dumps(expected_catalog, ensure_ascii=False, sort_keys=True)}"
         )
     all_ids = [tool_id for ids in actual_catalog.values() for tool_id in ids]
-    if len(all_ids) != 103 or len(set(all_ids)) != 103:
-        fail(f"expected 103 unique tools, found {len(all_ids)} entries / {len(set(all_ids))} unique")
+    # Task 24.1: the catalog gained the canonical "file-transfer" entry (the
+    # retired legacy temporary-file share is excluded from the visible catalog).
+    if len(all_ids) != 104 or len(set(all_ids)) != 104:
+        fail(f"expected 104 unique tools, found {len(all_ids)} entries / {len(set(all_ids))} unique")
 
     actual_retired = retired_tools_from_source(tool_catalog_source)
     expected_retired = matrix.get("retired_tools", [])

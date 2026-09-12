@@ -211,13 +211,28 @@ async function connectBrowser() {
 
 async function main() {
   assert.ok(ADMIN_SECRET, "WYJ_TEST_ADMIN_SECRET is required for the isolated browser test server");
+  const bootWatchdog = setTimeout(() => {
+    console.error("[toolbox] stalled during member/browser bootstrap");
+    process.exit(1);
+  }, 5 * 60 * 1000);
+  bootWatchdog.unref();
   const member = await createMember();
   const browser = await connectBrowser();
+  clearTimeout(bootWatchdog);
   const { client, browserContextId, send, targetId } = browser;
   const runtimeErrors = [];
   const networkHttpErrors = [];
   const apiRequestCounts = new Map();
+  const jsDialogs = [];
   client.listeners.add((message) => {
+    // A stray window.prompt/confirm/alert must never block the renderer again.
+    // Dialogs are answered automatically; the flow under test does not depend on
+    // their text.
+    if (message.method === "Page.javascriptDialogOpening") {
+      jsDialogs.push(message.params?.type || "dialog");
+      void send("Page.handleJavaScriptDialog", { accept: true, promptText: "" }).catch(() => {});
+      return;
+    }
     if (message.sessionId && message.sessionId !== browser.sessionId) return;
     if (message.method === "Runtime.exceptionThrown") {
       const details = message.params?.exceptionDetails || {};
@@ -394,6 +409,17 @@ async function main() {
   })()`);
 
   const openTool = async (id) => {
+    // Task 24.1: file transfer has one canonical implementation. Opening either
+    // id hands over to /transfer instead of rendering a toolbox workbench.
+    if (id === "temporary-file" || id === "file-transfer") {
+      await evaluate(`window.WYJTools.openTool(${JSON.stringify(id)}, false)`);
+      await waitFor(
+        "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+        8_000,
+        `tool ${id} opens canonical transfer`,
+      );
+      return;
+    }
     await evaluate(`window.WYJTools.openTool(${JSON.stringify(id)}, false)`);
     await waitFor(`document.querySelector('#toolWorkbenchTitle')?.textContent === window.WYJTools.tools.find(item => item.id === ${JSON.stringify(id)})?.name`, 5_000, `tool ${id}`);
     const description = await evaluate("document.querySelector('#toolWorkbenchDescription')?.textContent || ''");
@@ -542,12 +568,35 @@ async function main() {
   };
 
   const results = [];
+  // Progress + stall watchdog: a hung CDP call used to burn the whole job
+  // timeout with no output at all, which made the failure untraceable.
+  const STALL_TIMEOUT_MS = 5 * 60 * 1000;
+  let currentStep = "setup";
+  let watchdog = null;
+  const armWatchdog = () => {
+    if (watchdog) clearTimeout(watchdog);
+    watchdog = setTimeout(() => {
+      console.error(`[toolbox] stalled for ${STALL_TIMEOUT_MS}ms at ${currentStep}`);
+      process.exit(1);
+    }, STALL_TIMEOUT_MS);
+    watchdog.unref();
+  };
+  const progress = (message) => {
+    currentStep = message;
+    console.log(`[toolbox] ${new Date().toISOString()} ${message}`);
+    armWatchdog();
+  };
+
   const record = async (category, id, action) => {
+    const startedAt = Date.now();
+    progress(`start ${category}/${id}`);
     try {
       await action();
       results.push({ category, id, status: "passed" });
+      progress(`passed ${category}/${id} (+${Date.now() - startedAt}ms)`);
     } catch (error) {
       results.push({ category, id, status: "failed", error: error.message });
+      progress(`failed ${category}/${id} (+${Date.now() - startedAt}ms): ${error.message}`);
     }
   };
 
@@ -555,7 +604,9 @@ async function main() {
     await send("Page.navigate", { url: `${BASE_URL}/login?tool-matrix=1` });
     await waitFor("document.querySelector('#usernameInput')", 12_000, "login page");
     await evaluate(`localStorage.setItem('wyjAccountSession', ${JSON.stringify(member.session)}); location.href = '/tools?tool-matrix=1'; true`);
-    await waitFor("window.WYJTools?.tools?.length === 103 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox dashboard");
+    // Task 24.1: the catalog gained the canonical "文件传输" entry (104 total,
+    // 103 visible after the retired legacy temporary-file share).
+    await waitFor("window.WYJTools?.tools?.length === 104 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox dashboard");
     await evaluate(`(() => {
       const notice = document.querySelector('#versionNotice');
       if (notice && !notice.classList.contains('hidden')) document.querySelector('#dismissVersionNoticeBtn')?.click();
@@ -563,24 +614,32 @@ async function main() {
     })()`);
 
     const catalog = await evaluate("window.WYJTools.tools.map(({id,name,description,category}) => ({id,name,description,category}))");
-    assert.equal(catalog.length, 103);
-    assert.equal(new Set(catalog.map((tool) => tool.id)).size, 103);
+    assert.equal(catalog.length, 104);
+    assert.equal(new Set(catalog.map((tool) => tool.id)).size, 104);
     assert.ok(catalog.every((tool) => tool.name && tool.description));
 
     // Task 22 replaced the temporary-file share tool with the file transfer
     // page. The catalog must stop offering the old entry while the tool itself
     // stays resolvable for saved links and configurations.
     const catalogTools = await evaluate("window.WYJTools.catalogTools.map((tool) => tool.id)");
-    assert.equal(catalogTools.length, 102);
+    assert.equal(catalogTools.length, 103);
     assert.ok(!catalogTools.includes("temporary-file"));
+    assert.ok(catalogTools.includes("file-transfer"));
     const renderedCards = await evaluate(
       "Array.from(document.querySelectorAll('#toolCatalog [data-tool-card]')).map((element) => element.dataset.toolCard)",
     );
     assert.ok(!renderedCards.includes("temporary-file"), "retired tool is still advertised in the catalog");
     assert.equal(await evaluate("document.querySelector('#toolsTransferBtn')?.textContent || ''"), "文件传输");
+    // The retired id is still resolvable for old links, but it must hand over to
+    // the canonical /transfer page instead of rendering a second uploader.
     await openTool("temporary-file");
-    await evaluate("window.WYJTools.closeWorkbench(false)");
-    await waitFor("!document.querySelector('#toolsPanel')?.classList.contains('hidden')", 5_000, "toolbox after retirement check");
+    await waitFor(
+      "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+      6_000,
+      "retired temporary-file redirect",
+    );
+    await send("Page.navigate", { url: `${BASE_URL}/tools?tool-matrix=1b` });
+    await waitFor("window.WYJTools?.tools?.length === 104 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox after retirement check");
     await click("#toolsTransferBtn");
     await waitFor(
       "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
@@ -589,7 +648,7 @@ async function main() {
     );
     await send("Page.navigate", { url: `${BASE_URL}/tools?tool-matrix=2` });
     await waitFor(
-      "window.WYJTools?.tools?.length === 103 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')",
+      "window.WYJTools?.tools?.length === 104 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')",
       15_000,
       "toolbox after transfer entry",
     );
@@ -921,20 +980,79 @@ async function main() {
       coverMode("temporary.destruction.destroy-after-read");
     });
 
+    // Task 24.1: the legacy temporary-file workbench is gone. File sharing has a
+    // single canonical implementation (/transfer, Task 22); the toolbox entry and
+    // the retired id both navigate there and no second uploader exists. Both
+    // catalog ids are recorded so "every catalog tool was exercised" still holds.
     await record("temporary", "temporary-file", async () => {
+      progress("transfer: open retired temporary-file id");
       await openTool("temporary-file");
-      await setFiles("#tempFileInput", [samples.large]);
-      await click("#createTempBtn");
-      await waitFor("document.querySelector('#temporaryResult code')?.textContent.includes('/share/file/')", 120_000, "20 MB temporary file link");
-      const state = await readState();
-      await send("Page.navigate", { url: state.temporaryCode });
-      await waitFor("!document.querySelector('#shareViewer')?.classList.contains('hidden') && document.querySelector('#openShareBtn')", 12_000, "public temporary file viewer");
-      const downloaded = await verifyDownload("#openShareBtn", 120_000);
-      assert.equal(path.basename(downloaded), "twenty-megabytes.txt");
-      assert.equal(fileSha256(downloaded), fileSha256(samples.large), "temporary file SHA-256 mismatch");
-      artifactManifest.temporary_files.push({ original: samples.large, downloaded });
+      progress("transfer: waiting for canonical page");
+      await waitFor(
+        "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+        6_000,
+        "retired temporary-file opens canonical transfer",
+      );
+      progress("transfer: asserting the legacy uploader is gone");
+      assert.equal(
+        await evaluate("Boolean(document.querySelector('#tempFileInput'))"),
+        false,
+        "legacy temporary-file uploader must not exist",
+      );
       await send("Page.navigate", { url: `${BASE_URL}/tools` });
-      await waitFor("window.WYJTools?.tools?.length === 103 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox after public file download");
+      await waitFor("window.WYJTools?.tools?.length === 104", 15_000, "toolbox reload after retirement check");
+    });
+
+    await record("temporary", "file-transfer", async () => {
+      progress("transfer: open canonical file-transfer id");
+      await openTool("file-transfer");
+      await waitFor(
+        "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+        6_000,
+        "canonical file-transfer catalog entry",
+      );
+      // Real data path through the canonical implementation: select a file,
+      // upload it, publish the share and download it back with a SHA check.
+      const canonicalOriginal = path.join(TEST_ROOT, `transfer-canonical-${RUN_ID}.bin`);
+      fs.writeFileSync(canonicalOriginal, Buffer.alloc(1024 * 1024, 7));
+      progress(`transfer: fixture written (${fs.statSync(canonicalOriginal).size} bytes)`);
+      // Drive the real UI: the transfer page's own file input (the Android
+      // WebChromeClient path uses exactly this input).
+      await setFiles("#transferFileInput", [canonicalOriginal]);
+      progress("transfer: file input dispatched");
+      await waitFor("document.querySelectorAll('[data-transfer-item]').length === 1", 15_000, "canonical transfer item");
+      progress("transfer: queue item rendered");
+      await waitFor("!document.getElementById('transferCompleteBtn')?.disabled", 90_000, "canonical transfer upload complete");
+      progress("transfer: upload complete");
+      await click("#transferCompleteBtn");
+      progress("transfer: publish clicked");
+      await waitFor("!document.querySelector('#transferShareCard')?.classList.contains('hidden')", 20_000, "canonical share card");
+      const canonicalLink = await evaluate("document.getElementById('transferShareLink')?.value || ''");
+      assert.match(canonicalLink, /^https?:\/\/[^/]+\/transfer#share=/);
+      progress("transfer: share link ready");
+      const canonicalDownload = await verifyDownload("[data-transfer-download]", 120_000);
+      progress("transfer: share downloaded");
+      assert.equal(path.basename(canonicalDownload), path.basename(canonicalOriginal));
+      assert.equal(fileSha256(canonicalDownload), fileSha256(canonicalOriginal), "canonical transfer SHA-256 mismatch");
+      artifactManifest.temporary_files.push({ original: canonicalOriginal, downloaded: canonicalDownload });
+      await evaluate("document.querySelector('[data-transfer-revoke]')?.click(); true");
+      await send("Page.navigate", { url: `${BASE_URL}/tools` });
+      await waitFor("window.WYJTools?.tools?.length === 104", 15_000, "toolbox reload after transfer check");
+      await click("#toolsTransferBtn");
+      await waitFor(
+        "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+        6_000,
+        "toolbox file transfer entry",
+      );
+      await openTool("file-transfer");
+      await waitFor(
+        "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+        6_000,
+        "canonical file-transfer catalog entry",
+      );
+      await send("Page.navigate", { url: `${BASE_URL}/tools` });
+      await waitFor("window.WYJTools?.tools?.length === 104", 15_000, "toolbox reload after canonical check");
+      await waitFor("window.WYJTools?.tools?.length === 104 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox after public file download");
     });
 
     await record("temporary", "temporary-clipboard", async () => {
@@ -1361,6 +1479,7 @@ async function main() {
       auditedModes: coveredToolModes.size,
       auditedWorkflowFlows: coveredWorkflowFlows.size,
       auditedWorkflowCapabilities: coveredWorkflowCapabilities.size,
+      autoAnsweredDialogs: jsDialogs.length,
     }, null, 2));
 
     const expectedNotFoundPaths = new Set(["/api/changelog", "/api/share/text/read"]);
