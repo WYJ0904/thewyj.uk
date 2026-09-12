@@ -5,6 +5,7 @@ import java.io.File
 import java.util.UUID
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -102,5 +103,36 @@ class AndroidPaymentRecognitionHookArchiveTest {
         val instance = database.notificationDao().instance(account, instanceId!!)
         assertEquals("confirmed", instance!!.financeState)
         assertEquals("txn-auto-1", instance.financeTransactionId)
+    }
+
+    /**
+     * Task 24 reopen (real device 2026-09-13): WeChat chat/payment notifications
+     * arrive as MessagingStyle, so the message body lives in `EXTRA_TEXT_LINES`
+     * while EXTRA_TEXT stays empty. The payment parser must see those lines,
+     * otherwise a literal「已支付¥100」is reported as 暂未识别到金额.
+     */
+    @Test fun messagingStyleLinesReachThePaymentParser() {
+        val hook = AndroidPaymentRecognitionHook(
+            RuntimeEnvironment.getApplication(),
+            archiveSink = sink(),
+            recognitionStore = uk.thewyj.app.task21.store.RoomPaymentRecognitionStore(database),
+            testing = true,
+        )
+        val input = uk.thewyj.app.task21.NotificationCaptureInput(
+            sourcePackage = "com.tencent.mm",
+            sourceType = "notification",
+            notificationKey = "0|com.tencent.mm|1|null|100",
+            notificationId = 1,
+            postTime = 1_000L,
+            title = "老周横眉",
+            text = "",
+            textLines = listOf("已支付¥100"),
+        )
+
+        val outcome = hook.outcomeFor(input)
+
+        assertNotNull("the messaging lines must produce a payment outcome", outcome)
+        assertEquals(10_000L, outcome!!.amountMinor)
+        assertEquals(uk.thewyj.app.task21.FinanceDirection.EXPENSE, outcome.direction)
     }
 }

@@ -1,6 +1,7 @@
 package uk.thewyj.app.task21.payment
 
 import android.content.Context
+import android.util.Log
 import uk.thewyj.app.task21.NotificationCaptureInput
 import uk.thewyj.app.task21.PaymentIngestOutcome
 import uk.thewyj.app.task21.PaymentRecognitionHook
@@ -80,14 +81,30 @@ class AndroidPaymentRecognitionHook private constructor(
             input.sourceType == "bank" -> PaymentSourceType.BANK_NOTIFICATION
             else -> PaymentSourceType.NOTIFICATION
         }
+        // MessagingStyle notifications (WeChat chat/payment messages) put the
+        // real bodies in EXTRA_TEXT_LINES and often leave EXTRA_TEXT empty, so
+        // the payment parser used to see nothing and answered「暂未识别到金额」
+        // for a literal「已支付¥100」(real device 2026-09-13).
+        val bodyLines = buildList {
+            if (input.text.isNotBlank()) add(input.text)
+            input.textLines.mapNotNullTo(this) { line -> line.takeIf { it.isNotBlank() } }
+        }
+        val parseText = if (bodyLines.isEmpty()) input.text else bodyLines.joinToString(" ")
         val parsed = PaymentParserRegistry.parse(
             sourcePackage = input.sourcePackage,
             sourceType = sourceType,
             title = input.title,
-            text = input.text,
+            text = parseText,
             bigText = input.bigText,
             subText = input.subText,
             capturedAtMs = if (input.postTime > 0) input.postTime else input.receivedAtMs,
+        )
+        // Auditable evidence without ever logging the message itself.
+        Log.i(
+            "ThewyjPayment",
+            "parse pkg=${input.sourcePackage} titleChars=${input.title.length} " +
+                "textChars=${input.text.length} lineCount=${input.textLines.size} " +
+                "status=${parsed.status} amount=${parsed.amountMinor ?: 0} direction=${parsed.direction ?: "unknown"}",
         )
         if (parsed.status == PaymentRecognitionStatus.NOT_PAYMENT ||
             parsed.status == PaymentRecognitionStatus.PARSE_ERROR

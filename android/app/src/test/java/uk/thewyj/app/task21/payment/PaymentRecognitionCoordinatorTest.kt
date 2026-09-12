@@ -34,6 +34,65 @@ class PaymentRecognitionCoordinatorTest {
         }
     }
 
+    /**
+     * Task 24 reopen P0 (real device 2026-09-13, WeChat 金额待核实):
+     * an amount-unknown capture only creates a 90 second ticket, so the UI had
+     * no candidate to save into and「填写金额并记账」always answered
+     * 「修改没有保存，请重试」. The user's manual amount must create the
+     * candidate and book it.
+     */
+    @Test fun manualAmountCreatesTheMissingCandidateAndBooksIt() {
+        val store = FakeStore()
+        val coordinator = PaymentRecognitionCoordinator(
+            store = store,
+            notifier = FakeNotifier(),
+            now = { 1_000L },
+        )
+        store.saveRecognition(
+            PaymentRecognitionRecord(
+                recognitionId = "rec-wechat",
+                accountId = "account-a",
+                state = PaymentRecognitionState.WAITING_FOR_ENRICHMENT.name,
+                notificationId = 11,
+                sourcePackage = "com.tencent.mm",
+                sourceType = "notification",
+                sourceEventId = "notification#wechat#1",
+                paymentChannel = "wechat",
+                amountMinor = null,
+                currency = "CNY",
+                direction = FinanceDirection.UNKNOWN.name,
+                merchant = "",
+                providerReference = "",
+                createdAtMs = 1_000L,
+                updatedAtMs = 1_000L,
+            ),
+        )
+        assertNull(store.candidateForRecognition("account-a", "rec-wechat"))
+
+        val created = coordinator.ensureCandidateForRecognition(
+            accountId = "account-a",
+            recognitionId = "rec-wechat",
+            amountMinor = 10_000L,
+            direction = FinanceDirection.EXPENSE.name,
+            merchant = "微信",
+        )
+
+        assertNotNull("the manual amount must create a candidate", created)
+        assertEquals(10_000L, created?.effectiveAmountMinor)
+        assertEquals(FinanceDirection.EXPENSE.name, created?.effectiveDirection)
+        assertEquals("微信", created?.effectiveMerchant)
+        assertEquals("pending", created?.status)
+
+        // A second save edits the existing candidate instead of forking a new one.
+        val edited = coordinator.ensureCandidateForRecognition(
+            accountId = "account-a",
+            recognitionId = "rec-wechat",
+            amountMinor = 12_345L,
+        )
+        assertEquals(created?.candidateId, edited?.candidateId)
+        assertEquals(12_345L, edited?.effectiveAmountMinor)
+    }
+
     private class FakeStore : PaymentRecognitionStoreContract {
         val recognitions = mutableMapOf<String, PaymentRecognitionRecord>()
         val tickets = mutableMapOf<String, PaymentTicket>()

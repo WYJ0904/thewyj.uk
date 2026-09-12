@@ -86,6 +86,31 @@ class PaymentParserTest {
         }
     }
 
+    /**
+     * Task 24 reopen (real device 2026-09-13): real WeChat payment messages
+     * arrive under the contact/merchant title (or no title at all), never under
+     * the literal「微信支付」title the older fixtures used. A clear「已支付 + 金额」
+     * must resolve to the amount regardless of the title, and an unknown
+     * merchant must never downgrade it.
+     */
+    @Test fun explicitPaymentAmountIsIndependentOfTitleAndMerchant() {
+        val cases = mapOf(
+            "已支付100" to 10_000L,
+            "已支付¥100" to 10_000L,
+            "已支付￥100" to 10_000L,
+            "已支付 100" to 10_000L,
+            "已支付100元" to 10_000L,
+            "支付100元" to 10_000L,
+        )
+        for ((message, expected) in cases) {
+            val result = wechat("老周横眉", message)
+            assertEquals("amount for $message", expected, result.amountMinor)
+            assertEquals("direction for $message", FinanceDirection.EXPENSE, result.direction)
+            assertTrue("$message must be transaction-like", result.isTransactionLike)
+            assertEquals("", result.merchant.orEmpty().trim())
+        }
+    }
+
     @Test fun paymentVerbPlusPlainNumberStaysConfirmedPaymentForWeChatCompletion() {
         val result = wechat("微信支付", "已支付100")
         assertEquals(PaymentRecognitionStatus.CONFIRMED_PAYMENT, result.status)

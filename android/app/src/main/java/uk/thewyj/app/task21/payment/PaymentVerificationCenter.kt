@@ -150,19 +150,34 @@ class PaymentVerificationCenter(context: Context) {
     fun saveCorrection(
         accountId: String,
         candidateId: String,
+        recognitionId: String = "",
         amountMinor: Long?,
         direction: String,
         merchant: String,
     ): Boolean {
-        if (candidateId.isBlank()) return false
         return runCatching {
-            hook.coordinator().editCandidate(
-                accountId = accountId,
-                candidateId = candidateId,
-                amountMinor = amountMinor,
-                direction = direction,
-                merchant = merchant,
-            )
+            if (candidateId.isNotBlank()) {
+                hook.coordinator().editCandidate(
+                    accountId = accountId,
+                    candidateId = candidateId,
+                    amountMinor = amountMinor,
+                    direction = direction,
+                    merchant = merchant,
+                )
+            } else if (recognitionId.isNotBlank()) {
+                // Amount-unknown captures have no candidate yet; the user's
+                // manual amount is what creates it (P0: the flow used to answer
+                // 「修改没有保存，请重试」because there was nothing to edit).
+                hook.coordinator().ensureCandidateForRecognition(
+                    accountId = accountId,
+                    recognitionId = recognitionId,
+                    amountMinor = amountMinor,
+                    direction = direction,
+                    merchant = merchant,
+                )
+            } else {
+                null
+            }
         }.getOrNull() != null
     }
 

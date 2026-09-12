@@ -83,6 +83,7 @@ class PaymentVerificationState(
             center.saveCorrection(
                 accountId = accountId,
                 candidateId = item.candidateId,
+                recognitionId = item.recognitionId,
                 amountMinor = amount,
                 direction = direction,
                 merchant = merchantText.trim(),
