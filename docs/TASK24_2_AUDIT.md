@@ -1,9 +1,9 @@
 # Task 24.2 审计与收尾记录
 
-## 状态：WAITING FOR DEVICE ACCEPTANCE
+## 状态：TASK 24.2 COMPLETE（2026-09-12 用户真机验收通过）
 
-所有可自动完成的代码、测试、CI 与 Production 工作已完成。剩余事项为必须由用户本人在
-SM-S9360（Android 16）等真机上执行的一次性验收矩阵。
+用户在 SM-S9360（Android 16）上完成 Phase 12 真机矩阵并全部通过。可自动完成部分与
+真机验收部分均已完成；Task 24.2 收口，不进入下一 Task。
 
 ## Phase 摘要
 
@@ -42,3 +42,12 @@ clean install、覆盖升级、App restart、force stop、手机 reboot、Wi-Fi 
 offline → reconnect、登录持久化、NotificationListener / Accessibility / 权限开关、
 微信 / 支付宝真实支付 → pending → confirm → 通知侧消失、已捕获撤回通知、自动 Finance、
 文件传输多文件/大文件、多账户、App 内更新、通知点击 cold / warm / process-killed 路由。
+
+以上全部由用户真机确认 PASS（2026-09-12）。
+
+## Final Closure
+
+- Task 24.2 已完成并停止在此，不会自动开始下一 Task。
+- 版本：`1.3.0 / versionCode 13`；main SHA `5e597da29ffeef7075953bb8017053f7865a2df3`。
+- Production deployment：`cff70d60-a3ca-4d06-9040-d86c7e14daa4`（自动 `a4cb4b85-3e68-4afb-9647-829cc93fce05`）。
+- APK：`thewyj-android-1.3.0.apk`，47,578,521 bytes，SHA-256 `8a24e7792070ef4af246b6eb196d5fc27d67815e3c1676188ad042d714d56c37`（本地 / R2 / 官网一致）。
