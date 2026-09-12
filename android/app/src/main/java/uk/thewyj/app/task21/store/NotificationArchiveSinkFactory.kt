@@ -93,6 +93,15 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
         store.markRemoved(accountId, input.notificationKey)
     }
 
+    override fun markFinanceOutcome(
+        accountId: String,
+        sourceEventId: String,
+        state: String,
+        transactionId: String,
+    ): Boolean = runCatching {
+        store.markFinanceOutcome(accountId, sourceEventId, state, transactionId)
+    }.getOrDefault(false)
+
     /**
      * Task 24.1 R4: a screenshot that MediaStore delivered (Samsung replaces the
      * screenshot notification in place, so the listener cannot see later
@@ -228,10 +237,11 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
             else -> input.mediaState
         },
         identityOverride = input.identityOverride,
-        mediaFingerprint = input.mediaFingerprint,
-        mediaOrigin = when {
-            input.mediaFingerprint.isBlank() -> ""
-            else -> ScreenshotMediaOrigin.NOTIFICATION.wireValue
-        },
-    )
+            mediaFingerprint = input.mediaFingerprint,
+            mediaOrigin = when {
+                input.mediaFingerprint.isBlank() -> ""
+                else -> ScreenshotMediaOrigin.NOTIFICATION.wireValue
+            },
+            sourceEventId = parsed?.eventId.orEmpty(),
+        )
 }

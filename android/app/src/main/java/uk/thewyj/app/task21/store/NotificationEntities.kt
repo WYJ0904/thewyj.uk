@@ -49,6 +49,15 @@ data class NotificationInstanceEntity(
     val isGroupSummary: Int,
     /** Set when a finance candidate/transaction references this instance. */
     val financeLinked: Int,
+    /**
+     * Canonical finance state of this snapshot once the payment pipeline booked
+     * it: "" | pending | confirmed | ignored | failed. Persisted (not UI state)
+     * so a refresh, an app restart or a sync pull can never resurrect a
+     * confirmed candidate.
+     */
+    val financeState: String = "",
+    /** Server-side transaction identity the moment the candidate was confirmed. */
+    val financeTransactionId: String = "",
     /** User favourite (Task 24.1): retention never removes a pinned notification. */
     val pinned: Int = 0,
     val pinnedAt: Long = 0,
@@ -69,6 +78,7 @@ data class NotificationInstanceEntity(
         Index(value = ["accountId", "capturedAt"]),
         Index(value = ["contentHash"]),
         Index(value = ["mediaFingerprint"]),
+        Index(value = ["accountId", "sourceEventId"]),
     ],
 )
 data class NotificationRevisionEntity(
@@ -112,6 +122,13 @@ data class NotificationRevisionEntity(
     val mediaFingerprintAlt: String = "",
     /** "" | notification | media_store | media_store+notification */
     val mediaOrigin: String = "",
+    /**
+     * Stable structured-event id of the capture (the same id the payment
+     * recogniser and the cloud candidate/transaction use), so
+     * notification/archiveId → candidateId → financeTransactionId can be
+     * followed end to end without guessing.
+     */
+    val sourceEventId: String = "",
 )
 
 @Entity(tableName = "notification_app_policies", primaryKeys = ["accountId", "sourcePackage"])

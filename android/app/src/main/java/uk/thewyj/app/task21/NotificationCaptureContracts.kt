@@ -101,6 +101,13 @@ interface NotificationArchiveSink {
      */
     fun storeMediaStoreScreenshot(accountId: String, event: ScreenshotMediaEvent): ScreenshotArchiveOutcome =
         ScreenshotArchiveOutcome.SKIPPED
+
+    /**
+     * Canonical finance state for the archived snapshot (`pending`, `confirmed`,
+     * `ignored`, `failed`). The default no-op keeps test doubles source
+     * compatible; the Room sink persists it.
+     */
+    fun markFinanceOutcome(accountId: String, sourceEventId: String, state: String, transactionId: String = ""): Boolean = false
 }
 
 /**

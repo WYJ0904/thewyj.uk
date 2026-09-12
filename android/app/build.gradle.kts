@@ -22,10 +22,13 @@ android {
 
     defaultConfig {
         applicationId = "uk.thewyj.app"
-        minSdk = 26
+        // Task 24.2 compatibility baseline: Android 11 (API 30). Raising the
+        // floor removes legacy branches that only existed for Android 8–10 and
+        // matches the browsers/WebView versions the cloud TTS player needs.
+        minSdk = 30
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.2.9"
+        versionCode = 13
+        versionName = "1.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "THEWYJ_BASE_URL", "\"$thewyjBaseUrl\"")
     }
@@ -108,7 +111,10 @@ dependencies {
     // Task 24.1: on-device OCR for the WeChat visual verification fallback.
     // Unbundled variant: the Chinese/Latin model is downloaded by Play services
     // on demand, so the APK stays small. Text never leaves the device.
-    implementation("com.google.android.gms:play-services-mlkit-text-recognition-chinese:16.0.1")
+    // Bundled ML Kit: the OCR model ships inside the APK (no Google Play
+    // Services model download, works offline on the first run, and works on
+    // devices without GMS). Do not switch back to play-services-mlkit-*.
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
 
     testImplementation(libs.junit)
     testImplementation("org.json:json:20240303")

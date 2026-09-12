@@ -1,3 +1,4 @@
+import { randomId } from "../core/capabilities.js?v=20260912-screenshot-r1";
 import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260912-screenshot-r1";
 import { getSafeStorage } from "../core/storage.js?v=20260912-screenshot-r1";
 
@@ -50,7 +51,7 @@ export function createTransferController({
   function guestId() {
     let value = String(storage.getItem(GUEST_ID_KEY) || "").trim();
     if (!/^guest:[A-Za-z0-9-]{16,80}$/.test(value)) {
-      value = `guest:${crypto.randomUUID()}`;
+      value = `guest:${randomId()}`;
       storage.setItem(GUEST_ID_KEY, value);
     }
     return value;
@@ -168,7 +169,7 @@ export function createTransferController({
         continue;
       }
       queue.push({
-        id: crypto.randomUUID(),
+        id: randomId(),
         file,
         name: file.name || "unnamed",
         relativePath: safeFileRelativePath(file),
@@ -239,7 +240,7 @@ export function createTransferController({
     if (item.fileId) return;
     const body = {
       session_id: item.sessionId,
-      file_id: `file-${crypto.randomUUID().replaceAll("-", "").slice(0, 20)}`,
+      file_id: `file-${randomId().replaceAll("-", "").slice(0, 20)}`,
       relative_path: item.relativePath,
       file_name: item.name,
       mime_type: item.file.type || "application/octet-stream",

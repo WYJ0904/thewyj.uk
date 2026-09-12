@@ -187,7 +187,11 @@ private fun createWebView(
         setSupportMultipleWindows(false)
         builtInZoomControls = false
         displayZoomControls = false
-        mediaPlaybackRequiresUserGesture = true
+        // Dictation audio now comes from thewyj cloud TTS. The player starts in
+        // the same tap that requests it, but the fetch/streaming delay must not
+        // let WebView's autoplay policy block the cloud asset (real-device
+        // report: the button "did nothing" when the voice package was missing).
+        mediaPlaybackRequiresUserGesture = false
         userAgentString = "${userAgentString} thewyj-android/${BuildConfig.VERSION_NAME}"
         safeBrowsingEnabled = true
     }

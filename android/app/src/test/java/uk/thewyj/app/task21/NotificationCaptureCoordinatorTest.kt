@@ -147,7 +147,11 @@ class NotificationCaptureCoordinatorTest {
         try {
             val transport = object : NotificationIngestTransport {
                 override fun post(path: String, sessionToken: String, body: String): IngestResponse =
-                    IngestResponse(false, 409, """{"ok":true,"duplicate":true}""")
+                    IngestResponse(
+                        false,
+                        409,
+                        """{"ok":true,"duplicate":true,"operation_results":[{"duplicate":true,"transaction_id":"txn-1"}]}""",
+                    )
             }
             val coordinator = paymentCoordinator(dir, transport, parsedOutcome(2800, FinanceDirection.EXPENSE))
             coordinator.onNotification("cmb.pb", "招商银行", "已支付 ¥28.00", "", "", 1L)
@@ -155,6 +159,31 @@ class NotificationCaptureCoordinatorTest {
             assertEquals(1, result.discardedInvalid)
             assertEquals(0, result.rejected.size)
             assertEquals(0, coordinator.queuedRequests().size)
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
+    /**
+     * P0 real-device regression: a `duplicate` answer *without* a transaction or
+     * candidate id means the server saw the event but never booked it. The
+     * payload must stay queued and be reported as a failure instead of being
+     * deleted (that silent delete is why a recognised amount never reached
+     * Finance).
+     */
+    @Test fun duplicateWithoutLedgerIdentityKeepsThePaymentAndReportsFailure() {
+        val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
+        try {
+            val transport = object : NotificationIngestTransport {
+                override fun post(path: String, sessionToken: String, body: String): IngestResponse =
+                    IngestResponse(false, 409, """{"ok":true,"duplicate":true}""")
+            }
+            val coordinator = paymentCoordinator(dir, transport, parsedOutcome(2800, FinanceDirection.EXPENSE))
+            coordinator.onNotification("cmb.pb", "招商银行", "已支付 ¥28.00", "", "", 1L)
+            val result = coordinator.flushDetailed()
+            assertEquals("a bare duplicate must not be discarded", 0, result.discardedInvalid)
+            assertEquals(1, result.rejected.size)
+            assertEquals(1, coordinator.queuedRequests().size)
         } finally {
             dir.deleteRecursively()
         }
