@@ -34,6 +34,7 @@
 | T24.1-30 | P0 | 微信无障碍读不到文本 | 微信交易详情页 | 微信不暴露无障碍文本 | `takeScreenshotOfWindow()/takeScreenshot()` + 本地 ML Kit OCR + 语义层；只补全已有 candidate；截图不落盘不上传 | `PaymentScreenshotOcrTest`（14 fixture） | PASS | PASS | PASS | PASS PHYSICAL（用户确认听写/语速/主题/更新/折叠正常） | PASS PHYSICAL（能力）/ 真机 OCR 效果以人工验收为准 |
 | T24.1-28 | P1 | 通知历史显示 `com.tencent.mm` | 通知列表/详情 | 直接用 `sourcePackage` | `PaymentAppLabels` 统一 resolver（系统 label 优先） | `NotificationMediaHistoryTest`、`NotificationRepository` 回归 | PASS | PASS | PASS | PASS PHYSICAL（用户确认显示「微信」） | PASS PHYSICAL |
 | T24.1-38 | P1 | Android/Web/D1 财务一致性 | 记账后对比 | 数据源曾分叉 | D1 唯一 source of truth + pending 统一 | finance/hints 套件 | PASS | PASS | PASS | PASS PHYSICAL（用户确认支付识别→记账→Android 财务可见） | PASS PHYSICAL |
+| T24.1-39 | P0 | 分享下载时被要求输入并不存在的密码；CI Cloud-only job 卡死 45 分钟 | 打开文件传输分享页 → 点「下载」 | canonical 传输页的 `downloadShareFile` 无条件调用 `window.prompt`，公共分享也会弹出模态密码框；headless 浏览器无人应答 → 渲染进程主线程阻塞 → CDP 调用永不返回 | 只有 `share.password_required` 为真才弹窗；无密码分享直接授权下载；浏览器矩阵增加 JS 对话框自动应答、逐步进度日志与 5 分钟停顿看门狗（避免再次烧掉 45 分钟 CI 超时） | `test_static.py.test_one_canonical_file_transfer_implementation`（禁止无条件 prompt）、`test_tools_browser.mjs`（真实上传→分享→下载 SHA-256，含 `autoAnsweredDialogs` 统计） | PASS（PR #58 rerun） | PASS | PASS（1.2.8 + 修复随 1.2.9 前端发布） | PASS PHYSICAL（用户确认「我的→文件传输」上传/多选/配额正常；下载不再要求密码随 1.2.9 复验） | PASS AUTOMATED / 下载交互待复验 |
 
 ## Round 3（1.2.8 候选）其余条目
 
