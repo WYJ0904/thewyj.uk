@@ -168,3 +168,32 @@ Root cause（纯客户端）：
       升级后确认 T24.4-03 的历史条目在 pull 后消失且本地数据保留。
 - [ ] Android/Web/Production 回归：duplicate/offline/reconnect/pull、小文件/大文件/多文件/
       pause/resume/account switch/cancel/expired session。
+
+## 现场验证（结果，2026-09-12）
+
+- [x] **P0/P1-1 Finance 确认**：真机点「选择方向并确认」→ 编辑器（方向=支出）→ 保存。
+  D1：`hint:36fcd412…` → `state=confirmed`、`finance_entry_id=txn:83116a57-67d4-46bd-b110-528513310045`；
+  该用户当日仅新增这 1 笔 10449 支出（`status=active`），无重复入账。
+- [x] **P0/P1-2 通知待确认残留**：修复 `state=` 语义后，设备 pull 收到 confirmed →
+  本地记录收敛。实测：待核实计数 **4 → 3**，¥104.49 从列表消失；通知档案出现终态
+  「thewyj · 已记录到财务 / 该应用：¥104.49 已记录到财务」。
+  force-stop → 重启后计数仍为 3，条目不复活。
+- [x] **Web/Android 一致**：Finance 页「通知待确认」显示「暂无待确认通知」，账目 1 笔
+  `-¥104.49`，余额 `-¥104.49`；版本提示「已更新至 v2026.09.12.5」。
+- [x] **P0/P1-3 传输**：修复已部署（资源令牌 `20260912-task24-4-r1`/`r2`），CI 工具箱矩阵新增
+  「上传 100% → 刷新 → 不重选文件直接发布」回归并在 PR #63/#64/#65/#66 连续通过；
+  现场 session `TuWl3aCXakuN5qpKnSsk7JcwH-5a7GTx` 服务端只读校验：1/1 文件、16/16 分片、
+  etag 齐全、upload_id/object_key 存在（服务端校验可通过）。该 session 的本地队列位于用户
+  桌面浏览器的 localStorage，需用户在该浏览器点一次「创建分享链接」（修复已在线）。
+- [x] **Android 版本**：1.3.1（14）与 1.3.2（15）均已发布到官网/R2 并安装到真机
+  （覆盖安装，`firstInstallTime` 不变，数据保留）。
+- [x] **自动化**：PR #62/#63/#64/#65/#66 全部 CI 6/6 绿；main CI 在 `df4a234`、`cefae62`、
+  `345fe6c` 均 6/6 绿；Production 依次部署 `ee4140e9`（1.3.1）、`ac315ea2`（hint-state 修复）
+  等；`/api/app/config` 当前为 `1.3.2 / 15`，SHA `9708a760…`。
+
+## 未能由代理完成的一点
+
+- 现场 `UbisoftConnectInstaller.exe` 的分享发布：队列与上传会话在用户桌面浏览器中，
+  浏览器自动化在本机不可用（Codex 认证令牌不可用），且该会话属于用户账号，代理无法在其
+  浏览器里点击。修复已上线，用户打开文件传输页后「创建分享链接」即可完成（若提示重新选择
+  文件，选择同一文件即可续传）。
