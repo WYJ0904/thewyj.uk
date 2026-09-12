@@ -39,3 +39,15 @@ canonical 状态机闭合，Production 与正式 APK 复测通过。
 - 通知点击：thewyj 动作只打开 thewyj；来源 App 独立动作且不可用时隐藏。
 
 无代码修改；后续 Task 24.3 继续以 1.3.0 正式使用反馈为输入。
+
+## 主动审计发现并修复（继续）
+
+### T24.3-01 文件传输上传队列跨账户复用（P1 multi-account isolation）
+
+- Root cause：上传队列持久化使用单一全局 key `wyjTransferQueue:v1`，虽然恢复时有 owner
+  校验避免直接串号，但切换账户会覆盖另一个账户尚未完成的上传队列，返回原账户后队列丢失。
+- 修复：队列按 owner 使用独立 key `wyjTransferQueue:v2:<owner>`（`transferQueueStorageKey`，
+  对外导出）；旧 v1 数据仅在 owner 匹配时一次性导入，导入后写回 v2。
+- Regression：`local-backend/test_transfer_isolation_js.mjs`（不同账户 key 隔离、同账户稳定、
+  guest 稳定、空白规范化、大小写敏感）；已接入 CI 的 JS job。`test_tools_js.mjs` 38 项仍通过。
+- Commit：`3abf209`。
