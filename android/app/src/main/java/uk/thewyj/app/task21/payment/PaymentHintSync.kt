@@ -6,6 +6,7 @@ import uk.thewyj.app.BuildConfig
 import uk.thewyj.app.task21.HttpNotificationIngestTransport
 import uk.thewyj.app.task21.NotificationSessionProvider
 import uk.thewyj.app.task21.store.NotificationDatabase
+import uk.thewyj.app.task21.store.NotificationArchiveSinkFactory
 import uk.thewyj.app.task21.store.PaymentRecognitionStoreContract
 import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
 
@@ -62,6 +63,13 @@ class PaymentHintSync(context: Context) {
     }
 
     private fun applyConfirmed(accountId: String, eventId: String, financeEntryId: String) {
+        // The archive link is canonical and independent of the local recognition
+        // row: a Web/Android confirm must close the notification-side state even
+        // when this device never created a local candidate for that event.
+        runCatching {
+            NotificationArchiveSinkFactory.forContext(app)
+                .markFinanceOutcome(accountId, eventId, "confirmed", financeEntryId)
+        }
         val recognition = runCatching { store.recognitionByUploadEvent(accountId, eventId) }.getOrNull() ?: return
         val candidate = runCatching {
             store.candidateForRecognition(accountId, recognition.recognitionId)
@@ -86,6 +94,10 @@ class PaymentHintSync(context: Context) {
     }
 
     private fun applyIgnored(accountId: String, eventId: String) {
+        runCatching {
+            NotificationArchiveSinkFactory.forContext(app)
+                .markFinanceOutcome(accountId, eventId, "ignored")
+        }
         val recognition = runCatching { store.recognitionByUploadEvent(accountId, eventId) }.getOrNull() ?: return
         runCatching {
             store.saveRecognition(
