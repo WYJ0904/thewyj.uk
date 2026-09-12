@@ -382,8 +382,14 @@ export function createTransferController({
     void loadMyShares();
   }
 
-  async function downloadShareFile(shareId, fileId) {
-    const password = window.prompt("该分享可能设有访问密码，如需要请输入：") || "";
+  async function downloadShareFile(shareId, fileId, passwordRequired = false) {
+    // Only a share that really carries a password may open a modal prompt: an
+    // unconditional window.prompt blocked the renderer (and every headless
+    // browser flow) even for public shares, and asked users for a password that
+    // does not exist.
+    const password = passwordRequired
+      ? (window.prompt("该分享设有访问密码，请输入：") || "")
+      : "";
     try {
       const payload = await request(`/api/transfer/shares/${shareId}/authorize`, { method: "POST", body: { password } });
       const token = payload.download.token;
@@ -576,7 +582,7 @@ export function createTransferController({
     else if (button.dataset.transferCancel) cancelItem(button.dataset.transferCancel);
     else if (button.dataset.transferDownload) {
       const [shareId, fileId] = button.dataset.transferDownload.split("|");
-      void downloadShareFile(shareId, fileId);
+      void downloadShareFile(shareId, fileId, Boolean(currentShare?.password_required));
     }
     else if (button.dataset.transferOpen) void openShare(button.dataset.transferOpen);
     else if (button.dataset.transferRevoke) void revokeShare(button.dataset.transferRevoke);

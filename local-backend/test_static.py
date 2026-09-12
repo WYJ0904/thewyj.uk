@@ -1020,6 +1020,16 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/api/transfer/", transfer)
         self.assertNotIn("/api/temporary/file/init", transfer)
 
+        # 5. A share download may only open the modal password prompt when the
+        #    share actually carries a password. The unconditional
+        #    `window.prompt` blocked the renderer (headless CI hung for 45
+        #    minutes) and asked users of public shares for a nonexistent
+        #    password.
+        self.assertIn("downloadShareFile(shareId, fileId, passwordRequired = false)", transfer)
+        self.assertIn("Boolean(currentShare?.password_required)", transfer)
+        self.assertIn("const password = passwordRequired", transfer)
+        self.assertNotIn("const password = window.prompt(", transfer)
+
     def test_android_payment_channels_are_accepted_by_the_api(self):
         """Real-device regression: the Android parsers emitted "bank"/"bank_sms"
         while the API allow-list only had "bank_card", so every bank payment was

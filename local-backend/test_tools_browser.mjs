@@ -211,13 +211,28 @@ async function connectBrowser() {
 
 async function main() {
   assert.ok(ADMIN_SECRET, "WYJ_TEST_ADMIN_SECRET is required for the isolated browser test server");
+  const bootWatchdog = setTimeout(() => {
+    console.error("[toolbox] stalled during member/browser bootstrap");
+    process.exit(1);
+  }, 5 * 60 * 1000);
+  bootWatchdog.unref();
   const member = await createMember();
   const browser = await connectBrowser();
+  clearTimeout(bootWatchdog);
   const { client, browserContextId, send, targetId } = browser;
   const runtimeErrors = [];
   const networkHttpErrors = [];
   const apiRequestCounts = new Map();
+  const jsDialogs = [];
   client.listeners.add((message) => {
+    // A stray window.prompt/confirm/alert must never block the renderer again.
+    // Dialogs are answered automatically; the flow under test does not depend on
+    // their text.
+    if (message.method === "Page.javascriptDialogOpening") {
+      jsDialogs.push(message.params?.type || "dialog");
+      void send("Page.handleJavaScriptDialog", { accept: true, promptText: "" }).catch(() => {});
+      return;
+    }
     if (message.sessionId && message.sessionId !== browser.sessionId) return;
     if (message.method === "Runtime.exceptionThrown") {
       const details = message.params?.exceptionDetails || {};
@@ -553,12 +568,35 @@ async function main() {
   };
 
   const results = [];
+  // Progress + stall watchdog: a hung CDP call used to burn the whole job
+  // timeout with no output at all, which made the failure untraceable.
+  const STALL_TIMEOUT_MS = 5 * 60 * 1000;
+  let currentStep = "setup";
+  let watchdog = null;
+  const armWatchdog = () => {
+    if (watchdog) clearTimeout(watchdog);
+    watchdog = setTimeout(() => {
+      console.error(`[toolbox] stalled for ${STALL_TIMEOUT_MS}ms at ${currentStep}`);
+      process.exit(1);
+    }, STALL_TIMEOUT_MS);
+    watchdog.unref();
+  };
+  const progress = (message) => {
+    currentStep = message;
+    console.log(`[toolbox] ${new Date().toISOString()} ${message}`);
+    armWatchdog();
+  };
+
   const record = async (category, id, action) => {
+    const startedAt = Date.now();
+    progress(`start ${category}/${id}`);
     try {
       await action();
       results.push({ category, id, status: "passed" });
+      progress(`passed ${category}/${id} (+${Date.now() - startedAt}ms)`);
     } catch (error) {
       results.push({ category, id, status: "failed", error: error.message });
+      progress(`failed ${category}/${id} (+${Date.now() - startedAt}ms): ${error.message}`);
     }
   };
 
@@ -946,12 +984,15 @@ async function main() {
     // single canonical implementation (/transfer, Task 22); the toolbox entry and
     // the retired id both navigate there and no second uploader exists.
     await record("temporary", "file-transfer-canonical", async () => {
+      progress("transfer: open retired temporary-file id");
       await openTool("temporary-file");
+      progress("transfer: waiting for canonical page");
       await waitFor(
         "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
         6_000,
         "retired temporary-file opens canonical transfer",
       );
+      progress("transfer: asserting the legacy uploader is gone");
       assert.equal(
         await evaluate("Boolean(document.querySelector('#tempFileInput'))"),
         false,
@@ -961,16 +1002,23 @@ async function main() {
       // upload it, publish the share and download it back with a SHA check.
       const canonicalOriginal = path.join(TEST_ROOT, `transfer-canonical-${RUN_ID}.bin`);
       fs.writeFileSync(canonicalOriginal, Buffer.alloc(1024 * 1024, 7));
+      progress(`transfer: fixture written (${fs.statSync(canonicalOriginal).size} bytes)`);
       // Drive the real UI: the transfer page's own file input (the Android
       // WebChromeClient path uses exactly this input).
       await setFiles("#transferFileInput", [canonicalOriginal]);
+      progress("transfer: file input dispatched");
       await waitFor("document.querySelectorAll('[data-transfer-item]').length === 1", 15_000, "canonical transfer item");
+      progress("transfer: queue item rendered");
       await waitFor("!document.getElementById('transferCompleteBtn')?.disabled", 90_000, "canonical transfer upload complete");
+      progress("transfer: upload complete");
       await click("#transferCompleteBtn");
+      progress("transfer: publish clicked");
       await waitFor("!document.querySelector('#transferShareCard')?.classList.contains('hidden')", 20_000, "canonical share card");
       const canonicalLink = await evaluate("document.getElementById('transferShareLink')?.value || ''");
       assert.match(canonicalLink, /^https?:\/\/[^/]+\/transfer#share=/);
+      progress("transfer: share link ready");
       const canonicalDownload = await verifyDownload("[data-transfer-download]", 120_000);
+      progress("transfer: share downloaded");
       assert.equal(path.basename(canonicalDownload), path.basename(canonicalOriginal));
       assert.equal(fileSha256(canonicalDownload), fileSha256(canonicalOriginal), "canonical transfer SHA-256 mismatch");
       artifactManifest.temporary_files.push({ original: canonicalOriginal, downloaded: canonicalDownload });
@@ -1418,6 +1466,7 @@ async function main() {
       auditedModes: coveredToolModes.size,
       auditedWorkflowFlows: coveredWorkflowFlows.size,
       auditedWorkflowCapabilities: coveredWorkflowCapabilities.size,
+      autoAnsweredDialogs: jsDialogs.length,
     }, null, 2));
 
     const expectedNotFoundPaths = new Set(["/api/changelog", "/api/share/text/read"]);
