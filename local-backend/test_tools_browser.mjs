@@ -1022,7 +1022,33 @@ async function main() {
       progress("transfer: file input dispatched");
       await waitFor("document.querySelectorAll('[data-transfer-item]').length === 1", 15_000, "canonical transfer item");
       progress("transfer: queue item rendered");
-      await waitFor("!document.getElementById('transferCompleteBtn')?.disabled", 90_000, "canonical transfer upload complete");
+      // Wait for the real completion state and, on timeout, report what the
+      // page actually showed instead of a bare timeout.
+      const transferDeadline = Date.now() + 180_000;
+      let transferState = null;
+      let lastStateLog = 0;
+      while (Date.now() < transferDeadline) {
+        transferState = await evaluate(`(() => {
+          const item = document.querySelector('[data-transfer-item]');
+          const button = document.getElementById('transferCompleteBtn');
+          return {
+            completeEnabled: button ? !button.disabled : false,
+            itemStatus: item?.dataset.transferStatus || item?.getAttribute('data-transfer-state') || '',
+            itemText: (item?.textContent || '').trim().slice(0, 160),
+            pageMessage: (document.getElementById('toolMessage')?.textContent || '').trim().slice(0, 160),
+          };
+        })()`);
+        if (transferState?.completeEnabled) break;
+        if (Date.now() - lastStateLog > 30_000) {
+          lastStateLog = Date.now();
+          progress(`transfer: waiting ${JSON.stringify(transferState)}`);
+        }
+        await delay(250);
+      }
+      assert.ok(
+        transferState?.completeEnabled,
+        `canonical transfer upload did not finish: ${JSON.stringify(transferState)}`,
+      );
       progress("transfer: upload complete");
       await click("#transferCompleteBtn");
       progress("transfer: publish clicked");
