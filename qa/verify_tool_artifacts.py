@@ -241,10 +241,26 @@ def verify_workflow_artifacts(entries: dict[str, dict]) -> int:
 
 
 def decode_qr(path: Path) -> str:
-    image = np.array(Image.open(path).convert("RGB"))
-    value, points, _straight = cv2.QRCodeDetector().detectAndDecode(cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
-    require(points is not None and value, f"{path.name}: independent QR decoder found no payload")
-    return value
+    source = cv2.cvtColor(np.array(Image.open(path).convert("RGB")), cv2.COLOR_RGB2BGR)
+    detector = cv2.QRCodeDetector()
+    detectors = [detector.detectAndDecode]
+    curved = getattr(detector, "detectAndDecodeCurved", None)
+    if callable(curved):
+        detectors.append(curved)
+    # Dense or thin-module renders (the dynamic share QR encodes a longer URL)
+    # can defeat the decoder at native size. Nearest-neighbour upscaling keeps
+    # the module edges exact, so the independent decoder stays independent while
+    # the check stops being flaky.
+    for scale in (1, 2, 3, 4):
+        image = source if scale == 1 else cv2.resize(
+            source, None, fx=float(scale), fy=float(scale), interpolation=cv2.INTER_NEAREST
+        )
+        for detect in detectors:
+            value, points, _straight = detect(image)
+            if value and points is not None:
+                return value
+    require(False, f"{path.name}: independent QR decoder found no payload")
+    return ""
 
 
 def verify_qr_artifacts(entries: list[dict]) -> int:
