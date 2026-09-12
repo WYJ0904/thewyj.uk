@@ -108,6 +108,16 @@ interface NotificationArchiveSink {
      * compatible; the Room sink persists it.
      */
     fun markFinanceOutcome(accountId: String, sourceEventId: String, state: String, transactionId: String = ""): Boolean = false
+
+    /**
+     * Local recognition identity ("notification#<identity>#<postTime>") of the
+     * archived capture uploaded under [sourceEventId], or "" when unknown.
+     *
+     * A pending hint uploaded before the recognition learned its hint event id
+     * keeps `uploadEventId = ""`; the server pull can only close it through this
+     * archive link. The default keeps test doubles source compatible.
+     */
+    fun recognitionSourceEventId(accountId: String, sourceEventId: String): String = ""
 }
 
 /**

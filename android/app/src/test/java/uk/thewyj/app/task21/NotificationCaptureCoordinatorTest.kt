@@ -43,6 +43,22 @@ class NotificationCaptureCoordinatorTest {
         override fun outcomeFor(input: NotificationCaptureInput): PaymentIngestOutcome = parsed
     }
 
+    /** Payment hook that keeps the identity the coordinator recorded locally. */
+    private class RecordingPaymentHook(private val parsed: PaymentIngestOutcome) : PaymentRecognitionHook {
+        val uploadEventIds = mutableListOf<String>()
+
+        override fun onCapture(
+            accountId: String,
+            input: NotificationCaptureInput,
+            sourceAppLabel: String,
+            uploadEventId: String,
+        ) {
+            uploadEventIds.add(uploadEventId)
+        }
+
+        override fun outcomeFor(input: NotificationCaptureInput): PaymentIngestOutcome = parsed
+    }
+
     private fun paymentCoordinator(
         root: File,
         transport: NotificationIngestTransport,
@@ -94,6 +110,45 @@ class NotificationCaptureCoordinatorTest {
             assertTrue(transport.calls.none { it.contains("/api/notification/ingest") })
             assertEquals(1, coordinator.flush())
             assertTrue(coordinator.flushDetailed().outcomes.isEmpty())
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
+    /**
+     * Task 24.4 real-device regression (¥104.49 / 招商银行): an incomplete
+     * payment is published as a pending hint, so the local recognition must
+     * remember that same event id. Leaving it blank made the server pull unable
+     * to match a Web-side confirm back to the Android row, and the item stayed
+     * in 「待核实 / 待确认」forever.
+     */
+    @Test fun incompletePaymentRecordsTheHintEventIdForTheServerPull() {
+        val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
+        try {
+            val transport = FakeTransport()
+            val hook = RecordingPaymentHook(parsedOutcome(10449, FinanceDirection.UNKNOWN, confirmed = false))
+            val coordinator = NotificationCaptureCoordinator(
+                archiveFor = { id -> LocalNotificationArchive.inDirectory(dir, id) },
+                queueFor = { id -> NotificationOfflineQueue.inDirectory(dir, id) },
+                transport = transport,
+                account = { NotificationCaptureCoordinator.CaptureAccount("a", "device-a", "token-a", true) },
+                paymentHook = hook,
+            )
+            coordinator.onNotification("cmb.pb", "招商银行", "已支付 ¥104.49", "", "", 1L)
+            coordinator.flush()
+
+            assertTrue(transport.calls.any { it.contains("/api/notification/hints") })
+            val hintEventId = Regex("\"source_event_id\":\"([^\"]+)\"")
+                .find(transport.calls.first { it.contains("/api/notification/hints") })
+                ?.groupValues
+                ?.getOrNull(1)
+                .orEmpty()
+            assertTrue("the hint must carry a source event id", hintEventId.isNotBlank())
+            assertEquals(
+                "the local recognition must record the same event id the hint is uploaded under",
+                hintEventId,
+                hook.uploadEventIds.single(),
+            )
         } finally {
             dir.deleteRecursively()
         }

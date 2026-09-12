@@ -79,7 +79,7 @@ class PaymentHintSync(
             (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
                 .markFinanceOutcome(accountId, eventId, "confirmed", financeEntryId)
         }
-        val recognition = runCatching { store.recognitionByUploadEvent(accountId, eventId) }.getOrNull() ?: return
+        val recognition = recognitionForHint(accountId, eventId) ?: return
         val candidate = runCatching {
             store.candidateForRecognition(accountId, recognition.recognitionId)
         }.getOrNull()
@@ -107,7 +107,7 @@ class PaymentHintSync(
             (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
                 .markFinanceOutcome(accountId, eventId, "ignored")
         }
-        val recognition = runCatching { store.recognitionByUploadEvent(accountId, eventId) }.getOrNull() ?: return
+        val recognition = recognitionForHint(accountId, eventId) ?: return
         runCatching {
             store.saveRecognition(
                 recognition.copy(
@@ -121,5 +121,24 @@ class PaymentHintSync(
                 store.saveCandidate(candidate.copy(status = "rejected", updatedAtMs = System.currentTimeMillis()))
             }
         }
+    }
+
+    /**
+     * Local recognition row behind a server hint.
+     *
+     * Rows captured after Task 24.4 carry the hint event id in `uploadEventId`.
+     * Rows captured earlier (real device evidence: ¥104.49 / 招商银行 on
+     * 2026-09-12) kept `uploadEventId = ""`, so the pull has to reach them
+     * through the archive identity of the same event id — otherwise a payment
+     * confirmed on Web /finance stays pending in the Android list forever.
+     */
+    private fun recognitionForHint(accountId: String, eventId: String): PaymentRecognitionRecord? {
+        runCatching { store.recognitionByUploadEvent(accountId, eventId) }.getOrNull()?.let { return it }
+        val sourceEventId = runCatching {
+            (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
+                .recognitionSourceEventId(accountId, eventId)
+        }.getOrNull().orEmpty()
+        if (sourceEventId.isBlank()) return null
+        return runCatching { store.recognitionBySourceEvent(accountId, sourceEventId) }.getOrNull()
     }
 }
