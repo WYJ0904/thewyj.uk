@@ -132,6 +132,20 @@ Root cause（纯客户端）：
    versionCode 14 / versionName 1.3.1，`firstInstallTime` 保持 2026-09-11（未卸载、数据保留）。
    `apksigner verify` 新旧 APK 证书一致（SHA-256 `2b322029…`）。
 
+### T24.4-05 真正根因：pull 只拿到 pending 状态的 hint（服务端，1.3.0/1.3.1/1.3.2 均不消失）
+
+- 现场：升级到 1.3.1、再到 1.3.2 后，¥104.49 仍留在「待核实 / 待确认」。
+- Root cause：Android 的 pull 用 `GET /api/notification/hints?state=&limit=200` 想取**全部状态**，
+  但 `task21-api.mjs` 写的是 `url.searchParams.get("state") || "pending"`，
+  `task21-hints.mjs` 写的是 `String(input.state || "pending")`——空串在 JS 里是 falsy，
+  于是服务端**永远只返回 pending**，confirmed / ignored 从未下发到设备；
+  本地记录也就永远收不到“已确认”的信号。SQL 层其实早已支持 `''` = 全部状态。
+- 修复：只有参数**缺失**时才默认 `pending`；显式 `state=` 表示全部状态。
+  客户端 1.3.2 的三级回写（hint id → archive 身份 → 设备/来源/金额/时间唯一匹配）随即生效，
+  因此**无需再发 Android 版本**。
+- Regression：`local-backend/test_task21_hints_js.mjs` 第 11 组（`?state=` 返回 confirmed +
+  ignored；缺省参数仍是 pending）。
+
 ## 回归
 
 - `local-backend/test_finance_candidates_js.mjs`（新增，CI）：缺方向 → 必须走编辑器；
