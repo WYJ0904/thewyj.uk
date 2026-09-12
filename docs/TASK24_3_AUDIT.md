@@ -164,6 +164,24 @@ canonical 状态机闭合，Production 与正式 APK 复测通过。
   与代码无关，CI Ubuntu 为准）。
 - 未做：版本号/APK 发布（仍为 1.3.0 / versionCode 13）、D1 破坏性操作、Production 数据写入。
 
+## 真机验收（Phase 12，2026-09-12）
+
+- 状态：**TASK 24.3 DEVICE ACCEPTANCE COMPLETE**。设备 Samsung SM-S9360 / Android 16，
+  由用户本人在正式设备上执行；详细记录见 `docs/TASK24_3_DEVICE_ACCEPTANCE.md`。
+- 结果：矩阵 7 项全部实际执行，其中 6 项 PASS，无 FAIL：
+  1. T24.3-03（自动入账后通知档案终态，含 refresh / 冷启动 / force stop 不回退）PASS。
+  2. T24.3-06（飞行模式捕获 → 恢复网络自动补传，不打开页面、不制造新通知）PASS。
+  3. T24.3-04（无障碍冷启动状态一致、关闭/重开同步、撤销通知访问后状态正确并可恢复）PASS。
+  4. T24.3-01 / 02（A 中断上传 → 切 B 操作 → 切回 A 队列不丢且互相隔离；离线 TTS 明确提示、
+     联网云端 TTS 正常）PASS。
+- 唯一未执行项：T24.3-05 的「发布下一版本 → 下载 → SHA 校验 → 安装」真机链路，记为
+  `NOT EXERCISED — no newer release available`（本轮没有新版本可发布/安装）。当前最新版
+  状态下「检查更新显示已是最新、不出现可安装包」部分 PASS；SHA 缺失/不符 fail-closed 仅由
+  自动化回归 `AppUpdateInstallerVerifyTest` 在代码级确认，不计真机 PASS。下一次版本发布时
+  必须补做该真机链路。
+- T24.3-07 无单独真机步骤：其真机相关路径（传输页重新进入 / 多账户中断恢复）由第 4 项覆盖，
+  浏览器矩阵复现路径由 PR 与 main CI 的 Cloud-only browser 作业覆盖（修复后两次均通过）。
+
 ## 审计队列状态（内部继续用）
 
 - 本轮已复核：通知/无障碍权限状态与 PermissionCenter 能力比对（T24.3-04）、文件传输上传队列
@@ -175,14 +193,14 @@ canonical 状态机闭合，Production 与正式 APK 复测通过。
   WebView 导航与会话桥（scheme/SPA 白名单、cookie 作用域与 15 分钟上限、外部跳转仅
   https/mailto/tel、文件选择器仅 content://、下载仅站内，NO ISSUE FOUND）、App update
   （T24.3-05）。
-- 待继续：TTS/OCR 回归、Security（CSRF/secret/logging）、UI/UX、Performance/后台资源、
-  Production D1/R2 只读审计；全部自动工作完成后走全量测试 → Android release build →
-  PR → CI → merge → main CI → Production → smoke → WAITING FOR DEVICE ACCEPTANCE。
+- 待继续：无（TTS/OCR、Security（CSRF/secret/logging）、UI/UX、Performance/后台资源、
+  Production D1/R2 只读审计均已复核，NO ISSUE FOUND）；自动化链路与真机验收全部完成，
+  Task 24.3 闭环。
 
 （更新：以上待继续项已全部复核；Security（同源/CSRF、密钥、日志）、TTS/OCR、UI/UX、
 Performance/后台、Production D1 只读审计均 NO ISSUE FOUND，唯一发现并修复的是 T24.3-06/07。
 自动化链路已按 PR → CI → merge → main CI → Production → smoke 走完，见下方收口记录。
-剩余仅为真机验收，矩阵见 `docs/TASK24_3_DEVICE_ACCEPTANCE.md`。）
+真机验收已于 2026-09-12 由用户本人在 SM-S9360 / Android 16 上完成，见 `docs/TASK24_3_DEVICE_ACCEPTANCE.md`。）
 
 ## NO ISSUE FOUND（已核实）
 
