@@ -114,6 +114,25 @@ canonical 状态机闭合，Production 与正式 APK 复测通过。
   `NotificationListenerRetryTriggerTest.listenerReconnectRetriesThePendingIngestQueueEvenWithAnEmptyShade`。
 - Commit：`99ed2b3`。
 
+### T24.3-07 传输页重新进入会把正在上传的队列「恢复」成待重选（P1 上传卡死 + main CI 红灯根因）
+
+- Root cause：`js/transfer/app.js` 的 `restoreQueue()` 每次被调用（每次 `show()`——重新进入传输页；
+  以及 `accountUpdated()`——账户刷新）都会用 localStorage 里的序列化队列整体替换内存队列。
+  序列化副本不包含 File 对象，于是**正在上传**的条目被换成 `needsFile: true`：界面停在
+  「已恢复，请重新选择同一文件继续」、进度 0 B、完成按钮永远不可用，上传再也不会继续。
+  这正是 main CI「Cloud-only browser, canonical session and toolbox」里
+  `temporary/file-transfer` 超时失败的真实原因（不是环境抖动：同一天 main 连续两次失败，
+  且失败状态里就是这条 restored 文案）。
+- 修复：`restoreQueue()` 只在 owner 真正变化时才采用持久化队列（新增纯函数
+  `shouldAdoptStoredQueue`）；同一 owner 时以内存队列（含正在上传的 File 句柄）为准。
+  owner 变化时先取消上一 owner 的在途上传，避免旧会话分片被记到新账户。
+- Regression：`local-backend/test_transfer_isolation_js.mjs` 新增 5 条断言（同一 owner 不得
+  重新采用、guest 同理、真实切换必须采用、首次加载必须采用）。
+- 追加（发布可达性）：Web 资源令牌 `20260912-screenshot-r1` → `20260912-task24-3-r1`。
+  Service Worker 对同源静态资源是 URL 级 cache-first，不 bump 令牌则 T24.3-01/02 与本条
+  JS 修复永远不会到达老用户；同步更新 `test_static.py` 断言与 SW 缓存名。
+- Commit：`<pending>`。
+
 ## 审计队列状态（内部继续用）
 
 - 本轮已复核：通知/无障碍权限状态与 PermissionCenter 能力比对（T24.3-04）、文件传输上传队列
