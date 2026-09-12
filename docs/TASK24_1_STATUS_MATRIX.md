@@ -1,5 +1,12 @@
 # Task 24.1 状态矩阵（已知问题修复与真机闭环）
 
+> **当前状态（2026-09-12）：`AUTOMATED + RELEASE CLOSURE COMPLETE / PHYSICAL QA PENDING`。**
+> 1.2.9（versionCode 12）已发布：PR #59 合并 `8144386`、main CI 7/7、
+> Production deployment `ff9c57d7-ba38-4bca-9db4-9eb59b2129f8`（自动部署 `b540beed-2413-458a-865e-02cd5a9d67de`）、
+> APK `thewyj-android-1.2.9.apk`（2 415 465 bytes，SHA-256 `44ef7cf25a5734cb8f577fc620a60abc9ee7cce98e599ecb3aaaab26ed465257`）。
+> 本地 / R2 回读 / 官网下载三方 SHA 完全一致。Task 24.1 保持 **OPEN**，
+> 等用户在 SM-S9360 上完成 Round 5 真机验收后才可宣布 COMPLETE。
+
 状态取值：`FAIL` / `FIXED / NOT PHYSICALLY VERIFIED` / `PASS AUTOMATED` /
 `PASS PHYSICAL` / `BLOCKED`。真机一列只有用户在 SM-S9360 上确认过的才写
 `PASS PHYSICAL`；本轮无法自测的写 `PENDING USER PHYSICAL ACCEPTANCE`。
@@ -15,18 +22,18 @@
 
 | ID | Severity | 用户现象 | Reproduction | Root cause | Fix | Regression test | CI | Preview | Production | Physical device | Final status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| T24.1-31 | P0 | 三星连拍/连续截图只保留第一张，后续截图整条丢失 | SM-S9360 连续截 3 张 → 通知历史只有 1 条 | One UI 复用同一个「截图已保存」通知（同 key / 同 id / 同正文）覆盖上一张；`recordCapture` 只比较文本 `contentHash`，把第二张之后全部当成 replay 合并 | 截图事件改用证据身份：`ms:<rowId>` > `uri:<sha>` > `nfb:<bitmap>`；Room v6 新增 `mediaFingerprint/mediaFingerprintAlt/mediaOrigin`；文本相同但媒体证据变化 → 新快照；媒体文件按证据命名（绝不覆盖上一张） | `NotificationScreenshotArchiveTest`（单张=1 行、同 key 第二张=2 行、连拍 5 张=5 行、200ms 快拍不合并、回放去重、附件互不覆盖、清除通知后新截图仍保留）、`NotificationDatabaseMigrationTest`（v5→v6 保留媒体） | PASS（本地 + PR CI） | 1.2.9 | 1.2.9 | PENDING USER PHYSICAL ACCEPTANCE（SM-S9360 连续截 3–5 张） | PASS AUTOMATED / PENDING PHYSICAL |
-| T24.1-32 | P0 | 系统通知没带图片时截图没有图片可看 | 三星截图后查看详情 | 只有通知 payload 的 bitmap 落地；系统相册里的真实截图从未被读取 | MediaStore ContentObserver（Images/Screenshots）+ 本地私有目录导入；`ms:<rowId>` 水位线 + 证据去重；只在本机处理，不上传 | `NotificationScreenshotArchiveTest.mediaStoreFallbackArchivesADegradedRowWithoutADeadUri`、`ScreenshotEvidenceTest`（行号/URI/像素指纹优先级、合并窗口） | PASS（本地 + PR CI） | 1.2.9 | 1.2.9 | PENDING USER PHYSICAL ACCEPTANCE | PASS AUTOMATED / PENDING PHYSICAL |
-| T24.1-33 | P0 | Android 14+「仅允许部分照片」时可能把读不到的截图当成已保存 | Android 16 选择「部分照片」后截图 | 旧实现没有能力判断，observer 收到变化就当作可读 | `MediaReadPolicy` 能力矩阵：`READ_MEDIA_IMAGES`=FULL（可导入）/ `READ_MEDIA_VISUAL_USER_SELECTED`=LIMITED（**禁止导入**）/ 无权限=DENIED；每次扫描重新判定；读不到时保留通知自带图片，否则写明确 `mediaState=unavailable`（绝不写 content URI）；权限中心新增真实状态项与授权入口 | `MediaReadCapabilityTest`（33/34/35/36 × 完整/部分/无权限、运行时请求集合、日志区分、禁止 `DETECT_SCREEN_CAPTURE`） | PASS（本地 + PR CI） | 1.2.9 | 1.2.9 | PENDING USER PHYSICAL ACCEPTANCE（验收时同时报告当前媒体权限状态） | PASS AUTOMATED / PENDING PHYSICAL |
-| T24.1-34 | P0 | 同一张截图可能被登记两次（通知 + 相册两条） | 截图后同时收到通知与 MediaStore 变化 | 两条来源各自归档，没有交叉去重 | 双向合并：任一来源先到时，另一来源在 150 秒窗口内合并进同一条记录（MediaStore 全分辨率图片优先），并记录 `duplicate-merged` | `NotificationScreenshotArchiveTest`（通知先/相册先都合并为 1 行、重复导入忽略）、`ScreenshotEvidenceTest.decide` | PASS（本地 + PR CI） | 1.2.9 | 1.2.9 | PENDING USER PHYSICAL ACCEPTANCE | PASS AUTOMATED / PENDING PHYSICAL |
-| T24.1-35 | P1 | 普通图片通知被误判成截图 | 微信/Telegram 图片通知 | 若仅凭「有图片」判定截图语义会产生垃圾记录 | 截图语义只由包名（smartcapture 等）/渠道（screenshot）/正文（截图/Screenshot）判定，单独有图片不算；普通通知仍走原有去重 | `ScreenshotEvidenceTest.screenshotDetectionNeverInventsSemanticsFromMediaAlone`、`NotificationScreenshotArchiveTest.ordinaryNotificationDedupeIsUnchanged` | PASS（本地 + PR CI） | 1.2.9 | 1.2.9 | 不适用（逻辑） | PASS AUTOMATED |
-| T24.1-36 | P1 | 可审计性：日志无法区分各种媒体状态 | 开发日志 | 状态混在一起 | 增加明确阶段：`screenshot-detected` / `media-resolved` / `media-permission-full|limited|denied` / `notification-fallback-used` / `media-store-fallback-used` / `duplicate-merged`；不写通知正文 | `MediaReadCapabilityTest.logStagesSeparateEveryCapabilityState` | PASS（本地 + PR CI） | 1.2.9 | 1.2.9 | 不适用（日志） | PASS AUTOMATED |
+| T24.1-31 | P0 | 三星连拍/连续截图只保留第一张，后续截图整条丢失 | SM-S9360 连续截 3 张 → 通知历史只有 1 条 | One UI 复用同一个「截图已保存」通知（同 key / 同 id / 同正文）覆盖上一张；`recordCapture` 只比较文本 `contentHash`，把第二张之后全部当成 replay 合并 | 截图事件改用证据身份：`ms:<rowId>` > `uri:<sha>` > `nfb:<bitmap>`；Room v6 新增 `mediaFingerprint/mediaFingerprintAlt/mediaOrigin`；文本相同但媒体证据变化 → 新快照；媒体文件按证据命名（绝不覆盖上一张） | `NotificationScreenshotArchiveTest`（单张=1 行、同 key 第二张=2 行、连拍 5 张=5 行、200ms 快拍不合并、回放去重、附件互不覆盖、清除通知后新截图仍保留）、`NotificationDatabaseMigrationTest`（v5→v6 保留媒体） | PASS（PR #59 7/7） | PASS（`23aae110`） | PASS（1.2.9，deployment `ff9c57d7`） | PENDING USER PHYSICAL ACCEPTANCE（SM-S9360 连续截 3–5 张） | PASS AUTOMATED / PENDING PHYSICAL |
+| T24.1-32 | P0 | 系统通知没带图片时截图没有图片可看 | 三星截图后查看详情 | 只有通知 payload 的 bitmap 落地；系统相册里的真实截图从未被读取 | MediaStore ContentObserver（Images/Screenshots）+ 本地私有目录导入；`ms:<rowId>` 水位线 + 证据去重；只在本机处理，不上传 | `NotificationScreenshotArchiveTest.mediaStoreFallbackArchivesADegradedRowWithoutADeadUri`、`ScreenshotEvidenceTest`（行号/URI/像素指纹优先级、合并窗口） | PASS（PR #59 7/7） | PASS | PASS（1.2.9） | PENDING USER PHYSICAL ACCEPTANCE | PASS AUTOMATED / PENDING PHYSICAL |
+| T24.1-33 | P0 | Android 14+「仅允许部分照片」时可能把读不到的截图当成已保存 | Android 16 选择「部分照片」后截图 | 旧实现没有能力判断，observer 收到变化就当作可读 | `MediaReadPolicy` 能力矩阵：`READ_MEDIA_IMAGES`=FULL（可导入）/ `READ_MEDIA_VISUAL_USER_SELECTED`=LIMITED（**禁止导入**）/ 无权限=DENIED；每次扫描重新判定；读不到时保留通知自带图片，否则写明确 `mediaState=unavailable`（绝不写 content URI）；权限中心新增真实状态项与授权入口 | `MediaReadCapabilityTest`（33/34/35/36 × 完整/部分/无权限、运行时请求集合、日志区分、禁止 `DETECT_SCREEN_CAPTURE`）、`scripts/check_task20_android.py`（权限面审计） | PASS（PR #59 7/7） | PASS | PASS（1.2.9） | PENDING USER PHYSICAL ACCEPTANCE（验收时同时报告当前媒体权限状态） | PASS AUTOMATED / PENDING PHYSICAL |
+| T24.1-34 | P0 | 同一张截图可能被登记两次（通知 + 相册两条） | 截图后同时收到通知与 MediaStore 变化 | 两条来源各自归档，没有交叉去重 | 双向合并：任一来源先到时，另一来源在 150 秒窗口内合并进同一条记录（MediaStore 全分辨率图片优先），并记录 `duplicate-merged` | `NotificationScreenshotArchiveTest`（通知先/相册先都合并为 1 行、重复导入忽略）、`ScreenshotEvidenceTest.decide` | PASS（PR #59 7/7） | PASS | PASS（1.2.9） | PENDING USER PHYSICAL ACCEPTANCE | PASS AUTOMATED / PENDING PHYSICAL |
+| T24.1-35 | P1 | 普通图片通知被误判成截图 | 微信/Telegram 图片通知 | 若仅凭「有图片」判定截图语义会产生垃圾记录 | 截图语义只由包名（smartcapture 等）/渠道（screenshot）/正文（截图/Screenshot）判定，单独有图片不算；普通通知仍走原有去重 | `ScreenshotEvidenceTest.screenshotDetectionNeverInventsSemanticsFromMediaAlone`、`NotificationScreenshotArchiveTest.ordinaryNotificationDedupeIsUnchanged` | PASS（PR #59 7/7） | PASS | PASS（1.2.9） | 不适用（逻辑） | PASS AUTOMATED |
+| T24.1-36 | P1 | 可审计性：日志无法区分各种媒体状态 | 开发日志 | 状态混在一起 | 增加明确阶段：`screenshot-detected` / `media-resolved` / `media-permission-full|limited|denied` / `notification-fallback-used` / `media-store-fallback-used` / `duplicate-merged`；不写通知正文 | `MediaReadCapabilityTest.logStagesSeparateEveryCapabilityState` | PASS（PR #59 7/7） | PASS | PASS（1.2.9） | 不适用（日志） | PASS AUTOMATED |
 
 ## Round 4（1.2.8：文件传输统一 + 正式发布）
 
 | ID | Severity | 用户现象 | Reproduction | Root cause | Fix | Regression test | CI | Preview | Production | Physical device | Final status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| T24.1-37 | P0 | 工具箱与「我的」文件传输是两套实现 | 工具箱 → 文件传输 | Task 22 只把 `temporary-file` 从可见目录移除，仍留在 `TOOL_MAP`，深链/最近使用/收藏仍打开 Task 14 旧上传器（500 MB 配额、单选、0 B 卡住） | 两个 id 统一交接 canonical `showTransfer`（同一页面/API/配额/队列/分享列表）；删除旧 `renderTemporaryFile` 与 `/api/temporary/file/*` 调用；新增静态守卫防止旧实现复活 | `test_tools_js.mjs`（38）、`test_tools_browser.mjs`（真实上传→分享→下载 SHA-256 一致）、`test_static.py`（禁止 legacy 引用）、`qa/verify_tool_artifacts.py` | PASS（PR #58 7/7） | PASS | PASS（1.2.8） | PASS PHYSICAL（用户 1.2.8 真机确认「我的 → 文件传输」正常；工具箱入口随 1.2.9 复验） | PASS（双实现已消除） |
+| T24.1-37 | P0 | 工具箱与「我的」文件传输是两套实现 | 工具箱 → 文件传输 | Task 22 只把 `temporary-file` 从可见目录移除，仍留在 `TOOL_MAP`，深链/最近使用/收藏仍打开 Task 14 旧上传器（500 MB 配额、单选、0 B 卡住） | 两个 id 统一交接 canonical `showTransfer`（同一页面/API/配额/队列/分享列表）；删除旧 `renderTemporaryFile` 与 `/api/temporary/file/*` 调用；新增静态守卫防止旧实现复活 | `test_tools_js.mjs`（38）、`test_tools_browser.mjs`（真实上传→分享→下载 SHA-256 一致）、`test_static.py`（禁止 legacy 引用）、`qa/verify_tool_artifacts.py` | PASS（PR #58 7/7，head `c5ad28e`） | PASS | PASS（1.2.8 + 1.2.9 前端） | PASS PHYSICAL（用户 1.2.8 真机确认「我的 → 文件传输」正常；工具箱入口随 1.2.9 复验） | PASS（双实现已消除） |
 | T24.1-25 | P0 | 截图/图片通知整条丢失 | 真机截图后查看通知历史 | 分类层 channel 关键词过宽命中 Samsung 截图 channel → LIVE → 不写库；且没有媒体模型 | channel 关键词收窄；带图片通知永不按 LIVE 过滤；Room v5 媒体模型 + 本地文件 | `NotificationMediaHistoryTest`、`NotificationClassificationTest` | PASS | PASS（1.2.8） | PASS（1.2.8） | PASS PHYSICAL（用户确认截图通知已进入历史；连续截图问题见 T24.1-31） | FIXED（1.2.8）/ 连续截图由 Round 5 收口 |
 | T24.1-26 | P0 | 已入账仍显示待确认 | 支付通知自动记账后 | flush 成功只写日志，未回写本地 | `onFinanceOutcome` 回写 recognition/candidate | `PaymentRecognitionCoordinatorTest` | PASS | PASS（1.2.8） | PASS（1.2.8） | PASS PHYSICAL（用户确认支付同步 Finance 正常、pending 消失） | PASS PHYSICAL |
 | T24.1-27 | P0 | Finance「通知待确认」为空 | 金额/方向未知的待确认项 | hint 只存本机，Web 看不到 | `task21_notification_pending_hints`（migration 0021）+ hints API + 两侧同一数据源 | `test_task21_hints_js.mjs`（11 组） | PASS（PR #56） | PASS | PASS（migration 已校验） | PASS PHYSICAL（1.2.8 用户验收） | PASS PHYSICAL |
@@ -74,6 +81,23 @@
 | T24.1-14 | 通知显示包名 | P1 | `PaymentAppLabels` 统一 resolver | `PaymentVerificationGateTest` | PASS | PASS | PASS PHYSICAL（显示「微信」） | 关闭 |
 | T24.1-15 | 通知/我的主题与网页不一致 | P1 | WebView 主题回传 Compose | `test_app_browser.mjs` | PASS | PASS | PASS PHYSICAL（Light/Dark 用户确认） | 关闭 |
 
+## 1.2.9 Release Closure 记录
+
+| 项目 | 值 |
+| --- | --- |
+| PR（文件传输统一） | #58，head `c5ad28e`，CI 7/7，merge `ade91be346132f858ee0582ff9044365d63b0c92`（main CI 7/7） |
+| PR（截图归档 + 媒体权限矩阵） | #59，head `759e5d24b2783341300a9600443dd4b7aad3281c`，CI 7/7，merge `8144386bdd0ef462390ee1a8f81599c98a19e141`（main CI 7/7） |
+| APK | `thewyj-android-1.2.9.apk`，2 415 465 bytes |
+| APK SHA-256 | `44ef7cf25a5734cb8f577fc620a60abc9ee7cce98e599ecb3aaaab26ed465257` |
+| R2 对象 | `wyj-cloud-production/app/android/thewyj-android-1.2.9.apk`（回读 SHA 一致） |
+| 官网下载 SHA | `https://thewyj.uk/api/app/download` 下载后 SHA 一致，大小 2 415 465 |
+| `/api/app/config` | `1.2.9` / `12` / sha `44ef7cf2…` / size `2415465` / build `2026-09-12-task24-1-screenshot-r4` |
+| Production deployment | `ff9c57d7-ba38-4bca-9db4-9eb59b2129f8`（手动，source `8144386`）；自动部署 `b540beed-2413-458a-865e-02cd5a9d67de` |
+| Preview deployment | `23aae110-e449-4f72-a4c1-792d58f1807b`（分支 `codex/task24-1-samsung-screenshot-r4`） |
+| Changelog | `2026.09.12.2`（截图归档修复），`2026.09.12.1`（文件传输统一）均在线 |
+| Web 资源令牌 | `20260912-screenshot-r1`（edge cache-busting 验证通过） |
+| Android 测试 | `testDebugUnitTest` + `lintDebug` + `assembleRelease` + `scripts/check_task20_android.py` 全部通过 |
+
 ## 仍未完成 / 待用户真机验收
 
 1. 1.2.9 真机验收（本矩阵 Round 5）：
@@ -83,5 +107,8 @@
    - Clash 长跑不产生垃圾历史、页面不闪烁。
 2. 设备状态：2026-09-12 用户手机与开发机不在同一地点，本轮不执行 ADB 真机验收；
    所有需要真机的项目保持 `PENDING USER PHYSICAL ACCEPTANCE`，不得写成 PASS。
-3. Task 24.1 保持 **OPEN**：等 1.2.9 发布并由用户完成上述真机验收后才可宣布 COMPLETE；
+3. 残余风险（已知、未阻塞发布，需真机确认）：
+   - 截图通知既没有图片、`when`/`postTime` 也不变化、且未授予完整照片读取时，缺少可用于区分两次截图的证据；
+     此时应用会如实显示权限状态（MediaStore 通道有完整权限时不受影响）。
+4. Task 24.1 保持 **OPEN**：等用户完成上述 1.2.9 真机验收后才可宣布 COMPLETE；
    在此之前不得开始 Task 24.2 / Task 25。

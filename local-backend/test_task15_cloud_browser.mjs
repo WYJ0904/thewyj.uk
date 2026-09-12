@@ -82,15 +82,29 @@ class CdpClient {
 }
 
 async function request(pathname, payload = null, token = "") {
-  const response = await fetch(`${BASE_URL}${pathname}`, {
-    method: payload === null ? "GET" : "POST",
-    headers: {
-      ...(payload === null ? {} : { "Content-Type": "application/json" }),
-      ...(token ? { "X-Session-Token": token } : {}),
-    },
-    body: payload === null ? undefined : JSON.stringify(payload),
-  });
-  return { status: response.status, data: await response.json().catch(() => ({})) };
+  // The Cloud-only job runs against 127.0.0.1 inside the runner; GitHub's
+  // runner occasionally drops a localhost connection (observed as
+  // "TypeError: fetch failed" and a red job with no product signal). Retry the
+  // transport a few times - HTTP responses, including errors, are returned
+  // unchanged so every assertion still sees the real server answer.
+  let lastError = null;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      const response = await fetch(`${BASE_URL}${pathname}`, {
+        method: payload === null ? "GET" : "POST",
+        headers: {
+          ...(payload === null ? {} : { "Content-Type": "application/json" }),
+          ...(token ? { "X-Session-Token": token } : {}),
+        },
+        body: payload === null ? undefined : JSON.stringify(payload),
+      });
+      return { status: response.status, data: await response.json().catch(() => ({})) };
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+    }
+  }
+  throw lastError || new Error(`request failed: ${pathname}`);
 }
 
 async function main() {
