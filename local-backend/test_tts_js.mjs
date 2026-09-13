@@ -121,6 +121,7 @@ await withDatabase(async (db) => {
   assert.equal(first.status, 200);
   assert.equal(first.headers.get("Content-Type"), "audio/mpeg");
   assert.equal(first.headers.get("X-WYJ-TTS"), "miss");
+  assert.equal(first.headers.get("X-WYJ-TTS-Attempts"), "1");
   assert.equal(ai.capture.length, 1);
   assert.equal(ai.capture[0].input.lang, "jp");
   assert.equal(
@@ -137,6 +138,7 @@ await withDatabase(async (db) => {
   });
   assert.equal(second.status, 200);
   assert.equal(second.headers.get("X-WYJ-TTS"), "hit", "repeat playback must hit the cache");
+  assert.equal(second.headers.get("X-WYJ-TTS-Attempts"), "0", "a cache hit never calls Workers AI");
   assert.equal(second.headers.get("ETag"), first.headers.get("ETag"));
 
   // 4. English and Japanese share one protocol and one cache namespace.
@@ -155,7 +157,26 @@ await withDatabase(async (db) => {
   });
   assert.equal(posted.status, 200);
 
-  // 6. Validation errors are explicit.
+  // 6. A transient Workers AI error is retried with one bounded generation
+  // ladder. Production probes observed an occasional first-attempt 503 for
+  // Japanese kanji while the same input succeeded immediately afterwards.
+  let transientAttempts = 0;
+  const transientAi = {
+    async run() {
+      transientAttempts += 1;
+      if (transientAttempts < 3) throw Object.assign(new Error("temporary"), { status: 503 });
+      return { audio: base64(new Uint8Array([0xff, 0xfb, 1, 2, 3, 4])) };
+    },
+  };
+  const recovered = await call(db, {
+    query: "?language=jp&text=" + encodeURIComponent("学校"),
+    env: { WYJ_STORAGE: fakeBucket(), AI: transientAi, TTS_RETRY_BASE_MS: "0" },
+  });
+  assert.equal(recovered.status, 200);
+  assert.equal(transientAttempts, 3, "the bounded ladder reaches the successful third attempt");
+  assert.equal(recovered.headers.get("X-WYJ-TTS-Attempts"), "3");
+
+  // 7. Validation errors are explicit.
   await expectError(await call(db, { query: "?language=fr&text=bonjour", env: { WYJ_STORAGE: bucket, AI: ai } }), 400, "tts_language_unsupported");
   await expectError(await call(db, { query: "?language=en&text=", env: { WYJ_STORAGE: bucket, AI: ai } }), 400, "tts_text_required");
   await expectError(await call(db, { query: "?language=en&text=hi&voice=male", env: { WYJ_STORAGE: bucket, AI: ai } }), 400, "tts_voice_unsupported");
@@ -165,24 +186,31 @@ await withDatabase(async (db) => {
     "tts_text_too_long",
   );
 
-  // 7. Server failure is explicit - never a silent device fallback.
+  // 8. A persistent server failure stays explicit - never a silent device fallback.
+  const failedCapture = [];
   await expectError(
-    await call(db, { query: "?language=en&text=offline", env: { WYJ_STORAGE: fakeBucket(), AI: fakeAi({ fail: new Error("ai down") }) } }),
+    await call(db, {
+      query: "?language=en&text=offline",
+      env: { WYJ_STORAGE: fakeBucket(), AI: fakeAi({ fail: new Error("ai down"), capture: failedCapture }), TTS_RETRY_BASE_MS: "0" },
+    }),
     503,
     "tts_generation_failed",
   );
+  assert.equal(failedCapture.length, 3, "persistent transient errors stop at the bounded attempt count");
   await expectError(
     await call(db, { query: "?language=en&text=disabled", env: { WYJ_STORAGE: fakeBucket(), WORKERS_AI_ENABLED: "false" } }),
     503,
     "tts_unavailable",
   );
+  const quotaCapture = [];
   await expectError(
-    await call(db, { query: "?language=en&text=quota", env: { WYJ_STORAGE: fakeBucket(), AI: fakeAi({ fail: Object.assign(new Error("rate"), { status: 429 }) }) } }),
+    await call(db, { query: "?language=en&text=quota", env: { WYJ_STORAGE: fakeBucket(), AI: fakeAi({ fail: Object.assign(new Error("rate"), { status: 429 }), capture: quotaCapture }) } }),
     429,
     "tts_quota_exhausted",
   );
+  assert.equal(quotaCapture.length, 1, "quota exhaustion is never retried");
 
-  // 8. Rate limiting still protects the synthesis path.
+  // 9. Rate limiting still protects the synthesis path.
   const limitedDb = db;
   let limited = 0;
   for (let index = 0; index < 5; index += 1) {
@@ -194,7 +222,7 @@ await withDatabase(async (db) => {
   }
   assert.ok(limited >= 1, "rate limiting must be able to reject a burst");
 
-  // 9. Audio shape normalisation covers every documented provider answer.
+  // 10. Audio shape normalisation covers every documented provider answer.
   const bytes = new Uint8Array([1, 2, 3, 4]);
   assert.deepEqual(await ttsBytesFromResult({ audio: base64(bytes) }), bytes);
   assert.deepEqual(await ttsBytesFromResult(bytes), bytes);
@@ -202,7 +230,7 @@ await withDatabase(async (db) => {
   assert.equal(await ttsBytesFromResult({ nope: true }), null);
 });
 
-// 10. The web and Android clients must not treat device voices as the normal path.
+// 11. The web and Android clients must not treat device voices as the normal path.
 const webSpeech = await import("node:fs/promises").then((fs) =>
   fs.readFile(path.join(ROOT, "js", "language", "speech.js"), "utf8"),
 );

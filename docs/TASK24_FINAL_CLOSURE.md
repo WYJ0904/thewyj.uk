@@ -41,19 +41,19 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 - 断言：成功路径点击后**同任务内** pending（≤150ms）→ 结算恢复 → 显示「订单已生成」；失败路径（500）同样 pending ≤150ms → 结算恢复 → 显示服务端错误；两条路径都要求 `recharge-submit` 的 trace 出现 `state-apply`。
 - 证据来源：**browser-E2E**（`local-backend/test_interaction_feedback_browser.mjs`，Cloud-only Preview job）；本地（Windows）8/8 通过（transfer 模块因本机 workerd 限制跳过）。
 
-### Android 正式发布封装（1.3.4 / versionCode 17）
+### Android 正式发布封装（1.3.5 / versionCode 18）
 
 | 项 | 值 |
 | --- | --- |
-| 源码版本 | `android/app/build.gradle.kts` → `versionName 1.3.4` / `versionCode 17`（含 B-5 真机回归修复） |
-| APK | `dist/thewyj-android-1.3.4.apk`（本地构建产物，`dist/` 按仓库约定不入库）；线上 R2 key = `app/android/thewyj-android-1.3.4.apk` |
+| 源码版本 | `android/app/build.gradle.kts` → `versionName 1.3.5` / `versionCode 18`（Task 24 真机 P0 修复） |
+| APK | `dist/thewyj-android-1.3.5.apk`（本地构建产物，`dist/` 按仓库约定不入库）；线上 R2 key = `app/android/thewyj-android-1.3.5.apk` |
 | applicationId / minSdk / targetSdk | `uk.thewyj.app` / `30` / `36` |
 | BASE_URL | `https://thewyj.uk` |
-| APK size | `47,594,905` bytes |
-| APK SHA-256 | `1faf2dc27076efbcc2c94adb803a692f0deb7a32c8679bf020858b74d15fd198` |
-| 签名证书 SHA-256 | `2B:32:20:29:A9:B8:4D:E6:F2:D1:EF:60:37:78:B5:07:99:97:A3:F8:DF:21:D0:1C:A8:CB:30:C7:6B:4F:7D:03`（`thewyj-release`，与 1.3.1/1.3.2/1.3.3 同一正式证书，非 debug 签名） |
-| releaseBuild | `2026-09-13-task24-final-r2` |
-| release notes | 在 1.3.3 闭环基础上加入 B-5：持续运行、VPN 与计时类通知即使媒体不可读也先执行 live/ongoing 过滤；支付通知仍逐笔独立，不按稳定通知槽位合并。 |
+| APK size | `47,594,909` bytes |
+| APK SHA-256 | `4bd6176144a281e820394866e5df41e3d9f3a99e17f0d016a9e10ba7e5248bc5` |
+| 签名证书 SHA-256 | `2B:32:20:29:A9:B8:4D:E6:F2:D1:EF:60:37:78:B5:07:99:97:A3:F8:DF:21:D0:1C:A8:CB:30:C7:6B:4F:7D:03`（`thewyj-release`，与 1.3.1–1.3.4 同一正式证书，非 debug 签名） |
+| releaseBuild | `2026-09-14-task24-device-p0-r1` |
+| release notes | 修复 1.3.4 真机发现的 SmartCapture 屏幕录制 revision 风暴、失效上传任务 0 B 假运行、通知历史批量渲染和 Workers AI TTS 瞬态失败；800 MiB 浏览器 round-trip 以源/下载 SHA-256 一致验收。 |
 | 一致性 gate | `scripts/check_android_release_consistency.py`（build.gradle ↔ release-metadata.json ↔ wrangler 三段 vars ↔ APK manifest/SHA/size/证书，共 46 checks）+ `scripts/test_check_android_release_consistency.py`（6 项负向自测，证明 gate 真的会拒绝不一致） |
 | CI 接入 | Python job（跨文件一致性）、Android job（构建出的 APK manifest 与 metadata 对齐） |
 

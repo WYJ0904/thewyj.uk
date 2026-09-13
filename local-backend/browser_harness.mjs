@@ -189,7 +189,21 @@ export async function openPage({ cdpUrl, baseUrl, width = 412, height = 915, mob
   };
   const setDownloadBehavior = async (downloadPath) => {
     fs.mkdirSync(downloadPath, { recursive: true });
-    await send("Page.setDownloadBehavior", { behavior: "allow", downloadPath });
+    try {
+      // Browser-scoped download behaviour survives the short-lived recipient
+      // tab used by the transfer integrity test. Page.setDownloadBehavior is
+      // deprecated and can silently lose a download when that tab closes even
+      // though the response already returned HTTP 200.
+      await client.send("Browser.setDownloadBehavior", {
+        behavior: "allow",
+        browserContextId,
+        downloadPath,
+        eventsEnabled: true,
+      });
+    } catch (_) {
+      // Older Chromium builds only implement the legacy page command.
+      await send("Page.setDownloadBehavior", { behavior: "allow", downloadPath });
+    }
   };
   const throttle = (latencyMs, throughputBytesPerSecond = 1_500_000) =>
     send("Network.emulateNetworkConditions", {
@@ -305,7 +319,19 @@ export async function openPage({ cdpUrl, baseUrl, width = 412, height = 915, mob
     runtimeErrors,
     dialogs,
     targetId,
-    close: () => client.close(),
+    close: async () => {
+      try {
+        await client.send("Target.closeTarget", { targetId });
+      } catch (_) {
+        // The target may already have closed after navigation or a download.
+      }
+      try {
+        await client.send("Target.disposeBrowserContext", { browserContextId });
+      } catch (_) {
+        // Chrome may already have disposed the context with the target.
+      }
+      client.close();
+    },
   };
 }
 

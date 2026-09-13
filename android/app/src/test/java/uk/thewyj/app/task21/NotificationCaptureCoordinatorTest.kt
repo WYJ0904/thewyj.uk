@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import uk.thewyj.app.task21.screenshot.ScreenshotEvidence
 import java.io.File
 
 class NotificationCaptureCoordinatorTest {
@@ -423,6 +424,68 @@ class NotificationCaptureCoordinatorTest {
                 "the timer tick must update the existing archive row",
                 sink.inputs.last().coalesceWithPrevious,
             )
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
+    /**
+     * B-5 Samsung SM-S9360 regression: SmartCapture owns both screenshots and
+     * screen recording. The package-only screenshot detector gave every timer
+     * tick a timestamp identity, so 100 seconds produced roughly 100 durable
+     * revisions even though the platform marked the notification ongoing.
+     */
+    @Test fun samsungScreenRecordingHasABoundedPersistentLifecycleAcross121Ticks() {
+        val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
+        try {
+            val sink = RecordingSink()
+            val current = NotificationCaptureCoordinator.CaptureAccount("a", "device-a", "token-a", true)
+            val coordinator = NotificationCaptureCoordinator(
+                archiveFor = { id -> LocalNotificationArchive.inDirectory(dir, id) },
+                queueFor = { id -> NotificationOfflineQueue.inDirectory(dir, id) },
+                transport = FakeTransport(),
+                account = { current },
+                archiveSink = sink,
+            )
+            fun post(text: String, at: Long, ongoing: Boolean) {
+                val screenshot = ScreenshotEvidence.isScreenshotEvent(
+                    sourcePackage = "com.samsung.android.app.smartcapture",
+                    channelId = "screen_recording",
+                    title = "屏幕录制",
+                    text = text,
+                    bigText = "",
+                    hasMedia = true,
+                )
+                coordinator.onNotification(
+                    NotificationCaptureInput(
+                        sourcePackage = "com.samsung.android.app.smartcapture",
+                        notificationKey = "0|com.samsung.android.app.smartcapture|42|null|1000",
+                        notificationId = 42,
+                        channelId = "screen_recording",
+                        postTime = at,
+                        eventTimeMs = at,
+                        isOngoing = ongoing,
+                        title = "屏幕录制",
+                        text = text,
+                        mediaState = "unavailable",
+                        screenshotEvent = screenshot,
+                        receivedAtMs = at,
+                    ),
+                )
+            }
+
+            for (tick in 0..120) {
+                post("录屏中 %02d:%02d".format(tick / 60, tick % 60), 1_000L + tick * 1_000L, ongoing = true)
+            }
+            assertEquals(
+                "an ongoing recorder must never persist one revision per tick",
+                0,
+                sink.inputs.size,
+            )
+
+            post("录屏已保存", 123_000L, ongoing = false)
+            assertEquals("one meaningful terminal transition may be archived", 1, sink.inputs.size)
+            assertFalse(sink.inputs.single().screenshotEvent)
         } finally {
             dir.deleteRecursively()
         }

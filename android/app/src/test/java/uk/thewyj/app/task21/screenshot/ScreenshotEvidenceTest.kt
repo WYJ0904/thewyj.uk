@@ -44,10 +44,27 @@ class ScreenshotEvidenceTest {
         )
     }
 
-    @Test fun screenshotDetectionNeverInventsSemanticsFromMediaAlone() {
-        assertTrue(
+    @Test fun screenshotDetectionRequiresScreenshotSemanticsAndRejectsScreenRecording() {
+        assertFalse(
+            "SmartCapture also owns the recorder, so package plus media is not proof of a screenshot",
             ScreenshotEvidence.isScreenshotEvent(
                 "com.samsung.android.app.smartcapture", "", "", "", "", hasMedia = true,
+            ),
+        )
+        assertTrue(
+            ScreenshotEvidence.isScreenshotEvent(
+                "com.samsung.android.app.smartcapture", "", "屏幕截图已保存", "", "", hasMedia = true,
+            ),
+        )
+        assertFalse(
+            "a screen-recording ticker must never receive a per-capture screenshot identity",
+            ScreenshotEvidence.isScreenshotEvent(
+                "com.samsung.android.app.smartcapture",
+                "screen_recording",
+                "屏幕录制",
+                "录屏中 01:37",
+                "",
+                hasMedia = true,
             ),
         )
         assertTrue(

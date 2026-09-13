@@ -11,7 +11,7 @@ site can announce one build while the APK (or the update API) serves another:
 
 Usage:
     python scripts/check_android_release_consistency.py
-    python scripts/check_android_release_consistency.py --apk dist/thewyj-android-1.3.4.apk \
+    python scripts/check_android_release_consistency.py --apk dist/thewyj-android-1.3.5.apk \
         --verify-apk-integrity --expect-certificate 2B:32:20:...
     # CI debug acceptance build:
     python scripts/check_android_release_consistency.py \
@@ -31,10 +31,10 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-# The 1.3.3 artifact does not contain the B-5 live-notification fix and must
-# never be published as 1.3.4.
-SUPERSEDED_APK_SHA256 = "f7019cbf2896ab9ebf2e556d83d17136dc5a173c93a5bbf48233aa862717c51d"
-SUPERSEDED_APK_NAME = "thewyj-android-1.3.3.apk"
+# The 1.3.4 artifact still contains the Samsung recording/revision regression
+# and must never be published as 1.3.5.
+SUPERSEDED_APK_SHA256 = "1faf2dc27076efbcc2c94adb803a692f0deb7a32c8679bf020858b74d15fd198"
+SUPERSEDED_APK_NAME = "thewyj-android-1.3.4.apk"
 EXPECTED_APPLICATION_ID = "uk.thewyj.app"
 EXPECTED_MIN_SDK = 30
 EXPECTED_TARGET_SDK = 36
@@ -137,7 +137,7 @@ def main() -> int:
     )
     check(
         meta.get("apkSha256", "").lower() != SUPERSEDED_APK_SHA256,
-        "metadata apkSha256 is not the superseded 1.3.3 digest",
+        "metadata apkSha256 is not the superseded 1.3.4 digest",
     )
     check(
         meta.get("apkFileName") != SUPERSEDED_APK_NAME,

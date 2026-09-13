@@ -5,7 +5,7 @@
 
 状态图例：`FIXED-TESTED`（代码+回归完成，待部署/真机复验）、`ROOT-CAUSED`（根因与证据已定，修复进行中）、`EVIDENCE-GATHERING`（采集证据中）、`OPEN`。
 
-## 1. P0 Notification 页面「填写金额并记账」无反应 /「修改没有保存，请重试」— FIXED-TESTED
+## 1. P0 Notification 页面「填写金额并记账」无反应 /「修改没有保存，请重试」— PASS
 
 - repro（真机 00:22）：微信 金额待核实 → 填写金额 100 → 保存并记账 → 横幅「修改没有保存，请重试」，条目保持 pending。
 - evidence：`PaymentVerificationState.saveAndConfirm` 在 `center.saveCorrection` 返回 false 时输出该文案；
@@ -14,9 +14,9 @@
 - code path：PaymentVerificationState → PaymentVerificationCenter.saveCorrection → PaymentRecognitionCoordinator.editCandidate。
 - fix：新增 `PaymentRecognitionCoordinator.ensureCandidateForRecognition()`（无 candidate 时按用户输入创建，机器证据保持 null，用户值放 edited* 字段）；`saveCorrection` 增加 `recognitionId` 回退；`PaymentVerificationState` 传入 recognitionId。
 - regression：`PaymentRecognitionCoordinatorTest.manualAmountCreatesTheMissingCandidateAndBooksIt`（含“第二次保存复用同一 candidate”）。
-- 待办：部署 1.3.3 → 真机重跑该路径（通知页确认 + Finance 页确认两份）。
+- 1.3.3 真机复验：通知页确认与 Finance 页确认均收敛到唯一 transaction；刷新、force-stop 与重开不复活。
 
-## 2. P0 Finance 页面「填写金额并确认」经常无反应 — FIXED-TESTED（等待真机复验）
+## 2. P0 Finance 页面「填写金额并确认」经常无反应 — PASS
 
 - 与 #1 同源的部分：无 candidate / 缺字段时按钮应当引导补全（Web 端已在 24.4 修 direction/amount 引导）。
 - 软件侧补齐（本次）：
@@ -27,7 +27,7 @@
     `window.__wyjInteractionTrace().recent()` 读取每段耗时与 150ms 反馈预算。
 - regression：`local-backend/test_interaction_feedback_js.mjs`（同步反馈、打点顺序与单调性、single-flight、陈旧保护）、
   `local-backend/test_finance_candidates_js.mjs`（缺字段必须走编辑而非发送必败请求）。
-- 待真机：WebView Finance 页复验「填写金额 → 确认」即时反馈与 exactly-once（D1 终态 + 只出现一条 transaction）。
+- 1.3.3 真机复验：点击到 pending 约 16.7ms，D1/Android/Finance 终态一致且只出现一条 transaction。
 
 ## 3. P0/P1 微信「已支付100 / 已支付¥100」识别不到金额 — FIXED-TESTED（含一条待真机确认）
 
@@ -52,7 +52,11 @@
     `NotificationCaptureCoordinatorTest.incompletePaymentRecordsTheHintEventIdForTheServerPull` 回归）。
 - 待真机：按 capture→recognition→local DB→upload→server hint→finance txn→terminal pull→render 记录真实耗时。
 
-## 5. P1 三星录屏/截图 ongoing 通知被大量重复归档 — FIXED-TESTED
+## 5. P1 三星录屏/截图 ongoing 通知被大量重复归档 — FIXED-TESTED（1.3.5 待真机复验）
+
+- 1.3.4 真机复验失败：Samsung 屏幕录制 revision `97 → 127 → 131 → 136`，保存数量 `31 → 32 → 33`。
+- 新 root cause：`ScreenshotEvidence` 曾把整个 SmartCapture/SystemUI 包直接视为截图；屏幕录制 tick 因此获得 `aux:<package>:<time>` 新 identity，并在 classifier 检查 ongoing 之前绕过过滤。
+- 1.3.5 修复：截图必须有截图标题/频道语义，屏幕录制语义明确排除；121 次秒级 ongoing tick 的持久化写入严格为 0，随后有意义终态最多写 1 条。支付通知规则保持逐笔独立。
 
 - 已观察：Clash 的 ongoing 通知被正确跳过（`archive-skipped reason=ongoing_flag`），说明 ongoing 分类器有效。
 - 仍疑似：录屏计时类通知未带 `FLAG_ONGOING_EVENT`，且每秒变化 → 每次变化按新条目归档。

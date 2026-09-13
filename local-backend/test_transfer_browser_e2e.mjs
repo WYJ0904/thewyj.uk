@@ -30,6 +30,12 @@ const DOWNLOAD_DIR = path.join(TEST_ROOT, `transfer-downloads-${RUN_ID}`);
 const PART_EDGE = 16 * 1024 * 1024;
 const USERNAME = `tr${RUN_ID}`.slice(0, 32);
 const SECRET = "Transfer-Round-Trip-2026!";
+const ADMIN_SECRET = process.env.WYJ_TEST_ADMIN_SECRET || "";
+const requestedLargeBytes = Number.parseInt(process.env.WYJ_TRANSFER_LARGE_BYTES || "0", 10) || 0;
+const LARGE_FILE_BYTES = requestedLargeBytes >= 750 * 1024 * 1024 && requestedLargeBytes <= 850 * 1024 * 1024
+  ? requestedLargeBytes
+  : 0;
+const TRANSFER_TIMEOUT_MS = LARGE_FILE_BYTES ? 30 * 60_000 : 240_000;
 
 fs.mkdirSync(TEST_ROOT, { recursive: true });
 fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
@@ -49,6 +55,46 @@ function buildBytes({ label, size, head, tail }) {
   return { label, bytes };
 }
 
+function writeRepeatedFixture(filePath, size, head, tail) {
+  const chunk = Buffer.allocUnsafe(1024 * 1024);
+  for (let index = 0; index < chunk.length; index += 1) chunk[index] = (index * 31 + 17) & 0xff;
+  const descriptor = fs.openSync(filePath, "w");
+  try {
+    let offset = 0;
+    while (offset < size) {
+      const length = Math.min(chunk.length, size - offset);
+      fs.writeSync(descriptor, chunk, 0, length, offset);
+      offset += length;
+    }
+    fs.writeSync(descriptor, head, 0, head.length, 0);
+    if (tail?.length) fs.writeSync(descriptor, tail, 0, tail.length, size - tail.length);
+    fs.fsyncSync(descriptor);
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
+
+function sha256File(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash("sha256");
+    const stream = fs.createReadStream(filePath);
+    stream.on("error", reject);
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("end", () => resolve(hash.digest("hex")));
+  });
+}
+
+function firstBytes(filePath, length = 8) {
+  const descriptor = fs.openSync(filePath, "r");
+  try {
+    const bytes = Buffer.alloc(length);
+    const read = fs.readSync(descriptor, bytes, 0, length, 0);
+    return bytes.subarray(0, read);
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
+
 const FIXTURES = [
   (() => {
     const size = PART_EDGE + 123 * 1024;
@@ -64,25 +110,31 @@ const FIXTURES = [
     };
   })(),
   (() => {
-    const size = PART_EDGE + 456 * 1024;
-    const head = encoder.encode("\u0000\u0000\u0000\u0018ftypisom\u0000\u0000\u0002\u0000isomiso2");
-    const tail = encoder.encode("moov\u0000\u0000RoundTrip");
-    const { bytes } = buildBytes({ label: "mp4", size, head: Buffer.from(head), tail: Buffer.from(tail) });
+    const size = LARGE_FILE_BYTES || PART_EDGE + 456 * 1024;
+    const head = Buffer.from(encoder.encode("\u0000\u0000\u0000\u0018ftypisom\u0000\u0000\u0002\u0000isomiso2"));
+    const tail = Buffer.from(encoder.encode("moov\u0000\u0000RoundTrip"));
+    const bytes = LARGE_FILE_BYTES ? null : buildBytes({ label: "mp4", size, head, tail }).bytes;
     return {
-      label: "mp4 video",
+      label: LARGE_FILE_BYTES ? "800 MiB mp4 video" : "mp4 video",
       fileName: `RoundTripClip-${RUN_ID}.mp4`,
       mimeType: "video/mp4",
       bytes,
-      sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
+      size,
+      head,
+      tail,
     };
   })(),
 ];
 
 for (const fixture of FIXTURES) {
   fixture.path = path.join(TEST_ROOT, fixture.fileName);
-  fs.writeFileSync(fixture.path, fixture.bytes);
-  assert.equal(fs.statSync(fixture.path).size, fixture.bytes.length, `${fixture.label}: fixture on disk`);
-  assert.ok(fixture.bytes.length > PART_EDGE, `${fixture.label}: must exceed the 16 MiB chunk size`);
+  if (fixture.bytes) fs.writeFileSync(fixture.path, fixture.bytes);
+  else writeRepeatedFixture(fixture.path, fixture.size, fixture.head, fixture.tail);
+  fixture.size = fs.statSync(fixture.path).size;
+  fixture.sha256 = await sha256File(fixture.path);
+  fixture.headBytes = firstBytes(fixture.path);
+  assert.equal(fs.statSync(fixture.path).size, fixture.size, `${fixture.label}: fixture on disk`);
+  assert.ok(fixture.size > PART_EDGE, `${fixture.label}: must exceed the 16 MiB chunk size`);
 }
 
 async function api(pathname, payload = null, token = "") {
@@ -104,8 +156,63 @@ async function main() {
     // 1. A real member session (guests are fine too, but a member exercises the
     //    normal quota and "my shares" path).
     await registerAndSignIn(page, { username: USERNAME, secret: SECRET, label: "transfer round-trip" });
+    const identity = await page.evaluate(`(() => ({
+      session: localStorage.getItem('wyjAccountSession') || '',
+      account: JSON.parse(localStorage.getItem('wyjAccountCache') || 'null'),
+    }))()`);
+    assert.ok(identity.session, "the browser member needs a session");
+    assert.ok(identity.account?.id, "the browser member needs a stable account id");
+    console.log(`[transfer-browser] member ready; largeBytes=${LARGE_FILE_BYTES || 0}`);
+    if (LARGE_FILE_BYTES) {
+      assert.ok(ADMIN_SECRET, "WYJ_TEST_ADMIN_SECRET is required for the 800 MiB storage fixture");
+      const admin = await api("/api/login", { username: "wyj", secret: ADMIN_SECRET });
+      assert.equal(admin.status, 200, JSON.stringify(admin.data));
+      const granted = await api("/api/admin/membership/manage", {
+        user_id: identity.account.id,
+        action: "grant",
+        plan_code: "tools_monthly",
+        note: "Task 24 isolated 800 MiB transfer fixture",
+      }, admin.data.session);
+      assert.equal(granted.status, 200, JSON.stringify(granted.data));
+    }
 
-    // 2. Upload the first large file alone, then append the second one *after*
+    // 2. Reproduce the physical 0 B dead state before the normal round trip. A
+    //    queue restored against an aborted server session must discard that
+    //    session before the user re-selects the same file.
+    const staleCreated = await api("/api/transfer/uploads", {
+      minutes: 1440,
+      max_downloads: 5,
+      one_time: false,
+      file_count: 1,
+      total_bytes: FIXTURES[0].size,
+    }, identity.session);
+    assert.equal(staleCreated.status, 201, JSON.stringify(staleCreated.data));
+    const staleSessionId = staleCreated.data.upload.id;
+    const staleAborted = await api(`/api/transfer/uploads/${staleSessionId}/abort`, {}, identity.session);
+    assert.equal(staleAborted.status, 200, JSON.stringify(staleAborted.data));
+    console.log("[transfer-browser] aborted-session fixture ready");
+    const queueKey = `wyjTransferQueue:v2:${String(identity.account.id).trim().replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 96)}`;
+    await page.evaluate(`localStorage.setItem(${JSON.stringify(queueKey)}, ${JSON.stringify(JSON.stringify({
+      account: identity.account.id,
+      queue: [{
+        id: `stale-${RUN_ID}`,
+        name: FIXTURES[0].fileName,
+        relativePath: FIXTURES[0].fileName,
+        size: FIXTURES[0].size,
+        uploaded: 0,
+        speed: 0,
+        eta: 0,
+        paused: false,
+        status: "uploading",
+        sessionId: staleSessionId,
+        fileId: "",
+        partSize: 0,
+        partCount: 0,
+        uploadedParts: [],
+      }],
+    }))}); true`);
+
+    // 3. Upload the first large file alone, then append the second one *after*
     //    the first upload finished. The server fixes file_count when the session
     //    is created, so the client has to open a new session for the full queue
     //    and re-upload - this is the session-lifecycle regression.
@@ -123,11 +230,25 @@ async function main() {
       25_000,
       "transfer capabilities loaded",
     );
+    await page.waitFor(
+      `(() => {
+        const stored = JSON.parse(localStorage.getItem(${JSON.stringify(queueKey)}) || '{}');
+        return stored.queue?.[0]?.sessionId === '';
+      })()`,
+      25_000,
+      "aborted restored session cleared before file selection",
+    );
+    assert.equal(
+      await page.evaluate("Boolean(document.querySelector('[data-transfer-pause]'))"),
+      false,
+      "0 B preparation must not expose a false pause action",
+    );
+    console.log("[transfer-browser] stale session cleared before file selection");
     await page.setFile("#transferFileInput", FIXTURES[0].path);
     await page.waitFor("document.querySelectorAll('[data-transfer-item]').length === 1", 30_000, "first queue item");
     await page.waitFor(
       "document.querySelector('[data-transfer-item]')?.textContent?.includes('100%') || document.querySelector('#transferCompleteBtn')?.disabled === false",
-      240_000,
+      TRANSFER_TIMEOUT_MS,
       "first upload finished",
     );
     const firstSessionId = await page.evaluate(`(() => {
@@ -136,6 +257,8 @@ async function main() {
       return String((payload.queue || [])[0]?.sessionId || '');
     })()`);
     assert.ok(firstSessionId, "the first upload must own a session");
+    assert.notEqual(firstSessionId, staleSessionId, "an aborted restored session must be replaced exactly once");
+    console.log("[transfer-browser] first upload completed on a replacement session");
     await page.setFile("#transferFileInput", FIXTURES[1].path);
     await page.waitFor(
       `document.querySelectorAll('[data-transfer-item]').length === ${FIXTURES.length}`,
@@ -143,7 +266,7 @@ async function main() {
       "queue items",
     );
     try {
-      await page.waitFor("document.querySelector('#transferCompleteBtn')?.disabled === false", 240_000, "uploads finished");
+      await page.waitFor("document.querySelector('#transferCompleteBtn')?.disabled === false", TRANSFER_TIMEOUT_MS, "uploads finished");
     } catch (error) {
       const state = await page.evaluate(`(() => ({
         message: document.querySelector('#transferMessage')?.textContent || '',
@@ -200,6 +323,7 @@ async function main() {
         `${item.name} must use the 16 MiB server chunk size (got ${item.partSize})`,
       );
     }
+    console.log("[transfer-browser] complete multipart queue uploaded");
 
     // 4. Create the share through the normal button.
     await page.click("#transferCompleteBtn");
@@ -228,53 +352,42 @@ async function main() {
       assert.equal(buttons.length, 2, "the share page must expose both downloads");
 
       for (const fixture of FIXTURES) {
-        // One download per tab: a real recipient downloads one file, and a fresh
-        // document also avoids Chrome's multiple-automatic-downloads limiter.
-        const oneFilePage = await openPage({ cdpUrl: CDP_URL, baseUrl: BASE_URL, width: 1280, height: 900, mobile: false });
-        await oneFilePage.setDownloadBehavior(DOWNLOAD_DIR);
-        try {
-          await oneFilePage.navigate(`/transfer#share=${encodeURIComponent(shareId)}`);
-          await oneFilePage.waitFor(
-            `Array.from(document.querySelectorAll('#transferShareFiles .transfer-share-file strong'))
-              .some((node) => node.textContent === ${JSON.stringify(fixture.fileName)})`,
-            40_000,
-            "share page for the download",
-          );
-          // Browsers without the File System Access API download through the
-          // anchor branch; pin that branch so a headless run writes a real file.
-          await oneFilePage.evaluate("delete window.showSaveFilePicker; true");
-          const clicked = await oneFilePage.evaluate(`(() => {
-            const buttons = Array.from(document.querySelectorAll('[data-transfer-download]'));
-            const match = buttons.find((button) => {
-              const card = button.closest('.transfer-share-file');
-              return card && card.textContent.includes(${JSON.stringify(fixture.fileName)});
-            }) || buttons[0];
-            if (!match) return false;
-            match.click();
-            return true;
-          })()`);
-          assert.ok(clicked, `${fixture.label}: the download button must exist`);
-        } finally {
-          await delay(600);
-          oneFilePage.close();
-        }
+        // A real recipient downloads each file from the same share page. Browser
+        // download permission is scoped to this isolated context, so no second
+        // context is needed (creating one per file could stall before navigation
+        // and produce no HTTP request at all).
+        console.log(`[transfer-browser] downloading ${fixture.fileName}`);
         const downloadedPath = path.join(DOWNLOAD_DIR, fixture.fileName);
-        await waitForDownloadedFile(downloadedPath, 240_000);
-        const downloaded = fs.readFileSync(downloadedPath);
-        const downloadedHash = crypto.createHash("sha256").update(downloaded).digest("hex");
-        assert.equal(fs.statSync(downloadedPath).size, fixture.bytes.length, `${fixture.label}: byte length`);
+        // Browsers without the File System Access API download through the
+        // anchor branch; pin that branch so a headless run writes a real file.
+        await sharePage.evaluate("delete window.showSaveFilePicker; true");
+        const clicked = await sharePage.evaluate(`(() => {
+          const buttons = Array.from(document.querySelectorAll('[data-transfer-download]'));
+          const match = buttons.find((button) => {
+            const card = button.closest('.transfer-share-file');
+            return card && card.textContent.includes(${JSON.stringify(fixture.fileName)});
+          }) || buttons[0];
+          if (!match) return false;
+          match.click();
+          return true;
+        })()`);
+        assert.ok(clicked, `${fixture.label}: the download button must exist`);
+        await waitForDownloadedFile(downloadedPath, TRANSFER_TIMEOUT_MS);
+        const downloadedHash = await sha256File(downloadedPath);
+        assert.equal(fs.statSync(downloadedPath).size, fixture.size, `${fixture.label}: byte length`);
         assert.equal(downloadedHash, fixture.sha256, `${fixture.label}: SHA-256 source == download`);
         assert.ok(
           path.extname(downloadedPath) === path.extname(fixture.fileName),
           `${fixture.label}: extension must survive (${downloadedPath})`,
         );
         assert.ok(
-          downloaded.subarray(0, 8).equals(fixture.bytes.subarray(0, 8)),
+          firstBytes(downloadedPath).equals(fixture.headBytes),
           `${fixture.label}: the file signature must survive`,
         );
+        console.log(`[transfer-browser] verified ${fixture.fileName} bytes=${fixture.size} sha256=${downloadedHash}`);
       }
     } finally {
-      sharePage.close();
+      await sharePage.close();
     }
 
     // 6. The superseded session is gone: the client aborted it when the queue
@@ -291,10 +404,10 @@ async function main() {
       `the superseded one-file session must not be publishable (HTTP ${staleComplete.status})`,
     );
     console.log(
-      `[transfer-browser] PASS source == download SHA-256 and byte length for ${FIXTURES.map((fixture) => `${fixture.fileName} (${fixture.bytes.length} bytes)`).join(", ")}`,
+      `[transfer-browser] PASS source == download SHA-256 and byte length for ${FIXTURES.map((fixture) => `${fixture.fileName} (${fixture.size} bytes)`).join(", ")}`,
     );
   } finally {
-    page.close();
+    await page.close();
   }
 }
 

@@ -121,8 +121,10 @@ const EXE_TAIL = encoder.encode("PE\u0000\u0000Install");
 const FIXTURES = Object.freeze([
   Object.freeze({
     label: "jpeg photo",
-    fileName: "holiday-photo.jpg",
-    relativePath: "photos/holiday-photo.jpg",
+    // Physical-device report: Windows showed the basename without `.jpg` and
+    // could not open the result. Keep the exact reported name in the contract.
+    fileName: "20251221_142347.jpg",
+    relativePath: "photos/20251221_142347.jpg",
     mimeType: "image/jpeg",
     bytes: () => withEdges(pseudoRandom(101, 480 * 1024), JPEG_HEAD, JPEG_TAIL),
   }),
@@ -335,6 +337,10 @@ try {
     assert.ok(
       disposition.includes(`filename="${fixture.fileName}"`),
       `${fixture.label}: Content-Disposition keeps the file name (${disposition})`,
+    );
+    assert.ok(
+      disposition.includes(`filename*=UTF-8''${encodeURIComponent(fixture.fileName)}`),
+      `${fixture.label}: RFC 5987 filename keeps the extension (${disposition})`,
     );
     assert.equal(downloaded.response.headers.get("Accept-Ranges"), "bytes", `${fixture.label}: Accept-Ranges`);
     assert.equal(downloaded.payload.byteLength, size, `${fixture.label}: downloaded length`);

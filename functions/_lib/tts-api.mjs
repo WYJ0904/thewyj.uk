@@ -21,6 +21,8 @@ export const TTS_MAX_TEXT_CHARS = 240;
 export const TTS_RATE_LIMIT = 120;
 export const TTS_RATE_WINDOW_SECONDS = 60;
 export const TTS_DEFAULT_VOICE = "default";
+export const TTS_GENERATION_ATTEMPTS = 3;
+export const TTS_RETRY_BASE_MS = 120;
 
 /**
  * Declared in the same `"METHOD /api/path"` shape the legacy-route gate scans
@@ -162,7 +164,7 @@ async function readPayload(context, url, method) {
   };
 }
 
-function audioResponse(bytes, { cacheHit, model, requestId, contentType, etag }) {
+function audioResponse(bytes, { cacheHit, model, requestId, contentType, etag, attempts = 0 }) {
   return new Response(bytes, {
     status: 200,
     headers: {
@@ -173,6 +175,7 @@ function audioResponse(bytes, { cacheHit, model, requestId, contentType, etag })
       "X-WYJ-TTS": cacheHit ? "hit" : "miss",
       "X-WYJ-TTS-Model": model,
       "X-WYJ-TTS-Version": TTS_CACHE_VERSION,
+      "X-WYJ-TTS-Attempts": String(attempts),
       "X-Request-Id": requestId,
     },
   });
@@ -247,6 +250,7 @@ export async function handleTtsRequest(context) {
         requestId,
         contentType,
         etag: cacheKey,
+        attempts: 0,
       });
     }
   }
@@ -262,11 +266,32 @@ export async function handleTtsRequest(context) {
   }
 
   let bytes = null;
-  try {
-    const result = await context.env.AI.run(model, { prompt: text, lang: language });
-    bytes = await ttsBytesFromResult(result);
-  } catch (error) {
-    const status = Number(error?.status || error?.statusCode || 0);
+  let attempts = 0;
+  let lastError = null;
+  const configuredBase = Number.parseInt(String(context.env?.TTS_RETRY_BASE_MS ?? ""), 10);
+  const retryBaseMs = Number.isFinite(configuredBase)
+    ? Math.max(0, Math.min(1_000, configuredBase))
+    : TTS_RETRY_BASE_MS;
+  for (let attempt = 0; attempt < TTS_GENERATION_ATTEMPTS && !bytes?.length; attempt += 1) {
+    attempts = attempt + 1;
+    try {
+      const result = await context.env.AI.run(model, { prompt: text, lang: language });
+      bytes = await ttsBytesFromResult(result);
+      lastError = null;
+    } catch (error) {
+      lastError = error;
+      const status = Number(error?.status || error?.statusCode || 0);
+      // Quota exhaustion is authoritative. Retrying it only burns CPU and can
+      // never turn the current request into a success.
+      if (status === 429) break;
+    }
+    if (!bytes?.length && attempt + 1 < TTS_GENERATION_ATTEMPTS && Number(lastError?.status || lastError?.statusCode || 0) !== 429) {
+      const jitter = retryBaseMs ? Math.floor(Math.random() * retryBaseMs) : 0;
+      await new Promise((resolve) => setTimeout(resolve, retryBaseMs * (2 ** attempt) + jitter));
+    }
+  }
+  if (lastError) {
+    const status = Number(lastError?.status || lastError?.statusCode || 0);
     const code = status === 429 ? "tts_quota_exhausted" : "tts_generation_failed";
     return apiError(
       code,
@@ -288,5 +313,5 @@ export async function handleTtsRequest(context) {
       })
       .catch(() => undefined);
   }
-  return audioResponse(bytes, { cacheHit: false, model, requestId, contentType, etag: cacheKey });
+  return audioResponse(bytes, { cacheHit: false, model, requestId, contentType, etag: cacheKey, attempts });
 }
