@@ -1,6 +1,7 @@
 package uk.thewyj.app.task21.payment
 
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Cheap in-memory gate for the payment AccessibilityService.
@@ -35,6 +36,51 @@ class PaymentTicketPackageCache(
         /** Tickets have a 90 second lifetime; a few seconds of cache is plenty. */
         const val DEFAULT_REFRESH_MS = 3_000L
     }
+}
+
+/**
+ * Task 24 reopen #10: process-wide, memory-only hint that a package just
+ * received a verification ticket.
+ *
+ * The accessibility gate is refreshed from Room on a short cadence, so a
+ * brand-new ticket could be created *after* the last refresh and the first
+ * accessibility event (the only one that carries the amount for some pages)
+ * would be dropped as `no_active_ticket`. Publishing the package the moment the
+ * ticket is created removes that race without widening the gate: the Room ticket
+ * itself is still the authority and is re-checked on the worker thread before
+ * anything is parsed or enriched.
+ */
+object PaymentTicketPackageSignal {
+    /** How long a signal may keep one package eligible for a first look. */
+    const val WINDOW_MS = 120_000L
+
+    private val published = ConcurrentHashMap<String, Long>()
+
+    fun publish(sourcePackage: String, nowMs: Long = System.currentTimeMillis()) {
+        val key = normalize(sourcePackage)
+        if (key.isEmpty()) return
+        published[key] = nowMs
+    }
+
+    fun recentlySignalled(sourcePackage: String, nowMs: Long = System.currentTimeMillis()): Boolean {
+        val key = normalize(sourcePackage)
+        if (key.isEmpty()) return false
+        val at = published[key] ?: return false
+        if (nowMs - at > WINDOW_MS) {
+            published.remove(key)
+            return false
+        }
+        return true
+    }
+
+    /** Account switch / session reset: never carry another account's hint over. */
+    fun clear() {
+        published.clear()
+    }
+
+    fun size(): Int = published.size
+
+    private fun normalize(value: String): String = value.trim().lowercase(Locale.ROOT)
 }
 
 /**

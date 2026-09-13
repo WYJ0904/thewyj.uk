@@ -1,11 +1,178 @@
 import { randomId } from "../core/capabilities.js?v=20260912-task24-4-r2";
 import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260912-task24-4-r2";
 import { getSafeStorage } from "../core/storage.js?v=20260912-task24-4-r2";
+import { withInteractionFeedback } from "../core/perf.js?v=20260912-task24-4-r2";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
 const PART_SIZE_HINT = 16 * 1024 * 1024;
 const DEFAULT_EXPIRY_MINUTES = 1440;
+/**
+ * Controlled multipart concurrency. The previous implementation hashed and
+ * uploaded one part at a time (hash → PUT → wait → next), which capped a real
+ * 800 MB upload far below the available bandwidth. Three parallel parts keeps
+ * the pipe busy without unbounded sockets; failures still stop the batch.
+ */
+export const UPLOAD_CONCURRENCY = 3;
+
+/** Part numbers that still need a PUT, in stable order. */
+export function missingPartNumbers(partCount, uploadedParts) {
+  const done = new Set((Array.isArray(uploadedParts) ? uploadedParts : []).map(Number));
+  const missing = [];
+  for (let partNumber = 1; partNumber <= Number(partCount || 0); partNumber += 1) {
+    if (!done.has(partNumber)) missing.push(partNumber);
+  }
+  return missing;
+}
+
+/** How many upload workers to start for one item (never zero for real work). */
+export function uploadWorkerCount(partCount, uploadedParts, concurrency = UPLOAD_CONCURRENCY) {
+  const missing = missingPartNumbers(partCount, uploadedParts).length;
+  if (missing <= 0) return 0;
+  return Math.max(1, Math.min(Number(concurrency) || 1, missing));
+}
+
+/** Hashed parts buffered ahead of the network so a PUT never waits on SHA-256. */
+export const HASH_LOOK_AHEAD = 2;
+
+/**
+ * Task 24 reopen #9 - hash/upload pipeline.
+ *
+ * The first multipart rewrite only removed the serial `hash → PUT → wait` loop.
+ * Hashing still ran inside the upload slot, so every worker idled for the digest
+ * before it could use the socket. This runs two stages with one bounded queue:
+ * a look-ahead stage hashes the next parts while the upload stage keeps
+ * `workerCount` PUTs in flight. Integrity is untouched: the digest handed to
+ * `uploadPart(part, hash)` is still the SHA-256 of exactly those part bytes.
+ *
+ * `shouldStop()` returns a reason (`"paused"` / `"cancelled"`) when the user
+ * interrupted the item; the first upload failure is rethrown with `partNumber`
+ * attached so the UI can retry that part.
+ */
+export async function runPartPipeline({
+  parts,
+  workerCount,
+  hashPart,
+  uploadPart,
+  onUploaded,
+  shouldStop,
+  lookAhead = HASH_LOOK_AHEAD,
+}) {
+  const total = Array.isArray(parts) ? parts.length : 0;
+  const metrics = { parts: total, uploaded: 0, bytes: 0, hashMs: 0, uploadMs: 0, stoppedBy: "" };
+  if (total === 0) return metrics;
+  const limit = Math.max(1, Math.min(Number(workerCount) || 1, total));
+  const buffered = Math.max(0, Number(lookAhead) || 0);
+  const hashPromises = new Map();
+  let nextIndex = 0;
+  let failure = null;
+  let stopReason = "";
+
+  const reasonNow = () => {
+    if (failure) return "failed";
+    if (typeof shouldStop !== "function") return "";
+    const reason = shouldStop();
+    if (!reason) return "";
+    if (typeof reason === "string") return reason;
+    return reason.kind || reason.reason || "stopped";
+  };
+
+  const scheduleHashes = () => {
+    while (!reasonNow() && nextIndex < total && hashPromises.size < limit + buffered) {
+      const part = parts[nextIndex];
+      nextIndex += 1;
+      const startedAt = Date.now();
+      const promise = Promise.resolve()
+        .then(() => hashPart(part))
+        .then((hash) => {
+          metrics.hashMs += Date.now() - startedAt;
+          return { part, hash };
+        });
+      hashPromises.set(part.partNumber, promise);
+    }
+  };
+
+  const takeJob = () => {
+    scheduleHashes();
+    const next = hashPromises.entries().next();
+    if (next.done) return null;
+    const [partNumber, promise] = next.value;
+    hashPromises.delete(partNumber);
+    scheduleHashes();
+    return promise;
+  };
+
+  const worker = async () => {
+    while (true) {
+      const reason = reasonNow();
+      if (reason) {
+        stopReason = stopReason || reason;
+        return;
+      }
+      let job;
+      try {
+        job = await takeJob();
+      } catch (error) {
+        failure = failure || error;
+        stopReason = stopReason || "failed";
+        return;
+      }
+      if (!job) {
+        const idleReason = reasonNow();
+        if (idleReason) stopReason = stopReason || idleReason;
+        return;
+      }
+      const { part, hash } = job;
+      const startedAt = Date.now();
+      try {
+        const uploadedBytes = await uploadPart(part, hash);
+        metrics.uploadMs += Date.now() - startedAt;
+        metrics.uploaded += 1;
+        metrics.bytes += Number(uploadedBytes) || Number(part.length) || 0;
+        onUploaded?.(part, uploadedBytes);
+      } catch (error) {
+        const interrupted = reasonNow();
+        if (interrupted) {
+          stopReason = stopReason || interrupted;
+        } else {
+          if (error && typeof error === "object" && error.partNumber === undefined) {
+            error.partNumber = part.partNumber;
+          }
+          failure = failure || error;
+          stopReason = stopReason || "failed";
+        }
+        return;
+      }
+    }
+  };
+
+  await Promise.all(Array.from({ length: limit }, () => worker()));
+  if (failure) throw failure;
+  metrics.stoppedBy = stopReason;
+  return metrics;
+}
+
+/**
+ * Upload timing for one item: hash stage, upload stage, wall clock and effective
+ * throughput. Recorded on the queue item so a real network run reports numbers
+ * instead of a guess.
+ */
+export function uploadPerformanceSummary({ bytes, hashMs, uploadMs, totalMs }) {
+  const safeBytes = Math.max(0, Number(bytes) || 0);
+  const safeTotalMs = Math.max(0, Number(totalMs) || 0);
+  const seconds = safeTotalMs / 1000;
+  const hash = Math.max(0, Number(hashMs) || 0);
+  const upload = Math.max(0, Number(uploadMs) || 0);
+  return {
+    bytes: safeBytes,
+    hashMs: hash,
+    uploadMs: upload,
+    totalMs: safeTotalMs,
+    bytesPerSecond: seconds > 0 ? safeBytes / seconds : 0,
+    /** Median-worth share of the wall clock spent hashing (per-part, summed). */
+    hashShare: hash + upload > 0 ? hash / (hash + upload) : 0,
+  };
+}
 
 /**
  * Account-scoped queue identity (Task 24.3 multi-account isolation). The queue
@@ -67,6 +234,53 @@ export function sessionIdForQueue(items) {
   return restored ? String(restored.sessionId) : "";
 }
 
+/**
+ * Task 24 RC - one server session is one upload batch.
+ *
+ * `POST /api/transfer/uploads` fixes `file_count` and `total_bytes` for the whole
+ * session, and `allocate()` refuses another file once that many exist
+ * (`transfer_file_count_exceeded`). A user may pick one file, let it upload and
+ * then add a second file before publishing, so the client has to decide whether
+ * the current session can still carry the whole queue.
+ *
+ * The protocol has no cross-session part reuse, so [reuse] = false means: open a
+ * new session for the *complete* current queue and re-upload the files (the old
+ * session is aborted, never left orphaned).
+ */
+export function sessionPlan(queue, session) {
+  const items = (Array.isArray(queue) ? queue : []).filter((item) => item && item.status !== "cancelled");
+  const fileCount = items.length;
+  const totalBytes = items.reduce((sum, item) => sum + Math.max(0, Number(item.size) || 0), 0);
+  const id = String(session?.id || "").trim();
+  if (!fileCount) return { reuse: Boolean(id), fileCount: 0, totalBytes: 0, reason: "empty" };
+  if (!id) return { reuse: false, fileCount, totalBytes, reason: "no-session" };
+  const declaredCount = Number(session?.fileCount) || 0;
+  const declaredBytes = Number(session?.totalBytes) || 0;
+  if (!declaredCount) {
+    // Restored after a reload: the session object lost its declaration, but every
+    // queued item still points at that server session. Its own complete() call
+    // validates the count, so the queue stays publishable.
+    const sameSession = items.every((item) => String(item.sessionId || "") === id);
+    return { reuse: sameSession, fileCount, totalBytes, reason: sameSession ? "restored-session" : "restored-session-mismatch" };
+  }
+  if (declaredCount !== fileCount) {
+    return { reuse: false, fileCount, totalBytes, reason: "file-count-grew" };
+  }
+  if (declaredBytes !== totalBytes) {
+    return { reuse: false, fileCount, totalBytes, reason: "size-changed" };
+  }
+  const sameSession = items.every((item) => String(item.sessionId || "") === id);
+  return { reuse: sameSession, fileCount, totalBytes, reason: sameSession ? "exact-batch" : "batch-changed" };
+}
+
+/** Ids of the queue items a session was opened for. */
+export function sessionBatchIds(queue) {
+  return (Array.isArray(queue) ? queue : [])
+    .filter((item) => item && item.status !== "cancelled")
+    .map((item) => String(item.id || ""))
+    .filter(Boolean);
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -104,6 +318,7 @@ export function createTransferController({
   let activeSession = null;
   let currentShare = null;
   let running = false;
+  let sessionOpening = null;
   let capabilities = { storage_limit_bytes: 500 * 1024 * 1024, used_bytes: 0 };
 
   const element = (id) => document.getElementById(id);
@@ -148,7 +363,7 @@ export function createTransferController({
     const value = { account: authenticated() ? String(account().id) : `guest:${guestId()}`, queue };
     const serializable = {
       account: value.account,
-      queue: queue.map(({ file, controller, ...item }) => item),
+    queue: queue.map(({ file, controller, controllers, activeUploads, ...item }) => item),
     };
     storage.setItem(transferQueueStorageKey(value.account), JSON.stringify(serializable));
   }
@@ -272,40 +487,125 @@ export function createTransferController({
 
   async function ensureSession() {
     if (!activeSession) {
-      const restored = queue.find((item) => item.sessionId);
-      if (restored) activeSession = { id: restored.sessionId, expiresAt: "" };
+      const restoredSessionId = sessionIdForQueue(queue);
+      if (restoredSessionId) activeSession = { id: restoredSessionId, expiresAt: "" };
     }
-    if (activeSession && queue.some((item) => item.status !== "done")) return activeSession;
+    const plan = sessionPlan(queue, activeSession);
+    if (plan.reuse && activeSession) return activeSession;
+    return openSessionForBatch(plan);
+  }
+
+  /**
+   * Opens the session that matches the *current* queue. Everything uploaded into
+   * the previous session is reset and re-uploaded: the upload protocol has no way
+   * to move parts between sessions, so a new batch is an explicit re-upload
+   * rather than a silent mix of two server sessions. The previous session is
+   * aborted so no orphan session (and no ghost object) is left behind.
+   */
+  async function openSessionForBatch(plan) {
+    // Serialize concurrent appends: two quick "add file" taps must never create
+    // two sessions for the same batch.
+    if (sessionOpening) {
+      await sessionOpening.catch(() => {});
+      const settled = sessionPlan(queue, activeSession);
+      if (settled.reuse && activeSession) return activeSession;
+    }
+    const previous = activeSession;
     const body = {
       minutes: Number(element("transferExpiry")?.value || DEFAULT_EXPIRY_MINUTES),
       max_downloads: Number(element("transferMaxDownloads")?.value || 5),
       one_time: Boolean(element("transferOneTime")?.checked),
       password: String(element("transferPassword")?.value || ""),
-      file_count: Math.max(queue.length, 1),
-      total_bytes: queue.reduce((sum, item) => sum + item.size, 0),
+      file_count: Math.max(plan.fileCount, 1),
+      total_bytes: plan.totalBytes,
     };
     if (!authenticated()) body.guest_id = guestId();
-    const payload = await request("/api/transfer/uploads", { method: "POST", body });
-    activeSession = { id: payload.upload.id, expiresAt: payload.upload.expires_at };
-    for (const item of queue) if (!item.sessionId) item.sessionId = activeSession.id;
+    sessionOpening = request("/api/transfer/uploads", { method: "POST", body });
+    let payload;
+    try {
+      payload = await sessionOpening;
+    } finally {
+      sessionOpening = null;
+    }
+    const batchIds = sessionBatchIds(queue);
+    activeSession = {
+      id: payload.upload.id,
+      expiresAt: payload.upload.expires_at,
+      fileCount: Math.max(plan.fileCount, 1),
+      totalBytes: plan.totalBytes,
+      batchIds,
+    };
+    for (const item of queue) {
+      if (item.status === "cancelled") continue;
+      if (String(item.sessionId || "") === activeSession.id) continue;
+      item.sessionId = activeSession.id;
+      // A different session cannot reuse this file's allocation: drop it and let
+      // the pipeline re-upload the file into the new batch.
+      item.fileId = "";
+      item.partSize = 0;
+      item.partCount = 0;
+      item.uploadedParts = [];
+      item.uploaded = 0;
+      item.speed = 0;
+      item.eta = 0;
+      delete item.error;
+      delete item.failedPart;
+      if (item.status === "done" || item.status === "uploading") item.status = "pending";
+    }
     persistQueue();
+    renderQueue();
+    if (previous?.id && previous.id !== activeSession.id) {
+      void abortSession(previous.id, plan.reason);
+    }
+    if (plan.reason === "file-count-grew" || plan.reason === "size-changed") {
+      setMessage("已按当前文件列表重新创建上传任务，正在重新上传。");
+    }
     return activeSession;
   }
 
-  async function uploadPartBytes(item, partNumber, part) {
-    const partDigest = await crypto.subtle.digest("SHA-256", await part.arrayBuffer());
-    const partHash = [...new Uint8Array(partDigest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  /** Best-effort cleanup so a superseded batch cannot linger on the server. */
+  async function abortSession(sessionId, reason = "") {
+    try {
+      const body = {};
+      if (!authenticated()) body.guest_id = guestId();
+      await request(`/api/transfer/uploads/${sessionId}/abort`, { method: "POST", body });
+      if (reason) setMessage("已废弃旧的上传任务，正在重新上传。");
+    } catch (_) {
+      // The server also expires abandoned sessions; a failed abort must never
+      // block the new batch.
+    }
+  }
+
+  /** SHA-256 of exactly one part's bytes; the pipeline runs this ahead of the PUT. */
+  async function hashPartBytes(item, part) {
+    const slice = item.file.slice(part.offset, part.offset + part.length);
+    const partDigest = await crypto.subtle.digest("SHA-256", await slice.arrayBuffer());
+    return [...new Uint8Array(partDigest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  async function uploadPartBytes(item, part, partHash) {
+    const partNumber = part.partNumber;
+    const body = item.file.slice(part.offset, part.offset + part.length);
     const controller = new AbortController();
+    // Several parts are in flight at once: keep every controller so pause and
+    // cancel stop all active requests, and run() can see the item is busy.
+    item.controllers = item.controllers || new Set();
+    item.controllers.add(controller);
     item.controller = controller;
+    item.activeUploads = (Number(item.activeUploads) || 0) + 1;
     const response = await fetch(
       `/api/transfer/uploads/${item.sessionId}/files/${item.fileId}/parts/${partNumber}`,
       {
         method: "PUT",
         headers: headers({ "Content-Type": "application/octet-stream", "X-Part-Sha256": partHash }),
-        body: part,
+        body,
         signal: controller.signal,
       },
-    );
+    ).finally(() => {
+      item.controllers?.delete(controller);
+      item.activeUploads = Math.max(0, (Number(item.activeUploads) || 1) - 1);
+      if (item.activeUploads === 0) item.controller = null;
+    });
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
       const error = new Error(data.error || `分片上传失败（HTTP ${response.status}）`);
@@ -313,6 +613,7 @@ export function createTransferController({
       error.status = response.status;
       throw error;
     }
+    return body.size;
   }
 
   async function allocateItem(item) {
@@ -348,49 +649,100 @@ export function createTransferController({
     persistQueue();
     await allocateItem(item);
     if (item.partCount === 0) item.partCount = Math.max(1, Math.ceil(item.size / item.partSize));
+    item.uploadedParts = Array.isArray(item.uploadedParts) ? item.uploadedParts : [];
+    // Progress is acknowledged bytes, not "highest part seen": parallel parts
+    // finish out of order, and the old formula could jump straight to 100%.
+    item.uploaded = item.uploadedParts.reduce((sum, partNumber) => {
+      const offset = (Number(partNumber) - 1) * item.partSize;
+      return sum + Math.min(item.partSize, item.size - offset);
+    }, 0);
+    const queueParts = missingPartNumbers(item.partCount, item.uploadedParts);
     const startedAt = Date.now();
-    let lastBytes = 0;
-    for (let partNumber = 1; partNumber <= item.partCount; partNumber += 1) {
-      if (item.status === "cancelled") return;
-      while (item.paused && item.status !== "cancelled") {
-        await new Promise((resolve) => setTimeout(resolve, 250));
-      }
-      if (item.uploadedParts.includes(partNumber)) continue;
+    const startBytes = item.uploaded;
+    const plan = queueParts.map((partNumber) => {
       const offset = (partNumber - 1) * item.partSize;
       const length = Math.min(item.partSize, item.size - offset);
-      const part = item.file.slice(offset, offset + length);
-      try {
-        await uploadPartBytes(item, partNumber, part);
-        item.uploadedParts.push(partNumber);
-        item.uploaded = Math.min(item.size, offset + length);
-        persistQueue();
-      } catch (error) {
-        if (item.status === "cancelled") return;
-        if (error.code === "transfer_part_size_mismatch" || error.code === "transfer_identifier_invalid") {
-          item.status = "error";
-          item.error = error.message;
+      return { partNumber, offset, length };
+    });
+    let metrics = null;
+    let failure = null;
+    try {
+      metrics = await runPartPipeline({
+        parts: plan,
+        workerCount: uploadWorkerCount(item.partCount, item.uploadedParts),
+        hashPart: (part) => hashPartBytes(item, part),
+        uploadPart: (part, hash) => uploadPartBytes(item, part, hash),
+        shouldStop: () => {
+          if (item.status === "cancelled") return "cancelled";
+          if (item.paused) return "paused";
+          return "";
+        },
+        onUploaded: (part, uploadedBytes) => {
+          const partNumber = part.partNumber;
+          const length = part.length;
+          if (!item.uploadedParts.includes(partNumber)) item.uploadedParts.push(partNumber);
+          item.uploaded = Math.min(item.size, item.uploaded + (uploadedBytes || length));
+          delete item.failedPart;
+          persistQueue();
+          const elapsed = (Date.now() - startedAt) / 1000;
+          if (elapsed > 0.5 && item.uploaded > startBytes) {
+            item.speed = (item.uploaded - startBytes) / Math.max(0.2, elapsed);
+            item.eta = item.size > item.uploaded ? (item.size - item.uploaded) / Math.max(1, item.speed) : 0;
+          }
           renderQueue();
-          return;
-        }
-        item.status = "error";
-        item.error = error.message;
-        item.failedPart = partNumber;
-        renderQueue();
-        return;
-      }
-      const elapsed = (Date.now() - startedAt) / 1000;
-      const delta = item.uploaded - lastBytes;
-      lastBytes = item.uploaded;
-      if (elapsed > 0.5 && delta > 0) {
-        item.speed = delta / Math.max(0.2, (Date.now() - startedAt) / 1000);
-        item.eta = item.size > item.uploaded ? (item.size - item.uploaded) / Math.max(1, item.speed) : 0;
-      }
+        },
+      });
+    } catch (error) {
+      failure = error;
+    }
+    if (metrics) {
+      item.performance = uploadPerformanceSummary({
+        bytes: metrics.bytes,
+        hashMs: metrics.hashMs,
+        uploadMs: metrics.uploadMs,
+        totalMs: Date.now() - startedAt,
+      });
+    }
+    if (item.status === "cancelled") {
+      item.controller = null;
+      item.activeUploads = 0;
+      return;
+    }
+    // A pause interrupts the in-flight PUTs; acknowledged parts stay recorded and
+    // the rest resume. It is not a finished upload, so the item must not be
+    // marked done (that used to make「开始/继续」a no-op after pausing).
+    if (metrics?.stoppedBy === "paused" || item.paused) {
+      item.status = "pending";
+      item.controller = null;
+      item.activeUploads = 0;
+      persistQueue();
       renderQueue();
+      return;
+    }
+    if (failure) {
+      item.status = "error";
+      item.error = failure.message;
+      item.failedPart = Number(failure.partNumber) || 0;
+      item.controller = null;
+      item.activeUploads = 0;
+      persistQueue();
+      renderQueue();
+      return;
     }
     item.status = "done";
     item.controller = null;
+    item.activeUploads = 0;
     persistQueue();
     renderQueue();
+    // A file added while this one was uploading makes the active session too
+    // small for the queue. Switch after the in-flight parts settled (never by
+    // yanking an allocation out from under a running PUT), then re-upload.
+    const batchPlan = sessionPlan(queue, activeSession);
+    if (!batchPlan.reuse) {
+      await ensureSession();
+      void run();
+      return;
+    }
     if (queue.every((entry) => entry.status === "done")) setMessage("全部文件已上传，可以创建分享链接。");
   }
 
@@ -398,12 +750,30 @@ export function createTransferController({
     if (running) return;
     running = true;
     try {
-      for (const item of [...queue]) {
-        if (item.paused) continue;
-        if (item.status === "done" || item.status === "cancelled") continue;
-        // Only an item that still holds its File can be resumed; restored items
-        // stay in「待重新选择文件」until addFiles() attaches it again.
-        if (item.file && !item.controller) await uploadItem(item);
+      // A session switch (a file was appended after an upload) resets the files
+      // that already uploaded, so the loop has to run another pass instead of
+      // returning as soon as the first pass is over. Passes are bounded and stop
+      // as soon as nothing was uploaded any more.
+      for (let pass = 0; pass < 4; pass += 1) {
+        let progressed = false;
+        for (const item of [...queue]) {
+          if (item.paused) continue;
+          if (item.status === "done" || item.status === "cancelled") continue;
+          // Only an item that still holds its File can be resumed; restored items
+          // stay in「待重新选择文件」until addFiles() attaches it again.
+          if (item.file && !item.controller && !(Number(item.activeUploads) > 0)) {
+            await uploadItem(item);
+            progressed = true;
+          }
+        }
+        const needsWork = queue.some((item) =>
+          item.file
+          && !item.paused
+          && item.status !== "done"
+          && item.status !== "cancelled"
+          && item.status !== "error");
+        const plan = sessionPlan(queue, activeSession);
+        if (!progressed || (!needsWork && plan.reuse)) break;
       }
     } finally {
       running = false;
@@ -424,6 +794,22 @@ export function createTransferController({
     }
     if (!activeSession) {
       setMessage("还有文件没有上传完成。", "error");
+      return;
+    }
+    // The queue may have grown after the upload finished (a file added while the
+    // last one was still uploading). Publishing must never mix two server
+    // sessions, so this re-opens the batch when the plan no longer matches.
+    const plan = sessionPlan(queue, activeSession);
+    if (!plan.reuse) {
+      setMessage("文件列表已变化，正在重新上传后再创建分享…");
+      try {
+        await ensureSession();
+      } catch (error) {
+        setMessage(error.message || "重新上传任务创建失败，请重试。", "error");
+        return;
+      }
+      void run();
+      setMessage("已按当前文件列表重新上传，请稍候再创建分享。", "info");
       return;
     }
     setMessage("正在创建分享…");
@@ -637,7 +1023,9 @@ export function createTransferController({
     const item = itemById(id);
     if (!item) return;
     item.status = "cancelled";
-    item.controller?.abort();
+    item.controllers?.forEach((controller) => controller.abort());
+    item.controllers?.clear();
+    item.controller = null;
     queue = queue.filter((entry) => entry.id !== id);
     persistQueue();
     renderQueue();
@@ -647,6 +1035,11 @@ export function createTransferController({
     const item = itemById(id);
     if (!item) return;
     item.paused = true;
+    // Stop every in-flight part; acknowledged parts stay recorded, so resume
+    // simply re-uploads whatever did not finish.
+    item.controllers?.forEach((controller) => controller.abort());
+    item.controllers?.clear();
+    item.controller = null;
     renderQueue();
   }
 
@@ -664,7 +1057,11 @@ export function createTransferController({
     if (!button) return;
     if (button.id === "transferSelectFilesBtn") element("transferFileInput")?.click();
     else if (button.id === "transferSelectFolderBtn") element("transferFolderInput")?.click();
-    else if (button.id === "transferCompleteBtn") void complete();
+    // #7: creating the share and downloading a file both wait on the server; the
+    // pressed control shows the pending state before the first await.
+    else if (button.id === "transferCompleteBtn") {
+      void withInteractionFeedback(button, "transfer-complete", () => complete()).catch(() => undefined);
+    }
     else if (button.id === "transferCopyLinkBtn") {
       const link = element("transferShareLink");
       link?.select();
@@ -677,10 +1074,17 @@ export function createTransferController({
     else if (button.dataset.transferCancel) cancelItem(button.dataset.transferCancel);
     else if (button.dataset.transferDownload) {
       const [shareId, fileId] = button.dataset.transferDownload.split("|");
-      void downloadShareFile(shareId, fileId, Boolean(currentShare?.password_required));
+      void withInteractionFeedback(
+        button,
+        "transfer-download",
+        () => downloadShareFile(shareId, fileId, Boolean(currentShare?.password_required)),
+      ).catch(() => undefined);
     }
     else if (button.dataset.transferOpen) void openShare(button.dataset.transferOpen);
-    else if (button.dataset.transferRevoke) void revokeShare(button.dataset.transferRevoke);
+    else if (button.dataset.transferRevoke) {
+      void withInteractionFeedback(button, "transfer-revoke", () => revokeShare(button.dataset.transferRevoke))
+        .catch(() => undefined);
+    }
   }
 
   function handleDrop(event) {

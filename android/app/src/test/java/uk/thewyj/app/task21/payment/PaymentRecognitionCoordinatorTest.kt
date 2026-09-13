@@ -34,6 +34,231 @@ class PaymentRecognitionCoordinatorTest {
         }
     }
 
+    /**
+     * Task 24 reopen P0 (real device 2026-09-13, WeChat 金额待核实):
+     * an amount-unknown capture only creates a 90 second ticket, so the UI had
+     * no candidate to save into and「填写金额并记账」always answered
+     * 「修改没有保存，请重试」. The user's manual amount must create the
+     * candidate and book it.
+     */
+    @Test fun manualAmountCreatesTheMissingCandidateAndBooksIt() {
+        val store = FakeStore()
+        val coordinator = PaymentRecognitionCoordinator(
+            store = store,
+            notifier = FakeNotifier(),
+            now = { 1_000L },
+        )
+        store.saveRecognition(
+            PaymentRecognitionRecord(
+                recognitionId = "rec-wechat",
+                accountId = "account-a",
+                state = PaymentRecognitionState.WAITING_FOR_ENRICHMENT.name,
+                notificationId = 11,
+                sourcePackage = "com.tencent.mm",
+                sourceType = "notification",
+                sourceEventId = "notification#wechat#1",
+                paymentChannel = "wechat",
+                amountMinor = null,
+                currency = "CNY",
+                direction = FinanceDirection.UNKNOWN.name,
+                merchant = "",
+                providerReference = "",
+                createdAtMs = 1_000L,
+                updatedAtMs = 1_000L,
+            ),
+        )
+        assertNull(store.candidateForRecognition("account-a", "rec-wechat"))
+
+        val created = coordinator.ensureCandidateForRecognition(
+            accountId = "account-a",
+            recognitionId = "rec-wechat",
+            amountMinor = 10_000L,
+            direction = FinanceDirection.EXPENSE.name,
+            merchant = "微信",
+        )
+
+        assertNotNull("the manual amount must create a candidate", created)
+        assertEquals(10_000L, created?.effectiveAmountMinor)
+        assertEquals(FinanceDirection.EXPENSE.name, created?.effectiveDirection)
+        assertEquals("微信", created?.effectiveMerchant)
+        assertEquals("pending", created?.status)
+
+        // A second save edits the existing candidate instead of forking a new one.
+        val edited = coordinator.ensureCandidateForRecognition(
+            accountId = "account-a",
+            recognitionId = "rec-wechat",
+            amountMinor = 12_345L,
+        )
+        assertEquals(created?.candidateId, edited?.candidateId)
+        assertEquals(12_345L, edited?.effectiveAmountMinor)
+    }
+
+    /**
+     * Task 24 reopen #1 (full chain): the manual amount does not only create a
+     * candidate, it must be the payload that books **one** transaction.
+     *
+     * manual amount → candidate → confirm (one draft) → server ledger id →
+     * candidate terminal → a second confirm reuses the same candidate and the
+     * same ledger identity instead of booking a second transaction.
+     */
+    @Test fun manualAmountChainBooksExactlyOneTransactionAndStaysIdempotent() {
+        val store = FakeStore()
+        val coordinator = PaymentRecognitionCoordinator(
+            store = store,
+            notifier = FakeNotifier(),
+            now = { 1_000L },
+        )
+        store.saveRecognition(
+            PaymentRecognitionRecord(
+                recognitionId = "rec-chain",
+                accountId = "account-a",
+                state = PaymentRecognitionState.WAITING_FOR_ENRICHMENT.name,
+                notificationId = 21,
+                sourcePackage = "com.tencent.mm",
+                sourceType = "notification",
+                sourceEventId = "notification#chain#1",
+                paymentChannel = "wechat",
+                amountMinor = null,
+                currency = "CNY",
+                direction = FinanceDirection.UNKNOWN.name,
+                merchant = "",
+                providerReference = "",
+                createdAtMs = 1_000L,
+                updatedAtMs = 1_000L,
+            ),
+        )
+
+        val candidate = coordinator.ensureCandidateForRecognition(
+            accountId = "account-a",
+            recognitionId = "rec-chain",
+            amountMinor = 10_000L,
+            direction = FinanceDirection.EXPENSE.name,
+            merchant = "微信",
+        )!!
+
+        val draft = coordinator.confirmCandidate("account-a", candidate.candidateId)!!
+        assertEquals("the user's amount is what gets booked", 10_000L, draft.amountMinor)
+        assertEquals(FinanceDirection.EXPENSE.name, draft.direction)
+
+        // Confirmed, but not yet terminal: only the server's ledger id closes it.
+        val beforeServer = store.candidate("account-a", candidate.candidateId)!!
+        assertEquals("confirmed", beforeServer.status)
+        assertTrue(beforeServer.financeTransactionId.isBlank())
+
+        coordinator.markFinanceRecorded("account-a", candidate.candidateId, "txn-1")
+        val terminal = store.candidate("account-a", candidate.candidateId)!!
+        assertEquals("txn-1", terminal.financeTransactionId)
+        assertEquals(
+            PaymentRecognitionState.FINANCE_RECORDED.name,
+            store.recognition("account-a", "rec-chain")!!.state,
+        )
+
+        // A double tap re-confirms the same candidate; no second candidate and no
+        // second ledger identity can come out of it.
+        val second = coordinator.confirmCandidate("account-a", candidate.candidateId)!!
+        assertEquals(10_000L, second.amountMinor)
+        assertEquals(1, store.candidates.values.count { it.recognitionId == "rec-chain" })
+        coordinator.markFinanceRecorded("account-a", candidate.candidateId, "txn-1")
+        assertEquals("txn-1", store.candidate("account-a", candidate.candidateId)!!.financeTransactionId)
+        assertEquals(1, store.candidates.values.count { it.financeTransactionId == "txn-1" })
+    }
+
+    /**
+     * The same chain without a direction: the booking draft must stay unusable
+     * (amount only), so the UI can ask for the missing half instead of booking a
+     * direction-less transaction.
+     */
+    @Test fun manualAmountWithoutDirectionNeverProducesABookableDraft() {
+        val store = FakeStore()
+        val coordinator = PaymentRecognitionCoordinator(
+            store = store,
+            notifier = FakeNotifier(),
+            now = { 1_000L },
+        )
+        store.saveRecognition(
+            PaymentRecognitionRecord(
+                recognitionId = "rec-half",
+                accountId = "account-a",
+                state = PaymentRecognitionState.WAITING_FOR_ENRICHMENT.name,
+                notificationId = 22,
+                sourcePackage = "com.tencent.mm",
+                sourceType = "notification",
+                sourceEventId = "notification#half#1",
+                paymentChannel = "wechat",
+                amountMinor = null,
+                currency = "CNY",
+                direction = FinanceDirection.UNKNOWN.name,
+                merchant = "",
+                providerReference = "",
+                createdAtMs = 1_000L,
+                updatedAtMs = 1_000L,
+            ),
+        )
+        val candidate = coordinator.ensureCandidateForRecognition(
+            accountId = "account-a",
+            recognitionId = "rec-half",
+            amountMinor = 5_000L,
+        )!!
+        val draft = coordinator.confirmCandidate("account-a", candidate.candidateId)!!
+        assertEquals(5_000L, draft.amountMinor)
+        assertEquals(FinanceDirection.UNKNOWN.name, draft.direction)
+    }
+
+    /**
+     * Task 24 reopen #10: an amount-unknown capture opens a 90 second ticket. The
+     * accessibility gate is refreshed from Room on a short cadence, so the same
+     * moment must publish the package - otherwise the very first page event is
+     * dropped as `no_active_ticket` and the payment can never be enriched.
+     */
+    @Test fun openingAVerificationTicketAnnouncesThePackage() {
+        PaymentTicketPackageSignal.clear()
+        val store = FakeStore()
+        val coordinator = PaymentRecognitionCoordinator(
+            store = store,
+            notifier = FakeNotifier(),
+            now = { 1_000L },
+        )
+        coordinator.onSourceEvent(
+            accountId = "account-a",
+            sourcePackage = "com.tencent.mm",
+            sourceType = PaymentSourceType.NOTIFICATION,
+            sourceEventId = "notification#signal#1000",
+            title = "微信",
+            text = "转账",
+            sourceAppLabel = "微信",
+        )
+        assertTrue(
+            "the accessibility gate must know about the ticket before its next refresh",
+            PaymentTicketPackageSignal.recentlySignalled("com.tencent.mm"),
+        )
+        assertTrue(store.tickets.values.any { it.sourcePackage == "com.tencent.mm" })
+        PaymentTicketPackageSignal.clear()
+    }
+
+    /** The manual "核实交易" restart publishes the package again. */
+    @Test fun restartedVerificationAnnouncesThePackageAgain() {
+        PaymentTicketPackageSignal.clear()
+        val store = FakeStore()
+        val coordinator = PaymentRecognitionCoordinator(
+            store = store,
+            notifier = FakeNotifier(),
+            now = { 1_000L },
+        )
+        val outcome = coordinator.onSourceEvent(
+            accountId = "account-a",
+            sourcePackage = "cmb.pb",
+            sourceType = PaymentSourceType.NOTIFICATION,
+            sourceEventId = "notification#bank#1000",
+            title = "招商银行",
+            text = "转账",
+            sourceAppLabel = "招商银行",
+        )
+        PaymentTicketPackageSignal.clear()
+        assertNotNull(coordinator.restartVerification("account-a", outcome.recognitionId))
+        assertTrue(PaymentTicketPackageSignal.recentlySignalled("cmb.pb"))
+        PaymentTicketPackageSignal.clear()
+    }
+
     private class FakeStore : PaymentRecognitionStoreContract {
         val recognitions = mutableMapOf<String, PaymentRecognitionRecord>()
         val tickets = mutableMapOf<String, PaymentTicket>()

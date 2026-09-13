@@ -82,6 +82,18 @@ object PaymentAccessibilityStatus {
         activeTicketPackages = packages.sorted().joinToString(",")
     }
 
+    /**
+     * #10: the event was allowed through on the ticket-created signal before the
+     * 3 second package cache caught up. This is not a skip - the page is read and
+     * the worker re-checks the Room ticket - but the counter makes the race
+     * visible in a device log.
+     */
+    fun onTicketSignal(packageName: String) {
+        if (parserThrottle.allow("ticket-signal")) {
+            emit("accessibility-ticket-signal pkg=$packageName")
+        }
+    }
+
     fun snapshot(): String = buildString {
         append("enabled=true connected=").append(connected)
         append(" lastPackage=").append(lastEventPackage.ifBlank { "-" })

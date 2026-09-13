@@ -56,6 +56,12 @@ data class NotificationCapture(
     val mediaOrigin: String = "",
     /** Stable structured-event id shared with the payment pipeline. */
     val sourceEventId: String = "",
+    /**
+     * Task 24 reopen #5: the capture is an update of the latest revision for the
+     * same identity (recording timer / live readout). The store rewrites that
+     * revision instead of adding another history row.
+     */
+    val coalesceWithPrevious: Boolean = false,
 )
 
 data class NotificationHistoryItem(
@@ -135,6 +141,7 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
             newInstanceId = instanceId,
             newRevisionId = revisionId,
             now = now,
+            coalesceWithPrevious = capture.coalesceWithPrevious,
             instanceFactory = { createdInstanceId ->
                 NotificationInstanceEntity(
                     instanceId = createdInstanceId,
@@ -189,18 +196,46 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
                 )
             },
         )
-        return if (result.revisionAdded) {
-            uk.thewyj.app.task21.CaptureTrace.stage(traceId, "room-committed", "instance=${result.instanceId}")
-            result.instanceId
-        } else {
-            uk.thewyj.app.task21.CaptureTrace.stage(traceId, "room-replay-no-change")
-            null
+        return when {
+            result.coalesced -> {
+                // #5: the row was updated in place, so the history list keeps one
+                // entry for one updating notification. This is a real write, not
+                // a replay, and the UI still gets a change signal from Room.
+                uk.thewyj.app.task21.CaptureTrace.stage(traceId, "room-coalesced", "instance=${result.instanceId}")
+                result.instanceId
+            }
+            result.revisionAdded -> {
+                uk.thewyj.app.task21.CaptureTrace.stage(traceId, "room-committed", "instance=${result.instanceId}")
+                result.instanceId
+            }
+            else -> {
+                uk.thewyj.app.task21.CaptureTrace.stage(traceId, "room-replay-no-change")
+                null
+            }
         }
     }
 
     fun markRemoved(accountId: String, notificationKey: String, removedAt: Long = System.currentTimeMillis()): Int {
         if (notificationKey.isBlank()) return 0
         return dao.markRemovedByKey(accountId.trim(), notificationKey, removedAt)
+    }
+
+    /**
+     * #5: removal of a notification that has no platform key. Android still
+     * identifies it as package + id + tag, so the lifecycle is closed for that
+     * slot and a later repost starts a new instance instead of reopening the
+     * removed one.
+     */
+    fun markRemovedBySlot(
+        accountId: String,
+        sourcePackage: String,
+        notificationId: Int,
+        tag: String,
+        removedAt: Long = System.currentTimeMillis(),
+    ): Int {
+        if (sourcePackage.isBlank()) return 0
+        if (notificationId == 0 && tag.isBlank()) return 0
+        return dao.markRemovedBySlot(accountId.trim(), sourcePackage, notificationId, tag, removedAt)
     }
 
     fun markRemovedByInstance(accountId: String, instanceId: String, removedAt: Long = System.currentTimeMillis()): Int =

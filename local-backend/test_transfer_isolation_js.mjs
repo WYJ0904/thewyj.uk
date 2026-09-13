@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 
 import {
+  missingPartNumbers,
   restoreQueueEntry,
   sessionIdForQueue,
   shouldAdoptStoredQueue,
   transferQueueStorageKey,
+  uploadWorkerCount,
 } from "../js/transfer/app.js";
 
 // Task 24.3 multi-account isolation: the upload queue is now scoped per owner,
@@ -98,5 +100,17 @@ assert.equal(doneItem.needsFile, false);
 assert.equal(sessionIdForQueue([{ id: "a" }, { id: "b", sessionId: "session-9" }]), "session-9");
 assert.equal(sessionIdForQueue([{ id: "a" }]), "");
 assert.equal(sessionIdForQueue(null), "");
+
+// Task 24 reopen (#9 upload hot path): multipart uploads used to run strictly
+// one part at a time (hash → PUT → wait), which capped real-world throughput.
+// The scheduler must keep a bounded number of parts in flight, resume exactly
+// the missing ones, and never multiply workers beyond the work left.
+assert.deepEqual(missingPartNumbers(4, [1, 3]), [2, 4], "only unfinished parts are retried");
+assert.deepEqual(missingPartNumbers(3, [1, 2, 3]), [], "a finished file has no missing parts");
+assert.deepEqual(missingPartNumbers(3, []), [1, 2, 3], "a fresh file needs every part");
+assert.equal(uploadWorkerCount(10, [], 3), 3, "concurrency is bounded by the configured limit");
+assert.equal(uploadWorkerCount(2, [], 3), 2, "never more workers than remaining parts");
+assert.equal(uploadWorkerCount(5, [1, 2, 3, 4, 5], 3), 0, "no workers when nothing is left");
+assert.equal(uploadWorkerCount(8, [1, 2, 3, 4, 5, 6, 7], 3), 1, "the last part still gets one worker");
 
 console.log("Transfer queue isolation checks passed (per-account keys, stable within one account).");

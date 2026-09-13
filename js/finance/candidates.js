@@ -1,4 +1,12 @@
 import { randomId } from "../core/capabilities.js?v=20260912-task24-4-r2";
+import {
+  INTERACTION_STAGES,
+  attachInteractionFeedback,
+  beginInteraction,
+  createLatestOnly,
+  createSingleFlight,
+  withInteractionFeedback,
+} from "../core/perf.js?v=20260912-task24-4-r2";
 const CANDIDATE_PAGE_LIMIT = 100;
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款" });
@@ -67,6 +75,9 @@ export function createFinanceCandidatesController({
   let currentCandidates = [];
   let renderedForAccount = "";
   let bound = false;
+  // Task 24 reopen #7: one refresh at a time, and only the newest list may paint.
+  const refreshOnce = createSingleFlight();
+  const listVersion = createLatestOnly();
 
   const element = (id) => document.getElementById(id);
 
@@ -188,6 +199,11 @@ export function createFinanceCandidatesController({
   }
 
   async function reload() {
+    return refreshOnce("finance-candidates", () => loadCandidates());
+  }
+
+  async function loadCandidates() {
+    const version = listVersion.begin();
     const section = element("financeCandidatesSection");
     if (!section) return;
     if (!hasAccess()) {
@@ -208,6 +224,9 @@ export function createFinanceCandidatesController({
       // payment the device could not complete is actionable here instead of only
       // inside the app. Identity stays the hint id; the server owns the state.
       const hints = await loadPendingHints();
+      // A slow earlier refresh must never repaint over a newer list (for example
+      // the row the user just confirmed).
+      if (!listVersion.isCurrent(version)) return;
       render([...hints, ...candidates]);
     } catch (error) {
       if (error?.code === "task21_notification_not_enabled") {
@@ -249,9 +268,15 @@ export function createFinanceCandidatesController({
     }
   }
 
-  async function decide(id, confirm, edits = null) {
+  async function decide(id, confirm, edits = null, trigger = null) {
     if (!id || busyIds.has(id)) return;
+    // Feedback first: the pending state is painted before the first await, so a
+    // slow or hanging request can never look like a dead button (#7).
+    const trace = beginInteraction(confirm ? "finance-candidate-confirm" : "finance-candidate-reject", { id });
+    trace.mark(INTERACTION_STAGES.CLICK);
+    const release = attachInteractionFeedback(trigger);
     busyIds = new Set(busyIds).add(id);
+    trace.mark(INTERACTION_STAGES.HANDLER_START, confirm ? "confirm" : "reject");
     reloadListState();
     let succeeded = false;
     try {
@@ -272,14 +297,31 @@ export function createFinanceCandidatesController({
       const path = isHint
         ? `/api/notification/hints/${confirm ? "confirm" : "ignore"}`
         : `/api/notification/candidates/${confirm ? "confirm" : "reject"}`;
+      trace.mark(INTERACTION_STAGES.REQUEST_START, path);
       const response = await api(path, body);
+      trace.mark(INTERACTION_STAGES.RESPONSE, String(response?.transaction_id || ""));
+      // The server accepted the decision, so the row leaves the pending list
+      // immediately (optimistic terminal state). The follow-up refresh below
+      // reconciles with the server list; a stale refresh cannot undo this paint
+      // because loadCandidates() drops answers from an older version.
+      currentCandidates = currentCandidates.filter((item) => String(item.id) !== String(id));
+      render(currentCandidates, confirm ? "已记账，正在同步…" : "已忽略。");
+      trace.mark(INTERACTION_STAGES.STATE_APPLY, confirm ? "booked" : "ignored");
       succeeded = true;
       onCandidateChanged(confirm ? String(response?.transaction_id || "") : "");
     } catch (error) {
       render(currentCandidates, `操作失败：${error?.message || "请稍后重试"}`);
+      trace.mark(INTERACTION_STAGES.STATE_APPLY, "failed");
+      trace.mark(INTERACTION_STAGES.RENDER_END, "error");
     } finally {
       busyIds = new Set([...busyIds].filter((item) => item !== id));
-      if (succeeded) await reload();
+      release();
+      // Reconcile in the background: the user already sees the result, and the
+      // refresh itself is single-flighted so a burst of confirms fetches once.
+      if (succeeded) {
+        trace.finish(confirm ? "booked" : "ignored");
+        void reload();
+      }
       else reloadListState();
     }
   }
@@ -319,7 +361,7 @@ export function createFinanceCandidatesController({
       const candidate = currentCandidates.find((item) => String(item.id) === String(id));
       const form = document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`);
       if (!candidate || !form) return;
-      decide(id, true, buildEdits(candidate, form));
+      decide(id, true, buildEdits(candidate, form), saveButton);
       return;
     }
     const confirmButton = event.target.closest("[data-finance-candidate-confirm]");
@@ -345,15 +387,21 @@ export function createFinanceCandidatesController({
         }
         return;
       }
-      decide(id, true);
+      decide(id, true, null, confirmButton);
       return;
     }
     const rejectButton = event.target.closest("[data-finance-candidate-reject]");
     if (rejectButton) {
-      decide(rejectButton.dataset.financeCandidateReject, false);
+      decide(rejectButton.dataset.financeCandidateReject, false, null, rejectButton);
       return;
     }
-    if (event.target.closest("#financeCandidatesRefreshBtn")) reload();
+    const refreshButton = event.target.closest("#financeCandidatesRefreshBtn");
+    if (refreshButton) {
+      // #7 browser regression: a manual refresh also waits on two requests, so
+      // the button must show its pending state before the first await.
+      void withInteractionFeedback(refreshButton, "finance-candidates-refresh", () => reload());
+      return;
+    }
   }
 
   function show() {

@@ -91,6 +91,29 @@ class NotificationParserTest {
         assertTrue(output.confidence >= 900)
     }
 
+    /**
+     * Task 24 reopen (real device 2026-09-13): the user's own WeChat message
+     * 「已支付¥100」 (contact-name title, no merchant) stayed "金额待填写".
+     * An explicit payment verb plus an explicit amount must always resolve to
+     * 100 CNY, with or without the currency symbol / spacing, and an unknown
+     * merchant must never downgrade the amount.
+     */
+    @Test fun explicitPaymentVerbWithAmountParsesInEveryWrittenForm() {
+        listOf(
+            "已支付100",
+            "已支付¥100",
+            "已支付￥100",
+            "已支付 100",
+            "支付100元",
+            "已付款100",
+        ).forEach { text ->
+            val output = parse("com.tencent.mm", "老周横眉", text)
+            assertEquals("$text must parse 100 CNY", 10_000L, output.amountMinor)
+            assertEquals("$text must be an expense", FinanceDirection.EXPENSE, output.direction)
+            assertTrue("$text must reach a usable confidence: ${output.confidence}", output.confidence >= 700)
+        }
+    }
+
     @Test fun referenceNumbersAndChatAmountsStayUnparsed() {
         listOf("支付订单号 202609110001", "支付时间 2026-09-11", "支付验证码 123456", "张三：100 元的事明天聊").forEach {
             val output = parse("com.tencent.mm", "微信", it)

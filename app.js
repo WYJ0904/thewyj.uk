@@ -51,6 +51,14 @@ import {
 import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260912-task24-4-r2";
 import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20260912-task24-4-r2";
 import { createTransferController } from "./js/transfer/app.js?v=20260912-task24-4-r2";
+import {
+  INTERACTION_STAGES,
+  beginInteraction,
+  installPerfGlobal,
+  interactionTraceApi,
+  withInteractionFeedback,
+  withInteractionFeedbackQuiet,
+} from "./js/core/perf.js?v=20260912-task24-4-r2";
 import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260912-task24-4-r2";
 import {
   calculateStudyStreak,
@@ -2560,14 +2568,23 @@ function renderAdminRecharge(requests) {
   list.querySelectorAll("[data-recharge-approve], [data-recharge-reject]").forEach((button) => button.addEventListener("click", () => {
     const requestId = button.closest("[data-request-id]").dataset.requestId;
     const action = button.hasAttribute("data-recharge-approve") ? "approve" : "reject";
-    askConfirmation(action === "approve" ? "确认开通该会员套餐？" : "确认拒绝该充值申请？", async () => {
-      await api("/api/admin/recharge/process", {
-        request_id: requestId,
-        action,
-        admin_note: action === "approve" ? "管理员人工核对付款通过" : "管理员人工核对未通过",
-      });
-      await loadAdminData();
-    });
+    askConfirmation(
+      action === "approve" ? "确认开通该会员套餐？" : "确认拒绝该充值申请？",
+      // #7: the admin approval round trip must show feedback on the button that
+      // was pressed, not only after the list reloads.
+      ({ confirmButton } = {}) => withInteractionFeedback(
+        confirmButton || button,
+        `admin-recharge-${action}`,
+        async () => {
+          await api("/api/admin/recharge/process", {
+            request_id: requestId,
+            action,
+            admin_note: action === "approve" ? "管理员人工核对付款通过" : "管理员人工核对未通过",
+          });
+          await loadAdminData();
+        },
+      ),
+    );
   }));
 }
 
@@ -4062,14 +4079,76 @@ function isRouteGenerationCurrent(generation) {
   return generation === routeGeneration;
 }
 
+/**
+ * Task 24 reopen #7: one interaction trace per user gesture, shared by the
+ * global click hook and the route render so the documented chain
+ * `click → handler start → request start → response → state apply → render end`
+ * is measurable on a real device through `window.__wyjInteractionTrace()`.
+ */
+let activeInteraction = null;
+
+function describeInteractionTarget(target) {
+  const element = target?.closest?.("button, a, [role='button'], input[type='submit']") || target;
+  if (!element) return "";
+  const id = element.id ? `#${element.id}` : "";
+  const dataKey = element.dataset ? Object.keys(element.dataset)[0] || "" : "";
+  const label = String(element.textContent || element.getAttribute?.("aria-label") || "").trim().slice(0, 24);
+  const tag = String(element.tagName || "element").toLowerCase();
+  return `${tag}${id}${dataKey ? `[${dataKey}]` : ""}${label ? ` ${label}` : ""}`.trim();
+}
+
+function installInteractionTracing() {
+  try {
+    if (typeof window !== "undefined") {
+      window.__wyjInteractionTrace = interactionTraceApi();
+      // Classic scripts (tools.js / workflows.js) use the same helpers.
+      installPerfGlobal(window);
+    }
+  } catch (_) {
+    // A WebView without a writable window must never block the UI.
+  }
+  document.addEventListener("click", (event) => {
+    const target = describeInteractionTarget(event.target);
+    // Every gesture owns its trace. A navigation started by this click extends
+    // it (routeCurrent() adds the render stages); a click that only opens a menu
+    // is closed by its own timer, so no trace is ever left half open.
+    const trace = beginInteraction("click", { target });
+    trace.mark(INTERACTION_STAGES.CLICK, target);
+    activeInteraction = trace;
+    trace.autoFinish = window.setTimeout(() => {
+      if (activeInteraction !== trace) return;
+      activeInteraction = null;
+      if (!trace.finished) trace.finish("click");
+    }, 5_000);
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => {
+        if (activeInteraction === trace) trace.mark("first-frame", target);
+      });
+    }
+  }, { capture: true, passive: true });
+}
+
 function routeCurrent() {
   // Capture the target path with the render so a stale render can never read a
   // newer URL, and bump a generation so slow async work from an earlier route
   // can no longer paint over the route the user actually opened.
   const path = currentRoutePath();
   const generation = ++routeGeneration;
+  // Task 24 reopen #7: the same timeline covers every navigation, so a "slow
+  // page" can be attributed to the route render instead of being described as
+  // an unresponsive click.
+  const trace = activeInteraction || beginInteraction("route");
+  activeInteraction = trace;
+  trace.mark(INTERACTION_STAGES.HANDLER_START, path);
   routeRender = Promise.resolve()
     .then(() => renderCurrentRoute(path, generation))
+    .then((result) => {
+      trace.mark(INTERACTION_STAGES.STATE_APPLY, path);
+      trace.finish(path);
+      if (trace.autoFinish) window.clearTimeout(trace.autoFinish);
+      if (activeInteraction === trace) activeInteraction = null;
+      return result;
+    })
     .catch(() => {});
   return routeRender;
 }
@@ -6710,7 +6789,9 @@ async function boot() {
     const destination = link.dataset.siteNav;
     if (!siteNavigationDestinations.has(destination)) return;
     event.preventDefault();
-    await navigateFromSiteNav(destination);
+    // #7: a site-nav switch waits on the destination's data; the pressed link
+    // keeps the pending state until the route is rendered.
+    await withInteractionFeedback(link, `site-nav-${destination}`, () => navigateFromSiteNav(destination));
   }));
   $("publicTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
   $("publicLanguageTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
@@ -6720,10 +6801,15 @@ async function boot() {
   $("publicChangelogBtn")?.addEventListener("click", () => showChangelog(true));
   $("changelogTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
   $("dashboardChangelogBtn")?.addEventListener("click", () => showChangelog(true));
-  $("learningSyncNowBtn")?.addEventListener("click", syncLearningDataNow);
-  $("learningSyncExportBtn")?.addEventListener("click", exportLearningSyncBackup);
+  // #7: the learning-sync actions talk to the cloud; the control shows the
+  // pending state before the first await instead of looking dead for a round trip.
+  $("learningSyncNowBtn")?.addEventListener("click", (event) =>
+    withInteractionFeedback(event.currentTarget, "learning-sync-now", () => syncLearningDataNow(event)));
+  $("learningSyncExportBtn")?.addEventListener("click", (event) =>
+    withInteractionFeedback(event.currentTarget, "learning-sync-export", () => exportLearningSyncBackup(event)));
   $("learningSyncImportBtn")?.addEventListener("click", () => $("learningSyncFileInput")?.click());
-  $("learningSyncFileInput")?.addEventListener("change", importLearningSyncBackup);
+  $("learningSyncFileInput")?.addEventListener("change", (event) =>
+    withInteractionFeedback($("learningSyncImportBtn") || event.currentTarget, "learning-sync-import", () => importLearningSyncBackup(event)));
   $("dismissVersionNoticeBtn")?.addEventListener("click", dismissVersionNotice);
   $("viewVersionDetailsBtn")?.addEventListener("click", () => { dismissVersionNotice(); showChangelog(true); });
   $("trialHomeBtn")?.addEventListener("click", () => state.session && state.account ? showModulePicker(true) : showPublicHome(true));
@@ -6740,8 +6826,16 @@ async function boot() {
   $("trialImageQuality")?.addEventListener("input", () => { $("trialImageQualityValue").textContent = `${$("trialImageQuality").value}%`; });
   $("trialImageInput")?.addEventListener("change", () => { releaseTrialImageOutput(); setTrialMessage("trialImageMessage"); });
   $("trialImageProcessBtn")?.addEventListener("click", processTrialImage);
-  $("membershipBtn").addEventListener("click", async () => { closeAccountMenu(); pushRoute("/recharge"); await openMembershipModal(); });
-  $("feedbackBtn").addEventListener("click", openFeedbackModal);
+  // #7: opening the membership page loads plans from the server; the menu entry
+  // shows the pending state while it waits (membership module).
+  $("membershipBtn").addEventListener("click", (event) =>
+    withInteractionFeedback(event.currentTarget, "membership-open", async () => {
+      closeAccountMenu();
+      pushRoute("/recharge");
+      await openMembershipModal();
+    }));
+  $("feedbackBtn").addEventListener("click", (event) =>
+    withInteractionFeedback(event.currentTarget, "feedback-open", () => openFeedbackModal(event)));
   $("accountBtn").addEventListener("click", () => { closeAccountMenu(); pushRoute("/account"); openModal("accountModal"); });
   $("homeBtn").addEventListener("click", () => { closeAccountMenu(); showModulePicker(true); });
   $("adminBtn").addEventListener("click", () => { closeAccountMenu(); showAdminPanel(true); });
@@ -6749,7 +6843,10 @@ async function boot() {
   document.querySelectorAll("[data-membership-goal]").forEach((button) => {
     button.addEventListener("click", () => selectMembershipGoal(button.dataset.membershipGoal));
   });
-  $("submitRechargeBtn").addEventListener("click", submitRechargeRequest);
+  // #7: submitting a recharge always waits on the server; the button must show
+  // the pending state immediately (it is the membership conversion path).
+  $("submitRechargeBtn").addEventListener("click", (event) =>
+    withInteractionFeedback(event.currentTarget, "recharge-submit", () => submitRechargeRequest(event)));
   $("confirmPaymentBtn").addEventListener("click", confirmRechargePayment);
   $("cancelPaymentOrderBtn").addEventListener("click", cancelRechargeOrder);
   $("retryMembershipPlansBtn").addEventListener("click", reloadMembershipPlans);
@@ -6863,17 +6960,25 @@ async function boot() {
   $("adminDisableToolsBtn").addEventListener("click", () => updateAdminToolsOverride(false));
   $("adminEnableToolsBtn").addEventListener("click", () => updateAdminToolsOverride(null));
   $("toggleAdminSecretBtn").addEventListener("click", () => setAdminSecretVisibility($("adminNewSecretInput").type === "password"));
-  $("generateAdminSecretBtn").addEventListener("click", generateAdminSecretForEditor);
+  $("generateAdminSecretBtn").addEventListener("click", (event) =>
+    withInteractionFeedback(event.currentTarget, "admin-generate-secret", () => generateAdminSecretForEditor(event)));
   $("adminNewSecretInput").addEventListener("input", clearAdminSecretResult);
-  $("saveAdminSecretBtn").addEventListener("click", saveAdminSecret);
+  $("saveAdminSecretBtn").addEventListener("click", (event) =>
+    withInteractionFeedback(event.currentTarget, "admin-save-secret", () => saveAdminSecret(event)));
   $("copyAdminSecretBtn").addEventListener("click", () => copyTextWithFeedback($("adminSecretResultValue").textContent, $("copyAdminSecretBtn")));
-  $("adminToggleBanBtn").addEventListener("click", () => adminUserAction("ban"));
-  $("adminForceLogoutBtn").addEventListener("click", () => adminUserAction("logout"));
-  $("adminDeleteUserBtn").addEventListener("click", () => adminUserAction("delete"));
+  // #7: admin actions are destructive and slow (server round trip + ledger
+  // writes); each one shows which control is working before the first await.
+  $("adminToggleBanBtn").addEventListener("click", (event) =>
+    withInteractionFeedback(event.currentTarget, "admin-ban", () => adminUserAction("ban")));
+  $("adminForceLogoutBtn").addEventListener("click", (event) =>
+    withInteractionFeedback(event.currentTarget, "admin-logout", () => adminUserAction("logout")));
+  $("adminDeleteUserBtn").addEventListener("click", (event) =>
+    withInteractionFeedback(event.currentTarget, "admin-delete", () => adminUserAction("delete")));
   $("cancelConfirmBtn").addEventListener("click", () => { confirmAction = null; closeModal("confirmModal"); });
   $("acceptConfirmBtn").addEventListener("click", runConfirmedAction);
   $("rejudgeResultConfirmBtn").addEventListener("click", closeRejudgeResultModal);
-  $("roundRetryBtn").addEventListener("click", retryLastRound);
+  $("roundRetryBtn").addEventListener("click", (event) =>
+    withInteractionFeedback(event.currentTarget, "round-retry", () => retryLastRound(event)));
   $("roundWrongBtn").addEventListener("click", () => {
     closeModal("roundSummaryModal", true);
     setView("wrongView");
@@ -6907,7 +7012,8 @@ async function boot() {
   $("clearBtn").addEventListener("click", confirmClearWords);
   $("importWordsBtn").addEventListener("click", () => $("wordFileInput").click());
   $("exportWordsBtn").addEventListener("click", exportWords);
-  $("wordFileInput").addEventListener("change", importWords);
+  $("wordFileInput").addEventListener("change", (event) =>
+    withInteractionFeedback($("importWordsBtn") || event.currentTarget, "words-import", () => importWords(event)));
   $("speakBtn").addEventListener("click", speakCurrentWord);
   $("speechRateSlider")?.addEventListener("input", (event) => {
     const rate = saveSpeechRate(localStorage, state.quizLanguage || "english", event.target.value);
@@ -6926,7 +7032,8 @@ async function boot() {
   $("exportHistoryBtn").addEventListener("click", () => exportWrongBook("history"));
   $("exportWrongDataBtn").addEventListener("click", exportWrongData);
   $("importWrongDataBtn").addEventListener("click", () => $("wrongDataFileInput").click());
-  $("wrongDataFileInput").addEventListener("change", importWrongData);
+  $("wrongDataFileInput").addEventListener("change", (event) =>
+    withInteractionFeedback($("importWrongDataBtn") || event.currentTarget, "wrong-data-import", () => importWrongData(event)));
   $("clearWrongBtn").addEventListener("click", () => confirmClearWrongBook("current"));
   $("clearHistoryBtn").addEventListener("click", () => confirmClearWrongBook("history"));
   $("studyGoalInput").addEventListener("change", saveStudyGoal);
@@ -6952,9 +7059,13 @@ async function boot() {
     button.addEventListener("click", () => enterProject(button.dataset.dashboardProject || button.dataset.dashboardResume));
   });
   document.querySelectorAll("[data-module]").forEach((button) => button.addEventListener("click", async () => {
-    if (button.dataset.module === "language") showProjectPicker(true);
-    else if (button.dataset.module === "finance") await showFinance(true);
-    else await showTools("/tools", true);
+    // #7: the module picker loads the destination module (finance/tools) from the
+    // server; the tile shows the pending state instead of a frozen screen.
+    await withInteractionFeedback(button, `module-${button.dataset.module || "tools"}`, async () => {
+      if (button.dataset.module === "language") showProjectPicker(true);
+      else if (button.dataset.module === "finance") await showFinance(true);
+      else await showTools("/tools", true);
+    });
   }));
   $("languageBackBtn").addEventListener("click", () => showModulePicker(true));
   $("backProjectBtn").addEventListener("click", () => showProjectPicker(true));
@@ -7048,10 +7159,11 @@ async function boot() {
   }, BACKEND_REFRESH_INTERVAL_MS);
 
   void refreshCloudChangelog();
-  $("retrySessionRecoveryBtn").addEventListener("click", async () => {
-    await refreshBackendState();
-    await routeCurrent();
-  });
+  $("retrySessionRecoveryBtn").addEventListener("click", (event) =>
+    withInteractionFeedback(event.currentTarget, "session-recovery-retry", async () => {
+      await refreshBackendState();
+      await routeCurrent();
+    }));
   const backendPromise = initialPath.startsWith("/share/") ? Promise.resolve() : refreshBackendState();
   await runSplashSequence(() => {
     $("appShell").classList.remove("app-shell-pending");
@@ -7089,6 +7201,7 @@ async function boot() {
   await backendPromise;
   await routeCurrent();
   installNativeNavigation();
+  installInteractionTracing();
   installNativeThemeBridge();
   setupResponsiveDisclosures();
   maybeShowVersionNotice();

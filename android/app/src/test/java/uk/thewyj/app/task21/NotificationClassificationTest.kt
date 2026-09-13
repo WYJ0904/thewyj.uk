@@ -129,4 +129,139 @@ class NotificationClassificationTest {
         assertFalse(coalescer.isNumericChurn("key:receipt", "转账", "已收款 ¥30.00", 120_000L))
         assertFalse(coalescer.isNumericChurn("key:receipt", "转账", "已收款 ¥40.00", 180_000L))
     }
+
+    /**
+     * Task 24 reopen #5: a recording timer is reposted every second without the
+     * ongoing flag. The first post is a normal archive entry; every later tick is
+     * the same notification, so the archive updates that row in place instead of
+     * appending one entry per second.
+     */
+    @Test fun recordingTimerUpdatesOneRowInsteadOfAppending() {
+        val first = NotificationClassifier.classify(
+            NotificationClassificationInput(
+                sourcePackage = "com.samsung.android.app.screenrecorder",
+                channelId = "recording",
+                title = "屏幕录制",
+                text = "录屏中 00:01",
+                identityKey = "key:recorder:1",
+                occurredAtMs = 1_000L,
+            ),
+        )
+        assertTrue(first.storeInArchive)
+        assertFalse("the first tick opens the entry", first.coalesceWithPrevious)
+        assertEquals(NotificationClass.MESSAGE, first.kind)
+
+        val second = NotificationClassifier.classify(
+            NotificationClassificationInput(
+                sourcePackage = "com.samsung.android.app.screenrecorder",
+                channelId = "recording",
+                title = "屏幕录制",
+                text = "录屏中 00:02",
+                identityKey = "key:recorder:1",
+                occurredAtMs = 2_000L,
+            ),
+        )
+        assertTrue("the tick is still archived", second.storeInArchive)
+        assertFalse("two posts one second apart are still two snapshots", second.coalesceWithPrevious)
+
+        val third = NotificationClassifier.classify(
+            NotificationClassificationInput(
+                sourcePackage = "com.samsung.android.app.screenrecorder",
+                channelId = "recording",
+                title = "屏幕录制",
+                text = "录屏中 00:03",
+                identityKey = "key:recorder:1",
+                occurredAtMs = 3_000L,
+            ),
+        )
+        assertTrue("the ticker now updates the existing row", third.coalesceWithPrevious)
+
+        // A real content change (recording finished) is a new snapshot.
+        val finished = NotificationClassifier.classify(
+            NotificationClassificationInput(
+                sourcePackage = "com.samsung.android.app.screenrecorder",
+                channelId = "recording",
+                title = "屏幕录制",
+                text = "录屏已保存",
+                identityKey = "key:recorder:1",
+                occurredAtMs = 4_000L,
+            ),
+        )
+        assertTrue(finished.storeInArchive)
+        assertFalse(finished.coalesceWithPrevious)
+    }
+
+    /**
+     * Two identical real messages are two messages. They are only merged when
+     * they arrive as one continuous readout (seconds apart on the same identity).
+     */
+    @Test fun identicalMessagesFarApartAreNeverMerged() {
+        val first = NotificationClassifier.classify(
+            NotificationClassificationInput(
+                sourcePackage = "com.tencent.mm",
+                channelId = "chat",
+                title = "老周横眉",
+                text = "已支付100",
+                identityKey = "key:wechat:9",
+                occurredAtMs = 10_000L,
+            ),
+        )
+        assertFalse(first.coalesceWithPrevious)
+
+        val later = NotificationClassifier.classify(
+            NotificationClassificationInput(
+                sourcePackage = "com.tencent.mm",
+                channelId = "chat",
+                title = "老周横眉",
+                text = "已支付100",
+                identityKey = "key:wechat:9",
+                occurredAtMs = 90_000L,
+            ),
+        )
+        assertTrue(later.storeInArchive)
+        assertFalse("a real repeat keeps its own snapshot", later.coalesceWithPrevious)
+    }
+
+    /** Without a real Android identity there is nothing to coalesce. */
+    @Test fun legacyCaptureWithoutIdentityIsNeverCoalesced() {
+        val decision = NotificationClassifier.classify(
+            NotificationClassificationInput(
+                sourcePackage = "com.example.recorder",
+                title = "屏幕录制",
+                text = "录屏中 00:01",
+            ),
+        )
+        assertTrue(decision.storeInArchive)
+        assertFalse(decision.coalesceWithPrevious)
+    }
+
+    /**
+     * Real-device shape: the same WeChat notification id posts three receipts one
+     * second apart. They share one digit-normalized shape, but each one is a real
+     * ledger event and must keep its own snapshot.
+     */
+    @Test fun repeatedPaymentReceiptsAreNeverMerged() {
+        val receipts = listOf(
+            10_000L to "已收款 ¥10.00",
+            11_000L to "已收款 ¥20.00",
+            12_000L to "已收款 ¥30.00",
+        )
+        val decisions = receipts.map { (at, text) ->
+            NotificationClassifier.classify(
+                NotificationClassificationInput(
+                    sourcePackage = "com.tencent.mm",
+                    channelId = "chat",
+                    title = "转账",
+                    text = text,
+                    identityKey = "key:receipts:1",
+                    occurredAtMs = at,
+                ),
+            )
+        }
+        assertTrue(decisions.all { it.storeInArchive })
+        assertFalse(
+            "money-carrying captures always keep their own snapshot",
+            decisions.any { it.coalesceWithPrevious },
+        )
+    }
 }

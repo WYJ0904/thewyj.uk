@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import uk.thewyj.app.task21.payment.PaymentVerificationCenter
+import uk.thewyj.app.task21.payment.PendingReconciliationPolicy
 
 /**
  * Screen state for "待核实 / 待确认交易". All work happens off the main thread:
@@ -83,6 +84,7 @@ class PaymentVerificationState(
             center.saveCorrection(
                 accountId = accountId,
                 candidateId = item.candidateId,
+                recognitionId = item.recognitionId,
                 amountMinor = amount,
                 direction = direction,
                 merchant = merchantText.trim(),
@@ -112,6 +114,28 @@ class PaymentVerificationState(
         message = "已忽略这笔交易，不会写入财务账本"
         refresh()
     }
+
+    /**
+     * Task 24 reopen #4: bounded catch-up while records that the server owns stay
+     * on screen. A Web-side confirm reaches the device on the next pull; without
+     * this, "next pull" only happened when the user left and reopened the screen.
+     *
+     * The loop stops by itself ([PendingReconciliationPolicy]) and is cancelled
+     * with the screen, so it can never become a background poll.
+     */
+    suspend fun catchUpReconciliation() {
+        var attempt = 0
+        while (true) {
+            val delayMs = PendingReconciliationPolicy.nextDelayMs(attempt, syncStates())
+                ?: return
+            kotlinx.coroutines.delay(delayMs)
+            refresh()
+            attempt += 1
+        }
+    }
+
+    /** Server-owned states of the records currently on screen. */
+    fun syncStates(): List<String> = items.map { it.syncState.name }
 
     companion object {
         fun formatMinor(amountMinor: Long): String {

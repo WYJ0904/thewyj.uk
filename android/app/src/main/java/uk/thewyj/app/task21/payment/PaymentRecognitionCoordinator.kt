@@ -1,6 +1,7 @@
 package uk.thewyj.app.task21.payment
 
 import uk.thewyj.app.task21.store.PaymentRecognitionStoreContract
+import uk.thewyj.app.task21.FinanceDirection
 import java.util.UUID
 
 /**
@@ -100,6 +101,10 @@ class PaymentRecognitionCoordinator(
                 missingFields = parsed.missingFields,
             )
             store.saveTicket(ticket)
+            // #10: the accessibility gate refreshes from Room on a cadence; this
+            // hint keeps the first event of a brand-new ticket from being dropped
+            // before that refresh happens.
+            PaymentTicketPackageSignal.publish(sourcePackage)
             ticketId = ticket.ticketId
             transition = statusMachine.transition(
                 current = record,
@@ -347,6 +352,7 @@ class PaymentRecognitionCoordinator(
             missingFields = setOf("amount"),
         )
         store.saveTicket(ticket)
+        PaymentTicketPackageSignal.publish(recognition.sourcePackage)
         val transition = statusMachine.transition(
             current = PaymentStatusRecord(
                 recognitionId = recognitionId,
@@ -390,6 +396,63 @@ class PaymentRecognitionCoordinator(
         )
         store.saveCandidate(edited)
         return edited
+    }
+
+    /**
+     * Records the user's manual amount for a recognition that never produced a
+     * candidate.
+     *
+     * Amount-unknown captures (real WeChat notifications expose no page text)
+     * only get a 90 second enrichment ticket, so `candidateId` stays empty and
+     * the「填写金额并记账」flow had nothing to save into: `editCandidate("")`
+     * returned null and the UI answered「修改没有保存，请重试」forever
+     * (real device, SM-S9360, 2026-09-13). Creating the candidate from the
+     * user's values is the only path that can book this payment.
+     */
+    fun ensureCandidateForRecognition(
+        accountId: String,
+        recognitionId: String,
+        amountMinor: Long? = null,
+        direction: String = "",
+        merchant: String = "",
+        occurredAtMs: Long? = null,
+    ): PaymentCandidate? {
+        val recognition = store.recognition(accountId, recognitionId) ?: return null
+        val existing = store.candidateForRecognition(accountId, recognitionId)
+        if (existing != null) {
+            return editCandidate(
+                accountId = accountId,
+                candidateId = existing.candidateId,
+                amountMinor = amountMinor,
+                direction = direction,
+                merchant = merchant,
+                occurredAtMs = occurredAtMs,
+            )
+        }
+        val candidate = PaymentCandidate(
+            candidateId = "cand-" + UUID.randomUUID(),
+            accountId = accountId,
+            recognitionId = recognitionId,
+            status = "pending",
+            // The machine never saw an amount: nothing is frozen as evidence,
+            // only the user's values live in the edited fields.
+            amountMinor = null,
+            direction = FinanceDirection.UNKNOWN.name,
+            category = "",
+            merchant = "",
+            occurredAtMs = occurredAtMs ?: recognition.createdAtMs,
+            channel = recognition.paymentChannel,
+            confidence = 0,
+            reason = "manual_amount",
+            editedAmountMinor = amountMinor,
+            editedDirection = direction,
+            editedMerchant = merchant,
+            editedOccurredAtMs = occurredAtMs ?: recognition.createdAtMs,
+            createdAtMs = now(),
+            updatedAtMs = now(),
+        )
+        store.saveCandidate(candidate)
+        return candidate
     }
 
     /**

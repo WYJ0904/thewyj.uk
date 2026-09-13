@@ -169,18 +169,13 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
     private fun captureInput(sbn: StatusBarNotification): NotificationCaptureInput {
         val extras = sbn.notification?.extras
         val flags = sbn.notification?.flags ?: 0
-        // Task 24.1 P0-1: screenshots and image notifications must keep their
-        // picture (and must never be dropped just because the body is empty).
-        val picture = runCatching {
-            (extras?.get(Notification.EXTRA_PICTURE) as? android.graphics.Bitmap)
-                ?: (extras?.get(Notification.EXTRA_LARGE_ICON_BIG) as? android.graphics.Bitmap)
-                ?: (extras?.get(Notification.EXTRA_LARGE_ICON) as? android.graphics.Bitmap)
-        }.getOrNull()
-        val mediaHint = runCatching {
-            extras?.containsKey(Notification.EXTRA_PICTURE) == true ||
-                extras?.containsKey(Notification.EXTRA_PICTURE_ICON) == true ||
-                extras?.containsKey(Notification.EXTRA_LARGE_ICON_BIG) == true
-        }.getOrDefault(false)
+        // Task 24.1 P0-1 / Task 24 reopen #6: screenshots and image notifications
+        // must keep their picture (and must never be dropped just because the body
+        // is empty). The extractor also understands the URI form and MessagingStyle
+        // message images, which is where chat images actually live.
+        val media = NotificationMediaExtractor.extract(extras)
+        val picture = media.bitmap
+        val mediaHint = media.state != "none" && media.bitmap == null
         val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
         val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
         val bigText = extras?.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty()
@@ -233,13 +228,19 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
             summaryText = extras?.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString().orEmpty(),
             textLines = textLines,
             mediaBitmap = picture,
+            mediaSourceUri = media.sourceUri,
             mediaState = when {
                 picture != null -> "available"
+                media.sourceUri.isNotBlank() -> "available"
                 mediaHint -> "unavailable"
                 else -> "none"
             },
             screenshotEvent = screenshotEvent,
-            mediaFingerprint = mediaFingerprint,
+            mediaFingerprint = if (screenshotEvent) {
+                mediaFingerprint
+            } else {
+                NotificationMediaExtractor.uriFingerprint(media)
+            },
             eventTimeMs = sbn.notification?.`when` ?: 0L,
             receivedAtMs = System.currentTimeMillis(),
         )
