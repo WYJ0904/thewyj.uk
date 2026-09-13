@@ -206,6 +206,63 @@ export async function openPage({ cdpUrl, baseUrl, width = 412, height = 915, mob
       uploadThroughput: -1,
     });
 
+  /**
+   * Deterministic response stubs for a few API routes (CDP Fetch interception).
+   *
+   * Used by the membership feedback case: the Preview D1 has no purchasable plan
+   * catalog, and a test must never write business rows into Preview/Production
+   * just to get a plan. Each rule matches a URL substring and answers from the
+   * test process; everything else continues to the real server.
+   */
+  const interceptRules = [];
+  const intercept = async (rules) => {
+    for (const rule of rules) interceptRules.push(rule);
+    await send("Fetch.enable", {
+      patterns: rules.map((rule) => ({ urlPattern: `*${rule.match}*`, requestStage: "Request" })),
+    });
+    return {
+      setState: (state) => {
+        for (const rule of rules) rule.state = state;
+      },
+    };
+  };
+  client.listeners.add(async (message) => {
+    if (message.method !== "Fetch.requestPaused") return;
+    const requestId = message.params.requestId;
+    const url = String(message.params.request?.url || "");
+    const rule = interceptRules.find((entry) => url.includes(entry.match));
+    try {
+      if (!rule) {
+        await send("Fetch.continueRequest", { requestId });
+        return;
+      }
+      const outcome = await rule.respond({
+        url,
+        method: message.params.request?.method || "GET",
+        postData: message.params.request?.postData || "",
+        state: rule.state,
+      });
+      if (!outcome || outcome.continue) {
+        await send("Fetch.continueRequest", { requestId });
+        return;
+      }
+      if (outcome.delayMs) await delay(outcome.delayMs);
+      const body = outcome.bodyBase64
+        || Buffer.from(typeof outcome.body === "string" ? outcome.body : JSON.stringify(outcome.body ?? {})).toString("base64");
+      await send("Fetch.fulfillRequest", {
+        requestId,
+        responseCode: outcome.status || 200,
+        responseHeaders: [
+          { name: "Content-Type", value: outcome.contentType || "application/json" },
+          { name: "Cache-Control", value: "no-store" },
+        ],
+        body,
+      });
+    } catch (_) {
+      await send("Fetch.continueRequest", { requestId }).catch(() => {});
+    }
+  });
+
   return {
     client,
     send,
@@ -218,6 +275,7 @@ export async function openPage({ cdpUrl, baseUrl, width = 412, height = 915, mob
     setDownloadBehavior,
     throttle,
     clearThrottle,
+    intercept,
     runtimeErrors,
     dialogs,
     targetId,

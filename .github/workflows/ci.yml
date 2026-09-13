@@ -180,6 +180,7 @@ jobs:
             node --check local-backend/test_task22_d1_js.mjs
             node --check local-backend/test_transfer_integrity_js.mjs
             node --check local-backend/test_transfer_benchmark_js.mjs
+            node --check local-backend/test_transfer_session_plan_js.mjs
             node --check local-backend/test_interaction_feedback_js.mjs
             node --check local-backend/test_interaction_feedback_browser.mjs
             node --check local-backend/test_transfer_browser_e2e.mjs
@@ -219,6 +220,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_transfer_isolation_js.mjs 2>&1 | tee artifacts/javascript-transfer-isolation.log
+
+      - name: Test the transfer upload-session lifecycle plan
+        run: |
+          set -euo pipefail
+          node local-backend/test_transfer_session_plan_js.mjs 2>&1 | tee artifacts/javascript-transfer-session-plan.log
 
       - name: Test finance candidate confirm eligibility
         run: |

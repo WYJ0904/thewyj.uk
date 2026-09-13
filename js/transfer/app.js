@@ -234,6 +234,53 @@ export function sessionIdForQueue(items) {
   return restored ? String(restored.sessionId) : "";
 }
 
+/**
+ * Task 24 RC - one server session is one upload batch.
+ *
+ * `POST /api/transfer/uploads` fixes `file_count` and `total_bytes` for the whole
+ * session, and `allocate()` refuses another file once that many exist
+ * (`transfer_file_count_exceeded`). A user may pick one file, let it upload and
+ * then add a second file before publishing, so the client has to decide whether
+ * the current session can still carry the whole queue.
+ *
+ * The protocol has no cross-session part reuse, so [reuse] = false means: open a
+ * new session for the *complete* current queue and re-upload the files (the old
+ * session is aborted, never left orphaned).
+ */
+export function sessionPlan(queue, session) {
+  const items = (Array.isArray(queue) ? queue : []).filter((item) => item && item.status !== "cancelled");
+  const fileCount = items.length;
+  const totalBytes = items.reduce((sum, item) => sum + Math.max(0, Number(item.size) || 0), 0);
+  const id = String(session?.id || "").trim();
+  if (!fileCount) return { reuse: Boolean(id), fileCount: 0, totalBytes: 0, reason: "empty" };
+  if (!id) return { reuse: false, fileCount, totalBytes, reason: "no-session" };
+  const declaredCount = Number(session?.fileCount) || 0;
+  const declaredBytes = Number(session?.totalBytes) || 0;
+  if (!declaredCount) {
+    // Restored after a reload: the session object lost its declaration, but every
+    // queued item still points at that server session. Its own complete() call
+    // validates the count, so the queue stays publishable.
+    const sameSession = items.every((item) => String(item.sessionId || "") === id);
+    return { reuse: sameSession, fileCount, totalBytes, reason: sameSession ? "restored-session" : "restored-session-mismatch" };
+  }
+  if (declaredCount !== fileCount) {
+    return { reuse: false, fileCount, totalBytes, reason: "file-count-grew" };
+  }
+  if (declaredBytes !== totalBytes) {
+    return { reuse: false, fileCount, totalBytes, reason: "size-changed" };
+  }
+  const sameSession = items.every((item) => String(item.sessionId || "") === id);
+  return { reuse: sameSession, fileCount, totalBytes, reason: sameSession ? "exact-batch" : "batch-changed" };
+}
+
+/** Ids of the queue items a session was opened for. */
+export function sessionBatchIds(queue) {
+  return (Array.isArray(queue) ? queue : [])
+    .filter((item) => item && item.status !== "cancelled")
+    .map((item) => String(item.id || ""))
+    .filter(Boolean);
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -271,6 +318,7 @@ export function createTransferController({
   let activeSession = null;
   let currentShare = null;
   let running = false;
+  let sessionOpening = null;
   let capabilities = { storage_limit_bytes: 500 * 1024 * 1024, used_bytes: 0 };
 
   const element = (id) => document.getElementById(id);
@@ -439,24 +487,93 @@ export function createTransferController({
 
   async function ensureSession() {
     if (!activeSession) {
-      const restored = queue.find((item) => item.sessionId);
-      if (restored) activeSession = { id: restored.sessionId, expiresAt: "" };
+      const restoredSessionId = sessionIdForQueue(queue);
+      if (restoredSessionId) activeSession = { id: restoredSessionId, expiresAt: "" };
     }
-    if (activeSession && queue.some((item) => item.status !== "done")) return activeSession;
+    const plan = sessionPlan(queue, activeSession);
+    if (plan.reuse && activeSession) return activeSession;
+    return openSessionForBatch(plan);
+  }
+
+  /**
+   * Opens the session that matches the *current* queue. Everything uploaded into
+   * the previous session is reset and re-uploaded: the upload protocol has no way
+   * to move parts between sessions, so a new batch is an explicit re-upload
+   * rather than a silent mix of two server sessions. The previous session is
+   * aborted so no orphan session (and no ghost object) is left behind.
+   */
+  async function openSessionForBatch(plan) {
+    // Serialize concurrent appends: two quick "add file" taps must never create
+    // two sessions for the same batch.
+    if (sessionOpening) {
+      await sessionOpening.catch(() => {});
+      const settled = sessionPlan(queue, activeSession);
+      if (settled.reuse && activeSession) return activeSession;
+    }
+    const previous = activeSession;
     const body = {
       minutes: Number(element("transferExpiry")?.value || DEFAULT_EXPIRY_MINUTES),
       max_downloads: Number(element("transferMaxDownloads")?.value || 5),
       one_time: Boolean(element("transferOneTime")?.checked),
       password: String(element("transferPassword")?.value || ""),
-      file_count: Math.max(queue.length, 1),
-      total_bytes: queue.reduce((sum, item) => sum + item.size, 0),
+      file_count: Math.max(plan.fileCount, 1),
+      total_bytes: plan.totalBytes,
     };
     if (!authenticated()) body.guest_id = guestId();
-    const payload = await request("/api/transfer/uploads", { method: "POST", body });
-    activeSession = { id: payload.upload.id, expiresAt: payload.upload.expires_at };
-    for (const item of queue) if (!item.sessionId) item.sessionId = activeSession.id;
+    sessionOpening = request("/api/transfer/uploads", { method: "POST", body });
+    let payload;
+    try {
+      payload = await sessionOpening;
+    } finally {
+      sessionOpening = null;
+    }
+    const batchIds = sessionBatchIds(queue);
+    activeSession = {
+      id: payload.upload.id,
+      expiresAt: payload.upload.expires_at,
+      fileCount: Math.max(plan.fileCount, 1),
+      totalBytes: plan.totalBytes,
+      batchIds,
+    };
+    for (const item of queue) {
+      if (item.status === "cancelled") continue;
+      if (String(item.sessionId || "") === activeSession.id) continue;
+      item.sessionId = activeSession.id;
+      // A different session cannot reuse this file's allocation: drop it and let
+      // the pipeline re-upload the file into the new batch.
+      item.fileId = "";
+      item.partSize = 0;
+      item.partCount = 0;
+      item.uploadedParts = [];
+      item.uploaded = 0;
+      item.speed = 0;
+      item.eta = 0;
+      delete item.error;
+      delete item.failedPart;
+      if (item.status === "done" || item.status === "uploading") item.status = "pending";
+    }
     persistQueue();
+    renderQueue();
+    if (previous?.id && previous.id !== activeSession.id) {
+      void abortSession(previous.id, plan.reason);
+    }
+    if (plan.reason === "file-count-grew" || plan.reason === "size-changed") {
+      setMessage("已按当前文件列表重新创建上传任务，正在重新上传。");
+    }
     return activeSession;
+  }
+
+  /** Best-effort cleanup so a superseded batch cannot linger on the server. */
+  async function abortSession(sessionId, reason = "") {
+    try {
+      const body = {};
+      if (!authenticated()) body.guest_id = guestId();
+      await request(`/api/transfer/uploads/${sessionId}/abort`, { method: "POST", body });
+      if (reason) setMessage("已废弃旧的上传任务，正在重新上传。");
+    } catch (_) {
+      // The server also expires abandoned sessions; a failed abort must never
+      // block the new batch.
+    }
   }
 
   /** SHA-256 of exactly one part's bytes; the pipeline runs this ahead of the PUT. */
@@ -617,6 +734,15 @@ export function createTransferController({
     item.activeUploads = 0;
     persistQueue();
     renderQueue();
+    // A file added while this one was uploading makes the active session too
+    // small for the queue. Switch after the in-flight parts settled (never by
+    // yanking an allocation out from under a running PUT), then re-upload.
+    const batchPlan = sessionPlan(queue, activeSession);
+    if (!batchPlan.reuse) {
+      await ensureSession();
+      void run();
+      return;
+    }
     if (queue.every((entry) => entry.status === "done")) setMessage("全部文件已上传，可以创建分享链接。");
   }
 
@@ -650,6 +776,22 @@ export function createTransferController({
     }
     if (!activeSession) {
       setMessage("还有文件没有上传完成。", "error");
+      return;
+    }
+    // The queue may have grown after the upload finished (a file added while the
+    // last one was still uploading). Publishing must never mix two server
+    // sessions, so this re-opens the batch when the plan no longer matches.
+    const plan = sessionPlan(queue, activeSession);
+    if (!plan.reuse) {
+      setMessage("文件列表已变化，正在重新上传后再创建分享…");
+      try {
+        await ensureSession();
+      } catch (error) {
+        setMessage(error.message || "重新上传任务创建失败，请重试。", "error");
+        return;
+      }
+      void run();
+      setMessage("已按当前文件列表重新上传，请稍候再创建分享。", "info");
       return;
     }
     setMessage("正在创建分享…");

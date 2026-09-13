@@ -38,6 +38,45 @@ const checks = [];
 const skips = [];
 let page;
 
+/** Controlled catalog + order for the membership feedback case (no D1 writes). */
+const CONTROLLED_PLANS = {
+  ok: true,
+  plans: [
+    {
+      code: "finance_monthly",
+      name: "财务会员（CI 控制目录）",
+      price: "8",
+      currency: "CNY",
+      description: "controlled catalog for the interaction audit",
+      duration_months: 1,
+    },
+    {
+      code: "tools_monthly",
+      name: "工具箱会员（CI 控制目录）",
+      price: "8",
+      currency: "CNY",
+      description: "controlled catalog for the interaction audit",
+      duration_months: 1,
+    },
+  ],
+  payment_methods: [
+    { code: "wechat", name: "微信支付" },
+    { code: "alipay", name: "支付宝" },
+  ],
+};
+const CONTROLLED_ORDER = {
+  id: "rc-ci-order-1",
+  plan_code: "finance_monthly",
+  plan_name: "财务会员（CI 控制目录）",
+  payment_method: "wechat",
+  amount_cents: 800,
+  currency: "CNY",
+  status: "pending_payment",
+  order_number: "RC-CI-1",
+};
+const TINY_PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+
 /** HTTP helper for the admin fixture (same shape as the other browser suites). */
 async function api(pathname, payload = null, token = "") {
   const response = await fetch(`${BASE_URL}${pathname}`, {
@@ -269,6 +308,28 @@ async function main() {
     });
 
     await check("membership recharge submit shows feedback before the order request", async () => {
+      // Deterministic membership evidence that does not depend on (and does not
+      // mutate) the Preview D1 plan catalog: the catalog and the order endpoint
+      // are answered by controlled stubs, each with >=400ms latency so the
+      // feedback budget is what the assertion actually measures.
+      const stub = await page.intercept([
+        {
+          match: "/api/membership/plans",
+          respond: () => ({ status: 200, delayMs: 420, body: CONTROLLED_PLANS }),
+        },
+        {
+          match: "/api/recharge/request",
+          state: "error",
+          respond: ({ state }) =>
+            state === "success"
+              ? { status: 200, delayMs: 420, body: { ok: true, created: true, request: CONTROLLED_ORDER } }
+              : { status: 500, delayMs: 420, body: { ok: false, error: "CI 模拟订单失败", code: "ci_stub_failure" } },
+        },
+        {
+          match: "/api/recharge/qr",
+          respond: () => ({ status: 200, contentType: "image/png", delayMs: 20, bodyBase64: TINY_PNG_BASE64 }),
+        },
+      ]);
       await page.navigate("/select");
       await page.click("#accountBtn");
       await page.waitFor("document.querySelector('#membershipBtn')", 10_000, "account menu");
@@ -281,6 +342,15 @@ async function main() {
       assert.ok(opened, "the membership entry must exist in the account menu");
       await page.waitFor("location.pathname === '/recharge' || !document.querySelector('#membershipModal')?.classList.contains('hidden')", 30_000, "recharge view");
       await page.waitFor("document.querySelector('#submitRechargeBtn')", 30_000, "recharge submit");
+      // The page may already have tried (and failed) to load the real catalog
+      // before this step installed the controlled one; retry through the app's
+      // own recovery button so the controlled catalog is the one on screen.
+      await page.evaluate(`(() => {
+        const recovery = document.querySelector('#membershipPlanRecovery');
+        const retry = document.querySelector('#retryMembershipPlansBtn');
+        if (retry && recovery && !recovery.classList.contains('hidden')) retry.click();
+        return true;
+      })()`);
       // The membership form needs a goal, then a plan, then a payment method
       // before the submit button becomes usable - the same path a user takes.
       await page.waitFor("document.querySelector('[data-membership-goal]')", 30_000, "membership goals");
@@ -298,14 +368,9 @@ async function main() {
         .then(() => true)
         .catch(() => false);
       if (!hasPlans) {
-        const surface = await page.evaluate(
-          "String(document.querySelector('#membershipMessage')?.textContent || document.querySelector('#membershipPlanRecovery')?.textContent || '').trim().slice(0, 120)",
-        );
-        skips.push({ name: "membership recharge submit shows feedback before the order request", reason: "no-plan-catalog", surface });
-        console.log(`[interaction-browser] SKIP membership submit: the Preview job has no purchasable plan catalog (${surface || "empty"})`);
-        return;
+        throw new Error("the controlled plan catalog was not used by the membership page");
       }
-      await page.evaluate("document.querySelector('[data-plan]').click()");
+      await page.evaluate("(document.querySelector('[data-plan=\"finance_monthly\"]') || document.querySelector('[data-plan]')).click()");
       await page.waitFor("document.querySelector('input[name=\"paymentMethod\"]')", 25_000, "payment methods");
       await page.evaluate(`(() => {
         const method = document.querySelector('input[name="paymentMethod"]');
@@ -315,7 +380,96 @@ async function main() {
         }
       })()`);
       await page.waitFor("!document.querySelector('#submitRechargeBtn')?.disabled", 25_000, "recharge submit enabled");
-      await clickWithImmediateFeedback("#submitRechargeBtn", "recharge submit");
+
+      // Success path: the button must show pending inside the budget, settle
+      // afterwards and surface the accepted order.
+      stub.setState("success");
+      const submitSettled = `(() => {
+        const button = document.querySelector('#submitRechargeBtn');
+        const released = !button || (button.dataset.pending !== "true" && !button.disabled);
+        const traced = (window.__wyjInteractionTrace?.recent?.(10) || [])
+          .some((trace) => trace.name === "recharge-submit"
+            && trace.stages.some((stage) => stage.stage === "state-apply"));
+        return released || traced;
+      })()`;
+      await clickWithImmediateFeedback("#submitRechargeBtn", "recharge submit (success path)");
+      await page.waitFor(submitSettled, 30_000, "released after the successful order");
+      const successMessage = await page.evaluate("document.querySelector('#rechargeMessage')?.textContent || ''");
+      assert.match(
+        successMessage,
+        /订单已生成/,
+        `the accepted order must be reported back to the user: ${successMessage}`,
+      );
+
+      // Error path in its own fresh tab/context: after a successful order the
+      // submit control is intentionally locked, so the failed attempt gets a
+      // clean state instead of inheriting the pending order.
+      stub.setState("error");
+      const errorPage = await openPage({ cdpUrl: CDP_URL, baseUrl: BASE_URL });
+      try {
+        await errorPage.intercept([
+          { match: "/api/membership/plans", respond: () => ({ status: 200, delayMs: 420, body: CONTROLLED_PLANS }) },
+          {
+            match: "/api/recharge/request",
+            respond: () => ({ status: 500, delayMs: 420, body: { ok: false, error: "CI 模拟订单失败", code: "ci_stub_failure" } }),
+          },
+        ]);
+        await errorPage.navigate("/login");
+        await errorPage.waitFor("!document.querySelector('#loginForm')?.classList.contains('hidden')", 15_000, "login form");
+        await errorPage.setFields({ "#usernameInput": BROWSER_USER, "#secretInput": BROWSER_SECRET });
+        await errorPage.click("#loginSubmitBtn");
+        await errorPage.waitFor("location.pathname === '/select'", 30_000, "dashboard for the error path");
+        await errorPage.click("#accountBtn");
+        await errorPage.waitFor("document.querySelector('#membershipBtn')", 10_000, "account menu for the error path");
+        await errorPage.evaluate("document.querySelector('#membershipBtn').click(); true");
+        await errorPage.waitFor("document.querySelector('[data-membership-goal]')", 25_000, "goals for the error path");
+        await errorPage.evaluate(`(() => {
+          const goals = Array.from(document.querySelectorAll('[data-membership-goal]'));
+          (goals.find((button) => button.dataset.membershipGoal === 'finance') || goals[0]).click();
+        })()`);
+        await errorPage.waitFor("document.querySelector('[data-plan=\"finance_monthly\"]')", 25_000, "controlled plan for the error path");
+        await errorPage.evaluate("document.querySelector('[data-plan=\"finance_monthly\"]').click()");
+        await errorPage.waitFor("document.querySelector('input[name=\"paymentMethod\"]')", 25_000, "payment methods for the error path");
+        await errorPage.evaluate(`(() => {
+          const method = document.querySelector('input[name="paymentMethod"]');
+          if (method) {
+            method.checked = true;
+            method.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        })()`);
+        await errorPage.waitFor("!document.querySelector('#submitRechargeBtn')?.disabled", 25_000, "submit enabled for the error path");
+        const errorSelector = "#submitRechargeBtn";
+        await errorPage.waitFor(`document.querySelector(${JSON.stringify(errorSelector)})`, 15_000, "error-path button");
+        const probe = await errorPage.evaluate(CLICK_AND_PROBE(errorSelector));
+        assert.ok(probe?.ok, `error-path probe failed: ${probe?.reason || ""}`);
+        assert.ok(probe.pending, "the failed order must show pending before its first await");
+        assert.ok(probe.elapsedMs <= 150, `error-path feedback must appear inside 150ms (${probe.elapsedMs.toFixed(1)}ms)`);
+        await errorPage.waitFor(
+          `(() => {
+            const button = document.querySelector('#submitRechargeBtn');
+            return !button || (button.dataset.pending !== "true" && !button.disabled);
+          })()`,
+          30_000,
+          "released after the failed order",
+        );
+        const errorMessage = await errorPage.evaluate("document.querySelector('#rechargeMessage')?.textContent || ''");
+        assert.match(
+          errorMessage,
+          /CI 模拟订单失败/,
+          `the failed order must report the server error: ${errorMessage}`,
+        );
+        const errorTraces = await errorPage.evaluate(`(() => {
+          const api = window.__wyjInteractionTrace;
+          if (!api) return [];
+          return api.recent(10).filter((trace) => trace.name === "recharge-submit").map((trace) => trace.stages.map((stage) => stage.stage));
+        })()`);
+        assert.ok(
+          errorTraces.some((stages) => stages.includes("state-apply")),
+          `the failed interaction must still be traced: ${JSON.stringify(errorTraces)}`,
+        );
+      } finally {
+        errorPage.close();
+      }
     });
 
     await check("interaction trace records the click-to-render chain", async () => {

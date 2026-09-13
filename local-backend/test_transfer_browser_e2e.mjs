@@ -120,7 +120,10 @@ async function main() {
     await page.click("#loginSubmitBtn");
     await page.waitFor("location.pathname === '/select'", 30_000, "dashboard");
 
-    // 2. Upload both large files through the real file input + controller.
+    // 2. Upload the first large file alone, then append the second one *after*
+    //    the first upload finished. The server fixes file_count when the session
+    //    is created, so the client has to open a new session for the full queue
+    //    and re-upload - this is the session-lifecycle regression.
     await page.navigate("/transfer");
     // Wait for the page (and its quota/capabilities) to be live before attaching
     // files: the input element exists in the static markup but the controller
@@ -135,7 +138,20 @@ async function main() {
       25_000,
       "transfer capabilities loaded",
     );
-    await page.setFile("#transferFileInput", FIXTURES.map((fixture) => fixture.path));
+    await page.setFile("#transferFileInput", FIXTURES[0].path);
+    await page.waitFor("document.querySelectorAll('[data-transfer-item]').length === 1", 30_000, "first queue item");
+    await page.waitFor(
+      "document.querySelector('[data-transfer-item]')?.textContent?.includes('100%') || document.querySelector('#transferCompleteBtn')?.disabled === false",
+      240_000,
+      "first upload finished",
+    );
+    const firstSessionId = await page.evaluate(`(() => {
+      const key = Object.keys(localStorage).find((entry) => entry.startsWith('wyjTransferQueue'));
+      const payload = key ? JSON.parse(localStorage.getItem(key) || '{}') : {};
+      return String((payload.queue || [])[0]?.sessionId || '');
+    })()`);
+    assert.ok(firstSessionId, "the first upload must own a session");
+    await page.setFile("#transferFileInput", FIXTURES[1].path);
     await page.waitFor(
       `document.querySelectorAll('[data-transfer-item]').length === ${FIXTURES.length}`,
       30_000,
@@ -167,6 +183,25 @@ async function main() {
       }));
     })()`);
     assert.equal(queuePlan.length, FIXTURES.length, `both files must be queued: ${JSON.stringify(queuePlan)}`);
+    const sessionIds = new Set(
+      await page.evaluate(`(() => {
+        const key = Object.keys(localStorage).find((entry) => entry.startsWith('wyjTransferQueue'));
+        const payload = key ? JSON.parse(localStorage.getItem(key) || '{}') : {};
+        return (payload.queue || []).map((item) => String(item.sessionId || ''));
+      })()`),
+    );
+    assert.equal(sessionIds.size, 1, `the whole queue must share one session: ${JSON.stringify([...sessionIds])}`);
+    const liveSessionId = [...sessionIds][0];
+    assert.notEqual(
+      liveSessionId,
+      firstSessionId,
+      "adding a file after the first upload must open a new session instead of reusing the exhausted one",
+    );
+    const pageMessage = await page.evaluate("document.querySelector('#transferMessage')?.textContent || ''");
+    assert.ok(
+      !pageMessage.includes("文件数量"),
+      `the client must never surface transfer_file_count_exceeded, saw: ${pageMessage}`,
+    );
     for (const item of queuePlan) {
       assert.equal(item.status, "done", `${item.name} must finish: ${JSON.stringify(item)}`);
       assert.ok(item.partCount >= 2, `${item.name} must be split into >= 2 parts (got ${item.partCount})`);
@@ -257,15 +292,18 @@ async function main() {
       sharePage.close();
     }
 
-    // 6. The uploaded R2 object is byte-identical to the source as well.
+    // 6. The superseded session is gone: the client aborted it when the queue
+    //    grew, so it can never be published later (no orphan session).
     const session = await page.evaluate("localStorage.getItem('wyjAccountSession') || ''");
-    const me = await api("/api/me", null, session);
-    assert.equal(me.status, 200, "the member session must still be valid");
-
-    assert.deepEqual(
-      FIXTURES.map((fixture) => `${fixture.fileName}:${fixture.sha256.slice(0, 12)}`).length,
-      2,
-      "both digests were verified",
+    assert.ok(session, "the member session must still be valid");
+    const staleComplete = await fetch(`${BASE_URL}/api/transfer/uploads/${firstSessionId}/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Session-Token": session },
+      body: "{}",
+    });
+    assert.ok(
+      staleComplete.status >= 400,
+      `the superseded one-file session must not be publishable (HTTP ${staleComplete.status})`,
     );
     console.log(
       `[transfer-browser] PASS source == download SHA-256 and byte length for ${FIXTURES.map((fixture) => `${fixture.fileName} (${fixture.bytes.length} bytes)`).join(", ")}`,

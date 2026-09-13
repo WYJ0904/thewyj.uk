@@ -163,7 +163,7 @@ const FIXTURES = Object.freeze([
   }),
 ]);
 
-async function createSession(db, storage, totalBytes) {
+async function createSession(db, storage, totalBytes, fileCount = 1) {
   const created = await request(db, storage, "/api/transfer/uploads", {
     method: "POST",
     token: USER.token,
@@ -173,7 +173,7 @@ async function createSession(db, storage, totalBytes) {
       minutes: 1440,
       max_downloads: 5,
       one_time: false,
-      file_count: 1,
+      file_count: fileCount,
       total_bytes: totalBytes,
     },
   });
@@ -367,8 +367,106 @@ try {
     );
   }
 
+  // Task 24 RC: a session is one batch. Uploading one file and then adding a
+  // second one must not try to reuse the first session - the client opens a new
+  // session for the whole queue, re-uploads both files and aborts the old one.
+  {
+    const firstBytes = withEdges(pseudoRandom(707, 48 * 1024), JPEG_HEAD, JPEG_TAIL);
+    const secondBytes = withEdges(pseudoRandom(808, 32 * 1024), PNG_HEAD, PNG_TAIL);
+    const firstHash = await sha256Hex(firstBytes);
+    const secondHash = await sha256Hex(secondBytes);
+
+    // 1. The original batch: one file, uploaded and complete.
+    const oldSession = await createSession(db, storage, firstBytes.byteLength);
+    const oldFile = await allocateFile(db, storage, oldSession, {
+      label: "first upload",
+      fileName: "session-old-1.jpg",
+      relativePath: "session/session-old-1.jpg",
+      mimeType: "image/jpeg",
+    }, "file-session-old-0001", firstBytes.byteLength);
+    await uploadPart(db, storage, oldSession, oldFile.file_id, 1, firstBytes);
+
+    // 2. Adding the second file to that session is refused by the server - this is
+    //    exactly why the client must open a new session instead of extending it.
+    const refused = await request(db, storage, "/api/transfer/uploads/files", {
+      method: "POST",
+      token: USER.token,
+      body: {
+        guest_id: "",
+        session_id: oldSession,
+        file_id: "file-session-old-0002",
+        relative_path: "session/session-old-2.png",
+        file_name: "session-old-2.png",
+        mime_type: "image/png",
+        size_bytes: secondBytes.byteLength,
+      },
+    });
+    assert.equal(refused.response.status, 409, JSON.stringify(refused.payload));
+    assert.equal(refused.payload.code, "transfer_file_count_exceeded");
+
+    // 3. The client path: a fresh session sized for the complete queue, both files
+    //    re-uploaded (the protocol cannot move parts between sessions).
+    const newSession = await createSession(db, storage, firstBytes.byteLength + secondBytes.byteLength, 2);
+    const newFirst = await allocateFile(db, storage, newSession, {
+      label: "re-uploaded first file",
+      fileName: "session-new-1.jpg",
+      relativePath: "session/session-new-1.jpg",
+      mimeType: "image/jpeg",
+    }, "file-session-new-0001", firstBytes.byteLength);
+    const newSecond = await allocateFile(db, storage, newSession, {
+      label: "second file",
+      fileName: "session-new-2.png",
+      relativePath: "session/session-new-2.png",
+      mimeType: "image/png",
+    }, "file-session-new-0002", secondBytes.byteLength);
+    assert.equal((await uploadPart(db, storage, newSession, newFirst.file_id, 1, firstBytes)).response.status, 201);
+    assert.equal((await uploadPart(db, storage, newSession, newSecond.file_id, 1, secondBytes)).response.status, 201);
+    const migrated = await request(db, storage, `/api/transfer/uploads/${newSession}/complete`, {
+      method: "POST",
+      token: USER.token,
+      body: {},
+    });
+    assert.equal(migrated.response.status, 200, JSON.stringify(migrated.payload));
+    assert.equal(migrated.payload.share.file_count, 2);
+    assert.deepEqual(
+      migrated.payload.share.files.map((file) => file.file_name).sort(),
+      ["session-new-1.jpg", "session-new-2.png"],
+      "the new batch must publish both files with their original names",
+    );
+    const migratedGrant = await request(db, storage, `/api/transfer/shares/${migrated.payload.share.id}/authorize`, {
+      method: "POST",
+      body: {},
+    });
+    assert.equal(migratedGrant.response.status, 200);
+    const grant = migratedGrant.payload.download.token;
+    const downloadedFirst = await request(db, storage,
+      `/api/transfer/shares/${migrated.payload.share.id}/download?file=${newFirst.file_id}&grant=${grant}`);
+    const downloadedSecond = await request(db, storage,
+      `/api/transfer/shares/${migrated.payload.share.id}/download?file=${newSecond.file_id}&grant=${grant}`);
+    assert.equal(downloadedFirst.payload.byteLength, firstBytes.byteLength);
+    assert.equal(downloadedSecond.payload.byteLength, secondBytes.byteLength);
+    assert.equal(await sha256Hex(downloadedFirst.payload), firstHash, "re-uploaded first file SHA-256");
+    assert.equal(await sha256Hex(downloadedSecond.payload), secondHash, "second file SHA-256");
+
+    // 4. The superseded session is aborted: no orphan session, no ghost object.
+    const aborted = await request(db, storage, `/api/transfer/uploads/${oldSession}/abort`, {
+      method: "POST",
+      token: USER.token,
+      body: {},
+    });
+    assert.equal(aborted.response.status, 200, JSON.stringify(aborted.payload));
+    const oldObject = await storage.get(`transfers/v2/preview/objects/${oldFile.file_id}/file`);
+    assert.equal(oldObject, null, "aborting the superseded batch must delete its object");
+    const oldComplete = await request(db, storage, `/api/transfer/uploads/${oldSession}/complete`, {
+      method: "POST",
+      token: USER.token,
+      body: {},
+    });
+    assert.ok(oldComplete.response.status >= 400, "an aborted batch must never publish");
+  }
+
   console.log(
-    "Task 24 file-transfer integrity passed (source/R2/download SHA-256 + byte length for jpg, png, mp4, exe, random binary and multi-chunk binary; filename/extension, Content-Type, Content-Disposition, Content-Length, Range across a part boundary and idempotent part resume).",
+    "Task 24 file-transfer integrity passed (source/R2/download SHA-256 + byte length for jpg, png, mp4, exe, random binary and multi-chunk binary; filename/extension, Content-Type, Content-Disposition, Content-Length, Range across a part boundary, idempotent part resume, and the session-lifecycle migration for a file added after the first upload).",
   );
 } finally {
   await mf.dispose();
