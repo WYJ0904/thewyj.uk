@@ -56,8 +56,10 @@ import uk.thewyj.app.task22.TransferConfig
 import uk.thewyj.app.task22.TransferConfigStore
 import uk.thewyj.app.task22.TransferItemStatus
 import uk.thewyj.app.task22.TransferQueueStore
+import uk.thewyj.app.task22.TransferRecoveryPolicy
 import uk.thewyj.app.task22.TransferShare
 import uk.thewyj.app.task22.TransferUploadWorker
+import uk.thewyj.app.task22.TransferApiException
 import uk.thewyj.app.task22.QueuedTransfer
 import java.util.UUID
 import java.util.Locale
@@ -167,7 +169,17 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
                 refreshQueue()
             }.onFailure { error ->
                 Log.e("T22UI", "complete failed", error)
-                message = error.message ?: "创建分享失败。"
+                if (error is TransferApiException && TransferRecoveryPolicy.shouldResetCompletion(error.code)) {
+                    withContext(Dispatchers.IO) {
+                        runCatching { api.abort(pending.first().sessionId) }
+                        queueStore.resetStaleSessionBatch()
+                    }
+                    refreshQueue()
+                    TransferUploadWorker.enqueue(context)
+                    message = "上传任务状态已失效，正在重新上传。"
+                } else {
+                    message = error.message ?: "创建分享失败。"
+                }
             }
             busy = false
         }
@@ -260,7 +272,7 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
                         refreshQueue()
                     },
                     onResume = {
-                        queueStore.upsert(item.copy(status = TransferItemStatus.PENDING))
+                        queueStore.upsert(item.copy(status = TransferItemStatus.PENDING, errorMessage = ""))
                         refreshQueue()
                         TransferUploadWorker.enqueue(context)
                     },

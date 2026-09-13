@@ -8,6 +8,7 @@ import uk.thewyj.app.task21.NotificationSessionProvider
 import uk.thewyj.app.task21.store.NotificationDatabase
 import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
 import java.util.concurrent.Executors
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -15,12 +16,19 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * It only reads the page of a package that currently owns an active 90 second
  * ticket, only for finance-entitled accounts, and only extracts the minimal
- * transaction fields. It never captures screenshots, passwords, OTPs, chat
- * history, contacts or the full node tree.
+ * transaction fields. It never persists or uploads screenshots, passwords,
+ * OTPs, chat history, contacts or the full node tree. A screenshot may exist
+ * in memory only while an explicit ticket is active, for on-device OCR.
  */
 class ThewyjPaymentAccessibilityService : AccessibilityService() {
     private val tickets = PaymentTicketEngine()
     private val ticketPackages = PaymentTicketPackageCache()
+    private val lastWindowIds = ConcurrentHashMap<String, Int>()
+    private val screenshotRetryPackages = ConcurrentHashMap.newKeySet<String>()
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    @Volatile private var lastTicketPackage = ""
+    @Volatile private var lastTicketWindowId: Int? = null
+    @Volatile private var lastTicketEventAtMs = 0L
     @Volatile private var ocrVerifier: PaymentScreenshotVerifier? = null
     @Volatile private var lastScreenshotAtMs = 0L
     /**
@@ -52,6 +60,8 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         // claim behind: the capability banner must fall back to the system
         // grant instead of reporting a live connection that no longer exists.
         PaymentAccessibilityStatus.onDisconnected()
+        mainHandler.removeCallbacksAndMessages(null)
+        screenshotRetryPackages.clear()
         runCatching { worker.shutdown() }
         super.onDestroy()
     }
@@ -70,12 +80,14 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         }
         val packageName = currentEvent.packageName?.toString().orEmpty()
         if (packageName.isEmpty() || packageName == this.packageName) return
+        if (currentEvent.windowId >= 0) lastWindowIds[packageName] = currentEvent.windowId
 
         // In-memory gate only: without an active verification ticket this
         // package has no business being read, so SystemUI/launcher/IME noise
         // never touches the database, the node tree or the log.
         if (ticketPackages.needsRefresh()) scheduleTicketPackageRefresh(force = false)
         if (!ticketPackages.contains(packageName) && !PaymentTicketPackageSignal.recentlySignalled(packageName)) {
+            maybeRetryAfterSystemOverlay(packageName)
             PaymentAccessibilityStatus.onSkipped(packageName, "no_active_ticket")
             return
         }
@@ -87,6 +99,9 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
             PaymentAccessibilityStatus.onTicketSignal(packageName)
             scheduleTicketPackageRefresh(force = true)
         }
+        lastTicketPackage = packageName
+        lastTicketWindowId = PaymentScreenshotTarget.resolve(currentEvent.windowId, packageWindowId(packageName))
+        lastTicketEventAtMs = System.currentTimeMillis()
 
         // Reading the window must happen on the accessibility thread. The active
         // window is preferred; when it exposes nothing (dialogs, transitions, or
@@ -103,11 +118,12 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
             // A device without a usable OCR engine must degrade to the manual
             // path, never crash the accessibility callback (the service would
             // otherwise stop receiving events after one bad window).
-            runCatching { requestScreenshotVerification(packageName) }.onFailure { error ->
+            val windowId = PaymentScreenshotTarget.resolve(currentEvent.windowId, packageWindowId(packageName))
+            runCatching { requestScreenshotVerification(packageName, windowId) }.onFailure { error ->
                 PaymentAccessibilityStatus.onParserResult("ocr_unavailable")
-                Log.w(TAG, "screenshot verification unavailable: ${error.javaClass.simpleName}")
+                Log.w(TAG, "screenshot verification unavailable", error)
+                scheduleMiss(packageName)
             }
-            runCatching { worker.execute { reportMiss(packageName) } }
             return
         }
         runCatching {
@@ -142,8 +158,7 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         )
         if (enrichment == null) {
             PaymentAccessibilityStatus.onParserResult("unparsed")
-            requestScreenshotVerification(sourcePackage)
-            runCatching { worker.execute { reportMiss(sourcePackage) } }
+            requestScreenshotVerification(sourcePackage, lastWindowIds[sourcePackage])
             return
         }
         PaymentAccessibilityStatus.onParserResult(
@@ -165,24 +180,43 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
      * open, and hands it to the local OCR verifier. Every failure mode
      * (secure window, rate limit, OCR error) simply leaves the manual path.
      */
-    private fun requestScreenshotVerification(sourcePackage: String) {
+    private fun requestScreenshotVerification(sourcePackage: String, windowId: Int?) {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) return
         val now = System.currentTimeMillis()
-        if (now - lastScreenshotAtMs < SCREENSHOT_MIN_INTERVAL_MS) return
+        val retryDelay = PaymentScreenshotThrottle.retryDelayMs(
+            lastScreenshotAtMs,
+            now,
+            SCREENSHOT_MIN_INTERVAL_MS,
+        )
+        if (retryDelay > 0) {
+            scheduleScreenshotRetry(sourcePackage, windowId, retryDelay)
+            return
+        }
         lastScreenshotAtMs = now
-        val verifier = ocrVerifier ?: PaymentScreenshotVerifier(MlKitOcrEngine(this)).also { ocrVerifier = it }
         val service = this
-        val callback = object : TakeScreenshotCallback {
+        val displayFallbackStarted = AtomicBoolean(false)
+        lateinit var startDisplayFallback: () -> Unit
+        fun callback(fallbackOnUnparsed: Boolean) = object : TakeScreenshotCallback {
             override fun onSuccess(result: ScreenshotResult) {
                 val bitmap = android.graphics.Bitmap.wrapHardwareBuffer(result.hardwareBuffer, result.colorSpace)
                     ?.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
                 result.hardwareBuffer.close()
                 if (bitmap == null) {
                     PaymentAccessibilityStatus.onParserResult("ocr_no_bitmap")
+                    if (fallbackOnUnparsed) startDisplayFallback() else scheduleMiss(sourcePackage)
                     return
                 }
                 runCatching {
                     service.worker.execute {
+                        val verifier = ocrVerifier ?: runCatching {
+                            PaymentScreenshotVerifier(MlKitOcrEngine(service)).also { ocrVerifier = it }
+                        }.getOrElse { error ->
+                            PaymentAccessibilityStatus.onParserResult("ocr_engine_unavailable")
+                            Log.w(TAG, "OCR engine unavailable", error)
+                            bitmap.recycle()
+                            reportMiss(sourcePackage)
+                            return@execute
+                        }
                         val enrichment = runCatching {
                             kotlinx.coroutines.runBlocking {
                                 verifier.verify(bitmap, sourcePackage, System.currentTimeMillis())
@@ -191,6 +225,11 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
                         bitmap.recycle()
                         if (enrichment == null) {
                             PaymentAccessibilityStatus.onParserResult("ocr_unparsed")
+                            if (fallbackOnUnparsed) {
+                                mainHandler.post { startDisplayFallback() }
+                            } else {
+                                reportMiss(sourcePackage)
+                            }
                             return@execute
                         }
                         PaymentAccessibilityStatus.onParserResult(
@@ -203,8 +242,14 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
                             // Completes the *existing* candidate/hint for this
                             // package; it never creates a second transaction.
                             runCatching {
-                                AndroidPaymentRecognitionHook.get(service)
+                                val outcome = AndroidPaymentRecognitionHook.get(service)
                                     .onAccessibilityEnrichment(account.accountId, enrichment)
+                                val result = when (outcome) {
+                                    is EnrichmentOutcome.Applied -> "applied"
+                                    is EnrichmentOutcome.Insufficient -> "insufficient"
+                                    is EnrichmentOutcome.Rejected -> "rejected:${outcome.reason}"
+                                }
+                                Log.i(TAG, "ocr-enrichment result=$result")
                             }
                         }
                     }
@@ -212,21 +257,43 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
             }
 
             override fun onFailure(errorCode: Int) {
-                PaymentAccessibilityStatus.onParserResult("ocr_screenshot_failed_$errorCode")
+                if (fallbackOnUnparsed) {
+                    Log.i(TAG, "window screenshot failed code=$errorCode; using display fallback")
+                    startDisplayFallback()
+                } else {
+                    PaymentAccessibilityStatus.onParserResult("ocr_screenshot_failed_$errorCode")
+                    scheduleMiss(sourcePackage)
+                }
             }
         }
-        runCatching {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                takeScreenshotOfWindow(android.view.Display.DEFAULT_DISPLAY, mainExecutor, callback)
-            } else {
-                takeScreenshot(android.view.Display.DEFAULT_DISPLAY, mainExecutor, callback)
+        val displayCallback = callback(fallbackOnUnparsed = false)
+        startDisplayFallback = displayFallback@{
+            if (!displayFallbackStarted.compareAndSet(false, true)) return@displayFallback
+            runCatching {
+                takeScreenshot(android.view.Display.DEFAULT_DISPLAY, mainExecutor, displayCallback)
+            }.onFailure {
+                PaymentAccessibilityStatus.onParserResult("ocr_screenshot_unavailable")
+                Log.w(TAG, "display screenshot request unavailable: ${it.javaClass.simpleName}")
+                scheduleMiss(sourcePackage)
             }
-        }.onFailure { PaymentAccessibilityStatus.onParserResult("ocr_screenshot_unavailable") }
+        }
+        val windowScreenshotStarted = if (
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE && windowId != null
+        ) {
+            runCatching {
+                takeScreenshotOfWindow(windowId, mainExecutor, callback(fallbackOnUnparsed = true))
+            }.isSuccess
+        } else {
+            false
+        }
+        if (!windowScreenshotStarted) {
+            startDisplayFallback()
+        }
     }
 
     /**
-     * The page could not be read. Two misses close the automatic attempt: the
-     * user is told once and can still type the amount by hand.
+     * The page could not be read. Misses are diagnostic while the ticket stays
+     * active; the coordinator closes it only at the advertised expiry.
      */
     private fun reportMiss(sourcePackage: String) {
         val account = runCatching { NotificationSessionProvider(this).currentAccount() }.getOrNull() ?: return
@@ -234,6 +301,45 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         runCatching {
             AndroidPaymentRecognitionHook.get(this).onAccessibilityMiss(account.accountId, sourcePackage)
         }
+    }
+
+    private fun scheduleMiss(sourcePackage: String) {
+        runCatching { worker.execute { reportMiss(sourcePackage) } }
+    }
+
+    private fun scheduleScreenshotRetry(sourcePackage: String, windowId: Int?, delayMs: Long) {
+        if (!screenshotRetryPackages.add(sourcePackage)) return
+        mainHandler.postDelayed({
+            screenshotRetryPackages.remove(sourcePackage)
+            runCatching {
+                worker.execute {
+                    val account = runCatching { NotificationSessionProvider(this).currentAccount() }.getOrNull()
+                    val ticket = if (account != null && account.financeEntitled) {
+                        runCatching {
+                            RoomPaymentRecognitionStore(NotificationDatabase.get(this))
+                                .activeTicketForPackage(account.accountId, sourcePackage)
+                        }.getOrNull()
+                    } else {
+                        null
+                    }
+                    if (ticket != null && tickets.isActive(ticket)) {
+                        mainHandler.post {
+                            requestScreenshotVerification(
+                                sourcePackage,
+                                lastWindowIds[sourcePackage] ?: windowId,
+                            )
+                        }
+                    }
+                }
+            }
+        }, delayMs.coerceAtLeast(1L))
+    }
+
+    private fun maybeRetryAfterSystemOverlay(eventPackage: String) {
+        val targetPackage = lastTicketPackage
+        val elapsed = System.currentTimeMillis() - lastTicketEventAtMs
+        if (targetPackage.isBlank() || !PaymentOverlayRetryPolicy.shouldRetry(eventPackage, elapsed)) return
+        scheduleScreenshotRetry(targetPackage, lastTicketWindowId, 1L)
     }
 
     /**
@@ -245,6 +351,12 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         windows
             ?.mapNotNull { it?.root }
             ?.firstOrNull { it.packageName?.toString() == sourcePackage }
+    }.getOrNull()
+
+    private fun packageWindowId(sourcePackage: String): Int? = runCatching {
+        windows
+            ?.firstOrNull { window -> window?.root?.packageName?.toString() == sourcePackage }
+            ?.id
     }.getOrNull()
 
     override fun onInterrupt() = Unit

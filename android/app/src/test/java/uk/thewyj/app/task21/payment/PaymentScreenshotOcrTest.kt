@@ -62,6 +62,36 @@ class PaymentScreenshotOcrTest {
         assertEquals(FinanceDirection.EXPENSE, result.direction)
     }
 
+    @Test fun traditionalTransferDetailUsesLabelledAmountNotTheServiceFee() {
+        val (result, _) = verify(
+            listOf(
+                "轉賬詳情",
+                "到賬成功",
+                "轉帳 金額 ¥833.17",
+                "服務費 ¥0.83",
+                "轉賬類型 轉帳 至 個人 帳戶",
+            ),
+        )
+        assertNotNull(result)
+        assertEquals(83_317L, result!!.amountMinor)
+        assertEquals(FinanceDirection.EXPENSE, result.direction)
+    }
+
+    @Test fun traditionalWechatBankTransferUsesTheLabelledAmountAndOutgoingDirection() {
+        val (result, _) = verify(
+            listOf(
+                "轉賬詳情",
+                "到賬成功",
+                "轉賬金額 ¥833.17",
+                "服務費 ¥0.83",
+                "轉賬類型 轉賬至個人賬戶",
+            ),
+        )
+        assertNotNull(result)
+        assertEquals(83_317L, result!!.amountMinor)
+        assertEquals(FinanceDirection.EXPENSE, result.direction)
+    }
+
     @Test fun incomingPaymentIsIncome() {
         val (result, _) = verify(listOf("收款成功", "已收款 ¥50.00", "付款方 李四"))
         assertNotNull(result)

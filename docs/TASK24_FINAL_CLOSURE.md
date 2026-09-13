@@ -1,15 +1,34 @@
 # Task 24 Final Acceptance Reopen — Release Candidate Record
 
-**状态：`TASK 24 SOFTWARE RELEASE CANDIDATE — VALIDATION IN PROGRESS`**（不是 `SOFTWARE CLOSED`，也不是 `RELEASED`）。
+**状态：`TASK 24 DEVICE CLOSURE — USER FINAL CONFIRMATION STILL REQUIRED`**（不是 `COMPLETE`）。
 
-分支：`codex/task24-reopen-notification-wechat`　PR：`#67`（open，未 merge；base `main`）
+分支：`codex/task24-device-closure-r4`　PR：`#74`（base `main`）
 Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Task 25 代码）
 
 证据口径：
 
 - **CI / PR Preview 通过 ≠ Production Closure**。当前所有 CI 证据来自 PR Preview（wrangler pages dev + 本地 D1/R2 + headless Chrome）。
 - 每条结论都标注证据来源：`unit` / `integration` / `browser-E2E` / `device-only`。
-- 真机：`Samsung SM-S9360 / Android 16`（当前不可用）。真机项在 B 段单列，未执行即未验证。
+- 真机：`Samsung SM-S9360 / Android 16`，正式签名覆盖安装，未卸载、未清除 App 数据。
+
+## 2026-09-14 device closure evidence (Android 1.3.6)
+
+| Gate | 真机 / Production 证据 | 结果 |
+| --- | --- | --- |
+| B-3 | 已确认普通微信聊天“明天8点见”只进入通知归档，没有创建 Finance 候选 | PASS |
+| B-4 | CaptureTrace、OCR、候选生成均有阶段日志；本次没有把不匹配的既有转账确认进账本 | PARTIAL — 需要一笔与待核实项匹配的既有交易完成 confirm/terminal/convergence |
+| B-5 | Samsung 原生录屏 100 秒：124 个 `CHANNEL_ID_RECORDING_SCREEN` tick 全部 `archive-skipped`，0 accepted/committed；停止录屏只保存 1 个含媒体终态。Clash 120 秒 140 个 tick 同样 0 持久化，保存数保持 135 | PASS |
+| B-6 | Samsung 截图通知可打开真实截图；录屏终态媒体可用。普通图片通知与微信图片仍缺一轮可识别素材 | PARTIAL |
+| Permissions | 通知访问、POST_NOTIFICATIONS、READ_MEDIA_IMAGES、RECEIVE_SMS 均开启；无障碍从系统设置开启后 `accessibility-connected`，权限中心即时显示“无障碍已连接” | PASS（侧载覆盖安装后 Samsung 会要求重新确认无障碍） |
+| B-7 | 通知/财务连续 12 次切换：563 帧，jank 16（2.84%），P50 10ms、P95 19ms、P99 57ms、0 missed-vsync | PASS |
+| B-8 | 真机 SAF 800 MiB：过期 session 自动重建；失效旧 URI 隔离；上传从 0 B 实际推进至 838,860,800 B，创建 Production 分享成功 | PASS |
+| B-9 | 下载 Content-Length 838,860,800；filename/filename*、MIME、Accept-Ranges 正确；源与下载 SHA-256 同为 `326a880029794febbfa3cfaa9c2ecc22083d5b1dae641c8dc63d1efa65a11a59`。1 MiB Range 返回 206 和正确 Content-Range | PASS |
+| TTS | Production 英语、日语听写真机均由 WebView AudioTrack 播放，未触发 `ThewyjSpeech` 本机 fallback；日语汉字 API 200 且重复请求命中缓存 | PASS |
+| B-10 | 活跃 90 秒 ticket → 双开微信详情 → Samsung 安全弹层 → window/full-display fallback → bundled ML Kit OCR（19–21 行）→ `context=true`、`decisive=true` → `amount=83317 direction=EXPENSE` → 本地候选“已核实金额”；未自动写入 Finance | PASS 到候选；最终匹配交易确认同 B-4 待用户验收 |
+
+本轮发现并修复：Android 原生上传复用过期 session、不可读 SAF 项阻塞队列、短期 access token 过期不续期、完成清单不一致；Android 14+ 窗口截图误传 display ID；窗口截图异步失败/空图不回退；R8 删除 ML Kit registrar 构造器；OCR 节流吞掉稳定详情；ticket 两次 miss 约 8 秒提前失败且金额未知 ticket 不会过期；繁体转账金额/服务费主金额与支出方向识别。
+
+测试产生的 800 MiB Production 分享已撤销，手机合成源文件与录屏文件已删除；不删除审计记录。
 
 ## A. Software closure matrix
 
@@ -41,18 +60,18 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 - 断言：成功路径点击后**同任务内** pending（≤150ms）→ 结算恢复 → 显示「订单已生成」；失败路径（500）同样 pending ≤150ms → 结算恢复 → 显示服务端错误；两条路径都要求 `recharge-submit` 的 trace 出现 `state-apply`。
 - 证据来源：**browser-E2E**（`local-backend/test_interaction_feedback_browser.mjs`，Cloud-only Preview job）；本地（Windows）8/8 通过（transfer 模块因本机 workerd 限制跳过）。
 
-### Android 正式发布封装（1.3.5 / versionCode 18）
+### Android 正式发布封装（1.3.6 / versionCode 19）
 
 | 项 | 值 |
 | --- | --- |
-| 源码版本 | `android/app/build.gradle.kts` → `versionName 1.3.5` / `versionCode 18`（Task 24 真机 P0 修复） |
-| APK | `dist/thewyj-android-1.3.5.apk`（本地构建产物，`dist/` 按仓库约定不入库）；线上 R2 key = `app/android/thewyj-android-1.3.5.apk` |
+| 源码版本 | `android/app/build.gradle.kts` → `versionName 1.3.6` / `versionCode 19`（Task 24 真机收口） |
+| APK | `dist/thewyj-android-1.3.6.apk`（本地构建产物，`dist/` 按仓库约定不入库）；线上 R2 key = `app/android/thewyj-android-1.3.6.apk` |
 | applicationId / minSdk / targetSdk | `uk.thewyj.app` / `30` / `36` |
 | BASE_URL | `https://thewyj.uk` |
-| APK size | `47,594,909` bytes |
-| APK SHA-256 | `4bd6176144a281e820394866e5df41e3d9f3a99e17f0d016a9e10ba7e5248bc5` |
+| APK size | `47,594,905` bytes |
+| APK SHA-256 | `76c048b8293d377e2703b6b4a0d5b8fdff8b0474440c85209b9154ca8006fd84` |
 | 签名证书 SHA-256 | `2B:32:20:29:A9:B8:4D:E6:F2:D1:EF:60:37:78:B5:07:99:97:A3:F8:DF:21:D0:1C:A8:CB:30:C7:6B:4F:7D:03`（`thewyj-release`，与 1.3.1–1.3.4 同一正式证书，非 debug 签名） |
-| releaseBuild | `2026-09-14-task24-device-p0-r1` |
+| releaseBuild | `2026-09-14-task24-device-closure-r2` |
 | release notes | 修复 1.3.4 真机发现的 SmartCapture 屏幕录制 revision 风暴、失效上传任务 0 B 假运行、通知历史批量渲染和 Workers AI TTS 瞬态失败；800 MiB 浏览器 round-trip 以源/下载 SHA-256 一致验收。 |
 | 一致性 gate | `scripts/check_android_release_consistency.py`（build.gradle ↔ release-metadata.json ↔ wrangler 三段 vars ↔ APK manifest/SHA/size/证书，共 46 checks）+ `scripts/test_check_android_release_consistency.py`（6 项负向自测，证明 gate 真的会拒绝不一致） |
 | CI 接入 | Python job（跨文件一致性）、Android job（构建出的 APK manifest 与 metadata 对齐） |

@@ -79,6 +79,29 @@ class TransferQueueStore(private val file: File) {
         updated
     }
 
+    /**
+     * An expired server upload invalidates every file allocated in that
+     * session. Keep the SAF sources, but rebuild all server-side state as one
+     * batch so a retry cannot remain pinned to the expired session.
+     */
+    fun resetStaleSessionBatch(): List<QueuedTransfer> = synchronized(lock) {
+        val reset = load().map { item ->
+            if (item.status == TransferItemStatus.CANCELLED) item
+            else item.copy(
+                sessionId = "",
+                fileId = "",
+                partSize = 0,
+                partCount = 0,
+                uploadedParts = emptySet(),
+                uploadedBytes = 0,
+                status = TransferItemStatus.PENDING,
+                errorMessage = "",
+            )
+        }
+        save(reset)
+        reset
+    }
+
     fun clearForAccount(accountId: String) {
         synchronized(lock) {
             save(emptyList())

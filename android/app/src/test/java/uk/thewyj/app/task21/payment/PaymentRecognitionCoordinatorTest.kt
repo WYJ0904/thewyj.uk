@@ -443,11 +443,10 @@ class PaymentRecognitionCoordinatorTest {
 
     /**
      * Real device: WeChat exposes no text at all to the accessibility tree, so a
-     * page read legitimately returns nothing. The automatic attempt must end
-     * honestly (one notification, state VERIFICATION_FAILED) instead of looping
-     * forever or pretending the amount was verified.
+     * page read can legitimately return nothing while a Samsung security sheet
+     * covers it. Misses must not end the advertised 90-second window early.
      */
-    @Test fun repeatedMissesFailVerificationOnceAndKeepManualPath() {
+    @Test fun repeatedMissesKeepTheTicketAliveUntilItsRealExpiry() {
         val store = FakeStore()
         val notifier = FakeNotifier()
         val clock = Clock()
@@ -456,22 +455,23 @@ class PaymentRecognitionCoordinatorTest {
             "account-a", "com.tencent.mm", PaymentSourceType.NOTIFICATION,
             "notification#key-4#4000", "", "转账", sourceAppLabel = "微信",
         )
-        val messagesAfterHint = notifier.messages.size
-
-        assertFalse(coordinator.onAccessibilityMiss("account-a", "com.tencent.mm"))
-        assertEquals(messagesAfterHint, notifier.messages.size)
-        assertTrue(coordinator.onAccessibilityMiss("account-a", "com.tencent.mm"))
-
+        repeat(20) {
+            assertFalse(coordinator.onAccessibilityMiss("account-a", "com.tencent.mm"))
+        }
         assertEquals(
-            PaymentRecognitionState.VERIFICATION_FAILED.name,
+            PaymentRecognitionState.WAITING_FOR_ENRICHMENT.name,
             store.recognition("account-a", outcome.recognitionId)?.state,
         )
-        val ticketAfterFailure = store.tickets.values.first()
-        assertFalse(ticketAfterFailure.state.active)
-        assertEquals(1, notifier.messages.count { it.title.contains("可靠的交易金额") })
-        assertEquals(1, notifier.messages.count { it.offerManualVerification })
-        // The hint itself is never deleted and the manual path still exists.
-        assertEquals(1, store.recognitions.size)
+        assertTrue(store.tickets.values.first().state.active)
+        assertEquals(0, notifier.messages.count { it.title.contains("可靠的交易金额") })
+
+        clock.advance(91_000L)
+        assertEquals(1, coordinator.expireTickets("account-a"))
+        assertEquals(
+            PaymentRecognitionState.ENRICHMENT_EXPIRED.name,
+            store.recognition("account-a", outcome.recognitionId)?.state,
+        )
+        assertFalse(store.tickets.values.first().state.active)
         assertTrue(notifier.messages.last().offerManualVerification)
     }
 

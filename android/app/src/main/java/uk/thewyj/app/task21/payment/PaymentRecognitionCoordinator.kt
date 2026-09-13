@@ -261,17 +261,13 @@ class PaymentRecognitionCoordinator(
     /** Lazily expires tickets and tells the user once per expired recognition. */
     fun expireTickets(accountId: String): Int {
         var expired = 0
-        val recognitions = store.candidates(accountId, "pending", 200)
-        // Tickets are expired on access: the coordinator checks the ticket that
-        // belongs to each recognition that is still waiting for enrichment.
-        for (candidate in recognitions) {
-            val recognition = store.recognition(accountId, candidate.recognitionId) ?: continue
-            if (recognition.state != PaymentRecognitionState.WAITING_FOR_ENRICHMENT.name) continue
-            val ticket = store.ticketsForRecognition(accountId, candidate.recognitionId).firstOrNull() ?: continue
+        // Amount-unknown recognitions intentionally have no candidate row yet,
+        // so candidates cannot be the source of truth for open tickets.
+        for (ticket in store.openTickets(accountId, 200)) {
             val expiredTicket = tickets.expireIfNeeded(ticket)
             if (expiredTicket.state == PaymentTicketState.EXPIRED && ticket.state != PaymentTicketState.EXPIRED) {
                 store.saveTicket(expiredTicket)
-                expireRecognition(accountId, candidate.recognitionId)
+                expireRecognition(accountId, ticket.recognitionId)
                 expired += 1
             }
         }
@@ -282,38 +278,16 @@ class PaymentRecognitionCoordinator(
      * The page was read but produced no usable amount (or nothing at all: some
      * apps, WeChat included, expose no text to the accessibility tree at all).
      *
-     * Two misses close the automatic attempt honestly: the ticket is marked
-     * failed so the service stops reading the package, the recognition becomes
-     * VERIFICATION_FAILED and the user is told once, with the manual entry path
-     * still available.
+     * A miss is diagnostic only while the advertised 90-second ticket is still
+     * active. Payment apps can briefly expose an empty surface or a Samsung
+     * security overlay; failing after two frames made that recoverable state
+     * terminal in about eight seconds. The existing expiry path closes the
+     * ticket after its full window and keeps manual entry available.
      */
     fun onAccessibilityMiss(accountId: String, sourcePackage: String): Boolean {
         val ticket = store.activeTicketForPackage(accountId, sourcePackage) ?: return false
-        val missed = ticket.copy(attempts = ticket.attempts + 1)
-        if (missed.attempts < MISSES_BEFORE_FAILING) {
-            store.saveTicket(missed)
-            return false
-        }
-        store.saveTicket(tickets.markFailed(missed))
-        val recognition = store.recognition(accountId, ticket.recognitionId) ?: return true
-        val transition = statusMachine.transition(
-            current = PaymentStatusRecord(
-                recognitionId = recognition.recognitionId,
-                state = runCatching { PaymentRecognitionState.valueOf(recognition.state) }
-                    .getOrDefault(PaymentRecognitionState.WAITING_FOR_ENRICHMENT),
-                updatedAtMs = recognition.updatedAtMs,
-                notificationId = recognition.notificationId,
-            ),
-            next = PaymentRecognitionState.VERIFICATION_FAILED,
-            recognitionId = recognition.recognitionId,
-            sourceAppLabel = "",
-            sourcePackage = sourcePackage,
-        )
-        if (transition is PaymentStatusTransition.Updated) post(transition)
-        store.saveRecognition(
-            recognition.copy(state = PaymentRecognitionState.VERIFICATION_FAILED.name, updatedAtMs = now()),
-        )
-        return true
+        store.saveTicket(ticket.copy(attempts = ticket.attempts + 1))
+        return false
     }
 
     private fun expireRecognition(accountId: String, recognitionId: String) {
@@ -631,7 +605,6 @@ class PaymentRecognitionCoordinator(
         const val RECONCILIATION_WINDOW_MS = 3 * 60 * 1000L
 
         /** Failed page reads before the automatic attempt is reported as failed. */
-        const val MISSES_BEFORE_FAILING = 2
 
         fun formatAmount(amountMinor: Long): String {
             val value = amountMinor / 100.0

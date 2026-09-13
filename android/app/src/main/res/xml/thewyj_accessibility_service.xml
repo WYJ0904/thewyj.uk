@@ -3,7 +3,10 @@
   Payment enrichment service configuration. Window content access is required
   to read the transaction fields of the page that owns an active 90 second
   ticket; the service itself caps traversal depth/nodes and skips password
-  fields. It never captures screenshots or injects gestures.
+  fields. While an explicit 90-second verification ticket is active, a local
+  screenshot may be used for on-device OCR when the payment app exposes no
+  text nodes. The bitmap is never persisted or uploaded. Gestures are never
+  injected.
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewTextChanged|typeWindowsChanged"
