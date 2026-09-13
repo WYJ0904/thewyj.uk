@@ -89,6 +89,65 @@ async function hintById(db, account, hintId) {
 }
 
 /**
+ * Real ledger booking behind a notification event id, if any.
+ *
+ * Two booking paths share the same event identity: `event.ingest` writes
+ * `task21_notification_events.finance_transaction_id`, and the raw-event ledger
+ * (`task16_finance_raw_events` -> `task16_finance_transaction_events`) records
+ * every automatic booking. Checking both keeps the reconciliation correct no
+ * matter which client booked first.
+ */
+async function ledgerBookingForEvent(db, userId, eventId) {
+  const eventRow = await first(db, `SELECT finance_transaction_id FROM task21_notification_events
+    WHERE user_id = ?1 AND event_id = ?2`, [userId, eventId]);
+  let transactionId = String(eventRow?.finance_transaction_id || "");
+  if (!transactionId) {
+    const rawRow = await first(db, `SELECT link.transaction_id AS transaction_id
+      FROM task16_finance_raw_events raw
+      JOIN task16_finance_transaction_events link
+        ON link.raw_event_id = raw.id AND link.relation_status = 'active'
+      WHERE raw.user_id = ?1 AND raw.source_type = 'notification' AND raw.source_event_id = ?2
+      ORDER BY raw.created_at LIMIT 1`, [userId, eventId]);
+    transactionId = String(rawRow?.transaction_id || "");
+  }
+  if (!transactionId) return null;
+  const ledger = await first(db, `SELECT direction, amount_minor, merchant FROM task16_finance_transactions
+    WHERE user_id = ?1 AND id = ?2 AND status = 'active'`, [userId, transactionId]);
+  if (!ledger) return null;
+  return { transactionId, ledger };
+}
+
+/**
+ * Device acceptance (Task 24 P1): a pending hint whose event is already in the
+ * ledger can never stay actionable.
+ *
+ * This is the read-side half of the convergence fix (the write-side half closes
+ * hints inside `attachEventOutcome`). It also repairs rows created before that
+ * fix, and the ordering where a hint upload arrives *after* the booking of the
+ * same event: the shared state must agree with the ledger the moment either the
+ * Web page or the Android pull reads it.
+ */
+async function reconcilePendingHint(db, account, row) {
+  const booking = await ledgerBookingForEvent(db, account.id, String(row.source_event_id || ""));
+  if (!booking) return row;
+  const amountMinor = Number(booking.ledger.amount_minor) > 0 ? Number(booking.ledger.amount_minor) : null;
+  const direction = ["income", "expense", "refund"].includes(String(booking.ledger.direction))
+    ? String(booking.ledger.direction)
+    : null;
+  const now = isoNow();
+  await run(db, `UPDATE task21_notification_pending_hints
+    SET state = 'confirmed', finance_entry_id = ?3,
+        amount_minor = COALESCE(?4, amount_minor),
+        direction = COALESCE(?5, direction),
+        merchant = ?6, confirmed_at = ?7, updated_at = ?7
+    WHERE user_id = ?1 AND id = ?2 AND state = 'pending'`, [
+    account.id, row.id, booking.transactionId, amountMinor, direction,
+    String(booking.ledger.merchant || ""), now,
+  ]);
+  return await hintById(db, account, row.id);
+}
+
+/**
  * Upsert one or more hints. Identity is (user, source_event_id), so a duplicate
  * ingest can never create a second pending row, and a confirmed/ignored event is
  * never revived as pending (only a real, still-pending row is updated).
@@ -165,9 +224,13 @@ export async function listNotificationHints(db, account, input = {}) {
   const rows = await db.prepare(`SELECT * FROM task21_notification_pending_hints
     WHERE user_id = ?1 AND (?2 = '' OR state = ?2)
     ORDER BY created_at DESC LIMIT ?3`).bind(account.id, state, limit).all();
+  const results = [];
+  for (const row of rows?.results || []) {
+    results.push(row.state === "pending" ? await reconcilePendingHint(db, account, row) : row);
+  }
   return {
-    hints: (rows?.results || []).map(publicHint),
-    pending_count: (rows?.results || []).filter((row) => row.state === "pending").length,
+    hints: results.map(publicHint),
+    pending_count: results.filter((row) => row.state === "pending").length,
   };
 }
 
@@ -206,12 +269,29 @@ export async function confirmNotificationHint(db, account, input) {
     confidence: Number(row.confidence || 0),
     parser_version: "pending-hint",
   });
+  // A device may have booked this exact event between the page render and the
+  // click. The booking is deduplicated by event identity, so the stored hint
+  // must mirror the *existing* ledger entry rather than the just-typed values.
+  let bookedAmountMinor = amountMinor;
+  let bookedDirection = direction;
+  let bookedMerchant = merchant;
+  if (finance.duplicate) {
+    const ledger = await first(db, `SELECT direction, amount_minor, merchant FROM task16_finance_transactions
+      WHERE user_id = ?1 AND id = ?2 AND status = 'active'`, [account.id, finance.transaction_id]);
+    if (ledger) {
+      bookedAmountMinor = Number(ledger.amount_minor) > 0 ? Number(ledger.amount_minor) : amountMinor;
+      bookedDirection = ["income", "expense", "refund"].includes(String(ledger.direction))
+        ? String(ledger.direction)
+        : direction;
+      bookedMerchant = String(ledger.merchant ?? merchant);
+    }
+  }
   const now = isoNow();
   await run(db, `UPDATE task21_notification_pending_hints
     SET state = 'confirmed', finance_entry_id = ?2, amount_minor = ?3, direction = ?4,
         merchant = ?5, confirmed_at = ?6, updated_at = ?6
     WHERE user_id = ?1 AND id = ?7`, [
-    account.id, finance.transaction_id, amountMinor, direction, merchant, now, hintId,
+    account.id, finance.transaction_id, bookedAmountMinor, bookedDirection, bookedMerchant, now, hintId,
   ]);
   return {
     hint: publicHint(await hintById(db, account, hintId)),
