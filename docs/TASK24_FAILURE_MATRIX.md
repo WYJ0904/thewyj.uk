@@ -62,9 +62,16 @@
   检查 Content-Disposition、原始 filename/extension、Content-Type、chunk offset/order、finalize/assemble、Range/stream 路径。
 - 待办：用 CI 浏览器矩阵扩展（真实上传→下载→SHA 对比）+ 真机复验。
 
-## 9. P1 大文件上传速度不合格（约 800 MB > 5 分钟） — EVIDENCE-GATHERING
+## 9. P1 大文件上传速度不合格（约 800 MB > 5 分钟） — FIXED-TESTED（客户端串行瓶颈）
 
-- 计划：分阶段 profile（local hashing / chunk enqueue / 网络上传 / server processing / D1 metadata / finalize），记录 chunk size、并发、每段耗时与吞吐，再优化 hot path（不关闭 hash/完整性）。
+- repro：`uploadItem` 逐 part 串行：hash → PUT → 等待 → 下一个 part，吞吐被 RTT 限制。
+- fix：受控并发（默认 3）：`missingPartNumbers()` / `uploadWorkerCount()` 纯函数 + 3 worker 调度；
+  - 进度改为“已确认字节累加”（并发乱序完成时不会跳到 100%）；
+  - pause/cancel 会 abort 所有在途 controller（`item.controllers`），resume 只补缺失 part；
+  - 首个错误停止调度并把该项置 error（单 part 重试语义保持）；
+  - finalize 仍由 `complete()` 单次执行，服务端分片校验不变。
+- regression：`local-backend/test_transfer_isolation_js.mjs`（缺失 part 计划、并发上限、剩余 part 不足时收缩、全部完成后 0 worker）。
+- 待办：真机 800 MB 实测吞吐（DEVICE-ONLY），以及 CI 多类型 round-trip 完整性（见 #8）。
 
 ## 10. P1 Accessibility 仍读不到真实页面数据 — EVIDENCE-GATHERING
 
