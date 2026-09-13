@@ -75,9 +75,14 @@ export function createFinanceCandidatesController({
   let currentCandidates = [];
   let renderedForAccount = "";
   let bound = false;
-  // Task 24 reopen #7: one refresh at a time, and only the newest list may paint.
+  // Task 24 reopen #7: one *automatic* refresh at a time, and only the newest
+  // list may paint. A manual refresh must never be answered by a load that
+  // started before the user's click (legacy Task 21 gate: the second candidate
+  // ingested right before the tap stayed invisible because the click joined an
+  // in-flight list request).
   const refreshOnce = createSingleFlight();
   const listVersion = createLatestOnly();
+  let refreshInFlight = null;
 
   const element = (id) => document.getElementById(id);
 
@@ -198,8 +203,20 @@ export function createFinanceCandidatesController({
     return edits;
   }
 
-  async function reload() {
-    return refreshOnce("finance-candidates", () => loadCandidates());
+  async function reload({ force = false } = {}) {
+    if (force && refreshInFlight) {
+      // Wait for the older request to settle, then fetch again: the manual tap
+      // must observe server state at tap time or later, never earlier.
+      await refreshInFlight.catch(() => {});
+    }
+    if (!force && refreshInFlight) return refreshInFlight;
+    const started = refreshOnce("finance-candidates", () => loadCandidates());
+    refreshInFlight = started;
+    try {
+      return await started;
+    } finally {
+      if (refreshInFlight === started) refreshInFlight = null;
+    }
   }
 
   async function loadCandidates() {
@@ -399,7 +416,7 @@ export function createFinanceCandidatesController({
     if (refreshButton) {
       // #7 browser regression: a manual refresh also waits on two requests, so
       // the button must show its pending state before the first await.
-      void withInteractionFeedback(refreshButton, "finance-candidates-refresh", () => reload());
+      void withInteractionFeedback(refreshButton, "finance-candidates-refresh", () => reload({ force: true }));
       return;
     }
   }
