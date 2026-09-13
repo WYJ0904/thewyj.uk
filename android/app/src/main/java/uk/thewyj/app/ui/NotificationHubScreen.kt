@@ -345,11 +345,12 @@ private fun NotificationHistorySection(state: NotificationHubState) {
     val appLabels = remember { mutableStateMapOf<String, String>() }
     var filterSheet by remember { mutableStateOf(false) }
     var refreshing by remember { mutableStateOf(false) }
-    val filterPackages = remember(state.items.toList()) {
-        state.items.map { it.sourcePackage }.distinct().take(12)
+    val itemPackages = remember(state.items.toList()) {
+        state.items.map { it.sourcePackage }.distinct()
     }
-    LaunchedEffect(filterPackages) {
-        filterPackages.forEach { packageName ->
+    val filterPackages = remember(itemPackages) { itemPackages.take(12) }
+    LaunchedEffect(itemPackages) {
+        itemPackages.forEach { packageName ->
             if (!appLabels.containsKey(packageName)) appLabels[packageName] = state.appLabel(packageName)
         }
     }
@@ -474,9 +475,18 @@ private fun NotificationHistorySection(state: NotificationHubState) {
                     NotificationHistoryCard(
                         state = state,
                         item = item,
+                        appLabel = appLabels[item.sourcePackage] ?: item.sourcePackage,
                         onOpen = { state.detail = item },
                         onDelete = { scope.launch { state.deleteOne(item.revisionId) } },
                     )
+                }
+                if (state.hasMore) {
+                    OutlinedButton(
+                        onClick = { scope.launch { state.loadMore() } },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    ) {
+                        Text("加载更多通知")
+                    }
                 }
             }
         }
@@ -487,12 +497,11 @@ private fun NotificationHistorySection(state: NotificationHubState) {
 private fun NotificationHistoryCard(
     state: NotificationHubState,
     item: NotificationHistoryItem,
+    appLabel: String,
     onOpen: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    var label by remember(item.sourcePackage) { mutableStateOf<String?>(null) }
-    LaunchedEffect(item.sourcePackage) { label = state.appLabel(item.sourcePackage) }
     Card(Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable(onClick = onOpen)) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.Top) {
             Checkbox(
@@ -502,7 +511,7 @@ private fun NotificationHistoryCard(
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        label ?: item.sourcePackage,
+                        appLabel,
                         style = MaterialTheme.typography.labelLarge,
                         maxLines = 1,
                         softWrap = false,

@@ -86,21 +86,11 @@ object ScreenshotEvidence {
     /** Samples per axis for the bitmap fingerprint (fast, stable, non-reversible). */
     const val FINGERPRINT_GRID = 8
 
-    /**
-     * Screenshot packages. Samsung ships the capture UI in `smartcapture`; the
-     * other entries cover AOSP/older One UI and keep the detector honest on a
-     * non-Samsung device.
-     */
-    private val SCREENSHOT_PACKAGES = setOf(
-        "com.samsung.android.app.smartcapture",
-        "com.sec.android.app.smartcapture",
-        "com.samsung.android.screenshot",
-        "com.android.systemui.screenshot",
-        "com.android.systemui",
-    )
-
     private val SCREENSHOT_CHANNEL_MARKERS = listOf("screenshot", "screen_capture", "screen-capture", "smartcapture")
     private val SCREENSHOT_TEXT_MARKERS = listOf("截图", "截屏", "screenshot", "screen capture", "captura de pantalla")
+    private val SCREEN_RECORDING_MARKERS = listOf(
+        "屏幕录制", "录屏", "screen recording", "screen recorder", "screenrecord",
+    )
 
     fun mediaStoreFingerprint(rowId: Long): String = MEDIA_STORE_PREFIX + rowId
 
@@ -159,14 +149,18 @@ object ScreenshotEvidence {
         bigText: String,
         hasMedia: Boolean,
     ): Boolean {
-        val packageName = sourcePackage.trim().lowercase(Locale.ROOT)
-        if (packageName.isNotEmpty() && SCREENSHOT_PACKAGES.contains(packageName)) return true
         val channel = channelId.lowercase(Locale.ROOT)
-        if (SCREENSHOT_CHANNEL_MARKERS.any { channel.contains(it) }) return true
         val haystack = (title + " " + text + " " + bigText).lowercase(Locale.ROOT)
+        // Samsung SmartCapture/SystemUI owns both screenshots and the screen
+        // recorder. Treating the package name alone as proof made every timer
+        // tick a new screenshot identity (`aux:<package>:<time>`), bypassing the
+        // ongoing filter and creating one persisted revision per second.
+        if (SCREEN_RECORDING_MARKERS.any { channel.contains(it) || haystack.contains(it) }) return false
+        if (SCREENSHOT_CHANNEL_MARKERS.any { channel.contains(it) }) return true
         if (SCREENSHOT_TEXT_MARKERS.any { haystack.contains(it) }) return true
-        // A picture-only system notification is not automatically a screenshot;
-        // media alone must never invent screenshot semantics.
+        // Package ownership and media alone are not screenshot semantics. The
+        // MediaStore observer remains the authoritative fallback for a real
+        // screenshot whose localized notification has no recognisable text.
         return false
     }
 

@@ -1,7 +1,7 @@
-import { randomId } from "../core/capabilities.js?v=20260912-task24-4-r2";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260912-task24-4-r2";
-import { getSafeStorage } from "../core/storage.js?v=20260912-task24-4-r2";
-import { withInteractionFeedback } from "../core/perf.js?v=20260912-task24-4-r2";
+import { randomId } from "../core/capabilities.js?v=20260913-task24-device-r3";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260913-task24-device-r3";
+import { getSafeStorage } from "../core/storage.js?v=20260913-task24-device-r3";
+import { withInteractionFeedback } from "../core/perf.js?v=20260913-task24-device-r3";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -273,6 +273,58 @@ export function sessionPlan(queue, session) {
   return { reuse: sameSession, fileCount, totalBytes, reason: sameSession ? "exact-batch" : "batch-changed" };
 }
 
+const RECOVERABLE_UPLOAD_SESSION_CODES = new Set([
+  "transfer_session_not_found",
+  "transfer_session_not_active",
+  "transfer_session_expired",
+  "transfer_file_not_found",
+  "transfer_upload_not_initialized",
+]);
+
+/** A persisted server session may safely be replaced, never silently reused. */
+export function isRecoverableUploadSessionError(error) {
+  return RECOVERABLE_UPLOAD_SESSION_CODES.has(String(error?.code || ""));
+}
+
+/**
+ * Clears every queue item owned by one stale batch while retaining its File
+ * handle. The next pass opens one correctly-sized server session for the whole
+ * queue; it cannot mix old file ids or uploaded-part counters into the retry.
+ */
+export function resetQueueForStaleSession(items, sessionId) {
+  const stale = String(sessionId || "").trim();
+  if (!stale || !Array.isArray(items)) return 0;
+  let reset = 0;
+  for (const item of items) {
+    if (String(item?.sessionId || "") !== stale) continue;
+    item.sessionId = "";
+    item.fileId = "";
+    item.partSize = 0;
+    item.partCount = 0;
+    item.uploadedParts = [];
+    item.uploaded = 0;
+    item.speed = 0;
+    item.eta = 0;
+    item.status = item.status === "cancelled" ? "cancelled" : "pending";
+    item.needsFile = !item.file;
+    delete item.error;
+    delete item.failedPart;
+    delete item.performance;
+    reset += 1;
+  }
+  return reset;
+}
+
+/** Rendering and click behaviour share one authoritative item action. */
+export function transferItemAction(item) {
+  if (item?.paused) return "resume";
+  if (item?.status === "preparing") return "preparing";
+  if (item?.status === "uploading") return "pause";
+  if (item?.status === "error") return "retry";
+  if (item?.status === "pending") return "resume";
+  return "none";
+}
+
 /** Ids of the queue items a session was opened for. */
 export function sessionBatchIds(queue) {
   return (Array.isArray(queue) ? queue : [])
@@ -421,16 +473,24 @@ export function createTransferController({
     } else {
       list.innerHTML = queue.map((item) => {
         const percent = item.size ? Math.min(100, Math.round((item.uploaded / item.size) * 100)) : 0;
-        const paused = item.paused;
+        const action = transferItemAction(item);
+        const phase = action === "preparing" ? " · 正在创建安全上传任务" : item.error ? ` · ${escapeHtml(item.error)}` : "";
+        const primaryAction = action === "resume"
+          ? `<button type="button" data-transfer-resume="${escapeHtml(item.id)}">开始/继续</button>`
+          : action === "pause"
+            ? `<button type="button" data-transfer-pause="${escapeHtml(item.id)}">暂停</button>`
+            : action === "preparing"
+              ? '<span class="transfer-item-state" role="status">准备中…</span>'
+              : "";
         return `<article class="transfer-item" data-transfer-item="${escapeHtml(item.id)}">
           <div class="transfer-item-main">
             <strong>${escapeHtml(item.name)}</strong>
-            <small>${escapeHtml(item.relativePath)} · ${formatBytes(item.uploaded)} / ${formatBytes(item.size)}${item.speed ? ` · ${formatBytes(item.speed)}/s` : ""}${item.eta ? ` · 剩余 ${Math.ceil(item.eta)}s` : ""}${item.needsFile ? " · 已恢复，请重新选择同一文件继续" : ""}</small>
+            <small>${escapeHtml(item.relativePath)} · ${formatBytes(item.uploaded)} / ${formatBytes(item.size)}${item.speed ? ` · ${formatBytes(item.speed)}/s` : ""}${item.eta ? ` · 剩余 ${Math.ceil(item.eta)}s` : ""}${item.needsFile ? " · 已恢复，请重新选择同一文件继续" : ""}${phase}</small>
             <progress max="100" value="${percent}"></progress>
           </div>
           <div class="transfer-item-actions">
-            ${item.status === "pending" || paused ? `<button type="button" data-transfer-resume="${escapeHtml(item.id)}">开始/继续</button>` : `<button type="button" data-transfer-pause="${escapeHtml(item.id)}">暂停</button>`}
-            ${item.status === "error" ? `<button type="button" data-transfer-retry="${escapeHtml(item.id)}">重试</button>` : ""}
+            ${primaryAction}
+            ${action === "retry" ? `<button type="button" data-transfer-retry="${escapeHtml(item.id)}">重试</button>` : ""}
             <button class="danger-text" type="button" data-transfer-cancel="${escapeHtml(item.id)}">取消</button>
           </div>
         </article>`;
@@ -554,9 +614,7 @@ export function createTransferController({
     }
     persistQueue();
     renderQueue();
-    if (previous?.id && previous.id !== activeSession.id) {
-      void abortSession(previous.id, plan.reason);
-    }
+    if (previous?.id && previous.id !== activeSession.id) void abortSession(previous.id);
     if (plan.reason === "file-count-grew" || plan.reason === "size-changed") {
       setMessage("已按当前文件列表重新创建上传任务，正在重新上传。");
     }
@@ -564,12 +622,11 @@ export function createTransferController({
   }
 
   /** Best-effort cleanup so a superseded batch cannot linger on the server. */
-  async function abortSession(sessionId, reason = "") {
+  async function abortSession(sessionId) {
     try {
       const body = {};
       if (!authenticated()) body.guest_id = guestId();
       await request(`/api/transfer/uploads/${sessionId}/abort`, { method: "POST", body });
-      if (reason) setMessage("已废弃旧的上传任务，正在重新上传。");
     } catch (_) {
       // The server also expires abandoned sessions; a failed abort must never
       // block the new batch.
@@ -642,12 +699,42 @@ export function createTransferController({
       renderQueue();
       return;
     }
-    item.status = "uploading";
+    item.status = "preparing";
     item.paused = false;
-    await ensureSession();
-    if (item.sessionId !== activeSession.id) item.sessionId = activeSession.id;
     persistQueue();
-    await allocateItem(item);
+    renderQueue();
+    let prepared = false;
+    for (let attempt = 0; attempt < 2 && !prepared; attempt += 1) {
+      try {
+        await ensureSession();
+        if (item.sessionId !== activeSession.id) item.sessionId = activeSession.id;
+        persistQueue();
+        await allocateItem(item);
+        prepared = true;
+      } catch (error) {
+        const staleSessionId = String(item.sessionId || activeSession?.id || "");
+        if (attempt === 0 && staleSessionId && isRecoverableUploadSessionError(error)) {
+          resetQueueForStaleSession(queue, staleSessionId);
+          if (activeSession?.id === staleSessionId) activeSession = null;
+          persistQueue();
+          renderQueue();
+          setMessage("旧上传任务已失效，正在创建新任务继续上传。", "info");
+          continue;
+        }
+        item.status = "error";
+        item.error = error?.message || "上传任务准备失败，请重试。";
+        item.controller = null;
+        item.activeUploads = 0;
+        persistQueue();
+        renderQueue();
+        setMessage(item.error, "error");
+        return;
+      }
+    }
+    if (!prepared) return;
+    item.status = "uploading";
+    persistQueue();
+    renderQueue();
     if (item.partCount === 0) item.partCount = Math.max(1, Math.ceil(item.size / item.partSize));
     item.uploadedParts = Array.isArray(item.uploadedParts) ? item.uploadedParts : [];
     // Progress is acknowledged bytes, not "highest part seen": parallel parts
@@ -720,6 +807,17 @@ export function createTransferController({
       return;
     }
     if (failure) {
+      if (item.uploaded === 0 && isRecoverableUploadSessionError(failure)) {
+        const staleSessionId = String(item.sessionId || activeSession?.id || "");
+        resetQueueForStaleSession(queue, staleSessionId);
+        if (activeSession?.id === staleSessionId) activeSession = null;
+        item.controller = null;
+        item.activeUploads = 0;
+        persistQueue();
+        renderQueue();
+        setMessage("上传任务状态已失效，已安全重建；请继续上传。", "warning");
+        return;
+      }
       item.status = "error";
       item.error = failure.message;
       item.failedPart = Number(failure.partNumber) || 0;
@@ -973,6 +1071,13 @@ export function createTransferController({
       try {
         const query = authenticated() ? "" : `?guest_id=${encodeURIComponent(guestId())}`;
         const payload = await request(`/api/transfer/uploads/${item.sessionId}${query}`);
+        if (!["active", "published"].includes(String(payload.state || ""))) {
+          const staleSessionId = item.sessionId;
+          resetQueueForStaleSession(queue, staleSessionId);
+          if (activeSession?.id === staleSessionId) activeSession = null;
+          setMessage("已清理失效的旧上传任务，请重新选择原文件继续。", "warning");
+          continue;
+        }
         const file = payload.files?.find((entry) => entry.file_id === item.fileId);
         if (file && Array.isArray(file.uploaded_parts)) {
           item.uploadedParts = file.uploaded_parts;
@@ -991,10 +1096,16 @@ export function createTransferController({
           currentShare = sharePayload.share;
           renderShare(currentShare);
         }
-      } catch (_) {
-        // The session may have expired; the next upload attempt re-creates it.
+      } catch (error) {
+        if (isRecoverableUploadSessionError(error)) {
+          const staleSessionId = item.sessionId;
+          resetQueueForStaleSession(queue, staleSessionId);
+          if (activeSession?.id === staleSessionId) activeSession = null;
+          setMessage("旧上传任务已过期，请重新选择原文件继续。", "warning");
+        }
       }
     }
+    persistQueue();
     renderQueue();
   }
 

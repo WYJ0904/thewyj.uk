@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 
 import {
+  isRecoverableUploadSessionError,
   missingPartNumbers,
+  resetQueueForStaleSession,
   restoreQueueEntry,
   sessionIdForQueue,
   shouldAdoptStoredQueue,
   transferQueueStorageKey,
+  transferItemAction,
   uploadWorkerCount,
 } from "../js/transfer/app.js";
 
@@ -95,6 +98,47 @@ assert.equal(pausedPartial.status, "pending");
 const doneItem = restoreQueueEntry({ id: "item-done", sessionId: "session-3", size: 10, uploaded: 10, status: "done" });
 assert.equal(doneItem.status, "done");
 assert.equal(doneItem.needsFile, false);
+
+// Task 24 physical B-8 regression (713.2 MB stuck at 0 B): preparation is a
+// distinct state and must never render the pause action before a part pipeline
+// exists. A restored preparation is resumable after process/page recreation.
+assert.equal(transferItemAction({ status: "preparing", uploaded: 0 }), "preparing");
+assert.equal(transferItemAction({ status: "uploading", uploaded: 1 }), "pause");
+assert.equal(transferItemAction({ status: "uploading", uploaded: 1, paused: true }), "resume");
+assert.equal(transferItemAction({ status: "error", uploaded: 0 }), "retry");
+assert.equal(restoreQueueEntry({ id: "preparing", size: 800 * 1024 * 1024, uploaded: 0, status: "preparing" }).status, "pending");
+
+// An expired/aborted restored batch is reset as one unit. File handles survive
+// in the live page, but no server id, part count or acknowledged byte may leak
+// into the replacement session; another session remains untouched.
+const staleFile = { name: "large.mp4", size: 800 * 1024 * 1024 };
+const staleQueue = [
+  {
+    id: "a", file: staleFile, sessionId: "stale-session", fileId: "old-file-a",
+    partSize: 16 * 1024 * 1024, partCount: 50, uploadedParts: [1], uploaded: 16 * 1024 * 1024,
+    speed: 1024, eta: 100, status: "uploading", needsFile: false,
+  },
+  {
+    id: "b", file: null, sessionId: "stale-session", fileId: "old-file-b",
+    partSize: 16 * 1024 * 1024, partCount: 2, uploadedParts: [1], uploaded: 16 * 1024 * 1024,
+    status: "pending", needsFile: true,
+  },
+  { id: "c", file: null, sessionId: "other-session", fileId: "file-c", uploaded: 5, status: "pending" },
+];
+assert.equal(resetQueueForStaleSession(staleQueue, "stale-session"), 2);
+assert.equal(staleQueue[0].file, staleFile, "the live File handle survives a safe session replacement");
+assert.equal(staleQueue[0].sessionId, "");
+assert.equal(staleQueue[0].fileId, "");
+assert.deepEqual(staleQueue[0].uploadedParts, []);
+assert.equal(staleQueue[0].uploaded, 0);
+assert.equal(staleQueue[0].status, "pending");
+assert.equal(staleQueue[0].needsFile, false);
+assert.equal(staleQueue[1].needsFile, true, "a restored item still asks for its source file");
+assert.equal(staleQueue[2].sessionId, "other-session", "a different batch is untouched");
+assert.equal(staleQueue[2].uploaded, 5);
+assert.equal(isRecoverableUploadSessionError({ code: "transfer_session_expired" }), true);
+assert.equal(isRecoverableUploadSessionError({ code: "transfer_upload_not_initialized" }), true);
+assert.equal(isRecoverableUploadSessionError({ code: "transfer_storage_quota_exceeded" }), false);
 
 // The persisted session id is what lets a reloaded page publish a finished queue.
 assert.equal(sessionIdForQueue([{ id: "a" }, { id: "b", sessionId: "session-9" }]), "session-9");

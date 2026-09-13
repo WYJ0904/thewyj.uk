@@ -50,6 +50,9 @@ class NotificationHubState(
     val items: SnapshotStateList<NotificationHistoryItem> = mutableStateListOf()
     val selected: SnapshotStateList<String> = mutableStateListOf()
     var detail by mutableStateOf<NotificationHistoryItem?>(null)
+    var hasMore by mutableStateOf(false)
+        private set
+    private var visibleLimit = HISTORY_PAGE_SIZE
 
     /**
      * Pending review count. The finance page lists backend candidates, so the
@@ -66,7 +69,9 @@ class NotificationHubState(
         search = search,
         sourcePackage = appFilter,
         includeRemoved = includeRemoved,
-        limit = 200,
+        // Ask for one sentinel row so the UI can offer an explicit next page
+        // without counting or composing the whole archive.
+        limit = visibleLimit + 1,
     )
 
     suspend fun refresh() {
@@ -74,8 +79,9 @@ class NotificationHubState(
         error = ""
         try {
             val results = repository.history(query())
+            hasMore = results.size > visibleLimit
             items.clear()
-            items.addAll(results)
+            items.addAll(results.take(visibleLimit))
             selected.clear()
             stats = repository.stats()
             settingsRetentionDays = repository.settings().retentionDays
@@ -125,11 +131,19 @@ class NotificationHubState(
 
     suspend fun setSearch(value: String) {
         search = value
+        visibleLimit = HISTORY_PAGE_SIZE
         refresh()
     }
 
     suspend fun setAppFilter(value: String) {
         appFilter = value
+        visibleLimit = HISTORY_PAGE_SIZE
+        refresh()
+    }
+
+    suspend fun loadMore() {
+        if (!hasMore) return
+        visibleLimit = (visibleLimit + HISTORY_PAGE_SIZE).coerceAtMost(HISTORY_MAX_VISIBLE)
         refresh()
     }
 
@@ -214,5 +228,7 @@ class NotificationHubState(
     companion object {
         /** Mirrors RoomNotificationStore.DEFAULT_RETENTION_DAYS without a hard constant here. */
         const val NotificationRepositoryRetentionDefault = 30
+        const val HISTORY_PAGE_SIZE = 50
+        const val HISTORY_MAX_VISIBLE = 500
     }
 }
