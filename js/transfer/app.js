@@ -750,12 +750,30 @@ export function createTransferController({
     if (running) return;
     running = true;
     try {
-      for (const item of [...queue]) {
-        if (item.paused) continue;
-        if (item.status === "done" || item.status === "cancelled") continue;
-        // Only an item that still holds its File can be resumed; restored items
-        // stay in「待重新选择文件」until addFiles() attaches it again.
-        if (item.file && !item.controller && !(Number(item.activeUploads) > 0)) await uploadItem(item);
+      // A session switch (a file was appended after an upload) resets the files
+      // that already uploaded, so the loop has to run another pass instead of
+      // returning as soon as the first pass is over. Passes are bounded and stop
+      // as soon as nothing was uploaded any more.
+      for (let pass = 0; pass < 4; pass += 1) {
+        let progressed = false;
+        for (const item of [...queue]) {
+          if (item.paused) continue;
+          if (item.status === "done" || item.status === "cancelled") continue;
+          // Only an item that still holds its File can be resumed; restored items
+          // stay in「待重新选择文件」until addFiles() attaches it again.
+          if (item.file && !item.controller && !(Number(item.activeUploads) > 0)) {
+            await uploadItem(item);
+            progressed = true;
+          }
+        }
+        const needsWork = queue.some((item) =>
+          item.file
+          && !item.paused
+          && item.status !== "done"
+          && item.status !== "cancelled"
+          && item.status !== "error");
+        const plan = sessionPlan(queue, activeSession);
+        if (!progressed || (!needsWork && plan.reuse)) break;
       }
     } finally {
       running = false;
