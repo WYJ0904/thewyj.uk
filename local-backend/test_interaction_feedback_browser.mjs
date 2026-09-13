@@ -200,7 +200,17 @@ async function main() {
       await page.navigate("/transfer");
       await page.waitFor("document.querySelector('#transferFileInput')", 25_000, "transfer page");
       await page.setFile("#transferFileInput", UPLOAD_FILE);
-      await page.waitFor("document.querySelector('#transferCompleteBtn')?.disabled === false", 90_000, "upload finished");
+      await page.waitFor("document.querySelectorAll('[data-transfer-item]').length === 1", 20_000, "single queue item");
+      try {
+        await page.waitFor("document.querySelector('#transferCompleteBtn')?.disabled === false", 90_000, "upload finished");
+      } catch (error) {
+        const state = await page.evaluate(`(() => ({
+          message: document.querySelector('#transferMessage')?.textContent || '',
+          quota: document.querySelector('#transferQuotaText')?.textContent || '',
+          item: (document.querySelector('[data-transfer-item]')?.textContent || '').trim().slice(0, 200),
+        }))()`);
+        throw new Error(`${error.message} — transfer page said ${JSON.stringify(state)}`);
+      }
       await clickWithImmediateFeedback("#transferCompleteBtn", "transfer complete");
       await page.waitFor("!document.querySelector('#transferShareCard')?.classList.contains('hidden')", 60_000, "share card");
       const shareLink = await page.evaluate("document.querySelector('#transferShareLink')?.value || ''");
@@ -248,7 +258,7 @@ async function main() {
     await check("membership recharge submit shows feedback before the order request", async () => {
       await page.navigate("/select");
       await page.click("#accountBtn");
-      await page.waitFor("!document.querySelector('#accountMenu')?.hasAttribute('open') === false || true", 5_000, "account menu");
+      await page.waitFor("document.querySelector('#membershipBtn')", 10_000, "account menu");
       const opened = await page.evaluate(`(() => {
         const button = document.querySelector('#membershipBtn');
         if (!button) return false;

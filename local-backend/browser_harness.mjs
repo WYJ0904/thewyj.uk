@@ -153,14 +153,39 @@ export async function openPage({ cdpUrl, baseUrl, width = 412, height = 915, mob
     element.click();
     return true;
   })()`);
+  /**
+   * Attaches files to an `<input type=file>` and delivers exactly one
+   * input+change pair. `DOM.setFileInputFiles` sometimes fires the native events
+   * and sometimes not; letting both the native event and a manual dispatch run
+   * makes the transfer controller queue the same file twice, which breaks the
+   * session's declared file_count and leaves the upload unfinished. The native
+   * events are suppressed and replayed once (same pattern as the toolbox suite).
+   */
   const setFile = async (selector, files) => {
     const result = await evaluate(`document.querySelector(${JSON.stringify(selector)})`, false);
     assert.ok(result?.objectId, `missing file input ${selector}`);
+    await evaluate(`(() => {
+      const input = document.querySelector(${JSON.stringify(selector)});
+      const suppress = (event) => event.stopImmediatePropagation();
+      input.__wyjHarnessSuppressFileEvents = suppress;
+      input.addEventListener('input', suppress, true);
+      input.addEventListener('change', suppress, true);
+      return true;
+    })()`);
     await send("DOM.setFileInputFiles", {
       objectId: result.objectId,
       files: Array.isArray(files) ? files : [files],
     });
-    await evaluate(`document.querySelector(${JSON.stringify(selector)}).dispatchEvent(new Event('change', { bubbles: true }))`);
+    await evaluate(`(() => {
+      const input = document.querySelector(${JSON.stringify(selector)});
+      const suppress = input.__wyjHarnessSuppressFileEvents;
+      input.removeEventListener('input', suppress, true);
+      input.removeEventListener('change', suppress, true);
+      delete input.__wyjHarnessSuppressFileEvents;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    })()`);
   };
   const setDownloadBehavior = async (downloadPath) => {
     fs.mkdirSync(downloadPath, { recursive: true });

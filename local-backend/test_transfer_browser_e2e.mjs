@@ -124,8 +124,21 @@ async function main() {
     await page.navigate("/transfer");
     await page.waitFor("document.querySelector('#transferFileInput')", 25_000, "transfer page");
     await page.setFile("#transferFileInput", FIXTURES.map((fixture) => fixture.path));
-    await page.waitFor("document.querySelectorAll('#transferQueue article').length >= 2", 30_000, "queue items");
-    await page.waitFor("document.querySelector('#transferCompleteBtn')?.disabled === false", 240_000, "uploads finished");
+    await page.waitFor(
+      `document.querySelectorAll('[data-transfer-item]').length === ${FIXTURES.length}`,
+      30_000,
+      "queue items",
+    );
+    try {
+      await page.waitFor("document.querySelector('#transferCompleteBtn')?.disabled === false", 240_000, "uploads finished");
+    } catch (error) {
+      const state = await page.evaluate(`(() => ({
+        message: document.querySelector('#transferMessage')?.textContent || '',
+        quota: document.querySelector('#transferQuotaText')?.textContent || '',
+        items: Array.from(document.querySelectorAll('[data-transfer-item]')).map((item) => (item.textContent || '').trim().slice(0, 120)),
+      }))()`);
+      throw new Error(`${error.message} — transfer page said ${JSON.stringify(state)}`);
+    }
 
     // 3. The frontend multipart scheduler really participated: every plan has
     //    more than one part and every part was acknowledged.
