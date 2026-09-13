@@ -464,6 +464,7 @@ jobs:
         working-directory: android
         run: |
           set -euo pipefail
+          mkdir -p ../artifacts
           python3 ../scripts/check_android_release_consistency.py \
             --apk app/build/outputs/apk/debug/app-debug.apk \
             --allow-debug-suffix 2>&1 | tee ../artifacts/android-release-apk-check.log
