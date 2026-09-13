@@ -6,6 +6,30 @@ const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
 const PART_SIZE_HINT = 16 * 1024 * 1024;
 const DEFAULT_EXPIRY_MINUTES = 1440;
+/**
+ * Controlled multipart concurrency. The previous implementation hashed and
+ * uploaded one part at a time (hash → PUT → wait → next), which capped a real
+ * 800 MB upload far below the available bandwidth. Three parallel parts keeps
+ * the pipe busy without unbounded sockets; failures still stop the batch.
+ */
+export const UPLOAD_CONCURRENCY = 3;
+
+/** Part numbers that still need a PUT, in stable order. */
+export function missingPartNumbers(partCount, uploadedParts) {
+  const done = new Set((Array.isArray(uploadedParts) ? uploadedParts : []).map(Number));
+  const missing = [];
+  for (let partNumber = 1; partNumber <= Number(partCount || 0); partNumber += 1) {
+    if (!done.has(partNumber)) missing.push(partNumber);
+  }
+  return missing;
+}
+
+/** How many upload workers to start for one item (never zero for real work). */
+export function uploadWorkerCount(partCount, uploadedParts, concurrency = UPLOAD_CONCURRENCY) {
+  const missing = missingPartNumbers(partCount, uploadedParts).length;
+  if (missing <= 0) return 0;
+  return Math.max(1, Math.min(Number(concurrency) || 1, missing));
+}
 
 /**
  * Account-scoped queue identity (Task 24.3 multi-account isolation). The queue
@@ -148,7 +172,7 @@ export function createTransferController({
     const value = { account: authenticated() ? String(account().id) : `guest:${guestId()}`, queue };
     const serializable = {
       account: value.account,
-      queue: queue.map(({ file, controller, ...item }) => item),
+    queue: queue.map(({ file, controller, controllers, activeUploads, ...item }) => item),
     };
     storage.setItem(transferQueueStorageKey(value.account), JSON.stringify(serializable));
   }
@@ -296,7 +320,12 @@ export function createTransferController({
     const partDigest = await crypto.subtle.digest("SHA-256", await part.arrayBuffer());
     const partHash = [...new Uint8Array(partDigest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
     const controller = new AbortController();
+    // Several parts are in flight at once: keep every controller so pause and
+    // cancel stop all active requests, and run() can see the item is busy.
+    item.controllers = item.controllers || new Set();
+    item.controllers.add(controller);
     item.controller = controller;
+    item.activeUploads = (Number(item.activeUploads) || 0) + 1;
     const response = await fetch(
       `/api/transfer/uploads/${item.sessionId}/files/${item.fileId}/parts/${partNumber}`,
       {
@@ -305,7 +334,11 @@ export function createTransferController({
         body: part,
         signal: controller.signal,
       },
-    );
+    ).finally(() => {
+      item.controllers?.delete(controller);
+      item.activeUploads = Math.max(0, (Number(item.activeUploads) || 1) - 1);
+      if (item.activeUploads === 0) item.controller = null;
+    });
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
       const error = new Error(data.error || `分片上传失败（HTTP ${response.status}）`);
@@ -313,6 +346,7 @@ export function createTransferController({
       error.status = response.status;
       throw error;
     }
+    return part.size;
   }
 
   async function allocateItem(item) {
@@ -348,47 +382,66 @@ export function createTransferController({
     persistQueue();
     await allocateItem(item);
     if (item.partCount === 0) item.partCount = Math.max(1, Math.ceil(item.size / item.partSize));
+    item.uploadedParts = Array.isArray(item.uploadedParts) ? item.uploadedParts : [];
+    // Progress is acknowledged bytes, not "highest part seen": parallel parts
+    // finish out of order, and the old formula could jump straight to 100%.
+    item.uploaded = item.uploadedParts.reduce((sum, partNumber) => {
+      const offset = (Number(partNumber) - 1) * item.partSize;
+      return sum + Math.min(item.partSize, item.size - offset);
+    }, 0);
+    const queueParts = missingPartNumbers(item.partCount, item.uploadedParts);
     const startedAt = Date.now();
-    let lastBytes = 0;
-    for (let partNumber = 1; partNumber <= item.partCount; partNumber += 1) {
-      if (item.status === "cancelled") return;
-      while (item.paused && item.status !== "cancelled") {
-        await new Promise((resolve) => setTimeout(resolve, 250));
-      }
-      if (item.uploadedParts.includes(partNumber)) continue;
-      const offset = (partNumber - 1) * item.partSize;
-      const length = Math.min(item.partSize, item.size - offset);
-      const part = item.file.slice(offset, offset + length);
-      try {
-        await uploadPartBytes(item, partNumber, part);
-        item.uploadedParts.push(partNumber);
-        item.uploaded = Math.min(item.size, offset + length);
-        persistQueue();
-      } catch (error) {
+    const startBytes = item.uploaded;
+    let cursor = 0;
+    let firstError = null;
+    const worker = async () => {
+      while (true) {
         if (item.status === "cancelled") return;
-        if (error.code === "transfer_part_size_mismatch" || error.code === "transfer_identifier_invalid") {
-          item.status = "error";
-          item.error = error.message;
+        if (firstError) return;
+        while (item.paused && item.status !== "cancelled") {
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+        const index = cursor;
+        cursor += 1;
+        if (index >= queueParts.length) return;
+        const partNumber = queueParts[index];
+        const offset = (partNumber - 1) * item.partSize;
+        const length = Math.min(item.partSize, item.size - offset);
+        const part = item.file.slice(offset, offset + length);
+        try {
+          const uploadedBytes = await uploadPartBytes(item, partNumber, part);
+          if (!item.uploadedParts.includes(partNumber)) item.uploadedParts.push(partNumber);
+          item.uploaded = Math.min(item.size, item.uploaded + (uploadedBytes || length));
+          delete item.failedPart;
+          persistQueue();
+          const elapsed = (Date.now() - startedAt) / 1000;
+          if (elapsed > 0.5 && item.uploaded > startBytes) {
+            item.speed = (item.uploaded - startBytes) / Math.max(0.2, elapsed);
+            item.eta = item.size > item.uploaded ? (item.size - item.uploaded) / Math.max(1, item.speed) : 0;
+          }
           renderQueue();
+        } catch (error) {
+          if (item.status === "cancelled" || item.paused) return;
+          firstError = firstError || { error, partNumber };
           return;
         }
-        item.status = "error";
-        item.error = error.message;
-        item.failedPart = partNumber;
-        renderQueue();
-        return;
       }
-      const elapsed = (Date.now() - startedAt) / 1000;
-      const delta = item.uploaded - lastBytes;
-      lastBytes = item.uploaded;
-      if (elapsed > 0.5 && delta > 0) {
-        item.speed = delta / Math.max(0.2, (Date.now() - startedAt) / 1000);
-        item.eta = item.size > item.uploaded ? (item.size - item.uploaded) / Math.max(1, item.speed) : 0;
-      }
+    };
+    const workers = Array.from({ length: uploadWorkerCount(item.partCount, item.uploadedParts) }, worker);
+    await Promise.all(workers);
+    if (item.status === "cancelled") return;
+    if (firstError) {
+      item.status = "error";
+      item.error = firstError.error.message;
+      item.failedPart = firstError.partNumber;
+      item.controller = null;
+      persistQueue();
       renderQueue();
+      return;
     }
     item.status = "done";
     item.controller = null;
+    item.activeUploads = 0;
     persistQueue();
     renderQueue();
     if (queue.every((entry) => entry.status === "done")) setMessage("全部文件已上传，可以创建分享链接。");
@@ -403,7 +456,7 @@ export function createTransferController({
         if (item.status === "done" || item.status === "cancelled") continue;
         // Only an item that still holds its File can be resumed; restored items
         // stay in「待重新选择文件」until addFiles() attaches it again.
-        if (item.file && !item.controller) await uploadItem(item);
+        if (item.file && !item.controller && !(Number(item.activeUploads) > 0)) await uploadItem(item);
       }
     } finally {
       running = false;
@@ -637,7 +690,9 @@ export function createTransferController({
     const item = itemById(id);
     if (!item) return;
     item.status = "cancelled";
-    item.controller?.abort();
+    item.controllers?.forEach((controller) => controller.abort());
+    item.controllers?.clear();
+    item.controller = null;
     queue = queue.filter((entry) => entry.id !== id);
     persistQueue();
     renderQueue();
@@ -647,6 +702,11 @@ export function createTransferController({
     const item = itemById(id);
     if (!item) return;
     item.paused = true;
+    // Stop every in-flight part; acknowledged parts stay recorded, so resume
+    // simply re-uploads whatever did not finish.
+    item.controllers?.forEach((controller) => controller.abort());
+    item.controllers?.clear();
+    item.controller = null;
     renderQueue();
   }
 
