@@ -56,6 +56,14 @@ data class NotificationClassificationInput(
     val isGroupSummary: Boolean = false,
     /** The notification carried a picture/thumbnail Android exposed to us. */
     val hasMedia: Boolean = false,
+    /**
+     * The picture could actually be read and stored. Real-device regression
+     * (B-5): a live VPN/traffic notification reports "unavailable" media on
+     * Samsung because its picture cannot be read; treating that as user content
+     * used to bypass the live-source filter and archive a new revision every
+     * second.
+     */
+    val mediaAvailable: Boolean = false,
     val identityKey: String = "",
     val occurredAtMs: Long = 0L,
 )
@@ -115,10 +123,15 @@ object NotificationClassifier {
         ) {
             return NotificationClassification(NotificationClass.MESSAGE, true, "screenshot_event")
         }
-        // A notification that carries a picture is user content, never a live
-        // readout: a screenshot/media notification must be archived even when its
-        // channel or package looks like a status channel.
-        if (input.hasMedia) {
+        val liveSource = input.isOngoing || input.isForegroundService ||
+            isLivePackage(packageName) || channelLooksLive(input.channelId)
+        // A notification that carries a *readable* picture is user content, never
+        // a live readout: a screenshot/media notification must be archived even
+        // when its channel or package looks like a status channel. An unreadable
+        // picture must not resurrect a live source (B-5): Samsung exposes
+        // "unavailable" media for the live VPN/traffic notification, which used
+        // to skip the filter below and append one revision per tick.
+        if (input.hasMedia && (input.mediaAvailable || !liveSource)) {
             return NotificationClassification(NotificationClass.MESSAGE, true, "media_content")
         }
         if (input.isGroupSummary) {
@@ -127,7 +140,7 @@ object NotificationClassifier {
         if (input.isProgressLike()) {
             return NotificationClassification(NotificationClass.PROGRESS, false, "progress")
         }
-        if (input.isOngoing || input.isForegroundService || isLivePackage(packageName) || channelLooksLive(input.channelId)) {
+        if (liveSource) {
             // Ongoing content still matters while it is the *only* thing that
             // changed for this identity inside a short window: a live speed
             // readout must not become one history row per second.
