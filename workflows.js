@@ -2,6 +2,12 @@
   "use strict";
 
   const root = typeof window === "undefined" ? globalThis : window;
+  /** #7: feedback helper published by js/core/perf.js (classic script boundary). */
+  const perf = () => root.WYJPerf;
+  async function withFeedback(element, name, action) {
+    const helper = perf()?.withInteractionFeedback;
+    return helper ? helper(element, name, action) : action();
+  }
   const SCHEMA_VERSION = 1;
   const MAX_WORKFLOW_BYTES = 48 * 1024;
   const MAX_WORKFLOWS = 50;
@@ -1053,8 +1059,13 @@
     initialized = true;
     bridge = context;
     byId("openWorkflowBtn")?.addEventListener("click", async () => {
-      bridge.navigate("/tools/workflows");
-      await show("/tools/workflows", accessOptions);
+      const button = byId("openWorkflowBtn");
+      // #7: opening the workflow workbench loads saved workflows; the tile shows
+      // the pending state until the first render lands.
+      await withFeedback(button, "workflow-open", async () => {
+        bridge.navigate("/tools/workflows");
+        await show("/tools/workflows", accessOptions);
+      });
     });
     byId("closeWorkflowBtn")?.addEventListener("click", () => {
       if (activeRun) activeRun.controller.abort();
@@ -1082,8 +1093,10 @@
     byId("importWorkflowBtn")?.addEventListener("click", () => byId("workflowImportInput").click());
     byId("workflowImportInput")?.addEventListener("change", async (event) => {
       const input = event.currentTarget;
-      try { await importWorkflowFile(input.files?.[0]); }
-      catch (error) { setSaveMessage(`导入失败：${error.message}`, true); }
+      try {
+        await withFeedback(byId("importWorkflowBtn"), "workflow-import", () =>
+          importWorkflowFile(input.files?.[0]));
+      } catch (error) { setSaveMessage(`导入失败：${error.message}`, true); }
       finally { input.value = ""; }
     });
     byId("runWorkflowBtn")?.addEventListener("click", () => runSelectedWorkflow().catch((error) => {

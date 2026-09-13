@@ -5,6 +5,7 @@ import {
   beginInteraction,
   createLatestOnly,
   createSingleFlight,
+  withInteractionFeedback,
 } from "../core/perf.js?v=20260912-task24-4-r2";
 const CANDIDATE_PAGE_LIMIT = 100;
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
@@ -394,7 +395,13 @@ export function createFinanceCandidatesController({
       decide(rejectButton.dataset.financeCandidateReject, false, null, rejectButton);
       return;
     }
-    if (event.target.closest("#financeCandidatesRefreshBtn")) reload();
+    const refreshButton = event.target.closest("#financeCandidatesRefreshBtn");
+    if (refreshButton) {
+      // #7 browser regression: a manual refresh also waits on two requests, so
+      // the button must show its pending state before the first await.
+      void withInteractionFeedback(refreshButton, "finance-candidates-refresh", () => reload());
+      return;
+    }
   }
 
   function show() {

@@ -181,6 +181,11 @@ jobs:
             node --check local-backend/test_transfer_integrity_js.mjs
             node --check local-backend/test_transfer_benchmark_js.mjs
             node --check local-backend/test_interaction_feedback_js.mjs
+            node --check local-backend/test_interaction_feedback_browser.mjs
+            node --check local-backend/test_transfer_browser_e2e.mjs
+            node --check local-backend/browser_harness.mjs
+            node --check scripts/audit_async_interactions.mjs
+            node --check scripts/prepare_local_admin_fixture.mjs
             node --check js/finance/candidates.js
             node --check qa/task20_overlay_device.mjs
             node --check cloudflare/task14-cleanup-worker.mjs
@@ -224,6 +229,12 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_interaction_feedback_js.mjs 2>&1 | tee artifacts/javascript-interaction-feedback.log
+
+      - name: Audit async interactions across the browser modules
+        run: |
+          set -euo pipefail
+          node scripts/audit_async_interactions.mjs 2>&1 | tee artifacts/async-interaction-audit.log
+          cp artifacts/async-interaction-audit.md artifacts/ 2>/dev/null || true
 
       - name: Test core JavaScript modules
         run: |
@@ -797,6 +808,16 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_tools_browser.mjs 2>&1 | tee artifacts/task15-cloud-toolbox.log
+
+      - name: Browser audit of instant interaction feedback across modules
+        run: |
+          set -euo pipefail
+          node local-backend/test_interaction_feedback_browser.mjs 2>&1 | tee artifacts/interaction-feedback-browser.log
+
+      - name: Browser round trip for large EXE and MP4 uploads (D1 + R2)
+        run: |
+          set -euo pipefail
+          node local-backend/test_transfer_browser_e2e.mjs 2>&1 | tee artifacts/transfer-browser-e2e.log
 
       - name: Stop Cloudflare-only browser fixtures
         if: always()

@@ -58,6 +58,11 @@ fun PaymentVerificationScreen(
     val scope = rememberCoroutineScope()
     var tick by remember { mutableStateOf(0) }
     LaunchedEffect(Unit) { state.refresh() }
+    // #4: bounded catch-up for records the server still owns (Web confirm → this
+    // screen). It restarts when the set of pending records changes and stops by
+    // itself after PendingReconciliationPolicy.windowMs.
+    val pendingKey = state.items.joinToString("|") { "${it.recognitionId}:${it.syncState}" }
+    LaunchedEffect(pendingKey) { state.catchUpReconciliation() }
     // Countdown display only; no background polling of Room or the network.
     LaunchedEffect(tick, state.items.size) {
         if (state.items.any { it.ticketActive }) {

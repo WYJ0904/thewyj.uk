@@ -118,6 +118,23 @@ export function interactionTraceApi() {
 }
 
 /**
+ * Classic scripts (tools.js / workflows.js IIFEs) cannot import an ES module, so
+ * the same helpers are published on `window.WYJPerf`. Called once from app.js.
+ */
+export function installPerfGlobal(target = typeof window === "undefined" ? globalThis : window) {
+  if (!target) return null;
+  const api = {
+    ...interactionTraceApi(),
+    attachInteractionFeedback,
+    beginInteraction,
+    withInteractionFeedback,
+    withInteractionFeedbackQuiet,
+  };
+  target.WYJPerf = api;
+  return api;
+}
+
+/**
  * Puts a control into its pending state *synchronously* and returns the release
  * function. No layout reads, no timers before the state change, so the feedback
  * is painted with the next frame.
@@ -213,4 +230,40 @@ export function patchOverlayClickThrough(overlay) {
   return function restore() {
     overlay.style.pointerEvents = previous || "";
   };
+}
+
+/**
+ * The one-line wrapper every async control uses: pending state on the element
+ * *before* the first await, the documented stages on a trace, and a release that
+ * runs on success, failure and cancellation alike.
+ *
+ * ```js
+ * button.addEventListener("click", (event) =>
+ *   withInteractionFeedback(event.currentTarget, "recharge-submit", () => submitRecharge(event)));
+ * ```
+ */
+export async function withInteractionFeedback(element, name, action, options = {}) {
+  const trace = options.trace || beginInteraction(name, options.meta || {});
+  trace.mark(INTERACTION_STAGES.HANDLER_START, name);
+  const release = attachInteractionFeedback(element);
+  try {
+    const result = await action({ trace, release, element });
+    trace.mark(INTERACTION_STAGES.STATE_APPLY, "done");
+    return result;
+  } catch (error) {
+    trace.mark(INTERACTION_STAGES.STATE_APPLY, `error:${error?.message || "unknown"}`.slice(0, 120));
+    throw error;
+  } finally {
+    release();
+    if (!trace.finished) trace.finish(name);
+  }
+}
+
+/**
+ * Fire-and-forget variant for handlers that already report their own errors
+ * (status line, toast): the feedback is released, the rejection is swallowed the
+ * same way the original `void handler()` call did.
+ */
+export function withInteractionFeedbackQuiet(element, name, action, options = {}) {
+  return withInteractionFeedback(element, name, action, options).catch(() => undefined);
 }

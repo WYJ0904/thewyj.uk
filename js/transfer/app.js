@@ -1,6 +1,7 @@
 import { randomId } from "../core/capabilities.js?v=20260912-task24-4-r2";
 import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260912-task24-4-r2";
 import { getSafeStorage } from "../core/storage.js?v=20260912-task24-4-r2";
+import { withInteractionFeedback } from "../core/perf.js?v=20260912-task24-4-r2";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -896,7 +897,11 @@ export function createTransferController({
     if (!button) return;
     if (button.id === "transferSelectFilesBtn") element("transferFileInput")?.click();
     else if (button.id === "transferSelectFolderBtn") element("transferFolderInput")?.click();
-    else if (button.id === "transferCompleteBtn") void complete();
+    // #7: creating the share and downloading a file both wait on the server; the
+    // pressed control shows the pending state before the first await.
+    else if (button.id === "transferCompleteBtn") {
+      void withInteractionFeedback(button, "transfer-complete", () => complete()).catch(() => undefined);
+    }
     else if (button.id === "transferCopyLinkBtn") {
       const link = element("transferShareLink");
       link?.select();
@@ -909,10 +914,17 @@ export function createTransferController({
     else if (button.dataset.transferCancel) cancelItem(button.dataset.transferCancel);
     else if (button.dataset.transferDownload) {
       const [shareId, fileId] = button.dataset.transferDownload.split("|");
-      void downloadShareFile(shareId, fileId, Boolean(currentShare?.password_required));
+      void withInteractionFeedback(
+        button,
+        "transfer-download",
+        () => downloadShareFile(shareId, fileId, Boolean(currentShare?.password_required)),
+      ).catch(() => undefined);
     }
     else if (button.dataset.transferOpen) void openShare(button.dataset.transferOpen);
-    else if (button.dataset.transferRevoke) void revokeShare(button.dataset.transferRevoke);
+    else if (button.dataset.transferRevoke) {
+      void withInteractionFeedback(button, "transfer-revoke", () => revokeShare(button.dataset.transferRevoke))
+        .catch(() => undefined);
+    }
   }
 
   function handleDrop(event) {
