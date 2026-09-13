@@ -57,6 +57,11 @@ jobs:
           cd local-backend
           python -m unittest discover -p "test_*.py" -v 2>&1 | tee ../artifacts/python-unittest.log
 
+      - name: Check Android release metadata consistency
+        run: |
+          set -euo pipefail
+          python scripts/check_android_release_consistency.py 2>&1 | tee artifacts/android-release-consistency.log
+
       - name: Test CI service readiness helper
         run: |
           set -euo pipefail
@@ -454,6 +459,15 @@ jobs:
           set -euo pipefail
           chmod +x gradlew
           ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon --stacktrace 2>&1 | tee ../android-build.log
+
+      - name: Verify the built APK matches the release metadata
+        working-directory: android
+        run: |
+          set -euo pipefail
+          mkdir -p ../artifacts
+          python3 ../scripts/check_android_release_consistency.py \
+            --apk app/build/outputs/apk/debug/app-debug.apk \
+            --allow-debug-suffix 2>&1 | tee ../artifacts/android-release-apk-check.log
 
       - name: Upload Android reports and test APK
         if: always()
