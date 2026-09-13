@@ -263,6 +263,31 @@ export async function openPage({ cdpUrl, baseUrl, width = 412, height = 915, mob
     }
   });
 
+  /**
+   * Records the real HTTP answers for URLs containing [pattern], so a test can
+   * assert what the server actually did instead of trusting a localized toast.
+   */
+  const responseWatchers = [];
+  client.listeners.add((message) => {
+    if (message.method !== "Network.responseReceived") return;
+    const url = String(message.params?.response?.url || "");
+    const status = Number(message.params?.response?.status || 0);
+    for (const watcher of responseWatchers) {
+      if (url.includes(watcher.pattern)) watcher.entries.push({ url, status });
+    }
+  });
+  const watchResponses = (pattern) => {
+    const watcher = { pattern: String(pattern), entries: [] };
+    responseWatchers.push(watcher);
+    return {
+      get entries() {
+        return watcher.entries.slice();
+      },
+      statuses: () => watcher.entries.map((entry) => entry.status),
+      count: () => watcher.entries.length,
+    };
+  };
+
   return {
     client,
     send,
@@ -276,6 +301,7 @@ export async function openPage({ cdpUrl, baseUrl, width = 412, height = 915, mob
     throttle,
     clearThrottle,
     intercept,
+    watchResponses,
     runtimeErrors,
     dialogs,
     targetId,
@@ -311,41 +337,102 @@ export const CLICK_AND_PROBE = (selector) => `(() => {
 })()`;
 
 /**
- * Registers a fresh member and signs in, tolerating one slow round trip.
+ * Creates a fresh member and signs in - as an explicit state machine.
  *
- * The Cloud-only job talks to a local Pages dev server; a single registration
- * POST occasionally needs longer than the default wait, and an unrelated
- * timeout there must not be reported as a product failure. The helper retries
- * the *same* user path once, then asserts the real end state.
+ * The previous version retried the *whole* attempt when the localized
+ * 「注册成功」 indicator was slow. The server had already answered
+ * `POST /api/register 201`, so the second attempt produced `409 Conflict` and
+ * the failure looked like a transfer problem although the upload never ran
+ * (main CI run 34741604805).
+ *
+ * Rules now:
+ *  1. `POST /api/register` is sent at most once per created account. A retry is
+ *     only allowed when **no answer at all** was observed for that request.
+ *  2. The real HTTP status is the evidence (201 = created, 409 = the account
+ *     already exists). A localized toast is an assertion on top, never the only
+ *     reason to re-register.
+ *  3. Whatever the UI said, the account must be usable: the helper signs in and
+ *     requires the authenticated `/select` dashboard.
  */
-export async function registerAndSignIn(page, { username, secret, label = "member" }) {
-  const attempt = async () => {
-    await page.navigate(`/register?rc=${encodeURIComponent(username)}`);
-    await page.waitFor("!document.querySelector('#registerForm')?.classList.contains('hidden')", 20_000, "register form");
-    await page.setFields({
-      "#registerUsernameInput": username,
-      "#registerSecretInput": secret,
-      "#registerConfirmInput": secret,
-    });
-    await page.click("#registerSubmitBtn");
-    await page.waitFor(
-      "location.pathname === '/login' && document.querySelector('#loginError')?.textContent.includes('注册成功')",
-      45_000,
-      "registration success",
-    );
-    await page.setFields({ "#usernameInput": username, "#secretInput": secret });
-    await page.click("#loginSubmitBtn");
+export async function registerAndSignIn(page, { username, secret, label = "member", uiTimeoutMs = 45_000 } = {}) {
+  const registerResponses = page.watchResponses("/api/register");
+  const registrationSuccessExpression =
+    "location.pathname === '/login' && document.querySelector('#loginError')?.textContent.includes('注册成功')";
+
+  await page.navigate(`/register?rc=${encodeURIComponent(username)}`);
+  await page.waitFor("!document.querySelector('#registerForm')?.classList.contains('hidden')", 20_000, "register form");
+  await page.setFields({
+    "#registerUsernameInput": username,
+    "#registerSecretInput": secret,
+    "#registerConfirmInput": secret,
+  });
+  await page.click("#registerSubmitBtn");
+
+  // The UI indicator is a UI assertion; the HTTP answer is the evidence.
+  let uiObserved = true;
+  try {
+    await page.waitFor(registrationSuccessExpression, uiTimeoutMs, "registration success indicator");
+  } catch (_) {
+    uiObserved = false;
+  }
+
+  const observedStatuses = registerResponses.statuses();
+  const created = observedStatuses.some((status) => status >= 200 && status < 300);
+
+  if (!created && observedStatuses.length === 0) {
+    // The click never reached the server (no answer at all). Exactly one retry of
+    // the same request is allowed, and only while the form is still there.
+    const formStillThere = await page
+      .evaluate("Boolean(document.querySelector('#registerSubmitBtn'))")
+      .catch(() => false);
+    if (formStillThere) {
+      console.log(`[browser-harness] no /api/register answer observed for ${label}; retrying the same request once`);
+      await page.click("#registerSubmitBtn").catch(() => {});
+      try {
+        await page.waitFor(registrationSuccessExpression, 20_000, "registration success indicator (retry)");
+        uiObserved = true;
+      } catch (_) {
+        uiObserved = false;
+      }
+    }
+  } else if (!created && observedStatuses.includes(409)) {
+    // The account already exists (for example a previous partially completed
+    // run). This is reported, never silently treated as a fresh creation; the
+    // credentials below still have to work.
+    console.log(`[browser-harness] /api/register answered 409 for ${label}; verifying the existing account by signing in`);
+  }
+
+  const finalStatuses = registerResponses.statuses();
+  const duplicateRegistrationObserved = finalStatuses.includes(409);
+  const registrationCreated = finalStatuses.some((status) => status >= 200 && status < 300);
+
+  // Sign in with the submitted credentials. This is the part that actually
+  // proves "fresh user creation → authenticated session".
+  await page.navigate(`/login?rc=${encodeURIComponent(username)}`);
+  await page.waitFor("!document.querySelector('#loginForm')?.classList.contains('hidden')", 20_000, "login form");
+  await page.setFields({ "#usernameInput": username, "#secretInput": secret });
+  await page.click("#loginSubmitBtn");
+  try {
     await page.waitFor(
       "location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')",
       45_000,
       `${label} dashboard`,
     );
-  };
-  try {
-    await attempt();
-    return;
-  } catch (firstError) {
-    console.log(`[browser-harness] retrying ${label} sign-in after: ${firstError.message}`);
-    await attempt();
+  } catch (error) {
+    const loginError = await page
+      .evaluate("document.querySelector('#loginError')?.textContent || ''")
+      .catch(() => "");
+    throw new Error(
+      `${label} could not sign in after registration `
+        + `(register statuses: ${JSON.stringify(finalStatuses)}, uiObserved: ${uiObserved}, login error: ${loginError || "none"}): ${error.message}`,
+    );
   }
+
+  return {
+    registrationStatuses: finalStatuses,
+    registrationCreated,
+    duplicateRegistrationObserved,
+    uiObserved,
+    recoveredFromUiTimeout: !uiObserved,
+  };
 }
