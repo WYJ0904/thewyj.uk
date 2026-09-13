@@ -801,15 +801,16 @@ jobs:
       # The two Task 24 gates below are independent of the legacy suites above:
       # running them first keeps an unrelated flake in the P0 flow from hiding
       # the >16 MiB round trip result.
+      - name: Browser round trip for large EXE and MP4 uploads (D1 + R2)
+        run: |
+          set -euo pipefail
+          node local-backend/test_transfer_browser_e2e.mjs 2>&1 | tee artifacts/transfer-browser-e2e.log
+
       - name: Browser audit of instant interaction feedback across modules
         run: |
           set -euo pipefail
           node local-backend/test_interaction_feedback_browser.mjs 2>&1 | tee artifacts/interaction-feedback-browser.log
 
-      - name: Browser round trip for large EXE and MP4 uploads (D1 + R2)
-        run: |
-          set -euo pipefail
-          node local-backend/test_transfer_browser_e2e.mjs 2>&1 | tee artifacts/transfer-browser-e2e.log
 
       - name: Run cloud-only P0 browser flow
         run: |

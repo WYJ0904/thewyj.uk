@@ -359,16 +359,35 @@ async function main() {
         const goal = goals.find((button) => button.dataset.membershipGoal === 'finance') || goals[0];
         goal.click();
       })()`);
-      // The Preview D1 may ship without a purchasable plan catalog. The submit
-      // feedback is still required where a plan exists (and is covered by the
-      // static audit + the local run); the environment gap is reported instead of
-      // being mistaken for a missing interaction rule.
-      const hasPlans = await page
-        .waitFor("document.querySelector('[data-plan]')", 25_000, "membership plans")
+      // Plans only render once a goal is selected, and the page may have failed
+      // its own (real) catalog request before this step installed the controlled
+      // one - so retry through the app's recovery button and then wait again.
+      const planVisible = () => page.waitFor("document.querySelector('[data-plan=\"finance_monthly\"]')", 12_000, "controlled plan")
         .then(() => true)
         .catch(() => false);
+      let hasPlans = await planVisible();
       if (!hasPlans) {
-        throw new Error("the controlled plan catalog was not used by the membership page");
+        await page.evaluate(`(() => {
+          const retry = document.querySelector('#retryMembershipPlansBtn');
+          if (retry) retry.click();
+          return true;
+        })()`);
+        await page.evaluate(`(() => {
+          const goals = Array.from(document.querySelectorAll('[data-membership-goal]'));
+          (goals.find((button) => button.dataset.membershipGoal === 'finance') || goals[0]).click();
+        })()`);
+        hasPlans = await planVisible();
+      }
+      if (!hasPlans) {
+        const surface = await page.evaluate(`(() => ({
+          path: location.pathname,
+          modalHidden: document.querySelector('#membershipModal')?.classList.contains('hidden'),
+          recoveryHidden: document.querySelector('#membershipPlanRecovery')?.classList.contains('hidden'),
+          recoveryText: (document.querySelector('#membershipPlanRecovery')?.textContent || '').trim().slice(0, 160),
+          message: (document.querySelector('#rechargeMessage')?.textContent || '').slice(0, 160),
+          planList: (document.querySelector('#membershipPlanList')?.innerHTML || '').slice(0, 160),
+        }))()`);
+        throw new Error(`the controlled plan catalog was not used by the membership page: ${JSON.stringify(surface)}`);
       }
       await page.evaluate("(document.querySelector('[data-plan=\"finance_monthly\"]') || document.querySelector('[data-plan]')).click()");
       await page.waitFor("document.querySelector('input[name=\"paymentMethod\"]')", 25_000, "payment methods");
