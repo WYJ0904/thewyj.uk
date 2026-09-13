@@ -309,3 +309,43 @@ export const CLICK_AND_PROBE = (selector) => `(() => {
     || element.disabled === true;
   return { ok: true, pending, elapsedMs: performance.now() - started };
 })()`;
+
+/**
+ * Registers a fresh member and signs in, tolerating one slow round trip.
+ *
+ * The Cloud-only job talks to a local Pages dev server; a single registration
+ * POST occasionally needs longer than the default wait, and an unrelated
+ * timeout there must not be reported as a product failure. The helper retries
+ * the *same* user path once, then asserts the real end state.
+ */
+export async function registerAndSignIn(page, { username, secret, label = "member" }) {
+  const attempt = async () => {
+    await page.navigate(`/register?rc=${encodeURIComponent(username)}`);
+    await page.waitFor("!document.querySelector('#registerForm')?.classList.contains('hidden')", 20_000, "register form");
+    await page.setFields({
+      "#registerUsernameInput": username,
+      "#registerSecretInput": secret,
+      "#registerConfirmInput": secret,
+    });
+    await page.click("#registerSubmitBtn");
+    await page.waitFor(
+      "location.pathname === '/login' && document.querySelector('#loginError')?.textContent.includes('注册成功')",
+      45_000,
+      "registration success",
+    );
+    await page.setFields({ "#usernameInput": username, "#secretInput": secret });
+    await page.click("#loginSubmitBtn");
+    await page.waitFor(
+      "location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')",
+      45_000,
+      `${label} dashboard`,
+    );
+  };
+  try {
+    await attempt();
+    return;
+  } catch (firstError) {
+    console.log(`[browser-harness] retrying ${label} sign-in after: ${firstError.message}`);
+    await attempt();
+  }
+}

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { CLICK_AND_PROBE, delay, openPage } from "./browser_harness.mjs";
+import { CLICK_AND_PROBE, delay, openPage, registerAndSignIn } from "./browser_harness.mjs";
 
 /**
  * Task 24 reopen #7 - browser-level regression for the site-wide feedback rule.
@@ -167,26 +167,7 @@ async function main() {
       // A site owner cannot receive memberships, so the browser session belongs to
       // a fresh member and the admin fixture grants the plans through the real
       // admin API (same pattern as the other cloud browser suites).
-      await page.navigate("/register");
-      await page.waitFor("!document.querySelector('#registerForm')?.classList.contains('hidden')", 15_000, "register form");
-      await page.setFields({
-        "#registerUsernameInput": BROWSER_USER,
-        "#registerSecretInput": BROWSER_SECRET,
-        "#registerConfirmInput": BROWSER_SECRET,
-      });
-      await page.click("#registerSubmitBtn");
-      await page.waitFor(
-        "location.pathname === '/login' && document.querySelector('#loginError')?.textContent.includes('注册成功')",
-        20_000,
-        "registration success",
-      );
-      await page.setFields({ "#usernameInput": BROWSER_USER, "#secretInput": BROWSER_SECRET });
-      await page.click("#loginSubmitBtn");
-      await page.waitFor(
-        "location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')",
-        25_000,
-        "dashboard after login",
-      );
+      await registerAndSignIn(page, { username: BROWSER_USER, secret: BROWSER_SECRET, label: "interaction audit" });
       // The audit exercises finance/tools/archive surfaces, so the fixture
       // account needs the plans a member would have (granted through the real
       // admin API, exactly like the other cloud browser suites do).

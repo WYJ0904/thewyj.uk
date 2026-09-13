@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { delay, openPage, waitForDownloadedFile } from "./browser_harness.mjs";
+import { delay, openPage, registerAndSignIn, waitForDownloadedFile } from "./browser_harness.mjs";
 
 /**
  * Task 24 reopen #8 - real browser round trip for large files.
@@ -103,22 +103,7 @@ async function main() {
   try {
     // 1. A real member session (guests are fine too, but a member exercises the
     //    normal quota and "my shares" path).
-    await page.navigate(`/register?transfer=${RUN_ID}`);
-    await page.waitFor("!document.querySelector('#registerForm')?.classList.contains('hidden')", 20_000, "register form");
-    await page.setFields({
-      "#registerUsernameInput": USERNAME,
-      "#registerSecretInput": SECRET,
-      "#registerConfirmInput": SECRET,
-    });
-    await page.click("#registerSubmitBtn");
-    await page.waitFor(
-      "location.pathname === '/login' && document.querySelector('#loginError')?.textContent.includes('注册成功')",
-      25_000,
-      "registration success",
-    );
-    await page.setFields({ "#usernameInput": USERNAME, "#secretInput": SECRET });
-    await page.click("#loginSubmitBtn");
-    await page.waitFor("location.pathname === '/select'", 30_000, "dashboard");
+    await registerAndSignIn(page, { username: USERNAME, secret: SECRET, label: "transfer round-trip" });
 
     // 2. Upload the first large file alone, then append the second one *after*
     //    the first upload finished. The server fixes file_count when the session
