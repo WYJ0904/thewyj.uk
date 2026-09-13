@@ -2,7 +2,7 @@
 
 **状态：`TASK 24 DEVICE CLOSURE — USER FINAL CONFIRMATION STILL REQUIRED`**（不是 `COMPLETE`）。
 
-分支：`codex/task24-device-closure-r4`　PR：待创建（base `main`）
+分支：`codex/task24-device-closure-r4`　PR：`#74`（base `main`）
 Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Task 25 代码）
 
 证据口径：
