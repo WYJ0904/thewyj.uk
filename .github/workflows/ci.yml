@@ -179,6 +179,8 @@ jobs:
             node --check local-backend/test_task21_hints_js.mjs
             node --check local-backend/test_task22_d1_js.mjs
             node --check local-backend/test_transfer_integrity_js.mjs
+            node --check local-backend/test_transfer_benchmark_js.mjs
+            node --check local-backend/test_interaction_feedback_js.mjs
             node --check js/finance/candidates.js
             node --check qa/task20_overlay_device.mjs
             node --check cloudflare/task14-cleanup-worker.mjs
@@ -217,6 +219,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_finance_candidates_js.mjs 2>&1 | tee artifacts/javascript-finance-candidates.log
+
+      - name: Test interaction feedback and click-to-render timeline
+        run: |
+          set -euo pipefail
+          node local-backend/test_interaction_feedback_js.mjs 2>&1 | tee artifacts/javascript-interaction-feedback.log
 
       - name: Test core JavaScript modules
         run: |
@@ -336,6 +343,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_transfer_integrity_js.mjs 2>&1 | tee artifacts/transfer-integrity.log
+
+      - name: Benchmark the multipart hash/upload pipeline
+        run: |
+          set -euo pipefail
+          node local-backend/test_transfer_benchmark_js.mjs 2>&1 | tee artifacts/transfer-benchmark.log
 
       - name: Check HTML, PWA and tool catalog
         run: |

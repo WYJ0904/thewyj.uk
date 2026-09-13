@@ -204,6 +204,61 @@ class PaymentRecognitionCoordinatorTest {
         assertEquals(FinanceDirection.UNKNOWN.name, draft.direction)
     }
 
+    /**
+     * Task 24 reopen #10: an amount-unknown capture opens a 90 second ticket. The
+     * accessibility gate is refreshed from Room on a short cadence, so the same
+     * moment must publish the package - otherwise the very first page event is
+     * dropped as `no_active_ticket` and the payment can never be enriched.
+     */
+    @Test fun openingAVerificationTicketAnnouncesThePackage() {
+        PaymentTicketPackageSignal.clear()
+        val store = FakeStore()
+        val coordinator = PaymentRecognitionCoordinator(
+            store = store,
+            notifier = FakeNotifier(),
+            now = { 1_000L },
+        )
+        coordinator.onSourceEvent(
+            accountId = "account-a",
+            sourcePackage = "com.tencent.mm",
+            sourceType = PaymentSourceType.NOTIFICATION,
+            sourceEventId = "notification#signal#1000",
+            title = "微信",
+            text = "转账",
+            sourceAppLabel = "微信",
+        )
+        assertTrue(
+            "the accessibility gate must know about the ticket before its next refresh",
+            PaymentTicketPackageSignal.recentlySignalled("com.tencent.mm"),
+        )
+        assertTrue(store.tickets.values.any { it.sourcePackage == "com.tencent.mm" })
+        PaymentTicketPackageSignal.clear()
+    }
+
+    /** The manual "核实交易" restart publishes the package again. */
+    @Test fun restartedVerificationAnnouncesThePackageAgain() {
+        PaymentTicketPackageSignal.clear()
+        val store = FakeStore()
+        val coordinator = PaymentRecognitionCoordinator(
+            store = store,
+            notifier = FakeNotifier(),
+            now = { 1_000L },
+        )
+        val outcome = coordinator.onSourceEvent(
+            accountId = "account-a",
+            sourcePackage = "cmb.pb",
+            sourceType = PaymentSourceType.NOTIFICATION,
+            sourceEventId = "notification#bank#1000",
+            title = "招商银行",
+            text = "转账",
+            sourceAppLabel = "招商银行",
+        )
+        PaymentTicketPackageSignal.clear()
+        assertNotNull(coordinator.restartVerification("account-a", outcome.recognitionId))
+        assertTrue(PaymentTicketPackageSignal.recentlySignalled("cmb.pb"))
+        PaymentTicketPackageSignal.clear()
+    }
+
     private class FakeStore : PaymentRecognitionStoreContract {
         val recognitions = mutableMapOf<String, PaymentRecognitionRecord>()
         val tickets = mutableMapOf<String, PaymentTicket>()

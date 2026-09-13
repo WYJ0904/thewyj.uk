@@ -51,6 +51,11 @@ import {
 import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20260912-task24-4-r2";
 import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20260912-task24-4-r2";
 import { createTransferController } from "./js/transfer/app.js?v=20260912-task24-4-r2";
+import {
+  INTERACTION_STAGES,
+  beginInteraction,
+  interactionTraceApi,
+} from "./js/core/perf.js?v=20260912-task24-4-r2";
 import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20260912-task24-4-r2";
 import {
   calculateStudyStreak,
@@ -4062,14 +4067,72 @@ function isRouteGenerationCurrent(generation) {
   return generation === routeGeneration;
 }
 
+/**
+ * Task 24 reopen #7: one interaction trace per user gesture, shared by the
+ * global click hook and the route render so the documented chain
+ * `click → handler start → request start → response → state apply → render end`
+ * is measurable on a real device through `window.__wyjInteractionTrace()`.
+ */
+let activeInteraction = null;
+
+function describeInteractionTarget(target) {
+  const element = target?.closest?.("button, a, [role='button'], input[type='submit']") || target;
+  if (!element) return "";
+  const id = element.id ? `#${element.id}` : "";
+  const dataKey = element.dataset ? Object.keys(element.dataset)[0] || "" : "";
+  const label = String(element.textContent || element.getAttribute?.("aria-label") || "").trim().slice(0, 24);
+  const tag = String(element.tagName || "element").toLowerCase();
+  return `${tag}${id}${dataKey ? `[${dataKey}]` : ""}${label ? ` ${label}` : ""}`.trim();
+}
+
+function installInteractionTracing() {
+  try {
+    if (typeof window !== "undefined") window.__wyjInteractionTrace = interactionTraceApi();
+  } catch (_) {
+    // A WebView without a writable window must never block the UI.
+  }
+  document.addEventListener("click", (event) => {
+    const target = describeInteractionTarget(event.target);
+    // Every gesture owns its trace. A navigation started by this click extends
+    // it (routeCurrent() adds the render stages); a click that only opens a menu
+    // is closed by its own timer, so no trace is ever left half open.
+    const trace = beginInteraction("click", { target });
+    trace.mark(INTERACTION_STAGES.CLICK, target);
+    activeInteraction = trace;
+    trace.autoFinish = window.setTimeout(() => {
+      if (activeInteraction !== trace) return;
+      activeInteraction = null;
+      if (!trace.finished) trace.finish("click");
+    }, 5_000);
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => {
+        if (activeInteraction === trace) trace.mark("first-frame", target);
+      });
+    }
+  }, { capture: true, passive: true });
+}
+
 function routeCurrent() {
   // Capture the target path with the render so a stale render can never read a
   // newer URL, and bump a generation so slow async work from an earlier route
   // can no longer paint over the route the user actually opened.
   const path = currentRoutePath();
   const generation = ++routeGeneration;
+  // Task 24 reopen #7: the same timeline covers every navigation, so a "slow
+  // page" can be attributed to the route render instead of being described as
+  // an unresponsive click.
+  const trace = activeInteraction || beginInteraction("route");
+  activeInteraction = trace;
+  trace.mark(INTERACTION_STAGES.HANDLER_START, path);
   routeRender = Promise.resolve()
     .then(() => renderCurrentRoute(path, generation))
+    .then((result) => {
+      trace.mark(INTERACTION_STAGES.STATE_APPLY, path);
+      trace.finish(path);
+      if (trace.autoFinish) window.clearTimeout(trace.autoFinish);
+      if (activeInteraction === trace) activeInteraction = null;
+      return result;
+    })
     .catch(() => {});
   return routeRender;
 }
@@ -7089,6 +7152,7 @@ async function boot() {
   await backendPromise;
   await routeCurrent();
   installNativeNavigation();
+  installInteractionTracing();
   installNativeThemeBridge();
   setupResponsiveDisclosures();
   maybeShowVersionNotice();

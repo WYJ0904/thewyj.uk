@@ -31,6 +31,148 @@ export function uploadWorkerCount(partCount, uploadedParts, concurrency = UPLOAD
   return Math.max(1, Math.min(Number(concurrency) || 1, missing));
 }
 
+/** Hashed parts buffered ahead of the network so a PUT never waits on SHA-256. */
+export const HASH_LOOK_AHEAD = 2;
+
+/**
+ * Task 24 reopen #9 - hash/upload pipeline.
+ *
+ * The first multipart rewrite only removed the serial `hash → PUT → wait` loop.
+ * Hashing still ran inside the upload slot, so every worker idled for the digest
+ * before it could use the socket. This runs two stages with one bounded queue:
+ * a look-ahead stage hashes the next parts while the upload stage keeps
+ * `workerCount` PUTs in flight. Integrity is untouched: the digest handed to
+ * `uploadPart(part, hash)` is still the SHA-256 of exactly those part bytes.
+ *
+ * `shouldStop()` returns a reason (`"paused"` / `"cancelled"`) when the user
+ * interrupted the item; the first upload failure is rethrown with `partNumber`
+ * attached so the UI can retry that part.
+ */
+export async function runPartPipeline({
+  parts,
+  workerCount,
+  hashPart,
+  uploadPart,
+  onUploaded,
+  shouldStop,
+  lookAhead = HASH_LOOK_AHEAD,
+}) {
+  const total = Array.isArray(parts) ? parts.length : 0;
+  const metrics = { parts: total, uploaded: 0, bytes: 0, hashMs: 0, uploadMs: 0, stoppedBy: "" };
+  if (total === 0) return metrics;
+  const limit = Math.max(1, Math.min(Number(workerCount) || 1, total));
+  const buffered = Math.max(0, Number(lookAhead) || 0);
+  const hashPromises = new Map();
+  let nextIndex = 0;
+  let failure = null;
+  let stopReason = "";
+
+  const reasonNow = () => {
+    if (failure) return "failed";
+    if (typeof shouldStop !== "function") return "";
+    const reason = shouldStop();
+    if (!reason) return "";
+    if (typeof reason === "string") return reason;
+    return reason.kind || reason.reason || "stopped";
+  };
+
+  const scheduleHashes = () => {
+    while (!reasonNow() && nextIndex < total && hashPromises.size < limit + buffered) {
+      const part = parts[nextIndex];
+      nextIndex += 1;
+      const startedAt = Date.now();
+      const promise = Promise.resolve()
+        .then(() => hashPart(part))
+        .then((hash) => {
+          metrics.hashMs += Date.now() - startedAt;
+          return { part, hash };
+        });
+      hashPromises.set(part.partNumber, promise);
+    }
+  };
+
+  const takeJob = () => {
+    scheduleHashes();
+    const next = hashPromises.entries().next();
+    if (next.done) return null;
+    const [partNumber, promise] = next.value;
+    hashPromises.delete(partNumber);
+    scheduleHashes();
+    return promise;
+  };
+
+  const worker = async () => {
+    while (true) {
+      const reason = reasonNow();
+      if (reason) {
+        stopReason = stopReason || reason;
+        return;
+      }
+      let job;
+      try {
+        job = await takeJob();
+      } catch (error) {
+        failure = failure || error;
+        stopReason = stopReason || "failed";
+        return;
+      }
+      if (!job) {
+        const idleReason = reasonNow();
+        if (idleReason) stopReason = stopReason || idleReason;
+        return;
+      }
+      const { part, hash } = job;
+      const startedAt = Date.now();
+      try {
+        const uploadedBytes = await uploadPart(part, hash);
+        metrics.uploadMs += Date.now() - startedAt;
+        metrics.uploaded += 1;
+        metrics.bytes += Number(uploadedBytes) || Number(part.length) || 0;
+        onUploaded?.(part, uploadedBytes);
+      } catch (error) {
+        const interrupted = reasonNow();
+        if (interrupted) {
+          stopReason = stopReason || interrupted;
+        } else {
+          if (error && typeof error === "object" && error.partNumber === undefined) {
+            error.partNumber = part.partNumber;
+          }
+          failure = failure || error;
+          stopReason = stopReason || "failed";
+        }
+        return;
+      }
+    }
+  };
+
+  await Promise.all(Array.from({ length: limit }, () => worker()));
+  if (failure) throw failure;
+  metrics.stoppedBy = stopReason;
+  return metrics;
+}
+
+/**
+ * Upload timing for one item: hash stage, upload stage, wall clock and effective
+ * throughput. Recorded on the queue item so a real network run reports numbers
+ * instead of a guess.
+ */
+export function uploadPerformanceSummary({ bytes, hashMs, uploadMs, totalMs }) {
+  const safeBytes = Math.max(0, Number(bytes) || 0);
+  const safeTotalMs = Math.max(0, Number(totalMs) || 0);
+  const seconds = safeTotalMs / 1000;
+  const hash = Math.max(0, Number(hashMs) || 0);
+  const upload = Math.max(0, Number(uploadMs) || 0);
+  return {
+    bytes: safeBytes,
+    hashMs: hash,
+    uploadMs: upload,
+    totalMs: safeTotalMs,
+    bytesPerSecond: seconds > 0 ? safeBytes / seconds : 0,
+    /** Median-worth share of the wall clock spent hashing (per-part, summed). */
+    hashShare: hash + upload > 0 ? hash / (hash + upload) : 0,
+  };
+}
+
 /**
  * Account-scoped queue identity (Task 24.3 multi-account isolation). The queue
  * used to live under one global key, so switching accounts could adopt or
@@ -316,9 +458,16 @@ export function createTransferController({
     return activeSession;
   }
 
-  async function uploadPartBytes(item, partNumber, part) {
-    const partDigest = await crypto.subtle.digest("SHA-256", await part.arrayBuffer());
-    const partHash = [...new Uint8Array(partDigest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  /** SHA-256 of exactly one part's bytes; the pipeline runs this ahead of the PUT. */
+  async function hashPartBytes(item, part) {
+    const slice = item.file.slice(part.offset, part.offset + part.length);
+    const partDigest = await crypto.subtle.digest("SHA-256", await slice.arrayBuffer());
+    return [...new Uint8Array(partDigest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  async function uploadPartBytes(item, part, partHash) {
+    const partNumber = part.partNumber;
+    const body = item.file.slice(part.offset, part.offset + part.length);
     const controller = new AbortController();
     // Several parts are in flight at once: keep every controller so pause and
     // cancel stop all active requests, and run() can see the item is busy.
@@ -331,7 +480,7 @@ export function createTransferController({
       {
         method: "PUT",
         headers: headers({ "Content-Type": "application/octet-stream", "X-Part-Sha256": partHash }),
-        body: part,
+        body,
         signal: controller.signal,
       },
     ).finally(() => {
@@ -346,7 +495,7 @@ export function createTransferController({
       error.status = response.status;
       throw error;
     }
-    return part.size;
+    return body.size;
   }
 
   async function allocateItem(item) {
@@ -392,24 +541,27 @@ export function createTransferController({
     const queueParts = missingPartNumbers(item.partCount, item.uploadedParts);
     const startedAt = Date.now();
     const startBytes = item.uploaded;
-    let cursor = 0;
-    let firstError = null;
-    const worker = async () => {
-      while (true) {
-        if (item.status === "cancelled") return;
-        if (firstError) return;
-        while (item.paused && item.status !== "cancelled") {
-          await new Promise((resolve) => setTimeout(resolve, 250));
-        }
-        const index = cursor;
-        cursor += 1;
-        if (index >= queueParts.length) return;
-        const partNumber = queueParts[index];
-        const offset = (partNumber - 1) * item.partSize;
-        const length = Math.min(item.partSize, item.size - offset);
-        const part = item.file.slice(offset, offset + length);
-        try {
-          const uploadedBytes = await uploadPartBytes(item, partNumber, part);
+    const plan = queueParts.map((partNumber) => {
+      const offset = (partNumber - 1) * item.partSize;
+      const length = Math.min(item.partSize, item.size - offset);
+      return { partNumber, offset, length };
+    });
+    let metrics = null;
+    let failure = null;
+    try {
+      metrics = await runPartPipeline({
+        parts: plan,
+        workerCount: uploadWorkerCount(item.partCount, item.uploadedParts),
+        hashPart: (part) => hashPartBytes(item, part),
+        uploadPart: (part, hash) => uploadPartBytes(item, part, hash),
+        shouldStop: () => {
+          if (item.status === "cancelled") return "cancelled";
+          if (item.paused) return "paused";
+          return "";
+        },
+        onUploaded: (part, uploadedBytes) => {
+          const partNumber = part.partNumber;
+          const length = part.length;
           if (!item.uploadedParts.includes(partNumber)) item.uploadedParts.push(partNumber);
           item.uploaded = Math.min(item.size, item.uploaded + (uploadedBytes || length));
           delete item.failedPart;
@@ -420,21 +572,41 @@ export function createTransferController({
             item.eta = item.size > item.uploaded ? (item.size - item.uploaded) / Math.max(1, item.speed) : 0;
           }
           renderQueue();
-        } catch (error) {
-          if (item.status === "cancelled" || item.paused) return;
-          firstError = firstError || { error, partNumber };
-          return;
-        }
-      }
-    };
-    const workers = Array.from({ length: uploadWorkerCount(item.partCount, item.uploadedParts) }, worker);
-    await Promise.all(workers);
-    if (item.status === "cancelled") return;
-    if (firstError) {
-      item.status = "error";
-      item.error = firstError.error.message;
-      item.failedPart = firstError.partNumber;
+        },
+      });
+    } catch (error) {
+      failure = error;
+    }
+    if (metrics) {
+      item.performance = uploadPerformanceSummary({
+        bytes: metrics.bytes,
+        hashMs: metrics.hashMs,
+        uploadMs: metrics.uploadMs,
+        totalMs: Date.now() - startedAt,
+      });
+    }
+    if (item.status === "cancelled") {
       item.controller = null;
+      item.activeUploads = 0;
+      return;
+    }
+    // A pause interrupts the in-flight PUTs; acknowledged parts stay recorded and
+    // the rest resume. It is not a finished upload, so the item must not be
+    // marked done (that used to make「开始/继续」a no-op after pausing).
+    if (metrics?.stoppedBy === "paused" || item.paused) {
+      item.status = "pending";
+      item.controller = null;
+      item.activeUploads = 0;
+      persistQueue();
+      renderQueue();
+      return;
+    }
+    if (failure) {
+      item.status = "error";
+      item.error = failure.message;
+      item.failedPart = Number(failure.partNumber) || 0;
+      item.controller = null;
+      item.activeUploads = 0;
       persistQueue();
       renderQueue();
       return;

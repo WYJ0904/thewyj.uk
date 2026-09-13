@@ -35,6 +35,10 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         PaymentAccessibilityStatus.onConnected()
+        // #10: a reconnect (or an account/session refresh that rebinds the
+        // service) starts from the real Room state instead of another account's
+        // memory-only signal.
+        PaymentTicketPackageSignal.clear()
         scheduleTicketPackageRefresh(force = true)
     }
 
@@ -71,9 +75,17 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         // package has no business being read, so SystemUI/launcher/IME noise
         // never touches the database, the node tree or the log.
         if (ticketPackages.needsRefresh()) scheduleTicketPackageRefresh(force = false)
-        if (!ticketPackages.contains(packageName)) {
+        if (!ticketPackages.contains(packageName) && !PaymentTicketPackageSignal.recentlySignalled(packageName)) {
             PaymentAccessibilityStatus.onSkipped(packageName, "no_active_ticket")
             return
+        }
+        if (!ticketPackages.contains(packageName)) {
+            // #10: the ticket was created after the last cache refresh, so this
+            // first event is read and handed to the worker, where the Room ticket
+            // is re-checked before anything is parsed or enriched. A package
+            // without a real ticket is rejected there and the cache is refreshed.
+            PaymentAccessibilityStatus.onTicketSignal(packageName)
+            scheduleTicketPackageRefresh(force = true)
         }
 
         // Reading the window must happen on the accessibility thread. The active
@@ -88,7 +100,13 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
             // WeChat exposes no text at all: fall back to a local screenshot +
             // on-device OCR. The image never leaves the device and never creates
             // a transaction by itself.
-            requestScreenshotVerification(packageName)
+            // A device without a usable OCR engine must degrade to the manual
+            // path, never crash the accessibility callback (the service would
+            // otherwise stop receiving events after one bad window).
+            runCatching { requestScreenshotVerification(packageName) }.onFailure { error ->
+                PaymentAccessibilityStatus.onParserResult("ocr_unavailable")
+                Log.w(TAG, "screenshot verification unavailable: ${error.javaClass.simpleName}")
+            }
             runCatching { worker.execute { reportMiss(packageName) } }
             return
         }

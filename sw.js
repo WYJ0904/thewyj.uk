@@ -22,6 +22,7 @@ const CORE_SHELL = [
   "/js/core/ui.js?v=20260912-task24-4-r2",
   "/js/core/design-system.js?v=20260912-task24-4-r2",
   "/js/core/download.js?v=20260912-task24-4-r2",
+  "/js/core/perf.js?v=20260912-task24-4-r2",
   "/js/finance/app.js?v=20260912-task24-4-r2",
   "/js/finance/candidates.js?v=20260912-task24-4-r2",
   "/js/transfer/app.js?v=20260912-task24-4-r2",

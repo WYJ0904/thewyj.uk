@@ -101,6 +101,10 @@ class PaymentRecognitionCoordinator(
                 missingFields = parsed.missingFields,
             )
             store.saveTicket(ticket)
+            // #10: the accessibility gate refreshes from Room on a cadence; this
+            // hint keeps the first event of a brand-new ticket from being dropped
+            // before that refresh happens.
+            PaymentTicketPackageSignal.publish(sourcePackage)
             ticketId = ticket.ticketId
             transition = statusMachine.transition(
                 current = record,
@@ -348,6 +352,7 @@ class PaymentRecognitionCoordinator(
             missingFields = setOf("amount"),
         )
         store.saveTicket(ticket)
+        PaymentTicketPackageSignal.publish(recognition.sourcePackage)
         val transition = statusMachine.transition(
             current = PaymentStatusRecord(
                 recognitionId = recognitionId,
