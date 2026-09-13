@@ -27,10 +27,9 @@ android {
         // matches the browsers/WebView versions the cloud TTS player needs.
         minSdk = 30
         targetSdk = 36
-        // Task 24 final release packaging: the physical-device acceptance matrix
-        // B-11 targets this exact build.
-        versionCode = 16
-        versionName = "1.3.3"
+        // Task 24 final release packaging: 1.3.4 includes the B-5 live-notification fix.
+        versionCode = 17
+        versionName = "1.3.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "THEWYJ_BASE_URL", "\"$thewyjBaseUrl\"")
     }

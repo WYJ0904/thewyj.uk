@@ -41,19 +41,19 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 - 断言：成功路径点击后**同任务内** pending（≤150ms）→ 结算恢复 → 显示「订单已生成」；失败路径（500）同样 pending ≤150ms → 结算恢复 → 显示服务端错误；两条路径都要求 `recharge-submit` 的 trace 出现 `state-apply`。
 - 证据来源：**browser-E2E**（`local-backend/test_interaction_feedback_browser.mjs`，Cloud-only Preview job）；本地（Windows）8/8 通过（transfer 模块因本机 workerd 限制跳过）。
 
-### Android 正式发布封装（1.3.3 / versionCode 16）
+### Android 正式发布封装（1.3.4 / versionCode 17）
 
 | 项 | 值 |
 | --- | --- |
-| 源码版本 | `android/app/build.gradle.kts` → `versionName 1.3.3` / `versionCode 16`（Task 24 最终代码） |
-| APK | `dist/thewyj-android-1.3.3.apk`（本地构建产物，`dist/` 按仓库约定不入库）；线上 R2 key = `app/android/thewyj-android-1.3.3.apk` |
+| 源码版本 | `android/app/build.gradle.kts` → `versionName 1.3.4` / `versionCode 17`（含 B-5 真机回归修复） |
+| APK | `dist/thewyj-android-1.3.4.apk`（本地构建产物，`dist/` 按仓库约定不入库）；线上 R2 key = `app/android/thewyj-android-1.3.4.apk` |
 | applicationId / minSdk / targetSdk | `uk.thewyj.app` / `30` / `36` |
 | BASE_URL | `https://thewyj.uk` |
 | APK size | `47,594,905` bytes |
-| APK SHA-256 | `f7019cbf2896ab9ebf2e556d83d17136dc5a173c93a5bbf48233aa862717c51d` |
-| 签名证书 SHA-256 | `2B:32:20:29:A9:B8:4D:E6:F2:D1:EF:60:37:78:B5:07:99:97:A3:F8:DF:21:D0:1C:A8:CB:30:C7:6B:4F:7D:03`（`thewyj-release`，与 1.3.1/1.3.2 同一正式证书，非 debug 签名） |
-| releaseBuild | `2026-09-13-task24-final-r1` |
-| release notes | 已改写为 Task 24 最终闭环（通知↔财务一致性、微信 MessagingStyle、无障碍 ticket/cache race、通知媒体归档、bounded reconciliation、Finance 刷新回归、transfer session 生命周期、文件完整性与交互反馈） |
+| APK SHA-256 | `1faf2dc27076efbcc2c94adb803a692f0deb7a32c8679bf020858b74d15fd198` |
+| 签名证书 SHA-256 | `2B:32:20:29:A9:B8:4D:E6:F2:D1:EF:60:37:78:B5:07:99:97:A3:F8:DF:21:D0:1C:A8:CB:30:C7:6B:4F:7D:03`（`thewyj-release`，与 1.3.1/1.3.2/1.3.3 同一正式证书，非 debug 签名） |
+| releaseBuild | `2026-09-13-task24-final-r2` |
+| release notes | 在 1.3.3 闭环基础上加入 B-5：持续运行、VPN 与计时类通知即使媒体不可读也先执行 live/ongoing 过滤；支付通知仍逐笔独立，不按稳定通知槽位合并。 |
 | 一致性 gate | `scripts/check_android_release_consistency.py`（build.gradle ↔ release-metadata.json ↔ wrangler 三段 vars ↔ APK manifest/SHA/size/证书，共 46 checks）+ `scripts/test_check_android_release_consistency.py`（6 项负向自测，证明 gate 真的会拒绝不一致） |
 | CI 接入 | Python job（跨文件一致性）、Android job（构建出的 APK manifest 与 metadata 对齐） |
 
