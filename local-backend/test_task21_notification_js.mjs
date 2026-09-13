@@ -909,7 +909,197 @@ try {
   assert.equal(invalidEdit.response.status, 400);
   assert.equal(invalidEdit.payload.code, "candidate_edits_invalid");
 
-  console.log("Task 21 notification checks passed (privacy boundary, entitlement lifecycle, idempotent ingest, dedupe, finance integration, candidate state machine, feature flags).");
+  // 20. Device acceptance (Task 24 P1, real Samsung evidence): the Android
+  // 「填写金额并记账」 flow books through event.ingest with the same event id the
+  // hint was published under, and only flips its *local* candidate. The server
+  // hint used to stay pending forever, so Web /finance kept showing a 待填写
+  // card for a payment that was already in the ledger (and already counted in
+  // the monthly total). A device booking must close the shared hint.
+  const bookedHintEventId = "evt-task21-device-booked-hint";
+  const hintPublish = await request(db, "/api/notification/hints", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: {
+      device_id: "device-task21-000001",
+      hints: [{
+        source_event_id: bookedHintEventId,
+        source_type: "notification",
+        source_package: "com.tencent.mm",
+        app_label: "微信",
+        amount_minor: null,
+        direction: null,
+        merchant: "",
+        currency: "CNY",
+        confidence: 460,
+        recognition_status: "INSUFFICIENT_INFORMATION",
+        evidence: { source_type: "notification", confidence: 460, reasons: ["local_incomplete_payment"] },
+      }],
+    },
+  });
+  assert.equal(hintPublish.response.status, 200, JSON.stringify(hintPublish.payload));
+  assert.equal(hintPublish.payload.hints[0].state, "pending");
+  const pendingBeforeBooking = await request(db, "/api/notification/hints?state=pending", { token: USERS.subscriber.token });
+  assert.equal(pendingBeforeBooking.payload.pending_count, 1);
+
+  const deviceBooking = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", bookedHintEventId, {
+      ...transactionEvent(),
+      event_id: bookedHintEventId,
+      fingerprint: fingerprint("f470"),
+      parser_version: "verified-on-device",
+      parse_status: "parsed",
+      direction: "expense",
+      amount_minor: 100,
+      confidence: 950,
+    }),
+  });
+  assert.equal(deviceBooking.response.status, 200, JSON.stringify(deviceBooking.payload));
+  const bookingTxnId = deviceBooking.payload.operation_results[0].transaction_id;
+  assert.match(bookingTxnId, /^txn:/, "device booking must book the ledger transaction");
+
+  const bookedHintRow = await db.prepare(
+    "SELECT * FROM task21_notification_pending_hints WHERE user_id = ?1 AND source_event_id = ?2",
+  ).bind(USERS.subscriber.id, bookedHintEventId).first();
+  assert.equal(bookedHintRow.state, "confirmed", "a device booking must close the matching pending hint");
+  assert.equal(bookedHintRow.finance_entry_id, bookingTxnId);
+  assert.equal(Number(bookedHintRow.amount_minor), 100);
+  assert.equal(bookedHintRow.direction, "expense");
+
+  // Replaying the exact same operation stays idempotent: one transaction, the
+  // same ledger id, the hint still terminal.
+  const replayBooking = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", bookedHintEventId, {
+      ...transactionEvent(),
+      event_id: bookedHintEventId,
+      fingerprint: fingerprint("f470"),
+      parser_version: "verified-on-device",
+      parse_status: "parsed",
+      direction: "expense",
+      amount_minor: 100,
+      confidence: 950,
+    }),
+  });
+  assert.equal(replayBooking.response.status, 200, JSON.stringify(replayBooking.payload));
+  assert.equal(replayBooking.payload.operation_results[0].transaction_id, bookingTxnId);
+  const bookedTxnCount = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 100",
+  ).bind(USERS.subscriber.id).first();
+  assert.equal(Number(bookedTxnCount.count), 1, "replayed bookings must never create a second transaction");
+  const pendingAfterBooking = await request(db, "/api/notification/hints?state=pending", { token: USERS.subscriber.token });
+  assert.equal(pendingAfterBooking.payload.pending_count, 0, "the finance pending list must not offer a booked event");
+
+  // 20b. Read-side repair: a hint that lands *after* the booking (or a row
+  // created before the write-side fix) must converge the moment either client
+  // reads the shared list - never stay actionable next to its own ledger entry.
+  const staleEventId = "evt-task21-stale-hint";
+  const staleBooking = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", staleEventId, {
+      ...transactionEvent(),
+      event_id: staleEventId,
+      fingerprint: fingerprint("f471"),
+      parse_status: "parsed",
+      direction: "expense",
+      amount_minor: 233,
+      confidence: 950,
+    }),
+  });
+  assert.equal(staleBooking.response.status, 200, JSON.stringify(staleBooking.payload));
+  const staleTxnId = staleBooking.payload.operation_results[0].transaction_id;
+  const stalePublish = await request(db, "/api/notification/hints", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: {
+      device_id: "device-task21-000001",
+      hints: [{
+        source_event_id: staleEventId,
+        source_type: "notification",
+        source_package: "com.tencent.mm",
+        app_label: "微信",
+        amount_minor: null,
+        direction: null,
+        merchant: "",
+        currency: "CNY",
+        confidence: 460,
+        recognition_status: "INSUFFICIENT_INFORMATION",
+        evidence: { source_type: "notification", confidence: 460, reasons: ["local_incomplete_payment"] },
+      }],
+    },
+  });
+  assert.equal(stalePublish.response.status, 200, JSON.stringify(stalePublish.payload));
+  assert.equal(stalePublish.payload.hints[0].state, "pending", "a late hint upload lands pending first");
+
+  const healedList = await request(db, "/api/notification/hints?state=pending", { token: USERS.subscriber.token });
+  assert.equal(healedList.payload.pending_count, 0, "a booked event must never be listed as pending");
+  const healedRow = await db.prepare(
+    "SELECT * FROM task21_notification_pending_hints WHERE user_id = ?1 AND source_event_id = ?2",
+  ).bind(USERS.subscriber.id, staleEventId).first();
+  assert.equal(healedRow.state, "confirmed");
+  assert.equal(healedRow.finance_entry_id, staleTxnId);
+  assert.equal(Number(healedRow.amount_minor), 233);
+  assert.equal(healedRow.direction, "expense");
+
+  // 20c. Race: the Web page still shows a card for an event the device booked a
+  // moment ago. Confirming it must reuse the existing ledger entry - never a
+  // second transaction - and the hint must mirror the *booked* values, not the
+  // values that were just typed into the stale page.
+  const raceEventId = "evt-task21-hint-race";
+  const raceBooking = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", raceEventId, {
+      ...transactionEvent(),
+      event_id: raceEventId,
+      fingerprint: fingerprint("f472"),
+      parse_status: "parsed",
+      direction: "expense",
+      amount_minor: 450,
+      confidence: 950,
+    }),
+  });
+  assert.equal(raceBooking.response.status, 200, JSON.stringify(raceBooking.payload));
+  const raceTxnId = raceBooking.payload.operation_results[0].transaction_id;
+  // The stale page holds a pending copy of this event (rendered before the
+  // booking). Insert exactly that row and confirm it through the web API.
+  const raceHintId = `hint:race-${crypto.randomUUID()}`;
+  await db.prepare(`INSERT INTO task21_notification_pending_hints (
+      id, user_id, source_event_id, device_id, source_type, source_package, app_label,
+      evidence_summary, amount_minor, direction, merchant, currency, confidence,
+      recognition_status, state, finance_entry_id, created_at, updated_at, confirmed_at, ignored_at
+    ) VALUES (?1, ?2, ?3, 'device-task21-000001', 'notification', 'com.tencent.mm', '微信',
+      '{}', NULL, NULL, '', 'CNY', 460, 'INSUFFICIENT_INFORMATION', 'pending', '', ?4, ?4, '', '')`)
+    .bind(raceHintId, USERS.subscriber.id, raceEventId, new Date().toISOString()).run();
+
+  const raceConfirm = await request(db, "/api/notification/hints/confirm", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: {
+      hint_id: raceHintId,
+      device_id: "device-task21-000001",
+      edits: { amount_minor: 999, direction: "income" },
+    },
+  });
+  assert.equal(raceConfirm.response.status, 200, JSON.stringify(raceConfirm.payload));
+  assert.equal(raceConfirm.payload.transaction_id, raceTxnId, "a stale confirm must reuse the booked transaction");
+  assert.equal(raceConfirm.payload.duplicate_transaction, true);
+  const raceTxnCount = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 450",
+  ).bind(USERS.subscriber.id).first();
+  assert.equal(Number(raceTxnCount.count), 1, "the stale confirm must not fork a second transaction");
+  const raceHintRow = await db.prepare(
+    "SELECT * FROM task21_notification_pending_hints WHERE user_id = ?1 AND id = ?2",
+  ).bind(USERS.subscriber.id, raceHintId).first();
+  assert.equal(raceHintRow.state, "confirmed");
+  assert.equal(raceHintRow.finance_entry_id, raceTxnId);
+  assert.equal(Number(raceHintRow.amount_minor), 450, "the hint must mirror the booked amount");
+  assert.equal(raceHintRow.direction, "expense", "the hint must mirror the booked direction");
+
+  console.log("Task 21 notification checks passed (privacy boundary, entitlement lifecycle, idempotent ingest, dedupe, finance integration, candidate state machine, feature flags, device-booking hint convergence).");
 } finally {
   await mf.dispose();
   await rm(runtime, { recursive: true, force: true });

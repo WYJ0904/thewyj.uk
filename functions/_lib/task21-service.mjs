@@ -387,7 +387,41 @@ async function attachEventOutcome(db, account, event, deviceId, now) {
       account.id, candidateId, transactionId, now, event.event_id,
     ]);
   }
+  await closePendingHintForBookedEvent(db, account.id, event, transactionId, now);
   return { transactionId, candidateId };
+}
+
+/**
+ * Device acceptance (Task 24 P1): a device-side booking must resolve the shared
+ * pending hint for the same event.
+ *
+ * The Android 「填写金额并记账」 flow books through `event.ingest` (the event id
+ * is the hint's `source_event_id`) and only flips its *local* candidate. Without
+ * this the server hint stayed `pending` forever, so Web /finance kept rendering
+ * a 待填写 card for a payment that was already in the ledger - and the same
+ * ledger total already counted it. Closing it here keeps Notification and
+ * Finance converging for every client, including released APKs that never call
+ * the hint confirm API directly.
+ *
+ * Only a booking (transaction id) closes a hint; candidate-only evidence still
+ * needs the user's confirm, so it stays pending. The update is guarded by
+ * `state = 'pending'`, which makes concurrent/replayed ingests no-ops.
+ */
+async function closePendingHintForBookedEvent(db, userId, event, transactionId, now) {
+  if (!transactionId) return;
+  const direction = ["income", "expense", "refund"].includes(String(event.direction || ""))
+    ? String(event.direction)
+    : null;
+  const amountMinor = Number(event.amount_minor) > 0 ? Number(event.amount_minor) : null;
+  await run(db, `UPDATE task21_notification_pending_hints
+    SET state = 'confirmed', finance_entry_id = ?3,
+        amount_minor = COALESCE(?4, amount_minor),
+        direction = COALESCE(?5, direction),
+        merchant = ?6, confirmed_at = ?7, updated_at = ?7
+    WHERE user_id = ?1 AND source_event_id = ?2 AND state = 'pending'`, [
+    userId, event.event_id, transactionId, amountMinor, direction,
+    String(event.merchant || ""), now,
+  ]);
 }
 
 async function processIngest(db, account, deviceId, operation) {
