@@ -44,6 +44,10 @@ class NotificationArchivePipeline(
                 isForegroundService = input.isForegroundService,
                 isGroupSummary = input.isGroupSummary,
                 hasMedia = input.mediaState == "available" || input.mediaState == "unavailable",
+                // B-5: only a readable picture may override the live-source
+                // filter; "unavailable" media on a live status notification must
+                // stay filtered instead of appending a revision per tick.
+                mediaAvailable = input.mediaState == "available",
                 // Coalescing is only safe with a real Android identity. Calls
                 // that carry no key/id/tag (legacy entry points) must never be
                 // treated as a repeating readout.

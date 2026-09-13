@@ -61,6 +61,57 @@ class NotificationClassificationTest {
         assertFalse(byChannel.storeInArchive)
     }
 
+    /**
+     * Real-device regression (B-5, Samsung SM-S9360): the live VPN/traffic
+     * notification reports `mediaState = "unavailable"` because its picture
+     * cannot be read. That used to be classified as `media_content`, bypassing
+     * the live filter and committing a new revision - and therefore a new
+     * history row - every second. Unreadable media must never resurrect a live
+     * source; a readable picture from a *normal* app stays user content.
+     */
+    @Test fun liveSourceWithUnreadableMediaStaysFiltered() {
+        val live = NotificationClassifier.classify(
+            NotificationClassificationInput(
+                sourcePackage = "com.github.metacubex.clash.meta",
+                channelId = "clash_status_channel",
+                title = "Clash Meta for Android",
+                text = "VPS 35 Bytes/s ↑ 670 Bytes/s ↓",
+                isOngoing = true,
+                hasMedia = true,
+                mediaAvailable = false,
+            ),
+        )
+        assertFalse("a live source must not enter the archive", live.storeInArchive)
+        assertEquals(NotificationClass.ONGOING, live.kind)
+
+        // P0-1 protection stays intact: a normal app with an unreadable picture
+        // is still archived (screenshot/media notifications must never vanish).
+        val unreadablePhoto = NotificationClassifier.classify(
+            NotificationClassificationInput(
+                sourcePackage = "com.example.gallery",
+                title = "已保存截图",
+                text = "屏幕截图",
+                hasMedia = true,
+                mediaAvailable = false,
+            ),
+        )
+        assertTrue(unreadablePhoto.storeInArchive)
+        assertEquals(NotificationClass.MESSAGE, unreadablePhoto.kind)
+
+        // A readable picture from a live source is genuine user content.
+        val readablePhoto = NotificationClassifier.classify(
+            NotificationClassificationInput(
+                sourcePackage = "com.github.metacubex.clash.meta",
+                title = "Clash Meta for Android",
+                text = "配置预览",
+                hasMedia = true,
+                mediaAvailable = true,
+            ),
+        )
+        assertTrue(readablePhoto.storeInArchive)
+        assertEquals(NotificationClass.MESSAGE, readablePhoto.kind)
+    }
+
     @Test fun downloadProgressIsFiltered() {
         val decision = NotificationClassifier.classify(
             NotificationClassificationInput(
