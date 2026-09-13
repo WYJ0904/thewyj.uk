@@ -67,10 +67,10 @@ class AndroidReleaseConsistencyTest(unittest.TestCase):
         self.assertIn("metadata versionCode", result.stdout)
 
     def test_superseded_apk_digest_is_rejected(self) -> None:
-        self.patch_metadata(apkSha256="9708a7608177419f961fbf7cdb3bdb2114e79673976acac415c6a1c14e429b36")
+        self.patch_metadata(apkSha256="f7019cbf2896ab9ebf2e556d83d17136dc5a173c93a5bbf48233aa862717c51d")
         result = run_gate(self.root)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("superseded 1.3.2 digest", result.stdout)
+        self.assertIn("superseded 1.3.3 digest", result.stdout)
 
     def test_wrangler_version_drift_is_rejected(self) -> None:
         path = self.root / "wrangler.jsonc"
@@ -82,7 +82,7 @@ class AndroidReleaseConsistencyTest(unittest.TestCase):
         self.assertIn("wrangler production ANDROID_LATEST_VERSION_CODE", result.stdout)
 
     def test_apk_file_name_and_key_convention_is_rejected(self) -> None:
-        self.patch_metadata(apkFileName="thewyj-android-1.3.2.apk", apkKey="app/android/thewyj-android-1.3.2.apk")
+        self.patch_metadata(apkFileName="thewyj-android-1.3.3.apk", apkKey="app/android/thewyj-android-1.3.3.apk")
         result = run_gate(self.root)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("apkFileName", result.stdout)
