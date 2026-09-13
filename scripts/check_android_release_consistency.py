@@ -11,7 +11,7 @@ site can announce one build while the APK (or the update API) serves another:
 
 Usage:
     python scripts/check_android_release_consistency.py
-    python scripts/check_android_release_consistency.py --apk dist/thewyj-android-1.3.5.apk \
+    python scripts/check_android_release_consistency.py --apk dist/thewyj-android-1.3.6.apk \
         --verify-apk-integrity --expect-certificate 2B:32:20:...
     # CI debug acceptance build:
     python scripts/check_android_release_consistency.py \
