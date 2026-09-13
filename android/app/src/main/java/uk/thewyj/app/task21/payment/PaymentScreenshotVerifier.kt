@@ -23,15 +23,45 @@ interface OcrEngine {
     suspend fun recognize(bitmap: Bitmap): List<String>
 }
 
+object PaymentScreenshotTarget {
+    fun resolve(eventWindowId: Int, packageWindowId: Int?): Int? =
+        eventWindowId.takeIf { it >= 0 } ?: packageWindowId?.takeIf { it >= 0 }
+}
+
+object PaymentScreenshotThrottle {
+    fun retryDelayMs(lastScreenshotAtMs: Long, nowMs: Long, intervalMs: Long): Long =
+        (intervalMs - (nowMs - lastScreenshotAtMs)).coerceAtLeast(0L)
+}
+
+object PaymentOverlayRetryPolicy {
+    private val overlayPackages = setOf("com.android.systemui", "com.samsung.android.sm_cn")
+
+    fun shouldRetry(eventPackage: String, elapsedMs: Long): Boolean =
+        eventPackage in overlayPackages && elapsedMs in 0L..8_000L
+}
+
 class PaymentScreenshotVerifier(private val engine: OcrEngine) {
     suspend fun verify(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long): PaymentEnrichment? {
         val lines = runCatching { engine.recognize(bitmap) }.getOrDefault(emptyList())
         val normalized = normalizeOcrLines(lines)
-        if (normalized.isEmpty()) return null
+        if (normalized.isEmpty()) {
+            android.util.Log.i("ThewyjAccessibility", "ocr-semantics lines=0 context=false amounts=0 decisive=false completion=false")
+            return null
+        }
+        val joined = normalized.joinToString(" ")
+        val paymentContext = looksLikePaymentPage(normalized)
+        android.util.Log.i(
+            "ThewyjAccessibility",
+            "ocr-semantics lines=${normalized.size} context=$paymentContext " +
+                "amounts=${PaymentText.amountsMinor(joined).size} " +
+                "decisive=${PaymentText.hasDecisiveAmountLabel(joined)} " +
+                "completion=${PaymentText.hasCompletion(joined)} " +
+                "direction=${PaymentText.direction(joined)?.name ?: "unknown"}",
+        )
         // A screenshot is only evidence when the page *is* a payment page. A
         // product price, a chat line that mentions money or a random ¥xx must
         // never become a payment on its own.
-        if (!looksLikePaymentPage(normalized)) return null
+        if (!paymentContext) return null
         return PaymentPageSemantics.extract(
             PaymentPageSnapshot(
                 sourcePackage = sourcePackage,
@@ -86,21 +116,25 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
             val context = listOf(
                 "支付成功", "付款成功", "已支付", "已付款", "支付金额", "付款金额", "实付", "已扣款",
                 "转账成功", "轉賬成功", "转账金额", "收款成功", "已收款", "收款金额",
-                "订单金额", "交易详情", "账单详情",
+                "轉賬金額", "轉賬詳情", "到賬成功", "订单金额", "交易详情", "账单详情",
             ).any { joined.contains(it) }
             return money && context
         }
     }
 }
 
-/** ML Kit implementation (unbundled Chinese + Latin model). */
+/** ML Kit implementation (bundled Chinese + Latin model). */
 class MlKitOcrEngine(context: Context) : OcrEngine {
-    private val recognizer = com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions.Builder()
-        .build()
-        .let { options ->
-            com.google.mlkit.vision.text.TextRecognition.getClient(options)
-        }
     private val appContext = context.applicationContext
+    private val recognizer = run {
+        // MlKitInitProvider normally runs before Application.onCreate. Some
+        // Samsung dual-app accessibility callbacks reach this process before
+        // that component graph is usable, so initialise through ML Kit's public
+        // idempotent entry point before constructing its executor.
+        runCatching { com.google.mlkit.common.MlKit.initialize(appContext) }
+        val options = com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions.Builder().build()
+        com.google.mlkit.vision.text.TextRecognition.getClient(options)
+    }
 
     override suspend fun recognize(bitmap: Bitmap): List<String> = kotlinx.coroutines.withContext(
         kotlinx.coroutines.Dispatchers.IO,
@@ -109,6 +143,8 @@ class MlKitOcrEngine(context: Context) : OcrEngine {
         val result = runCatching { com.google.android.gms.tasks.Tasks.await(recognizer.process(image)) }
             .getOrNull()
             ?: return@withContext emptyList()
-        result.textBlocks.flatMap { block -> block.lines.map { line -> line.text } }
+        val lines = result.textBlocks.flatMap { block -> block.lines.map { line -> line.text } }
+        android.util.Log.i("ThewyjAccessibility", "ocr-result blocks=${result.textBlocks.size} lines=${lines.size}")
+        lines
     }
 }

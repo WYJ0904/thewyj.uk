@@ -1,6 +1,27 @@
 (() => {
   const entries = [
     {
+      version: "2026.09.14.2",
+      build: "2026-09-14-task24-device-closure-r2",
+      date: "2026-09-14",
+      title: "Task 24 真机收口（Android 1.3.6）",
+      features: [
+        "Android 正式版更新至 1.3.6，继续使用原 applicationId、正式签名、账户、通知历史与财务数据。",
+      ],
+      improvements: [
+        "原生文件传输在短期会话过期后静默续期，并保留已确认分片继续上传。",
+        "微信金额核实在完整 90 秒窗口内允许关闭 Samsung 安全提示后继续本地 OCR。",
+      ],
+      fixes: [
+        "修复 Android 原生上传复用过期 session、失效 SAF 文件阻塞整个队列及完成清单不一致的问题。",
+        "修复 Release 构建中 ML Kit registrar 构造器被 R8 移除、双开微信窗口截图为空且无法回退的问题。",
+        "修复繁体转账详情同时显示转账金额与服务费时无法选择主金额、并把支出误判为收入的问题。",
+      ],
+      security: [
+        "截图仅在用户开启的 90 秒 ticket 内本机 OCR，不保存、不上传；候选仍需用户确认后才写入财务。",
+      ],
+    },
+    {
       version: "2026.09.14.1",
       build: "2026-09-14-task24-device-p0-r1",
       date: "2026-09-14",

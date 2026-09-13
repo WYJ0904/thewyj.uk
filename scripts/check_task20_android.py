@@ -22,6 +22,7 @@ def require(condition: bool, message: str) -> None:
 
 def main() -> int:
     build = (ANDROID / "app" / "build.gradle.kts").read_text(encoding="utf-8")
+    proguard = (ANDROID / "app" / "proguard-rules.pro").read_text(encoding="utf-8")
     manifest_path = ANDROID / "app" / "src" / "main" / "AndroidManifest.xml"
     manifest_source = manifest_path.read_text(encoding="utf-8")
     manifest = ET.fromstring(manifest_source)
@@ -102,6 +103,15 @@ def main() -> int:
         "Task 21 bank SMS receiver is missing or misconfigured",
     )
     require("addJavascriptInterface" not in kotlin, "unsafe universal JavaScript bridge is forbidden")
+    for registrar in (
+        "com.google.mlkit.common.internal.CommonComponentRegistrar",
+        "com.google.mlkit.vision.common.internal.VisionCommonRegistrar",
+        "com.google.mlkit.vision.text.internal.TextRegistrar",
+    ):
+        require(
+            f"-keep class {registrar} {{ public <init>(); }}" in proguard,
+            f"release OCR registrar constructor can be removed by R8: {registrar}",
+        )
     for contract in ("NOTIFICATION_ACCESS", "SMS_PERMISSION", "ACCESSIBILITY_SERVICE"):
         require(contract in kotlin, f"missing Task 21 capability boundary {contract}")
     require("setAcceptThirdPartyCookies(this, false)" in kotlin, "third-party WebView cookies must stay disabled")

@@ -15,8 +15,10 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import uk.thewyj.app.AppGraph
 import uk.thewyj.app.core.auth.SecureCredentialStore
 import uk.thewyj.app.R
+import uk.thewyj.app.core.session.RefreshWorkResult
 import java.io.InputStream
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
@@ -64,7 +66,7 @@ class TransferUploadWorker(
         }
     }
 
-    private suspend fun runTransfer(): Result {
+    private suspend fun runTransfer(staleRecoveryBudget: Int = 1, authRecoveryBudget: Int = 2): Result {
         setForeground(getForegroundInfo())
         val accountId = runCatching { SecureCredentialStore(applicationContext).loadActive()?.account?.id }.getOrNull()
         if (accountId == null) {
@@ -75,20 +77,24 @@ class TransferUploadWorker(
         val configStore = TransferConfigStore.inDirectory(applicationContext.filesDir, accountId)
         val config = configStore.load()
         val api = TransferApiClient(applicationContext)
+        preflightSources(store)
         val items = store.load()
         Log.i("T22WORKER", "start account=$accountId items=${items.size}")
-        var sessionId = items.firstOrNull { it.sessionId.isNotBlank() }?.sessionId.orEmpty()
+        var sessionId = items.firstOrNull {
+            it.status !in setOf(TransferItemStatus.CANCELLED, TransferItemStatus.ERROR) &&
+                it.sessionId.isNotBlank()
+        }?.sessionId.orEmpty()
         var retried = false
         for (item in items) {
             if (isStopped) return Result.retry()
-            if (item.status == TransferItemStatus.DONE || item.status == TransferItemStatus.CANCELLED) continue
+            if (item.status in setOf(TransferItemStatus.DONE, TransferItemStatus.CANCELLED, TransferItemStatus.ERROR)) continue
             if (item.status == TransferItemStatus.PAUSED) {
                 retried = true
                 continue
             }
             try {
                 withContext(Dispatchers.IO) {
-                    var current = item
+                    var current = item.copy(status = TransferItemStatus.UPLOADING, errorMessage = "")
                     if (current.sessionId.isBlank()) {
                         if (sessionId.isBlank()) {
                             sessionId = api.createSession(
@@ -96,12 +102,16 @@ class TransferUploadWorker(
                                 maxDownloads = config.maxDownloads,
                                 oneTime = config.oneTime,
                                 password = config.password,
-                                fileCount = items.count { it.status != TransferItemStatus.CANCELLED }.coerceAtLeast(1),
-                                totalBytes = items.filter { it.status != TransferItemStatus.CANCELLED }
+                                fileCount = items.count {
+                                    it.status !in setOf(TransferItemStatus.CANCELLED, TransferItemStatus.ERROR)
+                                }.coerceAtLeast(1),
+                                totalBytes = items.filter {
+                                    it.status !in setOf(TransferItemStatus.CANCELLED, TransferItemStatus.ERROR)
+                                }
                                     .sumOf { it.source.sizeBytes },
                             ).id
                         }
-                        current = current.copy(sessionId = sessionId, status = TransferItemStatus.UPLOADING)
+                        current = current.copy(sessionId = sessionId)
                     }
                     if (current.fileId.isBlank()) {
                         val allocation = api.allocateFile(
@@ -169,15 +179,35 @@ class TransferUploadWorker(
             } catch (error: TransferApiException) {
                 Log.w("T22WORKER", "api error ${error.status} ${error.code}: ${error.message}")
                 when {
+                    TransferRecoveryPolicy.shouldResetUpload(error.code) && staleRecoveryBudget > 0 -> {
+                        Log.w("T22WORKER", "resetting stale upload session for the active batch")
+                        store.resetStaleSessionBatch()
+                        return runTransfer(staleRecoveryBudget - 1, authRecoveryBudget)
+                    }
+                    TransferRecoveryPolicy.shouldRefreshSession(error.status) && authRecoveryBudget > 0 -> {
+                        Log.i("T22WORKER", "access session expired; refreshing before resuming the current part")
+                        when (AppGraph.sessionRepository.refresh()) {
+                            RefreshWorkResult.SUCCESS -> return runTransfer(staleRecoveryBudget, authRecoveryBudget - 1)
+                            RefreshWorkResult.RETRY -> return Result.retry()
+                            RefreshWorkResult.SIGNED_OUT -> {
+                                val latest = store.load().firstOrNull { it.localId == item.localId } ?: item
+                                store.upsert(latest.copy(status = TransferItemStatus.ERROR, errorMessage = "登录会话需要恢复"))
+                                return Result.failure()
+                            }
+                        }
+                    }
                     error.status == 401 || error.status == 403 -> {
-                        store.upsert(item.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "上传失败"))
+                        val latest = store.load().firstOrNull { it.localId == item.localId } ?: item
+                        store.upsert(latest.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "上传失败"))
                         return Result.failure()
                     }
                     error.status in 400..499 -> {
-                        store.upsert(item.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "上传失败"))
+                        val latest = store.load().firstOrNull { it.localId == item.localId } ?: item
+                        store.upsert(latest.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "上传失败"))
                     }
                     else -> {
-                        store.upsert(item.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "上传失败"))
+                        val latest = store.load().firstOrNull { it.localId == item.localId } ?: item
+                        store.upsert(latest.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "上传失败"))
                         if (!retried) {
                             retried = true
                             return Result.retry()
@@ -186,11 +216,36 @@ class TransferUploadWorker(
                 }
             } catch (error: Throwable) {
                 Log.e("T22WORKER", "unexpected failure", error)
-                store.upsert(item.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "网络异常"))
+                val latest = store.load().firstOrNull { it.localId == item.localId } ?: item
+                store.upsert(latest.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "网络异常"))
                 if (!retried && runAttemptCount < 3) return Result.retry()
             }
         }
         return Result.success()
+    }
+
+    private fun preflightSources(store: TransferQueueStore) {
+        for (item in store.load()) {
+            if (item.status !in setOf(TransferItemStatus.PENDING, TransferItemStatus.UPLOADING)) continue
+            val readable = runCatching {
+                applicationContext.contentResolver.openInputStream(Uri.parse(item.source.uri))?.use { true } ?: false
+            }.getOrDefault(false)
+            if (!readable) {
+                Log.w("T22WORKER", "source permission is no longer available; localId=${item.localId}")
+                store.upsert(
+                    item.copy(
+                        sessionId = "",
+                        fileId = "",
+                        partSize = 0,
+                        partCount = 0,
+                        uploadedParts = emptySet(),
+                        uploadedBytes = 0,
+                        status = TransferItemStatus.ERROR,
+                        errorMessage = "无法读取所选文件，请重新选择",
+                    ),
+                )
+            }
+        }
     }
 
     private fun openPart(context: Context, uriValue: String, offset: Long): InputStream {
@@ -215,7 +270,6 @@ class TransferUploadWorker(
         private const val CHANNEL_ID = "thewyj-transfer-upload"
         private const val NOTIFICATION_ID = 2201
         private val RUNNING = AtomicBoolean(false)
-
         fun enqueue(context: Context) {
             val request = OneTimeWorkRequestBuilder<TransferUploadWorker>().build()
             WorkManager.getInstance(context).enqueueUniqueWork(

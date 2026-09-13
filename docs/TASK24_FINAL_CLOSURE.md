@@ -1,15 +1,34 @@
 # Task 24 Final Acceptance Reopen — Release Candidate Record
 
-**状态：`TASK 24 SOFTWARE RELEASE CANDIDATE — VALIDATION IN PROGRESS`**（不是 `SOFTWARE CLOSED`，也不是 `RELEASED`）。
+**状态：`TASK 24 DEVICE CLOSURE — USER FINAL CONFIRMATION STILL REQUIRED`**（不是 `COMPLETE`）。
 
-分支：`codex/task24-reopen-notification-wechat`　PR：`#67`（open，未 merge；base `main`）
+分支：`codex/task24-device-closure-r4`　PR：待创建（base `main`）
 Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Task 25 代码）
 
 证据口径：
 
 - **CI / PR Preview 通过 ≠ Production Closure**。当前所有 CI 证据来自 PR Preview（wrangler pages dev + 本地 D1/R2 + headless Chrome）。
 - 每条结论都标注证据来源：`unit` / `integration` / `browser-E2E` / `device-only`。
-- 真机：`Samsung SM-S9360 / Android 16`（当前不可用）。真机项在 B 段单列，未执行即未验证。
+- 真机：`Samsung SM-S9360 / Android 16`，正式签名覆盖安装，未卸载、未清除 App 数据。
+
+## 2026-09-14 device closure evidence (Android 1.3.6)
+
+| Gate | 真机 / Production 证据 | 结果 |
+| --- | --- | --- |
+| B-3 | 已确认普通微信聊天“明天8点见”只进入通知归档，没有创建 Finance 候选 | PASS |
+| B-4 | CaptureTrace、OCR、候选生成均有阶段日志；本次没有把不匹配的既有转账确认进账本 | PARTIAL — 需要一笔与待核实项匹配的既有交易完成 confirm/terminal/convergence |
+| B-5 | Samsung 原生录屏 100 秒：124 个 `CHANNEL_ID_RECORDING_SCREEN` tick 全部 `archive-skipped`，0 accepted/committed；停止录屏只保存 1 个含媒体终态。Clash 120 秒 140 个 tick 同样 0 持久化，保存数保持 135 | PASS |
+| B-6 | Samsung 截图通知可打开真实截图；录屏终态媒体可用。普通图片通知与微信图片仍缺一轮可识别素材 | PARTIAL |
+| Permissions | 通知访问、POST_NOTIFICATIONS、READ_MEDIA_IMAGES、RECEIVE_SMS 均开启；无障碍从系统设置开启后 `accessibility-connected`，权限中心即时显示“无障碍已连接” | PASS（侧载覆盖安装后 Samsung 会要求重新确认无障碍） |
+| B-7 | 通知/财务连续 12 次切换：563 帧，jank 16（2.84%），P50 10ms、P95 19ms、P99 57ms、0 missed-vsync | PASS |
+| B-8 | 真机 SAF 800 MiB：过期 session 自动重建；失效旧 URI 隔离；上传从 0 B 实际推进至 838,860,800 B，创建 Production 分享成功 | PASS |
+| B-9 | 下载 Content-Length 838,860,800；filename/filename*、MIME、Accept-Ranges 正确；源与下载 SHA-256 同为 `326a880029794febbfa3cfaa9c2ecc22083d5b1dae641c8dc63d1efa65a11a59`。1 MiB Range 返回 206 和正确 Content-Range | PASS |
+| TTS | Production 英语、日语听写真机均由 WebView AudioTrack 播放，未触发 `ThewyjSpeech` 本机 fallback；日语汉字 API 200 且重复请求命中缓存 | PASS |
+| B-10 | 活跃 90 秒 ticket → 双开微信详情 → Samsung 安全弹层 → window/full-display fallback → bundled ML Kit OCR（19–21 行）→ `context=true`、`decisive=true` → `amount=83317 direction=EXPENSE` → 本地候选“已核实金额”；未自动写入 Finance | PASS 到候选；最终匹配交易确认同 B-4 待用户验收 |
+
+本轮发现并修复：Android 原生上传复用过期 session、不可读 SAF 项阻塞队列、短期 access token 过期不续期、完成清单不一致；Android 14+ 窗口截图误传 display ID；窗口截图异步失败/空图不回退；R8 删除 ML Kit registrar 构造器；OCR 节流吞掉稳定详情；ticket 两次 miss 约 8 秒提前失败且金额未知 ticket 不会过期；繁体转账金额/服务费主金额与支出方向识别。
+
+测试产生的 800 MiB Production 分享已撤销，手机合成源文件与录屏文件已删除；不删除审计记录。
 
 ## A. Software closure matrix
 

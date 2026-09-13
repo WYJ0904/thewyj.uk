@@ -100,6 +100,13 @@ internal object PaymentText {
         "收款成功", "已收款", "收款到账", "到账", "到賬", "入账", "入賬", "入帳", "收到转账", "收到轉賬",
     )
 
+    private val outgoingDestinationTerms = listOf(
+        "转账至个人账户", "轉賬至個人賬戶", "转账到银行卡", "轉賬到銀行卡", "转入对方账户", "轉入對方賬戶",
+    )
+    private val outgoingDestinationPatterns = listOf(
+        Regex("""(?:转账|轉賬|转帐|轉帳)\s*(?:至|到)\s*(?:个人|個人)\s*(?:账户|賬戶|帳戶|银行卡|銀行卡)"""),
+    )
+
     /**
      * Labels that describe the *other side* of a payment. They must not decide
      * the direction: 「收款方 示例商户」 on an outgoing payment page is a payee,
@@ -175,7 +182,8 @@ internal object PaymentText {
      * than one (实付 / 订单金额 / 付款金额).
      */
     fun hasDecisiveAmountLabel(normalized: String): Boolean =
-        decisiveAmountLabels.any { normalized.contains(it) }
+        decisiveAmountLabels.any { normalized.contains(it) } ||
+            decisiveAmountPatterns.any { it.containsMatchIn(normalized) }
 
     /**
      * The amount that follows a decisive label (实付 / 订单金额 / 付款金额 …). On a
@@ -194,11 +202,26 @@ internal object PaymentText {
                 return Math.round(value * 100.0)
             }
         }
+        for (pattern in decisiveAmountPatterns) {
+            val match = pattern.find(normalized) ?: continue
+            val window = normalized.substring(match.range.first, minOf(normalized.length, match.range.last + 24))
+            for (amountPattern in amountPatterns) {
+                val amountMatch = amountPattern.find(window) ?: continue
+                val raw = amountMatch.groupValues.getOrNull(1).orEmpty().replace(",", "")
+                val value = raw.toDoubleOrNull() ?: continue
+                if (value <= 0.0 || value > 10_000_000.0) continue
+                return Math.round(value * 100.0)
+            }
+        }
         return null
     }
 
     private val decisiveAmountLabels = listOf(
-        "实付", "实付款", "付款金额", "订单金额", "支付金额", "交易金额", "扣款金额", "转账金额", "收款金额",
+        "实付", "实付款", "付款金额", "付款金額", "订单金额", "訂單金額", "支付金额", "支付金額",
+        "交易金额", "交易金額", "扣款金额", "扣款金額", "转账金额", "轉賬金額", "收款金额", "收款金額",
+    )
+    private val decisiveAmountPatterns = listOf(
+        Regex("""(?:转账|轉賬|转帐|轉帳)\s*(?:金额|金額)"""),
     )
 
     /** Amount that is only implied by "payment verb + plain number". */
@@ -229,6 +252,9 @@ internal object PaymentText {
      */
     fun direction(normalized: String): FinanceDirection? {
         if (refundTerms.any { normalized.contains(it) }) return FinanceDirection.REFUND
+        if (outgoingDestinationTerms.any { normalized.contains(it) } ||
+            outgoingDestinationPatterns.any { it.containsMatchIn(normalized) }
+        ) return FinanceDirection.EXPENSE
         val outgoing = outgoingCompletionTerms.any { normalized.contains(it) }
         val incoming = incomingCompletionTerms.any { normalized.contains(it) }
         if (outgoing && !incoming) return FinanceDirection.EXPENSE

@@ -132,4 +132,22 @@ class PaymentAccessibilityServiceGateTest {
         assertFalse(PaymentTicketPackageSignal.recentlySignalled("com.tencent.mm", nowMs = 1_200L))
         assertEquals(0, PaymentTicketPackageSignal.size())
     }
+
+    @Test fun screenshotUsesTheAccessibilityWindowIdNeverTheDisplayId() {
+        assertEquals(42, PaymentScreenshotTarget.resolve(eventWindowId = 42, packageWindowId = 7))
+        assertEquals(7, PaymentScreenshotTarget.resolve(eventWindowId = -1, packageWindowId = 7))
+        assertEquals(null, PaymentScreenshotTarget.resolve(eventWindowId = -1, packageWindowId = -1))
+    }
+
+    @Test fun screenshotThrottleSchedulesTheRemainingWindowInsteadOfDroppingIt() {
+        assertEquals(2_500L, PaymentScreenshotThrottle.retryDelayMs(1_000L, 2_500L, 4_000L))
+        assertEquals(0L, PaymentScreenshotThrottle.retryDelayMs(1_000L, 5_000L, 4_000L))
+    }
+
+    @Test fun onlyRecentSystemOverlaysCanRetryTheTicketScreenshot() {
+        assertTrue(PaymentOverlayRetryPolicy.shouldRetry("com.samsung.android.sm_cn", 2_000L))
+        assertTrue(PaymentOverlayRetryPolicy.shouldRetry("com.android.systemui", 8_000L))
+        assertFalse(PaymentOverlayRetryPolicy.shouldRetry("com.tencent.mm", 2_000L))
+        assertFalse(PaymentOverlayRetryPolicy.shouldRetry("com.android.systemui", 8_001L))
+    }
 }
