@@ -181,6 +181,7 @@ jobs:
             node --check local-backend/test_transfer_integrity_js.mjs
             node --check local-backend/test_transfer_benchmark_js.mjs
             node --check local-backend/test_transfer_session_plan_js.mjs
+            node --check local-backend/test_browser_harness_registration_js.mjs
             node --check local-backend/test_interaction_feedback_js.mjs
             node --check local-backend/test_interaction_feedback_browser.mjs
             node --check local-backend/test_transfer_browser_e2e.mjs
@@ -225,6 +226,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_transfer_session_plan_js.mjs 2>&1 | tee artifacts/javascript-transfer-session-plan.log
+
+      - name: Test the browser harness registration state machine
+        run: |
+          set -euo pipefail
+          node local-backend/test_browser_harness_registration_js.mjs 2>&1 | tee artifacts/javascript-browser-harness-registration.log
 
       - name: Test finance candidate confirm eligibility
         run: |
