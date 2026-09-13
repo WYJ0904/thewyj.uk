@@ -122,7 +122,19 @@ async function main() {
 
     // 2. Upload both large files through the real file input + controller.
     await page.navigate("/transfer");
-    await page.waitFor("document.querySelector('#transferFileInput')", 25_000, "transfer page");
+    // Wait for the page (and its quota/capabilities) to be live before attaching
+    // files: the input element exists in the static markup but the controller
+    // binds the change handler during show().
+    await page.waitFor(
+      "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+      25_000,
+      "transfer page visible",
+    );
+    await page.waitFor(
+      "!String(document.querySelector('#transferQuotaText')?.textContent || '').includes('加载中')",
+      25_000,
+      "transfer capabilities loaded",
+    );
     await page.setFile("#transferFileInput", FIXTURES.map((fixture) => fixture.path));
     await page.waitFor(
       `document.querySelectorAll('[data-transfer-item]').length === ${FIXTURES.length}`,

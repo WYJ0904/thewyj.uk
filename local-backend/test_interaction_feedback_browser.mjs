@@ -198,7 +198,19 @@ async function main() {
         return;
       }
       await page.navigate("/transfer");
-      await page.waitFor("document.querySelector('#transferFileInput')", 25_000, "transfer page");
+      // The file input is static markup; the controller binds its change handler
+      // (and the quota arrives) only after show() ran. Waiting for the loaded
+      // quota is what makes the file attach land on a live listener.
+      await page.waitFor(
+        "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
+        25_000,
+        "transfer page visible",
+      );
+      await page.waitFor(
+        "!String(document.querySelector('#transferQuotaText')?.textContent || '').includes('加载中')",
+        25_000,
+        "transfer capabilities loaded",
+      );
       await page.setFile("#transferFileInput", UPLOAD_FILE);
       await page.waitFor("document.querySelectorAll('[data-transfer-item]').length === 1", 20_000, "single queue item");
       try {
