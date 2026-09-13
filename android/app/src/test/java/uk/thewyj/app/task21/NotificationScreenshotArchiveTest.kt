@@ -321,6 +321,84 @@ class NotificationScreenshotArchiveTest {
     }
 
     /**
+     * Task 24 reopen #6: Android published the picture as a reference instead of
+     * a bitmap (BigPictureStyle URI / MessagingStyle image). The sink imports the
+     * image into private storage, so the archive holds a real local file rather
+     * than a URI that dies with the notification.
+     */
+    @Test fun referencedNotificationImageIsImportedIntoPrivateStorage() {
+        val file = File(context.cacheDir, "referenced-${UUID.randomUUID()}.png")
+        java.io.FileOutputStream(file).use { output ->
+            android.graphics.Bitmap.createBitmap(4, 4, android.graphics.Bitmap.Config.ARGB_8888)
+                .compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)
+        }
+        val account = "account-referenced"
+        val stored = offMain {
+            RoomNotificationArchiveSink(context).store(
+                account,
+                NotificationCaptureInput(
+                    sourcePackage = "com.tencent.mm",
+                    notificationKey = "referenced|1|",
+                    notificationId = 1,
+                    channelId = "chat",
+                    postTime = 1_000L,
+                    title = "老周横眉",
+                    text = "[图片]",
+                    mediaState = "available",
+                    mediaSourceUri = android.net.Uri.fromFile(file).toString(),
+                    receivedAtMs = 1_000L,
+                ),
+                null,
+            )
+        }
+        assertTrue(stored)
+        val rows = offMain {
+            RoomNotificationStore(NotificationDatabase.get(context))
+                .history(account, NotificationQuery(includeRemoved = true, limit = 50))
+        }
+        assertEquals(1, rows.size)
+        assertEquals("the referenced image is stored locally", "available", rows.first().mediaState)
+        assertTrue(rows.first().mediaPath.isNotBlank())
+    }
+
+    /**
+     * Permission revoked, row deleted, app-private store: the URI cannot be read.
+     * The notification itself must still be archived, with an honest
+     * "unavailable" media state and no dead URI in the media path.
+     */
+    @Test fun unreadableReferencedNotificationImageStaysUnavailable() {
+        val account = "account-unreadable"
+        val stored = offMain {
+            RoomNotificationArchiveSink(context).store(
+                account,
+                NotificationCaptureInput(
+                    sourcePackage = "com.tencent.mm",
+                    notificationKey = "unreadable|1|",
+                    notificationId = 2,
+                    channelId = "chat",
+                    postTime = 2_000L,
+                    title = "老周横眉",
+                    text = "[图片]",
+                    mediaState = "available",
+                    mediaSourceUri = android.net.Uri.fromFile(
+                        File(context.cacheDir, "gone-${UUID.randomUUID()}.png"),
+                    ).toString(),
+                    receivedAtMs = 2_000L,
+                ),
+                null,
+            )
+        }
+        assertTrue(stored)
+        val rows = offMain {
+            RoomNotificationStore(NotificationDatabase.get(context))
+                .history(account, NotificationQuery(includeRemoved = true, limit = 50))
+        }
+        assertEquals(1, rows.size)
+        assertEquals("unavailable", rows.first().mediaState)
+        assertEquals("a dead URI is never persisted", "", rows.first().mediaPath)
+    }
+
+    /**
      * The production sink runs on the listener's background executor; the app
      * database forbids main-thread access, so the test drives it the same way.
      */

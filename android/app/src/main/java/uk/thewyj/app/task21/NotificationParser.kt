@@ -50,6 +50,19 @@ private object NotificationTerms {
         "已支付", "已消费", "已付款",
         "消費", "扣費成功", "已扣費", "掃碼付款", "信用卡消費", "銀行卡支付", "轉出", "轉賬成功",
     )
+    /**
+     * 「支付100元 / 付款100元 / 转账100元」: a payment verb directly followed by an
+     * amount that carries an explicit currency unit is a settled amount even
+     * without the 已/成功 wording. The unit is mandatory here on purpose: a bare
+     * verb + plain number ("支付100") stays with the weaker bare-amount rules,
+     * so order numbers, dates and chat numbers never become money.
+     */
+    val explicitPaymentAmount = Regex(
+        """(?:已支付|支付|付款|消费|消費|扣款|扣费|扣費|转出|转账|轉賬|转帐|轉帳)\s*[:：]?\s*""" +
+            """(?:人民币|人民幣|RMB|CNY|￥|¥)?\s*[0-9][0-9,]*(?:\.[0-9]{1,2})?\s*""" +
+            """(?:元|圓|块|塊|人民币|人民幣|RMB|CNY)""",
+        RegexOption.IGNORE_CASE,
+    )
     val strongCompletion = listOf(
         "支付成功", "付款成功", "扣款成功", "扣费成功", "已扣款", "已扣费", "退款成功", "退款到账",
         "收款成功", "已到账", "已入账", "转账成功", "支付已完成", "交易成功",
@@ -119,6 +132,7 @@ private class StructuredParser(
         }
 
         val completed = containsAny(text, NotificationTerms.strongCompletion)
+        val settledAmount = NotificationTerms.explicitPaymentAmount.containsMatchIn(text)
         if (containsAny(text, NotificationTerms.marketing) && !completed) {
             return ParserOutput(
                 NotificationEventType.MARKETING, ParseStatus.UNPARSED, FinanceDirection.UNKNOWN,
@@ -135,7 +149,8 @@ private class StructuredParser(
         val direction = when {
             containsAny(text, NotificationTerms.refund) -> FinanceDirection.REFUND
             containsAny(text, NotificationTerms.income) -> FinanceDirection.INCOME
-            containsAny(text, NotificationTerms.expense) -> FinanceDirection.EXPENSE
+            containsAny(text, NotificationTerms.expense) ||
+                settledAmount -> FinanceDirection.EXPENSE
             else -> FinanceDirection.UNKNOWN
         }
         if (direction == FinanceDirection.UNKNOWN) {
@@ -152,7 +167,9 @@ private class StructuredParser(
 
         var confidence = 0
         if (direction != FinanceDirection.UNKNOWN) confidence += 250
-        if (completed) confidence += 300
+        // 已支付/支付成功 and 「支付100元」 both describe a settled amount; a bare
+        // payment hint without either stays a lower-confidence candidate.
+        if (completed || settledAmount) confidence += 300
         if (amountMinor > 0) confidence += 300
         if (merchant.isNotBlank()) confidence += 150
         // The parser only matches supported payment packages, so a structured
@@ -161,7 +178,8 @@ private class StructuredParser(
         confidence = confidence.coerceIn(0, 1000)
 
         val parseStatus = when {
-            direction != FinanceDirection.UNKNOWN && amountMinor > 0 && completed -> ParseStatus.PARSED
+            direction != FinanceDirection.UNKNOWN && amountMinor > 0 && (completed || settledAmount) ->
+                ParseStatus.PARSED
             direction != FinanceDirection.UNKNOWN && amountMinor > 0 -> ParseStatus.CANDIDATE
             else -> ParseStatus.UNPARSED
         }

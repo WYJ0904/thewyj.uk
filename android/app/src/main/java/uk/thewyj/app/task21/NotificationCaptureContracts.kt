@@ -64,6 +64,13 @@ data class NotificationCaptureInput(
     val mediaMime: String = "",
     val mediaState: String = "none",
     /**
+     * Task 24 reopen #6: content URI Android published instead of a bitmap
+     * (BigPictureStyle reference, MessagingStyle message image, background
+     * image). The archive sink imports it on its own executor; when the URI
+     * cannot be read the row keeps an explicit "unavailable" state.
+     */
+    val mediaSourceUri: String = "",
+    /**
      * Bitmap Android exposed on the notification, kept only in memory until the
      * archive sink writes it to private storage. Never uploaded.
      */
@@ -81,6 +88,13 @@ data class NotificationCaptureInput(
     /** `Notification.when`, used only for the degraded screenshot identity. */
     val eventTimeMs: Long = 0L,
     val receivedAtMs: Long = 0L,
+    /**
+     * Task 24 reopen #5: the classifier recognised this capture as an update of
+     * the previous one for the same identity (recording timer, live readout).
+     * The archive updates its existing row instead of appending a revision, so
+     * one updating notification stays one history entry.
+     */
+    val coalesceWithPrevious: Boolean = false,
 )
 
 /**

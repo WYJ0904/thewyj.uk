@@ -178,6 +178,7 @@ jobs:
             node --check local-backend/test_task21_notification_js.mjs
             node --check local-backend/test_task21_hints_js.mjs
             node --check local-backend/test_task22_d1_js.mjs
+            node --check local-backend/test_transfer_integrity_js.mjs
             node --check js/finance/candidates.js
             node --check qa/task20_overlay_device.mjs
             node --check cloudflare/task14-cleanup-worker.mjs
@@ -330,6 +331,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_task22_d1_js.mjs 2>&1 | tee artifacts/task22-transfer.log
+
+      - name: Test file transfer integrity (SHA-256 round trip per file type)
+        run: |
+          set -euo pipefail
+          node local-backend/test_transfer_integrity_js.mjs 2>&1 | tee artifacts/transfer-integrity.log
 
       - name: Check HTML, PWA and tool catalog
         run: |

@@ -59,6 +59,22 @@ class NotificationCaptureCoordinatorTest {
         override fun outcomeFor(input: NotificationCaptureInput): PaymentIngestOutcome = parsed
     }
 
+    /** Archive sink double that keeps every capture it was asked to store. */
+    private class RecordingSink : NotificationArchiveSink {
+        val inputs = mutableListOf<NotificationCaptureInput>()
+
+        override fun store(
+            accountId: String,
+            input: NotificationCaptureInput,
+            parsed: StructuredNotificationEvent?,
+        ): Boolean {
+            inputs.add(input)
+            return true
+        }
+
+        override fun markRemoved(accountId: String, input: NotificationCaptureInput) = Unit
+    }
+
     private fun paymentCoordinator(
         root: File,
         transport: NotificationIngestTransport,
@@ -361,6 +377,52 @@ class NotificationCaptureCoordinatorTest {
             assertEquals(1, recovered.uploaded)
             assertEquals(0, recovered.pending)
             assertTrue(transport.calls.last().startsWith(OfflineNotificationQueue.DELETE_PATH))
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
+    /**
+     * Task 24 reopen #5: the coordinator owns the identity. A per-second readout
+     * that the classifier recognised as an update must reach the archive marked
+     * `coalesceWithPrevious`, so the store rewrites the row instead of appending
+     * one history entry per second.
+     */
+    @Test fun updatingNotificationReachesTheArchiveAsACoalescedUpdate() {
+        val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
+        try {
+            val sink = RecordingSink()
+            val current = NotificationCaptureCoordinator.CaptureAccount("a", "device-a", "token-a", true)
+            val coordinator = NotificationCaptureCoordinator(
+                archiveFor = { id -> LocalNotificationArchive.inDirectory(dir, id) },
+                queueFor = { id -> NotificationOfflineQueue.inDirectory(dir, id) },
+                transport = FakeTransport(),
+                account = { current },
+                archiveSink = sink,
+            )
+            fun post(text: String, at: Long) = coordinator.onNotification(
+                NotificationCaptureInput(
+                    sourcePackage = "com.samsung.android.app.screenrecorder",
+                    notificationKey = "recorder|1|",
+                    notificationId = 1,
+                    channelId = "recording",
+                    postTime = at,
+                    title = "屏幕录制",
+                    text = text,
+                    receivedAtMs = at,
+                ),
+            )
+            post("录屏中 00:01", 1_000L)
+            post("录屏中 00:02", 2_000L)
+            post("录屏中 00:03", 3_000L)
+
+            assertEquals(3, sink.inputs.size)
+            assertFalse(sink.inputs.first().coalesceWithPrevious)
+            assertFalse(sink.inputs[1].coalesceWithPrevious)
+            assertTrue(
+                "the timer tick must update the existing archive row",
+                sink.inputs.last().coalesceWithPrevious,
+            )
         } finally {
             dir.deleteRecursively()
         }

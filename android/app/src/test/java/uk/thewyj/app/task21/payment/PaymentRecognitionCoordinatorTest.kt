@@ -93,6 +93,117 @@ class PaymentRecognitionCoordinatorTest {
         assertEquals(12_345L, edited?.effectiveAmountMinor)
     }
 
+    /**
+     * Task 24 reopen #1 (full chain): the manual amount does not only create a
+     * candidate, it must be the payload that books **one** transaction.
+     *
+     * manual amount → candidate → confirm (one draft) → server ledger id →
+     * candidate terminal → a second confirm reuses the same candidate and the
+     * same ledger identity instead of booking a second transaction.
+     */
+    @Test fun manualAmountChainBooksExactlyOneTransactionAndStaysIdempotent() {
+        val store = FakeStore()
+        val coordinator = PaymentRecognitionCoordinator(
+            store = store,
+            notifier = FakeNotifier(),
+            now = { 1_000L },
+        )
+        store.saveRecognition(
+            PaymentRecognitionRecord(
+                recognitionId = "rec-chain",
+                accountId = "account-a",
+                state = PaymentRecognitionState.WAITING_FOR_ENRICHMENT.name,
+                notificationId = 21,
+                sourcePackage = "com.tencent.mm",
+                sourceType = "notification",
+                sourceEventId = "notification#chain#1",
+                paymentChannel = "wechat",
+                amountMinor = null,
+                currency = "CNY",
+                direction = FinanceDirection.UNKNOWN.name,
+                merchant = "",
+                providerReference = "",
+                createdAtMs = 1_000L,
+                updatedAtMs = 1_000L,
+            ),
+        )
+
+        val candidate = coordinator.ensureCandidateForRecognition(
+            accountId = "account-a",
+            recognitionId = "rec-chain",
+            amountMinor = 10_000L,
+            direction = FinanceDirection.EXPENSE.name,
+            merchant = "微信",
+        )!!
+
+        val draft = coordinator.confirmCandidate("account-a", candidate.candidateId)!!
+        assertEquals("the user's amount is what gets booked", 10_000L, draft.amountMinor)
+        assertEquals(FinanceDirection.EXPENSE.name, draft.direction)
+
+        // Confirmed, but not yet terminal: only the server's ledger id closes it.
+        val beforeServer = store.candidate("account-a", candidate.candidateId)!!
+        assertEquals("confirmed", beforeServer.status)
+        assertTrue(beforeServer.financeTransactionId.isBlank())
+
+        coordinator.markFinanceRecorded("account-a", candidate.candidateId, "txn-1")
+        val terminal = store.candidate("account-a", candidate.candidateId)!!
+        assertEquals("txn-1", terminal.financeTransactionId)
+        assertEquals(
+            PaymentRecognitionState.FINANCE_RECORDED.name,
+            store.recognition("account-a", "rec-chain")!!.state,
+        )
+
+        // A double tap re-confirms the same candidate; no second candidate and no
+        // second ledger identity can come out of it.
+        val second = coordinator.confirmCandidate("account-a", candidate.candidateId)!!
+        assertEquals(10_000L, second.amountMinor)
+        assertEquals(1, store.candidates.values.count { it.recognitionId == "rec-chain" })
+        coordinator.markFinanceRecorded("account-a", candidate.candidateId, "txn-1")
+        assertEquals("txn-1", store.candidate("account-a", candidate.candidateId)!!.financeTransactionId)
+        assertEquals(1, store.candidates.values.count { it.financeTransactionId == "txn-1" })
+    }
+
+    /**
+     * The same chain without a direction: the booking draft must stay unusable
+     * (amount only), so the UI can ask for the missing half instead of booking a
+     * direction-less transaction.
+     */
+    @Test fun manualAmountWithoutDirectionNeverProducesABookableDraft() {
+        val store = FakeStore()
+        val coordinator = PaymentRecognitionCoordinator(
+            store = store,
+            notifier = FakeNotifier(),
+            now = { 1_000L },
+        )
+        store.saveRecognition(
+            PaymentRecognitionRecord(
+                recognitionId = "rec-half",
+                accountId = "account-a",
+                state = PaymentRecognitionState.WAITING_FOR_ENRICHMENT.name,
+                notificationId = 22,
+                sourcePackage = "com.tencent.mm",
+                sourceType = "notification",
+                sourceEventId = "notification#half#1",
+                paymentChannel = "wechat",
+                amountMinor = null,
+                currency = "CNY",
+                direction = FinanceDirection.UNKNOWN.name,
+                merchant = "",
+                providerReference = "",
+                createdAtMs = 1_000L,
+                updatedAtMs = 1_000L,
+            ),
+        )
+        val candidate = coordinator.ensureCandidateForRecognition(
+            accountId = "account-a",
+            recognitionId = "rec-half",
+            amountMinor = 5_000L,
+        )!!
+        val draft = coordinator.confirmCandidate("account-a", candidate.candidateId)!!
+        assertEquals(5_000L, draft.amountMinor)
+        assertEquals(FinanceDirection.UNKNOWN.name, draft.direction)
+    }
+
     private class FakeStore : PaymentRecognitionStoreContract {
         val recognitions = mutableMapOf<String, PaymentRecognitionRecord>()
         val tickets = mutableMapOf<String, PaymentTicket>()

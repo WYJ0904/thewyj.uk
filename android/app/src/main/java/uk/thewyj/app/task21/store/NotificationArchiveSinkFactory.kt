@@ -45,7 +45,13 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
             accountId = accountId,
             identity = mediaIdentity(input),
             bitmap = input.mediaBitmap,
-        )
+        ) ?: input.mediaSourceUri.takeIf { it.isNotBlank() }?.let { uri ->
+            // #6: Android published a reference instead of a bitmap. The import
+            // runs on the capture executor; a URI we may not read (permission
+            // revoked, row deleted, app-private store) returns null and the row
+            // stays "unavailable" with the notification itself still archived.
+            media.saveUri(accountId, mediaIdentity(input), uri)
+        }
         val capture = captureOf(input, parsed, mediaRef)
         if (input.screenshotEvent) {
             CaptureTrace.stage(
@@ -89,8 +95,19 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
     }
 
     override fun markRemoved(accountId: String, input: NotificationCaptureInput) {
-        if (input.notificationKey.isBlank()) return
-        store.markRemoved(accountId, input.notificationKey)
+        if (input.notificationKey.isNotBlank()) {
+            store.markRemoved(accountId, input.notificationKey)
+            return
+        }
+        // #5: apps that never set a platform key still have a lifecycle. The
+        // archived snapshot stays (removal only changes the state); a repost in
+        // the same slot afterwards starts a new instance.
+        store.markRemovedBySlot(
+            accountId = accountId,
+            sourcePackage = input.sourcePackage,
+            notificationId = input.notificationId,
+            tag = input.tag,
+        )
     }
 
     override fun markFinanceOutcome(
@@ -247,5 +264,6 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
                 else -> ScreenshotMediaOrigin.NOTIFICATION.wireValue
             },
             sourceEventId = parsed?.eventId.orEmpty(),
+            coalesceWithPrevious = input.coalesceWithPrevious,
         )
 }

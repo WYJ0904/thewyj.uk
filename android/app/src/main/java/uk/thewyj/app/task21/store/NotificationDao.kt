@@ -55,6 +55,24 @@ interface NotificationDao {
     @Query("UPDATE notification_instances SET status = 'removed', removedAt = :removedAt WHERE accountId = :accountId AND notificationKey != '' AND notificationKey = :notificationKey")
     fun markRemovedByKey(accountId: String, notificationKey: String, removedAt: Long): Int
 
+    /**
+     * #5 lifecycle: an app that posts without a platform key still gets a real
+     * lifecycle (package + id + tag). Without this, a repost after removal would
+     * silently reuse the removed instance.
+     */
+    @Query(
+        "UPDATE notification_instances SET status = 'removed', removedAt = :removedAt " +
+            "WHERE accountId = :accountId AND sourcePackage = :sourcePackage " +
+            "AND notificationId = :notificationId AND tag = :tag AND status = 'active'",
+    )
+    fun markRemovedBySlot(
+        accountId: String,
+        sourcePackage: String,
+        notificationId: Int,
+        tag: String,
+        removedAt: Long,
+    ): Int
+
     @Query("UPDATE notification_instances SET financeLinked = 1 WHERE accountId = :accountId AND instanceId = :instanceId")
     fun markFinanceLinked(accountId: String, instanceId: String): Int
 
@@ -90,6 +108,10 @@ interface NotificationDao {
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     fun insertRevision(revision: NotificationRevisionEntity)
+
+    /** #5: rewrite the newest revision of an updating notification in place. */
+    @Update
+    fun updateRevision(revision: NotificationRevisionEntity): Int
 
     @Query("SELECT * FROM notification_revisions WHERE accountId = :accountId AND instanceId = :instanceId ORDER BY capturedAt DESC, revisionId DESC LIMIT 1")
     fun latestRevision(accountId: String, instanceId: String): NotificationRevisionEntity?
@@ -310,6 +332,7 @@ interface NotificationDao {
         newInstanceId: String,
         newRevisionId: String,
         now: Long,
+        coalesceWithPrevious: Boolean = false,
         instanceFactory: (String) -> NotificationInstanceEntity,
         revisionFactory: (String, String) -> NotificationRevisionEntity,
     ): CaptureWriteResult {
@@ -323,6 +346,46 @@ interface NotificationDao {
         }
         val latest = latestRevision(existing.accountId, existing.instanceId)
         val candidate = revisionFactory(existing.instanceId, newRevisionId)
+        // #5: one updating notification (recording timer, live status) keeps one
+        // history row. The newest revision is rewritten with the new text/media
+        // instead of appending a revision per tick, so a per-second update can no
+        // longer flood the archive. Removed instances never coalesce: recordCapture
+        // only reaches this point for an `active` instance, so a repost after
+        // removal always starts a new lifecycle.
+        if (coalesceWithPrevious && latest != null) {
+            val updated = latest.copy(
+                title = candidate.title,
+                text = candidate.text,
+                bigText = candidate.bigText,
+                subText = candidate.subText,
+                infoText = candidate.infoText,
+                summaryText = candidate.summaryText,
+                textLines = candidate.textLines,
+                contentHash = candidate.contentHash,
+                capturedAt = candidate.capturedAt,
+                parseStatus = candidate.parseStatus,
+                direction = candidate.direction,
+                amountMinor = candidate.amountMinor,
+                currency = candidate.currency,
+                merchant = candidate.merchant,
+                confidence = candidate.confidence,
+                mediaPath = candidate.mediaPath.ifBlank { latest.mediaPath },
+                mediaMime = candidate.mediaMime.ifBlank { latest.mediaMime },
+                mediaState = candidate.mediaState.ifBlank { latest.mediaState },
+                mediaFingerprint = candidate.mediaFingerprint.ifBlank { latest.mediaFingerprint },
+                mediaFingerprintAlt = candidate.mediaFingerprintAlt.ifBlank { latest.mediaFingerprintAlt },
+                mediaOrigin = candidate.mediaOrigin.ifBlank { latest.mediaOrigin },
+                sourceEventId = latest.sourceEventId.ifBlank { candidate.sourceEventId },
+            )
+            updateRevision(updated)
+            touchInstance(existing.accountId, existing.instanceId, now)
+            return CaptureWriteResult(
+                instanceId = existing.instanceId,
+                revisionAdded = false,
+                instanceCreated = false,
+                coalesced = true,
+            )
+        }
         if (latest != null && latest.contentHash == candidate.contentHash &&
             !mediaEvidenceChanged(latest, candidate)
         ) {
@@ -396,4 +459,6 @@ data class CaptureWriteResult(
     val instanceId: String,
     val revisionAdded: Boolean,
     val instanceCreated: Boolean,
+    /** #5: an updating notification rewrote its newest revision in place. */
+    val coalesced: Boolean = false,
 )

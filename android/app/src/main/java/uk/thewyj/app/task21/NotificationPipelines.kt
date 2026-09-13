@@ -68,7 +68,13 @@ class NotificationArchivePipeline(
             return Result(false, classification.kind, classification.reason)
         }
         if (sink != null) {
-            val stored = sink.store(accountId, input, structured)
+            // #5: an updating readout carries the coalesce decision into the
+            // store, where the existing row is rewritten instead of appended.
+            val stored = sink.store(
+                accountId,
+                input.copy(coalesceWithPrevious = classification.coalesceWithPrevious),
+                structured,
+            )
             return Result(stored, classification.kind, classification.reason)
         }
         archiveFor(accountId).append(

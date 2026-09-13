@@ -35,6 +35,13 @@ data class NotificationClassification(
     val kind: NotificationClass,
     val storeInArchive: Boolean,
     val reason: String,
+    /**
+     * Task 24 reopen #5: an updating readout (recording timer, live status) keeps
+     * exactly one archive row. The store updates that row in place instead of
+     * appending a new revision, so a per-second notification cannot flood
+     * history with one entry per tick.
+     */
+    val coalesceWithPrevious: Boolean = false,
 )
 
 data class NotificationClassificationInput(
@@ -134,17 +141,33 @@ object NotificationClassifier {
                 )
             }
         }
-        // Second layer: some apps never set the flag. Identical identity whose
-        // text only changes in digits/units within a short window is a live
-        // readout, not a new message. Real content changes are always stored.
-        if (coalescer.isNumericChurn(
-                identityKey = input.identityKey,
-                title = input.title,
-                text = input.text.ifBlank { input.bigText }.ifBlank { input.subText },
-                occurredAtMs = input.occurredAtMs,
+        // Second layer: some apps never set the flag. The same Android identity
+        // repeating the same shape every couple of seconds (recording timer,
+        // live readout whose digits change) is one updating notification. It is
+        // archived once and then updated in place instead of appended again.
+        val readout = coalescer.readoutDecision(
+            identityKey = input.identityKey,
+            title = input.title,
+            text = input.text.ifBlank { input.bigText }.ifBlank { input.subText },
+            occurredAtMs = input.occurredAtMs,
+        )
+        // A real ledger event is never an updating readout: three payment
+        // receipts one second apart on the same notification id are three
+        // payments, not one timer. Money-carrying captures always keep their own
+        // snapshot.
+        val carriesMoney = readout != NotificationReadoutDecision.NEW &&
+            uk.thewyj.app.task21.payment.PaymentText.amountMinor(
+                listOf(input.title, input.text, input.bigText, input.subText)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" "),
+            ) != null
+        if (readout != NotificationReadoutDecision.NEW && !carriesMoney) {
+            return NotificationClassification(
+                NotificationClass.LIVE,
+                true,
+                if (readout == NotificationReadoutDecision.FAST_REPEAT) "update_in_place" else "numeric_churn",
+                coalesceWithPrevious = true,
             )
-        ) {
-            return NotificationClassification(NotificationClass.LIVE, false, "numeric_churn")
         }
         return NotificationClassification(NotificationClass.MESSAGE, true, "message")
     }
@@ -176,6 +199,17 @@ object NotificationClassifier {
     }
 }
 
+enum class NotificationReadoutDecision {
+    /** A shape this identity has not posted before: always a new revision. */
+    NEW,
+
+    /** The same shape arrived within a couple of seconds: an updating readout. */
+    FAST_REPEAT,
+
+    /** The same shape has been reposted many times inside the live window. */
+    CHURN,
+}
+
 /**
  * Small, bounded memory of the last archived shape per identity. It exists to
  * catch apps that repost the same status text with new numbers without setting
@@ -193,31 +227,76 @@ class NotificationLiveCoalescer(
         val seenCount: Int,
     )
 
+    private data class Observation(
+        val sameShape: Boolean,
+        val gapMs: Long,
+        val firstSeenAgeMs: Long,
+        val seenCount: Int,
+    )
+
     private val entries = LinkedHashMap<String, Entry>()
 
-    fun isNumericChurn(identityKey: String, title: String, text: String, occurredAtMs: Long): Boolean {
-        if (identityKey.isBlank()) return false
+    /**
+     * Records the shape and reports how it relates to the previous post of the
+     * same identity. Both public decisions share this bookkeeping so a caller can
+     * never double-count one capture.
+     */
+    private fun observe(identityKey: String, title: String, text: String, occurredAtMs: Long): Observation? {
+        if (identityKey.isBlank()) return null
         val normalized = normalize(title) + "\u001F" + normalize(text)
-        if (normalized.isBlank() || normalized == "\u001F") return false
+        if (normalized.isBlank() || normalized == "\u001F") return null
         val now = if (occurredAtMs > 0) occurredAtMs else System.currentTimeMillis()
         synchronized(entries) {
             val previous = entries[identityKey]
-            if (previous != null && previous.normalized == normalized &&
-                now - previous.lastSeenAtMs <= REPEAT_WINDOW_MS &&
-                now - previous.firstSeenAtMs <= windowMs
-            ) {
-                val seenCount = previous.seenCount + 1
-                entries[identityKey] = previous.copy(lastSeenAtMs = now, seenCount = seenCount)
-                trim()
-                // Only a long, fast burst of the *same shape* is a live readout.
-                // Real messages - including repeated transfer receipts - stay
-                // well below this and are always archived.
-                return seenCount >= REPEATS_BEFORE_LIVE
-            }
-            entries[identityKey] = Entry(normalized, now, now, 1)
+            val sameShape = previous != null && previous.normalized == normalized
+            val seenCount = if (sameShape) previous!!.seenCount + 1 else 1
+            val firstSeenAtMs = if (sameShape) previous!!.firstSeenAtMs else now
+            val gapMs = if (sameShape) now - previous!!.lastSeenAtMs else Long.MAX_VALUE
+            entries[identityKey] = Entry(normalized, firstSeenAtMs, now, seenCount)
             trim()
-            return false
+            return Observation(
+                sameShape = sameShape,
+                gapMs = gapMs,
+                firstSeenAgeMs = now - firstSeenAtMs,
+                seenCount = seenCount,
+            )
         }
+    }
+
+    /**
+     * Task 24 reopen #5: one updating notification, one archive row. Returns
+     * [NotificationReadoutDecision.FAST_REPEAT] when the same identity reposts
+     * the same shape within [FAST_REPEAT_MS] (a recording timer ticks every
+     * second) and [NotificationReadoutDecision.CHURN] when a slower but still
+     * continuous burst continues inside the live window. Two identical real
+     * messages sit far apart in time, so they stay [NotificationReadoutDecision.NEW].
+     */
+    fun readoutDecision(identityKey: String, title: String, text: String, occurredAtMs: Long): NotificationReadoutDecision {
+        val observation = observe(identityKey, title, text, occurredAtMs) ?: return NotificationReadoutDecision.NEW
+        if (!observation.sameShape) return NotificationReadoutDecision.NEW
+        // Two identical posts one second apart are still two messages; only a
+        // real ticker (three posts inside a few seconds) is an updating readout.
+        if (observation.gapMs <= FAST_REPEAT_MS && observation.seenCount >= FAST_REPEATS_BEFORE_COALESCE) {
+            return NotificationReadoutDecision.FAST_REPEAT
+        }
+        if (observation.gapMs <= REPEAT_WINDOW_MS &&
+            observation.firstSeenAgeMs <= windowMs &&
+            observation.seenCount >= REPEATS_BEFORE_LIVE
+        ) {
+            return NotificationReadoutDecision.CHURN
+        }
+        return NotificationReadoutDecision.NEW
+    }
+
+    fun isNumericChurn(identityKey: String, title: String, text: String, occurredAtMs: Long): Boolean {
+        val observation = observe(identityKey, title, text, occurredAtMs) ?: return false
+        if (!observation.sameShape) return false
+        if (observation.gapMs > REPEAT_WINDOW_MS) return false
+        if (observation.firstSeenAgeMs > windowMs) return false
+        // Only a long, fast burst of the *same shape* is a live readout. Real
+        // messages - including repeated transfer receipts - stay well below this
+        // and are always archived.
+        return observation.seenCount >= REPEATS_BEFORE_LIVE
     }
 
     /** Digits, units and whitespace are what change in a live readout. */
@@ -237,6 +316,16 @@ class NotificationLiveCoalescer(
     companion object {
         /** Consecutive updates must arrive this fast to count as one readout. */
         const val REPEAT_WINDOW_MS = 30_000L
+
+        /**
+         * A per-second readout is recognised from its second update on: the
+         * archive keeps one row and updates it, instead of writing five rows
+         * before the churn detector reacts.
+         */
+        const val FAST_REPEAT_MS = 3_000L
+
+        /** Fast posts of one shape before the identity counts as a ticker. */
+        const val FAST_REPEATS_BEFORE_COALESCE = 3
 
         /** Identical shapes before the identity is treated as a live readout. */
         const val REPEATS_BEFORE_LIVE = 5
