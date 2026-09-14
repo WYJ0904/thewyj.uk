@@ -64,6 +64,7 @@ import uk.thewyj.app.core.design.ThewyjPrimaryButton
 import uk.thewyj.app.task21.store.NotificationHistoryItem
 import uk.thewyj.app.task21.store.NotificationRepository
 import uk.thewyj.app.task21.store.NotificationRuleEntity
+import uk.thewyj.app.task21.NotificationMediaPresentation
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -210,9 +211,20 @@ private fun NotificationDetailOverlay(
         uk.thewyj.app.task21.payment.PaymentAppLabels.resolve(context, item.sourcePackage)
     }
     var bitmap by remember(item.revisionId) { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var mediaUnavailable by remember(item.revisionId) { mutableStateOf(item.mediaState == "unavailable") }
+    val presentsMedia = remember(item.revisionId, item.mediaState, item.mediaOrigin) {
+        NotificationMediaPresentation.shouldPresent(
+            item.mediaState,
+            item.mediaOrigin,
+            item.title,
+            item.text,
+            item.bigText,
+        )
+    }
+    var mediaUnavailable by remember(item.revisionId) {
+        mutableStateOf(presentsMedia && item.mediaState == "unavailable")
+    }
     LaunchedEffect(item.revisionId) {
-        if (item.mediaPath.isBlank()) return@LaunchedEffect
+        if (!presentsMedia || item.mediaPath.isBlank()) return@LaunchedEffect
         val file = runCatching { loadMedia(item.mediaPath) }.getOrNull()
         val decoded = file?.let { android.graphics.BitmapFactory.decodeFile(it.absolutePath) }
         bitmap = decoded
@@ -278,7 +290,7 @@ private fun NotificationDetailOverlay(
                             .padding(top = 4.dp),
                     )
                 }
-                item.mediaState != "none" || mediaUnavailable ->
+                presentsMedia && (item.mediaState != "none" || mediaUnavailable) ->
                     DetailField(
                         "图片内容不可用",
                         "该通知包含图片，但 Android 未提供可读取的图片数据（或照片读取权限只允许「部分照片」）；" +
@@ -502,6 +514,15 @@ private fun NotificationHistoryCard(
     onDelete: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val presentsMedia = remember(item.revisionId, item.mediaState, item.mediaOrigin) {
+        NotificationMediaPresentation.shouldPresent(
+            item.mediaState,
+            item.mediaOrigin,
+            item.title,
+            item.text,
+            item.bigText,
+        )
+    }
     Card(Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable(onClick = onOpen)) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.Top) {
             Checkbox(
@@ -547,7 +568,7 @@ private fun NotificationHistoryCard(
                         )
                     }
                 }
-                if (item.mediaState == "available" || item.mediaState == "unavailable") {
+                if (presentsMedia) {
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,

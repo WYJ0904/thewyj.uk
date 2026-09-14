@@ -235,6 +235,7 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
                 mediaHint -> "unavailable"
                 else -> "none"
             },
+            mediaOrigin = media.origin,
             screenshotEvent = screenshotEvent,
             mediaFingerprint = if (screenshotEvent) {
                 mediaFingerprint

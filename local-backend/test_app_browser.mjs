@@ -695,13 +695,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260913-task24-device-r3');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20260913-task24-device-r3');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260913-task24-device-r3');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260913-task24-device-r3');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260913-task24-device-r3');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260913-task24-device-r3');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260913-task24-device-r3');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260914-task24-device-r4');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20260914-task24-device-r4');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260914-task24-device-r4');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260914-task24-device-r4');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260914-task24-device-r4');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260914-task24-device-r4');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260914-task24-device-r4');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -714,10 +714,10 @@ async function main() {
       assert.equal(pwa.cachedLearningSync, true);
       assert.equal(pwa.cachedWorkflows, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.09.14.3");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.09.14.4");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-09-14-task24-payment-lifecycle-r3");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-09-14-task24-notification-finance-r4");
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
       const mobilePublic = await evaluate(`({
         viewport: document.documentElement.clientWidth,
@@ -832,7 +832,7 @@ async function main() {
       );
       assert.equal(await evaluate("document.querySelector('#changelogPage').textContent.includes('可配置工具工作流')"), true);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.09.14.3");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.09.14.4");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
@@ -2051,6 +2051,23 @@ async function main() {
       await setFields({ "#financeStatusFilter": "active" });
       await click("#financeUndoBtn");
       await waitFor("document.querySelector('#financeUndoBar').classList.contains('hidden')", 3_000, "finance restore");
+
+      // The undo affordance is page-local. Leaving Finance must clear it rather
+      // than showing a stale green delete banner on another route or later visit.
+      await click(`[data-finance-delete="${expenseId}"]`);
+      await waitFor("!document.querySelector('#financeUndoBar').classList.contains('hidden')", 3_000, "second finance delete undo");
+      await navigate("/select");
+      await waitFor("location.pathname === '/select'", 4_000, "leave finance with undo pending");
+      await navigate("/finance");
+      await waitFor("location.pathname === '/finance' && !document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 8_000, "return to finance");
+      assert.equal(
+        await evaluate("document.querySelector('#financeUndoBar').classList.contains('hidden')"),
+        true,
+        "finance undo must not survive a route change",
+      );
+      await setFields({ "#financeStatusFilter": "deleted" });
+      await click(`[data-finance-restore="${expenseId}"]`);
+      await setFields({ "#financeStatusFilter": "active" });
 
       await click("#financeManageBudgetsBtn");
       await setFields({ "#financeBudgetAmount": "20.00", "#financeBudgetCategory": categoryId });

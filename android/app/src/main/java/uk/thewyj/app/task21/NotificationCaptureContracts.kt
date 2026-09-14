@@ -63,6 +63,8 @@ data class NotificationCaptureInput(
     val mediaPath: String = "",
     val mediaMime: String = "",
     val mediaState: String = "none",
+    /** Content origin: picture, background, message_image, notification, media_store. */
+    val mediaOrigin: String = "",
     /**
      * Task 24 reopen #6: content URI Android published instead of a bitmap
      * (BigPictureStyle reference, MessagingStyle message image, background
