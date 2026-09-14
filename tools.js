@@ -580,6 +580,10 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260913-task24-device-r
 
   window.WYJTools = {
     init,
+    // Browser regressions navigate between full documents. The module object
+    // exists before app.js has restored the canonical account; API-backed
+    // tools are ready only after both the bridge and authenticated account do.
+    isReady: () => Boolean(bridge?.isAuthenticated?.()),
     show,
     hide,
     openTool,

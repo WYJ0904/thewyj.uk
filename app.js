@@ -7110,6 +7110,7 @@ async function boot() {
       openTransfer: () => { void showTransfer(true); },
       account: () => state.account,
       accountId: () => accountStorageId(),
+      isAuthenticated: () => Boolean(state.session && state.account?.id),
       onPreferencesChanged: renderDashboard,
     });
     toolsInitialized = true;

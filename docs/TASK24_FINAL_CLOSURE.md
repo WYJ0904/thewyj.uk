@@ -18,6 +18,7 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 - OCR 后的 `ENRICHMENT_VERIFIED` 现在由设备确认，即使初始 amount-unknown hint 已上传；确认沿用该 hint 的 event ID，服务端建账与关闭 hint 为同一幂等链路，不要求用户重复填写金额。
 - 真机微信图片通知正文已保存。Android 只提供 `largeIcon`，没有消息图片 Bitmap/URI；详情如实显示“图片内容不可用”，未把头像冒充消息图片。通知重放为 `NOT_PAYMENT` 且 Room `replay-no-change`。
 - 自动回归覆盖：同 key/postTime 变化只留一个 hint、remove 后开启新 lifecycle、进程重建身份保持、registry 隐私、设备 OCR event ingest 关闭 hint、重复 ingest 只生成一笔账。
+- Cloud-only toolbox 的真实失败来自 `/transfer` 后测试直接调用隐藏工具 API，并在 canonical Session 恢复前继续；矩阵改为先回 `/tools`，等待 bridge + account + session，再继续全部 104 个工具。隔离本地矩阵 104/104 通过，86 次下载、51 个模式、27 个工作流，`failures=[]`、`runtimeErrors=[]`。
 - 手机暂时离线；1.3.7 尚需覆盖安装后完成：确认 ¥0.01 → 服务端 terminal → Android convergence → force-stop/reopen。完成前 Task 24 保持等待，Task 25 继续阻塞。
 
 ## 2026-09-14 device closure evidence (Android 1.3.6)
