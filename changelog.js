@@ -1,6 +1,24 @@
 (() => {
   const entries = [
     {
+      version: "2026.09.14.5",
+      build: "2026-09-14-task24-legacy-media-r5",
+      date: "2026-09-14",
+      title: "Task 24 历史图片语义兼容（Android 1.3.9）",
+      features: [
+        "Android 正式版更新至 1.3.9，继续使用原 applicationId、正式签名、账户、通知历史与财务数据。",
+      ],
+      improvements: [
+        "原位升级后，旧微信图片消息继续明确显示图片状态，同时不会把联系人头像当作消息图片。",
+      ],
+      fixes: [
+        "修复旧版没有 mediaOrigin 的简体/繁体图片记录可能漏掉不可用提示，或把历史 largeIcon 文件误作正文图片的问题。",
+      ],
+      security: [
+        "只有带可信 picture/message_image/media_store 来源的新记录才读取本机媒体文件；旧来源不明文件一律 fail closed。",
+      ],
+    },
+    {
       version: "2026.09.14.4",
       build: "2026-09-14-task24-notification-finance-r4",
       date: "2026-09-14",

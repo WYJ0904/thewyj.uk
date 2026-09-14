@@ -211,8 +211,8 @@ private fun NotificationDetailOverlay(
         uk.thewyj.app.task21.payment.PaymentAppLabels.resolve(context, item.sourcePackage)
     }
     var bitmap by remember(item.revisionId) { mutableStateOf<android.graphics.Bitmap?>(null) }
-    val presentsMedia = remember(item.revisionId, item.mediaState, item.mediaOrigin) {
-        NotificationMediaPresentation.shouldPresent(
+    val mediaPresentation = remember(item.revisionId, item.mediaState, item.mediaOrigin) {
+        NotificationMediaPresentation.presentationState(
             item.mediaState,
             item.mediaOrigin,
             item.title,
@@ -221,10 +221,10 @@ private fun NotificationDetailOverlay(
         )
     }
     var mediaUnavailable by remember(item.revisionId) {
-        mutableStateOf(presentsMedia && item.mediaState == "unavailable")
+        mutableStateOf(mediaPresentation == NotificationMediaPresentation.UNAVAILABLE)
     }
     LaunchedEffect(item.revisionId) {
-        if (!presentsMedia || item.mediaPath.isBlank()) return@LaunchedEffect
+        if (mediaPresentation != NotificationMediaPresentation.AVAILABLE || item.mediaPath.isBlank()) return@LaunchedEffect
         val file = runCatching { loadMedia(item.mediaPath) }.getOrNull()
         val decoded = file?.let { android.graphics.BitmapFactory.decodeFile(it.absolutePath) }
         bitmap = decoded
@@ -290,7 +290,7 @@ private fun NotificationDetailOverlay(
                             .padding(top = 4.dp),
                     )
                 }
-                presentsMedia && (item.mediaState != "none" || mediaUnavailable) ->
+                mediaPresentation == NotificationMediaPresentation.UNAVAILABLE || mediaUnavailable ->
                     DetailField(
                         "图片内容不可用",
                         "该通知包含图片，但 Android 未提供可读取的图片数据（或照片读取权限只允许「部分照片」）；" +
@@ -514,8 +514,8 @@ private fun NotificationHistoryCard(
     onDelete: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    val presentsMedia = remember(item.revisionId, item.mediaState, item.mediaOrigin) {
-        NotificationMediaPresentation.shouldPresent(
+    val mediaPresentation = remember(item.revisionId, item.mediaState, item.mediaOrigin) {
+        NotificationMediaPresentation.presentationState(
             item.mediaState,
             item.mediaOrigin,
             item.title,
@@ -568,7 +568,7 @@ private fun NotificationHistoryCard(
                         )
                     }
                 }
-                if (presentsMedia) {
+                if (mediaPresentation != NotificationMediaPresentation.NONE) {
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -576,7 +576,7 @@ private fun NotificationHistoryCard(
                         modifier = Modifier.padding(top = 2.dp),
                     ) {
                         Text(
-                            if (item.mediaState == "available") "含图片" else "图片内容不可用",
+                            if (mediaPresentation == NotificationMediaPresentation.AVAILABLE) "含图片" else "图片内容不可用",
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                         )

@@ -152,6 +152,10 @@ object NotificationMediaExtractor {
  * ordinary text messages after an in-place upgrade.
  */
 object NotificationMediaPresentation {
+    const val NONE = "none"
+    const val AVAILABLE = "available"
+    const val UNAVAILABLE = "unavailable"
+
     private val CONTENT_ORIGINS = setOf(
         NotificationMediaExtractor.ORIGIN_PICTURE,
         NotificationMediaExtractor.ORIGIN_BACKGROUND,
@@ -161,18 +165,36 @@ object NotificationMediaPresentation {
         "media_store+notification",
     )
 
+    fun presentationState(
+        mediaState: String,
+        mediaOrigin: String,
+        title: String,
+        text: String,
+        bigText: String,
+    ): String {
+        if (mediaState !in setOf(AVAILABLE, UNAVAILABLE)) return NONE
+        // Only a capture written with a content-specific origin may load the
+        // stored file. Legacy rows did not distinguish a message picture from
+        // EXTRA_LARGE_ICON/contact avatars, so loading their file can show a
+        // person's avatar as if it were the sent image.
+        if (mediaOrigin in CONTENT_ORIGINS) return mediaState
+        val legacyText = listOf(title, text, bigText).joinToString(" ").trim().lowercase()
+        val explicitImage = legacyText == "图片" || legacyText == "照片" || legacyText == "相片" ||
+            legacyText.contains("[图片]") || legacyText.contains("[照片]") ||
+            legacyText.contains("[圖片]") || legacyText.contains("[相片]") ||
+            legacyText.contains("屏幕截图已保存") || legacyText.contains("螢幕截圖已儲存") ||
+            legacyText.contains("screenshot saved")
+        // The text proves an image message existed, but the legacy file itself
+        // is ambiguous. Report it unavailable instead of loading a possible
+        // avatar or pretending the image never existed.
+        return if (explicitImage) UNAVAILABLE else NONE
+    }
+
     fun shouldPresent(
         mediaState: String,
         mediaOrigin: String,
         title: String,
         text: String,
         bigText: String,
-    ): Boolean {
-        if (mediaState !in setOf("available", "unavailable")) return false
-        if (mediaOrigin in CONTENT_ORIGINS) return true
-        val legacyText = listOf(title, text, bigText).joinToString(" ").trim().lowercase()
-        return legacyText == "图片" || legacyText == "照片" ||
-            legacyText.contains("[图片]") || legacyText.contains("[照片]") ||
-            legacyText.contains("屏幕截图已保存") || legacyText.contains("screenshot saved")
-    }
+    ): Boolean = presentationState(mediaState, mediaOrigin, title, text, bigText) != NONE
 }

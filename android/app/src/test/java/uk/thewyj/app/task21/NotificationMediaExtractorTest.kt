@@ -162,22 +162,32 @@ class NotificationMediaExtractorTest {
 
     @Test fun presentationHidesLegacyAvatarWarningsButKeepsExplicitImages() {
         assertEquals(
-            false,
-            NotificationMediaPresentation.shouldPresent("unavailable", "", "Alice", "嗯嗯", ""),
+            NotificationMediaPresentation.NONE,
+            NotificationMediaPresentation.presentationState("unavailable", "", "Alice", "嗯嗯", ""),
         )
         assertEquals(
-            true,
-            NotificationMediaPresentation.shouldPresent("unavailable", "", "Alice", "[图片]", ""),
+            NotificationMediaPresentation.UNAVAILABLE,
+            NotificationMediaPresentation.presentationState("unavailable", "", "Alice", "[图片]", ""),
         )
         assertEquals(
-            true,
-            NotificationMediaPresentation.shouldPresent(
+            NotificationMediaPresentation.AVAILABLE,
+            NotificationMediaPresentation.presentationState(
                 "available",
                 NotificationMediaExtractor.ORIGIN_MESSAGE_IMAGE,
                 "Alice",
                 "",
                 "",
             ),
+        )
+        assertEquals(
+            "a legacy avatar file must never become the message image",
+            NotificationMediaPresentation.UNAVAILABLE,
+            NotificationMediaPresentation.presentationState("available", "large_icon", "Alice", "[图片]", ""),
+        )
+        assertEquals(
+            "traditional WeChat image labels remain honest after an in-place upgrade",
+            NotificationMediaPresentation.UNAVAILABLE,
+            NotificationMediaPresentation.presentationState("available", "", "Alice", "[相片]", ""),
         )
     }
 

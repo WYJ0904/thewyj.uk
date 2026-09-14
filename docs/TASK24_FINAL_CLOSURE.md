@@ -11,6 +11,15 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 - 每条结论都标注证据来源：`unit` / `integration` / `browser-E2E` / `device-only`。
 - 真机：`Samsung SM-S9360 / Android 16`，正式签名覆盖安装，未卸载、未清除 App 数据。
 
+## 2026-09-14 legacy media compatibility candidate (Android 1.3.9)
+
+- 1.3.8 原位升级后，真机微信筛选与“加载更多”确认普通文字消息不再显示图片提示，支付通知仍保留并标记已关联财务。
+- 继续向旧记录扫描后复现繁体 `[相片]` 历史行。稳定旧版没有可信 `mediaOrigin`：直接读取其 `mediaPath` 可能把头像当正文图片，完全忽略又会让明确图片消息无状态。
+- 1.3.9 引入展示三态：只有 `picture/background/message_image/notification/media_store` 等可信来源可加载文件；来源不明的旧 `[图片]/[圖片]/[照片]/[相片]` 只显示“图片内容不可用”；普通文字保持无图片区域。
+- 自动回归覆盖旧 `large_icon + [图片]`、繁体 `[相片]`、普通文字、可信 MessagingStyle 图片与 screenshot/Room 历史；仍需正式发布后在同一真机复核该旧记录和一条新图片消息。
+- 1.3.8 Production 上已完成既有 ¥0.01 闭环：正确 08:29:57 hint 为 `confirmed`，只生成 1 笔 active/automatic 支出；1.3.6 的 08:30:08 重复 hint 单独变为 `ignored`。force-stop/reopen 后账户与 -¥31.05 余额恢复，两个 terminal 状态没有复活。
+- force-stop 后 Samsung 自动关闭了支付核实无障碍（通知访问仍开启）；1.3.9 最终核实前需从系统设置重新授权，不能用 ADB 绕过。
+
 ## 2026-09-14 notification/Finance convergence candidate (Android 1.3.8)
 
 - 1.3.7 已在 Samsung SM-S9360 上从 1.3.6 原位升级，`firstInstallTime` 不变，账户、通知访问、支付核实无障碍及通知权限保留。
@@ -20,7 +29,7 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 - 通知历史没有数据库 25 条保留限制：当前首屏是 50 条，显式“加载更多”上限 500，数据库继续执行 7/30/90/365/永久保留与收藏保护。1.3.7 真机已显示 32+ 条，确认旧“保存 25 条”来自旧首屏截断而非数据清空。
 - `financeUndoBar` 过去只在恢复/账户 reset 时清理；1.3.8 在离开财务页时结束该页面局部 undo 生命周期并清空旧成功提示。
 - 自动证据：Android `testDebugUnitTest`、`lintDebug`、`assembleDebug`；Cloud-only 浏览器 14/14；应用浏览器 24/24。新增覆盖头像/Person.icon、真实图片、无 payload 图片、支付候选归档、刷新不假空、编辑值保留、处理 A 不影响 B、跨路由 undo 清理。
-- 仍需正式发布 1.3.8 后完成：¥0.01 exactly-once、旧重复 hint 忽略、Android terminal 收敛、force-stop/reopen，以及本轮真机 Notification/Finance/media 回归。完成前 Task 25 继续阻塞。
+- 1.3.8 已完成 ¥0.01 exactly-once、旧重复 hint 忽略、Android/Finance 收敛与 force-stop/reopen；最终 closure 由 1.3.9 的旧媒体兼容与权限恢复真机回归继续承接。完成前 Task 25 继续阻塞。
 
 ## 2026-09-14 payment lifecycle closure candidate (Android 1.3.7)
 
@@ -81,19 +90,19 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 - 断言：成功路径点击后**同任务内** pending（≤150ms）→ 结算恢复 → 显示「订单已生成」；失败路径（500）同样 pending ≤150ms → 结算恢复 → 显示服务端错误；两条路径都要求 `recharge-submit` 的 trace 出现 `state-apply`。
 - 证据来源：**browser-E2E**（`local-backend/test_interaction_feedback_browser.mjs`，Cloud-only Preview job）；本地（Windows）8/8 通过（transfer 模块因本机 workerd 限制跳过）。
 
-### Android 正式发布封装（1.3.8 / versionCode 21）
+### Android 正式发布封装（1.3.9 / versionCode 22）
 
 | 项 | 值 |
 | --- | --- |
-| 源码版本 | `android/app/build.gradle.kts` → `versionName 1.3.8` / `versionCode 21`（Task 24 通知与财务状态收敛） |
-| APK | `dist/thewyj-android-1.3.8.apk`（本地构建产物，`dist/` 按仓库约定不入库）；目标 R2 key = `app/android/thewyj-android-1.3.8.apk` |
+| 源码版本 | `android/app/build.gradle.kts` → `versionName 1.3.9` / `versionCode 22`（Task 24 历史图片语义兼容） |
+| APK | `dist/thewyj-android-1.3.9.apk`（本地构建产物，`dist/` 按仓库约定不入库）；目标 R2 key = `app/android/thewyj-android-1.3.9.apk` |
 | applicationId / minSdk / targetSdk | `uk.thewyj.app` / `30` / `36` |
 | BASE_URL | `https://thewyj.uk` |
 | APK size | `47,611,293` bytes |
-| APK SHA-256 | `20d8d80e623b32db9a41bd26a5f54d7e772125e58f0bef1eb229237fbea98367` |
+| APK SHA-256 | `a7a34ebfc416976d45d9f062855261f91c7ae64bcc71ee9546ecc7ef65702806` |
 | 签名证书 SHA-256 | `2B:32:20:29:A9:B8:4D:E6:F2:D1:EF:60:37:78:B5:07:99:97:A3:F8:DF:21:D0:1C:A8:CB:30:C7:6B:4F:7D:03`（`thewyj-release`，与 1.3.1–1.3.4 同一正式证书，非 debug 签名） |
-| releaseBuild | `2026-09-14-task24-notification-finance-r4` |
-| release notes | 支付证据与通知历史保持同一事件身份；头像不再冒充图片；候选刷新保留编辑和其他 pending；跨页撤销提示及时结束。 |
+| releaseBuild | `2026-09-14-task24-legacy-media-r5` |
+| release notes | 可信新图片正常显示；旧来源不明图片仅显示不可用状态，绝不读取可能属于联系人头像的文件；普通文字不显示图片提示。 |
 | 一致性 gate | `scripts/check_android_release_consistency.py`（build.gradle ↔ release-metadata.json ↔ wrangler 三段 vars ↔ APK manifest/SHA/size/证书，共 46 checks）+ `scripts/test_check_android_release_consistency.py`（6 项负向自测，证明 gate 真的会拒绝不一致） |
 | CI 接入 | Python job（跨文件一致性）、Android job（构建出的 APK manifest 与 metadata 对齐） |
 

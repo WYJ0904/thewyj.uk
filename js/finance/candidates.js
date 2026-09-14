@@ -1,4 +1,4 @@
-import { randomId } from "../core/capabilities.js?v=20260914-task24-device-r4";
+import { randomId } from "../core/capabilities.js?v=20260914-task24-device-r5";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -6,7 +6,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20260914-task24-device-r4";
+} from "../core/perf.js?v=20260914-task24-device-r5";
 const CANDIDATE_PAGE_LIMIT = 100;
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款" });

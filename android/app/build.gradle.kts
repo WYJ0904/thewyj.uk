@@ -28,8 +28,8 @@ android {
         minSdk = 30
         targetSdk = 36
         // Task 24 device closure: notification/media and Finance state convergence.
-        versionCode = 21
-        versionName = "1.3.8"
+        versionCode = 22
+        versionName = "1.3.9"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "THEWYJ_BASE_URL", "\"$thewyjBaseUrl\"")
     }
