@@ -2,7 +2,7 @@
 
 **状态：`TASK 24 — WAITING FOR USER DEVICE ACTION`**（不是 `COMPLETE`）。
 
-当前修复分支：`codex/task24-payment-lifecycle-final`（base `main`）；上一轮设备修复 PR：`#74`
+当前修复分支：`codex/task24-payment-lifecycle-final`，PR：`#75`（base `main`）；上一轮设备修复 PR：`#74`
 Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Task 25 代码）
 
 证据口径：
