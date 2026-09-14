@@ -27,9 +27,9 @@ android {
         // matches the browsers/WebView versions the cloud TTS player needs.
         minSdk = 30
         targetSdk = 36
-        // Task 24 device closure: native transfer recovery and WeChat OCR.
-        versionCode = 19
-        versionName = "1.3.6"
+        // Task 24 device closure: stable payment lifecycle and OCR confirmation.
+        versionCode = 20
+        versionName = "1.3.7"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "THEWYJ_BASE_URL", "\"$thewyjBaseUrl\"")
     }

@@ -1,8 +1,8 @@
 # Task 24 Final Acceptance Reopen — Release Candidate Record
 
-**状态：`TASK 24 DEVICE CLOSURE — USER FINAL CONFIRMATION STILL REQUIRED`**（不是 `COMPLETE`）。
+**状态：`TASK 24 — WAITING FOR USER DEVICE ACTION`**（不是 `COMPLETE`）。
 
-分支：`codex/task24-device-closure-r4`　PR：`#74`（base `main`）
+当前修复分支：`codex/task24-payment-lifecycle-final`（base `main`）；上一轮设备修复 PR：`#74`
 Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Task 25 代码）
 
 证据口径：
@@ -10,6 +10,15 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 - **CI / PR Preview 通过 ≠ Production Closure**。当前所有 CI 证据来自 PR Preview（wrangler pages dev + 本地 D1/R2 + headless Chrome）。
 - 每条结论都标注证据来源：`unit` / `integration` / `browser-E2E` / `device-only`。
 - 真机：`Samsung SM-S9360 / Android 16`，正式签名覆盖安装，未卸载、未清除 App 数据。
+
+## 2026-09-14 payment lifecycle closure candidate (Android 1.3.7)
+
+- 真实 ¥0.01 详情在 90 秒 ticket 内由本机 OCR 得到 `amount=1 / EXPENSE`，`ocr-enrichment result=applied`；没有自动入账。
+- 同一微信 notification key 在 11 秒后的更新改变了 `postTime`，1.3.6 将它误作第二个 source event，产生重复 recognition/hint。1.3.7 改为持久化 lifecycle registry：同一 Android slot 在 remove 前复用一个随机 event ID，remove 后才创建新 ID；registry 不保存正文、金额、账号或凭据。
+- OCR 后的 `ENRICHMENT_VERIFIED` 现在由设备确认，即使初始 amount-unknown hint 已上传；确认沿用该 hint 的 event ID，服务端建账与关闭 hint 为同一幂等链路，不要求用户重复填写金额。
+- 真机微信图片通知正文已保存。Android 只提供 `largeIcon`，没有消息图片 Bitmap/URI；详情如实显示“图片内容不可用”，未把头像冒充消息图片。通知重放为 `NOT_PAYMENT` 且 Room `replay-no-change`。
+- 自动回归覆盖：同 key/postTime 变化只留一个 hint、remove 后开启新 lifecycle、进程重建身份保持、registry 隐私、设备 OCR event ingest 关闭 hint、重复 ingest 只生成一笔账。
+- 手机暂时离线；1.3.7 尚需覆盖安装后完成：确认 ¥0.01 → 服务端 terminal → Android convergence → force-stop/reopen。完成前 Task 24 保持等待，Task 25 继续阻塞。
 
 ## 2026-09-14 device closure evidence (Android 1.3.6)
 
@@ -60,19 +69,19 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 - 断言：成功路径点击后**同任务内** pending（≤150ms）→ 结算恢复 → 显示「订单已生成」；失败路径（500）同样 pending ≤150ms → 结算恢复 → 显示服务端错误；两条路径都要求 `recharge-submit` 的 trace 出现 `state-apply`。
 - 证据来源：**browser-E2E**（`local-backend/test_interaction_feedback_browser.mjs`，Cloud-only Preview job）；本地（Windows）8/8 通过（transfer 模块因本机 workerd 限制跳过）。
 
-### Android 正式发布封装（1.3.6 / versionCode 19）
+### Android 正式发布封装（1.3.7 / versionCode 20）
 
 | 项 | 值 |
 | --- | --- |
-| 源码版本 | `android/app/build.gradle.kts` → `versionName 1.3.6` / `versionCode 19`（Task 24 真机收口） |
-| APK | `dist/thewyj-android-1.3.6.apk`（本地构建产物，`dist/` 按仓库约定不入库）；线上 R2 key = `app/android/thewyj-android-1.3.6.apk` |
+| 源码版本 | `android/app/build.gradle.kts` → `versionName 1.3.7` / `versionCode 20`（Task 24 支付 lifecycle 收口） |
+| APK | `dist/thewyj-android-1.3.7.apk`（本地构建产物，`dist/` 按仓库约定不入库）；目标 R2 key = `app/android/thewyj-android-1.3.7.apk` |
 | applicationId / minSdk / targetSdk | `uk.thewyj.app` / `30` / `36` |
 | BASE_URL | `https://thewyj.uk` |
-| APK size | `47,594,905` bytes |
-| APK SHA-256 | `76c048b8293d377e2703b6b4a0d5b8fdff8b0474440c85209b9154ca8006fd84` |
+| APK size | `47,611,289` bytes |
+| APK SHA-256 | `db44cb9222c3faf938c891fd1b475481616ad8cf4b9d0d23974e1d77d5ebdab2` |
 | 签名证书 SHA-256 | `2B:32:20:29:A9:B8:4D:E6:F2:D1:EF:60:37:78:B5:07:99:97:A3:F8:DF:21:D0:1C:A8:CB:30:C7:6B:4F:7D:03`（`thewyj-release`，与 1.3.1–1.3.4 同一正式证书，非 debug 签名） |
-| releaseBuild | `2026-09-14-task24-device-closure-r2` |
-| release notes | 修复 1.3.4 真机发现的 SmartCapture 屏幕录制 revision 风暴、失效上传任务 0 B 假运行、通知历史批量渲染和 Workers AI TTS 瞬态失败；800 MiB 浏览器 round-trip 以源/下载 SHA-256 一致验收。 |
+| releaseBuild | `2026-09-14-task24-payment-lifecycle-r3` |
+| release notes | 同一 Android 通知在移除前只对应一个支付事件；设备 OCR 核实后沿原 event ID 完成幂等确认并关闭 pending hint。 |
 | 一致性 gate | `scripts/check_android_release_consistency.py`（build.gradle ↔ release-metadata.json ↔ wrangler 三段 vars ↔ APK manifest/SHA/size/证书，共 46 checks）+ `scripts/test_check_android_release_consistency.py`（6 项负向自测，证明 gate 真的会拒绝不一致） |
 | CI 接入 | Python job（跨文件一致性）、Android job（构建出的 APK manifest 与 metadata 对齐） |
 

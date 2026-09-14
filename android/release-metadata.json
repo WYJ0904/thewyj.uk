@@ -1,13 +1,13 @@
 {
   "applicationId": "uk.thewyj.app",
-  "versionName": "1.3.6",
-  "versionCode": 19,
+  "versionName": "1.3.7",
+  "versionCode": 20,
   "minimumVersionCode": 1,
   "releaseDate": "2026-09-14",
-  "releaseBuild": "2026-09-14-task24-device-closure-r2",
-  "releaseNotes": "Task 24 真机收口版：Android 原生大文件上传会重建过期会话、隔离失效 SAF 来源并在短期会话过期后静默续期；800 MiB 分享下载保持文件名、长度、Range 与 SHA-256 一致。微信金额核实修复窗口截图、ML Kit Release 初始化、Samsung 安全弹层重试、繁体转账金额与方向识别，90 秒核实窗口不再提前失败。",
-  "apkFileName": "thewyj-android-1.3.6.apk",
-  "apkKey": "app/android/thewyj-android-1.3.6.apk",
-  "apkSha256": "76c048b8293d377e2703b6b4a0d5b8fdff8b0474440c85209b9154ca8006fd84",
-  "apkSizeBytes": 47594905
+  "releaseBuild": "2026-09-14-task24-payment-lifecycle-r3",
+  "releaseNotes": "Task 24 支付生命周期收口版：同一 Android 通知在移除前复用一个支付事件标识，微信更新 postTime 不再产生重复待核实记录；设备 OCR 核实后的金额可沿原事件 ID 确认记账，服务端原子关闭 pending hint，重复确认不会重复入账。",
+  "apkFileName": "thewyj-android-1.3.7.apk",
+  "apkKey": "app/android/thewyj-android-1.3.7.apk",
+  "apkSha256": "db44cb9222c3faf938c891fd1b475481616ad8cf4b9d0d23974e1d77d5ebdab2",
+  "apkSizeBytes": 47611289
 }

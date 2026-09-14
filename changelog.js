@@ -1,6 +1,25 @@
 (() => {
   const entries = [
     {
+      version: "2026.09.14.3",
+      build: "2026-09-14-task24-payment-lifecycle-r3",
+      date: "2026-09-14",
+      title: "Task 24 支付生命周期闭环（Android 1.3.7）",
+      features: [
+        "Android 正式版更新至 1.3.7，继续使用原 applicationId、正式签名、账户、通知历史与财务数据。",
+      ],
+      improvements: [
+        "设备核实出的支付金额直接沿原通知事件进入确认流程，不再要求用户到网页重复填写金额。",
+      ],
+      fixes: [
+        "修复微信在同一个 notification key 上更新 postTime 时重复生成待核实记录的问题。",
+        "修复 OCR 已核实金额却仍显示“在财务中确认”、无法从 Android 完成闭环的问题。",
+      ],
+      security: [
+        "生命周期 registry 只保存通知槽摘要、随机事件 ID 和时间，不保存通知正文、金额、账号或凭据。",
+      ],
+    },
+    {
       version: "2026.09.14.2",
       build: "2026-09-14-task24-device-closure-r2",
       date: "2026-09-14",

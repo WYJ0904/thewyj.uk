@@ -259,15 +259,78 @@ try {
   const defaultState = await request(db, "/api/notification/hints", { token: USER.token });
   assert.equal(defaultState.payload.hints.length, 0, "an omitted state still defaults to pending");
 
-  // 11. Schema + row counts stay consistent after the whole flow.
+  // 12. Real-device Task 24 closure: an amount-unknown hint is enriched by the
+  // explicit Android OCR ticket. Android confirms with the *same* event id;
+  // event.ingest must create one transaction and close the server hint rather
+  // than leaving a second pending card or asking the user to type the amount.
+  const deviceEventId = "evt-hints-device-verified";
+  const deviceHint = await request(db, "/api/notification/hints", {
+    method: "POST",
+    token: USER.token,
+    body: hintBody(deviceEventId),
+  });
+  assert.equal(deviceHint.response.status, 200, JSON.stringify(deviceHint.payload));
+  const deviceBookingBody = {
+    schema_version: "1",
+    device_id: "device-hints-000001",
+    operations: [{
+      operation_id: deviceEventId,
+      type: "event.ingest",
+      payload: {
+        event_id: deviceEventId,
+        fingerprint: "ab".repeat(32),
+        source_package: "com.tencent.mm",
+        source_type: "notification",
+        event_type: "transaction",
+        parser_version: "verified-on-device",
+        parse_status: "parsed",
+        direction: "expense",
+        amount_minor: 1,
+        currency: "CNY",
+        payment_channel: "wechat",
+        merchant: "",
+        counterparty: "",
+        confidence: 950,
+        occurred_at_ms: 1_789_345_800_000,
+        received_at_ms: 1_789_345_800_000,
+      },
+    }],
+  };
+  const deviceBooking = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USER.token,
+    body: deviceBookingBody,
+  });
+  assert.equal(deviceBooking.response.status, 200, JSON.stringify(deviceBooking.payload));
+  assert.match(deviceBooking.payload.operation_results[0].transaction_id, /^txn:/);
+  const deviceHintRow = await db.prepare(
+    "SELECT state, amount_minor, direction, finance_entry_id FROM task21_notification_pending_hints WHERE user_id = ?1 AND source_event_id = ?2",
+  ).bind(USER.id, deviceEventId).first();
+  assert.equal(deviceHintRow.state, "confirmed");
+  assert.equal(deviceHintRow.amount_minor, 1);
+  assert.equal(deviceHintRow.direction, "expense");
+  assert.equal(deviceHintRow.finance_entry_id, deviceBooking.payload.operation_results[0].transaction_id);
+  const deviceBookingReplay = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USER.token,
+    body: deviceBookingBody,
+  });
+  assert.equal(deviceBookingReplay.response.status, 200);
+  assert.equal(deviceBookingReplay.payload.operation_results[0].idempotent_replay, true);
+  const oneCentLedger = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 1 AND status = 'active'",
+  ).bind(USER.id).first();
+  assert.equal(Number(oneCentLedger.count), 1, "device enrichment must book exactly one transaction");
+
+  // 13. Schema + row counts stay consistent after the whole flow.
   const hintCount = await db.prepare(
     "SELECT COUNT(*) AS count FROM task21_notification_pending_hints WHERE user_id = ?1",
   ).bind(USER.id).first();
-  assert.equal(Number(hintCount.count), 2);
+  assert.equal(Number(hintCount.count), 3);
   const financeCount = await db.prepare(
     "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1",
   ).bind(USER.id).first();
-  assert.equal(Number(financeCount.count), 1, "exactly one ledger entry for the whole flow");
+  assert.equal(Number(financeCount.count), 2, "exactly two independent ledger entries for the whole flow");
 
   console.log("Task 21 pending-hint checks passed (single pending source, no invented money, idempotent confirm/ignore).");
 } finally {

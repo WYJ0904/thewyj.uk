@@ -89,6 +89,13 @@ data class NotificationCaptureInput(
     val eventTimeMs: Long = 0L,
     val receivedAtMs: Long = 0L,
     /**
+     * Canonical payment-event identity for this Android notification lifecycle.
+     * The listener-facing registry keeps it stable while the notification key
+     * remains active, even when an app changes StatusBarNotification.postTime
+     * on every update. It contains no notification text.
+     */
+    val paymentEventId: String = "",
+    /**
      * Task 24 reopen #5: the classifier recognised this capture as an update of
      * the previous one for the same identity (recording timer, live readout).
      * The archive updates its existing row instead of appending a revision, so
@@ -207,6 +214,41 @@ interface PaymentRecognitionHook {
 
     /** User-facing application name for a capture, resolved by the platform. */
     fun appLabelFor(input: NotificationCaptureInput): String = ""
+}
+
+/**
+ * Minimal identity store for the payment side of a notification. The archive
+ * and finance entitlements are independent, so this registry cannot depend on
+ * raw notification history being enabled.
+ */
+interface PaymentNotificationLifecycleRegistry {
+    fun eventId(accountId: String, input: NotificationCaptureInput): String
+    fun markRemoved(accountId: String, input: NotificationCaptureInput)
+}
+
+/** Process-local default used by pure JVM tests and non-Android callers. */
+class InMemoryPaymentNotificationLifecycleRegistry(
+    private val idFactory: () -> String = NotificationFingerprint::stableEventId,
+) : PaymentNotificationLifecycleRegistry {
+    private val active = LinkedHashMap<String, String>()
+
+    override fun eventId(accountId: String, input: NotificationCaptureInput): String = synchronized(active) {
+        val slot = paymentNotificationSlot(input) ?: return@synchronized idFactory()
+        active.getOrPut("$accountId\u001F$slot", idFactory)
+    }
+
+    override fun markRemoved(accountId: String, input: NotificationCaptureInput) {
+        val slot = paymentNotificationSlot(input) ?: return
+        synchronized(active) { active.remove("$accountId\u001F$slot") }
+    }
+}
+
+/** Raw content is deliberately absent: only the Android notification slot is identity. */
+fun paymentNotificationSlot(input: NotificationCaptureInput): String? = when {
+    input.notificationKey.isNotBlank() -> "key:${input.notificationKey}"
+    input.notificationId != 0 || input.tag.isNotBlank() ->
+        "slot:${input.sourcePackage}|${input.notificationId}|${input.tag}"
+    else -> null
 }
 
 enum class NotificationEventType { TRANSACTION, REFUND, MARKETING, VERIFICATION, OTHER }

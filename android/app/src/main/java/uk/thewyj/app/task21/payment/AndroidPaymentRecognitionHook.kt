@@ -183,11 +183,11 @@ class AndroidPaymentRecognitionHook private constructor(
                 instance ?: AndroidPaymentRecognitionHook(context.applicationContext).also { instance = it }
             }
 
-        /**
-         * Stable per notification lifecycle: replays of the same notification
-         * share the id while a repost after removal gets a new postTime.
-         */
+        /** Stable per notification lifecycle; postTime is only a legacy fallback. */
         fun sourceEventIdOf(input: NotificationCaptureInput): String {
+            if (input.paymentEventId.isNotBlank()) {
+                return "notification#event#${input.paymentEventId}"
+            }
             val key = input.notificationKey.ifBlank {
                 "${input.sourcePackage}|${input.notificationId}|${input.tag}"
             }

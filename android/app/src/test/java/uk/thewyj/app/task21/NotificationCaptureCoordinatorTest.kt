@@ -171,6 +171,52 @@ class NotificationCaptureCoordinatorTest {
         }
     }
 
+    /**
+     * Task 24 device regression (WeChat dual-app, 2026-09-14): one Android
+     * notification key was updated eleven seconds later with a new postTime.
+     * Treating postTime as identity produced a second recognition and a second
+     * cloud hint for the same payment lifecycle.
+     */
+    @Test fun paymentUpdatesReuseOneEventUntilTheNotificationIsRemoved() {
+        val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
+        try {
+            val hook = RecordingPaymentHook(parsedOutcome(0, FinanceDirection.UNKNOWN, confirmed = false))
+            val ids = ArrayDeque(listOf("payment-event-0001", "payment-event-0002"))
+            val coordinator = NotificationCaptureCoordinator(
+                archiveFor = { id -> LocalNotificationArchive.inDirectory(dir, id) },
+                queueFor = { id -> NotificationOfflineQueue.inDirectory(dir, id) },
+                transport = FakeTransport(),
+                account = { NotificationCaptureCoordinator.CaptureAccount("a", "device-a", "token-a", true) },
+                paymentHook = hook,
+                paymentLifecycleRegistry = InMemoryPaymentNotificationLifecycleRegistry { ids.removeFirst() },
+            )
+            val first = NotificationCaptureInput(
+                sourcePackage = "com.tencent.mm",
+                notificationKey = "95|com.tencent.mm|-243922068|null|9510390",
+                notificationId = -243922068,
+                title = "微信支付",
+                text = "转账待确认",
+                postTime = 1_000L,
+                receivedAtMs = 1_000L,
+            )
+            val update = first.copy(text = "转账状态已经更新", postTime = 12_000L, receivedAtMs = 12_000L)
+
+            coordinator.onNotification(first)
+            coordinator.onNotification(update)
+
+            assertEquals(listOf("payment-event-0001", "payment-event-0001"), hook.uploadEventIds)
+            assertEquals("same lifecycle must leave one pending operation", 1, coordinator.queuedRequests().size)
+            assertTrue(coordinator.queuedRequests().single().operationId.endsWith("payment-event-0001"))
+
+            coordinator.onRemoved(update)
+            coordinator.onNotification(first.copy(postTime = 30_000L, receivedAtMs = 30_000L))
+            assertEquals("removal must open a new lifecycle", "payment-event-0002", hook.uploadEventIds.last())
+            assertEquals(2, coordinator.queuedRequests().size)
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
     @Test fun completePaymentIsUploaded() {
         val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
         try {
