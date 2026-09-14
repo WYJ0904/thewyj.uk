@@ -409,6 +409,10 @@ async function main() {
   })()`);
 
   const openTool = async (id) => {
+    // A canonical /transfer navigation may restore the document before app.js
+    // has supplied the toolbox bridge. `window.WYJTools` exists as soon as the
+    // module evaluates, so object presence alone is not a readiness signal.
+    await waitFor("window.WYJTools?.isReady?.() === true", 8_000, `toolbox bridge before ${id}`);
     // Task 24.1: file transfer has one canonical implementation. Opening either
     // id hands over to /transfer instead of rendering a toolbox workbench.
     if (id === "temporary-file" || id === "file-transfer") {
@@ -1099,6 +1103,15 @@ async function main() {
         "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
         6_000,
         "toolbox file transfer entry",
+      );
+      // Return to the catalog before exercising its canonical file-transfer
+      // card. Calling WYJTools.openTool directly from /transfer is not a user
+      // path and can race a fresh document's toolbox bridge initialization.
+      await send("Page.navigate", { url: `${BASE_URL}/tools` });
+      await waitFor(
+        "location.pathname === '/tools' && !document.querySelector('#toolsPanel')?.classList.contains('hidden') && window.WYJTools?.isReady?.() === true",
+        15_000,
+        "toolbox before canonical catalog entry",
       );
       await openTool("file-transfer");
       await waitFor(

@@ -4,6 +4,7 @@ import android.content.Context
 import java.util.concurrent.Executor
 import uk.thewyj.app.BuildConfig
 import uk.thewyj.app.task21.payment.AndroidPaymentRecognitionHook
+import uk.thewyj.app.task21.payment.AndroidPaymentNotificationLifecycleRegistry
 import uk.thewyj.app.task21.screenshot.ScreenshotMediaObserver
 import uk.thewyj.app.task21.store.NotificationArchiveSinkFactory
 
@@ -24,6 +25,7 @@ object NotificationCapturePipeline {
             account = provider::currentAccount,
             archiveSink = NotificationArchiveSinkFactory.forContext(app),
             paymentHook = AndroidPaymentRecognitionHook.get(app),
+            paymentLifecycleRegistry = AndroidPaymentNotificationLifecycleRegistry(app),
         )
     }
 

@@ -23,6 +23,8 @@ class NotificationCaptureCoordinator(
     private val account: () -> CaptureAccount?,
     private val archiveSink: NotificationArchiveSink? = null,
     private val paymentHook: PaymentRecognitionHook? = null,
+    private val paymentLifecycleRegistry: PaymentNotificationLifecycleRegistry =
+        InMemoryPaymentNotificationLifecycleRegistry(),
 ) {
     /**
      * Task 24.1: the raw event feeds two independent pipelines. The archive
@@ -96,7 +98,6 @@ class NotificationCaptureCoordinator(
         val fingerprint = NotificationFingerprint.fingerprint(
             input.sourcePackage, input.title, input.text, input.bigText, input.subText,
         )
-        val eventId = NotificationFingerprint.stableEventId()
         val parser = if (current.financeEntitled) {
             NotificationParserRegistry.parserFor(input.sourcePackage)
         } else {
@@ -129,6 +130,15 @@ class NotificationCaptureCoordinator(
         // written to the real finance ledger instead of "recognised but never
         // recorded"; anything weaker becomes a reviewable candidate.
         val payment = if (current.financeEntitled) paymentHook?.outcomeFor(input) else null
+        // Android apps may update one StatusBarNotification in place while also
+        // changing postTime. Payment identity follows the notification slot
+        // until onNotificationRemoved, not that mutable timestamp.
+        val eventId = if (payment != null) {
+            paymentLifecycleRegistry.eventId(current.accountId, input)
+        } else {
+            NotificationFingerprint.stableEventId()
+        }
+        val paymentInput = if (payment != null) input.copy(paymentEventId = eventId) else input
         val structured = if (payment != null) {
             val refund = payment.direction == FinanceDirection.REFUND
             val parsedPayment = payment.confirmed && payment.amountMinor > 0 &&
@@ -210,7 +220,7 @@ class NotificationCaptureCoordinator(
         paymentPipeline.consume(
             accountId = current.accountId,
             financeEntitled = current.financeEntitled,
-            input = input,
+            input = paymentInput,
             // Every payment capture reaches the server under [eventId]: either as
             // a structured event (amount + direction known) or as a pending hint
             // (incomplete money shape, published below). The recognition must
@@ -293,8 +303,12 @@ class NotificationCaptureCoordinator(
      */
     fun onRemoved(input: NotificationCaptureInput) {
         val current = account() ?: return
-        if (!current.archiveEntitled) return
-        archiveSink?.markRemoved(current.accountId, input)
+        if (current.financeEntitled) {
+            paymentLifecycleRegistry.markRemoved(current.accountId, input)
+        }
+        if (current.archiveEntitled) {
+            archiveSink?.markRemoved(current.accountId, input)
+        }
     }
 
     /** Drains the current account's offline queue. Retryable failures stay queued. */

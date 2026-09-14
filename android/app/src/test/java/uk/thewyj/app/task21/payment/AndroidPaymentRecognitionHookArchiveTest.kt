@@ -31,6 +31,27 @@ import uk.thewyj.app.task21.store.RoomNotificationStore
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
 class AndroidPaymentRecognitionHookArchiveTest {
+    @Test fun canonicalPaymentEventIdIgnoresMutableNotificationPostTime() {
+        val first = NotificationCaptureInput(
+            sourcePackage = "com.tencent.mm",
+            notificationKey = "same-platform-key",
+            notificationId = 7,
+            postTime = 1_000L,
+            receivedAtMs = 1_000L,
+            paymentEventId = "payment-event-0001",
+        )
+        assertEquals(
+            AndroidPaymentRecognitionHook.sourceEventIdOf(first),
+            AndroidPaymentRecognitionHook.sourceEventIdOf(
+                first.copy(postTime = 12_000L, receivedAtMs = 12_000L),
+            ),
+        )
+        assertEquals(
+            "notification#event#payment-event-0001",
+            AndroidPaymentRecognitionHook.sourceEventIdOf(first),
+        )
+    }
+
     private lateinit var database: NotificationDatabase
     private lateinit var store: RoomNotificationStore
     private val account = "account-a"

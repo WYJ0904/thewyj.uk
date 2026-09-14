@@ -64,9 +64,11 @@ class PaymentVerificationCenter(context: Context) {
 
     /**
      * Which side owns the booking. A recognition that captured an amount was
-     * uploaded and becomes a server candidate (the Finance page confirms it);
-     * only an amount-unknown payment that this device later verified is booked
-     * here. This is the guard that makes a double booking impossible.
+     * uploaded and becomes a server candidate (the Finance page confirms it).
+     * An amount-unknown hint that this device later verifies remains device
+     * owned even though it already has an upload event id: confirmAndBook uses
+     * that same id, so the server creates one transaction and atomically closes
+     * the pending hint instead of asking the user to type the amount again.
      */
     enum class Authority { NEEDS_AMOUNT, DEVICE, SERVER }
 
@@ -342,8 +344,7 @@ class PaymentVerificationCenter(context: Context) {
             PaymentRecognitionState.ENRICHMENT_EXPIRED.name,
             PaymentRecognitionState.VERIFICATION_FAILED.name,
             -> Authority.NEEDS_AMOUNT
-            PaymentRecognitionState.ENRICHMENT_VERIFIED.name ->
-                if (recognition.uploadEventId.isNotBlank()) Authority.SERVER else Authority.DEVICE
+            PaymentRecognitionState.ENRICHMENT_VERIFIED.name -> Authority.DEVICE
             else -> Authority.SERVER
         }
     }

@@ -104,8 +104,12 @@ class PaymentVerificationGateTest {
                 recognition("rec-verified", state = PaymentRecognitionState.ENRICHMENT_VERIFIED.name),
             ),
         )
+        // An amount-unknown hint was already uploaded, then this device learned
+        // the amount through the explicit 90-second OCR ticket. The device owns
+        // the confirmation and reuses evt-1; the server closes that hint while
+        // creating exactly one transaction.
         assertEquals(
-            PaymentVerificationCenter.Authority.SERVER,
+            PaymentVerificationCenter.Authority.DEVICE,
             PaymentVerificationCenter.authorityOf(
                 recognition(
                     "rec-verified-uploaded",
