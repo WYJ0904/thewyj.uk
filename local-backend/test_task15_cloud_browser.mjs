@@ -567,6 +567,10 @@ async function main() {
       assert.equal(confirmIngest.status, 200, JSON.stringify(confirmIngest.data));
       const confirmId = confirmIngest.data.operation_results[0].candidate_id;
       assert.ok(confirmId);
+      const rejectIngest = await ingest("reject", 5432, "b");
+      assert.equal(rejectIngest.status, 200, JSON.stringify(rejectIngest.data));
+      const rejectId = rejectIngest.data.operation_results[0].candidate_id;
+      assert.ok(rejectId);
       await navigate("/finance?task21=" + RUN_ID);
       await waitFor("!document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 15_000, "finance workspace");
       await waitFor(
@@ -574,12 +578,59 @@ async function main() {
         15_000,
         "Task 21 candidate in finance UI",
       );
-      await click('[data-finance-candidate-confirm="' + confirmId + '"]');
+      await waitFor(
+        "Boolean(document.querySelector('[data-finance-candidate=\"" + rejectId + "\"]'))",
+        15_000,
+        "second Task 21 candidate in finance UI",
+      );
+      await evaluate(`(() => {
+        window.__qaPendingEmptyTransitions = 0;
+        window.__qaPendingOtherMissing = 0;
+        const list = document.querySelector('#financeCandidateList');
+        window.__qaPendingObserver = new MutationObserver(() => {
+          if (!list.querySelector('[data-finance-candidate]')) window.__qaPendingEmptyTransitions += 1;
+          if (!list.querySelector('[data-finance-candidate="${rejectId}"]')) window.__qaPendingOtherMissing += 1;
+        });
+        window.__qaPendingObserver.observe(list, { childList: true, subtree: true });
+      })()`);
+
+      // An account/session refresh used to rebuild the entire list, close this
+      // editor and discard the amount/merchant being typed. The form and the
+      // untouched sibling must survive a real server reload.
+      await click('[data-finance-candidate-edit="' + confirmId + '"]');
+      await setFields({
+        ['[data-finance-candidate-editor="' + confirmId + '"] [name="merchant"]']: "编辑保留商户",
+      });
+      await click("#financeCandidatesRefreshBtn");
+      await waitFor(
+        "document.querySelector('#financeCandidatesSection')?.getAttribute('aria-busy') === 'false'",
+        15_000,
+        "candidate refresh settles without blanking the list",
+      );
+      assert.equal(
+        await evaluate("!document.querySelector('[data-finance-candidate-editor=\"" + confirmId + "\"]').classList.contains('hidden')"),
+        true,
+        "candidate editor must stay open across refresh",
+      );
+      assert.equal(
+        await evaluate("document.querySelector('[data-finance-candidate-editor=\"" + confirmId + "\"] [name=merchant]').value"),
+        "编辑保留商户",
+        "candidate editor values must survive refresh",
+      );
+      await click('[data-finance-candidate-save="' + confirmId + '"]');
       await waitFor(
         "!document.querySelector('[data-finance-candidate=\"" + confirmId + "\"]')",
         15_000,
         "confirmed candidate removed from pending UI",
       );
+      assert.equal(
+        await evaluate("Boolean(document.querySelector('[data-finance-candidate=\"" + rejectId + "\"]'))"),
+        true,
+        "confirming candidate A must leave candidate B visible",
+      );
+      assert.equal(await evaluate("window.__qaPendingEmptyTransitions"), 0, "refresh must never paint a false empty list");
+      assert.equal(await evaluate("window.__qaPendingOtherMissing"), 0, "candidate B must never disappear during A refresh/confirm");
+      await evaluate("window.__qaPendingObserver.disconnect(); true");
       const transactions = await request("/api/finance/transactions?limit=100", null, originalSession);
       assert.equal(transactions.status, 200);
       assert.equal(
@@ -587,9 +638,6 @@ async function main() {
         1,
       );
 
-      const rejectIngest = await ingest("reject", 5432, "b");
-      assert.equal(rejectIngest.status, 200, JSON.stringify(rejectIngest.data));
-      const rejectId = rejectIngest.data.operation_results[0].candidate_id;
       await click("#financeCandidatesRefreshBtn");
       await waitFor(
         "Boolean(document.querySelector('[data-finance-candidate=\"" + rejectId + "\"]'))",

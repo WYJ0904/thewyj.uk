@@ -94,6 +94,7 @@ data class NotificationHistoryItem(
     val mediaPath: String = "",
     val mediaMime: String = "",
     val mediaState: String = "none",
+    val mediaOrigin: String = "",
 )
 
 data class NotificationQuery(
@@ -277,6 +278,7 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
                 mediaPath = row.mediaPath,
                 mediaMime = row.mediaMime,
                 mediaState = row.mediaState,
+                mediaOrigin = row.mediaOrigin,
             )
         }
 

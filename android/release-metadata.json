@@ -1,13 +1,13 @@
 {
   "applicationId": "uk.thewyj.app",
-  "versionName": "1.3.7",
-  "versionCode": 20,
+  "versionName": "1.3.8",
+  "versionCode": 21,
   "minimumVersionCode": 1,
   "releaseDate": "2026-09-14",
-  "releaseBuild": "2026-09-14-task24-payment-lifecycle-r3",
-  "releaseNotes": "Task 24 支付生命周期收口版：同一 Android 通知在移除前复用一个支付事件标识，微信更新 postTime 不再产生重复待核实记录；设备 OCR 核实后的金额可沿原事件 ID 确认记账，服务端原子关闭 pending hint，重复确认不会重复入账。",
-  "apkFileName": "thewyj-android-1.3.7.apk",
-  "apkKey": "app/android/thewyj-android-1.3.7.apk",
-  "apkSha256": "db44cb9222c3faf938c891fd1b475481616ad8cf4b9d0d23974e1d77d5ebdab2",
-  "apkSizeBytes": 47611289
+  "releaseBuild": "2026-09-14-task24-notification-finance-r4",
+  "releaseNotes": "Task 24 通知与财务状态收敛版：支付候选与本机通知历史共享稳定事件身份；头像和 largeIcon 不再冒充聊天图片；Finance 待确认刷新保留列表、编辑值和其他候选，离开页面会清理撤销提示。",
+  "apkFileName": "thewyj-android-1.3.8.apk",
+  "apkKey": "app/android/thewyj-android-1.3.8.apk",
+  "apkSha256": "20d8d80e623b32db9a41bd26a5f54d7e772125e58f0bef1eb229237fbea98367",
+  "apkSizeBytes": 47611293
 }

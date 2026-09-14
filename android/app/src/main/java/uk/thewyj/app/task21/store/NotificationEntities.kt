@@ -103,8 +103,9 @@ data class NotificationRevisionEntity(
     val merchant: String,
     val confidence: Int,
     /**
-     * Local picture Android exposed on the notification (screenshot thumbnail,
-     * BigPictureStyle, large icon). Empty when the notification had none.
+     * Local content picture Android exposed on the notification (screenshot,
+     * BigPictureStyle or MessagingStyle image). App/contact avatars are never
+     * stored as message media.
      */
     val mediaPath: String = "",
     val mediaMime: String = "",

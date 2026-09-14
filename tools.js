@@ -7,10 +7,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20260913-task24-device-r3";
-import { randomToolResult } from "./js/tools/random.js?v=20260913-task24-device-r3";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260913-task24-device-r3";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260913-task24-device-r3";
+} from "./js/tools/catalog.js?v=20260914-task24-device-r4";
+import { randomToolResult } from "./js/tools/random.js?v=20260914-task24-device-r4";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260914-task24-device-r4";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260914-task24-device-r4";
 import {
   csvString,
   decodeLocalText,
@@ -19,15 +19,15 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20260913-task24-device-r3";
+} from "./js/tools/file.js?v=20260914-task24-device-r4";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20260913-task24-device-r3";
-import { runToolRenderer } from "./js/tools/runner.js?v=20260913-task24-device-r3";
+} from "./js/tools/image.js?v=20260914-task24-device-r4";
+import { runToolRenderer } from "./js/tools/runner.js?v=20260914-task24-device-r4";
 (() => {
   "use strict";
 

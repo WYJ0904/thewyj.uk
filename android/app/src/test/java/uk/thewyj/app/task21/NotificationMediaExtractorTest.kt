@@ -1,7 +1,9 @@
 package uk.thewyj.app.task21
 
 import android.app.Notification
+import android.app.Person
 import android.graphics.Bitmap
+import android.graphics.drawable.Icon
 import android.os.Bundle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -43,12 +45,30 @@ class NotificationMediaExtractorTest {
         assertEquals(12, media.bitmap!!.width)
     }
 
-    @Test fun largeIconIsArchivedWhenItIsTheOnlyPicture() {
+    @Test fun largeIconAloneIsAvatarChromeNotMessageMedia() {
         val extras = Bundle().apply { putParcelable(Notification.EXTRA_LARGE_ICON, bitmap()) }
         val media = NotificationMediaExtractor.extract(extras)
-        assertEquals("available", media.state)
-        assertEquals(NotificationMediaExtractor.ORIGIN_LARGE_ICON, media.origin)
-        assertNotNull(media.bitmap)
+        assertEquals("none", media.state)
+        assertNull(media.bitmap)
+    }
+
+    @Test fun largeIconBigAloneIsNotMessageMedia() {
+        val extras = Bundle().apply { putParcelable(Notification.EXTRA_LARGE_ICON_BIG, bitmap()) }
+        assertEquals("none", NotificationMediaExtractor.extract(extras).state)
+    }
+
+    @Test fun messagingPersonIconAndConversationAvatarAreNotMessageMedia() {
+        val person = Person.Builder()
+            .setName("联系人")
+            .setIcon(Icon.createWithBitmap(bitmap()))
+            .build()
+        val textMessage = message("嗯嗯").apply { putParcelable("sender_person", person) }
+        val extras = Bundle().apply {
+            putParcelable(Notification.EXTRA_MESSAGING_PERSON, person)
+            putParcelable(Notification.EXTRA_LARGE_ICON, bitmap())
+            putParcelableArrayList(Notification.EXTRA_MESSAGES, messageBundles(textMessage))
+        }
+        assertEquals("none", NotificationMediaExtractor.extract(extras).state)
     }
 
     @Test fun picturePublishedAsAReferenceKeepsTheUri() {
@@ -106,6 +126,18 @@ class NotificationMediaExtractorTest {
         assertEquals("none", NotificationMediaExtractor.extract(extras).state)
     }
 
+    @Test fun explicitImageMessageWithoutReadablePayloadIsUnavailable() {
+        val extras = Bundle().apply {
+            putParcelableArrayList(
+                Notification.EXTRA_MESSAGES,
+                messageBundles(message("[图片]", mime = "image/jpeg")),
+            )
+        }
+        val media = NotificationMediaExtractor.extract(extras)
+        assertEquals("unavailable", media.state)
+        assertEquals(NotificationMediaExtractor.ORIGIN_MESSAGE_IMAGE, media.origin)
+    }
+
     @Test fun menuWithoutMediaIsNoMedia() {
         val extras = Bundle().apply { putCharSequence(Notification.EXTRA_TEXT, "普通通知") }
         val media = NotificationMediaExtractor.extract(extras)
@@ -126,8 +158,27 @@ class NotificationMediaExtractorTest {
         val nullPicture = Bundle().apply { putParcelable(Notification.EXTRA_PICTURE, null) }
         assertEquals("unavailable", NotificationMediaExtractor.extract(nullPicture).state)
 
-        val usable = Bundle().apply { putParcelable(Notification.EXTRA_LARGE_ICON_BIG, bitmap()) }
-        assertEquals("available", NotificationMediaExtractor.extract(usable).state)
+    }
+
+    @Test fun presentationHidesLegacyAvatarWarningsButKeepsExplicitImages() {
+        assertEquals(
+            false,
+            NotificationMediaPresentation.shouldPresent("unavailable", "", "Alice", "嗯嗯", ""),
+        )
+        assertEquals(
+            true,
+            NotificationMediaPresentation.shouldPresent("unavailable", "", "Alice", "[图片]", ""),
+        )
+        assertEquals(
+            true,
+            NotificationMediaPresentation.shouldPresent(
+                "available",
+                NotificationMediaExtractor.ORIGIN_MESSAGE_IMAGE,
+                "Alice",
+                "",
+                "",
+            ),
+        )
     }
 
     /** The background image reference is media too. */

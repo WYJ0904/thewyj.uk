@@ -1,5 +1,5 @@
-export const APP_VERSION = "2026-09-12-task24-1-screenshot-r4";
-export const ASSET_RELEASE = "20260913-task24-device-r3";
+export const APP_VERSION = "2026-09-14-task24-notification-finance-r4";
+export const ASSET_RELEASE = "20260914-task24-device-r4";
 
 export const API_TIMEOUT_MS = 30000;
 export const AI_TIMEOUT_MS = 25000;

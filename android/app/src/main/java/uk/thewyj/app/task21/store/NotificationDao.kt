@@ -164,7 +164,8 @@ interface NotificationDao {
                r.subText AS subText, r.summaryText AS summaryText, r.textLines AS textLines,
                r.parseStatus AS parseStatus, r.direction AS direction, r.amountMinor AS amountMinor,
                r.currency AS currency, r.merchant AS merchant, r.capturedAt AS capturedAt,
-               r.mediaPath AS mediaPath, r.mediaMime AS mediaMime, r.mediaState AS mediaState
+               r.mediaPath AS mediaPath, r.mediaMime AS mediaMime, r.mediaState AS mediaState,
+               r.mediaOrigin AS mediaOrigin
         FROM notification_instances AS i
         JOIN notification_revisions AS r ON r.instanceId = i.instanceId
         WHERE i.accountId = :accountId
@@ -447,6 +448,7 @@ data class NotificationHistoryRow(
     val mediaPath: String = "",
     val mediaMime: String = "",
     val mediaState: String = "none",
+    val mediaOrigin: String = "",
 )
 
 data class NotificationPackageCount(

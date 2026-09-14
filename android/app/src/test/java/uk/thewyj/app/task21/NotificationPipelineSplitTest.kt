@@ -154,4 +154,43 @@ class NotificationPipelineSplitTest {
         )
         assertEquals(1, hook.captures.size)
     }
+
+    @Test fun paymentEvidenceIsArchivedEvenWhenPlatformFlagsLookOngoing() {
+        val sink = RecordingSink()
+        val archive = NotificationArchivePipeline(archiveFor = { _ -> error("sink expected") }, sink = sink)
+        val input = paymentNotification.copy(
+            isOngoing = true,
+            channelId = "payment_progress",
+            text = "支付成功 ¥28.00",
+        )
+        val structured = StructuredNotificationEvent(
+            eventId = "evt-payment-evidence",
+            fingerprint = "f".repeat(64),
+            sourcePackage = input.sourcePackage,
+            eventType = NotificationEventType.TRANSACTION,
+            parserVersion = "test",
+            parseStatus = ParseStatus.CANDIDATE,
+            direction = FinanceDirection.UNKNOWN,
+            amountMinor = 0,
+            currency = "CNY",
+            paymentChannel = "wechat",
+            merchant = "示例商户",
+            counterparty = "",
+            confidence = 950,
+            occurredAtMs = 1_000L,
+            receivedAtMs = 1_000L,
+        )
+
+        val archived = archive.consume(
+            accountId = "account-a",
+            archiveEntitled = true,
+            input = input,
+            structured = structured,
+            identityKey = "key:wechat:1",
+        )
+
+        assertTrue(archived.stored)
+        assertEquals("payment_evidence", archived.reason)
+        assertEquals(1, sink.stored.size)
+    }
 }

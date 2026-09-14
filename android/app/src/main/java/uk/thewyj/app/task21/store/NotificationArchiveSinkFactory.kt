@@ -260,8 +260,8 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
         identityOverride = input.identityOverride,
             mediaFingerprint = input.mediaFingerprint,
             mediaOrigin = when {
-                input.mediaFingerprint.isBlank() -> ""
-                else -> ScreenshotMediaOrigin.NOTIFICATION.wireValue
+                input.screenshotEvent -> ScreenshotMediaOrigin.NOTIFICATION.wireValue
+                else -> input.mediaOrigin
             },
             sourceEventId = parsed?.eventId.orEmpty(),
             coalesceWithPrevious = input.coalesceWithPrevious,

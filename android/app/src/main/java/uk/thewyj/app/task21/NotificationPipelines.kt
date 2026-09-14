@@ -32,7 +32,7 @@ class NotificationArchivePipeline(
         if (!archiveEntitled) {
             return Result(false, NotificationClass.MESSAGE, "no_archive_entitlement")
         }
-        val classification = NotificationClassifier.classify(
+        val classified = NotificationClassifier.classify(
             NotificationClassificationInput(
                 sourcePackage = input.sourcePackage,
                 channelId = input.channelId,
@@ -63,6 +63,24 @@ class NotificationArchivePipeline(
                 occurredAtMs = if (input.postTime > 0) input.postTime else input.receivedAtMs,
             ),
         )
+        // A payment candidate and its notification history are two views of the
+        // same raw notification. Some payment/banking apps mark receipt notices
+        // ongoing or put them on a progress-like channel; the generic archive
+        // classifier may legitimately filter those flags, but it must not make
+        // the evidence disappear while Finance still shows a candidate. An
+        // explicit per-app "off" policy remains authoritative in the sink.
+        val paymentEvidence = structured != null &&
+            structured.eventType in setOf(NotificationEventType.TRANSACTION, NotificationEventType.REFUND) &&
+            structured.parseStatus != ParseStatus.UNPARSED
+        val classification = if (paymentEvidence && !classified.storeInArchive) {
+            NotificationClassification(
+                kind = NotificationClass.MESSAGE,
+                storeInArchive = true,
+                reason = "payment_evidence",
+            )
+        } else {
+            classified
+        }
         if (!classification.storeInArchive) {
             CaptureTrace.stage(
                 CaptureTrace.traceId(input.notificationKey, input.sourcePackage, input.notificationId),

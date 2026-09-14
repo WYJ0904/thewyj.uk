@@ -1,4 +1,4 @@
-import { randomId } from "../core/capabilities.js?v=20260913-task24-device-r3";
+import { randomId } from "../core/capabilities.js?v=20260914-task24-device-r4";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -6,7 +6,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20260913-task24-device-r3";
+} from "../core/perf.js?v=20260914-task24-device-r4";
 const CANDIDATE_PAGE_LIMIT = 100;
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款" });
@@ -104,10 +104,41 @@ export function createFinanceCandidatesController({
       || hasEntitlement("all_features_access", value)));
   }
 
+  function captureEditorState(list) {
+    const form = list?.querySelector(".finance-candidate-editor:not(.hidden)");
+    if (!form) return null;
+    const values = {};
+    for (const control of form.elements || []) {
+      if (control.name) values[control.name] = control.value;
+    }
+    const active = document.activeElement;
+    return {
+      id: String(form.dataset.financeCandidateEditor || ""),
+      values,
+      focusedName: form.contains(active) ? String(active?.name || "") : "",
+    };
+  }
+
+  function restoreEditorState(list, snapshot) {
+    if (!snapshot?.id) return;
+    const form = list.querySelector(`[data-finance-candidate-editor="${CSS.escape(snapshot.id)}"]`);
+    if (!form) return;
+    form.classList.remove("hidden");
+    for (const [name, value] of Object.entries(snapshot.values || {})) {
+      if (form.elements[name]) form.elements[name].value = value;
+    }
+    const editButton = list.querySelector(`[data-finance-candidate-edit="${CSS.escape(snapshot.id)}"]`);
+    if (editButton) editButton.textContent = "收起编辑";
+    if (snapshot.focusedName && form.elements[snapshot.focusedName]) {
+      form.elements[snapshot.focusedName].focus({ preventScroll: true });
+    }
+  }
+
   function render(candidates, message = "") {
     const list = element("financeCandidateList");
     const section = element("financeCandidatesSection");
     if (!list || !section) return;
+    const editorState = captureEditorState(list);
     currentCandidates = [...candidates];
     const banner = message
       ? `<div class="finance-candidate-message"><p>${escapeHtml(message)}</p></div>`
@@ -171,6 +202,7 @@ export function createFinanceCandidatesController({
         </form>
       </article>`;
     }).join("");
+    restoreEditorState(list, editorState);
   }
 
   function occurredLocalValue(value) {
@@ -222,6 +254,7 @@ export function createFinanceCandidatesController({
   async function loadCandidates() {
     const version = listVersion.begin();
     const section = element("financeCandidatesSection");
+    const list = element("financeCandidateList");
     if (!section) return;
     if (!hasAccess()) {
       section.classList.add("hidden");
@@ -233,27 +266,42 @@ export function createFinanceCandidatesController({
     renderedForAccount = currentAccountId;
     section.classList.remove("hidden");
     section.setAttribute("aria-hidden", "false");
-    render([], "");
+    section.setAttribute("aria-busy", "true");
+    // Never blank an already useful list while refreshing. Apart from the
+    // visible have/empty/have flicker, rebuilding here destroyed a user's open
+    // editor and the amount they had just typed.
+    if (list && !list.querySelector("[data-finance-candidate]") && !currentCandidates.length) {
+      list.innerHTML = '<div class="finance-candidate-message"><p>正在读取待确认通知…</p></div>';
+    }
     try {
       const payload = await apiGet(`/api/notification/candidates?status=pending&limit=${CANDIDATE_PAGE_LIMIT}`);
       const candidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
       // Task 24.1 P0-3: the same list also shows the unified pending hints, so a
       // payment the device could not complete is actionable here instead of only
       // inside the app. Identity stays the hint id; the server owns the state.
-      const hints = await loadPendingHints();
+      const loadedHints = await loadPendingHints();
+      // A temporary hint-endpoint failure must not make otherwise actionable
+      // rows disappear. Keep the last known hints until a successful response
+      // replaces them.
+      const hints = loadedHints === null
+        ? currentCandidates.filter((item) => item.hint === true)
+        : loadedHints;
       // A slow earlier refresh must never repaint over a newer list (for example
       // the row the user just confirmed).
       if (!listVersion.isCurrent(version)) return;
       render([...hints, ...candidates]);
+      section.setAttribute("aria-busy", "false");
     } catch (error) {
+      if (!listVersion.isCurrent(version)) return;
       if (error?.code === "task21_notification_not_enabled") {
-        render([], "通知归档功能尚未启用。");
+        render(currentCandidates, "通知归档功能尚未启用。");
       } else if (["authentication_required", "notification_membership_required", "canonical_session_invalid"].includes(error?.code)) {
         section.classList.add("hidden");
         section.setAttribute("aria-hidden", "true");
       } else {
-        render([], `待确认通知暂时无法加载：${error?.message || "请稍后重试"}`);
+        render(currentCandidates, `待确认通知暂时无法加载：${error?.message || "请稍后重试"}`);
       }
+      section.setAttribute("aria-busy", "false");
     }
   }
 
@@ -281,7 +329,7 @@ export function createFinanceCandidatesController({
       })).filter((item) => item.id);
     } catch (_) {
       // A missing hint endpoint must not hide the candidate list.
-      return [];
+      return null;
     }
   }
 
@@ -430,6 +478,9 @@ export function createFinanceCandidatesController({
   }
 
   function hide() {
+    // Invalidate any request started for the page being left. Its late response
+    // must not rebuild state behind the next route.
+    listVersion.begin();
     const section = element("financeCandidatesSection");
     if (section) {
       section.classList.add("hidden");

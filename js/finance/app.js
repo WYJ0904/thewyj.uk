@@ -1,4 +1,4 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20260913-task24-device-r3";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20260914-task24-device-r4";
 const SCHEMA_VERSION = 1;
 const MAX_LOCAL_TRANSACTIONS = 5000;
 const MAX_PENDING_OPERATIONS = 500;
@@ -1042,6 +1042,12 @@ export function createFinanceController({
 
   function hide() {
     for (const id of ["financeTransactionModal", "financeCategoryModal", "financeBudgetModal"]) closeLayer(id);
+    // Undo is intentionally page-local. Keeping it across route changes made a
+    // stale green「账目已删除 · 撤销」bar reappear on unrelated screens and after
+    // returning to Finance long after the delete operation.
+    undoTransactionId = "";
+    renderUndo();
+    setMessage();
   }
 
   function resetAccount() {
