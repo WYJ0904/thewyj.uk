@@ -1,7 +1,7 @@
-import { randomId } from "../core/capabilities.js?v=20260914-task24-device-r4";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260914-task24-device-r4";
-import { getSafeStorage } from "../core/storage.js?v=20260914-task24-device-r4";
-import { withInteractionFeedback } from "../core/perf.js?v=20260914-task24-device-r4";
+import { randomId } from "../core/capabilities.js?v=20260914-task24-device-r5";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260914-task24-device-r5";
+import { getSafeStorage } from "../core/storage.js?v=20260914-task24-device-r5";
+import { withInteractionFeedback } from "../core/perf.js?v=20260914-task24-device-r5";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";

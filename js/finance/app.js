@@ -1,4 +1,4 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20260914-task24-device-r4";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20260914-task24-device-r5";
 const SCHEMA_VERSION = 1;
 const MAX_LOCAL_TRANSACTIONS = 5000;
 const MAX_PENDING_OPERATIONS = 500;
