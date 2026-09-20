@@ -196,7 +196,7 @@ export async function handleTtsRequest(context) {
   if (!language) {
     return apiError(
       "tts_language_unsupported",
-      "当前云端语音只支持英语与日语",
+      "当前云端语音只支持中文、英语与日语",
       400,
       requestId,
       { retryable: false },
@@ -275,7 +275,11 @@ export async function handleTtsRequest(context) {
   for (let attempt = 0; attempt < TTS_GENERATION_ATTEMPTS && !bytes?.length; attempt += 1) {
     attempts = attempt + 1;
     try {
-      const result = await context.env.AI.run(model, { prompt: text, lang: language });
+      const result = await context.env.AI.run(
+        model,
+        { prompt: text, lang: language },
+        { returnRawResponse: true },
+      );
       bytes = await ttsBytesFromResult(result);
       lastError = null;
     } catch (error) {

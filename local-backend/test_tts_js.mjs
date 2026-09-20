@@ -41,8 +41,8 @@ function base64(bytes) {
 function fakeAi({ audio = new Uint8Array([0xff, 0xfb, 0x90, 0x44, 1, 2, 3, 4]), fail = null, capture = [] } = {}) {
   return {
     capture,
-    async run(model, input) {
-      capture.push({ model, input });
+    async run(model, input, options) {
+      capture.push({ model, input, options });
       if (fail) throw fail;
       return { audio: base64(audio) };
     },
@@ -125,6 +125,11 @@ await withDatabase(async (db) => {
   assert.equal(ai.capture.length, 1);
   assert.equal(ai.capture[0].input.lang, "jp");
   assert.equal(
+    ai.capture[0].options?.returnRawResponse,
+    true,
+    "binary TTS must request the raw Workers AI response",
+  );
+  assert.equal(
     ai.capture[0].input.prompt,
     "\u6f22\u5b57\u306e\u8aad\u307f",
     "the server must receive the original kanji text",
@@ -141,13 +146,19 @@ await withDatabase(async (db) => {
   assert.equal(second.headers.get("X-WYJ-TTS-Attempts"), "0", "a cache hit never calls Workers AI");
   assert.equal(second.headers.get("ETag"), first.headers.get("ETag"));
 
-  // 4. English and Japanese share one protocol and one cache namespace.
+  // 4. Chinese, English and Japanese share one protocol and one cache namespace.
   const english = await call(db, {
     query: "?language=en&text=" + encodeURIComponent("dictation practice"),
     env: { WYJ_STORAGE: bucket, AI: ai },
   });
   assert.equal(english.status, 200);
   assert.equal(ai.capture.at(-1).input.lang, "en");
+  const chinese = await call(db, {
+    query: "?language=zh&text=" + encodeURIComponent("中文朗读"),
+    env: { WYJ_STORAGE: bucket, AI: ai },
+  });
+  assert.equal(chinese.status, 200);
+  assert.equal(ai.capture.at(-1).input.lang, "zh");
 
   // 5. POST body form works for the Android/Web clients.
   const posted = await call(db, {
@@ -256,4 +267,4 @@ assert.ok(
   "the WebView must allow the cloud dictation asset to play",
 );
 
-console.log("Cloud TTS checks passed (cache identity, EN/JP synthesis, explicit failures, no device dependency).");
+console.log("Cloud TTS checks passed (cache identity, ZH/EN/JP synthesis, explicit failures, no device dependency).");
