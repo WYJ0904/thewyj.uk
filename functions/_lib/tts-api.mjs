@@ -16,7 +16,9 @@ import { apiError, enforceD1RateLimit, featureFlags, requestIdFor, sha256Hex } f
  */
 
 export const TTS_DEFAULT_MODEL = "@cf/myshell-ai/melotts";
-export const TTS_CACHE_VERSION = "v1";
+// v2 excludes any v1 object that the old raw-response path could have cached
+// after misclassifying a provider JSON error body as MPEG audio.
+export const TTS_CACHE_VERSION = "v2";
 export const TTS_MAX_TEXT_CHARS = 240;
 export const TTS_RATE_LIMIT = 120;
 export const TTS_RATE_WINDOW_SECONDS = 60;
