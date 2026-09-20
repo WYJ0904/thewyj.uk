@@ -444,14 +444,14 @@ jobs:
           java-version: "21"
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install pinned Android platform
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          set +o pipefail
+          yes | sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          sdkmanager_status=${PIPESTATUS[1]}
+          set -o pipefail
+          exit "${sdkmanager_status}"
 
       - name: Run Android unit tests, lint and debug build
         working-directory: android
