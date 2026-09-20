@@ -104,6 +104,7 @@ data class NotificationCaptureInput(
      * one updating notification stays one history entry.
      */
     val coalesceWithPrevious: Boolean = false,
+    val archiveKind: String = "message",
 )
 
 /**
@@ -184,6 +185,10 @@ data class PaymentIngestOutcome(
     val counterparty: String,
     val paymentChannel: String,
     val parserVersion: String,
+    val providerReference: String = "",
+    /** Structured reason codes only; never notification text. */
+    val reasons: List<String> = emptyList(),
+    val missingFields: Set<String> = emptySet(),
 )
 
 interface PaymentRecognitionHook {
@@ -224,7 +229,7 @@ interface PaymentRecognitionHook {
  * raw notification history being enabled.
  */
 interface PaymentNotificationLifecycleRegistry {
-    fun eventId(accountId: String, input: NotificationCaptureInput): String
+    fun eventId(accountId: String, input: NotificationCaptureInput, payment: PaymentIngestOutcome? = null): String
     fun markRemoved(accountId: String, input: NotificationCaptureInput)
 }
 
@@ -232,17 +237,42 @@ interface PaymentNotificationLifecycleRegistry {
 class InMemoryPaymentNotificationLifecycleRegistry(
     private val idFactory: () -> String = NotificationFingerprint::stableEventId,
 ) : PaymentNotificationLifecycleRegistry {
-    private val active = LinkedHashMap<String, String>()
+    private val active = LinkedHashMap<String, Pair<String, String>>()
 
-    override fun eventId(accountId: String, input: NotificationCaptureInput): String = synchronized(active) {
+    override fun eventId(accountId: String, input: NotificationCaptureInput, payment: PaymentIngestOutcome?): String = synchronized(active) {
         val slot = paymentNotificationSlot(input) ?: return@synchronized idFactory()
-        active.getOrPut("$accountId\u001F$slot", idFactory)
+        val key = "$accountId\u001F$slot"
+        val evidence = paymentNotificationEvidence(input, payment)
+        val existing = active[key]
+        if (existing != null && existing.second == evidence) return@synchronized existing.first
+        idFactory().also { active[key] = it to evidence }
     }
 
     override fun markRemoved(accountId: String, input: NotificationCaptureInput) {
         val slot = paymentNotificationSlot(input) ?: return
         synchronized(active) { active.remove("$accountId\u001F$slot") }
     }
+}
+
+/** Opaque local identity evidence; raw notification text is never persisted. */
+fun paymentNotificationEvidence(input: NotificationCaptureInput, payment: PaymentIngestOutcome?): String {
+    val content = NotificationFingerprint.sha256Hex(
+        listOf(input.title, input.text, input.bigText, input.subText, input.textLines.joinToString("\u001E"))
+            .joinToString("\u001F"),
+    )
+    val strongReference = payment?.providerReference.orEmpty().trim()
+    return NotificationFingerprint.sha256Hex(
+        if (strongReference.isNotBlank()) {
+            "${input.sourcePackage}\u001F${payment?.paymentChannel}\u001F$strongReference\u001F${payment?.amountMinor}\u001F${payment?.direction}"
+        } else if (payment != null && payment.amountMinor <= 0 && payment.direction == FinanceDirection.UNKNOWN) {
+            // An amount-less payment notification often changes only status
+            // wording while Android keeps the same slot. Until removal, the
+            // platform lifecycle is the strongest available identity.
+            "${input.sourcePackage}\u001F${payment.paymentChannel}\u001Fincomplete"
+        } else {
+            "${input.sourcePackage}\u001F${payment?.paymentChannel}\u001F$content\u001F${payment?.amountMinor}\u001F${payment?.direction}"
+        },
+    )
 }
 
 /** Raw content is deliberately absent: only the Android notification slot is identity. */

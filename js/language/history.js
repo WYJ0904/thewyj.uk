@@ -1,4 +1,4 @@
-import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20260914-task24-device-r5";
+import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20260920-task24-candidate-r6";
 
 export const MAX_STUDY_RECORDS = 500;
 

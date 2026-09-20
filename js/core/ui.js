@@ -1,4 +1,4 @@
-import { BUSINESS_TIME_ZONE } from "./config.js?v=20260914-task24-device-r5";
+import { BUSINESS_TIME_ZONE } from "./config.js?v=20260920-task24-candidate-r6";
 
 export const $ = (id) => document.getElementById(id);
 

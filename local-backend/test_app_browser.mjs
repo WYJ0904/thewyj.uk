@@ -695,13 +695,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260914-task24-device-r5');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20260914-task24-device-r5');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260914-task24-device-r5');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260914-task24-device-r5');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260914-task24-device-r5');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260914-task24-device-r5');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260914-task24-device-r5');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260920-task24-candidate-r6');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20260920-task24-candidate-r6');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260920-task24-candidate-r6');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260920-task24-candidate-r6');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260920-task24-candidate-r6');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260920-task24-candidate-r6');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260920-task24-candidate-r6');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -717,7 +717,7 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.09.14.5");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-09-14-task24-legacy-media-r5");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-09-20-task24-candidate-history-r6");
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
       const mobilePublic = await evaluate(`({
         viewport: document.documentElement.clientWidth,

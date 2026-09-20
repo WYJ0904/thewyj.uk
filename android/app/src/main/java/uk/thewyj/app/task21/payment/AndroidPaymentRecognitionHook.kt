@@ -90,21 +90,20 @@ class AndroidPaymentRecognitionHook private constructor(
             input.textLines.mapNotNullTo(this) { line -> line.takeIf { it.isNotBlank() } }
         }
         val parseText = if (bodyLines.isEmpty()) input.text else bodyLines.joinToString(" ")
-        val parsed = PaymentParserRegistry.parse(
-            sourcePackage = input.sourcePackage,
-            sourceType = sourceType,
-            title = input.title,
-            text = parseText,
-            bigText = input.bigText,
-            subText = input.subText,
-            capturedAtMs = if (input.postTime > 0) input.postTime else input.receivedAtMs,
-        )
+        val parser = PaymentParserRegistry.parserFor(input.sourcePackage, sourceType)
+        val parsed = parser?.parse(
+            input.title,
+            parseText,
+            input.bigText,
+            input.subText,
+            if (input.postTime > 0) input.postTime else input.receivedAtMs,
+        ) ?: ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("no_parser_for_source"))
         // Auditable evidence without ever logging the message itself.
         Log.i(
             "ThewyjPayment",
             "parse pkg=${input.sourcePackage} titleChars=${input.title.length} " +
                 "textChars=${input.text.length} lineCount=${input.textLines.size} " +
-                "status=${parsed.status} amount=${parsed.amountMinor ?: 0} direction=${parsed.direction ?: "unknown"}",
+                "status=${parsed.status} amountKnown=${parsed.amountMinor != null} directionKnown=${parsed.direction != null}",
         )
         if (parsed.status == PaymentRecognitionStatus.NOT_PAYMENT ||
             parsed.status == PaymentRecognitionStatus.PARSE_ERROR
@@ -121,7 +120,10 @@ class AndroidPaymentRecognitionHook private constructor(
             merchant = parsed.merchant.orEmpty(),
             counterparty = parsed.counterparty.orEmpty(),
             paymentChannel = parsed.paymentChannel.orEmpty(),
-            parserVersion = "payment-" + parsed.paymentChannel.ifBlank { "generic" },
+            parserVersion = parser?.version ?: "payment-generic",
+            providerReference = parsed.providerReference.orEmpty(),
+            reasons = parsed.reasons,
+            missingFields = parsed.missingFields,
         )
     }
 

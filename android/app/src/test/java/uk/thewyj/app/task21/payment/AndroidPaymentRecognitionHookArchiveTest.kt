@@ -5,6 +5,7 @@ import java.io.File
 import java.util.UUID
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -195,5 +196,31 @@ class AndroidPaymentRecognitionHookArchiveTest {
                 outcome == null || outcome.confirmed.not() || outcome.amountMinor <= 0,
             )
         }
+    }
+
+    @Test fun incompletePaymentCarriesAuditableReasonCodesWithoutRawText() {
+        val hook = AndroidPaymentRecognitionHook(
+            RuntimeEnvironment.getApplication(),
+            archiveSink = sink(),
+            recognitionStore = uk.thewyj.app.task21.store.RoomPaymentRecognitionStore(database),
+            testing = true,
+        )
+        val outcome = hook.outcomeFor(
+            uk.thewyj.app.task21.NotificationCaptureInput(
+                sourcePackage = "cmb.pb",
+                sourceType = "notification",
+                notificationKey = "payment-hint",
+                notificationId = 9,
+                postTime = 9_000L,
+                title = "招商银行",
+                text = "交易提醒",
+            ),
+        )
+
+        assertNotNull(outcome)
+        assertEquals("bank-notification-2", outcome!!.parserVersion)
+        assertEquals(listOf("bank_notification_without_amount"), outcome.reasons)
+        assertEquals(setOf("amount", "direction"), outcome.missingFields)
+        assertFalse(outcome.reasons.joinToString().contains("交易提醒"))
     }
 }

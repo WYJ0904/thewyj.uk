@@ -123,8 +123,8 @@ object NotificationClassifier {
         ) {
             return NotificationClassification(NotificationClass.MESSAGE, true, "screenshot_event")
         }
-        val liveSource = input.isOngoing || input.isForegroundService ||
-            isLivePackage(packageName) || channelLooksLive(input.channelId)
+        val liveSource = input.isOngoing || input.isForegroundService || channelLooksLive(input.channelId) ||
+            (isLivePackage(packageName) && Regex("(?i)\\d+(?:\\.\\d+)?\\s*(?:bytes|[kmgt]?b)/s").containsMatchIn(input.text))
         // A notification that carries a *readable* picture is user content, never
         // a live readout: a screenshot/media notification must be archived even
         // when its channel or package looks like a status channel. An unreadable
@@ -135,7 +135,23 @@ object NotificationClassifier {
             return NotificationClassification(NotificationClass.MESSAGE, true, "media_content")
         }
         if (input.isGroupSummary) {
-            return NotificationClassification(NotificationClass.GROUP_SUMMARY, true, "group_summary")
+            val hasReadableSummary = listOf(input.title, input.text, input.bigText, input.subText)
+                .any(String::isNotBlank)
+            // Android creates synthetic, empty auto-group containers for apps
+            // with several real child notifications. Persisting that shell adds
+            // a large blank card but no user information; the child rows remain
+            // intact. A group summary with actual text/media is preserved and
+            // updated in place under its platform identity.
+            return if (hasReadableSummary) {
+                NotificationClassification(
+                    NotificationClass.GROUP_SUMMARY,
+                    true,
+                    "group_summary",
+                    coalesceWithPrevious = true,
+                )
+            } else {
+                NotificationClassification(NotificationClass.GROUP_SUMMARY, false, "empty_group_summary")
+            }
         }
         if (input.isProgressLike()) {
             return NotificationClassification(NotificationClass.PROGRESS, false, "progress")
@@ -153,6 +169,12 @@ object NotificationClassifier {
                     if (input.isOngoing) "ongoing_flag" else "live_source",
                 )
             }
+        }
+        val body = input.bigText.ifBlank { input.text }.trim()
+        if (Regex("^(?:(?:正在|已)(?:重新)?连接(?:到|至)?.*|.*正在运行|连接已断开|已断开连接)$").matches(body) &&
+            uk.thewyj.app.task21.payment.PaymentText.amountMinor(body) == null
+        ) {
+            return NotificationClassification(NotificationClass.LIVE, true, "connection_status")
         }
         // Second layer: some apps never set the flag. The same Android identity
         // repeating the same shape every couple of seconds (recording timer,

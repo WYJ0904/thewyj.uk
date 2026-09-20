@@ -52,7 +52,7 @@ class PaymentHintSyncCrossClientTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8,
             )
             .allowMainThreadQueries()
             .build()

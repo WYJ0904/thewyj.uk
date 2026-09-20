@@ -101,6 +101,8 @@ class NotificationCaptureCoordinatorTest {
         counterparty = "示例商户",
         paymentChannel = "wechat",
         parserVersion = "test",
+        reasons = if (direction == FinanceDirection.UNKNOWN) listOf("wechat_amount_without_direction") else emptyList(),
+        missingFields = if (direction == FinanceDirection.UNKNOWN) setOf("direction") else emptySet(),
     )
 
     /**
@@ -124,6 +126,8 @@ class NotificationCaptureCoordinatorTest {
             // It goes to the unified pending-hint endpoint only: never an event
             // ingest that could book a transaction without a direction.
             assertTrue(queued.first().path.endsWith("/api/notification/hints"))
+            assertTrue(queued.first().body.contains("wechat_amount_without_direction"))
+            assertTrue(queued.first().body.contains("local_incomplete_payment"))
             assertTrue(transport.calls.none { it.contains("/api/notification/ingest") })
             assertEquals(1, coordinator.flush())
             assertTrue(coordinator.flushDetailed().outcomes.isEmpty())

@@ -2,7 +2,7 @@
 
 **状态：`TASK 24 — OPEN / DEVICE ACCEPTANCE PENDING`**（不是 `COMPLETE`）。
 
-当前修复分支：`codex/task24-final-device-closure-r4`（base `main`）；支付生命周期修复 PR：`#75`
+当前修复分支：`codex/task24-candidate-history-r6`（base `main`）；历史支付生命周期修复 PR：`#75`
 Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Task 25 代码）
 
 证据口径：
@@ -10,6 +10,16 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 - **CI / PR Preview 通过 ≠ Production Closure**。当前所有 CI 证据来自 PR Preview（wrangler pages dev + 本地 D1/R2 + headless Chrome）。
 - 每条结论都标注证据来源：`unit` / `integration` / `browser-E2E` / `device-only`。
 - 真机：`Samsung SM-S9360 / Android 16`，正式签名覆盖安装，未卸载、未清除 App 数据。
+
+## 2026-09-20 candidate/history convergence candidate (Android 1.3.10)
+
+- `/finance` 不再把未知方向渲染成“支出”；金额或方向缺失时显示“补全并确认”，商户保持可选，来源应用与商户分别展示。浏览器会在发请求前阻止缺金额/方向的提交。
+- 新增账户隔离的 `/api/notification/pending-summary`：一次只读查询返回 pending hint + candidate 的稳定事件 ID，并按调用方指定事件附带 confirmed/ignored 终态；Android 以集合交集显示两端共有、仅本机、仅云端和无法关联的旧记录。
+- Production 只读 dry-run 当前为 10 条 pending hint + 2 条 pending candidate。三个近时间微信组都只有不同 event ID、相同旧原因码和空金额/方向，证据不足以安全合并；两条支付宝 ¥2.80 也因只有同额/同指纹而保持独立。未修改任何真实候选。
+- 本地通知 schema v8 新增 `archiveKind`。7→8 仅补元数据：持续状态和分组摘要在主列表折叠为一条，完整快照按 50 条继续加载；普通消息、支付证据、媒体和同一 notification key 下的不同交易仍分别可见。无破坏性迁移回退。
+- 支付 lifecycle 使用“Android 槽位 + 哈希化结构证据”；同证据的短时 remove/repost 续用 ID，不同交易号或内容证据创建新 ID。原始通知正文不进入偏好设置、API 或日志。
+- 工具最近使用同步限制为一个在途请求并合并快速切换期间的待发送项；本地 104 工具矩阵完成，Worker 不再因并发 recent 写入退出。
+- 自动证据：Android 全量 unit、v7→v8 migration、Task 21 D1/privacy/finance、Cloud-only 浏览器 14/14；360/390/412px 与 125% 字体候选布局通过。正式发布、Production 更新和 1.3.10 真机原位升级仍待本分支 CI 后执行。
 
 ## 2026-09-14 legacy media compatibility candidate (Android 1.3.9)
 
@@ -29,7 +39,7 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 - 通知历史没有数据库 25 条保留限制：当前首屏是 50 条，显式“加载更多”上限 500，数据库继续执行 7/30/90/365/永久保留与收藏保护。1.3.7 真机已显示 32+ 条，确认旧“保存 25 条”来自旧首屏截断而非数据清空。
 - `financeUndoBar` 过去只在恢复/账户 reset 时清理；1.3.8 在离开财务页时结束该页面局部 undo 生命周期并清空旧成功提示。
 - 自动证据：Android `testDebugUnitTest`、`lintDebug`、`assembleDebug`；Cloud-only 浏览器 14/14；应用浏览器 24/24。新增覆盖头像/Person.icon、真实图片、无 payload 图片、支付候选归档、刷新不假空、编辑值保留、处理 A 不影响 B、跨路由 undo 清理。
-- 1.3.8 已完成 ¥0.01 exactly-once、旧重复 hint 忽略、Android/Finance 收敛与 force-stop/reopen；最终 closure 由 1.3.9 的旧媒体兼容与权限恢复真机回归继续承接。完成前 Task 25 继续阻塞。
+- 1.3.8 已完成 ¥0.01 exactly-once、旧重复 hint 忽略、Android/Finance 收敛与 force-stop/reopen；最终 closure 由 1.3.10 的候选/历史收敛与真机回归继续承接。完成前 Task 25 继续阻塞。
 
 ## 2026-09-14 payment lifecycle closure candidate (Android 1.3.7)
 
@@ -90,19 +100,19 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 - 断言：成功路径点击后**同任务内** pending（≤150ms）→ 结算恢复 → 显示「订单已生成」；失败路径（500）同样 pending ≤150ms → 结算恢复 → 显示服务端错误；两条路径都要求 `recharge-submit` 的 trace 出现 `state-apply`。
 - 证据来源：**browser-E2E**（`local-backend/test_interaction_feedback_browser.mjs`，Cloud-only Preview job）；本地（Windows）8/8 通过（transfer 模块因本机 workerd 限制跳过）。
 
-### Android 正式发布封装（1.3.9 / versionCode 22）
+### Android 正式发布封装（1.3.10 / versionCode 23）
 
 | 项 | 值 |
 | --- | --- |
-| 源码版本 | `android/app/build.gradle.kts` → `versionName 1.3.9` / `versionCode 22`（Task 24 历史图片语义兼容） |
-| APK | `dist/thewyj-android-1.3.9.apk`（本地构建产物，`dist/` 按仓库约定不入库）；目标 R2 key = `app/android/thewyj-android-1.3.9.apk` |
+| 源码版本 | `android/app/build.gradle.kts` → `versionName 1.3.10` / `versionCode 23`（Task 24 候选、历史与计数收敛） |
+| APK | `dist/thewyj-android-1.3.10.apk`（本地构建产物，`dist/` 按仓库约定不入库）；目标 R2 key = `app/android/thewyj-android-1.3.10.apk` |
 | applicationId / minSdk / targetSdk | `uk.thewyj.app` / `30` / `36` |
 | BASE_URL | `https://thewyj.uk` |
-| APK size | `47,611,293` bytes |
-| APK SHA-256 | `a7a34ebfc416976d45d9f062855261f91c7ae64bcc71ee9546ecc7ef65702806` |
+| APK size | `47,627,681` bytes |
+| APK SHA-256 | `e30c055a697fa508ba67fe09b10d95a01f2023d31ed5f9e22db55d9bbeb0d4d2` |
 | 签名证书 SHA-256 | `2B:32:20:29:A9:B8:4D:E6:F2:D1:EF:60:37:78:B5:07:99:97:A3:F8:DF:21:D0:1C:A8:CB:30:C7:6B:4F:7D:03`（`thewyj-release`，与 1.3.1–1.3.4 同一正式证书，非 debug 签名） |
-| releaseBuild | `2026-09-14-task24-legacy-media-r5` |
-| release notes | 可信新图片正常显示；旧来源不明图片仅显示不可用状态，绝不读取可能属于联系人头像的文件；普通文字不显示图片提示。 |
+| releaseBuild | `2026-09-20-task24-candidate-history-r6` |
+| release notes | 候选字段语义、稳定 ID 集合对账、状态历史折叠与同额不同交易保护。 |
 | 一致性 gate | `scripts/check_android_release_consistency.py`（build.gradle ↔ release-metadata.json ↔ wrangler 三段 vars ↔ APK manifest/SHA/size/证书，共 46 checks）+ `scripts/test_check_android_release_consistency.py`（6 项负向自测，证明 gate 真的会拒绝不一致） |
 | CI 接入 | Python job（跨文件一致性）、Android job（构建出的 APK manifest 与 metadata 对齐） |
 

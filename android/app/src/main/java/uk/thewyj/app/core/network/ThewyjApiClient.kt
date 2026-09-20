@@ -38,6 +38,25 @@ data class AppConfig(
     val apkSizeBytes: Long = 0,
 )
 
+data class PendingReviewIdentity(
+    val kind: String,
+    val id: String,
+    val eventId: String,
+    val deviceId: String,
+    val state: String = "pending",
+    val transactionId: String = "",
+    val eventIds: Set<String> = setOf(eventId),
+)
+
+data class PendingReviewSummary(
+    val observedAt: String,
+    val totalCount: Int,
+    val hintCount: Int,
+    val candidateCount: Int,
+    val truncated: Boolean,
+    val records: List<PendingReviewIdentity>,
+)
+
 interface AccountApi {
     suspend fun register(username: String, secret: String): ApiCall<Unit>
     suspend fun login(username: String, secret: String, deviceId: String): ApiCall<DeviceCredentials>
@@ -52,6 +71,15 @@ interface AccountApi {
 
     /** Number of backend payment candidates waiting for review. */
     suspend fun pendingCandidateCount(accessToken: String): ApiCall<Int>
+
+    /** Stable identities for hints + complete candidates in one observation. */
+    suspend fun pendingReviewSummary(accessToken: String, eventIds: List<String> = emptyList()): ApiCall<PendingReviewSummary> =
+        when (val count = pendingCandidateCount(accessToken)) {
+            is ApiCall.Success -> ApiCall.Success(
+                PendingReviewSummary("", count.value, 0, count.value, false, emptyList()),
+            )
+            is ApiCall.Failure -> count
+        }
 }
 
 class ThewyjApiClient(
@@ -146,12 +174,47 @@ class ThewyjApiClient(
     }
 
     override suspend fun pendingCandidateCount(accessToken: String): ApiCall<Int> {
+        return pendingReviewSummary(accessToken).map { it.totalCount }
+    }
+
+    override suspend fun pendingReviewSummary(accessToken: String, eventIds: List<String>): ApiCall<PendingReviewSummary> {
+        val query = eventIds.distinct().take(200).joinToString(",") { java.net.URLEncoder.encode(it, "UTF-8") }
         return request(
-            path = "/api/notification/candidates?status=pending&limit=50",
+            path = "/api/notification/pending-summary" + if (query.isEmpty()) "" else "?event_ids=$query",
             method = "GET",
             accessToken = accessToken,
         ).map { json ->
-            json.optJSONArray("candidates")?.length() ?: 0
+            val rows = json.optJSONArray("records")
+            val records = buildList {
+                if (rows != null) {
+                    for (index in 0 until rows.length()) {
+                        val row = rows.optJSONObject(index) ?: continue
+                        add(
+                            PendingReviewIdentity(
+                                kind = row.optString("kind"),
+                                id = row.optString("id"),
+                                eventId = row.optString("event_id"),
+                                deviceId = row.optString("device_id"),
+                                state = row.optString("state", "pending"),
+                                transactionId = row.optString("transaction_id"),
+                                eventIds = buildSet {
+                                    add(row.optString("event_id"))
+                                    val ids = row.optJSONArray("event_ids")
+                                    if (ids != null) for (index in 0 until ids.length()) add(ids.optString(index))
+                                }.filter(String::isNotBlank).toSet(),
+                            ),
+                        )
+                    }
+                }
+            }
+            PendingReviewSummary(
+                observedAt = json.optString("observed_at"),
+                totalCount = json.optInt("total_count", records.size),
+                hintCount = json.optInt("hint_count"),
+                candidateCount = json.optInt("candidate_count"),
+                truncated = json.optBoolean("truncated", false),
+                records = records,
+            )
         }
     }
 

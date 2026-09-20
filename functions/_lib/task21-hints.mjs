@@ -55,10 +55,59 @@ function cleanEvidence(value) {
   for (const key of Object.keys(value)) {
     if (!allowed.has(key)) throw new Task21Error("识别证据无效", 400, "hint_evidence_invalid");
   }
-  return JSON.stringify(value);
+  const evidence = {};
+  if (value.source_type !== undefined) {
+    const sourceType = String(value.source_type || "").trim().toLowerCase();
+    if (!SOURCE_TYPES.has(sourceType)) throw new Task21Error("识别证据无效", 400, "hint_evidence_invalid");
+    evidence.source_type = sourceType;
+  }
+  if (value.confidence !== undefined) {
+    evidence.confidence = Math.min(1000, nonNegativeInteger(value.confidence, "置信度", 1000));
+  }
+  if (value.reasons !== undefined) {
+    if (!Array.isArray(value.reasons) || value.reasons.length > 12) {
+      throw new Task21Error("识别证据无效", 400, "hint_evidence_invalid");
+    }
+    evidence.reasons = value.reasons.map((reason) => {
+      const code = String(reason || "").trim();
+      if (!/^[a-z0-9][a-z0-9_.:-]{0,79}$/u.test(code)) {
+        throw new Task21Error("识别证据无效", 400, "hint_evidence_invalid");
+      }
+      return code;
+    });
+  }
+  if (value.recognised_fields !== undefined) {
+    const allowedFields = new Set(["amount", "direction", "merchant", "counterparty", "provider_reference", "occurred_at"]);
+    if (!Array.isArray(value.recognised_fields) || value.recognised_fields.length > allowedFields.size) {
+      throw new Task21Error("识别证据无效", 400, "hint_evidence_invalid");
+    }
+    evidence.recognised_fields = [...new Set(value.recognised_fields.map((field) => String(field || "").trim()))];
+    if (evidence.recognised_fields.some((field) => !allowedFields.has(field))) {
+      throw new Task21Error("识别证据无效", 400, "hint_evidence_invalid");
+    }
+  }
+  if (value.parser_version !== undefined) {
+    const parserVersion = String(value.parser_version || "").trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,39}$/u.test(parserVersion)) {
+      throw new Task21Error("识别证据无效", 400, "hint_evidence_invalid");
+    }
+    evidence.parser_version = parserVersion;
+  }
+  if (value.occurred_at_ms !== undefined) {
+    evidence.occurred_at_ms = nonNegativeInteger(value.occurred_at_ms, "发生时间", 10_000_000_000_000);
+  }
+  return JSON.stringify(evidence);
 }
 
 function publicHint(row) {
+  const evidence = (() => {
+    try {
+      const value = JSON.parse(String(row.evidence_summary || "{}"));
+      return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+    } catch (_) {
+      return {};
+    }
+  })();
   return {
     id: String(row.id || ""),
     source_event_id: String(row.source_event_id || ""),
@@ -78,6 +127,9 @@ function publicHint(row) {
     updated_at: String(row.updated_at || ""),
     confirmed_at: String(row.confirmed_at || ""),
     ignored_at: String(row.ignored_at || ""),
+    // This object was allow-list validated on ingest and contains reason codes
+    // and parser metadata only. Raw notification text is never accepted.
+    evidence,
   };
 }
 
@@ -231,6 +283,79 @@ export async function listNotificationHints(db, account, input = {}) {
   return {
     hints: results.map(publicHint),
     pending_count: results.filter((row) => row.state === "pending").length,
+  };
+}
+
+/**
+ * One account-scoped observation of every actionable notification payment.
+ *
+ * The Android notification hub used to compare its local Room count with only
+ * `task21_notification_candidates`, while /finance also renders pending hints.
+ * That produced numbers such as "local 5 / cloud 2" beside a 12-row Finance
+ * list. The response contains identities only: no notification title/body is
+ * accepted by Task 21 and none is returned here.
+ */
+export async function notificationPendingSummary(db, account, input = {}) {
+  requireFinanceRecognitionAccess(account);
+  const requested = String(input.event_ids || "").split(",").filter(Boolean);
+  if (requested.length > 200) throw new Task21Error("一次查询事件过多", 413, "too_many_events");
+  const eventIds = [...new Set(requested.map((id) => cleanId(id, "事件标识")))];
+  // A single SQLite statement observes identities, terminal outcomes and counts
+  // together. Reading this endpoint never repairs or mutates historical data.
+  const result = await db.prepare(`WITH booking AS (
+    SELECT raw.user_id, raw.source_event_id, MIN(link.transaction_id) AS transaction_id
+    FROM task16_finance_raw_events raw
+    JOIN task16_finance_transaction_events link
+      ON link.raw_event_id = raw.id AND link.relation_status = 'active'
+    JOIN task16_finance_transactions txn
+      ON txn.user_id = raw.user_id AND txn.id = link.transaction_id AND txn.status = 'active'
+    WHERE raw.user_id = ?1 AND raw.source_type = 'notification' AND raw.source_event_id != ''
+    GROUP BY raw.user_id, raw.source_event_id
+  ), review AS (
+    SELECT 'hint' AS kind, h.id, h.source_event_id AS event_id, h.device_id,
+      CASE WHEN COALESCE(NULLIF(e.finance_transaction_id, ''), b.transaction_id, '') != '' THEN 'confirmed' ELSE h.state END AS state,
+      COALESCE(NULLIF(e.finance_transaction_id, ''), b.transaction_id, h.finance_entry_id) AS transaction_id,
+      h.updated_at, json_array(h.source_event_id) AS event_ids
+    FROM task21_notification_pending_hints h
+    LEFT JOIN task21_notification_events e ON e.user_id = h.user_id AND e.event_id = h.source_event_id
+    LEFT JOIN booking b ON b.user_id = h.user_id AND b.source_event_id = h.source_event_id
+    WHERE h.user_id = ?1 AND NOT EXISTS (
+      SELECT 1 FROM task21_notification_candidates c WHERE c.user_id = h.user_id AND c.event_id = h.source_event_id
+    )
+    UNION ALL
+    SELECT 'candidate', c.id, c.event_id, COALESCE(e.device_id, ''),
+      CASE WHEN c.finance_transaction_id != '' THEN 'confirmed' ELSE c.status END,
+      c.finance_transaction_id, c.updated_at,
+      COALESCE((SELECT json_group_array(ev.event_id) FROM task21_notification_events ev
+        WHERE ev.user_id = c.user_id AND ev.candidate_id = c.id), json_array(c.event_id))
+    FROM task21_notification_candidates c
+    LEFT JOIN task21_notification_events e ON e.user_id = c.user_id AND e.event_id = c.event_id
+    WHERE c.user_id = ?1
+  ), visible AS (
+    SELECT * FROM review WHERE state = 'pending' OR EXISTS (
+      SELECT 1 FROM json_each(review.event_ids) ids WHERE ids.value IN (SELECT value FROM json_each(?2))
+    )
+  ) SELECT *,
+    SUM(CASE WHEN state = 'pending' AND kind = 'hint' THEN 1 ELSE 0 END) OVER () AS hint_count,
+    SUM(CASE WHEN state = 'pending' AND kind = 'candidate' THEN 1 ELSE 0 END) OVER () AS candidate_count,
+    COUNT(*) OVER () AS record_count
+  FROM visible ORDER BY updated_at DESC, id DESC LIMIT 1000`).bind(account.id, JSON.stringify(eventIds)).all();
+  const rows = result?.results || [];
+  const records = rows.map((row) => ({
+    kind: String(row.kind), id: String(row.id), event_id: String(row.event_id),
+    event_ids: [...new Set([String(row.event_id), ...JSON.parse(row.event_ids || "[]")])],
+    device_id: String(row.device_id), state: String(row.state),
+    transaction_id: String(row.transaction_id || ""), updated_at: String(row.updated_at),
+  }));
+  const hintCount = Number(rows[0]?.hint_count || 0);
+  const candidateCount = Number(rows[0]?.candidate_count || 0);
+  return {
+    observed_at: isoNow(),
+    total_count: hintCount + candidateCount,
+    hint_count: hintCount,
+    candidate_count: candidateCount,
+    truncated: Number(rows[0]?.record_count || 0) > rows.length,
+    records,
   };
 }
 

@@ -126,6 +126,20 @@ try {
   });
   assert.equal(archiveOnly.response.status, 403);
 
+  const rawEvidence = await request(db, "/api/notification/hints", {
+    method: "POST",
+    token: USER.token,
+    body: hintBody("evt-hints-raw-rejected", {
+      evidence: {
+        source_type: "notification",
+        reasons: ["raw notification sentence"],
+        recognised_fields: ["text"],
+      },
+    }),
+  });
+  assert.equal(rawEvidence.response.status, 400);
+  assert.equal(rawEvidence.payload.code, "hint_evidence_invalid", "free-form notification text must fail closed");
+
   // 2. Amount unknown -> a pending hint, and no finance entry.
   const amountUnknown = await request(db, "/api/notification/hints", {
     method: "POST",
@@ -149,6 +163,58 @@ try {
   assert.equal(directionUnknown.response.status, 200, JSON.stringify(directionUnknown.payload));
   assert.equal(directionUnknown.payload.hints[0].amount_minor, 2800);
   assert.equal(directionUnknown.payload.hints[0].direction, null);
+
+  // 3b. The account-scoped summary observes hints and complete candidates in
+  // one response. This is the native banner's source of truth; it must not
+  // report only candidates while /finance also renders hints.
+  const candidateEventId = "evt-hints-complete-candidate";
+  const candidateIngest = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USER.token,
+    body: {
+      schema_version: "1",
+      device_id: "device-hints-000001",
+      operations: [{
+        operation_id: candidateEventId,
+        type: "event.ingest",
+        payload: {
+          event_id: candidateEventId,
+          fingerprint: "cd".repeat(32),
+          source_package: "com.eg.android.AlipayGphone",
+          source_type: "notification",
+          event_type: "transaction",
+          parser_version: "alipay-2",
+          parse_status: "candidate",
+          direction: "expense",
+          amount_minor: 280,
+          currency: "CNY",
+          payment_channel: "alipay",
+          merchant: "",
+          counterparty: "",
+          confidence: 650,
+          occurred_at_ms: 1_789_350_000_000,
+          received_at_ms: 1_789_350_000_000,
+        },
+      }],
+    },
+  });
+  assert.equal(candidateIngest.response.status, 200, JSON.stringify(candidateIngest.payload));
+  assert.match(candidateIngest.payload.operation_results[0].candidate_id, /^cand:/);
+  const summary = await request(db, "/api/notification/pending-summary", { token: USER.token });
+  assert.equal(summary.response.status, 200, JSON.stringify(summary.payload));
+  assert.equal(summary.payload.total_count, 3);
+  assert.equal(summary.payload.hint_count, 2);
+  assert.equal(summary.payload.candidate_count, 1);
+  assert.equal(summary.payload.records.length, 3);
+  assert.deepEqual(
+    new Set(summary.payload.records.map((record) => record.event_id)),
+    new Set(["evt-hints-amount-unknown", "evt-hints-direction-unknown", candidateEventId]),
+  );
+  assert.equal(
+    Object.values(summary.payload.records[0]).some((value) => String(value).includes("notification body")),
+    false,
+    "the pending summary must expose identities only",
+  );
 
   // 4. Duplicate ingest cannot create a second hint.
   const duplicate = await request(db, "/api/notification/hints", {
@@ -186,17 +252,31 @@ try {
     body: {
       hint_id: hintId,
       device_id: "device-hints-000001",
-      edits: { amount_minor: 10000, direction: "expense", merchant: "示例商户" },
+      edits: { amount_minor: 10000, direction: "expense" },
     },
   });
   assert.equal(confirmed.response.status, 200, JSON.stringify(confirmed.payload));
   assert.match(confirmed.payload.transaction_id, /^txn:/);
   assert.equal(confirmed.payload.hint.state, "confirmed");
   assert.equal(confirmed.payload.hint.finance_entry_id, confirmed.payload.transaction_id);
+  assert.equal(confirmed.payload.hint.merchant, "", "merchant is optional and must not block confirmation");
   const ledger = await db.prepare(
     "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 10000 AND status = 'active'",
   ).bind(USER.id).first();
   assert.equal(Number(ledger.count), 1);
+
+  const reconciledSummary = await request(
+    db,
+    "/api/notification/pending-summary?event_ids=evt-hints-amount-unknown",
+    { token: USER.token },
+  );
+  assert.equal(reconciledSummary.response.status, 200, JSON.stringify(reconciledSummary.payload));
+  assert.equal(reconciledSummary.payload.total_count, 2, "terminal requested ids do not inflate the pending total");
+  const terminalIdentity = reconciledSummary.payload.records.find(
+    (item) => item.event_id === "evt-hints-amount-unknown",
+  );
+  assert.equal(terminalIdentity.state, "confirmed");
+  assert.equal(terminalIdentity.transaction_id, confirmed.payload.transaction_id);
 
   // 8. Duplicate confirm cannot create a second entry.
   const reconfirm = await request(db, "/api/notification/hints/confirm", {
