@@ -109,7 +109,19 @@ function bytesFromAudioValue(value) {
 /** Normalises every documented Workers AI TTS answer shape into raw bytes. */
 export async function ttsBytesFromResult(result) {
   if (!result) return null;
-  if (result instanceof Response) return new Uint8Array(await result.arrayBuffer());
+  if (result instanceof Response) {
+    if (!result.ok) {
+      const error = new Error("Workers AI TTS request failed");
+      error.status = result.status;
+      throw error;
+    }
+    const contentType = String(result.headers.get("content-type") || "").toLowerCase();
+    if (contentType.includes("application/json")) {
+      const payload = await result.json().catch(() => null);
+      return bytesFromAudioValue(payload?.audio ?? payload?.audio_base64 ?? payload?.data);
+    }
+    return new Uint8Array(await result.arrayBuffer());
+  }
   const direct = bytesFromAudioValue(result);
   if (direct) return direct;
   if (typeof result.arrayBuffer === "function") return new Uint8Array(await result.arrayBuffer());

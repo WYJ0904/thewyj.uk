@@ -238,10 +238,62 @@ await withDatabase(async (db) => {
   assert.deepEqual(await ttsBytesFromResult({ audio: base64(bytes) }), bytes);
   assert.deepEqual(await ttsBytesFromResult(bytes), bytes);
   assert.deepEqual(await ttsBytesFromResult({ audio: base64(bytes) }), bytes);
+  assert.deepEqual(
+    await ttsBytesFromResult(new Response(JSON.stringify({ audio: base64(bytes) }), {
+      headers: { "Content-Type": "application/json" },
+    })),
+    bytes,
+  );
+  await assert.rejects(
+    ttsBytesFromResult(new Response(JSON.stringify({ name: "AiError" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    })),
+    (error) => error.status === 500,
+    "a raw Workers AI error response must never be served as audio",
+  );
   assert.equal(await ttsBytesFromResult({ nope: true }), null);
+
+  // 11. Raw provider errors follow the same bounded retry and quota paths as
+  // thrown binding errors. Their JSON error bodies are never cached as audio.
+  let rawFailureAttempts = 0;
+  const rawFailure = await call(db, {
+    query: "?language=en&text=raw-provider-error",
+    env: {
+      WYJ_STORAGE: fakeBucket(),
+      TTS_RETRY_BASE_MS: "0",
+      AI: {
+        async run() {
+          rawFailureAttempts += 1;
+          return new Response(JSON.stringify({ name: "AiError" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
+        },
+      },
+    },
+  });
+  await expectError(rawFailure, 503, "tts_generation_failed");
+  assert.equal(rawFailureAttempts, 3);
+
+  let rawQuotaAttempts = 0;
+  const rawQuota = await call(db, {
+    query: "?language=en&text=raw-provider-quota",
+    env: {
+      WYJ_STORAGE: fakeBucket(),
+      AI: {
+        async run() {
+          rawQuotaAttempts += 1;
+          return new Response("quota", { status: 429 });
+        },
+      },
+    },
+  });
+  await expectError(rawQuota, 429, "tts_quota_exhausted");
+  assert.equal(rawQuotaAttempts, 1);
 });
 
-// 11. The web and Android clients must not treat device voices as the normal path.
+// 12. The web and Android clients must not treat device voices as the normal path.
 const webSpeech = await import("node:fs/promises").then((fs) =>
   fs.readFile(path.join(ROOT, "js", "language", "speech.js"), "utf8"),
 );
