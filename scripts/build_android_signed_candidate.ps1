@@ -24,6 +24,25 @@ function Resolve-KeyTool {
     throw "keytool not found. Install Android Studio/JDK first."
 }
 
+function Resolve-AndroidSdk {
+    $candidates = @(
+        $env:ANDROID_SDK_ROOT,
+        $env:ANDROID_HOME,
+        (Join-Path $env:LOCALAPPDATA "Android\Sdk"),
+        (Join-Path $env:USERPROFILE "AppData\Local\Android\Sdk")
+    ) | Where-Object { $_ } | Select-Object -Unique
+
+    foreach ($candidate in $candidates) {
+        if (-not (Test-Path $candidate)) { continue }
+        $platforms = Join-Path $candidate "platforms"
+        $buildTools = Join-Path $candidate "build-tools"
+        if ((Test-Path $platforms) -and (Test-Path $buildTools)) {
+            return (Resolve-Path $candidate).Path
+        }
+    }
+    throw "Android SDK not found. Open Android Studio once and install Android SDK Platform 36 / Build Tools 36, or set ANDROID_SDK_ROOT."
+}
+
 function Resolve-ApkSigner {
     $roots = @($env:ANDROID_SDK_ROOT, $env:ANDROID_HOME) | Where-Object { $_ -and (Test-Path $_) }
     foreach ($root in $roots) {
@@ -72,8 +91,11 @@ if ($PromptKeyPassword) {
     if ([string]::IsNullOrWhiteSpace($KeyPassword)) { throw "Private-key password is empty." }
 }
 
+$AndroidSdk = Resolve-AndroidSdk
 $OriginalGradle = [IO.File]::ReadAllText($GradleFile)
 $oldEnv = @{
+    ANDROID_HOME = $env:ANDROID_HOME
+    ANDROID_SDK_ROOT = $env:ANDROID_SDK_ROOT
     THEWYJ_ANDROID_KEYSTORE_FILE = $env:THEWYJ_ANDROID_KEYSTORE_FILE
     THEWYJ_ANDROID_KEYSTORE_PASSWORD = $env:THEWYJ_ANDROID_KEYSTORE_PASSWORD
     THEWYJ_ANDROID_KEY_ALIAS = $env:THEWYJ_ANDROID_KEY_ALIAS
@@ -86,19 +108,19 @@ try {
     $patched = [regex]::Replace($patched, 'versionName\s*=\s*"[^"]+"', "versionName = $quotedVersion", 1)
     [IO.File]::WriteAllText($GradleFile, $patched, [Text.UTF8Encoding]::new($false))
 
+    $env:ANDROID_HOME = $AndroidSdk
+    $env:ANDROID_SDK_ROOT = $AndroidSdk
     $env:THEWYJ_ANDROID_KEYSTORE_FILE = (Resolve-Path $KeystorePath).Path
     $env:THEWYJ_ANDROID_KEYSTORE_PASSWORD = $StorePassword
     $env:THEWYJ_ANDROID_KEY_ALIAS = $Alias
     $env:THEWYJ_ANDROID_KEY_PASSWORD = $KeyPassword
+    Write-Host "Android SDK: $AndroidSdk"
 
     Push-Location (Join-Path $RepoRoot "android")
     try {
         & $GradleWrapper clean assembleRelease --no-daemon --stacktrace "-PTHEWYJ_BASE_URL=$BaseUrl"
         if ($LASTEXITCODE -ne 0) {
-            if (-not $PromptKeyPassword) {
-                throw "Release build failed. If the private-key password differs from the keystore password, rerun with -PromptKeyPassword."
-            }
-            throw "Release build failed."
+            throw "Release build failed. Read the Gradle error above; the candidate was not published or installed."
         }
     } finally {
         Pop-Location
@@ -146,6 +168,8 @@ try {
     Write-Host "Base: $BaseUrl"
 } finally {
     [IO.File]::WriteAllText($GradleFile, $OriginalGradle, [Text.UTF8Encoding]::new($false))
+    $env:ANDROID_HOME = $oldEnv.ANDROID_HOME
+    $env:ANDROID_SDK_ROOT = $oldEnv.ANDROID_SDK_ROOT
     $env:THEWYJ_ANDROID_KEYSTORE_FILE = $oldEnv.THEWYJ_ANDROID_KEYSTORE_FILE
     $env:THEWYJ_ANDROID_KEYSTORE_PASSWORD = $oldEnv.THEWYJ_ANDROID_KEYSTORE_PASSWORD
     $env:THEWYJ_ANDROID_KEY_ALIAS = $oldEnv.THEWYJ_ANDROID_KEY_ALIAS
