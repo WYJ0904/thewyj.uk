@@ -79,6 +79,7 @@ import uk.thewyj.app.core.session.ConnectionMode
 import uk.thewyj.app.core.permission.PermissionCenter
 import uk.thewyj.app.core.permission.PermissionDecisions
 import uk.thewyj.app.task21.payment.PaymentAccessibilityStatus
+import uk.thewyj.app.task21.payment.SourceAppLauncher
 import uk.thewyj.app.core.session.SessionState
 import uk.thewyj.app.core.update.UpdateUiState
 import uk.thewyj.app.core.web.ThewyjWebView
@@ -403,11 +404,7 @@ private fun AuthenticatedShell(
                         onOpenRoute("/finance")
                     },
                     onOpenApp = { sourcePackage ->
-                        runCatching {
-                            context.packageManager.getLaunchIntentForPackage(sourcePackage)
-                                ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                                ?.let { context.startActivity(it) }
-                        }
+                        SourceAppLauncher.launch(context, sourcePackage)
                     },
                 )
             }
