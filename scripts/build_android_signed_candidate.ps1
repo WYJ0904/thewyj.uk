@@ -1,6 +1,6 @@
 param(
-    [string]$VersionName = "1.3.12",
-    [int]$VersionCode = 25,
+    [string]$VersionName = "1.3.13",
+    [int]$VersionCode = 26,
     [string]$BaseUrl = "https://thewyj.uk",
     [string]$KeystorePath = "$env:USERPROFILE\.thewyj\thewyj-android-release.jks",
     [string]$CredentialPath = "$env:USERPROFILE\.thewyj\android-release-credentials.txt",
