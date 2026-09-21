@@ -1,0 +1,140 @@
+name: Android signed candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: Candidate versionName
+        required: true
+        default: "1.3.11"
+      version_code:
+        description: Candidate versionCode
+        required: true
+        default: "24"
+      base_url:
+        description: Backend/site origin embedded in the candidate
+        required: true
+        default: "https://codex-task24-candidate-histo.thewyj-uk.pages.dev"
+
+permissions:
+  contents: read
+
+jobs:
+  build-signed-candidate:
+    name: Build signed in-place candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      KEYSTORE_B64: ${{ secrets.THEWYJ_ANDROID_KEYSTORE_B64 }}
+      THEWYJ_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.THEWYJ_ANDROID_KEYSTORE_PASSWORD }}
+      THEWYJ_ANDROID_KEY_ALIAS: ${{ secrets.THEWYJ_ANDROID_KEY_ALIAS }}
+      THEWYJ_ANDROID_KEY_PASSWORD: ${{ secrets.THEWYJ_ANDROID_KEY_PASSWORD }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Install Android platform
+        run: |
+          set -euo pipefail
+          android_sdk="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          sdkmanager="$(find "${android_sdk}/cmdline-tools" -type f -path '*/bin/sdkmanager' -print | sort -V | tail -n 1)"
+          test -x "${sdkmanager}"
+          echo "ANDROID_HOME=${android_sdk}" >> "${GITHUB_ENV}"
+          echo "ANDROID_SDK_ROOT=${android_sdk}" >> "${GITHUB_ENV}"
+          set +o pipefail
+          yes | "${sdkmanager}" "platforms;android-36" "build-tools;36.0.0"
+          status=${PIPESTATUS[1]}
+          set -o pipefail
+          exit "${status}"
+
+      - name: Validate signing secrets
+        run: |
+          set -euo pipefail
+          test -n "${KEYSTORE_B64}" || { echo "::error::Missing THEWYJ_ANDROID_KEYSTORE_B64"; exit 1; }
+          test -n "${THEWYJ_ANDROID_KEYSTORE_PASSWORD}" || { echo "::error::Missing THEWYJ_ANDROID_KEYSTORE_PASSWORD"; exit 1; }
+          test -n "${THEWYJ_ANDROID_KEY_ALIAS}" || { echo "::error::Missing THEWYJ_ANDROID_KEY_ALIAS"; exit 1; }
+          test -n "${THEWYJ_ANDROID_KEY_PASSWORD}" || { echo "::error::Missing THEWYJ_ANDROID_KEY_PASSWORD"; exit 1; }
+
+      - name: Prepare release version and keystore
+        env:
+          CANDIDATE_VERSION_NAME: ${{ inputs.version_name }}
+          CANDIDATE_VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib, re
+          path = pathlib.Path("android/app/build.gradle.kts")
+          text = path.read_text(encoding="utf-8")
+          code = os.environ["CANDIDATE_VERSION_CODE"]
+          name = os.environ["CANDIDATE_VERSION_NAME"]
+          if not code.isdigit() or int(code) < 1:
+              raise SystemExit("invalid version_code")
+          if not re.fullmatch(r"[0-9]+(?:\.[0-9]+){2,3}", name):
+              raise SystemExit("invalid version_name")
+          text, code_count = re.subn(r"versionCode\s*=\s*\d+", f"versionCode = {code}", text, count=1)
+          text, name_count = re.subn(r'versionName\s*=\s*"[^"]+"', f'versionName = "{name}"', text, count=1)
+          if code_count != 1 or name_count != 1:
+              raise SystemExit("could not patch Android version")
+          path.write_text(text, encoding="utf-8")
+          PY
+          keystore="${RUNNER_TEMP}/thewyj-release.jks"
+          printf '%s' "${KEYSTORE_B64}" | base64 --decode > "${keystore}"
+          chmod 600 "${keystore}"
+          echo "THEWYJ_ANDROID_KEYSTORE_FILE=${keystore}" >> "${GITHUB_ENV}"
+
+      - name: Build signed release candidate
+        working-directory: android
+        env:
+          CANDIDATE_BASE_URL: ${{ inputs.base_url }}
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew clean assembleRelease --no-daemon --stacktrace -PTHEWYJ_BASE_URL="${CANDIDATE_BASE_URL}"
+
+      - name: Verify APK package and signature
+        env:
+          CANDIDATE_VERSION_NAME: ${{ inputs.version_name }}
+          CANDIDATE_VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          set -euo pipefail
+          apk="android/app/build/outputs/apk/release/app-release.apk"
+          test -f "${apk}"
+          aapt2="$(find "${ANDROID_SDK_ROOT}/build-tools" -type f -name aapt2 -print | sort -V | tail -n 1)"
+          apksigner="$(find "${ANDROID_SDK_ROOT}/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+          badging="$("${aapt2}" dump badging "${apk}" | head -n 1)"
+          printf '%s\n' "${badging}"
+          printf '%s\n' "${badging}" | grep -F "name='uk.thewyj.app'"
+          printf '%s\n' "${badging}" | grep -F "versionCode='${CANDIDATE_VERSION_CODE}'"
+          printf '%s\n' "${badging}" | grep -F "versionName='${CANDIDATE_VERSION_NAME}'"
+          "${apksigner}" verify --verbose --print-certs "${apk}"
+          sha256sum "${apk}"
+          stat -c '%s bytes' "${apk}"
+
+      - name: Stage candidate artifact
+        env:
+          CANDIDATE_VERSION_NAME: ${{ inputs.version_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          cp android/app/build/outputs/apk/release/app-release.apk "artifacts/thewyj-android-${CANDIDATE_VERSION_NAME}-task24-preview.apk"
+          sha256sum "artifacts/thewyj-android-${CANDIDATE_VERSION_NAME}-task24-preview.apk" > artifacts/SHA256SUMS.txt
+
+      - name: Upload signed candidate
+        uses: actions/upload-artifact@v7
+        with:
+          name: thewyj-android-${{ inputs.version_name }}-task24-preview
+          path: |
+            artifacts/thewyj-android-${{ inputs.version_name }}-task24-preview.apk
+            artifacts/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 7
