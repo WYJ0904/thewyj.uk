@@ -253,20 +253,28 @@ export async function upsertNotificationHints(db, account, input) {
           (RECOGNITION_STATUS_RANK[previousStatus] ?? 0)
           ? recognitionStatus
           : previousStatus;
-        await run(db, `UPDATE task21_notification_pending_hints
-          SET amount_minor = COALESCE(amount_minor, ?3),
-              direction = COALESCE(direction, ?4),
-              merchant = CASE WHEN merchant = '' AND ?5 != '' THEN ?5 ELSE merchant END,
-              confidence = MAX(confidence, ?6),
-              recognition_status = ?7,
-              evidence_summary = CASE WHEN ?6 >= confidence THEN ?8 ELSE evidence_summary END,
-              updated_at = ?9
-          WHERE user_id = ?1 AND id = ?2 AND state = 'pending'`, [
-          account.id, existing.id, amountMinor, direction, merchant, confidence,
-          mergedStatus, evidence, now,
-        ]);
+        const improved =
+          (existing.amount_minor === null && amountMinor !== null) ||
+          (existing.direction === null && direction !== null) ||
+          (!String(existing.merchant || "") && Boolean(merchant)) ||
+          confidence > Number(existing.confidence || 0) ||
+          mergedStatus !== previousStatus;
+        if (improved) {
+          await run(db, `UPDATE task21_notification_pending_hints
+            SET amount_minor = COALESCE(amount_minor, ?3),
+                direction = COALESCE(direction, ?4),
+                merchant = CASE WHEN merchant = '' AND ?5 != '' THEN ?5 ELSE merchant END,
+                confidence = MAX(confidence, ?6),
+                recognition_status = ?7,
+                evidence_summary = CASE WHEN ?6 >= confidence THEN ?8 ELSE evidence_summary END,
+                updated_at = ?9
+            WHERE user_id = ?1 AND id = ?2 AND state = 'pending'`, [
+            account.id, existing.id, amountMinor, direction, merchant, confidence,
+            mergedStatus, evidence, now,
+          ]);
+        }
         const updated = await hintById(db, account, existing.id);
-        results.push({ hint: publicHint(updated), duplicate: true, updated: true });
+        results.push({ hint: publicHint(updated), duplicate: true, updated: improved });
       } else {
         results.push({ hint: publicHint(existing), duplicate: true, updated: false });
       }
