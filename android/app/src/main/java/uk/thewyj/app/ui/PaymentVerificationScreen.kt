@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import kotlinx.coroutines.launch
 import uk.thewyj.app.core.design.ThewyjCard
 import uk.thewyj.app.core.design.ThewyjPrimaryButton
@@ -57,7 +58,12 @@ fun PaymentVerificationScreen(
 ) {
     val scope = rememberCoroutineScope()
     var tick by remember { mutableStateOf(0) }
-    LaunchedEffect(Unit) { state.refresh() }
+    var resumeEpoch by remember { mutableIntStateOf(0) }
+    LifecycleResumeEffect(Unit) {
+        resumeEpoch += 1
+        onPauseOrDispose { }
+    }
+    LaunchedEffect(resumeEpoch) { state.refresh() }
     // #4: bounded catch-up for records the server still owns (Web confirm → this
     // screen). It restarts when the set of pending records changes and stops by
     // itself after PendingReconciliationPolicy.windowMs.
