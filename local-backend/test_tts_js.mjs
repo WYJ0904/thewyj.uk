@@ -5,6 +5,7 @@ import { Miniflare } from "miniflare";
 
 import {
   TTS_CACHE_VERSION,
+  TTS_FALLBACK_MODEL,
   handleTtsRequest,
   normalizeTtsLanguage,
   normalizeTtsText,
@@ -187,7 +188,36 @@ await withDatabase(async (db) => {
   assert.equal(transientAttempts, 3, "the bounded ladder reaches the successful third attempt");
   assert.equal(recovered.headers.get("X-WYJ-TTS-Attempts"), "3");
 
-  // 7. Validation errors are explicit.
+  // 7. A persistent MeloTTS provider failure falls through to the bounded
+  // Cloudflare Unified Catalog TTS fallback without changing the client API.
+  const fallbackCalls = [];
+  const wavBytes = new Uint8Array([0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4]);
+  const fallbackAi = {
+    async run(model, input, options) {
+      fallbackCalls.push({ model, input, options });
+      if (model === "@cf/myshell-ai/melotts") {
+        throw Object.assign(new Error("melotts provider failed"), { status: 500 });
+      }
+      assert.equal(model, TTS_FALLBACK_MODEL);
+      return { audio: `data:audio/wav;base64,${base64(wavBytes)}` };
+    },
+  };
+  const fallback = await call(db, {
+    query: "?language=ja&text=" + encodeURIComponent("日本語の読み上げ"),
+    env: { WYJ_STORAGE: fakeBucket(), AI: fallbackAi, TTS_RETRY_BASE_MS: "0" },
+  });
+  assert.equal(fallback.status, 200);
+  assert.equal(fallback.headers.get("Content-Type"), "audio/wav");
+  assert.equal(fallback.headers.get("X-WYJ-TTS-Model"), TTS_FALLBACK_MODEL);
+  assert.equal(fallback.headers.get("X-WYJ-TTS-Attempts"), "4");
+  assert.deepEqual(
+    fallbackCalls.map((entry) => entry.model),
+    ["@cf/myshell-ai/melotts", "@cf/myshell-ai/melotts", "@cf/myshell-ai/melotts", TTS_FALLBACK_MODEL],
+  );
+  assert.equal(fallbackCalls.at(-1).input.text, "日本語の読み上げ");
+  assert.equal(fallbackCalls.at(-1).options, undefined);
+
+  // 8. Validation errors are explicit.
   await expectError(await call(db, { query: "?language=fr&text=bonjour", env: { WYJ_STORAGE: bucket, AI: ai } }), 400, "tts_language_unsupported");
   await expectError(await call(db, { query: "?language=en&text=", env: { WYJ_STORAGE: bucket, AI: ai } }), 400, "tts_text_required");
   await expectError(await call(db, { query: "?language=en&text=hi&voice=male", env: { WYJ_STORAGE: bucket, AI: ai } }), 400, "tts_voice_unsupported");
@@ -197,7 +227,7 @@ await withDatabase(async (db) => {
     "tts_text_too_long",
   );
 
-  // 8. A persistent server failure stays explicit - never a silent device fallback.
+  // 9. A persistent server failure stays explicit - never a silent device fallback.
   const failedCapture = [];
   await expectError(
     await call(db, {
@@ -207,7 +237,7 @@ await withDatabase(async (db) => {
     503,
     "tts_generation_failed",
   );
-  assert.equal(failedCapture.length, 3, "persistent transient errors stop at the bounded attempt count");
+  assert.equal(failedCapture.length, 5, "persistent failures stop after the primary and fallback attempt budgets");
   await expectError(
     await call(db, { query: "?language=en&text=disabled", env: { WYJ_STORAGE: fakeBucket(), WORKERS_AI_ENABLED: "false" } }),
     503,
@@ -221,7 +251,7 @@ await withDatabase(async (db) => {
   );
   assert.equal(quotaCapture.length, 1, "quota exhaustion is never retried");
 
-  // 9. Rate limiting still protects the synthesis path.
+  // 10. Rate limiting still protects the synthesis path.
   const limitedDb = db;
   let limited = 0;
   for (let index = 0; index < 5; index += 1) {
@@ -233,9 +263,10 @@ await withDatabase(async (db) => {
   }
   assert.ok(limited >= 1, "rate limiting must be able to reject a burst");
 
-  // 10. Audio shape normalisation covers every documented provider answer.
+  // 11. Audio shape normalisation covers every documented provider answer.
   const bytes = new Uint8Array([1, 2, 3, 4]);
   assert.deepEqual(await ttsBytesFromResult({ audio: base64(bytes) }), bytes);
+  assert.deepEqual(await ttsBytesFromResult({ audio: `data:audio/wav;base64,${base64(bytes)}` }), bytes);
   assert.deepEqual(await ttsBytesFromResult(bytes), bytes);
   assert.deepEqual(await ttsBytesFromResult({ audio: base64(bytes) }), bytes);
   assert.deepEqual(
@@ -254,7 +285,7 @@ await withDatabase(async (db) => {
   );
   assert.equal(await ttsBytesFromResult({ nope: true }), null);
 
-  // 11. Raw provider errors follow the same bounded retry and quota paths as
+  // 12. Raw provider errors follow the same bounded retry and quota paths as
   // thrown binding errors. Their JSON error bodies are never cached as audio.
   let rawFailureAttempts = 0;
   const rawFailure = await call(db, {
@@ -274,7 +305,7 @@ await withDatabase(async (db) => {
     },
   });
   await expectError(rawFailure, 503, "tts_generation_failed");
-  assert.equal(rawFailureAttempts, 3);
+  assert.equal(rawFailureAttempts, 5);
 
   let rawQuotaAttempts = 0;
   const rawQuota = await call(db, {
@@ -293,7 +324,7 @@ await withDatabase(async (db) => {
   assert.equal(rawQuotaAttempts, 1);
 });
 
-// 12. The web and Android clients must not treat device voices as the normal path.
+// 13. The web and Android clients must not treat device voices as the normal path.
 const webSpeech = await import("node:fs/promises").then((fs) =>
   fs.readFile(path.join(ROOT, "js", "language", "speech.js"), "utf8"),
 );
@@ -319,4 +350,4 @@ assert.ok(
   "the WebView must allow the cloud dictation asset to play",
 );
 
-console.log("Cloud TTS checks passed (cache identity, ZH/EN/JP synthesis, explicit failures, no device dependency).");
+console.log("Cloud TTS checks passed (cache identity, ZH/EN/JP synthesis, bounded cloud fallback, explicit failures, no device dependency).");
