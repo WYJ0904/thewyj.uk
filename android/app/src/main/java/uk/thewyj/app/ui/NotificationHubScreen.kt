@@ -221,10 +221,13 @@ private fun NotificationDetailOverlay(
     loadMedia: suspend (String) -> java.io.File? = { null },
 ) {
     val context = LocalContext.current
-    val appName = remember(item.sourcePackage, item.mediaOrigin) {
+    val appName = remember(item.sourcePackage, item.mediaOrigin, item.title, item.text) {
         notificationHistorySourceLabel(
-            item.mediaOrigin,
-            uk.thewyj.app.task21.payment.PaymentAppLabels.resolve(context, item.sourcePackage),
+            mediaOrigin = item.mediaOrigin,
+            sourcePackage = item.sourcePackage,
+            title = item.title,
+            text = item.text,
+            resolvedAppLabel = uk.thewyj.app.task21.payment.PaymentAppLabels.resolve(context, item.sourcePackage),
         )
     }
     var bitmap by remember(item.revisionId) { mutableStateOf<android.graphics.Bitmap?>(null) }
