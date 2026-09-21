@@ -55,7 +55,7 @@ fun PaymentVerificationScreen(
     state: PaymentVerificationState,
     onBack: () -> Unit,
     onOpenFinance: () -> Unit,
-    onOpenApp: (String) -> Unit,
+    onOpenApp: (String) -> Boolean,
 ) {
     val scope = rememberCoroutineScope()
     var tick by remember { mutableStateOf(0) }
@@ -228,10 +228,24 @@ fun PaymentVerificationScreen(
                                     Text(if (item.needsAmount) "填写金额" else "修改")
                                 }
                                 if (item.ticketActive) {
-                                    TextButton(onClick = { onOpenApp(item.sourcePackage) }) { Text("打开应用") }
+                                    TextButton(
+                                        onClick = {
+                                            if (onOpenApp(item.sourcePackage)) {
+                                                state.reportOpenAppStarted()
+                                            } else {
+                                                state.reportOpenAppFailure(item.appLabel)
+                                            }
+                                        },
+                                    ) { Text("打开应用") }
                                 }
                             }
-                            TextButton(onClick = { scope.launch { state.ignore(item) } }) { Text("忽略这笔") }
+                            val ignoring = state.isBusy(item, "ignore")
+                            TextButton(
+                                onClick = { scope.launch { state.ignore(item) } },
+                                enabled = !ignoring,
+                            ) {
+                                Text(if (ignoring) "正在忽略…" else "忽略这笔")
+                            }
                         }
                     }
                 }
