@@ -29,9 +29,23 @@ class AndroidPaymentNotificationLifecycleRegistry(
         val existing = parse(preferences.getString(key, null))
         val now = now()
         val evidence = uk.thewyj.app.task21.paymentNotificationEvidence(input, payment)
-        val reuse = existing != null &&
-            (existing.evidence.isBlank() || existing.evidence == evidence) &&
-            (existing.removedAt == 0L || now - existing.removedAt <= REPOST_GRACE_MS)
+        val incompleteEvidence = payment?.let {
+            NotificationFingerprint.sha256Hex(
+                "${input.sourcePackage}\u001F${it.paymentChannel}\u001Fincomplete",
+            )
+        }.orEmpty()
+        val activePromotion = existing != null &&
+            existing.removedAt == 0L &&
+            incompleteEvidence.isNotBlank() &&
+            existing.evidence == incompleteEvidence &&
+            evidence != incompleteEvidence
+        val reuse = existing != null && when {
+            existing.removedAt == 0L ->
+                existing.evidence.isBlank() || existing.evidence == evidence || activePromotion
+            now - existing.removedAt <= REPOST_GRACE_MS ->
+                existing.evidence.isBlank() || existing.evidence == evidence
+            else -> false
+        }
         val eventId = if (reuse) existing!!.eventId else idFactory()
         preferences.edit().putString(key, encode(Entry(eventId, now, evidence, 0L))).commit()
         trimLocked()
