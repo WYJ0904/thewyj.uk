@@ -191,7 +191,7 @@ await withDatabase(async (db) => {
   // 7. A persistent MeloTTS provider failure falls through to the bounded
   // Cloudflare Unified Catalog TTS fallback without changing the client API.
   const fallbackCalls = [];
-  const wavBytes = new Uint8Array([0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4]);
+  const pcmBytes = new Uint8Array([1, 2, 3, 4, 5, 6]);
   const fallbackAi = {
     async run(model, input, options) {
       fallbackCalls.push({ model, input, options });
@@ -199,7 +199,7 @@ await withDatabase(async (db) => {
         throw Object.assign(new Error("melotts provider failed"), { status: 500 });
       }
       assert.equal(model, TTS_FALLBACK_MODEL);
-      return { audio: `data:audio/wav;base64,${base64(wavBytes)}` };
+      return { audio: `data:audio/l16;base64,${base64(pcmBytes)}` };
     },
   };
   const fallbackBucket = fakeBucket();
@@ -216,7 +216,17 @@ await withDatabase(async (db) => {
     ["@cf/myshell-ai/melotts", "@cf/myshell-ai/melotts", "@cf/myshell-ai/melotts", TTS_FALLBACK_MODEL],
   );
   assert.equal(fallbackCalls.at(-1).input.text, "日本語の読み上げ");
-  assert.equal(fallbackCalls.at(-1).options, undefined);
+  assert.deepEqual(
+    fallbackCalls.at(-1).options,
+    { gateway: { id: "default" } },
+    "third-party TTS must use the Cloudflare AI Gateway binding option",
+  );
+  const fallbackAudio = new Uint8Array(await fallback.clone().arrayBuffer());
+  assert.deepEqual(
+    Array.from(fallbackAudio.slice(0, 12)),
+    [0x52, 0x49, 0x46, 0x46, 42, 0, 0, 0, 0x57, 0x41, 0x56, 0x45],
+    "raw Gemini L16 PCM must be wrapped as a browser-playable WAV",
+  );
 
   const fallbackCached = await call(db, {
     query: "?language=jp&text=" + encodeURIComponent("日本語の読み上げ"),
@@ -280,6 +290,9 @@ await withDatabase(async (db) => {
   const bytes = new Uint8Array([1, 2, 3, 4]);
   assert.deepEqual(await ttsBytesFromResult({ audio: base64(bytes) }), bytes);
   assert.deepEqual(await ttsBytesFromResult({ audio: `data:audio/wav;base64,${base64(bytes)}` }), bytes);
+  const pcmWrapped = await ttsBytesFromResult({ audio: `data:audio/l16;base64,${base64(bytes)}` });
+  assert.deepEqual(Array.from(pcmWrapped.slice(0, 4)), [0x52, 0x49, 0x46, 0x46]);
+  assert.equal(pcmWrapped.length, 44 + bytes.length);
   assert.deepEqual(await ttsBytesFromResult(bytes), bytes);
   assert.deepEqual(await ttsBytesFromResult({ audio: base64(bytes) }), bytes);
   assert.deepEqual(
