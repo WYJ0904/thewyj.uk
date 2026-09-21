@@ -4,10 +4,11 @@
       version: "2026.09.21.1",
       build: "2026-09-21-task24-device-sync-r7",
       date: "2026-09-21",
-      title: "Task 24 真机支付同步收敛与 TTS 兼容修复候选（Android 1.3.11）",
+      title: "Task 24 真机支付动作与身份收敛候选（Android 1.3.12）",
       features: [
-        "Android 1.3.11（versionCode 24）正式签名候选已生成，可从现有正式版原位升级并保留账户、通知历史与财务数据；当前候选连接 Task 24 Preview，仅用于真机验收。",
-        "Android 待核实交易现在以稳定事件 ID 与云端财务候选共用同一条身份链；从来源支付应用返回 thewyj 时会立即重新对账。",
+        "Android 1.3.12（versionCode 25）候选默认连接正式站 https://thewyj.uk；签名脚本与手动签名工作流不再默认生成 Preview 后端包。",
+        "待核实交易的「打开应用」补齐 Android 11+ package visibility 与 launcher fallback；「忽略这笔」会即时显示同步状态并阻止重复点击。",
+        "同一支付通知在金额未知后被无障碍补全时继续沿用原稳定事件 ID，避免把一次真实支付拆成两张待处理卡片。",
       ],
       improvements: [
         "无障碍或本机 OCR 后补出的金额、收支方向与商户会写回原有云端 pending hint，不再生成第二套待处理数据。",
