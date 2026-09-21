@@ -4,6 +4,7 @@ param(
     [string]$BaseUrl = "https://codex-task24-candidate-histo.thewyj-uk.pages.dev",
     [string]$KeystorePath = "$env:USERPROFILE\.thewyj\thewyj-android-release.jks",
     [string]$CredentialPath = "$env:USERPROFILE\.thewyj\android-release-credentials.txt",
+    [string]$KeyAlias = "thewyj-release",
     [switch]$PromptKeyPassword
 )
 
@@ -54,16 +55,15 @@ $StorePassword = (Get-Content -Raw $CredentialPath).Trim()
 if ([string]::IsNullOrWhiteSpace($StorePassword)) { throw "Release credential file is empty." }
 
 $KeyTool = Resolve-KeyTool
-$listing = & $KeyTool -list -v -keystore $KeystorePath -storepass $StorePassword -J-Duser.language=en -J-Duser.country=US 2>&1
-if ($LASTEXITCODE -ne 0) { throw "Unable to read release keystore." }
-$listingText = ($listing -join [Environment]::NewLine)
-$aliases = [regex]::Matches($listingText, '(?m)^Alias name:\s*(.+?)\s*$') |
-    ForEach-Object { $_.Groups[1].Value.Trim() } |
-    Select-Object -Unique
-if ($aliases.Count -ne 1) {
-    throw "Expected exactly one alias in the formal release keystore; found $($aliases.Count)."
+if ([string]::IsNullOrWhiteSpace($KeyAlias)) { throw "KeyAlias must not be empty." }
+# The formal release alias is fixed and documented as "thewyj-release".
+# Do not force keytool's UI language here: some Windows JDK builds reject
+# PowerShell-forwarded -J-Duser.* arguments. Validation only needs the exit code.
+$null = & $KeyTool -list -v -alias $KeyAlias -keystore $KeystorePath -storepass $StorePassword 2>&1
+if ($LASTEXITCODE -ne 0) {
+    throw "Unable to read release alias '$KeyAlias' from the formal keystore."
 }
-$Alias = [string]$aliases[0]
+$Alias = $KeyAlias
 
 $KeyPassword = $StorePassword
 if ($PromptKeyPassword) {
