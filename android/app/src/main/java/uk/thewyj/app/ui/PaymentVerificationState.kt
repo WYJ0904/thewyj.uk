@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import uk.thewyj.app.task21.payment.PaymentVerificationCenter
@@ -33,6 +34,10 @@ class PaymentVerificationState(
         error = ""
         try {
             items = withContext(Dispatchers.IO) { center.items(accountId) }
+        } catch (cancellation: CancellationException) {
+            // Leaving this Compose surface (for example opening WeChat) is a
+            // normal lifecycle cancellation, never a user-facing error.
+            throw cancellation
         } catch (failure: Throwable) {
             error = failure.message ?: "读取待确认交易失败"
         } finally {
@@ -110,8 +115,16 @@ class PaymentVerificationState(
     }
 
     suspend fun ignore(item: PaymentVerificationCenter.Item) {
-        withContext(Dispatchers.IO) { center.ignore(accountId, item.candidateId, item.recognitionId) }
-        message = "已忽略这笔交易，不会写入财务账本"
+        val result = withContext(Dispatchers.IO) {
+            center.ignore(accountId, item.candidateId, item.recognitionId)
+        }
+        if (result.ok) {
+            error = ""
+            message = result.message
+        } else {
+            message = ""
+            error = result.message
+        }
         refresh()
     }
 
