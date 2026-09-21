@@ -221,8 +221,11 @@ private fun NotificationDetailOverlay(
     loadMedia: suspend (String) -> java.io.File? = { null },
 ) {
     val context = LocalContext.current
-    val appName = remember(item.sourcePackage) {
-        uk.thewyj.app.task21.payment.PaymentAppLabels.resolve(context, item.sourcePackage)
+    val appName = remember(item.sourcePackage, item.mediaOrigin) {
+        notificationHistorySourceLabel(
+            item.mediaOrigin,
+            uk.thewyj.app.task21.payment.PaymentAppLabels.resolve(context, item.sourcePackage),
+        )
     }
     var bitmap by remember(item.revisionId) { mutableStateOf<android.graphics.Bitmap?>(null) }
     val mediaPresentation = remember(item.revisionId, item.mediaState, item.mediaOrigin) {
@@ -369,7 +372,10 @@ private fun NotificationDetailOverlay(
                     },
                 )
             }
-            DetailField("来源应用", item.sourcePackage.ifBlank { "未知" })
+            DetailField("来源应用", appName)
+            if (appName != item.sourcePackage && item.sourcePackage.isNotBlank()) {
+                DetailField("系统包", item.sourcePackage)
+            }
             if (item.sourceEventId.isNotBlank()) DetailField("结构化事件标识", item.sourceEventId)
         }
     }
@@ -544,7 +550,10 @@ private fun NotificationHistorySection(state: NotificationHubState) {
                     NotificationHistoryCard(
                         state = state,
                         item = item,
-                        appLabel = appLabels[item.sourcePackage] ?: item.sourcePackage,
+                        appLabel = notificationHistorySourceLabel(
+                            item.mediaOrigin,
+                            appLabels[item.sourcePackage] ?: item.sourcePackage,
+                        ),
                         onOpen = { scope.launch { state.openDetail(item) } },
                         onDelete = { scope.launch { state.deleteOne(item.revisionId) } },
                     )
@@ -561,6 +570,12 @@ private fun NotificationHistorySection(state: NotificationHubState) {
         }
     }
 }
+
+internal fun notificationHistorySourceLabel(mediaOrigin: String, resolvedAppLabel: String): String =
+    when (mediaOrigin.trim().lowercase()) {
+        "media_store", "media_store+notification" -> "屏幕截图"
+        else -> resolvedAppLabel.ifBlank { "未知应用" }
+    }
 
 @Composable
 private fun NotificationHistoryCard(
