@@ -157,6 +157,7 @@ jobs:
             node --check local-backend/test_tools_js.mjs
             node --check local-backend/test_finance_candidates_js.mjs
             node --check local-backend/test_core_js.mjs
+            node --check local-backend/test_tts_js.mjs
             node --check local-backend/test_language_js.mjs
             node --check local-backend/test_membership_js.mjs
             node --check local-backend/test_workflows_js.mjs
@@ -257,6 +258,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_core_js.mjs 2>&1 | tee artifacts/javascript-core.log
+
+      - name: Test cloud TTS provider fallback
+        run: |
+          set -euo pipefail
+          node local-backend/test_tts_js.mjs 2>&1 | tee artifacts/cloud-tts.log
 
       - name: Test language JavaScript modules
         run: |
