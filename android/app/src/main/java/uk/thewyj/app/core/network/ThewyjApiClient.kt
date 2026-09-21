@@ -57,6 +57,112 @@ data class PendingReviewSummary(
     val records: List<PendingReviewIdentity>,
 )
 
+internal object PendingReviewCompatibility {
+    fun fromLegacy(
+        hintPending: JSONObject,
+        hintAll: JSONObject?,
+        candidatePending: JSONObject,
+        candidateConfirmed: JSONObject?,
+        candidateRejected: JSONObject?,
+        requested: Set<String>,
+    ): ApiCall<PendingReviewSummary> = runCatching {
+        fun hintRecords(payload: JSONObject, forceState: String? = null): List<PendingReviewIdentity> {
+            val rows = payload.optJSONArray("hints") ?: return emptyList()
+            return buildList {
+                for (index in 0 until rows.length()) {
+                    val row = rows.optJSONObject(index) ?: continue
+                    val eventId = row.optString("source_event_id").trim()
+                    if (eventId.isBlank()) continue
+                    add(
+                        PendingReviewIdentity(
+                            kind = "hint",
+                            id = row.optString("id"),
+                            eventId = eventId,
+                            deviceId = row.optString("device_id"),
+                            state = forceState ?: row.optString("state", "pending"),
+                            transactionId = row.optString("finance_entry_id"),
+                            eventIds = setOf(eventId),
+                        ),
+                    )
+                }
+            }
+        }
+
+        fun candidateRecords(payload: JSONObject, state: String): List<PendingReviewIdentity> {
+            val rows = payload.optJSONArray("candidates") ?: return emptyList()
+            return buildList {
+                for (index in 0 until rows.length()) {
+                    val row = rows.optJSONObject(index) ?: continue
+                    val eventIds = buildSet {
+                        add(row.optString("event_id"))
+                        val evidence = row.optJSONArray("evidence")
+                        if (evidence != null) {
+                            for (evidenceIndex in 0 until evidence.length()) {
+                                add(evidence.optJSONObject(evidenceIndex)?.optString("event_id").orEmpty())
+                            }
+                        }
+                    }.filter(String::isNotBlank).toSet()
+                    val eventId = row.optString("event_id").ifBlank { eventIds.firstOrNull().orEmpty() }
+                    if (eventId.isBlank()) continue
+                    add(
+                        PendingReviewIdentity(
+                            kind = "candidate",
+                            id = row.optString("id"),
+                            eventId = eventId,
+                            deviceId = "",
+                            state = state,
+                            transactionId = row.optString("finance_transaction_id"),
+                            eventIds = eventIds.ifEmpty { setOf(eventId) },
+                        ),
+                    )
+                }
+            }
+        }
+
+        val pendingHints = hintRecords(hintPending, "pending")
+        val pendingCandidates = candidateRecords(candidatePending, "pending")
+        val terminal = buildList {
+            hintAll?.let { payload ->
+                addAll(hintRecords(payload).filter { it.state != "pending" && it.eventIds.any(requested::contains) })
+            }
+            candidateConfirmed?.let { payload ->
+                addAll(candidateRecords(payload, "confirmed").filter { it.eventIds.any(requested::contains) })
+            }
+            candidateRejected?.let { payload ->
+                addAll(candidateRecords(payload, "rejected").filter { it.eventIds.any(requested::contains) })
+            }
+        }
+
+        val records = (pendingHints + pendingCandidates + terminal)
+            .distinctBy { "${it.kind}:${it.id}:${it.state}" }
+        val truncated = listOf(
+            hintPending.optJSONArray("hints")?.length() ?: 0,
+            hintAll?.optJSONArray("hints")?.length() ?: 0,
+            candidatePending.optJSONArray("candidates")?.length() ?: 0,
+            candidateConfirmed?.optJSONArray("candidates")?.length() ?: 0,
+            candidateRejected?.optJSONArray("candidates")?.length() ?: 0,
+        ).any { it >= 200 }
+
+        PendingReviewSummary(
+            observedAt = Instant.now().toString(),
+            totalCount = pendingHints.size + pendingCandidates.size,
+            hintCount = pendingHints.size,
+            candidateCount = pendingCandidates.size,
+            truncated = truncated,
+            records = records,
+        )
+    }.fold(
+        onSuccess = { ApiCall.Success(it) },
+        onFailure = {
+            ApiCall.Failure(
+                code = "invalid_server_response",
+                message = "服务响应格式不完整，请稍后重试",
+                kind = ApiFailureKind.RETRYABLE,
+            )
+        },
+    )
+}
+
 interface AccountApi {
     suspend fun register(username: String, secret: String): ApiCall<Unit>
     suspend fun login(username: String, secret: String, deviceId: String): ApiCall<DeviceCredentials>
@@ -93,6 +199,7 @@ class ThewyjApiClient(
         ) { "thewyj base URL must be an HTTPS origin" }
     }
     private val origin = URI(baseUrl).let { "${it.scheme}://${it.host}${if (it.port > 0) ":${it.port}" else ""}" }
+    private var pendingSummarySupported: Boolean? = null
 
     override suspend fun register(username: String, secret: String): ApiCall<Unit> {
         return request(
@@ -178,44 +285,142 @@ class ThewyjApiClient(
     }
 
     override suspend fun pendingReviewSummary(accessToken: String, eventIds: List<String>): ApiCall<PendingReviewSummary> {
-        val query = eventIds.distinct().take(200).joinToString(",") { java.net.URLEncoder.encode(it, "UTF-8") }
-        return request(
+        val requested = eventIds.distinct().filter(String::isNotBlank).take(200)
+        if (pendingSummarySupported == false) {
+            return legacyPendingReviewSummary(accessToken, requested)
+        }
+
+        val query = requested.joinToString(",") { java.net.URLEncoder.encode(it, "UTF-8") }
+        return when (val response = request(
             path = "/api/notification/pending-summary" + if (query.isEmpty()) "" else "?event_ids=$query",
             method = "GET",
             accessToken = accessToken,
-        ).map { json ->
-            val rows = json.optJSONArray("records")
-            val records = buildList {
-                if (rows != null) {
-                    for (index in 0 until rows.length()) {
-                        val row = rows.optJSONObject(index) ?: continue
-                        add(
-                            PendingReviewIdentity(
-                                kind = row.optString("kind"),
-                                id = row.optString("id"),
-                                eventId = row.optString("event_id"),
-                                deviceId = row.optString("device_id"),
-                                state = row.optString("state", "pending"),
-                                transactionId = row.optString("transaction_id"),
-                                eventIds = buildSet {
-                                    add(row.optString("event_id"))
-                                    val ids = row.optJSONArray("event_ids")
-                                    if (ids != null) for (index in 0 until ids.length()) add(ids.optString(index))
-                                }.filter(String::isNotBlank).toSet(),
-                            ),
-                        )
-                    }
+        )) {
+            is ApiCall.Success -> {
+                pendingSummarySupported = true
+                parsePendingReviewSummary(response.value)
+            }
+            is ApiCall.Failure -> {
+                if (response.status == 404) {
+                    // Task 24 acceptance must work against the currently deployed
+                    // Production API too. Older Production builds expose hints and
+                    // candidate endpoints but not /pending-summary yet.
+                    pendingSummarySupported = false
+                    legacyPendingReviewSummary(accessToken, requested)
+                } else {
+                    response
                 }
             }
-            PendingReviewSummary(
-                observedAt = json.optString("observed_at"),
-                totalCount = json.optInt("total_count", records.size),
-                hintCount = json.optInt("hint_count"),
-                candidateCount = json.optInt("candidate_count"),
-                truncated = json.optBoolean("truncated", false),
-                records = records,
-            )
         }
+    }
+
+    private fun parsePendingReviewSummary(json: JSONObject): ApiCall<PendingReviewSummary> = runCatching {
+        val rows = json.optJSONArray("records")
+        val records = buildList {
+            if (rows != null) {
+                for (index in 0 until rows.length()) {
+                    val row = rows.optJSONObject(index) ?: continue
+                    add(
+                        PendingReviewIdentity(
+                            kind = row.optString("kind"),
+                            id = row.optString("id"),
+                            eventId = row.optString("event_id"),
+                            deviceId = row.optString("device_id"),
+                            state = row.optString("state", "pending"),
+                            transactionId = row.optString("transaction_id"),
+                            eventIds = buildSet {
+                                add(row.optString("event_id"))
+                                val ids = row.optJSONArray("event_ids")
+                                if (ids != null) for (aliasIndex in 0 until ids.length()) add(ids.optString(aliasIndex))
+                            }.filter(String::isNotBlank).toSet(),
+                        ),
+                    )
+                }
+            }
+        }
+        PendingReviewSummary(
+            observedAt = json.optString("observed_at"),
+            totalCount = json.optInt("total_count", records.count { it.state == "pending" }),
+            hintCount = json.optInt("hint_count"),
+            candidateCount = json.optInt("candidate_count"),
+            truncated = json.optBoolean("truncated", false),
+            records = records,
+        )
+    }.fold(
+        onSuccess = { ApiCall.Success(it) },
+        onFailure = {
+            ApiCall.Failure(
+                code = "invalid_server_response",
+                message = "服务响应格式不完整，请稍后重试",
+                kind = ApiFailureKind.RETRYABLE,
+            )
+        },
+    )
+
+    /**
+     * Compatibility observation for Production releases that predate
+     * /api/notification/pending-summary. It composes the same identity model
+     * from the older account-scoped hint/candidate endpoints.
+     */
+    private suspend fun legacyPendingReviewSummary(
+        accessToken: String,
+        requested: List<String>,
+    ): ApiCall<PendingReviewSummary> {
+        val hintPending = when (val call = request(
+            path = "/api/notification/hints?state=pending&limit=200",
+            method = "GET",
+            accessToken = accessToken,
+        )) {
+            is ApiCall.Success -> call.value
+            is ApiCall.Failure -> return call
+        }
+        val candidatePending = when (val call = request(
+            path = "/api/notification/candidates?status=pending&limit=200",
+            method = "GET",
+            accessToken = accessToken,
+        )) {
+            is ApiCall.Success -> call.value
+            is ApiCall.Failure -> return call
+        }
+
+        var hintAll: JSONObject? = null
+        var candidateConfirmed: JSONObject? = null
+        var candidateRejected: JSONObject? = null
+        if (requested.isNotEmpty()) {
+            hintAll = when (val call = request(
+                path = "/api/notification/hints?state=&limit=200",
+                method = "GET",
+                accessToken = accessToken,
+            )) {
+                is ApiCall.Success -> call.value
+                is ApiCall.Failure -> return call
+            }
+            candidateConfirmed = when (val call = request(
+                path = "/api/notification/candidates?status=confirmed&limit=200",
+                method = "GET",
+                accessToken = accessToken,
+            )) {
+                is ApiCall.Success -> call.value
+                is ApiCall.Failure -> return call
+            }
+            candidateRejected = when (val call = request(
+                path = "/api/notification/candidates?status=rejected&limit=200",
+                method = "GET",
+                accessToken = accessToken,
+            )) {
+                is ApiCall.Success -> call.value
+                is ApiCall.Failure -> return call
+            }
+        }
+
+        return PendingReviewCompatibility.fromLegacy(
+            hintPending = hintPending,
+            hintAll = hintAll,
+            candidatePending = candidatePending,
+            candidateConfirmed = candidateConfirmed,
+            candidateRejected = candidateRejected,
+            requested = requested.toSet(),
+        )
     }
 
     private suspend fun request(
