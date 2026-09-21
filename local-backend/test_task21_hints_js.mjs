@@ -271,6 +271,24 @@ try {
   assert.equal(enriched.payload.hints[0].amount_minor, 10000);
   assert.equal(enriched.payload.hints[0].direction, "expense");
   assert.equal(enriched.payload.hints[0].state, "pending");
+  const enrichmentReplay = await request(db, "/api/notification/hints", {
+    method: "POST",
+    token: USER.token,
+    body: hintBody("evt-hints-amount-unknown", {
+      amount_minor: 10000,
+      direction: "expense",
+      confidence: 950,
+      recognition_status: "CONFIRMED_PAYMENT",
+      evidence: {
+        source_type: "accessibility",
+        confidence: 950,
+        reasons: ["accessibility_verified_amount"],
+        recognised_fields: ["amount", "direction"],
+      },
+    }),
+  });
+  assert.equal(enrichmentReplay.response.status, 200);
+  assert.equal(enrichmentReplay.payload.results[0].updated, false, "identical enrichment is a no-op");
   const hintRowsAfterEnrichment = await db.prepare(
     "SELECT COUNT(*) AS count FROM task21_notification_pending_hints WHERE user_id = ?1",
   ).bind(USER.id).first();
