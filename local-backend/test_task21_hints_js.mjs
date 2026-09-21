@@ -6,6 +6,7 @@ import path from "node:path";
 import { Miniflare } from "miniflare";
 
 import { handleTask21Request } from "../functions/_lib/task21-api.mjs";
+import { handleTask16Request } from "../functions/_lib/task16-api.mjs";
 import { sessionStorageKey } from "../functions/_lib/task12-crypto.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
@@ -51,6 +52,22 @@ async function grantMembership(db, userId, planCode) {
     "source, source_ref, created_by, metadata_json, created_at, updated_at",
     ") VALUES (?1, ?2, ?3, ?4, ?5, 0, 'active', 'admin', ?6, '', '{}', ?4, ?4)",
   ].join(" ")).bind(`membership:${userId}:${planCode}`, userId, planCode, now, expires, `fixture:${planCode}`).run();
+}
+
+async function requestFinance(db, route, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if (options.token) headers.set("X-Session-Token", options.token);
+  if (options.body !== undefined) headers.set("Content-Type", "application/json");
+  const response = await handleTask16Request({
+    env: { ...ENVIRONMENT, WYJ_DB: db },
+    data: { requestId: crypto.randomUUID() },
+    request: new Request("https://preview.thewyj.uk" + route, {
+      method: options.method || "GET",
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    }),
+  });
+  return { response, payload: await response.json() };
 }
 
 async function request(db, route, options = {}) {
@@ -470,6 +487,60 @@ try {
     "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 1 AND status = 'active'",
   ).bind(USER.id).first();
   assert.equal(Number(oneCentLedger.count), 1, "device enrichment must book exactly one transaction");
+
+  // 12b. Deleting a Finance transaction must revoke the Task 21 linkage, and
+  // restoring it must restore the same source-event linkage. Notification
+  // history remains historical evidence; only the finance outcome converges.
+  const bookedTransactionId = deviceBooking.payload.operation_results[0].transaction_id;
+  const bookedRow = await db.prepare(
+    "SELECT revision FROM task16_finance_transactions WHERE user_id = ?1 AND id = ?2",
+  ).bind(USER.id, bookedTransactionId).first();
+  const financeSyncBody = (type, baseRevision, operationId) => ({
+    schema_version: 1,
+    device_id: "device-hints-000001",
+    platform: "android",
+    device_label: "Task 24 hint fixture",
+    client_version: "task24-test",
+    since_version: 0,
+    operations: [{
+      operation_id: operationId,
+      type,
+      entity_id: bookedTransactionId,
+      base_revision: baseRevision,
+    }],
+  });
+  const deletedFinance = await requestFinance(db, "/api/finance/sync", {
+    method: "POST",
+    token: USER.token,
+    body: financeSyncBody("transaction.delete", Number(bookedRow.revision), "op-delete-device-booking"),
+  });
+  assert.equal(deletedFinance.response.status, 200, JSON.stringify(deletedFinance.payload));
+  const afterDeleteHints = await request(db, "/api/notification/hints?state=", { token: USER.token });
+  const deletedHint = afterDeleteHints.payload.hints.find((item) => item.source_event_id === deviceEventId);
+  assert.equal(deletedHint.state, "ignored");
+  assert.equal(deletedHint.finance_entry_id, "");
+  const deletedSummary = await request(
+    db,
+    "/api/notification/pending-summary?event_ids=" + encodeURIComponent(deviceEventId),
+    { token: USER.token },
+  );
+  const deletedIdentity = deletedSummary.payload.records.find((item) => item.event_id === deviceEventId);
+  assert.equal(deletedIdentity.state, "ignored");
+  assert.equal(deletedIdentity.transaction_id, "");
+
+  const deletedRow = await db.prepare(
+    "SELECT revision FROM task16_finance_transactions WHERE user_id = ?1 AND id = ?2",
+  ).bind(USER.id, bookedTransactionId).first();
+  const restoredFinance = await requestFinance(db, "/api/finance/sync", {
+    method: "POST",
+    token: USER.token,
+    body: financeSyncBody("transaction.restore", Number(deletedRow.revision), "op-restore-device-booking"),
+  });
+  assert.equal(restoredFinance.response.status, 200, JSON.stringify(restoredFinance.payload));
+  const afterRestoreHints = await request(db, "/api/notification/hints?state=", { token: USER.token });
+  const restoredHint = afterRestoreHints.payload.hints.find((item) => item.source_event_id === deviceEventId);
+  assert.equal(restoredHint.state, "confirmed");
+  assert.equal(restoredHint.finance_entry_id, bookedTransactionId);
 
   // 13. Schema + row counts stay consistent after the whole flow.
   const hintCount = await db.prepare(
