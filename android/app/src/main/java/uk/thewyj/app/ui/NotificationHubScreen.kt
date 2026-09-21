@@ -551,8 +551,11 @@ private fun NotificationHistorySection(state: NotificationHubState) {
                         state = state,
                         item = item,
                         appLabel = notificationHistorySourceLabel(
-                            item.mediaOrigin,
-                            appLabels[item.sourcePackage] ?: item.sourcePackage,
+                            mediaOrigin = item.mediaOrigin,
+                            sourcePackage = item.sourcePackage,
+                            title = item.title,
+                            text = item.text,
+                            resolvedAppLabel = appLabels[item.sourcePackage] ?: item.sourcePackage,
                         ),
                         onOpen = { scope.launch { state.openDetail(item) } },
                         onDelete = { scope.launch { state.deleteOne(item.revisionId) } },
@@ -571,11 +574,29 @@ private fun NotificationHistorySection(state: NotificationHubState) {
     }
 }
 
-internal fun notificationHistorySourceLabel(mediaOrigin: String, resolvedAppLabel: String): String =
-    when (mediaOrigin.trim().lowercase()) {
-        "media_store", "media_store+notification" -> "屏幕截图"
+internal fun notificationHistorySourceLabel(
+    mediaOrigin: String,
+    sourcePackage: String,
+    title: String,
+    text: String,
+    resolvedAppLabel: String,
+): String {
+    val origin = mediaOrigin.trim().lowercase()
+    val packageName = sourcePackage.trim().lowercase()
+    val content = "$title\n$text".lowercase()
+    val screenshotPackage = packageName in setOf(
+        "com.samsung.android.app.smartcapture",
+        "com.samsung.android.screenshot",
+        "com.android.systemui",
+    )
+    val screenshotText = listOf("截图", "截屏", "screenshot", "screen capture")
+        .any { marker -> content.contains(marker) }
+    return when {
+        origin == "media_store" || origin == "media_store+notification" -> "屏幕截图"
+        origin == "notification" && screenshotPackage && screenshotText -> "屏幕截图"
         else -> resolvedAppLabel.ifBlank { "未知应用" }
     }
+}
 
 @Composable
 private fun NotificationHistoryCard(
