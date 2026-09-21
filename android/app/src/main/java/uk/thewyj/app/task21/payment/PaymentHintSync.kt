@@ -106,15 +106,23 @@ class PaymentHintSync(
         var matchedKind = ""
         for (index in 0 until records.length()) {
             val row = records.optJSONObject(index) ?: continue
-            if (row.optString("state") != "pending") continue
             val ids = buildSet {
                 add(row.optString("event_id"))
                 val aliases = row.optJSONArray("event_ids")
                 if (aliases != null) for (aliasIndex in 0 until aliases.length()) add(aliases.optString(aliasIndex))
             }
             if (eventId !in ids) continue
-            matchedId = row.optString("id")
-            matchedKind = row.optString("kind")
+            when (row.optString("state")) {
+                "confirmed" -> return RemoteDismissResult(
+                    false,
+                    message = "这笔交易已在财务账本中确认，不能再从待处理中忽略",
+                )
+                "pending" -> {
+                    matchedId = row.optString("id")
+                    matchedKind = row.optString("kind")
+                }
+                else -> return RemoteDismissResult(ok = true)
+            }
             break
         }
         if (matchedId.isBlank()) return RemoteDismissResult(ok = true)
