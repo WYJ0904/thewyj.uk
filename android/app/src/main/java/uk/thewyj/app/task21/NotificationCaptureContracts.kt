@@ -244,7 +244,19 @@ class InMemoryPaymentNotificationLifecycleRegistry(
         val key = "$accountId\u001F$slot"
         val evidence = paymentNotificationEvidence(input, payment)
         val existing = active[key]
-        if (existing != null && existing.second == evidence) return@synchronized existing.first
+        val incompleteEvidence = payment?.let {
+            NotificationFingerprint.sha256Hex(
+                "${input.sourcePackage}\u001F${it.paymentChannel}\u001Fincomplete",
+            )
+        }.orEmpty()
+        val promoteExisting = existing != null &&
+            incompleteEvidence.isNotBlank() &&
+            existing.second == incompleteEvidence &&
+            evidence != incompleteEvidence
+        if (existing != null && (existing.second == evidence || promoteExisting)) {
+            active[key] = existing.first to evidence
+            return@synchronized existing.first
+        }
         idFactory().also { active[key] = it to evidence }
     }
 
