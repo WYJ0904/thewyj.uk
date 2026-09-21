@@ -90,12 +90,16 @@ export function ttsModelCandidates(env = {}) {
   return fallback && fallback !== primary ? [primary, fallback] : [primary];
 }
 
-function ttsInvocationForModel(model, { text, language }) {
+function ttsInvocationForModel(model, { text, language }, env = {}) {
   if (model === "google/gemini-3.1-flash-tts") {
-    // Gemini TTS infers the spoken language from the transcript. Cloudflare's
-    // unified catalog returns base64 audio for this model, so the client-facing
-    // /api/tts contract stays unchanged.
-    return { input: { text }, options: null };
+    // Third-party models on the Workers AI binding must be routed through an
+    // AI Gateway. The account default is created by Cloudflare on first use;
+    // deployments may override its name without changing the client contract.
+    const gatewayId = String(env.TTS_AI_GATEWAY_ID || "default").trim() || "default";
+    return {
+      input: { text },
+      options: { gateway: { id: gatewayId } },
+    };
   }
   return {
     input: { prompt: text, lang: language },
@@ -116,16 +120,49 @@ function base64ToBytes(value) {
   return bytes;
 }
 
+function wavFromPcm16Le(pcm, sampleRate = 24_000, channels = 1) {
+  const dataLength = pcm.length;
+  const headerLength = 44;
+  const output = new Uint8Array(headerLength + dataLength);
+  const view = new DataView(output.buffer);
+  const writeAscii = (offset, value) => {
+    for (let index = 0; index < value.length; index += 1) output[offset + index] = value.charCodeAt(index);
+  };
+  writeAscii(0, "RIFF");
+  view.setUint32(4, 36 + dataLength, true);
+  writeAscii(8, "WAVE");
+  writeAscii(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * channels * 2, true);
+  view.setUint16(32, channels * 2, true);
+  view.setUint16(34, 16, true);
+  writeAscii(36, "data");
+  view.setUint32(40, dataLength, true);
+  output.set(pcm, headerLength);
+  return output;
+}
+
 function bytesFromAudioValue(value) {
   if (!value) return null;
   if (value instanceof Uint8Array) return value;
   if (value instanceof ArrayBuffer) return new Uint8Array(value);
   if (Array.isArray(value)) return Uint8Array.from(value);
   if (typeof value === "string") {
-    // MeloTTS answers with base64 audio; tolerate a data URL wrapper too.
-    const base64 = value.includes(",") ? value.slice(value.indexOf(",") + 1) : value;
+    const comma = value.indexOf(",");
+    const metadata = comma >= 0 ? value.slice(0, comma).toLowerCase() : "";
+    const base64 = comma >= 0 ? value.slice(comma + 1) : value;
     try {
-      return base64ToBytes(base64);
+      const decoded = base64ToBytes(base64);
+      // Gemini TTS returns raw signed 16-bit little-endian PCM at 24 kHz mono.
+      // Browsers do not reliably play bare L16, so make the transport/cache
+      // artifact a self-describing WAV file.
+      if (metadata.startsWith("data:audio/l16") || metadata.startsWith("data:audio/pcm")) {
+        return wavFromPcm16Le(decoded);
+      }
+      return decoded;
     } catch (_) {
       return null;
     }
@@ -324,7 +361,7 @@ export async function handleTtsRequest(context) {
     for (let attempt = 0; attempt < maxAttempts && !bytes?.length; attempt += 1) {
       attempts += 1;
       try {
-        const invocation = ttsInvocationForModel(model, { text, language });
+        const invocation = ttsInvocationForModel(model, { text, language }, context.env);
         const result = invocation.options
           ? await context.env.AI.run(model, invocation.input, invocation.options)
           : await context.env.AI.run(model, invocation.input);
