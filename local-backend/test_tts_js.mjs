@@ -202,9 +202,10 @@ await withDatabase(async (db) => {
       return { audio: `data:audio/wav;base64,${base64(wavBytes)}` };
     },
   };
+  const fallbackBucket = fakeBucket();
   const fallback = await call(db, {
     query: "?language=ja&text=" + encodeURIComponent("日本語の読み上げ"),
-    env: { WYJ_STORAGE: fakeBucket(), AI: fallbackAi, TTS_RETRY_BASE_MS: "0" },
+    env: { WYJ_STORAGE: fallbackBucket, AI: fallbackAi, TTS_RETRY_BASE_MS: "0" },
   });
   assert.equal(fallback.status, 200);
   assert.equal(fallback.headers.get("Content-Type"), "audio/wav");
@@ -216,6 +217,18 @@ await withDatabase(async (db) => {
   );
   assert.equal(fallbackCalls.at(-1).input.text, "日本語の読み上げ");
   assert.equal(fallbackCalls.at(-1).options, undefined);
+
+  const fallbackCached = await call(db, {
+    query: "?language=jp&text=" + encodeURIComponent("日本語の読み上げ"),
+    env: {
+      WYJ_STORAGE: fallbackBucket,
+      AI: { async run() { throw new Error("fallback cache hit must not call AI"); } },
+    },
+  });
+  assert.equal(fallbackCached.status, 200);
+  assert.equal(fallbackCached.headers.get("X-WYJ-TTS"), "hit");
+  assert.equal(fallbackCached.headers.get("X-WYJ-TTS-Model"), TTS_FALLBACK_MODEL);
+  assert.equal(fallbackCached.headers.get("X-WYJ-TTS-Attempts"), "0");
 
   // 8. Validation errors are explicit.
   await expectError(await call(db, { query: "?language=fr&text=bonjour", env: { WYJ_STORAGE: bucket, AI: ai } }), 400, "tts_language_unsupported");
