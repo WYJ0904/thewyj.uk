@@ -5,6 +5,7 @@ import java.io.File
 import java.util.UUID
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -425,6 +426,43 @@ class PaymentHintSyncCrossClientTest {
         assertTrue(result.changed)
         assertEquals("/api/notification/hints/ignore", postedPath)
         assertEquals("hint:cloud-1", org.json.JSONObject(postedBody).getString("hint_id"))
+    }
+
+
+    @Test fun confirmedCloudReviewCannotBeLocallyIgnored() {
+        var postCalls = 0
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String): IngestResponse {
+                postCalls += 1
+                return IngestResponse(true, 200, """{"ok":true}""")
+            }
+
+            override fun get(path: String, sessionToken: String): IngestResponse =
+                IngestResponse(
+                    true,
+                    200,
+                    """{"ok":true,"records":[{"kind":"hint","id":"hint:confirmed","event_id":"evt-confirmed","event_ids":["evt-confirmed"],"state":"confirmed","transaction_id":"txn-1"}]}""",
+                )
+        }
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(),
+            hintedTransport = transport,
+            hintedStore = paymentStore,
+            archiveSink = sink(),
+            accountOverride = {
+                NotificationCaptureCoordinator.CaptureAccount(
+                    accountId = account,
+                    deviceId = "device-a",
+                    sessionToken = "token-a",
+                    financeEntitled = true,
+                )
+            },
+        )
+
+        val result = sync.dismissRemote(account, "evt-confirmed")
+        assertFalse(result.ok)
+        assertTrue(result.message.contains("已在财务账本中确认"))
+        assertEquals(0, postCalls)
     }
 
 }
