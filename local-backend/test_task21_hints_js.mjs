@@ -245,6 +245,37 @@ try {
   assert.equal(confirmMissingAmount.response.status, 400);
   assert.equal(confirmMissingAmount.payload.code, "hint_amount_required");
 
+  // 6b. The same event becomes richer after Android Accessibility/OCR verifies
+  // it. This must update the existing pending hint in place, not create a second
+  // row and not require Finance to keep showing stale "amount unknown" data.
+  const enriched = await request(db, "/api/notification/hints", {
+    method: "POST",
+    token: USER.token,
+    body: hintBody("evt-hints-amount-unknown", {
+      amount_minor: 10000,
+      direction: "expense",
+      confidence: 950,
+      recognition_status: "CONFIRMED_PAYMENT",
+      evidence: {
+        source_type: "accessibility",
+        confidence: 950,
+        reasons: ["accessibility_verified_amount"],
+        recognised_fields: ["amount", "direction"],
+      },
+    }),
+  });
+  assert.equal(enriched.response.status, 200, JSON.stringify(enriched.payload));
+  assert.equal(enriched.payload.results[0].duplicate, true);
+  assert.equal(enriched.payload.results[0].updated, true);
+  assert.equal(enriched.payload.hints[0].id, hintId, "enrichment keeps the canonical hint identity");
+  assert.equal(enriched.payload.hints[0].amount_minor, 10000);
+  assert.equal(enriched.payload.hints[0].direction, "expense");
+  assert.equal(enriched.payload.hints[0].state, "pending");
+  const hintRowsAfterEnrichment = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task21_notification_pending_hints WHERE user_id = ?1",
+  ).bind(USER.id).first();
+  assert.equal(Number(hintRowsAfterEnrichment.count), 2, "enrichment never creates a second pending hint");
+
   // 7. Confirm with amount + direction creates exactly one finance entry.
   const confirmed = await request(db, "/api/notification/hints/confirm", {
     method: "POST",
@@ -300,9 +331,29 @@ try {
   const afterRevive = await request(db, "/api/notification/hints", { token: USER.token });
   assert.equal(afterRevive.payload.hints.length, 1, "confirmed hints leave the pending list");
   const confirmedRow = await db.prepare(
-    "SELECT state FROM task21_notification_pending_hints WHERE user_id = ?1 AND id = ?2",
+    "SELECT state, amount_minor, direction FROM task21_notification_pending_hints WHERE user_id = ?1 AND id = ?2",
   ).bind(USER.id, hintId).first();
   assert.equal(confirmedRow.state, "confirmed");
+  assert.equal(Number(confirmedRow.amount_minor), 10000);
+  assert.equal(confirmedRow.direction, "expense");
+
+  const terminalReplay = await request(db, "/api/notification/hints", {
+    method: "POST",
+    token: USER.token,
+    body: hintBody("evt-hints-amount-unknown", {
+      amount_minor: 99999,
+      direction: "income",
+      confidence: 1000,
+      recognition_status: "CONFIRMED_PAYMENT",
+    }),
+  });
+  assert.equal(terminalReplay.payload.results[0].updated, false, "terminal hints are immutable");
+  const terminalAfterReplay = await db.prepare(
+    "SELECT state, amount_minor, direction FROM task21_notification_pending_hints WHERE user_id = ?1 AND id = ?2",
+  ).bind(USER.id, hintId).first();
+  assert.equal(terminalAfterReplay.state, "confirmed");
+  assert.equal(Number(terminalAfterReplay.amount_minor), 10000);
+  assert.equal(terminalAfterReplay.direction, "expense");
 
   // 10. Ignore removes the hint from pending and it cannot be confirmed later.
   const directionHintId = pending.payload.hints.find(
