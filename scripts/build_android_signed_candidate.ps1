@@ -1,7 +1,7 @@
 param(
-    [string]$VersionName = "1.3.11",
-    [int]$VersionCode = 24,
-    [string]$BaseUrl = "https://codex-task24-candidate-histo.thewyj-uk.pages.dev",
+    [string]$VersionName = "1.3.12",
+    [int]$VersionCode = 25,
+    [string]$BaseUrl = "https://thewyj.uk",
     [string]$KeystorePath = "$env:USERPROFILE\.thewyj\thewyj-android-release.jks",
     [string]$CredentialPath = "$env:USERPROFILE\.thewyj\android-release-credentials.txt",
     [string]$KeyAlias = "thewyj-release",
@@ -142,7 +142,7 @@ try {
 
     $OutputDir = Join-Path $RepoRoot "artifacts"
     New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
-    $OutputApk = Join-Path $OutputDir "thewyj-android-$VersionName-task24-preview.apk"
+    $OutputApk = Join-Path $OutputDir "thewyj-android-$VersionName-task24-candidate.apk"
     Copy-Item -Force $Apk $OutputApk
 
     $hash = (Get-FileHash -Algorithm SHA256 $OutputApk).Hash.ToLowerInvariant()
@@ -157,7 +157,7 @@ try {
         apkSizeBytes = $size
         apkPath = $OutputApk
     }
-    $info | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $OutputDir "thewyj-android-$VersionName-task24-preview.json")
+    $info | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $OutputDir "thewyj-android-$VersionName-task24-candidate.json")
 
     Write-Host ""
     Write-Host "SIGNED CANDIDATE READY" -ForegroundColor Green
