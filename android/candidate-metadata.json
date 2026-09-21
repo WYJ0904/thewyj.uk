@@ -1,17 +1,16 @@
 {
   "applicationId": "uk.thewyj.app",
-  "versionName": "1.3.12",
-  "versionCode": 25,
+  "versionName": "1.3.13",
+  "versionCode": 26,
   "candidate": true,
   "productionRelease": false,
-  "status": "signed_ci_browser_pending",
+  "status": "source_ready_ci_pending",
   "baseUrl": "https://thewyj.uk",
   "releaseDate": "2026-09-21",
-  "build": "2026-09-21-task24-device-actions-r8",
-  "apkFileName": "thewyj-android-1.3.12-task24-candidate.apk",
-  "apkSha256": "d485042baa3fe1d864ec0574a286726737270b41ad5dadbb9a6ac4b9339f94b3",
-  "apkSizeBytes": 47627725,
-  "certificateSha256": "2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03",
+  "build": "2026-09-21-task24-cross-client-r9",
+  "apkFileName": "",
+  "apkSha256": "",
+  "apkSizeBytes": 0,
   "supersedesRejectedCandidateSha256": "b07940a4d11f364e8f5818aa4589d22eee2d55225f2b3193e79f9dacf59b7ff0",
-  "notes": "Production-base signed 1.3.12 Task 24 device-acceptance candidate. Android CI passed; browser E2E still pending at time of signing. Do not publish to Production update metadata/R2 until full CI and device B-10/B-11 acceptance pass."
+  "notes": "1.3.13 source candidate: adds Production-API compatibility for pending review reconciliation, pulls confirmed/rejected server candidates into Android terminal state, and labels screenshot evidence semantically. Not yet signed; do not publish."
 }
