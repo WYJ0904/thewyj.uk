@@ -311,4 +311,120 @@ class PaymentHintSyncCrossClientTest {
             paymentStore.recognition(account, "rec-other-device")?.state,
         )
     }
+
+    @Test fun accessibilityEnrichmentPushesIntoTheExistingCloudHintIdentity() {
+        paymentStore.saveRecognition(
+            PaymentRecognitionRecord(
+                recognitionId = "rec-enriched",
+                accountId = account,
+                state = PaymentRecognitionState.ENRICHMENT_VERIFIED.name,
+                notificationId = 10,
+                sourcePackage = "com.tencent.mm",
+                sourceType = "notification",
+                sourceEventId = "notification#wechat#enriched",
+                uploadEventId = "evt-enriched",
+                paymentChannel = "wechat",
+                amountMinor = 1,
+                currency = "CNY",
+                direction = "EXPENSE",
+                merchant = "",
+                providerReference = "",
+                createdAtMs = 2_000L,
+                updatedAtMs = 2_000L,
+            ),
+        )
+        paymentStore.saveCandidate(
+            PaymentCandidate(
+                candidateId = "cand-enriched",
+                accountId = account,
+                recognitionId = "rec-enriched",
+                status = "pending",
+                amountMinor = 1,
+                direction = "EXPENSE",
+                category = "",
+                merchant = "",
+                occurredAtMs = 2_000L,
+                channel = "wechat",
+                confidence = 950,
+                reason = "accessibility_enrichment",
+                createdAtMs = 2_000L,
+                updatedAtMs = 2_000L,
+            ),
+        )
+        var postedPath = ""
+        var postedBody = ""
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String): IngestResponse {
+                postedPath = path
+                postedBody = body
+                return IngestResponse(true, 200, """{"ok":true}""")
+            }
+        }
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(),
+            hintedTransport = transport,
+            hintedStore = paymentStore,
+            archiveSink = sink(),
+            accountOverride = {
+                NotificationCaptureCoordinator.CaptureAccount(
+                    accountId = account,
+                    deviceId = "device-a",
+                    sessionToken = "token-a",
+                    financeEntitled = true,
+                )
+            },
+        )
+
+        assertTrue(sync.publishEnrichment(account, "rec-enriched"))
+        assertEquals("/api/notification/hints", postedPath)
+        val payload = org.json.JSONObject(postedBody)
+        val hint = payload.getJSONArray("hints").getJSONObject(0)
+        assertEquals("evt-enriched", hint.getString("source_event_id"))
+        assertEquals(1L, hint.getLong("amount_minor"))
+        assertEquals("expense", hint.getString("direction"))
+        assertEquals("accessibility", hint.getString("source_type"))
+        assertEquals("CONFIRMED_PAYMENT", hint.getString("recognition_status"))
+    }
+
+    @Test fun explicitIgnoreTerminatesTheMatchingCloudReviewBeforeLocalDismissal() {
+        var postedPath = ""
+        var postedBody = ""
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String): IngestResponse {
+                postedPath = path
+                postedBody = body
+                return IngestResponse(true, 200, """{"ok":true}""")
+            }
+
+            override fun get(path: String, sessionToken: String): IngestResponse {
+                assertTrue(path.startsWith("/api/notification/pending-summary?event_ids="))
+                return IngestResponse(
+                    true,
+                    200,
+                    """{"ok":true,"records":[{"kind":"hint","id":"hint:cloud-1","event_id":"evt-ignore","event_ids":["evt-ignore"],"state":"pending"}]}""",
+                )
+            }
+        }
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(),
+            hintedTransport = transport,
+            hintedStore = paymentStore,
+            archiveSink = sink(),
+            accountOverride = {
+                NotificationCaptureCoordinator.CaptureAccount(
+                    accountId = account,
+                    deviceId = "device-a",
+                    sessionToken = "token-a",
+                    financeEntitled = true,
+                )
+            },
+        )
+
+        val result = sync.dismissRemote(account, "evt-ignore")
+        assertTrue(result.ok)
+        assertTrue(result.changed)
+        assertEquals("/api/notification/hints/ignore", postedPath)
+        assertEquals("hint:cloud-1", org.json.JSONObject(postedBody).getString("hint_id"))
+    }
+
 }
