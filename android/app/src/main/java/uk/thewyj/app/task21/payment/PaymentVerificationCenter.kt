@@ -79,6 +79,11 @@ class PaymentVerificationCenter(context: Context) {
         val syncState: SyncState = SyncState.NONE,
     )
 
+    data class IgnoreResult(
+        val ok: Boolean,
+        val message: String,
+    )
+
     data class FlushOutcome(val uploaded: Int, val rejected: List<String>)
 
     /** Creates a fresh 90 second ticket for a recognition the user asked for. */
@@ -92,10 +97,22 @@ class PaymentVerificationCenter(context: Context) {
 
     /** Items that still need the user, newest first. */
     fun items(accountId: String): List<Item> {
+        // Accessibility/OCR may have filled a previously amount-unknown local
+        // recognition after its server hint was created. Push those verified
+        // fields into the *same* event identity before pulling terminal state,
+        // so /finance and this screen observe one review item.
+        val beforeSync = store.recognitionsByState(accountId, ATTENTION_STATES, 60)
+        beforeSync
+            .filter { it.state == PaymentRecognitionState.ENRICHMENT_VERIFIED.name && it.uploadEventId.isNotBlank() }
+            .forEach { recognition ->
+                runCatching { hintSync.publishEnrichment(accountId, recognition.recognitionId) }
+            }
+
         // P0-2/P0-3: refresh from the shared pending source first, so a hint the
         // user completed on Web /finance is already reflected here.
         runCatching { hintSync.sync() }
         val recognitions = store.recognitionsByState(accountId, ATTENTION_STATES, 60)
+            .distinctBy(::reviewIdentity)
         val queued = pipeline.queuedRequests()
         val queue = queued.map { it.operationId }.toSet()
         val rejections = queued.filter { it.lastError.isNotBlank() }.associate { it.operationId to it.lastError }
@@ -292,16 +309,32 @@ class PaymentVerificationCenter(context: Context) {
         }
     }
 
-    fun ignore(accountId: String, candidateId: String, recognitionId: String): Boolean {
-        if (candidateId.isNotBlank()) runCatching { hook.coordinator().rejectCandidate(accountId, candidateId) }
-        return runCatching {
-            val recognition = store.recognition(accountId, recognitionId)
-            if (recognition != null) {
-                store.saveRecognition(
-                    recognition.copy(state = "IGNORED", updatedAtMs = System.currentTimeMillis()),
-                )
+    fun ignore(accountId: String, candidateId: String, recognitionId: String): IgnoreResult {
+        val recognition = store.recognition(accountId, recognitionId)
+            ?: return IgnoreResult(false, "找不到这笔待处理交易")
+        val eventId = recognition.uploadEventId.trim()
+
+        // If this review exists in the shared server set, make the remote state
+        // terminal first. Never tell the user it was deleted only to let the
+        // next Finance refresh resurrect it.
+        if (eventId.isNotBlank()) {
+            val remote = hintSync.dismissRemote(accountId, eventId)
+            if (!remote.ok) {
+                return IgnoreResult(false, remote.message.ifBlank { "云端待处理状态没有删除，请重试" })
             }
-        }.isSuccess
+        }
+
+        if (candidateId.isNotBlank()) {
+            runCatching { hook.coordinator().rejectCandidate(accountId, candidateId) }
+        }
+        return runCatching {
+            store.saveRecognition(
+                recognition.copy(state = PaymentRecognitionState.IGNORED.name, updatedAtMs = System.currentTimeMillis()),
+            )
+            IgnoreResult(true, "已忽略这笔交易，通知与财务待处理状态已同步")
+        }.getOrElse {
+            IgnoreResult(false, "本机待处理状态没有保存，请重试")
+        }
     }
 
     /** Flushes queued bookings so the cloud ledger catches up. */
@@ -326,6 +359,14 @@ class PaymentVerificationCenter(context: Context) {
             PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name,
             PaymentRecognitionState.VERIFICATION_FAILED.name,
         )
+
+        /**
+         * Canonical UI/review identity. Two local rows are folded only when
+         * they already prove the same structured event; amount/time proximity
+         * is deliberately never used as a dedupe heuristic.
+         */
+        fun reviewIdentity(recognition: PaymentRecognitionRecord): String =
+            recognition.uploadEventId.ifBlank { recognition.sourceEventId }.ifBlank { recognition.recognitionId }
 
         /** Deterministic so a retry can never book the same payment twice. */
         fun bookingEventId(recognition: PaymentRecognitionRecord): String =
