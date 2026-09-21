@@ -4,8 +4,9 @@
       version: "2026.09.21.1",
       build: "2026-09-21-task24-device-sync-r7",
       date: "2026-09-21",
-      title: "Task 24 真机支付同步收敛与 TTS 兼容修复候选",
+      title: "Task 24 真机支付同步收敛与 TTS 兼容修复候选（Android 1.3.11）",
       features: [
+        "Android 1.3.11（versionCode 24）正式签名候选已生成，可从现有正式版原位升级并保留账户、通知历史与财务数据；当前候选连接 Task 24 Preview，仅用于真机验收。",
         "Android 待核实交易现在以稳定事件 ID 与云端财务候选共用同一条身份链；从来源支付应用返回 thewyj 时会立即重新对账。",
       ],
       improvements: [
