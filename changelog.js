@@ -4,11 +4,11 @@
       version: "2026.09.21.1",
       build: "2026-09-21-task24-device-sync-r7",
       date: "2026-09-21",
-      title: "Task 24 真机支付动作与身份收敛候选（Android 1.3.12）",
+      title: "Task 24 跨端终态同步与截图语义候选（Android 1.3.13）",
       features: [
-        "Android 1.3.12（versionCode 25）候选默认连接正式站 https://thewyj.uk；签名脚本与手动签名工作流不再默认生成 Preview 后端包。",
-        "待核实交易的「打开应用」补齐 Android 11+ package visibility 与 launcher fallback；「忽略这笔」会即时显示同步状态并阻止重复点击。",
-        "同一支付通知在金额未知后被无障碍补全时继续沿用原稳定事件 ID，避免把一次真实支付拆成两张待处理卡片。",
+        "Android 1.3.13（versionCode 26）候选继续连接正式站 https://thewyj.uk，并兼容当前 Production 尚未提供 pending-summary 的旧接口组合。",
+        "待核实交易继续保留 Android 11+ 来源应用启动 fallback 与即时忽略反馈；Web 财务确认或拒绝 candidate 后，Android 本地 recognition 会在下一次同步进入终态。",
+        "同一支付通知在金额未知后被无障碍补全时继续沿用原稳定事件 ID；MediaStore 截图历史按语义显示为「屏幕截图」，不再把系统捕获进程误当作用户看到的来源名称。",
       ],
       improvements: [
         "无障碍或本机 OCR 后补出的金额、收支方向与商户会写回原有云端 pending hint，不再生成第二套待处理数据。",
