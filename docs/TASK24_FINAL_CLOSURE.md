@@ -5,6 +5,16 @@
 当前修复分支：`codex/task24-candidate-history-r6`（base `main`）；历史支付生命周期修复 PR：`#75`
 Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Task 25 代码）
 
+## 2026-09-21 device regression handoff
+
+用户已确认上一轮要求复测的三个 Android 真机问题全部解决，作为后续 Codex 收尾时不可回退的回归基线：
+
+- 待核实交易的「打开应用」现在可正常拉起来源应用，不再静默无反应。
+- 「忽略这笔」现在有即时反馈并能完成终态处理，不再表现为死按钮。
+- 同一真实支付的重复卡片问题在该轮复测中已解决；继续保留稳定事件 ID / amount-unknown → amount-known 身份复用，禁止退回按金额/时间猜测合并。
+
+以上三项仅代表对应回归点 PASS，**不等于 B-10 / B-11 整体关闭**。后续仍需继续完成 1.3.13 的跨端终态同步、截图语义及最终 closure gates；Task 24 关闭前 Task 25 继续阻塞。
+
 证据口径：
 
 - **CI / PR Preview 通过 ≠ Production Closure**。当前所有 CI 证据来自 PR Preview（wrangler pages dev + 本地 D1/R2 + headless Chrome）。
