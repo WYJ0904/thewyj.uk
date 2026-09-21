@@ -271,10 +271,12 @@ class PaymentHintSync(
             store.candidateForRecognition(accountId, recognition.recognitionId)
         }.getOrNull()
         if (candidate != null && financeEntryId.isNotBlank()) {
+            // Keep the production notifier/status-machine side effect, but never
+            // rely on the process-global hook for persistence: tests and callers
+            // may inject a different store, and that store is the sync contract.
             runCatching {
                 hook.coordinator().markFinanceRecorded(accountId, candidate.candidateId, financeEntryId)
             }
-            return
         }
         runCatching {
             store.saveRecognition(
@@ -344,7 +346,6 @@ class PaymentHintSync(
         }.getOrNull()
         if (candidate != null && financeEntryId.isNotBlank()) {
             runCatching { hook.coordinator().markFinanceRecorded(accountId, candidate.candidateId, financeEntryId) }
-            return
         }
         runCatching {
             store.saveRecognition(
@@ -356,7 +357,13 @@ class PaymentHintSync(
         }
         if (candidate != null) {
             runCatching {
-                store.saveCandidate(candidate.copy(status = "confirmed", updatedAtMs = System.currentTimeMillis()))
+                store.saveCandidate(
+                    candidate.copy(
+                        status = "confirmed",
+                        financeTransactionId = financeEntryId.ifBlank { candidate.financeTransactionId },
+                        updatedAtMs = System.currentTimeMillis(),
+                    ),
+                )
             }
         }
     }
