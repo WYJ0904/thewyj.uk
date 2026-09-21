@@ -23,6 +23,11 @@ const STATES = new Set(["pending", "confirmed", "ignored", "superseded", "expire
 const RECOGNITION_STATUSES = new Set(["CONFIRMED_PAYMENT", "PAYMENT_LIKELY", "INSUFFICIENT_INFORMATION"]);
 const SOURCE_TYPES = new Set(["notification", "sms", "bank", "accessibility"]);
 const DIRECTIONS = new Set(["income", "expense", "refund", "unknown"]);
+const RECOGNITION_STATUS_RANK = Object.freeze({
+  INSUFFICIENT_INFORMATION: 0,
+  PAYMENT_LIKELY: 1,
+  CONFIRMED_PAYMENT: 2,
+});
 
 async function first(db, sql, values = []) {
   return await db.prepare(sql).bind(...values).first();
@@ -237,7 +242,34 @@ export async function upsertNotificationHints(db, account, input) {
     const existing = await first(db, `SELECT * FROM task21_notification_pending_hints
       WHERE user_id = ?1 AND source_event_id = ?2`, [account.id, sourceEventId]);
     if (existing) {
-      results.push({ hint: publicHint(existing), duplicate: true });
+      // A single event can become richer after its initial notification. The
+      // common Android path is amount-unknown hint -> explicit Accessibility/OCR
+      // verification. Keep the same row/id and fill only fields that were
+      // missing; conflicting existing money evidence is never overwritten.
+      // Terminal rows stay immutable, so a replay can never revive them.
+      if (existing.state === "pending") {
+        const previousStatus = String(existing.recognition_status || "INSUFFICIENT_INFORMATION");
+        const mergedStatus = (RECOGNITION_STATUS_RANK[recognitionStatus] ?? 0) >
+          (RECOGNITION_STATUS_RANK[previousStatus] ?? 0)
+          ? recognitionStatus
+          : previousStatus;
+        await run(db, `UPDATE task21_notification_pending_hints
+          SET amount_minor = COALESCE(amount_minor, ?3),
+              direction = COALESCE(direction, ?4),
+              merchant = CASE WHEN merchant = '' AND ?5 != '' THEN ?5 ELSE merchant END,
+              confidence = MAX(confidence, ?6),
+              recognition_status = ?7,
+              evidence_summary = CASE WHEN ?6 >= confidence THEN ?8 ELSE evidence_summary END,
+              updated_at = ?9
+          WHERE user_id = ?1 AND id = ?2 AND state = 'pending'`, [
+          account.id, existing.id, amountMinor, direction, merchant, confidence,
+          mergedStatus, evidence, now,
+        ]);
+        const updated = await hintById(db, account, existing.id);
+        results.push({ hint: publicHint(updated), duplicate: true, updated: true });
+      } else {
+        results.push({ hint: publicHint(existing), duplicate: true, updated: false });
+      }
       continue;
     }
     const id = `hint:${crypto.randomUUID()}`;
