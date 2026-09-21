@@ -204,6 +204,22 @@ async function reconcilePendingHint(db, account, row) {
   return await hintById(db, account, row.id);
 }
 
+async function reconcileConfirmedHint(db, account, row) {
+  if (String(row.state || "") !== "confirmed") return row;
+  const booking = await ledgerBookingForEvent(db, account.id, String(row.source_event_id || ""));
+  if (booking) return row;
+  const financeId = String(row.finance_entry_id || "");
+  if (!financeId) return row;
+  const active = await first(db, `SELECT id FROM task16_finance_transactions
+    WHERE user_id = ?1 AND id = ?2 AND status = 'active'`, [account.id, financeId]);
+  if (active) return row;
+  const now = isoNow();
+  await run(db, `UPDATE task21_notification_pending_hints
+    SET state = 'ignored', finance_entry_id = '', ignored_at = ?3, updated_at = ?3
+    WHERE user_id = ?1 AND id = ?2 AND state = 'confirmed'`, [account.id, row.id, now]);
+  return await hintById(db, account, row.id);
+}
+
 /**
  * Upsert one or more hints. Identity is (user, source_event_id), so a duplicate
  * ingest can never create a second pending row, and a confirmed/ignored event is
@@ -318,7 +334,13 @@ export async function listNotificationHints(db, account, input = {}) {
     ORDER BY created_at DESC LIMIT ?3`).bind(account.id, state, limit).all();
   const results = [];
   for (const row of rows?.results || []) {
-    results.push(row.state === "pending" ? await reconcilePendingHint(db, account, row) : row);
+    if (row.state === "pending") {
+      results.push(await reconcilePendingHint(db, account, row));
+    } else if (row.state === "confirmed") {
+      results.push(await reconcileConfirmedHint(db, account, row));
+    } else {
+      results.push(row);
+    }
   }
   return {
     hints: results.map(publicHint),
@@ -353,23 +375,37 @@ export async function notificationPendingSummary(db, account, input = {}) {
     GROUP BY raw.user_id, raw.source_event_id
   ), review AS (
     SELECT 'hint' AS kind, h.id, h.source_event_id AS event_id, h.device_id,
-      CASE WHEN COALESCE(NULLIF(e.finance_transaction_id, ''), b.transaction_id, '') != '' THEN 'confirmed' ELSE h.state END AS state,
-      COALESCE(NULLIF(e.finance_transaction_id, ''), b.transaction_id, h.finance_entry_id) AS transaction_id,
+      CASE
+        WHEN COALESCE(et.id, b.transaction_id, ht.id, '') != '' THEN 'confirmed'
+        WHEN h.state = 'confirmed' AND h.finance_entry_id != '' THEN 'ignored'
+        ELSE h.state
+      END AS state,
+      COALESCE(et.id, b.transaction_id, ht.id, '') AS transaction_id,
       h.updated_at, json_array(h.source_event_id) AS event_ids
     FROM task21_notification_pending_hints h
     LEFT JOIN task21_notification_events e ON e.user_id = h.user_id AND e.event_id = h.source_event_id
+    LEFT JOIN task16_finance_transactions et
+      ON et.user_id = h.user_id AND et.id = e.finance_transaction_id AND et.status = 'active'
     LEFT JOIN booking b ON b.user_id = h.user_id AND b.source_event_id = h.source_event_id
+    LEFT JOIN task16_finance_transactions ht
+      ON ht.user_id = h.user_id AND ht.id = h.finance_entry_id AND ht.status = 'active'
     WHERE h.user_id = ?1 AND NOT EXISTS (
       SELECT 1 FROM task21_notification_candidates c WHERE c.user_id = h.user_id AND c.event_id = h.source_event_id
     )
     UNION ALL
     SELECT 'candidate', c.id, c.event_id, COALESCE(e.device_id, ''),
-      CASE WHEN c.finance_transaction_id != '' THEN 'confirmed' ELSE c.status END,
-      c.finance_transaction_id, c.updated_at,
+      CASE
+        WHEN ct.id IS NOT NULL THEN 'confirmed'
+        WHEN c.status = 'confirmed' AND c.finance_transaction_id != '' THEN 'rejected'
+        ELSE c.status
+      END,
+      COALESCE(ct.id, ''), c.updated_at,
       COALESCE((SELECT json_group_array(ev.event_id) FROM task21_notification_events ev
         WHERE ev.user_id = c.user_id AND ev.candidate_id = c.id), json_array(c.event_id))
     FROM task21_notification_candidates c
     LEFT JOIN task21_notification_events e ON e.user_id = c.user_id AND e.event_id = c.event_id
+    LEFT JOIN task16_finance_transactions ct
+      ON ct.user_id = c.user_id AND ct.id = c.finance_transaction_id AND ct.status = 'active'
     WHERE c.user_id = ?1
   ), visible AS (
     SELECT * FROM review WHERE state = 'pending' OR EXISTS (
