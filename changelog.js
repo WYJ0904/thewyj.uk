@@ -1,6 +1,28 @@
 (() => {
   const entries = [
     {
+      version: "2026.09.21.1",
+      build: "2026-09-21-task24-device-sync-r7",
+      date: "2026-09-21",
+      title: "Task 24 真机支付同步收敛与 TTS 兼容修复候选",
+      features: [
+        "Android 待核实交易现在以稳定事件 ID 与云端财务候选共用同一条身份链；从来源支付应用返回 thewyj 时会立即重新对账。",
+      ],
+      improvements: [
+        "无障碍或本机 OCR 后补出的金额、收支方向与商户会写回原有云端 pending hint，不再生成第二套待处理数据。",
+        "云端 TTS 第三方模型调用已补齐 AI Gateway 参数，并把 Gemini 返回的 24 kHz / 16-bit / mono L16 PCM 封装为浏览器可播放的 WAV。",
+      ],
+      fixes: [
+        "修复 Android 通知待处理与 Web 财务待处理长期不同步、同一事件重复显示，以及刷新后已忽略记录重新出现的问题。",
+        "修复「忽略这笔」只删除本机 Room、没有终止服务器 hint/candidate 的问题；已进入财务账本的 confirmed 记录禁止再伪装成已忽略。",
+        "修复打开微信时 Compose 正常取消被错误显示为“The coroutine scope left the composition”的红色业务错误。",
+      ],
+      security: [
+        "支付去重只依据已证明相同的稳定事件 ID，不按相同金额或相近时间猜测，避免吞掉真实的连续同额交易。",
+        "TTS 真实 Preview 仍处于验收中；云端失败时继续明确回退浏览器离线语音，不伪报云端成功。",
+      ],
+    },
+    {
       version: "2026.09.20.1",
       build: "2026-09-20-task24-candidate-history-r6",
       date: "2026-09-20",
