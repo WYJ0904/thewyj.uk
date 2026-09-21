@@ -16,6 +16,8 @@ import { apiError, enforceD1RateLimit, featureFlags, requestIdFor, sha256Hex } f
  */
 
 export const TTS_DEFAULT_MODEL = "@cf/myshell-ai/melotts";
+export const TTS_FALLBACK_MODEL = "google/gemini-3.1-flash-tts";
+export const TTS_FALLBACK_ATTEMPTS = 2;
 // v2 excludes any v1 object that the old raw-response path could have cached
 // after misclassifying a provider JSON error body as MPEG audio.
 export const TTS_CACHE_VERSION = "v2";
@@ -51,6 +53,7 @@ const LANGUAGE_ALIASES = new Map([
 
 const ALLOWED_MODELS = new Set([
   "@cf/myshell-ai/melotts",
+  "google/gemini-3.1-flash-tts",
 ]);
 
 export function normalizeTtsLanguage(value) {
@@ -75,6 +78,29 @@ export function normalizeTtsVoice(value) {
 export function ttsModelFor(env = {}) {
   const configured = String(env.TTS_MODEL || "").trim();
   return ALLOWED_MODELS.has(configured) ? configured : TTS_DEFAULT_MODEL;
+}
+
+export function ttsModelCandidates(env = {}) {
+  const primary = ttsModelFor(env);
+  const configuredFallback = String(env.TTS_FALLBACK_MODEL || "").trim();
+  if (["off", "none", "disabled"].includes(configuredFallback.toLowerCase())) return [primary];
+  const fallback = ALLOWED_MODELS.has(configuredFallback)
+    ? configuredFallback
+    : TTS_FALLBACK_MODEL;
+  return fallback && fallback !== primary ? [primary, fallback] : [primary];
+}
+
+function ttsInvocationForModel(model, { text, language }) {
+  if (model === "google/gemini-3.1-flash-tts") {
+    // Gemini TTS infers the spoken language from the transcript. Cloudflare's
+    // unified catalog returns base64 audio for this model, so the client-facing
+    // /api/tts contract stays unchanged.
+    return { input: { text }, options: null };
+  }
+  return {
+    input: { prompt: text, lang: language },
+    options: { returnRawResponse: true },
+  };
 }
 
 /** Stable cache identity: language + text + voice + model/version. */
@@ -250,22 +276,24 @@ export async function handleTtsRequest(context) {
     return apiError("rate_limited", "语音请求过于频繁，请稍后再试", 429, requestId, { retryable: true });
   }
 
-  const model = ttsModelFor(context.env);
-  const cacheKey = await ttsCacheKey({ language, text, voice, model });
+  const models = ttsModelCandidates(context.env);
   const bucket = context.env?.WYJ_STORAGE;
   const flags = featureFlags(context.env);
   if (bucket?.get) {
-    const cached = await bucket.get(cacheKey).catch(() => null);
-    if (cached?.body) {
-      const contentType = cached.httpMetadata?.contentType || "audio/mpeg";
-      return audioResponse(cached.body, {
-        cacheHit: true,
-        model,
-        requestId,
-        contentType,
-        etag: cacheKey,
-        attempts: 0,
-      });
+    for (const model of models) {
+      const cacheKey = await ttsCacheKey({ language, text, voice, model });
+      const cached = await bucket.get(cacheKey).catch(() => null);
+      if (cached?.body) {
+        const contentType = cached.httpMetadata?.contentType || "audio/mpeg";
+        return audioResponse(cached.body, {
+          cacheHit: true,
+          model,
+          requestId,
+          contentType,
+          etag: cacheKey,
+          attempts: 0,
+        });
+      }
     }
   }
 
@@ -282,30 +310,43 @@ export async function handleTtsRequest(context) {
   let bytes = null;
   let attempts = 0;
   let lastError = null;
+  let selectedModel = models[0];
+  let selectedCacheKey = null;
   const configuredBase = Number.parseInt(String(context.env?.TTS_RETRY_BASE_MS ?? ""), 10);
   const retryBaseMs = Number.isFinite(configuredBase)
     ? Math.max(0, Math.min(1_000, configuredBase))
     : TTS_RETRY_BASE_MS;
-  for (let attempt = 0; attempt < TTS_GENERATION_ATTEMPTS && !bytes?.length; attempt += 1) {
-    attempts = attempt + 1;
-    try {
-      const result = await context.env.AI.run(
-        model,
-        { prompt: text, lang: language },
-        { returnRawResponse: true },
-      );
-      bytes = await ttsBytesFromResult(result);
-      lastError = null;
-    } catch (error) {
-      lastError = error;
-      const status = Number(error?.status || error?.statusCode || 0);
-      // Quota exhaustion is authoritative. Retrying it only burns CPU and can
-      // never turn the current request into a success.
-      if (status === 429) break;
-    }
-    if (!bytes?.length && attempt + 1 < TTS_GENERATION_ATTEMPTS && Number(lastError?.status || lastError?.statusCode || 0) !== 429) {
-      const jitter = retryBaseMs ? Math.floor(Math.random() * retryBaseMs) : 0;
-      await new Promise((resolve) => setTimeout(resolve, retryBaseMs * (2 ** attempt) + jitter));
+
+  generation:
+  for (let modelIndex = 0; modelIndex < models.length; modelIndex += 1) {
+    const model = models[modelIndex];
+    const maxAttempts = modelIndex === 0 ? TTS_GENERATION_ATTEMPTS : TTS_FALLBACK_ATTEMPTS;
+    for (let attempt = 0; attempt < maxAttempts && !bytes?.length; attempt += 1) {
+      attempts += 1;
+      try {
+        const invocation = ttsInvocationForModel(model, { text, language });
+        const result = invocation.options
+          ? await context.env.AI.run(model, invocation.input, invocation.options)
+          : await context.env.AI.run(model, invocation.input);
+        bytes = await ttsBytesFromResult(result);
+        lastError = null;
+        if (bytes?.length) {
+          selectedModel = model;
+          selectedCacheKey = await ttsCacheKey({ language, text, voice, model });
+          break generation;
+        }
+      } catch (error) {
+        lastError = error;
+        const status = Number(error?.status || error?.statusCode || 0);
+        // Quota exhaustion is authoritative for the account/request. Do not
+        // evade it by switching providers.
+        if (status === 429) break generation;
+      }
+
+      if (!bytes?.length && attempt + 1 < maxAttempts && Number(lastError?.status || lastError?.statusCode || 0) !== 429) {
+        const jitter = retryBaseMs ? Math.floor(Math.random() * retryBaseMs) : 0;
+        await new Promise((resolve) => setTimeout(resolve, retryBaseMs * (2 ** attempt) + jitter));
+      }
     }
   }
   if (lastError) {
@@ -324,12 +365,20 @@ export async function handleTtsRequest(context) {
   }
 
   const contentType = audioContentType(bytes);
+  selectedCacheKey ||= await ttsCacheKey({ language, text, voice, model: selectedModel });
   if (bucket?.put) {
     await bucket
-      .put(cacheKey, bytes, {
+      .put(selectedCacheKey, bytes, {
         httpMetadata: { contentType, cacheControl: "public, max-age=31536000, immutable" },
       })
       .catch(() => undefined);
   }
-  return audioResponse(bytes, { cacheHit: false, model, requestId, contentType, etag: cacheKey, attempts });
+  return audioResponse(bytes, {
+    cacheHit: false,
+    model: selectedModel,
+    requestId,
+    contentType,
+    etag: selectedCacheKey,
+    attempts,
+  });
 }
