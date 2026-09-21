@@ -63,6 +63,33 @@ class AndroidPaymentNotificationLifecycleRegistryTest {
         assertNotEquals(first, later)
     }
 
+    @Test fun activeIncompletePaymentKeepsItsIdWhenAmountBecomesKnown() {
+        val ids = ArrayDeque(listOf("payment-event-0001", "payment-event-0002"))
+        val registry = AndroidPaymentNotificationLifecycleRegistry(context, idFactory = { ids.removeFirst() })
+        val capture = input("微信支付提醒")
+        val incomplete = PaymentIngestOutcome(
+            confirmed = false,
+            amountMinor = 0,
+            direction = FinanceDirection.UNKNOWN,
+            confidence = 700,
+            merchant = "",
+            counterparty = "",
+            paymentChannel = "wechat",
+            parserVersion = "wechat-2",
+        )
+        val complete = incomplete.copy(
+            confirmed = true,
+            amountMinor = 1,
+            direction = FinanceDirection.EXPENSE,
+            confidence = 950,
+        )
+
+        val first = registry.eventId("account-a", capture, incomplete)
+        val promoted = registry.eventId("account-a", capture.copy(text = "支出 ¥0.01"), complete)
+
+        assertEquals(first, promoted)
+    }
+
     @Test fun sameSlotAndAmountWithDifferentTransactionEvidenceGetsANewId() {
         val ids = ArrayDeque(listOf("payment-event-0001", "payment-event-0002"))
         var now = 1_000L
