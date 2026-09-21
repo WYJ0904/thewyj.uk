@@ -184,7 +184,144 @@ class PaymentHintSync(
                 else -> Unit
             }
         }
-        return Result(hints.length(), confirmed, ignored, true)
+        val candidatesOk = syncCandidateTerminals(account)
+        return Result(hints.length(), confirmed, ignored, candidatesOk)
+    }
+
+    /**
+     * Older Production builds already expose candidate status endpoints even
+     * though they do not have /pending-summary yet. Pull terminal candidate
+     * states too, otherwise a Web-side confirm/reject leaves the Android local
+     * recognition stuck in FINANCE_PENDING_CONFIRMATION forever.
+     */
+    private fun syncCandidateTerminals(
+        account: NotificationCaptureCoordinator.CaptureAccount,
+    ): Boolean {
+        for (status in listOf("confirmed", "rejected")) {
+            val response = runCatching {
+                transport.get("/api/notification/candidates?status=$status&limit=200", account.sessionToken)
+            }.getOrNull() ?: return false
+            if (!response.ok) return false
+            val candidates = runCatching {
+                JSONObject(response.body).optJSONArray("candidates")
+            }.getOrNull() ?: continue
+            for (index in 0 until candidates.length()) {
+                val remote = candidates.optJSONObject(index) ?: continue
+                val eventIds = buildSet {
+                    add(remote.optString("event_id"))
+                    val evidence = remote.optJSONArray("evidence")
+                    if (evidence != null) {
+                        for (evidenceIndex in 0 until evidence.length()) {
+                            add(evidence.optJSONObject(evidenceIndex)?.optString("event_id").orEmpty())
+                        }
+                    }
+                }.filter(String::isNotBlank).toSet()
+                if (eventIds.isEmpty()) continue
+                val recognition = recognitionForCandidate(account, eventIds) ?: continue
+                when (status) {
+                    "confirmed" -> applyCandidateConfirmed(
+                        account = account,
+                        recognition = recognition,
+                        eventIds = eventIds,
+                        financeEntryId = remote.optString("finance_transaction_id"),
+                    )
+                    "rejected" -> applyCandidateRejected(
+                        account = account,
+                        recognition = recognition,
+                        eventIds = eventIds,
+                    )
+                }
+            }
+        }
+        return true
+    }
+
+    private fun recognitionForCandidate(
+        account: NotificationCaptureCoordinator.CaptureAccount,
+        eventIds: Set<String>,
+    ): PaymentRecognitionRecord? {
+        val accountId = account.accountId
+        for (eventId in eventIds) {
+            runCatching { store.recognitionByUploadEvent(accountId, eventId) }.getOrNull()?.let { return it }
+            val sourceEventId = runCatching {
+                (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
+                    .recognitionSourceEventId(accountId, eventId)
+            }.getOrNull().orEmpty()
+            if (sourceEventId.isNotBlank()) {
+                runCatching { store.recognitionBySourceEvent(accountId, sourceEventId) }.getOrNull()?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun applyCandidateConfirmed(
+        account: NotificationCaptureCoordinator.CaptureAccount,
+        recognition: PaymentRecognitionRecord,
+        eventIds: Set<String>,
+        financeEntryId: String,
+    ) {
+        val accountId = account.accountId
+        eventIds.forEach { eventId ->
+            runCatching {
+                (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
+                    .markFinanceOutcome(accountId, eventId, "confirmed", financeEntryId)
+            }
+        }
+        val candidate = runCatching {
+            store.candidateForRecognition(accountId, recognition.recognitionId)
+        }.getOrNull()
+        if (candidate != null && financeEntryId.isNotBlank()) {
+            runCatching {
+                hook.coordinator().markFinanceRecorded(accountId, candidate.candidateId, financeEntryId)
+            }
+            return
+        }
+        runCatching {
+            store.saveRecognition(
+                recognition.copy(
+                    state = PaymentRecognitionState.FINANCE_RECORDED.name,
+                    updatedAtMs = System.currentTimeMillis(),
+                ),
+            )
+        }
+        if (candidate != null) {
+            runCatching {
+                store.saveCandidate(
+                    candidate.copy(
+                        status = "confirmed",
+                        financeTransactionId = financeEntryId.ifBlank { candidate.financeTransactionId },
+                        updatedAtMs = System.currentTimeMillis(),
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun applyCandidateRejected(
+        account: NotificationCaptureCoordinator.CaptureAccount,
+        recognition: PaymentRecognitionRecord,
+        eventIds: Set<String>,
+    ) {
+        val accountId = account.accountId
+        eventIds.forEach { eventId ->
+            runCatching {
+                (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
+                    .markFinanceOutcome(accountId, eventId, "ignored")
+            }
+        }
+        runCatching {
+            store.saveRecognition(
+                recognition.copy(
+                    state = PaymentRecognitionState.IGNORED.name,
+                    updatedAtMs = System.currentTimeMillis(),
+                ),
+            )
+        }
+        runCatching {
+            store.candidateForRecognition(accountId, recognition.recognitionId)?.let { candidate ->
+                store.saveCandidate(candidate.copy(status = "rejected", updatedAtMs = System.currentTimeMillis()))
+            }
+        }
     }
 
     private fun applyConfirmed(
