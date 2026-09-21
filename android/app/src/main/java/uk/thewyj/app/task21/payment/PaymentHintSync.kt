@@ -36,6 +36,113 @@ class PaymentHintSync(
     private val hook = AndroidPaymentRecognitionHook.get(app)
 
     data class Result(val refreshed: Int, val confirmed: Int, val ignored: Int, val ok: Boolean)
+    data class RemoteDismissResult(
+        val ok: Boolean,
+        val changed: Boolean = false,
+        val message: String = "",
+    )
+
+    /**
+     * Pushes the fields learned by an explicit Accessibility/OCR ticket back to
+     * the already-existing server hint. The server keeps the same event/hint id
+     * and only fills fields that were previously missing.
+     */
+    fun publishEnrichment(accountId: String, recognitionId: String): Boolean {
+        val account = (accountOverride?.invoke()
+            ?: runCatching { sessions.currentAccount() }.getOrNull()) ?: return false
+        if (!account.financeEntitled || account.accountId != accountId) return false
+        val recognition = runCatching { store.recognition(accountId, recognitionId) }.getOrNull() ?: return false
+        val eventId = recognition.uploadEventId.trim()
+        if (eventId.isBlank()) return false
+        val candidate = runCatching {
+            store.candidateForRecognition(accountId, recognitionId)
+        }.getOrNull() ?: return false
+        val amountMinor = candidate.effectiveAmountMinor ?: recognition.amountMinor ?: return false
+        val direction = candidate.effectiveDirection.ifBlank { recognition.direction }
+        if (amountMinor <= 0L || direction.isBlank() || direction == "UNKNOWN") return false
+
+        val body = uk.thewyj.app.task21.StructuredEventJson.hintPayload(
+            deviceId = account.deviceId,
+            sourceEventId = eventId,
+            sourceType = "accessibility",
+            sourcePackage = recognition.sourcePackage,
+            appLabel = PaymentAppLabels.resolve(app, recognition.sourcePackage),
+            amountMinor = amountMinor,
+            direction = direction,
+            merchant = candidate.effectiveMerchant.ifBlank { recognition.merchant },
+            currency = recognition.currency.ifBlank { "CNY" },
+            confidence = candidate.confidence.coerceIn(0, 1000),
+            recognitionStatus = "CONFIRMED_PAYMENT",
+            reasons = listOf("accessibility_verified_amount"),
+            parserVersion = "verified-on-device",
+        )
+        return runCatching {
+            transport.post("/api/notification/hints", account.sessionToken, body).ok
+        }.getOrDefault(false)
+    }
+
+    /**
+     * Explicit user dismissal is terminal on both clients. Resolve the canonical
+     * server review identity by stable event id, then ignore a hint or reject a
+     * candidate before changing local Room state.
+     */
+    fun dismissRemote(accountId: String, eventId: String): RemoteDismissResult {
+        if (eventId.isBlank()) return RemoteDismissResult(ok = true)
+        val account = (accountOverride?.invoke()
+            ?: runCatching { sessions.currentAccount() }.getOrNull())
+            ?: return RemoteDismissResult(false, message = "当前没有可用的登录会话")
+        if (!account.financeEntitled || account.accountId != accountId) {
+            return RemoteDismissResult(false, message = "当前账户无法同步待处理状态")
+        }
+        val encoded = java.net.URLEncoder.encode(eventId, Charsets.UTF_8.name())
+        val summary = runCatching {
+            transport.get("/api/notification/pending-summary?event_ids=$encoded", account.sessionToken)
+        }.getOrNull() ?: return RemoteDismissResult(false, message = "读取云端待处理状态失败")
+        if (!summary.ok) return RemoteDismissResult(false, message = "读取云端待处理状态失败")
+
+        val records = runCatching { JSONObject(summary.body).optJSONArray("records") }.getOrNull()
+            ?: return RemoteDismissResult(true)
+        var matchedId = ""
+        var matchedKind = ""
+        for (index in 0 until records.length()) {
+            val row = records.optJSONObject(index) ?: continue
+            if (row.optString("state") != "pending") continue
+            val ids = buildSet {
+                add(row.optString("event_id"))
+                val aliases = row.optJSONArray("event_ids")
+                if (aliases != null) for (aliasIndex in 0 until aliases.length()) add(aliases.optString(aliasIndex))
+            }
+            if (eventId !in ids) continue
+            matchedId = row.optString("id")
+            matchedKind = row.optString("kind")
+            break
+        }
+        if (matchedId.isBlank()) return RemoteDismissResult(ok = true)
+
+        val path: String
+        val body: String
+        when (matchedKind) {
+            "hint" -> {
+                path = "/api/notification/hints/ignore"
+                body = JSONObject().put("hint_id", matchedId).toString()
+            }
+            "candidate" -> {
+                path = "/api/notification/candidates/reject"
+                body = JSONObject().put("candidate_id", matchedId).toString()
+            }
+            else -> return RemoteDismissResult(false, message = "云端待处理类型无法识别")
+        }
+        val response = runCatching { transport.post(path, account.sessionToken, body) }.getOrNull()
+            ?: return RemoteDismissResult(false, message = "云端忽略请求失败")
+        if (!response.ok) {
+            val code = runCatching { JSONObject(response.body).optString("code") }.getOrDefault("")
+            return RemoteDismissResult(
+                false,
+                message = if (code.isBlank()) "云端忽略请求失败" else "云端忽略请求失败（$code）",
+            )
+        }
+        return RemoteDismissResult(ok = true, changed = true)
+    }
 
     /** Pulls every hint state for the current account. Safe to call often. */
     fun sync(): Result {
