@@ -7,10 +7,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20260914-task24-device-r5";
-import { randomToolResult } from "./js/tools/random.js?v=20260914-task24-device-r5";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260914-task24-device-r5";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260914-task24-device-r5";
+} from "./js/tools/catalog.js?v=20260920-task24-candidate-r6";
+import { randomToolResult } from "./js/tools/random.js?v=20260920-task24-candidate-r6";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260920-task24-candidate-r6";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260920-task24-candidate-r6";
 import {
   csvString,
   decodeLocalText,
@@ -19,15 +19,15 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20260914-task24-device-r5";
+} from "./js/tools/file.js?v=20260920-task24-candidate-r6";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20260914-task24-device-r5";
-import { runToolRenderer } from "./js/tools/runner.js?v=20260914-task24-device-r5";
+} from "./js/tools/image.js?v=20260920-task24-candidate-r6";
+import { runToolRenderer } from "./js/tools/runner.js?v=20260920-task24-candidate-r6";
 (() => {
   "use strict";
 
@@ -54,6 +54,8 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260914-task24-device-r
   let currentDownload = null;
   let activeRoomPoller = null;
   let activeUploadController = null;
+  let recentSyncRunning = false;
+  let pendingRecentToolId = "";
   const TEMP_FILE_MAX_BYTES = 20 * 1024 * 1024;
   const TEMP_VIDEO_MAX_BYTES = 30 * 1024 * 1024;
   const TEMP_VIDEO_EXTENSIONS = new Set(["mp4", "m4v", "mov", "webm"]);
@@ -129,6 +131,24 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260914-task24-device-r
     ].slice(0, 50);
     persistPreferences();
     renderShelves();
+  }
+
+  function syncRecentLatest(toolId) {
+    pendingRecentToolId = toolId;
+    if (recentSyncRunning) return;
+    recentSyncRunning = true;
+    void (async () => {
+      try {
+        while (pendingRecentToolId) {
+          const latest = pendingRecentToolId;
+          pendingRecentToolId = "";
+          await bridge.api("/api/tools/recent", { tool_id: latest }).catch(() => {});
+        }
+      } finally {
+        recentSyncRunning = false;
+        if (pendingRecentToolId) syncRecentLatest(pendingRecentToolId);
+      }
+    })();
   }
 
   function setMessage(message, error = false) {
@@ -495,7 +515,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20260914-task24-device-r
     renderCurrentTool();
     if (pushRoute) bridge.navigate(`/tools/${tool.id}`);
     recordRecentLocally(tool.id);
-    bridge.api("/api/tools/recent", { tool_id: tool.id }).catch(() => {});
+    syncRecentLatest(tool.id);
   }
 
   function closeWorkbench(pushRoute = true) {

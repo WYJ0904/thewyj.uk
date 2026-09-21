@@ -16,7 +16,11 @@ import { apiError, enforceD1RateLimit, featureFlags, requestIdFor, sha256Hex } f
  */
 
 export const TTS_DEFAULT_MODEL = "@cf/myshell-ai/melotts";
-export const TTS_CACHE_VERSION = "v1";
+export const TTS_FALLBACK_MODEL = "google/gemini-3.1-flash-tts";
+export const TTS_FALLBACK_ATTEMPTS = 2;
+// v2 excludes any v1 object that the old raw-response path could have cached
+// after misclassifying a provider JSON error body as MPEG audio.
+export const TTS_CACHE_VERSION = "v2";
 export const TTS_MAX_TEXT_CHARS = 240;
 export const TTS_RATE_LIMIT = 120;
 export const TTS_RATE_WINDOW_SECONDS = 60;
@@ -49,6 +53,7 @@ const LANGUAGE_ALIASES = new Map([
 
 const ALLOWED_MODELS = new Set([
   "@cf/myshell-ai/melotts",
+  "google/gemini-3.1-flash-tts",
 ]);
 
 export function normalizeTtsLanguage(value) {
@@ -75,6 +80,33 @@ export function ttsModelFor(env = {}) {
   return ALLOWED_MODELS.has(configured) ? configured : TTS_DEFAULT_MODEL;
 }
 
+export function ttsModelCandidates(env = {}) {
+  const primary = ttsModelFor(env);
+  const configuredFallback = String(env.TTS_FALLBACK_MODEL || "").trim();
+  if (["off", "none", "disabled"].includes(configuredFallback.toLowerCase())) return [primary];
+  const fallback = ALLOWED_MODELS.has(configuredFallback)
+    ? configuredFallback
+    : TTS_FALLBACK_MODEL;
+  return fallback && fallback !== primary ? [primary, fallback] : [primary];
+}
+
+function ttsInvocationForModel(model, { text, language }, env = {}) {
+  if (model === "google/gemini-3.1-flash-tts") {
+    // Third-party models on the Workers AI binding must be routed through an
+    // AI Gateway. The account default is created by Cloudflare on first use;
+    // deployments may override its name without changing the client contract.
+    const gatewayId = String(env.TTS_AI_GATEWAY_ID || "default").trim() || "default";
+    return {
+      input: { text },
+      options: { gateway: { id: gatewayId } },
+    };
+  }
+  return {
+    input: { prompt: text, lang: language },
+    options: { returnRawResponse: true },
+  };
+}
+
 /** Stable cache identity: language + text + voice + model/version. */
 export async function ttsCacheKey({ language, text, voice, model }) {
   const digest = await sha256Hex(`${language}\u0000${voice}\u0000${model}\u0000${TTS_CACHE_VERSION}\u0000${text}`);
@@ -88,16 +120,49 @@ function base64ToBytes(value) {
   return bytes;
 }
 
+function wavFromPcm16Le(pcm, sampleRate = 24_000, channels = 1) {
+  const dataLength = pcm.length;
+  const headerLength = 44;
+  const output = new Uint8Array(headerLength + dataLength);
+  const view = new DataView(output.buffer);
+  const writeAscii = (offset, value) => {
+    for (let index = 0; index < value.length; index += 1) output[offset + index] = value.charCodeAt(index);
+  };
+  writeAscii(0, "RIFF");
+  view.setUint32(4, 36 + dataLength, true);
+  writeAscii(8, "WAVE");
+  writeAscii(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * channels * 2, true);
+  view.setUint16(32, channels * 2, true);
+  view.setUint16(34, 16, true);
+  writeAscii(36, "data");
+  view.setUint32(40, dataLength, true);
+  output.set(pcm, headerLength);
+  return output;
+}
+
 function bytesFromAudioValue(value) {
   if (!value) return null;
   if (value instanceof Uint8Array) return value;
   if (value instanceof ArrayBuffer) return new Uint8Array(value);
   if (Array.isArray(value)) return Uint8Array.from(value);
   if (typeof value === "string") {
-    // MeloTTS answers with base64 audio; tolerate a data URL wrapper too.
-    const base64 = value.includes(",") ? value.slice(value.indexOf(",") + 1) : value;
+    const comma = value.indexOf(",");
+    const metadata = comma >= 0 ? value.slice(0, comma).toLowerCase() : "";
+    const base64 = comma >= 0 ? value.slice(comma + 1) : value;
     try {
-      return base64ToBytes(base64);
+      const decoded = base64ToBytes(base64);
+      // Gemini TTS returns raw signed 16-bit little-endian PCM at 24 kHz mono.
+      // Browsers do not reliably play bare L16, so make the transport/cache
+      // artifact a self-describing WAV file.
+      if (metadata.startsWith("data:audio/l16") || metadata.startsWith("data:audio/pcm")) {
+        return wavFromPcm16Le(decoded);
+      }
+      return decoded;
     } catch (_) {
       return null;
     }
@@ -109,7 +174,19 @@ function bytesFromAudioValue(value) {
 /** Normalises every documented Workers AI TTS answer shape into raw bytes. */
 export async function ttsBytesFromResult(result) {
   if (!result) return null;
-  if (result instanceof Response) return new Uint8Array(await result.arrayBuffer());
+  if (result instanceof Response) {
+    if (!result.ok) {
+      const error = new Error("Workers AI TTS request failed");
+      error.status = result.status;
+      throw error;
+    }
+    const contentType = String(result.headers.get("content-type") || "").toLowerCase();
+    if (contentType.includes("application/json")) {
+      const payload = await result.json().catch(() => null);
+      return bytesFromAudioValue(payload?.audio ?? payload?.audio_base64 ?? payload?.data);
+    }
+    return new Uint8Array(await result.arrayBuffer());
+  }
   const direct = bytesFromAudioValue(result);
   if (direct) return direct;
   if (typeof result.arrayBuffer === "function") return new Uint8Array(await result.arrayBuffer());
@@ -196,7 +273,7 @@ export async function handleTtsRequest(context) {
   if (!language) {
     return apiError(
       "tts_language_unsupported",
-      "当前云端语音只支持英语与日语",
+      "当前云端语音只支持中文、英语与日语",
       400,
       requestId,
       { retryable: false },
@@ -236,22 +313,24 @@ export async function handleTtsRequest(context) {
     return apiError("rate_limited", "语音请求过于频繁，请稍后再试", 429, requestId, { retryable: true });
   }
 
-  const model = ttsModelFor(context.env);
-  const cacheKey = await ttsCacheKey({ language, text, voice, model });
+  const models = ttsModelCandidates(context.env);
   const bucket = context.env?.WYJ_STORAGE;
   const flags = featureFlags(context.env);
   if (bucket?.get) {
-    const cached = await bucket.get(cacheKey).catch(() => null);
-    if (cached?.body) {
-      const contentType = cached.httpMetadata?.contentType || "audio/mpeg";
-      return audioResponse(cached.body, {
-        cacheHit: true,
-        model,
-        requestId,
-        contentType,
-        etag: cacheKey,
-        attempts: 0,
-      });
+    for (const model of models) {
+      const cacheKey = await ttsCacheKey({ language, text, voice, model });
+      const cached = await bucket.get(cacheKey).catch(() => null);
+      if (cached?.body) {
+        const contentType = cached.httpMetadata?.contentType || "audio/mpeg";
+        return audioResponse(cached.body, {
+          cacheHit: true,
+          model,
+          requestId,
+          contentType,
+          etag: cacheKey,
+          attempts: 0,
+        });
+      }
     }
   }
 
@@ -268,26 +347,43 @@ export async function handleTtsRequest(context) {
   let bytes = null;
   let attempts = 0;
   let lastError = null;
+  let selectedModel = models[0];
+  let selectedCacheKey = null;
   const configuredBase = Number.parseInt(String(context.env?.TTS_RETRY_BASE_MS ?? ""), 10);
   const retryBaseMs = Number.isFinite(configuredBase)
     ? Math.max(0, Math.min(1_000, configuredBase))
     : TTS_RETRY_BASE_MS;
-  for (let attempt = 0; attempt < TTS_GENERATION_ATTEMPTS && !bytes?.length; attempt += 1) {
-    attempts = attempt + 1;
-    try {
-      const result = await context.env.AI.run(model, { prompt: text, lang: language });
-      bytes = await ttsBytesFromResult(result);
-      lastError = null;
-    } catch (error) {
-      lastError = error;
-      const status = Number(error?.status || error?.statusCode || 0);
-      // Quota exhaustion is authoritative. Retrying it only burns CPU and can
-      // never turn the current request into a success.
-      if (status === 429) break;
-    }
-    if (!bytes?.length && attempt + 1 < TTS_GENERATION_ATTEMPTS && Number(lastError?.status || lastError?.statusCode || 0) !== 429) {
-      const jitter = retryBaseMs ? Math.floor(Math.random() * retryBaseMs) : 0;
-      await new Promise((resolve) => setTimeout(resolve, retryBaseMs * (2 ** attempt) + jitter));
+
+  generation:
+  for (let modelIndex = 0; modelIndex < models.length; modelIndex += 1) {
+    const model = models[modelIndex];
+    const maxAttempts = modelIndex === 0 ? TTS_GENERATION_ATTEMPTS : TTS_FALLBACK_ATTEMPTS;
+    for (let attempt = 0; attempt < maxAttempts && !bytes?.length; attempt += 1) {
+      attempts += 1;
+      try {
+        const invocation = ttsInvocationForModel(model, { text, language }, context.env);
+        const result = invocation.options
+          ? await context.env.AI.run(model, invocation.input, invocation.options)
+          : await context.env.AI.run(model, invocation.input);
+        bytes = await ttsBytesFromResult(result);
+        lastError = null;
+        if (bytes?.length) {
+          selectedModel = model;
+          selectedCacheKey = await ttsCacheKey({ language, text, voice, model });
+          break generation;
+        }
+      } catch (error) {
+        lastError = error;
+        const status = Number(error?.status || error?.statusCode || 0);
+        // Quota exhaustion is authoritative for the account/request. Do not
+        // evade it by switching providers.
+        if (status === 429) break generation;
+      }
+
+      if (!bytes?.length && attempt + 1 < maxAttempts && Number(lastError?.status || lastError?.statusCode || 0) !== 429) {
+        const jitter = retryBaseMs ? Math.floor(Math.random() * retryBaseMs) : 0;
+        await new Promise((resolve) => setTimeout(resolve, retryBaseMs * (2 ** attempt) + jitter));
+      }
     }
   }
   if (lastError) {
@@ -306,12 +402,20 @@ export async function handleTtsRequest(context) {
   }
 
   const contentType = audioContentType(bytes);
+  selectedCacheKey ||= await ttsCacheKey({ language, text, voice, model: selectedModel });
   if (bucket?.put) {
     await bucket
-      .put(cacheKey, bytes, {
+      .put(selectedCacheKey, bytes, {
         httpMetadata: { contentType, cacheControl: "public, max-age=31536000, immutable" },
       })
       .catch(() => undefined);
   }
-  return audioResponse(bytes, { cacheHit: false, model, requestId, contentType, etag: cacheKey, attempts });
+  return audioResponse(bytes, {
+    cacheHit: false,
+    model: selectedModel,
+    requestId,
+    contentType,
+    etag: selectedCacheKey,
+    attempts,
+  });
 }

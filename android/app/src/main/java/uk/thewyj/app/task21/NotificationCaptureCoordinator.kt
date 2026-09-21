@@ -134,7 +134,7 @@ class NotificationCaptureCoordinator(
         // changing postTime. Payment identity follows the notification slot
         // until onNotificationRemoved, not that mutable timestamp.
         val eventId = if (payment != null) {
-            paymentLifecycleRegistry.eventId(current.accountId, input)
+            paymentLifecycleRegistry.eventId(current.accountId, input, payment)
         } else {
             NotificationFingerprint.stableEventId()
         }
@@ -238,8 +238,8 @@ class NotificationCaptureCoordinator(
                 CaptureTrace.traceId(input.notificationKey, input.sourcePackage, input.notificationId),
                 "finance-parsed",
                 "eventId=$eventId pkg=${input.sourcePackage} channel=${input.channelId.ifBlank { "-" }} " +
-                    "source=${input.sourceType} amount=${payment.amountMinor} direction=${payment.direction} " +
-                    "merchant=${(payment.merchant.ifBlank { payment.counterparty }).take(40).ifBlank { "-" }} " +
+                    "source=${input.sourceType} amountKnown=${payment.amountMinor > 0} direction=${payment.direction} " +
+                    "merchantKnown=${payment.merchant.isNotBlank() || payment.counterparty.isNotBlank()} " +
                     "status=${if (payment.confirmed) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY"} " +
                     "confidence=${structured.confidence}",
             )
@@ -274,7 +274,7 @@ class NotificationCaptureCoordinator(
                         payment.amountMinor > 0 -> "PAYMENT_LIKELY"
                         else -> "INSUFFICIENT_INFORMATION"
                     },
-                    reasons = listOf("local_incomplete_payment"),
+                    reasons = (payment.reasons + "local_incomplete_payment").distinct(),
                     parserVersion = payment.parserVersion,
                 )
                 return

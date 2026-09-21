@@ -5,6 +5,7 @@ import java.io.File
 import java.util.UUID
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -52,7 +53,7 @@ class PaymentHintSyncCrossClientTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8,
             )
             .allowMainThreadQueries()
             .build()
@@ -311,4 +312,298 @@ class PaymentHintSyncCrossClientTest {
             paymentStore.recognition(account, "rec-other-device")?.state,
         )
     }
+
+    @Test fun accessibilityEnrichmentPushesIntoTheExistingCloudHintIdentity() {
+        paymentStore.saveRecognition(
+            PaymentRecognitionRecord(
+                recognitionId = "rec-enriched",
+                accountId = account,
+                state = PaymentRecognitionState.ENRICHMENT_VERIFIED.name,
+                notificationId = 10,
+                sourcePackage = "com.tencent.mm",
+                sourceType = "notification",
+                sourceEventId = "notification#wechat#enriched",
+                uploadEventId = "evt-enriched",
+                paymentChannel = "wechat",
+                amountMinor = 1,
+                currency = "CNY",
+                direction = "EXPENSE",
+                merchant = "",
+                providerReference = "",
+                createdAtMs = 2_000L,
+                updatedAtMs = 2_000L,
+            ),
+        )
+        paymentStore.saveCandidate(
+            PaymentCandidate(
+                candidateId = "cand-enriched",
+                accountId = account,
+                recognitionId = "rec-enriched",
+                status = "pending",
+                amountMinor = 1,
+                direction = "EXPENSE",
+                category = "",
+                merchant = "",
+                occurredAtMs = 2_000L,
+                channel = "wechat",
+                confidence = 950,
+                reason = "accessibility_enrichment",
+                createdAtMs = 2_000L,
+                updatedAtMs = 2_000L,
+            ),
+        )
+        var postedPath = ""
+        var postedBody = ""
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String): IngestResponse {
+                postedPath = path
+                postedBody = body
+                return IngestResponse(true, 200, """{"ok":true}""")
+            }
+        }
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(),
+            hintedTransport = transport,
+            hintedStore = paymentStore,
+            archiveSink = sink(),
+            accountOverride = {
+                NotificationCaptureCoordinator.CaptureAccount(
+                    accountId = account,
+                    deviceId = "device-a",
+                    sessionToken = "token-a",
+                    financeEntitled = true,
+                )
+            },
+        )
+
+        assertTrue(sync.publishEnrichment(account, "rec-enriched"))
+        assertEquals("/api/notification/hints", postedPath)
+        val payload = org.json.JSONObject(postedBody)
+        val hint = payload.getJSONArray("hints").getJSONObject(0)
+        assertEquals("evt-enriched", hint.getString("source_event_id"))
+        assertEquals(1L, hint.getLong("amount_minor"))
+        assertEquals("expense", hint.getString("direction"))
+        assertEquals("accessibility", hint.getString("source_type"))
+        assertEquals("CONFIRMED_PAYMENT", hint.getString("recognition_status"))
+    }
+
+    @Test fun explicitIgnoreTerminatesTheMatchingCloudReviewBeforeLocalDismissal() {
+        var postedPath = ""
+        var postedBody = ""
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String): IngestResponse {
+                postedPath = path
+                postedBody = body
+                return IngestResponse(true, 200, """{"ok":true}""")
+            }
+
+            override fun get(path: String, sessionToken: String): IngestResponse {
+                assertTrue(path.startsWith("/api/notification/pending-summary?event_ids="))
+                return IngestResponse(
+                    true,
+                    200,
+                    """{"ok":true,"records":[{"kind":"hint","id":"hint:cloud-1","event_id":"evt-ignore","event_ids":["evt-ignore"],"state":"pending"}]}""",
+                )
+            }
+        }
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(),
+            hintedTransport = transport,
+            hintedStore = paymentStore,
+            archiveSink = sink(),
+            accountOverride = {
+                NotificationCaptureCoordinator.CaptureAccount(
+                    accountId = account,
+                    deviceId = "device-a",
+                    sessionToken = "token-a",
+                    financeEntitled = true,
+                )
+            },
+        )
+
+        val result = sync.dismissRemote(account, "evt-ignore")
+        assertTrue(result.ok)
+        assertTrue(result.changed)
+        assertEquals("/api/notification/hints/ignore", postedPath)
+        assertEquals("hint:cloud-1", org.json.JSONObject(postedBody).getString("hint_id"))
+    }
+
+
+    @Test fun confirmedCloudReviewCannotBeLocallyIgnored() {
+        var postCalls = 0
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String): IngestResponse {
+                postCalls += 1
+                return IngestResponse(true, 200, """{"ok":true}""")
+            }
+
+            override fun get(path: String, sessionToken: String): IngestResponse =
+                IngestResponse(
+                    true,
+                    200,
+                    """{"ok":true,"records":[{"kind":"hint","id":"hint:confirmed","event_id":"evt-confirmed","event_ids":["evt-confirmed"],"state":"confirmed","transaction_id":"txn-1"}]}""",
+                )
+        }
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(),
+            hintedTransport = transport,
+            hintedStore = paymentStore,
+            archiveSink = sink(),
+            accountOverride = {
+                NotificationCaptureCoordinator.CaptureAccount(
+                    accountId = account,
+                    deviceId = "device-a",
+                    sessionToken = "token-a",
+                    financeEntitled = true,
+                )
+            },
+        )
+
+        val result = sync.dismissRemote(account, "evt-confirmed")
+        assertFalse(result.ok)
+        assertTrue(result.message.contains("已在财务账本中确认"))
+        assertEquals(0, postCalls)
+    }
+
+    private fun savePendingUploadedCandidate(recognitionId: String, candidateId: String, eventId: String) {
+        paymentStore.saveRecognition(
+            PaymentRecognitionRecord(
+                recognitionId = recognitionId,
+                accountId = account,
+                state = PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name,
+                notificationId = 21,
+                sourcePackage = "com.tencent.mm",
+                sourceType = "notification",
+                sourceEventId = "notification#wechat#$recognitionId",
+                uploadEventId = eventId,
+                paymentChannel = "wechat",
+                amountMinor = 1,
+                currency = "CNY",
+                direction = "EXPENSE",
+                merchant = "",
+                providerReference = "",
+                createdAtMs = 3_000L,
+                updatedAtMs = 3_000L,
+            ),
+        )
+        paymentStore.saveCandidate(
+            PaymentCandidate(
+                candidateId = candidateId,
+                accountId = account,
+                recognitionId = recognitionId,
+                status = "pending",
+                amountMinor = 1,
+                direction = "EXPENSE",
+                category = "",
+                merchant = "",
+                occurredAtMs = 3_000L,
+                channel = "wechat",
+                confidence = 900,
+                reason = "notification_candidate",
+                createdAtMs = 3_000L,
+                updatedAtMs = 3_000L,
+            ),
+        )
+    }
+
+    @Test fun webConfirmedCandidateClosesAndroidRecognitionOnPull() {
+        archivePayment("evt-candidate-confirmed")
+        store.markFinanceOutcome(account, "evt-candidate-confirmed", "pending")
+        savePendingUploadedCandidate("rec-candidate-confirmed", "cand-local-confirmed", "evt-candidate-confirmed")
+
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String) =
+                IngestResponse(true, 200, """{"ok":true}""")
+
+            override fun get(path: String, sessionToken: String): IngestResponse = when {
+                path.startsWith("/api/notification/hints") ->
+                    IngestResponse(true, 200, """{"ok":true,"hints":[]}""")
+                path.contains("status=confirmed") ->
+                    IngestResponse(
+                        true,
+                        200,
+                        """{"ok":true,"candidates":[{"id":"cand-cloud","event_id":"evt-candidate-confirmed","status":"confirmed","finance_transaction_id":"txn-cloud-1","evidence":[{"event_id":"evt-candidate-confirmed"}]}]}""",
+                    )
+                path.contains("status=rejected") ->
+                    IngestResponse(true, 200, """{"ok":true,"candidates":[]}""")
+                else -> IngestResponse(false, 404, "{}")
+            }
+        }
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(),
+            hintedTransport = transport,
+            hintedStore = paymentStore,
+            archiveSink = sink(),
+            accountOverride = {
+                NotificationCaptureCoordinator.CaptureAccount(
+                    accountId = account,
+                    deviceId = "device-a",
+                    sessionToken = "token-a",
+                    financeEntitled = true,
+                )
+            },
+        )
+
+        assertTrue(sync.sync().ok)
+        assertEquals(
+            PaymentRecognitionState.FINANCE_RECORDED.name,
+            paymentStore.recognition(account, "rec-candidate-confirmed")?.state,
+        )
+        assertEquals(
+            "txn-cloud-1",
+            paymentStore.candidateForRecognition(account, "rec-candidate-confirmed")?.financeTransactionId,
+        )
+        assertEquals("confirmed" to "txn-cloud-1", financeState("evt-candidate-confirmed"))
+    }
+
+    @Test fun webRejectedCandidateClosesAndroidRecognitionOnPull() {
+        archivePayment("evt-candidate-rejected")
+        store.markFinanceOutcome(account, "evt-candidate-rejected", "pending")
+        savePendingUploadedCandidate("rec-candidate-rejected", "cand-local-rejected", "evt-candidate-rejected")
+
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String) =
+                IngestResponse(true, 200, """{"ok":true}""")
+
+            override fun get(path: String, sessionToken: String): IngestResponse = when {
+                path.startsWith("/api/notification/hints") ->
+                    IngestResponse(true, 200, """{"ok":true,"hints":[]}""")
+                path.contains("status=confirmed") ->
+                    IngestResponse(true, 200, """{"ok":true,"candidates":[]}""")
+                path.contains("status=rejected") ->
+                    IngestResponse(
+                        true,
+                        200,
+                        """{"ok":true,"candidates":[{"id":"cand-cloud","event_id":"evt-candidate-rejected","status":"rejected","finance_transaction_id":"","evidence":[{"event_id":"evt-candidate-rejected"}]}]}""",
+                    )
+                else -> IngestResponse(false, 404, "{}")
+            }
+        }
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(),
+            hintedTransport = transport,
+            hintedStore = paymentStore,
+            archiveSink = sink(),
+            accountOverride = {
+                NotificationCaptureCoordinator.CaptureAccount(
+                    accountId = account,
+                    deviceId = "device-a",
+                    sessionToken = "token-a",
+                    financeEntitled = true,
+                )
+            },
+        )
+
+        assertTrue(sync.sync().ok)
+        assertEquals(
+            PaymentRecognitionState.IGNORED.name,
+            paymentStore.recognition(account, "rec-candidate-rejected")?.state,
+        )
+        assertEquals(
+            "rejected",
+            paymentStore.candidateForRecognition(account, "rec-candidate-rejected")?.status,
+        )
+        assertEquals("ignored" to "", financeState("evt-candidate-rejected"))
+    }
+
 }

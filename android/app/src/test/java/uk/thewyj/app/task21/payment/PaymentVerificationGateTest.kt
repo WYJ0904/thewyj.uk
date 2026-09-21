@@ -120,6 +120,20 @@ class PaymentVerificationGateTest {
         )
     }
 
+    @Test fun reviewIdentityOnlyCollapsesRowsWithTheSameStableEvent() {
+        val first = recognition("rec-a", uploadEventId = "evt-stable")
+        val replay = recognition("rec-b", uploadEventId = "evt-stable")
+        val independent = recognition("rec-c", uploadEventId = "evt-other")
+        assertEquals(
+            PaymentVerificationCenter.reviewIdentity(first),
+            PaymentVerificationCenter.reviewIdentity(replay),
+        )
+        assertNotEquals(
+            PaymentVerificationCenter.reviewIdentity(first),
+            PaymentVerificationCenter.reviewIdentity(independent),
+        )
+    }
+
     @Test fun amountTextParsingRejectsAmbiguousInput() {
         assertEquals(2800L, PaymentVerificationState.parseMinor("28"))
         assertEquals(2800L, PaymentVerificationState.parseMinor("28.00"))

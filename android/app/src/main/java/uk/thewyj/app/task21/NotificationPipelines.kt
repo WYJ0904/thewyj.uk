@@ -94,7 +94,10 @@ class NotificationArchivePipeline(
             // store, where the existing row is rewritten instead of appended.
             val stored = sink.store(
                 accountId,
-                input.copy(coalesceWithPrevious = classification.coalesceWithPrevious),
+                input.copy(
+                    coalesceWithPrevious = classification.coalesceWithPrevious,
+                    archiveKind = classification.kind.name.lowercase(),
+                ),
                 structured,
             )
             return Result(stored, classification.kind, classification.reason)

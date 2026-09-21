@@ -34,6 +34,7 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
     private val executor = Executors.newSingleThreadExecutor()
     private val uploadExecutor = Executors.newSingleThreadExecutor()
     private val flushRunning = AtomicBoolean(false)
+    private val callbackGate = NotificationCallbackGate()
     private var coordinator: NotificationCaptureCoordinator? = null
     private var sessionProvider: NotificationSessionProvider? = null
     private var screenshotObserver: ScreenshotMediaObserver? = null
@@ -86,6 +87,7 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         val notification = sbn ?: return
         val input = captureInput(notification)
+        if (!callbackGate.shouldProcess(input)) return
         // Archive by default: ongoing/progress/system/group-summary notices are
         // real notifications in the shade and must be recorded unless the user
         // explicitly disabled the app in the selector.
@@ -177,6 +179,8 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
         val picture = media.bitmap
         val mediaHint = media.state != "none" && media.bitmap == null
         val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
+            .ifBlank { extras?.getCharSequence(Notification.EXTRA_TITLE_BIG)?.toString().orEmpty() }
+            .ifBlank { extras?.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)?.toString().orEmpty() }
         val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
         val bigText = extras?.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty()
         val screenshotEvent = ScreenshotEvidence.isScreenshotEvent(

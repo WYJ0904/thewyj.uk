@@ -21,7 +21,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -60,8 +59,10 @@ import kotlinx.coroutines.flow.collectLatest
 import uk.thewyj.app.core.auth.AccountSnapshot
 import uk.thewyj.app.core.permission.PermissionCenter
 import uk.thewyj.app.core.design.ThewyjRadius
+import uk.thewyj.app.core.design.ThewyjCard
 import uk.thewyj.app.core.design.ThewyjPrimaryButton
 import uk.thewyj.app.task21.store.NotificationHistoryItem
+import uk.thewyj.app.task21.store.NotificationRevisionEntity
 import uk.thewyj.app.task21.store.NotificationRepository
 import uk.thewyj.app.task21.store.NotificationRuleEntity
 import uk.thewyj.app.task21.NotificationMediaPresentation
@@ -127,13 +128,13 @@ fun NotificationHubScreen(
             modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
         )
         Text(
-            "保存 ${state.stats.activeCount} 条 · 版本 ${state.stats.revisionCount} · 本地约 ${state.stats.storedCharacters / 1024} KB",
+            "保存 ${state.stats.activeCount} 条 · 本地约 ${state.stats.storedCharacters / 1024} KB",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
         if (!notificationAccess) {
-            Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+            ThewyjCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("通知访问未开启", fontWeight = FontWeight.SemiBold)
                     Text(
@@ -149,21 +150,30 @@ fun NotificationHubScreen(
                 }
             }
         }
-        if (state.pendingPayments > 0) {
-            Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+        if (state.pendingPayments > 0 || state.unresolvedPendingPayments > 0 || !state.pendingSyncCurrent) {
+            ThewyjCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("${state.pendingPayments} 笔交易待核实或待确认", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (state.pendingSyncCurrent) "已核对 ${state.pendingPayments} 项待处理交易" else "待处理交易正在核对",
+                        fontWeight = FontWeight.SemiBold,
+                    )
                     Text(
                         "识别到的支付还没进入账本。可以在这里核实金额、修改并记账，确认后会写入同一个财务账本。",
                         style = MaterialTheme.typography.bodySmall,
                     )
-                    if (state.remotePendingPayments > 0) {
-                        Text(
-                            "云端还有 ${state.remotePendingPayments} 笔候选可在财务页确认。",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    Text(
+                        if (state.pendingSyncCurrent) {
+                            "本机 ${state.localPendingPayments} 笔，云端 ${state.remotePendingPayments} 笔；" +
+                                "其中两端一致 ${state.sharedPendingPayments} 笔，" +
+                                "仅本机 ${state.localOnlyPendingPayments} 笔，" +
+                                "仅云端 ${state.remoteOnlyPendingPayments} 笔。" +
+                                (if (state.unresolvedPendingPayments > 0) "另有 ${state.unresolvedPendingPayments} 条旧记录缺少关联标识，未加入总计。" else "")
+                        } else {
+                            "云端状态暂时未完成核对；当前先显示本机 ${state.localPendingPayments} 笔，不把旧缓存当作已同步结果。"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = onOpenPaymentVerification) { Text("去处理") }
                         TextButton(onClick = onOpenFinance) { Text("查看财务") }
@@ -191,7 +201,9 @@ fun NotificationHubScreen(
         state.detail?.let { item ->
             NotificationDetailOverlay(
                 item = item,
-                onClose = { state.detail = null },
+                revisions = state.detailRevisions,
+                onMoreRevisions = { scope.launch { state.loadMoreRevisions() } },
+                onClose = state::closeDetail,
                 onTogglePinned = { scope.launch { state.togglePinned(item) } },
                 loadMedia = { path -> state.mediaFile(path) },
             )
@@ -202,13 +214,21 @@ fun NotificationHubScreen(
 @Composable
 private fun NotificationDetailOverlay(
     item: NotificationHistoryItem,
+    revisions: List<NotificationRevisionEntity> = emptyList(),
+    onMoreRevisions: () -> Unit = {},
     onClose: () -> Unit,
     onTogglePinned: () -> Unit = {},
     loadMedia: suspend (String) -> java.io.File? = { null },
 ) {
     val context = LocalContext.current
-    val appName = remember(item.sourcePackage) {
-        uk.thewyj.app.task21.payment.PaymentAppLabels.resolve(context, item.sourcePackage)
+    val appName = remember(item.sourcePackage, item.mediaOrigin, item.title, item.text) {
+        notificationHistorySourceLabel(
+            mediaOrigin = item.mediaOrigin,
+            sourcePackage = item.sourcePackage,
+            title = item.title,
+            text = item.text,
+            resolvedAppLabel = uk.thewyj.app.task21.payment.PaymentAppLabels.resolve(context, item.sourcePackage),
+        )
     }
     var bitmap by remember(item.revisionId) { mutableStateOf<android.graphics.Bitmap?>(null) }
     val mediaPresentation = remember(item.revisionId, item.mediaState, item.mediaOrigin) {
@@ -223,6 +243,7 @@ private fun NotificationDetailOverlay(
     var mediaUnavailable by remember(item.revisionId) {
         mutableStateOf(mediaPresentation == NotificationMediaPresentation.UNAVAILABLE)
     }
+    var revisionsExpanded by remember(item.instanceId) { mutableStateOf(false) }
     LaunchedEffect(item.revisionId) {
         if (mediaPresentation != NotificationMediaPresentation.AVAILABLE || item.mediaPath.isBlank()) return@LaunchedEffect
         val file = runCatching { loadMedia(item.mediaPath) }.getOrNull()
@@ -246,10 +267,42 @@ private fun NotificationDetailOverlay(
                 )
             }
             Text(
-                formatTime(item.postTime) + " · 版本 ${item.revisionCount}",
+                formatTime(item.postTime),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (item.revisionCount > 1) {
+                OutlinedButton(onClick = { revisionsExpanded = !revisionsExpanded }, shape = ThewyjRadius.Medium) {
+                    Text(if (revisionsExpanded) "收起历史快照" else "查看历史快照")
+                }
+                if (revisionsExpanded) {
+                    Text(
+                        "已加载 ${revisions.size} 条历史快照，完整历史保存在本机。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    revisions.forEach { revision ->
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = ThewyjRadius.Small,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Column(Modifier.padding(8.dp)) {
+                                Text(formatTime(revision.capturedAt), style = MaterialTheme.typography.labelSmall)
+                                Text(
+                                    revision.bigText.ifBlank { revision.text }.ifBlank { revision.title }
+                                        .ifBlank { "该次更新未提供可读取文字" },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 3,
+                                )
+                            }
+                        }
+                    }
+                    if (revisions.size < item.revisionCount) {
+                        OutlinedButton(onClick = onMoreRevisions) { Text("加载更早的快照") }
+                    }
+                }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onTogglePinned, shape = ThewyjRadius.Medium) {
                     Text(if (item.pinned) "取消收藏" else "收藏这条通知")
@@ -274,8 +327,17 @@ private fun NotificationDetailOverlay(
                     )
                 }
             }
-            DetailField("标题", item.title)
-            DetailField("内容", item.bigText.ifBlank { item.text })
+            if (item.title.isNotBlank()) DetailField("标题", item.title)
+            val readableBody = item.bigText.ifBlank { item.text }.ifBlank { item.summaryText }
+                .ifBlank { item.infoText }.ifBlank { item.textLines.joinToString("\n") }
+            if (readableBody.isNotBlank()) {
+                DetailField("内容", readableBody)
+            } else if (mediaPresentation == NotificationMediaPresentation.NONE) {
+                DetailField(
+                    if (item.isGroupSummary) "通知分组摘要" else "通知内容",
+                    if (item.isGroupSummary) "系统生成的通知分组摘要未提供可读取文字。" else "原通知未提供可读取文字。",
+                )
+            }
             // Task 24.1 P0-1: the picture Android exposed is shown here; when it
             // could not be read the notification still exists and says so.
             when {
@@ -313,7 +375,11 @@ private fun NotificationDetailOverlay(
                     },
                 )
             }
-            DetailField("来源应用", item.sourcePackage.ifBlank { "未知" })
+            DetailField("来源应用", appName)
+            if (appName != item.sourcePackage && item.sourcePackage.isNotBlank()) {
+                DetailField("系统包", item.sourcePackage)
+            }
+            if (item.sourceEventId.isNotBlank()) DetailField("结构化事件标识", item.sourceEventId)
         }
     }
 }
@@ -487,8 +553,14 @@ private fun NotificationHistorySection(state: NotificationHubState) {
                     NotificationHistoryCard(
                         state = state,
                         item = item,
-                        appLabel = appLabels[item.sourcePackage] ?: item.sourcePackage,
-                        onOpen = { state.detail = item },
+                        appLabel = notificationHistorySourceLabel(
+                            mediaOrigin = item.mediaOrigin,
+                            sourcePackage = item.sourcePackage,
+                            title = item.title,
+                            text = item.text,
+                            resolvedAppLabel = appLabels[item.sourcePackage] ?: item.sourcePackage,
+                        ),
+                        onOpen = { scope.launch { state.openDetail(item) } },
                         onDelete = { scope.launch { state.deleteOne(item.revisionId) } },
                     )
                 }
@@ -502,6 +574,30 @@ private fun NotificationHistorySection(state: NotificationHubState) {
                 }
             }
         }
+    }
+}
+
+internal fun notificationHistorySourceLabel(
+    mediaOrigin: String,
+    sourcePackage: String,
+    title: String,
+    text: String,
+    resolvedAppLabel: String,
+): String {
+    val origin = mediaOrigin.trim().lowercase()
+    val packageName = sourcePackage.trim().lowercase()
+    val content = "$title\n$text".lowercase()
+    val screenshotPackage = packageName in setOf(
+        "com.samsung.android.app.smartcapture",
+        "com.samsung.android.screenshot",
+        "com.android.systemui",
+    )
+    val screenshotText = listOf("截图", "截屏", "screenshot", "screen capture")
+        .any { marker -> content.contains(marker) }
+    return when {
+        origin == "media_store" || origin == "media_store+notification" -> "屏幕截图"
+        origin == "notification" && screenshotPackage && screenshotText -> "屏幕截图"
+        else -> resolvedAppLabel.ifBlank { "未知应用" }
     }
 }
 
@@ -523,7 +619,10 @@ private fun NotificationHistoryCard(
             item.bigText,
         )
     }
-    Card(Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable(onClick = onOpen)) {
+    val readableBody = item.bigText.ifBlank { item.text }.ifBlank { item.summaryText }
+        .ifBlank { item.infoText }.ifBlank { item.textLines.joinToString("\n") }
+    val noReadableText = item.title.isBlank() && readableBody.isBlank() && item.textLines.isEmpty()
+    ThewyjCard(Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable(onClick = onOpen)) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.Top) {
             Checkbox(
                 checked = state.selected.contains(item.revisionId),
@@ -538,19 +637,28 @@ private fun NotificationHistoryCard(
                         softWrap = false,
                     )
                 }
+                if (item.title.isNotBlank()) {
+                    Text(
+                        item.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+                if (readableBody.isNotBlank()) {
+                    Text(readableBody, style = MaterialTheme.typography.bodySmall, maxLines = 3)
+                } else if (mediaPresentation == NotificationMediaPresentation.AVAILABLE) {
+                    Text("仅包含图片内容", style = MaterialTheme.typography.bodySmall)
+                } else if (noReadableText) {
+                    Text(
+                        if (item.isGroupSummary) "通知分组摘要未提供可读取文字" else "原通知未提供可读取文字",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Text(
-                    item.title.ifBlank { "(无标题)" },
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                )
-                Text(
-                    item.bigText.ifBlank { item.text }.ifBlank { item.summaryText }.ifBlank { "(无正文)" },
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 3,
-                )
-                Text(
-                    "${formatTime(item.postTime)} · 版本 ${item.revisionCount}" +
-                        if (item.financeLinked) " · 已关联财务" else "",
+                    formatTime(item.postTime) +
+                        (if (item.collapsedUpdates && item.revisionCount > 1) " · 有状态更新" else "") +
+                        (if (item.financeLinked) " · 已关联财务" else ""),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -106,6 +106,9 @@ interface NotificationDao {
     )
     fun instanceIdForEventId(accountId: String, sourceEventId: String): String?
 
+    @Query("SELECT * FROM notification_revisions WHERE accountId = :accountId AND sourceEventId = :eventId ORDER BY capturedAt ASC LIMIT 1")
+    fun revisionForEventId(accountId: String, eventId: String): NotificationRevisionEntity?
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     fun insertRevision(revision: NotificationRevisionEntity)
 
@@ -159,13 +162,13 @@ interface NotificationDao {
         SELECT i.instanceId AS instanceId, i.sourcePackage AS sourcePackage, i.postTime AS postTime,
                i.status AS status, i.removedAt AS removedAt, i.revisionCount AS revisionCount,
                i.latestRevisionId AS latestRevisionId, i.financeLinked AS financeLinked,
-               i.pinned AS pinned,
+               i.pinned AS pinned, i.isGroupSummary AS isGroupSummary,
                r.revisionId AS revisionId, r.title AS title, r.text AS text, r.bigText AS bigText,
-               r.subText AS subText, r.summaryText AS summaryText, r.textLines AS textLines,
+               r.subText AS subText, r.infoText AS infoText, r.summaryText AS summaryText, r.textLines AS textLines,
                r.parseStatus AS parseStatus, r.direction AS direction, r.amountMinor AS amountMinor,
                r.currency AS currency, r.merchant AS merchant, r.capturedAt AS capturedAt,
                r.mediaPath AS mediaPath, r.mediaMime AS mediaMime, r.mediaState AS mediaState,
-               r.mediaOrigin AS mediaOrigin
+               r.mediaOrigin AS mediaOrigin, r.sourceEventId AS sourceEventId, 0 AS collapsedUpdates
         FROM notification_instances AS i
         JOIN notification_revisions AS r ON r.instanceId = i.instanceId
         WHERE i.accountId = :accountId
@@ -175,12 +178,66 @@ interface NotificationDao {
           AND (:toTime = 0 OR r.capturedAt <= :toTime)
           AND (:query = '' OR r.title LIKE '%' || :query || '%' OR r.text LIKE '%' || :query || '%'
                OR r.bigText LIKE '%' || :query || '%' OR r.subText LIKE '%' || :query || '%'
-               OR r.summaryText LIKE '%' || :query || '%')
+               OR r.infoText LIKE '%' || :query || '%' OR r.summaryText LIKE '%' || :query || '%'
+               OR r.textLines LIKE '%' || :query || '%')
         ORDER BY r.capturedAt DESC, r.revisionId DESC
         LIMIT :limit OFFSET :offset
         """,
     )
     fun history(
+        accountId: String,
+        includeRemoved: Int,
+        packageFilter: String,
+        fromTime: Long,
+        toTime: Long,
+        query: String,
+        limit: Int,
+        offset: Int,
+    ): List<NotificationHistoryRow>
+
+    /**
+     * User-facing history: one row per Android notification lifecycle. Earlier
+     * revisions stay in Room and are available from detail, but a 23k-revision
+     * status notification no longer occupies 23k cards or crowds out payments.
+     */
+    @Query(
+        """
+        SELECT i.instanceId AS instanceId, i.sourcePackage AS sourcePackage, i.postTime AS postTime,
+               i.status AS status, i.removedAt AS removedAt, i.revisionCount AS revisionCount,
+               i.latestRevisionId AS latestRevisionId, i.financeLinked AS financeLinked,
+               i.pinned AS pinned, i.isGroupSummary AS isGroupSummary,
+               r.revisionId AS revisionId, r.title AS title, r.text AS text, r.bigText AS bigText,
+               r.subText AS subText, r.infoText AS infoText, r.summaryText AS summaryText, r.textLines AS textLines,
+               r.parseStatus AS parseStatus, r.direction AS direction, r.amountMinor AS amountMinor,
+               r.currency AS currency, r.merchant AS merchant, r.capturedAt AS capturedAt,
+               r.mediaPath AS mediaPath, r.mediaMime AS mediaMime, r.mediaState AS mediaState,
+               r.mediaOrigin AS mediaOrigin, r.sourceEventId AS sourceEventId,
+               CASE WHEN i.isGroupSummary = 1 OR r.archiveKind IN ('ongoing','progress','live','group_summary') THEN 1 ELSE 0 END AS collapsedUpdates
+        FROM notification_instances AS i
+        JOIN notification_revisions AS r ON r.instanceId = i.instanceId AND r.accountId = i.accountId
+        WHERE i.accountId = :accountId
+          AND ((i.isGroupSummary = 0 AND r.archiveKind NOT IN ('ongoing','progress','live','group_summary'))
+            OR r.revisionId = (SELECT newest.revisionId FROM notification_revisions newest
+              WHERE newest.accountId = i.accountId AND newest.instanceId = i.instanceId
+                AND (i.isGroupSummary = 1 OR newest.archiveKind IN ('ongoing','progress','live','group_summary'))
+              ORDER BY newest.capturedAt DESC, newest.revisionId DESC LIMIT 1))
+          AND (:includeRemoved = 1 OR i.status = 'active')
+          AND (:packageFilter = '' OR i.sourcePackage = :packageFilter)
+          AND (:fromTime = 0 OR r.capturedAt >= :fromTime)
+          AND (:toTime = 0 OR r.capturedAt <= :toTime)
+          AND (:query = '' OR EXISTS (
+              SELECT 1 FROM notification_revisions AS searched
+              WHERE searched.instanceId = i.instanceId
+                AND (searched.title LIKE '%' || :query || '%' OR searched.text LIKE '%' || :query || '%'
+                     OR searched.bigText LIKE '%' || :query || '%' OR searched.subText LIKE '%' || :query || '%'
+                     OR searched.infoText LIKE '%' || :query || '%' OR searched.summaryText LIKE '%' || :query || '%'
+                     OR searched.textLines LIKE '%' || :query || '%')
+          ))
+        ORDER BY r.capturedAt DESC, r.revisionId DESC
+        LIMIT :limit OFFSET :offset
+        """,
+    )
+    fun lifecycleHistory(
         accountId: String,
         includeRemoved: Int,
         packageFilter: String,
@@ -202,10 +259,44 @@ interface NotificationDao {
           AND (:toTime = 0 OR r.capturedAt <= :toTime)
           AND (:query = '' OR r.title LIKE '%' || :query || '%' OR r.text LIKE '%' || :query || '%'
                OR r.bigText LIKE '%' || :query || '%' OR r.subText LIKE '%' || :query || '%'
-               OR r.summaryText LIKE '%' || :query || '%')
+               OR r.infoText LIKE '%' || :query || '%' OR r.summaryText LIKE '%' || :query || '%'
+               OR r.textLines LIKE '%' || :query || '%')
         """,
     )
     fun historyCount(
+        accountId: String,
+        includeRemoved: Int,
+        packageFilter: String,
+        fromTime: Long,
+        toTime: Long,
+        query: String,
+    ): Int
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM notification_instances AS i
+        JOIN notification_revisions AS r ON r.instanceId = i.instanceId AND r.accountId = i.accountId
+        WHERE i.accountId = :accountId
+          AND ((i.isGroupSummary = 0 AND r.archiveKind NOT IN ('ongoing','progress','live','group_summary'))
+            OR r.revisionId = (SELECT newest.revisionId FROM notification_revisions newest
+              WHERE newest.accountId = i.accountId AND newest.instanceId = i.instanceId
+                AND (i.isGroupSummary = 1 OR newest.archiveKind IN ('ongoing','progress','live','group_summary'))
+              ORDER BY newest.capturedAt DESC, newest.revisionId DESC LIMIT 1))
+          AND (:includeRemoved = 1 OR i.status = 'active')
+          AND (:packageFilter = '' OR i.sourcePackage = :packageFilter)
+          AND (:fromTime = 0 OR r.capturedAt >= :fromTime)
+          AND (:toTime = 0 OR r.capturedAt <= :toTime)
+          AND (:query = '' OR EXISTS (
+              SELECT 1 FROM notification_revisions AS searched
+              WHERE searched.instanceId = i.instanceId
+                AND (searched.title LIKE '%' || :query || '%' OR searched.text LIKE '%' || :query || '%'
+                     OR searched.bigText LIKE '%' || :query || '%' OR searched.subText LIKE '%' || :query || '%'
+                     OR searched.infoText LIKE '%' || :query || '%' OR searched.summaryText LIKE '%' || :query || '%'
+                     OR searched.textLines LIKE '%' || :query || '%')
+          ))
+        """,
+    )
+    fun lifecycleHistoryCount(
         accountId: String,
         includeRemoved: Int,
         packageFilter: String,
@@ -250,6 +341,9 @@ interface NotificationDao {
 
     @Query("SELECT * FROM notification_revisions WHERE accountId = :accountId AND instanceId = :instanceId ORDER BY capturedAt DESC, revisionId DESC")
     fun revisionsNewestFirst(accountId: String, instanceId: String): List<NotificationRevisionEntity>
+
+    @Query("SELECT * FROM notification_revisions WHERE accountId = :accountId AND instanceId = :instanceId ORDER BY capturedAt DESC, revisionId DESC LIMIT :limit OFFSET :offset")
+    fun recentRevisions(accountId: String, instanceId: String, limit: Int, offset: Int = 0): List<NotificationRevisionEntity>
 
     @Query("SELECT COUNT(*) FROM notification_revisions WHERE accountId = :accountId AND instanceId = :instanceId")
     fun revisionCountOf(accountId: String, instanceId: String): Int
@@ -353,6 +447,21 @@ interface NotificationDao {
         // longer flood the archive. Removed instances never coalesce: recordCapture
         // only reaches this point for an `active` instance, so a repost after
         // removal always starts a new lifecycle.
+        // An empty platform update must never erase an earlier readable
+        // snapshot. It may be a group-summary refresh or an app rebuilding a
+        // notification while its RemoteViews are temporarily empty. Keep the
+        // lifecycle alive, preserve the previous content, and store no blank
+        // revision. Media-only notifications remain meaningful and bypass this
+        // guard.
+        if (latest != null && candidate.hasNoReadablePayload() && !latest.hasNoReadablePayload()) {
+            touchInstance(existing.accountId, existing.instanceId, now)
+            return CaptureWriteResult(
+                instanceId = existing.instanceId,
+                revisionAdded = false,
+                instanceCreated = false,
+                coalesced = true,
+            )
+        }
         if (coalesceWithPrevious && latest != null) {
             val updated = latest.copy(
                 title = candidate.title,
@@ -377,6 +486,7 @@ interface NotificationDao {
                 mediaFingerprintAlt = candidate.mediaFingerprintAlt.ifBlank { latest.mediaFingerprintAlt },
                 mediaOrigin = candidate.mediaOrigin.ifBlank { latest.mediaOrigin },
                 sourceEventId = latest.sourceEventId.ifBlank { candidate.sourceEventId },
+                archiveKind = candidate.archiveKind,
             )
             updateRevision(updated)
             touchInstance(existing.accountId, existing.instanceId, now)
@@ -420,6 +530,11 @@ interface NotificationDao {
         if (incoming.isEmpty()) return false
         return incoming != latest.mediaFingerprint.trim() && incoming != latest.mediaFingerprintAlt.trim()
     }
+
+    private fun NotificationRevisionEntity.hasNoReadablePayload(): Boolean =
+        title.isBlank() && text.isBlank() && bigText.isBlank() && subText.isBlank() && infoText.isBlank() &&
+            summaryText.isBlank() && textLines.isBlank() && mediaState == "none" &&
+            mediaPath.isBlank() && mediaFingerprint.isBlank()
 }
 
 data class NotificationHistoryRow(
@@ -432,11 +547,13 @@ data class NotificationHistoryRow(
     val latestRevisionId: String,
     val financeLinked: Int,
     val pinned: Int = 0,
+    val isGroupSummary: Int = 0,
     val revisionId: String,
     val title: String,
     val text: String,
     val bigText: String,
     val subText: String,
+    val infoText: String,
     val summaryText: String,
     val textLines: String,
     val parseStatus: String,
@@ -449,6 +566,8 @@ data class NotificationHistoryRow(
     val mediaMime: String = "",
     val mediaState: String = "none",
     val mediaOrigin: String = "",
+    val sourceEventId: String = "",
+    val collapsedUpdates: Int = 0,
 )
 
 data class NotificationPackageCount(

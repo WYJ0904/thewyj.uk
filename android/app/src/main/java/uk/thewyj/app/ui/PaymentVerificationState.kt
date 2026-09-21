@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import uk.thewyj.app.task21.payment.PaymentVerificationCenter
@@ -27,12 +28,18 @@ class PaymentVerificationState(
     var amountText by mutableStateOf("")
     var direction by mutableStateOf("EXPENSE")
     var merchantText by mutableStateOf("")
+    var busyRecognitionId by mutableStateOf("")
+    var busyAction by mutableStateOf("")
 
     suspend fun refresh() {
         loading = true
         error = ""
         try {
             items = withContext(Dispatchers.IO) { center.items(accountId) }
+        } catch (cancellation: CancellationException) {
+            // Leaving this Compose surface (for example opening WeChat) is a
+            // normal lifecycle cancellation, never a user-facing error.
+            throw cancellation
         } catch (failure: Throwable) {
             error = failure.message ?: "读取待确认交易失败"
         } finally {
@@ -110,10 +117,49 @@ class PaymentVerificationState(
     }
 
     suspend fun ignore(item: PaymentVerificationCenter.Item) {
-        withContext(Dispatchers.IO) { center.ignore(accountId, item.candidateId, item.recognitionId) }
-        message = "已忽略这笔交易，不会写入财务账本"
-        refresh()
+        if (busyRecognitionId.isNotBlank()) return
+        busyRecognitionId = item.recognitionId
+        busyAction = "ignore"
+        error = ""
+        message = "正在同步忽略状态…"
+        try {
+            val result = withContext(Dispatchers.IO) {
+                center.ignore(accountId, item.candidateId, item.recognitionId)
+            }
+            if (result.ok) {
+                error = ""
+                message = result.message
+                // The terminal local state is already persisted by center.ignore().
+                // Remove the card immediately instead of making the user wait for
+                // the follow-up network reconciliation before the UI reacts.
+                items = items.filterNot { it.recognitionId == item.recognitionId }
+            } else {
+                message = ""
+                error = result.message
+            }
+            refresh()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (failure: Throwable) {
+            message = ""
+            error = failure.message ?: "忽略这笔交易失败，请重试"
+        } finally {
+            busyRecognitionId = ""
+            busyAction = ""
+        }
     }
+
+    fun reportOpenAppFailure(appLabel: String) {
+        message = ""
+        error = "无法打开「$appLabel」。请确认应用已安装且未被系统停用。"
+    }
+
+    fun reportOpenAppStarted() {
+        error = ""
+    }
+
+    fun isBusy(item: PaymentVerificationCenter.Item, action: String): Boolean =
+        busyRecognitionId == item.recognitionId && busyAction == action
 
     /**
      * Task 24 reopen #4: bounded catch-up while records that the server owns stay

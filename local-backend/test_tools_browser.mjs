@@ -223,6 +223,8 @@ async function main() {
   const runtimeErrors = [];
   const networkHttpErrors = [];
   const apiRequestCounts = new Map();
+  const recentRequestIds = new Set();
+  let maxRecentInFlight = 0;
   const jsDialogs = [];
   client.listeners.add((message) => {
     // A stray window.prompt/confirm/alert must never block the renderer again.
@@ -262,6 +264,13 @@ async function main() {
     if (message.method === "Network.requestWillBeSent") {
       const pathname = new URL(message.params.request.url).pathname;
       if (pathname.startsWith("/api/")) apiRequestCounts.set(pathname, (apiRequestCounts.get(pathname) || 0) + 1);
+      if (pathname === "/api/tools/recent") {
+        recentRequestIds.add(message.params.requestId);
+        maxRecentInFlight = Math.max(maxRecentInFlight, recentRequestIds.size);
+      }
+    }
+    if (["Network.loadingFinished", "Network.loadingFailed"].includes(message.method)) {
+      recentRequestIds.delete(message.params.requestId);
     }
   });
 
@@ -412,7 +421,11 @@ async function main() {
     // A canonical /transfer navigation may restore the document before app.js
     // has supplied the toolbox bridge. `window.WYJTools` exists as soon as the
     // module evaluates, so object presence alone is not a readiness signal.
-    await waitFor("window.WYJTools?.isReady?.() === true", 8_000, `toolbox bridge before ${id}`);
+    await waitFor(
+      "localStorage.getItem('wyjAccountSession') && !document.querySelector('#toolsPanel')?.classList.contains('hidden') && window.WYJTools?.isReady?.() === true",
+      15_000,
+      `canonical account, session and toolbox bridge before ${id}`,
+    );
     // Task 24.1: file transfer has one canonical implementation. Opening either
     // id hands over to /transfer instead of rendering a toolbox workbench.
     if (id === "temporary-file" || id === "file-transfer") {
@@ -610,7 +623,7 @@ async function main() {
     await evaluate(`localStorage.setItem('wyjAccountSession', ${JSON.stringify(member.session)}); location.href = '/tools?tool-matrix=1'; true`);
     // Task 24.1: the catalog gained the canonical "文件传输" entry (104 total,
     // 103 visible after the retired legacy temporary-file share).
-    await waitFor("window.WYJTools?.tools?.length === 104 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox dashboard");
+    await waitFor("localStorage.getItem('wyjAccountSession') && window.WYJTools?.tools?.length === 104 && !document.querySelector('#toolsPanel')?.classList.contains('hidden') && window.WYJTools?.isReady?.() === true", 15_000, "toolbox dashboard");
     await evaluate(`(() => {
       const notice = document.querySelector('#versionNotice');
       if (notice && !notice.classList.contains('hidden')) document.querySelector('#dismissVersionNoticeBtn')?.click();
@@ -1120,8 +1133,7 @@ async function main() {
         "canonical file-transfer catalog entry",
       );
       await send("Page.navigate", { url: `${BASE_URL}/tools` });
-      await waitFor("window.WYJTools?.tools?.length === 104", 15_000, "toolbox reload after canonical check");
-      await waitFor("window.WYJTools?.tools?.length === 104 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000, "toolbox after public file download");
+      await waitFor("localStorage.getItem('wyjAccountSession') && window.WYJTools?.tools?.length === 104 && !document.querySelector('#toolsPanel')?.classList.contains('hidden') && window.WYJTools?.isReady?.() === true", 15_000, "toolbox after public file download");
     });
 
     await record("temporary", "temporary-clipboard", async () => {
@@ -1543,6 +1555,7 @@ async function main() {
       failures,
       runtimeErrors,
       toolPreferenceRequests: apiRequestCounts.get("/api/tools/preferences") || 0,
+      maxRecentInFlight,
       downloads: fs.readdirSync(DOWNLOAD_ROOT).filter((name) => !name.endsWith(".crdownload")).length,
       downloadRetries: downloadRetryCount,
       auditedModes: coveredToolModes.size,
@@ -1562,6 +1575,7 @@ async function main() {
       (apiRequestCounts.get("/api/tools/preferences") || 0) <= 20,
       `tool preference requests were not coalesced: ${apiRequestCounts.get("/api/tools/preferences") || 0}`,
     );
+    assert.ok(maxRecentInFlight <= 1, `recent-tool sync was concurrent: ${maxRecentInFlight}`);
     assert.deepEqual(unexpectedHttpErrors, [], `unexpected browser HTTP errors: ${JSON.stringify(networkHttpErrors)}`);
   } finally {
     await client.send("Target.closeTarget", { targetId }).catch(() => {});

@@ -535,7 +535,7 @@ async function main() {
         "Task 21 entitlements after reload",
       );
 
-      const event = (suffix, amount, fingerprintValue) => ({
+      const event = (suffix, amount, fingerprintValue, overrides = {}) => ({
         event_id: "evt-browser-" + RUN_ID + "-" + suffix,
         fingerprint: fingerprintValue.repeat(64),
         source_package: "com.tencent.mm",
@@ -552,14 +552,15 @@ async function main() {
         confidence: 800,
         occurred_at_ms: Date.now(),
         received_at_ms: Date.now(),
+        ...overrides,
       });
-      const ingest = async (suffix, amount, fingerprintValue) => request("/api/notification/ingest", {
+      const ingest = async (suffix, amount, fingerprintValue, overrides = {}) => request("/api/notification/ingest", {
         schema_version: "1",
         device_id: "device-browser-task21",
         operations: [{
           operation_id: "op-browser-" + RUN_ID + "-" + suffix,
           type: "event.ingest",
-          payload: event(suffix, amount, fingerprintValue),
+          payload: event(suffix, amount, fingerprintValue, overrides),
         }],
       }, originalSession);
 
@@ -571,6 +572,40 @@ async function main() {
       assert.equal(rejectIngest.status, 200, JSON.stringify(rejectIngest.data));
       const rejectId = rejectIngest.data.operation_results[0].candidate_id;
       assert.ok(rejectId);
+      const alipayIngest = await ingest("alipay-no-merchant", 280, "c", {
+        source_package: "com.eg.android.AlipayGphone",
+        payment_channel: "alipay",
+        merchant: "",
+        counterparty: "",
+        parser_version: "alipay-2",
+        confidence: 650,
+      });
+      assert.equal(alipayIngest.status, 200, JSON.stringify(alipayIngest.data));
+      const alipayId = alipayIngest.data.operation_results[0].candidate_id;
+      const hintEventId = "evt-browser-" + RUN_ID + "-unknown-fields";
+      const hintIngest = await request("/api/notification/hints", {
+        device_id: "device-browser-task21",
+        hints: [{
+          source_event_id: hintEventId,
+          source_type: "notification",
+          source_package: "com.tencent.mm",
+          app_label: "微信",
+          amount_minor: null,
+          direction: null,
+          merchant: "",
+          currency: "CNY",
+          confidence: 460,
+          recognition_status: "INSUFFICIENT_INFORMATION",
+          evidence: {
+            source_type: "notification",
+            confidence: 460,
+            reasons: ["wechat_payment_hint_without_amount", "local_incomplete_payment"],
+            parser_version: "wechat-2",
+          },
+        }],
+      }, originalSession);
+      assert.equal(hintIngest.status, 200, JSON.stringify(hintIngest.data));
+      const hintId = hintIngest.data.hints[0].id;
       await navigate("/finance?task21=" + RUN_ID);
       await waitFor("!document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 15_000, "finance workspace");
       await waitFor(
@@ -582,6 +617,84 @@ async function main() {
         "Boolean(document.querySelector('[data-finance-candidate=\"" + rejectId + "\"]'))",
         15_000,
         "second Task 21 candidate in finance UI",
+      );
+      await waitFor(
+        "Boolean(document.querySelector('[data-finance-candidate=\"" + hintId + "\"]'))",
+        15_000,
+        "amount and direction unknown hint in finance UI",
+      );
+      await waitFor(
+        "Boolean(document.querySelector('[data-finance-candidate=\"" + alipayId + "\"]'))",
+        15_000,
+        "Alipay candidate without merchant in finance UI",
+      );
+      const hintSemantics = await evaluate(`(() => {
+        const card = document.querySelector('[data-finance-candidate="${hintId}"]');
+        const editor = card.querySelector('[data-finance-candidate-editor]');
+        const primary = card.querySelector('[data-finance-candidate-confirm]');
+        return {
+          text: card.textContent,
+          direction: card.querySelector('.finance-direction')?.textContent.trim(),
+          directionClass: card.querySelector('.finance-direction')?.className,
+          primary: primary?.textContent.trim(),
+          amount: editor.elements.amount.value,
+          editorDirection: editor.elements.direction.value,
+          overflow: card.scrollWidth - card.clientWidth,
+          primaryHeight: primary.getBoundingClientRect().height,
+        };
+      })()`);
+      assert.equal(hintSemantics.direction, "方向待核实");
+      assert.match(hintSemantics.directionClass, /is-unknown/);
+      assert.doesNotMatch(hintSemantics.directionClass, /is-expense/);
+      assert.equal(hintSemantics.primary, "补全并确认");
+      assert.equal(hintSemantics.amount, "", "unknown money must not render as zero");
+      assert.equal(hintSemantics.editorDirection, "", "unknown direction must require an explicit choice");
+      assert.match(hintSemantics.text, /微信/);
+      assert.match(hintSemantics.text, /商户未知（可选）/);
+      assert.match(hintSemantics.text, /原通知没有提供金额/);
+      assert.ok(hintSemantics.overflow <= 1, "390px candidate card must not overflow horizontally");
+      assert.ok(hintSemantics.primaryHeight <= 60, "primary action must not split into a three-line button");
+      const alipaySemantics = await evaluate(`(() => {
+        const card = document.querySelector('[data-finance-candidate="${alipayId}"]');
+        return { text: card.textContent, primary: card.querySelector('[data-finance-candidate-confirm]')?.textContent.trim() };
+      })()`);
+      assert.match(alipaySemantics.text, /支付宝/);
+      assert.match(alipaySemantics.text, /商户未知（可选）/);
+      assert.doesNotMatch(alipaySemantics.text, /未知来源/);
+      assert.equal(alipaySemantics.primary, "确认记账", "merchant is optional and must not block booking");
+      for (const width of [360, 390, 412]) {
+        await send("Emulation.setDeviceMetricsOverride", { width, height: 844, deviceScaleFactor: 1, mobile: true });
+        await evaluate("document.documentElement.style.fontSize='125%'; true");
+        const mobileLayout = await evaluate(`(() => {
+          const card = document.querySelector('[data-finance-candidate="${hintId}"]');
+          const primary = card.querySelector('[data-finance-candidate-confirm]');
+          const actions = card.querySelector(':scope > .finance-candidate-actions');
+          return {
+            cardOverflow: card.scrollWidth - card.clientWidth,
+            pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+            primaryHeight: primary.getBoundingClientRect().height,
+            actionsWidth: actions.getBoundingClientRect().width,
+            cardWidth: card.getBoundingClientRect().width,
+          };
+        })()`);
+        assert.ok(mobileLayout.cardOverflow <= 1, `${width}px candidate card must not overflow`);
+        assert.ok(mobileLayout.pageOverflow <= 1, `${width}px finance page must not overflow`);
+        assert.ok(mobileLayout.primaryHeight <= 88, `${width}px primary action must remain readable at 125% text`);
+        assert.ok(mobileLayout.actionsWidth <= mobileLayout.cardWidth, `${width}px actions must stay inside the card`);
+      }
+      await evaluate("document.documentElement.style.fontSize=''; true");
+      await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+      await click('[data-finance-candidate-confirm="' + hintId + '"]');
+      assert.equal(
+        await evaluate("!document.querySelector('[data-finance-candidate-editor=\"" + hintId + "\"]').classList.contains('hidden')"),
+        true,
+        "incomplete hint primary action opens the editor",
+      );
+      await click('[data-finance-candidate-save="' + hintId + '"]');
+      assert.equal(
+        await evaluate("Boolean(document.querySelector('[data-finance-candidate=\"" + hintId + "\"]'))"),
+        true,
+        "required amount and direction prevent an incomplete submit before the API",
       );
       await evaluate(`(() => {
         window.__qaPendingEmptyTransitions = 0;
@@ -656,6 +769,19 @@ async function main() {
       const rejectedTransactions = await request("/api/finance/transactions?limit=100", null, originalSession);
       assert.equal(rejectedTransactions.data.transactions.some((item) => item.amount_minor === 5432), false);
 
+      await click('[data-finance-candidate-reject="' + alipayId + '"]');
+      await waitFor(
+        "!document.querySelector('[data-finance-candidate=\"" + alipayId + "\"]')",
+        15_000,
+        "Alipay fixture candidate ignored",
+      );
+      await click('[data-finance-candidate-reject="' + hintId + '"]');
+      await waitFor(
+        "!document.querySelector('[data-finance-candidate=\"" + hintId + "\"]')",
+        15_000,
+        "incomplete hint ignored without booking",
+      );
+
       const deleted = await request("/api/notification/events/delete", {
         event_id: "evt-browser-" + RUN_ID + "-reject",
       }, originalSession);
@@ -704,6 +830,11 @@ async function main() {
             `document.getElementById(${JSON.stringify(id)})?.parentElement?.tagName === 'BODY' && !document.getElementById(${JSON.stringify(id)})?.classList.contains('hidden') && document.getElementById('appShell')?.inert === true`,
             3000,
             `${id} opened with inert application shell`,
+          );
+          await waitFor(
+            `document.getElementById(${JSON.stringify(id)}).getAnimations({subtree:true}).every(animation=>animation.playState==='finished')`,
+            3000,
+            `${id} opening animation settled`,
           );
           const geometry = await evaluate(`(()=>{const e=document.getElementById(${JSON.stringify(id)}),p=e.querySelector('.modal-panel'),r=p.getBoundingClientRect(),b=e.querySelector('button');const br=b?.getBoundingClientRect();return {parent:e.parentElement.tagName,inert:e.inert,bg:document.getElementById('appShell').inert,x:r.x,y:r.y,right:r.right,bottom:r.bottom,w:innerWidth,h:visualViewport.height,hit:!br||e.contains(document.elementFromPoint(br.x+br.width/2,br.y+br.height/2))};})()`);
           assert.equal(geometry.parent,'BODY',id);

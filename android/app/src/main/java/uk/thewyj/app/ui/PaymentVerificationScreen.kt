@@ -22,6 +22,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -31,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import kotlinx.coroutines.launch
 import uk.thewyj.app.core.design.ThewyjCard
 import uk.thewyj.app.core.design.ThewyjPrimaryButton
@@ -53,11 +55,16 @@ fun PaymentVerificationScreen(
     state: PaymentVerificationState,
     onBack: () -> Unit,
     onOpenFinance: () -> Unit,
-    onOpenApp: (String) -> Unit,
+    onOpenApp: (String) -> Boolean,
 ) {
     val scope = rememberCoroutineScope()
     var tick by remember { mutableStateOf(0) }
-    LaunchedEffect(Unit) { state.refresh() }
+    var resumeEpoch by remember { mutableIntStateOf(0) }
+    LifecycleResumeEffect(Unit) {
+        resumeEpoch += 1
+        onPauseOrDispose { }
+    }
+    LaunchedEffect(resumeEpoch) { state.refresh() }
     // #4: bounded catch-up for records the server still owns (Web confirm → this
     // screen). It restarts when the set of pending records changes and stops by
     // itself after PendingReconciliationPolicy.windowMs.
@@ -221,10 +228,24 @@ fun PaymentVerificationScreen(
                                     Text(if (item.needsAmount) "填写金额" else "修改")
                                 }
                                 if (item.ticketActive) {
-                                    TextButton(onClick = { onOpenApp(item.sourcePackage) }) { Text("打开应用") }
+                                    TextButton(
+                                        onClick = {
+                                            if (onOpenApp(item.sourcePackage)) {
+                                                state.reportOpenAppStarted()
+                                            } else {
+                                                state.reportOpenAppFailure(item.appLabel)
+                                            }
+                                        },
+                                    ) { Text("打开应用") }
                                 }
                             }
-                            TextButton(onClick = { scope.launch { state.ignore(item) } }) { Text("忽略这笔") }
+                            val ignoring = state.isBusy(item, "ignore")
+                            TextButton(
+                                onClick = { scope.launch { state.ignore(item) } },
+                                enabled = !ignoring,
+                            ) {
+                                Text(if (ignoring) "正在忽略…" else "忽略这笔")
+                            }
                         }
                     }
                 }

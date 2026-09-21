@@ -1,4 +1,4 @@
-import { randomId } from "../core/capabilities.js?v=20260914-task24-device-r5";
+import { randomId } from "../core/capabilities.js?v=20260920-task24-candidate-r6";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -6,13 +6,24 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20260914-task24-device-r5";
+} from "../core/perf.js?v=20260920-task24-candidate-r6";
 const CANDIDATE_PAGE_LIMIT = 100;
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
-const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款" });
+const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
+const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
 const SOURCE_LABELS = Object.freeze({
   "com.tencent.mm": "微信",
   "com.eg.android.AlipayGphone": "支付宝",
+});
+const REASON_LABELS = Object.freeze({
+  wechat_payment_hint_without_amount: "通知包含微信支付或转账提示，但原通知没有提供金额",
+  alipay_hint_without_amount: "通知包含支付宝交易提示，但原通知没有提供金额",
+  bank_notification_without_amount: "银行通知提示发生交易，但原通知没有提供金额",
+  sms_without_amount: "银行短信提示发生交易，但原短信没有提供金额",
+  wechat_amount_without_direction: "已识别金额，收支方向仍需核实",
+  alipay_amount_without_direction: "已识别金额，收支方向仍需核实",
+  bank_notification_amount_without_direction: "已识别金额，收支方向仍需核实",
+  local_incomplete_payment: "结构化交易字段不完整，等待人工核实",
 });
 
 /**
@@ -25,13 +36,34 @@ const SOURCE_LABELS = Object.freeze({
  */
 export function candidateNeedsEditor(candidate) {
   const amountMissing = !Number(candidate?.amount_minor);
-  const directionMissing = !String(candidate?.direction || "").trim();
+  const directionMissing = !VALID_DIRECTIONS.has(String(candidate?.direction || "").trim().toLowerCase());
   return amountMissing || directionMissing;
+}
+
+export function candidatePresentation(candidate) {
+  const amountUnknown = !Number(candidate?.amount_minor);
+  const rawDirection = String(candidate?.direction || "").trim().toLowerCase();
+  const direction = VALID_DIRECTIONS.has(rawDirection) ? rawDirection : "unknown";
+  const merchant = String(candidate?.merchant || candidate?.counterparty || "").trim();
+  const missing = [];
+  if (amountUnknown) missing.push("金额");
+  if (direction === "unknown") missing.push("收支方向");
+  return Object.freeze({
+    amountUnknown,
+    direction,
+    directionLabel: DIRECTION_LABELS[direction],
+    merchant,
+    merchantLabel: merchant || "商户未知（可选）",
+    missing,
+    primaryAction: missing.length ? "补全并确认" : "确认记账",
+  });
 }
 
 function sourceLabel(evidence) {
   const packageName = String(evidence?.source_package || "");
   if (SOURCE_LABELS[packageName]) return SOURCE_LABELS[packageName];
+  const appLabel = String(evidence?.app_label || "").trim();
+  if (appLabel) return appLabel;
   if (String(evidence?.source_type || "") === "sms") return "银行短信";
   if (String(evidence?.source_type || "") === "accessibility") return "页面核实";
   if (packageName) return packageName;
@@ -54,6 +86,17 @@ function formatMinor(minor, currency = "CNY") {
   } catch (_) {
     return `${amount.toFixed(2)} ${currency}`;
   }
+}
+
+function evidenceExplanation(candidate, presentation) {
+  const reasons = Array.isArray(candidate?.recognition_reasons) ? candidate.recognition_reasons : [];
+  const labels = [...new Set(reasons.map((reason) => REASON_LABELS[String(reason)]).filter(Boolean))];
+  if (labels.length) return labels.join("；");
+  if (!presentation.amountUnknown && presentation.direction !== "unknown" && !presentation.merchant) {
+    return "已识别金额与收支方向；原通知未提供商户信息，商户不是记账必填项";
+  }
+  if (presentation.missing.length) return `原始结构化证据缺少${presentation.missing.join("和")}，不会自动补值`;
+  return "结构化通知证据已满足记账条件";
 }
 
 /**
@@ -105,32 +148,34 @@ export function createFinanceCandidatesController({
   }
 
   function captureEditorState(list) {
-    const form = list?.querySelector(".finance-candidate-editor:not(.hidden)");
-    if (!form) return null;
-    const values = {};
-    for (const control of form.elements || []) {
-      if (control.name) values[control.name] = control.value;
-    }
     const active = document.activeElement;
-    return {
-      id: String(form.dataset.financeCandidateEditor || ""),
-      values,
-      focusedName: form.contains(active) ? String(active?.name || "") : "",
-    };
+    return [...(list?.querySelectorAll(".finance-candidate-editor:not(.hidden)") || [])].map((form) => {
+      const values = {};
+      for (const control of form.elements || []) {
+        if (control.name) values[control.name] = control.value;
+      }
+      return {
+        id: String(form.dataset.financeCandidateEditor || ""),
+        values,
+        focusedName: form.contains(active) ? String(active?.name || "") : "",
+      };
+    });
   }
 
-  function restoreEditorState(list, snapshot) {
-    if (!snapshot?.id) return;
-    const form = list.querySelector(`[data-finance-candidate-editor="${CSS.escape(snapshot.id)}"]`);
-    if (!form) return;
-    form.classList.remove("hidden");
-    for (const [name, value] of Object.entries(snapshot.values || {})) {
-      if (form.elements[name]) form.elements[name].value = value;
-    }
-    const editButton = list.querySelector(`[data-finance-candidate-edit="${CSS.escape(snapshot.id)}"]`);
-    if (editButton) editButton.textContent = "收起编辑";
-    if (snapshot.focusedName && form.elements[snapshot.focusedName]) {
-      form.elements[snapshot.focusedName].focus({ preventScroll: true });
+  function restoreEditorState(list, snapshots) {
+    for (const snapshot of snapshots || []) {
+      if (!snapshot?.id) continue;
+      const form = list.querySelector(`[data-finance-candidate-editor="${CSS.escape(snapshot.id)}"]`);
+      if (!form) continue;
+      form.classList.remove("hidden");
+      for (const [name, value] of Object.entries(snapshot.values || {})) {
+        if (form.elements[name]) form.elements[name].value = value;
+      }
+      const editButton = list.querySelector(`[data-finance-candidate-edit="${CSS.escape(snapshot.id)}"]`);
+      if (editButton) editButton.textContent = "收起编辑";
+      if (snapshot.focusedName && form.elements[snapshot.focusedName]) {
+        form.elements[snapshot.focusedName].focus({ preventScroll: true });
+      }
     }
   }
 
@@ -149,9 +194,8 @@ export function createFinanceCandidatesController({
     }
     list.innerHTML = banner + candidates.map((candidate) => {
       const id = String(candidate.id || "");
-      const direction = String(candidate.direction || "expense");
-      const label = DIRECTION_LABELS[direction] || "交易";
-      const merchant = String(candidate.merchant || candidate.counterparty || "未知来源");
+      const presentation = candidatePresentation(candidate);
+      const { direction } = presentation;
       const occurred = Number(candidate.occurred_at_ms) > 0
         ? new Date(Number(candidate.occurred_at_ms)).toLocaleString("zh-CN")
         : "时间未知";
@@ -161,42 +205,38 @@ export function createFinanceCandidatesController({
       const sources = [...new Set(evidence.map((item) => sourceLabel(item)))].join(" + ") || "通知";
       const evidenceCount = Math.max(evidence.length, Number(candidate.evidence_count) || 1);
       const editedCount = Number(candidate.correction_count) || 0;
-      const missing = [];
-      const amountUnknown = !Number(candidate.amount_minor);
-      const directionUnknown = !String(candidate.direction || "").trim();
-      if (amountUnknown) missing.push("金额");
-      if (directionUnknown) missing.push("方向");
-      if (!String(candidate.merchant || candidate.counterparty || "")) missing.push("商户");
-      const missingLabel = missing.length ? ` · 缺少：${missing.join("、")}` : "";
-      const confirmLabel = amountUnknown
-        ? "填写金额并确认"
-        : directionUnknown ? "选择方向并确认" : "确认记账";
+      const missingLabel = presentation.missing.length ? `需补：${presentation.missing.join("、")}` : "信息完整，可直接确认";
+      const amountValue = presentation.amountUnknown ? "" : (Number(candidate.amount_minor) / 100).toFixed(2);
+      const evidenceReason = evidenceExplanation(candidate, presentation);
       return `<article class="finance-candidate" data-finance-candidate="${escapeHtml(id)}">
         <div class="finance-candidate-main">
-          <span class="finance-direction is-${escapeHtml(direction)}">${label}</span>
-          <div><strong>${amountUnknown ? "金额待填写" : escapeHtml(formatMinor(candidate.amount_minor, candidate.currency))}</strong>
-          <small>${escapeHtml(merchant)} · ${escapeHtml(occurred)} · 置信度 ${confidence}/1000</small>
-          <small>来源：${escapeHtml(sources)} · 证据 ${evidenceCount} 条${editedCount ? ` · 已修改 ${editedCount} 次` : ""}${escapeHtml(missingLabel)}</small></div>
+          <span class="finance-direction is-${escapeHtml(direction)}">${presentation.directionLabel}</span>
+          <div class="finance-candidate-copy"><strong>${presentation.amountUnknown ? "金额待补" : escapeHtml(formatMinor(candidate.amount_minor, candidate.currency))}</strong>
+          <small>${escapeHtml(sources)} · ${escapeHtml(occurred)}</small>
+          <small>${escapeHtml(presentation.merchantLabel)} · ${escapeHtml(missingLabel)}</small>
+          <details class="finance-candidate-evidence"><summary>查看识别依据</summary><p>${escapeHtml(evidenceReason)}</p><p>结构化证据 ${evidenceCount} 条 · 置信度 ${confidence}/1000${editedCount ? ` · 用户已修改 ${editedCount} 次` : ""}</p><p>事件标识：${escapeHtml(candidate.event_id || id)}</p></details></div>
         </div>
         <div class="finance-candidate-actions">
-          <button class="button-ghost" type="button" data-finance-candidate-edit="${escapeHtml(id)}" ${busy ? "disabled" : ""}>编辑并确认</button>
-          <button type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${confirmLabel}</button>
-          <button class="danger-text" type="button" data-finance-candidate-reject="${escapeHtml(id)}" ${busy ? "disabled" : ""}>拒绝</button>
+          <button type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${presentation.primaryAction}</button>
+          <button class="button-ghost" type="button" data-finance-candidate-edit="${escapeHtml(id)}" ${busy ? "disabled" : ""}>编辑</button>
+          <button class="danger-text" type="button" data-finance-candidate-reject="${escapeHtml(id)}" ${busy ? "disabled" : ""}>忽略</button>
+          <small>忽略只关闭这条候选，不会撤销实际支付。</small>
         </div>
         <form class="finance-candidate-editor hidden" data-finance-candidate-editor="${escapeHtml(id)}">
-          <label>金额<input type="number" step="0.01" min="0.01" name="amount" value="${escapeHtml((Number(candidate.amount_minor) / 100).toFixed(2))}"></label>
+          <label>金额<input type="number" step="0.01" min="0.01" name="amount" required inputmode="decimal" value="${escapeHtml(amountValue)}"></label>
           <label>方向
-            <select name="direction">
+            <select name="direction" required>
+              <option value=""${direction === "unknown" ? " selected" : ""} disabled>请选择收支方向</option>
               <option value="expense"${direction === "expense" ? " selected" : ""}>支出</option>
               <option value="income"${direction === "income" ? " selected" : ""}>收入</option>
               <option value="refund"${direction === "refund" ? " selected" : ""}>退款</option>
             </select>
           </label>
-          <label>商户<input type="text" name="merchant" maxlength="160" value="${escapeHtml(candidate.merchant || "")}"></label>
+          <label>商户（可选）<input type="text" name="merchant" maxlength="160" value="${escapeHtml(candidate.merchant || "")}"></label>
           <label>时间<input type="datetime-local" name="occurred" value="${occurredLocalValue(candidate.occurred_at_ms)}"></label>
           <label>备注<input type="text" name="note" maxlength="200" value=""></label>
           <div class="finance-candidate-actions">
-            <button type="button" data-finance-candidate-save="${escapeHtml(id)}" ${busy ? "disabled" : ""}>保存并确认记账</button>
+            <button type="submit" data-finance-candidate-save="${escapeHtml(id)}" ${busy ? "disabled" : ""}>保存并确认记账</button>
             <button class="button-ghost" type="button" data-finance-candidate-cancel="${escapeHtml(id)}">取消</button>
           </div>
         </form>
@@ -317,15 +357,20 @@ export function createFinanceCandidatesController({
         direction: String(hint.direction || ""),
         amount_minor: Number(hint.amount_minor) || 0,
         currency: String(hint.currency || "CNY"),
-        merchant: String(hint.merchant || hint.app_label || ""),
+        merchant: String(hint.merchant || ""),
         counterparty: "",
         payment_channel: "",
         occurred_at_ms: Date.parse(String(hint.created_at || "")) || 0,
         confidence: Number(hint.confidence) || 0,
         status: "pending",
-        evidence: [{ source_type: String(hint.source_type || "notification") }],
+        evidence: [{
+          source_type: String(hint.source_type || "notification"),
+          source_package: String(hint.source_package || ""),
+          app_label: String(hint.app_label || ""),
+        }],
         evidence_count: 1,
         correction_count: 0,
+        recognition_reasons: Array.isArray(hint.evidence?.reasons) ? hint.evidence.reasons : [],
       })).filter((item) => item.id);
     } catch (_) {
       // A missing hint endpoint must not hide the candidate list.
@@ -401,6 +446,25 @@ export function createFinanceCandidatesController({
     });
   }
 
+  function submitEditor(form, trigger) {
+    const id = String(form?.dataset.financeCandidateEditor || "");
+    const candidate = currentCandidates.find((item) => String(item.id) === id);
+    if (!candidate || !form) return;
+    const amount = Number(form.elements.amount.value);
+    const direction = String(form.elements.direction.value || "");
+    form.elements.amount.setCustomValidity(Number.isFinite(amount) && amount > 0 ? "" : "请填写大于 0 的金额");
+    form.elements.direction.setCustomValidity(VALID_DIRECTIONS.has(direction) ? "" : "请选择收支方向");
+    if (!form.reportValidity()) return;
+    decide(id, true, buildEdits(candidate, form), trigger);
+  }
+
+  function handleSubmit(event) {
+    const form = event.target.closest("[data-finance-candidate-editor]");
+    if (!form) return;
+    event.preventDefault();
+    submitEditor(form, form.querySelector("[data-finance-candidate-save]"));
+  }
+
   function handleClick(event) {
     const editButton = event.target.closest("[data-finance-candidate-edit]");
     if (editButton) {
@@ -422,11 +486,9 @@ export function createFinanceCandidatesController({
     }
     const saveButton = event.target.closest("[data-finance-candidate-save]");
     if (saveButton) {
-      const id = saveButton.dataset.financeCandidateSave;
-      const candidate = currentCandidates.find((item) => String(item.id) === String(id));
-      const form = document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`);
-      if (!candidate || !form) return;
-      decide(id, true, buildEdits(candidate, form), saveButton);
+      event.preventDefault();
+      const form = saveButton.closest("[data-finance-candidate-editor]");
+      submitEditor(form, saveButton);
       return;
     }
     const confirmButton = event.target.closest("[data-finance-candidate-confirm]");
@@ -438,16 +500,14 @@ export function createFinanceCandidatesController({
       // hint_direction_required). Open the editor so the user supplies the
       // missing field instead of sending a request that silently fails.
       if (candidateNeedsEditor(candidate)) {
-        const amountMissing = !Number(candidate?.amount_minor);
+        const presentation = candidatePresentation(candidate);
         // Render first, then reveal the freshly rendered form: render()
         // rebuilds the list HTML, so revealing the old node had no effect.
-        render(currentCandidates, amountMissing
-          ? "这笔交易缺少金额：请填写金额与方向后保存确认。"
-          : "这笔交易缺少收支方向：请选择方向后保存确认。");
+        render(currentCandidates, `这笔交易需要补全${presentation.missing.join("和")}后才能确认。`);
         const form = document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`);
         if (form) {
           form.classList.remove("hidden");
-          if (amountMissing) form.elements.amount?.focus();
+          if (presentation.amountUnknown) form.elements.amount?.focus();
           else form.elements.direction?.focus();
         }
         return;
@@ -473,6 +533,7 @@ export function createFinanceCandidatesController({
     if (!bound) {
       bound = true;
       element("financeCandidatesSection")?.addEventListener("click", handleClick);
+      element("financeCandidatesSection")?.addEventListener("submit", handleSubmit);
     }
     return reload();
   }

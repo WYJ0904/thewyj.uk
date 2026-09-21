@@ -4,8 +4,8 @@ import {
   BACKEND_NETWORK_MESSAGE,
   GET_RETRYABLE_STATUS,
   STATUS_RETRY_BASE_DELAYS_MS,
-} from "./config.js?v=20260914-task24-device-r5";
-import { accountSessionHeaders } from "./session.js?v=20260914-task24-device-r5";
+} from "./config.js?v=20260920-task24-candidate-r6";
+import { accountSessionHeaders } from "./session.js?v=20260920-task24-candidate-r6";
 
 export const CANONICAL_SESSION_ERROR_CODES = new Set([
   "authentication_required",

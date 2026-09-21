@@ -31,7 +31,7 @@ abstract class NotificationDatabase : RoomDatabase() {
     abstract fun paymentDao(): PaymentDao
 
     companion object {
-        const val SCHEMA_VERSION = 7
+        const val SCHEMA_VERSION = 8
         const val DATABASE_NAME = "wyj-notifications.db"
 
         @Volatile
@@ -46,9 +46,8 @@ abstract class NotificationDatabase : RoomDatabase() {
                 )
                     // The local archive is user data: never drop it on upgrade.
                     .addMigrations(
-                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
                     )
-                    .fallbackToDestructiveMigrationOnDowngrade(false)
                     .build()
                     .also { instance = it }
             }
@@ -136,6 +135,29 @@ abstract class NotificationDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_notification_revisions_accountId_sourceEventId` " +
                         "ON `notification_revisions` (`accountId`, `sourceEventId`)",
+                )
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `notification_revisions` ADD COLUMN `archiveKind` TEXT NOT NULL DEFAULT 'legacy'")
+                db.execSQL(
+                    "UPDATE `notification_revisions` SET `archiveKind` = 'group_summary' WHERE `instanceId` IN " +
+                        "(SELECT `instanceId` FROM `notification_instances` WHERE `isGroupSummary` = 1)",
+                )
+                db.execSQL(
+                    "UPDATE `notification_revisions` SET `archiveKind` = 'live' WHERE `instanceId` IN (" +
+                        "SELECT `instanceId` FROM `notification_instances` WHERE `revisionCount` >= 3 AND (" +
+                        "LOWER(`channelId`) LIKE '%status%' OR LOWER(`channelId`) LIKE '%service%' OR " +
+                        "LOWER(`channelId`) LIKE '%traffic%' OR LOWER(`channelId`) LIKE '%speed%' OR " +
+                        "LOWER(`channelId`) LIKE '%vpn%' OR LOWER(`channelId`) LIKE '%proxy%'))",
+                )
+                db.execSQL(
+                    "UPDATE `notification_revisions` SET `archiveKind` = 'live' WHERE " +
+                        "`instanceId` IN (SELECT `instanceId` FROM `notification_instances` WHERE `revisionCount` >= 3) AND " +
+                        "(`text` LIKE '正在%连接%' OR `text` LIKE '%正在运行' OR `text` LIKE '已连接%' OR " +
+                        "`bigText` LIKE '正在%连接%' OR `bigText` LIKE '%正在运行' OR `bigText` LIKE '已连接%')",
                 )
             }
         }

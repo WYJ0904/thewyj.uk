@@ -265,5 +265,6 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
             },
             sourceEventId = parsed?.eventId.orEmpty(),
             coalesceWithPrevious = input.coalesceWithPrevious,
+            archiveKind = input.archiveKind,
         )
 }

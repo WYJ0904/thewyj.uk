@@ -62,6 +62,7 @@ data class NotificationCapture(
      * revision instead of adding another history row.
      */
     val coalesceWithPrevious: Boolean = false,
+    val archiveKind: String = "message",
 )
 
 data class NotificationHistoryItem(
@@ -79,10 +80,12 @@ data class NotificationHistoryItem(
     val financeLinked: Boolean,
     /** User favourite: shown in the UI and skipped by retention. */
     val pinned: Boolean = false,
+    val isGroupSummary: Boolean = false,
     val title: String,
     val text: String,
     val bigText: String,
     val subText: String,
+    val infoText: String,
     val summaryText: String,
     val textLines: List<String>,
     val parseStatus: String,
@@ -95,6 +98,8 @@ data class NotificationHistoryItem(
     val mediaMime: String = "",
     val mediaState: String = "none",
     val mediaOrigin: String = "",
+    val sourceEventId: String = "",
+    val collapsedUpdates: Boolean = false,
 )
 
 data class NotificationQuery(
@@ -194,6 +199,7 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
                     mediaFingerprintAlt = capture.mediaFingerprintAlt,
                     mediaOrigin = capture.mediaOrigin,
                     sourceEventId = capture.sourceEventId,
+                    archiveKind = capture.archiveKind,
                 )
             },
         )
@@ -252,35 +258,20 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
             query = query.search.trim(),
             limit = query.limit.coerceIn(1, 500),
             offset = query.offset.coerceAtLeast(0),
-        ).map { row ->
-            NotificationHistoryItem(
-                instanceId = row.instanceId,
-                revisionId = row.revisionId,
-                sourcePackage = row.sourcePackage,
-                postTime = row.postTime,
-                status = row.status,
-                removedAt = row.removedAt,
-                revisionCount = row.revisionCount,
-                financeLinked = row.financeLinked == 1,
-                pinned = row.pinned == 1,
-                title = row.title,
-                text = row.text,
-                bigText = row.bigText,
-                subText = row.subText,
-                summaryText = row.summaryText,
-                textLines = if (row.textLines.isBlank()) emptyList() else row.textLines.split("\n"),
-                parseStatus = row.parseStatus,
-                direction = row.direction,
-                amountMinor = row.amountMinor,
-                currency = row.currency,
-                merchant = row.merchant,
-                capturedAt = row.capturedAt,
-                mediaPath = row.mediaPath,
-                mediaMime = row.mediaMime,
-                mediaState = row.mediaState,
-                mediaOrigin = row.mediaOrigin,
-            )
-        }
+        ).map(::historyItem)
+
+    /** Folded user-facing list; every stored revision remains queryable. */
+    fun lifecycleHistory(accountId: String, query: NotificationQuery): List<NotificationHistoryItem> =
+        dao.lifecycleHistory(
+            accountId = accountId.trim(),
+            includeRemoved = if (query.includeRemoved) 1 else 0,
+            packageFilter = query.sourcePackage.trim(),
+            fromTime = query.fromTime,
+            toTime = query.toTime,
+            query = query.search.trim(),
+            limit = query.limit.coerceIn(1, 500),
+            offset = query.offset.coerceAtLeast(0),
+        ).map(::historyItem)
 
     /**
      * Emits whenever anything is stored for the account. The notification hub
@@ -308,8 +299,20 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
         query = query.search.trim(),
     )
 
+    fun lifecycleHistoryCount(accountId: String, query: NotificationQuery): Int = dao.lifecycleHistoryCount(
+        accountId = accountId.trim(),
+        includeRemoved = if (query.includeRemoved) 1 else 0,
+        packageFilter = query.sourcePackage.trim(),
+        fromTime = query.fromTime,
+        toTime = query.toTime,
+        query = query.search.trim(),
+    )
+
     fun revisions(accountId: String, instanceId: String): List<NotificationRevisionEntity> =
         dao.revisions(accountId.trim(), instanceId)
+
+    fun recentRevisions(accountId: String, instanceId: String, limit: Int = 50, offset: Int = 0): List<NotificationRevisionEntity> =
+        dao.recentRevisions(accountId.trim(), instanceId, limit.coerceIn(1, 50), offset.coerceAtLeast(0))
 
     fun countsByPackage(accountId: String): List<NotificationPackageCount> = dao.countsByPackage(accountId.trim())
 
@@ -322,6 +325,38 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
             enabledApps = dao.enabledAppCount(account),
         )
     }
+
+    private fun historyItem(row: NotificationHistoryRow) = NotificationHistoryItem(
+        instanceId = row.instanceId,
+        revisionId = row.revisionId,
+        sourcePackage = row.sourcePackage,
+        postTime = row.capturedAt,
+        status = row.status,
+        removedAt = row.removedAt,
+        revisionCount = row.revisionCount,
+        financeLinked = row.financeLinked == 1,
+        pinned = row.pinned == 1,
+        isGroupSummary = row.isGroupSummary == 1,
+        title = row.title,
+        text = row.text,
+        bigText = row.bigText,
+        subText = row.subText,
+        infoText = row.infoText,
+        summaryText = row.summaryText,
+        textLines = if (row.textLines.isBlank()) emptyList() else row.textLines.split("\n"),
+        parseStatus = row.parseStatus,
+        direction = row.direction,
+        amountMinor = row.amountMinor,
+        currency = row.currency,
+        merchant = row.merchant,
+        capturedAt = row.capturedAt,
+        mediaPath = row.mediaPath,
+        mediaMime = row.mediaMime,
+        mediaState = row.mediaState,
+        mediaOrigin = row.mediaOrigin,
+        sourceEventId = row.sourceEventId,
+        collapsedUpdates = row.collapsedUpdates == 1,
+    )
 
     fun delete(accountId: String, instanceIds: List<String>): Int {
         if (instanceIds.isEmpty()) return 0
@@ -405,15 +440,15 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
     fun recognitionSourceEventId(accountId: String, sourceEventId: String): String {
         val account = accountId.trim()
         if (account.isEmpty() || sourceEventId.isBlank()) return ""
-        val instanceId = runCatching { dao.instanceIdForEventId(account, sourceEventId) }.getOrNull() ?: return ""
-        val instance = runCatching { dao.instance(account, instanceId) }.getOrNull() ?: return ""
+        val revision = dao.revisionForEventId(account, sourceEventId) ?: return ""
+        val instance = dao.instance(account, revision.instanceId) ?: return ""
         // Must match AndroidPaymentRecognitionHook.sourceEventIdOf exactly: the
         // raw platform key (never the archive's prefixed identityKey "key:...").
         val identity = instance.notificationKey.ifBlank {
             "${instance.sourcePackage}|${instance.notificationId}|${instance.tag}"
         }
         if (identity.isBlank()) return ""
-        return "notification#$identity#${instance.postTime}"
+        return "notification#$identity#${revision.capturedAt}"
     }
 
     /**
