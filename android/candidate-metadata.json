@@ -1,0 +1,15 @@
+{
+  "applicationId": "uk.thewyj.app",
+  "versionName": "1.3.11",
+  "versionCode": 24,
+  "candidate": true,
+  "productionRelease": false,
+  "baseUrl": "https://codex-task24-candidate-histo.thewyj-uk.pages.dev",
+  "releaseDate": "2026-09-21",
+  "build": "2026-09-21-task24-device-sync-r7",
+  "apkFileName": "thewyj-android-1.3.11-task24-preview.apk",
+  "apkSha256": "b07940a4d11f364e8f5818aa4589d22eee2d55225f2b3193e79f9dacf59b7ff0",
+  "apkSizeBytes": 47627681,
+  "certificateSha256": "2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03",
+  "notes": "Signed in-place Task 24 Preview candidate. Do not publish through Production /api/app/config. Rebuild against https://thewyj.uk after device acceptance."
+}
