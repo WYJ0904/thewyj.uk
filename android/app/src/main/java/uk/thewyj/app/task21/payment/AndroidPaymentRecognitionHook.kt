@@ -163,11 +163,27 @@ class AndroidPaymentRecognitionHook private constructor(
             sink.markFinanceOutcome(accountId, eventId, "confirmed", transactionId)
         }
         // Local recognition/candidate bookkeeping is best-effort and must never
-        // take the archive terminal state down with it.
+        // take the archive terminal state down with it. A server auto-book can
+        // legitimately arrive when the local candidate row is absent/stale, so
+        // the recognition itself must still leave ATTENTION_STATES immediately.
+        val recognition = runCatching {
+            store.recognitionByUploadEvent(accountId, eventId)
+        }.getOrNull() ?: return
+        val candidate = runCatching {
+            store.candidateForRecognition(accountId, recognition.recognitionId)
+        }.getOrNull()
+        if (candidate != null) {
+            runCatching {
+                coordinator.markFinanceRecorded(accountId, candidate.candidateId, transactionId)
+            }
+        }
         runCatching {
-            val recognition = store.recognitionByUploadEvent(accountId, eventId) ?: return@runCatching
-            val candidate = store.candidateForRecognition(accountId, recognition.recognitionId) ?: return@runCatching
-            coordinator.markFinanceRecorded(accountId, candidate.candidateId, transactionId)
+            store.saveRecognition(
+                recognition.copy(
+                    state = PaymentRecognitionState.FINANCE_RECORDED.name,
+                    updatedAtMs = System.currentTimeMillis(),
+                ),
+            )
         }
     }
 
