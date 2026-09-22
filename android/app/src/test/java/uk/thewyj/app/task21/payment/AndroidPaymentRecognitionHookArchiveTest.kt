@@ -128,6 +128,43 @@ class AndroidPaymentRecognitionHookArchiveTest {
         assertEquals("txn-auto-1", instance.financeTransactionId)
     }
 
+    @Test fun serverBookingClosesRecognitionEvenWithoutLocalCandidate() {
+        val eventId = "evt-auto-booked-recognition"
+        val recognitionStore = uk.thewyj.app.task21.store.RoomPaymentRecognitionStore(database)
+        recognitionStore.saveRecognition(
+            PaymentRecognitionRecord(
+                recognitionId = "rec-auto-booked",
+                accountId = account,
+                state = PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name,
+                notificationId = 77,
+                sourcePackage = "cmb.pb",
+                sourceType = PaymentSourceType.NOTIFICATION.name,
+                sourceEventId = "notification#bank#77",
+                uploadEventId = eventId,
+                paymentChannel = "bank",
+                amountMinor = 2_800L,
+                currency = "CNY",
+                direction = uk.thewyj.app.task21.FinanceDirection.EXPENSE.name,
+                merchant = "",
+                providerReference = "",
+                createdAtMs = 1_000L,
+                updatedAtMs = 1_000L,
+            ),
+        )
+
+        val hook = AndroidPaymentRecognitionHook(
+            RuntimeEnvironment.getApplication(),
+            archiveSink = sink(),
+            recognitionStore = recognitionStore,
+            testing = true,
+        )
+        hook.onFinanceOutcome(account, eventId, "txn-auto-2")
+
+        val stored = recognitionStore.recognition(account, "rec-auto-booked")
+        assertNotNull(stored)
+        assertEquals(PaymentRecognitionState.FINANCE_RECORDED.name, stored!!.state)
+    }
+
     /**
      * Task 24 reopen (real device 2026-09-13): WeChat chat/payment notifications
      * arrive as MessagingStyle, so the message body lives in `EXTRA_TEXT_LINES`
