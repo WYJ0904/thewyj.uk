@@ -35,7 +35,14 @@ class PaymentHintSync(
     private val transport = hintedTransport ?: HttpNotificationIngestTransport(BuildConfig.THEWYJ_BASE_URL)
     private val hook = AndroidPaymentRecognitionHook.get(app)
 
-    data class Result(val refreshed: Int, val confirmed: Int, val ignored: Int, val ok: Boolean)
+    data class Result(
+        val refreshed: Int,
+        val confirmed: Int,
+        val ignored: Int,
+        val ok: Boolean,
+        val observedStates: Map<String, String> = emptyMap(),
+        val completeObservation: Boolean = false,
+    )
     data class RemoteDismissResult(
         val ok: Boolean,
         val changed: Boolean = false,
@@ -185,7 +192,60 @@ class PaymentHintSync(
             }
         }
         val candidatesOk = syncCandidateTerminals(account)
-        return Result(hints.length(), confirmed, ignored, candidatesOk)
+        val observation = reconcileExactReviewIdentities(account)
+        return Result(
+            hints.length(), confirmed, ignored, candidatesOk,
+            observation.first, observation.second,
+        )
+    }
+
+    /** The exact server identity closes old local rows beyond the list endpoints' 200-row window. */
+    private fun reconcileExactReviewIdentities(
+        account: NotificationCaptureCoordinator.CaptureAccount,
+    ): Pair<Map<String, String>, Boolean> {
+        val local = runCatching {
+            store.recognitionsByState(account.accountId, PaymentVerificationCenter.ATTENTION_STATES, 200)
+        }.getOrDefault(emptyList())
+        val requested = local.map { it.uploadEventId.trim() }.filter(String::isNotBlank).distinct()
+        if (requested.isEmpty()) return emptyMap<String, String>() to false
+        val query = requested.joinToString(",") { java.net.URLEncoder.encode(it, Charsets.UTF_8.name()) }
+        val response = runCatching {
+            transport.get("/api/notification/pending-summary?event_ids=$query", account.sessionToken)
+        }.getOrNull() ?: return emptyMap<String, String>() to false
+        if (!response.ok) return emptyMap<String, String>() to false
+        val payload = runCatching { JSONObject(response.body) }.getOrNull()
+            ?: return emptyMap<String, String>() to false
+        val records = payload.optJSONArray("records") ?: return emptyMap<String, String>() to false
+        val states = mutableMapOf<String, String>()
+        for (index in 0 until records.length()) {
+            val row = records.optJSONObject(index) ?: continue
+            val eventIds = buildSet {
+                add(row.optString("event_id"))
+                val aliases = row.optJSONArray("event_ids")
+                if (aliases != null) for (aliasIndex in 0 until aliases.length()) add(aliases.optString(aliasIndex))
+            }.filter(String::isNotBlank).toSet()
+            val state = row.optString("state")
+            eventIds.forEach { states[it] = state }
+            if (state == "pending") continue
+            when (row.optString("kind")) {
+                "hint" -> eventIds.forEach { eventId ->
+                    if (state == "confirmed" && row.optString("transaction_id").isNotBlank()) {
+                        applyConfirmed(account, eventId, row.optString("transaction_id"), row)
+                    } else if (state in setOf("ignored", "rejected", "superseded", "expired")) {
+                        applyIgnored(account, eventId, row)
+                    }
+                }
+                "candidate" -> {
+                    val recognition = recognitionForCandidate(account, eventIds) ?: continue
+                    if (state == "confirmed" && row.optString("transaction_id").isNotBlank()) {
+                        applyCandidateConfirmed(account, recognition, eventIds, row.optString("transaction_id"))
+                    } else if (state in setOf("ignored", "rejected", "superseded", "expired")) {
+                        applyCandidateRejected(account, recognition, eventIds)
+                    }
+                }
+            }
+        }
+        return states to !payload.optBoolean("truncated", false)
     }
 
     /**
@@ -321,7 +381,11 @@ class PaymentHintSync(
         }
         runCatching {
             store.candidateForRecognition(accountId, recognition.recognitionId)?.let { candidate ->
-                store.saveCandidate(candidate.copy(status = "rejected", updatedAtMs = System.currentTimeMillis()))
+                store.saveCandidate(candidate.copy(
+                    status = "rejected",
+                    financeTransactionId = "",
+                    updatedAtMs = System.currentTimeMillis(),
+                ))
             }
         }
     }
@@ -389,7 +453,11 @@ class PaymentHintSync(
         }
         runCatching {
             store.candidateForRecognition(accountId, recognition.recognitionId)?.let { candidate ->
-                store.saveCandidate(candidate.copy(status = "rejected", updatedAtMs = System.currentTimeMillis()))
+                store.saveCandidate(candidate.copy(
+                    status = "rejected",
+                    financeTransactionId = "",
+                    updatedAtMs = System.currentTimeMillis(),
+                ))
             }
         }
     }

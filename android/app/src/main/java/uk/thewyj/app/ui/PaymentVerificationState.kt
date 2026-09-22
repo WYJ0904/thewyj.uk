@@ -30,20 +30,23 @@ class PaymentVerificationState(
     var merchantText by mutableStateOf("")
     var busyRecognitionId by mutableStateOf("")
     var busyAction by mutableStateOf("")
+    private var refreshGeneration = 0
 
     suspend fun refresh() {
+        val generation = ++refreshGeneration
         loading = true
         error = ""
         try {
-            items = withContext(Dispatchers.IO) { center.items(accountId) }
+            val refreshed = withContext(Dispatchers.IO) { center.items(accountId) }
+            if (generation == refreshGeneration) items = refreshed
         } catch (cancellation: CancellationException) {
             // Leaving this Compose surface (for example opening WeChat) is a
             // normal lifecycle cancellation, never a user-facing error.
             throw cancellation
         } catch (failure: Throwable) {
-            error = failure.message ?: "读取待确认交易失败"
+            if (generation == refreshGeneration) error = failure.message ?: "读取待确认交易失败"
         } finally {
-            loading = false
+            if (generation == refreshGeneration) loading = false
         }
     }
 
@@ -85,6 +88,10 @@ class PaymentVerificationState(
         val amount = parseMinor(amountText)
         if (confirm && (amount == null || amount <= 0)) {
             message = "请输入正确的金额"
+            return
+        }
+        if (confirm && direction == "UNKNOWN") {
+            message = "请先选择收入、支出或退款方向"
             return
         }
         val saved = withContext(Dispatchers.IO) {

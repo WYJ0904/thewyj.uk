@@ -19,9 +19,11 @@ import java.util.Locale
  * falls through to manual confirmation.
  */
 interface OcrEngine {
-    /** Recognised text lines in reading order. Never persisted. */
-    suspend fun recognize(bitmap: Bitmap): List<String>
+    /** Recognised text lines and model confidence in reading order. Never persisted. */
+    suspend fun recognize(bitmap: Bitmap): List<OcrLine>
 }
+
+data class OcrLine(val text: String, val confidence: Float)
 
 object PaymentScreenshotTarget {
     fun resolve(eventWindowId: Int, packageWindowId: Int?): Int? =
@@ -43,7 +45,7 @@ object PaymentOverlayRetryPolicy {
 class PaymentScreenshotVerifier(private val engine: OcrEngine) {
     suspend fun verify(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long): PaymentEnrichment? {
         val lines = runCatching { engine.recognize(bitmap) }.getOrDefault(emptyList())
-        val normalized = normalizeOcrLines(lines)
+        val normalized = normalizeOcrLines(lines.map { it.text })
         if (normalized.isEmpty()) {
             android.util.Log.i("ThewyjAccessibility", "ocr-semantics lines=0 context=false amounts=0 decisive=false completion=false")
             return null
@@ -62,16 +64,35 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
         // product price, a chat line that mentions money or a random ¥xx must
         // never become a payment on its own.
         if (!paymentContext) return null
-        return PaymentPageSemantics.extract(
+        val parsed = PaymentPageSemantics.extract(
             PaymentPageSnapshot(
                 sourcePackage = sourcePackage,
                 textLines = normalized,
                 capturedAtMs = capturedAtMs,
             ),
+        ) ?: return null
+        val amount = parsed.amountMinor ?: return null
+        // A plausible number after OCR substitution is not reliable evidence.
+        // Demand an unchanged, two-decimal money token in a high-confidence
+        // source line. Even then OCR is only a suggestion until the user checks it.
+        val reliable = lines.any { line ->
+            line.confidence >= MIN_MONEY_CONFIDENCE &&
+                STRICT_MONEY_TOKEN.containsMatchIn(line.text) &&
+                amount in PaymentText.amountsMinor(line.text)
+        }
+        if (!reliable) return null
+        return parsed.copy(
+            confidence = minOf(parsed.confidence, 700),
+            evidenceSource = PaymentEvidenceSource.OCR,
         )
     }
 
     companion object {
+        private const val MIN_MONEY_CONFIDENCE = 0.95f
+        private val STRICT_MONEY_TOKEN = Regex(
+            """(?:[¥￥]|CNY|RMB|(?:实付|付款金额|付款金額|支付金额|支付金額|转账金额|轉賬金額|收款金额|收款金額)\s*[:：]?)\s*[0-9][0-9,]{0,8}\.[0-9]{2}(?![0-9])""",
+            RegexOption.IGNORE_CASE,
+        )
         /**
          * OCR routinely confuses letters with digits (`1OO` for `100`, `28.OO`,
          * `l0` for `10`). Only the digit-shaped characters *inside* a number are
@@ -136,14 +157,18 @@ class MlKitOcrEngine(context: Context) : OcrEngine {
         com.google.mlkit.vision.text.TextRecognition.getClient(options)
     }
 
-    override suspend fun recognize(bitmap: Bitmap): List<String> = kotlinx.coroutines.withContext(
+    override suspend fun recognize(bitmap: Bitmap): List<OcrLine> = kotlinx.coroutines.withContext(
         kotlinx.coroutines.Dispatchers.IO,
     ) {
         val image = com.google.mlkit.vision.common.InputImage.fromBitmap(bitmap, 0)
         val result = runCatching { com.google.android.gms.tasks.Tasks.await(recognizer.process(image)) }
             .getOrNull()
             ?: return@withContext emptyList()
-        val lines = result.textBlocks.flatMap { block -> block.lines.map { line -> line.text } }
+        val lines = result.textBlocks.flatMap { block -> block.lines.map { line ->
+            val numericElements = line.elements.filter { element -> element.text.any(Char::isDigit) }
+            val moneyConfidence = numericElements.minOfOrNull { it.confidence } ?: line.confidence
+            OcrLine(line.text, minOf(line.confidence, moneyConfidence))
+        } }
         android.util.Log.i("ThewyjAccessibility", "ocr-result blocks=${result.textBlocks.size} lines=${lines.size}")
         lines
     }

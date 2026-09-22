@@ -53,7 +53,10 @@ data class PaymentEnrichment(
     val providerReference: String?,
     val occurredAtMs: Long?,
     val confidence: Int,
+    val evidenceSource: PaymentEvidenceSource = PaymentEvidenceSource.ACCESSIBILITY,
 )
+
+enum class PaymentEvidenceSource { ACCESSIBILITY, OCR }
 
 sealed interface EnrichmentOutcome {
     /** Enough evidence to continue towards candidate / Finance. */

@@ -159,6 +159,13 @@ fun PaymentVerificationScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        if (item.ocrSuggested) {
+                            Text(
+                                "OCR 金额仅供参考，请对照支付详情核实后手动确认；不会自动记账。",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                         if (item.ticketActive) {
                             Text(
                                 "核实中：请现在打开「${item.appLabel}」并停留在这笔交易的详情页（剩余 ${(item.remainingMs / 1000).coerceAtLeast(0)} 秒）",
@@ -208,7 +215,12 @@ fun PaymentVerificationScreen(
                             }
                         } else {
                             Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
-                                if (item.needsAmount) {
+                                if (item.ocrSuggested) {
+                                    ThewyjPrimaryButton(
+                                        text = { Text("核对金额并确认") },
+                                        onClick = { state.beginEdit(item) },
+                                    )
+                                } else if (item.needsAmount) {
                                     ThewyjPrimaryButton(
                                         text = { Text(if (item.ticketActive) "重新核实" else "核实交易金额") },
                                         onClick = { scope.launch { state.startVerification(item) } },
@@ -266,6 +278,9 @@ private fun DirectionChoice(label: String, selected: Boolean, onClick: () -> Uni
 
 private fun stateLabel(item: PaymentVerificationCenter.Item): String = when {
     item.syncState == PaymentVerificationCenter.SyncState.SYNCED -> "已记录到财务"
+    item.syncState == PaymentVerificationCenter.SyncState.UNRESOLVED_REMOTE -> "云端关联待核对"
+    item.ocrSuggested -> "OCR 建议金额待核对"
+    item.syncState == PaymentVerificationCenter.SyncState.LOCAL_ONLY -> "仅本机待核对"
     item.authority == PaymentVerificationCenter.Authority.SERVER -> "等待在财务中确认"
     item.state == "ENRICHMENT_EXPIRED" -> "金额待核实"
     item.state == "ENRICHMENT_VERIFIED" -> "已核实金额"
@@ -301,6 +316,9 @@ private fun syncLine(item: PaymentVerificationCenter.Item): String? = when (item
     PaymentVerificationCenter.SyncState.SYNC_FAILED -> "云端同步失败，数据仍保留在本机，可点击「同步记账」重试"
     PaymentVerificationCenter.SyncState.SYNC_REJECTED ->
         "云端拒绝这笔记账${if (item.notice.isNotBlank()) "（${item.notice}）" else ""}，数据仍保留在本机"
-    PaymentVerificationCenter.SyncState.LOCAL_ONLY -> null
+    PaymentVerificationCenter.SyncState.UNRESOLVED_REMOTE ->
+        "云端没有对应的待确认记录，已保留本机原始记录；请核对来源，不会自动重复记账"
+    PaymentVerificationCenter.SyncState.LOCAL_ONLY ->
+        "仅保存在本机，尚未与云端候选关联；旧记录需核对后再确认，不会自动丢弃"
     PaymentVerificationCenter.SyncState.NONE -> null
 }

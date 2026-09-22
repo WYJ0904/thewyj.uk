@@ -122,6 +122,10 @@ class NotificationHubState(
         // thread, otherwise Android throws
         // "Cannot access database on the main thread" from the Compose frame.
         val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            // Persist cloud terminal outcomes before counting local attention rows.
+            // A display-only set subtraction left those rows actionable in the
+            // verification screen even after Finance had no pending candidates.
+            runCatching { uk.thewyj.app.task21.payment.PaymentHintSync(appContext).sync() }
             // The banner is the entry point to the native pending-verification
             // screen, so it counts exactly what that screen lists: local
             // recognitions that still need the user. Backend candidates are

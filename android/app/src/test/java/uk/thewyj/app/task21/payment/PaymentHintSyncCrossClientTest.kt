@@ -606,4 +606,61 @@ class PaymentHintSyncCrossClientTest {
         assertEquals("ignored" to "", financeState("evt-candidate-rejected"))
     }
 
+    @Test fun exactSummaryClosesAConfirmedCandidateOutsideTheLegacyListWindow() {
+        val eventId = "evt-summary-confirmed"
+        archivePayment(eventId)
+        store.markFinanceOutcome(account, eventId, "pending")
+        savePendingUploadedCandidate("rec-summary-confirmed", "cand-summary-confirmed", eventId)
+        val result = syncWithExactSummary(eventId, "confirmed", "txn-summary-confirmed")
+
+        assertTrue(result.ok)
+        assertTrue(result.completeObservation)
+        assertEquals("confirmed", result.observedStates[eventId])
+        assertEquals(PaymentRecognitionState.FINANCE_RECORDED.name,
+            paymentStore.recognition(account, "rec-summary-confirmed")?.state)
+        assertEquals("confirmed" to "txn-summary-confirmed", financeState(eventId))
+    }
+
+    @Test fun deletedFinanceLinkClosesTheLocalCandidateAndClearsItsTransactionId() {
+        val eventId = "evt-summary-deleted"
+        archivePayment(eventId)
+        store.markFinanceOutcome(account, eventId, "confirmed", "txn-deleted")
+        savePendingUploadedCandidate("rec-summary-deleted", "cand-summary-deleted", eventId)
+        val candidate = paymentStore.candidateForRecognition(account, "rec-summary-deleted")!!
+        paymentStore.saveCandidate(candidate.copy(financeTransactionId = "txn-deleted"))
+
+        val result = syncWithExactSummary(eventId, "rejected", "")
+
+        assertTrue(result.ok)
+        assertEquals(PaymentRecognitionState.IGNORED.name,
+            paymentStore.recognition(account, "rec-summary-deleted")?.state)
+        assertEquals("", paymentStore.candidateForRecognition(account, "rec-summary-deleted")?.financeTransactionId)
+        assertEquals("ignored" to "", financeState(eventId))
+    }
+
+    private fun syncWithExactSummary(eventId: String, state: String, transactionId: String): PaymentHintSync.Result {
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String) = IngestResponse(false, 404, "{}")
+            override fun get(path: String, sessionToken: String): IngestResponse = when {
+                path.startsWith("/api/notification/pending-summary") -> IngestResponse(
+                    true, 200,
+                    """{"ok":true,"truncated":false,"records":[{"kind":"candidate","id":"cloud-$eventId","event_id":"$eventId","event_ids":["$eventId"],"state":"$state","transaction_id":"$transactionId"}]}""",
+                )
+                path.startsWith("/api/notification/hints") -> IngestResponse(true, 200, """{"ok":true,"hints":[]}""")
+                else -> IngestResponse(true, 200, """{"ok":true,"candidates":[]}""")
+            }
+        }
+        return PaymentHintSync(
+            RuntimeEnvironment.getApplication(),
+            hintedTransport = transport,
+            hintedStore = paymentStore,
+            archiveSink = sink(),
+            accountOverride = {
+                NotificationCaptureCoordinator.CaptureAccount(
+                    accountId = account, deviceId = "device-a", sessionToken = "token-a", financeEntitled = true,
+                )
+            },
+        ).sync()
+    }
+
 }

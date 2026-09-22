@@ -6,11 +6,11 @@ on:
       version_name:
         description: Candidate versionName
         required: true
-        default: "1.3.13"
+        default: "1.3.14"
       version_code:
         description: Candidate versionCode
         required: true
-        default: "26"
+        default: "27"
       base_url:
         description: Backend/site origin embedded in the candidate
         required: true

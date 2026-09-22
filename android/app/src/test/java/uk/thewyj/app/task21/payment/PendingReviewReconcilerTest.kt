@@ -81,6 +81,26 @@ class PendingReviewReconcilerTest {
         assertEquals(0, result.remote)
     }
 
+    @Test fun completeCloudObservationDoesNotTreatAnAbsentUploadedEventAsNormalPending() {
+        val observation = PaymentHintSync.Result(
+            refreshed = 0, confirmed = 0, ignored = 0, ok = true,
+            observedStates = emptyMap(), completeObservation = true,
+        )
+        assertEquals(
+            PaymentVerificationCenter.SyncState.UNRESOLVED_REMOTE,
+            paymentSyncStateFor("event-uploaded", "", false, false, false, observation),
+        )
+        assertEquals(
+            PaymentVerificationCenter.SyncState.LOCAL_ONLY,
+            paymentSyncStateFor("", "", false, false, false, observation),
+        )
+        assertEquals(
+            PaymentVerificationCenter.SyncState.PENDING_SYNC,
+            paymentSyncStateFor("event-pending", "", false, false, false,
+                observation.copy(observedStates = mapOf("event-pending" to "pending"))),
+        )
+    }
+
     private fun recognition(id: String, uploadEventId: String) = PaymentRecognitionRecord(
         recognitionId = id,
         accountId = "account-a",

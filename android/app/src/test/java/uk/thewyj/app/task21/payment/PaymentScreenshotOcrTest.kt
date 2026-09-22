@@ -25,12 +25,16 @@ import uk.thewyj.app.task21.FinanceDirection
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
 class PaymentScreenshotOcrTest {
-    private class FakeOcr(var lines: List<String>, var fail: Boolean = false) : OcrEngine {
+    private class FakeOcr(
+        var lines: List<String>,
+        var fail: Boolean = false,
+        var confidence: Float = 0.99f,
+    ) : OcrEngine {
         var calls = 0
-        override suspend fun recognize(bitmap: Bitmap): List<String> {
+        override suspend fun recognize(bitmap: Bitmap): List<OcrLine> {
             calls += 1
             if (fail) throw IllegalStateException("ocr unavailable")
-            return lines
+            return lines.map { OcrLine(it, confidence) }
         }
     }
 
@@ -38,8 +42,9 @@ class PaymentScreenshotOcrTest {
         lines: List<String>,
         failure: Boolean = false,
         sourcePackage: String = "com.tencent.mm",
+        confidence: Float = 0.99f,
     ): Pair<PaymentEnrichment?, FakeOcr> {
-        val engine = FakeOcr(lines, failure)
+        val engine = FakeOcr(lines, failure, confidence)
         val verifier = PaymentScreenshotVerifier(engine)
         val bitmap = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)
         val result = runBlocking { verifier.verify(bitmap, sourcePackage, 1_700_000_000_000L) }
@@ -132,12 +137,34 @@ class PaymentScreenshotOcrTest {
         assertNull(result)
     }
 
-    /** OCR commonly reads 100 as 1OO / 28.00 as 28.OO. */
-    @Test fun ocrDigitConfusionIsNormalised() {
+    /** OCR character substitutions may aid search but cannot verify money. */
+    @Test fun ocrDigitConfusionCannotInventVerifiedMoney() {
         val (result, _) = verify(listOf("微信支付", "付款成功", "¥1OO.OO", "收款方 示例商户"))
-        assertNotNull(result)
-        assertEquals(10_000L, result!!.amountMinor)
-        assertEquals(FinanceDirection.EXPENSE, result.direction)
+        assertNull(result)
+    }
+
+    @Test fun exactSmallAmountsStayDistinctAndRemainSuggestions() {
+        for ((amount, expectedMinor) in listOf(
+            "0.01" to 1L, "0.10" to 10L, "1.00" to 100L,
+            "9.00" to 900L, "10.00" to 1000L,
+        )) {
+            val (result, _) = verify(listOf("微信支付", "付款成功", "支付金额 ¥$amount"))
+            assertNotNull("¥$amount must be parsed without changing its digits", result)
+            assertEquals(expectedMinor, result!!.amountMinor)
+            assertEquals(PaymentEvidenceSource.OCR, result.evidenceSource)
+            assertTrue(result.confidence <= 700)
+        }
+    }
+
+    @Test fun lowConfidenceOrIncompleteDecimalsRemainManual() {
+        val (uncertain, _) = verify(
+            listOf("微信支付", "付款成功", "支付金额 ¥9.00"), confidence = 0.60f,
+        )
+        assertNull(uncertain)
+        val (incomplete, _) = verify(listOf("微信支付", "付款成功", "支付金额 ¥9"))
+        assertNull(incomplete)
+        val (oneDecimal, _) = verify(listOf("微信支付", "付款成功", "支付金额 ¥0.1"))
+        assertNull(oneDecimal)
     }
 
     @Test fun ocrFailureDegradesToManual() {

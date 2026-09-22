@@ -1,6 +1,27 @@
 (() => {
   const entries = [
     {
+      version: "2026.09.22.1",
+      build: "2026-09-22-task24-abc-convergence-r10",
+      date: "2026-09-22",
+      title: "Task 24 候选关联、截图来源与 OCR 安全收口（Android 1.3.14）",
+      features: [
+        "Android 1.3.14（versionCode 27）候选继续连接正式站 https://thewyj.uk；1.3.13 保留为上一轮已验收版本。",
+        "通知历史保留真实应用来源：普通 ChatGPT/微信图片通知不再因为媒体路径被误标为「屏幕截图」。",
+      ],
+      improvements: [
+        "云端已终态的待确认事件会收敛本机 recognition/candidate；无法安全关联的旧记录明确标记为待核对，不再伪装成正常 pending。",
+        "OCR 金额只作为保守建议，需用户核对后确认；低置信、缺小数或字符模糊的结果不会自动记账。",
+      ],
+      fixes: [
+        "修复财务删除/恢复后通知侧 finance linkage、candidate 和本地状态不能同步解除的问题。",
+        "修复待核实页面旧刷新响应覆盖新结果造成的列表闪烁与状态复活。",
+      ],
+      security: [
+        "OCR 不再把可能的 ¥0.01 猜测直接当作 ¥9.00 等确定金额；确认前保持人工核对。",
+      ],
+    },
+    {
       version: "2026.09.21.1",
       build: "2026-09-21-task24-device-sync-r7",
       date: "2026-09-21",

@@ -46,6 +46,7 @@ class PaymentVerificationCenter(context: Context) {
         val direction: FinanceDirection,
         val merchant: String,
         val hasEdits: Boolean,
+        val ocrSuggested: Boolean,
         val uploaded: Boolean,
         val ticketActive: Boolean,
         val remainingMs: Long,
@@ -60,7 +61,7 @@ class PaymentVerificationCenter(context: Context) {
         val deviceBooks: Boolean get() = authority == Authority.DEVICE
     }
 
-    enum class SyncState { NONE, LOCAL_ONLY, PENDING_SYNC, SYNCED, SYNC_FAILED, SYNC_REJECTED }
+    enum class SyncState { NONE, LOCAL_ONLY, PENDING_SYNC, SYNCED, SYNC_FAILED, SYNC_REJECTED, UNRESOLVED_REMOTE }
 
     /**
      * Which side owns the booking. A recognition that captured an amount was
@@ -110,7 +111,7 @@ class PaymentVerificationCenter(context: Context) {
 
         // P0-2/P0-3: refresh from the shared pending source first, so a hint the
         // user completed on Web /finance is already reflected here.
-        runCatching { hintSync.sync() }
+        val observation = runCatching { hintSync.sync() }.getOrNull()
         val recognitions = store.recognitionsByState(accountId, ATTENTION_STATES, 60)
             .distinctBy(::reviewIdentity)
         val queued = pipeline.queuedRequests()
@@ -135,19 +136,20 @@ class PaymentVerificationCenter(context: Context) {
                 direction = directionOf(candidate?.effectiveDirection ?: recognition.direction),
                 merchant = candidate?.effectiveMerchant.orEmpty().ifBlank { recognition.merchant },
                 hasEdits = candidate?.hasEdits == true,
+                ocrSuggested = candidate?.reason == "ocr_amount_suggestion",
                 uploaded = uploaded,
                 ticketActive = active,
                 remainingMs = if (active) (ticket!!.expiresAtMs - System.currentTimeMillis()).coerceAtLeast(0) else 0,
                 occurredAtMs = candidate?.effectiveOccurredAtMs ?: recognition.createdAtMs,
                 financeTransactionId = transactionId,
-                syncState = when {
-                    transactionId.isNotBlank() -> SyncState.SYNCED
-                    rejections.containsKey(bookingId) -> SyncState.SYNC_REJECTED
-                    queue.contains(bookingId) -> SyncState.PENDING_SYNC
-                    bookingAttempted -> SyncState.SYNC_FAILED
-                    uploaded -> SyncState.PENDING_SYNC
-                    else -> SyncState.LOCAL_ONLY
-                },
+                syncState = paymentSyncStateFor(
+                    recognition.uploadEventId,
+                    transactionId,
+                    rejections.containsKey(bookingId),
+                    queue.contains(bookingId),
+                    bookingAttempted,
+                    observation,
+                ),
                 authority = authorityOf(recognition),
                 notice = rejections[bookingId].orEmpty(),
             )
@@ -220,6 +222,17 @@ class PaymentVerificationCenter(context: Context) {
         var candidate = store.candidateForRecognition(accountId, recognitionId)
         if (candidate == null) {
             return BookResult(false, "这笔交易还没有可确认的金额")
+        }
+        if (requiresManualOcrReview(candidate)) {
+            return BookResult(false, "OCR 金额尚未经人工核对，请先打开编辑器确认实际金额")
+        }
+        if (recognition.uploadEventId.isNotBlank()) {
+            val observation = runCatching { hintSync.sync() }.getOrNull()
+            if (observation?.completeObservation == true &&
+                observation.observedStates[recognition.uploadEventId] != "pending"
+            ) {
+                return BookResult(false, "云端待处理状态已变化，已保留本机记录；请先核对，不能重复记账")
+            }
         }
         val draft = runCatching {
             hook.coordinator().confirmCandidate(accountId, candidate.candidateId)
@@ -351,6 +364,9 @@ class PaymentVerificationCenter(context: Context) {
         runCatching { FinanceDirection.valueOf(value) }.getOrDefault(FinanceDirection.UNKNOWN)
 
     companion object {
+        fun requiresManualOcrReview(candidate: PaymentCandidate): Boolean =
+            candidate.reason == "ocr_amount_suggestion" && candidate.editedAmountMinor == null
+
         val ATTENTION_STATES = listOf(
             PaymentRecognitionState.DETECTED_AMOUNT_UNKNOWN.name,
             PaymentRecognitionState.WAITING_FOR_ENRICHMENT.name,
@@ -389,4 +405,22 @@ class PaymentVerificationCenter(context: Context) {
             else -> Authority.SERVER
         }
     }
+}
+
+internal fun paymentSyncStateFor(
+    uploadEventId: String,
+    transactionId: String,
+    rejected: Boolean,
+    queued: Boolean,
+    bookingAttempted: Boolean,
+    observation: PaymentHintSync.Result?,
+): PaymentVerificationCenter.SyncState = when {
+    transactionId.isNotBlank() -> PaymentVerificationCenter.SyncState.SYNCED
+    rejected -> PaymentVerificationCenter.SyncState.SYNC_REJECTED
+    queued -> PaymentVerificationCenter.SyncState.PENDING_SYNC
+    uploadEventId.isNotBlank() && observation?.completeObservation == true &&
+        observation.observedStates[uploadEventId] != "pending" -> PaymentVerificationCenter.SyncState.UNRESOLVED_REMOTE
+    bookingAttempted -> PaymentVerificationCenter.SyncState.SYNC_FAILED
+    uploadEventId.isNotBlank() -> PaymentVerificationCenter.SyncState.PENDING_SYNC
+    else -> PaymentVerificationCenter.SyncState.LOCAL_ONLY
 }

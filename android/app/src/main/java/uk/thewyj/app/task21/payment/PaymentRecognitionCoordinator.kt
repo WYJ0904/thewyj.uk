@@ -199,7 +199,8 @@ class PaymentRecognitionCoordinator(
                 store.saveTicket(outcome.ticket)
                 val recognition = store.recognition(ticket.accountId, ticket.recognitionId)
                 if (recognition != null) {
-                    val transition = statusMachine.transition(
+                    val ocrSuggestion = enrichment.evidenceSource == PaymentEvidenceSource.OCR
+                    val transition = if (ocrSuggestion) null else statusMachine.transition(
                         current = PaymentStatusRecord(
                             recognitionId = recognition.recognitionId,
                             state = runCatching { PaymentRecognitionState.valueOf(recognition.state) }
@@ -222,8 +223,9 @@ class PaymentRecognitionCoordinator(
                             ),
                         )
                     }
+                    val existingCandidate = store.candidateForRecognition(accountId, recognition.recognitionId)
                     val candidate = PaymentCandidate(
-                        candidateId = "cand-" + UUID.randomUUID(),
+                        candidateId = existingCandidate?.candidateId ?: "cand-" + UUID.randomUUID(),
                         accountId = recognition.accountId,
                         recognitionId = recognition.recognitionId,
                         status = "pending",
@@ -234,11 +236,18 @@ class PaymentRecognitionCoordinator(
                         occurredAtMs = enrichment.occurredAtMs ?: now(),
                         channel = ticket.paymentChannel,
                         confidence = enrichment.confidence,
-                        reason = "accessibility_enrichment",
-                        createdAtMs = now(),
+                        reason = if (ocrSuggestion) "ocr_amount_suggestion" else "accessibility_enrichment",
+                        createdAtMs = existingCandidate?.createdAtMs ?: now(),
                         updatedAtMs = now(),
                     )
-                    store.saveCandidate(candidate)
+                    // A repeated OCR frame must not replace an earlier amount
+                    // or silently undo edits. Direct accessibility text may
+                    // upgrade a provisional OCR suggestion under the same ID.
+                    if (existingCandidate == null ||
+                        (!ocrSuggestion && existingCandidate.reason == "ocr_amount_suggestion" && !existingCandidate.hasEdits)
+                    ) {
+                        store.saveCandidate(candidate)
+                    }
                     val verifiedTicket = tickets.markCandidateCreated(outcome.ticket)
                     store.saveTicket(verifiedTicket)
                 }

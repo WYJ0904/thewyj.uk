@@ -586,17 +586,21 @@ internal fun notificationHistorySourceLabel(
 ): String {
     val origin = mediaOrigin.trim().lowercase()
     val packageName = sourcePackage.trim().lowercase()
-    val content = "$title\n$text".lowercase()
     val screenshotPackage = packageName in setOf(
         "com.samsung.android.app.smartcapture",
         "com.samsung.android.screenshot",
         "com.android.systemui",
     )
-    val screenshotText = listOf("截图", "截屏", "screenshot", "screen capture")
-        .any { marker -> content.contains(marker) }
+    val screenshotText = screenshotPackage && uk.thewyj.app.task21.screenshot.ScreenshotEvidence.isScreenshotEvent(
+        sourcePackage = sourcePackage,
+        channelId = "",
+        title = title,
+        text = text,
+        bigText = "",
+        hasMedia = origin == "media_store" || origin == "media_store+notification",
+    )
     return when {
-        origin == "media_store" || origin == "media_store+notification" -> "屏幕截图"
-        origin == "notification" && screenshotPackage && screenshotText -> "屏幕截图"
+        screenshotText -> "屏幕截图"
         else -> resolvedAppLabel.ifBlank { "未知应用" }
     }
 }

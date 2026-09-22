@@ -504,6 +504,35 @@ class PaymentRecognitionCoordinatorTest {
         assertTrue(notifier.messages.any { it.body.contains("28.00") })
     }
 
+    @Test fun ocrAmountIsOnlyAStableSuggestionUntilTheUserChecksIt() {
+        val store = FakeStore()
+        val notifier = FakeNotifier()
+        val coordinator = coordinator(store, notifier, Clock())
+        val recognition = coordinator.onSourceEvent(
+            "account-a", "com.tencent.mm", PaymentSourceType.NOTIFICATION,
+            "notification#ocr#1", "", "转账", sourceAppLabel = "微信",
+        )
+        val suggestion = PaymentEnrichment(
+            sourcePackage = "com.tencent.mm", amountMinor = 900L,
+            currency = "CNY", direction = FinanceDirection.EXPENSE,
+            merchant = null, counterparty = null, providerReference = null,
+            occurredAtMs = 1_000L, confidence = 700,
+            evidenceSource = PaymentEvidenceSource.OCR,
+        )
+        assertTrue(coordinator.onAccessibilityEnrichment("account-a", suggestion) is EnrichmentOutcome.Applied)
+        val first = store.candidateForRecognition("account-a", recognition.recognitionId)!!
+        assertEquals("ocr_amount_suggestion", first.reason)
+        assertEquals(900L, first.amountMinor)
+        assertEquals(PaymentRecognitionState.WAITING_FOR_ENRICHMENT.name,
+            store.recognition("account-a", recognition.recognitionId)?.state)
+        assertFalse(notifier.messages.any { it.body.contains("已核实金额") })
+
+        coordinator.onAccessibilityEnrichment("account-a", suggestion.copy(amountMinor = 1L))
+        val repeated = store.candidateForRecognition("account-a", recognition.recognitionId)!!
+        assertEquals(first.candidateId, repeated.candidateId)
+        assertEquals(900L, repeated.amountMinor)
+    }
+
     @Test fun wrongPackageNeverEnriches() {
         val store = FakeStore()
         val coordinator = coordinator(store, FakeNotifier(), Clock())

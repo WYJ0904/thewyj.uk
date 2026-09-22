@@ -71,6 +71,18 @@ class PaymentVerificationGateTest {
         )
     }
 
+    @Test fun ocrSuggestionCannotBookUntilTheUserExplicitlyChecksTheAmount() {
+        val candidate = PaymentCandidate(
+            candidateId = "candidate-ocr", accountId = "account-a", recognitionId = "rec-ocr",
+            status = "pending", amountMinor = 900L, direction = "EXPENSE", category = "",
+            merchant = "", occurredAtMs = 1_000L, channel = "wechat", confidence = 700,
+            reason = "ocr_amount_suggestion", createdAtMs = 1_000L, updatedAtMs = 1_000L,
+        )
+        assertTrue(PaymentVerificationCenter.requiresManualOcrReview(candidate))
+        assertFalse(PaymentVerificationCenter.requiresManualOcrReview(candidate.copy(editedAmountMinor = 1L)))
+        assertFalse(PaymentVerificationCenter.requiresManualOcrReview(candidate.copy(reason = "accessibility_enrichment")))
+    }
+
     /**
      * Double-booking guard: a payment that already had an amount was uploaded
      * and is confirmed on the Finance page. A legacy row (created before the

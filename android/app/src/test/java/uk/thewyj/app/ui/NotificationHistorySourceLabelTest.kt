@@ -65,4 +65,30 @@ class NotificationHistorySourceLabelTest {
             ),
         )
     }
+
+    @Test fun ordinaryChatGptMediaStoreNotificationKeepsItsApplicationLabel() {
+        assertEquals(
+            "ChatGPT",
+            notificationHistorySourceLabel(
+                mediaOrigin = "media_store",
+                sourcePackage = "com.openai.chatgpt",
+                title = "给Codex修复问题",
+                text = "普通文字通知",
+                resolvedAppLabel = "ChatGPT",
+            ),
+        )
+    }
+
+    @Test fun ordinaryWechatImageNotificationKeepsItsApplicationLabel() {
+        assertEquals(
+            "微信",
+            notificationHistorySourceLabel(
+                mediaOrigin = "media_store+notification",
+                sourcePackage = "com.tencent.mm",
+                title = "联系人",
+                text = "[图片]",
+                resolvedAppLabel = "微信",
+            ),
+        )
+    }
 }
