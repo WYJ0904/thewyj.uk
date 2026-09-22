@@ -4,13 +4,13 @@
   "versionCode": 27,
   "candidate": true,
   "productionRelease": false,
-  "status": "source_ready_ci_pending",
+  "status": "signed_local_ready",
   "baseUrl": "https://thewyj.uk",
   "releaseDate": "2026-09-22",
   "build": "2026-09-22-task24-abc-convergence-r10",
-  "apkFileName": "",
-  "apkSha256": "",
-  "apkSizeBytes": 0,
+  "apkFileName": "artifacts/thewyj-android-1.3.14-task24-candidate.apk",
+  "apkSha256": "e008702be8dc20b0a8319a7a6bb57f6ef08972d73d2671cfa4226179265a27b1",
+  "apkSizeBytes": 47644109,
   "supersedesRejectedCandidateSha256": "b07940a4d11f364e8f5818aa4589d22eee2d55225f2b3193e79f9dacf59b7ff0",
-  "notes": "1.3.14 source candidate: ChatGPT media labels stay app-scoped, terminal pending identities reconcile locally, and OCR amounts require conservative human verification. Build/sign only after CI."
+  "notes": "1.3.14 signed local candidate: ChatGPT media labels stay app-scoped, terminal pending identities reconcile locally, and OCR amounts require conservative human verification. Formal release signing certificate verified; 1.3.13 remains the last device-tested build."
 }
