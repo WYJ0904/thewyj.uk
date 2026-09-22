@@ -12,11 +12,12 @@ import { createAutomaticFinanceTransaction, requireFinanceRecognitionAccess } fr
  * Task 24.1 P0-3: unified pending hints.
  *
  * A payment the device recognised but cannot complete (missing amount, missing
- * direction, PAYMENT_LIKELY) becomes a *pending hint* here. Hints never create a
- * Finance entry on their own: confirmation always requires a real amount and
- * direction, and then reuses the same automatic-booking path as every other
- * payment. Android and Web read and write the same rows through this API, so the
- * notification page and /finance can never disagree about what is pending.
+ * direction, PAYMENT_LIKELY) becomes a *pending hint* here. A hint remains
+ * reviewable while any required money field is missing. If an explicit
+ * Accessibility/OCR enrichment upgrades that same identity to CONFIRMED_PAYMENT
+ * with both amount and direction, the server books it immediately through the
+ * canonical automatic-finance path and closes the hint. Android and Web read and
+ * write the same row, so a verified payment does not require a second manual tap.
  */
 
 const STATES = new Set(["pending", "confirmed", "ignored", "superseded", "expired"]);
@@ -102,6 +103,48 @@ function cleanEvidence(value) {
     evidence.occurred_at_ms = nonNegativeInteger(value.occurred_at_ms, "发生时间", 10_000_000_000_000);
   }
   return JSON.stringify(evidence);
+}
+
+async function autoBookVerifiedHint(db, account, deviceId, row) {
+  if (!row || String(row.state || "") !== "pending") return row;
+  if (String(row.recognition_status || "").toUpperCase() !== "CONFIRMED_PAYMENT") return row;
+  const amountMinor = cleanAmount(row.amount_minor);
+  const direction = cleanDirection(row.direction);
+  if (!amountMinor || !direction) return row;
+
+  const evidence = (() => {
+    try {
+      const parsed = JSON.parse(String(row.evidence_summary || "{}"));
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch (_) {
+      return {};
+    }
+  })();
+  const occurredAtMs = Number(evidence.occurred_at_ms) > 0
+    ? Number(evidence.occurred_at_ms)
+    : (Date.parse(String(row.created_at || "")) || Date.now());
+
+  const finance = await createAutomaticFinanceTransaction(db, account, deviceId, {
+    event_id: String(row.source_event_id),
+    fingerprint: "",
+    direction,
+    amount_minor: amountMinor,
+    currency: String(row.currency || "CNY"),
+    merchant: String(row.merchant || ""),
+    counterparty: "",
+    payment_channel: "",
+    occurred_at_ms: occurredAtMs,
+    received_at_ms: occurredAtMs,
+    confidence: Number(row.confidence || 0),
+    parser_version: "pending-hint-auto",
+  });
+  const now = isoNow();
+  await run(db, `UPDATE task21_notification_pending_hints
+    SET state = 'confirmed', finance_entry_id = ?2, confirmed_at = ?3, updated_at = ?3
+    WHERE user_id = ?1 AND id = ?4 AND state = 'pending'`, [
+    account.id, finance.transaction_id, now, row.id,
+  ]);
+  return await hintById(db, account, row.id);
 }
 
 function publicHint(row) {
@@ -290,7 +333,8 @@ export async function upsertNotificationHints(db, account, input) {
           ]);
         }
         const updated = await hintById(db, account, existing.id);
-        results.push({ hint: publicHint(updated), duplicate: true, updated: improved });
+        const terminal = await autoBookVerifiedHint(db, account, deviceId, updated);
+        results.push({ hint: publicHint(terminal), duplicate: true, updated: improved });
       } else {
         results.push({ hint: publicHint(existing), duplicate: true, updated: false });
       }
@@ -307,13 +351,16 @@ export async function upsertNotificationHints(db, account, input) {
         evidence, amountMinor, direction, merchant, currency, confidence,
         recognitionStatus, now,
       ]);
-      results.push({ hint: publicHint(await hintById(db, account, id)), duplicate: false });
+      const created = await hintById(db, account, id);
+      const terminal = await autoBookVerifiedHint(db, account, deviceId, created);
+      results.push({ hint: publicHint(terminal), duplicate: false });
     } catch (error) {
       // A concurrent ingest of the same event is a duplicate, not a failure.
       const raced = await first(db, `SELECT * FROM task21_notification_pending_hints
         WHERE user_id = ?1 AND source_event_id = ?2`, [account.id, sourceEventId]);
       if (!raced) throw error;
-      results.push({ hint: publicHint(raced), duplicate: true });
+      const terminal = await autoBookVerifiedHint(db, account, deviceId, raced);
+      results.push({ hint: publicHint(terminal), duplicate: true });
     }
   }
   return { hints: results.map((item) => item.hint), results, device_id: deviceId };
