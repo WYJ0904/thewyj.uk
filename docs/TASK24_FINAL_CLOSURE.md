@@ -5,6 +5,14 @@
 当前修复分支：`codex/task24-candidate-history-r6`（base `main`）；历史支付生命周期修复 PR：`#75`
 Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Task 25 代码）
 
+## 2026-09-22 PR #78 OCR candidate handoff (Android 1.3.15)
+
+- Source HEAD `64507ce94bb27a46326816b603bfd7793d7317a5` restores the physically accepted 1.3.13 accessibility/OCR fallback contract after the 1.3.14 OCR regression. `PaymentScreenshotVerifier` again passes normalized OCR through payment-page semantics without a blanket 0.95 confidence threshold or strict raw two-decimal gate. `PaymentRecognitionCoordinator` can move an existing active ticket to `ENRICHMENT_VERIFIED` and retain its recognition/candidate identity; user edits remain protected.
+- Full Core CI [run 35696013315](https://github.com/WYJ0904/thewyj.uk/actions/runs/35696013315): **6/6 success** on that source HEAD. No compile or test fix was needed. The existing notification/Finance regression suite also passed.
+- Fresh local formal release build: `uk.thewyj.app` 1.3.15 (28), Production base `https://thewyj.uk`, `artifacts/thewyj-android-1.3.15-task24-candidate.apk`, 47,644,109 bytes, SHA-256 `a7894aa1df37d22a6ecfe8e18e5591da35ed905dde0255e9c3eb1f8c9ec008ad`. APK signing certificate SHA-256 `2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03` matches the established formal release certificate. Manifest, APK signature, embedded Base URL, file SHA-256 and size were checked independently. Its code 28 is above the old 1.3.14 code 27 for an in-place upgrade.
+- **PENDING DEVICE ACCEPTANCE:** Install this exact APK with `adb install -r` (no uninstall/data clear). On a fresh amount-unknown WeChat payment, verify active ticket → transaction detail → accessibility text or on-device screenshot/OCR fallback → actual amount (especially ¥0.01, never ¥9.00) → `ENRICHMENT_VERIFIED` → same candidate/recognition identity → one confirmation and one Finance transaction. No device was connected during candidate preparation, so this chain is `UNVALIDATED`, not PASS.
+- Previously confirmed screenshot source label, source-app open, ignore, Finance delete linkage and stable identity behavior were not edited in this OCR restoration. Their prior device PASS evidence is carried forward; only the fresh OCR payment chain needs device repetition. PR #78 stays Draft; no Production deployment or update metadata publication; Task 24 remains OPEN and Task 25 BLOCKED.
+
 ## 2026-09-21 device regression handoff
 
 用户已确认上一轮要求复测的三个 Android 真机问题全部解决，作为后续 Codex 收尾时不可回退的回归基线：
