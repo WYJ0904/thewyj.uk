@@ -263,8 +263,9 @@ try {
   assert.equal(confirmMissingAmount.payload.code, "hint_amount_required");
 
   // 6b. The same event becomes richer after Android Accessibility/OCR verifies
-  // it. This must update the existing pending hint in place, not create a second
-  // row and not require Finance to keep showing stale "amount unknown" data.
+  // it. A complete CONFIRMED_PAYMENT money shape must update the same identity,
+  // book immediately, and leave neither Android nor /finance waiting for a
+  // second manual confirmation tap.
   const enriched = await request(db, "/api/notification/hints", {
     method: "POST",
     token: USER.token,
@@ -287,7 +288,13 @@ try {
   assert.equal(enriched.payload.hints[0].id, hintId, "enrichment keeps the canonical hint identity");
   assert.equal(enriched.payload.hints[0].amount_minor, 10000);
   assert.equal(enriched.payload.hints[0].direction, "expense");
-  assert.equal(enriched.payload.hints[0].state, "pending");
+  assert.equal(enriched.payload.hints[0].state, "confirmed");
+  assert.match(enriched.payload.hints[0].finance_entry_id, /^txn:/);
+  const autoBookedTransactionId = enriched.payload.hints[0].finance_entry_id;
+  const ledgerAfterEnrichment = await db.prepare(
+    "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 10000 AND status = 'active'",
+  ).bind(USER.id).first();
+  assert.equal(Number(ledgerAfterEnrichment.count), 1, "verified enrichment must auto-book exactly once");
   const enrichmentReplay = await request(db, "/api/notification/hints", {
     method: "POST",
     token: USER.token,
@@ -305,13 +312,15 @@ try {
     }),
   });
   assert.equal(enrichmentReplay.response.status, 200);
-  assert.equal(enrichmentReplay.payload.results[0].updated, false, "identical enrichment is a no-op");
+  assert.equal(enrichmentReplay.payload.results[0].updated, false, "terminal enrichment replay is a no-op");
+  assert.equal(enrichmentReplay.payload.hints[0].finance_entry_id, autoBookedTransactionId);
   const hintRowsAfterEnrichment = await db.prepare(
     "SELECT COUNT(*) AS count FROM task21_notification_pending_hints WHERE user_id = ?1",
   ).bind(USER.id).first();
-  assert.equal(Number(hintRowsAfterEnrichment.count), 2, "enrichment never creates a second pending hint");
+  assert.equal(Number(hintRowsAfterEnrichment.count), 2, "enrichment never creates a second hint");
 
-  // 7. Confirm with amount + direction creates exactly one finance entry.
+  // 7. A manual confirm arriving after auto-book is idempotent and cannot
+  // create a second finance entry.
   const confirmed = await request(db, "/api/notification/hints/confirm", {
     method: "POST",
     token: USER.token,
@@ -322,10 +331,11 @@ try {
     },
   });
   assert.equal(confirmed.response.status, 200, JSON.stringify(confirmed.payload));
-  assert.match(confirmed.payload.transaction_id, /^txn:/);
+  assert.equal(confirmed.payload.no_change, true);
+  assert.equal(confirmed.payload.transaction_id, autoBookedTransactionId);
   assert.equal(confirmed.payload.hint.state, "confirmed");
-  assert.equal(confirmed.payload.hint.finance_entry_id, confirmed.payload.transaction_id);
-  assert.equal(confirmed.payload.hint.merchant, "", "merchant is optional and must not block confirmation");
+  assert.equal(confirmed.payload.hint.finance_entry_id, autoBookedTransactionId);
+  assert.equal(confirmed.payload.hint.merchant, "", "merchant is optional and must not block booking");
   const ledger = await db.prepare(
     "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 10000 AND status = 'active'",
   ).bind(USER.id).first();
