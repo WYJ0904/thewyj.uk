@@ -199,8 +199,7 @@ class PaymentRecognitionCoordinator(
                 store.saveTicket(outcome.ticket)
                 val recognition = store.recognition(ticket.accountId, ticket.recognitionId)
                 if (recognition != null) {
-                    val ocrSuggestion = enrichment.evidenceSource == PaymentEvidenceSource.OCR
-                    val transition = if (ocrSuggestion) null else statusMachine.transition(
+                    val transition = statusMachine.transition(
                         current = PaymentStatusRecord(
                             recognitionId = recognition.recognitionId,
                             state = runCatching { PaymentRecognitionState.valueOf(recognition.state) }
@@ -236,16 +235,14 @@ class PaymentRecognitionCoordinator(
                         occurredAtMs = enrichment.occurredAtMs ?: now(),
                         channel = ticket.paymentChannel,
                         confidence = enrichment.confidence,
-                        reason = if (ocrSuggestion) "ocr_amount_suggestion" else "accessibility_enrichment",
+                        reason = "accessibility_enrichment",
                         createdAtMs = existingCandidate?.createdAtMs ?: now(),
                         updatedAtMs = now(),
                     )
-                    // A repeated OCR frame must not replace an earlier amount
-                    // or silently undo edits. Direct accessibility text may
-                    // upgrade a provisional OCR suggestion under the same ID.
-                    if (existingCandidate == null ||
-                        (!ocrSuggestion && existingCandidate.reason == "ocr_amount_suggestion" && !existingCandidate.hasEdits)
-                    ) {
+                    // Preserve a user's edits, but allow the first verified
+                    // accessibility/OCR result to create the candidate under the
+                    // existing recognition identity.
+                    if (existingCandidate == null || !existingCandidate.hasEdits) {
                         store.saveCandidate(candidate)
                     }
                     val verifiedTicket = tickets.markCandidateCreated(outcome.ticket)
