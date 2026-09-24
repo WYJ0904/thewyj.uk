@@ -2405,6 +2405,9 @@ async function main() {
       "/api/admin/messages",
       "/api/admin/roles",
       "/api/notification/candidates",
+      // Finance first asks the canonical Cloudflare summary, then uses the
+      // local legacy hint/candidate endpoints when that route is absent.
+      "/api/notification/pending-summary",
       "/api/transfer/capabilities",
       "/api/transfer/shares",
       // Cloud TTS is a Cloudflare-only route; the local legacy backend matrix
