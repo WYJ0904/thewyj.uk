@@ -530,6 +530,74 @@ class PaymentHintSyncCrossClientTest {
         assertEquals("CONFIRMED_PAYMENT", hint.getString("recognition_status"))
     }
 
+    @Test fun verifiedAmountIsPublishedEvenWhenDirectionIsStillUnknown() {
+        paymentStore.saveRecognition(
+            PaymentRecognitionRecord(
+                recognitionId = "rec-amount-only",
+                accountId = account,
+                state = PaymentRecognitionState.ENRICHMENT_VERIFIED.name,
+                notificationId = 11,
+                sourcePackage = "com.tencent.mm",
+                sourceType = "notification",
+                sourceEventId = "notification#wechat#amount-only",
+                uploadEventId = "evt-amount-only",
+                paymentChannel = "wechat",
+                amountMinor = 1,
+                currency = "CNY",
+                direction = "UNKNOWN",
+                merchant = "",
+                providerReference = "",
+                createdAtMs = 2_100L,
+                updatedAtMs = 2_100L,
+            ),
+        )
+        paymentStore.saveCandidate(
+            PaymentCandidate(
+                candidateId = "cand-amount-only",
+                accountId = account,
+                recognitionId = "rec-amount-only",
+                status = "pending",
+                amountMinor = 1,
+                direction = "UNKNOWN",
+                category = "",
+                merchant = "",
+                occurredAtMs = 2_100L,
+                channel = "wechat",
+                confidence = 950,
+                reason = "accessibility_enrichment",
+                createdAtMs = 2_100L,
+                updatedAtMs = 2_100L,
+            ),
+        )
+        var postedBody = ""
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String): IngestResponse {
+                postedBody = body
+                return IngestResponse(true, 200, """{"ok":true,"hints":[{"source_event_id":"evt-amount-only","state":"pending"}]}""")
+            }
+        }
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(),
+            hintedTransport = transport,
+            hintedStore = paymentStore,
+            archiveSink = sink(),
+            accountOverride = {
+                NotificationCaptureCoordinator.CaptureAccount(
+                    accountId = account,
+                    deviceId = "device-a",
+                    sessionToken = "token-a",
+                    financeEntitled = true,
+                )
+            },
+        )
+
+        assertTrue(sync.publishEnrichment(account, "rec-amount-only"))
+        val hint = org.json.JSONObject(postedBody).getJSONArray("hints").getJSONObject(0)
+        assertEquals(1L, hint.getLong("amount_minor"))
+        assertTrue(hint.isNull("direction"))
+        assertEquals("PAYMENT_LIKELY", hint.getString("recognition_status"))
+    }
+
     @Test fun explicitIgnoreTerminatesTheMatchingCloudReviewBeforeLocalDismissal() {
         var postedPath = ""
         var postedBody = ""
