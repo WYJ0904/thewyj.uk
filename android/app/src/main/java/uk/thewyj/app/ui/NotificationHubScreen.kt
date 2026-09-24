@@ -175,7 +175,9 @@ fun NotificationHubScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = onOpenFinance) { Text("去处理") }
+                        Button(
+                            onClick = if (state.localPendingPayments > 0) onOpenPaymentVerification else onOpenFinance,
+                        ) { Text("去处理") }
                         TextButton(onClick = onOpenPaymentVerification) { Text("本机核实") }
                     }
                 }
