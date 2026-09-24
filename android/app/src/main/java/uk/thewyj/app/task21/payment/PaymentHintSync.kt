@@ -136,9 +136,18 @@ class PaymentHintSync(
         val candidate = runCatching {
             store.candidateForRecognition(accountId, recognitionId)
         }.getOrNull() ?: return false
-        val amountMinor = candidate.effectiveAmountMinor ?: recognition.amountMinor ?: return false
-        val direction = candidate.effectiveDirection.ifBlank { recognition.direction }
-        if (amountMinor <= 0L || direction.isBlank() || direction == "UNKNOWN") return false
+        val amountMinor = candidate.effectiveAmountMinor ?: recognition.amountMinor
+        val direction = candidate.effectiveDirection
+            .takeIf { it.isNotBlank() && it != "UNKNOWN" }
+            ?: recognition.direction
+        val hasAmount = amountMinor != null && amountMinor > 0L
+        val hasDirection = direction.isNotBlank() && direction != "UNKNOWN"
+        // Amount and direction are independently useful enrichment. In
+        // particular, WeChat can expose a verified amount while leaving the
+        // direction unknown. Publish that amount into the existing hint now;
+        // the server will keep the review pending until both money fields are
+        // complete, and will never create a second hint/event identity.
+        if (!hasAmount && !hasDirection) return false
 
         val body = uk.thewyj.app.task21.StructuredEventJson.hintPayload(
             deviceId = account.deviceId,
@@ -146,13 +155,13 @@ class PaymentHintSync(
             sourceType = "accessibility",
             sourcePackage = recognition.sourcePackage,
             appLabel = PaymentAppLabels.resolve(app, recognition.sourcePackage),
-            amountMinor = amountMinor,
-            direction = direction,
+            amountMinor = amountMinor?.takeIf { it > 0L },
+            direction = direction.takeIf { hasDirection }.orEmpty(),
             merchant = candidate.effectiveMerchant.ifBlank { recognition.merchant },
             currency = recognition.currency.ifBlank { "CNY" },
             confidence = candidate.confidence.coerceIn(0, 1000),
-            recognitionStatus = "CONFIRMED_PAYMENT",
-            reasons = listOf("accessibility_verified_amount"),
+            recognitionStatus = if (hasAmount && hasDirection) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY",
+            reasons = listOf(if (hasAmount && hasDirection) "accessibility_verified_payment" else "accessibility_partial_enrichment"),
             parserVersion = "verified-on-device",
         )
         val response = runCatching {
