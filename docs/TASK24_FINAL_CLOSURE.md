@@ -5,6 +5,16 @@
 当前修复分支：`codex/task24-candidate-history-r6`（base `main`）；历史支付生命周期修复 PR：`#75`
 Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Task 25 代码）
 
+## 2026-09-24 canonical pending and automatic verification candidate (Android 1.3.16)
+
+- Source HEAD `2afa5df26450124b47c67edf4df2ea7264de1cee` preserves the prior automatic verified-hint booking and candidate-less local terminalization commits, then makes the server pending summary the user-visible identity set for both Notification and Finance. Local Room rows remain recovery evidence; offline queued rows are shown separately and never inflate the canonical count.
+- Legacy blank/stale `uploadEventId` rows reconcile through the exact archive `sourceEventId` ↔ structured event ID link. Terminal server identities persist locally. No amount/time heuristic is used; the old three-minute cross-source merge was removed, while an exact event replay stays idempotent.
+- `/finance` now offers `核实交易` for missing amount or direction: it opens the exact native recognition, creates/restarts its 90-second ticket, and opens the source app. Reliable payment/receipt/refund page semantics can fill direction while retaining an already known amount. Complete Accessibility/OCR enrichment posts to the same hint, auto-books exactly once, applies the terminal response immediately, and invalidates both native and Web pending views.
+- Confirm, ignore and auto-book cascade terminal state across an exact shared event identity. Old Web responses cannot repaint a terminal row. Ignoring a locally queued item cancels only that event's unsent queue operations; notification history is preserved.
+- Local validation: Android 422/422 unit tests, `lintDebug`, `assembleDebug`; Task 21 hints/notification/payment and Finance tests. Full Core CI [run 35964295654](https://github.com/WYJ0904/thewyj.uk/actions/runs/35964295654): **6/6 success**.
+- Fresh formal candidate: `uk.thewyj.app` 1.3.16 (29), Production base `https://thewyj.uk`, `artifacts/thewyj-android-1.3.16-task24-candidate.apk`, 47,660,493 bytes, SHA-256 `34e5584861a0a8da2a9d3346db5e1dbf0b42f7efdc7e0f3fd03309a62f729dfb`; release certificate SHA-256 `2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03`.
+- **PENDING DEVICE ACCEPTANCE:** `adb install -r` and the minimal fresh flow remain unvalidated: canonical Notification/Finance identity equality; Finance `核实交易` → source app → Accessibility/OCR; ¥0.01 reads as 0.01, auto-books once, and leaves zero pending on both surfaces after return/refresh. PR #78 remains Draft; Production and Production update metadata remain unchanged; Task 24 OPEN and Task 25 BLOCKED.
+
 ## 2026-09-22 PR #78 OCR candidate handoff (Android 1.3.15)
 
 - Source HEAD `64507ce94bb27a46326816b603bfd7793d7317a5` restores the physically accepted 1.3.13 accessibility/OCR fallback contract after the 1.3.14 OCR regression. `PaymentScreenshotVerifier` again passes normalized OCR through payment-page semantics without a blanket 0.95 confidence threshold or strict raw two-decimal gate. `PaymentRecognitionCoordinator` can move an existing active ticket to `ENRICHMENT_VERIFIED` and retain its recognition/candidate identity; user edits remain protected.
