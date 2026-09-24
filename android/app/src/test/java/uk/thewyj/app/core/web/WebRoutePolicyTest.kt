@@ -55,6 +55,13 @@ class WebRoutePolicyTest {
     }
 
     @Test
+    fun financeVerificationUsesOnlyTheNamedNativeRoute() {
+        assertEquals(NavigationDecision.VerifyPayment,
+            policy.decide("thewyj://payment/verify?event_id=event-1"))
+        assertEquals(NavigationDecision.Blocked, policy.decide("thewyj://payment/other?event_id=event-1"))
+    }
+
+    @Test
     fun activeContentAndCleartextSchemesAreBlocked() {
         assertEquals(NavigationDecision.Blocked, policy.decide("javascript:alert(1)"))
         assertEquals(NavigationDecision.Blocked, policy.decide("file:///data/local/private"))

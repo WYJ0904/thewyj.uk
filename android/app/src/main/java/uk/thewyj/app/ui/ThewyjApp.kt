@@ -64,6 +64,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import uk.thewyj.app.BuildConfig
 import uk.thewyj.app.R
 import uk.thewyj.app.core.auth.AccountSnapshot
@@ -80,6 +83,7 @@ import uk.thewyj.app.core.permission.PermissionCenter
 import uk.thewyj.app.core.permission.PermissionDecisions
 import uk.thewyj.app.task21.payment.PaymentAccessibilityStatus
 import uk.thewyj.app.task21.payment.SourceAppLauncher
+import uk.thewyj.app.task21.payment.PaymentVerificationCenter
 import uk.thewyj.app.core.session.SessionState
 import uk.thewyj.app.core.update.UpdateUiState
 import uk.thewyj.app.core.web.ThewyjWebView
@@ -298,6 +302,7 @@ private fun AuthenticatedShell(
     var backNavigationRequest by remember { mutableIntStateOf(0) }
     var overlays by remember { mutableStateOf(ShellOverlayState()) }
     val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val paymentState = remember(state.account.id) {
         PaymentVerificationState(context, state.account.id)
     }
@@ -340,6 +345,21 @@ private fun AuthenticatedShell(
                 onCanGoBackChanged = {},
                 onMainFrameError = onWebError,
                 onThemeChanged = onWebThemeChanged,
+                onVerifyPayment = { eventId ->
+                    scope.launch {
+                        val ticket = withContext(Dispatchers.IO) {
+                            PaymentVerificationCenter(context).startVerificationForEvent(eventId)
+                        }
+                        if (ticket == null) {
+                            onWebError("这笔交易无法在本机核实；请在收到通知的设备上操作，或刷新待处理状态")
+                        } else {
+                            overlays = overlays.copy(paymentVerification = true)
+                            if (!SourceAppLauncher.launch(context, ticket.sourcePackage)) {
+                                onWebError("无法打开来源应用，请在 90 秒内手动打开交易详情")
+                            }
+                        }
+                    }
+                },
                 onUnhandledBack = {
                     if (destination != AppDestination.HOME) onDestination(AppDestination.HOME)
                     else activity?.moveTaskToBack(true)

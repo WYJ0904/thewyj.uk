@@ -109,6 +109,13 @@ interface NotificationDao {
     @Query("SELECT * FROM notification_revisions WHERE accountId = :accountId AND sourceEventId = :eventId ORDER BY capturedAt ASC LIMIT 1")
     fun revisionForEventId(accountId: String, eventId: String): NotificationRevisionEntity?
 
+    @Query("SELECT DISTINCT r.sourceEventId FROM notification_revisions r " +
+        "JOIN notification_instances i ON i.instanceId = r.instanceId AND i.accountId = r.accountId " +
+        "WHERE r.accountId = :accountId AND r.capturedAt = :capturedAt AND r.sourceEventId != '' " +
+        "AND (i.notificationKey = :notificationKey OR " +
+        "(i.notificationKey = '' AND i.sourcePackage || '|' || i.notificationId || '|' || i.tag = :notificationKey))")
+    fun structuredEventIdsForLegacyRecognition(accountId: String, notificationKey: String, capturedAt: Long): List<String>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     fun insertRevision(revision: NotificationRevisionEntity)
 

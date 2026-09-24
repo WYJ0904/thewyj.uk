@@ -8,6 +8,15 @@ import uk.thewyj.app.core.network.PendingReviewIdentity
 import uk.thewyj.app.core.network.PendingReviewSummary
 
 class PendingReviewReconcilerTest {
+    @Test fun offlineQueueIsRecoveryAndNeverInflatesCanonicalPending() {
+        val ids = setOf("event-offline")
+        assertEquals(PendingReviewVisibility.Placement.RECOVERY,
+            PendingReviewVisibility.classify(ids, "pay-verify:rec-offline", emptySet(), setOf("hint:event-offline")))
+        assertEquals(PendingReviewVisibility.Placement.CANONICAL,
+            PendingReviewVisibility.classify(ids, "pay-verify:rec-offline", ids, setOf("hint:event-offline")))
+        assertEquals(PendingReviewVisibility.Placement.HIDDEN,
+            PendingReviewVisibility.classify(setOf("event-old"), "pay-verify:rec-old", emptySet(), emptySet()))
+    }
     @Test
     fun reconcilesByStableEventIdentityInsteadOfAddingCounts() {
         val local = listOf(
@@ -23,7 +32,7 @@ class PendingReviewReconcilerTest {
 
         val result = PendingReviewReconciler.reconcile(local, remote)
 
-        assertEquals(4, result.total)
+        assertEquals(3, result.total)
         assertEquals(3, result.local)
         assertEquals(3, result.remote)
         assertEquals(1, result.overlap)
@@ -31,6 +40,7 @@ class PendingReviewReconcilerTest {
         assertEquals(1, result.unresolved)
         assertEquals(2, result.remoteOnly)
         assertTrue(result.complete)
+        assertEquals(remote.totalCount, result.total)
     }
 
     @Test

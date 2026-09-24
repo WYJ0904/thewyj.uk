@@ -451,6 +451,27 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
         return "notification#$identity#${revision.capturedAt}"
     }
 
+    fun recognitionSourceEventIds(accountId: String, structuredEventId: String): List<String> =
+        if (dao.revisionForEventId(accountId.trim(), structuredEventId) == null) emptyList()
+        else listOf("notification#event#$structuredEventId", recognitionSourceEventId(accountId, structuredEventId))
+            .filter(String::isNotBlank).distinct()
+
+    fun structuredEventIdsForRecognition(accountId: String, recognitionSourceEventId: String): List<String> {
+        val prefix = "notification#event#"
+        if (recognitionSourceEventId.startsWith(prefix)) {
+            val eventId = recognitionSourceEventId.removePrefix(prefix)
+            return if (eventId.isNotBlank() && dao.revisionForEventId(accountId.trim(), eventId) != null) {
+                listOf(eventId)
+            } else emptyList()
+        }
+        if (!recognitionSourceEventId.startsWith("notification#")) return emptyList()
+        val separator = recognitionSourceEventId.lastIndexOf('#')
+        if (separator <= "notification#".length) return emptyList()
+        val key = recognitionSourceEventId.substring("notification#".length, separator)
+        val capturedAt = recognitionSourceEventId.substring(separator + 1).toLongOrNull() ?: return emptyList()
+        return dao.structuredEventIdsForLegacyRecognition(accountId.trim(), key, capturedAt)
+    }
+
     /**
      * Task 24.1 R4: resolves one piece of screenshot evidence against the
      * archive. Returns what the caller must do: archive a new revision, treat the

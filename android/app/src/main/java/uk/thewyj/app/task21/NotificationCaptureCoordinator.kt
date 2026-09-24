@@ -386,6 +386,17 @@ class NotificationCaptureCoordinator(
         return runCatching { queueFor(current.accountId).peekRequests() }.getOrDefault(emptyList())
     }
 
+    /** Drop only the exact ignored payment's unsent operations, never history. */
+    fun cancelQueuedPayment(eventId: String): Int {
+        val current = account() ?: return 0
+        if (!current.financeEntitled || eventId.isBlank()) return 0
+        val queue = queueFor(current.accountId)
+        val ids = setOf(eventId, "hint:$eventId")
+        val matching = queue.peekRequests().filter { it.operationId in ids }
+        matching.forEach { queue.remove(it.operationId) }
+        return matching.size
+    }
+
     private fun flushDetailed(current: CaptureAccount): FlushResult {
         val ingestQueue = queueFor(current.accountId)
         if (!current.financeEntitled) {

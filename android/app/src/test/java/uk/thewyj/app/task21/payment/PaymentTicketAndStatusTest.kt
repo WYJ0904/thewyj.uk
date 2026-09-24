@@ -83,6 +83,21 @@ class PaymentTicketAndStatusTest {
         assertEquals(1, insufficient.attempts)
     }
 
+    @Test fun directionOnlyPageUsesExistingTicketAmount() {
+        val engine = PaymentTicketEngine(now = { 1_000L })
+        val ticket = engine.create(
+            "a", "rec-direction", "com.tencent.mm", "event-direction", "wechat",
+            amountHintMinor = 10_449L, missingFields = setOf("direction"),
+        )
+        val outcome = engine.enrich(ticket, enrichment("com.tencent.mm", null).copy(
+            direction = FinanceDirection.INCOME,
+        ))
+        assertTrue(outcome is EnrichmentOutcome.Applied)
+        val applied = (outcome as EnrichmentOutcome.Applied).ticket
+        assertEquals(10_449L, applied.amountHintMinor)
+        assertTrue(applied.missingFields.isEmpty())
+    }
+
     @Test fun wrongPackageEvidenceIsRejected() {
         val engine = PaymentTicketEngine(now = { 1_000L })
         val ticket = engine.create("a", "rec-1", "com.tencent.mm", "key", "wechat")

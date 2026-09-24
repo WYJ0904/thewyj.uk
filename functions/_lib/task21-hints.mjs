@@ -144,6 +144,11 @@ async function autoBookVerifiedHint(db, account, deviceId, row) {
     WHERE user_id = ?1 AND id = ?4 AND state = 'pending'`, [
     account.id, finance.transaction_id, now, row.id,
   ]);
+  await run(db, `UPDATE task21_notification_candidates
+    SET status = 'confirmed', finance_transaction_id = ?3, updated_at = ?4
+    WHERE user_id = ?1 AND event_id = ?2 AND status = 'pending'`, [
+    account.id, row.source_event_id, finance.transaction_id, now,
+  ]);
   return await hintById(db, account, row.id);
 }
 
@@ -298,9 +303,45 @@ export async function upsertNotificationHints(db, account, input) {
     const confidence = Math.min(1000, nonNegativeInteger(raw.confidence || 0, "置信度", 1000));
     const evidence = cleanEvidence(raw.evidence);
 
+    // A late device upload must inherit an exact structured candidate's
+    // terminal outcome. It cannot reopen a payment the user already rejected
+    // or ask for review after that event was booked.
+    const candidate = await first(db, `SELECT c.status, c.finance_transaction_id,
+        txn.id AS active_transaction_id
+      FROM task21_notification_candidates c
+      LEFT JOIN task16_finance_transactions txn
+        ON txn.user_id = c.user_id AND txn.id = c.finance_transaction_id AND txn.status = 'active'
+      WHERE c.user_id = ?1 AND c.event_id = ?2`, [account.id, sourceEventId]);
+    const booked = await ledgerBookingForEvent(db, account.id, sourceEventId);
+    const candidateTerminalState = booked ? "confirmed"
+      : candidate && candidate.status !== "pending"
+        ? (candidate.active_transaction_id ? "confirmed" : "ignored") : "";
+    const candidateTransactionId = String(booked?.transactionId || candidate?.active_transaction_id || "");
+    const terminalAmountMinor = Number(booked?.ledger?.amount_minor) > 0
+      ? Number(booked.ledger.amount_minor) : amountMinor;
+    const terminalDirection = ["income", "expense", "refund"].includes(String(booked?.ledger?.direction))
+      ? String(booked.ledger.direction) : direction;
+    const terminalMerchant = booked ? String(booked.ledger.merchant || "") : merchant;
+
     const existing = await first(db, `SELECT * FROM task21_notification_pending_hints
       WHERE user_id = ?1 AND source_event_id = ?2`, [account.id, sourceEventId]);
     if (existing) {
+      if (existing.state === "pending" && candidateTerminalState) {
+        await run(db, `UPDATE task21_notification_pending_hints
+          SET state = ?3, finance_entry_id = ?4,
+              amount_minor = COALESCE(?6, amount_minor),
+              direction = COALESCE(?7, direction),
+              merchant = CASE WHEN ?3 = 'confirmed' THEN ?8 ELSE merchant END,
+              confirmed_at = CASE WHEN ?3 = 'confirmed' THEN ?5 ELSE confirmed_at END,
+              ignored_at = CASE WHEN ?3 = 'ignored' THEN ?5 ELSE ignored_at END,
+              updated_at = ?5
+          WHERE user_id = ?1 AND id = ?2 AND state = 'pending'`, [
+          account.id, existing.id, candidateTerminalState, candidateTransactionId, now,
+          terminalAmountMinor, terminalDirection, terminalMerchant,
+        ]);
+        results.push({ hint: publicHint(await hintById(db, account, existing.id)), duplicate: true, updated: true });
+        continue;
+      }
       // A single event can become richer after its initial notification. The
       // common Android path is amount-unknown hint -> explicit Accessibility/OCR
       // verification. Keep the same row/id and fill only fields that were
@@ -346,10 +387,13 @@ export async function upsertNotificationHints(db, account, input) {
         id, user_id, source_event_id, device_id, source_type, source_package, app_label,
         evidence_summary, amount_minor, direction, merchant, currency, confidence,
         recognition_status, state, finance_entry_id, created_at, updated_at, confirmed_at, ignored_at
-      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, 'pending', '', ?15, ?15, '', '')`, [
+      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,
+        ?16, ?17, ?15, ?15, ?18, ?19)`, [
         id, account.id, sourceEventId, deviceId, sourceType, sourcePackage, appLabel,
-        evidence, amountMinor, direction, merchant, currency, confidence,
-        recognitionStatus, now,
+        evidence, terminalAmountMinor, terminalDirection, terminalMerchant, currency, confidence,
+        recognitionStatus, now, candidateTerminalState || "pending", candidateTransactionId,
+        candidateTerminalState === "confirmed" ? now : "",
+        candidateTerminalState === "ignored" ? now : "",
       ]);
       const created = await hintById(db, account, id);
       const terminal = await autoBookVerifiedHint(db, account, deviceId, created);
@@ -437,22 +481,33 @@ export async function notificationPendingSummary(db, account, input = {}) {
     LEFT JOIN task16_finance_transactions ht
       ON ht.user_id = h.user_id AND ht.id = h.finance_entry_id AND ht.status = 'active'
     WHERE h.user_id = ?1 AND NOT EXISTS (
-      SELECT 1 FROM task21_notification_candidates c WHERE c.user_id = h.user_id AND c.event_id = h.source_event_id
+      SELECT 1 FROM task21_notification_candidates c
+      WHERE c.user_id = h.user_id AND (c.event_id = h.source_event_id OR EXISTS (
+        SELECT 1 FROM task21_notification_events ev
+        WHERE ev.user_id = h.user_id AND ev.event_id = h.source_event_id AND ev.candidate_id = c.id
+      ))
     )
     UNION ALL
     SELECT 'candidate', c.id, c.event_id, COALESCE(e.device_id, ''),
       CASE
-        WHEN ct.id IS NOT NULL THEN 'confirmed'
+        WHEN COALESCE(ct.id, et.id, cb.transaction_id, ht.id, '') != '' THEN 'confirmed'
         WHEN c.status = 'confirmed' AND c.finance_transaction_id != '' THEN 'rejected'
+        WHEN h.state = 'ignored' THEN 'rejected'
         ELSE c.status
       END,
-      COALESCE(ct.id, ''), c.updated_at,
+      COALESCE(ct.id, et.id, cb.transaction_id, ht.id, ''), c.updated_at,
       COALESCE((SELECT json_group_array(ev.event_id) FROM task21_notification_events ev
         WHERE ev.user_id = c.user_id AND ev.candidate_id = c.id), json_array(c.event_id))
     FROM task21_notification_candidates c
     LEFT JOIN task21_notification_events e ON e.user_id = c.user_id AND e.event_id = c.event_id
     LEFT JOIN task16_finance_transactions ct
       ON ct.user_id = c.user_id AND ct.id = c.finance_transaction_id AND ct.status = 'active'
+    LEFT JOIN task16_finance_transactions et
+      ON et.user_id = c.user_id AND et.id = e.finance_transaction_id AND et.status = 'active'
+    LEFT JOIN booking cb ON cb.user_id = c.user_id AND cb.source_event_id = c.event_id
+    LEFT JOIN task21_notification_pending_hints h ON h.user_id = c.user_id AND h.source_event_id = c.event_id
+    LEFT JOIN task16_finance_transactions ht
+      ON ht.user_id = c.user_id AND ht.id = h.finance_entry_id AND ht.status = 'active'
     WHERE c.user_id = ?1
   ), visible AS (
     SELECT * FROM review WHERE state = 'pending' OR EXISTS (
@@ -541,6 +596,11 @@ export async function confirmNotificationHint(db, account, input) {
     WHERE user_id = ?1 AND id = ?7`, [
     account.id, finance.transaction_id, bookedAmountMinor, bookedDirection, bookedMerchant, now, hintId,
   ]);
+  await run(db, `UPDATE task21_notification_candidates
+    SET status = 'confirmed', finance_transaction_id = ?3, updated_at = ?4
+    WHERE user_id = ?1 AND event_id = ?2 AND status = 'pending'`, [
+    account.id, row.source_event_id, finance.transaction_id, now,
+  ]);
   return {
     hint: publicHint(await hintById(db, account, hintId)),
     transaction_id: finance.transaction_id,
@@ -555,10 +615,19 @@ export async function ignoreNotificationHint(db, account, input) {
   const row = await hintById(db, account, hintId);
   if (row.state === "ignored") return { hint: publicHint(row), no_change: true };
   if (row.state !== "pending") throw new Task21Error("该待确认记录不能忽略", 409, "hint_state_invalid");
+  const booked = await ledgerBookingForEvent(db, account.id, row.source_event_id);
+  if (booked) {
+    return { hint: publicHint(await reconcilePendingHint(db, account, row)), no_change: true };
+  }
   const now = isoNow();
   await run(db, `UPDATE task21_notification_pending_hints
     SET state = 'ignored', ignored_at = ?3, updated_at = ?3
     WHERE user_id = ?1 AND id = ?2`, [account.id, hintId, now]);
+  await run(db, `UPDATE task21_notification_candidates
+    SET status = 'rejected', updated_at = ?3
+    WHERE user_id = ?1 AND event_id = ?2 AND status = 'pending'`, [
+    account.id, row.source_event_id, now,
+  ]);
   return { hint: publicHint(await hintById(db, account, hintId)) };
 }
 

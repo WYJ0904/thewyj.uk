@@ -27,6 +27,8 @@ import uk.thewyj.app.task21.store.NotificationQuery
 import uk.thewyj.app.task21.store.PaymentRecognitionStoreContract
 import uk.thewyj.app.task21.store.RoomNotificationStore
 import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
+import uk.thewyj.app.core.network.PendingReviewIdentity
+import uk.thewyj.app.core.network.PendingReviewSummary
 import uk.thewyj.app.task21.payment.PaymentRecognitionRecord
 import uk.thewyj.app.task21.payment.PaymentRecognitionState
 
@@ -87,6 +89,12 @@ class PaymentHintSyncCrossClientTest {
 
         override fun recognitionSourceEventId(accountId: String, sourceEventId: String): String =
             store.recognitionSourceEventId(accountId, sourceEventId)
+
+        override fun recognitionSourceEventIds(accountId: String, sourceEventId: String): List<String> =
+            store.recognitionSourceEventIds(accountId, sourceEventId)
+
+        override fun structuredEventIdsForRecognition(accountId: String, recognitionSourceEventId: String): List<String> =
+            store.structuredEventIdsForRecognition(accountId, recognitionSourceEventId)
     }
 
     private fun archivePayment(eventId: String) = store.record(
@@ -261,11 +269,10 @@ class PaymentHintSyncCrossClientTest {
 
     /**
      * Real-device evidence (1.3.1, 2026-09-12): the archive entry for the
-     * confirmed ¥104.49 hint did not exist, so the archive-identity link was
-     * empty and the Android row stayed pending. The same device, package and
-     * amount inside the hint's capture window is the last deterministic link.
+     * Without an archive identity link, an amount/time match is insufficient:
+     * another same-amount transaction must never be closed by a guess.
      */
-    @Test fun legacyHintWithoutArchiveEntryClosesThroughTheUniqueMoneyShape() {
+    @Test fun legacyHintWithoutArchiveEntryRemainsRecoverable() {
         paymentStore.saveRecognition(
             legacyMoneyShapeRecognition("rec-money", hintAnchorMs() - 5L * 60L * 1000L),
         )
@@ -274,9 +281,145 @@ class PaymentHintSyncCrossClientTest {
 
         assertEquals(1, result.confirmed)
         assertEquals(
-            PaymentRecognitionState.FINANCE_RECORDED.name,
+            PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name,
             paymentStore.recognition(account, "rec-money")?.state,
         )
+    }
+
+    @Test fun stableArchiveAliasClosesBlankUploadIdWithoutMoneyHeuristics() {
+        archivePayment("evt-stable-legacy")
+        paymentStore.saveRecognition(legacyMoneyShapeRecognition("rec-stable-legacy", 1_000L).copy(
+            sourceEventId = "notification#event#evt-stable-legacy",
+        ))
+        val result = syncWithExactSummary("evt-stable-legacy", "confirmed", "txn-stable-legacy")
+        assertTrue(result.completeObservation)
+        assertEquals(PaymentRecognitionState.FINANCE_RECORDED.name,
+            paymentStore.recognition(account, "rec-stable-legacy")?.state)
+    }
+
+    @Test fun staleUploadIdCannotCloseAnotherArchivedEvent() {
+        archivePayment("evt-archive-a")
+        archivePayment("evt-archive-b")
+        paymentStore.saveRecognition(legacyMoneyShapeRecognition("rec-archive-a", 1_000L).copy(
+            sourceEventId = "notification#event#evt-archive-a", uploadEventId = "evt-archive-b",
+        ))
+        paymentStore.saveRecognition(legacyMoneyShapeRecognition("rec-archive-b", 1_000L).copy(
+            sourceEventId = "notification#event#evt-archive-b", uploadEventId = "",
+        ))
+        syncWithExactSummary("evt-archive-b", "confirmed", "txn-archive-b")
+        assertEquals(PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name,
+            paymentStore.recognition(account, "rec-archive-a")?.state)
+        assertEquals(PaymentRecognitionState.FINANCE_RECORDED.name,
+            paymentStore.recognition(account, "rec-archive-b")?.state)
+    }
+
+    @Test fun incompleteOfflineRowSurvivesAnEmptyServerObservation() {
+        archivePayment("evt-offline")
+        paymentStore.saveRecognition(legacyMoneyShapeRecognition("rec-offline", 1_000L).copy(
+            sourceEventId = "notification#event#evt-offline",
+            amountMinor = null,
+        ))
+        val result = syncWith("""{"ok":true,"hints":[],"records":[],"total_count":0,"truncated":false}""")
+        assertTrue(result.completeObservation)
+        assertEquals(0, result.pendingCount)
+        assertEquals(PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name,
+            paymentStore.recognition(account, "rec-offline")?.state)
+        assertEquals("evt-offline", store.structuredEventIdsForRecognition(
+            account, "notification#event#evt-offline").single())
+    }
+
+    @Test fun summaryClosesWebConfirmImmediately() {
+        archivePayment("evt-summary-now")
+        savePendingUploadedCandidate("rec-summary-now", "cand-summary-now", "evt-summary-now")
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(), hintedStore = paymentStore, archiveSink = sink(),
+            accountOverride = { NotificationCaptureCoordinator.CaptureAccount(
+                accountId = account, deviceId = "device-a", sessionToken = "token-a", financeEntitled = true,
+            ) },
+        )
+        val result = sync.applySummary(account, PendingReviewSummary(
+            "now", 0, 0, 0, false, listOf(PendingReviewIdentity(
+                "candidate", "cloud-now", "evt-summary-now", "device-a", "confirmed", "txn-now",
+            )),
+        ))
+        assertTrue(result.completeObservation)
+        assertEquals(0, result.pendingCount)
+        assertEquals(PaymentRecognitionState.FINANCE_RECORDED.name,
+            paymentStore.recognition(account, "rec-summary-now")?.state)
+    }
+
+    @Test fun summaryBackfillsBlankLegacyUploadIdExactly() {
+        archivePayment("evt-blank-pending")
+        paymentStore.saveRecognition(legacyMoneyShapeRecognition("rec-blank-pending", 1_000L).copy(
+            sourceEventId = "notification#key:evt-blank-pending#1000",
+        ))
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(), hintedStore = paymentStore, archiveSink = sink(),
+            accountOverride = { NotificationCaptureCoordinator.CaptureAccount(
+                accountId = account, deviceId = "device-a", sessionToken = "token-a", financeEntitled = true,
+            ) },
+        )
+        val result = sync.applySummary(account, PendingReviewSummary(
+            "now", 1, 1, 0, false, listOf(PendingReviewIdentity(
+                "hint", "hint-blank", "evt-blank-pending", "device-a",
+            )),
+        ))
+        assertEquals(setOf("evt-blank-pending"), result.pendingEventIds)
+        assertEquals("evt-blank-pending", paymentStore.recognition(account, "rec-blank-pending")?.uploadEventId)
+    }
+
+    @Test fun enrichedHintPostClosesLocalStateImmediately() {
+        archivePayment("evt-post-booked")
+        savePendingUploadedCandidate("rec-post-booked", "cand-post-booked", "evt-post-booked")
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String) = IngestResponse(
+                true, 200,
+                """{"ok":true,"hints":[{"source_event_id":"evt-post-booked","state":"confirmed","finance_entry_id":"txn-post-booked"}]}""",
+            )
+        }
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(), hintedTransport = transport,
+            hintedStore = paymentStore, archiveSink = sink(),
+            accountOverride = { NotificationCaptureCoordinator.CaptureAccount(
+                accountId = account, deviceId = "device-a", sessionToken = "token-a", financeEntitled = true,
+            ) },
+        )
+        assertTrue(sync.publishEnrichment(account, "rec-post-booked"))
+        assertEquals(PaymentRecognitionState.FINANCE_RECORDED.name,
+            paymentStore.recognition(account, "rec-post-booked")?.state)
+        assertEquals("confirmed" to "txn-post-booked", financeState("evt-post-booked"))
+        assertTrue(sync.publishEnrichment(account, "rec-post-booked"))
+        assertEquals("txn-post-booked", paymentStore.candidateForRecognition(account, "rec-post-booked")?.financeTransactionId)
+    }
+
+    @Test fun enrichmentRepairsBlankUploadIdFromArchive() {
+        archivePayment("evt-repaired-booking")
+        savePendingUploadedCandidate("rec-repaired-booking", "cand-repaired-booking", "evt-repaired-booking")
+        val old = paymentStore.recognition(account, "rec-repaired-booking")!!
+        paymentStore.saveRecognition(old.copy(
+            uploadEventId = "",
+            sourceEventId = "notification#key:evt-repaired-booking#1000",
+        ))
+        var postedEventId = ""
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String): IngestResponse {
+                postedEventId = org.json.JSONObject(body).getJSONArray("hints").getJSONObject(0)
+                    .getString("source_event_id")
+                return IngestResponse(true, 200,
+                    """{"ok":true,"hints":[{"state":"confirmed","finance_entry_id":"txn-repaired"}]}""")
+            }
+        }
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(), hintedTransport = transport,
+            hintedStore = paymentStore, archiveSink = sink(),
+            accountOverride = { NotificationCaptureCoordinator.CaptureAccount(
+                accountId = account, deviceId = "device-a", sessionToken = "token-a", financeEntitled = true,
+            ) },
+        )
+        assertTrue(sync.publishEnrichment(account, "rec-repaired-booking"))
+        assertEquals("evt-repaired-booking", postedEventId)
+        assertEquals(PaymentRecognitionState.FINANCE_RECORDED.name,
+            paymentStore.recognition(account, "rec-repaired-booking")?.state)
     }
 
     @Test fun ambiguousMoneyShapeIsNeverClosedByAGuess() {
@@ -426,6 +569,31 @@ class PaymentHintSyncCrossClientTest {
         assertTrue(result.changed)
         assertEquals("/api/notification/hints/ignore", postedPath)
         assertEquals("hint:cloud-1", org.json.JSONObject(postedBody).getString("hint_id"))
+    }
+
+    @Test fun ignoreWorksAgainstLegacyProductionApi() {
+        var ignoredId = ""
+        val transport = object : NotificationIngestTransport {
+            override fun get(path: String, sessionToken: String): IngestResponse = when {
+                path.startsWith("/api/notification/pending-summary") -> IngestResponse(false, 404, "{}")
+                path.startsWith("/api/notification/hints") -> IngestResponse(true, 200,
+                    """{"ok":true,"hints":[{"id":"hint:legacy","source_event_id":"evt-legacy-ignore","state":"pending"}]}""")
+                else -> IngestResponse(true, 200, """{"ok":true,"candidates":[]}""")
+            }
+            override fun post(path: String, sessionToken: String, body: String): IngestResponse {
+                ignoredId = org.json.JSONObject(body).optString("hint_id")
+                return IngestResponse(true, 200, """{"ok":true}""")
+            }
+        }
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(), hintedTransport = transport,
+            hintedStore = paymentStore, archiveSink = sink(),
+            accountOverride = { NotificationCaptureCoordinator.CaptureAccount(
+                accountId = account, deviceId = "device-a", sessionToken = "token-a", financeEntitled = true,
+            ) },
+        )
+        assertTrue(sync.dismissRemote(account, "evt-legacy-ignore").changed)
+        assertEquals("hint:legacy", ignoredId)
     }
 
 

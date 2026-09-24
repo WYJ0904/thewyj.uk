@@ -295,6 +295,13 @@ try {
     "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1 AND amount_minor = 10000 AND status = 'active'",
   ).bind(USER.id).first();
   assert.equal(Number(ledgerAfterEnrichment.count), 1, "verified enrichment must auto-book exactly once");
+  const afterAutoBook = await request(db,
+    "/api/notification/pending-summary?event_ids=evt-hints-amount-unknown", { token: USER.token });
+  assert.equal(afterAutoBook.payload.records.find((row) =>
+    row.event_id === "evt-hints-amount-unknown")?.state, "confirmed");
+  assert.equal(afterAutoBook.payload.records.filter((row) =>
+    row.event_id === "evt-hints-amount-unknown" && row.state === "pending").length, 0,
+  "verified auto-book has zero pending identities for this event");
   const enrichmentReplay = await request(db, "/api/notification/hints", {
     method: "POST",
     token: USER.token,
@@ -411,6 +418,32 @@ try {
   });
   assert.equal(ignored.response.status, 200);
   assert.equal(ignored.payload.hint.state, "ignored");
+  const afterAndroidIgnore = await request(db,
+    "/api/notification/pending-summary?event_ids=evt-hints-direction-unknown", { token: USER.token });
+  assert.equal(afterAndroidIgnore.payload.records.find((row) =>
+    row.event_id === "evt-hints-direction-unknown")?.state, "ignored");
+  assert.equal(afterAndroidIgnore.payload.records.filter((row) =>
+    row.event_id === "evt-hints-direction-unknown" && row.state === "pending").length, 0,
+  "Android ignore must disappear from Finance's canonical pending set immediately");
+  const lateIgnoredEvent = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USER.token,
+    body: { schema_version: "1", device_id: "device-hints-000001", operations: [{
+      operation_id: "evt-hints-direction-unknown-late",
+      type: "event.ingest",
+      payload: {
+        event_id: "evt-hints-direction-unknown", fingerprint: "ef".repeat(32),
+        source_package: "com.tencent.mm", source_type: "notification",
+        event_type: "transaction", parser_version: "late-after-ignore",
+        parse_status: "candidate", direction: "expense", amount_minor: 2800,
+        currency: "CNY", payment_channel: "wechat", merchant: "", counterparty: "",
+        confidence: 650, occurred_at_ms: 1_789_345_700_000,
+        received_at_ms: 1_789_345_700_000,
+      },
+    }] },
+  });
+  assert.equal(lateIgnoredEvent.response.status, 200, JSON.stringify(lateIgnoredEvent.payload));
+  assert.equal(lateIgnoredEvent.payload.operation_results[0].candidate_id, "",
+    "late structured evidence cannot revive an ignored identity");
   const confirmIgnored = await request(db, "/api/notification/hints/confirm", {
     method: "POST",
     token: USER.token,
@@ -561,6 +594,44 @@ try {
     "SELECT COUNT(*) AS count FROM task16_finance_transactions WHERE user_id = ?1",
   ).bind(USER.id).first();
   assert.equal(Number(financeCount.count), 2, "exactly two independent ledger entries for the whole flow");
+
+  // A structured candidate and pending hint for one exact event are one
+  // canonical identity. If verified enrichment books it first, the candidate
+  // must not remain visible as a second pending Finance/Android card.
+  const candidateHint = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token, body: hintBody(candidateEventId),
+  });
+  assert.equal(candidateHint.response.status, 200, JSON.stringify(candidateHint.payload));
+  const sharedBefore = await request(db,
+    `/api/notification/pending-summary?event_ids=${candidateEventId}`, { token: USER.token });
+  assert.equal(sharedBefore.payload.records.filter((row) =>
+    row.event_ids.includes(candidateEventId)).length, 1,
+  "candidate and hint for one event render once");
+  const sharedEnrichment = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody(candidateEventId, {
+      amount_minor: 280, direction: "expense", confidence: 950,
+      recognition_status: "CONFIRMED_PAYMENT",
+      evidence: { source_type: "accessibility", confidence: 950,
+        reasons: ["accessibility_verified_amount"], recognised_fields: ["amount", "direction"] },
+    }),
+  });
+  assert.equal(sharedEnrichment.response.status, 200, JSON.stringify(sharedEnrichment.payload));
+  assert.equal(sharedEnrichment.payload.hints[0].state, "confirmed");
+  const sharedAfter = await request(db,
+    `/api/notification/pending-summary?event_ids=${candidateEventId}`, { token: USER.token });
+  assert.equal(sharedAfter.payload.records.filter((row) =>
+    row.event_ids.includes(candidateEventId)).length, 1);
+  assert.equal(sharedAfter.payload.records.find((row) =>
+    row.event_ids.includes(candidateEventId)).state, "confirmed");
+  assert.equal(sharedAfter.payload.records.filter((row) =>
+    row.event_ids.includes(candidateEventId) && row.state === "pending").length, 0);
+  const sharedCandidateState = await db.prepare(
+    "SELECT status, finance_transaction_id FROM task21_notification_candidates WHERE user_id = ?1 AND event_id = ?2",
+  ).bind(USER.id, candidateEventId).first();
+  assert.equal(sharedCandidateState.status, "confirmed");
+  assert.equal(sharedCandidateState.finance_transaction_id,
+    sharedEnrichment.payload.hints[0].finance_entry_id);
 
   console.log("Task 21 pending-hint checks passed (single pending source, no invented money, idempotent confirm/ignore).");
 } finally {

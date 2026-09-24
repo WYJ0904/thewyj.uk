@@ -56,6 +56,23 @@ class PaymentPageSemanticsFixtureTest {
         assertEquals(FinanceDirection.INCOME, result.direction)
     }
 
+    @Test fun genericCompletedPageKeepsUnknownDirectionUntilReliableEvidence() {
+        val result = enrichment("交易详情", "交易成功", "¥104.49")
+        assertNotNull(result)
+        assertEquals(10_449L, result!!.amountMinor)
+        assertNull(result.direction)
+        assertEquals(FinanceDirection.REFUND,
+            enrichment("交易详情", "退款成功", "¥104.49")?.direction)
+    }
+
+    @Test fun detailWithoutPrintedAmountCanResolveKnownTicketDirection() {
+        val result = enrichment("交易详情", "收款成功", "付款方 张三")
+        assertNotNull(result)
+        assertNull(result!!.amountMinor)
+        assertEquals(FinanceDirection.INCOME, result.direction)
+        assertNull(enrichment("聊天", "收款成功"))
+    }
+
     @Test fun passwordAndOtpPagesAreNeverRead() {
         assertNull(
             enrichment(

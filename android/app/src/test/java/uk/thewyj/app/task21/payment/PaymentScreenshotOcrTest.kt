@@ -99,6 +99,15 @@ class PaymentScreenshotOcrTest {
         assertEquals(FinanceDirection.INCOME, result.direction)
     }
 
+    @Test fun directionOnlyDetailRequiresAnExistingAmountTicket() {
+        val (result, _) = verify(listOf("交易详情", "收款成功", "付款方 张三"))
+        assertNotNull(result)
+        assertNull(result!!.amountMinor)
+        assertEquals(FinanceDirection.INCOME, result.direction)
+        val (chat, _) = verify(listOf("张三", "我给你转账", "晚上见"))
+        assertNull(chat)
+    }
+
     /** A chat line that merely mentions money must never become a payment. */
     @Test fun chatLineWithAmountIsNotAPayment() {
         val (result, _) = verify(listOf("张三", "我给你转了 ¥100 你先用", "晚上一起吃饭吗"))

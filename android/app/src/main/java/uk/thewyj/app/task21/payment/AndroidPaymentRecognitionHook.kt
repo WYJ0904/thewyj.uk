@@ -140,8 +140,16 @@ class AndroidPaymentRecognitionHook private constructor(
         )
     }
 
-    fun onAccessibilityEnrichment(accountId: String, enrichment: PaymentEnrichment): EnrichmentOutcome =
-        coordinator.onAccessibilityEnrichment(accountId, enrichment)
+    fun onAccessibilityEnrichment(accountId: String, enrichment: PaymentEnrichment): EnrichmentOutcome {
+        val outcome = coordinator.onAccessibilityEnrichment(accountId, enrichment)
+        if (outcome is EnrichmentOutcome.Applied) {
+            // The POST can auto-book the exact active hint. Apply its terminal
+            // response locally before the user returns from the source app.
+            runCatching { PaymentHintSync(appContext).publishEnrichment(accountId, outcome.ticket.recognitionId) }
+            PaymentReviewSignals.publish()
+        }
+        return outcome
+    }
 
     /** The page produced no usable amount; counts toward the honest failure path. */
     fun onAccessibilityMiss(accountId: String, sourcePackage: String): Boolean =
@@ -185,6 +193,7 @@ class AndroidPaymentRecognitionHook private constructor(
                 ),
             )
         }
+        PaymentReviewSignals.publish()
     }
 
     override fun appLabelFor(input: NotificationCaptureInput): String =

@@ -58,12 +58,7 @@ class NotificationHubState(
         private set
     private var visibleLimit = HISTORY_PAGE_SIZE
 
-    /**
-     * Pending review count. The finance page lists backend candidates, so the
-     * hub shows the same backend number whenever it is reachable (falling back
-     * to the local count offline) and the two screens can never disagree.
-     */
-    /** Union of local and cloud actionable identities. */
+    /** Same canonical server-backed actionable count as /finance. */
     var pendingPayments by mutableStateOf(0)
 
     /** Recognitions this device still has to verify or confirm. */
@@ -131,27 +126,37 @@ class NotificationHubState(
             // recognitions that still need the user. Backend candidates are
             // reported separately instead of being summed, otherwise an
             // uploaded payment would be counted twice.
-            val local = paymentStore.recognitionsByState(
+            val localBefore = paymentStore.recognitionsByState(
                 accountId,
                 uk.thewyj.app.task21.payment.PaymentVerificationCenter.ATTENTION_STATES,
             )
             val credentials = runCatching { credentialStore.loadActive() }.getOrNull()
+            val archive = uk.thewyj.app.task21.store.RoomNotificationStore(NotificationDatabase.get(appContext))
+            val requested = localBefore.flatMap { row ->
+                listOf(row.uploadEventId) + archive.structuredEventIdsForRecognition(accountId, row.sourceEventId)
+            }.filter(String::isNotBlank).distinct()
             val remote = if (credentials != null && credentials.accessToken.isNotBlank()) {
-                when (val response = api.pendingReviewSummary(credentials.accessToken, local.map { it.uploadEventId }.filter(String::isNotBlank))) {
+                when (val response = api.pendingReviewSummary(credentials.accessToken, requested)) {
                     is uk.thewyj.app.core.network.ApiCall.Success -> response.value
                     is uk.thewyj.app.core.network.ApiCall.Failure -> null
                 }
             } else {
                 null
             }
-            val archive = uk.thewyj.app.task21.store.RoomNotificationStore(NotificationDatabase.get(appContext))
-            val aliases = remote?.records.orEmpty().flatMap { it.eventIds }.distinct().mapNotNull { eventId ->
-                val sourceId = archive.recognitionSourceEventId(accountId, eventId)
-                if (sourceId.isBlank()) null else sourceId to eventId
-            }.groupBy({ it.first }, { it.second })
+            if (remote != null) {
+                uk.thewyj.app.task21.payment.PaymentHintSync(appContext).applySummary(accountId, remote)
+            }
+            val local = paymentStore.recognitionsByState(
+                accountId,
+                uk.thewyj.app.task21.payment.PaymentVerificationCenter.ATTENTION_STATES,
+            )
+            val observedIds = remote?.records.orEmpty().flatMap { it.eventIds }.toSet()
             val resolved = local.map { row ->
-                val matches = aliases[row.sourceEventId].orEmpty().distinct()
-                if (row.uploadEventId.isBlank() && matches.size == 1) row.copy(uploadEventId = matches.single()) else row
+                val matches = archive.structuredEventIdsForRecognition(accountId, row.sourceEventId)
+                    .filter(observedIds::contains).distinct()
+                if (matches.size == 1 && row.uploadEventId != matches.single()) {
+                    row.copy(uploadEventId = matches.single())
+                } else row
             }
             android.util.Log.i("ThewyjPending", "local=" + resolved.joinToString(";") { "${it.recognitionId}|${it.uploadEventId.ifBlank { "unresolved" }}|${it.state}" })
             android.util.Log.i("ThewyjPending", "cloud=" + remote?.records.orEmpty().joinToString(";") { "${it.id}|${it.eventId}|${it.state}" })
@@ -162,7 +167,7 @@ class NotificationHubState(
         val remote = result.second
         localPendingPayments = local.size
         if (remote == null) {
-            pendingPayments = local.size
+            pendingPayments = 0
             remotePendingPayments = 0
             sharedPendingPayments = 0
             localOnlyPendingPayments = local.size
@@ -173,7 +178,7 @@ class NotificationHubState(
             return
         }
         val reconciled = PendingReviewReconciler.reconcile(local, remote)
-        pendingPayments = reconciled.total
+        pendingPayments = remote.totalCount
         remotePendingPayments = reconciled.remote
         sharedPendingPayments = reconciled.overlap
         localOnlyPendingPayments = reconciled.localOnly

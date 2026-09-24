@@ -25,6 +25,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import uk.thewyj.app.BuildConfig
 import uk.thewyj.app.core.speech.AndroidSpeechBridge
+import uk.thewyj.app.task21.payment.PaymentReviewSignals
 import java.net.URI
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
@@ -51,6 +53,7 @@ fun ThewyjWebView(
     onCanGoBackChanged: (Boolean) -> Unit,
     onMainFrameError: (String) -> Unit,
     onThemeChanged: (Boolean) -> Unit = {},
+    onVerifyPayment: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     onUnhandledBack: () -> Unit = {},
 ) {
@@ -64,6 +67,7 @@ fun ThewyjWebView(
     val canGoBackCallback = rememberUpdatedState(onCanGoBackChanged)
     val errorCallback = rememberUpdatedState(onMainFrameError)
     val themeCallback = rememberUpdatedState(onThemeChanged)
+    val verifyPaymentCallback = rememberUpdatedState(onVerifyPayment)
     val unhandledBackCallback = rememberUpdatedState(onUnhandledBack)
     val pendingFileSelection = remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
     // Speech runs fully off the navigation callback: handle() only enqueues and
@@ -91,6 +95,7 @@ fun ThewyjWebView(
             onMainFrameError = { errorCallback.value(it) },
             speechBridge = speechBridge,
             onThemeChanged = { dark -> themeCallback.value(dark) },
+            onVerifyPayment = { eventId -> verifyPaymentCallback.value(eventId) },
             onChooseFiles = { callback, params ->
                 pendingFileSelection.value?.onReceiveValue(null)
                 pendingFileSelection.value = callback
@@ -105,6 +110,15 @@ fun ThewyjWebView(
     }
 
     AndroidView(factory = { webView }, modifier = modifier.fillMaxSize())
+    LaunchedEffect(Unit) {
+        PaymentReviewSignals.changes.collect {
+            webView.evaluateJavascript("window.dispatchEvent(new Event('thewyj:payment-updated'))", null)
+        }
+    }
+    LifecycleResumeEffect(Unit) {
+        webView.evaluateJavascript("window.dispatchEvent(new Event('thewyj:payment-updated'))", null)
+        onPauseOrDispose { }
+    }
 
     LaunchedEffect(navigationEpoch, sessionEpoch) {
         webView.awaitViewport()
@@ -149,6 +163,7 @@ private fun createWebView(
     onMainFrameError: (String) -> Unit,
     speechBridge: AndroidSpeechBridge,
     onThemeChanged: (Boolean) -> Unit,
+    onVerifyPayment: (String) -> Unit,
     onChooseFiles: (ValueCallback<Array<Uri>>, WebChromeClient.FileChooserParams) -> Boolean,
 ): WebView = WebView(context).apply {
     // WRAP_CONTENT lets Chromium compute a zero CSS viewport inside AndroidView.
@@ -246,6 +261,7 @@ private fun createWebView(
         }
 
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+            if (!request.isForMainFrame && policy.decide(request.url.toString()) == NavigationDecision.VerifyPayment) return true
             if (request.isForMainFrame && policy.spaRoute(request.url.toString()) != null) {
                 view.navigateWithinDocument(policy, request.url.toString())
                 return true
@@ -255,6 +271,7 @@ private fun createWebView(
                 onSpeech = { speechBridge.handle(it) },
                 onSpeechError = onMainFrameError,
                 onTheme = onThemeChanged,
+                onVerifyPayment = onVerifyPayment,
             )
         }
 
@@ -269,6 +286,7 @@ private fun createWebView(
                 onSpeech = { speechBridge.handle(it) },
                 onSpeechError = onMainFrameError,
                 onTheme = onThemeChanged,
+                onVerifyPayment = onVerifyPayment,
             )
         }
 
@@ -340,6 +358,7 @@ private fun handleNavigation(
     onSpeech: (Uri) -> String = { "" },
     onSpeechError: (String) -> Unit = {},
     onTheme: (Boolean) -> Unit = {},
+    onVerifyPayment: (String) -> Unit = {},
 ): Boolean = when (policy.decide(url)) {
     NavigationDecision.Internal -> false
     NavigationDecision.RefreshSession -> true.also { onRefreshSession() }
@@ -350,6 +369,11 @@ private fun handleNavigation(
     }
     NavigationDecision.Theme -> true.also {
         onTheme(Uri.parse(url).path == "/dark")
+    }
+    NavigationDecision.VerifyPayment -> true.also {
+        val eventId = Uri.parse(url).getQueryParameter("event_id").orEmpty()
+        if (Regex("^[A-Za-z0-9._:-]{8,80}$").matches(eventId)) onVerifyPayment(eventId)
+        else onSpeechError("交易标识无效，无法开始核实")
     }
     NavigationDecision.External -> true.also {
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }

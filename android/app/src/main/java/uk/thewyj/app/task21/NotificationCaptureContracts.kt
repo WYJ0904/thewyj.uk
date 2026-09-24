@@ -142,6 +142,13 @@ interface NotificationArchiveSink {
      * archive link. The default keeps test doubles source compatible.
      */
     fun recognitionSourceEventId(accountId: String, sourceEventId: String): String = ""
+
+    /** Both current stable and legacy recognition identities for an archived event. */
+    fun recognitionSourceEventIds(accountId: String, sourceEventId: String): List<String> =
+        listOfNotNull(recognitionSourceEventId(accountId, sourceEventId).takeIf(String::isNotBlank))
+
+    /** Exact reverse archive link; never inferred from amount or capture time alone. */
+    fun structuredEventIdsForRecognition(accountId: String, recognitionSourceEventId: String): List<String> = emptyList()
 }
 
 /**

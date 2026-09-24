@@ -7,7 +7,7 @@ import {
   createSingleFlight,
   withInteractionFeedback,
 } from "../core/perf.js?v=20260920-task24-candidate-r6";
-const CANDIDATE_PAGE_LIMIT = 100;
+const CANDIDATE_PAGE_LIMIT = 200;
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -57,6 +57,27 @@ export function candidatePresentation(candidate) {
     missing,
     primaryAction: missing.length ? "补全并确认" : "确认记账",
   });
+}
+
+/** Server summary is the sole user-visible pending identity set on both tabs. */
+export function canonicalPendingCandidates(summary, hints, candidates) {
+  const details = new Map([...hints, ...candidates].map((item) =>
+    [`${item.hint ? "hint" : "candidate"}:${String(item.id)}`, item]));
+  const pending = Array.isArray(summary?.records)
+    ? summary.records.filter((row) => row.state === "pending")
+    : null;
+  if (!pending) return [...hints, ...candidates]; // Older Production API.
+  return pending.map((row) => {
+    const hint = row.kind === "hint";
+    const item = details.get(`${row.kind}:${String(row.id)}`);
+    if (item) return { ...item, event_id: String(row.event_id || item.event_id || "") };
+    return {
+      id: String(row.id || ""), hint, event_id: String(row.event_id || ""),
+      direction: "", amount_minor: 0, currency: "CNY", merchant: "",
+      occurred_at_ms: 0, confidence: 0, evidence: [], evidence_count: 0,
+      recognition_reasons: [], status: "pending",
+    };
+  }).filter((item) => item.id);
 }
 
 function sourceLabel(evidence) {
@@ -189,7 +210,7 @@ export function createFinanceCandidatesController({
       ? `<div class="finance-candidate-message"><p>${escapeHtml(message)}</p></div>`
       : "";
     if (!candidates.length) {
-      list.innerHTML = banner || '<div class="finance-candidate-empty"><strong>暂无待确认通知</strong><p>Android 低置信交易会先出现在这里，确认后才进入账目与统计。</p></div>';
+      list.innerHTML = banner || '<div class="finance-candidate-empty"><strong>暂无待处理通知交易</strong><p>已完成核实和记账的交易会直接从待处理移除。</p></div>';
       return;
     }
     list.innerHTML = banner + candidates.map((candidate) => {
@@ -218,6 +239,7 @@ export function createFinanceCandidatesController({
         </div>
         <div class="finance-candidate-actions">
           <button type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${presentation.primaryAction}</button>
+          ${presentation.missing.length ? `<button class="button-ghost" type="button" data-finance-candidate-verify="${escapeHtml(id)}" ${busy ? "disabled" : ""}>核实交易</button>` : ""}
           <button class="button-ghost" type="button" data-finance-candidate-edit="${escapeHtml(id)}" ${busy ? "disabled" : ""}>编辑</button>
           <button class="danger-text" type="button" data-finance-candidate-reject="${escapeHtml(id)}" ${busy ? "disabled" : ""}>忽略</button>
           <small>忽略只关闭这条候选，不会撤销实际支付。</small>
@@ -314,6 +336,15 @@ export function createFinanceCandidatesController({
       list.innerHTML = '<div class="finance-candidate-message"><p>正在读取待确认通知…</p></div>';
     }
     try {
+      let summary = null;
+      try {
+        summary = await apiGet("/api/notification/pending-summary");
+      } catch (error) {
+        // Only an older API without the endpoint needs the compatibility list.
+        // A transient failure must not replace the canonical set with an
+        // independently observed hint/candidate union.
+        if (error?.status !== 404) throw error;
+      }
       const payload = await apiGet(`/api/notification/candidates?status=pending&limit=${CANDIDATE_PAGE_LIMIT}`);
       const candidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
       // Task 24.1 P0-3: the same list also shows the unified pending hints, so a
@@ -329,7 +360,7 @@ export function createFinanceCandidatesController({
       // A slow earlier refresh must never repaint over a newer list (for example
       // the row the user just confirmed).
       if (!listVersion.isCurrent(version)) return;
-      render([...hints, ...candidates]);
+      render(canonicalPendingCandidates(summary, hints, candidates));
       section.setAttribute("aria-busy", "false");
     } catch (error) {
       if (!listVersion.isCurrent(version)) return;
@@ -348,7 +379,7 @@ export function createFinanceCandidatesController({
   /** Pending hints mapped onto the candidate render shape (id stays the hint id). */
   async function loadPendingHints() {
     try {
-      const payload = await apiGet("/api/notification/hints?state=pending&limit=100");
+      const payload = await apiGet("/api/notification/hints?state=pending&limit=200");
       const rows = Array.isArray(payload?.hints) ? payload.hints : [];
       return rows.map((hint) => ({
         id: String(hint.id || ""),
@@ -412,8 +443,9 @@ export function createFinanceCandidatesController({
       trace.mark(INTERACTION_STAGES.RESPONSE, String(response?.transaction_id || ""));
       // The server accepted the decision, so the row leaves the pending list
       // immediately (optimistic terminal state). The follow-up refresh below
-      // reconciles with the server list; a stale refresh cannot undo this paint
-      // because loadCandidates() drops answers from an older version.
+      // reconciles with the server list. Invalidate any request that started
+      // before this decision; its response cannot restore the terminal row.
+      listVersion.begin();
       currentCandidates = currentCandidates.filter((item) => String(item.id) !== String(id));
       render(currentCandidates, confirm ? "已记账，正在同步…" : "已忽略。");
       trace.mark(INTERACTION_STAGES.STATE_APPLY, confirm ? "booked" : "ignored");
@@ -427,10 +459,11 @@ export function createFinanceCandidatesController({
       busyIds = new Set([...busyIds].filter((item) => item !== id));
       release();
       // Reconcile in the background: the user already sees the result, and the
-      // refresh itself is single-flighted so a burst of confirms fetches once.
+      // Force a new read after any pre-decision request settles. Joining that
+      // old request would leave the visible list stale until another refresh.
       if (succeeded) {
         trace.finish(confirm ? "booked" : "ignored");
-        void reload();
+        void reload({ force: true });
       }
       else reloadListState();
     }
@@ -466,6 +499,18 @@ export function createFinanceCandidatesController({
   }
 
   function handleClick(event) {
+    const verifyButton = event.target.closest("[data-finance-candidate-verify]");
+    if (verifyButton) {
+      const id = verifyButton.dataset.financeCandidateVerify;
+      const candidate = currentCandidates.find((item) => String(item.id) === String(id));
+      const eventId = String(candidate?.event_id || "");
+      if (!/thewyj-android\//.test(navigator.userAgent) || !eventId) {
+        render(currentCandidates, "请在收到这笔交易通知的 Android thewyj App 中打开财务页，再点击「核实交易」。");
+      } else {
+        window.location.href = `thewyj://payment/verify?event_id=${encodeURIComponent(eventId)}`;
+      }
+      return;
+    }
     const editButton = event.target.closest("[data-finance-candidate-edit]");
     if (editButton) {
       const id = editButton.dataset.financeCandidateEdit;
@@ -534,6 +579,10 @@ export function createFinanceCandidatesController({
       bound = true;
       element("financeCandidatesSection")?.addEventListener("click", handleClick);
       element("financeCandidatesSection")?.addEventListener("submit", handleSubmit);
+      document.addEventListener("thewyj:payment-updated", () => { void reload({ force: true }); });
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && hasAccess()) void reload({ force: true });
+      });
     }
     return reload();
   }

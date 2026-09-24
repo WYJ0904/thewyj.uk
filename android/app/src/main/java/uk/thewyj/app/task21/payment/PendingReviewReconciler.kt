@@ -36,7 +36,10 @@ object PendingReviewReconciler {
         val localOnly = (localIds - pendingIds - terminalIds).size
         val remoteOnly = (remoteSummary.totalCount - overlap).coerceAtLeast(0)
         return Snapshot(
-            total = overlap + localOnly + remoteOnly,
+            // The user-visible count is the server's canonical actionable set.
+            // Local-only rows remain in Room for offline recovery, but cannot
+            // inflate the normal notification/Finance pending count.
+            total = remoteSummary.totalCount,
             local = (localIds - terminalIds).size + unresolved,
             remote = remoteSummary.totalCount,
             overlap = overlap,
@@ -46,5 +49,22 @@ object PendingReviewReconciler {
             complete = !remoteSummary.truncated,
             unresolved = unresolved,
         )
+    }
+}
+
+/** Keeps unsent device work visible without adding it to the server pending set. */
+object PendingReviewVisibility {
+    enum class Placement { CANONICAL, RECOVERY, HIDDEN }
+
+    fun classify(
+        eventIds: Set<String>,
+        bookingEventId: String,
+        serverPendingIds: Set<String>?,
+        queuedOperationIds: Set<String>,
+    ): Placement = when {
+        serverPendingIds != null && eventIds.any(serverPendingIds::contains) -> Placement.CANONICAL
+        eventIds.any { it in queuedOperationIds || "hint:$it" in queuedOperationIds } ||
+            bookingEventId in queuedOperationIds -> Placement.RECOVERY
+        else -> Placement.HIDDEN
     }
 }

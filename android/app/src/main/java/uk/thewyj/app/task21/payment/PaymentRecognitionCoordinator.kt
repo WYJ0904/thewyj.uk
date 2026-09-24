@@ -322,6 +322,13 @@ class PaymentRecognitionCoordinator(
     /** Manual "核实交易金额" restart: a fresh 90 second ticket for the same event. */
     fun restartVerification(accountId: String, recognitionId: String): PaymentTicket? {
         val recognition = store.recognition(accountId, recognitionId) ?: return null
+        if (recognition.state in setOf(
+                PaymentRecognitionState.FINANCE_RECORDED.name,
+                PaymentRecognitionState.FINANCE_MANUALLY_CONFIRMED.name,
+                PaymentRecognitionState.FINANCE_CORRECTED.name,
+                PaymentRecognitionState.IGNORED.name,
+                PaymentRecognitionState.DUPLICATE_IGNORED.name,
+            )) return null
         val ticket = tickets.create(
             accountId = accountId,
             recognitionId = recognitionId,
@@ -329,7 +336,10 @@ class PaymentRecognitionCoordinator(
             sourceEventId = recognition.sourceEventId,
             paymentChannel = recognition.paymentChannel,
             amountHintMinor = recognition.amountMinor,
-            missingFields = setOf("amount"),
+            missingFields = buildSet {
+                if (recognition.amountMinor == null || recognition.amountMinor <= 0) add("amount")
+                if (recognition.direction.isBlank() || recognition.direction == FinanceDirection.UNKNOWN.name) add("direction")
+            },
         )
         store.saveTicket(ticket)
         PaymentTicketPackageSignal.publish(recognition.sourcePackage)

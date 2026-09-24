@@ -66,6 +66,7 @@ import uk.thewyj.app.task21.store.NotificationRevisionEntity
 import uk.thewyj.app.task21.store.NotificationRepository
 import uk.thewyj.app.task21.store.NotificationRuleEntity
 import uk.thewyj.app.task21.NotificationMediaPresentation
+import uk.thewyj.app.task21.payment.PaymentReviewSignals
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -96,9 +97,11 @@ fun NotificationHubScreen(
     val scope = rememberCoroutineScope()
     var tab by remember { mutableIntStateOf(0) }
     var notificationAccess by remember { mutableStateOf(PermissionCenter.notificationListenerGranted(context)) }
+    var pendingResumeEpoch by remember { mutableIntStateOf(0) }
 
     LifecycleResumeEffect(Unit) {
         notificationAccess = PermissionCenter.notificationListenerGranted(context)
+        pendingResumeEpoch += 1
         onPauseOrDispose { }
     }
 
@@ -109,8 +112,9 @@ fun NotificationHubScreen(
         state.refresh()
         state.refreshApps()
         state.refreshRules()
-        state.refreshPendingPayments()
     }
+    LaunchedEffect(pendingResumeEpoch) { state.refreshPendingPayments() }
+    LaunchedEffect(account.id) { PaymentReviewSignals.changes.collect { state.refreshPendingPayments() } }
 
     // One natural vertical page: pending card + tabs + search/filter + list all
     // scroll together instead of a fixed header over a small scrolling list.
@@ -163,20 +167,16 @@ fun NotificationHubScreen(
                     )
                     Text(
                         if (state.pendingSyncCurrent) {
-                            "本机 ${state.localPendingPayments} 笔，云端 ${state.remotePendingPayments} 笔；" +
-                                "其中两端一致 ${state.sharedPendingPayments} 笔，" +
-                                "仅本机 ${state.localOnlyPendingPayments} 笔，" +
-                                "仅云端 ${state.remoteOnlyPendingPayments} 笔。" +
-                                (if (state.unresolvedPendingPayments > 0) "另有 ${state.unresolvedPendingPayments} 条旧记录缺少关联标识，未加入总计。" else "")
+                            "与财务页使用同一组云端待处理交易；本机未同步记录单独保留，不加入待处理总数。"
                         } else {
-                            "云端状态暂时未完成核对；当前先显示本机 ${state.localPendingPayments} 笔，不把旧缓存当作已同步结果。"
+                            "云端状态暂时未完成核对；本机未同步记录仍保留，暂不显示未经核实的待处理总数。"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = onOpenPaymentVerification) { Text("去处理") }
-                        TextButton(onClick = onOpenFinance) { Text("查看财务") }
+                        Button(onClick = onOpenFinance) { Text("去处理") }
+                        TextButton(onClick = onOpenPaymentVerification) { Text("本机核实") }
                     }
                 }
             }

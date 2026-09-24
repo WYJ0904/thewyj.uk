@@ -41,6 +41,7 @@ import uk.thewyj.app.core.design.ThewyjSpacing
 import uk.thewyj.app.core.design.statusContainerColor
 import uk.thewyj.app.core.design.statusContentColor
 import uk.thewyj.app.task21.payment.PaymentVerificationCenter
+import uk.thewyj.app.task21.payment.PaymentReviewSignals
 
 /**
  * In-app "待核实 / 待确认交易" surface.
@@ -65,6 +66,7 @@ fun PaymentVerificationScreen(
         onPauseOrDispose { }
     }
     LaunchedEffect(resumeEpoch) { state.refresh() }
+    LaunchedEffect(state.accountId) { PaymentReviewSignals.changes.collect { state.refresh() } }
     // #4: bounded catch-up for records the server still owns (Web confirm → this
     // screen). It restarts when the set of pending records changes and stops by
     // itself after PendingReconciliationPolicy.windowMs.
@@ -93,7 +95,7 @@ fun PaymentVerificationScreen(
                 Text("待核实 / 待确认交易", style = MaterialTheme.typography.titleLarge)
             }
             Text(
-                "识别到的支付会先到这里。金额不足时可在 90 秒内打开来源应用自动核实，也可以直接填写金额后记账。",
+                "缺金额或方向时，可在 90 秒内打开来源应用核实；金额和方向完整后会自动记账。",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -124,10 +126,10 @@ fun PaymentVerificationScreen(
             }
             if (state.loading && state.items.isEmpty()) {
                 Text("正在读取待确认交易…", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else if (state.items.isEmpty()) {
+            } else if (state.items.none { !it.recoveryOnly }) {
                 ThewyjCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(ThewyjSpacing.Lg), verticalArrangement = Arrangement.spacedBy(ThewyjSpacing.Xs)) {
-                        Text("没有待确认的交易", fontWeight = FontWeight.SemiBold)
+                        Text("云端暂无待处理交易", fontWeight = FontWeight.SemiBold)
                         Text(
                             "识别到的支付确认后会直接写入财务账本；这里为空说明没有遗漏。",
                             style = MaterialTheme.typography.bodySmall,
@@ -136,7 +138,14 @@ fun PaymentVerificationScreen(
                     }
                 }
             }
-            state.items.forEach { item ->
+            state.items.forEachIndexed { index, item ->
+                if (item.recoveryOnly && (index == 0 || !state.items[index - 1].recoveryOnly)) {
+                    Text(
+                        "本机未同步记录（不计入通知和财务待处理总数）",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
                 ThewyjCard(Modifier.fillMaxWidth()) {
                     Column(
                         Modifier.padding(ThewyjSpacing.Lg),
@@ -220,9 +229,9 @@ fun PaymentVerificationScreen(
                                         text = { Text("核对金额并确认") },
                                         onClick = { state.beginEdit(item) },
                                     )
-                                } else if (item.needsAmount) {
+                                } else if (item.needsVerification) {
                                     ThewyjPrimaryButton(
-                                        text = { Text(if (item.ticketActive) "重新核实" else "核实交易金额") },
+                                        text = { Text(if (item.ticketActive) "重新核实" else "核实交易") },
                                         onClick = { scope.launch { state.startVerification(item) } },
                                     )
                                 } else if (item.deviceBooks) {
@@ -280,6 +289,7 @@ private fun stateLabel(item: PaymentVerificationCenter.Item): String = when {
     item.syncState == PaymentVerificationCenter.SyncState.SYNCED -> "已记录到财务"
     item.syncState == PaymentVerificationCenter.SyncState.UNRESOLVED_REMOTE -> "云端关联待核对"
     item.ocrSuggested -> "OCR 建议金额待核对"
+    item.direction == uk.thewyj.app.task21.FinanceDirection.UNKNOWN && !item.needsAmount -> "方向待核实"
     item.syncState == PaymentVerificationCenter.SyncState.LOCAL_ONLY -> "仅本机待核对"
     item.authority == PaymentVerificationCenter.Authority.SERVER -> "等待在财务中确认"
     item.state == "ENRICHMENT_EXPIRED" -> "金额待核实"

@@ -240,8 +240,6 @@ async function candidateForEvent(db, account, event, now) {
   const existing = await first(db, `SELECT * FROM task21_notification_candidates
     WHERE user_id = ?1 AND event_id = ?2`, [account.id, event.event_id]);
   if (existing) return { id: existing.id, duplicate: true };
-  const reconciled = await reconcileEvidenceCandidate(db, account, event, now);
-  if (reconciled) return { id: reconciled, duplicate: false, reconciled: true };
   const id = `cand:${crypto.randomUUID()}`;
   await run(db, `INSERT INTO task21_notification_candidates (
     id, user_id, event_id, direction, amount_minor, currency, merchant, counterparty,
@@ -253,48 +251,6 @@ async function candidateForEvent(db, account, event, now) {
   ]);
   await linkEvidence(db, account, event, id, false, "pending", now);
   return { id, duplicate: false };
-}
-
-/**
- * Multi-source evidence reconciliation. A second source describing the same
- * payment (same amount, direction and channel inside a three minute window)
- * links to the existing candidate instead of creating a duplicate one.
- * Amount alone is never enough: direction and the time window must match too.
- */
-async function reconcileEvidenceCandidate(db, account, event, now) {
-  const amount = Number(event.amount_minor || 0);
-  if (!(amount > 0)) return "";
-  const occurred = Number(event.occurred_at_ms || event.received_at_ms || 0);
-  if (!(occurred > 0)) return "";
-  const direction = String(event.direction || "").toLowerCase();
-  if (!["income", "expense", "refund"].includes(direction)) return "";
-  const windowMs = 3 * 60 * 1000;
-  const row = await first(db, `SELECT * FROM task21_notification_candidates
-    WHERE user_id = ?1 AND status IN ('pending', 'confirmed')
-      AND amount_minor = ?2 AND direction = ?3
-      AND occurred_at_ms BETWEEN ?4 AND ?5
-    ORDER BY ABS(occurred_at_ms - ?6) ASC LIMIT 1`, [
-    account.id, amount, direction, occurred - windowMs, occurred + windowMs, occurred,
-  ]);
-  if (!row) return "";
-  const alreadyLinked = await first(db, `SELECT id FROM task21_notification_evidence
-    WHERE user_id = ?1 AND event_id = ?2`, [account.id, event.event_id]);
-  if (alreadyLinked) return row.id;
-  // Only cross-source evidence may merge. Two events from the same source with
-  // the same amount and time can be two real payments (for example two ¥28
-  // payments inside three minutes), so they must stay separate candidates.
-  const sameSource = await first(db, `SELECT id FROM task21_notification_evidence
-    WHERE user_id = ?1 AND candidate_id = ?2 AND source_type = ?3 AND source_package = ?4
-    LIMIT 1`, [
-    account.id, row.id,
-    String(event.source_type || "notification"), String(event.source_package || ""),
-  ]);
-  if (sameSource) return "";
-  await linkEvidence(db, account, event, row.id, false, "merged", now);
-  await run(db, `UPDATE task21_notification_candidates
-    SET evidence_count = evidence_count + 1, updated_at = ?2
-    WHERE user_id = ?1 AND id = ?3`, [account.id, now, row.id]);
-  return row.id;
 }
 
 async function linkEvidence(db, account, event, candidateId, primary, reconciliationState, now, transactionId = "") {
@@ -369,6 +325,11 @@ function eventFromStoredRow(row) {
 }
 
 async function attachEventOutcome(db, account, event, deviceId, now) {
+  const ignoredHint = await first(db, `SELECT id FROM task21_notification_pending_hints
+    WHERE user_id = ?1 AND source_event_id = ?2 AND state = 'ignored'`, [
+    account.id, event.event_id,
+  ]);
+  if (ignoredHint) return { transactionId: "", candidateId: "" };
   const isTransactionLike = event.event_type === "transaction" || event.event_type === "refund";
   const autoIngest = isTransactionLike && event.parse_status === "parsed"
     && event.confidence >= AUTO_INGEST_CONFIDENCE_MILLI;
@@ -634,6 +595,11 @@ export async function confirmNotificationCandidate(db, account, input) {
       WHERE user_id = ?1 AND candidate_id = ?2`).bind(account.id, candidateId, finance.transaction_id, now),
     db.prepare(`UPDATE task21_notification_events SET finance_transaction_id = ?2, updated_at = ?3
       WHERE user_id = ?1 AND candidate_id = ?4`).bind(account.id, finance.transaction_id, now, candidateId),
+    db.prepare(`UPDATE task21_notification_pending_hints
+      SET state = 'confirmed', finance_entry_id = ?3, confirmed_at = ?4, updated_at = ?4
+      WHERE user_id = ?1 AND source_event_id = ?2 AND state = 'pending'`).bind(
+      account.id, row.event_id, finance.transaction_id, now,
+    ),
   ]);
   const updated = await candidateById(db, account, candidateId);
   return {
@@ -692,6 +658,11 @@ export async function rejectNotificationCandidate(db, account, input) {
   const now = isoNow();
   await run(db, `UPDATE task21_notification_candidates SET status = 'rejected',
     updated_at = ?2 WHERE user_id = ?1 AND id = ?3`, [account.id, now, candidateId]);
+  await run(db, `UPDATE task21_notification_pending_hints
+    SET state = 'ignored', ignored_at = ?3, updated_at = ?3
+    WHERE user_id = ?1 AND source_event_id = ?2 AND state = 'pending'`, [
+    account.id, row.event_id, now,
+  ]);
   const updated = await candidateById(db, account, candidateId);
   return { candidate: publicNotificationCandidate(updated) };
 }

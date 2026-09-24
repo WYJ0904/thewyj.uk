@@ -257,6 +257,10 @@ class PaymentRecognitionCoordinatorTest {
         assertNotNull(coordinator.restartVerification("account-a", outcome.recognitionId))
         assertTrue(PaymentTicketPackageSignal.recentlySignalled("cmb.pb"))
         PaymentTicketPackageSignal.clear()
+        val recorded = store.recognition("account-a", outcome.recognitionId)!!
+        store.saveRecognition(recorded.copy(state = PaymentRecognitionState.FINANCE_RECORDED.name))
+        assertNull(coordinator.restartVerification("account-a", outcome.recognitionId))
+        assertFalse(PaymentTicketPackageSignal.recentlySignalled("cmb.pb"))
     }
 
     private class FakeStore : PaymentRecognitionStoreContract {
