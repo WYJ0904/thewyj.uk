@@ -178,7 +178,11 @@ async function main() {
     }
     if (message.method === "Log.entryAdded" && ["error", "warning"].includes(message.params?.entry?.level)) {
       const value = message.params.entry.text || "browser log error";
-      const expectedCancellation = /^Failed to load resource: net::ERR_(?:ABORTED|CONNECTION_ABORTED)$/.test(value);
+      // The matrix deliberately toggles CDP offline mode. Chromium can report
+      // the cancelled local request as INTERNET_DISCONNECTED, ABORTED or
+      // CONNECTION_ABORTED depending on timing; the surrounding flow still
+      // asserts session preservation and successful reconnect.
+      const expectedCancellation = /^Failed to load resource: net::ERR_(?:ABORTED|CONNECTION_ABORTED|INTERNET_DISCONNECTED)$/.test(value);
       if (!expectedCancellation && !/^Failed to load resource: the server responded with a status of \d+/.test(value)) {
         runtimeErrors.push(value);
       }
