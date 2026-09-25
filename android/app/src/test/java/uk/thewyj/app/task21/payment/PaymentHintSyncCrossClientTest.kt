@@ -598,6 +598,14 @@ class PaymentHintSyncCrossClientTest {
         assertEquals("PAYMENT_LIKELY", hint.getString("recognition_status"))
     }
 
+    @Test fun firstSuccessfulSummaryRetainsCanonicalPendingRecordsForFallback() {
+        val result = syncWithExactSummary("evt-summary-pending", "pending", "")
+        assertTrue(result.completeObservation)
+        assertEquals(1, result.pendingCount)
+        assertEquals(listOf("candidate:cloud-evt-summary-pending"),
+            result.pendingRecords.map { "${it.kind}:${it.id}" })
+    }
+
     @Test fun failedPartialPostKeepsOneCentForLaterRetry() {
         val accountId = account
         paymentStore.saveRecognition(PaymentRecognitionRecord(

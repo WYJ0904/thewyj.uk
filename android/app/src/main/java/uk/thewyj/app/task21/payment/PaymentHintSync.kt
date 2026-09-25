@@ -56,6 +56,7 @@ class PaymentHintSync(
         val complete: Boolean = false,
         val pendingEventIds: Set<String> = emptySet(),
         val pendingCount: Int = 0,
+        val pendingRecords: List<PendingReviewIdentity> = emptyList(),
     )
     data class RemoteDismissResult(
         val ok: Boolean,
@@ -358,6 +359,7 @@ class PaymentHintSync(
         return Result(
             hints.length(), confirmed, ignored, candidatesOk,
             observation.states, observation.complete, observation.pendingEventIds, observation.pendingCount,
+            observation.pendingRecords,
         )
     }
 
@@ -386,6 +388,7 @@ class PaymentHintSync(
         val records = payload.optJSONArray("records") ?: return Observation()
         val states = mutableMapOf<String, String>()
         val pendingIds = mutableSetOf<String>()
+        val pendingRecords = mutableListOf<PendingReviewIdentity>()
         for (index in 0 until records.length()) {
             val row = records.optJSONObject(index) ?: continue
             val eventIds = buildSet {
@@ -397,6 +400,15 @@ class PaymentHintSync(
             eventIds.forEach { states[it] = state }
             if (state == "pending") {
                 pendingIds.addAll(eventIds)
+                val eventId = row.optString("event_id")
+                val id = row.optString("id")
+                if (eventId.isNotBlank() && id.isNotBlank()) {
+                    pendingRecords += PendingReviewIdentity(
+                        kind = row.optString("kind"), id = id, eventId = eventId,
+                        deviceId = row.optString("device_id"), state = state,
+                        eventIds = eventIds,
+                    )
+                }
                 continue
             }
             when (row.optString("kind")) {
@@ -435,6 +447,7 @@ class PaymentHintSync(
             complete = !payload.optBoolean("truncated", false) && allRequested.size <= 200,
             pendingEventIds = pendingIds,
             pendingCount = payload.optInt("total_count", pendingIds.size),
+            pendingRecords = pendingRecords,
         )
     }
 
