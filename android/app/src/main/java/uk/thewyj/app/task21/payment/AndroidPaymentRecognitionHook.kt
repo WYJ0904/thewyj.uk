@@ -203,7 +203,13 @@ class AndroidPaymentRecognitionHook private constructor(
         // the recognition itself must still leave ATTENTION_STATES immediately.
         val recognition = runCatching {
             store.recognitionByUploadEvent(accountId, eventId)
-        }.getOrNull() ?: return
+                ?: sink.recognitionSourceEventIds(accountId, eventId)
+                    .firstNotNullOfOrNull { store.recognitionBySourceEvent(accountId, it) }
+        }.getOrNull()
+        if (recognition == null) {
+            PaymentReviewSignals.publish()
+            return
+        }
         val candidate = runCatching {
             store.candidateForRecognition(accountId, recognition.recognitionId)
         }.getOrNull()

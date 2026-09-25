@@ -85,6 +85,49 @@ function ingestBody(deviceId, operationId, event) {
   return { schema_version: "1", device_id: deviceId, operations: [{ operation_id: operationId, type: "event.ingest", payload: event }] };
 }
 
+// Existing complete candidates were created by the old confidence gate. Keep
+// their confirm/reject/delete coverage without asking the new ingest path to
+// create another complete pending item.
+async function legacyCandidateIngest(db, _route, options) {
+  const event = options.body.operations[0].payload;
+  const userId = options.userId || Object.values(USERS).find((user) => user.token === options.token)?.id;
+  assert.ok(userId);
+  const existing = await db.prepare("SELECT id FROM task21_notification_candidates WHERE user_id = ?1 AND event_id = ?2")
+    .bind(userId, event.event_id).first();
+  const candidateId = existing?.id || `cand:${crypto.randomUUID()}`;
+  if (!existing) {
+    const now = new Date().toISOString();
+    await db.prepare(`INSERT INTO task21_notification_events (
+      event_id, user_id, device_id, fingerprint, source_package, source_type, event_type,
+      parser_version, parse_status, direction, amount_minor, currency, payment_channel,
+      merchant, counterparty, confidence, occurred_at_ms, received_at_ms, candidate_id,
+      finance_transaction_id, status, created_at, updated_at, deleted_at
+    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'candidate', ?9, ?10, ?11, ?12,
+      ?13, ?14, ?15, ?16, ?17, ?18, '', 'active', ?19, ?19, '')`)
+      .bind(event.event_id, userId, options.body.device_id, event.fingerprint,
+        event.source_package, event.source_type, event.event_type, event.parser_version,
+        event.direction, event.amount_minor, event.currency, event.payment_channel,
+        event.merchant, event.counterparty, event.confidence, event.occurred_at_ms,
+        event.received_at_ms, candidateId, now).run();
+    await db.prepare(`INSERT INTO task21_notification_candidates (
+      id, user_id, event_id, direction, amount_minor, currency, merchant, counterparty,
+      payment_channel, occurred_at_ms, confidence, status, finance_transaction_id, created_at, updated_at
+    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'pending', '', ?12, ?12)`)
+      .bind(candidateId, userId, event.event_id, event.direction, event.amount_minor,
+        event.currency, event.merchant, event.counterparty, event.payment_channel,
+        event.occurred_at_ms, event.confidence, now).run();
+    await db.prepare(`INSERT INTO task21_notification_evidence (
+      id, user_id, event_id, candidate_id, finance_transaction_id, source_type, source_package,
+      parser_version, amount_minor, direction, provider_reference, occurred_at_ms, is_primary,
+      reconciliation_state, created_at, updated_at
+    ) VALUES (?1, ?2, ?3, ?4, '', ?5, ?6, ?7, ?8, ?9, '', ?10, 0, 'pending', ?11, ?11)`)
+      .bind(`evd:${crypto.randomUUID()}`, userId, event.event_id, candidateId,
+        event.source_type, event.source_package, event.parser_version, event.amount_minor,
+        event.direction, event.occurred_at_ms, now).run();
+  }
+  return { response: { status: 200 }, payload: { operation_results: [{ candidate_id: candidateId }] } };
+}
+
 function pendingHintBody(sourceEventId) {
   return { device_id: "device-task21-000001", hints: [{
     source_event_id: sourceEventId, source_type: "notification",
@@ -361,8 +404,32 @@ try {
   assert.equal(replaySameEvent.response.status, 200);
   assert.equal(replaySameEvent.payload.operation_results[0].duplicate, true);
 
-  // 8. Low-confidence structured event becomes a review candidate, not finance.
-  const low = await request(db, "/api/notification/ingest", {
+  // 8. Complete low-confidence evidence books immediately and exactly once.
+  const lowAuto = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-low-auto", transactionEvent({
+      event_id: "evt-task21-low-auto", fingerprint: fingerprint("bb23"),
+      parse_status: "candidate", confidence: 800, merchant: "", counterparty: "",
+    })),
+  });
+  assert.equal(lowAuto.response.status, 200, JSON.stringify(lowAuto.payload));
+  assert.match(lowAuto.payload.operation_results[0].transaction_id, /^txn:/);
+  assert.equal(lowAuto.payload.operation_results[0].candidate_id, "");
+  const lowAutoReplay = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-low-auto-replay", transactionEvent({
+      event_id: "evt-task21-low-auto", fingerprint: fingerprint("bb23"),
+      parse_status: "candidate", confidence: 800, merchant: "", counterparty: "",
+    })),
+  });
+  assert.equal(lowAutoReplay.payload.operation_results[0].transaction_id,
+    lowAuto.payload.operation_results[0].transaction_id);
+  const lowAutoTransactions = await db.prepare(`SELECT COUNT(*) AS count FROM task16_finance_raw_events
+    WHERE user_id = ?1 AND source_event_id = ?2`).bind(USERS.subscriber.id, "evt-task21-low-auto").first();
+  assert.equal(Number(lowAutoTransactions.count), 1);
+
+  // A candidate created by the previous release must remain confirmable.
+  const low = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-low-1", {
@@ -378,7 +445,7 @@ try {
   const candidate = await db.prepare(
     "SELECT * FROM task21_notification_candidates WHERE user_id = ?1 AND status = 'pending'",
   ).bind(USERS.subscriber.id).first();
-  assert.ok(candidate, "low-confidence event must create a candidate");
+  assert.ok(candidate, "legacy candidate remains confirmable");
 
   const confirmSideHint = await request(db, "/api/notification/hints", {
     method: "POST", token: USERS.subscriber.token,
@@ -438,7 +505,7 @@ try {
   assert.equal(reject.response.status, 409);
   assert.equal(reject.payload.code, "candidate_status_invalid");
 
-  const rejectPending = await request(db, "/api/notification/ingest", {
+  const rejectPending = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-low-2", {
@@ -492,7 +559,7 @@ try {
   ).bind(USERS.subscriber.id).first();
   assert.equal(Number(rejectedTxn.count), 0, "rejected candidate must never create a finance transaction");
 
-  const deletePending = await request(db, "/api/notification/ingest", {
+  const deletePending = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-delete-pending", {
@@ -547,7 +614,7 @@ try {
 
   // 9c. An amount-known hint ("转账 50") is a real pending candidate; the user
   // confirms it (with an edit) and it lands in the real finance ledger.
-  const amountHint = await request(db, "/api/notification/ingest", {
+  const amountHint = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-amount-hint", {
@@ -691,9 +758,10 @@ try {
   await insertUser(db, lapsedUser, lapsedUser.token);
   await grantMembership(db, lapsedUser.id, "notification_archive_access");
   await grantMembership(db, lapsedUser.id, "finance_monthly");
-  const lapsedIngest = await request(db, "/api/notification/ingest", {
+  const lapsedIngest = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: lapsedUser.token,
+    userId: lapsedUser.id,
     body: ingestBody("device-task21-000002", "op-lapsed-1", {
       ...transactionEvent(),
       event_id: "evt-task21-00000007",
@@ -735,7 +803,7 @@ try {
   assert.equal(rejectedConfirm.payload.code, "candidate_status_invalid");
 
   // 16. Two clients confirming concurrently produce exactly one finance transaction.
-  const concurrent = await request(db, "/api/notification/ingest", {
+  const concurrent = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-concurrent-1", {
@@ -798,7 +866,7 @@ try {
   // 18. Two sources can report different real payments of the same amount
   // within seconds. Without an exact shared event identity, they must remain
   // separate candidates; amount, direction and time are insufficient proof.
-  const multiPrimary = await request(db, "/api/notification/ingest", {
+  const multiPrimary = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-multi-primary", {
@@ -816,7 +884,7 @@ try {
   const multiCandidateId = multiPrimary.payload.operation_results[0].candidate_id;
   assert.match(multiCandidateId, /^cand:/);
 
-  const multiEvidence = await request(db, "/api/notification/ingest", {
+  const multiEvidence = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-multi-evidence", {
@@ -852,7 +920,7 @@ try {
   assert.equal(Number(multiCandidate.evidence_count), 1);
   assert.equal(Number(multiCandidate.amount_minor), 3360);
 
-  const multiEvidenceReplay = await request(db, "/api/notification/ingest", {
+  const multiEvidenceReplay = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-multi-evidence-replay", {
@@ -890,7 +958,7 @@ try {
     "Android ignore closes the exact Finance candidate immediately");
 
   // 18b. A different amount in the same window stays a separate candidate.
-  const differentAmount = await request(db, "/api/notification/ingest", {
+  const differentAmount = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-multi-different", {
@@ -909,7 +977,7 @@ try {
 
   // 18c. The same source with the same amount inside the window may be two real
   // payments, so it must stay a separate candidate.
-  const sameSourceAgain = await request(db, "/api/notification/ingest", {
+  const sameSourceAgain = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-multi-same-source", {
@@ -931,7 +999,7 @@ try {
   );
 
   // 19. Edit before confirm: the user's values win, machine evidence is kept.
-  const editable = await request(db, "/api/notification/ingest", {
+  const editable = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-edit-before-confirm", {
@@ -1177,6 +1245,40 @@ try {
   assert.equal(raceHintRow.finance_entry_id, raceTxnId);
   assert.equal(Number(raceHintRow.amount_minor), 450, "the hint must mirror the booked amount");
   assert.equal(raceHintRow.direction, "expense", "the hint must mirror the booked direction");
+
+  // Refresh repairs a complete candidate left by the former confidence gate.
+  const legacyEventId = "evt-task21-legacy-complete";
+  const legacy = await legacyCandidateIngest(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-legacy-complete", transactionEvent({
+      event_id: legacyEventId, fingerprint: fingerprint("f473"),
+      parse_status: "candidate", confidence: 640, amount_minor: 431,
+      merchant: "", counterparty: "",
+    })),
+  });
+  const legacyHint = await request(db, "/api/notification/hints", {
+    method: "POST", token: USERS.subscriber.token, body: pendingHintBody(legacyEventId),
+  });
+  assert.equal(legacyHint.response.status, 200);
+  const settledSummary = await request(db, "/api/notification/pending-summary", {
+    token: USERS.subscriber.token,
+  });
+  assert.equal(settledSummary.response.status, 200, JSON.stringify(settledSummary.payload));
+  assert.ok(!settledSummary.payload.records.some((row) => row.id === legacy.payload.operation_results[0].candidate_id && row.state === "pending"));
+  const legacySettled = await db.prepare("SELECT status, finance_transaction_id FROM task21_notification_candidates WHERE id = ?1")
+    .bind(legacy.payload.operation_results[0].candidate_id).first();
+  assert.equal(legacySettled.status, "confirmed");
+  assert.match(legacySettled.finance_transaction_id, /^txn:/);
+  const legacyCount = await db.prepare(`SELECT COUNT(*) AS count FROM task16_finance_raw_events
+    WHERE user_id = ?1 AND source_event_id = ?2`).bind(USERS.subscriber.id, legacyEventId).first();
+  assert.equal(Number(legacyCount.count), 1);
+  const legacyHintRow = await db.prepare("SELECT state FROM task21_notification_pending_hints WHERE source_event_id = ?1")
+    .bind(legacyEventId).first();
+  assert.equal(legacyHintRow.state, "confirmed");
+  await request(db, "/api/notification/pending-summary", { token: USERS.subscriber.token });
+  const legacyReplayCount = await db.prepare(`SELECT COUNT(*) AS count FROM task16_finance_raw_events
+    WHERE user_id = ?1 AND source_event_id = ?2`).bind(USERS.subscriber.id, legacyEventId).first();
+  assert.equal(Number(legacyReplayCount.count), 1);
 
   console.log("Task 21 notification checks passed (privacy boundary, entitlement lifecycle, idempotent ingest, dedupe, finance integration, candidate state machine, feature flags, device-booking hint convergence).");
 } finally {

@@ -125,10 +125,9 @@ class NotificationCaptureCoordinator(
         }
 
         // Payment apps are classified by the payment parser (one source of
-        // truth). Everything else keeps the notification parser. A confirmed
-        // payment therefore reaches the backend with confidence >= 900 and is
-        // written to the real finance ledger instead of "recognised but never
-        // recorded"; anything weaker becomes a reviewable candidate.
+        // truth). Everything else keeps the notification parser. Complete
+        // amount and direction use one event id for automatic ledger booking;
+        // confidence remains diagnostic evidence.
         val payment = if (current.financeEntitled) paymentHook?.outcomeFor(input) else null
         // Android apps may update one StatusBarNotification in place while also
         // changing postTime. Payment identity follows the notification slot
@@ -141,7 +140,7 @@ class NotificationCaptureCoordinator(
         val paymentInput = if (payment != null) input.copy(paymentEventId = eventId) else input
         val structured = if (payment != null) {
             val refund = payment.direction == FinanceDirection.REFUND
-            val parsedPayment = payment.confirmed && payment.amountMinor > 0 &&
+            val parsedPayment = payment.amountMinor > 0 &&
                 payment.direction != FinanceDirection.UNKNOWN
             StructuredNotificationEvent(
                 eventId = eventId,
@@ -156,11 +155,7 @@ class NotificationCaptureCoordinator(
                 paymentChannel = payment.paymentChannel,
                 merchant = payment.merchant,
                 counterparty = payment.counterparty,
-                confidence = if (parsedPayment) {
-                    payment.confidence.coerceAtLeast(900)
-                } else {
-                    payment.confidence.coerceIn(0, 899)
-                },
+                confidence = payment.confidence.coerceIn(0, 1000),
                 occurredAtMs = input.receivedAtMs,
                 receivedAtMs = input.receivedAtMs,
             )
@@ -240,7 +235,7 @@ class NotificationCaptureCoordinator(
                 "eventId=$eventId pkg=${input.sourcePackage} channel=${input.channelId.ifBlank { "-" }} " +
                     "source=${input.sourceType} amountKnown=${payment.amountMinor > 0} direction=${payment.direction} " +
                     "merchantKnown=${payment.merchant.isNotBlank() || payment.counterparty.isNotBlank()} " +
-                    "status=${if (payment.confirmed) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY"} " +
+                    "status=${if (structured.parseStatus == ParseStatus.PARSED) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY"} " +
                     "confidence=${structured.confidence}",
             )
             // Only a payment with a *complete* money shape may leave the device:

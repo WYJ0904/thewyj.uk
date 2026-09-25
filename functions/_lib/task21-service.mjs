@@ -1,7 +1,6 @@
 import { sha256Hex } from "./cloudflare-foundation.mjs";
 import { publicTransaction } from "./task16-model.mjs";
 import {
-  AUTO_INGEST_CONFIDENCE_MILLI,
   MAX_EVENT_PAGE,
   MAX_INGEST_OPERATIONS,
   NOTIFICATION_ENTITLEMENT,
@@ -331,8 +330,9 @@ async function attachEventOutcome(db, account, event, deviceId, now) {
   ]);
   if (ignoredHint) return { transactionId: "", candidateId: "" };
   const isTransactionLike = event.event_type === "transaction" || event.event_type === "refund";
-  const autoIngest = isTransactionLike && event.parse_status === "parsed"
-    && event.confidence >= AUTO_INGEST_CONFIDENCE_MILLI;
+  // Confidence describes evidence; complete money fields decide booking.
+  const autoIngest = isTransactionLike && Number(event.amount_minor) > 0
+    && ["income", "expense", "refund"].includes(String(event.direction));
   const makeCandidate = isTransactionLike && !autoIngest && event.parse_status !== "unparsed";
   let transactionId = "";
   let candidateId = "";
@@ -607,6 +607,27 @@ export async function confirmNotificationCandidate(db, account, input) {
     transaction_id: finance.transaction_id,
     edited_fields: editedFields,
   };
+}
+
+/** Retire complete candidates left by the former confidence gate. */
+export async function reconcileLegacyCompleteCandidates(db, account) {
+  requireFinanceRecognitionAccess(account);
+  const rows = await all(db, `SELECT c.id, e.device_id FROM task21_notification_candidates c
+    JOIN task21_notification_events e ON e.user_id = c.user_id AND e.event_id = c.event_id
+    LEFT JOIN task21_notification_pending_hints h
+      ON h.user_id = c.user_id AND h.source_event_id = c.event_id
+    WHERE c.user_id = ?1 AND c.status = 'pending' AND e.status = 'active'
+      AND c.amount_minor > 0 AND c.direction IN ('income', 'expense', 'refund')
+      AND COALESCE(h.state, '') != 'ignored'
+    ORDER BY c.created_at, c.id LIMIT 1000`, [account.id]);
+  for (const row of rows) {
+    // confirmNotificationCandidate uses the source event's unique finance raw
+    // identity and closes its candidate, evidence, event and hint together.
+    await confirmNotificationCandidate(db, account, {
+      candidate_id: row.id, device_id: row.device_id,
+    });
+  }
+  return rows.length;
 }
 
 /**

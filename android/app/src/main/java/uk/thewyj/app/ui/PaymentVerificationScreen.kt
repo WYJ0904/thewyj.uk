@@ -69,11 +69,11 @@ fun PaymentVerificationScreen(
         state.refresh()
         state.reconcile()
     }
-    LaunchedEffect(state.accountId) { PaymentReviewSignals.changes.collect { state.refresh() } }
+    LaunchedEffect(state.accountId) { PaymentReviewSignals.changes.collect { state.refresh(); state.reconcile() } }
     // #4: bounded catch-up for records the server still owns (Web confirm → this
     // screen). It restarts when the set of pending records changes and stops by
     // itself after PendingReconciliationPolicy.windowMs.
-    val pendingKey = state.items.joinToString("|") { "${it.recognitionId}:${it.syncState}" }
+    val pendingKey = state.items.joinToString("|") { "${it.canonicalIdentity.ifBlank { it.recognitionId }}:${it.syncState}" }
     LaunchedEffect(pendingKey) { state.catchUpReconciliation() }
     // Countdown display only; no background polling of Room or the network.
     LaunchedEffect(tick, state.items.size) {
@@ -195,7 +195,14 @@ fun PaymentVerificationScreen(
                         syncLine(item)?.let { line ->
                             Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        if (state.editingRecognitionId == item.recognitionId) {
+                        if (item.remoteOnly) {
+                            Text(
+                                "这笔云端待核实交易在本机没有对应识别记录，请在财务页处理。",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            ThewyjPrimaryButton(text = { Text("在财务中处理") }, onClick = onOpenFinance)
+                        } else if (state.editingRecognitionId == item.recognitionId) {
                             OutlinedTextField(
                                 value = state.amountText,
                                 onValueChange = { state.amountText = it.take(12) },
@@ -322,7 +329,7 @@ private fun sourceLine(item: PaymentVerificationCenter.Item): String {
     return "$time · $merchant$edited"
 }
 
-private fun syncLine(item: PaymentVerificationCenter.Item): String? = when (item.syncState) {
+private fun syncLine(item: PaymentVerificationCenter.Item): String? = if (item.remoteOnly) null else when (item.syncState) {
     PaymentVerificationCenter.SyncState.SYNCED ->
         if (item.financeTransactionId.isNotBlank()) "财务流水号 ${item.financeTransactionId.take(18)}…" else "已记录到财务"
     PaymentVerificationCenter.SyncState.PENDING_SYNC -> "已保存在本机，等待同步到云端账本"

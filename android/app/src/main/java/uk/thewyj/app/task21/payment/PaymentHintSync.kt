@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import uk.thewyj.app.BuildConfig
 import uk.thewyj.app.core.network.PendingReviewSummary
+import uk.thewyj.app.core.network.PendingReviewIdentity
 import uk.thewyj.app.task21.HttpNotificationIngestTransport
 import uk.thewyj.app.task21.NotificationCaptureCoordinator
 import uk.thewyj.app.task21.NotificationSessionProvider
@@ -48,6 +49,7 @@ class PaymentHintSync(
         val completeObservation: Boolean = false,
         val pendingEventIds: Set<String> = emptySet(),
         val pendingCount: Int = 0,
+        val pendingRecords: List<PendingReviewIdentity> = emptyList(),
     )
     private data class Observation(
         val states: Map<String, String> = emptyMap(),
@@ -111,6 +113,7 @@ class PaymentHintSync(
             completeObservation = !summary.truncated,
             pendingEventIds = pendingIds,
             pendingCount = summary.totalCount,
+            pendingRecords = summary.records.filter { it.state == "pending" },
         )
     }
 

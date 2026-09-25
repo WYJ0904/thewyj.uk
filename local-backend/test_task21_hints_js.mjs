@@ -181,51 +181,17 @@ try {
   assert.equal(directionUnknown.payload.hints[0].amount_minor, 2800);
   assert.equal(directionUnknown.payload.hints[0].direction, null);
 
-  // 3b. The account-scoped summary observes hints and complete candidates in
-  // one response. This is the native banner's source of truth; it must not
-  // report only candidates while /finance also renders hints.
-  const candidateEventId = "evt-hints-complete-candidate";
-  const candidateIngest = await request(db, "/api/notification/ingest", {
-    method: "POST",
-    token: USER.token,
-    body: {
-      schema_version: "1",
-      device_id: "device-hints-000001",
-      operations: [{
-        operation_id: candidateEventId,
-        type: "event.ingest",
-        payload: {
-          event_id: candidateEventId,
-          fingerprint: "cd".repeat(32),
-          source_package: "com.eg.android.AlipayGphone",
-          source_type: "notification",
-          event_type: "transaction",
-          parser_version: "alipay-2",
-          parse_status: "candidate",
-          direction: "expense",
-          amount_minor: 280,
-          currency: "CNY",
-          payment_channel: "alipay",
-          merchant: "",
-          counterparty: "",
-          confidence: 650,
-          occurred_at_ms: 1_789_350_000_000,
-          received_at_ms: 1_789_350_000_000,
-        },
-      }],
-    },
-  });
-  assert.equal(candidateIngest.response.status, 200, JSON.stringify(candidateIngest.payload));
-  assert.match(candidateIngest.payload.operation_results[0].candidate_id, /^cand:/);
+  // 3b. The account-scoped summary is the same canonical set used by Finance.
+  // A complete structured payment is booked immediately and is not pending.
   const summary = await request(db, "/api/notification/pending-summary", { token: USER.token });
   assert.equal(summary.response.status, 200, JSON.stringify(summary.payload));
-  assert.equal(summary.payload.total_count, 3);
+  assert.equal(summary.payload.total_count, 2);
   assert.equal(summary.payload.hint_count, 2);
-  assert.equal(summary.payload.candidate_count, 1);
-  assert.equal(summary.payload.records.length, 3);
+  assert.equal(summary.payload.candidate_count, 0);
+  assert.equal(summary.payload.records.length, 2);
   assert.deepEqual(
     new Set(summary.payload.records.map((record) => record.event_id)),
-    new Set(["evt-hints-amount-unknown", "evt-hints-direction-unknown", candidateEventId]),
+    new Set(["evt-hints-amount-unknown", "evt-hints-direction-unknown"]),
   );
   assert.equal(
     Object.values(summary.payload.records[0]).some((value) => String(value).includes("notification body")),
@@ -354,7 +320,7 @@ try {
     { token: USER.token },
   );
   assert.equal(reconciledSummary.response.status, 200, JSON.stringify(reconciledSummary.payload));
-  assert.equal(reconciledSummary.payload.total_count, 2, "terminal requested ids do not inflate the pending total");
+  assert.equal(reconciledSummary.payload.total_count, 1, "terminal requested ids do not inflate the pending total");
   const terminalIdentity = reconciledSummary.payload.records.find(
     (item) => item.event_id === "evt-hints-amount-unknown",
   );
@@ -595,44 +561,6 @@ try {
   ).bind(USER.id).first();
   assert.equal(Number(financeCount.count), 2, "exactly two independent ledger entries for the whole flow");
 
-  // A structured candidate and pending hint for one exact event are one
-  // canonical identity. If verified enrichment books it first, the candidate
-  // must not remain visible as a second pending Finance/Android card.
-  const candidateHint = await request(db, "/api/notification/hints", {
-    method: "POST", token: USER.token, body: hintBody(candidateEventId),
-  });
-  assert.equal(candidateHint.response.status, 200, JSON.stringify(candidateHint.payload));
-  const sharedBefore = await request(db,
-    `/api/notification/pending-summary?event_ids=${candidateEventId}`, { token: USER.token });
-  assert.equal(sharedBefore.payload.records.filter((row) =>
-    row.event_ids.includes(candidateEventId)).length, 1,
-  "candidate and hint for one event render once");
-  const sharedEnrichment = await request(db, "/api/notification/hints", {
-    method: "POST", token: USER.token,
-    body: hintBody(candidateEventId, {
-      amount_minor: 280, direction: "expense", confidence: 950,
-      recognition_status: "CONFIRMED_PAYMENT",
-      evidence: { source_type: "accessibility", confidence: 950,
-        reasons: ["accessibility_verified_amount"], recognised_fields: ["amount", "direction"] },
-    }),
-  });
-  assert.equal(sharedEnrichment.response.status, 200, JSON.stringify(sharedEnrichment.payload));
-  assert.equal(sharedEnrichment.payload.hints[0].state, "confirmed");
-  const sharedAfter = await request(db,
-    `/api/notification/pending-summary?event_ids=${candidateEventId}`, { token: USER.token });
-  assert.equal(sharedAfter.payload.records.filter((row) =>
-    row.event_ids.includes(candidateEventId)).length, 1);
-  assert.equal(sharedAfter.payload.records.find((row) =>
-    row.event_ids.includes(candidateEventId)).state, "confirmed");
-  assert.equal(sharedAfter.payload.records.filter((row) =>
-    row.event_ids.includes(candidateEventId) && row.state === "pending").length, 0);
-  const sharedCandidateState = await db.prepare(
-    "SELECT status, finance_transaction_id FROM task21_notification_candidates WHERE user_id = ?1 AND event_id = ?2",
-  ).bind(USER.id, candidateEventId).first();
-  assert.equal(sharedCandidateState.status, "confirmed");
-  assert.equal(sharedCandidateState.finance_transaction_id,
-    sharedEnrichment.payload.hints[0].finance_entry_id);
-
   // A one-cent OCR result can fill the same hint while direction remains
   // unknown. Only a later, explicit direction makes that event bookable.
   const partialEventId = "evt-hints-partial-cent";
@@ -665,9 +593,9 @@ try {
   const completedAmount = await request(db, "/api/notification/hints", {
     method: "POST", token: USER.token,
     body: hintBody(partialEventId, {
-      amount_minor: 1, direction: "expense", confidence: 900,
-      recognition_status: "CONFIRMED_PAYMENT",
-      evidence: { source_type: "accessibility", confidence: 900,
+      amount_minor: 1, direction: "expense", confidence: 820,
+      recognition_status: "PAYMENT_LIKELY",
+      evidence: { source_type: "accessibility", confidence: 820,
         reasons: ["accessibility_verified_payment"], recognised_fields: ["amount", "direction"] },
     }),
   });
@@ -678,8 +606,8 @@ try {
   const completedReplay = await request(db, "/api/notification/hints", {
     method: "POST", token: USER.token,
     body: hintBody(partialEventId, {
-      amount_minor: 1, direction: "expense", confidence: 900,
-      recognition_status: "CONFIRMED_PAYMENT",
+      amount_minor: 1, direction: "expense", confidence: 820,
+      recognition_status: "PAYMENT_LIKELY",
     }),
   });
   assert.equal(completedReplay.response.status, 200);

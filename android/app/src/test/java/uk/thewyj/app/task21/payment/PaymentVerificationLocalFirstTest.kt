@@ -21,6 +21,8 @@ import org.robolectric.annotation.Config
 import uk.thewyj.app.task21.IngestResponse
 import uk.thewyj.app.task21.NotificationCaptureCoordinator
 import uk.thewyj.app.task21.NotificationIngestTransport
+import uk.thewyj.app.task21.QueuedNotificationRequest
+import uk.thewyj.app.core.network.PendingReviewIdentity
 import uk.thewyj.app.task21.store.NotificationDatabase
 import uk.thewyj.app.task21.store.RoomNotificationStore
 import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
@@ -86,5 +88,42 @@ class PaymentVerificationLocalFirstTest {
             release.countDown()
             cloudJob.cancelAndJoin()
         }
+    }
+
+    @Test fun onlineCardsUseExactlyTheFinanceIdentitySetAndKeepQueuedRecoverySeparate() {
+        val app = RuntimeEnvironment.getApplication()
+        val accountId = "account-a"
+        val store = RoomPaymentRecognitionStore(database)
+        fun save(id: String, uploadId: String) = store.saveRecognition(PaymentRecognitionRecord(
+            recognitionId = id, accountId = accountId,
+            state = PaymentRecognitionState.ENRICHMENT_VERIFIED.name,
+            notificationId = 1, sourcePackage = "com.tencent.mm", sourceType = "notification",
+            sourceEventId = "notification#event#$id", uploadEventId = uploadId,
+            paymentChannel = "wechat", amountMinor = 1L, currency = "CNY",
+            direction = "UNKNOWN", merchant = "", providerReference = "",
+            createdAtMs = 1_000L, updatedAtMs = 1_000L,
+        ))
+        save("rec-matched", "event-matched")
+        save("rec-legacy-orphan", "")
+        save("rec-offline", "event-offline")
+        val center = PaymentVerificationCenter(
+            app, hintedStore = store, hintedArchive = RoomNotificationStore(database),
+            hintedQueuedRequests = { listOf(QueuedNotificationRequest("hint:event-offline", "/api/notification/hints", "{}")) },
+        )
+        val records = listOf(
+            PendingReviewIdentity("hint", "hint-matched", "event-matched", "device-a"),
+            PendingReviewIdentity("hint", "hint-remote", "event-remote", "device-b"),
+        )
+        val items = center.reconciledItems(accountId, PaymentHintSync.Result(
+            refreshed = 2, confirmed = 0, ignored = 0, ok = true,
+            completeObservation = true, pendingEventIds = setOf("event-matched", "event-remote"),
+            pendingCount = 2, pendingRecords = records,
+        ))
+        assertEquals(setOf("hint:hint-matched", "hint:hint-remote"),
+            items.filterNot { it.recoveryOnly }.map { it.canonicalIdentity }.toSet())
+        assertEquals(2, items.count { !it.recoveryOnly })
+        assertEquals(1, items.count { it.remoteOnly })
+        assertEquals(listOf("rec-offline"), items.filter { it.recoveryOnly }.map { it.recognitionId })
+        assertFalse(items.any { it.recognitionId == "rec-legacy-orphan" })
     }
 }

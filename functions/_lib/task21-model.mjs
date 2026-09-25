@@ -7,9 +7,7 @@ export const NOTIFICATION_ENTITLEMENT = "notification_archive_access";
 export const MAX_INGEST_OPERATIONS = 100;
 export const MAX_EVENT_PAGE = 100;
 
-// High-confidence structured events may become finance transactions directly;
-// anything below this stays a review candidate and never affects statistics.
-export const AUTO_INGEST_CONFIDENCE_MILLI = 900;
+// Confidence is retained as evidence; booking depends on complete money fields.
 export const CANDIDATE_CONFIDENCE_MILLI = 700;
 
 const SAFE_ID_PATTERN = /^[A-Za-z0-9._:-]{8,80}$/;

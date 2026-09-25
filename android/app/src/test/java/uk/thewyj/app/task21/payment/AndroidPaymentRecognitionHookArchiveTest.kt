@@ -133,6 +133,9 @@ class AndroidPaymentRecognitionHookArchiveTest {
             state: String,
             transactionId: String,
         ): Boolean = store.markFinanceOutcome(accountId, sourceEventId, state, transactionId)
+
+        override fun recognitionSourceEventIds(accountId: String, sourceEventId: String): List<String> =
+            store.recognitionSourceEventIds(accountId, sourceEventId)
     }
 
     @Test fun autoBookedPaymentStillClosesTheArchiveWithoutALocalCandidate() {
@@ -208,6 +211,35 @@ class AndroidPaymentRecognitionHookArchiveTest {
         val stored = recognitionStore.recognition(account, "rec-auto-booked")
         assertNotNull(stored)
         assertEquals(PaymentRecognitionState.FINANCE_RECORDED.name, stored!!.state)
+    }
+
+    @Test fun serverBookingClosesLegacyRecognitionWithBlankUploadId() {
+        val eventId = "evt-auto-booked-legacy"
+        store.record(account, NotificationCapture(
+            sourcePackage = "com.tencent.mm", sourceType = "notification",
+            notificationKey = "key:$eventId", notificationId = 78, tag = "", groupKey = "",
+            channelId = "payment", postTime = 1_000L, isGroup = false,
+            isGroupSummary = false, title = "微信", text = "支付成功", bigText = "",
+            subText = "", sourceEventId = eventId,
+        ))
+        val recognitionStore = uk.thewyj.app.task21.store.RoomPaymentRecognitionStore(database)
+        recognitionStore.saveRecognition(PaymentRecognitionRecord(
+            recognitionId = "rec-legacy-blank", accountId = account,
+            state = PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name,
+            notificationId = 78, sourcePackage = "com.tencent.mm",
+            sourceType = PaymentSourceType.NOTIFICATION.name,
+            sourceEventId = "notification#event#$eventId", uploadEventId = "",
+            paymentChannel = "wechat", amountMinor = 1L, currency = "CNY",
+            direction = "EXPENSE", merchant = "", providerReference = "",
+            createdAtMs = 1_000L, updatedAtMs = 1_000L,
+        ))
+        val hook = AndroidPaymentRecognitionHook(
+            RuntimeEnvironment.getApplication(), archiveSink = sink(),
+            recognitionStore = recognitionStore, testing = true,
+        )
+        hook.onFinanceOutcome(account, eventId, "txn-legacy-blank")
+        assertEquals(PaymentRecognitionState.FINANCE_RECORDED.name,
+            recognitionStore.recognition(account, "rec-legacy-blank")?.state)
     }
 
     /**

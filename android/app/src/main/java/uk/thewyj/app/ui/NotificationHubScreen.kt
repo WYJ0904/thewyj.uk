@@ -176,7 +176,7 @@ fun NotificationHubScreen(
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
-                            onClick = if (state.localPendingPayments > 0) onOpenPaymentVerification else onOpenFinance,
+                            onClick = if (state.sharedPendingPayments > 0) onOpenPaymentVerification else onOpenFinance,
                         ) { Text("去处理") }
                         TextButton(onClick = onOpenPaymentVerification) { Text("本机核实") }
                     }

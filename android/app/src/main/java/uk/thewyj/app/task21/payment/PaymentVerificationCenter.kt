@@ -5,6 +5,7 @@ import kotlinx.coroutines.runBlocking
 import uk.thewyj.app.core.auth.SecureCredentialStore
 import uk.thewyj.app.core.network.ApiCall
 import uk.thewyj.app.core.network.ThewyjApiClient
+import uk.thewyj.app.core.network.PendingReviewIdentity
 import uk.thewyj.app.task21.FinanceDirection
 import uk.thewyj.app.task21.NotificationCapturePipeline
 import uk.thewyj.app.task21.NotificationEventType
@@ -71,6 +72,10 @@ class PaymentVerificationCenter(
         val notice: String,
         /** Local queued recovery, displayed separately from canonical pending. */
         val recoveryOnly: Boolean = false,
+        /** The exact server identity, shared with Web Finance. */
+        val canonicalIdentity: String = "",
+        val eventIds: Set<String> = emptySet(),
+        val remoteOnly: Boolean = false,
     ) {
         val needsAmount: Boolean get() = amountMinor == null || amountMinor <= 0
         val needsVerification: Boolean get() = needsAmount || direction == FinanceDirection.UNKNOWN
@@ -184,7 +189,7 @@ class PaymentVerificationCenter(
                     PendingReviewVisibility.Placement.HIDDEN -> null
                 }
             }.sortedBy { it.second }
-        return visible.map { (recognition, recoveryOnly) ->
+        val localItems = visible.map { (recognition, recoveryOnly) ->
             val candidate = store.candidateForRecognition(accountId, recognition.recognitionId)
             val ticket = store.ticketsForRecognition(accountId, recognition.recognitionId)
                 .maxByOrNull { it.createdAtMs }
@@ -224,9 +229,47 @@ class PaymentVerificationCenter(
                 authority = authorityOf(recognition),
                 notice = rejections[queuedOperation].orEmpty(),
                 recoveryOnly = recoveryOnly,
+                eventIds = eventIds.filter(String::isNotBlank).toSet(),
             )
         }
+        if (observation?.completeObservation != true) return localItems
+        // A full server observation defines every normal pending card. Room is
+        // evidence for the matching identity and an independent recovery cache.
+        val pending = observation.pendingRecords.filter { it.state == "pending" && it.id.isNotBlank() }
+        val canonical = pending.map { record ->
+            val aliases = record.eventIds + record.eventId
+            val local = localItems.firstOrNull { item ->
+                !item.recoveryOnly && item.eventIds.any { it in aliases }
+            }
+            (local ?: remotePendingItem(record)).copy(
+                canonicalIdentity = "${record.kind}:${record.id}",
+                eventIds = aliases.filter(String::isNotBlank).toSet(),
+            )
+        }.distinctBy { it.canonicalIdentity }
+        return canonical + localItems.filter { it.recoveryOnly }
     }
+
+    private fun remotePendingItem(record: PendingReviewIdentity) = Item(
+        recognitionId = "",
+        candidateId = if (record.kind == "candidate") record.id else "",
+        sourcePackage = "",
+        appLabel = "云端待核实交易",
+        state = "REMOTE_PENDING",
+        amountMinor = null,
+        direction = FinanceDirection.UNKNOWN,
+        merchant = "",
+        hasEdits = false,
+        ocrSuggested = false,
+        uploaded = true,
+        ticketActive = false,
+        remainingMs = 0,
+        occurredAtMs = System.currentTimeMillis(),
+        financeTransactionId = "",
+        syncState = SyncState.PENDING_SYNC,
+        authority = Authority.SERVER,
+        notice = "",
+        remoteOnly = true,
+    )
 
     /**
      * Where an already uploaded candidate is confirmed: the Finance page, which

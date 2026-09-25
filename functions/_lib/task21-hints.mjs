@@ -6,7 +6,7 @@ import {
   nonNegativeInteger,
   requireAllowedFields,
 } from "./task21-model.mjs";
-import { createAutomaticFinanceTransaction, requireFinanceRecognitionAccess } from "./task21-service.mjs";
+import { createAutomaticFinanceTransaction, reconcileLegacyCompleteCandidates, requireFinanceRecognitionAccess } from "./task21-service.mjs";
 
 /**
  * Task 24.1 P0-3: unified pending hints.
@@ -14,8 +14,7 @@ import { createAutomaticFinanceTransaction, requireFinanceRecognitionAccess } fr
  * A payment the device recognised but cannot complete (missing amount, missing
  * direction, PAYMENT_LIKELY) becomes a *pending hint* here. A hint remains
  * reviewable while any required money field is missing. If an explicit
- * Accessibility/OCR enrichment upgrades that same identity to CONFIRMED_PAYMENT
- * with both amount and direction, the server books it immediately through the
+ * Accessibility/OCR enrichment supplies both amount and direction, the server books it immediately through the
  * canonical automatic-finance path and closes the hint. Android and Web read and
  * write the same row, so a verified payment does not require a second manual tap.
  */
@@ -107,7 +106,6 @@ function cleanEvidence(value) {
 
 async function autoBookVerifiedHint(db, account, deviceId, row) {
   if (!row || String(row.state || "") !== "pending") return row;
-  if (String(row.recognition_status || "").toUpperCase() !== "CONFIRMED_PAYMENT") return row;
   const amountMinor = cleanAmount(row.amount_minor);
   const direction = cleanDirection(row.direction);
   if (!amountMinor || !direction) return row;
@@ -147,6 +145,16 @@ async function autoBookVerifiedHint(db, account, deviceId, row) {
   await run(db, `UPDATE task21_notification_candidates
     SET status = 'confirmed', finance_transaction_id = ?3, updated_at = ?4
     WHERE user_id = ?1 AND event_id = ?2 AND status = 'pending'`, [
+    account.id, row.source_event_id, finance.transaction_id, now,
+  ]);
+  await run(db, `UPDATE task21_notification_events
+    SET finance_transaction_id = ?3, updated_at = ?4
+    WHERE user_id = ?1 AND event_id = ?2 AND finance_transaction_id = ''`, [
+    account.id, row.source_event_id, finance.transaction_id, now,
+  ]);
+  await run(db, `UPDATE task21_notification_evidence
+    SET finance_transaction_id = ?3, reconciliation_state = 'confirmed', updated_at = ?4
+    WHERE user_id = ?1 AND event_id = ?2`, [
     account.id, row.source_event_id, finance.transaction_id, now,
   ]);
   return await hintById(db, account, row.id);
@@ -450,11 +458,14 @@ export async function listNotificationHints(db, account, input = {}) {
  */
 export async function notificationPendingSummary(db, account, input = {}) {
   requireFinanceRecognitionAccess(account);
+  // A refresh is also the bounded repair point for candidates created solely
+  // by the former confidence gate. Each booking retains its source event id.
+  await reconcileLegacyCompleteCandidates(db, account);
   const requested = String(input.event_ids || "").split(",").filter(Boolean);
   if (requested.length > 200) throw new Task21Error("一次查询事件过多", 413, "too_many_events");
   const eventIds = [...new Set(requested.map((id) => cleanId(id, "事件标识")))];
-  // A single SQLite statement observes identities, terminal outcomes and counts
-  // together. Reading this endpoint never repairs or mutates historical data.
+  // One SQLite statement observes identities, terminal outcomes and counts
+  // after the legacy reconciliation above.
   const result = await db.prepare(`WITH booking AS (
     SELECT raw.user_id, raw.source_event_id, MIN(link.transaction_id) AS transaction_id
     FROM task16_finance_raw_events raw
