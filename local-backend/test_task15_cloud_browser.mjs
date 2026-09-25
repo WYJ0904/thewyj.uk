@@ -510,7 +510,7 @@ async function main() {
       }
     });
 
-    await check("Task 21 finance candidate review confirms, rejects and tombstones structured events", async () => {
+    await check("Task 21 finance pending review confirms, rejects and tombstones structured events", async () => {
       assert.ok(process.env.WYJ_TEST_ADMIN_SECRET, "Isolated administrator fixture required");
       const admin = await request("/api/login", { username: "wyj", secret: process.env.WYJ_TEST_ADMIN_SECRET });
       assert.equal(admin.status, 200);
@@ -564,24 +564,46 @@ async function main() {
         }],
       }, originalSession);
 
-      const confirmIngest = await ingest("confirm", 4321, "a");
+      const pendingHint = async (suffix, amount, overrides = {}) => request("/api/notification/hints", {
+        device_id: "device-browser-task21",
+        hints: [{
+          source_event_id: "evt-browser-" + RUN_ID + "-" + suffix,
+          source_type: "notification",
+          source_package: "com.tencent.mm",
+          app_label: "微信",
+          amount_minor: amount,
+          direction: null,
+          merchant: "隔离测试商户",
+          currency: "CNY",
+          confidence: 800,
+          recognition_status: "PAYMENT_LIKELY",
+          evidence: { source_type: "notification", confidence: 800, reasons: ["direction_unknown"] },
+          ...overrides,
+        }],
+      }, originalSession);
+
+      const confirmIngest = await pendingHint("confirm", 4321);
       assert.equal(confirmIngest.status, 200, JSON.stringify(confirmIngest.data));
-      const confirmId = confirmIngest.data.operation_results[0].candidate_id;
+      const confirmId = confirmIngest.data.hints[0].id;
       assert.ok(confirmId);
-      const rejectIngest = await ingest("reject", 5432, "b");
+      const rejectIngest = await pendingHint("reject", 5432);
       assert.equal(rejectIngest.status, 200, JSON.stringify(rejectIngest.data));
-      const rejectId = rejectIngest.data.operation_results[0].candidate_id;
+      const rejectId = rejectIngest.data.hints[0].id;
       assert.ok(rejectId);
-      const alipayIngest = await ingest("alipay-no-merchant", 280, "c", {
+      const alipayIngest = await pendingHint("alipay-no-merchant", 280, {
         source_package: "com.eg.android.AlipayGphone",
-        payment_channel: "alipay",
+        app_label: "支付宝",
         merchant: "",
-        counterparty: "",
-        parser_version: "alipay-2",
         confidence: 650,
       });
       assert.equal(alipayIngest.status, 200, JSON.stringify(alipayIngest.data));
-      const alipayId = alipayIngest.data.operation_results[0].candidate_id;
+      const alipayId = alipayIngest.data.hints[0].id;
+      const lowConfidenceComplete = await ingest("auto-low-complete", 1, "d", {
+        confidence: 650, merchant: "", counterparty: "",
+      });
+      assert.equal(lowConfidenceComplete.status, 200, JSON.stringify(lowConfidenceComplete.data));
+      assert.match(lowConfidenceComplete.data.operation_results[0].transaction_id, /^txn:/);
+      assert.equal(lowConfidenceComplete.data.operation_results[0].candidate_id, "");
       const hintEventId = "evt-browser-" + RUN_ID + "-unknown-fields";
       const hintIngest = await request("/api/notification/hints", {
         device_id: "device-browser-task21",
@@ -661,7 +683,7 @@ async function main() {
       assert.match(alipaySemantics.text, /支付宝/);
       assert.match(alipaySemantics.text, /商户未知（可选）/);
       assert.doesNotMatch(alipaySemantics.text, /未知来源/);
-      assert.equal(alipaySemantics.primary, "确认记账", "merchant is optional and must not block booking");
+       assert.equal(alipaySemantics.primary, "补全并确认", "only the missing direction requires verification");
       for (const width of [360, 390, 412]) {
         await send("Emulation.setDeviceMetricsOverride", { width, height: 844, deviceScaleFactor: 1, mobile: true });
         await evaluate("document.documentElement.style.fontSize='125%'; true");
@@ -713,6 +735,7 @@ async function main() {
       await click('[data-finance-candidate-edit="' + confirmId + '"]');
       await setFields({
         ['[data-finance-candidate-editor="' + confirmId + '"] [name="merchant"]']: "编辑保留商户",
+        ['[data-finance-candidate-editor="' + confirmId + '"] [name="direction"]']: "expense",
       });
       await click("#financeCandidatesRefreshBtn");
       await waitFor(
@@ -729,6 +752,11 @@ async function main() {
         await evaluate("document.querySelector('[data-finance-candidate-editor=\"" + confirmId + "\"] [name=merchant]').value"),
         "编辑保留商户",
         "candidate editor values must survive refresh",
+      );
+      assert.equal(
+        await evaluate("document.querySelector('[data-finance-candidate-editor=\"" + confirmId + "\"] [name=direction]').value"),
+        "expense",
+        "selected direction must survive refresh",
       );
       await click('[data-finance-candidate-save="' + confirmId + '"]');
       await waitFor(
@@ -763,9 +791,9 @@ async function main() {
         15_000,
         "rejected candidate removed from pending UI",
       );
-      const rejected = await request("/api/notification/candidates?status=rejected&limit=100", null, originalSession);
+      const rejected = await request("/api/notification/hints?state=ignored&limit=100", null, originalSession);
       assert.equal(rejected.status, 200);
-      assert.equal(rejected.data.candidates.some((item) => item.id === rejectId), true);
+      assert.equal(rejected.data.hints.some((item) => item.id === rejectId), true);
       const rejectedTransactions = await request("/api/finance/transactions?limit=100", null, originalSession);
       assert.equal(rejectedTransactions.data.transactions.some((item) => item.amount_minor === 5432), false);
 
@@ -782,6 +810,9 @@ async function main() {
         "incomplete hint ignored without booking",
       );
 
+      const ignoredStructured = await ingest("reject", 5432, "b");
+      assert.equal(ignoredStructured.status, 200, JSON.stringify(ignoredStructured.data));
+      assert.equal(ignoredStructured.data.operation_results[0].transaction_id, "");
       const deleted = await request("/api/notification/events/delete", {
         event_id: "evt-browser-" + RUN_ID + "-reject",
       }, originalSession);
