@@ -5,6 +5,14 @@
 当前修复分支：`codex/task24-candidate-history-r6`（base `main`）；历史支付生命周期修复 PR：`#75`
 Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Task 25 代码）
 
+## 2026-09-25 local-first verification candidate (Android 1.3.17)
+
+- Source HEAD `4f756d079342f5b7be0be20db7752d1f92a75485` preserves the prior partial-enrichment and native routing fixes. `PaymentVerificationCenter.localItems()` reads Room and the local queue without network; `PaymentVerificationState.refresh()` paints that result before a single-flight background reconciliation. A Robolectric test held the network transport open while a candidate-less local recognition with `amountMinor=1` rendered as ¥0.01 and loading ended.
+- `AndroidPaymentRecognitionHook.onAccessibilityEnrichment()` now signals the local Room update immediately and schedules `PaymentHintSync.publishEnrichment()` on a separate IO executor. The same active recognition/hint identity is used. Failed POSTs retain the local amount; later `PaymentHintSync.sync()` retries a bounded, rotating set. Partial amount with UNKNOWN direction remains pending; adding direction auto-books the exact event once.
+- Local validation: Android 426/426 unit tests, `lintDebug`, `assembleDebug`; Task 21 hints/notification and Finance candidate/model tests. Full Core CI [run 36127341583](https://github.com/WYJ0904/thewyj.uk/actions/runs/36127341583) passed 6/6 on attempt 2. The first attempt's application-browser failure was an unrelated learning wrong-answer fixture timing result; its rerun passed without product-code changes.
+- Fresh signed candidate: `uk.thewyj.app` 1.3.17 (30), Production base `https://thewyj.uk`, `artifacts/thewyj-android-1.3.17-task24-candidate.apk`, 47,660,493 bytes, SHA-256 `fb58c67c56be0991663d81e54604c0ced1f7644b2fcbc3a3401b680204d12aed`; formal release certificate SHA-256 `2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03`. The identical binary was copied and verified at `C:\Users\78252\thewyj-task24\artifacts\thewyj-android-1.3.17-task24-candidate.apk`.
+- **PENDING DEVICE ACCEPTANCE:** this candidate has not been installed or exercised on Samsung in this run. PR #78 remains Draft; no Production update metadata or deployment was changed. Task 24 OPEN, Task 25 BLOCKED.
+
 ## 2026-09-24 canonical pending and automatic verification candidate (Android 1.3.16)
 
 - Source HEAD `2afa5df26450124b47c67edf4df2ea7264de1cee` preserves the prior automatic verified-hint booking and candidate-less local terminalization commits, then makes the server pending summary the user-visible identity set for both Notification and Finance. Local Room rows remain recovery evidence; offline queued rows are shown separately and never inflate the canonical count.
