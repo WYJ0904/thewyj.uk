@@ -427,7 +427,29 @@ async function main() {
           const goals = Array.from(document.querySelectorAll('[data-membership-goal]'));
           (goals.find((button) => button.dataset.membershipGoal === 'finance') || goals[0]).click();
         })()`);
-        await errorPage.waitFor("document.querySelector('[data-plan=\"finance_monthly\"]')", 25_000, "controlled plan for the error path");
+        const errorPlanVisible = () => errorPage.waitFor(
+          "document.querySelector('[data-plan=\"finance_monthly\"]')", 12_000, "controlled plan for the error path",
+        ).then(() => true).catch(() => false);
+        let hasErrorPlan = await errorPlanVisible();
+        if (!hasErrorPlan) {
+          // The fresh tab can finish a real catalog request before its
+          // interceptor is active. Use the same in-page recovery as above.
+          await errorPage.evaluate(`(() => {
+            const retry = document.querySelector('#retryMembershipPlansBtn');
+            if (retry) retry.click();
+            const goals = Array.from(document.querySelectorAll('[data-membership-goal]'));
+            (goals.find((button) => button.dataset.membershipGoal === 'finance') || goals[0]).click();
+          })()`);
+          hasErrorPlan = await errorPlanVisible();
+        }
+        if (!hasErrorPlan) {
+          const surface = await errorPage.evaluate(`(() => ({
+            path: location.pathname,
+            recoveryText: (document.querySelector('#membershipPlanRecovery')?.textContent || '').trim().slice(0, 160),
+            message: (document.querySelector('#rechargeMessage')?.textContent || '').slice(0, 160),
+          }))()`);
+          throw new Error(`controlled error-path catalog unavailable: ${JSON.stringify(surface)}`);
+        }
         await errorPage.evaluate("document.querySelector('[data-plan=\"finance_monthly\"]').click()");
         await errorPage.waitFor("document.querySelector('input[name=\"paymentMethod\"]')", 25_000, "payment methods for the error path");
         await errorPage.evaluate(`(() => {
