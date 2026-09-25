@@ -3,6 +3,8 @@ package uk.thewyj.app.task21.payment
 import android.content.Context
 import org.json.JSONObject
 import org.json.JSONArray
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import uk.thewyj.app.BuildConfig
 import uk.thewyj.app.core.network.PendingReviewSummary
 import uk.thewyj.app.task21.HttpNotificationIngestTransport
@@ -164,19 +166,24 @@ class PaymentHintSync(
             reasons = listOf(if (hasAmount && hasDirection) "accessibility_verified_payment" else "accessibility_partial_enrichment"),
             parserVersion = "verified-on-device",
         )
-        val response = runCatching {
-            transport.post("/api/notification/hints", account.sessionToken, body)
-        }.getOrNull() ?: return false
-        if (!response.ok) return false
-        // The enrichment POST can synchronously auto-book this same hint. Apply
-        // its terminal outcome now, before the UI waits for another pull.
-        val booked = runCatching {
-            JSONObject(response.body).optJSONArray("hints")?.optJSONObject(0)
-        }.getOrNull()
-        if (booked?.optString("state") == "confirmed" && booked.optString("finance_entry_id").isNotBlank()) {
-            applyConfirmed(account, eventId, booked.optString("finance_entry_id"), booked)
+        val publishKey = "$accountId|$eventId"
+        if (!PUBLISHING.add(publishKey)) return false
+        try {
+            val response = runCatching {
+                transport.post("/api/notification/hints", account.sessionToken, body)
+            }.getOrNull() ?: return false
+            if (!response.ok) return false
+            // The enrichment POST can synchronously auto-book this same hint.
+            val booked = runCatching {
+                JSONObject(response.body).optJSONArray("hints")?.optJSONObject(0)
+            }.getOrNull()
+            if (booked?.optString("state") == "confirmed" && booked.optString("finance_entry_id").isNotBlank()) {
+                applyConfirmed(account, eventId, booked.optString("finance_entry_id"), booked)
+            }
+            return true
+        } finally {
+            PUBLISHING.remove(publishKey)
         }
-        return true
     }
 
     /**
@@ -301,6 +308,21 @@ class PaymentHintSync(
         val account = (accountOverride?.invoke()
             ?: runCatching { sessions.currentAccount() }.getOrNull()) ?: return Result(0, 0, 0, false)
         if (!account.financeEntitled) return Result(0, 0, 0, false)
+        // Startup and later syncs retry locally saved enrichment even when the
+        // verification screen was never opened. Limit each pull's POST work.
+        runCatching {
+            val verified = store.recognitionsByState(
+                account.accountId,
+                listOf(PaymentRecognitionState.ENRICHMENT_VERIFIED.name),
+                200,
+            )
+            if (verified.isNotEmpty()) {
+                val start = Math.floorMod(RETRY_CURSOR.getAndAdd(2), verified.size)
+                repeat(minOf(2, verified.size)) { index ->
+                    publishEnrichment(account.accountId, verified[(start + index) % verified.size].recognitionId)
+                }
+            }
+        }
         val response = runCatching {
             transport.get("/api/notification/hints?state=&limit=200", account.sessionToken)
         }.getOrNull() ?: return Result(0, 0, 0, false)
@@ -653,5 +675,10 @@ class PaymentHintSync(
         }
         runCatching { store.recognitionByUploadEvent(accountId, eventId) }.getOrNull()?.let { return it }
         return null
+    }
+
+    companion object {
+        private val PUBLISHING = ConcurrentHashMap.newKeySet<String>()
+        private val RETRY_CURSOR = AtomicInteger(0)
     }
 }

@@ -6,8 +6,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.withContext
 import uk.thewyj.app.task21.payment.PaymentVerificationCenter
+import uk.thewyj.app.task21.payment.PaymentHintSync
 import uk.thewyj.app.task21.payment.PendingReconciliationPolicy
 
 /**
@@ -17,8 +19,10 @@ import uk.thewyj.app.task21.payment.PendingReconciliationPolicy
 class PaymentVerificationState(
     context: Context,
     val accountId: String,
+    private val center: PaymentVerificationCenter = PaymentVerificationCenter(context.applicationContext),
+    private val reconcileOverride: (suspend (String) -> PaymentHintSync.Result?)? = null,
 ) {
-    private val center = PaymentVerificationCenter(context.applicationContext)
+    private val reconciliationInFlight = AtomicBoolean(false)
 
     var items by mutableStateOf<List<PaymentVerificationCenter.Item>>(emptyList())
     var loading by mutableStateOf(true)
@@ -34,10 +38,10 @@ class PaymentVerificationState(
 
     suspend fun refresh() {
         val generation = ++refreshGeneration
-        loading = true
+        loading = items.isEmpty()
         error = ""
         try {
-            val refreshed = withContext(Dispatchers.IO) { center.items(accountId) }
+            val refreshed = withContext(Dispatchers.IO) { center.localItems(accountId) }
             if (generation == refreshGeneration) items = refreshed
         } catch (cancellation: CancellationException) {
             // Leaving this Compose surface (for example opening WeChat) is a
@@ -47,6 +51,25 @@ class PaymentVerificationState(
             if (generation == refreshGeneration) error = failure.message ?: "读取待确认交易失败"
         } finally {
             if (generation == refreshGeneration) loading = false
+        }
+    }
+
+    /** Cloud work starts only after the local list has been returned to Compose. */
+    suspend fun reconcile() {
+        if (!reconciliationInFlight.compareAndSet(false, true)) return
+        try {
+            val observation = withContext(Dispatchers.IO) {
+                if (reconcileOverride != null) reconcileOverride.invoke(accountId) else center.reconcile(accountId)
+            }
+            val refreshed = withContext(Dispatchers.IO) { center.reconciledItems(accountId, observation) }
+            items = refreshed
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            // Keep the already rendered local Room result when cloud is slow,
+            // unauthorized or unavailable. The next explicit/bounded pull retries.
+        } finally {
+            reconciliationInFlight.set(false)
         }
     }
 
@@ -182,7 +205,7 @@ class PaymentVerificationState(
             val delayMs = PendingReconciliationPolicy.nextDelayMs(attempt, syncStates())
                 ?: return
             kotlinx.coroutines.delay(delayMs)
-            refresh()
+            reconcile()
             attempt += 1
         }
     }

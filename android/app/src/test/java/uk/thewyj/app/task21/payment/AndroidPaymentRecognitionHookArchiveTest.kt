@@ -3,6 +3,7 @@ package uk.thewyj.app.task21.payment
 import androidx.room.Room
 import java.io.File
 import java.util.UUID
+import java.util.concurrent.Executor
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -32,6 +33,50 @@ import uk.thewyj.app.task21.store.RoomNotificationStore
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
 class AndroidPaymentRecognitionHookArchiveTest {
+    @Test fun oneCentEnrichmentPublishesWithoutReviewScreen() {
+        val accountId = "account-a"
+        val recognitionStore = uk.thewyj.app.task21.store.RoomPaymentRecognitionStore(database)
+        recognitionStore.saveRecognition(PaymentRecognitionRecord(
+            recognitionId = "rec-one-cent", accountId = accountId,
+            state = PaymentRecognitionState.WAITING_FOR_ENRICHMENT.name,
+            notificationId = 15, sourcePackage = "com.tencent.mm", sourceType = "notification",
+            sourceEventId = "notification#event#evt-one-cent", uploadEventId = "evt-one-cent",
+            paymentChannel = "wechat", amountMinor = null, currency = "CNY", direction = "UNKNOWN",
+            merchant = "", providerReference = "", createdAtMs = 1_000L, updatedAtMs = 1_000L,
+        ))
+        recognitionStore.saveTicket(PaymentTicketEngine().create(
+            accountId = accountId, recognitionId = "rec-one-cent", sourcePackage = "com.tencent.mm",
+            sourceEventId = "notification#event#evt-one-cent", paymentChannel = "wechat",
+            missingFields = setOf("amount", "direction"),
+        ))
+        var attempts = 0
+        var amountAtPublish: Long? = null
+        val hook = AndroidPaymentRecognitionHook(
+            RuntimeEnvironment.getApplication(), archiveSink = sink(), recognitionStore = recognitionStore,
+            testing = true,
+            publishOverride = { account, recognitionId ->
+                attempts += 1
+                amountAtPublish = recognitionStore.recognition(account, recognitionId)?.amountMinor
+                false // Simulate a failed network POST; the Room result must stay.
+            },
+            enrichmentExecutor = Executor { it.run() },
+            notifierOverride = object : PaymentStatusNotifier {
+                override fun notify(message: PaymentStatusNotificationMessage) = true
+                override fun cancel(notificationId: Int) = Unit
+            },
+        )
+        val outcome = hook.onAccessibilityEnrichment(accountId, PaymentEnrichment(
+            sourcePackage = "com.tencent.mm", amountMinor = 1L, currency = "CNY",
+            direction = null, merchant = null, counterparty = null, providerReference = null,
+            occurredAtMs = 1_000L, confidence = 820,
+        ))
+        assertTrue(outcome is EnrichmentOutcome.Applied)
+        assertEquals(1, attempts)
+        assertEquals(1L, amountAtPublish)
+        assertEquals(1L, recognitionStore.recognition(accountId, "rec-one-cent")?.amountMinor)
+        assertEquals(PaymentRecognitionState.ENRICHMENT_VERIFIED.name,
+            recognitionStore.recognition(accountId, "rec-one-cent")?.state)
+    }
     @Test fun canonicalPaymentEventIdIgnoresMutableNotificationPostTime() {
         val first = NotificationCaptureInput(
             sourcePackage = "com.tencent.mm",

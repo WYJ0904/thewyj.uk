@@ -598,6 +598,50 @@ class PaymentHintSyncCrossClientTest {
         assertEquals("PAYMENT_LIKELY", hint.getString("recognition_status"))
     }
 
+    @Test fun failedPartialPostKeepsOneCentForLaterRetry() {
+        val accountId = account
+        paymentStore.saveRecognition(PaymentRecognitionRecord(
+            recognitionId = "rec-retry-cent", accountId = accountId,
+            state = PaymentRecognitionState.ENRICHMENT_VERIFIED.name,
+            notificationId = 12, sourcePackage = "com.tencent.mm", sourceType = "notification",
+            sourceEventId = "notification#wechat#retry-cent", uploadEventId = "evt-retry-cent",
+            paymentChannel = "wechat", amountMinor = 1L, currency = "CNY", direction = "UNKNOWN",
+            merchant = "", providerReference = "", createdAtMs = 2_200L, updatedAtMs = 2_200L,
+        ))
+        paymentStore.saveCandidate(PaymentCandidate(
+            candidateId = "cand-retry-cent", accountId = accountId, recognitionId = "rec-retry-cent",
+            status = "pending", amountMinor = 1L, direction = "UNKNOWN", category = "",
+            merchant = "", occurredAtMs = 2_200L, channel = "wechat", confidence = 820,
+            reason = "accessibility_enrichment", createdAtMs = 2_200L, updatedAtMs = 2_200L,
+        ))
+        var posts = 0
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String): IngestResponse {
+                posts += 1
+                val hint = org.json.JSONObject(body).getJSONArray("hints").getJSONObject(0)
+                assertEquals("evt-retry-cent", hint.getString("source_event_id"))
+                assertEquals(1L, hint.getLong("amount_minor"))
+                return if (posts == 1) IngestResponse(false, 503, "{}") else IngestResponse(
+                    true, 200, """{"ok":true,"hints":[{"state":"pending"}]}""",
+                )
+            }
+        }
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(), hintedTransport = transport,
+            hintedStore = paymentStore, archiveSink = sink(),
+            accountOverride = { NotificationCaptureCoordinator.CaptureAccount(
+                accountId = accountId, deviceId = "device-a", sessionToken = "token-a", financeEntitled = true,
+            ) },
+        )
+        assertFalse(sync.publishEnrichment(accountId, "rec-retry-cent"))
+        assertEquals(1L, paymentStore.recognition(accountId, "rec-retry-cent")?.amountMinor)
+        assertEquals("pending", paymentStore.candidateForRecognition(accountId, "rec-retry-cent")?.status)
+        // A later background sync retries without opening the verification UI.
+        sync.sync()
+        assertEquals(2, posts)
+        assertEquals(1L, paymentStore.recognition(accountId, "rec-retry-cent")?.amountMinor)
+    }
+
     @Test fun explicitIgnoreTerminatesTheMatchingCloudReviewBeforeLocalDismissal() {
         var postedPath = ""
         var postedBody = ""

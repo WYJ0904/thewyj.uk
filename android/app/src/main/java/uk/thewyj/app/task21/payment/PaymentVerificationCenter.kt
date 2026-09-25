@@ -13,6 +13,7 @@ import uk.thewyj.app.task21.NotificationSessionProvider
 import uk.thewyj.app.task21.ParseStatus
 import uk.thewyj.app.task21.StructuredEventJson
 import uk.thewyj.app.task21.StructuredNotificationEvent
+import uk.thewyj.app.task21.QueuedNotificationRequest
 import uk.thewyj.app.task21.store.NotificationDatabase
 import uk.thewyj.app.task21.store.PaymentRecognitionStoreContract
 import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
@@ -31,16 +32,23 @@ import uk.thewyj.app.task21.store.RoomNotificationStore
  *    device: the structured event is uploaded once, under a deterministic event
  *    id, and the server creates the canonical transaction.
  */
-class PaymentVerificationCenter(context: Context) {
+class PaymentVerificationCenter(
+    context: Context,
+    hintedStore: PaymentRecognitionStoreContract? = null,
+    hintedArchive: RoomNotificationStore? = null,
+    private val hintedQueuedRequests: (() -> List<QueuedNotificationRequest>)? = null,
+    hintedHintSync: PaymentHintSync? = null,
+) {
     private val app = context.applicationContext
     private val sessions = NotificationSessionProvider(app)
     private val pipeline = NotificationCapturePipeline.create(app, sessions)
     private val store: PaymentRecognitionStoreContract =
-        RoomPaymentRecognitionStore(NotificationDatabase.get(app))
+        hintedStore ?: RoomPaymentRecognitionStore(NotificationDatabase.get(app))
     private val hook = AndroidPaymentRecognitionHook.get(app)
     private val tickets = PaymentTicketEngine()
-    private val hintSync = PaymentHintSync(app)
+    private val hintSync = hintedHintSync ?: PaymentHintSync(app)
     private val api = ThewyjApiClient()
+    private val archive by lazy { hintedArchive ?: RoomNotificationStore(NotificationDatabase.get(app)) }
 
     data class Item(
         val recognitionId: String,
@@ -125,36 +133,37 @@ class PaymentVerificationCenter(context: Context) {
 
     fun account() = runCatching { sessions.currentAccount() }.getOrNull()
 
-    /** Items that still need the user, newest first. */
-    fun items(accountId: String): List<Item> {
-        // Accessibility/OCR may have filled a previously amount-unknown local
-        // recognition after its server hint was created. Push those verified
-        // fields into the *same* event identity before pulling terminal state,
-        // so /finance and this screen observe one review item.
-        val beforeSync = store.recognitionsByState(accountId, ATTENTION_STATES, 60)
-        beforeSync
-            .filter { it.state == PaymentRecognitionState.ENRICHMENT_VERIFIED.name && it.uploadEventId.isNotBlank() }
-            .forEach { recognition ->
-                runCatching { hintSync.publishEnrichment(accountId, recognition.recognitionId) }
-            }
+    /** The first paint reads only Room, tickets and the local upload queue. */
+    fun localItems(accountId: String): List<Item> = buildItems(accountId, null, includeAllLocal = true)
 
-        // P0-2/P0-3: refresh from the shared pending source first, so a hint the
-        // user completed on Web /finance is already reflected here.
+    /** Called only from a background IO coroutine after the first local paint. */
+    suspend fun reconcile(accountId: String): PaymentHintSync.Result? {
+        // Retry enrichment and pull terminal state after the local first paint.
         val pulled = runCatching { hintSync.sync() }.getOrNull()
-        val archive = RoomNotificationStore(NotificationDatabase.get(app))
         val credentials = runCatching { SecureCredentialStore(app).loadActive() }.getOrNull()
         val localBefore = store.recognitionsByState(accountId, ATTENTION_STATES, 200)
         val requested = localBefore.flatMap { recognition ->
             listOf(recognition.uploadEventId) + archive.structuredEventIdsForRecognition(accountId, recognition.sourceEventId)
         }.filter(String::isNotBlank).distinct()
         val summary = if (credentials != null && credentials.accessToken.isNotBlank()) {
-            runBlocking { api.pendingReviewSummary(credentials.accessToken, requested) }
+            api.pendingReviewSummary(credentials.accessToken, requested)
         } else null
-        val observation = when (summary) {
+        return when (summary) {
             is ApiCall.Success -> hintSync.applySummary(accountId, summary.value)
             else -> pulled
         }
-        val queued = pipeline.queuedRequests()
+    }
+
+    /** Re-read Room after cloud terminal outcomes have been persisted. */
+    fun reconciledItems(accountId: String, observation: PaymentHintSync.Result?): List<Item> =
+        buildItems(accountId, observation, includeAllLocal = observation?.completeObservation != true)
+
+    private fun buildItems(
+        accountId: String,
+        observation: PaymentHintSync.Result?,
+        includeAllLocal: Boolean,
+    ): List<Item> {
+        val queued = hintedQueuedRequests?.invoke() ?: pipeline.queuedRequests()
         val queue = queued.map { it.operationId }.toSet()
         val rejections = queued.filter { it.lastError.isNotBlank() }.associate { it.operationId to it.lastError }
         val visible = store.recognitionsByState(accountId, ATTENTION_STATES, 200)
@@ -162,7 +171,9 @@ class PaymentVerificationCenter(context: Context) {
             .mapNotNull { recognition ->
                 val identities = listOf(recognition.uploadEventId) +
                     archive.structuredEventIdsForRecognition(accountId, recognition.sourceEventId)
-                when (PendingReviewVisibility.classify(
+                if (includeAllLocal) {
+                    recognition to true
+                } else when (PendingReviewVisibility.classify(
                     identities.filter(String::isNotBlank).toSet(),
                     bookingEventId(recognition),
                     observation?.takeIf { it.completeObservation }?.pendingEventIds,

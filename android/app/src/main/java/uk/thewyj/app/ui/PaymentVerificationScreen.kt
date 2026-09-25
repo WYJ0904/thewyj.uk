@@ -65,7 +65,10 @@ fun PaymentVerificationScreen(
         resumeEpoch += 1
         onPauseOrDispose { }
     }
-    LaunchedEffect(resumeEpoch) { state.refresh() }
+    LaunchedEffect(resumeEpoch) {
+        state.refresh()
+        state.reconcile()
+    }
     LaunchedEffect(state.accountId) { PaymentReviewSignals.changes.collect { state.refresh() } }
     // #4: bounded catch-up for records the server still owns (Web confirm → this
     // screen). It restarts when the set of pending records changes and stops by
@@ -120,16 +123,16 @@ fun PaymentVerificationScreen(
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
-                TextButton(onClick = { scope.launch { state.refresh() } }) { Text("刷新") }
+                TextButton(onClick = { scope.launch { state.refresh(); state.reconcile() } }) { Text("刷新") }
                 TextButton(onClick = { scope.launch { state.flush() } }) { Text("同步记账") }
                 TextButton(onClick = onOpenFinance) { Text("打开财务") }
             }
             if (state.loading && state.items.isEmpty()) {
                 Text("正在读取待确认交易…", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else if (state.items.none { !it.recoveryOnly }) {
+            } else if (state.items.isEmpty()) {
                 ThewyjCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(ThewyjSpacing.Lg), verticalArrangement = Arrangement.spacedBy(ThewyjSpacing.Xs)) {
-                        Text("云端暂无待处理交易", fontWeight = FontWeight.SemiBold)
+                        Text("本机暂无待核实交易", fontWeight = FontWeight.SemiBold)
                         Text(
                             "识别到的支付确认后会直接写入财务账本；这里为空说明没有遗漏。",
                             style = MaterialTheme.typography.bodySmall,
@@ -141,7 +144,7 @@ fun PaymentVerificationScreen(
             state.items.forEachIndexed { index, item ->
                 if (item.recoveryOnly && (index == 0 || !state.items[index - 1].recoveryOnly)) {
                     Text(
-                        "本机未同步记录（不计入通知和财务待处理总数）",
+                        "本机待核实记录（云端状态在后台核对）",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )

@@ -633,6 +633,60 @@ try {
   assert.equal(sharedCandidateState.finance_transaction_id,
     sharedEnrichment.payload.hints[0].finance_entry_id);
 
+  // A one-cent OCR result can fill the same hint while direction remains
+  // unknown. Only a later, explicit direction makes that event bookable.
+  const partialEventId = "evt-hints-partial-cent";
+  const partialInitial = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token, body: hintBody(partialEventId),
+  });
+  assert.equal(partialInitial.response.status, 200);
+  const partialAmount = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody(partialEventId, {
+      amount_minor: 1, direction: null, confidence: 820,
+      recognition_status: "PAYMENT_LIKELY",
+      evidence: { source_type: "accessibility", confidence: 820,
+        reasons: ["accessibility_partial_enrichment"], recognised_fields: ["amount"] },
+    }),
+  });
+  assert.equal(partialAmount.response.status, 200, JSON.stringify(partialAmount.payload));
+  assert.equal(partialAmount.payload.hints[0].id, partialInitial.payload.hints[0].id);
+  assert.equal(partialAmount.payload.hints[0].amount_minor, 1);
+  assert.equal(partialAmount.payload.hints[0].direction, null);
+  assert.equal(partialAmount.payload.hints[0].state, "pending");
+  const linkedTransactionCount = async () => {
+    const row = await db.prepare(`SELECT COUNT(*) AS count FROM task16_finance_raw_events raw
+      JOIN task16_finance_transaction_events link ON link.raw_event_id = raw.id
+      WHERE raw.user_id = ?1 AND raw.source_event_id = ?2 AND link.relation_status = 'active'`)
+      .bind(USER.id, partialEventId).first();
+    return Number(row.count);
+  };
+  assert.equal(await linkedTransactionCount(), 0, "partial enrichment must not book");
+  const completedAmount = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody(partialEventId, {
+      amount_minor: 1, direction: "expense", confidence: 900,
+      recognition_status: "CONFIRMED_PAYMENT",
+      evidence: { source_type: "accessibility", confidence: 900,
+        reasons: ["accessibility_verified_payment"], recognised_fields: ["amount", "direction"] },
+    }),
+  });
+  assert.equal(completedAmount.response.status, 200, JSON.stringify(completedAmount.payload));
+  assert.equal(completedAmount.payload.hints[0].id, partialInitial.payload.hints[0].id);
+  assert.equal(completedAmount.payload.hints[0].state, "confirmed");
+  assert.equal(await linkedTransactionCount(), 1);
+  const completedReplay = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody(partialEventId, {
+      amount_minor: 1, direction: "expense", confidence: 900,
+      recognition_status: "CONFIRMED_PAYMENT",
+    }),
+  });
+  assert.equal(completedReplay.response.status, 200);
+  assert.equal(completedReplay.payload.hints[0].finance_entry_id,
+    completedAmount.payload.hints[0].finance_entry_id);
+  assert.equal(await linkedTransactionCount(), 1, "completed enrichment is exactly once");
+
   console.log("Task 21 pending-hint checks passed (single pending source, no invented money, idempotent confirm/ignore).");
 } finally {
   await mf.dispose();
