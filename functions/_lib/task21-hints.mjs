@@ -23,6 +23,8 @@ const STATES = new Set(["pending", "confirmed", "ignored", "superseded", "expire
 const RECOGNITION_STATUSES = new Set(["CONFIRMED_PAYMENT", "PAYMENT_LIKELY", "INSUFFICIENT_INFORMATION"]);
 const SOURCE_TYPES = new Set(["notification", "sms", "bank", "accessibility"]);
 const DIRECTIONS = new Set(["income", "expense", "refund", "unknown"]);
+const PROVIDER_REFERENCE_PATTERN = /^[A-Za-z0-9_-]{6,40}$/;
+const LIFECYCLE_IDENTITY_PATTERN = /^[0-9a-f]{64}$/;
 const RECOGNITION_STATUS_RANK = Object.freeze({
   INSUFFICIENT_INFORMATION: 0,
   PAYMENT_LIKELY: 1,
@@ -49,6 +51,79 @@ function cleanAmount(value) {
   const amount = nonNegativeInteger(value, "金额", 10_000_000_000_000);
   if (amount <= 0) return null;
   return amount;
+}
+
+function cleanProviderReference(value) {
+  const reference = String(value || "").trim();
+  if (reference && !PROVIDER_REFERENCE_PATTERN.test(reference)) {
+    throw new Task21Error("交易参考号无效", 400, "provider_reference_invalid");
+  }
+  return reference;
+}
+
+function cleanLifecycleIdentity(value) {
+  const identity = String(value || "").trim().toLowerCase();
+  if (identity && !LIFECYCLE_IDENTITY_PATTERN.test(identity)) {
+    throw new Task21Error("通知生命周期标识无效", 400, "lifecycle_identity_invalid");
+  }
+  return identity;
+}
+
+function moneyCompatible(row, amountMinor, direction) {
+  return (row.amount_minor === null || amountMinor === null || Number(row.amount_minor) === amountMinor) &&
+    (!row.direction || !direction || row.direction === direction || row.direction === "unknown");
+}
+
+async function exactHintForEvent(db, userId, eventId) {
+  const alias = await first(db, `SELECT h.* FROM task21_notification_review_aliases a
+    JOIN task21_notification_pending_hints h ON h.user_id = a.user_id AND h.id = a.hint_id
+    WHERE a.user_id = ?1 AND a.event_id = ?2 LIMIT 1`, [userId, eventId]);
+  if (alias) return alias;
+  return await first(db, `SELECT * FROM task21_notification_pending_hints
+    WHERE user_id = ?1 AND source_event_id = ?2 LIMIT 1`, [userId, eventId]);
+}
+
+async function supersedeExactHint(db, account, duplicate, canonical, now) {
+  if (duplicate.id === canonical.id) return canonical;
+  if (duplicate.state !== "pending" || !moneyCompatible(canonical, cleanAmount(duplicate.amount_minor),
+    cleanDirection(duplicate.direction))) {
+    throw new Task21Error("旧核实记录含冲突状态或金额", 409, "review_alias_conflict");
+  }
+  await db.batch([
+    db.prepare(`UPDATE task21_notification_pending_hints
+      SET state = 'superseded', updated_at = ?3
+      WHERE user_id = ?1 AND id = ?2 AND state = 'pending'`).bind(account.id, duplicate.id, now),
+    db.prepare(`UPDATE task21_notification_review_aliases SET hint_id = ?3
+      WHERE user_id = ?1 AND hint_id = ?2`).bind(account.id, duplicate.id, canonical.id),
+    db.prepare(`INSERT OR IGNORE INTO task21_notification_review_aliases
+      (user_id, event_id, hint_id, created_at) VALUES (?1, ?2, ?3, ?4)`)
+      .bind(account.id, duplicate.source_event_id, canonical.id, now),
+  ]);
+  const alias = await first(db, `SELECT hint_id FROM task21_notification_review_aliases
+    WHERE user_id = ?1 AND event_id = ?2`, [account.id, duplicate.source_event_id]);
+  if (alias?.hint_id !== canonical.id) throw new Task21Error("旧事件 alias 冲突", 409, "review_alias_conflict");
+  return canonical;
+}
+
+async function matchingHintByStrongEvidence(db, userId, sourcePackage, paymentChannel,
+  providerReference, lifecycleIdentity, amountMinor, direction) {
+  if (!providerReference && !lifecycleIdentity) return null;
+  for (const [column, value] of [["provider_reference", providerReference], ["lifecycle_identity", lifecycleIdentity]]) {
+    if (!value) continue;
+    const rows = (await db.prepare(`SELECT * FROM task21_notification_pending_hints
+      WHERE user_id = ?1 AND source_package = ?2 AND payment_channel = ?3
+        AND ${column} = ?4 AND state != 'superseded' LIMIT 10`)
+      .bind(userId, sourcePackage, paymentChannel, value).all()).results || [];
+    const matches = rows.filter((row) => moneyCompatible(row, amountMinor, direction));
+    if (matches.length > 1) {
+      throw new Task21Error("已有多条相同强证据的核实记录，需要先收敛", 409, "review_alias_ambiguous");
+    }
+    if (matches.length === 1) return matches[0];
+    if (column === "provider_reference" && rows.some((row) => !direction || !row.direction || row.direction === direction)) {
+      throw new Task21Error("同一交易参考号对应不同金额或方向", 409, "provider_reference_conflict");
+    }
+  }
+  return null;
 }
 
 function cleanEvidence(value) {
@@ -130,7 +205,8 @@ async function autoBookVerifiedHint(db, account, deviceId, row) {
     currency: String(row.currency || "CNY"),
     merchant: String(row.merchant || ""),
     counterparty: "",
-    payment_channel: "",
+    payment_channel: String(row.payment_channel || ""),
+    provider_reference: String(row.provider_reference || ""),
     occurred_at_ms: occurredAtMs,
     received_at_ms: occurredAtMs,
     confidence: Number(row.confidence || 0),
@@ -144,18 +220,22 @@ async function autoBookVerifiedHint(db, account, deviceId, row) {
   ]);
   await run(db, `UPDATE task21_notification_candidates
     SET status = 'confirmed', finance_transaction_id = ?3, updated_at = ?4
-    WHERE user_id = ?1 AND event_id = ?2 AND status = 'pending'`, [
+    WHERE user_id = ?1 AND status = 'pending' AND (event_id = ?2 OR event_id IN (
+      SELECT event_id FROM task21_notification_review_aliases WHERE user_id = ?1 AND hint_id = ?5))`, [
     account.id, row.source_event_id, finance.transaction_id, now,
+    row.id,
   ]);
   await run(db, `UPDATE task21_notification_events
     SET finance_transaction_id = ?3, updated_at = ?4
-    WHERE user_id = ?1 AND event_id = ?2 AND finance_transaction_id = ''`, [
-    account.id, row.source_event_id, finance.transaction_id, now,
+    WHERE user_id = ?1 AND finance_transaction_id = '' AND (event_id = ?2 OR event_id IN (
+      SELECT event_id FROM task21_notification_review_aliases WHERE user_id = ?1 AND hint_id = ?5))`, [
+    account.id, row.source_event_id, finance.transaction_id, now, row.id,
   ]);
   await run(db, `UPDATE task21_notification_evidence
     SET finance_transaction_id = ?3, reconciliation_state = 'confirmed', updated_at = ?4
-    WHERE user_id = ?1 AND event_id = ?2`, [
-    account.id, row.source_event_id, finance.transaction_id, now,
+    WHERE user_id = ?1 AND (event_id = ?2 OR event_id IN (
+      SELECT event_id FROM task21_notification_review_aliases WHERE user_id = ?1 AND hint_id = ?5))`, [
+    account.id, row.source_event_id, finance.transaction_id, now, row.id,
   ]);
   return await hintById(db, account, row.id);
 }
@@ -230,6 +310,44 @@ async function ledgerBookingForEvent(db, userId, eventId) {
   return { transactionId, ledger };
 }
 
+async function ledgerBookingForHint(db, account, row) {
+  const direct = await ledgerBookingForEvent(db, account.id, row.source_event_id);
+  if (direct) return direct;
+  const aliases = (await db.prepare(`SELECT event_id FROM task21_notification_review_aliases
+    WHERE user_id = ?1 AND hint_id = ?2 LIMIT 100`).bind(account.id, row.id).all()).results || [];
+  for (const alias of aliases) {
+    const booked = await ledgerBookingForEvent(db, account.id, alias.event_id);
+    if (booked) return booked;
+  }
+  return null;
+}
+
+async function ledgerBookingByStrongEvidence(db, account, sourcePackage, paymentChannel,
+  providerReference, lifecycleIdentity, amountMinor, direction) {
+  for (const [column, value] of [["provider_reference", providerReference],
+    ["lifecycle_identity", lifecycleIdentity]]) {
+    if (!value) continue;
+    const rows = (await db.prepare(`SELECT txn.id AS transaction_id, txn.amount_minor,
+        txn.direction, txn.merchant
+      FROM task21_notification_events e
+      JOIN task16_finance_transactions txn
+        ON txn.user_id = e.user_id AND txn.id = e.finance_transaction_id AND txn.status = 'active'
+      WHERE e.user_id = ?1 AND e.source_package = ?2 AND e.payment_channel = ?3
+        AND e.${column} = ?4 LIMIT 10`)
+      .bind(account.id, sourcePackage, paymentChannel, value).all()).results || [];
+    const matches = rows.filter((row) =>
+      (amountMinor === null || Number(row.amount_minor) === amountMinor) &&
+      (!direction || row.direction === direction));
+    if (new Set(matches.map((row) => row.transaction_id)).size > 1) {
+      throw new Task21Error("强证据已关联多笔账本交易", 409, "review_alias_ambiguous");
+    }
+    const row = matches[0];
+    if (!row) continue;
+    return { transactionId: String(row.transaction_id), ledger: row };
+  }
+  return null;
+}
+
 /**
  * Device acceptance (Task 24 P1): a pending hint whose event is already in the
  * ledger can never stay actionable.
@@ -241,7 +359,7 @@ async function ledgerBookingForEvent(db, userId, eventId) {
  * Web page or the Android pull reads it.
  */
 async function reconcilePendingHint(db, account, row) {
-  const booking = await ledgerBookingForEvent(db, account.id, String(row.source_event_id || ""));
+  const booking = await ledgerBookingForHint(db, account, row);
   if (!booking) return row;
   const amountMinor = Number(booking.ledger.amount_minor) > 0 ? Number(booking.ledger.amount_minor) : null;
   const direction = ["income", "expense", "refund"].includes(String(booking.ledger.direction))
@@ -257,6 +375,21 @@ async function reconcilePendingHint(db, account, row) {
     account.id, row.id, booking.transactionId, amountMinor, direction,
     String(booking.ledger.merchant || ""), now,
   ]);
+  await run(db, `UPDATE task21_notification_candidates
+    SET status = 'confirmed', finance_transaction_id = ?3, updated_at = ?4
+    WHERE user_id = ?1 AND status = 'pending' AND (event_id = ?2 OR event_id IN (
+      SELECT event_id FROM task21_notification_review_aliases WHERE user_id = ?1 AND hint_id = ?5))`,
+  [account.id, row.source_event_id, booking.transactionId, now, row.id]);
+  await run(db, `UPDATE task21_notification_events
+    SET finance_transaction_id = ?3, updated_at = ?4
+    WHERE user_id = ?1 AND (event_id = ?2 OR event_id IN (
+      SELECT event_id FROM task21_notification_review_aliases WHERE user_id = ?1 AND hint_id = ?5))`,
+  [account.id, row.source_event_id, booking.transactionId, now, row.id]);
+  await run(db, `UPDATE task21_notification_evidence
+    SET finance_transaction_id = ?3, reconciliation_state = 'confirmed', updated_at = ?4
+    WHERE user_id = ?1 AND (event_id = ?2 OR event_id IN (
+      SELECT event_id FROM task21_notification_review_aliases WHERE user_id = ?1 AND hint_id = ?5))`,
+  [account.id, row.source_event_id, booking.transactionId, now, row.id]);
   return await hintById(db, account, row.id);
 }
 
@@ -281,7 +414,7 @@ async function reconcileConfirmedHint(db, account, row) {
  * ingest can never create a second pending row, and a confirmed/ignored event is
  * never revived as pending (only a real, still-pending row is updated).
  */
-export async function upsertNotificationHints(db, account, input) {
+export async function upsertNotificationHints(db, account, input, retryDepth = 0) {
   requireFinanceRecognitionAccess(account);
   requireAllowedFields(input, new Set(["device_id", "hints"]));
   const deviceId = cleanId(input.device_id, "设备标识");
@@ -293,7 +426,8 @@ export async function upsertNotificationHints(db, account, input) {
     requireAllowedFields(raw, new Set([
       "source_event_id", "source_type", "source_package", "app_label",
       "amount_minor", "direction", "merchant", "currency", "confidence",
-      "recognition_status", "evidence",
+      "recognition_status", "evidence", "provider_reference", "payment_channel",
+      "lifecycle_identity",
     ]));
     const sourceEventId = cleanId(raw.source_event_id, "事件标识");
     const sourceType = String(raw.source_type || "notification").trim().toLowerCase();
@@ -306,10 +440,35 @@ export async function upsertNotificationHints(db, account, input) {
     const direction = cleanDirection(raw.direction);
     const sourcePackage = cleanText(raw.source_package, 160, "来源应用");
     const appLabel = cleanText(raw.app_label, 80, "应用名称");
+    const paymentChannel = cleanText(raw.payment_channel, 40, "支付渠道").toLowerCase();
+    const providerReference = cleanProviderReference(raw.provider_reference);
+    const lifecycleIdentity = cleanLifecycleIdentity(raw.lifecycle_identity);
     const merchant = cleanText(raw.merchant, 160, "商户");
     const currency = cleanText(raw.currency || "CNY", 8, "币种") || "CNY";
     const confidence = Math.min(1000, nonNegativeInteger(raw.confidence || 0, "置信度", 1000));
     const evidence = cleanEvidence(raw.evidence);
+
+    const exact = await exactHintForEvent(db, account.id, sourceEventId);
+    const strong = await matchingHintByStrongEvidence(db, account.id, sourcePackage, paymentChannel,
+      providerReference, lifecycleIdentity, amountMinor, direction);
+    let existing = exact || strong;
+    if (exact && strong && exact.id !== strong.id) {
+      if ((exact.provider_reference && providerReference && exact.provider_reference !== providerReference) ||
+          (exact.lifecycle_identity && lifecycleIdentity && exact.lifecycle_identity !== lifecycleIdentity)) {
+        throw new Task21Error("旧事件强证据冲突", 409, "review_identity_conflict");
+      }
+      existing = await supersedeExactHint(db, account, exact, strong, now);
+    }
+    if (existing && existing.source_event_id !== sourceEventId) {
+      await run(db, `INSERT OR IGNORE INTO task21_notification_review_aliases
+        (user_id, event_id, hint_id, created_at) VALUES (?1, ?2, ?3, ?4)`,
+      [account.id, sourceEventId, existing.id, now]);
+      const alias = await first(db, `SELECT hint_id FROM task21_notification_review_aliases
+        WHERE user_id = ?1 AND event_id = ?2`, [account.id, sourceEventId]);
+      if (alias?.hint_id !== existing.id) {
+        throw new Task21Error("事件已关联另一笔核实记录", 409, "review_alias_conflict");
+      }
+    }
 
     // A late device upload must inherit an exact structured candidate's
     // terminal outcome. It cannot reopen a payment the user already rejected
@@ -320,7 +479,9 @@ export async function upsertNotificationHints(db, account, input) {
       LEFT JOIN task16_finance_transactions txn
         ON txn.user_id = c.user_id AND txn.id = c.finance_transaction_id AND txn.status = 'active'
       WHERE c.user_id = ?1 AND c.event_id = ?2`, [account.id, sourceEventId]);
-    const booked = await ledgerBookingForEvent(db, account.id, sourceEventId);
+    const booked = await ledgerBookingForEvent(db, account.id, sourceEventId) ||
+      await ledgerBookingByStrongEvidence(db, account, sourcePackage, paymentChannel,
+        providerReference, lifecycleIdentity, amountMinor, direction);
     const candidateTerminalState = booked ? "confirmed"
       : candidate && candidate.status !== "pending"
         ? (candidate.active_transaction_id ? "confirmed" : "ignored") : "";
@@ -331,9 +492,21 @@ export async function upsertNotificationHints(db, account, input) {
       ? String(booked.ledger.direction) : direction;
     const terminalMerchant = booked ? String(booked.ledger.merchant || "") : merchant;
 
-    const existing = await first(db, `SELECT * FROM task21_notification_pending_hints
-      WHERE user_id = ?1 AND source_event_id = ?2`, [account.id, sourceEventId]);
     if (existing) {
+      if ((existing.provider_reference && providerReference && existing.provider_reference !== providerReference) ||
+          (existing.lifecycle_identity && lifecycleIdentity && existing.lifecycle_identity !== lifecycleIdentity)) {
+        throw new Task21Error("同一事件带来冲突的交易身份", 409, "review_identity_conflict");
+      }
+      const previousEvidence = JSON.parse(String(existing.evidence_summary || "{}"));
+      const incomingEvidence = JSON.parse(evidence);
+      incomingEvidence.reasons = [...new Set([
+        ...(Array.isArray(previousEvidence.reasons) ? previousEvidence.reasons : []),
+        ...(Array.isArray(incomingEvidence.reasons) ? incomingEvidence.reasons : []),
+      ])].slice(0, 12);
+      if (!Number(incomingEvidence.occurred_at_ms) && Number(previousEvidence.occurred_at_ms) > 0) {
+        incomingEvidence.occurred_at_ms = Number(previousEvidence.occurred_at_ms);
+      }
+      const mergedEvidence = JSON.stringify(incomingEvidence);
       if (existing.state === "pending" && candidateTerminalState) {
         await run(db, `UPDATE task21_notification_pending_hints
           SET state = ?3, finance_entry_id = ?4,
@@ -365,6 +538,11 @@ export async function upsertNotificationHints(db, account, input) {
           (existing.amount_minor === null && amountMinor !== null) ||
           (existing.direction === null && direction !== null) ||
           (!String(existing.merchant || "") && Boolean(merchant)) ||
+          (!String(existing.provider_reference || "") && Boolean(providerReference)) ||
+          (!String(existing.lifecycle_identity || "") && Boolean(lifecycleIdentity)) ||
+          (!String(existing.payment_channel || "") && Boolean(paymentChannel)) ||
+          (!String(existing.app_label || "") && Boolean(appLabel)) ||
+          (!Number(previousEvidence.occurred_at_ms) && Number(incomingEvidence.occurred_at_ms) > 0) ||
           confidence > Number(existing.confidence || 0) ||
           mergedStatus !== previousStatus;
         if (improved) {
@@ -373,12 +551,16 @@ export async function upsertNotificationHints(db, account, input) {
                 direction = COALESCE(direction, ?4),
                 merchant = CASE WHEN merchant = '' AND ?5 != '' THEN ?5 ELSE merchant END,
                 confidence = MAX(confidence, ?6),
-                recognition_status = ?7,
-                evidence_summary = CASE WHEN ?6 >= confidence THEN ?8 ELSE evidence_summary END,
-                updated_at = ?9
+                 recognition_status = ?7,
+                 evidence_summary = CASE WHEN ?6 >= confidence THEN ?8 ELSE evidence_summary END,
+                 provider_reference = CASE WHEN provider_reference = '' THEN ?10 ELSE provider_reference END,
+                 lifecycle_identity = CASE WHEN lifecycle_identity = '' THEN ?11 ELSE lifecycle_identity END,
+                 payment_channel = CASE WHEN payment_channel = '' THEN ?12 ELSE payment_channel END,
+                 app_label = CASE WHEN app_label = '' THEN ?13 ELSE app_label END,
+                 updated_at = ?9
             WHERE user_id = ?1 AND id = ?2 AND state = 'pending'`, [
             account.id, existing.id, amountMinor, direction, merchant, confidence,
-            mergedStatus, evidence, now,
+             mergedStatus, mergedEvidence, now, providerReference, lifecycleIdentity, paymentChannel, appLabel,
           ]);
         }
         const updated = await hintById(db, account, existing.id);
@@ -394,22 +576,29 @@ export async function upsertNotificationHints(db, account, input) {
       await run(db, `INSERT INTO task21_notification_pending_hints (
         id, user_id, source_event_id, device_id, source_type, source_package, app_label,
         evidence_summary, amount_minor, direction, merchant, currency, confidence,
-        recognition_status, state, finance_entry_id, created_at, updated_at, confirmed_at, ignored_at
+        recognition_status, state, finance_entry_id, created_at, updated_at, confirmed_at, ignored_at,
+        provider_reference, lifecycle_identity, payment_channel
       ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,
-        ?16, ?17, ?15, ?15, ?18, ?19)`, [
+        ?16, ?17, ?15, ?15, ?18, ?19, ?20, ?21, ?22)`, [
         id, account.id, sourceEventId, deviceId, sourceType, sourcePackage, appLabel,
         evidence, terminalAmountMinor, terminalDirection, terminalMerchant, currency, confidence,
         recognitionStatus, now, candidateTerminalState || "pending", candidateTransactionId,
         candidateTerminalState === "confirmed" ? now : "",
         candidateTerminalState === "ignored" ? now : "",
+        providerReference, lifecycleIdentity, paymentChannel,
       ]);
       const created = await hintById(db, account, id);
       const terminal = await autoBookVerifiedHint(db, account, deviceId, created);
       results.push({ hint: publicHint(terminal), duplicate: false });
     } catch (error) {
       // A concurrent ingest of the same event is a duplicate, not a failure.
-      const raced = await first(db, `SELECT * FROM task21_notification_pending_hints
-        WHERE user_id = ?1 AND source_event_id = ?2`, [account.id, sourceEventId]);
+      const raced = await exactHintForEvent(db, account.id, sourceEventId);
+      if (!raced && retryDepth === 0 && (providerReference || lifecycleIdentity)) {
+        const retried = await upsertNotificationHints(db, account,
+          { device_id: deviceId, hints: [raw] }, 1);
+        results.push(retried.results[0]);
+        continue;
+      }
       if (!raced) throw error;
       const terminal = await autoBookVerifiedHint(db, account, deviceId, raced);
       results.push({ hint: publicHint(terminal), duplicate: true });
@@ -453,14 +642,18 @@ export async function listNotificationHints(db, account, input = {}) {
  * The Android notification hub used to compare its local Room count with only
  * `task21_notification_candidates`, while /finance also renders pending hints.
  * That produced numbers such as "local 5 / cloud 2" beside a 12-row Finance
- * list. The response contains identities only: no notification title/body is
- * accepted by Task 21 and none is returned here.
+ * list. The response contains the exact canonical review identity plus safe
+ * structured display fields; no notification title/body is accepted or returned.
  */
 export async function notificationPendingSummary(db, account, input = {}) {
   requireFinanceRecognitionAccess(account);
   // A refresh is also the bounded repair point for candidates created solely
   // by the former confidence gate. Each booking retains its source event id.
   await reconcileLegacyCompleteCandidates(db, account);
+  const aliasedPending = (await db.prepare(`SELECT DISTINCT h.* FROM task21_notification_pending_hints h
+    JOIN task21_notification_review_aliases a ON a.user_id = h.user_id AND a.hint_id = h.id
+    WHERE h.user_id = ?1 AND h.state = 'pending'`).bind(account.id).all()).results || [];
+  for (const hint of aliasedPending) await reconcilePendingHint(db, account, hint);
   const requested = String(input.event_ids || "").split(",").filter(Boolean);
   if (requested.length > 200) throw new Task21Error("一次查询事件过多", 413, "too_many_events");
   const eventIds = [...new Set(requested.map((id) => cleanId(id, "事件标识")))];
@@ -483,7 +676,19 @@ export async function notificationPendingSummary(db, account, input = {}) {
         ELSE h.state
       END AS state,
       COALESCE(et.id, b.transaction_id, ht.id, '') AS transaction_id,
-      h.updated_at, json_array(h.source_event_id) AS event_ids
+      h.updated_at, json_insert(COALESCE((SELECT json_group_array(a.event_id)
+        FROM task21_notification_review_aliases a
+        WHERE a.user_id = h.user_id AND a.hint_id = h.id), json_array()),
+        '$[#]', h.source_event_id) AS event_ids,
+      h.source_package, COALESCE(NULLIF(h.app_label, ''),
+        CASE h.source_package WHEN 'com.tencent.mm' THEN '微信'
+          WHEN 'com.eg.android.AlipayGphone' THEN '支付宝' ELSE h.source_package END) AS app_label,
+      h.amount_minor,
+      CASE WHEN h.direction IN ('income', 'expense', 'refund') THEN h.direction ELSE NULL END AS direction,
+      h.merchant,
+      COALESCE(NULLIF(CAST(json_extract(h.evidence_summary, '$.occurred_at_ms') AS INTEGER), 0),
+        CAST(strftime('%s', h.created_at) AS INTEGER) * 1000, 0) AS occurred_at_ms,
+      h.confidence, COALESCE(json_extract(h.evidence_summary, '$.reasons'), '[]') AS recognition_reasons
     FROM task21_notification_pending_hints h
     LEFT JOIN task21_notification_events e ON e.user_id = h.user_id AND e.event_id = h.source_event_id
     LEFT JOIN task16_finance_transactions et
@@ -492,6 +697,9 @@ export async function notificationPendingSummary(db, account, input = {}) {
     LEFT JOIN task16_finance_transactions ht
       ON ht.user_id = h.user_id AND ht.id = h.finance_entry_id AND ht.status = 'active'
     WHERE h.user_id = ?1 AND NOT EXISTS (
+      SELECT 1 FROM task21_notification_review_aliases a
+      WHERE a.user_id = h.user_id AND a.event_id = h.source_event_id AND a.hint_id != h.id
+    ) AND NOT EXISTS (
       SELECT 1 FROM task21_notification_candidates c
       WHERE c.user_id = h.user_id AND (c.event_id = h.source_event_id OR EXISTS (
         SELECT 1 FROM task21_notification_events ev
@@ -508,7 +716,13 @@ export async function notificationPendingSummary(db, account, input = {}) {
       END,
       COALESCE(ct.id, et.id, cb.transaction_id, ht.id, ''), c.updated_at,
       COALESCE((SELECT json_group_array(ev.event_id) FROM task21_notification_events ev
-        WHERE ev.user_id = c.user_id AND ev.candidate_id = c.id), json_array(c.event_id))
+        WHERE ev.user_id = c.user_id AND ev.candidate_id = c.id), json_array(c.event_id)),
+      COALESCE(e.source_package, '') AS source_package,
+      CASE e.source_package WHEN 'com.tencent.mm' THEN '微信'
+        WHEN 'com.eg.android.AlipayGphone' THEN '支付宝'
+        ELSE COALESCE(e.source_package, '') END AS app_label,
+      c.amount_minor, c.direction, c.merchant, c.occurred_at_ms, c.confidence,
+      '[]' AS recognition_reasons
     FROM task21_notification_candidates c
     LEFT JOIN task21_notification_events e ON e.user_id = c.user_id AND e.event_id = c.event_id
     LEFT JOIN task16_finance_transactions ct
@@ -528,13 +742,20 @@ export async function notificationPendingSummary(db, account, input = {}) {
     SUM(CASE WHEN state = 'pending' AND kind = 'hint' THEN 1 ELSE 0 END) OVER () AS hint_count,
     SUM(CASE WHEN state = 'pending' AND kind = 'candidate' THEN 1 ELSE 0 END) OVER () AS candidate_count,
     COUNT(*) OVER () AS record_count
-  FROM visible ORDER BY updated_at DESC, id DESC LIMIT 1000`).bind(account.id, JSON.stringify(eventIds)).all();
+  FROM visible ORDER BY updated_at DESC, id DESC`).bind(account.id, JSON.stringify(eventIds)).all();
   const rows = result?.results || [];
   const records = rows.map((row) => ({
     kind: String(row.kind), id: String(row.id), event_id: String(row.event_id),
     event_ids: [...new Set([String(row.event_id), ...JSON.parse(row.event_ids || "[]")])],
     device_id: String(row.device_id), state: String(row.state),
     transaction_id: String(row.transaction_id || ""), updated_at: String(row.updated_at),
+    source_package: String(row.source_package || ""), app_label: String(row.app_label || ""),
+    amount_minor: Number(row.amount_minor) > 0 ? Number(row.amount_minor) : null,
+    direction: ["income", "expense", "refund"].includes(String(row.direction)) ? String(row.direction) : null,
+    merchant: String(row.merchant || ""),
+    occurred_at_ms: Number(row.occurred_at_ms || 0),
+    confidence: Number(row.confidence || 0),
+    recognition_reasons: JSON.parse(String(row.recognition_reasons || "[]")),
   }));
   const hintCount = Number(rows[0]?.hint_count || 0);
   const candidateCount = Number(rows[0]?.candidate_count || 0);
@@ -563,11 +784,13 @@ export async function confirmNotificationHint(db, account, input) {
   if (row.state !== "pending") throw new Task21Error("该待确认记录不能确认", 409, "hint_state_invalid");
   const deviceId = cleanId(input.device_id, "设备标识");
   const amountMinor = cleanAmount(edits.amount_minor) || cleanAmount(row.amount_minor);
-  const direction = cleanDirection(edits.direction) || row.direction;
+  const direction = cleanDirection(edits.direction) || cleanDirection(row.direction);
   if (!amountMinor) throw new Task21Error("请先填写金额后再确认", 400, "hint_amount_required");
   if (!direction) throw new Task21Error("请先选择收支方向后再确认", 400, "hint_direction_required");
   const merchant = cleanText(edits.merchant ?? row.merchant, 160, "商户");
-  const occurredAtMs = cleanAmount(edits.occurred_at_ms) || Date.parse(row.created_at) || Date.now();
+  const storedEvidence = JSON.parse(String(row.evidence_summary || "{}"));
+  const occurredAtMs = cleanAmount(edits.occurred_at_ms) ||
+    cleanAmount(storedEvidence.occurred_at_ms) || Date.parse(row.created_at) || Date.now();
 
   const finance = await createAutomaticFinanceTransaction(db, account, deviceId, {
     event_id: row.source_event_id,
@@ -577,7 +800,8 @@ export async function confirmNotificationHint(db, account, input) {
     currency: row.currency,
     merchant,
     counterparty: "",
-    payment_channel: "",
+    payment_channel: String(row.payment_channel || ""),
+    provider_reference: String(row.provider_reference || ""),
     occurred_at_ms: occurredAtMs,
     received_at_ms: occurredAtMs,
     confidence: Number(row.confidence || 0),
@@ -609,8 +833,21 @@ export async function confirmNotificationHint(db, account, input) {
   ]);
   await run(db, `UPDATE task21_notification_candidates
     SET status = 'confirmed', finance_transaction_id = ?3, updated_at = ?4
-    WHERE user_id = ?1 AND event_id = ?2 AND status = 'pending'`, [
-    account.id, row.source_event_id, finance.transaction_id, now,
+    WHERE user_id = ?1 AND status = 'pending' AND (event_id = ?2 OR event_id IN (
+      SELECT event_id FROM task21_notification_review_aliases WHERE user_id = ?1 AND hint_id = ?5))`, [
+    account.id, row.source_event_id, finance.transaction_id, now, row.id,
+  ]);
+  await run(db, `UPDATE task21_notification_events
+    SET finance_transaction_id = ?3, updated_at = ?4
+    WHERE user_id = ?1 AND (event_id = ?2 OR event_id IN (
+      SELECT event_id FROM task21_notification_review_aliases WHERE user_id = ?1 AND hint_id = ?5))`, [
+    account.id, row.source_event_id, finance.transaction_id, now, row.id,
+  ]);
+  await run(db, `UPDATE task21_notification_evidence
+    SET finance_transaction_id = ?3, reconciliation_state = 'confirmed', updated_at = ?4
+    WHERE user_id = ?1 AND (event_id = ?2 OR event_id IN (
+      SELECT event_id FROM task21_notification_review_aliases WHERE user_id = ?1 AND hint_id = ?5))`, [
+    account.id, row.source_event_id, finance.transaction_id, now, row.id,
   ]);
   return {
     hint: publicHint(await hintById(db, account, hintId)),
@@ -626,7 +863,7 @@ export async function ignoreNotificationHint(db, account, input) {
   const row = await hintById(db, account, hintId);
   if (row.state === "ignored") return { hint: publicHint(row), no_change: true };
   if (row.state !== "pending") throw new Task21Error("该待确认记录不能忽略", 409, "hint_state_invalid");
-  const booked = await ledgerBookingForEvent(db, account.id, row.source_event_id);
+  const booked = await ledgerBookingForHint(db, account, row);
   if (booked) {
     return { hint: publicHint(await reconcilePendingHint(db, account, row)), no_change: true };
   }
@@ -636,8 +873,9 @@ export async function ignoreNotificationHint(db, account, input) {
     WHERE user_id = ?1 AND id = ?2`, [account.id, hintId, now]);
   await run(db, `UPDATE task21_notification_candidates
     SET status = 'rejected', updated_at = ?3
-    WHERE user_id = ?1 AND event_id = ?2 AND status = 'pending'`, [
-    account.id, row.source_event_id, now,
+    WHERE user_id = ?1 AND status = 'pending' AND (event_id = ?2 OR event_id IN (
+      SELECT event_id FROM task21_notification_review_aliases WHERE user_id = ?1 AND hint_id = ?4))`, [
+    account.id, row.source_event_id, now, row.id,
   ]);
   return { hint: publicHint(await hintById(db, account, hintId)) };
 }

@@ -615,6 +615,200 @@ try {
     completedAmount.payload.hints[0].finance_entry_id);
   assert.equal(await linkedTransactionCount(), 1, "completed enrichment is exactly once");
 
+  // One WeChat message can be reposted under several notification keys. Its
+  // MessagingStyle lifecycle hash, never the amount/time, links the review.
+  const life = "a".repeat(64);
+  const lifeEvents = ["evt-life-incomplete", "evt-life-update", "evt-life-enrichment"];
+  const lifeInitial = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody(lifeEvents[0], {
+      payment_channel: "wechat", lifecycle_identity: life,
+      evidence: { source_type: "notification", confidence: 460,
+        reasons: ["wechat_payment_hint_without_amount"], occurred_at_ms: 1_789_000_000_000 },
+    }),
+  });
+  assert.equal(lifeInitial.response.status, 200, JSON.stringify(lifeInitial.payload));
+  const lifeHintId = lifeInitial.payload.hints[0].id;
+  const lifeUpdate = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody(lifeEvents[1], {
+      payment_channel: "wechat", lifecycle_identity: life,
+      amount_minor: 1, direction: null, confidence: 720,
+    }),
+  });
+  assert.equal(lifeUpdate.response.status, 200, JSON.stringify(lifeUpdate.payload));
+  assert.equal(lifeUpdate.payload.hints[0].id, lifeHintId);
+  const lifePending = await request(db, "/api/notification/pending-summary", { token: USER.token });
+  assert.equal(lifePending.response.status, 200, JSON.stringify(lifePending.payload));
+  const lifeCard = lifePending.payload.records.find((row) => row.id === lifeHintId);
+  assert.equal(lifePending.payload.total_count, 1);
+  assert.equal(lifeCard.state, "pending");
+  assert.deepEqual(new Set(lifeCard.event_ids), new Set(lifeEvents.slice(0, 2)));
+  assert.equal(lifeCard.amount_minor, 1);
+  assert.equal(lifeCard.direction, null);
+  assert.equal(lifeCard.source_package, "com.tencent.mm");
+  assert.equal(lifeCard.app_label, "微信");
+  assert.equal(lifeCard.occurred_at_ms, 1_789_000_000_000);
+  assert.equal(lifeCard.confidence, 720);
+  for (const forbidden of ["title", "text", "body", "big_text", "extras"]) {
+    assert.equal(forbidden in lifeCard, false, `pending summary must not expose ${forbidden}`);
+  }
+
+  const lifeBooked = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USER.token,
+    body: { schema_version: "1", device_id: "device-hints-000001", operations: [{
+      operation_id: "op-life-enrichment", type: "event.ingest", payload: {
+        event_id: lifeEvents[2], fingerprint: "cd".repeat(32),
+        source_package: "com.tencent.mm", source_type: "notification",
+        event_type: "transaction", parser_version: "wechat-2", parse_status: "parsed",
+        direction: "expense", amount_minor: 1, currency: "CNY", payment_channel: "wechat",
+        lifecycle_identity: life, merchant: "", counterparty: "", confidence: 720,
+        occurred_at_ms: 1_789_000_000_000, received_at_ms: 1_789_000_002_000,
+      },
+    }] },
+  });
+  assert.equal(lifeBooked.response.status, 200, JSON.stringify(lifeBooked.payload));
+  assert.match(lifeBooked.payload.operation_results[0].transaction_id, /^txn:/);
+  const lifeTerminal = await request(db,
+    `/api/notification/pending-summary?event_ids=${lifeEvents[2]}`, { token: USER.token });
+  assert.equal(lifeTerminal.payload.total_count, 0);
+  const terminalCard = lifeTerminal.payload.records.find((row) => row.id === lifeHintId);
+  assert.equal(terminalCard.state, "confirmed");
+  assert.deepEqual(new Set(terminalCard.event_ids), new Set(lifeEvents));
+  const lifeRaw = await db.prepare(`SELECT COUNT(*) AS count FROM task16_finance_raw_events
+    WHERE user_id = ?1 AND source_event_id = ?2`).bind(USER.id, lifeEvents[0]).first();
+  assert.equal(Number(lifeRaw.count), 1);
+
+  const eventFirstId = "evt-life-booked-before-hint";
+  const eventFirst = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USER.token,
+    body: { schema_version: "1", device_id: "device-hints-000001", operations: [{
+      operation_id: "op-life-event-first", type: "event.ingest", payload: {
+        event_id: eventFirstId, fingerprint: "de".repeat(32),
+        source_package: "com.tencent.mm", source_type: "notification",
+        event_type: "transaction", parser_version: "wechat-2", parse_status: "parsed",
+        direction: "expense", amount_minor: 567, currency: "CNY", payment_channel: "wechat",
+        lifecycle_identity: "d".repeat(64), merchant: "", counterparty: "", confidence: 650,
+        occurred_at_ms: 1_789_000_100_000, received_at_ms: 1_789_000_100_100,
+      },
+    }] },
+  });
+  assert.equal(eventFirst.response.status, 200, JSON.stringify(eventFirst.payload));
+  const eventFirstTxn = eventFirst.payload.operation_results[0].transaction_id;
+  const lateHint = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody("evt-life-late-hint", {
+      payment_channel: "wechat", lifecycle_identity: "d".repeat(64),
+      amount_minor: null, direction: null,
+    }),
+  });
+  assert.equal(lateHint.response.status, 200, JSON.stringify(lateHint.payload));
+  assert.equal(lateHint.payload.hints[0].state, "confirmed");
+  assert.equal(lateHint.payload.hints[0].finance_entry_id, eventFirstTxn);
+  const lateSummary = await request(db,
+    "/api/notification/pending-summary?event_ids=evt-life-late-hint", { token: USER.token });
+  assert.equal(lateSummary.payload.total_count, 0,
+    "a late hint for an already booked lifecycle must never revive pending");
+
+  const distinct = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody("evt-life-distinct", { payment_channel: "wechat", lifecycle_identity: "b".repeat(64),
+      amount_minor: 1, direction: null }),
+  });
+  assert.equal(distinct.response.status, 200, JSON.stringify(distinct.payload));
+  assert.notEqual(distinct.payload.hints[0].id, lifeHintId,
+    "equal amount and nearby time without shared lifecycle stay separate");
+  const ignoredDistinct = await request(db, "/api/notification/hints/ignore", {
+    method: "POST", token: USER.token, body: { hint_id: distinct.payload.hints[0].id },
+  });
+  assert.equal(ignoredDistinct.response.status, 200);
+
+  const referenceFirst = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody("evt-reference-first", { payment_channel: "wechat",
+      provider_reference: "WECHATREF0002", amount_minor: 280, direction: null }),
+  });
+  const referenceUpdate = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody("evt-reference-update", { payment_channel: "wechat",
+      provider_reference: "WECHATREF0002", amount_minor: 280, direction: null }),
+  });
+  assert.equal(referenceFirst.response.status, 200, JSON.stringify(referenceFirst.payload));
+  assert.equal(referenceUpdate.response.status, 200, JSON.stringify(referenceUpdate.payload));
+  assert.equal(referenceUpdate.payload.hints[0].id, referenceFirst.payload.hints[0].id);
+  const referenceSummary = await request(db, "/api/notification/pending-summary", { token: USER.token });
+  assert.equal(referenceSummary.payload.total_count, 1);
+  assert.deepEqual(new Set(referenceSummary.payload.records[0].event_ids),
+    new Set(["evt-reference-first", "evt-reference-update"]));
+  const referenceIgnored = await request(db, "/api/notification/hints/ignore", {
+    method: "POST", token: USER.token, body: { hint_id: referenceFirst.payload.hints[0].id },
+  });
+  assert.equal(referenceIgnored.response.status, 200);
+  const afterReferenceIgnore = await request(db,
+    "/api/notification/pending-summary?event_ids=evt-reference-update", { token: USER.token });
+  assert.equal(afterReferenceIgnore.payload.total_count, 0);
+  assert.equal(afterReferenceIgnore.payload.records.find((row) => row.id === referenceFirst.payload.hints[0].id).state,
+    "ignored");
+
+  const originalMovement = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody("evt-shared-ref-expense", { payment_channel: "wechat",
+      provider_reference: "WECHATREF7777", amount_minor: null, direction: "expense" }),
+  });
+  const refundMovement = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody("evt-shared-ref-refund", { payment_channel: "wechat",
+      provider_reference: "WECHATREF7777", amount_minor: null, direction: "refund" }),
+  });
+  assert.equal(originalMovement.response.status, 200);
+  assert.equal(refundMovement.response.status, 200, JSON.stringify(refundMovement.payload));
+  assert.notEqual(originalMovement.payload.hints[0].id, refundMovement.payload.hints[0].id,
+    "a refund cannot be folded into the original expense by shared order reference");
+  for (const hint of [originalMovement, refundMovement]) {
+    const ignoredMovement = await request(db, "/api/notification/hints/ignore", {
+      method: "POST", token: USER.token, body: { hint_id: hint.payload.hints[0].id },
+    });
+    assert.equal(ignoredMovement.response.status, 200);
+  }
+
+  // Old APKs may already have split one archive notification instance into
+  // separate event ids. Exact instance proof can retire the duplicate row
+  // without deleting its history or using amount/time proximity.
+  const legacyA = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody("evt-legacy-slot-a", { amount_minor: 10_200, direction: null }),
+  });
+  const legacyB = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody("evt-legacy-slot-b", { amount_minor: null, direction: null }),
+  });
+  assert.notEqual(legacyA.payload.hints[0].id, legacyB.payload.hints[0].id);
+  const beforeArchiveLink = await request(db, "/api/notification/pending-summary", { token: USER.token });
+  assert.equal(beforeArchiveLink.payload.total_count, 2);
+  const archiveHash = "c".repeat(64);
+  for (const eventId of ["evt-legacy-slot-a", "evt-legacy-slot-b"]) {
+    const repair = await request(db, "/api/notification/hints", {
+      method: "POST", token: USER.token,
+      body: hintBody(eventId, { payment_channel: "wechat", lifecycle_identity: archiveHash }),
+    });
+    assert.equal(repair.response.status, 200, JSON.stringify(repair.payload));
+  }
+  const afterArchiveLink = await request(db, "/api/notification/pending-summary", { token: USER.token });
+  assert.equal(afterArchiveLink.payload.total_count, 1);
+  assert.deepEqual(new Set(afterArchiveLink.payload.records[0].event_ids),
+    new Set(["evt-legacy-slot-a", "evt-legacy-slot-b"]));
+  const superseded = await db.prepare(`SELECT state FROM task21_notification_pending_hints
+    WHERE user_id = ?1 AND id = ?2`).bind(USER.id, legacyB.payload.hints[0].id).first();
+  assert.equal(superseded.state, "superseded", "duplicate history remains but is no longer pending");
+  const ignoreLegacy = await request(db, "/api/notification/hints/ignore", {
+    method: "POST", token: USER.token, body: { hint_id: legacyA.payload.hints[0].id },
+  });
+  assert.equal(ignoreLegacy.response.status, 200);
+  const afterLegacyIgnore = await request(db,
+    "/api/notification/pending-summary?event_ids=evt-legacy-slot-b", { token: USER.token });
+  assert.equal(afterLegacyIgnore.payload.total_count, 0);
+  assert.equal(afterLegacyIgnore.payload.records[0].state, "ignored");
+
   console.log("Task 21 pending-hint checks passed (single pending source, no invented money, idempotent confirm/ignore).");
 } finally {
   await mf.dispose();

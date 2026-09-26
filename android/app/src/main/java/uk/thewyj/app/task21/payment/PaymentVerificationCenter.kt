@@ -74,6 +74,7 @@ class PaymentVerificationCenter(
         val recoveryOnly: Boolean = false,
         /** The exact server identity, shared with Web Finance. */
         val canonicalIdentity: String = "",
+        val canonicalState: String = "",
         val eventIds: Set<String> = emptySet(),
         val remoteOnly: Boolean = false,
     ) {
@@ -138,7 +139,7 @@ class PaymentVerificationCenter(
 
     fun account() = runCatching { sessions.currentAccount() }.getOrNull()
 
-    /** The first paint reads only Room, tickets and the local upload queue. */
+    /** The first paint shows only unsent Room work in the separate recovery area. */
     fun localItems(accountId: String): List<Item> = buildItems(accountId, null, includeAllLocal = true)
 
     /** Called only from a background IO coroutine after the first local paint. */
@@ -176,8 +177,12 @@ class PaymentVerificationCenter(
             .mapNotNull { recognition ->
                 val identities = listOf(recognition.uploadEventId) +
                     archive.structuredEventIdsForRecognition(accountId, recognition.sourceEventId)
+                val bookingId = bookingEventId(recognition)
+                val unsent = identities.any { it in queue || "hint:$it" in queue } || bookingId in queue ||
+                    recognition.state == PaymentRecognitionState.ENRICHMENT_VERIFIED.name ||
+                    store.ticketsForRecognition(accountId, recognition.recognitionId).any(tickets::isActive)
                 if (includeAllLocal) {
-                    recognition to true
+                    if (unsent) recognition to true else null
                 } else when (PendingReviewVisibility.classify(
                     identities.filter(String::isNotBlank).toSet(),
                     bookingEventId(recognition),
@@ -186,7 +191,10 @@ class PaymentVerificationCenter(
                 )) {
                     PendingReviewVisibility.Placement.CANONICAL -> recognition to false
                     PendingReviewVisibility.Placement.RECOVERY -> recognition to true
-                    PendingReviewVisibility.Placement.HIDDEN -> null
+                    PendingReviewVisibility.Placement.HIDDEN ->
+                        if (unsent && recognition.state == PaymentRecognitionState.ENRICHMENT_VERIFIED.name) {
+                            recognition to true
+                        } else null
                 }
             }.sortedBy { it.second }
         val localItems = visible.map { (recognition, recoveryOnly) ->
@@ -242,7 +250,17 @@ class PaymentVerificationCenter(
                 !item.recoveryOnly && item.eventIds.any { it in aliases }
             }
             (local ?: remotePendingItem(record)).copy(
-                canonicalIdentity = "${record.kind}:${record.id}",
+                canonicalIdentity = record.canonicalId,
+                canonicalState = record.state,
+                sourcePackage = record.sourcePackage,
+                appLabel = record.appLabel.ifBlank { record.sourcePackage.ifBlank { "通知" } },
+                amountMinor = record.amountMinor,
+                direction = directionOf(record.direction),
+                merchant = record.merchant,
+                occurredAtMs = record.occurredAtMs,
+                syncState = SyncState.PENDING_SYNC,
+                ocrSuggested = false,
+                uploaded = true,
                 eventIds = aliases.filter(String::isNotBlank).toSet(),
             )
         }.distinctBy { it.canonicalIdentity }

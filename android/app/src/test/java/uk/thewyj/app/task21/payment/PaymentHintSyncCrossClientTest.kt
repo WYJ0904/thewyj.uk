@@ -3,6 +3,7 @@ package uk.thewyj.app.task21.payment
 import androidx.room.Room
 import java.io.File
 import java.util.UUID
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -596,6 +597,69 @@ class PaymentHintSyncCrossClientTest {
         assertEquals(1L, hint.getLong("amount_minor"))
         assertTrue(hint.isNull("direction"))
         assertEquals("PAYMENT_LIKELY", hint.getString("recognition_status"))
+    }
+
+    @Test fun ignoredCanonicalAliasClosesTheLocalRecognitionOnTheNextSummary() {
+        paymentStore.saveRecognition(legacyMoneyShapeRecognition("rec-alias-ignored", 1_000L).copy(
+            sourceEventId = "notification#event#evt-alias-update",
+            uploadEventId = "evt-alias-update",
+        ))
+        val sync = PaymentHintSync(
+            RuntimeEnvironment.getApplication(), hintedStore = paymentStore, archiveSink = sink(),
+            accountOverride = { NotificationCaptureCoordinator.CaptureAccount(
+                accountId = account, deviceId = "device-a", sessionToken = "token-a", financeEntitled = true,
+            ) },
+        )
+        val result = sync.applySummary(account, PendingReviewSummary(
+            "now", 0, 0, 0, false, listOf(PendingReviewIdentity(
+                kind = "hint", id = "hint-alias", eventId = "evt-alias-first", deviceId = "device-a",
+                state = "ignored", eventIds = setOf("evt-alias-first", "evt-alias-update"),
+            )),
+        ))
+        assertEquals(0, result.pendingCount)
+        assertEquals(PaymentRecognitionState.IGNORED.name,
+            paymentStore.recognition(account, "rec-alias-ignored")?.state)
+    }
+
+    @Test fun archivedInstanceRepairsLegacySplitReviewsWithoutAmountTimeMerge() {
+        val posted = mutableListOf<JSONObject>()
+        val firstSummary = """{"ok":true,"total_count":2,"truncated":false,"records":[
+          {"kind":"hint","id":"hint-old-a","event_id":"evt-legacy-a","event_ids":["evt-legacy-a"],"device_id":"device-a","state":"pending","source_package":"com.tencent.mm","app_label":"微信","amount_minor":null,"direction":null,"merchant":"","occurred_at_ms":1789000000000,"confidence":600},
+          {"kind":"hint","id":"hint-old-b","event_id":"evt-legacy-b","event_ids":["evt-legacy-b"],"device_id":"device-a","state":"pending","source_package":"com.tencent.mm","app_label":"微信","amount_minor":10200,"direction":null,"merchant":"","occurred_at_ms":1789000002000,"confidence":720}]}"""
+        val repairedSummary = """{"ok":true,"total_count":1,"truncated":false,"records":[
+          {"kind":"hint","id":"hint-old-a","event_id":"evt-legacy-a","event_ids":["evt-legacy-a","evt-legacy-b"],"device_id":"device-a","state":"pending","source_package":"com.tencent.mm","app_label":"微信","amount_minor":10200,"direction":null,"merchant":"","occurred_at_ms":1789000000000,"confidence":720}]}"""
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String): IngestResponse {
+                posted += JSONObject(body)
+                return IngestResponse(true, 200, "{}")
+            }
+            override fun get(path: String, sessionToken: String): IngestResponse = when {
+                path.startsWith("/api/notification/pending-summary") ->
+                    IngestResponse(true, 200, if (posted.size >= 2) repairedSummary else firstSummary)
+                path.startsWith("/api/notification/hints") -> IngestResponse(true, 200, """{"hints":[]}""")
+                else -> IngestResponse(true, 200, """{"candidates":[]}""")
+            }
+        }
+        val archive = object : NotificationArchiveSink {
+            override fun store(accountId: String, input: NotificationCaptureInput,
+                parsed: StructuredNotificationEvent?): Boolean = false
+            override fun markRemoved(accountId: String, input: NotificationCaptureInput) = Unit
+            override fun archivedLifecycleIdentity(accountId: String, structuredEventId: String): String =
+                if (structuredEventId in setOf("evt-legacy-a", "evt-legacy-b")) "c".repeat(64) else ""
+        }
+        val result = PaymentHintSync(RuntimeEnvironment.getApplication(),
+            hintedTransport = transport, hintedStore = paymentStore, archiveSink = archive,
+            accountOverride = { NotificationCaptureCoordinator.CaptureAccount(
+                accountId = account, deviceId = "device-a", sessionToken = "token-a", financeEntitled = true,
+            ) }).sync()
+        assertTrue(result.completeObservation)
+        assertEquals(1, result.pendingCount)
+        assertEquals(listOf("hint:hint-old-a"), result.pendingRecords.map { it.canonicalId })
+        assertEquals(2, posted.size)
+        assertEquals(setOf("evt-legacy-a", "evt-legacy-b"),
+            posted.map { it.getJSONArray("hints").getJSONObject(0).getString("source_event_id") }.toSet())
+        assertTrue(posted.all { it.getJSONArray("hints").getJSONObject(0)
+            .getString("lifecycle_identity") == "c".repeat(64) })
     }
 
     @Test fun firstSuccessfulSummaryRetainsCanonicalPendingRecordsForFallback() {

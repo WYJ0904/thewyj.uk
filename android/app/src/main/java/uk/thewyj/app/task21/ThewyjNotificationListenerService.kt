@@ -231,6 +231,10 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
             infoText = extras?.getCharSequence(Notification.EXTRA_INFO_TEXT)?.toString().orEmpty(),
             summaryText = extras?.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString().orEmpty(),
             textLines = textLines,
+            messageIdentity = NotificationMessagingIdentity.fromExtras(
+                extras, sbn.packageName.orEmpty(),
+                sbn.notification?.shortcutId.orEmpty().ifBlank { sbn.groupKey.orEmpty() },
+            ),
             mediaBitmap = picture,
             mediaSourceUri = media.sourceUri,
             mediaState = when {

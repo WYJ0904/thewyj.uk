@@ -64,6 +64,22 @@ class NotificationLifecycleHistoryTest {
         assertEquals(2, store.lifecycleHistory(account, NotificationQuery()).size)
     }
 
+    @Test fun archiveInstanceProofLinksUpdatesButNotTheNextRemovedLifecycle() {
+        val account = "account-archive-proof"
+        store.record(account, capture("wechat-slot", 1_000, "微信", "支付提醒")
+            .copy(sourceEventId = "evt-archive-first"), 1_000)
+        store.record(account, capture("wechat-slot", 3_000, "微信", "转账 ¥102.00")
+            .copy(sourceEventId = "evt-archive-update"), 3_000)
+        val first = store.archivedLifecycleIdentity(account, "evt-archive-first")
+        val update = store.archivedLifecycleIdentity(account, "evt-archive-update")
+        assertEquals(first, update)
+        store.markRemoved(account, "wechat-slot", 4_000)
+        store.record(account, capture("wechat-slot", 5_000, "微信", "转账 ¥102.00")
+            .copy(sourceEventId = "evt-archive-next"), 5_000)
+        org.junit.Assert.assertNotEquals(first,
+            store.archivedLifecycleIdentity(account, "evt-archive-next"))
+    }
+
     @Test fun twoTransactionsUnderOneNotificationKeyRemainTwoVisibleSnapshots() {
         store.record("account", capture("same-slot", 1_000, "支付", "已支付 ¥2.80 交易号 abcdef01"), 1_000)
         store.record("account", capture("same-slot", 2_000, "支付", "已支付 ¥2.80 交易号 abcdef02"), 2_000)

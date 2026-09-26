@@ -1,6 +1,6 @@
 /** Client ingest protocol version (Android payloads send this value). */
 export const TASK21_SCHEMA_VERSION = "1";
-/** Local D1 schema version; bumped by cloudflare/migrations/0020. */
+/** Task 21 readiness baseline; migration 0022 is additive for old Pages code. */
 export const TASK21_DB_SCHEMA_VERSION = "2";
 export const TASK21_BUILD = "2026-09-08-task21-notification";
 export const NOTIFICATION_ENTITLEMENT = "notification_archive_access";
@@ -13,6 +13,8 @@ export const CANDIDATE_CONFIDENCE_MILLI = 700;
 const SAFE_ID_PATTERN = /^[A-Za-z0-9._:-]{8,80}$/;
 const CURRENCY_PATTERN = /^[A-Z]{3}$/;
 const PACKAGE_PATTERN = /^[\p{L}\p{N}._-]{1,160}$/u;
+const PROVIDER_REFERENCE_PATTERN = /^[A-Za-z0-9_-]{6,40}$/;
+const LIFECYCLE_IDENTITY_PATTERN = /^[0-9a-f]{64}$/;
 
 export const SOURCE_TYPES = Object.freeze(["notification", "sms", "accessibility"]);
 export const EVENT_TYPES = Object.freeze(["transaction", "refund", "marketing", "verification", "other"]);
@@ -46,7 +48,8 @@ export const FORBIDDEN_RAW_FIELDS = Object.freeze([
 const ALLOWED_EVENT_FIELDS = Object.freeze(new Set([
   "event_id", "fingerprint", "source_package", "source_type",
   "event_type", "parser_version", "parse_status", "direction", "amount_minor",
-  "currency", "payment_channel", "merchant", "counterparty", "confidence",
+  "currency", "payment_channel", "provider_reference", "lifecycle_identity",
+  "merchant", "counterparty", "confidence",
   "occurred_at_ms", "received_at_ms",
 ]));
 
@@ -137,6 +140,14 @@ export function normalizeNotificationEvent(value = {}) {
   const parserVersion = cleanText(value.parser_version, 40, "解析器版本");
   const merchant = cleanText(value.merchant, 160, "商户");
   const counterparty = cleanText(value.counterparty, 160, "对手方");
+  const providerReference = String(value.provider_reference || "").trim();
+  if (providerReference && !PROVIDER_REFERENCE_PATTERN.test(providerReference)) {
+    throw new Task21Error("交易参考号无效", 400, "provider_reference_invalid");
+  }
+  const lifecycleIdentity = String(value.lifecycle_identity || "").trim().toLowerCase();
+  if (lifecycleIdentity && !LIFECYCLE_IDENTITY_PATTERN.test(lifecycleIdentity)) {
+    throw new Task21Error("通知生命周期标识无效", 400, "lifecycle_identity_invalid");
+  }
   const amountMinor = nonNegativeInteger(value.amount_minor || 0, "金额", 10000000000000);
   const confidence = Math.min(1000, nonNegativeInteger(value.confidence || 0, "置信度", 1000));
 
@@ -167,6 +178,8 @@ export function normalizeNotificationEvent(value = {}) {
     amount_minor: amountMinor,
     currency: cleanCurrency(value.currency),
     payment_channel: paymentChannel,
+    provider_reference: providerReference,
+    lifecycle_identity: lifecycleIdentity,
     merchant,
     counterparty,
     confidence,

@@ -428,6 +428,51 @@ try {
     WHERE user_id = ?1 AND source_event_id = ?2`).bind(USERS.subscriber.id, "evt-task21-low-auto").first();
   assert.equal(Number(lowAutoTransactions.count), 1);
 
+  const referencedFirst = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-ref-first", transactionEvent({
+      event_id: "evt-task21-ref-first", fingerprint: fingerprint("bb24"),
+      provider_reference: "WECHATREF0001", amount_minor: 3456, confidence: 620,
+    })),
+  });
+  const referencedUpdate = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-ref-update", transactionEvent({
+      event_id: "evt-task21-ref-update", fingerprint: fingerprint("bb25"),
+      provider_reference: "WECHATREF0001", amount_minor: 3456, confidence: 690,
+    })),
+  });
+  assert.equal(referencedFirst.response.status, 200, JSON.stringify(referencedFirst.payload));
+  assert.equal(referencedUpdate.response.status, 200, JSON.stringify(referencedUpdate.payload));
+  assert.equal(referencedUpdate.payload.operation_results[0].transaction_id,
+    referencedFirst.payload.operation_results[0].transaction_id,
+    "exact provider reference reuses the first Finance transaction across event IDs");
+  const referencedRaw = await db.prepare(`SELECT COUNT(*) AS count FROM task16_finance_raw_events
+    WHERE user_id = ?1 AND provider_reference = ?2`).bind(USERS.subscriber.id, "WECHATREF0001").first();
+  assert.equal(Number(referencedRaw.count), 1);
+  const conflictingReference = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-ref-conflict", transactionEvent({
+      event_id: "evt-task21-ref-conflict", fingerprint: fingerprint("bb26"),
+      provider_reference: "WECHATREF0001", amount_minor: 3457, confidence: 700,
+    })),
+  });
+  assert.equal(conflictingReference.response.status, 409);
+  assert.equal(conflictingReference.payload.code, "provider_reference_conflict");
+  const refundOfReferencedPayment = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-ref-refund", transactionEvent({
+      event_id: "evt-task21-ref-refund", fingerprint: fingerprint("bb27"),
+      event_type: "refund", direction: "refund", provider_reference: "WECHATREF0001",
+      amount_minor: 3456, confidence: 650,
+    })),
+  });
+  assert.equal(refundOfReferencedPayment.response.status, 200, JSON.stringify(refundOfReferencedPayment.payload));
+  assert.match(refundOfReferencedPayment.payload.operation_results[0].transaction_id, /^txn:/);
+  assert.notEqual(refundOfReferencedPayment.payload.operation_results[0].transaction_id,
+    referencedFirst.payload.operation_results[0].transaction_id,
+    "a refund sharing the order reference is a separate finance movement");
+
   // A candidate created by the previous release must remain confirmable.
   const low = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",

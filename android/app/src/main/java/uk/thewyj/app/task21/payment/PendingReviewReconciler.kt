@@ -46,7 +46,7 @@ object PendingReviewReconciler {
             localOnly = localOnly,
             remoteOnly = remoteOnly,
             observedAt = remoteSummary.observedAt,
-            complete = !remoteSummary.truncated,
+            complete = !remoteSummary.truncated && pending.size == remoteSummary.totalCount,
             unresolved = unresolved,
         )
     }

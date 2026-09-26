@@ -7,6 +7,7 @@ import java.net.URL
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.Base64
+import org.json.JSONObject
 
 data class IngestResponse(val ok: Boolean, val status: Int, val body: String)
 data class QueuedNotificationRequest(
@@ -52,6 +53,8 @@ internal object StructuredEventJson {
             append("\"amount_minor\":${event.amountMinor},")
             append("\"currency\":\"${escape(event.currency)}\",")
             append("\"payment_channel\":\"${escape(event.paymentChannel)}\",")
+            append("\"provider_reference\":\"${escape(event.providerReference)}\",")
+            append("\"lifecycle_identity\":\"${escape(event.lifecycleIdentity)}\",")
             append("\"merchant\":\"${escape(event.merchant)}\",")
             append("\"counterparty\":\"${escape(event.counterparty)}\",")
             append("\"confidence\":${event.confidence},")
@@ -84,6 +87,10 @@ internal object StructuredEventJson {
         recognitionStatus: String,
         reasons: List<String>,
         parserVersion: String,
+        providerReference: String = "",
+        paymentChannel: String = "",
+        lifecycleIdentity: String = "",
+        occurredAtMs: Long = 0L,
     ): String {
         val directionValue = if (direction.isBlank() || direction == "UNKNOWN") "" else direction.lowercase()
         val evidence = buildString {
@@ -92,13 +99,17 @@ internal object StructuredEventJson {
             append("\"reasons\":[")
             append(reasons.joinToString(",") { "\"${escape(it)}\"" })
             append("],")
-            append("\"parser_version\":\"${escape(parserVersion)}\"}")
+            append("\"parser_version\":\"${escape(parserVersion)}\",")
+            append("\"occurred_at_ms\":$occurredAtMs}")
         }
         return buildString {
             append("{\"device_id\":\"${escape(deviceId)}\",\"hints\":[{")
             append("\"source_event_id\":\"${escape(sourceEventId)}\",")
             append("\"source_type\":\"${escape(sourceType)}\",")
             append("\"source_package\":\"${escape(sourcePackage)}\",")
+            append("\"provider_reference\":\"${escape(providerReference)}\",")
+            append("\"payment_channel\":\"${escape(paymentChannel)}\",")
+            append("\"lifecycle_identity\":\"${escape(lifecycleIdentity)}\",")
             append("\"app_label\":\"${escape(appLabel)}\",")
             append("\"amount_minor\":${amountMinor ?: "null"},")
             append("\"direction\":${if (directionValue.isBlank()) "null" else "\"$directionValue\""},")
@@ -163,7 +174,59 @@ class OfflineNotificationQueue(private val file: File) {
 
     /** Queues one pending-hint upload (idempotent by operation id). */
     fun enqueueHint(operationId: String, payload: String) {
-        enqueueRequest(operationId, HINTS_PATH, payload)
+        synchronized(lock) {
+            val entries = readRequestsLocked().toMutableList()
+            val index = entries.indexOfFirst { it.operationId == operationId }
+            if (index < 0) {
+                entries.add(QueuedNotificationRequest(operationId, HINTS_PATH, payload))
+            } else {
+                val existing = entries[index]
+                if (existing.path != HINTS_PATH) return
+                val merged = runCatching { mergeHintPayload(existing.body, payload) }.getOrDefault(existing.body)
+                if (merged == existing.body) return
+                entries[index] = existing.copy(body = merged, attempts = 0, lastError = "")
+            }
+            writeAllLocked(retainNewest(entries))
+        }
+    }
+
+    private fun mergeHintPayload(previousBody: String, incomingBody: String): String {
+        val previous = JSONObject(previousBody).getJSONArray("hints").getJSONObject(0)
+        val incomingEnvelope = JSONObject(incomingBody)
+        val incoming = incomingEnvelope.getJSONArray("hints").getJSONObject(0)
+        if (previous.optString("source_event_id") != incoming.optString("source_event_id")) return previousBody
+        fun known(value: Any?): Boolean {
+            val text = value?.toString().orEmpty()
+            return value != null && value != JSONObject.NULL && text.isNotBlank() && text != "UNKNOWN"
+        }
+        for (field in listOf("amount_minor", "direction", "provider_reference", "lifecycle_identity")) {
+            val oldValue = previous.opt(field)
+            val nextValue = incoming.opt(field)
+            if (known(oldValue) && known(nextValue) && oldValue?.toString() != nextValue?.toString()) {
+                return previousBody
+            }
+            if (known(oldValue) && !known(nextValue)) incoming.put(field, oldValue)
+        }
+        for (field in listOf("merchant", "app_label", "payment_channel")) {
+            val oldValue = previous.opt(field)
+            if (known(oldValue) && !known(incoming.opt(field))) incoming.put(field, oldValue)
+        }
+        incoming.put("confidence", maxOf(previous.optInt("confidence"), incoming.optInt("confidence")))
+        val statusRank = mapOf("INSUFFICIENT_INFORMATION" to 0, "PAYMENT_LIKELY" to 1, "CONFIRMED_PAYMENT" to 2)
+        val oldStatus = previous.optString("recognition_status")
+        val newStatus = incoming.optString("recognition_status")
+        if ((statusRank[oldStatus] ?: 0) > (statusRank[newStatus] ?: 0)) {
+            incoming.put("recognition_status", oldStatus)
+        }
+        val oldEvidence = previous.optJSONObject("evidence")
+        val newEvidence = incoming.optJSONObject("evidence")
+        if (oldEvidence != null && newEvidence != null && oldEvidence.optLong("occurred_at_ms") > 0L) {
+            val earlier = newEvidence.optLong("occurred_at_ms").takeIf { it > 0L }
+                ?.let { minOf(it, oldEvidence.optLong("occurred_at_ms")) }
+                ?: oldEvidence.optLong("occurred_at_ms")
+            newEvidence.put("occurred_at_ms", earlier)
+        }
+        return incomingEnvelope.toString()
     }
 
     fun enqueueRequest(operationId: String, path: String, payload: String) {

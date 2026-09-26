@@ -79,7 +79,7 @@ class PaymentHintSync(
             if (record.state == "pending") {
                 pendingIds.addAll(ids)
                 val match = recognitionForCandidate(account, ids)
-                if (match != null && record.eventId.isNotBlank() && match.uploadEventId != record.eventId) {
+                if (match != null && record.eventId.isNotBlank() && match.uploadEventId !in ids) {
                     store.saveRecognition(match.copy(uploadEventId = record.eventId))
                 }
                 continue
@@ -111,7 +111,7 @@ class PaymentHintSync(
             ignored = ignored,
             ok = true,
             observedStates = states,
-            completeObservation = !summary.truncated,
+            completeObservation = !summary.truncated && summary.records.count { it.state == "pending" } == summary.totalCount,
             pendingEventIds = pendingIds,
             pendingCount = summary.totalCount,
             pendingRecords = summary.records.filter { it.state == "pending" },
@@ -169,6 +169,9 @@ class PaymentHintSync(
             recognitionStatus = if (hasAmount && hasDirection) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY",
             reasons = listOf(if (hasAmount && hasDirection) "accessibility_verified_payment" else "accessibility_partial_enrichment"),
             parserVersion = "verified-on-device",
+            providerReference = recognition.providerReference,
+            paymentChannel = recognition.paymentChannel,
+            occurredAtMs = recognition.createdAtMs,
         )
         val publishKey = "$accountId|$eventId"
         if (!PUBLISHING.add(publishKey)) return false
@@ -366,6 +369,7 @@ class PaymentHintSync(
     /** The exact server identity closes old local rows beyond the list endpoints' 200-row window. */
     private fun reconcileExactReviewIdentities(
         account: NotificationCaptureCoordinator.CaptureAccount,
+        allowArchiveRepair: Boolean = true,
     ): Observation {
         val local = runCatching {
             store.recognitionsByState(account.accountId, PaymentVerificationCenter.ATTENTION_STATES, 200)
@@ -386,6 +390,9 @@ class PaymentHintSync(
         val payload = runCatching { JSONObject(response.body) }.getOrNull()
             ?: return Observation()
         val records = payload.optJSONArray("records") ?: return Observation()
+        if (allowArchiveRepair && repairArchivedReviewAliases(account, records)) {
+            return reconcileExactReviewIdentities(account, allowArchiveRepair = false)
+        }
         val states = mutableMapOf<String, String>()
         val pendingIds = mutableSetOf<String>()
         val pendingRecords = mutableListOf<PendingReviewIdentity>()
@@ -400,15 +407,7 @@ class PaymentHintSync(
             eventIds.forEach { states[it] = state }
             if (state == "pending") {
                 pendingIds.addAll(eventIds)
-                val eventId = row.optString("event_id")
-                val id = row.optString("id")
-                if (eventId.isNotBlank() && id.isNotBlank()) {
-                    pendingRecords += PendingReviewIdentity(
-                        kind = row.optString("kind"), id = id, eventId = eventId,
-                        deviceId = row.optString("device_id"), state = state,
-                        eventIds = eventIds,
-                    )
-                }
+                PendingReviewIdentity.fromJson(row)?.let(pendingRecords::add)
                 continue
             }
             when (row.optString("kind")) {
@@ -434,7 +433,7 @@ class PaymentHintSync(
         local.forEach { recognition ->
             val aliases = runCatching { archive.structuredEventIdsForRecognition(account.accountId, recognition.sourceEventId) }
                 .getOrDefault(emptyList()).filter(states::containsKey).distinct()
-            if (aliases.size == 1 && aliases.single() != recognition.uploadEventId) {
+            if (aliases.size == 1 && recognition.uploadEventId !in states) {
                 runCatching {
                     store.recognition(account.accountId, recognition.recognitionId)?.takeIf {
                         it.state in PaymentVerificationCenter.ATTENTION_STATES
@@ -444,7 +443,8 @@ class PaymentHintSync(
         }
         return Observation(
             states = states,
-            complete = !payload.optBoolean("truncated", false) && allRequested.size <= 200,
+            complete = !payload.optBoolean("truncated", false) && allRequested.size <= 200 &&
+                pendingRecords.size == payload.optInt("total_count", pendingIds.size),
             pendingEventIds = pendingIds,
             pendingCount = payload.optInt("total_count", pendingIds.size),
             pendingRecords = pendingRecords,
@@ -693,8 +693,76 @@ class PaymentHintSync(
         return null
     }
 
+    /** Reconcile only split reviews proved to share one archived notification instance. */
+    private fun repairArchivedReviewAliases(
+        account: NotificationCaptureCoordinator.CaptureAccount,
+        records: JSONArray,
+    ): Boolean {
+        if (!REPAIRING.add(account.accountId)) return false
+        try {
+            val archive = archiveSink ?: NotificationArchiveSinkFactory.forContext(app)
+            val rows = (0 until records.length()).mapNotNull { records.optJSONObject(it) }
+                .filter { it.optString("kind") == "hint" && it.optString("state") == "pending" }
+            val grouped = rows.groupBy { row ->
+                runCatching { archive.archivedLifecycleIdentity(account.accountId, row.optString("event_id")) }
+                    .getOrDefault("")
+            }.filterKeys(String::isNotBlank).values.filter { it.size > 1 }
+            var posted = 0
+            for (group in grouped.take(4)) {
+                val amounts = group.map { it.optLong("amount_minor") }.filter { it > 0L }.distinct()
+                val directions = group.map { it.optString("direction") }
+                    .filter { it in setOf("income", "expense", "refund") }.distinct()
+                val references = group.mapNotNull { row ->
+                    runCatching { store.recognitionByUploadEvent(account.accountId, row.optString("event_id"))
+                        ?.providerReference?.takeIf(String::isNotBlank) }.getOrNull()
+                }.distinct()
+                val times = group.map { it.optLong("occurred_at_ms") }
+                if (amounts.size != 1 || group.none { it.optLong("amount_minor") <= 0L } ||
+                    directions.size > 1 || references.size > 1 ||
+                    group.map { it.optString("source_package") }.distinct().size != 1 ||
+                    times.any { it <= 0L } ||
+                    (times.maxOrNull()!! - times.minOrNull()!!) > ARCHIVE_CONTINUITY_MS) continue
+                val lifecycleIdentity = archive.archivedLifecycleIdentity(account.accountId,
+                    group.first().optString("event_id"))
+                for (row in group.sortedBy { it.optLong("occurred_at_ms") }) {
+                    if (posted >= MAX_ARCHIVE_REPAIR_POSTS) return posted > 0
+                    val packageName = row.optString("source_package")
+                    val channel = when (packageName) {
+                        "com.tencent.mm" -> "wechat"
+                        "com.eg.android.AlipayGphone" -> "alipay"
+                        else -> "bank_card"
+                    }
+                    val amount = row.optLong("amount_minor").takeIf { it > 0L }
+                    val direction = row.optString("direction")
+                    val body = uk.thewyj.app.task21.StructuredEventJson.hintPayload(
+                        deviceId = account.deviceId, sourceEventId = row.optString("event_id"),
+                        sourceType = "notification", sourcePackage = packageName,
+                        appLabel = row.optString("app_label"), amountMinor = amount,
+                        direction = direction, merchant = row.optString("merchant"), currency = "CNY",
+                        confidence = row.optInt("confidence"),
+                        recognitionStatus = if (amount != null && direction in setOf("income", "expense", "refund"))
+                            "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY",
+                        reasons = listOf("archive_lifecycle_reconciliation"), parserVersion = "archive-link-v1",
+                        paymentChannel = channel, lifecycleIdentity = lifecycleIdentity,
+                        providerReference = references.singleOrNull().orEmpty(),
+                        occurredAtMs = row.optLong("occurred_at_ms"),
+                    )
+                    val response = runCatching { transport.post("/api/notification/hints", account.sessionToken, body) }
+                        .getOrNull()
+                    if (response?.ok == true) posted += 1
+                }
+            }
+            return posted > 0
+        } finally {
+            REPAIRING.remove(account.accountId)
+        }
+    }
+
     companion object {
         private val PUBLISHING = ConcurrentHashMap.newKeySet<String>()
+        private val REPAIRING = ConcurrentHashMap.newKeySet<String>()
         private val RETRY_CURSOR = AtomicInteger(0)
+        private const val ARCHIVE_CONTINUITY_MS = 15_000L
+        private const val MAX_ARCHIVE_REPAIR_POSTS = 20
     }
 }

@@ -27,6 +27,19 @@ assert.equal(canonicalPendingCandidates({ records: [{
   kind: "hint", id: "cloud-hint", event_id: "canonical-event", state: "pending",
 }] }, [{ id: "cloud-hint", hint: true, event_id: "stale-event" }], [])[0].event_id,
 "canonical-event", "Native verification must receive the summary's canonical event identity");
+const summaryOnly = canonicalPendingCandidates({ records: [{
+  kind: "hint", id: "hint-wechat", event_id: "evt-primary",
+  event_ids: ["evt-primary", "evt-update"], state: "pending",
+  source_package: "com.tencent.mm", app_label: "微信", amount_minor: 10_200,
+  direction: null, merchant: "", occurred_at_ms: 1_789_000_000_000, confidence: 720,
+}] }, [{ id: "hint-wechat", hint: true, amount_minor: 900, direction: "expense" }], []);
+assert.equal(summaryOnly[0].canonical_id, "hint:hint-wechat");
+assert.deepEqual(summaryOnly[0].event_ids, ["evt-primary", "evt-update"]);
+assert.equal(summaryOnly[0].amount_minor, 10_200);
+assert.equal(summaryOnly[0].direction, "");
+assert.equal(summaryOnly[0].app_label, "微信");
+assert.deepEqual(canonicalPendingCandidates(null, [{ id: "stale-hint", hint: true }], []), [],
+  "Without pending-summary Finance cannot invent a fallback pending set");
 
 // Task 24.4 Production regression (2026-09-12, ¥104.49 / 招商银行):
 // the pending hint carried an amount but no direction, so the server correctly
@@ -112,8 +125,9 @@ try {
       if (path === "/api/notification/pending-summary") {
         summaryReads += 1;
         if (summaryReads === 2) return staleSummary.promise;
-        return Promise.resolve({ records: summaryReads === 1
-          ? [{ kind: "candidate", id: complete.id, event_id: complete.event_id, state: "pending" }]
+        return Promise.resolve({ total_count: summaryReads === 1 ? 1 : 0, records: summaryReads === 1
+          ? [{ kind: "candidate", id: complete.id, event_id: complete.event_id, state: "pending",
+            amount_minor: 100, direction: "expense" }]
           : [] });
       }
       if (path.startsWith("/api/notification/candidates?")) {
@@ -140,15 +154,16 @@ try {
   await new Promise((resolve) => setImmediate(resolve));
   assert.doesNotMatch(list.innerHTML, /data-finance-candidate="candidate-one"/,
     "Successful confirm must remove the candidate immediately");
-  staleSummary.resolve({ records: [{
+  staleSummary.resolve({ total_count: 1, records: [{
     kind: "candidate", id: complete.id, event_id: complete.event_id, state: "pending",
+    amount_minor: 100, direction: "expense",
   }] });
   await oldRefresh;
   assert.doesNotMatch(list.innerHTML, /data-finance-candidate="candidate-one"/,
     "A response started before confirm must never revive its row");
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(summaryReads, 3, "Confirm must read a fresh canonical summary after the old request");
-  assert.equal(candidateReads, 3);
+  assert.equal(candidateReads, 0, "Finance must not fetch independent candidate detail lists");
   assert.doesNotMatch(list.innerHTML, /data-finance-candidate="candidate-one"/);
 
   // A transient summary failure must preserve the last canonical view instead
@@ -167,7 +182,7 @@ try {
   });
   await failing.show();
   assert.match(list.innerHTML, /暂时无法加载/);
-  assert.equal(candidateReads, 3, "A 503 summary response must not query independent detail lists");
+  assert.equal(candidateReads, 0, "A 503 summary response must not query independent detail lists");
   assert.ok(priorHtml.includes("暂无待处理") || priorHtml.includes("正在同步"));
 
   const verifyView = fakeFinanceDocument();
@@ -176,7 +191,8 @@ try {
   globalThis.window = { location: { href: "https://thewyj.uk/finance" } };
   const verification = createFinanceCandidatesController({
     apiGet: async (path) => path === "/api/notification/pending-summary"
-      ? { records: [{ kind: "hint", id: incomplete.id, event_id: incomplete.event_id, state: "pending" }] }
+       ? { total_count: 1, records: [{ kind: "hint", id: incomplete.id, event_id: incomplete.event_id,
+         state: "pending", amount_minor: null, direction: null }] }
       : path.startsWith("/api/notification/hints?") ? { hints: [{
         id: incomplete.id, source_event_id: incomplete.event_id, amount_minor: 0, direction: "unknown",
       }] } : { candidates: [] },

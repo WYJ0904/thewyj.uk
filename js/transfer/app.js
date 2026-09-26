@@ -1,7 +1,7 @@
-import { randomId } from "../core/capabilities.js?v=20260926-task24-candidate-r14";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260926-task24-candidate-r14";
-import { getSafeStorage } from "../core/storage.js?v=20260926-task24-candidate-r14";
-import { withInteractionFeedback } from "../core/perf.js?v=20260926-task24-candidate-r14";
+import { randomId } from "../core/capabilities.js?v=20260926-task24-candidate-r15";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260926-task24-candidate-r15";
+import { getSafeStorage } from "../core/storage.js?v=20260926-task24-candidate-r15";
+import { withInteractionFeedback } from "../core/perf.js?v=20260926-task24-candidate-r15";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";

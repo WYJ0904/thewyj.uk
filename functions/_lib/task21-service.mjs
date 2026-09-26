@@ -125,6 +125,13 @@ async function findFinanceRawBySourceEvent(db, userId, sourceEventId) {
     ORDER BY created_at LIMIT 1`, [userId, sourceEventId]);
 }
 
+async function findFinanceRawByProviderReference(db, userId, sourceProvider, reference) {
+  if (!reference) return null;
+  return await first(db, `SELECT * FROM task16_finance_raw_events
+    WHERE user_id = ?1 AND source_provider = ?2 AND provider_reference = ?3 LIMIT 1`,
+  [userId, sourceProvider, reference]);
+}
+
 async function financeTransactionIdForRaw(db, rawId) {
   const row = await first(db, `SELECT transaction_id FROM task16_finance_transaction_events
     WHERE raw_event_id = ?1 AND relation_status = 'active'`, [rawId]);
@@ -137,11 +144,25 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
     return { transaction_id: await financeTransactionIdForRaw(db, existing.id), duplicate: true };
   }
 
+  const sourceProvider = event.payment_channel || "notification";
+  const providerReference = String(event.provider_reference || "");
+  // Provider order references can be reused by a later refund. Scope the raw
+  // uniqueness key to the money direction while retaining the real reference.
+  const rawSourceProvider = providerReference ? `${sourceProvider}:${event.direction}` : sourceProvider;
+  const referenced = await findFinanceRawByProviderReference(db, account.id, rawSourceProvider, providerReference);
+  if (referenced) {
+    if (Number(referenced.amount_minor) !== Number(event.amount_minor) ||
+        String(referenced.direction) !== String(event.direction)) {
+      throw new Task21Error("同一交易参考号对应不同金额或方向", 409, "provider_reference_conflict");
+    }
+    return { transaction_id: await financeTransactionIdForRaw(db, referenced.id), duplicate: true };
+  }
+
   const now = isoNow();
   const version = await nextFinanceVersion(db, account.id, now);
   const rawId = `raw:${crypto.randomUUID()}`;
   const transactionId = `txn:${crypto.randomUUID()}`;
-  const sourceProvider = event.payment_channel || "notification";
+  // This token is a provider-issued reference, never a notification body.
   const occurredAtMs = event.occurred_at_ms || event.received_at_ms;
   const metadata = { capture_version: event.parser_version || "task21", payment_channel: event.payment_channel };
 
@@ -157,7 +178,7 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
       // known; the content fingerprint is similarity evidence only and lives in
       // text_fingerprint_sha256. Two real payments with identical text must not
       // collide on the raw-event identity.
-      rawId, account.id, deviceId, event.event_id, sourceProvider, "",
+      rawId, account.id, deviceId, event.event_id, rawSourceProvider, providerReference,
       event.direction, event.amount_minor, event.currency, event.merchant, event.counterparty,
       occurredAtMs, event.received_at_ms, JSON.stringify(metadata), version, now,
       String(event.fingerprint || ""),
@@ -231,6 +252,11 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
   } catch (error) {
     const raced = await findFinanceRawBySourceEvent(db, account.id, event.event_id);
     if (raced) return { transaction_id: await financeTransactionIdForRaw(db, raced.id), duplicate: true };
+    const referencedRace = await findFinanceRawByProviderReference(db, account.id, rawSourceProvider, providerReference);
+    if (referencedRace && Number(referencedRace.amount_minor) === Number(event.amount_minor) &&
+        String(referencedRace.direction) === String(event.direction)) {
+      return { transaction_id: await financeTransactionIdForRaw(db, referencedRace.id), duplicate: true };
+    }
     throw error;
   }
 }
@@ -266,7 +292,7 @@ async function linkEvidence(db, account, event, candidateId, primary, reconcilia
     `evd:${crypto.randomUUID()}`, account.id, event.event_id, candidateId || "",
     String(event.source_type || "notification"), String(event.source_package || ""),
     String(event.parser_version || ""), Number(event.amount_minor || 0),
-    String(event.direction || "unknown"), String(event.payment_channel || ""),
+    String(event.direction || "unknown"), String(event.provider_reference || ""),
     Number(event.occurred_at_ms || event.received_at_ms || 0), primary ? 1 : 0,
     reconciliationState, now, transactionId || "",
   ]);
@@ -278,13 +304,15 @@ async function storeEvent(db, account, event, deviceId) {
     event_id, user_id, device_id, fingerprint, source_package, source_type, event_type,
     parser_version, parse_status, direction, amount_minor, currency, payment_channel,
     merchant, counterparty, confidence, occurred_at_ms, received_at_ms, candidate_id,
-    finance_transaction_id, status, created_at, updated_at, deleted_at
+    finance_transaction_id, status, created_at, updated_at, deleted_at,
+    provider_reference, lifecycle_identity
   ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
-    ?17, ?18, '', '', 'active', ?19, ?19, '')`, [
+    ?17, ?18, '', '', 'active', ?19, ?19, '', ?20, ?21)`, [
     event.event_id, account.id, deviceId, event.fingerprint, event.source_package, event.source_type,
     event.event_type, event.parser_version, event.parse_status, event.direction, event.amount_minor,
     event.currency, event.payment_channel, event.merchant, event.counterparty, event.confidence,
     event.occurred_at_ms, event.received_at_ms, now,
+    event.provider_reference || "", event.lifecycle_identity || "",
   ]);
 }
 
@@ -315,6 +343,8 @@ function eventFromStoredRow(row) {
     amount_minor: Number(row.amount_minor),
     currency: String(row.currency),
     payment_channel: String(row.payment_channel),
+    provider_reference: String(row.provider_reference || ""),
+    lifecycle_identity: String(row.lifecycle_identity || ""),
     merchant: String(row.merchant),
     counterparty: String(row.counterparty),
     confidence: Number(row.confidence),
@@ -323,16 +353,81 @@ function eventFromStoredRow(row) {
   };
 }
 
+async function canonicalHintForEvent(db, account, event, now) {
+  const alias = await first(db, `SELECT h.* FROM task21_notification_review_aliases a
+    JOIN task21_notification_pending_hints h ON h.user_id = a.user_id AND h.id = a.hint_id
+    WHERE a.user_id = ?1 AND a.event_id = ?2 LIMIT 1`, [account.id, event.event_id]);
+  const exact = alias || await first(db, `SELECT * FROM task21_notification_pending_hints
+    WHERE user_id = ?1 AND source_event_id = ?2 LIMIT 1`, [account.id, event.event_id]);
+  if (exact) {
+    if ((exact.provider_reference && event.provider_reference && exact.provider_reference !== event.provider_reference) ||
+        (exact.lifecycle_identity && event.lifecycle_identity && exact.lifecycle_identity !== event.lifecycle_identity)) {
+      throw new Task21Error("同一事件带来冲突的交易身份", 409, "review_identity_conflict");
+    }
+    return exact;
+  }
+  for (const [column, value] of [["provider_reference", event.provider_reference],
+    ["lifecycle_identity", event.lifecycle_identity]]) {
+    if (!value) continue;
+    const rows = await all(db, `SELECT * FROM task21_notification_pending_hints
+      WHERE user_id = ?1 AND source_package = ?2 AND payment_channel = ?3
+        AND ${column} = ?4 AND state != 'superseded' LIMIT 10`,
+    [account.id, event.source_package, event.payment_channel, value]);
+    const matches = rows.filter((row) =>
+      (row.amount_minor === null || Number(row.amount_minor) === Number(event.amount_minor)) &&
+      (!row.direction || row.direction === "unknown" || row.direction === event.direction));
+    if (matches.length > 1) throw new Task21Error("相同强证据关联多条核实记录", 409, "review_alias_ambiguous");
+    const row = matches[0];
+    if (!row) {
+      if (column === "provider_reference" && rows.some((item) =>
+        !item.direction || item.direction === "unknown" || item.direction === event.direction)) {
+        throw new Task21Error("同一交易参考号对应不同金额或方向", 409, "provider_reference_conflict");
+      }
+      continue;
+    }
+    await run(db, `INSERT OR IGNORE INTO task21_notification_review_aliases
+      (user_id, event_id, hint_id, created_at) VALUES (?1, ?2, ?3, ?4)`,
+    [account.id, event.event_id, row.id, now]);
+    const alias = await first(db, `SELECT hint_id FROM task21_notification_review_aliases
+      WHERE user_id = ?1 AND event_id = ?2`, [account.id, event.event_id]);
+    if (alias?.hint_id !== row.id) throw new Task21Error("事件已关联另一笔核实记录", 409, "review_alias_conflict");
+    return row;
+  }
+  return null;
+}
+
 async function attachEventOutcome(db, account, event, deviceId, now) {
-  const ignoredHint = await first(db, `SELECT id FROM task21_notification_pending_hints
-    WHERE user_id = ?1 AND source_event_id = ?2 AND state = 'ignored'`, [
-    account.id, event.event_id,
-  ]);
-  if (ignoredHint) return { transactionId: "", candidateId: "" };
+  const canonicalHint = await canonicalHintForEvent(db, account, event, now);
+  if (["ignored", "superseded", "expired"].includes(canonicalHint?.state)) {
+    return { transactionId: "", candidateId: "" };
+  }
+  if (canonicalHint) {
+    const rejected = await first(db, `SELECT id FROM task21_notification_candidates
+      WHERE user_id = ?1 AND event_id IN (?2, ?3) AND status = 'rejected' LIMIT 1`,
+    [account.id, canonicalHint.source_event_id, event.event_id]);
+    if (rejected) return { transactionId: "", candidateId: "" };
+  }
   const isTransactionLike = event.event_type === "transaction" || event.event_type === "refund";
   // Confidence describes evidence; complete money fields decide booking.
   const autoIngest = isTransactionLike && Number(event.amount_minor) > 0
     && ["income", "expense", "refund"].includes(String(event.direction));
+  if (canonicalHint && autoIngest) {
+    const canonicalEvent = { ...event, event_id: canonicalHint.source_event_id };
+    const transactionId = canonicalHint.state === "confirmed" && canonicalHint.finance_entry_id
+      ? String(canonicalHint.finance_entry_id)
+      : (await createAutomaticFinanceTransaction(db, account, deviceId, canonicalEvent)).transaction_id;
+    if (!transactionId) throw new Task21Error("原交易账本关联尚未就绪", 503, "finance_link_not_ready", true);
+    await closePendingHintForBookedEvent(db, account.id, canonicalEvent, transactionId, now);
+    await run(db, `UPDATE task21_notification_candidates
+      SET status = 'confirmed', finance_transaction_id = ?3, updated_at = ?4
+      WHERE user_id = ?1 AND event_id = ?2 AND status = 'pending'`,
+    [account.id, canonicalHint.source_event_id, transactionId, now]);
+    await linkEvidence(db, account, event, "", true, "confirmed", now, transactionId);
+    await run(db, `UPDATE task21_notification_events
+      SET finance_transaction_id = ?3, updated_at = ?4
+      WHERE user_id = ?1 AND event_id = ?2`, [account.id, event.event_id, transactionId, now]);
+    return { transactionId, candidateId: "" };
+  }
   const makeCandidate = isTransactionLike && !autoIngest && event.parse_status !== "unparsed";
   let transactionId = "";
   let candidateId = "";
@@ -566,21 +661,38 @@ export async function confirmNotificationCandidate(db, account, input) {
   }
   // Edit-before-confirm: the user's corrections win and are recorded next to
   // the untouched machine evidence in the same candidate row.
-  const finance = await createAutomaticFinanceTransaction(db, account, event.device_id, {
+  const bookingEvent = {
     event_id: event.event_id,
     fingerprint: event.fingerprint,
+    source_package: event.source_package,
+    source_type: event.source_type,
+    event_type: event.event_type,
+    parse_status: event.parse_status,
     direction,
     amount_minor: amountMinor,
     currency: row.currency,
     merchant: edits.merchant ?? row.merchant,
     counterparty: edits.counterparty ?? row.counterparty,
     payment_channel: row.payment_channel,
+    provider_reference: String(event.provider_reference || ""),
+    lifecycle_identity: String(event.lifecycle_identity || ""),
     occurred_at_ms: edits.occurred_at_ms || Number(row.occurred_at_ms),
     received_at_ms: event.received_at_ms,
     confidence: row.confidence,
     parser_version: event.parser_version,
-  });
+  };
   const now = isoNow();
+  const alias = await first(db, `SELECT h.finance_entry_id FROM task21_notification_review_aliases a
+    JOIN task21_notification_pending_hints h ON h.user_id = a.user_id AND h.id = a.hint_id
+    WHERE a.user_id = ?1 AND a.event_id = ?2`, [account.id, event.event_id]);
+  let finance;
+  if (alias) {
+    const outcome = await attachEventOutcome(db, account, bookingEvent, event.device_id, now);
+    if (!outcome.transactionId) throw new Task21Error("原核实记录已终结", 409, "candidate_status_invalid");
+    finance = { transaction_id: outcome.transactionId, duplicate: Boolean(alias.finance_entry_id) };
+  } else {
+    finance = await createAutomaticFinanceTransaction(db, account, event.device_id, bookingEvent);
+  }
   const editedFields = Object.keys(edits);
   await db.batch([
     db.prepare(`UPDATE task21_notification_candidates SET status = 'confirmed',
@@ -612,6 +724,13 @@ export async function confirmNotificationCandidate(db, account, input) {
 /** Retire complete candidates left by the former confidence gate. */
 export async function reconcileLegacyCompleteCandidates(db, account) {
   requireFinanceRecognitionAccess(account);
+  await run(db, `UPDATE task21_notification_candidates
+    SET status = 'rejected', updated_at = ?2
+    WHERE user_id = ?1 AND status = 'pending' AND event_id IN (
+      SELECT a.event_id FROM task21_notification_review_aliases a
+      JOIN task21_notification_pending_hints h ON h.user_id = a.user_id AND h.id = a.hint_id
+      WHERE a.user_id = ?1 AND h.state IN ('ignored', 'superseded', 'expired'))`,
+  [account.id, isoNow()]);
   const rows = await all(db, `SELECT c.id, e.device_id FROM task21_notification_candidates c
     JOIN task21_notification_events e ON e.user_id = c.user_id AND e.event_id = c.event_id
     LEFT JOIN task21_notification_pending_hints h

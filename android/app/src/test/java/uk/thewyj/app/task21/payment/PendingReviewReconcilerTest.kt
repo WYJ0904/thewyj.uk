@@ -8,6 +8,13 @@ import uk.thewyj.app.core.network.PendingReviewIdentity
 import uk.thewyj.app.core.network.PendingReviewSummary
 
 class PendingReviewReconcilerTest {
+    @Test fun summaryCannotClaimCompletionWhenItsIdentityCountDiffersFromN() {
+        val remote = PendingReviewSummary("now", 2, 2, 0, false,
+            listOf(PendingReviewIdentity("hint", "hint-one", "event-one", "device-a")))
+        val result = PendingReviewReconciler.reconcile(emptyList(), remote)
+        assertEquals(2, result.total)
+        assertFalse(result.complete)
+    }
     @Test fun offlineQueueIsRecoveryAndNeverInflatesCanonicalPending() {
         val ids = setOf("event-offline")
         assertEquals(PendingReviewVisibility.Placement.RECOVERY,

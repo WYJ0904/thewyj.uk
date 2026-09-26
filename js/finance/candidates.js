@@ -1,4 +1,4 @@
-import { randomId } from "../core/capabilities.js?v=20260926-task24-candidate-r14";
+import { randomId } from "../core/capabilities.js?v=20260926-task24-candidate-r15";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -6,8 +6,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20260926-task24-candidate-r14";
-const CANDIDATE_PAGE_LIMIT = 200;
+} from "../core/perf.js?v=20260926-task24-candidate-r15";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -60,22 +59,23 @@ export function candidatePresentation(candidate) {
 }
 
 /** Server summary is the sole user-visible pending identity set on both tabs. */
-export function canonicalPendingCandidates(summary, hints, candidates) {
-  const details = new Map([...hints, ...candidates].map((item) =>
-    [`${item.hint ? "hint" : "candidate"}:${String(item.id)}`, item]));
+export function canonicalPendingCandidates(summary) {
   const pending = Array.isArray(summary?.records)
     ? summary.records.filter((row) => row.state === "pending")
-    : null;
-  if (!pending) return [...hints, ...candidates]; // Older Production API.
+    : [];
   return pending.map((row) => {
     const hint = row.kind === "hint";
-    const item = details.get(`${row.kind}:${String(row.id)}`);
-    if (item) return { ...item, event_id: String(row.event_id || item.event_id || "") };
     return {
-      id: String(row.id || ""), hint, event_id: String(row.event_id || ""),
-      direction: "", amount_minor: 0, currency: "CNY", merchant: "",
-      occurred_at_ms: 0, confidence: 0, evidence: [], evidence_count: 0,
-      recognition_reasons: [], status: "pending",
+      id: String(row.id || ""), hint, canonical_id: `${row.kind}:${String(row.id || "")}`,
+      event_id: String(row.event_id || ""),
+      event_ids: [...new Set([String(row.event_id || ""), ...(row.event_ids || [])])].filter(Boolean),
+      source_package: String(row.source_package || ""), app_label: String(row.app_label || ""),
+      direction: String(row.direction || ""), amount_minor: Number(row.amount_minor) || 0,
+      currency: "CNY", merchant: String(row.merchant || ""),
+      occurred_at_ms: Number(row.occurred_at_ms) || 0, confidence: Number(row.confidence) || 0,
+      evidence: [{ source_type: "notification", source_package: String(row.source_package || ""), app_label: String(row.app_label || "") }],
+      evidence_count: 1,
+      recognition_reasons: Array.isArray(row.recognition_reasons) ? row.recognition_reasons : [], status: "pending",
     };
   }).filter((item) => item.id);
 }
@@ -229,13 +229,13 @@ export function createFinanceCandidatesController({
       const missingLabel = presentation.missing.length ? `需补：${presentation.missing.join("、")}` : "信息完整，可直接确认";
       const amountValue = presentation.amountUnknown ? "" : (Number(candidate.amount_minor) / 100).toFixed(2);
       const evidenceReason = evidenceExplanation(candidate, presentation);
-      return `<article class="finance-candidate" data-finance-candidate="${escapeHtml(id)}">
+      return `<article class="finance-candidate" data-finance-candidate="${escapeHtml(id)}" data-canonical-identity="${escapeHtml(candidate.canonical_id || "")}">
         <div class="finance-candidate-main">
           <span class="finance-direction is-${escapeHtml(direction)}">${presentation.directionLabel}</span>
           <div class="finance-candidate-copy"><strong>${presentation.amountUnknown ? "金额待补" : escapeHtml(formatMinor(candidate.amount_minor, candidate.currency))}</strong>
           <small>${escapeHtml(sources)} · ${escapeHtml(occurred)}</small>
           <small>${escapeHtml(presentation.merchantLabel)} · ${escapeHtml(missingLabel)}</small>
-          <details class="finance-candidate-evidence"><summary>查看识别依据</summary><p>${escapeHtml(evidenceReason)}</p><p>结构化证据 ${evidenceCount} 条 · 置信度 ${confidence}/1000${editedCount ? ` · 用户已修改 ${editedCount} 次` : ""}</p><p>事件标识：${escapeHtml(candidate.event_id || id)}</p></details></div>
+          <details class="finance-candidate-evidence"><summary>查看识别依据</summary><p>${escapeHtml(evidenceReason)}</p><p>结构化证据 ${evidenceCount} 条 · 置信度 ${confidence}/1000${editedCount ? ` · 用户已修改 ${editedCount} 次` : ""}</p><p>核实标识：${escapeHtml(candidate.canonical_id || "")}</p><p>事件标识：${escapeHtml(candidate.event_id || id)}</p></details></div>
         </div>
         <div class="finance-candidate-actions">
           <button type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${presentation.primaryAction}</button>
@@ -336,31 +336,15 @@ export function createFinanceCandidatesController({
       list.innerHTML = '<div class="finance-candidate-message"><p>正在读取待确认通知…</p></div>';
     }
     try {
-      let summary = null;
-      try {
-        summary = await apiGet("/api/notification/pending-summary");
-      } catch (error) {
-        // Only an older API without the endpoint needs the compatibility list.
-        // A transient failure must not replace the canonical set with an
-        // independently observed hint/candidate union.
-        if (error?.status !== 404) throw error;
+      const summary = await apiGet("/api/notification/pending-summary");
+      if (!Array.isArray(summary?.records) || summary.truncated ||
+          summary.records.filter((row) => row.state === "pending").length !== Number(summary.total_count)) {
+        throw new Error("待确认交易列表不完整，请刷新重试");
       }
-      const payload = await apiGet(`/api/notification/candidates?status=pending&limit=${CANDIDATE_PAGE_LIMIT}`);
-      const candidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
-      // Task 24.1 P0-3: the same list also shows the unified pending hints, so a
-      // payment the device could not complete is actionable here instead of only
-      // inside the app. Identity stays the hint id; the server owns the state.
-      const loadedHints = await loadPendingHints();
-      // A temporary hint-endpoint failure must not make otherwise actionable
-      // rows disappear. Keep the last known hints until a successful response
-      // replaces them.
-      const hints = loadedHints === null
-        ? currentCandidates.filter((item) => item.hint === true)
-        : loadedHints;
       // A slow earlier refresh must never repaint over a newer list (for example
       // the row the user just confirmed).
       if (!listVersion.isCurrent(version)) return;
-      render(canonicalPendingCandidates(summary, hints, candidates));
+      render(canonicalPendingCandidates(summary));
       section.setAttribute("aria-busy", "false");
     } catch (error) {
       if (!listVersion.isCurrent(version)) return;
@@ -373,39 +357,6 @@ export function createFinanceCandidatesController({
         render(currentCandidates, `待确认通知暂时无法加载：${error?.message || "请稍后重试"}`);
       }
       section.setAttribute("aria-busy", "false");
-    }
-  }
-
-  /** Pending hints mapped onto the candidate render shape (id stays the hint id). */
-  async function loadPendingHints() {
-    try {
-      const payload = await apiGet("/api/notification/hints?state=pending&limit=200");
-      const rows = Array.isArray(payload?.hints) ? payload.hints : [];
-      return rows.map((hint) => ({
-        id: String(hint.id || ""),
-        hint: true,
-        event_id: String(hint.source_event_id || ""),
-        direction: String(hint.direction || ""),
-        amount_minor: Number(hint.amount_minor) || 0,
-        currency: String(hint.currency || "CNY"),
-        merchant: String(hint.merchant || ""),
-        counterparty: "",
-        payment_channel: "",
-        occurred_at_ms: Date.parse(String(hint.created_at || "")) || 0,
-        confidence: Number(hint.confidence) || 0,
-        status: "pending",
-        evidence: [{
-          source_type: String(hint.source_type || "notification"),
-          source_package: String(hint.source_package || ""),
-          app_label: String(hint.app_label || ""),
-        }],
-        evidence_count: 1,
-        correction_count: 0,
-        recognition_reasons: Array.isArray(hint.evidence?.reasons) ? hint.evidence.reasons : [],
-      })).filter((item) => item.id);
-    } catch (_) {
-      // A missing hint endpoint must not hide the candidate list.
-      return null;
     }
   }
 

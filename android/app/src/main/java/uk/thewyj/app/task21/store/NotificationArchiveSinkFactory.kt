@@ -131,6 +131,10 @@ class RoomNotificationArchiveSink(private val context: Context) : NotificationAr
         store.structuredEventIdsForRecognition(accountId, recognitionSourceEventId)
     }.getOrDefault(emptyList())
 
+    override fun archivedLifecycleIdentity(accountId: String, structuredEventId: String): String = runCatching {
+        store.archivedLifecycleIdentity(accountId, structuredEventId)
+    }.getOrDefault("")
+
     /**
      * Task 24.1 R4: a screenshot that MediaStore delivered (Samsung replaces the
      * screenshot notification in place, so the listener cannot see later

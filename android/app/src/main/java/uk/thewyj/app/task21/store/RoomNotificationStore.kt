@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.combine
 import uk.thewyj.app.task21.screenshot.ScreenshotEvidence
 import uk.thewyj.app.task21.screenshot.ScreenshotLinkAction
 import uk.thewyj.app.task21.screenshot.ScreenshotMediaOrigin
+import uk.thewyj.app.task21.NotificationFingerprint
 
 /**
  * Everything the capture pipeline needs to persist and query notifications.
@@ -455,6 +456,13 @@ class RoomNotificationStore(private val database: NotificationDatabase) {
         if (dao.revisionForEventId(accountId.trim(), structuredEventId) == null) emptyList()
         else listOf("notification#event#$structuredEventId", recognitionSourceEventId(accountId, structuredEventId))
             .filter(String::isNotBlank).distinct()
+
+    fun archivedLifecycleIdentity(accountId: String, structuredEventId: String): String {
+        val account = accountId.trim()
+        val instanceId = dao.instanceIdForEventId(account, structuredEventId) ?: return ""
+        val instance = dao.instance(account, instanceId) ?: return ""
+        return NotificationFingerprint.sha256Hex("$account\u001F${instance.sourcePackage}\u001F$instanceId")
+    }
 
     fun structuredEventIdsForRecognition(accountId: String, recognitionSourceEventId: String): List<String> {
         val prefix = "notification#event#"

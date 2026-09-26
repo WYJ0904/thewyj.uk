@@ -141,10 +141,15 @@ fun PaymentVerificationScreen(
                     }
                 }
             }
+            val canonicalCount = state.items.count { !it.recoveryOnly }
+            if (canonicalCount > 0) {
+                Text("云端待确认 · $canonicalCount", style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold)
+            }
             state.items.forEachIndexed { index, item ->
                 if (item.recoveryOnly && (index == 0 || !state.items[index - 1].recoveryOnly)) {
                     Text(
-                        "本机待核实记录（云端状态在后台核对）",
+                        "本机恢复 / 未同步（不计入云端待确认）",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -171,6 +176,11 @@ fun PaymentVerificationScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        if (item.canonicalIdentity.isNotBlank()) {
+                            Text("核实标识：${item.canonicalIdentity}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         if (item.ocrSuggested) {
                             Text(
                                 "OCR 金额仅供参考，请对照支付详情核实后手动确认；不会自动记账。",
@@ -296,16 +306,19 @@ private fun DirectionChoice(label: String, selected: Boolean, onClick: () -> Uni
 }
 
 private fun stateLabel(item: PaymentVerificationCenter.Item): String = when {
+    item.canonicalIdentity.isNotBlank() && item.needsAmount -> "金额待核实"
+    item.canonicalIdentity.isNotBlank() && item.direction == uk.thewyj.app.task21.FinanceDirection.UNKNOWN -> "方向待核实"
+    item.canonicalIdentity.isNotBlank() -> "云端待确认"
     item.syncState == PaymentVerificationCenter.SyncState.SYNCED -> "已记录到财务"
     item.syncState == PaymentVerificationCenter.SyncState.UNRESOLVED_REMOTE -> "云端关联待核对"
     item.ocrSuggested -> "OCR 建议金额待核对"
     item.direction == uk.thewyj.app.task21.FinanceDirection.UNKNOWN && !item.needsAmount -> "方向待核实"
+    item.needsAmount -> "金额待核实"
     item.syncState == PaymentVerificationCenter.SyncState.LOCAL_ONLY -> "仅本机待核对"
     item.authority == PaymentVerificationCenter.Authority.SERVER -> "等待在财务中确认"
     item.state == "ENRICHMENT_EXPIRED" -> "金额待核实"
     item.state == "ENRICHMENT_VERIFIED" -> "已核实金额"
     item.state == "VERIFICATION_FAILED" -> "核实失败"
-    item.needsAmount -> "金额待核实"
     else -> "等待确认记账"
 }
 
@@ -322,14 +335,14 @@ private fun amountLine(item: PaymentVerificationCenter.Item): String {
 }
 
 private fun sourceLine(item: PaymentVerificationCenter.Item): String {
-    val time = java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.CHINA)
-        .format(java.util.Date(item.occurredAtMs))
+    val time = if (item.occurredAtMs > 0L) java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.CHINA)
+        .format(java.util.Date(item.occurredAtMs)) else "时间待核对"
     val merchant = item.merchant.ifBlank { "未识别商户" }
     val edited = if (item.hasEdits) " · 已人工修正" else ""
     return "$time · $merchant$edited"
 }
 
-private fun syncLine(item: PaymentVerificationCenter.Item): String? = if (item.remoteOnly) null else when (item.syncState) {
+private fun syncLine(item: PaymentVerificationCenter.Item): String? = if (item.canonicalIdentity.isNotBlank()) null else when (item.syncState) {
     PaymentVerificationCenter.SyncState.SYNCED ->
         if (item.financeTransactionId.isNotBlank()) "财务流水号 ${item.financeTransactionId.take(18)}…" else "已记录到财务"
     PaymentVerificationCenter.SyncState.PENDING_SYNC -> "已保存在本机，等待同步到云端账本"

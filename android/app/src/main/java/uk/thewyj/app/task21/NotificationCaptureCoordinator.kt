@@ -158,6 +158,8 @@ class NotificationCaptureCoordinator(
                 confidence = payment.confidence.coerceIn(0, 1000),
                 occurredAtMs = input.receivedAtMs,
                 receivedAtMs = input.receivedAtMs,
+                providerReference = payment.providerReference,
+                lifecycleIdentity = input.messageIdentity,
             )
         } else {
             StructuredNotificationEvent(
@@ -271,6 +273,10 @@ class NotificationCaptureCoordinator(
                     },
                     reasons = (payment.reasons + "local_incomplete_payment").distinct(),
                     parserVersion = payment.parserVersion,
+                    providerReference = payment.providerReference,
+                    paymentChannel = payment.paymentChannel,
+                    lifecycleIdentity = input.messageIdentity,
+                    occurredAtMs = input.receivedAtMs,
                 )
                 return
             }
@@ -351,6 +357,10 @@ class NotificationCaptureCoordinator(
         recognitionStatus: String,
         reasons: List<String>,
         parserVersion: String,
+        providerReference: String = "",
+        paymentChannel: String = "",
+        lifecycleIdentity: String = "",
+        occurredAtMs: Long = 0L,
     ): Boolean {
         if (accountId.isBlank() || sourceEventId.isBlank()) return false
         val current = account() ?: return false
@@ -369,6 +379,10 @@ class NotificationCaptureCoordinator(
             recognitionStatus = recognitionStatus,
             reasons = reasons,
             parserVersion = parserVersion,
+            providerReference = providerReference,
+            paymentChannel = paymentChannel,
+            lifecycleIdentity = lifecycleIdentity,
+            occurredAtMs = occurredAtMs,
         )
         return runCatching {
             queueFor(current.accountId).enqueueHint("hint:$sourceEventId", payload)

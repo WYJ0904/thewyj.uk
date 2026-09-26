@@ -7,10 +7,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20260926-task24-candidate-r14";
-import { randomToolResult } from "./js/tools/random.js?v=20260926-task24-candidate-r14";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260926-task24-candidate-r14";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260926-task24-candidate-r14";
+} from "./js/tools/catalog.js?v=20260926-task24-candidate-r15";
+import { randomToolResult } from "./js/tools/random.js?v=20260926-task24-candidate-r15";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20260926-task24-candidate-r15";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20260926-task24-candidate-r15";
 import {
   csvString,
   decodeLocalText,
@@ -19,15 +19,15 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20260926-task24-candidate-r14";
+} from "./js/tools/file.js?v=20260926-task24-candidate-r15";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20260926-task24-candidate-r14";
-import { runToolRenderer } from "./js/tools/runner.js?v=20260926-task24-candidate-r14";
+} from "./js/tools/image.js?v=20260926-task24-candidate-r15";
+import { runToolRenderer } from "./js/tools/runner.js?v=20260926-task24-candidate-r15";
 (() => {
   "use strict";
 

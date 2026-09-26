@@ -120,7 +120,8 @@ class NotificationHubState(
             // Persist cloud terminal outcomes before counting local attention rows.
             // A display-only set subtraction left those rows actionable in the
             // verification screen even after Finance had no pending candidates.
-            runCatching { uk.thewyj.app.task21.payment.PaymentHintSync(appContext).sync() }
+            val hintSync = uk.thewyj.app.task21.payment.PaymentHintSync(appContext)
+            runCatching { hintSync.sync() }
             // The banner is the entry point to the native pending-verification
             // screen, so it counts exactly what that screen lists: local
             // recognitions that still need the user. Backend candidates are
@@ -143,9 +144,7 @@ class NotificationHubState(
             } else {
                 null
             }
-            if (remote != null) {
-                uk.thewyj.app.task21.payment.PaymentHintSync(appContext).applySummary(accountId, remote)
-            }
+            val observation = remote?.let { hintSync.applySummary(accountId, it) }
             val local = paymentStore.recognitionsByState(
                 accountId,
                 uk.thewyj.app.task21.payment.PaymentVerificationCenter.ATTENTION_STATES,
@@ -159,33 +158,43 @@ class NotificationHubState(
                 } else row
             }
             android.util.Log.i("ThewyjPending", "local=" + resolved.joinToString(";") { "${it.recognitionId}|${it.uploadEventId.ifBlank { "unresolved" }}|${it.state}" })
-            android.util.Log.i("ThewyjPending", "cloud=" + remote?.records.orEmpty().joinToString(";") { "${it.id}|${it.eventId}|${it.state}" })
-            resolved to remote
+            android.util.Log.i("ThewyjPending", "cloudN=${remote?.totalCount ?: -1} cloud=" +
+                remote?.records.orEmpty().joinToString(";") {
+                    "${it.canonicalId}|${it.eventId}|${it.amountMinor ?: "?"}|${it.direction.ifBlank { "?" }}|${it.state}"
+                })
+            val center = uk.thewyj.app.task21.payment.PaymentVerificationCenter(appContext)
+            val recovery = if (observation?.completeObservation == true) {
+                center.reconciledItems(accountId, observation).filter { it.recoveryOnly }
+            } else {
+                center.localItems(accountId).filter { it.recoveryOnly }
+            }
+            Triple(resolved, remote, recovery)
         }
         if (generation != pendingGeneration) return
         val local = result.first
         val remote = result.second
-        localPendingPayments = local.size
+        val recovery = result.third
+        localPendingPayments = recovery.size
         if (remote == null) {
             pendingPayments = 0
             remotePendingPayments = 0
             sharedPendingPayments = 0
-            localOnlyPendingPayments = local.size
+            localOnlyPendingPayments = recovery.size
             remoteOnlyPendingPayments = 0
             pendingObservationAt = ""
             pendingSyncCurrent = false
-            unresolvedPendingPayments = local.count { it.uploadEventId.isBlank() }
+            unresolvedPendingPayments = recovery.count { it.eventIds.isEmpty() }
             return
         }
         val reconciled = PendingReviewReconciler.reconcile(local, remote)
         pendingPayments = remote.totalCount
         remotePendingPayments = reconciled.remote
         sharedPendingPayments = reconciled.overlap
-        localOnlyPendingPayments = reconciled.localOnly
+        localOnlyPendingPayments = recovery.size
         remoteOnlyPendingPayments = reconciled.remoteOnly
         pendingObservationAt = reconciled.observedAt
         pendingSyncCurrent = reconciled.complete
-        unresolvedPendingPayments = reconciled.unresolved
+        unresolvedPendingPayments = recovery.count { it.eventIds.isEmpty() }
     }
 
     suspend fun setSearch(value: String) {

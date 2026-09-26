@@ -23,6 +23,8 @@ class PaymentVerificationState(
     private val reconcileOverride: (suspend (String) -> PaymentHintSync.Result?)? = null,
 ) {
     private val reconciliationInFlight = AtomicBoolean(false)
+    @Volatile private var reconciliationRequested = false
+    private var lastCompleteObservation: PaymentHintSync.Result? = null
 
     var items by mutableStateOf<List<PaymentVerificationCenter.Item>>(emptyList())
     var loading by mutableStateOf(true)
@@ -41,8 +43,17 @@ class PaymentVerificationState(
         loading = items.isEmpty()
         error = ""
         try {
-            val refreshed = withContext(Dispatchers.IO) { center.localItems(accountId) }
-            if (generation == refreshGeneration) items = refreshed
+            val snapshot = lastCompleteObservation
+            val refreshed = withContext(Dispatchers.IO) {
+                if (snapshot != null) center.reconciledItems(accountId, snapshot).filter { it.recoveryOnly }
+                else center.localItems(accountId)
+            }
+            if (generation == refreshGeneration) {
+                // A local signal must not repaint a stale server snapshot over
+                // a card that this UI just terminalized. The cloud set changes
+                // only when a fresh summary arrives through reconcile().
+                items = if (snapshot != null) items.filterNot { it.recoveryOnly } + refreshed else refreshed
+            }
         } catch (cancellation: CancellationException) {
             // Leaving this Compose surface (for example opening WeChat) is a
             // normal lifecycle cancellation, never a user-facing error.
@@ -56,13 +67,29 @@ class PaymentVerificationState(
 
     /** Cloud work starts only after the local list has been returned to Compose. */
     suspend fun reconcile() {
-        if (!reconciliationInFlight.compareAndSet(false, true)) return
+        if (!reconciliationInFlight.compareAndSet(false, true)) {
+            reconciliationRequested = true
+            return
+        }
         try {
-            val observation = withContext(Dispatchers.IO) {
-                if (reconcileOverride != null) reconcileOverride.invoke(accountId) else center.reconcile(accountId)
-            }
-            val refreshed = withContext(Dispatchers.IO) { center.reconciledItems(accountId, observation) }
-            items = refreshed
+            var attempt = 0
+            do {
+                reconciliationRequested = false
+                val generation = refreshGeneration
+                val observation = withContext(Dispatchers.IO) {
+                    if (reconcileOverride != null) reconcileOverride.invoke(accountId) else center.reconcile(accountId)
+                }
+                if (generation != refreshGeneration) {
+                    reconciliationRequested = true
+                } else if (observation?.completeObservation == true) {
+                    val refreshed = withContext(Dispatchers.IO) { center.reconciledItems(accountId, observation) }
+                    if (generation == refreshGeneration) {
+                        lastCompleteObservation = observation
+                        items = refreshed
+                    } else reconciliationRequested = true
+                }
+                attempt += 1
+            } while (reconciliationRequested && attempt < 2)
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (_: Throwable) {
@@ -143,7 +170,9 @@ class PaymentVerificationState(
     suspend fun confirm(item: PaymentVerificationCenter.Item) {
         val result = withContext(Dispatchers.IO) { center.confirmAndBook(accountId, item.recognitionId) }
         message = result.message
+        if (result.ok) items = items.filterNot { it.recognitionId == item.recognitionId }
         refresh()
+        if (result.ok) reconcile()
     }
 
     suspend fun ignore(item: PaymentVerificationCenter.Item) {
@@ -168,6 +197,7 @@ class PaymentVerificationState(
                 error = result.message
             }
             refresh()
+            if (result.ok) reconcile()
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (failure: Throwable) {

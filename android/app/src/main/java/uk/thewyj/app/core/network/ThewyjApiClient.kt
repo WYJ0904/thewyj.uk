@@ -46,7 +46,42 @@ data class PendingReviewIdentity(
     val state: String = "pending",
     val transactionId: String = "",
     val eventIds: Set<String> = setOf(eventId),
-)
+    val sourcePackage: String = "",
+    val appLabel: String = "",
+    val amountMinor: Long? = null,
+    val direction: String = "",
+    val merchant: String = "",
+    val occurredAtMs: Long = 0L,
+    val confidence: Int = 0,
+) {
+    val canonicalId: String get() = "$kind:$id"
+
+    companion object {
+        fun fromJson(row: JSONObject): PendingReviewIdentity? {
+            val id = row.optString("id").trim()
+            val eventId = row.optString("event_id").trim()
+            if (id.isBlank() || eventId.isBlank()) return null
+            val aliases = buildSet {
+                add(eventId)
+                val ids = row.optJSONArray("event_ids")
+                if (ids != null) for (index in 0 until ids.length()) add(ids.optString(index))
+            }.filter(String::isNotBlank).toSet()
+            return PendingReviewIdentity(
+                kind = row.optString("kind"), id = id, eventId = eventId,
+                deviceId = row.optString("device_id"),
+                state = row.optString("state", "pending"),
+                transactionId = row.optString("transaction_id"), eventIds = aliases,
+                sourcePackage = row.optString("source_package"),
+                appLabel = row.optString("app_label"),
+                amountMinor = row.optLong("amount_minor").takeIf { !row.isNull("amount_minor") && it > 0L },
+                direction = row.optString("direction").takeUnless { row.isNull("direction") }.orEmpty(),
+                merchant = row.optString("merchant"),
+                occurredAtMs = row.optLong("occurred_at_ms").coerceAtLeast(0L),
+                confidence = row.optInt("confidence").coerceIn(0, 1000),
+            )
+        }
+    }
+}
 
 data class PendingReviewSummary(
     val observedAt: String,
@@ -199,7 +234,6 @@ class ThewyjApiClient(
         ) { "thewyj base URL must be an HTTPS origin" }
     }
     private val origin = URI(baseUrl).let { "${it.scheme}://${it.host}${if (it.port > 0) ":${it.port}" else ""}" }
-    private var pendingSummarySupported: Boolean? = null
 
     override suspend fun register(username: String, secret: String): ApiCall<Unit> {
         return request(
@@ -286,31 +320,14 @@ class ThewyjApiClient(
 
     override suspend fun pendingReviewSummary(accessToken: String, eventIds: List<String>): ApiCall<PendingReviewSummary> {
         val requested = eventIds.distinct().filter(String::isNotBlank).take(200)
-        if (pendingSummarySupported == false) {
-            return legacyPendingReviewSummary(accessToken, requested)
-        }
-
         val query = requested.joinToString(",") { java.net.URLEncoder.encode(it, "UTF-8") }
         return when (val response = request(
             path = "/api/notification/pending-summary" + if (query.isEmpty()) "" else "?event_ids=$query",
             method = "GET",
             accessToken = accessToken,
         )) {
-            is ApiCall.Success -> {
-                pendingSummarySupported = true
-                parsePendingReviewSummary(response.value)
-            }
-            is ApiCall.Failure -> {
-                if (response.status == 404) {
-                    // Task 24 acceptance must work against the currently deployed
-                    // Production API too. Older Production builds expose hints and
-                    // candidate endpoints but not /pending-summary yet.
-                    pendingSummarySupported = false
-                    legacyPendingReviewSummary(accessToken, requested)
-                } else {
-                    response
-                }
-            }
+            is ApiCall.Success -> parsePendingReviewSummary(response.value)
+            is ApiCall.Failure -> response
         }
     }
 
@@ -320,21 +337,7 @@ class ThewyjApiClient(
             if (rows != null) {
                 for (index in 0 until rows.length()) {
                     val row = rows.optJSONObject(index) ?: continue
-                    add(
-                        PendingReviewIdentity(
-                            kind = row.optString("kind"),
-                            id = row.optString("id"),
-                            eventId = row.optString("event_id"),
-                            deviceId = row.optString("device_id"),
-                            state = row.optString("state", "pending"),
-                            transactionId = row.optString("transaction_id"),
-                            eventIds = buildSet {
-                                add(row.optString("event_id"))
-                                val ids = row.optJSONArray("event_ids")
-                                if (ids != null) for (aliasIndex in 0 until ids.length()) add(ids.optString(aliasIndex))
-                            }.filter(String::isNotBlank).toSet(),
-                        ),
-                    )
+                    PendingReviewIdentity.fromJson(row)?.let(::add)
                 }
             }
         }
@@ -356,72 +359,6 @@ class ThewyjApiClient(
             )
         },
     )
-
-    /**
-     * Compatibility observation for Production releases that predate
-     * /api/notification/pending-summary. It composes the same identity model
-     * from the older account-scoped hint/candidate endpoints.
-     */
-    private suspend fun legacyPendingReviewSummary(
-        accessToken: String,
-        requested: List<String>,
-    ): ApiCall<PendingReviewSummary> {
-        val hintPending = when (val call = request(
-            path = "/api/notification/hints?state=pending&limit=200",
-            method = "GET",
-            accessToken = accessToken,
-        )) {
-            is ApiCall.Success -> call.value
-            is ApiCall.Failure -> return call
-        }
-        val candidatePending = when (val call = request(
-            path = "/api/notification/candidates?status=pending&limit=200",
-            method = "GET",
-            accessToken = accessToken,
-        )) {
-            is ApiCall.Success -> call.value
-            is ApiCall.Failure -> return call
-        }
-
-        var hintAll: JSONObject? = null
-        var candidateConfirmed: JSONObject? = null
-        var candidateRejected: JSONObject? = null
-        if (requested.isNotEmpty()) {
-            hintAll = when (val call = request(
-                path = "/api/notification/hints?state=&limit=200",
-                method = "GET",
-                accessToken = accessToken,
-            )) {
-                is ApiCall.Success -> call.value
-                is ApiCall.Failure -> return call
-            }
-            candidateConfirmed = when (val call = request(
-                path = "/api/notification/candidates?status=confirmed&limit=200",
-                method = "GET",
-                accessToken = accessToken,
-            )) {
-                is ApiCall.Success -> call.value
-                is ApiCall.Failure -> return call
-            }
-            candidateRejected = when (val call = request(
-                path = "/api/notification/candidates?status=rejected&limit=200",
-                method = "GET",
-                accessToken = accessToken,
-            )) {
-                is ApiCall.Success -> call.value
-                is ApiCall.Failure -> return call
-            }
-        }
-
-        return PendingReviewCompatibility.fromLegacy(
-            hintPending = hintPending,
-            hintAll = hintAll,
-            candidatePending = candidatePending,
-            candidateConfirmed = candidateConfirmed,
-            candidateRejected = candidateRejected,
-            requested = requested.toSet(),
-        )
-    }
 
     private suspend fun request(
         path: String,

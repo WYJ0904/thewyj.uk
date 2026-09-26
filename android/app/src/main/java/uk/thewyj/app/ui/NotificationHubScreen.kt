@@ -154,7 +154,7 @@ fun NotificationHubScreen(
                 }
             }
         }
-        if (state.pendingPayments > 0 || state.unresolvedPendingPayments > 0 || !state.pendingSyncCurrent) {
+        if (state.pendingPayments > 0 || !state.pendingSyncCurrent) {
             ThewyjCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
@@ -180,6 +180,16 @@ fun NotificationHubScreen(
                         ) { Text("去处理") }
                         TextButton(onClick = onOpenPaymentVerification) { Text("本机核实") }
                     }
+                }
+            }
+        }
+        if (state.localOnlyPendingPayments > 0) {
+            ThewyjCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("本机恢复 / 未同步 ${state.localOnlyPendingPayments} 项", fontWeight = FontWeight.SemiBold)
+                    Text("这些记录不计入云端待确认数量；可在本机核实页重试同步。",
+                        style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = onOpenPaymentVerification) { Text("查看本机恢复") }
                 }
             }
         }

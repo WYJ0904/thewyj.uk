@@ -7,6 +7,21 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PendingReviewCompatibilityTest {
+    @Test fun canonicalSummaryRecordKeepsSafeDisplayFieldsAndExactAliases() {
+        val row = PendingReviewIdentity.fromJson(JSONObject(
+            """{"kind":"hint","id":"hint-wechat","event_id":"evt-first", "event_ids":["evt-first","evt-update"],"device_id":"device-a","state":"pending","source_package":"com.tencent.mm","app_label":"微信","amount_minor":10200,"direction":null,"merchant":"","occurred_at_ms":1789000000000,"confidence":720}""",
+        ))!!
+        assertEquals("hint:hint-wechat", row.canonicalId)
+        assertEquals(setOf("evt-first", "evt-update"), row.eventIds)
+        assertEquals("com.tencent.mm", row.sourcePackage)
+        assertEquals("微信", row.appLabel)
+        assertEquals(10_200L, row.amountMinor)
+        assertEquals("", row.direction)
+        assertEquals("", row.merchant)
+        assertEquals(1_789_000_000_000L, row.occurredAtMs)
+        assertEquals(720, row.confidence)
+    }
+
     @Test fun legacyProductionEndpointsComposePendingAndTerminalIdentities() {
         val result = PendingReviewCompatibility.fromLegacy(
             hintPending = JSONObject(

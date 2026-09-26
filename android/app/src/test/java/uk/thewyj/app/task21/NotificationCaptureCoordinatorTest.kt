@@ -221,6 +221,44 @@ class NotificationCaptureCoordinatorTest {
         }
     }
 
+    @Test fun oneWechatNotificationLifecycleKeepsOneRicherQueuedHint() {
+        val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
+        try {
+            val ids = ArrayDeque(listOf("payment-event-0001", "payment-event-0002"))
+            val captured = mutableListOf<String>()
+            val hook = object : PaymentRecognitionHook {
+                override fun outcomeFor(input: NotificationCaptureInput) =
+                    parsedOutcome(if (input.postTime == 1_000L) 0 else 10_200,
+                        FinanceDirection.UNKNOWN, confirmed = false)
+                override fun onCapture(accountId: String, input: NotificationCaptureInput,
+                    sourceAppLabel: String, uploadEventId: String) { captured += uploadEventId }
+            }
+            val coordinator = NotificationCaptureCoordinator(
+                archiveFor = { id -> LocalNotificationArchive.inDirectory(dir, id) },
+                queueFor = { id -> NotificationOfflineQueue.inDirectory(dir, id) },
+                transport = FakeTransport(),
+                account = { NotificationCaptureCoordinator.CaptureAccount("a", "device-a", "token-a", true) },
+                paymentHook = hook,
+                paymentLifecycleRegistry = InMemoryPaymentNotificationLifecycleRegistry { ids.removeFirst() },
+            )
+            val first = NotificationCaptureInput(sourcePackage = "com.tencent.mm",
+                notificationKey = "wechat-payment-slot", notificationId = 7, title = "微信支付",
+                text = "转账提醒", postTime = 1_000L, receivedAtMs = 1_000L,
+                messageIdentity = "a".repeat(64))
+            coordinator.onNotification(first)
+            coordinator.onNotification(first.copy(text = "转账 ¥102.00", postTime = 3_000L, receivedAtMs = 3_000L))
+            coordinator.onNotification(first.copy(text = "微信交易 ¥102.00", postTime = 5_000L, receivedAtMs = 5_000L))
+            assertEquals(listOf("payment-event-0001", "payment-event-0001", "payment-event-0001"), captured)
+            val queued = coordinator.queuedRequests()
+            assertEquals(1, queued.size)
+            val hint = org.json.JSONObject(queued.single().body).getJSONArray("hints").getJSONObject(0)
+            assertEquals(10_200L, hint.getLong("amount_minor"))
+            assertTrue(hint.isNull("direction"))
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
     @Test fun completePaymentIsUploaded() {
         val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
         try {
