@@ -1,13 +1,13 @@
 {
   "applicationId": "uk.thewyj.app",
-  "versionName": "1.3.9",
-  "versionCode": 22,
+  "versionName": "1.3.19",
+  "versionCode": 32,
   "minimumVersionCode": 1,
-  "releaseDate": "2026-09-14",
-  "releaseBuild": "2026-09-14-task24-legacy-media-r5",
-  "releaseNotes": "Task 24 历史图片语义兼容版：可信新图片正常显示；来源不明的旧图片记录只显示不可用状态，不读取可能属于联系人头像的历史文件；普通文字消息不显示图片提示。",
-  "apkFileName": "thewyj-android-1.3.9.apk",
-  "apkKey": "app/android/thewyj-android-1.3.9.apk",
-  "apkSha256": "a7a34ebfc416976d45d9f062855261f91c7ae64bcc71ee9546ecc7ef65702806",
-  "apkSizeBytes": 47611293
+  "releaseDate": "2026-09-27",
+  "releaseBuild": "2026-09-27-task24-release-1.3.19",
+  "releaseNotes": "Task 24 正式版：支付金额和方向识别完整后自动记账；通知与财务共用待确认记录并同步清除终态；保留无障碍/OCR、截图归档与财务删除联动。",
+  "apkFileName": "thewyj-android-1.3.19.apk",
+  "apkKey": "app/android/thewyj-android-1.3.19.apk",
+  "apkSha256": "1e79d8d791ed6cc5761f8fb8bac5f9c8320ae1b89f40f1f8b76ed1c9c50429e9",
+  "apkSizeBytes": 47676877
 }

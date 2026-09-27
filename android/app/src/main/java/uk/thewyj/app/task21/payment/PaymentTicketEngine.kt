@@ -53,7 +53,10 @@ data class PaymentEnrichment(
     val providerReference: String?,
     val occurredAtMs: Long?,
     val confidence: Int,
+    val evidenceSource: PaymentEvidenceSource = PaymentEvidenceSource.ACCESSIBILITY,
 )
+
+enum class PaymentEvidenceSource { ACCESSIBILITY, OCR }
 
 sealed interface EnrichmentOutcome {
     /** Enough evidence to continue towards candidate / Finance. */
@@ -119,15 +122,19 @@ class PaymentTicketEngine(
             return EnrichmentOutcome.Rejected(ticket, "package_mismatch")
         }
         val attempts = ticket.attempts + 1
-        if (enrichment.amountMinor == null || enrichment.amountMinor <= 0) {
+        val amountMinor = enrichment.amountMinor?.takeIf { it > 0 } ?: ticket.amountHintMinor?.takeIf {
+            it > 0 && "amount" !in ticket.missingFields
+        }
+        if (amountMinor == null) {
             return EnrichmentOutcome.Insufficient(ticket.copy(attempts = attempts))
         }
-        val missing = ticket.missingFields - setOf("amount")
+        val missing = ticket.missingFields - setOf("amount") -
+            if (enrichment.direction != null) setOf("direction") else emptySet()
         return EnrichmentOutcome.Applied(
             ticket.copy(
                 state = PaymentTicketState.ENRICHED,
                 attempts = attempts,
-                amountHintMinor = enrichment.amountMinor,
+                amountHintMinor = amountMinor,
                 missingFields = missing,
                 enrichment = enrichment,
             ),

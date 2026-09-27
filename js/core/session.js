@@ -1,4 +1,4 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260914-task24-device-r5";
+import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260927-task24-release-r16";
 
 export const ACCOUNT_SESSION_KEY = "wyjAccountSession";
 export const ACCOUNT_CACHE_KEY = "wyjAccountCache";

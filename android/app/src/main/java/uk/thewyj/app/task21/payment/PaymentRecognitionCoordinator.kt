@@ -222,8 +222,9 @@ class PaymentRecognitionCoordinator(
                             ),
                         )
                     }
+                    val existingCandidate = store.candidateForRecognition(accountId, recognition.recognitionId)
                     val candidate = PaymentCandidate(
-                        candidateId = "cand-" + UUID.randomUUID(),
+                        candidateId = existingCandidate?.candidateId ?: "cand-" + UUID.randomUUID(),
                         accountId = recognition.accountId,
                         recognitionId = recognition.recognitionId,
                         status = "pending",
@@ -235,10 +236,15 @@ class PaymentRecognitionCoordinator(
                         channel = ticket.paymentChannel,
                         confidence = enrichment.confidence,
                         reason = "accessibility_enrichment",
-                        createdAtMs = now(),
+                        createdAtMs = existingCandidate?.createdAtMs ?: now(),
                         updatedAtMs = now(),
                     )
-                    store.saveCandidate(candidate)
+                    // Preserve a user's edits, but allow the first verified
+                    // accessibility/OCR result to create the candidate under the
+                    // existing recognition identity.
+                    if (existingCandidate == null || !existingCandidate.hasEdits) {
+                        store.saveCandidate(candidate)
+                    }
                     val verifiedTicket = tickets.markCandidateCreated(outcome.ticket)
                     store.saveTicket(verifiedTicket)
                 }
@@ -316,6 +322,13 @@ class PaymentRecognitionCoordinator(
     /** Manual "核实交易金额" restart: a fresh 90 second ticket for the same event. */
     fun restartVerification(accountId: String, recognitionId: String): PaymentTicket? {
         val recognition = store.recognition(accountId, recognitionId) ?: return null
+        if (recognition.state in setOf(
+                PaymentRecognitionState.FINANCE_RECORDED.name,
+                PaymentRecognitionState.FINANCE_MANUALLY_CONFIRMED.name,
+                PaymentRecognitionState.FINANCE_CORRECTED.name,
+                PaymentRecognitionState.IGNORED.name,
+                PaymentRecognitionState.DUPLICATE_IGNORED.name,
+            )) return null
         val ticket = tickets.create(
             accountId = accountId,
             recognitionId = recognitionId,
@@ -323,7 +336,10 @@ class PaymentRecognitionCoordinator(
             sourceEventId = recognition.sourceEventId,
             paymentChannel = recognition.paymentChannel,
             amountHintMinor = recognition.amountMinor,
-            missingFields = setOf("amount"),
+            missingFields = buildSet {
+                if (recognition.amountMinor == null || recognition.amountMinor <= 0) add("amount")
+                if (recognition.direction.isBlank() || recognition.direction == FinanceDirection.UNKNOWN.name) add("direction")
+            },
         )
         store.saveTicket(ticket)
         PaymentTicketPackageSignal.publish(recognition.sourcePackage)

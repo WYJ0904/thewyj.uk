@@ -51,6 +51,59 @@ async function run(db, sql, values = []) {
   return await requireDatabase(db).prepare(sql).bind(...values).run();
 }
 
+async function task21FinanceLinkTablesReady(db) {
+  const row = await first(db, `SELECT COUNT(*) AS count FROM sqlite_master
+    WHERE type = 'table' AND name IN (
+      'task21_notification_pending_hints',
+      'task21_notification_candidates',
+      'task21_notification_events'
+    )`);
+  return Number(row?.count || 0) === 3;
+}
+
+function task21FinanceLinkMutationStatements(db, accountId, transactionId, targetStatus, now) {
+  const linkedEvents = `SELECT raw.source_event_id
+    FROM task16_finance_raw_events raw
+    JOIN task16_finance_transaction_events link
+      ON link.raw_event_id = raw.id AND link.relation_status = 'active'
+    WHERE raw.user_id = ?1 AND link.transaction_id = ?2
+      AND raw.source_type = 'notification' AND raw.source_event_id != ''`;
+  if (targetStatus === "deleted") {
+    return [
+      db.prepare(`UPDATE task21_notification_pending_hints
+        SET state = 'ignored', finance_entry_id = '', ignored_at = ?3, updated_at = ?3
+        WHERE user_id = ?1 AND (
+          finance_entry_id = ?2 OR source_event_id IN (${linkedEvents})
+        )`).bind(accountId, transactionId, now),
+      db.prepare(`UPDATE task21_notification_candidates
+        SET status = 'rejected', finance_transaction_id = '', updated_at = ?3
+        WHERE user_id = ?1 AND (
+          finance_transaction_id = ?2 OR event_id IN (${linkedEvents})
+        )`).bind(accountId, transactionId, now),
+      db.prepare(`UPDATE task21_notification_events
+        SET finance_transaction_id = '', updated_at = ?3
+        WHERE user_id = ?1 AND (
+          finance_transaction_id = ?2 OR event_id IN (${linkedEvents})
+        )`).bind(accountId, transactionId, now),
+    ];
+  }
+  return [
+    db.prepare(`UPDATE task21_notification_pending_hints
+      SET state = 'confirmed', finance_entry_id = ?2, confirmed_at = ?3,
+          ignored_at = '', updated_at = ?3
+      WHERE user_id = ?1 AND source_event_id IN (${linkedEvents})`)
+      .bind(accountId, transactionId, now),
+    db.prepare(`UPDATE task21_notification_candidates
+      SET status = 'confirmed', finance_transaction_id = ?2, updated_at = ?3
+      WHERE user_id = ?1 AND event_id IN (${linkedEvents})`)
+      .bind(accountId, transactionId, now),
+    db.prepare(`UPDATE task21_notification_events
+      SET finance_transaction_id = ?2, updated_at = ?3
+      WHERE user_id = ?1 AND event_id IN (${linkedEvents})`)
+      .bind(accountId, transactionId, now),
+  ];
+}
+
 async function requireOwnedCategory(db, userId, categoryId) {
   if (!categoryId) return;
   const row = await first(db, `SELECT id FROM task16_finance_categories
@@ -306,11 +359,13 @@ async function changeTransactionStatus(db, account, deviceId, operation, digest,
   const planned = { ...existing, status: targetStatus, revision, deleted_at: deletedAt, updated_at: isoNow() };
   const action = targetStatus === "deleted" ? "transaction_delete" : "transaction_restore";
   const changeOperation = targetStatus === "deleted" ? "delete" : "restore";
+  const task21Ready = await task21FinanceLinkTablesReady(db);
   return await commitMutation(db, account, deviceId, operation, digest, (version, now) => [
     db.prepare(`UPDATE task16_finance_transactions SET status = ?2, revision = ?3,
       sync_version = ?4, updated_at = ?5, deleted_at = ?6
       WHERE id = ?1 AND user_id = ?7 AND revision = ?8`)
       .bind(id, targetStatus, revision, version, now, targetStatus === "deleted" ? now : "", account.id, baseRevision),
+    ...(task21Ready ? task21FinanceLinkMutationStatements(db, account.id, id, targetStatus, now) : []),
     auditStatement(db, account, deviceId, action, "transaction", id,
       publicTransaction(existing), { ...publicTransaction(planned), sync_version: version }, now),
   ], {

@@ -101,6 +101,8 @@ class NotificationCaptureCoordinatorTest {
         counterparty = "示例商户",
         paymentChannel = "wechat",
         parserVersion = "test",
+        reasons = if (direction == FinanceDirection.UNKNOWN) listOf("wechat_amount_without_direction") else emptyList(),
+        missingFields = if (direction == FinanceDirection.UNKNOWN) setOf("direction") else emptySet(),
     )
 
     /**
@@ -124,6 +126,8 @@ class NotificationCaptureCoordinatorTest {
             // It goes to the unified pending-hint endpoint only: never an event
             // ingest that could book a transaction without a direction.
             assertTrue(queued.first().path.endsWith("/api/notification/hints"))
+            assertTrue(queued.first().body.contains("wechat_amount_without_direction"))
+            assertTrue(queued.first().body.contains("local_incomplete_payment"))
             assertTrue(transport.calls.none { it.contains("/api/notification/ingest") })
             assertEquals(1, coordinator.flush())
             assertTrue(coordinator.flushDetailed().outcomes.isEmpty())
@@ -212,6 +216,44 @@ class NotificationCaptureCoordinatorTest {
             coordinator.onNotification(first.copy(postTime = 30_000L, receivedAtMs = 30_000L))
             assertEquals("removal must open a new lifecycle", "payment-event-0002", hook.uploadEventIds.last())
             assertEquals(2, coordinator.queuedRequests().size)
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
+    @Test fun oneWechatNotificationLifecycleKeepsOneRicherQueuedHint() {
+        val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
+        try {
+            val ids = ArrayDeque(listOf("payment-event-0001", "payment-event-0002"))
+            val captured = mutableListOf<String>()
+            val hook = object : PaymentRecognitionHook {
+                override fun outcomeFor(input: NotificationCaptureInput) =
+                    parsedOutcome(if (input.postTime == 1_000L) 0 else 10_200,
+                        FinanceDirection.UNKNOWN, confirmed = false)
+                override fun onCapture(accountId: String, input: NotificationCaptureInput,
+                    sourceAppLabel: String, uploadEventId: String) { captured += uploadEventId }
+            }
+            val coordinator = NotificationCaptureCoordinator(
+                archiveFor = { id -> LocalNotificationArchive.inDirectory(dir, id) },
+                queueFor = { id -> NotificationOfflineQueue.inDirectory(dir, id) },
+                transport = FakeTransport(),
+                account = { NotificationCaptureCoordinator.CaptureAccount("a", "device-a", "token-a", true) },
+                paymentHook = hook,
+                paymentLifecycleRegistry = InMemoryPaymentNotificationLifecycleRegistry { ids.removeFirst() },
+            )
+            val first = NotificationCaptureInput(sourcePackage = "com.tencent.mm",
+                notificationKey = "wechat-payment-slot", notificationId = 7, title = "微信支付",
+                text = "转账提醒", postTime = 1_000L, receivedAtMs = 1_000L,
+                messageIdentity = "a".repeat(64))
+            coordinator.onNotification(first)
+            coordinator.onNotification(first.copy(text = "转账 ¥102.00", postTime = 3_000L, receivedAtMs = 3_000L))
+            coordinator.onNotification(first.copy(text = "微信交易 ¥102.00", postTime = 5_000L, receivedAtMs = 5_000L))
+            assertEquals(listOf("payment-event-0001", "payment-event-0001", "payment-event-0001"), captured)
+            val queued = coordinator.queuedRequests()
+            assertEquals(1, queued.size)
+            val hint = org.json.JSONObject(queued.single().body).getJSONArray("hints").getJSONObject(0)
+            assertEquals(10_200L, hint.getLong("amount_minor"))
+            assertTrue(hint.isNull("direction"))
         } finally {
             dir.deleteRecursively()
         }

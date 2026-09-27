@@ -1,7 +1,5 @@
 package uk.thewyj.app.task21.payment
 
-import uk.thewyj.app.task21.FinanceDirection
-
 /**
  * Minimal, safe reading of a payment page. The accessibility service only ever
  * feeds text from the foreground page of the package that owns an active
@@ -36,10 +34,14 @@ object PaymentPageSemantics {
         if (amounts.size > 1 && !PaymentText.hasDecisiveAmountLabel(joined)) return null
         // With a decisive label the labelled amount wins over the first number on
         // the page (商品 ¥100 运费 ¥12 实付 ¥112 must book 112).
-        val amount = PaymentText.decisiveAmountMinor(joined) ?: amounts.firstOrNull() ?: return null
-        val direction = PaymentText.direction(joined) ?: FinanceDirection.EXPENSE.takeIf {
-            PaymentText.hasCompletion(joined)
-        }
+        val amount = PaymentText.decisiveAmountMinor(joined) ?: amounts.firstOrNull()
+        // A generic "交易成功" proves completion, not whether money entered or
+        // left the account. Only page wording that identifies the direction may
+        // complete the booking; ambiguous pages keep the same identity pending.
+        val direction = PaymentText.direction(joined)
+        val detailPage = listOf("交易详情", "交易詳情", "账单详情", "賬單詳情", "转账详情", "轉賬詳情")
+            .any(joined::contains)
+        if (amount == null && !(detailPage && PaymentText.hasCompletion(joined) && direction != null)) return null
         val merchant = PaymentText.merchant(joined)
         val reference = PaymentText.providerReference(joined)
         val confidence = when {

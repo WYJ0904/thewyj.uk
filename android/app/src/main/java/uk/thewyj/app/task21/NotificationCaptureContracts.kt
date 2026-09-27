@@ -55,6 +55,8 @@ data class NotificationCaptureInput(
     val infoText: String = "",
     val summaryText: String = "",
     val textLines: List<String> = emptyList(),
+    /** SHA-256 identity of the latest MessagingStyle message, never its text. */
+    val messageIdentity: String = "",
     /**
      * Picture Android exposed on the notification, already written to local
      * storage. `mediaState` is "none" (no picture), "available" (stored) or
@@ -104,6 +106,7 @@ data class NotificationCaptureInput(
      * one updating notification stays one history entry.
      */
     val coalesceWithPrevious: Boolean = false,
+    val archiveKind: String = "message",
 )
 
 /**
@@ -141,6 +144,16 @@ interface NotificationArchiveSink {
      * archive link. The default keeps test doubles source compatible.
      */
     fun recognitionSourceEventId(accountId: String, sourceEventId: String): String = ""
+
+    /** Both current stable and legacy recognition identities for an archived event. */
+    fun recognitionSourceEventIds(accountId: String, sourceEventId: String): List<String> =
+        listOfNotNull(recognitionSourceEventId(accountId, sourceEventId).takeIf(String::isNotBlank))
+
+    /** Exact reverse archive link; never inferred from amount or capture time alone. */
+    fun structuredEventIdsForRecognition(accountId: String, recognitionSourceEventId: String): List<String> = emptyList()
+
+    /** SHA-256 of one persisted archive instance, for exact legacy review repair. */
+    fun archivedLifecycleIdentity(accountId: String, structuredEventId: String): String = ""
 }
 
 /**
@@ -171,9 +184,8 @@ data class ScreenshotMediaEvent(
  */
 /**
  * One payment outcome shared by the local recognition pipeline and the
- * structured event that is uploaded for finance. `confirmed` means the message
- * itself proves a completed payment (verb + amount); everything else stays a
- * review candidate instead of becoming a ledger entry.
+ * structured event that is uploaded for finance. `confirmed` records parser
+ * evidence; amount and direction determine whether booking is complete.
  */
 data class PaymentIngestOutcome(
     val confirmed: Boolean,
@@ -184,6 +196,10 @@ data class PaymentIngestOutcome(
     val counterparty: String,
     val paymentChannel: String,
     val parserVersion: String,
+    val providerReference: String = "",
+    /** Structured reason codes only; never notification text. */
+    val reasons: List<String> = emptyList(),
+    val missingFields: Set<String> = emptySet(),
 )
 
 interface PaymentRecognitionHook {
@@ -224,7 +240,7 @@ interface PaymentRecognitionHook {
  * raw notification history being enabled.
  */
 interface PaymentNotificationLifecycleRegistry {
-    fun eventId(accountId: String, input: NotificationCaptureInput): String
+    fun eventId(accountId: String, input: NotificationCaptureInput, payment: PaymentIngestOutcome? = null): String
     fun markRemoved(accountId: String, input: NotificationCaptureInput)
 }
 
@@ -232,17 +248,119 @@ interface PaymentNotificationLifecycleRegistry {
 class InMemoryPaymentNotificationLifecycleRegistry(
     private val idFactory: () -> String = NotificationFingerprint::stableEventId,
 ) : PaymentNotificationLifecycleRegistry {
-    private val active = LinkedHashMap<String, String>()
+    private data class Entry(val eventId: String, val proof: PaymentLifecycleProof)
+    private val active = LinkedHashMap<String, Entry>()
 
-    override fun eventId(accountId: String, input: NotificationCaptureInput): String = synchronized(active) {
-        val slot = paymentNotificationSlot(input) ?: return@synchronized idFactory()
-        active.getOrPut("$accountId\u001F$slot", idFactory)
+    override fun eventId(accountId: String, input: NotificationCaptureInput, payment: PaymentIngestOutcome?): String = synchronized(active) {
+        val proof = paymentLifecycleProof(input, payment)
+        val primary = paymentNotificationSlot(input)?.let { "$accountId\u001F$it" }
+        val fallback = if (input.notificationId != 0 || input.tag.isNotBlank())
+            "$accountId\u001Fslot:${input.sourcePackage}|${input.notificationId}|${input.tag}" else null
+        val reference = proof.referenceHash.takeIf(String::isNotBlank)?.let { "$accountId\u001Fref:$it" }
+        val message = proof.messageHash.takeIf(String::isNotBlank)?.let { "$accountId\u001Fmessage:$it" }
+        val keys = listOfNotNull(reference, message, primary, fallback).distinct()
+        if (keys.isEmpty()) return@synchronized idFactory()
+        val existing = keys.firstNotNullOfOrNull { key ->
+            active[key]?.takeIf { old ->
+                val sameReference = key == reference && proof.referenceHash == old.proof.referenceHash
+                val sameMessage = key == message && proof.messageHash == old.proof.messageHash
+                val conflict = proof.conflictingReference(old.proof) ||
+                    (!sameReference && proof.conflictingMessage(old.proof))
+                val promotion = old.proof.channelHash.isNotBlank() && proof.enriches(old.proof)
+                proof.compatible(old.proof) && when {
+                    sameReference -> true
+                    sameMessage && !proof.conflictingReference(old.proof) -> true
+                    key == primary && !conflict ->
+                        proof.evidence == old.proof.evidence || promotion ||
+                            (old.proof.channelHash.isNotBlank() && proof.channelHash.isNotBlank() &&
+                                (old.proof.amountHash.isBlank() || old.proof.direction.isBlank()))
+                    key == fallback && !conflict -> promotion
+                    else -> false
+                }
+            }
+        }
+        val eventId = existing?.eventId ?: idFactory()
+        val merged = existing?.proof?.let { prior -> proof.copy(
+            amountHash = proof.amountHash.ifBlank { prior.amountHash },
+            direction = proof.direction.ifBlank { prior.direction },
+            channelHash = proof.channelHash.ifBlank { prior.channelHash },
+            referenceHash = proof.referenceHash.ifBlank { prior.referenceHash },
+            messageHash = proof.messageHash.ifBlank { prior.messageHash },
+        ) } ?: proof
+        if (existing != null) active.keys.filter { active[it]?.eventId == eventId }.forEach { active[it] = Entry(eventId, merged) }
+        keys.forEach { active[it] = Entry(eventId, merged) }
+        eventId
     }
 
     override fun markRemoved(accountId: String, input: NotificationCaptureInput) {
         val slot = paymentNotificationSlot(input) ?: return
-        synchronized(active) { active.remove("$accountId\u001F$slot") }
+        synchronized(active) {
+            val eventId = active["$accountId\u001F$slot"]?.eventId ?: return@synchronized
+            active.keys.filter { active[it]?.eventId == eventId }.toList().forEach { active.remove(it) }
+        }
     }
+}
+
+/** Opaque local identity evidence; raw notification text is never persisted. */
+fun paymentNotificationEvidence(input: NotificationCaptureInput, payment: PaymentIngestOutcome?): String {
+    val content = NotificationFingerprint.sha256Hex(
+        listOf(input.title, input.text, input.bigText, input.subText, input.textLines.joinToString("\u001E"))
+            .joinToString("\u001F"),
+    )
+    val strongReference = payment?.providerReference.orEmpty().trim()
+    return NotificationFingerprint.sha256Hex(
+        if (strongReference.isNotBlank()) {
+            "${input.sourcePackage}\u001F${payment?.paymentChannel}\u001F$strongReference\u001F${payment?.amountMinor}\u001F${payment?.direction}"
+        } else if (payment != null && payment.amountMinor <= 0 && payment.direction == FinanceDirection.UNKNOWN) {
+            // An amount-less payment notification often changes only status
+            // wording while Android keeps the same slot. Until removal, the
+            // platform lifecycle is the strongest available identity.
+            "${input.sourcePackage}\u001F${payment.paymentChannel}\u001Fincomplete"
+        } else {
+            "${input.sourcePackage}\u001F${payment?.paymentChannel}\u001F$content\u001F${payment?.amountMinor}\u001F${payment?.direction}"
+        },
+    )
+}
+
+/** Structured continuity proof. Every stored identity component is hashed or an enum. */
+data class PaymentLifecycleProof(
+    val evidence: String,
+    val amountHash: String,
+    val direction: String,
+    val channelHash: String,
+    val referenceHash: String,
+    val messageHash: String,
+) {
+    fun compatible(other: PaymentLifecycleProof): Boolean =
+        (amountHash.isBlank() || other.amountHash.isBlank() || amountHash == other.amountHash) &&
+            (direction.isBlank() || other.direction.isBlank() || direction == other.direction) &&
+            (channelHash.isBlank() || other.channelHash.isBlank() || channelHash == other.channelHash)
+
+    fun enriches(previous: PaymentLifecycleProof): Boolean = compatible(previous) &&
+        ((previous.amountHash.isBlank() && amountHash.isNotBlank()) ||
+            (previous.direction.isBlank() && direction.isNotBlank()))
+
+    fun conflictingReference(other: PaymentLifecycleProof): Boolean =
+        referenceHash.isNotBlank() && other.referenceHash.isNotBlank() && referenceHash != other.referenceHash
+
+    fun conflictingMessage(other: PaymentLifecycleProof): Boolean =
+        messageHash.isNotBlank() && other.messageHash.isNotBlank() && messageHash != other.messageHash
+}
+
+fun paymentLifecycleProof(input: NotificationCaptureInput, payment: PaymentIngestOutcome?): PaymentLifecycleProof {
+    val channel = payment?.paymentChannel.orEmpty().trim().lowercase()
+    val reference = payment?.providerReference.orEmpty().trim()
+    return PaymentLifecycleProof(
+        evidence = paymentNotificationEvidence(input, payment),
+        amountHash = payment?.amountMinor?.takeIf { it > 0 }
+            ?.let { NotificationFingerprint.sha256Hex(it.toString()) }.orEmpty(),
+        direction = payment?.direction?.takeUnless { it == FinanceDirection.UNKNOWN }?.name.orEmpty(),
+        channelHash = channel.takeIf(String::isNotBlank)?.let(NotificationFingerprint::sha256Hex).orEmpty(),
+        referenceHash = reference.takeIf(String::isNotBlank)?.let {
+            NotificationFingerprint.sha256Hex("${input.sourcePackage}\u001F$channel\u001F$it")
+        }.orEmpty(),
+        messageHash = input.messageIdentity,
+    )
 }
 
 /** Raw content is deliberately absent: only the Android notification slot is identity. */
@@ -274,6 +392,8 @@ data class StructuredNotificationEvent(
     val confidence: Int,
     val occurredAtMs: Long,
     val receivedAtMs: Long,
+    val providerReference: String = "",
+    val lifecycleIdentity: String = "",
 )
 
 /** Local-only full notification content. Never uploaded, never logged. */

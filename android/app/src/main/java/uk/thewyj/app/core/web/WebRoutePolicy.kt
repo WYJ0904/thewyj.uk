@@ -10,6 +10,7 @@ sealed interface NavigationDecision {
     data object Speech : NavigationDecision
     /** The web app reports its resolved theme so the shell can match it. */
     data object Theme : NavigationDecision
+    data object VerifyPayment : NavigationDecision
     data object External : NavigationDecision
     data object Blocked : NavigationDecision
 }
@@ -39,6 +40,7 @@ class WebRoutePolicy(baseUrl: String) {
                     "/dark", "/light" -> NavigationDecision.Theme
                     else -> NavigationDecision.Blocked
                 }
+                "payment" -> if (uri.path == "/verify") NavigationDecision.VerifyPayment else NavigationDecision.Blocked
                 else -> NavigationDecision.Blocked
             }
         }

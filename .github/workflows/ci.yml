@@ -157,6 +157,7 @@ jobs:
             node --check local-backend/test_tools_js.mjs
             node --check local-backend/test_finance_candidates_js.mjs
             node --check local-backend/test_core_js.mjs
+            node --check local-backend/test_tts_js.mjs
             node --check local-backend/test_language_js.mjs
             node --check local-backend/test_membership_js.mjs
             node --check local-backend/test_workflows_js.mjs
@@ -257,6 +258,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_core_js.mjs 2>&1 | tee artifacts/javascript-core.log
+
+      - name: Test cloud TTS provider fallback
+        run: |
+          set -euo pipefail
+          node local-backend/test_tts_js.mjs 2>&1 | tee artifacts/cloud-tts.log
 
       - name: Test language JavaScript modules
         run: |
@@ -444,14 +450,19 @@ jobs:
           java-version: "21"
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install pinned Android platform
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          android_sdk="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          sdkmanager="$(find "${android_sdk}/cmdline-tools" -type f -path '*/bin/sdkmanager' -print | sort -V | tail -n 1)"
+          test -x "${sdkmanager}"
+          echo "ANDROID_HOME=${android_sdk}" >> "${GITHUB_ENV}"
+          echo "ANDROID_SDK_ROOT=${android_sdk}" >> "${GITHUB_ENV}"
+          set +o pipefail
+          yes | "${sdkmanager}" "platforms;android-36" "build-tools;36.0.0"
+          sdkmanager_status=${PIPESTATUS[1]}
+          set -o pipefail
+          exit "${sdkmanager_status}"
 
       - name: Run Android unit tests, lint and debug build
         working-directory: android

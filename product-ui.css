@@ -1929,6 +1929,11 @@ textarea::placeholder {
   min-width: 0;
 }
 
+.finance-candidate-copy {
+  display: grid;
+  gap: var(--space-1);
+}
+
 .finance-candidate-main strong,
 .finance-candidate-main small {
   display: block;
@@ -1943,7 +1948,41 @@ textarea::placeholder {
 
 .finance-candidate-actions {
   flex: 0 0 auto;
+  flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+.finance-candidate > .finance-candidate-actions {
+  max-width: 360px;
+}
+
+.finance-candidate > .finance-candidate-actions > small {
+  flex: 1 0 100%;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+
+.finance-candidate-evidence {
+  margin-top: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-sm);
+}
+
+.finance-candidate-evidence summary {
+  width: max-content;
+  max-width: 100%;
+  cursor: pointer;
+  color: var(--color-primary);
+}
+
+.finance-candidate-evidence p {
+  margin: var(--space-1) 0 0;
+}
+
+.finance-direction.is-unknown {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
 }
 
 .finance-candidate-empty,
@@ -4539,8 +4578,28 @@ progress {
     width: 100%;
   }
 
-  .finance-candidate-actions > * {
+  .finance-candidate-editor .finance-candidate-actions > * {
     flex: 1 1 0;
+  }
+
+  .finance-candidate > .finance-candidate-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: none;
+  }
+
+  .finance-candidate > .finance-candidate-actions > [data-finance-candidate-confirm] {
+    grid-column: 1 / -1;
+  }
+
+  .finance-candidate > .finance-candidate-actions > * {
+    min-width: 0;
+    min-height: var(--ds-touch-min);
+    white-space: normal;
+  }
+
+  .finance-candidate > .finance-candidate-actions > small {
+    grid-column: 1 / -1;
   }
 
   .finance-transaction-side {

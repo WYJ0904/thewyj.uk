@@ -22,6 +22,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -31,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import kotlinx.coroutines.launch
 import uk.thewyj.app.core.design.ThewyjCard
 import uk.thewyj.app.core.design.ThewyjPrimaryButton
@@ -39,6 +41,7 @@ import uk.thewyj.app.core.design.ThewyjSpacing
 import uk.thewyj.app.core.design.statusContainerColor
 import uk.thewyj.app.core.design.statusContentColor
 import uk.thewyj.app.task21.payment.PaymentVerificationCenter
+import uk.thewyj.app.task21.payment.PaymentReviewSignals
 
 /**
  * In-app "待核实 / 待确认交易" surface.
@@ -53,15 +56,24 @@ fun PaymentVerificationScreen(
     state: PaymentVerificationState,
     onBack: () -> Unit,
     onOpenFinance: () -> Unit,
-    onOpenApp: (String) -> Unit,
+    onOpenApp: (String) -> Boolean,
 ) {
     val scope = rememberCoroutineScope()
     var tick by remember { mutableStateOf(0) }
-    LaunchedEffect(Unit) { state.refresh() }
+    var resumeEpoch by remember { mutableIntStateOf(0) }
+    LifecycleResumeEffect(Unit) {
+        resumeEpoch += 1
+        onPauseOrDispose { }
+    }
+    LaunchedEffect(resumeEpoch) {
+        state.refresh()
+        state.reconcile()
+    }
+    LaunchedEffect(state.accountId) { PaymentReviewSignals.changes.collect { state.refresh(); state.reconcile() } }
     // #4: bounded catch-up for records the server still owns (Web confirm → this
     // screen). It restarts when the set of pending records changes and stops by
     // itself after PendingReconciliationPolicy.windowMs.
-    val pendingKey = state.items.joinToString("|") { "${it.recognitionId}:${it.syncState}" }
+    val pendingKey = state.items.joinToString("|") { "${it.canonicalIdentity.ifBlank { it.recognitionId }}:${it.syncState}" }
     LaunchedEffect(pendingKey) { state.catchUpReconciliation() }
     // Countdown display only; no background polling of Room or the network.
     LaunchedEffect(tick, state.items.size) {
@@ -86,7 +98,7 @@ fun PaymentVerificationScreen(
                 Text("待核实 / 待确认交易", style = MaterialTheme.typography.titleLarge)
             }
             Text(
-                "识别到的支付会先到这里。金额不足时可在 90 秒内打开来源应用自动核实，也可以直接填写金额后记账。",
+                "缺金额或方向时，可在 90 秒内打开来源应用核实；金额和方向完整后会自动记账。",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -111,7 +123,7 @@ fun PaymentVerificationScreen(
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
-                TextButton(onClick = { scope.launch { state.refresh() } }) { Text("刷新") }
+                TextButton(onClick = { scope.launch { state.refresh(); state.reconcile() } }) { Text("刷新") }
                 TextButton(onClick = { scope.launch { state.flush() } }) { Text("同步记账") }
                 TextButton(onClick = onOpenFinance) { Text("打开财务") }
             }
@@ -120,7 +132,7 @@ fun PaymentVerificationScreen(
             } else if (state.items.isEmpty()) {
                 ThewyjCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(ThewyjSpacing.Lg), verticalArrangement = Arrangement.spacedBy(ThewyjSpacing.Xs)) {
-                        Text("没有待确认的交易", fontWeight = FontWeight.SemiBold)
+                        Text("本机暂无待核实交易", fontWeight = FontWeight.SemiBold)
                         Text(
                             "识别到的支付确认后会直接写入财务账本；这里为空说明没有遗漏。",
                             style = MaterialTheme.typography.bodySmall,
@@ -129,7 +141,19 @@ fun PaymentVerificationScreen(
                     }
                 }
             }
-            state.items.forEach { item ->
+            val canonicalCount = state.items.count { !it.recoveryOnly }
+            if (canonicalCount > 0) {
+                Text("云端待确认 · $canonicalCount", style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold)
+            }
+            state.items.forEachIndexed { index, item ->
+                if (item.recoveryOnly && (index == 0 || !state.items[index - 1].recoveryOnly)) {
+                    Text(
+                        "本机恢复 / 未同步（不计入云端待确认）",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
                 ThewyjCard(Modifier.fillMaxWidth()) {
                     Column(
                         Modifier.padding(ThewyjSpacing.Lg),
@@ -152,6 +176,18 @@ fun PaymentVerificationScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        if (item.canonicalIdentity.isNotBlank()) {
+                            Text("核实标识：${item.canonicalIdentity}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (item.ocrSuggested) {
+                            Text(
+                                "OCR 金额仅供参考，请对照支付详情核实后手动确认；不会自动记账。",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                         if (item.ticketActive) {
                             Text(
                                 "核实中：请现在打开「${item.appLabel}」并停留在这笔交易的详情页（剩余 ${(item.remainingMs / 1000).coerceAtLeast(0)} 秒）",
@@ -169,7 +205,14 @@ fun PaymentVerificationScreen(
                         syncLine(item)?.let { line ->
                             Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        if (state.editingRecognitionId == item.recognitionId) {
+                        if (item.remoteOnly) {
+                            Text(
+                                "这笔云端待核实交易在本机没有对应识别记录，请在财务页处理。",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            ThewyjPrimaryButton(text = { Text("在财务中处理") }, onClick = onOpenFinance)
+                        } else if (state.editingRecognitionId == item.recognitionId) {
                             OutlinedTextField(
                                 value = state.amountText,
                                 onValueChange = { state.amountText = it.take(12) },
@@ -201,9 +244,14 @@ fun PaymentVerificationScreen(
                             }
                         } else {
                             Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
-                                if (item.needsAmount) {
+                                if (item.ocrSuggested) {
                                     ThewyjPrimaryButton(
-                                        text = { Text(if (item.ticketActive) "重新核实" else "核实交易金额") },
+                                        text = { Text("核对金额并确认") },
+                                        onClick = { state.beginEdit(item) },
+                                    )
+                                } else if (item.needsVerification) {
+                                    ThewyjPrimaryButton(
+                                        text = { Text(if (item.ticketActive) "重新核实" else "核实交易") },
                                         onClick = { scope.launch { state.startVerification(item) } },
                                     )
                                 } else if (item.deviceBooks) {
@@ -221,10 +269,24 @@ fun PaymentVerificationScreen(
                                     Text(if (item.needsAmount) "填写金额" else "修改")
                                 }
                                 if (item.ticketActive) {
-                                    TextButton(onClick = { onOpenApp(item.sourcePackage) }) { Text("打开应用") }
+                                    TextButton(
+                                        onClick = {
+                                            if (onOpenApp(item.sourcePackage)) {
+                                                state.reportOpenAppStarted()
+                                            } else {
+                                                state.reportOpenAppFailure(item.appLabel)
+                                            }
+                                        },
+                                    ) { Text("打开应用") }
                                 }
                             }
-                            TextButton(onClick = { scope.launch { state.ignore(item) } }) { Text("忽略这笔") }
+                            val ignoring = state.isBusy(item, "ignore")
+                            TextButton(
+                                onClick = { scope.launch { state.ignore(item) } },
+                                enabled = !ignoring,
+                            ) {
+                                Text(if (ignoring) "正在忽略…" else "忽略这笔")
+                            }
                         }
                     }
                 }
@@ -244,12 +306,19 @@ private fun DirectionChoice(label: String, selected: Boolean, onClick: () -> Uni
 }
 
 private fun stateLabel(item: PaymentVerificationCenter.Item): String = when {
+    item.canonicalIdentity.isNotBlank() && item.needsAmount -> "金额待核实"
+    item.canonicalIdentity.isNotBlank() && item.direction == uk.thewyj.app.task21.FinanceDirection.UNKNOWN -> "方向待核实"
+    item.canonicalIdentity.isNotBlank() -> "云端待确认"
     item.syncState == PaymentVerificationCenter.SyncState.SYNCED -> "已记录到财务"
+    item.syncState == PaymentVerificationCenter.SyncState.UNRESOLVED_REMOTE -> "云端关联待核对"
+    item.ocrSuggested -> "OCR 建议金额待核对"
+    item.direction == uk.thewyj.app.task21.FinanceDirection.UNKNOWN && !item.needsAmount -> "方向待核实"
+    item.needsAmount -> "金额待核实"
+    item.syncState == PaymentVerificationCenter.SyncState.LOCAL_ONLY -> "仅本机待核对"
     item.authority == PaymentVerificationCenter.Authority.SERVER -> "等待在财务中确认"
     item.state == "ENRICHMENT_EXPIRED" -> "金额待核实"
     item.state == "ENRICHMENT_VERIFIED" -> "已核实金额"
     item.state == "VERIFICATION_FAILED" -> "核实失败"
-    item.needsAmount -> "金额待核实"
     else -> "等待确认记账"
 }
 
@@ -266,20 +335,23 @@ private fun amountLine(item: PaymentVerificationCenter.Item): String {
 }
 
 private fun sourceLine(item: PaymentVerificationCenter.Item): String {
-    val time = java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.CHINA)
-        .format(java.util.Date(item.occurredAtMs))
+    val time = if (item.occurredAtMs > 0L) java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.CHINA)
+        .format(java.util.Date(item.occurredAtMs)) else "时间待核对"
     val merchant = item.merchant.ifBlank { "未识别商户" }
     val edited = if (item.hasEdits) " · 已人工修正" else ""
     return "$time · $merchant$edited"
 }
 
-private fun syncLine(item: PaymentVerificationCenter.Item): String? = when (item.syncState) {
+private fun syncLine(item: PaymentVerificationCenter.Item): String? = if (item.canonicalIdentity.isNotBlank()) null else when (item.syncState) {
     PaymentVerificationCenter.SyncState.SYNCED ->
         if (item.financeTransactionId.isNotBlank()) "财务流水号 ${item.financeTransactionId.take(18)}…" else "已记录到财务"
     PaymentVerificationCenter.SyncState.PENDING_SYNC -> "已保存在本机，等待同步到云端账本"
     PaymentVerificationCenter.SyncState.SYNC_FAILED -> "云端同步失败，数据仍保留在本机，可点击「同步记账」重试"
     PaymentVerificationCenter.SyncState.SYNC_REJECTED ->
         "云端拒绝这笔记账${if (item.notice.isNotBlank()) "（${item.notice}）" else ""}，数据仍保留在本机"
-    PaymentVerificationCenter.SyncState.LOCAL_ONLY -> null
+    PaymentVerificationCenter.SyncState.UNRESOLVED_REMOTE ->
+        "云端没有对应的待确认记录，已保留本机原始记录；请核对来源，不会自动重复记账"
+    PaymentVerificationCenter.SyncState.LOCAL_ONLY ->
+        "仅保存在本机，尚未与云端候选关联；旧记录需核对后再确认，不会自动丢弃"
     PaymentVerificationCenter.SyncState.NONE -> null
 }

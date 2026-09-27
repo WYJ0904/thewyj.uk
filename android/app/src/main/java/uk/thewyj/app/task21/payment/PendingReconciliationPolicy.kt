@@ -26,7 +26,7 @@ object PendingReconciliationPolicy {
 
     /** One reconciliation attempt is worth it only for these states. */
     fun needsReconciliation(syncStates: Collection<String>): Boolean =
-        syncStates.any { state -> state == NEEDS_SERVER || state == NEEDS_RETRY }
+        syncStates.any { state -> state == NEEDS_SERVER || state == NEEDS_RETRY || state == NEEDS_IDENTITY }
 
     /**
      * Delay before the next pull, or null when the device must stop: nothing to
@@ -43,4 +43,6 @@ object PendingReconciliationPolicy {
 
     /** [PaymentVerificationCenter.SyncState.SYNC_FAILED]: a retry may fix it. */
     const val NEEDS_RETRY: String = "SYNC_FAILED"
+
+    const val NEEDS_IDENTITY: String = "UNRESOLVED_REMOTE"
 }

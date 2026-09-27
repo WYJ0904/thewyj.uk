@@ -3,8 +3,10 @@ package uk.thewyj.app.task21.payment
 import androidx.room.Room
 import java.io.File
 import java.util.UUID
+import java.util.concurrent.Executor
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -31,6 +33,50 @@ import uk.thewyj.app.task21.store.RoomNotificationStore
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
 class AndroidPaymentRecognitionHookArchiveTest {
+    @Test fun oneCentEnrichmentPublishesWithoutReviewScreen() {
+        val accountId = "account-a"
+        val recognitionStore = uk.thewyj.app.task21.store.RoomPaymentRecognitionStore(database)
+        recognitionStore.saveRecognition(PaymentRecognitionRecord(
+            recognitionId = "rec-one-cent", accountId = accountId,
+            state = PaymentRecognitionState.WAITING_FOR_ENRICHMENT.name,
+            notificationId = 15, sourcePackage = "com.tencent.mm", sourceType = "notification",
+            sourceEventId = "notification#event#evt-one-cent", uploadEventId = "evt-one-cent",
+            paymentChannel = "wechat", amountMinor = null, currency = "CNY", direction = "UNKNOWN",
+            merchant = "", providerReference = "", createdAtMs = 1_000L, updatedAtMs = 1_000L,
+        ))
+        recognitionStore.saveTicket(PaymentTicketEngine().create(
+            accountId = accountId, recognitionId = "rec-one-cent", sourcePackage = "com.tencent.mm",
+            sourceEventId = "notification#event#evt-one-cent", paymentChannel = "wechat",
+            missingFields = setOf("amount", "direction"),
+        ))
+        var attempts = 0
+        var amountAtPublish: Long? = null
+        val hook = AndroidPaymentRecognitionHook(
+            RuntimeEnvironment.getApplication(), archiveSink = sink(), recognitionStore = recognitionStore,
+            testing = true,
+            publishOverride = { account, recognitionId ->
+                attempts += 1
+                amountAtPublish = recognitionStore.recognition(account, recognitionId)?.amountMinor
+                false // Simulate a failed network POST; the Room result must stay.
+            },
+            enrichmentExecutor = Executor { it.run() },
+            notifierOverride = object : PaymentStatusNotifier {
+                override fun notify(message: PaymentStatusNotificationMessage) = true
+                override fun cancel(notificationId: Int) = Unit
+            },
+        )
+        val outcome = hook.onAccessibilityEnrichment(accountId, PaymentEnrichment(
+            sourcePackage = "com.tencent.mm", amountMinor = 1L, currency = "CNY",
+            direction = null, merchant = null, counterparty = null, providerReference = null,
+            occurredAtMs = 1_000L, confidence = 820,
+        ))
+        assertTrue(outcome is EnrichmentOutcome.Applied)
+        assertEquals(1, attempts)
+        assertEquals(1L, amountAtPublish)
+        assertEquals(1L, recognitionStore.recognition(accountId, "rec-one-cent")?.amountMinor)
+        assertEquals(PaymentRecognitionState.ENRICHMENT_VERIFIED.name,
+            recognitionStore.recognition(accountId, "rec-one-cent")?.state)
+    }
     @Test fun canonicalPaymentEventIdIgnoresMutableNotificationPostTime() {
         val first = NotificationCaptureInput(
             sourcePackage = "com.tencent.mm",
@@ -87,6 +133,9 @@ class AndroidPaymentRecognitionHookArchiveTest {
             state: String,
             transactionId: String,
         ): Boolean = store.markFinanceOutcome(accountId, sourceEventId, state, transactionId)
+
+        override fun recognitionSourceEventIds(accountId: String, sourceEventId: String): List<String> =
+            store.recognitionSourceEventIds(accountId, sourceEventId)
     }
 
     @Test fun autoBookedPaymentStillClosesTheArchiveWithoutALocalCandidate() {
@@ -125,6 +174,72 @@ class AndroidPaymentRecognitionHookArchiveTest {
         val instance = database.notificationDao().instance(account, instanceId!!)
         assertEquals("confirmed", instance!!.financeState)
         assertEquals("txn-auto-1", instance.financeTransactionId)
+    }
+
+    @Test fun serverBookingClosesRecognitionEvenWithoutLocalCandidate() {
+        val eventId = "evt-auto-booked-recognition"
+        val recognitionStore = uk.thewyj.app.task21.store.RoomPaymentRecognitionStore(database)
+        recognitionStore.saveRecognition(
+            PaymentRecognitionRecord(
+                recognitionId = "rec-auto-booked",
+                accountId = account,
+                state = PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name,
+                notificationId = 77,
+                sourcePackage = "cmb.pb",
+                sourceType = PaymentSourceType.NOTIFICATION.name,
+                sourceEventId = "notification#bank#77",
+                uploadEventId = eventId,
+                paymentChannel = "bank",
+                amountMinor = 2_800L,
+                currency = "CNY",
+                direction = uk.thewyj.app.task21.FinanceDirection.EXPENSE.name,
+                merchant = "",
+                providerReference = "",
+                createdAtMs = 1_000L,
+                updatedAtMs = 1_000L,
+            ),
+        )
+
+        val hook = AndroidPaymentRecognitionHook(
+            RuntimeEnvironment.getApplication(),
+            archiveSink = sink(),
+            recognitionStore = recognitionStore,
+            testing = true,
+        )
+        hook.onFinanceOutcome(account, eventId, "txn-auto-2")
+
+        val stored = recognitionStore.recognition(account, "rec-auto-booked")
+        assertNotNull(stored)
+        assertEquals(PaymentRecognitionState.FINANCE_RECORDED.name, stored!!.state)
+    }
+
+    @Test fun serverBookingClosesLegacyRecognitionWithBlankUploadId() {
+        val eventId = "evt-auto-booked-legacy"
+        store.record(account, NotificationCapture(
+            sourcePackage = "com.tencent.mm", sourceType = "notification",
+            notificationKey = "key:$eventId", notificationId = 78, tag = "", groupKey = "",
+            channelId = "payment", postTime = 1_000L, isGroup = false,
+            isGroupSummary = false, title = "微信", text = "支付成功", bigText = "",
+            subText = "", sourceEventId = eventId,
+        ))
+        val recognitionStore = uk.thewyj.app.task21.store.RoomPaymentRecognitionStore(database)
+        recognitionStore.saveRecognition(PaymentRecognitionRecord(
+            recognitionId = "rec-legacy-blank", accountId = account,
+            state = PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name,
+            notificationId = 78, sourcePackage = "com.tencent.mm",
+            sourceType = PaymentSourceType.NOTIFICATION.name,
+            sourceEventId = "notification#event#$eventId", uploadEventId = "",
+            paymentChannel = "wechat", amountMinor = 1L, currency = "CNY",
+            direction = "EXPENSE", merchant = "", providerReference = "",
+            createdAtMs = 1_000L, updatedAtMs = 1_000L,
+        ))
+        val hook = AndroidPaymentRecognitionHook(
+            RuntimeEnvironment.getApplication(), archiveSink = sink(),
+            recognitionStore = recognitionStore, testing = true,
+        )
+        hook.onFinanceOutcome(account, eventId, "txn-legacy-blank")
+        assertEquals(PaymentRecognitionState.FINANCE_RECORDED.name,
+            recognitionStore.recognition(account, "rec-legacy-blank")?.state)
     }
 
     /**
@@ -195,5 +310,31 @@ class AndroidPaymentRecognitionHookArchiveTest {
                 outcome == null || outcome.confirmed.not() || outcome.amountMinor <= 0,
             )
         }
+    }
+
+    @Test fun incompletePaymentCarriesAuditableReasonCodesWithoutRawText() {
+        val hook = AndroidPaymentRecognitionHook(
+            RuntimeEnvironment.getApplication(),
+            archiveSink = sink(),
+            recognitionStore = uk.thewyj.app.task21.store.RoomPaymentRecognitionStore(database),
+            testing = true,
+        )
+        val outcome = hook.outcomeFor(
+            uk.thewyj.app.task21.NotificationCaptureInput(
+                sourcePackage = "cmb.pb",
+                sourceType = "notification",
+                notificationKey = "payment-hint",
+                notificationId = 9,
+                postTime = 9_000L,
+                title = "招商银行",
+                text = "交易提醒",
+            ),
+        )
+
+        assertNotNull(outcome)
+        assertEquals("bank-notification-2", outcome!!.parserVersion)
+        assertEquals(listOf("bank_notification_without_amount"), outcome.reasons)
+        assertEquals(setOf("amount", "direction"), outcome.missingFields)
+        assertFalse(outcome.reasons.joinToString().contains("交易提醒"))
     }
 }

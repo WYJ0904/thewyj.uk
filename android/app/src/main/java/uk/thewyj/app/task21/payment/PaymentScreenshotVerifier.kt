@@ -118,7 +118,9 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
                 "转账成功", "轉賬成功", "转账金额", "收款成功", "已收款", "收款金额",
                 "轉賬金額", "轉賬詳情", "到賬成功", "订单金额", "交易详情", "账单详情",
             ).any { joined.contains(it) }
-            return money && context
+            val directionOnlyDetail = listOf("交易详情", "交易詳情", "账单详情", "賬單詳情", "转账详情", "轉賬詳情")
+                .any(joined::contains) && PaymentText.hasCompletion(joined) && PaymentText.direction(joined) != null
+            return (money && context) || directionOnlyDetail
         }
     }
 }

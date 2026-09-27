@@ -27,6 +27,7 @@ import {
   confirmNotificationHint,
   ignoreNotificationHint,
   listNotificationHints,
+  notificationPendingSummary,
   upsertNotificationHints,
 } from "./task21-hints.mjs";
 
@@ -39,6 +40,7 @@ const ROUTES = new Map([
   ["POST /api/notification/events/delete", { mode: "write", body: 16 * 1024, limit: 60, window: 60 }],
   ["POST /api/notification/hints", { mode: "write", body: 64 * 1024, limit: 60, window: 60 }],
   ["GET /api/notification/hints", { mode: "read", body: 0, limit: 120, window: 60 }],
+  ["GET /api/notification/pending-summary", { mode: "read", body: 0, limit: 120, window: 60 }],
   ["POST /api/notification/hints/confirm", { mode: "write", body: 16 * 1024, limit: 30, window: 60 }],
   ["POST /api/notification/hints/ignore", { mode: "write", body: 16 * 1024, limit: 30, window: 60 }],
 ]);
@@ -52,6 +54,7 @@ const FINANCE_RECOGNITION_PATHS = new Set([
   "/api/notification/hints",
   "/api/notification/hints/confirm",
   "/api/notification/hints/ignore",
+  "/api/notification/pending-summary",
 ]);
 for (const key of ROUTES.keys()) {
   const splitAt = key.indexOf(" ");
@@ -138,6 +141,13 @@ async function execute(context, path, account) {
           state: stateParam ?? "",
           limit: url.searchParams.get("limit") || "",
         }),
+        build: TASK21_BUILD,
+      }, 200, context);
+    }
+    if (path === "/api/notification/pending-summary") {
+      return response({
+        ok: true,
+        ...await notificationPendingSummary(db, account, { event_ids: url.searchParams.get("event_ids") || "" }),
         build: TASK21_BUILD,
       }, 200, context);
     }

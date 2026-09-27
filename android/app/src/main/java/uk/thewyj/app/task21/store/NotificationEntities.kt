@@ -130,6 +130,8 @@ data class NotificationRevisionEntity(
      * followed end to end without guessing.
      */
     val sourceEventId: String = "",
+    @androidx.room.ColumnInfo(defaultValue = "'legacy'")
+    val archiveKind: String = "legacy",
 )
 
 @Entity(tableName = "notification_app_policies", primaryKeys = ["accountId", "sourcePackage"])

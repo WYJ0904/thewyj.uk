@@ -5,8 +5,33 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import org.json.JSONObject
 
 class OfflineNotificationQueueTest {
+    @Test fun queuedHintKeepsOneEventAndPublishesRicherMoneyFields() {
+        val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
+        try {
+            val queue = OfflineNotificationQueue(File(dir, "queue-hint.queue"))
+            val first = StructuredEventJson.hintPayload("device-a", "evt-wechat-0001", "notification",
+                "com.tencent.mm", "微信", null, "UNKNOWN", "", "CNY", 600,
+                "INSUFFICIENT_INFORMATION", listOf("wechat_payment_hint_without_amount"), "wechat-2",
+                paymentChannel = "wechat", occurredAtMs = 1_789_000_000_000L)
+            val update = StructuredEventJson.hintPayload("device-a", "evt-wechat-0001", "notification",
+                "com.tencent.mm", "微信", 10_200L, "UNKNOWN", "", "CNY", 720,
+                "PAYMENT_LIKELY", listOf("wechat_amount_without_direction"), "wechat-2",
+                paymentChannel = "wechat", occurredAtMs = 1_789_000_002_000L)
+            queue.enqueueHint("hint:evt-wechat-0001", first)
+            queue.enqueueHint("hint:evt-wechat-0001", update)
+            assertEquals(1, queue.pendingCount())
+            val hint = JSONObject(queue.peekRequests().single().body).getJSONArray("hints").getJSONObject(0)
+            assertEquals(10_200L, hint.getLong("amount_minor"))
+            assertTrue(hint.isNull("direction"))
+            assertEquals(1_789_000_000_000L, hint.getJSONObject("evidence").getLong("occurred_at_ms"))
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
     @Test fun enqueueIsIdempotentPerOperationAndSurvivesReload() {
         val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
         try {

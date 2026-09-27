@@ -178,7 +178,11 @@ async function main() {
     }
     if (message.method === "Log.entryAdded" && ["error", "warning"].includes(message.params?.entry?.level)) {
       const value = message.params.entry.text || "browser log error";
-      const expectedCancellation = /^Failed to load resource: net::ERR_(?:ABORTED|CONNECTION_ABORTED)$/.test(value);
+      // The matrix deliberately toggles CDP offline mode. Chromium can report
+      // the cancelled local request as INTERNET_DISCONNECTED, ABORTED or
+      // CONNECTION_ABORTED depending on timing; the surrounding flow still
+      // asserts session preservation and successful reconnect.
+      const expectedCancellation = /^Failed to load resource: net::ERR_(?:ABORTED|CONNECTION_ABORTED|INTERNET_DISCONNECTED)$/.test(value);
       if (!expectedCancellation && !/^Failed to load resource: the server responded with a status of \d+/.test(value)) {
         runtimeErrors.push(value);
       }
@@ -695,13 +699,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260914-task24-device-r5');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20260914-task24-device-r5');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260914-task24-device-r5');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260914-task24-device-r5');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260914-task24-device-r5');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260914-task24-device-r5');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260914-task24-device-r5');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260927-task24-release-r16');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20260927-task24-release-r16');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260927-task24-release-r16');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260927-task24-release-r16');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260927-task24-release-r16');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260927-task24-release-r16');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260927-task24-release-r16');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -714,10 +718,10 @@ async function main() {
       assert.equal(pwa.cachedLearningSync, true);
       assert.equal(pwa.cachedWorkflows, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.09.14.5");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v2026.09.27.1");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-09-14-task24-legacy-media-r5");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-09-27-task24-release-1.3.19");
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
       const mobilePublic = await evaluate(`({
         viewport: document.documentElement.clientWidth,
@@ -832,7 +836,7 @@ async function main() {
       );
       assert.equal(await evaluate("document.querySelector('#changelogPage').textContent.includes('可配置工具工作流')"), true);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.09.14.5");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v2026.09.27.1");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
@@ -2405,6 +2409,9 @@ async function main() {
       "/api/admin/messages",
       "/api/admin/roles",
       "/api/notification/candidates",
+      // Finance first asks the canonical Cloudflare summary, then uses the
+      // local legacy hint/candidate endpoints when that route is absent.
+      "/api/notification/pending-summary",
       "/api/transfer/capabilities",
       "/api/transfer/shares",
       // Cloud TTS is a Cloudflare-only route; the local legacy backend matrix

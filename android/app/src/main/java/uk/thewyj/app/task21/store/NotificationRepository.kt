@@ -30,7 +30,7 @@ class NotificationRepository(
 
     suspend fun history(query: NotificationQuery): List<NotificationHistoryItem> = withContext(Dispatchers.IO) {
         runCatching { LegacyArchiveMigration(database).migrateIfNeeded(context.filesDir, accountId) }
-        store.history(accountId, query)
+        store.lifecycleHistory(accountId, query)
     }
 
     /** Real-time change signal for the history list (no polling). */
@@ -40,7 +40,7 @@ class NotificationRepository(
     fun latestChangeIdentity(): Flow<String?> = store.observeLatestIdentity(accountId)
 
     suspend fun historyCount(query: NotificationQuery): Int = withContext(Dispatchers.IO) {
-        store.historyCount(accountId, query)
+        store.lifecycleHistoryCount(accountId, query)
     }
 
     suspend fun stats(): NotificationStoreStats = withContext(Dispatchers.IO) { store.stats(accountId) }
@@ -52,6 +52,9 @@ class NotificationRepository(
     suspend fun revisions(instanceId: String): List<NotificationRevisionEntity> = withContext(Dispatchers.IO) {
         store.revisions(accountId, instanceId)
     }
+
+    suspend fun recentRevisions(instanceId: String, limit: Int = 50, offset: Int = 0): List<NotificationRevisionEntity> =
+        withContext(Dispatchers.IO) { store.recentRevisions(accountId, instanceId, limit, offset) }
 
     suspend fun delete(instanceIds: List<String>): Int = withContext(Dispatchers.IO) {
         store.delete(accountId, instanceIds)

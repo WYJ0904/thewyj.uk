@@ -85,6 +85,60 @@ function ingestBody(deviceId, operationId, event) {
   return { schema_version: "1", device_id: deviceId, operations: [{ operation_id: operationId, type: "event.ingest", payload: event }] };
 }
 
+// Existing complete candidates were created by the old confidence gate. Keep
+// their confirm/reject/delete coverage without asking the new ingest path to
+// create another complete pending item.
+async function legacyCandidateIngest(db, _route, options) {
+  const event = options.body.operations[0].payload;
+  const userId = options.userId || Object.values(USERS).find((user) => user.token === options.token)?.id;
+  assert.ok(userId);
+  const existing = await db.prepare("SELECT id FROM task21_notification_candidates WHERE user_id = ?1 AND event_id = ?2")
+    .bind(userId, event.event_id).first();
+  const candidateId = existing?.id || `cand:${crypto.randomUUID()}`;
+  if (!existing) {
+    const now = new Date().toISOString();
+    await db.prepare(`INSERT INTO task21_notification_events (
+      event_id, user_id, device_id, fingerprint, source_package, source_type, event_type,
+      parser_version, parse_status, direction, amount_minor, currency, payment_channel,
+      merchant, counterparty, confidence, occurred_at_ms, received_at_ms, candidate_id,
+      finance_transaction_id, status, created_at, updated_at, deleted_at
+    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'candidate', ?9, ?10, ?11, ?12,
+      ?13, ?14, ?15, ?16, ?17, ?18, '', 'active', ?19, ?19, '')`)
+      .bind(event.event_id, userId, options.body.device_id, event.fingerprint,
+        event.source_package, event.source_type, event.event_type, event.parser_version,
+        event.direction, event.amount_minor, event.currency, event.payment_channel,
+        event.merchant, event.counterparty, event.confidence, event.occurred_at_ms,
+        event.received_at_ms, candidateId, now).run();
+    await db.prepare(`INSERT INTO task21_notification_candidates (
+      id, user_id, event_id, direction, amount_minor, currency, merchant, counterparty,
+      payment_channel, occurred_at_ms, confidence, status, finance_transaction_id, created_at, updated_at
+    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'pending', '', ?12, ?12)`)
+      .bind(candidateId, userId, event.event_id, event.direction, event.amount_minor,
+        event.currency, event.merchant, event.counterparty, event.payment_channel,
+        event.occurred_at_ms, event.confidence, now).run();
+    await db.prepare(`INSERT INTO task21_notification_evidence (
+      id, user_id, event_id, candidate_id, finance_transaction_id, source_type, source_package,
+      parser_version, amount_minor, direction, provider_reference, occurred_at_ms, is_primary,
+      reconciliation_state, created_at, updated_at
+    ) VALUES (?1, ?2, ?3, ?4, '', ?5, ?6, ?7, ?8, ?9, '', ?10, 0, 'pending', ?11, ?11)`)
+      .bind(`evd:${crypto.randomUUID()}`, userId, event.event_id, candidateId,
+        event.source_type, event.source_package, event.parser_version, event.amount_minor,
+        event.direction, event.occurred_at_ms, now).run();
+  }
+  return { response: { status: 200 }, payload: { operation_results: [{ candidate_id: candidateId }] } };
+}
+
+function pendingHintBody(sourceEventId) {
+  return { device_id: "device-task21-000001", hints: [{
+    source_event_id: sourceEventId, source_type: "notification",
+    source_package: "com.tencent.mm", app_label: "微信",
+    amount_minor: null, direction: null, merchant: "", currency: "CNY",
+    confidence: 460, recognition_status: "PAYMENT_LIKELY",
+    evidence: { source_type: "notification", confidence: 460,
+      reasons: ["payment_hint_without_amount"] },
+  }] };
+}
+
 async function requestTask16(db, route, options = {}) {
   const headers = new Headers(options.headers || {});
   if (options.token) headers.set("X-Session-Token", options.token);
@@ -350,8 +404,77 @@ try {
   assert.equal(replaySameEvent.response.status, 200);
   assert.equal(replaySameEvent.payload.operation_results[0].duplicate, true);
 
-  // 8. Low-confidence structured event becomes a review candidate, not finance.
-  const low = await request(db, "/api/notification/ingest", {
+  // 8. Complete low-confidence evidence books immediately and exactly once.
+  const lowAuto = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-low-auto", transactionEvent({
+      event_id: "evt-task21-low-auto", fingerprint: fingerprint("bb23"),
+      parse_status: "candidate", confidence: 800, merchant: "", counterparty: "",
+    })),
+  });
+  assert.equal(lowAuto.response.status, 200, JSON.stringify(lowAuto.payload));
+  assert.match(lowAuto.payload.operation_results[0].transaction_id, /^txn:/);
+  assert.equal(lowAuto.payload.operation_results[0].candidate_id, "");
+  const lowAutoReplay = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-low-auto-replay", transactionEvent({
+      event_id: "evt-task21-low-auto", fingerprint: fingerprint("bb23"),
+      parse_status: "candidate", confidence: 800, merchant: "", counterparty: "",
+    })),
+  });
+  assert.equal(lowAutoReplay.payload.operation_results[0].transaction_id,
+    lowAuto.payload.operation_results[0].transaction_id);
+  const lowAutoTransactions = await db.prepare(`SELECT COUNT(*) AS count FROM task16_finance_raw_events
+    WHERE user_id = ?1 AND source_event_id = ?2`).bind(USERS.subscriber.id, "evt-task21-low-auto").first();
+  assert.equal(Number(lowAutoTransactions.count), 1);
+
+  const referencedFirst = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-ref-first", transactionEvent({
+      event_id: "evt-task21-ref-first", fingerprint: fingerprint("bb24"),
+      provider_reference: "WECHATREF0001", amount_minor: 3456, confidence: 620,
+    })),
+  });
+  const referencedUpdate = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-ref-update", transactionEvent({
+      event_id: "evt-task21-ref-update", fingerprint: fingerprint("bb25"),
+      provider_reference: "WECHATREF0001", amount_minor: 3456, confidence: 690,
+    })),
+  });
+  assert.equal(referencedFirst.response.status, 200, JSON.stringify(referencedFirst.payload));
+  assert.equal(referencedUpdate.response.status, 200, JSON.stringify(referencedUpdate.payload));
+  assert.equal(referencedUpdate.payload.operation_results[0].transaction_id,
+    referencedFirst.payload.operation_results[0].transaction_id,
+    "exact provider reference reuses the first Finance transaction across event IDs");
+  const referencedRaw = await db.prepare(`SELECT COUNT(*) AS count FROM task16_finance_raw_events
+    WHERE user_id = ?1 AND provider_reference = ?2`).bind(USERS.subscriber.id, "WECHATREF0001").first();
+  assert.equal(Number(referencedRaw.count), 1);
+  const conflictingReference = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-ref-conflict", transactionEvent({
+      event_id: "evt-task21-ref-conflict", fingerprint: fingerprint("bb26"),
+      provider_reference: "WECHATREF0001", amount_minor: 3457, confidence: 700,
+    })),
+  });
+  assert.equal(conflictingReference.response.status, 409);
+  assert.equal(conflictingReference.payload.code, "provider_reference_conflict");
+  const refundOfReferencedPayment = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-ref-refund", transactionEvent({
+      event_id: "evt-task21-ref-refund", fingerprint: fingerprint("bb27"),
+      event_type: "refund", direction: "refund", provider_reference: "WECHATREF0001",
+      amount_minor: 3456, confidence: 650,
+    })),
+  });
+  assert.equal(refundOfReferencedPayment.response.status, 200, JSON.stringify(refundOfReferencedPayment.payload));
+  assert.match(refundOfReferencedPayment.payload.operation_results[0].transaction_id, /^txn:/);
+  assert.notEqual(refundOfReferencedPayment.payload.operation_results[0].transaction_id,
+    referencedFirst.payload.operation_results[0].transaction_id,
+    "a refund sharing the order reference is a separate finance movement");
+
+  // A candidate created by the previous release must remain confirmable.
+  const low = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-low-1", {
@@ -367,7 +490,13 @@ try {
   const candidate = await db.prepare(
     "SELECT * FROM task21_notification_candidates WHERE user_id = ?1 AND status = 'pending'",
   ).bind(USERS.subscriber.id).first();
-  assert.ok(candidate, "low-confidence event must create a candidate");
+  assert.ok(candidate, "legacy candidate remains confirmable");
+
+  const confirmSideHint = await request(db, "/api/notification/hints", {
+    method: "POST", token: USERS.subscriber.token,
+    body: pendingHintBody("evt-task21-00000003"),
+  });
+  assert.equal(confirmSideHint.response.status, 200, JSON.stringify(confirmSideHint.payload));
 
   // 9. Candidate confirm creates a finance transaction; cross-user confirm is rejected.
   const confirm = await request(db, "/api/notification/candidates/confirm", {
@@ -377,6 +506,11 @@ try {
   });
   assert.equal(confirm.response.status, 200, JSON.stringify(confirm.payload));
   assert.match(confirm.payload.transaction_id, /^txn:/);
+  const confirmedSideHint = await db.prepare(
+    "SELECT state, finance_entry_id FROM task21_notification_pending_hints WHERE user_id = ?1 AND source_event_id = ?2",
+  ).bind(USERS.subscriber.id, "evt-task21-00000003").first();
+  assert.equal(confirmedSideHint.state, "confirmed", "Web candidate confirm closes Android hint immediately");
+  assert.equal(confirmedSideHint.finance_entry_id, confirm.payload.transaction_id);
   const crossConfirm = await request(db, "/api/notification/candidates/confirm", {
     method: "POST",
     token: USERS.financeOnly.token,
@@ -416,7 +550,7 @@ try {
   assert.equal(reject.response.status, 409);
   assert.equal(reject.payload.code, "candidate_status_invalid");
 
-  const rejectPending = await request(db, "/api/notification/ingest", {
+  const rejectPending = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-low-2", {
@@ -431,6 +565,11 @@ try {
   const rejectCandidate = await db.prepare(
     "SELECT * FROM task21_notification_candidates WHERE user_id = ?1 AND status = 'pending' AND amount_minor = 990",
   ).bind(USERS.subscriber.id).first();
+  const rejectSideHint = await request(db, "/api/notification/hints", {
+    method: "POST", token: USERS.subscriber.token,
+    body: pendingHintBody("evt-task21-00000006"),
+  });
+  assert.equal(rejectSideHint.response.status, 200, JSON.stringify(rejectSideHint.payload));
   const rejectOk = await request(db, "/api/notification/candidates/reject", {
     method: "POST",
     token: USERS.subscriber.token,
@@ -438,6 +577,21 @@ try {
   });
   assert.equal(rejectOk.response.status, 200);
   assert.equal(rejectOk.payload.candidate.status, "rejected");
+  const ignoredSideHint = await db.prepare(
+    "SELECT state FROM task21_notification_pending_hints WHERE user_id = ?1 AND source_event_id = ?2",
+  ).bind(USERS.subscriber.id, "evt-task21-00000006").first();
+  assert.equal(ignoredSideHint.state, "ignored", "Web candidate reject closes Android hint immediately");
+  const lateRejectedEnrichment = await request(db, "/api/notification/hints", {
+    method: "POST", token: USERS.subscriber.token,
+    body: { ...pendingHintBody("evt-task21-00000006"), hints: [{
+      ...pendingHintBody("evt-task21-00000006").hints[0],
+      amount_minor: 990, direction: "expense", confidence: 950,
+      recognition_status: "CONFIRMED_PAYMENT",
+    }] },
+  });
+  assert.equal(lateRejectedEnrichment.response.status, 200, JSON.stringify(lateRejectedEnrichment.payload));
+  assert.equal(lateRejectedEnrichment.payload.hints[0].state, "ignored",
+    "late verified upload cannot revive a rejected identity");
   const rejectAgain = await request(db, "/api/notification/candidates/reject", {
     method: "POST",
     token: USERS.subscriber.token,
@@ -450,7 +604,7 @@ try {
   ).bind(USERS.subscriber.id).first();
   assert.equal(Number(rejectedTxn.count), 0, "rejected candidate must never create a finance transaction");
 
-  const deletePending = await request(db, "/api/notification/ingest", {
+  const deletePending = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-delete-pending", {
@@ -505,7 +659,7 @@ try {
 
   // 9c. An amount-known hint ("转账 50") is a real pending candidate; the user
   // confirms it (with an edit) and it lands in the real finance ledger.
-  const amountHint = await request(db, "/api/notification/ingest", {
+  const amountHint = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-amount-hint", {
@@ -649,9 +803,10 @@ try {
   await insertUser(db, lapsedUser, lapsedUser.token);
   await grantMembership(db, lapsedUser.id, "notification_archive_access");
   await grantMembership(db, lapsedUser.id, "finance_monthly");
-  const lapsedIngest = await request(db, "/api/notification/ingest", {
+  const lapsedIngest = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: lapsedUser.token,
+    userId: lapsedUser.id,
     body: ingestBody("device-task21-000002", "op-lapsed-1", {
       ...transactionEvent(),
       event_id: "evt-task21-00000007",
@@ -693,7 +848,7 @@ try {
   assert.equal(rejectedConfirm.payload.code, "candidate_status_invalid");
 
   // 16. Two clients confirming concurrently produce exactly one finance transaction.
-  const concurrent = await request(db, "/api/notification/ingest", {
+  const concurrent = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-concurrent-1", {
@@ -753,9 +908,10 @@ try {
   const candidatesOff = await request(db, "/api/notification/candidates", { token: USERS.subscriber.token }, flagsOff);
   assert.equal(candidatesOff.response.status, 503);
 
-  // 18. Multi-source evidence: a bank SMS describing the same payment links to
-  // the existing candidate instead of creating a second one.
-  const multiPrimary = await request(db, "/api/notification/ingest", {
+  // 18. Two sources can report different real payments of the same amount
+  // within seconds. Without an exact shared event identity, they must remain
+  // separate candidates; amount, direction and time are insufficient proof.
+  const multiPrimary = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-multi-primary", {
@@ -773,7 +929,7 @@ try {
   const multiCandidateId = multiPrimary.payload.operation_results[0].candidate_id;
   assert.match(multiCandidateId, /^cand:/);
 
-  const multiEvidence = await request(db, "/api/notification/ingest", {
+  const multiEvidence = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-multi-evidence", {
@@ -791,25 +947,63 @@ try {
     }),
   });
   assert.equal(multiEvidence.response.status, 200, JSON.stringify(multiEvidence.payload));
-  assert.equal(
-    multiEvidence.payload.operation_results[0].candidate_id,
-    multiCandidateId,
-    "a second source describing the same payment must reuse the candidate",
-  );
+  const smsCandidateId = multiEvidence.payload.operation_results[0].candidate_id;
+  assert.match(smsCandidateId, /^cand:/);
+  assert.notEqual(smsCandidateId, multiCandidateId,
+    "distinct cross-source events with the same money and time must not merge");
   const evidenceRows = await db.prepare(
-    "SELECT event_id, source_type, candidate_id FROM task21_notification_evidence WHERE user_id = ?1 AND candidate_id = ?2 ORDER BY event_id",
-  ).bind(USERS.subscriber.id, multiCandidateId).all();
-  assert.equal(evidenceRows.results.length, 2, "both sources must be kept as evidence");
+    "SELECT event_id, source_type, candidate_id FROM task21_notification_evidence WHERE user_id = ?1 AND event_id IN (?2, ?3) ORDER BY event_id",
+  ).bind(USERS.subscriber.id, "evt-task21-00000101", "evt-task21-00000102").all();
+  assert.equal(evidenceRows.results.length, 2, "both independent events retain evidence");
   assert.equal(evidenceRows.results[0].source_type, "notification");
   assert.equal(evidenceRows.results[1].source_type, "sms");
+  assert.equal(evidenceRows.results[0].candidate_id, multiCandidateId);
+  assert.equal(evidenceRows.results[1].candidate_id, smsCandidateId);
   const multiCandidate = await db.prepare(
     "SELECT evidence_count, amount_minor FROM task21_notification_candidates WHERE user_id = ?1 AND id = ?2",
   ).bind(USERS.subscriber.id, multiCandidateId).first();
-  assert.equal(Number(multiCandidate.evidence_count), 2);
+  assert.equal(Number(multiCandidate.evidence_count), 1);
   assert.equal(Number(multiCandidate.amount_minor), 3360);
 
+  const multiEvidenceReplay = await legacyCandidateIngest(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-multi-evidence-replay", {
+      ...transactionEvent(),
+      event_id: "evt-task21-00000102",
+      fingerprint: fingerprint("bb02"),
+      source_package: "com.chinamworld.main",
+      source_type: "sms",
+      parser_version: "bank-sms-2",
+      parse_status: "candidate",
+      confidence: 720,
+      amount_minor: 3360,
+      occurred_at_ms: 1_700_000_130_000,
+      received_at_ms: 1_700_000_130_100,
+    }),
+  });
+  assert.equal(multiEvidenceReplay.response.status, 200);
+  assert.equal(multiEvidenceReplay.payload.operation_results[0].candidate_id, smsCandidateId,
+    "an exact event-id replay retains its candidate identity");
+
+  const androidSideHint = await request(db, "/api/notification/hints", {
+    method: "POST", token: USERS.subscriber.token,
+    body: pendingHintBody("evt-task21-00000101"),
+  });
+  assert.equal(androidSideHint.response.status, 200, JSON.stringify(androidSideHint.payload));
+  const androidIgnore = await request(db, "/api/notification/hints/ignore", {
+    method: "POST", token: USERS.subscriber.token,
+    body: { hint_id: androidSideHint.payload.hints[0].id },
+  });
+  assert.equal(androidIgnore.response.status, 200, JSON.stringify(androidIgnore.payload));
+  const candidateAfterAndroidIgnore = await db.prepare(
+    "SELECT status FROM task21_notification_candidates WHERE user_id = ?1 AND id = ?2",
+  ).bind(USERS.subscriber.id, multiCandidateId).first();
+  assert.equal(candidateAfterAndroidIgnore.status, "rejected",
+    "Android ignore closes the exact Finance candidate immediately");
+
   // 18b. A different amount in the same window stays a separate candidate.
-  const differentAmount = await request(db, "/api/notification/ingest", {
+  const differentAmount = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-multi-different", {
@@ -827,9 +1021,8 @@ try {
   assert.notEqual(differentAmount.payload.operation_results[0].candidate_id, multiCandidateId);
 
   // 18c. The same source with the same amount inside the window may be two real
-  // payments, so it must stay a separate candidate (only cross-source evidence
-  // merges).
-  const sameSourceAgain = await request(db, "/api/notification/ingest", {
+  // payments, so it must stay a separate candidate.
+  const sameSourceAgain = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-multi-same-source", {
@@ -851,7 +1044,7 @@ try {
   );
 
   // 19. Edit before confirm: the user's values win, machine evidence is kept.
-  const editable = await request(db, "/api/notification/ingest", {
+  const editable = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST",
     token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-edit-before-confirm", {
@@ -992,9 +1185,8 @@ try {
   const pendingAfterBooking = await request(db, "/api/notification/hints?state=pending", { token: USERS.subscriber.token });
   assert.equal(pendingAfterBooking.payload.pending_count, 0, "the finance pending list must not offer a booked event");
 
-  // 20b. Read-side repair: a hint that lands *after* the booking (or a row
-  // created before the write-side fix) must converge the moment either client
-  // reads the shared list - never stay actionable next to its own ledger entry.
+  // 20b. A hint arriving after booking inherits the exact event's terminal
+  // ledger state on write; later reads must keep it terminal.
   const staleEventId = "evt-task21-stale-hint";
   const staleBooking = await request(db, "/api/notification/ingest", {
     method: "POST",
@@ -1032,7 +1224,7 @@ try {
     },
   });
   assert.equal(stalePublish.response.status, 200, JSON.stringify(stalePublish.payload));
-  assert.equal(stalePublish.payload.hints[0].state, "pending", "a late hint upload lands pending first");
+  assert.equal(stalePublish.payload.hints[0].state, "confirmed", "a late hint upload cannot revive a booked event");
 
   const healedList = await request(db, "/api/notification/hints?state=pending", { token: USERS.subscriber.token });
   assert.equal(healedList.payload.pending_count, 0, "a booked event must never be listed as pending");
@@ -1098,6 +1290,40 @@ try {
   assert.equal(raceHintRow.finance_entry_id, raceTxnId);
   assert.equal(Number(raceHintRow.amount_minor), 450, "the hint must mirror the booked amount");
   assert.equal(raceHintRow.direction, "expense", "the hint must mirror the booked direction");
+
+  // Refresh repairs a complete candidate left by the former confidence gate.
+  const legacyEventId = "evt-task21-legacy-complete";
+  const legacy = await legacyCandidateIngest(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-legacy-complete", transactionEvent({
+      event_id: legacyEventId, fingerprint: fingerprint("f473"),
+      parse_status: "candidate", confidence: 640, amount_minor: 431,
+      merchant: "", counterparty: "",
+    })),
+  });
+  const legacyHint = await request(db, "/api/notification/hints", {
+    method: "POST", token: USERS.subscriber.token, body: pendingHintBody(legacyEventId),
+  });
+  assert.equal(legacyHint.response.status, 200);
+  const settledSummary = await request(db, "/api/notification/pending-summary", {
+    token: USERS.subscriber.token,
+  });
+  assert.equal(settledSummary.response.status, 200, JSON.stringify(settledSummary.payload));
+  assert.ok(!settledSummary.payload.records.some((row) => row.id === legacy.payload.operation_results[0].candidate_id && row.state === "pending"));
+  const legacySettled = await db.prepare("SELECT status, finance_transaction_id FROM task21_notification_candidates WHERE id = ?1")
+    .bind(legacy.payload.operation_results[0].candidate_id).first();
+  assert.equal(legacySettled.status, "confirmed");
+  assert.match(legacySettled.finance_transaction_id, /^txn:/);
+  const legacyCount = await db.prepare(`SELECT COUNT(*) AS count FROM task16_finance_raw_events
+    WHERE user_id = ?1 AND source_event_id = ?2`).bind(USERS.subscriber.id, legacyEventId).first();
+  assert.equal(Number(legacyCount.count), 1);
+  const legacyHintRow = await db.prepare("SELECT state FROM task21_notification_pending_hints WHERE source_event_id = ?1")
+    .bind(legacyEventId).first();
+  assert.equal(legacyHintRow.state, "confirmed");
+  await request(db, "/api/notification/pending-summary", { token: USERS.subscriber.token });
+  const legacyReplayCount = await db.prepare(`SELECT COUNT(*) AS count FROM task16_finance_raw_events
+    WHERE user_id = ?1 AND source_event_id = ?2`).bind(USERS.subscriber.id, legacyEventId).first();
+  assert.equal(Number(legacyReplayCount.count), 1);
 
   console.log("Task 21 notification checks passed (privacy boundary, entitlement lifecycle, idempotent ingest, dedupe, finance integration, candidate state machine, feature flags, device-booking hint convergence).");
 } finally {

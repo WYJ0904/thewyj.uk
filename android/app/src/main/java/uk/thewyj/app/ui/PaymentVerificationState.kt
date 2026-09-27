@@ -4,9 +4,12 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.withContext
 import uk.thewyj.app.task21.payment.PaymentVerificationCenter
+import uk.thewyj.app.task21.payment.PaymentHintSync
 import uk.thewyj.app.task21.payment.PendingReconciliationPolicy
 
 /**
@@ -16,8 +19,12 @@ import uk.thewyj.app.task21.payment.PendingReconciliationPolicy
 class PaymentVerificationState(
     context: Context,
     val accountId: String,
+    private val center: PaymentVerificationCenter = PaymentVerificationCenter(context.applicationContext),
+    private val reconcileOverride: (suspend (String) -> PaymentHintSync.Result?)? = null,
 ) {
-    private val center = PaymentVerificationCenter(context.applicationContext)
+    private val reconciliationInFlight = AtomicBoolean(false)
+    @Volatile private var reconciliationRequested = false
+    private var lastCompleteObservation: PaymentHintSync.Result? = null
 
     var items by mutableStateOf<List<PaymentVerificationCenter.Item>>(emptyList())
     var loading by mutableStateOf(true)
@@ -27,16 +34,69 @@ class PaymentVerificationState(
     var amountText by mutableStateOf("")
     var direction by mutableStateOf("EXPENSE")
     var merchantText by mutableStateOf("")
+    var busyRecognitionId by mutableStateOf("")
+    var busyAction by mutableStateOf("")
+    private var refreshGeneration = 0
 
     suspend fun refresh() {
-        loading = true
+        val generation = ++refreshGeneration
+        loading = items.isEmpty()
         error = ""
         try {
-            items = withContext(Dispatchers.IO) { center.items(accountId) }
+            val snapshot = lastCompleteObservation
+            val refreshed = withContext(Dispatchers.IO) {
+                if (snapshot != null) center.reconciledItems(accountId, snapshot).filter { it.recoveryOnly }
+                else center.localItems(accountId)
+            }
+            if (generation == refreshGeneration) {
+                // A local signal must not repaint a stale server snapshot over
+                // a card that this UI just terminalized. The cloud set changes
+                // only when a fresh summary arrives through reconcile().
+                items = if (snapshot != null) items.filterNot { it.recoveryOnly } + refreshed else refreshed
+            }
+        } catch (cancellation: CancellationException) {
+            // Leaving this Compose surface (for example opening WeChat) is a
+            // normal lifecycle cancellation, never a user-facing error.
+            throw cancellation
         } catch (failure: Throwable) {
-            error = failure.message ?: "读取待确认交易失败"
+            if (generation == refreshGeneration) error = failure.message ?: "读取待确认交易失败"
         } finally {
-            loading = false
+            if (generation == refreshGeneration) loading = false
+        }
+    }
+
+    /** Cloud work starts only after the local list has been returned to Compose. */
+    suspend fun reconcile() {
+        if (!reconciliationInFlight.compareAndSet(false, true)) {
+            reconciliationRequested = true
+            return
+        }
+        try {
+            var attempt = 0
+            do {
+                reconciliationRequested = false
+                val generation = refreshGeneration
+                val observation = withContext(Dispatchers.IO) {
+                    if (reconcileOverride != null) reconcileOverride.invoke(accountId) else center.reconcile(accountId)
+                }
+                if (generation != refreshGeneration) {
+                    reconciliationRequested = true
+                } else if (observation?.completeObservation == true) {
+                    val refreshed = withContext(Dispatchers.IO) { center.reconciledItems(accountId, observation) }
+                    if (generation == refreshGeneration) {
+                        lastCompleteObservation = observation
+                        items = refreshed
+                    } else reconciliationRequested = true
+                }
+                attempt += 1
+            } while (reconciliationRequested && attempt < 2)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            // Keep the already rendered local Room result when cloud is slow,
+            // unauthorized or unavailable. The next explicit/bounded pull retries.
+        } finally {
+            reconciliationInFlight.set(false)
         }
     }
 
@@ -80,6 +140,10 @@ class PaymentVerificationState(
             message = "请输入正确的金额"
             return
         }
+        if (confirm && direction == "UNKNOWN") {
+            message = "请先选择收入、支出或退款方向"
+            return
+        }
         val saved = withContext(Dispatchers.IO) {
             center.saveCorrection(
                 accountId = accountId,
@@ -106,14 +170,56 @@ class PaymentVerificationState(
     suspend fun confirm(item: PaymentVerificationCenter.Item) {
         val result = withContext(Dispatchers.IO) { center.confirmAndBook(accountId, item.recognitionId) }
         message = result.message
+        if (result.ok) items = items.filterNot { it.recognitionId == item.recognitionId }
         refresh()
+        if (result.ok) reconcile()
     }
 
     suspend fun ignore(item: PaymentVerificationCenter.Item) {
-        withContext(Dispatchers.IO) { center.ignore(accountId, item.candidateId, item.recognitionId) }
-        message = "已忽略这笔交易，不会写入财务账本"
-        refresh()
+        if (busyRecognitionId.isNotBlank()) return
+        busyRecognitionId = item.recognitionId
+        busyAction = "ignore"
+        error = ""
+        message = "正在同步忽略状态…"
+        try {
+            val result = withContext(Dispatchers.IO) {
+                center.ignore(accountId, item.candidateId, item.recognitionId)
+            }
+            if (result.ok) {
+                error = ""
+                message = result.message
+                // The terminal local state is already persisted by center.ignore().
+                // Remove the card immediately instead of making the user wait for
+                // the follow-up network reconciliation before the UI reacts.
+                items = items.filterNot { it.recognitionId == item.recognitionId }
+            } else {
+                message = ""
+                error = result.message
+            }
+            refresh()
+            if (result.ok) reconcile()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (failure: Throwable) {
+            message = ""
+            error = failure.message ?: "忽略这笔交易失败，请重试"
+        } finally {
+            busyRecognitionId = ""
+            busyAction = ""
+        }
     }
+
+    fun reportOpenAppFailure(appLabel: String) {
+        message = ""
+        error = "无法打开「$appLabel」。请确认应用已安装且未被系统停用。"
+    }
+
+    fun reportOpenAppStarted() {
+        error = ""
+    }
+
+    fun isBusy(item: PaymentVerificationCenter.Item, action: String): Boolean =
+        busyRecognitionId == item.recognitionId && busyAction == action
 
     /**
      * Task 24 reopen #4: bounded catch-up while records that the server owns stay
@@ -129,7 +235,7 @@ class PaymentVerificationState(
             val delayMs = PendingReconciliationPolicy.nextDelayMs(attempt, syncStates())
                 ?: return
             kotlinx.coroutines.delay(delayMs)
-            refresh()
+            reconcile()
             attempt += 1
         }
     }

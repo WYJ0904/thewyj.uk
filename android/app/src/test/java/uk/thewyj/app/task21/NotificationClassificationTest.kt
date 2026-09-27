@@ -150,6 +150,45 @@ class NotificationClassificationTest {
         )
         assertTrue(decision.storeInArchive)
         assertEquals(NotificationClass.GROUP_SUMMARY, decision.kind)
+        assertTrue("a changing summary updates one lifecycle row", decision.coalesceWithPrevious)
+    }
+
+    @Test fun connectionStatusIsRetainedAsFoldableHistoryNotAsAChatMessage() {
+        val status = NotificationClassifier.classify(
+            NotificationClassificationInput(
+                sourcePackage = "com.example.remote",
+                title = "Remote",
+                text = "正在重新连接到设备",
+                identityKey = "remote-slot",
+                occurredAtMs = 1_000,
+            ),
+        )
+        assertTrue(status.storeInArchive)
+        assertEquals(NotificationClass.LIVE, status.kind)
+        assertEquals("connection_status", status.reason)
+
+        val chat = NotificationClassifier.classify(
+            NotificationClassificationInput(
+                sourcePackage = "com.tencent.mm",
+                title = "张三",
+                text = "程序运行完了，明天见",
+                identityKey = "chat-slot",
+                occurredAtMs = 1_000,
+            ),
+        )
+        assertEquals(NotificationClass.MESSAGE, chat.kind)
+    }
+
+    @Test fun emptySyntheticGroupSummaryIsSkippedButChildrenRemainIndependent() {
+        val decision = NotificationClassifier.classify(
+            NotificationClassificationInput(
+                sourcePackage = "com.example.messages",
+                isGroupSummary = true,
+            ),
+        )
+        assertFalse(decision.storeInArchive)
+        assertEquals(NotificationClass.GROUP_SUMMARY, decision.kind)
+        assertEquals("empty_group_summary", decision.reason)
     }
 
     /**

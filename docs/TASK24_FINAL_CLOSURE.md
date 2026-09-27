@@ -2,14 +2,60 @@
 
 **状态：`TASK 24 — OPEN / DEVICE ACCEPTANCE PENDING`**（不是 `COMPLETE`）。
 
-当前修复分支：`codex/task24-final-device-closure-r4`（base `main`）；支付生命周期修复 PR：`#75`
+当前修复分支：`codex/task24-candidate-history-r6`（base `main`）；历史支付生命周期修复 PR：`#75`
 Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Task 25 代码）
+
+## 2026-09-25 local-first verification candidate (Android 1.3.17)
+
+- Source HEAD `4f756d079342f5b7be0be20db7752d1f92a75485` preserves the prior partial-enrichment and native routing fixes. `PaymentVerificationCenter.localItems()` reads Room and the local queue without network; `PaymentVerificationState.refresh()` paints that result before a single-flight background reconciliation. A Robolectric test held the network transport open while a candidate-less local recognition with `amountMinor=1` rendered as ¥0.01 and loading ended.
+- `AndroidPaymentRecognitionHook.onAccessibilityEnrichment()` now signals the local Room update immediately and schedules `PaymentHintSync.publishEnrichment()` on a separate IO executor. The same active recognition/hint identity is used. Failed POSTs retain the local amount; later `PaymentHintSync.sync()` retries a bounded, rotating set. Partial amount with UNKNOWN direction remains pending; adding direction auto-books the exact event once.
+- Local validation: Android 426/426 unit tests, `lintDebug`, `assembleDebug`; Task 21 hints/notification and Finance candidate/model tests. Full Core CI [run 36127341583](https://github.com/WYJ0904/thewyj.uk/actions/runs/36127341583) passed 6/6 on attempt 2. The first attempt's application-browser failure was an unrelated learning wrong-answer fixture timing result; its rerun passed without product-code changes.
+- Fresh signed candidate: `uk.thewyj.app` 1.3.17 (30), Production base `https://thewyj.uk`, `artifacts/thewyj-android-1.3.17-task24-candidate.apk`, 47,660,493 bytes, SHA-256 `fb58c67c56be0991663d81e54604c0ced1f7644b2fcbc3a3401b680204d12aed`; formal release certificate SHA-256 `2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03`. The identical binary was copied to the local Task 24 handoff directory and verified there; that directory is outside Git.
+- **PENDING DEVICE ACCEPTANCE:** this candidate has not been installed or exercised on Samsung in this run. PR #78 remains Draft; no Production update metadata or deployment was changed. Task 24 OPEN, Task 25 BLOCKED.
+
+## 2026-09-24 canonical pending and automatic verification candidate (Android 1.3.16)
+
+- Source HEAD `2afa5df26450124b47c67edf4df2ea7264de1cee` preserves the prior automatic verified-hint booking and candidate-less local terminalization commits, then makes the server pending summary the user-visible identity set for both Notification and Finance. Local Room rows remain recovery evidence; offline queued rows are shown separately and never inflate the canonical count.
+- Legacy blank/stale `uploadEventId` rows reconcile through the exact archive `sourceEventId` ↔ structured event ID link. Terminal server identities persist locally. No amount/time heuristic is used; the old three-minute cross-source merge was removed, while an exact event replay stays idempotent.
+- `/finance` now offers `核实交易` for missing amount or direction: it opens the exact native recognition, creates/restarts its 90-second ticket, and opens the source app. Reliable payment/receipt/refund page semantics can fill direction while retaining an already known amount. Complete Accessibility/OCR enrichment posts to the same hint, auto-books exactly once, applies the terminal response immediately, and invalidates both native and Web pending views.
+- Confirm, ignore and auto-book cascade terminal state across an exact shared event identity. Old Web responses cannot repaint a terminal row. Ignoring a locally queued item cancels only that event's unsent queue operations; notification history is preserved.
+- Local validation: Android 422/422 unit tests, `lintDebug`, `assembleDebug`; Task 21 hints/notification/payment and Finance tests. Full Core CI [run 35964295654](https://github.com/WYJ0904/thewyj.uk/actions/runs/35964295654): **6/6 success**.
+- Fresh formal candidate: `uk.thewyj.app` 1.3.16 (29), Production base `https://thewyj.uk`, `artifacts/thewyj-android-1.3.16-task24-candidate.apk`, 47,660,493 bytes, SHA-256 `34e5584861a0a8da2a9d3346db5e1dbf0b42f7efdc7e0f3fd03309a62f729dfb`; release certificate SHA-256 `2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03`.
+- **PENDING DEVICE ACCEPTANCE:** `adb install -r` and the minimal fresh flow remain unvalidated: canonical Notification/Finance identity equality; Finance `核实交易` → source app → Accessibility/OCR; ¥0.01 reads as 0.01, auto-books once, and leaves zero pending on both surfaces after return/refresh. PR #78 remains Draft; Production and Production update metadata remain unchanged; Task 24 OPEN and Task 25 BLOCKED.
+
+## 2026-09-22 PR #78 OCR candidate handoff (Android 1.3.15)
+
+- Source HEAD `64507ce94bb27a46326816b603bfd7793d7317a5` restores the physically accepted 1.3.13 accessibility/OCR fallback contract after the 1.3.14 OCR regression. `PaymentScreenshotVerifier` again passes normalized OCR through payment-page semantics without a blanket 0.95 confidence threshold or strict raw two-decimal gate. `PaymentRecognitionCoordinator` can move an existing active ticket to `ENRICHMENT_VERIFIED` and retain its recognition/candidate identity; user edits remain protected.
+- Full Core CI [run 35696013315](https://github.com/WYJ0904/thewyj.uk/actions/runs/35696013315): **6/6 success** on that source HEAD. No compile or test fix was needed. The existing notification/Finance regression suite also passed.
+- Fresh local formal release build: `uk.thewyj.app` 1.3.15 (28), Production base `https://thewyj.uk`, `artifacts/thewyj-android-1.3.15-task24-candidate.apk`, 47,644,109 bytes, SHA-256 `a7894aa1df37d22a6ecfe8e18e5591da35ed905dde0255e9c3eb1f8c9ec008ad`. APK signing certificate SHA-256 `2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03` matches the established formal release certificate. Manifest, APK signature, embedded Base URL, file SHA-256 and size were checked independently. Its code 28 is above the old 1.3.14 code 27 for an in-place upgrade.
+- **PENDING DEVICE ACCEPTANCE:** Install this exact APK with `adb install -r` (no uninstall/data clear). On a fresh amount-unknown WeChat payment, verify active ticket → transaction detail → accessibility text or on-device screenshot/OCR fallback → actual amount (especially ¥0.01, never ¥9.00) → `ENRICHMENT_VERIFIED` → same candidate/recognition identity → one confirmation and one Finance transaction. No device was connected during candidate preparation, so this chain is `UNVALIDATED`, not PASS.
+- Previously confirmed screenshot source label, source-app open, ignore, Finance delete linkage and stable identity behavior were not edited in this OCR restoration. Their prior device PASS evidence is carried forward; only the fresh OCR payment chain needs device repetition. PR #78 stays Draft; no Production deployment or update metadata publication; Task 24 remains OPEN and Task 25 BLOCKED.
+
+## 2026-09-21 device regression handoff
+
+用户已确认上一轮要求复测的三个 Android 真机问题全部解决，作为后续 Codex 收尾时不可回退的回归基线：
+
+- 待核实交易的「打开应用」现在可正常拉起来源应用，不再静默无反应。
+- 「忽略这笔」现在有即时反馈并能完成终态处理，不再表现为死按钮。
+- 同一真实支付的重复卡片问题在该轮复测中已解决；继续保留稳定事件 ID / amount-unknown → amount-known 身份复用，禁止退回按金额/时间猜测合并。
+
+以上三项仅代表对应回归点 PASS，**不等于 B-10 / B-11 整体关闭**。后续仍需继续完成 1.3.13 的跨端终态同步、截图语义及最终 closure gates；Task 24 关闭前 Task 25 继续阻塞。
 
 证据口径：
 
 - **CI / PR Preview 通过 ≠ Production Closure**。当前所有 CI 证据来自 PR Preview（wrangler pages dev + 本地 D1/R2 + headless Chrome）。
 - 每条结论都标注证据来源：`unit` / `integration` / `browser-E2E` / `device-only`。
 - 真机：`Samsung SM-S9360 / Android 16`，正式签名覆盖安装，未卸载、未清除 App 数据。
+
+## 2026-09-20 candidate/history convergence candidate (Android 1.3.10)
+
+- `/finance` 不再把未知方向渲染成“支出”；金额或方向缺失时显示“补全并确认”，商户保持可选，来源应用与商户分别展示。浏览器会在发请求前阻止缺金额/方向的提交。
+- 新增账户隔离的 `/api/notification/pending-summary`：一次只读查询返回 pending hint + candidate 的稳定事件 ID，并按调用方指定事件附带 confirmed/ignored 终态；Android 以集合交集显示两端共有、仅本机、仅云端和无法关联的旧记录。
+- Production 只读 dry-run 当前为 10 条 pending hint + 2 条 pending candidate。三个近时间微信组都只有不同 event ID、相同旧原因码和空金额/方向，证据不足以安全合并；两条支付宝 ¥2.80 也因只有同额/同指纹而保持独立。未修改任何真实候选。
+- 本地通知 schema v8 新增 `archiveKind`。7→8 仅补元数据：持续状态和分组摘要在主列表折叠为一条，完整快照按 50 条继续加载；普通消息、支付证据、媒体和同一 notification key 下的不同交易仍分别可见。无破坏性迁移回退。
+- 支付 lifecycle 使用“Android 槽位 + 哈希化结构证据”；同证据的短时 remove/repost 续用 ID，不同交易号或内容证据创建新 ID。原始通知正文不进入偏好设置、API 或日志。
+- 工具最近使用同步限制为一个在途请求并合并快速切换期间的待发送项；本地 104 工具矩阵完成，Worker 不再因并发 recent 写入退出。
+- 自动证据：Android 全量 unit、v7→v8 migration、Task 21 D1/privacy/finance、Cloud-only 浏览器 14/14；360/390/412px 与 125% 字体候选布局通过。正式发布、Production 更新和 1.3.10 真机原位升级仍待本分支 CI 后执行。
 
 ## 2026-09-14 legacy media compatibility candidate (Android 1.3.9)
 
@@ -29,7 +75,7 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 - 通知历史没有数据库 25 条保留限制：当前首屏是 50 条，显式“加载更多”上限 500，数据库继续执行 7/30/90/365/永久保留与收藏保护。1.3.7 真机已显示 32+ 条，确认旧“保存 25 条”来自旧首屏截断而非数据清空。
 - `financeUndoBar` 过去只在恢复/账户 reset 时清理；1.3.8 在离开财务页时结束该页面局部 undo 生命周期并清空旧成功提示。
 - 自动证据：Android `testDebugUnitTest`、`lintDebug`、`assembleDebug`；Cloud-only 浏览器 14/14；应用浏览器 24/24。新增覆盖头像/Person.icon、真实图片、无 payload 图片、支付候选归档、刷新不假空、编辑值保留、处理 A 不影响 B、跨路由 undo 清理。
-- 1.3.8 已完成 ¥0.01 exactly-once、旧重复 hint 忽略、Android/Finance 收敛与 force-stop/reopen；最终 closure 由 1.3.9 的旧媒体兼容与权限恢复真机回归继续承接。完成前 Task 25 继续阻塞。
+- 1.3.8 已完成 ¥0.01 exactly-once、旧重复 hint 忽略、Android/Finance 收敛与 force-stop/reopen；最终 closure 由 1.3.10 的候选/历史收敛与真机回归继续承接。完成前 Task 25 继续阻塞。
 
 ## 2026-09-14 payment lifecycle closure candidate (Android 1.3.7)
 
@@ -90,19 +136,19 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 - 断言：成功路径点击后**同任务内** pending（≤150ms）→ 结算恢复 → 显示「订单已生成」；失败路径（500）同样 pending ≤150ms → 结算恢复 → 显示服务端错误；两条路径都要求 `recharge-submit` 的 trace 出现 `state-apply`。
 - 证据来源：**browser-E2E**（`local-backend/test_interaction_feedback_browser.mjs`，Cloud-only Preview job）；本地（Windows）8/8 通过（transfer 模块因本机 workerd 限制跳过）。
 
-### Android 正式发布封装（1.3.9 / versionCode 22）
+### Android 正式发布封装（1.3.10 / versionCode 23）
 
 | 项 | 值 |
 | --- | --- |
-| 源码版本 | `android/app/build.gradle.kts` → `versionName 1.3.9` / `versionCode 22`（Task 24 历史图片语义兼容） |
-| APK | `dist/thewyj-android-1.3.9.apk`（本地构建产物，`dist/` 按仓库约定不入库）；目标 R2 key = `app/android/thewyj-android-1.3.9.apk` |
+| 源码版本 | `android/app/build.gradle.kts` → `versionName 1.3.10` / `versionCode 23`（Task 24 候选、历史与计数收敛） |
+| APK | `dist/thewyj-android-1.3.10.apk`（本地构建产物，`dist/` 按仓库约定不入库）；目标 R2 key = `app/android/thewyj-android-1.3.10.apk` |
 | applicationId / minSdk / targetSdk | `uk.thewyj.app` / `30` / `36` |
 | BASE_URL | `https://thewyj.uk` |
-| APK size | `47,611,293` bytes |
-| APK SHA-256 | `a7a34ebfc416976d45d9f062855261f91c7ae64bcc71ee9546ecc7ef65702806` |
+| APK size | `47,627,681` bytes |
+| APK SHA-256 | `e30c055a697fa508ba67fe09b10d95a01f2023d31ed5f9e22db55d9bbeb0d4d2` |
 | 签名证书 SHA-256 | `2B:32:20:29:A9:B8:4D:E6:F2:D1:EF:60:37:78:B5:07:99:97:A3:F8:DF:21:D0:1C:A8:CB:30:C7:6B:4F:7D:03`（`thewyj-release`，与 1.3.1–1.3.4 同一正式证书，非 debug 签名） |
-| releaseBuild | `2026-09-14-task24-legacy-media-r5` |
-| release notes | 可信新图片正常显示；旧来源不明图片仅显示不可用状态，绝不读取可能属于联系人头像的文件；普通文字不显示图片提示。 |
+| releaseBuild | `2026-09-20-task24-candidate-history-r6` |
+| release notes | 候选字段语义、稳定 ID 集合对账、状态历史折叠与同额不同交易保护。 |
 | 一致性 gate | `scripts/check_android_release_consistency.py`（build.gradle ↔ release-metadata.json ↔ wrangler 三段 vars ↔ APK manifest/SHA/size/证书，共 46 checks）+ `scripts/test_check_android_release_consistency.py`（6 项负向自测，证明 gate 真的会拒绝不一致） |
 | CI 接入 | Python job（跨文件一致性）、Android job（构建出的 APK manifest 与 metadata 对齐） |
 

@@ -125,23 +125,22 @@ class NotificationCaptureCoordinator(
         }
 
         // Payment apps are classified by the payment parser (one source of
-        // truth). Everything else keeps the notification parser. A confirmed
-        // payment therefore reaches the backend with confidence >= 900 and is
-        // written to the real finance ledger instead of "recognised but never
-        // recorded"; anything weaker becomes a reviewable candidate.
+        // truth). Everything else keeps the notification parser. Complete
+        // amount and direction use one event id for automatic ledger booking;
+        // confidence remains diagnostic evidence.
         val payment = if (current.financeEntitled) paymentHook?.outcomeFor(input) else null
         // Android apps may update one StatusBarNotification in place while also
         // changing postTime. Payment identity follows the notification slot
         // until onNotificationRemoved, not that mutable timestamp.
         val eventId = if (payment != null) {
-            paymentLifecycleRegistry.eventId(current.accountId, input)
+            paymentLifecycleRegistry.eventId(current.accountId, input, payment)
         } else {
             NotificationFingerprint.stableEventId()
         }
         val paymentInput = if (payment != null) input.copy(paymentEventId = eventId) else input
         val structured = if (payment != null) {
             val refund = payment.direction == FinanceDirection.REFUND
-            val parsedPayment = payment.confirmed && payment.amountMinor > 0 &&
+            val parsedPayment = payment.amountMinor > 0 &&
                 payment.direction != FinanceDirection.UNKNOWN
             StructuredNotificationEvent(
                 eventId = eventId,
@@ -156,13 +155,11 @@ class NotificationCaptureCoordinator(
                 paymentChannel = payment.paymentChannel,
                 merchant = payment.merchant,
                 counterparty = payment.counterparty,
-                confidence = if (parsedPayment) {
-                    payment.confidence.coerceAtLeast(900)
-                } else {
-                    payment.confidence.coerceIn(0, 899)
-                },
+                confidence = payment.confidence.coerceIn(0, 1000),
                 occurredAtMs = input.receivedAtMs,
                 receivedAtMs = input.receivedAtMs,
+                providerReference = payment.providerReference,
+                lifecycleIdentity = input.messageIdentity,
             )
         } else {
             StructuredNotificationEvent(
@@ -238,9 +235,9 @@ class NotificationCaptureCoordinator(
                 CaptureTrace.traceId(input.notificationKey, input.sourcePackage, input.notificationId),
                 "finance-parsed",
                 "eventId=$eventId pkg=${input.sourcePackage} channel=${input.channelId.ifBlank { "-" }} " +
-                    "source=${input.sourceType} amount=${payment.amountMinor} direction=${payment.direction} " +
-                    "merchant=${(payment.merchant.ifBlank { payment.counterparty }).take(40).ifBlank { "-" }} " +
-                    "status=${if (payment.confirmed) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY"} " +
+                    "source=${input.sourceType} amountKnown=${payment.amountMinor > 0} direction=${payment.direction} " +
+                    "merchantKnown=${payment.merchant.isNotBlank() || payment.counterparty.isNotBlank()} " +
+                    "status=${if (structured.parseStatus == ParseStatus.PARSED) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY"} " +
                     "confidence=${structured.confidence}",
             )
             // Only a payment with a *complete* money shape may leave the device:
@@ -274,8 +271,12 @@ class NotificationCaptureCoordinator(
                         payment.amountMinor > 0 -> "PAYMENT_LIKELY"
                         else -> "INSUFFICIENT_INFORMATION"
                     },
-                    reasons = listOf("local_incomplete_payment"),
+                    reasons = (payment.reasons + "local_incomplete_payment").distinct(),
                     parserVersion = payment.parserVersion,
+                    providerReference = payment.providerReference,
+                    paymentChannel = payment.paymentChannel,
+                    lifecycleIdentity = input.messageIdentity,
+                    occurredAtMs = input.receivedAtMs,
                 )
                 return
             }
@@ -356,6 +357,10 @@ class NotificationCaptureCoordinator(
         recognitionStatus: String,
         reasons: List<String>,
         parserVersion: String,
+        providerReference: String = "",
+        paymentChannel: String = "",
+        lifecycleIdentity: String = "",
+        occurredAtMs: Long = 0L,
     ): Boolean {
         if (accountId.isBlank() || sourceEventId.isBlank()) return false
         val current = account() ?: return false
@@ -374,6 +379,10 @@ class NotificationCaptureCoordinator(
             recognitionStatus = recognitionStatus,
             reasons = reasons,
             parserVersion = parserVersion,
+            providerReference = providerReference,
+            paymentChannel = paymentChannel,
+            lifecycleIdentity = lifecycleIdentity,
+            occurredAtMs = occurredAtMs,
         )
         return runCatching {
             queueFor(current.accountId).enqueueHint("hint:$sourceEventId", payload)
@@ -384,6 +393,17 @@ class NotificationCaptureCoordinator(
     fun queuedRequests(): List<QueuedNotificationRequest> {
         val current = account() ?: return emptyList()
         return runCatching { queueFor(current.accountId).peekRequests() }.getOrDefault(emptyList())
+    }
+
+    /** Drop only the exact ignored payment's unsent operations, never history. */
+    fun cancelQueuedPayment(eventId: String): Int {
+        val current = account() ?: return 0
+        if (!current.financeEntitled || eventId.isBlank()) return 0
+        val queue = queueFor(current.accountId)
+        val ids = setOf(eventId, "hint:$eventId")
+        val matching = queue.peekRequests().filter { it.operationId in ids }
+        matching.forEach { queue.remove(it.operationId) }
+        return matching.size
     }
 
     private fun flushDetailed(current: CaptureAccount): FlushResult {

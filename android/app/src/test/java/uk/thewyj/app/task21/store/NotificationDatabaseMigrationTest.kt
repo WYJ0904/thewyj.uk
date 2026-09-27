@@ -52,7 +52,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8,
             )
             .allowMainThreadQueries()
             .build()
@@ -118,7 +118,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8,
             )
             .allowMainThreadQueries()
             .build()
@@ -154,7 +154,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8,
             )
             .allowMainThreadQueries()
             .build()
@@ -194,7 +194,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8,
             )
             .allowMainThreadQueries()
             .build()
@@ -213,6 +213,46 @@ class NotificationDatabaseMigrationTest {
         val replay = store.record("account-a", screenshotCapture(fingerprint = "ms:1"))
         assertEquals("an exact replay must not create a second revision", null, replay)
         assertEquals(2, store.history("account-a", NotificationQuery()).size)
+    }
+
+    @Test fun migrationFromV7AddsArchiveKindWithoutChangingHistoryOrMedia() {
+        val schema = loadSchema(7)
+        createDatabaseFromSchema(schema, version = 7)
+        insertV7MediaRow()
+
+        database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
+            .addMigrations(NotificationDatabase.MIGRATION_7_8)
+            .allowMainThreadQueries()
+            .build()
+        val store = RoomNotificationStore(database!!)
+        val history = store.history("account-a", NotificationQuery())
+
+        assertEquals(1, history.size)
+        assertEquals("屏幕截图已保存", history.single().title)
+        assertEquals("account-a/shot.jpg", history.single().mediaPath)
+        val sqlite = SQLiteDatabase.openDatabase(databaseFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
+        val cursor = sqlite.rawQuery("SELECT archiveKind FROM notification_revisions WHERE revisionId='rev-5'", null)
+        assertTrue(cursor.moveToFirst())
+        assertEquals("legacy", cursor.getString(0))
+        cursor.close()
+        sqlite.close()
+    }
+
+    @Test fun migrationFromV7BackfillsAndFoldsOnlyRepeatedStatusHistory() {
+        val schema = loadSchema(7)
+        createDatabaseFromSchema(schema, version = 7)
+        insertV7StatusLifecycle()
+        database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
+            .addMigrations(NotificationDatabase.MIGRATION_7_8)
+            .allowMainThreadQueries()
+            .build()
+        val store = RoomNotificationStore(database!!)
+        assertEquals(3, store.history("account-a", NotificationQuery()).size)
+        val visible = store.lifecycleHistory("account-a", NotificationQuery())
+        assertEquals(1, visible.size)
+        assertEquals("状态 3", visible.single().text)
+        assertTrue(visible.single().collapsedUpdates)
+        assertEquals(setOf("live"), store.recentRevisions("account-a", "inst-status").map { it.archiveKind }.toSet())
     }
 
     private fun screenshotCapture(fingerprint: String) = NotificationCapture(
@@ -255,6 +295,50 @@ class NotificationDatabaseMigrationTest {
                 "'account-a', '屏幕截图已保存', '', '', '', '', '', '', 'hash-5', 1000, 'UNPARSED', 'UNKNOWN', 0, " +
                 "'CNY', '', 0, 'account-a/shot.jpg', 'image/jpeg', 'available')",
         )
+        sqlite.close()
+    }
+
+    private fun insertV7MediaRow() {
+        val sqlite = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
+        sqlite.execSQL(
+            "INSERT INTO notification_instances (instanceId, accountId, identityKey, sourcePackage, sourceType, " +
+                "notificationKey, notificationId, tag, groupKey, channelId, postTime, firstSeenAt, lastSeenAt, " +
+                "removedAt, status, revisionCount, latestRevisionId, isGroup, isGroupSummary, financeLinked, " +
+                "pinned, pinnedAt, financeState, financeTransactionId) VALUES ('inst-5', 'account-a', 'key:k5', " +
+                "'com.samsung.android.app.smartcapture', 'notification', 'k5', 5, '', '', 'screenshot_status', " +
+                "1000, 1000, 1000, 0, 'active', 1, 'rev-5', 0, 0, 0, 0, 0, '', '')",
+        )
+        sqlite.execSQL(
+            "INSERT INTO notification_revisions (revisionId, instanceId, accountId, title, text, bigText, subText, " +
+                "infoText, summaryText, textLines, contentHash, capturedAt, parseStatus, direction, amountMinor, " +
+                "currency, merchant, confidence, mediaPath, mediaMime, mediaState, mediaFingerprint, " +
+                "mediaFingerprintAlt, mediaOrigin, sourceEventId) VALUES ('rev-5', 'inst-5', 'account-a', " +
+                "'屏幕截图已保存', '', '', '', '', '', '', 'hash-5', 1000, 'UNPARSED', 'UNKNOWN', 0, 'CNY', '', 0, " +
+                "'account-a/shot.jpg', 'image/jpeg', 'available', '', '', '', '')",
+        )
+        sqlite.close()
+    }
+
+    private fun insertV7StatusLifecycle() {
+        val sqlite = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
+        sqlite.execSQL(
+            "INSERT INTO notification_instances (instanceId, accountId, identityKey, sourcePackage, sourceType, " +
+                "notificationKey, notificationId, tag, groupKey, channelId, postTime, firstSeenAt, lastSeenAt, " +
+                "removedAt, status, revisionCount, latestRevisionId, isGroup, isGroupSummary, financeLinked, " +
+                "pinned, pinnedAt, financeState, financeTransactionId) VALUES ('inst-status', 'account-a', " +
+                "'key:status', 'com.example.remote', 'notification', 'status', 5, '', '', 'remote_status', 3000, " +
+                "1000, 3000, 0, 'active', 3, 'rev-status-3', 0, 0, 0, 0, 0, '', '')",
+        )
+        for (index in 1..3) {
+            sqlite.execSQL(
+                "INSERT INTO notification_revisions (revisionId, instanceId, accountId, title, text, bigText, " +
+                    "subText, infoText, summaryText, textLines, contentHash, capturedAt, parseStatus, direction, " +
+                    "amountMinor, currency, merchant, confidence, mediaPath, mediaMime, mediaState, " +
+                    "mediaFingerprint, mediaFingerprintAlt, mediaOrigin, sourceEventId) VALUES ('rev-status-$index', " +
+                    "'inst-status', 'account-a', 'Remote', '状态 $index', '', '', '', '', '', 'hash-$index', " +
+                    "${index * 1000}, 'UNPARSED', 'UNKNOWN', 0, 'CNY', '', 0, '', '', 'none', '', '', '', '')",
+            )
+        }
         sqlite.close()
     }
 

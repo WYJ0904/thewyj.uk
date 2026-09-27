@@ -11,9 +11,11 @@ import uk.thewyj.app.task21.store.NotificationQuery
 import uk.thewyj.app.task21.store.NotificationRepository
 import uk.thewyj.app.task21.store.NotificationRuleEntity
 import uk.thewyj.app.task21.store.NotificationStoreStats
+import uk.thewyj.app.task21.store.NotificationRevisionEntity
 import uk.thewyj.app.task21.store.PaymentRecognitionStoreContract
 import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
 import uk.thewyj.app.task21.store.NotificationDatabase
+import uk.thewyj.app.task21.payment.PendingReviewReconciler
 
 /**
  * Screen state for the native notification hub. Kept outside the composables so
@@ -23,6 +25,7 @@ class NotificationHubState(
     context: Context,
     val accountId: String,
 ) {
+    private val appContext = context.applicationContext
     private val repository = NotificationRepository(context.applicationContext, accountId)
     private val paymentStore: PaymentRecognitionStoreContract =
         RoomPaymentRecognitionStore(NotificationDatabase.get(context.applicationContext))
@@ -50,20 +53,27 @@ class NotificationHubState(
     val items: SnapshotStateList<NotificationHistoryItem> = mutableStateListOf()
     val selected: SnapshotStateList<String> = mutableStateListOf()
     var detail by mutableStateOf<NotificationHistoryItem?>(null)
+    var detailRevisions by mutableStateOf<List<NotificationRevisionEntity>>(emptyList())
     var hasMore by mutableStateOf(false)
         private set
     private var visibleLimit = HISTORY_PAGE_SIZE
 
-    /**
-     * Pending review count. The finance page lists backend candidates, so the
-     * hub shows the same backend number whenever it is reachable (falling back
-     * to the local count offline) and the two screens can never disagree.
-     */
-    /** Recognitions this device still has to verify or confirm. */
+    /** Same canonical server-backed actionable count as /finance. */
     var pendingPayments by mutableStateOf(0)
 
-    /** Candidates the Finance page still lists for confirmation. */
+    /** Recognitions this device still has to verify or confirm. */
+    var localPendingPayments by mutableStateOf(0)
+
+    /** Hints + complete candidates the Finance page lists for confirmation. */
     var remotePendingPayments by mutableStateOf(0)
+
+    var sharedPendingPayments by mutableStateOf(0)
+    var localOnlyPendingPayments by mutableStateOf(0)
+    var remoteOnlyPendingPayments by mutableStateOf(0)
+    var pendingObservationAt by mutableStateOf("")
+    var pendingSyncCurrent by mutableStateOf(false)
+    var unresolvedPendingPayments by mutableStateOf(0)
+    private var pendingGeneration = 0
 
     private fun query() = NotificationQuery(
         search = search,
@@ -102,31 +112,89 @@ class NotificationHubState(
     }
 
     suspend fun refreshPendingPayments() {
+        val generation = ++pendingGeneration
         // Real-device crash fix: Room/Keystore access must never run on the main
         // thread, otherwise Android throws
         // "Cannot access database on the main thread" from the Compose frame.
-        pendingPayments = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            // Persist cloud terminal outcomes before counting local attention rows.
+            // A display-only set subtraction left those rows actionable in the
+            // verification screen even after Finance had no pending candidates.
+            val hintSync = uk.thewyj.app.task21.payment.PaymentHintSync(appContext)
+            runCatching { hintSync.sync() }
             // The banner is the entry point to the native pending-verification
             // screen, so it counts exactly what that screen lists: local
             // recognitions that still need the user. Backend candidates are
             // reported separately instead of being summed, otherwise an
             // uploaded payment would be counted twice.
-            val local = paymentStore.recognitionsByState(
+            val localBefore = paymentStore.recognitionsByState(
                 accountId,
                 uk.thewyj.app.task21.payment.PaymentVerificationCenter.ATTENTION_STATES,
-            ).size
+            )
             val credentials = runCatching { credentialStore.loadActive() }.getOrNull()
+            val archive = uk.thewyj.app.task21.store.RoomNotificationStore(NotificationDatabase.get(appContext))
+            val requested = localBefore.flatMap { row ->
+                listOf(row.uploadEventId) + archive.structuredEventIdsForRecognition(accountId, row.sourceEventId)
+            }.filter(String::isNotBlank).distinct()
             val remote = if (credentials != null && credentials.accessToken.isNotBlank()) {
-                when (val result = api.pendingCandidateCount(credentials.accessToken)) {
-                    is uk.thewyj.app.core.network.ApiCall.Success -> result.value
+                when (val response = api.pendingReviewSummary(credentials.accessToken, requested)) {
+                    is uk.thewyj.app.core.network.ApiCall.Success -> response.value
                     is uk.thewyj.app.core.network.ApiCall.Failure -> null
                 }
             } else {
                 null
             }
-            remotePendingPayments = remote ?: 0
-            local
+            val observation = remote?.let { hintSync.applySummary(accountId, it) }
+            val local = paymentStore.recognitionsByState(
+                accountId,
+                uk.thewyj.app.task21.payment.PaymentVerificationCenter.ATTENTION_STATES,
+            )
+            val observedIds = remote?.records.orEmpty().flatMap { it.eventIds }.toSet()
+            val resolved = local.map { row ->
+                val matches = archive.structuredEventIdsForRecognition(accountId, row.sourceEventId)
+                    .filter(observedIds::contains).distinct()
+                if (matches.size == 1 && row.uploadEventId != matches.single()) {
+                    row.copy(uploadEventId = matches.single())
+                } else row
+            }
+            android.util.Log.i("ThewyjPending", "local=" + resolved.joinToString(";") { "${it.recognitionId}|${it.uploadEventId.ifBlank { "unresolved" }}|${it.state}" })
+            android.util.Log.i("ThewyjPending", "cloudN=${remote?.totalCount ?: -1} cloud=" +
+                remote?.records.orEmpty().joinToString(";") {
+                    "${it.canonicalId}|${it.eventId}|${it.amountMinor ?: "?"}|${it.direction.ifBlank { "?" }}|${it.state}"
+                })
+            val center = uk.thewyj.app.task21.payment.PaymentVerificationCenter(appContext)
+            val recovery = if (observation?.completeObservation == true) {
+                center.reconciledItems(accountId, observation).filter { it.recoveryOnly }
+            } else {
+                center.localItems(accountId).filter { it.recoveryOnly }
+            }
+            Triple(resolved, remote, recovery)
         }
+        if (generation != pendingGeneration) return
+        val local = result.first
+        val remote = result.second
+        val recovery = result.third
+        localPendingPayments = recovery.size
+        if (remote == null) {
+            pendingPayments = 0
+            remotePendingPayments = 0
+            sharedPendingPayments = 0
+            localOnlyPendingPayments = recovery.size
+            remoteOnlyPendingPayments = 0
+            pendingObservationAt = ""
+            pendingSyncCurrent = false
+            unresolvedPendingPayments = recovery.count { it.eventIds.isEmpty() }
+            return
+        }
+        val reconciled = PendingReviewReconciler.reconcile(local, remote)
+        pendingPayments = remote.totalCount
+        remotePendingPayments = reconciled.remote
+        sharedPendingPayments = reconciled.overlap
+        localOnlyPendingPayments = recovery.size
+        remoteOnlyPendingPayments = reconciled.remoteOnly
+        pendingObservationAt = reconciled.observedAt
+        pendingSyncCurrent = reconciled.complete
+        unresolvedPendingPayments = recovery.count { it.eventIds.isEmpty() }
     }
 
     suspend fun setSearch(value: String) {
@@ -143,8 +211,9 @@ class NotificationHubState(
 
     suspend fun loadMore() {
         if (!hasMore) return
-        visibleLimit = (visibleLimit + HISTORY_PAGE_SIZE).coerceAtMost(HISTORY_MAX_VISIBLE)
-        refresh()
+        val next = repository.history(query().copy(limit = HISTORY_PAGE_SIZE + 1, offset = items.size))
+        hasMore = next.size > HISTORY_PAGE_SIZE
+        items.addAll(next.take(HISTORY_PAGE_SIZE))
     }
 
     /** Selection tracks saved snapshots, matching what the list shows. */
@@ -182,6 +251,22 @@ class NotificationHubState(
         refresh()
         if (wasDetailOpen) detail = items.firstOrNull { it.revisionId == item.revisionId }
         return next
+    }
+
+    suspend fun openDetail(item: NotificationHistoryItem) {
+        detail = item
+        detailRevisions = if (item.revisionCount > 1) repository.recentRevisions(item.instanceId) else emptyList()
+    }
+
+    suspend fun loadMoreRevisions() {
+        val item = detail ?: return
+        val next = repository.recentRevisions(item.instanceId, offset = detailRevisions.size)
+        if (detail?.instanceId == item.instanceId) detailRevisions = detailRevisions + next
+    }
+
+    fun closeDetail() {
+        detail = null
+        detailRevisions = emptyList()
     }
 
     suspend fun clearAll(): Int {
@@ -229,6 +314,5 @@ class NotificationHubState(
         /** Mirrors RoomNotificationStore.DEFAULT_RETENTION_DAYS without a hard constant here. */
         const val NotificationRepositoryRetentionDefault = 30
         const val HISTORY_PAGE_SIZE = 50
-        const val HISTORY_MAX_VISIBLE = 500
     }
 }

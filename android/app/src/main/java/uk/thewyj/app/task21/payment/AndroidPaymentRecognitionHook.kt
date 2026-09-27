@@ -2,6 +2,9 @@ package uk.thewyj.app.task21.payment
 
 import android.content.Context
 import android.util.Log
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 import uk.thewyj.app.task21.NotificationCaptureInput
 import uk.thewyj.app.task21.PaymentIngestOutcome
 import uk.thewyj.app.task21.PaymentRecognitionHook
@@ -18,6 +21,9 @@ class AndroidPaymentRecognitionHook private constructor(
     /** Injectable for tests; production always uses the Room-backed sink. */
     private val archiveSink: uk.thewyj.app.task21.NotificationArchiveSink? = null,
     private val recognitionStore: uk.thewyj.app.task21.store.PaymentRecognitionStoreContract? = null,
+    private val publishOverride: ((String, String) -> Boolean)? = null,
+    private val enrichmentExecutor: Executor = ENRICHMENT_EXECUTOR,
+    private val notifierOverride: PaymentStatusNotifier? = null,
 ) : PaymentRecognitionHook {
 
     /** Test-only constructor so the archive ordering rule can be verified. */
@@ -26,7 +32,10 @@ class AndroidPaymentRecognitionHook private constructor(
         archiveSink: uk.thewyj.app.task21.NotificationArchiveSink,
         recognitionStore: uk.thewyj.app.task21.store.PaymentRecognitionStoreContract? = null,
         testing: Boolean,
-    ) : this(appContext, archiveSink, recognitionStore)
+        publishOverride: ((String, String) -> Boolean)? = null,
+        enrichmentExecutor: Executor = Executor { it.run() },
+        notifierOverride: PaymentStatusNotifier? = null,
+    ) : this(appContext, archiveSink, recognitionStore, publishOverride, enrichmentExecutor, notifierOverride)
 
     private val store: uk.thewyj.app.task21.store.PaymentRecognitionStoreContract
         get() = recognitionStore ?: RoomPaymentRecognitionStore(NotificationDatabase.get(appContext))
@@ -35,8 +44,8 @@ class AndroidPaymentRecognitionHook private constructor(
         get() = archiveSink ?: NotificationArchiveSinkFactory.forContext(appContext)
     private val coordinator: PaymentRecognitionCoordinator by lazy {
         PaymentRecognitionCoordinator(
-            store = RoomPaymentRecognitionStore(NotificationDatabase.get(appContext)),
-            notifier = AndroidPaymentStatusNotifier(appContext),
+            store = store,
+            notifier = notifierOverride ?: AndroidPaymentStatusNotifier(appContext),
         )
     }
 
@@ -90,21 +99,20 @@ class AndroidPaymentRecognitionHook private constructor(
             input.textLines.mapNotNullTo(this) { line -> line.takeIf { it.isNotBlank() } }
         }
         val parseText = if (bodyLines.isEmpty()) input.text else bodyLines.joinToString(" ")
-        val parsed = PaymentParserRegistry.parse(
-            sourcePackage = input.sourcePackage,
-            sourceType = sourceType,
-            title = input.title,
-            text = parseText,
-            bigText = input.bigText,
-            subText = input.subText,
-            capturedAtMs = if (input.postTime > 0) input.postTime else input.receivedAtMs,
-        )
+        val parser = PaymentParserRegistry.parserFor(input.sourcePackage, sourceType)
+        val parsed = parser?.parse(
+            input.title,
+            parseText,
+            input.bigText,
+            input.subText,
+            if (input.postTime > 0) input.postTime else input.receivedAtMs,
+        ) ?: ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("no_parser_for_source"))
         // Auditable evidence without ever logging the message itself.
         Log.i(
             "ThewyjPayment",
             "parse pkg=${input.sourcePackage} titleChars=${input.title.length} " +
                 "textChars=${input.text.length} lineCount=${input.textLines.size} " +
-                "status=${parsed.status} amount=${parsed.amountMinor ?: 0} direction=${parsed.direction ?: "unknown"}",
+                "status=${parsed.status} amountKnown=${parsed.amountMinor != null} directionKnown=${parsed.direction != null}",
         )
         if (parsed.status == PaymentRecognitionStatus.NOT_PAYMENT ||
             parsed.status == PaymentRecognitionStatus.PARSE_ERROR
@@ -121,7 +129,10 @@ class AndroidPaymentRecognitionHook private constructor(
             merchant = parsed.merchant.orEmpty(),
             counterparty = parsed.counterparty.orEmpty(),
             paymentChannel = parsed.paymentChannel.orEmpty(),
-            parserVersion = "payment-" + parsed.paymentChannel.ifBlank { "generic" },
+            parserVersion = parser?.version ?: "payment-generic",
+            providerReference = parsed.providerReference.orEmpty(),
+            reasons = parsed.reasons,
+            missingFields = parsed.missingFields,
         )
     }
 
@@ -138,8 +149,34 @@ class AndroidPaymentRecognitionHook private constructor(
         )
     }
 
-    fun onAccessibilityEnrichment(accountId: String, enrichment: PaymentEnrichment): EnrichmentOutcome =
-        coordinator.onAccessibilityEnrichment(accountId, enrichment)
+    fun onAccessibilityEnrichment(accountId: String, enrichment: PaymentEnrichment): EnrichmentOutcome {
+        val outcome = coordinator.onAccessibilityEnrichment(accountId, enrichment)
+        if (outcome is EnrichmentOutcome.Applied) {
+            // Room has the amount now; notify the UI before any network call.
+            PaymentReviewSignals.publish()
+            val recognitionId = outcome.ticket.recognitionId
+            val key = "$accountId|$recognitionId"
+            if (PUBLISHING.add(key)) {
+                runCatching {
+                    enrichmentExecutor.execute {
+                        try {
+                            runCatching {
+                                (publishOverride ?: { account: String, id: String ->
+                                    PaymentHintSync(appContext).publishEnrichment(account, id)
+                                })(accountId, recognitionId)
+                            }.onFailure { error ->
+                                Log.w("ThewyjPayment", "enrichment publish unavailable: ${error.javaClass.simpleName}")
+                            }
+                        } finally {
+                            PUBLISHING.remove(key)
+                            PaymentReviewSignals.publish()
+                        }
+                    }
+                }.onFailure { PUBLISHING.remove(key) }
+            }
+        }
+        return outcome
+    }
 
     /** The page produced no usable amount; counts toward the honest failure path. */
     fun onAccessibilityMiss(accountId: String, sourcePackage: String): Boolean =
@@ -161,12 +198,35 @@ class AndroidPaymentRecognitionHook private constructor(
             sink.markFinanceOutcome(accountId, eventId, "confirmed", transactionId)
         }
         // Local recognition/candidate bookkeeping is best-effort and must never
-        // take the archive terminal state down with it.
-        runCatching {
-            val recognition = store.recognitionByUploadEvent(accountId, eventId) ?: return@runCatching
-            val candidate = store.candidateForRecognition(accountId, recognition.recognitionId) ?: return@runCatching
-            coordinator.markFinanceRecorded(accountId, candidate.candidateId, transactionId)
+        // take the archive terminal state down with it. A server auto-book can
+        // legitimately arrive when the local candidate row is absent/stale, so
+        // the recognition itself must still leave ATTENTION_STATES immediately.
+        val recognition = runCatching {
+            store.recognitionByUploadEvent(accountId, eventId)
+                ?: sink.recognitionSourceEventIds(accountId, eventId)
+                    .firstNotNullOfOrNull { store.recognitionBySourceEvent(accountId, it) }
+        }.getOrNull()
+        if (recognition == null) {
+            PaymentReviewSignals.publish()
+            return
         }
+        val candidate = runCatching {
+            store.candidateForRecognition(accountId, recognition.recognitionId)
+        }.getOrNull()
+        if (candidate != null) {
+            runCatching {
+                coordinator.markFinanceRecorded(accountId, candidate.candidateId, transactionId)
+            }
+        }
+        runCatching {
+            store.saveRecognition(
+                recognition.copy(
+                    state = PaymentRecognitionState.FINANCE_RECORDED.name,
+                    updatedAtMs = System.currentTimeMillis(),
+                ),
+            )
+        }
+        PaymentReviewSignals.publish()
     }
 
     override fun appLabelFor(input: NotificationCaptureInput): String =
@@ -175,6 +235,10 @@ class AndroidPaymentRecognitionHook private constructor(
     fun coordinator(): PaymentRecognitionCoordinator = coordinator
 
     companion object {
+        private val PUBLISHING = ConcurrentHashMap.newKeySet<String>()
+        private val ENRICHMENT_EXECUTOR = Executors.newSingleThreadExecutor { task ->
+            Thread(task, "thewyj-payment-enrichment").apply { isDaemon = true }
+        }
         @Volatile
         private var instance: AndroidPaymentRecognitionHook? = null
 
