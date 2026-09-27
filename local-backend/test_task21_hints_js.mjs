@@ -809,6 +809,42 @@ try {
   assert.equal(afterLegacyIgnore.payload.total_count, 0);
   assert.equal(afterLegacyIgnore.payload.records[0].state, "ignored");
 
+  // A complete low-confidence income has the same direct-booking contract as
+  // an expense. Replaying its event must retain one ledger entry and zero pending.
+  const incomeBody = hintBody("evt-final-income-cent", {
+    amount_minor: 1, direction: "income", confidence: 650,
+    recognition_status: "CONFIRMED_PAYMENT",
+    evidence: { source_type: "accessibility", confidence: 650,
+      reasons: ["accessibility_verified_amount"], recognised_fields: ["amount", "direction"] },
+  });
+  const income = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token, body: incomeBody,
+  });
+  assert.equal(income.response.status, 200, JSON.stringify(income.payload));
+  assert.equal(income.payload.hints[0].state, "confirmed");
+  const incomeTransactionId = income.payload.hints[0].finance_entry_id;
+  const incomeLedger = await db.prepare(`SELECT direction, amount_minor, source_kind
+    FROM task16_finance_transactions WHERE user_id = ?1 AND id = ?2`)
+    .bind(USER.id, incomeTransactionId).first();
+  assert.equal(incomeLedger.direction, "income");
+  assert.equal(Number(incomeLedger.amount_minor), 1);
+  assert.equal(incomeLedger.source_kind, "automatic");
+  const incomeReplay = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token, body: incomeBody,
+  });
+  assert.equal(incomeReplay.response.status, 200);
+  assert.equal(incomeReplay.payload.hints[0].finance_entry_id, incomeTransactionId);
+  const incomeLinks = await db.prepare(`SELECT COUNT(*) AS count
+    FROM task16_finance_raw_events raw
+    JOIN task16_finance_transaction_events link ON link.raw_event_id = raw.id
+    WHERE raw.user_id = ?1 AND raw.source_event_id = ?2 AND link.relation_status = 'active'`)
+    .bind(USER.id, "evt-final-income-cent").first();
+  assert.equal(Number(incomeLinks.count), 1, "income replay cannot book twice");
+  const incomeSummary = await request(db,
+    "/api/notification/pending-summary?event_ids=evt-final-income-cent", { token: USER.token });
+  assert.equal(incomeSummary.payload.total_count, 0);
+  assert.equal(incomeSummary.payload.records[0].state, "confirmed");
+
   console.log("Task 21 pending-hint checks passed (single pending source, no invented money, idempotent confirm/ignore).");
 } finally {
   await mf.dispose();
