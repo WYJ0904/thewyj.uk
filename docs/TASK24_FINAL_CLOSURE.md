@@ -1,9 +1,18 @@
-# Task 24 Final Acceptance Reopen — Release Candidate Record
+# Task 24 Final Closure — Android 1.3.19
 
-**状态：`TASK 24 — OPEN / DEVICE ACCEPTANCE PENDING`**（不是 `COMPLETE`）。
+**状态：`TASK 24 COMPLETE`**（2026-09-27）。
 
-当前修复分支：`codex/task24-candidate-history-r6`（base `main`）；历史支付生命周期修复 PR：`#75`
-Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Task 25 代码）
+Task 25：**UNBLOCKED**；仓库中尚未开始 Task 25 实现。
+
+PR [#78](https://github.com/WYJ0904/thewyj.uk/pull/78) 已合并到 `main`（`4479300d67b939829799b7bd000fa8a4f044888b`）。[完整 Task 24 Closure Report](https://github.com/WYJ0904/thewyj.uk/pull/78#issuecomment-5856432642) 记录了最终验收与发布证据。
+
+## 最终验收与发布（2026-09-27）
+
+- PR head `4dd3aada2b6cb1eaf2596ef3a74c3d254b45d1cb` 的 [Core CI](https://github.com/WYJ0904/thewyj.uk/actions/runs/36322713652) 和合并后 `main` 的 [Core CI](https://github.com/WYJ0904/thewyj.uk/actions/runs/36323191793) 均为 6/6 SUCCESS；本机 Android 445/445 unit tests、lint、debug build 与发布一致性 46/46 通过。
+- Production Pages `72f6f976-5d06-402d-919e-aca948054b84`、D1 迁移 0022、Finance/通知 API 与 1.3.19 客户端已核对。正式下载端点与 Production R2 回读均为真机验收的同一份签名 APK：`uk.thewyj.app` 1.3.19（32），47,676,877 bytes，SHA-256 `1e79d8d791ed6cc5761f8fb8bac5f9c8320ae1b89f40f1f8b76ed1c9c50429e9`。
+- Samsung 真机识别并自动记账支出 `-¥0.01` 与收入 `+¥0.01`，两笔各只有一条正式账本及事件关联；通知与 Finance 待确认均为 0。杀进程重开、短暂断网恢复后刷新，旧 pending 未复活。已通过的截图来源、打开来源应用、忽略与财务删除联动保持原有行为。
+
+以下为早期候选版本的历史记录；其中的 `PENDING` / `BLOCKED` 只描述当时的检查点，不代表最终状态。
 
 ## 2026-09-25 local-first verification candidate (Android 1.3.17)
 
@@ -179,6 +188,6 @@ Task 25：**BLOCKED BY TASK 24 FINAL ACCEPTANCE**（仓库中不存在任何 Tas
 | B-10 | 真实窗口是否有文本、`lines=0`、OCR fallback、微信页面结构能否完成 enrichment（ticket/cache race 已在软件侧修复，其余仍未知） | 真机窗口与 ML Kit |
 | B-11 | Android 1.3.3 安装与最终端到端 | 设备安装与整体回归 |
 
-## Task 25
+## Task 25 — UNBLOCKED
 
-未开始：仓库中不存在 Task 25 的实现或开关代码。
+Task 24 已关闭。Task 25 可另行开始；仓库中尚不存在 Task 25 的实现或开关代码。
