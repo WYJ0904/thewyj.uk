@@ -1,13 +1,13 @@
 {
   "applicationId": "uk.thewyj.app",
-  "versionName": "1.3.10",
-  "versionCode": 23,
+  "versionName": "1.3.19",
+  "versionCode": 32,
   "minimumVersionCode": 1,
-  "releaseDate": "2026-09-20",
-  "releaseBuild": "2026-09-20-task24-candidate-history-r6",
-  "releaseNotes": "Task 24 通知候选与历史收口版：修正未知方向、来源和商户语义，按稳定事件 ID 对账本机与云端，折叠持续状态历史并保留快照，同额不同交易继续独立。",
-  "apkFileName": "thewyj-android-1.3.10.apk",
-  "apkKey": "app/android/thewyj-android-1.3.10.apk",
-  "apkSha256": "e30c055a697fa508ba67fe09b10d95a01f2023d31ed5f9e22db55d9bbeb0d4d2",
-  "apkSizeBytes": 47627681
+  "releaseDate": "2026-09-27",
+  "releaseBuild": "2026-09-27-task24-release-1.3.19",
+  "releaseNotes": "Task 24 正式版：支付金额和方向识别完整后自动记账；通知与财务共用待确认记录并同步清除终态；保留无障碍/OCR、截图归档与财务删除联动。",
+  "apkFileName": "thewyj-android-1.3.19.apk",
+  "apkKey": "app/android/thewyj-android-1.3.19.apk",
+  "apkSha256": "1e79d8d791ed6cc5761f8fb8bac5f9c8320ae1b89f40f1f8b76ed1c9c50429e9",
+  "apkSizeBytes": 47676877
 }

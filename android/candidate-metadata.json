@@ -4,7 +4,7 @@
   "versionCode": 32,
   "candidate": true,
   "productionRelease": false,
-  "status": "signed_local_ready",
+  "status": "physical_device_accepted",
   "baseUrl": "https://thewyj.uk",
   "releaseDate": "2026-09-27",
   "build": "2026-09-27-task24-canonical-pending-r15",
@@ -16,7 +16,7 @@
   "signingCertificateSha256": "2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03",
   "supersedesRejectedCandidateSha256": "b07940a4d11f364e8f5818aa4589d22eee2d55225f2b3193e79f9dacf59b7ff0",
   "supersedesStaleCandidateSha256": "34e5584861a0a8da2a9d3346db5e1dbf0b42f7efdc7e0f3fd03309a62f729dfb",
-  "notes": "1.3.19 signed Task 24 candidate: server summary projects identical canonical pending identities and safe display fields to Android and Web; exact provider/message lifecycle aliases converge payment reviews without amount/time merging; local unsynced recovery is separate. Core CI run 36253313597 passed 6/6; Production migration 0022 and Pages deployment 2e688e71 verified. APK is a local candidate, not a published Android update; Samsung E2E acceptance remains pending.",
+  "notes": "1.3.19 signed Task 24 candidate accepted on Samsung SM-S9360: a real -¥0.01 payment auto-booked once as Android 自动识别, and both native and Finance pending views cleared. The exact binary remains the formal release input; publication is tracked separately by release-metadata.json. Core CI 36253313597 passed 6/6; Production migration 0022 and Pages deployment 2e688e71 were verified.",
   "pagesProductionDeploymentId": "2e688e71-6001-4b98-b048-19c9d789dae3",
   "pagesAssetRelease": "20260926-task24-candidate-r15"
 }
