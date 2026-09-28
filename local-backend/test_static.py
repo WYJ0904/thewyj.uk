@@ -162,9 +162,10 @@ class StaticSiteTests(unittest.TestCase):
             self.app,
         )
         self.assertIn(
-            'const backendPromise = initialPath.startsWith("/share/") ? Promise.resolve() : refreshBackendState();',
+            'const backendPromise = initialPath.startsWith("/share/") || initialPath === "/transfer"',
             self.app,
         )
+        self.assertIn('? Promise.resolve() : refreshBackendState();', self.app)
 
     def test_public_home_and_trial_are_explicitly_limited(self):
         for route in ('href="/"', 'href="/changelog"'):
