@@ -446,6 +446,40 @@ async function main() {
     assert.equal(quota.data?.reserved_bytes, 0, JSON.stringify(quota.data));
     assert.equal(quota.data?.used_bytes, quota.data?.stored_bytes, "cancel releases reserved quota");
     console.log("[transfer-browser] cancelled upload released its session and quota");
+
+    // Removing one file from a two-file reservation must abort that whole
+    // immutable batch, then re-upload the survivor under a new session.
+    await page.setFile("#transferFileInput", FIXTURES[0].path);
+    await page.waitFor("document.querySelector('#transferCompleteBtn')?.disabled === false", TRANSFER_TIMEOUT_MS,
+      "replacement fixture first upload finished");
+    await page.setFile("#transferFileInput", FIXTURES[1].path);
+    await page.waitFor("document.querySelectorAll('[data-transfer-item]').length === 2 && document.querySelector('#transferCompleteBtn')?.disabled === false",
+      TRANSFER_TIMEOUT_MS, "replacement fixture two-file batch finished");
+    const twoFileSessionId = await page.evaluate(`(() => {
+      const saved = JSON.parse(localStorage.getItem(${JSON.stringify(queueKey)}) || '{}');
+      return saved.queue?.[0]?.sessionId || '';
+    })()`);
+    assert.ok(twoFileSessionId);
+    await page.click("[data-transfer-item]:nth-child(2) [data-transfer-cancel]");
+    await page.waitFor(`(() => {
+      const saved = JSON.parse(localStorage.getItem(${JSON.stringify(queueKey)}) || '{}');
+      return saved.queue?.length === 1 && saved.queue[0].status === 'done'
+        && saved.queue[0].sessionId && saved.queue[0].sessionId !== ${JSON.stringify(twoFileSessionId)};
+    })()`, TRANSFER_TIMEOUT_MS, "surviving file rebuilt under a new session");
+    const superseded = await api(`/api/transfer/uploads/${twoFileSessionId}`, null, session);
+    assert.equal(superseded.data?.state, "aborted", "superseded two-file reservation is terminal");
+    await page.click("[data-transfer-cancel]");
+    await page.waitFor(`(() => {
+      const saved = JSON.parse(localStorage.getItem(${JSON.stringify(queueKey)}) || '{}');
+      return saved.queue?.length === 0;
+    })()`, 30_000, "last survivor cancelled");
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      quota = await api("/api/transfer/capabilities", null, session);
+      if (quota.data?.reserved_bytes === 0) break;
+      await delay(200);
+    }
+    assert.equal(quota.data?.reserved_bytes, 0, "batch replacement and final cancel leave no reservation");
+    console.log("[transfer-browser] two-file deletion rebuilt the survivor without ghost quota");
     console.log(
       `[transfer-browser] PASS source == download SHA-256 and byte length for ${FIXTURES.map((fixture) => `${fixture.fileName} (${fixture.size} bytes)`).join(", ")}`,
     );
