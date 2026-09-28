@@ -1451,8 +1451,10 @@ export function createTransferController({
     });
     document.addEventListener("paste", handlePaste);
     window.addEventListener("online", () => {
-      void retryCleanupPending();
-      void loadUnfinishedSessions();
+      if (location.pathname === "/transfer" && recipientShareId() === null) {
+        void retryCleanupPending();
+        void loadUnfinishedSessions();
+      }
     });
     window.addEventListener("hashchange", () => {
       if (location.pathname === "/transfer") void show();
@@ -1487,7 +1489,10 @@ export function createTransferController({
     restoreQueue();
     restoreCleanupQueue();
     renderQueue();
-    void Promise.all([loadCapabilities(), loadUnfinishedSessions(), retryCleanupPending()]);
+    void loadCapabilities();
+    if (location.pathname === "/transfer" && recipientShareId() === null) {
+      void Promise.all([loadUnfinishedSessions(), retryCleanupPending()]);
+    }
   }
 
   return Object.freeze({ show, hide, accountUpdated, addFiles, renderQueue });

@@ -2413,6 +2413,7 @@ async function main() {
       // local legacy hint/candidate endpoints when that route is absent.
       "/api/notification/pending-summary",
       "/api/transfer/capabilities",
+      "/api/transfer/uploads",
       "/api/transfer/shares",
       // Cloud TTS is a Cloudflare-only route; the local legacy backend matrix
       // answers 404 and dictation falls back to the device engine exactly as
