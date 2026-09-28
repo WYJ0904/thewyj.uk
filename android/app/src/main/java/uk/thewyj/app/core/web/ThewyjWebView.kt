@@ -36,6 +36,8 @@ import uk.thewyj.app.BuildConfig
 import uk.thewyj.app.core.speech.AndroidSpeechBridge
 import uk.thewyj.app.task21.payment.PaymentReviewSignals
 import java.net.URI
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import org.json.JSONObject
@@ -381,13 +383,21 @@ private fun handleNavigation(
     NavigationDecision.Blocked -> true
 }
 
-private fun downloadName(url: String, contentDisposition: String): String {
-    val encoded = Regex("filename\\*?=(?:UTF-8''|\")?([^\";]+)", RegexOption.IGNORE_CASE)
+internal fun downloadName(url: String, contentDisposition: String): String {
+    val encoded = Regex("(?:^|;)\\s*filename\\*=UTF-8''([^;]+)", RegexOption.IGNORE_CASE)
         .find(contentDisposition)
         ?.groupValues
         ?.getOrNull(1)
-        ?.let(Uri::decode)
+        ?.let { runCatching { URLDecoder.decode(it.replace("+", "%2B"), StandardCharsets.UTF_8) }.getOrNull() }
+    val plain = Regex("(?:^|;)\\s*filename=\"([^\"]+)\"", RegexOption.IGNORE_CASE)
+        .find(contentDisposition)
+        ?.groupValues
+        ?.getOrNull(1)
     val fallback = runCatching { URI(url).path.substringAfterLast('/').ifBlank { "thewyj-download" } }
         .getOrDefault("thewyj-download")
-    return (encoded ?: fallback).replace(Regex("[\\r\\n/\\\\]"), "_").take(120)
+    val safe = (encoded ?: plain ?: fallback).replace(Regex("[\\r\\n/\\\\]"), "_").trim()
+    if (safe.length <= 120) return safe.ifBlank { "thewyj-download" }
+    val extension = safe.substringAfterLast('.', "").takeIf { it.length in 1..16 }
+        ?.let { ".$it" }.orEmpty()
+    return safe.take(120 - extension.length) + extension
 }
