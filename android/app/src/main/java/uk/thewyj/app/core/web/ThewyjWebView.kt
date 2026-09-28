@@ -37,7 +37,6 @@ import uk.thewyj.app.core.speech.AndroidSpeechBridge
 import uk.thewyj.app.task21.payment.PaymentReviewSignals
 import java.net.URI
 import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import org.json.JSONObject
@@ -388,7 +387,7 @@ internal fun downloadName(url: String, contentDisposition: String): String {
         .find(contentDisposition)
         ?.groupValues
         ?.getOrNull(1)
-        ?.let { runCatching { URLDecoder.decode(it.replace("+", "%2B"), StandardCharsets.UTF_8) }.getOrNull() }
+        ?.let { runCatching { URLDecoder.decode(it.replace("+", "%2B"), "UTF-8") }.getOrNull() }
     val plain = Regex("(?:^|;)\\s*filename=\"([^\"]+)\"", RegexOption.IGNORE_CASE)
         .find(contentDisposition)
         ?.groupValues
