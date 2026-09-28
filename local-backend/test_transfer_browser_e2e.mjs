@@ -340,12 +340,27 @@ async function main() {
       "the share card must list both original file names",
     );
 
-    // 5. Download from the share link in a *fresh* tab - the recipient path.
+    // 5. openPage creates a fresh browser context: no cookie, localStorage or
+    // owner login can be inherited by this recipient.
     const sharePage = await openPage({ cdpUrl: CDP_URL, baseUrl: BASE_URL, width: 1280, height: 900, mobile: false });
     await sharePage.setDownloadBehavior(DOWNLOAD_DIR);
     try {
       await sharePage.navigate(`/transfer#share=${encodeURIComponent(shareId)}`);
       await sharePage.waitFor("document.querySelectorAll('[data-transfer-download]').length >= 2", 40_000, "share download buttons");
+      const recipientState = await sharePage.evaluate(`({
+        path: location.pathname,
+        fragment: location.hash,
+        session: localStorage.getItem('wyjAccountSession'),
+        authHidden: document.querySelector('#authPanel')?.classList.contains('hidden'),
+        recoveryHidden: document.querySelector('#sessionRecovery')?.classList.contains('hidden'),
+        transferVisible: !document.querySelector('#transferPage')?.classList.contains('hidden'),
+      })`);
+      assert.equal(recipientState.path, "/transfer");
+      assert.equal(recipientState.fragment, `#share=${shareId}`);
+      assert.equal(recipientState.session, null, "recipient context has no owner session");
+      assert.equal(recipientState.authHidden, true, "recipient must not see login");
+      assert.equal(recipientState.recoveryHidden, true, "recipient must not see Android session recovery");
+      assert.equal(recipientState.transferVisible, true);
       const buttons = await sharePage.evaluate(
         "Array.from(document.querySelectorAll('[data-transfer-download]')).map((button) => button.dataset.transferDownload)",
       );
@@ -403,6 +418,34 @@ async function main() {
       staleComplete.status >= 400,
       `the superseded one-file session must not be publishable (HTTP ${staleComplete.status})`,
     );
+    // Cancelling a new upload must release its server reservation, even when
+    // the multipart upload has already begun. The published share remains.
+    await page.setFile("#transferFileInput", FIXTURES[0].path);
+    await page.waitFor(`(() => {
+      const saved = JSON.parse(localStorage.getItem(${JSON.stringify(queueKey)}) || '{}');
+      return saved.queue?.length === 1 && Boolean(saved.queue[0].sessionId);
+    })()`, 30_000, "cancel fixture has a reserved session");
+    const cancelledSessionId = await page.evaluate(`(() => {
+      const saved = JSON.parse(localStorage.getItem(${JSON.stringify(queueKey)}) || '{}');
+      return saved.queue?.[0]?.sessionId || '';
+    })()`);
+    await page.click("[data-transfer-cancel]");
+    await page.waitFor(`(() => {
+      const saved = JSON.parse(localStorage.getItem(${JSON.stringify(queueKey)}) || '{}');
+      return saved.queue?.length === 0;
+    })()`, 30_000, "cancel removes the queued file");
+    let cancelledState;
+    let quota;
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      cancelledState = await api(`/api/transfer/uploads/${cancelledSessionId}`, null, session);
+      quota = await api("/api/transfer/capabilities", null, session);
+      if (cancelledState.data?.state === "aborted" && quota.data?.reserved_bytes === 0) break;
+      await delay(200);
+    }
+    assert.equal(cancelledState.data?.state, "aborted", JSON.stringify(cancelledState.data));
+    assert.equal(quota.data?.reserved_bytes, 0, JSON.stringify(quota.data));
+    assert.equal(quota.data?.used_bytes, quota.data?.stored_bytes, "cancel releases reserved quota");
+    console.log("[transfer-browser] cancelled upload released its session and quota");
     console.log(
       `[transfer-browser] PASS source == download SHA-256 and byte length for ${FIXTURES.map((fixture) => `${fixture.fileName} (${fixture.size} bytes)`).join(", ")}`,
     );

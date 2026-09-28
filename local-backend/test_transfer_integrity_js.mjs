@@ -118,6 +118,77 @@ const MP4_HEAD = encoder.encode("\u0000\u0000\u0000\u0018ftypisom\u0000\u0000\u0
 const EXE_HEAD = encoder.encode("MZ\u0090\u0000\u0003\u0000\u0000\u0000\u0004\u0000\u0000\u0000");
 const EXE_TAIL = encoder.encode("PE\u0000\u0000Install");
 
+function validPdf() {
+  let document = "%PDF-1.4\n";
+  const offsets = [0];
+  const stream = "0 0 m 100 100 l S\n";
+  const objects = [
+    "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+    "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+    "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>\nendobj\n",
+    `4 0 obj\n<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}endstream\nendobj\n`,
+  ];
+  for (const object of objects) {
+    offsets.push(Buffer.byteLength(document));
+    document += object;
+  }
+  const xrefOffset = Buffer.byteLength(document);
+  document += "xref\n0 5\n0000000000 65535 f \n";
+  document += offsets.slice(1).map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`).join("");
+  document += `trailer\n<< /Root 1 0 R /Size 5 >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return encoder.encode(document);
+}
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+/** A real ZIP container using stored entries, central directory and EOCD. */
+function validZip(entries) {
+  const locals = [];
+  const directory = [];
+  let offset = 0;
+  for (const entry of entries) {
+    const name = Buffer.from(entry.name, "utf8");
+    const body = Buffer.from(entry.body, "utf8");
+    const checksum = crc32(body);
+    const local = Buffer.alloc(30 + name.length);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt32LE(checksum, 14);
+    local.writeUInt32LE(body.length, 18);
+    local.writeUInt32LE(body.length, 22);
+    local.writeUInt16LE(name.length, 26);
+    name.copy(local, 30);
+    locals.push(local, body);
+    const central = Buffer.alloc(46 + name.length);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt32LE(checksum, 16);
+    central.writeUInt32LE(body.length, 20);
+    central.writeUInt32LE(body.length, 24);
+    central.writeUInt16LE(name.length, 28);
+    central.writeUInt32LE(offset, 42);
+    name.copy(central, 46);
+    directory.push(central);
+    offset += local.length + body.length;
+  }
+  const directoryBytes = Buffer.concat(directory);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(entries.length, 8);
+  end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(directoryBytes.length, 12);
+  end.writeUInt32LE(offset, 16);
+  return new Uint8Array(Buffer.concat([...locals, directoryBytes, end]));
+}
+
 const FIXTURES = Object.freeze([
   Object.freeze({
     label: "jpeg photo",
@@ -134,6 +205,38 @@ const FIXTURES = Object.freeze([
     relativePath: "images/design-draft.png",
     mimeType: "image/png",
     bytes: () => withEdges(pseudoRandom(202, 320 * 1024), PNG_HEAD, PNG_TAIL),
+  }),
+  Object.freeze({
+    label: "valid PDF with multilingual and spaced filename",
+    fileName: "测试文件 中文 日本語 2026.pdf",
+    relativePath: "documents/测试文件 中文 日本語 2026.pdf",
+    mimeType: "application/pdf",
+    bytes: validPdf,
+  }),
+  Object.freeze({
+    label: "UTF-8 text with mixed line endings and emoji",
+    fileName: "notes 😀.txt",
+    relativePath: "documents/notes 😀.txt",
+    mimeType: "text/plain",
+    bytes: () => encoder.encode("ASCII\r\n中文\n日本語\r\nemoji 😀\n".repeat(12)),
+  }),
+  Object.freeze({
+    label: "valid ZIP with punctuation in filename",
+    fileName: "archive #1 & 'notes'.zip",
+    relativePath: "archives/archive #1 & 'notes'.zip",
+    mimeType: "application/zip",
+    bytes: () => validZip([{ name: "readme.txt", body: "ZIP content survives exactly.\n".repeat(20) }]),
+  }),
+  Object.freeze({
+    label: "minimal valid DOCX container",
+    fileName: "报告 (v2).docx",
+    relativePath: "documents/报告 (v2).docx",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    bytes: () => validZip([
+      { name: "[Content_Types].xml", body: '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>' },
+      { name: "_rels/.rels", body: '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>' },
+      { name: "word/document.xml", body: '<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Hotfix fixture</w:t></w:r></w:p></w:body></w:document>' },
+    ]),
   }),
   Object.freeze({
     label: "mp4-like video (multi part)",
@@ -154,7 +257,8 @@ const FIXTURES = Object.freeze([
     fileName: "random-blob.bin",
     relativePath: "blobs/random-blob.bin",
     mimeType: "application/octet-stream",
-    bytes: () => pseudoRandom(505, 700 * 1024),
+    bytes: () => withEdges(pseudoRandom(505, 700 * 1024),
+      new Uint8Array([0x00, 0xff, 0x00]), new Uint8Array([0xff, 0x00])),
   }),
   Object.freeze({
     label: "multi-chunk binary",
@@ -238,6 +342,21 @@ try {
     const sourceBytes = fixture.bytes();
     const size = sourceBytes.byteLength;
     const sourceHash = await sha256Hex(sourceBytes);
+    if (fixture.fileName.endsWith(".pdf")) {
+      assert.ok(Buffer.from(sourceBytes.subarray(0, 5)).equals(Buffer.from("%PDF-")));
+      assert.ok(Buffer.from(sourceBytes).toString("utf8").trimEnd().endsWith("%%EOF"));
+    }
+    if (fixture.fileName.endsWith(".zip") || fixture.fileName.endsWith(".docx")) {
+      assert.equal(Buffer.from(sourceBytes).readUInt32LE(0), 0x04034b50);
+      assert.equal(Buffer.from(sourceBytes).readUInt32LE(size - 22), 0x06054b50);
+    }
+    if (fixture.fileName.endsWith(".txt")) {
+      assert.notDeepEqual([...sourceBytes.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
+      assert.ok(Buffer.from(sourceBytes).includes(Buffer.from("\r\n")));
+    }
+    if (fixture.fileName === "random-blob.bin") {
+      assert.ok(sourceBytes.includes(0x00) && sourceBytes.includes(0xff));
+    }
 
     const sessionId = await createSession(db, storage, size);
     const fileId = `file-integrity-${String(index + 1).padStart(4, "0")}`;
@@ -334,14 +453,14 @@ try {
       `${fixture.label}: Content-Type`,
     );
     const disposition = downloaded.response.headers.get("Content-Disposition") || "";
+    const asciiFallback = fixture.fileName.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
     assert.ok(
-      disposition.includes(`filename="${fixture.fileName}"`),
-      `${fixture.label}: Content-Disposition keeps the file name (${disposition})`,
+      disposition.includes(`filename="${asciiFallback}"`),
+      `${fixture.label}: Content-Disposition keeps a safe ASCII fallback (${disposition})`,
     );
-    assert.ok(
-      disposition.includes(`filename*=UTF-8''${encodeURIComponent(fixture.fileName)}`),
-      `${fixture.label}: RFC 5987 filename keeps the extension (${disposition})`,
-    );
+    const utf8Name = /filename\*=UTF-8''([^;]+)/u.exec(disposition)?.[1];
+    assert.equal(decodeURIComponent(utf8Name || ""), fixture.fileName,
+      `${fixture.label}: RFC 5987 filename keeps the exact Unicode name (${disposition})`);
     assert.equal(downloaded.response.headers.get("Accept-Ranges"), "bytes", `${fixture.label}: Accept-Ranges`);
     assert.equal(downloaded.payload.byteLength, size, `${fixture.label}: downloaded length`);
     assert.equal(await sha256Hex(downloaded.payload), sourceHash, `${fixture.label}: download SHA-256`);

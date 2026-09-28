@@ -36,6 +36,12 @@ fun destinationForRoute(route: String): AppDestination = when {
     else -> AppDestination.HOME
 }
 
+/** Only this public route may be shown by the native shell without a session. */
+fun isPublicTransferRoute(route: String): Boolean {
+    val uri = runCatching { java.net.URI(route) }.getOrNull() ?: return false
+    return uri.scheme == null && uri.rawAuthority == null && uri.rawPath == "/transfer"
+}
+
 class AppViewModel : ViewModel() {
     private val repository = AppGraph.sessionRepository
     private val webRoutePolicy = WebRoutePolicy(BuildConfig.THEWYJ_BASE_URL)
@@ -139,8 +145,9 @@ class AppViewModel : ViewModel() {
 
     fun openRoute(route: String) {
         val normalized = if (route.startsWith('/')) route else "/$route"
-        requestRoute(normalized)
-        mutableDestination.value = destinationForRoute(normalized)
+        val safeRoute = webRoutePolicy.spaRoute(webRoutePolicy.urlFor(normalized)) ?: return
+        requestRoute(safeRoute)
+        mutableDestination.value = destinationForRoute(safeRoute)
     }
 
     fun retryRestore() {

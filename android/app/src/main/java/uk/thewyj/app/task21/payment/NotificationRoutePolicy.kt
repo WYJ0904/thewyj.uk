@@ -22,14 +22,24 @@ object NotificationRoutePolicy {
         uriHost: String?,
         uriPath: String?,
         routeParam: String?,
+        uriQuery: String? = null,
+        uriFragment: String? = null,
+        uriUserInfo: String? = null,
+        uriPort: Int = -1,
     ): Target {
         val verify = verifyRecognitionId.orEmpty().trim()
         val notification = notificationRecognitionId.orEmpty().trim()
         if (verify.isNotBlank() || notification.isNotBlank()) {
             return Target.Payment(verify.ifBlank { notification }, verify = verify.isNotBlank())
         }
-        val path = when (uriScheme) {
-            "https" -> if (uriHost == "thewyj.uk") uriPath.orEmpty() else ""
+        val path = when (uriScheme?.lowercase()) {
+            "https" -> if (uriHost?.equals("thewyj.uk", ignoreCase = true) == true &&
+                uriUserInfo.isNullOrEmpty() && uriPort in setOf(-1, 443)
+            ) {
+                uriPath.orEmpty().ifBlank { "/" } +
+                    uriQuery?.let { "?$it" }.orEmpty() +
+                    uriFragment?.let { "#$it" }.orEmpty()
+            } else ""
             "thewyj" -> routeParam.orEmpty()
             else -> ""
         }

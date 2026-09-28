@@ -1,0 +1,33 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "thewyj-task22-cleanup",
+  "main": "cloudflare/task22-cleanup-worker.mjs",
+  "compatibility_date": "2026-09-25",
+  "send_metrics": false,
+  "vars": { "WYJ_ENVIRONMENT": "development" },
+  "triggers": { "crons": [] },
+  "env": {
+    "preview": {
+      "name": "thewyj-task22-cleanup-preview",
+      "vars": { "WYJ_ENVIRONMENT": "preview" },
+      "triggers": { "crons": ["23 * * * *"] },
+      "d1_databases": [
+        { "binding": "WYJ_DB", "database_name": "wyj-cloud-preview", "database_id": "a3e6253b-689f-49f3-998b-7c5828ea255a" }
+      ],
+      "r2_buckets": [
+        { "binding": "WYJ_STORAGE", "bucket_name": "wyj-cloud-preview" }
+      ]
+    },
+    "production": {
+      "name": "thewyj-task22-cleanup-production",
+      "vars": { "WYJ_ENVIRONMENT": "production" },
+      "triggers": { "crons": ["43 * * * *"] },
+      "d1_databases": [
+        { "binding": "WYJ_DB", "database_name": "wyj-cloud-production", "database_id": "11c288d8-c584-409f-bb1f-7e7af11793e5" }
+      ],
+      "r2_buckets": [
+        { "binding": "WYJ_STORAGE", "bucket_name": "wyj-cloud-production" }
+      ]
+    }
+  }
+}

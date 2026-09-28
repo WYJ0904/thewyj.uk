@@ -66,7 +66,9 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="thewyj.uk" />
+                <!-- Public share links remain browser-first; this exact path is
+                     offered only when the user explicitly selects the app. -->
+                <data android:scheme="https" android:host="thewyj.uk" android:path="/transfer" />
             </intent-filter>
         </activity>
         <service

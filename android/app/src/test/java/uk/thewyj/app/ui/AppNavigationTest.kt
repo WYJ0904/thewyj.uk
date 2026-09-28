@@ -17,4 +17,14 @@ class AppNavigationTest {
         assertEquals(AppDestination.HOME, destinationForRoute("/recharge"))
         assertEquals(AppDestination.HOME, destinationForRoute("/admin"))
     }
+
+    @Test
+    fun onlyTheTransferDocumentMayBypassNativeLoginForRecipients() {
+        assertEquals(true, isPublicTransferRoute("/transfer"))
+        assertEquals(true, isPublicTransferRoute("/transfer?foo=bar#share=abc"))
+        for (route in listOf("/finance", "/account", "/admin", "/transfer-extra", "//evil/transfer",
+            "https://thewyj.uk/transfer", "/api/transfer/shares")) {
+            assertEquals(false, isPublicTransferRoute(route))
+        }
+    }
 }

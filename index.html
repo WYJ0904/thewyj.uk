@@ -494,6 +494,11 @@
         </section>
         <div class="transfer-queue" id="transferQueue" aria-live="polite"></div>
 
+        <section class="transfer-my-shares" aria-labelledby="transferUnfinishedTitle">
+          <div class="transfer-section-heading"><div><h2 id="transferUnfinishedTitle">未完成上传</h2><p>服务器仍保留的上传任务在这里显示；不再需要时可释放预留配额。</p></div></div>
+          <div id="transferUnfinishedSessions" aria-live="polite"></div>
+        </section>
+
         <section class="transfer-share-card hidden" id="transferShareCard" aria-labelledby="transferShareTitle">
           <div class="transfer-section-heading">
             <div><h2 id="transferShareTitle">分享已创建</h2><p>复制链接或扫码，下载次数与有效期由服务端强制执行。</p></div>
@@ -507,7 +512,7 @@
         </section>
 
         <section class="transfer-my-shares" aria-labelledby="transferMySharesTitle">
-          <div class="transfer-section-heading"><div><h2 id="transferMySharesTitle">我的分享</h2><p>撤销后服务端立即删除私有文件。</p></div></div>
+          <div class="transfer-section-heading"><div><h2 id="transferMySharesTitle">我的分享</h2><p>撤销后分享立即失效，私有文件由清理任务回收。</p></div></div>
           <div id="transferMyShares"></div>
         </section>
         <p class="meta-line" id="transferMessage" aria-live="polite"></p>

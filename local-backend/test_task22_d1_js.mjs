@@ -7,6 +7,7 @@ import { Miniflare } from "miniflare";
 
 import { handleTask14Request } from "../functions/_lib/task14-api.mjs";
 import { handleTask22Request } from "../functions/_lib/task22-api.mjs";
+import { cleanupExpiredTransfers, task22Counts } from "../functions/_lib/task22-service.mjs";
 import { sessionStorageKey } from "../functions/_lib/task12-crypto.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
@@ -214,6 +215,94 @@ try {
   assert.equal(Number(expiredRows.count), 0, "expired session parts must be released");
   const expiredObjects = await storage.list({ prefix: "transfers/v2/preview/objects/expired-part-000001" });
   assert.equal((expiredObjects.objects || []).length, 0, "expired session objects must be aborted");
+  await db.prepare(`INSERT INTO task22_share_files (
+    share_id, file_id, relative_path, file_name, mime_type, size_bytes,
+    part_size, part_count, sha256_hex, preview_policy, object_key)
+    SELECT ?1, id, relative_path, file_name, mime_type, size_bytes,
+      part_size, part_count, sha256_hex, preview_policy, object_key
+    FROM task22_upload_files WHERE id = ?2`)
+    .bind("orphan-share-metadata-0001", expiredFileId).run();
+
+  // A transient R2 failure releases the quota reservation in D1, retains part
+  // evidence, and gives the scheduled cleanup a durable retry target.
+  const retrySession = await createSession(db, storage, { token: USERS.owner.token, totalBytes: 32 });
+  const retryFileId = "retry-cleanup-file-0001";
+  await allocateFile(db, storage, retrySession, {
+    token: USERS.owner.token, fileId: retryFileId, relativePath: "retry.bin",
+    fileName: "retry.bin", mimeType: "application/octet-stream", sizeBytes: 32,
+  });
+  await putPart(db, storage, retrySession, retryFileId, 1, 32, 17, { token: USERS.owner.token });
+  const unfinished = await request(db, storage, "/api/transfer/uploads", { token: USERS.owner.token });
+  assert.equal(unfinished.response.status, 200);
+  assert.equal(unfinished.payload.uploads.find((row) => row.id === retrySession)?.total_bytes, 32);
+  await db.prepare("UPDATE task22_upload_sessions SET expires_at = '2000-01-01T00:00:00Z' WHERE id = ?1")
+    .bind(retrySession).run();
+  const beforeCleanupCounts = await task22Counts(db);
+  assert.ok(beforeCleanupCounts.expired_reserved_bytes >= 32);
+  const failingStorage = {
+    get: (...args) => storage.get(...args),
+    put: (...args) => storage.put(...args),
+    delete: async () => { throw new Error("temporary R2 delete failure"); },
+    resumeMultipartUpload: () => ({ abort: async () => { throw new Error("temporary R2 abort failure"); } }),
+  };
+  const deferredCleanup = await cleanupExpiredTransfers(db, failingStorage,
+    { limit: 10, scanOrphans: false, environment: "preview" });
+  assert.equal(deferredCleanup.sessions_removed, 1);
+  assert.equal(deferredCleanup.sessions_cleanup_pending, 1);
+  assert.equal(deferredCleanup.orphan_share_files_removed, 1);
+  const waiting = await db.prepare(`SELECT state, cleanup_state, cleanup_attempts, cleanup_retry_at
+    FROM task22_upload_sessions WHERE id = ?1`).bind(retrySession).first();
+  assert.equal(waiting.state, "expired");
+  assert.equal(waiting.cleanup_state, "pending");
+  assert.equal(Number(waiting.cleanup_attempts), 1);
+  assert.ok(waiting.cleanup_retry_at);
+  const waitingParts = await db.prepare("SELECT COUNT(*) AS count FROM task22_upload_parts WHERE session_id = ?1")
+    .bind(retrySession).first();
+  assert.equal(Number(waitingParts.count), 1, "failed cleanup keeps retry evidence");
+  const ownerQuota = await request(db, storage, "/api/transfer/capabilities", { token: USERS.owner.token });
+  assert.equal(ownerQuota.payload.reserved_bytes, 0, "expired reservation is not user-visible usage");
+  assert.equal(ownerQuota.payload.used_bytes,
+    ownerQuota.payload.stored_bytes + ownerQuota.payload.reserved_bytes);
+  const counts = await task22Counts(db);
+  assert.equal(counts.active_bytes, counts.used_bytes);
+  assert.equal(counts.expired_reserved_bytes, 0);
+  await db.prepare("UPDATE task22_upload_sessions SET cleanup_retry_at = '' WHERE id = ?1")
+    .bind(retrySession).run();
+  const recoveredCleanup = await cleanupExpiredTransfers(db, storage,
+    { limit: 10, scanOrphans: false, environment: "preview" });
+  assert.ok(recoveredCleanup.sessions_retried >= 1);
+  const settled = await db.prepare(`SELECT cleanup_state FROM task22_upload_sessions WHERE id = ?1`)
+    .bind(retrySession).first();
+  assert.equal(settled.cleanup_state, "complete");
+  const settledParts = await db.prepare("SELECT COUNT(*) AS count FROM task22_upload_parts WHERE session_id = ?1")
+    .bind(retrySession).first();
+  assert.equal(Number(settledParts.count), 0);
+  const afterRetry = await request(db, storage, "/api/transfer/uploads", { token: USERS.owner.token });
+  assert.equal(afterRetry.payload.uploads.some((row) => row.id === retrySession), false);
+
+  // An object under a still-valid paused upload is not orphaned merely because
+  // no share has been published yet. An unreferenced old object is removable.
+  const pausedSession = await createSession(db, storage, { token: USERS.owner.token, totalBytes: 64 });
+  const pausedFileId = "paused-cleanup-file-0001";
+  await allocateFile(db, storage, pausedSession, {
+    token: USERS.owner.token, fileId: pausedFileId, relativePath: "paused.bin",
+    fileName: "paused.bin", mimeType: "application/octet-stream", sizeBytes: 64,
+  });
+  const pausedObjectKey = `transfers/v2/preview/objects/${pausedFileId}/file`;
+  const orphanObjectKey = "transfers/v2/preview/objects/unlinked-old-file-0001/file";
+  const deletedKeys = [];
+  const oldUploaded = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+  const scanningStorage = {
+    list: async ({ prefix }) => ({
+      objects: prefix.endsWith("/objects/")
+        ? [pausedObjectKey, orphanObjectKey].map((key) => ({ key, uploaded: oldUploaded })) : [],
+      truncated: false,
+    }),
+    delete: async (key) => { deletedKeys.push(key); },
+  };
+  await cleanupExpiredTransfers(db, scanningStorage,
+    { limit: 10, scanOrphans: true, environment: "preview" });
+  assert.deepEqual(deletedKeys, [orphanObjectKey], "orphan scan retains valid paused uploads");
 
   for (const [fileCount, totalBytes] of [[2, 16], [1, 17]]) {
     const incompleteSession = await createSession(db, storage, { token: USERS.other.token, fileCount, totalBytes });

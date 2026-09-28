@@ -4160,6 +4160,10 @@ async function renderCurrentRoute(path, generation = routeGeneration) {
       return;
     }
     if (!state.session || !state.account) {
+      if (path === "/transfer") {
+        await showTransfer(false, generation);
+        return;
+      }
       if (isThewyjAndroidApp()) {
         showSessionRecovery(pendingAuthMessage || "连接暂时不可用，设备会话已保留。请重试。");
         return;
@@ -4178,10 +4182,6 @@ async function renderCurrentRoute(path, generation = routeGeneration) {
       }
       if (path === "/download") {
         showDownload(false);
-        return;
-      }
-      if (path === "/transfer") {
-        showTransfer(false);
         return;
       }
       const register = path === "/register";
@@ -7165,12 +7165,19 @@ async function boot() {
       await refreshBackendState();
       await routeCurrent();
     }));
-  const backendPromise = initialPath.startsWith("/share/") ? Promise.resolve() : refreshBackendState();
+  const backendPromise = initialPath.startsWith("/share/") || initialPath === "/transfer"
+    ? Promise.resolve() : refreshBackendState();
   await runSplashSequence(() => {
     $("appShell").classList.remove("app-shell-pending");
     $("appShell").classList.add("app-shell-ready");
     $("appShell").setAttribute("aria-hidden", "false");
     if (initialPath.startsWith("/share/") && showShareRoute(initialPath)) return;
+    if (initialPath === "/transfer") {
+      hidePrimaryScreens();
+      $("transferPage")?.classList.remove("hidden");
+      $("transferPage")?.setAttribute("aria-hidden", "false");
+      return;
+    }
     if (state.session) {
       showSessionRecovery();
       return;

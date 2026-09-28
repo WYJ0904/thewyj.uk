@@ -185,6 +185,10 @@ export function transferQueueStorageKey(owner) {
   return `wyjTransferQueue:v2:${safe}`;
 }
 
+export function transferCleanupStorageKey(owner) {
+  return transferQueueStorageKey(owner).replace("wyjTransferQueue:", "wyjTransferCleanup:");
+}
+
 /**
  * A stored queue may only replace the in-memory queue when the owner really
  * changed. Re-reading storage for the *same* owner (the transfer page being
@@ -369,9 +373,16 @@ export function createTransferController({
   let queueOwner = "";
   let activeSession = null;
   let currentShare = null;
+  let shareRequestGeneration = 0;
+  let serverSessions = [];
   let running = false;
+  let rerunRequested = false;
   let sessionOpening = null;
-  let capabilities = { storage_limit_bytes: 500 * 1024 * 1024, used_bytes: 0 };
+  let cleanupOwner = "";
+  let cleanupPending = new Set();
+  let cleanupInFlight = null;
+  let capabilities = { storage_limit_bytes: 500 * 1024 * 1024,
+    stored_bytes: 0, reserved_bytes: 0, used_bytes: 0 };
 
   const element = (id) => document.getElementById(id);
   const authenticated = () => Boolean(account()?.id);
@@ -420,6 +431,27 @@ export function createTransferController({
     storage.setItem(transferQueueStorageKey(value.account), JSON.stringify(serializable));
   }
 
+  function currentOwner() {
+    return authenticated() ? String(account().id) : `guest:${guestId()}`;
+  }
+
+  function restoreCleanupQueue() {
+    const owner = currentOwner();
+    if (cleanupOwner === owner) return;
+    cleanupOwner = owner;
+    try {
+      const saved = JSON.parse(storage.getItem(transferCleanupStorageKey(owner)) || "[]");
+      cleanupPending = new Set(Array.isArray(saved)
+        ? saved.filter((id) => /^[A-Za-z0-9_-]{16,80}$/.test(id)).slice(0, 200) : []);
+    } catch (_) {
+      cleanupPending = new Set();
+    }
+  }
+
+  function persistCleanupQueue() {
+    storage.setItem(transferCleanupStorageKey(cleanupOwner), JSON.stringify([...cleanupPending]));
+  }
+
   function restoreQueue() {
     try {
       const owner = authenticated() ? String(account().id) : `guest:${guestId()}`;
@@ -433,6 +465,7 @@ export function createTransferController({
         try { item.controller?.abort?.(); } catch (_) { /* controller already settled */ }
       }
       queueOwner = owner;
+      activeSession = null;
       let saved = JSON.parse(storage.getItem(transferQueueStorageKey(owner)) || "{}");
       // One-time import of the pre-account-scoping payload, only when it really
       // belongs to this owner (multi-account isolation: another account's queue
@@ -451,9 +484,15 @@ export function createTransferController({
 
 
   function renderQuota() {
-    const used = capabilities.used_bytes || 0;
+    const hasBreakdown = capabilities.stored_bytes !== undefined &&
+      capabilities.reserved_bytes !== undefined;
+    const stored = Number(capabilities.stored_bytes || 0);
+    const reserved = Number(capabilities.reserved_bytes || 0);
+    const used = Number(capabilities.used_bytes ?? (stored + reserved));
     const limit = capabilities.storage_limit_bytes || 0;
-    element("transferQuotaText").textContent = `已用 ${formatBytes(used)} / ${formatBytes(limit)}`;
+    element("transferQuotaText").textContent = hasBreakdown
+      ? `已存储 ${formatBytes(stored)} · 上传预留 ${formatBytes(reserved)} · 总计 ${formatBytes(used)} / ${formatBytes(limit)}`
+      : `已用 ${formatBytes(used)} / ${formatBytes(limit)}`;
     const progress = element("transferQuotaBar");
     if (progress) progress.max = String(Math.max(1, limit));
     if (progress) progress.value = String(Math.min(limit, used));
@@ -571,16 +610,32 @@ export function createTransferController({
       if (settled.reuse && activeSession) return activeSession;
     }
     const previous = activeSession;
-    const body = {
-      minutes: Number(element("transferExpiry")?.value || DEFAULT_EXPIRY_MINUTES),
-      max_downloads: Number(element("transferMaxDownloads")?.value || 5),
-      one_time: Boolean(element("transferOneTime")?.checked),
-      password: String(element("transferPassword")?.value || ""),
-      file_count: Math.max(plan.fileCount, 1),
-      total_bytes: plan.totalBytes,
-    };
-    if (!authenticated()) body.guest_id = guestId();
-    sessionOpening = request("/api/transfer/uploads", { method: "POST", body });
+    let openedPlan = plan;
+    let openingIds = [];
+    sessionOpening = (async () => {
+      if (previous?.id) {
+        if (!await abortSession(previous.id)) {
+          throw new Error("旧上传任务尚未释放，请联网后重试。");
+        }
+        resetQueueForStaleSession(queue, previous.id);
+        if (activeSession?.id === previous.id) activeSession = null;
+        persistQueue();
+        renderQueue();
+      }
+      openedPlan = sessionPlan(queue, null);
+      if (!openedPlan.fileCount) throw new Error("当前上传队列为空。");
+      openingIds = sessionBatchIds(queue);
+      const body = {
+        minutes: Number(element("transferExpiry")?.value || DEFAULT_EXPIRY_MINUTES),
+        max_downloads: Number(element("transferMaxDownloads")?.value || 5),
+        one_time: Boolean(element("transferOneTime")?.checked),
+        password: String(element("transferPassword")?.value || ""),
+        file_count: openedPlan.fileCount,
+        total_bytes: openedPlan.totalBytes,
+      };
+      if (!authenticated()) body.guest_id = guestId();
+      return await request("/api/transfer/uploads", { method: "POST", body });
+    })();
     let payload;
     try {
       payload = await sessionOpening;
@@ -588,11 +643,15 @@ export function createTransferController({
       sessionOpening = null;
     }
     const batchIds = sessionBatchIds(queue);
+    if (batchIds.length !== openingIds.length || batchIds.some((id, index) => id !== openingIds[index])) {
+      await abortSession(payload.upload.id);
+      throw new Error("上传列表在创建任务时变化，已释放旧任务；请继续上传。");
+    }
     activeSession = {
       id: payload.upload.id,
       expiresAt: payload.upload.expires_at,
-      fileCount: Math.max(plan.fileCount, 1),
-      totalBytes: plan.totalBytes,
+      fileCount: openedPlan.fileCount,
+      totalBytes: openedPlan.totalBytes,
       batchIds,
     };
     for (const item of queue) {
@@ -614,23 +673,55 @@ export function createTransferController({
     }
     persistQueue();
     renderQueue();
-    if (previous?.id && previous.id !== activeSession.id) void abortSession(previous.id);
+    void Promise.all([loadCapabilities(), loadUnfinishedSessions()]);
     if (plan.reason === "file-count-grew" || plan.reason === "size-changed") {
       setMessage("已按当前文件列表重新创建上传任务，正在重新上传。");
     }
     return activeSession;
   }
 
-  /** Best-effort cleanup so a superseded batch cannot linger on the server. */
+  /** Persist failed aborts; the server cron is the backstop when this page is gone. */
   async function abortSession(sessionId) {
+    if (!sessionId) return true;
+    restoreCleanupQueue();
+    cleanupPending.add(sessionId);
+    persistCleanupQueue();
     try {
       const body = {};
       if (!authenticated()) body.guest_id = guestId();
       await request(`/api/transfer/uploads/${sessionId}/abort`, { method: "POST", body });
-    } catch (_) {
-      // The server also expires abandoned sessions; a failed abort must never
-      // block the new batch.
+      cleanupPending.delete(sessionId);
+      persistCleanupQueue();
+      return true;
+    } catch (error) {
+      if (error?.code === "transfer_session_not_found") {
+        cleanupPending.delete(sessionId);
+        persistCleanupQueue();
+        return true;
+      }
+      return false;
     }
+  }
+
+  async function retryCleanupPending() {
+    restoreCleanupQueue();
+    if (!cleanupPending.size) return;
+    if (cleanupInFlight) return cleanupInFlight;
+    cleanupInFlight = (async () => {
+      for (const sessionId of [...cleanupPending].slice(0, 20)) {
+        if (!await abortSession(sessionId)) continue;
+        const affected = queue.filter((item) => item.sessionId === sessionId);
+        if (resetQueueForStaleSession(queue, sessionId)) {
+          if (activeSession?.id === sessionId) activeSession = null;
+          for (const item of affected) item.paused = true;
+          persistQueue();
+          renderQueue();
+          setMessage("旧上传任务已释放；可继续上传保留的文件。", "success");
+        }
+      }
+      await loadCapabilities();
+    })();
+    try { await cleanupInFlight; } finally { cleanupInFlight = null; }
   }
 
   /** SHA-256 of exactly one part's bytes; the pipeline runs this ahead of the PUT. */
@@ -845,7 +936,10 @@ export function createTransferController({
   }
 
   async function run() {
-    if (running) return;
+    if (running) {
+      rerunRequested = true;
+      return;
+    }
     running = true;
     try {
       // A session switch (a file was appended after an upload) resets the files
@@ -875,6 +969,10 @@ export function createTransferController({
       }
     } finally {
       running = false;
+      if (rerunRequested) {
+        rerunRequested = false;
+        void run();
+      }
     }
   }
 
@@ -1110,12 +1208,34 @@ export function createTransferController({
   }
 
   async function openShare(shareId) {
+    const generation = ++shareRequestGeneration;
     try {
       const payload = await request(`/api/transfer/shares/${shareId}`);
+      if (generation !== shareRequestGeneration) return;
+      currentShare = payload.share;
       renderShare(payload.share);
     } catch (error) {
+      if (generation !== shareRequestGeneration) return;
       setMessage(error.message || "分享不存在或已过期。", "error");
     }
+  }
+
+  function recipientShareId() {
+    if (!location.hash.startsWith("#share=")) return null;
+    try {
+      const id = decodeURIComponent(location.hash.slice(7));
+      return /^[A-Za-z0-9_-]{16,80}$/.test(id) ? id : "";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function clearShare() {
+    shareRequestGeneration += 1;
+    currentShare = null;
+    element("transferShareCard")?.classList.add("hidden");
+    if (element("transferShareFiles")) element("transferShareFiles").innerHTML = "";
+    if (element("transferShareLink")) element("transferShareLink").value = "";
   }
 
   async function revokeShare(shareId) {
@@ -1124,22 +1244,90 @@ export function createTransferController({
       if (!authenticated()) body.guest_id = guestId();
       await request(`/api/transfer/shares/${shareId}/revoke`, { method: "POST", body });
       setMessage("分享已撤销。", "success");
-      await loadMyShares();
+      await Promise.all([loadMyShares(), loadCapabilities()]);
     } catch (error) {
       setMessage(error.message || "撤销失败。", "error");
     }
   }
 
-  function cancelItem(id) {
+  function renderUnfinishedSessions() {
+    const list = element("transferUnfinishedSessions");
+    if (!list) return;
+    if (!serverSessions.length) {
+      list.innerHTML = '<div class="transfer-empty">没有未完成的云端上传任务。</div>';
+      return;
+    }
+    list.innerHTML = serverSessions.map((session) => `<article class="transfer-share-row">
+      <div><strong>${Number(session.file_count)} 个文件 · 预留 ${formatBytes(session.total_bytes)}</strong>
+      <small>已上传 ${formatBytes(session.uploaded_bytes)} · ${escapeHtml(new Date(session.created_at).toLocaleString("zh-CN"))} 创建 · ${escapeHtml(new Date(session.expires_at).toLocaleString("zh-CN"))} 到期${session.id === activeSession?.id ? " · 当前队列" : ""}</small></div>
+      <div class="transfer-share-actions"><button class="danger-text" type="button"
+        data-transfer-release-session="${escapeHtml(session.id)}">释放预留</button></div>
+    </article>`).join("");
+  }
+
+  async function loadUnfinishedSessions() {
+    try {
+      const query = authenticated() ? "" : `?guest_id=${encodeURIComponent(guestId())}`;
+      const payload = await request(`/api/transfer/uploads${query}`);
+      serverSessions = Array.isArray(payload.uploads) ? payload.uploads : [];
+      renderUnfinishedSessions();
+    } catch (error) {
+      const list = element("transferUnfinishedSessions");
+      if (list) list.innerHTML = `<div class="transfer-empty">未完成上传暂时无法读取：${escapeHtml(error.message || "请稍后重试")}</div>`;
+    }
+  }
+
+  async function releaseServerSession(sessionId) {
+    const affected = queue.filter((item) => item.sessionId === sessionId);
+    for (const item of affected) {
+      item.controllers?.forEach((controller) => controller.abort());
+      item.controllers?.clear();
+      item.paused = true;
+    }
+    const released = await abortSession(sessionId);
+    if (released) {
+      resetQueueForStaleSession(queue, sessionId);
+      if (activeSession?.id === sessionId) activeSession = null;
+      persistQueue();
+      renderQueue();
+      setMessage("云端上传预留已释放；本机文件仍可重新选择继续。", "success");
+    } else {
+      setMessage("释放请求暂未成功，已保留并将在联网后重试。", "warning");
+    }
+    await Promise.all([loadCapabilities(), loadUnfinishedSessions()]);
+  }
+
+  async function cancelItem(id) {
     const item = itemById(id);
     if (!item) return;
+    const sessionId = String(item.sessionId || "");
+    const survivors = sessionId
+      ? queue.filter((entry) => entry.id !== id && entry.sessionId === sessionId) : [];
+    const priorPause = new Map(survivors.map((entry) => [entry.id, entry.paused]));
+    for (const entry of [item, ...survivors]) {
+      entry.controllers?.forEach((controller) => controller.abort());
+      entry.controllers?.clear();
+      entry.paused = true;
+    }
     item.status = "cancelled";
-    item.controllers?.forEach((controller) => controller.abort());
-    item.controllers?.clear();
     item.controller = null;
     queue = queue.filter((entry) => entry.id !== id);
     persistQueue();
     renderQueue();
+    if (sessionId) {
+      if (!await abortSession(sessionId)) {
+        setMessage("取消已保存，云端预留释放失败；联网后会重试，剩余文件暂不上传。", "warning");
+        await Promise.all([loadCapabilities(), loadUnfinishedSessions()]);
+        return;
+      }
+      resetQueueForStaleSession(queue, sessionId);
+      if (activeSession?.id === sessionId) activeSession = null;
+      for (const entry of survivors) entry.paused = priorPause.get(entry.id);
+      persistQueue();
+      renderQueue();
+    }
+    await Promise.all([loadCapabilities(), loadUnfinishedSessions()]);
+    if (survivors.some((entry) => entry.file && !entry.paused)) void run();
   }
 
   function pauseItem(id) {
@@ -1182,7 +1370,11 @@ export function createTransferController({
     else if (button.dataset.transferPause) pauseItem(button.dataset.transferPause);
     else if (button.dataset.transferResume) resumeItem(button.dataset.transferResume);
     else if (button.dataset.transferRetry) resumeItem(button.dataset.transferRetry);
-    else if (button.dataset.transferCancel) cancelItem(button.dataset.transferCancel);
+    else if (button.dataset.transferCancel) void cancelItem(button.dataset.transferCancel);
+    else if (button.dataset.transferReleaseSession) {
+      void withInteractionFeedback(button, "transfer-release-session",
+        () => releaseServerSession(button.dataset.transferReleaseSession)).catch(() => undefined);
+    }
     else if (button.dataset.transferDownload) {
       const [shareId, fileId] = button.dataset.transferDownload.split("|");
       void withInteractionFeedback(
@@ -1239,7 +1431,7 @@ export function createTransferController({
       capabilities = payload;
       renderQuota();
     } catch (_) {
-      capabilities = { storage_limit_bytes: 0, used_bytes: 0 };
+      capabilities = { storage_limit_bytes: 0, stored_bytes: 0, reserved_bytes: 0, used_bytes: 0 };
     }
   }
 
@@ -1258,16 +1450,32 @@ export function createTransferController({
       event.target.value = "";
     });
     document.addEventListener("paste", handlePaste);
+    window.addEventListener("online", () => {
+      void retryCleanupPending();
+      void loadUnfinishedSessions();
+    });
+    window.addEventListener("hashchange", () => {
+      if (location.pathname === "/transfer") void show();
+    });
   }
 
   async function show() {
     initialize();
     restoreQueue();
+    restoreCleanupQueue();
+    void retryCleanupPending();
     renderQueue();
-    await Promise.all([loadCapabilities(), loadMyShares(), refreshQueueState()]);
-    const hash = location.hash;
-    const shareMatch = /^#share=(.+)$/.exec(hash);
-    if (shareMatch) void openShare(decodeURIComponent(shareMatch[1]));
+    const recipient = recipientShareId();
+    if (recipient !== null) {
+      if (currentShare?.id !== recipient) clearShare();
+      if (!recipient) {
+        setMessage("分享链接无效。", "error");
+        return true;
+      }
+      await openShare(recipient);
+      return true;
+    }
+    await Promise.all([loadCapabilities(), loadMyShares(), loadUnfinishedSessions(), refreshQueueState()]);
     return true;
   }
 
@@ -1277,8 +1485,9 @@ export function createTransferController({
 
   function accountUpdated() {
     restoreQueue();
+    restoreCleanupQueue();
     renderQueue();
-    void loadCapabilities();
+    void Promise.all([loadCapabilities(), loadUnfinishedSessions(), retryCleanupPending()]);
   }
 
   return Object.freeze({ show, hide, accountUpdated, addFiles, renderQueue });
