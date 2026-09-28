@@ -480,6 +480,15 @@ async function main() {
     }
     assert.equal(quota.data?.reserved_bytes, 0, "batch replacement and final cancel leave no reservation");
     console.log("[transfer-browser] two-file deletion rebuilt the survivor without ghost quota");
+    const revoked = await api(`/api/transfer/shares/${shareId}/revoke`, {}, session);
+    assert.equal(revoked.status, 200, JSON.stringify(revoked.data));
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      quota = await api("/api/transfer/capabilities", null, session);
+      if (quota.data?.stored_bytes === 0 && quota.data?.reserved_bytes === 0) break;
+      await delay(200);
+    }
+    assert.equal(quota.data?.used_bytes, 0, "synthetic share revoke releases all test quota");
+    console.log("[transfer-browser] synthetic share revoked and quota returned to zero");
     console.log(
       `[transfer-browser] PASS source == download SHA-256 and byte length for ${FIXTURES.map((fixture) => `${fixture.fileName} (${fixture.size} bytes)`).join(", ")}`,
     );
