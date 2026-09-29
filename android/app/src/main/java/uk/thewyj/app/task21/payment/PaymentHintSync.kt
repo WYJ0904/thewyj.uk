@@ -717,7 +717,10 @@ class PaymentHintSync(
                         ?.providerReference?.takeIf(String::isNotBlank) }.getOrNull()
                 }.distinct()
                 val times = group.map { it.optLong("occurred_at_ms") }
-                if (amounts.size != 1 || group.none { it.optLong("amount_minor") <= 0L } ||
+                // The archived notification instance proves continuity even
+                // when both revisions lack an amount. Never use a nearby time
+                // or matching money shape to join different instances.
+                if (amounts.size > 1 || group.none { it.optLong("amount_minor") <= 0L } ||
                     directions.size > 1 || references.size > 1 ||
                     group.map { it.optString("source_package") }.distinct().size != 1 ||
                     times.any { it <= 0L } ||

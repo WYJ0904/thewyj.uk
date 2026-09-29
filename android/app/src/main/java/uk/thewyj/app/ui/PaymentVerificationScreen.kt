@@ -335,7 +335,7 @@ private fun amountLine(item: PaymentVerificationCenter.Item): String {
 }
 
 private fun sourceLine(item: PaymentVerificationCenter.Item): String {
-    val time = if (item.occurredAtMs > 0L) java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.CHINA)
+    val time = if (item.occurredAtMs > 0L) java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.CHINA)
         .format(java.util.Date(item.occurredAtMs)) else "时间待核对"
     val merchant = item.merchant.ifBlank { "未识别商户" }
     val edited = if (item.hasEdits) " · 已人工修正" else ""

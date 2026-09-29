@@ -662,6 +662,50 @@ class PaymentHintSyncCrossClientTest {
             .getString("lifecycle_identity") == "c".repeat(64) })
     }
 
+    @Test fun twoAmountlessUpdatesMergeOnlyWhenTheirArchivedInstanceMatches() {
+        val posted = mutableListOf<JSONObject>()
+        val firstSummary = """{"ok":true,"total_count":3,"truncated":false,"records":[
+          {"kind":"hint","id":"hint-empty-a","event_id":"evt-empty-a","event_ids":["evt-empty-a"],"device_id":"device-a","state":"pending","source_package":"com.eg.android.AlipayGphone","app_label":"支付宝","amount_minor":null,"direction":null,"merchant":"","occurred_at_ms":1789000000000,"confidence":600},
+          {"kind":"hint","id":"hint-empty-b","event_id":"evt-empty-b","event_ids":["evt-empty-b"],"device_id":"device-a","state":"pending","source_package":"com.eg.android.AlipayGphone","app_label":"支付宝","amount_minor":null,"direction":null,"merchant":"","occurred_at_ms":1789000002000,"confidence":600},
+          {"kind":"hint","id":"hint-empty-c","event_id":"evt-empty-c","event_ids":["evt-empty-c"],"device_id":"device-a","state":"pending","source_package":"com.eg.android.AlipayGphone","app_label":"支付宝","amount_minor":null,"direction":null,"merchant":"","occurred_at_ms":1789000003000,"confidence":600}]}"""
+        val repairedSummary = """{"ok":true,"total_count":2,"truncated":false,"records":[
+          {"kind":"hint","id":"hint-empty-a","event_id":"evt-empty-a","event_ids":["evt-empty-a","evt-empty-b"],"device_id":"device-a","state":"pending","source_package":"com.eg.android.AlipayGphone","app_label":"支付宝","amount_minor":null,"direction":null,"merchant":"","occurred_at_ms":1789000000000,"confidence":600},
+          {"kind":"hint","id":"hint-empty-c","event_id":"evt-empty-c","event_ids":["evt-empty-c"],"device_id":"device-a","state":"pending","source_package":"com.eg.android.AlipayGphone","app_label":"支付宝","amount_minor":null,"direction":null,"merchant":"","occurred_at_ms":1789000003000,"confidence":600}]}"""
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String): IngestResponse {
+                assertEquals("/api/notification/hints", path)
+                posted += JSONObject(body)
+                return IngestResponse(true, 200, "{}")
+            }
+            override fun get(path: String, sessionToken: String): IngestResponse = when {
+                path.startsWith("/api/notification/pending-summary") ->
+                    IngestResponse(true, 200, if (posted.size >= 2) repairedSummary else firstSummary)
+                path.startsWith("/api/notification/hints") -> IngestResponse(true, 200, """{"hints":[]}""")
+                else -> IngestResponse(true, 200, """{"candidates":[]}""")
+            }
+        }
+        val archive = object : NotificationArchiveSink {
+            override fun store(accountId: String, input: NotificationCaptureInput,
+                parsed: StructuredNotificationEvent?): Boolean = false
+            override fun markRemoved(accountId: String, input: NotificationCaptureInput) = Unit
+            override fun archivedLifecycleIdentity(accountId: String, structuredEventId: String): String =
+                if (structuredEventId in setOf("evt-empty-a", "evt-empty-b")) "a".repeat(64) else "b".repeat(64)
+        }
+        val result = PaymentHintSync(RuntimeEnvironment.getApplication(),
+            hintedTransport = transport, hintedStore = paymentStore, archiveSink = archive,
+            accountOverride = { NotificationCaptureCoordinator.CaptureAccount(
+                accountId = account, deviceId = "device-a", sessionToken = "token-a", financeEntitled = true,
+            ) }).sync()
+        assertTrue(result.completeObservation)
+        assertEquals(2, result.pendingCount)
+        assertEquals(listOf("hint:hint-empty-a", "hint:hint-empty-c"),
+            result.pendingRecords.map { it.canonicalId })
+        assertEquals(setOf("evt-empty-a", "evt-empty-b"),
+            posted.map { it.getJSONArray("hints").getJSONObject(0).getString("source_event_id") }.toSet())
+        assertTrue(posted.all { it.getJSONArray("hints").getJSONObject(0)
+            .getString("lifecycle_identity") == "a".repeat(64) })
+    }
+
     @Test fun firstSuccessfulSummaryRetainsCanonicalPendingRecordsForFallback() {
         val result = syncWithExactSummary("evt-summary-pending", "pending", "")
         assertTrue(result.completeObservation)
