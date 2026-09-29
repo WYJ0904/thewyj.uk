@@ -1,4 +1,4 @@
-import { randomId } from "../core/capabilities.js?v=20260928-transfer-hotfix-r1";
+import { randomId } from "../core/capabilities.js?v=20260929-transfer-hotfix-r2";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -6,7 +6,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20260928-transfer-hotfix-r1";
+} from "../core/perf.js?v=20260929-transfer-hotfix-r2";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);

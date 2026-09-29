@@ -213,6 +213,23 @@ private fun createWebView(
     }
     CookieManager.getInstance().setAcceptCookie(true)
     CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
+    val downloadView = this
+    val transferDownloader = TransferShareDownloader(context.applicationContext) { status ->
+        val detail = JSONObject()
+            .put("state", status.state)
+            .put("bytes", status.bytes)
+            .put("total", status.total)
+            .put("message", status.message)
+            .toString()
+        downloadView.post {
+            runCatching {
+                downloadView.evaluateJavascript(
+                    "window.dispatchEvent(new CustomEvent('thewyj:transfer-download', { detail: $detail }))",
+                    null,
+                )
+            }
+        }
+    }
     webChromeClient = object : WebChromeClient() {
         override fun onConsoleMessage(message: ConsoleMessage): Boolean {
             val allowed = setOf("STARTING", "RESTORING", "CONTENT", "LOGIN_VISIBLE", "GUEST_VISIBLE")
@@ -301,7 +318,14 @@ private fun createWebView(
             onCanGoBackChanged(view.canGoBack())
         }
     }
-    setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
+    setDownloadListener { url, userAgent, contentDisposition, mimeType, contentLength ->
+        if (TransferShareDownloadUrl.accepts(url, BuildConfig.THEWYJ_BASE_URL)) {
+            transferDownloader.start(
+                url, downloadName(url, contentDisposition), mimeType.orEmpty(),
+                contentLength, userAgent.orEmpty(),
+            )
+            return@setDownloadListener
+        }
         if (policy.decide(url) != NavigationDecision.Internal) return@setDownloadListener
         runCatching {
             val request = DownloadManager.Request(Uri.parse(url))
@@ -314,7 +338,7 @@ private fun createWebView(
             CookieManager.getInstance().getCookie(url)?.takeIf(String::isNotBlank)?.let {
                 request.addRequestHeader("Cookie", it)
             }
-            request.addRequestHeader("User-Agent", userAgent)
+            userAgent?.takeIf(String::isNotBlank)?.let { request.addRequestHeader("User-Agent", it) }
             (context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).enqueue(request)
         }.onFailure {
             onMainFrameError("无法开始下载，请检查系统下载服务")

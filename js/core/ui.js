@@ -1,4 +1,4 @@
-import { BUSINESS_TIME_ZONE } from "./config.js?v=20260928-transfer-hotfix-r1";
+import { BUSINESS_TIME_ZONE } from "./config.js?v=20260929-transfer-hotfix-r2";
 
 export const $ = (id) => document.getElementById(id);
 

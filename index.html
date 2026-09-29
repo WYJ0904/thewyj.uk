@@ -6,12 +6,12 @@
     <meta name="theme-color" content="#ffffff" />
     <title>thewyj — 学习、工具、财务与分享</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260928-transfer-hotfix-r1" />
-    <link rel="stylesheet" href="/styles.css?v=20260928-transfer-hotfix-r1" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260928-transfer-hotfix-r1" />
-    <link rel="stylesheet" href="/design-system.css?v=20260928-transfer-hotfix-r1" />
-    <link rel="stylesheet" href="/public-experience.css?v=20260928-transfer-hotfix-r1" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20260928-transfer-hotfix-r1" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260929-transfer-hotfix-r2" />
+    <link rel="stylesheet" href="/styles.css?v=20260929-transfer-hotfix-r2" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260929-transfer-hotfix-r2" />
+    <link rel="stylesheet" href="/design-system.css?v=20260929-transfer-hotfix-r2" />
+    <link rel="stylesheet" href="/public-experience.css?v=20260929-transfer-hotfix-r2" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20260929-transfer-hotfix-r2" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 thewyj" aria-hidden="false">
@@ -509,6 +509,10 @@
           </div>
           <canvas id="transferQr" class="transfer-qr" width="0" height="0" aria-label="分享二维码"></canvas>
           <div class="transfer-share-files" id="transferShareFiles"></div>
+          <div class="transfer-share-actions hidden" id="transferShareOwnerActions">
+            <button class="danger-text" id="transferCurrentRevokeBtn" type="button">撤销这个分享</button>
+            <p class="meta-line">已发布文件不能就地更改；撤销后可以重新选择文件创建新分享。</p>
+          </div>
         </section>
 
         <section class="transfer-my-shares" aria-labelledby="transferMySharesTitle">
@@ -1230,10 +1234,10 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20260928-transfer-hotfix-r1"></script>
-    <script type="module" src="/tools.js?v=20260928-transfer-hotfix-r1"></script>
-    <script src="/workflows.js?v=20260928-transfer-hotfix-r1"></script>
-    <script src="/learning-sync.js?v=20260928-transfer-hotfix-r1"></script>
-    <script type="module" src="/app.js?v=20260928-transfer-hotfix-r1"></script>
+    <script src="/changelog.js?v=20260929-transfer-hotfix-r2"></script>
+    <script type="module" src="/tools.js?v=20260929-transfer-hotfix-r2"></script>
+    <script src="/workflows.js?v=20260929-transfer-hotfix-r2"></script>
+    <script src="/learning-sync.js?v=20260929-transfer-hotfix-r2"></script>
+    <script type="module" src="/app.js?v=20260929-transfer-hotfix-r2"></script>
   </body>
 </html>

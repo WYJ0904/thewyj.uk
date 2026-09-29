@@ -1,7 +1,7 @@
-import { randomId } from "../core/capabilities.js?v=20260928-transfer-hotfix-r1";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders } from "../core/session.js?v=20260928-transfer-hotfix-r1";
-import { getSafeStorage } from "../core/storage.js?v=20260928-transfer-hotfix-r1";
-import { withInteractionFeedback } from "../core/perf.js?v=20260928-transfer-hotfix-r1";
+import { randomId } from "../core/capabilities.js?v=20260929-transfer-hotfix-r2";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20260929-transfer-hotfix-r2";
+import { getSafeStorage } from "../core/storage.js?v=20260929-transfer-hotfix-r2";
+import { withInteractionFeedback } from "../core/perf.js?v=20260929-transfer-hotfix-r2";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -349,9 +349,9 @@ function escapeHtml(value) {
 function formatBytes(bytes) {
   const value = Number(bytes || 0);
   if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  if (value < 1024 * 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} MB`;
-  return `${(value / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KiB`;
+  if (value < 1024 * 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} MiB`;
+  return `${(value / 1024 / 1024 / 1024).toFixed(2)} GiB`;
 }
 
 function safeFileRelativePath(file) {
@@ -373,6 +373,7 @@ export function createTransferController({
   let queueOwner = "";
   let activeSession = null;
   let currentShare = null;
+  let ownedShareIds = new Set();
   let shareRequestGeneration = 0;
   let serverSessions = [];
   let running = false;
@@ -1017,7 +1018,9 @@ export function createTransferController({
       queue = [];
       activeSession = null;
       persistQueue();
+      ownedShareIds.add(payload.share.id);
       renderShare(payload.share);
+      element("transferShareCard")?.scrollIntoView({ block: "start", behavior: "smooth" });
       setMessage("分享已创建。", "success");
     } catch (error) {
       setMessage(error.message || "创建分享失败。", "error");
@@ -1049,13 +1052,26 @@ export function createTransferController({
     }
   }
 
+  function updateCurrentShareActions() {
+    const actions = element("transferShareOwnerActions");
+    const revoke = element("transferCurrentRevokeBtn");
+    const owned = Boolean(currentShare?.id && ownedShareIds.has(currentShare.id));
+    actions?.classList.toggle("hidden", !owned);
+    if (revoke) {
+      if (owned) revoke.dataset.transferRevoke = currentShare.id;
+      else delete revoke.dataset.transferRevoke;
+    }
+  }
+
   function renderShare(share) {
+    currentShare = share;
     element("transferShareCard")?.classList.remove("hidden");
     const url = `${location.origin}/transfer#share=${encodeURIComponent(share.id)}`;
     element("transferShareLink").value = url;
     element("transferShareLink").href = url;
     qrDataUrl(url);
     element("transferShareFiles").innerHTML = share.files.map((file) => `<div class="transfer-share-file"><strong>${escapeHtml(file.file_name)}</strong><small>${escapeHtml(file.relative_path)} · ${formatBytes(file.size_bytes)} · ${file.preview_policy === "preview" ? "可预览" : "仅下载"}</small><button type="button" data-transfer-download="${escapeHtml(share.id)}|${escapeHtml(file.file_id)}">下载</button></div>`).join("");
+    updateCurrentShareActions();
     void loadMyShares();
   }
 
@@ -1074,7 +1090,8 @@ export function createTransferController({
       const size = Number(meta?.size_bytes || 0);
       const downloadUrl = `/api/transfer/shares/${shareId}/download?file=${encodeURIComponent(fileId)}&grant=${encodeURIComponent(token)}`;
       const pickerAvailable = typeof window.showSaveFilePicker === "function";
-      if (!size || size <= 4 * 1024 * 1024 || !pickerAvailable) {
+      const nativeDownload = isThewyjAndroidApp();
+      if (!size || size <= 4 * 1024 * 1024 || !pickerAvailable || nativeDownload) {
         // Let the browser stream the response straight to disk; the page never
         // holds the file contents in memory.
         const anchor = document.createElement("a");
@@ -1084,7 +1101,8 @@ export function createTransferController({
         document.body.appendChild(anchor);
         anchor.click();
         anchor.remove();
-        setMessage("下载已开始，请查看浏览器下载列表。", "success");
+        setMessage(nativeDownload ? "正在交给 Android 下载，请等待完整性校验。" : "下载已开始，请查看浏览器下载列表。",
+          nativeDownload ? "info" : "success");
         return;
       }
       // Bounded-memory streaming: each ranged response is piped straight into
@@ -1147,12 +1165,14 @@ export function createTransferController({
       const query = authenticated() ? "" : `?guest_id=${encodeURIComponent(guestId())}`;
       const payload = await request(`/api/transfer/shares${query}`);
       const shares = payload.shares || [];
+      ownedShareIds = new Set(shares.filter((share) => share.state !== "revoked").map((share) => share.id));
+      updateCurrentShareActions();
       if (!shares.length) {
         list.innerHTML = '<div class="transfer-empty">还没有创建过文件分享。</div>';
         return;
       }
       list.innerHTML = shares.map((share) => `<article class="transfer-share-row">
-        <div><strong>${escapeHtml(share.file_count)} 个文件 · ${formatBytes(share.total_bytes)}</strong><small>${new Date(share.expires_at).toLocaleString("zh-CN")} 到期 · 下载 ${share.download_count}/${share.max_downloads}${share.password_required ? " · 有密码" : ""}</small></div>
+        <div><strong>${escapeHtml(share.file_count)} 个文件 · ${formatBytes(share.total_bytes)}</strong><small>${escapeHtml((share.files || []).map((file) => file.file_name).join("、") || "文件名暂不可用")}</small><small>${new Date(share.expires_at).toLocaleString("zh-CN")} 到期 · 下载 ${share.download_count}/${share.max_downloads}${share.password_required ? " · 有密码" : ""}</small></div>
         <div class="transfer-share-actions">
           <button type="button" data-transfer-open="${escapeHtml(share.id)}">查看</button>
           <button class="danger-text" type="button" data-transfer-revoke="${escapeHtml(share.id)}">撤销</button>
@@ -1234,6 +1254,7 @@ export function createTransferController({
     shareRequestGeneration += 1;
     currentShare = null;
     element("transferShareCard")?.classList.add("hidden");
+    updateCurrentShareActions();
     if (element("transferShareFiles")) element("transferShareFiles").innerHTML = "";
     if (element("transferShareLink")) element("transferShareLink").value = "";
   }
@@ -1243,6 +1264,8 @@ export function createTransferController({
       const body = {};
       if (!authenticated()) body.guest_id = guestId();
       await request(`/api/transfer/shares/${shareId}/revoke`, { method: "POST", body });
+      ownedShareIds.delete(shareId);
+      if (currentShare?.id === shareId) clearShare();
       setMessage("分享已撤销。", "success");
       await Promise.all([loadMyShares(), loadCapabilities()]);
     } catch (error) {
@@ -1450,6 +1473,18 @@ export function createTransferController({
       event.target.value = "";
     });
     document.addEventListener("paste", handlePaste);
+    window.addEventListener("thewyj:transfer-download", (event) => {
+      const detail = event.detail || {};
+      if (detail.state === "progress") {
+        setMessage(`正在下载 ${formatBytes(detail.bytes)} / ${formatBytes(detail.total)}`, "info");
+      } else if (detail.state === "completed") {
+        setMessage(detail.message || "下载完成。", "success");
+      } else if (detail.state === "failed") {
+        setMessage(detail.message || "下载未完成，请重试。", "error");
+      } else if (detail.state === "started") {
+        setMessage(detail.message || "正在下载。", "info");
+      }
+    });
     window.addEventListener("online", () => {
       if (location.pathname === "/transfer" && recipientShareId() === null) {
         void retryCleanupPending();
@@ -1486,10 +1521,13 @@ export function createTransferController({
   }
 
   function accountUpdated() {
+    ownedShareIds = new Set();
+    updateCurrentShareActions();
     restoreQueue();
     restoreCleanupQueue();
     renderQueue();
     void loadCapabilities();
+    void loadMyShares();
     if (location.pathname === "/transfer" && recipientShareId() === null) {
       void Promise.all([loadUnfinishedSessions(), retryCleanupPending()]);
     }

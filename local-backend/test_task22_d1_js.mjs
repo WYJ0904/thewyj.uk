@@ -569,11 +569,28 @@ try {
     body: {},
   });
   const oneGrant = oneAuthorize.payload.download.token;
+  // A download reservation must survive the hourly cleanup while its grant
+  // is still valid; otherwise a large recipient download can lose its object.
+  await cleanupExpiredTransfers(db, storage);
+  const reservedMetadata = await request(db, storage, `/api/transfer/shares/${oneShareId}`);
+  assert.equal(reservedMetadata.response.status, 200, "active one-time grant must protect its share from cleanup");
   const oneRange = await request(db, storage,
     `/api/transfer/shares/${oneShareId}/download?file=${oneFile.file_id}&grant=${oneGrant}`, {
       headers: { Range: "bytes=0-9" },
     });
   assert.equal(oneRange.response.status, 206);
+  // WebView can hand an attachment response to Android DownloadManager, which
+  // starts a second GET. Merely opening the first response must not destroy a
+  // one-time share before either client has consumed the bytes.
+  const abandoned = await handleTask22Request({
+    env: { ...ENVIRONMENT, WYJ_DB: db, WYJ_STORAGE: storage },
+    data: { requestId: crypto.randomUUID() },
+    request: new Request(`https://preview.thewyj.uk/api/transfer/shares/${oneShareId}/download?file=${oneFile.file_id}&grant=${oneGrant}`),
+  });
+  assert.equal(abandoned.status, 200);
+  await abandoned.body.cancel();
+  const retryMetadata = await request(db, storage, `/api/transfer/shares/${oneShareId}`);
+  assert.equal(retryMetadata.response.status, 200, "abandoned response must keep its grant retriable");
   const oneDownload = await request(db, storage,
     `/api/transfer/shares/${oneShareId}/download?file=${oneFile.file_id}&grant=${oneGrant}`);
   assert.equal(oneDownload.response.status, 200);

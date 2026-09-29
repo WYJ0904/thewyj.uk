@@ -1,4 +1,4 @@
-import { joinBytes } from "./file.js?v=20260928-transfer-hotfix-r1";
+import { joinBytes } from "./file.js?v=20260929-transfer-hotfix-r2";
 
 function colorRgb(hex) {
   const normalized = String(hex || "").trim().replace(/^#/, "");

@@ -4,8 +4,8 @@ import {
   BACKEND_NETWORK_MESSAGE,
   GET_RETRYABLE_STATUS,
   STATUS_RETRY_BASE_DELAYS_MS,
-} from "./config.js?v=20260928-transfer-hotfix-r1";
-import { accountSessionHeaders } from "./session.js?v=20260928-transfer-hotfix-r1";
+} from "./config.js?v=20260929-transfer-hotfix-r2";
+import { accountSessionHeaders } from "./session.js?v=20260929-transfer-hotfix-r2";
 
 export const CANONICAL_SESSION_ERROR_CODES = new Set([
   "authentication_required",

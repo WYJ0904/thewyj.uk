@@ -640,6 +640,23 @@ async function finalizeDownload(db, storage, row, digest, requestId) {
   }
 }
 
+async function finalizeSingleObjectDownload(db, row, digest) {
+  const now = isoNow();
+  await run(db, `UPDATE task22_download_grants SET state = 'completed', completed_at = ?2,
+    last_used_at = ?2 WHERE token_digest = ?1 AND share_id = ?3
+      AND state IN ('active', 'completed')`, [digest, now, row.id]);
+  if (row.state === "delete_pending") await retireShareRows(db, row.id);
+}
+
+/** Observe the native stream pump only after every byte reaches the response. */
+function completedSingleObjectBody(context, body, onComplete) {
+  const { readable, writable } = new TransformStream();
+  const completion = body.pipeTo(writable).then(onComplete).catch(() => undefined);
+  if (typeof context.waitUntil === "function") context.waitUntil(completion);
+  else void completion;
+  return readable;
+}
+
 /**
  * Streams the requested window across the uploaded parts without ever running
  * JavaScript per chunk. The response body is the readable half of an identity
@@ -763,23 +780,16 @@ export async function streamFileDownload(context, shareIdValue, fileIdValue, tok
     // The uploaded file is one R2 object: hand the body to the client as-is so
     // the runtime streams it natively (a JavaScript pump is killed by the
     // Workers CPU limit and truncates large downloads).
-    if (fullResponse) {
-      await run(db, `UPDATE task22_download_grants SET state = 'completed', completed_at = ?2,
-        last_used_at = ?2, active_request_id = '', active_request_expires_at = ''
-        WHERE token_digest = ?1 AND active_request_id = ?3`, [digest, isoNow(), requestId]);
-    } else {
-      await releaseDownloadRequest(db, digest, requestId);
-    }
+    await releaseDownloadRequest(db, digest, requestId);
     const object = requestedRange
       ? await storage.get(singleObject, { range: { offset: requestedRange.offset, length: requestedRange.length } })
       : await storage.get(singleObject);
     if (!object?.body) throw new Task22Error("下载数据暂时不可用", 503, "transfer_file_missing", true);
-    if (fullResponse && row.state === "delete_pending") {
-      // Metadata disappears right away; the object itself is removed by the
-      // cleanup pass once the response has finished streaming.
-      await retireShareRows(db, row.id);
-    }
-    return new Response(object.body, { status: requestedRange ? 206 : 200, headers });
+    const body = fullResponse
+      ? completedSingleObjectBody(context, object.body,
+        () => finalizeSingleObjectDownload(db, row, digest))
+      : object.body;
+    return new Response(body, { status: requestedRange ? 206 : 200, headers });
   }
   const body = concatenatedParts(
     storage,
@@ -968,6 +978,10 @@ export async function cleanupExpiredTransfers(db, storage, options = {}) {
   const shares = await all(db, `SELECT * FROM task22_shares
     WHERE (expires_at <= ?1 OR state IN ('revoked', 'delete_pending'))
       AND state != 'deleted'
+      AND NOT (state = 'delete_pending' AND EXISTS (
+        SELECT 1 FROM task22_download_grants AS grant
+        WHERE grant.share_id = task22_shares.id
+          AND grant.state IN ('active', 'completed') AND grant.expires_at > ?1))
       AND (cleanup_retry_at = '' OR cleanup_retry_at <= ?1)
     ORDER BY expires_at ASC LIMIT ?2`, [now, limit]);
   let removed = 0;

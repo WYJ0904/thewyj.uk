@@ -339,6 +339,14 @@ async function main() {
       FIXTURES.map((fixture) => fixture.fileName).sort(),
       "the share card must list both original file names",
     );
+    await page.waitFor(
+      "!document.querySelector('#transferShareOwnerActions')?.classList.contains('hidden')",
+      20_000, "owner revoke action",
+    );
+    await page.waitFor(
+      `document.querySelector('#transferMyShares')?.textContent.includes(${JSON.stringify(FIXTURES[0].fileName)})`,
+      20_000, "owner share filename",
+    );
 
     // 5. openPage creates a fresh browser context: no cookie, localStorage or
     // owner login can be inherited by this recipient.
@@ -361,12 +369,15 @@ async function main() {
       assert.equal(recipientState.authHidden, true, "recipient must not see login");
       assert.equal(recipientState.recoveryHidden, true, "recipient must not see Android session recovery");
       assert.equal(recipientState.transferVisible, true);
+      assert.equal(await sharePage.evaluate(
+        "document.querySelector('#transferShareOwnerActions')?.classList.contains('hidden')",
+      ), true, "anonymous recipient must not receive owner revoke controls");
       const buttons = await sharePage.evaluate(
         "Array.from(document.querySelectorAll('[data-transfer-download]')).map((button) => button.dataset.transferDownload)",
       );
       assert.equal(buttons.length, 2, "the share page must expose both downloads");
 
-      for (const fixture of FIXTURES) {
+      for (const [index, fixture] of FIXTURES.entries()) {
         // A real recipient downloads each file from the same share page. Browser
         // download permission is scoped to this isolated context, so no second
         // context is needed (creating one per file could stall before navigation
@@ -375,7 +386,19 @@ async function main() {
         const downloadedPath = path.join(DOWNLOAD_DIR, fixture.fileName);
         // Browsers without the File System Access API download through the
         // anchor branch; pin that branch so a headless run writes a real file.
-        await sharePage.evaluate("delete window.showSaveFilePicker; true");
+        if (index === 0) {
+          await sharePage.evaluate("delete window.showSaveFilePicker; true");
+        } else {
+          // The Android shell must use its native bounded download path even
+          // when a WebView advertises the File System Access picker.
+          await sharePage.evaluate(`(() => {
+            Object.defineProperty(navigator, 'userAgent', {
+              configurable: true, value: navigator.userAgent + ' thewyj-android/1.3.21',
+            });
+            window.showSaveFilePicker = () => { throw new Error('Android must use the native download'); };
+            return true;
+          })()`);
+        }
         const clicked = await sharePage.evaluate(`(() => {
           const buttons = Array.from(document.querySelectorAll('[data-transfer-download]'));
           const match = buttons.find((button) => {
