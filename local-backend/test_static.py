@@ -1028,7 +1028,7 @@ class StaticSiteTests(unittest.TestCase):
         #    password.
         self.assertIn("downloadShareFile(shareId, fileId, passwordRequired = false)", transfer)
         self.assertIn("Boolean(currentShare?.password_required)", transfer)
-        self.assertIn("const password = passwordRequired", transfer)
+        self.assertIn("const password = !reusable && passwordRequired", transfer)
         self.assertNotIn("const password = window.prompt(", transfer)
 
     def test_android_payment_channels_are_accepted_by_the_api(self):

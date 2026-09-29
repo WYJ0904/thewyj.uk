@@ -424,6 +424,9 @@ async function main() {
         );
         console.log(`[transfer-browser] verified ${fixture.fileName} bytes=${fixture.size} sha256=${downloadedHash}`);
       }
+      const shareAfterDownloads = await fetch(`${BASE_URL}/api/transfer/shares/${shareId}`).then((response) => response.json());
+      assert.equal(Number(shareAfterDownloads.share.download_count), 1,
+        "files in one recipient session must reuse its unexpired grant");
     } finally {
       await sharePage.close();
     }

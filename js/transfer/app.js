@@ -374,6 +374,7 @@ export function createTransferController({
   let activeSession = null;
   let currentShare = null;
   let ownedShareIds = new Set();
+  const downloadGrants = new Map();
   let shareRequestGeneration = 0;
   let serverSessions = [];
   let running = false;
@@ -1080,11 +1081,17 @@ export function createTransferController({
     // unconditional window.prompt blocked the renderer (and every headless
     // browser flow) even for public shares, and asked users for a password that
     // does not exist.
-    const password = passwordRequired
+    const cached = downloadGrants.get(shareId);
+    const reusable = cached && cached.expiresAt > Date.now() + 5_000;
+    const password = !reusable && passwordRequired
       ? (window.prompt("该分享设有访问密码，请输入：") || "")
       : "";
     try {
-      const payload = await request(`/api/transfer/shares/${shareId}/authorize`, { method: "POST", body: { password } });
+      const payload = reusable ? cached.payload
+        : await request(`/api/transfer/shares/${shareId}/authorize`, { method: "POST", body: { password } });
+      if (!reusable) downloadGrants.set(shareId, {
+        payload, expiresAt: Date.parse(payload.download.expires_at) || 0,
+      });
       const token = payload.download.token;
       const meta = payload.download.share.files.find((file) => file.file_id === fileId);
       const size = Number(meta?.size_bytes || 0);
@@ -1148,6 +1155,7 @@ export function createTransferController({
           setMessage(`正在下载 ${formatBytes(offset)} / ${formatBytes(size)}`);
         }
         await writable.close();
+        downloadGrants.delete(shareId);
         setMessage("下载完成。", "success");
       } catch (error) {
         await writable.abort().catch(() => {});
