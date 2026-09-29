@@ -134,8 +134,8 @@ zero, and there were no active sessions or expired active reservations.
 For the pending Samsung acceptance, one separate test account intentionally
 holds a password-free, seven-file, 14,051-byte share until
 2026-10-06 06:20:26 UTC. It includes PDF, TXT, ZIP, DOCX, binary, MP4 and EXE
-test fixtures. The link and file hashes were delivered outside Git in
-`C:\Users\78252\thewyj-task24\artifacts\file-transfer-hotfix-device-share.json`.
+test fixtures. The link and file hashes were delivered outside Git in the
+local `file-transfer-hotfix-device-share.json` artifact.
 This deliberate fixture is the only current Production transfer share and is
 not counted as an orphan or ghost reservation.
 
@@ -193,8 +193,8 @@ download for the listed examples.
   `8a92a7b2ba54224528d010e12dbe9cdccd756ae5882923b093166ff05ff6ed13`.
   The release certificate SHA-256 is
   `2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03`.
-  A byte-identical copy is available locally at
-  `C:\Users\78252\thewyj-task24\artifacts\thewyj-android-1.3.20-file-transfer-hotfix-candidate.apk`.
+  A byte-identical `thewyj-android-1.3.20-file-transfer-hotfix-candidate.apk`
+  was delivered in the user's local artifacts directory, outside Git.
   The old formal release remains 1.3.19 (32); formal Android update metadata
   must remain unchanged until the user decides a release.
 
