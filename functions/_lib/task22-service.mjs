@@ -631,13 +631,12 @@ async function releaseDownloadRequest(db, digest, requestId) {
     active_request_expires_at = '' WHERE token_digest = ?1 AND active_request_id = ?2`, [digest, requestId]);
 }
 
-async function finalizeDownload(db, storage, row, digest, requestId) {
+async function finalizeDownload(db, digest, requestId) {
   await run(db, `UPDATE task22_download_grants SET state = 'completed', completed_at = ?2,
     last_used_at = ?2, active_request_id = '', active_request_expires_at = ''
     WHERE token_digest = ?1 AND active_request_id = ?3`, [digest, isoNow(), requestId]);
-  if (row.state === "delete_pending") {
-    await removeShare(db, storage, row, row.deletion_reason || "download_limit");
-  }
+  // The existing grant still covers retries and the other files in the share.
+  // Scheduled cleanup removes the share after this bounded grant expires.
 }
 
 async function finalizeSingleObjectDownload(db, row, digest) {
@@ -645,7 +644,8 @@ async function finalizeSingleObjectDownload(db, row, digest) {
   await run(db, `UPDATE task22_download_grants SET state = 'completed', completed_at = ?2,
     last_used_at = ?2 WHERE token_digest = ?1 AND share_id = ?3
       AND state IN ('active', 'completed')`, [digest, now, row.id]);
-  if (row.state === "delete_pending") await retireShareRows(db, row.id);
+  // A small initial WebView GET can finish before DownloadListener hands the
+  // URL to the native downloader. Keep its grant/files valid through the TTL.
 }
 
 /** Observe the native stream pump only after every byte reaches the response. */
@@ -797,7 +797,7 @@ export async function streamFileDownload(context, shareIdValue, fileIdValue, tok
     requestedRange?.offset || 0,
     requestedRange?.length ?? null,
     fullResponse
-      ? () => void finalizeDownload(db, storage, row, digest, requestId).catch(() => undefined)
+      ? () => void finalizeDownload(db, digest, requestId).catch(() => undefined)
       : () => void releaseDownloadRequest(db, digest, requestId).catch(() => undefined),
     () => void releaseDownloadRequest(db, digest, requestId).catch(() => undefined),
   );
@@ -867,18 +867,6 @@ async function deleteSessionObjects(db, storage, sessionId) {
       WHERE id = ?1 AND state IN ('aborted', 'expired', 'failed')`).bind(sessionId, now),
   ]);
   return true;
-}
-
-/**
- * Retires a share whose final allowed download has been served: metadata must
- * disappear at once, but the R2 object has to survive until the response has
- * finished streaming, so object deletion stays with the cleanup pass.
- */
-async function retireShareRows(db, shareId) {
-  await run(db, "DELETE FROM task22_download_grants WHERE share_id = ?1", [shareId]);
-  await run(db, "DELETE FROM task22_upload_parts WHERE file_id IN (SELECT file_id FROM task22_share_files WHERE share_id = ?1)", [shareId]);
-  await run(db, "DELETE FROM task22_share_files WHERE share_id = ?1", [shareId]);
-  await run(db, "DELETE FROM task22_shares WHERE id = ?1", [shareId]);
 }
 
 export async function revokeShare(db, storage, account, input) {

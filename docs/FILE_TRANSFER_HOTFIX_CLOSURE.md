@@ -260,6 +260,11 @@ Corrections in the follow-up:
 - Recipient retry/multiple-file clicks reuse the same unexpired grant in memory
   instead of consuming another download authorization. No bearer tokens are
   added to logs, Git, or persistent client storage.
+- The grant/files also survive a completed initial GET until the bounded grant
+  expires. This covers small files that finish before WebView's native handoff
+  and all files in a one-time share. A regression reproduced HTTP 403 on the
+  subsequent native size probe before the correction. A second authorization
+  remains rejected; scheduled cleanup still deletes the share after expiry.
 - Published filenames are shown in My Shares, the current share card is brought
   into view, and the owner can revoke it there. Public recipients cannot see the
   owner action. Published files remain immutable; replacing them requires a new

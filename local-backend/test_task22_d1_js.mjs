@@ -541,12 +541,13 @@ try {
   }
   assert.ok([404, 410].includes(exhausted.response.status), "exhausted share must reject further authorization");
 
-  // 8. One-time + Range/retry: range is allowed, then the first complete download destroys.
+  // 8. One-time authorization: the same bounded grant supports every file and
+  // a WebView/native handoff, even if the initial small GET finishes first.
   const oneSession = await createSession(db, storage, {
     token: USERS.tools.token,
     oneTime: true,
-    fileCount: 1,
-    totalBytes: 320,
+    fileCount: 2,
+    totalBytes: 448,
   });
   const oneFile = await allocateFile(db, storage, oneSession, {
     token: USERS.tools.token,
@@ -558,6 +559,12 @@ try {
   });
   const onePart = await putPart(db, storage, oneSession, oneFile.file_id, 1, 320, 3, { token: USERS.tools.token });
   assert.equal(onePart.response.status, 201);
+  const secondOneFile = await allocateFile(db, storage, oneSession, {
+    token: USERS.tools.token,
+    fileId: "file-one-00000002", relativePath: "two.bin", fileName: "two.bin",
+    mimeType: "application/octet-stream", sizeBytes: 128,
+  });
+  await putPart(db, storage, oneSession, secondOneFile.file_id, 1, 128, 4, { token: USERS.tools.token });
   const oneComplete = await request(db, storage, `/api/transfer/uploads/${oneSession}/complete`, {
     method: "POST",
     token: USERS.tools.token,
@@ -594,13 +601,33 @@ try {
   const oneDownload = await request(db, storage,
     `/api/transfer/shares/${oneShareId}/download?file=${oneFile.file_id}&grant=${oneGrant}`);
   assert.equal(oneDownload.response.status, 200);
+  const handoffProbe = await request(db, storage,
+    `/api/transfer/shares/${oneShareId}/download?file=${oneFile.file_id}&grant=${oneGrant}`, {
+      headers: { Range: "bytes=0-0" },
+    });
+  assert.equal(handoffProbe.response.status, 206, "a consumed initial GET must still allow the native size probe");
+  assert.equal(handoffProbe.response.headers.get("Content-Range"), "bytes 0-0/320");
+  const secondOneDownload = await request(db, storage,
+    `/api/transfer/shares/${oneShareId}/download?file=${secondOneFile.file_id}&grant=${oneGrant}`);
+  assert.equal(secondOneDownload.response.status, 200, "one authorization covers the second file too");
+  const anotherOneGrant = await request(db, storage, `/api/transfer/shares/${oneShareId}/authorize`, {
+    method: "POST", body: {},
+  });
+  assert.ok([404, 410].includes(anotherOneGrant.response.status), "one-time share cannot issue another grant");
+  await cleanupExpiredTransfers(db, storage);
+  const handoffRetry = await request(db, storage,
+    `/api/transfer/shares/${oneShareId}/download?file=${oneFile.file_id}&grant=${oneGrant}`);
+  assert.equal(handoffRetry.response.status, 200, "cleanup protects the completed grant until its expiry");
+  await db.prepare("UPDATE task22_download_grants SET expires_at = '2000-01-01T00:00:00.000Z' WHERE share_id = ?1")
+    .bind(oneShareId).run();
+  await cleanupExpiredTransfers(db, storage);
   let oneMetadata;
   for (let attempt = 0; attempt < 20; attempt += 1) {
     oneMetadata = await request(db, storage, `/api/transfer/shares/${oneShareId}`);
     if (oneMetadata.response.status === 404) break;
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  assert.equal(oneMetadata.response.status, 404, "one-time share must be destroyed after download");
+  assert.equal(oneMetadata.response.status, 404, "one-time share is removed after the bounded grant expires");
 
   // 9. Download-only policy: SVG/HTML/script/executable/archive/Office/APK/unknown binary.
   let policyIndex = 0;
