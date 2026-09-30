@@ -354,15 +354,15 @@ async function main() {
     // owner login can be inherited by this recipient.
     const sharePage = await openPage({ cdpUrl: CDP_URL, baseUrl: BASE_URL, width: 1280, height: 900, mobile: false });
     await sharePage.setDownloadBehavior(DOWNLOAD_DIR);
-    const wireDownloads = [];
+    const wireDownloads = new Map();
     sharePage.client.listeners.add((message) => {
-      if (message.method !== "Network.responseReceived") return;
-      const response = message.params?.response;
-      if (!response?.url?.includes(`/api/transfer/shares/${shareId}/download?`)) return;
-      const header = (name) => Object.entries(response.headers || {})
-        .find(([key]) => key.toLowerCase() === name)?.[1];
-      wireDownloads.push({ fileId: new URL(response.url).searchParams.get("file"),
-        length: Number(header("content-length")), cache: String(header("cache-control") || "") });
+      // Downloads move out of the renderer; Network.responseReceived is not
+      // guaranteed for this request. Keep its actual, already authorized URL
+      // in this test process only, without minting another recipient grant.
+      if (message.method !== "Browser.downloadWillBegin") return;
+      const download = message.params;
+      if (!download?.url?.includes(`/api/transfer/shares/${shareId}/download?`)) return;
+      wireDownloads.set(download.suggestedFilename, download.url);
     });
     try {
       await sharePage.navigate(`/transfer#share=${encodeURIComponent(shareId)}`);
@@ -426,15 +426,17 @@ async function main() {
         const downloadedHash = await sha256File(downloadedPath);
         assert.equal(fs.statSync(downloadedPath).size, fixture.size, `${fixture.label}: byte length`);
         assert.equal(downloadedHash, fixture.sha256, `${fixture.label}: SHA-256 source == download`);
-        const fileId = await sharePage.evaluate(`(() => {
-          const button = [...document.querySelectorAll('[data-transfer-download]')].find(button =>
-            button.closest('.transfer-share-file')?.textContent.includes(${JSON.stringify(fixture.fileName)}));
-          return button?.dataset.transferDownload.split('|')[1];
-        })()`);
-        const wire = wireDownloads.find(response => response.fileId === fileId);
-        assert.ok(wire, `${fixture.label}: real download response observed`);
-        assert.equal(wire.length, fixture.size, `${fixture.label}: wire Content-Length survives the native stream`);
-        assert.match(wire.cache, /no-transform/, `${fixture.label}: wire response prohibits proxy transformation`);
+        const wireUrl = wireDownloads.get(fixture.fileName);
+        assert.ok(wireUrl, `${fixture.label}: browser download event observed`);
+        assert.equal(new URL(wireUrl).origin, new URL(BASE_URL).origin);
+        const wire = await fetch(wireUrl, { headers: { "Accept-Encoding": "identity" } });
+        try {
+          assert.equal(wire.status, 200, `${fixture.label}: real HTTP header probe`);
+          assert.equal(Number(wire.headers.get("content-length")), fixture.size,
+            `${fixture.label}: wire Content-Length survives the native stream`);
+          assert.match(wire.headers.get("cache-control"), /no-transform/,
+            `${fixture.label}: wire response prohibits proxy transformation`);
+        } finally { await wire.body?.cancel(); }
         assert.ok(
           path.extname(downloadedPath) === path.extname(fixture.fileName),
           `${fixture.label}: extension must survive (${downloadedPath})`,
