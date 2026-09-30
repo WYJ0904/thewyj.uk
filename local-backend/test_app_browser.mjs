@@ -699,13 +699,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260929-transfer-hotfix-r2');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20260929-transfer-hotfix-r2');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260929-transfer-hotfix-r2');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260929-transfer-hotfix-r2');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260929-transfer-hotfix-r2');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260929-transfer-hotfix-r2');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260929-transfer-hotfix-r2');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260930-maintenance-r1');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20260930-maintenance-r1');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260930-maintenance-r1');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260930-maintenance-r1');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260930-maintenance-r1');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260930-maintenance-r1');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260930-maintenance-r1');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -2001,6 +2001,8 @@ async function main() {
       })()`);
       await click('[data-module="finance"]');
       await waitFor("location.pathname === '/finance' && !document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 8_000, "finance workspace");
+      assert.equal(await evaluate("document.querySelector('#financeRecordedSection').open"), false,
+        "recorded transactions start collapsed");
       assert.equal(await evaluate("document.querySelector('#financeLocked').classList.contains('hidden')"), true);
       await waitFor("document.querySelector('#financeCategoryFilter')?.textContent.includes('云端预置分类')", 4_000, "pre-existing finance category hydration");
       assert.ok((await evaluate("document.querySelector('#financeBudgetSummary').textContent")).includes("50.00"));
@@ -2030,6 +2032,10 @@ async function main() {
       await addTransaction({ direction: "income", amount: "100.00", merchant: "测试收入", counterparty: "测试公司" });
       await addTransaction({ direction: "refund", amount: "2.34", merchant: "便利店退款", category: categoryId });
       await waitFor("document.querySelectorAll('#financeTransactionList .finance-transaction').length === 3", 8_000, "three finance directions");
+      assert.equal(await evaluate("document.querySelector('#financeRecordedCount').textContent"), "3",
+        "collapsed transactions still load and update their count");
+      await click("#financeRecordedSection > summary");
+      assert.equal(await evaluate("document.querySelector('#financeRecordedSection').open"), true);
       assert.ok((await evaluate("document.querySelector('#financeBalanceTotal').textContent")).includes("90.00"));
 
       await setFields({ "#financeSearchInput": "午餐" });

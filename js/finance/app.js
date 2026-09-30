@@ -1,4 +1,5 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20260929-transfer-hotfix-r2";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20260930-maintenance-r1";
+import { createFinanceDisclosure } from "./disclosure.js?v=20260930-maintenance-r1";
 const SCHEMA_VERSION = 1;
 const MAX_LOCAL_TRANSACTIONS = 5000;
 const MAX_PENDING_OPERATIONS = 500;
@@ -328,6 +329,7 @@ export function createFinanceController({
   let serverDeniedAccess = false;
 
   const element = (id) => document.getElementById(id);
+  let recordedDisclosure = null;
   const storageKey = (accountId) => `wyjFinance:v1:${encodeURIComponent(String(accountId || "guest"))}`;
   const deviceKey = "wyjFinanceDevice:v1";
 
@@ -433,6 +435,8 @@ export function createFinanceController({
       month: currentMonth(),
     });
     if (element("financeTransactionCount")) element("financeTransactionCount").textContent = `${filtered.length} 笔`;
+    if (element("financeRecordedCount")) element("financeRecordedCount").textContent = String(filtered.length);
+    recordedDisclosure?.restore();
     // Collapsed on phones: the summary line has to state the current filter so
     // the list is never silently filtered by hidden controls.
     const filterSummary = element("financeFilterSummary");
@@ -1011,6 +1015,9 @@ export function createFinanceController({
   function initialize() {
     if (initialized) return;
     initialized = true;
+    recordedDisclosure = createFinanceDisclosure({ element: element("financeRecordedSection"), storage,
+      accountId: () => account()?.id, section: "recorded", defaultOpen: false });
+    recordedDisclosure.restore();
     element("financePage")?.addEventListener("click", handlePageClick);
     for (const id of ["financeTransactionModal", "financeCategoryModal", "financeBudgetModal"]) element(id)?.addEventListener("click", handlePageClick);
     element("financeTransactionForm")?.addEventListener("submit", submitTransaction);

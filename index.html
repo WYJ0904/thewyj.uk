@@ -6,12 +6,12 @@
     <meta name="theme-color" content="#ffffff" />
     <title>thewyj — 学习、工具、财务与分享</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260929-transfer-hotfix-r2" />
-    <link rel="stylesheet" href="/styles.css?v=20260929-transfer-hotfix-r2" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260929-transfer-hotfix-r2" />
-    <link rel="stylesheet" href="/design-system.css?v=20260929-transfer-hotfix-r2" />
-    <link rel="stylesheet" href="/public-experience.css?v=20260929-transfer-hotfix-r2" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20260929-transfer-hotfix-r2" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260930-maintenance-r1" />
+    <link rel="stylesheet" href="/styles.css?v=20260930-maintenance-r1" />
+    <link rel="stylesheet" href="/product-ui.css?v=20260930-maintenance-r1" />
+    <link rel="stylesheet" href="/design-system.css?v=20260930-maintenance-r1" />
+    <link rel="stylesheet" href="/public-experience.css?v=20260930-maintenance-r1" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20260930-maintenance-r1" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 thewyj" aria-hidden="false">
@@ -408,16 +408,18 @@
             </div>
           </section>
 
-          <section class="finance-candidates-section hidden" id="financeCandidatesSection" aria-labelledby="financeCandidatesTitle" aria-hidden="true">
+          <details class="finance-candidates-section finance-fold hidden" id="financeCandidatesSection" aria-labelledby="financeCandidatesTitle" aria-hidden="true" open>
+            <summary class="finance-fold-title"><span id="financeCandidatesTitle">待核实 / 待确认（<span id="financePendingCount">待核对</span>）</span></summary>
             <div class="finance-section-heading">
-              <div><h2 id="financeCandidatesTitle">通知待确认</h2><p>Android 自动识别的低置信交易，确认后才会计入账目、预算与统计。</p></div>
+              <div><p>缺金额或方向的通知交易在这里核实；字段完整后自动记账。</p></div>
               <button class="button-secondary" id="financeCandidatesRefreshBtn" type="button">刷新</button>
             </div>
             <div class="finance-candidate-list" id="financeCandidateList" aria-live="polite"></div>
-          </section>
+          </details>
 
           <section class="finance-content-grid">
-            <div class="finance-ledger-panel">
+            <details class="finance-ledger-panel finance-fold" id="financeRecordedSection">
+              <summary class="finance-fold-title"><span>已记录（<span id="financeRecordedCount">0</span>）</span><small>按当前筛选</small></summary>
               <div class="finance-section-heading"><div><h2>账目</h2><p id="financeTransactionCount">0 笔</p></div></div>
               <!-- 手机端默认收起：默认视图只保留概览与账目列表，
                    搜索/月份/类型/分类/状态按需展开（详情见 setupResponsiveDisclosures）。 -->
@@ -433,7 +435,7 @@
               </details>
               <div class="finance-undo hidden" id="financeUndoBar"><span>账目已删除。</span><button id="financeUndoBtn" type="button">撤销</button></div>
               <div class="finance-transaction-list" id="financeTransactionList" aria-live="polite"></div>
-            </div>
+            </details>
 
             <details class="ds-collapse ds-collapse-panel" id="financeInsightDisclosure" data-responsive-collapse open>
               <summary><span>预算与分类统计</span><small>按月统计</small></summary>
@@ -1236,10 +1238,10 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20260929-transfer-hotfix-r2"></script>
-    <script type="module" src="/tools.js?v=20260929-transfer-hotfix-r2"></script>
-    <script src="/workflows.js?v=20260929-transfer-hotfix-r2"></script>
-    <script src="/learning-sync.js?v=20260929-transfer-hotfix-r2"></script>
-    <script type="module" src="/app.js?v=20260929-transfer-hotfix-r2"></script>
+    <script src="/changelog.js?v=20260930-maintenance-r1"></script>
+    <script type="module" src="/tools.js?v=20260930-maintenance-r1"></script>
+    <script src="/workflows.js?v=20260930-maintenance-r1"></script>
+    <script src="/learning-sync.js?v=20260930-maintenance-r1"></script>
+    <script type="module" src="/app.js?v=20260930-maintenance-r1"></script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20260929-transfer-hotfix-r2";
+import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20260930-maintenance-r1";
 
 export const MAX_STUDY_RECORDS = 500;
 

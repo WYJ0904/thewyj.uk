@@ -1,0 +1,25 @@
+import assert from "node:assert/strict";
+import { createFinanceDisclosure } from "../js/finance/disclosure.js";
+const values = new Map();
+const storage = { getItem: k => values.get(k) ?? null, setItem: (k,v) => values.set(k,v) };
+let account = "account-a";
+function node() { return { open: false, addEventListener(_, handler) { this.toggle = handler; } }; }
+const pending = node(), recorded = node();
+const p = createFinanceDisclosure({ element: pending, storage, accountId: () => account, section: "pending", defaultOpen: true });
+const r = createFinanceDisclosure({ element: recorded, storage, accountId: () => account, section: "recorded", defaultOpen: false });
+p.restore(); r.restore();
+assert.equal(pending.open, true); assert.equal(recorded.open, false);
+p.pending(["hint:a"]);
+pending.open = false; pending.toggle();
+p.pending(["hint:a"]);
+assert.equal(pending.open, false, "same pending snapshot preserves the user's fold");
+p.pending(["hint:a", "hint:b"]);
+assert.equal(pending.open, true, "a new identity makes the pending change visible");
+pending.open = false; pending.toggle();
+recorded.open = true; recorded.toggle();
+account = "account-b"; p.restore(); r.restore();
+assert.equal(pending.open, true); assert.equal(recorded.open, false, "folds are account-scoped");
+account = "account-a"; p.restore(); r.restore();
+assert.equal(pending.open, false); assert.equal(recorded.open, true);
+assert.deepEqual(["hint:a", "hint:b"], JSON.parse(values.get("wyjFinanceFold:v1:account-a:pending:seen")));
+console.log("Finance disclosure checks passed: defaults, persistence, account scope, new pending visibility; no data mutation.");

@@ -1,4 +1,5 @@
-import { randomId } from "../core/capabilities.js?v=20260929-transfer-hotfix-r2";
+import { randomId } from "../core/capabilities.js?v=20260930-maintenance-r1";
+import { createFinanceDisclosure } from "./disclosure.js?v=20260930-maintenance-r1";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -6,7 +7,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20260929-transfer-hotfix-r2";
+} from "../core/perf.js?v=20260930-maintenance-r1";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -138,6 +139,7 @@ export function createFinanceCandidatesController({
   let busyIds = new Set();
   let currentCandidates = [];
   let renderedForAccount = "";
+  let hasCanonicalObservation = false;
   let bound = false;
   // Task 24 reopen #7: one *automatic* refresh at a time, and only the newest
   // list may paint. A manual refresh must never be answered by a load that
@@ -149,6 +151,7 @@ export function createFinanceCandidatesController({
   let refreshInFlight = null;
 
   const element = (id) => document.getElementById(id);
+  let pendingDisclosure = null;
 
   function deviceId() {
     let value = String(storage.getItem(FINANCE_DEVICE_KEY) || "").trim();
@@ -206,6 +209,8 @@ export function createFinanceCandidatesController({
     if (!list || !section) return;
     const editorState = captureEditorState(list);
     currentCandidates = [...candidates];
+    if (element("financePendingCount")) element("financePendingCount").textContent = hasCanonicalObservation ? String(candidates.length) : "待核对";
+    pendingDisclosure?.pending(candidates.map(item => item.canonical_id || item.id));
     const banner = message
       ? `<div class="finance-candidate-message"><p>${escapeHtml(message)}</p></div>`
       : "";
@@ -344,6 +349,7 @@ export function createFinanceCandidatesController({
       // A slow earlier refresh must never repaint over a newer list (for example
       // the row the user just confirmed).
       if (!listVersion.isCurrent(version)) return;
+      hasCanonicalObservation = true;
       render(canonicalPendingCandidates(summary));
       section.setAttribute("aria-busy", "false");
     } catch (error) {
@@ -528,6 +534,9 @@ export function createFinanceCandidatesController({
   function show() {
     if (!bound) {
       bound = true;
+      pendingDisclosure = createFinanceDisclosure({ element: element("financeCandidatesSection"), storage,
+        accountId: () => account()?.id, section: "pending", defaultOpen: true });
+      pendingDisclosure.restore();
       element("financeCandidatesSection")?.addEventListener("click", handleClick);
       element("financeCandidatesSection")?.addEventListener("submit", handleSubmit);
       document.addEventListener("thewyj:payment-updated", () => { void reload({ force: true }); });
@@ -554,6 +563,7 @@ export function createFinanceCandidatesController({
       hide();
       renderedForAccount = "";
       currentCandidates = [];
+      hasCanonicalObservation = false;
     }
     if (!element("financePage")?.classList.contains("hidden")) reload();
   }

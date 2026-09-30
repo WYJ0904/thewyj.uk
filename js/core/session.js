@@ -1,4 +1,4 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260929-transfer-hotfix-r2";
+import { getSafeStorage, safeStorageSet } from "./storage.js?v=20260930-maintenance-r1";
 
 export const ACCOUNT_SESSION_KEY = "wyjAccountSession";
 export const ACCOUNT_CACHE_KEY = "wyjAccountCache";
