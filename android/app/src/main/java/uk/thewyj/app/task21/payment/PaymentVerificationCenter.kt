@@ -142,6 +142,8 @@ class PaymentVerificationCenter(
     /** The first paint shows only unsent Room work in the separate recovery area. */
     fun localItems(accountId: String): List<Item> = buildItems(accountId, null, includeAllLocal = true)
 
+    fun cachedObservation(accountId: String): PaymentHintSync.Result? = CanonicalPendingCache(app, accountId).observation()
+
     /** Called only from a background IO coroutine after the first local paint. */
     suspend fun reconcile(accountId: String): PaymentHintSync.Result? {
         // Retry enrichment and pull terminal state after the local first paint.
@@ -151,12 +153,22 @@ class PaymentVerificationCenter(
         val requested = localBefore.flatMap { recognition ->
             listOf(recognition.uploadEventId) + archive.structuredEventIdsForRecognition(accountId, recognition.sourceEventId)
         }.filter(String::isNotBlank).distinct()
-        val summary = if (credentials != null && credentials.accessToken.isNotBlank()) {
+        val cache = CanonicalPendingCache(app, accountId)
+        var pullEpoch = cache.epoch()
+        var summary = if (credentials != null && credentials.accessToken.isNotBlank()) {
             api.pendingReviewSummary(credentials.accessToken, requested)
         } else null
+        if (summary is ApiCall.Failure && summary.status == 401 &&
+            uk.thewyj.app.AppGraph.sessionRepository.refresh() == uk.thewyj.app.core.session.RefreshWorkResult.SUCCESS) {
+            val refreshed = SecureCredentialStore(app).loadActive()
+            if (refreshed != null && refreshed.account.id == accountId) {
+                pullEpoch = cache.epoch()
+                summary = api.pendingReviewSummary(refreshed.accessToken, requested)
+            }
+        }
         return when (summary) {
-            is ApiCall.Success -> hintSync.applySummary(accountId, summary.value)
-            else -> pulled
+            is ApiCall.Success -> hintSync.applySummary(accountId, summary.value, pullEpoch)
+            else -> pulled?.takeIf { it.completeObservation } ?: cache.observation()?.copy(fromCache = true)
         }
     }
 
@@ -427,6 +439,7 @@ class PaymentVerificationCenter(
         val flush = runCatching { pipeline.flushDetailed() }.getOrNull()
         val outcome = flush?.outcomes?.firstOrNull { it.operationId == eventId }
         if (outcome?.transactionId?.isNotBlank() == true) {
+            CanonicalPendingCache(app, accountId).terminalize(setOf(eventId), "confirmed", outcome.transactionId)
             runCatching {
                 hook.coordinator().markFinanceRecorded(accountId, candidate.candidateId, outcome.transactionId)
             }
@@ -477,6 +490,7 @@ class PaymentVerificationCenter(
         if (!remote.ok) {
             return IgnoreResult(false, remote.message.ifBlank { "云端待处理状态没有删除，请重试" })
         }
+        CanonicalPendingCache(app, accountId).terminalize(setOf(eventId), "ignored")
 
         if (candidateId.isNotBlank()) {
             runCatching { hook.coordinator().rejectCandidate(accountId, candidateId) }

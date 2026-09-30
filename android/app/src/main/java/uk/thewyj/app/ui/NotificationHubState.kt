@@ -136,7 +136,9 @@ class NotificationHubState(
             val requested = localBefore.flatMap { row ->
                 listOf(row.uploadEventId) + archive.structuredEventIdsForRecognition(accountId, row.sourceEventId)
             }.filter(String::isNotBlank).distinct()
-            val remote = if (credentials != null && credentials.accessToken.isNotBlank()) {
+            val cache = uk.thewyj.app.task21.payment.CanonicalPendingCache(appContext, accountId)
+            val pullEpoch = cache.epoch()
+            val fetched = if (credentials != null && credentials.accessToken.isNotBlank()) {
                 when (val response = api.pendingReviewSummary(credentials.accessToken, requested)) {
                     is uk.thewyj.app.core.network.ApiCall.Success -> response.value
                     is uk.thewyj.app.core.network.ApiCall.Failure -> null
@@ -144,7 +146,8 @@ class NotificationHubState(
             } else {
                 null
             }
-            val observation = remote?.let { hintSync.applySummary(accountId, it) }
+            val observation = fetched?.let { hintSync.applySummary(accountId, it, pullEpoch) }
+            val remote = if (observation?.completeObservation == true) fetched else cache.read()
             val local = paymentStore.recognitionsByState(
                 accountId,
                 uk.thewyj.app.task21.payment.PaymentVerificationCenter.ATTENTION_STATES,
@@ -157,22 +160,19 @@ class NotificationHubState(
                     row.copy(uploadEventId = matches.single())
                 } else row
             }
-            android.util.Log.i("ThewyjPending", "local=" + resolved.joinToString(";") { "${it.recognitionId}|${it.uploadEventId.ifBlank { "unresolved" }}|${it.state}" })
-            android.util.Log.i("ThewyjPending", "cloudN=${remote?.totalCount ?: -1} cloud=" +
-                remote?.records.orEmpty().joinToString(";") {
-                    "${it.canonicalId}|${it.eventId}|${it.amountMinor ?: "?"}|${it.direction.ifBlank { "?" }}|${it.state}"
-                })
+            android.util.Log.i("ThewyjPending", "cloudN=${remote?.totalCount ?: -1} localN=${resolved.size}")
             val center = uk.thewyj.app.task21.payment.PaymentVerificationCenter(appContext)
             val recovery = if (observation?.completeObservation == true) {
                 center.reconciledItems(accountId, observation).filter { it.recoveryOnly }
             } else {
                 center.localItems(accountId).filter { it.recoveryOnly }
             }
-            Triple(resolved, remote, recovery)
+            Triple(resolved, remote to (observation?.completeObservation == true), recovery)
         }
         if (generation != pendingGeneration) return
         val local = result.first
-        val remote = result.second
+        val remote = result.second.first
+        val fresh = result.second.second
         val recovery = result.third
         localPendingPayments = recovery.size
         if (remote == null) {
@@ -193,7 +193,7 @@ class NotificationHubState(
         localOnlyPendingPayments = recovery.size
         remoteOnlyPendingPayments = reconciled.remoteOnly
         pendingObservationAt = reconciled.observedAt
-        pendingSyncCurrent = reconciled.complete
+        pendingSyncCurrent = fresh && reconciled.complete
         unresolvedPendingPayments = recovery.count { it.eventIds.isEmpty() }
     }
 

@@ -50,6 +50,7 @@ class PaymentHintSync(
         val pendingEventIds: Set<String> = emptySet(),
         val pendingCount: Int = 0,
         val pendingRecords: List<PendingReviewIdentity> = emptyList(),
+        val fromCache: Boolean = false,
     )
     private data class Observation(
         val states: Map<String, String> = emptyMap(),
@@ -65,10 +66,13 @@ class PaymentHintSync(
     )
 
     /** Apply the same account-scoped summary used by the Finance page. */
-    fun applySummary(accountId: String, summary: PendingReviewSummary): Result {
+    fun applySummary(accountId: String, summary: PendingReviewSummary, pullEpoch: Long? = null): Result {
         val account = (accountOverride?.invoke()
             ?: runCatching { sessions.currentAccount() }.getOrNull()) ?: return Result(0, 0, 0, false)
         if (!account.financeEntitled || account.accountId != accountId) return Result(0, 0, 0, false)
+        val cache = CanonicalPendingCache(app, accountId)
+        val previousPending = cache.read()?.records?.filter { it.state == "pending" }?.sortedBy { it.canonicalId }
+        if (!cache.save(summary, pullEpoch ?: cache.epoch())) return Result(0, 0, 0, false)
         val states = mutableMapOf<String, String>()
         val pendingIds = mutableSetOf<String>()
         var confirmed = 0
@@ -105,6 +109,7 @@ class PaymentHintSync(
                 }
             }
         }
+        if (previousPending != summary.records.filter { it.state == "pending" }.sortedBy { it.canonicalId }) PaymentReviewSignals.publish()
         return Result(
             refreshed = summary.records.size,
             confirmed = confirmed,
@@ -380,9 +385,14 @@ class PaymentHintSync(
                 runCatching { archive.structuredEventIdsForRecognition(account.accountId, recognition.sourceEventId) }
                     .getOrDefault(emptyList())
         }.filter(String::isNotBlank).distinct()
-        val query = allRequested.take(200).joinToString(",") {
+        val cursor = SUMMARY_CURSORS.computeIfAbsent(account.accountId) { AtomicInteger() }
+        val start = if (allRequested.isEmpty()) 0 else Math.floorMod(cursor.getAndAdd(200), allRequested.size)
+        val requested = if (allRequested.size <= 200) allRequested else (allRequested + allRequested).drop(start).take(200)
+        val query = requested.joinToString(",") {
             java.net.URLEncoder.encode(it, Charsets.UTF_8.name())
         }
+        val cache = CanonicalPendingCache(app, account.accountId)
+        val pullEpoch = cache.epoch()
         val response = runCatching {
             transport.get("/api/notification/pending-summary" + if (query.isBlank()) "" else "?event_ids=$query", account.sessionToken)
         }.getOrNull() ?: return Observation()
@@ -392,6 +402,12 @@ class PaymentHintSync(
         val records = payload.optJSONArray("records") ?: return Observation()
         if (allowArchiveRepair && repairArchivedReviewAliases(account, records)) {
             return reconcileExactReviewIdentities(account, allowArchiveRepair = false)
+        }
+        val parsed = (0 until records.length()).mapNotNull { records.optJSONObject(it)?.let(PendingReviewIdentity::fromJson) }
+        val previousPending = cache.read()?.records?.filter { it.state == "pending" }?.sortedBy { it.canonicalId }
+        if (!cache.save(PendingReviewSummary(payload.optString("observed_at"), payload.optInt("total_count", parsed.count { it.state == "pending" }),
+            payload.optInt("hint_count"), payload.optInt("candidate_count"), payload.optBoolean("truncated"), parsed), pullEpoch)) {
+            return Observation()
         }
         val states = mutableMapOf<String, String>()
         val pendingIds = mutableSetOf<String>()
@@ -441,9 +457,10 @@ class PaymentHintSync(
                 }
             }
         }
+        if (previousPending != parsed.filter { it.state == "pending" }.sortedBy { it.canonicalId }) PaymentReviewSignals.publish()
         return Observation(
             states = states,
-            complete = !payload.optBoolean("truncated", false) && allRequested.size <= 200 &&
+            complete = !payload.optBoolean("truncated", false) &&
                 pendingRecords.size == payload.optInt("total_count", pendingIds.size),
             pendingEventIds = pendingIds,
             pendingCount = payload.optInt("total_count", pendingIds.size),
@@ -526,6 +543,7 @@ class PaymentHintSync(
         financeEntryId: String,
     ) {
         val accountId = account.accountId
+        val cacheChanged = CanonicalPendingCache(app, accountId).terminalize(eventIds, "confirmed", financeEntryId)
         eventIds.forEach { eventId ->
             runCatching {
                 (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
@@ -562,6 +580,7 @@ class PaymentHintSync(
                 )
             }
         }
+        if (cacheChanged) PaymentReviewSignals.publish()
     }
 
     private fun applyCandidateRejected(
@@ -570,6 +589,7 @@ class PaymentHintSync(
         eventIds: Set<String>,
     ) {
         val accountId = account.accountId
+        val cacheChanged = CanonicalPendingCache(app, accountId).terminalize(eventIds, "ignored")
         eventIds.forEach { eventId ->
             runCatching {
                 (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
@@ -593,6 +613,7 @@ class PaymentHintSync(
                 ))
             }
         }
+        if (cacheChanged) PaymentReviewSignals.publish()
     }
 
     private fun applyConfirmed(
@@ -602,6 +623,7 @@ class PaymentHintSync(
         hint: JSONObject,
     ) {
         val accountId = account.accountId
+        val cacheChanged = CanonicalPendingCache(app, accountId).terminalize(setOf(eventId), "confirmed", financeEntryId)
         // The archive link is canonical and independent of the local recognition
         // row: a Web/Android confirm must close the notification-side state even
         // when this device never created a local candidate for that event.
@@ -609,7 +631,10 @@ class PaymentHintSync(
             (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
                 .markFinanceOutcome(accountId, eventId, "confirmed", financeEntryId)
         }
-        val recognition = recognitionForHint(account, eventId, hint) ?: return
+        val recognition = recognitionForHint(account, eventId, hint) ?: run {
+            if (cacheChanged) PaymentReviewSignals.publish()
+            return
+        }
         val candidate = runCatching {
             store.candidateForRecognition(accountId, recognition.recognitionId)
         }.getOrNull()
@@ -635,6 +660,7 @@ class PaymentHintSync(
                 )
             }
         }
+        if (cacheChanged) PaymentReviewSignals.publish()
     }
 
     private fun applyIgnored(
@@ -643,11 +669,15 @@ class PaymentHintSync(
         hint: JSONObject,
     ) {
         val accountId = account.accountId
+        val cacheChanged = CanonicalPendingCache(app, accountId).terminalize(setOf(eventId), "ignored")
         runCatching {
             (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
                 .markFinanceOutcome(accountId, eventId, "ignored")
         }
-        val recognition = recognitionForHint(account, eventId, hint) ?: return
+        val recognition = recognitionForHint(account, eventId, hint) ?: run {
+            if (cacheChanged) PaymentReviewSignals.publish()
+            return
+        }
         runCatching {
             store.saveRecognition(
                 recognition.copy(
@@ -665,6 +695,7 @@ class PaymentHintSync(
                 ))
             }
         }
+        if (cacheChanged) PaymentReviewSignals.publish()
     }
 
     /**
@@ -765,6 +796,7 @@ class PaymentHintSync(
         private val PUBLISHING = ConcurrentHashMap.newKeySet<String>()
         private val REPAIRING = ConcurrentHashMap.newKeySet<String>()
         private val RETRY_CURSOR = AtomicInteger(0)
+        private val SUMMARY_CURSORS = ConcurrentHashMap<String, AtomicInteger>()
         private const val ARCHIVE_CONTINUITY_MS = 15_000L
         private const val MAX_ARCHIVE_REPAIR_POSTS = 20
     }
