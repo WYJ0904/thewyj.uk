@@ -148,7 +148,11 @@ class TransferApiClient(context: Context) {
         return withAuth { token -> executeJson(open("/api/transfer/uploads/$sessionId", "GET", token), null) }
     }
 
-    fun complete(sessionId: String): TransferShare {
+    fun complete(sessionId: String): TransferShare = completeTransferWithRecovery(
+        sessionId, publish = ::publishSession, observe = ::sessionState,
+    )
+
+    private fun publishSession(sessionId: String): TransferShare {
         val payload = withAuth { token ->
             executeJson(open("/api/transfer/uploads/$sessionId/complete", "POST", token, "application/json"), JSONObject())
         }
