@@ -231,3 +231,69 @@ The signed APK is delivered. The smallest Samsung test remains:
 
 Do not mark this hotfix COMPLETE or merge PR #79 until these physical checks
 pass. Task 25 remains outside the hotfix.
+
+## Samsung follow-up, 2026-09-29/30
+
+The preceding release evidence is historical. The user installed 1.3.20 (33)
+and reported that the public-share routing test passed and small downloads
+succeeded. A real camera MP4 subsequently failed in the app. The original
+camera file was 188,140,359 bytes; the phone's downloaded copy was **0 bytes**.
+This is a physical download failure, regardless of successful upload metadata.
+The displayed 179.4 was MiB, while the camera app displayed decimal MB; it was
+not evidence of missing upload bytes. The web UI now labels binary units
+explicitly as KiB/MiB/GiB.
+
+Corrections in the follow-up:
+
+- WebView share attachments use a narrowly validated, same-origin native range
+  downloader. It probes the full Content-Range total, validates every range,
+  resumes interrupted reads from the last byte written, and publishes a
+  MediaStore Download only after the complete byte count is written. Failed
+  downloads remove their own incomplete destination and report failure.
+- The Android web page always selects the native attachment route rather than
+  an advertised File System Access picker. Download progress/completion/failure
+  is shown on the page. Other download URLs retain their existing handler.
+- An abandoned initial attachment GET no longer completes its grant or retires
+  the share before the response body has been consumed. Cleanup protects an
+  unexpired authorized grant. A red regression reproduced an abandoned GET
+  retiring a share; the corrected service passes the same test.
+- Recipient retry/multiple-file clicks reuse the same unexpired grant in memory
+  instead of consuming another download authorization. No bearer tokens are
+  added to logs, Git, or persistent client storage.
+- Published filenames are shown in My Shares, the current share card is brought
+  into view, and the owner can revoke it there. Public recipients cannot see the
+  owner action. Published files remain immutable; replacing them requires a new
+  share.
+- Asset version is `20260929-transfer-hotfix-r2`. Formal Android release
+  metadata remains 1.3.19 (32).
+
+The follow-up's Android JVM downloader regressions, full unit suite, lint,
+debug build, Task22 service and integrity tests passed. Core CI on `382e640`
+([36565221482](https://github.com/WYJ0904/thewyj.uk/actions/runs/36565221482))
+and `560b30a`
+([36566021521](https://github.com/WYJ0904/thewyj.uk/actions/runs/36566021521))
+passed all six jobs, including the browser transfer round trip. The final
+layout/test/report commit still requires its own CI run.
+
+No new migration or user-data cleanup is required by these corrections.
+The current follow-up has **not** yet been deployed to Production. The last
+Production access attempt returned Cloudflare authentication error 7403;
+deployment and renewed live checks must be recorded separately from local/CI
+evidence. The large-file native download remains **UNVALIDATED** until the new
+signed candidate is installed on Samsung and its downloaded file is checked.
+
+## Separate pending-identity follow-up
+
+The user's Android and Finance lists both contained seven canonical pending
+records; the complaint concerns duplicate-looking content. The separate Draft
+[PR #80](https://github.com/WYJ0904/thewyj.uk/pull/80) is stacked on this hotfix
+and permits reconciliation of two amountless hints only when their event IDs
+map to the **same locally archived notification instance**. Existing package,
+direction, provider-reference, amount-conflict and lifecycle-window guards
+remain. Distinct archive instances are retained, even at similar times or with
+the same amount. Android displays seconds to match Finance's precision.
+
+JVM and D1 regressions cover same-instance amountless updates and a separate
+nearby payment that must survive. This is not a general amount/time merge, and
+the specific Samsung records are not claimed to be duplicates without the
+archive-instance evidence. Task 24 remains COMPLETE; Task 25 is unchanged.

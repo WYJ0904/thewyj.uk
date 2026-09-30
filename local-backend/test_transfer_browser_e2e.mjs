@@ -339,6 +339,8 @@ async function main() {
       FIXTURES.map((fixture) => fixture.fileName).sort(),
       "the share card must list both original file names",
     );
+    assert.match(await page.evaluate("document.querySelector('#transferShareFiles')?.textContent || ''"), /MiB/,
+      "binary file size must be labeled MiB rather than MB");
     await page.waitFor(
       "!document.querySelector('#transferShareOwnerActions')?.classList.contains('hidden')",
       20_000, "owner revoke action",

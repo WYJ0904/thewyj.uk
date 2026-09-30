@@ -509,8 +509,10 @@
           </div>
           <canvas id="transferQr" class="transfer-qr" width="0" height="0" aria-label="分享二维码"></canvas>
           <div class="transfer-share-files" id="transferShareFiles"></div>
-          <div class="transfer-share-actions hidden" id="transferShareOwnerActions">
-            <button class="danger-text" id="transferCurrentRevokeBtn" type="button">撤销这个分享</button>
+          <div class="hidden" id="transferShareOwnerActions">
+            <div class="transfer-share-actions">
+              <button class="danger-text" id="transferCurrentRevokeBtn" type="button">撤销这个分享</button>
+            </div>
             <p class="meta-line">已发布文件不能就地更改；撤销后可以重新选择文件创建新分享。</p>
           </div>
         </section>
