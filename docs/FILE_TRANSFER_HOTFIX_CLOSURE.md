@@ -277,15 +277,47 @@ debug build, Task22 service and integrity tests passed. Core CI on `382e640`
 ([36565221482](https://github.com/WYJ0904/thewyj.uk/actions/runs/36565221482))
 and `560b30a`
 ([36566021521](https://github.com/WYJ0904/thewyj.uk/actions/runs/36566021521))
-passed all six jobs, including the browser transfer round trip. The final
-layout/test/report commit still requires its own CI run.
+passed all six jobs, including the browser transfer round trip.
+
+Final implementation gates also passed all six jobs:
+
+- Transfer runtime `3fdbf3a3451b83862b728c29d7092e4283019f00`: Core CI
+  [36676979306](https://github.com/WYJ0904/thewyj.uk/actions/runs/36676979306).
+- Combined transfer/pending implementation
+  `9223ae42548d8b8cf763e7310ef1c65380f81906`: Core CI
+  [36676986464](https://github.com/WYJ0904/thewyj.uk/actions/runs/36676986464).
+- This later report update changes documentation only; it does not change APK
+  source, recognition, automatic booking or identity behavior.
 
 No new migration or user-data cleanup is required by these corrections.
-The current follow-up has **not** yet been deployed to Production. The last
-Production access attempt returned Cloudflare authentication error 7403;
-deployment and renewed live checks must be recorded separately from local/CI
-evidence. The large-file native download remains **UNVALIDATED** until the new
-signed candidate is installed on Samsung and its downloaded file is checked.
+Cloudflare access recovered on 2026-09-30. Production D1 reported no pending
+migrations; migration 0023 was not executed again. After Preview checks and
+Core CI, the follow-up was deployed to Production:
+
+- Pages deployment `42d2e0f6-1e7f-4a07-8cb9-fed1f625c30e`, source `3fdbf3a`.
+- Task22 cleanup Worker `a41357d1-8b99-418b-a0db-9e0ea49ed156`, hourly
+  `43 * * * *`; health reports the Production environment.
+- The live transfer HTML/config and download module use
+  `20260929-transfer-hotfix-r2`. Owner revoke and native progress controls are
+  present. `/api/app/config` still advertises Android 1.3.19 (32), APK SHA-256
+  `1e79d8d791ed6cc5761f8fb8bac5f9c8320ae1b89f40f1f8b76ed1c9c50429e9`
+  and size 47,676,877. Formal release metadata and the formal R2 APK are unchanged.
+- Preview browser MP4/EXE round trips passed with matching lengths and hashes.
+- Preview and Production API checks completed a full GET followed by the native
+  size probe and 8 MiB ranges of a 17,826,049-byte file. All reconstructed bytes
+  and hashes matched. The second file used the same grant, download_count stayed
+  one, and another authorization was refused. Synthetic test shares were revoked
+  and their owners' used quota returned to zero.
+- Preview and Production logged-out browser downloads of PDF, UTF-8 TXT, ZIP,
+  DOCX and binary all matched their source SHA-256 and length. Synthetic shares
+  were revoked.
+
+The combined candidate target is 1.3.21 (34), package `uk.thewyj.app`, base
+`https://thewyj.uk`, using the existing release certificate. The byte-identical
+delivered APK and its verification record belong in the user's local artifacts
+directory, outside Git. The large-file native Samsung download remains
+**UNVALIDATED** until that candidate is installed and its downloaded file is
+checked. At the follow-up build check, ADB listed no connected device.
 
 ## Separate pending-identity follow-up
 
@@ -302,3 +334,10 @@ JVM and D1 regressions cover same-instance amountless updates and a separate
 nearby payment that must survive. This is not a general amount/time merge, and
 the specific Samsung records are not claimed to be duplicates without the
 archive-instance evidence. Task 24 remains COMPLETE; Task 25 is unchanged.
+
+Only two affected device checks remain after installing 1.3.21 (34): download
+the real MP4 through the app's public share and check its byte size/playback;
+then refresh the notification and Finance pending lists and compare the
+seconds-level entries and canonical records. Previously passed public routing
+and Task24 automatic booking need not be repeated. Both PRs remain Draft until
+this targeted physical evidence is supplied.
