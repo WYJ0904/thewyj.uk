@@ -508,8 +508,28 @@ async function main() {
     }
     assert.equal(quota.data?.reserved_bytes, 0, "batch replacement and final cancel leave no reservation");
     console.log("[transfer-browser] two-file deletion rebuilt the survivor without ghost quota");
-    const revoked = await api(`/api/transfer/shares/${shareId}/revoke`, {}, session);
-    assert.equal(revoked.status, 200, JSON.stringify(revoked.data));
+    await page.waitFor(`document.querySelector('[data-transfer-revoke="${shareId}"]')`, 20_000, "owner share revoke control");
+    await page.evaluate(`(() => {
+      const original = window.fetch;
+      const gate = new Promise(resolve => { window.__releaseRevoke = resolve; });
+      window.__revokePosts = 0;
+      window.fetch = (input, init) => {
+        if (String(input).endsWith('/api/transfer/shares/${shareId}/revoke')) {
+          window.__revokePosts++;
+          return gate.then(() => original(input, init));
+        }
+        return original(input, init);
+      };
+    })()`);
+    await page.click(`[data-transfer-revoke="${shareId}"]`);
+    await page.waitFor(`(() => { const b=document.querySelector('[data-transfer-revoke="${shareId}"]');
+      return b?.disabled && b.textContent.includes('撤销中'); })()`, 10_000, "immediate revoke processing label");
+    await page.evaluate(`document.querySelector('[data-transfer-revoke="${shareId}"]').dispatchEvent(new MouseEvent('click',{bubbles:true})); true`);
+    assert.equal(await page.evaluate("window.__revokePosts"), 1, "repeated revoke clicks must be single-flight");
+    await page.evaluate("window.__releaseRevoke(); true");
+    await page.waitFor(`!document.querySelector('[data-transfer-revoke="${shareId}"]')`, 20_000, "revoked share disappears from owner list");
+    const gone = await fetch(`${BASE_URL}/api/transfer/shares/${shareId}`);
+    assert.ok([404,410].includes(gone.status), "public link is invalid after owner UI revoke");
     for (let attempt = 0; attempt < 30; attempt += 1) {
       quota = await api("/api/transfer/capabilities", null, session);
       if (quota.data?.stored_bytes === 0 && quota.data?.reserved_bytes === 0) break;

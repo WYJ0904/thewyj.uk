@@ -77,7 +77,23 @@ class TransferUploadWorker(
         val configStore = TransferConfigStore.inDirectory(applicationContext.filesDir, accountId)
         val config = configStore.load()
         val api = TransferApiClient(applicationContext)
-        preflightSources(store)
+        val cleanup = TransferCleanupStore.inDirectory(applicationContext.filesDir, accountId)
+        var cleanupAuthFailed = false
+        val cleaned = withContext(Dispatchers.IO) { cleanup.retry { id ->
+            try { api.releaseSession(id) } catch (error: TransferApiException) {
+                if (error.status == 401) cleanupAuthFailed = true
+                throw error
+            }
+        } }
+        if (!cleaned) {
+            if (cleanupAuthFailed && authRecoveryBudget > 0 && AppGraph.sessionRepository.refresh() == RefreshWorkResult.SUCCESS) {
+                return runTransfer(staleRecoveryBudget, authRecoveryBudget - 1)
+            }
+            return Result.retry()
+        }
+        preflightSources(store, cleanup)
+        if (cleanup.pending().isNotEmpty()) return Result.retry()
+        val generation = store.generation()
         val items = store.load()
         Log.i("T22WORKER", "start account=$accountId items=${items.size}")
         var sessionId = items.firstOrNull {
@@ -87,6 +103,10 @@ class TransferUploadWorker(
         var retried = false
         for (item in items) {
             if (isStopped) return Result.retry()
+            if (store.generation() != generation) {
+                cleanup.add(listOf(sessionId))
+                return Result.retry()
+            }
             if (item.status in setOf(TransferItemStatus.DONE, TransferItemStatus.CANCELLED, TransferItemStatus.ERROR)) continue
             if (item.status == TransferItemStatus.PAUSED) {
                 retried = true
@@ -125,7 +145,11 @@ class TransferUploadWorker(
                             partCount = allocation.partCount,
                         )
                     }
-                    store.upsert(current)
+                    current = store.updateIfGeneration(current.localId, generation) { latest ->
+                        if (latest.status == TransferItemStatus.PAUSED) throw TransferWorkPausedException(true)
+                        if (latest.status == TransferItemStatus.CANCELLED) throw TransferWorkPausedException(false)
+                        current
+                    } ?: throw TransferWorkPausedException(false)
                     for (partNumber in 1..current.partCount) {
                         if (isStopped) throw TransferWorkPausedException(userInitiated = false)
                         val paused = store.load().firstOrNull { it.localId == current.localId }
@@ -144,26 +168,27 @@ class TransferUploadWorker(
                             input = input,
                             onProgress = { /* per-part progress is reflected in the queue bytes below */ },
                             shouldStop = {
-                                isStopped || store.load()
-                                    .firstOrNull { it.localId == current.localId }
-                                    ?.status == TransferItemStatus.PAUSED
+                                val latest = store.load().firstOrNull { it.localId == current.localId }
+                                isStopped || store.generation() != generation || latest == null ||
+                                    latest.status in setOf(TransferItemStatus.PAUSED, TransferItemStatus.CANCELLED)
                             },
                           )
                         }
-                        current = store.update(current.localId) { latest ->
+                        current = store.updateIfGeneration(current.localId, generation) { latest ->
                             latest.copy(
                                 uploadedParts = latest.uploadedParts + partNumber,
                                 uploadedBytes = if (partNumber in latest.uploadedParts) latest.uploadedBytes else latest.uploadedBytes + length,
                             )
-                        } ?: throw TransferWorkPausedException(userInitiated = true)
+                        } ?: throw TransferWorkPausedException(userInitiated = false)
                     }
-                    store.update(current.localId) { latest ->
+                    store.updateIfGeneration(current.localId, generation) { latest ->
                         if (latest.status in setOf(TransferItemStatus.PAUSED, TransferItemStatus.CANCELLED)) latest
                         else latest.copy(status = TransferItemStatus.DONE, uploadedBytes = latest.source.sizeBytes)
                     }
                 }
             } catch (error: TransferWorkPausedException) {
-                val latest = store.load().firstOrNull { it.localId == item.localId } ?: item
+                if (store.generation() != generation) { cleanup.add(listOf(sessionId)); return Result.retry() }
+                val latest = store.load().firstOrNull { it.localId == item.localId } ?: return Result.retry()
                 if (error.userInitiated) {
                     store.upsert(latest.copy(status = TransferItemStatus.PAUSED))
                     return Result.success()
@@ -173,10 +198,13 @@ class TransferUploadWorker(
                 // The user paused while this part was in flight; the part is not
                 // recorded, so resume re-uploads it and stays consistent.
                 Log.i("T22WORKER", "paused during part upload")
-                val latest = store.load().firstOrNull { it.localId == item.localId } ?: item
+                if (store.generation() != generation) { cleanup.add(listOf(sessionId)); return Result.retry() }
+                val latest = store.load().firstOrNull { it.localId == item.localId } ?: return Result.retry()
                 store.upsert(latest.copy(status = TransferItemStatus.PAUSED))
                 return Result.success()
             } catch (error: TransferApiException) {
+                if (store.generation() != generation) { cleanup.add(listOf(sessionId)); return Result.retry() }
+                if (store.load().none { it.localId == item.localId }) return Result.retry()
                 Log.w("T22WORKER", "api error ${error.status} ${error.code}: ${error.message}")
                 when {
                     TransferRecoveryPolicy.shouldResetUpload(error.code) && staleRecoveryBudget > 0 -> {
@@ -190,24 +218,25 @@ class TransferUploadWorker(
                             RefreshWorkResult.SUCCESS -> return runTransfer(staleRecoveryBudget, authRecoveryBudget - 1)
                             RefreshWorkResult.RETRY -> return Result.retry()
                             RefreshWorkResult.SIGNED_OUT -> {
-                                val latest = store.load().firstOrNull { it.localId == item.localId } ?: item
-                                store.upsert(latest.copy(status = TransferItemStatus.ERROR, errorMessage = "登录会话需要恢复"))
+                                store.update(item.localId) { it.copy(status = TransferItemStatus.ERROR, errorMessage = "登录会话需要恢复") }
                                 return Result.failure()
                             }
                         }
                     }
                     error.status == 401 || error.status == 403 -> {
-                        val latest = store.load().firstOrNull { it.localId == item.localId } ?: item
-                        store.upsert(latest.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "上传失败"))
-                        return Result.failure()
+                        cleanup.add(listOf(sessionId))
+                        store.resetStaleSessionBatch()
+                        store.update(item.localId) { it.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "上传失败") }
+                        return Result.retry()
                     }
                     error.status in 400..499 -> {
-                        val latest = store.load().firstOrNull { it.localId == item.localId } ?: item
-                        store.upsert(latest.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "上传失败"))
+                        cleanup.add(listOf(sessionId))
+                        store.resetStaleSessionBatch()
+                        store.update(item.localId) { it.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "上传失败") }
+                        return Result.retry()
                     }
                     else -> {
-                        val latest = store.load().firstOrNull { it.localId == item.localId } ?: item
-                        store.upsert(latest.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "上传失败"))
+                        store.update(item.localId) { it.copy(status = TransferItemStatus.PENDING, errorMessage = error.message ?: "网络暂时不可用，正在重试") }
                         if (!retried) {
                             retried = true
                             return Result.retry()
@@ -215,22 +244,24 @@ class TransferUploadWorker(
                     }
                 }
             } catch (error: Throwable) {
+                if (store.generation() != generation) { cleanup.add(listOf(sessionId)); return Result.retry() }
                 Log.e("T22WORKER", "unexpected failure", error)
-                val latest = store.load().firstOrNull { it.localId == item.localId } ?: item
-                store.upsert(latest.copy(status = TransferItemStatus.ERROR, errorMessage = error.message ?: "网络异常"))
+                store.update(item.localId) { it.copy(status = TransferItemStatus.PENDING, errorMessage = error.message ?: "网络暂时不可用，正在重试") }
                 if (!retried && runAttemptCount < 3) return Result.retry()
             }
         }
-        return Result.success()
+        return if (cleanup.pending().isNotEmpty()) Result.retry() else Result.success()
     }
 
-    private fun preflightSources(store: TransferQueueStore) {
+    private fun preflightSources(store: TransferQueueStore, cleanup: TransferCleanupStore) {
         for (item in store.load()) {
             if (item.status !in setOf(TransferItemStatus.PENDING, TransferItemStatus.UPLOADING)) continue
             val readable = runCatching {
                 applicationContext.contentResolver.openInputStream(Uri.parse(item.source.uri))?.use { true } ?: false
             }.getOrDefault(false)
             if (!readable) {
+                cleanup.add(store.load().map { it.sessionId })
+                store.resetStaleSessionBatch()
                 Log.w("T22WORKER", "source permission is no longer available; localId=${item.localId}")
                 store.upsert(
                     item.copy(

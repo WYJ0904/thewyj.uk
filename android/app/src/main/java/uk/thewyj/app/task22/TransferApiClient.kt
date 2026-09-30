@@ -161,6 +161,17 @@ class TransferApiClient(context: Context) {
         }
     }
 
+    /** Release exactly the queued session even if complete raced with cancel. */
+    fun releaseSession(sessionId: String) {
+        try { abort(sessionId) } catch (error: TransferApiException) {
+            if (error.status in setOf(404, 410)) return
+            if (error.code != "transfer_session_published") throw error
+            val shareId = sessionState(sessionId).optString("share_id")
+            if (shareId.isBlank()) throw error
+            revoke(shareId)
+        }
+    }
+
     fun listShares(): List<TransferShare> {
         val payload = withAuth { token -> executeJson(open("/api/transfer/shares", "GET", token), null) }
         val array = payload.optJSONArray("shares") ?: JSONArray()

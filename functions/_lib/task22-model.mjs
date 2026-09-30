@@ -265,6 +265,7 @@ export function sessionPayload(row, files = [], parts = {}) {
 export function sharePayload(row, files = []) {
   return {
     id: String(row.id || ""),
+    state: String(row.state || ""),
     expires_at: String(row.expires_at || ""),
     total_bytes: Number(row.total_bytes || 0),
     file_count: Number(row.file_count || 0),
@@ -274,6 +275,7 @@ export function sharePayload(row, files = []) {
     password_required: Boolean(row.password_hash),
     revoked: String(row.state || "") === "revoked",
     destroyed: String(row.state || "") === "delete_pending",
+    can_authorize: String(row.state || "") === "active",
     files: files.map((file) => ({
       file_id: String(file.file_id || ""),
       relative_path: String(file.relative_path || ""),

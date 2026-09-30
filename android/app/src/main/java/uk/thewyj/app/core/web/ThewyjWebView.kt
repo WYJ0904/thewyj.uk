@@ -401,7 +401,8 @@ private fun handleNavigation(
         else onSpeechError("交易标识无效，无法开始核实")
     }
     NavigationDecision.External -> true.also {
-        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+        if (Uri.parse(url).scheme in setOf("http", "https")) ExternalBrowser.open(context, url)
+        else runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }
     NavigationDecision.Blocked -> true
 }

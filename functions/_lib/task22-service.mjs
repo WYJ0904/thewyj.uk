@@ -107,14 +107,25 @@ export async function storageLimitBytes(db, account, guestId = "") {
   return FREE_STORAGE_LIMIT_BYTES;
 }
 
+// Logical quota counts every file reference in every currently usable share.
+// A download-limit reservation remains usable by its bounded existing grant.
+function liveShareSql(alias, now) {
+  return `${alias}.expires_at > ${now} AND (${alias}.state = 'active' OR
+    (${alias}.state = 'delete_pending' AND ${alias}.deletion_reason = 'download_limit' AND EXISTS (
+      SELECT 1 FROM task22_download_grants quota_grant WHERE quota_grant.share_id = ${alias}.id
+        AND quota_grant.state IN ('active','completed') AND quota_grant.expires_at > ${now})))`;
+}
+
 async function quotaBytes(db, owner) {
   const now = isoNow();
   const [sessions, shares] = await Promise.all([
     first(db, `SELECT COALESCE(SUM(total_bytes), 0) AS bytes FROM task22_upload_sessions
       WHERE owner_kind = ?1 AND owner_ref = ?2 AND state = 'active' AND expires_at > ?3`,
     [owner.kind, owner.ref, now]),
-    first(db, `SELECT COALESCE(SUM(total_bytes), 0) AS bytes FROM task22_shares
-      WHERE owner_kind = ?1 AND owner_ref = ?2 AND state IN ('active', 'revoked')`, [owner.kind, owner.ref]),
+    first(db, `SELECT COALESCE(SUM(file.size_bytes), 0) AS bytes FROM task22_share_files file
+      JOIN task22_shares share ON share.id = file.share_id
+      WHERE share.owner_kind = ?1 AND share.owner_ref = ?2 AND ${liveShareSql("share", "?3")}`,
+    [owner.kind, owner.ref, now]),
   ]);
   const reservedBytes = Number(sessions?.bytes || 0);
   const storedBytes = Number(shares?.bytes || 0);
@@ -446,7 +457,9 @@ export async function completeUploadSession(db, storage, account, env, input) {
   const session = await requireOwnedSession(db, account, owner, input.session_id);
   if (session.state === "published" && session.share_id) {
     const share = await first(db, "SELECT * FROM task22_shares WHERE id = ?1", [session.share_id]);
-    if (share) return sharePayload(share, await shareFileRows(db, share.id));
+    if (share && !['revoked','deleted'].includes(share.state) && share.deletion_reason !== 'owner_revoked') {
+      return sharePayload(share, await shareFileRows(db, share.id));
+    }
   }
   if (session.state !== "active") throw new Task22Error("上传任务已结束", 409, "transfer_session_not_active");
   if (isExpired(session)) {
@@ -562,8 +575,8 @@ async function shareFileRows(db, shareId) {
 
 export async function listShares(db, account, input = {}) {
   const owner = await ownerContext(db, account, input);
-  const rows = await all(db, `SELECT * FROM task22_shares WHERE owner_kind = ?1 AND owner_ref = ?2
-    AND state IN ('active', 'revoked', 'delete_pending') ORDER BY created_at DESC LIMIT 200`, [owner.kind, owner.ref]);
+  const rows = await all(db, `SELECT share.* FROM task22_shares share WHERE owner_kind = ?1 AND owner_ref = ?2
+    AND ${liveShareSql("share", "?3")} ORDER BY created_at DESC LIMIT 200`, [owner.kind, owner.ref, isoNow()]);
   const files = await all(db, `SELECT * FROM task22_share_files WHERE share_id IN
     (SELECT id FROM task22_shares WHERE owner_kind = ?1 AND owner_ref = ?2) ORDER BY relative_path`, [owner.kind, owner.ref]);
   const byShare = new Map();
@@ -581,6 +594,8 @@ export async function shareMetadata(db, storage, env, input) {
     throw new Task22Error("分享不存在或已过期", 404, "share_not_found");
   }
   if (row.state === "revoked") throw new Task22Error("分享已被撤销", 410, "share_revoked");
+  if (row.state === "deleted") throw new Task22Error("分享已终结", 404, "share_not_found");
+  if (row.deletion_reason === "owner_revoked") throw new Task22Error("分享已被撤销", 410, "share_revoked");
   await checkPassword(row, input.password, env);
   return sharePayload(row, await shareFileRows(db, row.id));
 }
@@ -727,7 +742,8 @@ export async function streamFileDownload(context, shareIdValue, fileIdValue, tok
     JOIN task22_shares AS share ON share.id = grant.share_id
     WHERE grant.token_digest = ?1 AND grant.share_id = ?2
       AND grant.state IN ('active', 'completed') AND grant.expires_at > ?3
-      AND share.state IN ('active', 'delete_pending')`, [digest, shareId, now]);
+      AND share.state IN ('active', 'delete_pending') AND share.deletion_reason != 'owner_revoked'
+      AND share.expires_at > ?3`, [digest, shareId, now]);
   if (!row) throw new Task22Error("下载授权无效或已过期", 403, "transfer_download_grant_invalid");
   const file = await first(db, "SELECT * FROM task22_share_files WHERE share_id = ?1 AND file_id = ?2", [shareId, fileId]);
   if (!file) throw new Task22Error("分享文件不存在", 404, "transfer_share_file_not_found");
@@ -877,9 +893,19 @@ export async function revokeShare(db, storage, account, input) {
   if (row.owner_kind !== owner.kind || row.owner_ref !== owner.ref) {
     throw new Task22Error("只有创建者可以撤销分享", 403, "forbidden");
   }
-  if (row.state === "revoked") return { id: row.id, state: "revoked", no_change: true };
-  await removeShare(db, storage, row, "owner_revoked");
-  return { id: row.id, state: "revoked" };
+  if (row.state === "revoked" || (row.state === "deleted" && row.deletion_reason === "owner_revoked")) {
+    return { id: row.id, state: "revoked", no_change: true };
+  }
+  // Invalidate the public link and all bearer grants before touching R2. A
+  // storage failure must never leave a revoked file downloadable.
+  await db.batch([
+    db.prepare("UPDATE task22_shares SET state='revoked', deletion_reason='owner_revoked', updated_at=?2 WHERE id=?1")
+      .bind(row.id, isoNow()),
+    db.prepare("UPDATE task22_download_grants SET state='revoked', active_request_id='', active_request_expires_at='' WHERE share_id=?1")
+      .bind(row.id),
+  ]);
+  const cleaned = await removeShare(db, storage, { ...row, state: "revoked" }, "owner_revoked");
+  return { id: row.id, state: "revoked", cleanup_pending: !cleaned };
 }
 
 async function removeShare(db, storage, row, reason) {
@@ -893,16 +919,24 @@ async function removeShare(db, storage, row, reason) {
   let failed = 0;
   for (const file of shareFiles) {
     if (file.object_key) {
-      try { await bucket.delete(file.object_key); } catch (_) { failed += 1; }
-      if (file.upload_id) {
+      const other = await first(db, `SELECT 1 AS present FROM task22_share_files sf
+        JOIN task22_shares share ON share.id=sf.share_id WHERE sf.object_key=?1 AND share.id!=?2
+        AND ${liveShareSql("share", "?3")} LIMIT 1`, [file.object_key, row.id, now]);
+      if (!other) try { await bucket.delete(file.object_key); } catch (_) { failed += 1; }
+      if (!other && file.upload_id) {
         try { await bucket.resumeMultipartUpload(file.object_key, file.upload_id).abort(); } catch (_) { /* already completed */ }
       }
     }
   }
-  const parts = await all(db, `SELECT object_key FROM task22_upload_parts WHERE file_id IN
+  const parts = await all(db, `SELECT object_key, file_id FROM task22_upload_parts WHERE file_id IN
     (SELECT file_id FROM task22_share_files WHERE share_id = ?1)`, [row.id]);
   for (const part of parts) {
     if (!part.object_key) continue;
+    const referenced = await first(db, `SELECT 1 AS present FROM task22_share_files sf
+      JOIN task22_shares share ON share.id=sf.share_id WHERE share.id!=?1
+        AND (sf.file_id=?2 OR sf.object_key=?3) AND ${liveShareSql("share", "?4")} LIMIT 1`,
+    [row.id, part.file_id, part.object_key, now]);
+    if (referenced) continue;
     try { await bucket.delete(part.object_key); } catch (_) { failed += 1; }
   }
   if (failed) {
@@ -910,9 +944,12 @@ async function removeShare(db, storage, row, reason) {
       cleanup_retry_at = ?2, updated_at = ?2 WHERE id = ?1`, [row.id, isoNow(new Date(Date.now() + 30 * 60 * 1000))]);
     return false;
   }
-  await run(db, "DELETE FROM task22_upload_parts WHERE file_id IN (SELECT file_id FROM task22_share_files WHERE share_id = ?1)", [row.id]);
+  await run(db, `DELETE FROM task22_upload_parts WHERE file_id IN
+    (SELECT file_id FROM task22_share_files WHERE share_id = ?1)
+    AND NOT EXISTS (SELECT 1 FROM task22_share_files sf WHERE sf.file_id=task22_upload_parts.file_id AND sf.share_id!=?1)`, [row.id]);
   await run(db, "DELETE FROM task22_share_files WHERE share_id = ?1", [row.id]);
-  await run(db, "DELETE FROM task22_shares WHERE id = ?1", [row.id]);
+  // Keep an owner-scoped tombstone for idempotent repeated revoke/complete.
+  await run(db, "UPDATE task22_shares SET state='deleted', updated_at=?2 WHERE id=?1", [row.id, now]);
   return true;
 }
 
@@ -1062,7 +1099,8 @@ export async function task22Counts(db) {
       COALESCE(SUM(CASE WHEN state = 'active' AND expires_at > ?1 THEN total_bytes ELSE 0 END), 0) AS reserved_bytes,
       COALESCE(SUM(CASE WHEN state = 'active' AND expires_at <= ?1 THEN total_bytes ELSE 0 END), 0) AS expired_reserved_bytes
       FROM task22_upload_sessions`, [now]),
-    first(db, "SELECT COALESCE(SUM(total_bytes), 0) AS stored_bytes FROM task22_shares WHERE state IN ('active', 'revoked')"),
+    first(db, `SELECT COALESCE(SUM(file.size_bytes), 0) AS stored_bytes FROM task22_share_files file
+      JOIN task22_shares share ON share.id=file.share_id WHERE ${liveShareSql("share", "?1")}`, [isoNow()]),
   ]);
   const reservedBytes = Number(sessionBytes?.reserved_bytes || 0);
   const storedBytes = Number(shareBytes?.stored_bytes || 0);

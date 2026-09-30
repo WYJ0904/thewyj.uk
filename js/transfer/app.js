@@ -354,6 +354,11 @@ function formatBytes(bytes) {
   return `${(value / 1024 / 1024 / 1024).toFixed(2)} GiB`;
 }
 
+function formatQuotaBytes(bytes) {
+  const value = Number(bytes || 0);
+  return value < 1024 * 1024 ? (value === 0 ? "0 MiB" : `${(value / 1048576).toFixed(2)} MiB`) : formatBytes(value);
+}
+
 function safeFileRelativePath(file) {
   const full = String(file.webkitRelativePath || file.relativePath || file.name || "").replace(/\\/g, "/");
   const parts = full.split("/").filter((part) => part && part !== "." && part !== "..");
@@ -374,6 +379,10 @@ export function createTransferController({
   let activeSession = null;
   let currentShare = null;
   let ownedShareIds = new Set();
+  let ownerGeneration = 0;
+  let sharesListGeneration = 0;
+  let quotaGeneration = 0;
+  const revokingShares = new Set();
   const downloadGrants = new Map();
   let shareRequestGeneration = 0;
   let serverSessions = [];
@@ -493,8 +502,8 @@ export function createTransferController({
     const used = Number(capabilities.used_bytes ?? (stored + reserved));
     const limit = capabilities.storage_limit_bytes || 0;
     element("transferQuotaText").textContent = hasBreakdown
-      ? `已存储 ${formatBytes(stored)} · 上传预留 ${formatBytes(reserved)} · 总计 ${formatBytes(used)} / ${formatBytes(limit)}`
-      : `已用 ${formatBytes(used)} / ${formatBytes(limit)}`;
+      ? `已存储 ${formatQuotaBytes(stored)} · 上传预留 ${formatQuotaBytes(reserved)} · 总计 ${formatQuotaBytes(used)} / ${formatQuotaBytes(limit)}`
+      : `已用 ${formatQuotaBytes(used)} / ${formatQuotaBytes(limit)}`;
     const progress = element("transferQuotaBar");
     if (progress) progress.max = String(Math.max(1, limit));
     if (progress) progress.value = String(Math.min(limit, used));
@@ -1169,9 +1178,12 @@ export function createTransferController({
   async function loadMyShares() {
     const list = element("transferMyShares");
     if (!list) return;
+    const generation = ++sharesListGeneration;
+    const owner = ownerGeneration;
     try {
       const query = authenticated() ? "" : `?guest_id=${encodeURIComponent(guestId())}`;
       const payload = await request(`/api/transfer/shares${query}`);
+      if (generation !== sharesListGeneration || owner !== ownerGeneration) return;
       const shares = payload.shares || [];
       ownedShareIds = new Set(shares.filter((share) => share.state !== "revoked").map((share) => share.id));
       updateCurrentShareActions();
@@ -1183,10 +1195,11 @@ export function createTransferController({
         <div><strong>${escapeHtml(share.file_count)} 个文件 · ${formatBytes(share.total_bytes)}</strong><small>${escapeHtml((share.files || []).map((file) => file.file_name).join("、") || "文件名暂不可用")}</small><small>${new Date(share.expires_at).toLocaleString("zh-CN")} 到期 · 下载 ${share.download_count}/${share.max_downloads}${share.password_required ? " · 有密码" : ""}</small></div>
         <div class="transfer-share-actions">
           <button type="button" data-transfer-open="${escapeHtml(share.id)}">查看</button>
-          <button class="danger-text" type="button" data-transfer-revoke="${escapeHtml(share.id)}">撤销</button>
+          <button class="danger-text" type="button" data-transfer-revoke="${escapeHtml(share.id)}"><span data-pending-label="撤销中…">撤销</span></button>
         </div>
       </article>`).join("");
     } catch (error) {
+      if (generation !== sharesListGeneration || owner !== ownerGeneration) return;
       list.innerHTML = `<div class="transfer-empty">分享列表加载失败：${escapeHtml(error.message || "请稍后重试")}</div>`;
     }
   }
@@ -1268,6 +1281,9 @@ export function createTransferController({
   }
 
   async function revokeShare(shareId) {
+    if (revokingShares.has(shareId)) return;
+    revokingShares.add(shareId);
+    ownerGeneration += 1;
     try {
       const body = {};
       if (!authenticated()) body.guest_id = guestId();
@@ -1278,6 +1294,9 @@ export function createTransferController({
       await Promise.all([loadMyShares(), loadCapabilities()]);
     } catch (error) {
       setMessage(error.message || "撤销失败。", "error");
+      throw error;
+    } finally {
+      revokingShares.delete(shareId);
     }
   }
 
@@ -1456,13 +1475,17 @@ export function createTransferController({
   }
 
   async function loadCapabilities() {
+    const generation = ++quotaGeneration;
+    const owner = ownerGeneration;
     try {
       const query = authenticated() ? "" : `?guest_id=${encodeURIComponent(guestId())}`;
       const payload = await request(`/api/transfer/capabilities${query}`);
+      if (generation !== quotaGeneration || owner !== ownerGeneration) return;
       capabilities = payload;
       renderQuota();
-    } catch (_) {
-      capabilities = { storage_limit_bytes: 0, stored_bytes: 0, reserved_bytes: 0, used_bytes: 0 };
+    } catch (error) {
+      if (generation !== quotaGeneration || owner !== ownerGeneration) return;
+      setMessage(`配额刷新失败，保留上次结果：${error.message || "请稍后重试"}`, "error");
     }
   }
 
@@ -1529,6 +1552,7 @@ export function createTransferController({
   }
 
   function accountUpdated() {
+    ownerGeneration += 1;
     ownedShareIds = new Set();
     updateCurrentShareActions();
     restoreQueue();

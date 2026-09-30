@@ -720,9 +720,68 @@ try {
     token: USERS.other.token,
     body: {},
   });
-  assert.equal(revokedForeign.response.status, 404);
+  assert.equal(revokedForeign.response.status, 403);
   const revokedMetadata = await request(db, storage, `/api/transfer/shares/${revokeShareId}`);
   assert.equal(revokedMetadata.response.status, 404);
+
+  // Every share reference is charged, including identical content and a
+  // physically deduplicated object. Revoke is logical before R2 cleanup.
+  {
+    const baseline = (await request(db, storage, "/api/transfer/capabilities", { token: USERS.tools.token })).payload.stored_bytes;
+    const twins = [];
+    for (let index = 0; index < 2; index++) {
+      const sid = await createSession(db, storage, { token: USERS.tools.token, fileCount: 1, totalBytes: 4096 });
+      const file = await allocateFile(db, storage, sid, {
+        token: USERS.tools.token, fileId: `file-logical-${index}-0001`, relativePath: "same.bin",
+        fileName: "same.bin", mimeType: "application/octet-stream", sizeBytes: 4096,
+      });
+      await putPart(db, storage, sid, file.file_id, 1, 4096, 61, { token: USERS.tools.token });
+      const done = await request(db, storage, `/api/transfer/uploads/${sid}/complete`, {
+        method: "POST", token: USERS.tools.token, body: {},
+      });
+      twins.push({ share: done.payload.share.id, file: file.file_id,
+        key: (await db.prepare("SELECT object_key FROM task22_share_files WHERE share_id=?1").bind(done.payload.share.id).first()).object_key });
+    }
+    assert.notEqual(twins[0].key, twins[1].key, "normal identical uploads are separate objects");
+    await storage.delete(twins[1].key);
+    await db.prepare("UPDATE task22_share_files SET object_key=?2 WHERE share_id=?1")
+      .bind(twins[1].share, twins[0].key).run();
+    let caps = await request(db, storage, "/api/transfer/capabilities", { token: USERS.tools.token });
+    assert.equal(caps.payload.stored_bytes, baseline + 8192, "two logical references cannot be counted as one object");
+    await request(db, storage, `/api/transfer/shares/${twins[0].share}/revoke`, {
+      method: "POST", token: USERS.tools.token, body: {},
+    });
+    assert.ok(await storage.get(twins[0].key), "revoking one reference must preserve the other share's bytes");
+    caps = await request(db, storage, "/api/transfer/capabilities", { token: USERS.tools.token });
+    assert.equal(caps.payload.stored_bytes, baseline + 4096);
+    const granted = await request(db, storage, `/api/transfer/shares/${twins[1].share}/authorize`, { method: "POST", body: {} });
+    const token = granted.payload.download.token;
+    const delivered = await request(db, storage, `/api/transfer/shares/${twins[1].share}/download?file=${twins[1].file}&grant=${token}`);
+    assert.deepEqual(delivered.payload, bytesOf(61, 4096));
+    const failedStorage = { get: (...a) => storage.get(...a), put: (...a) => storage.put(...a),
+      delete: async () => { throw Error("R2 temporarily unavailable"); } };
+    const revoke = await request(db, failedStorage, `/api/transfer/shares/${twins[1].share}/revoke`, {
+      method: "POST", token: USERS.tools.token, body: {},
+    });
+    assert.equal(revoke.response.status, 200);
+    assert.equal(revoke.payload.share.cleanup_pending, true);
+    const revokedGrant = await request(db, storage, `/api/transfer/shares/${twins[1].share}/download?file=${twins[1].file}&grant=${token}`);
+    assert.equal(revokedGrant.response.status, 403, "revoke invalidates a completed grant even while R2 cleanup fails");
+    const hidden = await request(db, storage, `/api/transfer/shares/${twins[1].share}`);
+    assert.ok([404,410].includes(hidden.response.status));
+    const again = await request(db, storage, `/api/transfer/shares/${twins[1].share}/revoke`, {
+      method: "POST", token: USERS.tools.token, body: {},
+    });
+    assert.equal(again.response.status, 200);
+    assert.equal(again.payload.share.no_change, true);
+    caps = await request(db, storage, "/api/transfer/capabilities", { token: USERS.tools.token });
+    assert.equal(caps.payload.stored_bytes, baseline, "revoke releases logical quota before physical cleanup");
+    const ownerList = await request(db, storage, "/api/transfer/shares", { token: USERS.tools.token });
+    assert.ok(!ownerList.payload.shares.some(s => twins.some(t => t.share === s.id)));
+    await db.prepare("UPDATE task22_shares SET cleanup_retry_at='' WHERE id=?1").bind(twins[1].share).run();
+    await cleanupExpiredTransfers(db, storage);
+    assert.equal(await storage.get(twins[0].key), null);
+  }
 
   // 13. Multi-part ranges stream exactly the requested window across a part
   // boundary, and a full download reassembles identical bytes.
@@ -819,8 +878,8 @@ try {
     assert.equal(brokenComplete.response.status, 409, JSON.stringify(brokenComplete.payload));
     assert.equal(brokenComplete.payload.code, "transfer_incomplete_upload");
     const brokenShares = await db.prepare(
-      "SELECT COUNT(*) AS count FROM task22_shares WHERE owner_ref = ?1",
-    ).bind(USERS.other.id).first();
+      "SELECT COUNT(*) AS count FROM task22_shares WHERE id=(SELECT share_id FROM task22_upload_sessions WHERE id=?1)",
+    ).bind(brokenSession).first();
     assert.equal(Number(brokenShares.count), 0, "an incomplete upload must not publish a share");
 
     // A multipart upload that R2 no longer holds must fail closed as well.
@@ -846,8 +905,8 @@ try {
     });
     assert.ok(abortedComplete.response.status >= 500, JSON.stringify(abortedComplete.payload));
     const abortedShares = await db.prepare(
-      "SELECT COUNT(*) AS count FROM task22_shares WHERE owner_ref = ?1",
-    ).bind(USERS.other.id).first();
+      "SELECT COUNT(*) AS count FROM task22_shares WHERE id=(SELECT share_id FROM task22_upload_sessions WHERE id=?1)",
+    ).bind(abortedSession).first();
     assert.equal(Number(abortedShares.count), 0, "a lost upload must not publish a share");
   }
 
