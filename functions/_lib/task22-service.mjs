@@ -664,8 +664,12 @@ async function finalizeSingleObjectDownload(db, row, digest) {
 }
 
 /** Observe the native stream pump only after every byte reaches the response. */
-function completedSingleObjectBody(context, body, onComplete) {
-  const { readable, writable } = new TransformStream();
+function completedSingleObjectBody(context, body, length, onComplete) {
+  // Workers derives wire Content-Length from the stream's native length.
+  // An ordinary identity TransformStream makes the response chunked even when
+  // the manually supplied header contains the correct object size.
+  const { readable, writable } = typeof FixedLengthStream === "function"
+    ? new FixedLengthStream(length) : new TransformStream();
   const completion = body.pipeTo(writable).then(onComplete).catch(() => undefined);
   if (typeof context.waitUntil === "function") context.waitUntil(completion);
   else void completion;
@@ -778,7 +782,7 @@ export async function streamFileDownload(context, shareIdValue, fileIdValue, tok
   const headers = new Headers({
     "Content-Type": file.mime_type,
     "Content-Disposition": safeContentDisposition(file.file_name),
-    "Cache-Control": "private, no-store",
+    "Cache-Control": "private, no-store, no-transform",
     "X-Content-Type-Options": "nosniff",
     "Accept-Ranges": "bytes",
   });
@@ -802,7 +806,7 @@ export async function streamFileDownload(context, shareIdValue, fileIdValue, tok
       : await storage.get(singleObject);
     if (!object?.body) throw new Task22Error("下载数据暂时不可用", 503, "transfer_file_missing", true);
     const body = fullResponse
-      ? completedSingleObjectBody(context, object.body,
+      ? completedSingleObjectBody(context, object.body, totalBytes,
         () => finalizeSingleObjectDownload(db, row, digest))
       : object.body;
     return new Response(body, { status: requestedRange ? 206 : 200, headers });

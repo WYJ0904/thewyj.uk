@@ -354,6 +354,16 @@ async function main() {
     // owner login can be inherited by this recipient.
     const sharePage = await openPage({ cdpUrl: CDP_URL, baseUrl: BASE_URL, width: 1280, height: 900, mobile: false });
     await sharePage.setDownloadBehavior(DOWNLOAD_DIR);
+    const wireDownloads = [];
+    sharePage.client.listeners.add((message) => {
+      if (message.method !== "Network.responseReceived") return;
+      const response = message.params?.response;
+      if (!response?.url?.includes(`/api/transfer/shares/${shareId}/download?`)) return;
+      const header = (name) => Object.entries(response.headers || {})
+        .find(([key]) => key.toLowerCase() === name)?.[1];
+      wireDownloads.push({ fileId: new URL(response.url).searchParams.get("file"),
+        length: Number(header("content-length")), cache: String(header("cache-control") || "") });
+    });
     try {
       await sharePage.navigate(`/transfer#share=${encodeURIComponent(shareId)}`);
       await sharePage.waitFor("document.querySelectorAll('[data-transfer-download]').length >= 2", 40_000, "share download buttons");
@@ -416,6 +426,15 @@ async function main() {
         const downloadedHash = await sha256File(downloadedPath);
         assert.equal(fs.statSync(downloadedPath).size, fixture.size, `${fixture.label}: byte length`);
         assert.equal(downloadedHash, fixture.sha256, `${fixture.label}: SHA-256 source == download`);
+        const fileId = await sharePage.evaluate(`(() => {
+          const button = [...document.querySelectorAll('[data-transfer-download]')].find(button =>
+            button.closest('.transfer-share-file')?.textContent.includes(${JSON.stringify(fixture.fileName)}));
+          return button?.dataset.transferDownload.split('|')[1];
+        })()`);
+        const wire = wireDownloads.find(response => response.fileId === fileId);
+        assert.ok(wire, `${fixture.label}: real download response observed`);
+        assert.equal(wire.length, fixture.size, `${fixture.label}: wire Content-Length survives the native stream`);
+        assert.match(wire.cache, /no-transform/, `${fixture.label}: wire response prohibits proxy transformation`);
         assert.ok(
           path.extname(downloadedPath) === path.extname(fixture.fileName),
           `${fixture.label}: extension must survive (${downloadedPath})`,

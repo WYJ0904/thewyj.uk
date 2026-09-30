@@ -442,6 +442,8 @@ try {
     const downloaded = await request(db, storage,
       `/api/transfer/shares/${share.id}/download?file=${fileId}&grant=${grant}`);
     assert.equal(downloaded.response.status, 200, `${fixture.label}: download status`);
+    assert.match(downloaded.response.headers.get("Cache-Control"), /no-transform/,
+      `${fixture.label}: binary response must prohibit proxy transformations`);
     assert.equal(
       Number(downloaded.response.headers.get("Content-Length")),
       size,
