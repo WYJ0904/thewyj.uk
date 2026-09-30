@@ -1,3 +1,5 @@
+import { notificationCashText } from "./notification-cash-evidence.mjs";
+
 export const TASK16_SCHEMA_VERSION = "1";
 export const TASK16_BUILD = "2026-08-27-task16-finance-core";
 export const FINANCE_ENTITLEMENT = "finance_access";
@@ -168,7 +170,11 @@ function amountMinorFromText(text) {
 }
 
 export function classifyFinanceText(value) {
-  const text = normalizeRecognitionText(value);
+  const sourceText = normalizeRecognitionText(value);
+  const text = notificationCashText(sourceText);
+  if (text === null) {
+    return { classification: "rejected", reason: "non_cash_voucher", direction: "unknown", amount_minor: 0 };
+  }
   if (!text) return { classification: "rejected", reason: "text_empty", direction: "unknown", amount_minor: 0 };
 
   const direction = directionFromSemantics(text);

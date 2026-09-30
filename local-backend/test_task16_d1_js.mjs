@@ -189,8 +189,33 @@ try {
     classification: "rejected", reason: "marketing_or_credit_offer", direction: "unknown", amount_minor: 0,
   });
   assert.equal(classifyFinanceText("商品原价 500 元，优惠券立减 50 元").classification, "rejected");
+  for (const text of [
+    "【湖北恒隆】尊敬的会员，您好！专属50元餐券已发放至您的券包，10/1‑10/4 “落日酒场”亚太8家酒吧齐聚解锁微醺夜晚，10/1-10/3&10/7消费满5,000-30,000元可赠100-600元Ole超市券，更多详情请关注武汉恒隆广场公众号，祝您节日快乐。拒收请回复R",
+    "优惠券已入账 ¥6.00", "获得6元立减券，领取成功", "支付成功后可获得50元餐券",
+    "优惠券退款成功50元",
+  ]) {
+    const result = classifyFinanceText(text);
+    assert.equal(result.classification, "rejected", text);
+    assert.equal(result.amount_minor, 0, text);
+    assert.equal(result.direction, "unknown", text);
+  }
+  for (const [text, direction] of [
+    ["获得50元餐券，支付成功 实付¥0.01", "expense"],
+    ["支付成功 实付¥0.01，50元餐券已到账", "expense"],
+    ["优惠券6元已退回；退款成功¥0.01", "refund"],
+    ["退款已到账¥0.01，50元餐券已返还", "refund"],
+    ["返现已到账¥0.01至银行卡，另赠50元餐券", "income"],
+  ]) {
+    const result = classifyFinanceText(text);
+    assert.equal(result.classification, "accepted", text);
+    assert.equal(result.amount_minor, 1, text);
+    assert.equal(result.direction, direction, text);
+  }
   assert.deepEqual(classifyFinanceText("支付宝退款成功 28.00 元"), {
     classification: "accepted", reason: "transaction_completed", direction: "refund", amount_minor: 2800,
+  });
+  assert.deepEqual(classifyFinanceText("付款成功 实付¥5,000.00，已使用50元优惠券"), {
+    classification: "accepted", reason: "transaction_completed", direction: "expense", amount_minor: 500000,
   });
   assert.throws(() => normalizeRawEvent(eventPayload({ text: "" })), /可验证的交易文本/u);
   const sameSourceScore = reconciliationScore(

@@ -4,7 +4,7 @@ import uk.thewyj.app.task21.FinanceDirection
 
 /** WeChat payment messages. "昵称 + 转账" is a hint, never a transaction. */
 object WeChatPaymentParser : PaymentMessageParser {
-    override val version = "wechat-2"
+    override val version = "wechat-3"
     override val channel = "wechat"
 
     override fun matches(sourcePackage: String, sourceType: PaymentSourceType): Boolean =
@@ -17,7 +17,9 @@ object WeChatPaymentParser : PaymentMessageParser {
         subText: String,
         capturedAtMs: Long,
     ): ParsedPaymentMessage {
-        val normalized = PaymentText.normalize(title, text, bigText, subText)
+        val sourceText = PaymentText.normalize(title, text, bigText, subText)
+        val normalized = NotificationCashEvidence.cashText(sourceText)
+            ?: return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("noncash_voucher"))
         if (normalized.isEmpty()) {
             return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("empty"))
         }
@@ -44,8 +46,8 @@ object WeChatPaymentParser : PaymentMessageParser {
         val explicitCompletion = PaymentText.hasCompletion(normalized)
         val completion = explicitCompletion || (paymentTitle && amount != null && direction != null)
         val hint = PaymentText.hasPaymentHint(normalized)
-        val merchant = PaymentText.merchant(normalized)
-        val reference = PaymentText.providerReference(normalized)
+        val merchant = PaymentText.merchant(sourceText)
+        val reference = PaymentText.providerReference(sourceText)
 
         if (!hint && amount == null) {
             return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("wechat_not_payment"))
@@ -119,7 +121,7 @@ object WeChatPaymentParser : PaymentMessageParser {
 }
 
 object AlipayPaymentParser : PaymentMessageParser {
-    override val version = "alipay-2"
+    override val version = "alipay-3"
     override val channel = "alipay"
 
     override fun matches(sourcePackage: String, sourceType: PaymentSourceType): Boolean =
@@ -132,7 +134,9 @@ object AlipayPaymentParser : PaymentMessageParser {
         subText: String,
         capturedAtMs: Long,
     ): ParsedPaymentMessage {
-        val normalized = PaymentText.normalize(title, text, bigText, subText)
+        val sourceText = PaymentText.normalize(title, text, bigText, subText)
+        val normalized = NotificationCashEvidence.cashText(sourceText)
+            ?: return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("noncash_voucher"))
         if (normalized.isEmpty()) {
             return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("empty"))
         }
@@ -171,8 +175,8 @@ object AlipayPaymentParser : PaymentMessageParser {
                 reasons = listOf("alipay_chat_context"),
             )
         }
-        val merchant = PaymentText.merchant(normalized)
-        val reference = PaymentText.providerReference(normalized)
+        val merchant = PaymentText.merchant(sourceText)
+        val reference = PaymentText.providerReference(sourceText)
         return when {
             amount != null && direction != null && completion -> ParsedPaymentMessage(
                 status = PaymentRecognitionStatus.CONFIRMED_PAYMENT,
@@ -227,7 +231,7 @@ object AlipayPaymentParser : PaymentMessageParser {
 
 /** Bank app notifications: strong evidence once an amount is visible. */
 object BankNotificationParser : PaymentMessageParser {
-    override val version = "bank-notification-2"
+    override val version = "bank-notification-3"
     /**
      * Canonical channel shared with the server allow-list. The previous
      * `"bank"` spelling was rejected by `/api/notification/ingest` with
@@ -258,7 +262,9 @@ object BankNotificationParser : PaymentMessageParser {
         subText: String,
         capturedAtMs: Long,
     ): ParsedPaymentMessage {
-        val normalized = PaymentText.normalize(title, text, bigText, subText)
+        val sourceText = PaymentText.normalize(title, text, bigText, subText)
+        val normalized = NotificationCashEvidence.cashText(sourceText)
+            ?: return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("noncash_voucher"))
         if (normalized.isEmpty()) {
             return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("empty"))
         }
@@ -272,8 +278,8 @@ object BankNotificationParser : PaymentMessageParser {
         }
         val amount = PaymentText.amountMinor(normalized)
         val direction = PaymentText.direction(normalized)
-        val tail = PaymentText.accountTail(normalized)
-        val reference = PaymentText.providerReference(normalized)
+        val tail = PaymentText.accountTail(sourceText)
+        val reference = PaymentText.providerReference(sourceText)
         val transactionHint = PaymentText.hasCompletion(normalized) ||
             PaymentText.hasPaymentHint(normalized) ||
             normalized.contains("动账") || normalized.contains("動賬") ||
@@ -327,7 +333,7 @@ object BankNotificationParser : PaymentMessageParser {
  * rejected before any amount is considered a transaction.
  */
 object BankSmsParser : PaymentMessageParser {
-    override val version = "bank-sms-2"
+    override val version = "bank-sms-3"
     /** Canonical channel: see BankNotificationParser for why this is not "bank_sms". */
     override val channel = "bank_card"
 
@@ -360,11 +366,13 @@ object BankSmsParser : PaymentMessageParser {
         subText: String,
         capturedAtMs: Long,
     ): ParsedPaymentMessage {
-        val normalized = PaymentText.normalize(title, text, bigText, subText)
+        val sourceText = PaymentText.normalize(title, text, bigText, subText)
+        val normalized = NotificationCashEvidence.cashText(sourceText)
+            ?: return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("noncash_voucher"))
         if (normalized.isEmpty()) {
             return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("empty"))
         }
-        if (otpTerms.any { normalized.contains(it, ignoreCase = true) }) {
+        if (otpTerms.any { sourceText.contains(it, ignoreCase = true) }) {
             return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("sms_otp"))
         }
         if (marketingTerms.any { normalized.contains(it) }) {
@@ -373,11 +381,11 @@ object BankSmsParser : PaymentMessageParser {
         if (balanceTerms.any { normalized.contains(it) }) {
             return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("sms_balance_reminder"))
         }
-        val institution = institutions.firstOrNull { normalized.contains(it, ignoreCase = true) }
+        val institution = institutions.firstOrNull { sourceText.contains(it, ignoreCase = true) }
         val amount = PaymentText.amountMinor(normalized)
         val direction = PaymentText.direction(normalized)
-        val tail = PaymentText.accountTail(normalized)
-        val reference = PaymentText.providerReference(normalized)
+        val tail = PaymentText.accountTail(sourceText)
+        val reference = PaymentText.providerReference(sourceText)
         val transactionLike = PaymentText.hasCompletion(normalized) || PaymentText.hasPaymentHint(normalized)
         if (!transactionLike) {
             return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("sms_not_transaction"))

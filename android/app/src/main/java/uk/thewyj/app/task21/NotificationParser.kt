@@ -123,7 +123,12 @@ private class StructuredParser(
     override fun matches(sourcePackage: String): Boolean = sourcePackage in packageNames
 
     override fun parse(input: ParserInput, receivedAtMs: Long): ParserOutput {
-        val text = normalizeText(input)
+        val sourceText = normalizeText(input)
+        val text = uk.thewyj.app.task21.payment.NotificationCashEvidence.cashText(sourceText)
+            ?: return ParserOutput(
+                NotificationEventType.MARKETING, ParseStatus.UNPARSED, FinanceDirection.UNKNOWN,
+                0, "CNY", paymentChannel, "", "", 0, receivedAtMs,
+            )
         if (text.isBlank()) {
             return ParserOutput(
                 NotificationEventType.OTHER, ParseStatus.UNPARSED, FinanceDirection.UNKNOWN,
@@ -161,7 +166,7 @@ private class StructuredParser(
         }
 
         val amountMinor = extractAmountMinor(text)
-        val merchant = extractMerchant(text, direction)
+        val merchant = extractMerchant(sourceText, direction)
         val eventType = if (direction == FinanceDirection.REFUND) NotificationEventType.REFUND
         else NotificationEventType.TRANSACTION
 
