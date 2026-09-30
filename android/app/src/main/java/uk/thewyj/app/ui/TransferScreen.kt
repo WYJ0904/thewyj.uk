@@ -374,7 +374,14 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
                                     Spacer(Modifier.width(12.dp))
                                     OutlinedButton(
                                         onClick = {
-                                            scope.launch { owner.revoke(share.id) }
+                                            scope.launch {
+                                                if (owner.revoke(share.id)) {
+                                                    if (shareLink == TransferLinks.shareLink(BuildConfig.THEWYJ_BASE_URL, share.id)) {
+                                                        shareLink = ""
+                                                    }
+                                                    message = "分享已撤销。"
+                                                }
+                                            }
                                         },
                                         enabled = share.id !in ownerState.revoking,
                                         shape = ThewyjRadius.Small,

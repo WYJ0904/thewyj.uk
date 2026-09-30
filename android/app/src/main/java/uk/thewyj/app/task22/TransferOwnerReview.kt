@@ -60,8 +60,8 @@ class TransferOwnerReview(
         } finally { mutable.update { it.copy(refreshing = false) } }
     }
 
-    suspend fun revoke(id: String) {
-        if (!revocations.add(id)) return
+    suspend fun revoke(id: String): Boolean {
+        if (!revocations.add(id)) return false
         revision.incrementAndGet()
         mutable.update { it.copy(revoking = it.revoking + id, errors = it.errors - id) }
         try {
@@ -80,10 +80,12 @@ class TransferOwnerReview(
             }
             // Wait for a superseded pull, then obtain the authoritative quota.
             refreshLock.withLock { readSnapshot() }
+            return true
         } catch (error: CancellationException) { throw error
         } catch (error: Exception) {
             val message = "撤销失败：${error.message ?: "请稍后重试"}"
             mutable.update { it.copy(errors = it.errors + (id to message), message = message, failed = true) }
+            return false
         } finally {
             revocations.remove(id)
             mutable.update { it.copy(revoking = it.revoking - id) }

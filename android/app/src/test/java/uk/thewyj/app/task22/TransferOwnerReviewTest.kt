@@ -20,9 +20,9 @@ class TransferOwnerReviewTest {
         val owner = TransferOwnerReview({ snapshot(ids) }, { id -> ids = ids - id })
         owner.refresh()
         assertEquals("已存储 358.8 MiB / 5.00 GiB", owner.state.value.snapshot!!.usage.label)
-        owner.revoke("share-a")
+        assertTrue(owner.revoke("share-a"))
         assertEquals("已存储 179.4 MiB / 5.00 GiB", owner.state.value.snapshot!!.usage.label)
-        owner.revoke("share-b")
+        assertTrue(owner.revoke("share-b"))
         assertEquals("已存储 0 MiB / 5.00 GiB", owner.state.value.snapshot!!.usage.label)
         assertTrue(owner.state.value.snapshot!!.shares.isEmpty())
     }
@@ -52,7 +52,7 @@ class TransferOwnerReviewTest {
 
     @Test fun revokeErrorIsVisibleAndPreservesTheShare() = runBlocking {
         val owner = TransferOwnerReview({ snapshot(listOf("share-a")) }, { error("HTTP 503") })
-        owner.refresh(); owner.revoke("share-a")
+        owner.refresh(); assertFalse(owner.revoke("share-a"))
         assertEquals(listOf("share-a"), owner.state.value.snapshot!!.shares.map { it.id })
         assertTrue(owner.state.value.errors["share-a"]!!.contains("HTTP 503"))
         assertTrue(owner.state.value.revoking.isEmpty())
