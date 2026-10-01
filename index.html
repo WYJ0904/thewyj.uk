@@ -6,12 +6,12 @@
     <meta name="theme-color" content="#ffffff" />
     <title>thewyj — 学习、工具、财务与分享</title>
     <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260930-maintenance-r1" />
-    <link rel="stylesheet" href="/styles.css?v=20260930-maintenance-r1" />
-    <link rel="stylesheet" href="/product-ui.css?v=20260930-maintenance-r1" />
-    <link rel="stylesheet" href="/design-system.css?v=20260930-maintenance-r1" />
-    <link rel="stylesheet" href="/public-experience.css?v=20260930-maintenance-r1" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20260930-maintenance-r1" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20261001-acceptance-r2" />
+    <link rel="stylesheet" href="/styles.css?v=20261001-acceptance-r2" />
+    <link rel="stylesheet" href="/product-ui.css?v=20261001-acceptance-r2" />
+    <link rel="stylesheet" href="/design-system.css?v=20261001-acceptance-r2" />
+    <link rel="stylesheet" href="/public-experience.css?v=20261001-acceptance-r2" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20261001-acceptance-r2" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 thewyj" aria-hidden="false">
@@ -419,7 +419,15 @@
 
           <section class="finance-content-grid">
             <details class="finance-ledger-panel finance-fold" id="financeRecordedSection">
-              <summary class="finance-fold-title"><span>已记录（<span id="financeRecordedCount">0</span>）</span><small>按当前筛选</small></summary>
+              <summary class="finance-fold-title"><span>已记录（<span id="financeRecordedCount">0</span>）</span><small id="financeRecordedScope">当前月份 · 历史保留</small></summary>
+              <div class="finance-history-controls" aria-label="查看历史账目">
+                <p id="financeHistoryNotice" aria-live="polite">当前只显示所选月份，历史账目仍然保留。</p>
+                <div class="action-row">
+                  <button class="button-secondary" id="financeAllMonthsBtn" type="button" aria-pressed="false">全部月份 / 历史账目</button>
+                  <button class="button-ghost" id="financeSelectedMonthBtn" type="button">按所选月份</button>
+                </div>
+                <label><span>切换历史月份</span><select id="financeHistoryMonthSelect"><option value="">选择月份</option></select></label>
+              </div>
               <div class="finance-section-heading"><div><h2>账目</h2><p id="financeTransactionCount">0 笔</p></div></div>
               <!-- 手机端默认收起：默认视图只保留概览与账目列表，
                    搜索/月份/类型/分类/状态按需展开（详情见 setupResponsiveDisclosures）。 -->
@@ -427,7 +435,7 @@
                 <summary><span>筛选账目</span><small id="financeFilterSummary">全部账目</small></summary>
                 <div class="finance-filter-grid" aria-label="筛选账目">
                   <label><span>搜索</span><input id="financeSearchInput" type="search" maxlength="120" placeholder="商户、对手方或备注" /></label>
-                  <label><span>月份</span><input id="financeMonthFilter" type="month" /></label>
+                  <label><span>月份（收支 / 分类统计）</span><input id="financeMonthFilter" type="month" /></label>
                   <label><span>类型</span><select id="financeDirectionFilter"><option value="">全部类型</option><option value="income">收入</option><option value="expense">支出</option><option value="refund">退款</option></select></label>
                   <label><span>分类</span><select id="financeCategoryFilter"><option value="">全部分类</option></select></label>
                   <label><span>状态</span><select id="financeStatusFilter"><option value="active">当前账目</option><option value="deleted">已删除</option><option value="all">全部状态</option></select></label>
@@ -437,8 +445,8 @@
               <div class="finance-transaction-list" id="financeTransactionList" aria-live="polite"></div>
             </details>
 
-            <details class="ds-collapse ds-collapse-panel" id="financeInsightDisclosure" data-responsive-collapse open>
-              <summary><span>预算与分类统计</span><small>按月统计</small></summary>
+            <details class="finance-insight-panel finance-fold" id="financeInsightDisclosure" data-responsive-collapse open>
+              <summary class="finance-fold-title"><span>预算与分类统计</span><small>按月统计</small></summary>
               <aside class="finance-side-column">
                 <section class="finance-side-panel"><div class="finance-section-heading"><div><h2>预算状态</h2><p>到期不删除历史账目</p></div><button class="button-ghost" id="financeManageBudgetsBtn" type="button">管理</button></div><div id="financeBudgetSummary"></div></section>
                 <section class="finance-side-panel"><div class="finance-section-heading"><div><h2>分类统计</h2><p>按当前筛选月份的支出</p></div><button class="button-ghost" id="financeManageCategoriesBtn" type="button">管理</button></div><div id="financeCategoryStats"></div></section>
@@ -1238,10 +1246,10 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20260930-maintenance-r1"></script>
-    <script type="module" src="/tools.js?v=20260930-maintenance-r1"></script>
-    <script src="/workflows.js?v=20260930-maintenance-r1"></script>
-    <script src="/learning-sync.js?v=20260930-maintenance-r1"></script>
-    <script type="module" src="/app.js?v=20260930-maintenance-r1"></script>
+    <script src="/changelog.js?v=20261001-acceptance-r2"></script>
+    <script type="module" src="/tools.js?v=20261001-acceptance-r2"></script>
+    <script src="/workflows.js?v=20261001-acceptance-r2"></script>
+    <script src="/learning-sync.js?v=20261001-acceptance-r2"></script>
+    <script type="module" src="/app.js?v=20261001-acceptance-r2"></script>
   </body>
 </html>

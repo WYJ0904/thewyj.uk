@@ -699,13 +699,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260930-maintenance-r1');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20260930-maintenance-r1');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260930-maintenance-r1');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260930-maintenance-r1');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260930-maintenance-r1');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260930-maintenance-r1');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260930-maintenance-r1');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261001-acceptance-r2');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261001-acceptance-r2');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261001-acceptance-r2');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261001-acceptance-r2');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261001-acceptance-r2');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261001-acceptance-r2');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261001-acceptance-r2');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -2037,6 +2037,46 @@ async function main() {
       await click("#financeRecordedSection > summary");
       assert.equal(await evaluate("document.querySelector('#financeRecordedSection').open"), true);
       assert.ok((await evaluate("document.querySelector('#financeBalanceTotal').textContent")).includes("90.00"));
+
+      // The ledger and the monthly statistics have separate scopes. Earlier
+      // months remain reachable after the calendar changes, without a delete,
+      // restore or any other ledger mutation caused by exploring history.
+      const financeSelectedMonth = await evaluate("document.querySelector('#financeMonthFilter').value");
+      await evaluate(`(() => {
+        const server=window.__financeBrowserServer;
+        const old=new Date(); old.setDate(15); old.setMonth(old.getMonth()-1);
+        server.version++;
+        server.transactions['txn:browser:history']={
+          id:'txn:browser:history',direction:'expense',amount_minor:321,currency:'CNY',
+          category_id:'',merchant:'历史月份商户',counterparty:'',note:'',occurred_at_ms:old.getTime(),
+          source_kind:'manual',reconciliation_state:'confirmed',status:'active',revision:1,
+          sync_version:server.version,created_at:old.toISOString(),updated_at:old.toISOString(),deleted_at:''
+        };return true;
+      })()`);
+      await click("#financeSyncBtn");
+      await waitFor("document.querySelector('#financeAllMonthsBtn').textContent.includes('4')",8_000,"all month ledger count");
+      await click("#financeAllMonthsBtn");
+      await waitFor("document.querySelectorAll('#financeTransactionList .finance-transaction').length===4",4_000,"history reachable without changing monthly stats");
+      assert.ok((await evaluate("document.querySelector('#financeBalanceTotal').textContent")).includes("90.00"));
+      assert.equal(await evaluate("document.querySelector('#financeMonthFilter').value"),financeSelectedMonth);
+      const period = await evaluate("[...document.querySelector('#financeHistoryMonthSelect').options].find(x=>x.value && x.value!==document.querySelector('#financeMonthFilter').value).value");
+      await setFields({"#financeHistoryMonthSelect":period});
+      await waitFor("document.querySelectorAll('#financeTransactionList .finance-transaction').length===1 && document.querySelector('#financeTransactionList').textContent.includes('历史月份商户')",4_000,"direct history month navigation");
+      await setFields({"#financeMonthFilter":financeSelectedMonth});
+      await waitFor("document.querySelectorAll('#financeTransactionList .finance-transaction').length===3",4_000,"return to current month");
+      for (const open of [false,true]) {
+        await evaluate(`document.querySelector('#financeRecordedSection').open=${open};document.querySelector('#financeInsightDisclosure').open=true;true`);
+        const layout = await evaluate(`(() => {
+          const ledger=document.querySelector('#financeRecordedSection'),insight=document.querySelector('#financeInsightDisclosure');
+          const a=ledger.getBoundingClientRect(),b=insight.getBoundingClientRect(),s=getComputedStyle(insight);
+          return {siblings:ledger.parentElement===insight.parentElement,nested:ledger.contains(insight),
+            separate:b.top>=a.bottom+12 || b.left>=a.right+12,
+            border:parseFloat(s.borderTopWidth),radius:parseFloat(s.borderTopLeftRadius),background:s.backgroundColor};
+        })()`);
+        assert.equal(layout.siblings,true);assert.equal(layout.nested,false);assert.equal(layout.separate,true);
+        assert.ok(layout.border>0 && layout.radius>0 && layout.background!=="rgba(0, 0, 0, 0)","statistics has its own card in both ledger states");
+      }
+      await evaluate("document.querySelector('#financeRecordedSection').open=true;true");
 
       await setFields({ "#financeSearchInput": "午餐" });
       await waitFor("document.querySelectorAll('#financeTransactionList .finance-transaction').length === 1", 3_000, "finance search");

@@ -1,5 +1,5 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20260930-maintenance-r1";
-import { createFinanceDisclosure } from "./disclosure.js?v=20260930-maintenance-r1";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20261001-acceptance-r2";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261001-acceptance-r2";
 const SCHEMA_VERSION = 1;
 const MAX_LOCAL_TRANSACTIONS = 5000;
 const MAX_PENDING_OPERATIONS = 500;
@@ -47,6 +47,17 @@ function monthKey(value = Date.now()) {
   const date = new Date(Number(value));
   if (!Number.isFinite(date.getTime())) return "";
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Ledger navigation only; statistics keep their separately selected month. */
+export function financeLedgerMonths(transactions, status = "active") {
+  const counts = new Map();
+  for (const item of transactions || []) {
+    if (status !== "all" && item.status !== status) continue;
+    const month = monthKey(item.occurred_at_ms);
+    if (month) counts.set(month, (counts.get(month) || 0) + 1);
+  }
+  return [...counts].sort(([a], [b]) => b.localeCompare(a)).map(([month, count]) => ({month, count}));
 }
 
 function localDateKey(value = Date.now()) {
@@ -327,6 +338,7 @@ export function createFinanceController({
   let undoTransactionId = "";
   let initialized = false;
   let serverDeniedAccess = false;
+  let ledgerAllMonths = false;
 
   const element = (id) => document.getElementById(id);
   let recordedDisclosure = null;
@@ -414,6 +426,26 @@ export function createFinanceController({
     return element("financeMonthFilter")?.value || monthKey();
   }
 
+  function renderHistoryNavigation() {
+    const periods = financeLedgerMonths(Object.values(store.transactions), element("financeStatusFilter")?.value || "active");
+    const total = periods.reduce((sum, row) => sum + row.count, 0);
+    const scope = ledgerAllMonths ? "全部月份" : currentMonth();
+    if (element("financeRecordedScope")) element("financeRecordedScope").textContent = `${scope} · 全部 ${total} 笔`;
+    if (element("financeHistoryNotice")) element("financeHistoryNotice").textContent = ledgerAllMonths
+      ? `已显示全部月份账目；收支与分类统计仍按 ${currentMonth()} 计算，预算沿用其设置周期。`
+      : `当前只显示 ${currentMonth()}，全部月份共 ${total} 笔；可在下面查看历史。`;
+    const all = element("financeAllMonthsBtn");
+    if (all) { all.textContent = `全部月份 / 历史账目（${total}）`; all.setAttribute("aria-pressed", String(ledgerAllMonths)); }
+    const selected = element("financeSelectedMonthBtn");
+    if (selected) { selected.textContent = `按 ${currentMonth()} 查看`; selected.disabled = !ledgerAllMonths; }
+    const select = element("financeHistoryMonthSelect");
+    if (select) {
+      select.innerHTML = '<option value="">选择历史月份</option>' + periods.map(row =>
+        `<option value="${row.month}">${row.month} · ${row.count} 笔</option>`).join("");
+      select.value = !ledgerAllMonths && periods.some(row => row.month === currentMonth()) ? currentMonth() : "";
+    }
+  }
+
   function renderSummary() {
     if (!store) return;
     const summary = calculateFinanceSummary(Object.values(store.transactions), { month: currentMonth() });
@@ -432,8 +464,9 @@ export function createFinanceController({
       direction: element("financeDirectionFilter")?.value,
       category_id: element("financeCategoryFilter")?.value,
       status: element("financeStatusFilter")?.value,
-      month: currentMonth(),
+      month: ledgerAllMonths ? "" : currentMonth(),
     });
+    renderHistoryNavigation();
     if (element("financeTransactionCount")) element("financeTransactionCount").textContent = `${filtered.length} 笔`;
     if (element("financeRecordedCount")) element("financeRecordedCount").textContent = String(filtered.length);
     recordedDisclosure?.restore();
@@ -441,7 +474,7 @@ export function createFinanceController({
     // the list is never silently filtered by hidden controls.
     const filterSummary = element("financeFilterSummary");
     if (filterSummary) {
-      const month = currentMonth();
+      const month = ledgerAllMonths ? "全部月份" : currentMonth();
       const direction = { income: "收入", expense: "支出", refund: "退款" }[element("financeDirectionFilter")?.value || ""] || "全部类型";
       const status = { deleted: "已删除", all: "全部状态" }[element("financeStatusFilter")?.value || "active"] || "当前账目";
       const query = safeText(element("financeSearchInput")?.value, 24);
@@ -995,6 +1028,8 @@ export function createFinanceController({
     const button = event.target.closest("button");
     if (!button) return;
     if (button.id === "financeAddTransactionBtn") openTransactionEditor();
+    else if (button.id === "financeAllMonthsBtn") { ledgerAllMonths = true; renderAll(); }
+    else if (button.id === "financeSelectedMonthBtn") { ledgerAllMonths = false; renderAll(); }
     else if (button.id === "financeManageCategoriesBtn") openCategoryManager();
     else if (button.id === "financeManageBudgetsBtn") openBudgetManager();
     else if (button.id === "financeSyncBtn") syncNow();
@@ -1023,7 +1058,14 @@ export function createFinanceController({
     element("financeTransactionForm")?.addEventListener("submit", submitTransaction);
     element("financeCategoryForm")?.addEventListener("submit", submitCategory);
     element("financeBudgetForm")?.addEventListener("submit", submitBudget);
-    for (const id of ["financeSearchInput", "financeDirectionFilter", "financeCategoryFilter", "financeStatusFilter", "financeMonthFilter"]) {
+    element("financeMonthFilter")?.addEventListener("change", () => { ledgerAllMonths = false; renderAll(); });
+    element("financeHistoryMonthSelect")?.addEventListener("change", (event) => {
+      if (!/^\d{4}-\d{2}$/.test(event.target.value)) return;
+      element("financeMonthFilter").value = event.target.value;
+      ledgerAllMonths = false;
+      renderAll();
+    });
+    for (const id of ["financeSearchInput", "financeDirectionFilter", "financeCategoryFilter", "financeStatusFilter"]) {
       element(id)?.addEventListener(id === "financeSearchInput" ? "input" : "change", renderAll);
     }
     window.addEventListener("online", () => {
@@ -1058,6 +1100,7 @@ export function createFinanceController({
   }
 
   function resetAccount() {
+    ledgerAllMonths = false;
     syncController?.abort();
     syncPromise = null;
     syncAgainRequested = false;

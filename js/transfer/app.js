@@ -1,7 +1,7 @@
-import { randomId } from "../core/capabilities.js?v=20260930-maintenance-r1";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20260930-maintenance-r1";
-import { getSafeStorage } from "../core/storage.js?v=20260930-maintenance-r1";
-import { withInteractionFeedback } from "../core/perf.js?v=20260930-maintenance-r1";
+import { randomId } from "../core/capabilities.js?v=20261001-acceptance-r2";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261001-acceptance-r2";
+import { getSafeStorage } from "../core/storage.js?v=20261001-acceptance-r2";
+import { withInteractionFeedback } from "../core/perf.js?v=20261001-acceptance-r2";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -1103,75 +1103,24 @@ export function createTransferController({
       });
       const token = payload.download.token;
       const meta = payload.download.share.files.find((file) => file.file_id === fileId);
-      const size = Number(meta?.size_bytes || 0);
       const downloadUrl = `/api/transfer/shares/${shareId}/download?file=${encodeURIComponent(fileId)}&grant=${encodeURIComponent(token)}`;
-      const pickerAvailable = typeof window.showSaveFilePicker === "function";
       const nativeDownload = isThewyjAndroidApp();
-      if (!size || size <= 4 * 1024 * 1024 || !pickerAvailable || nativeDownload) {
-        // Let the browser stream the response straight to disk; the page never
-        // holds the file contents in memory.
-        const anchor = document.createElement("a");
-        anchor.href = downloadUrl;
-        anchor.download = meta?.file_name || "download";
-        anchor.rel = "noopener";
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        setMessage(nativeDownload ? "正在交给 Android 下载，请等待完整性校验。" : "下载已开始，请查看浏览器下载列表。",
-          nativeDownload ? "info" : "success");
-        return;
-      }
-      // Bounded-memory streaming: each ranged response is piped straight into
-      // the destination file, so even a 1 GiB transfer never becomes a Blob.
-      const rangeSize = 8 * 1024 * 1024;
-      const handle = await window.showSaveFilePicker({ suggestedName: meta?.file_name || "download" });
-      const writable = await handle.createWritable();
-      try {
-        let offset = 0;
-        setMessage(`正在下载 ${formatBytes(0)} / ${formatBytes(size)}`);
-        while (offset < size) {
-          const length = Math.min(rangeSize, size - offset);
-          let lastError = null;
-          let settled = false;
-          for (let attempt = 0; attempt < 3 && !settled; attempt += 1) {
-            try {
-              const response = await fetch(downloadUrl, {
-                headers: { ...headers(), Range: `bytes=${offset}-${offset + length - 1}` },
-              });
-              if (response.status !== 206 || !response.body) {
-                throw new Error(`下载失败（HTTP ${response.status}）`);
-              }
-              const reader = response.body.getReader();
-              let written = 0;
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                // Position-based writes keep retries idempotent.
-                await writable.write({ type: "write", position: offset + written, data: value });
-                written += value.byteLength;
-              }
-              if (written !== length) {
-                throw new Error(`下载分片长度不一致（${written}/${length}）`);
-              }
-              settled = true;
-            } catch (error) {
-              lastError = error;
-              if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
-            }
-          }
-          if (!settled) throw lastError || new Error("下载失败");
-          offset += length;
-          setMessage(`正在下载 ${formatBytes(offset)} / ${formatBytes(size)}`);
-        }
-        await writable.close();
-        downloadGrants.delete(shareId);
-        setMessage("下载完成。", "success");
-      } catch (error) {
-        await writable.abort().catch(() => {});
-        throw error;
-      }
+      // The authorized endpoint streams an attachment. Browser download and
+      // Android's existing DownloadListener handle the bytes, resume and disk
+      // destination; advertising a save picker must never change this path.
+      const anchor = document.createElement("a");
+      anchor.href = downloadUrl;
+      anchor.download = meta?.file_name || "download";
+      anchor.rel = "noopener";
+      anchor.referrerPolicy = "no-referrer";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setMessage(nativeDownload ? "正在交给 Android 下载，请等待完整性校验。" : "下载已开始，请查看浏览器下载列表。",
+        nativeDownload ? "info" : "success");
     } catch (error) {
-      setMessage(error.message || "下载失败。", "error");
+      if (error?.name === "AbortError") setMessage("下载已取消，需要时可再次点击下载。", "info");
+      else setMessage(error.message || "下载失败。", "error");
     }
   }
 

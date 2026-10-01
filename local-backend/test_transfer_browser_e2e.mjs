@@ -396,10 +396,17 @@ async function main() {
         // and produce no HTTP request at all).
         console.log(`[transfer-browser] downloading ${fixture.fileName}`);
         const downloadedPath = path.join(DOWNLOAD_DIR, fixture.fileName);
-        // Browsers without the File System Access API download through the
-        // anchor branch; pin that branch so a headless run writes a real file.
+        // A browser advertising a picker that aborts used to fail every large
+        // download. Standard attachment download must not call it at all.
         if (index === 0) {
-          await sharePage.evaluate("delete window.showSaveFilePicker; true");
+          await sharePage.evaluate(`(() => {
+            window.__savePickerCalls = 0;
+            window.showSaveFilePicker = () => {
+              window.__savePickerCalls++;
+              throw new DOMException('The user aborted a request.', 'AbortError');
+            };
+            return true;
+          })()`);
         } else {
           // The Android shell must use its native bounded download path even
           // when a WebView advertises the File System Access picker.
@@ -423,6 +430,7 @@ async function main() {
         })()`);
         assert.ok(clicked, `${fixture.label}: the download button must exist`);
         await waitForDownloadedFile(downloadedPath, TRANSFER_TIMEOUT_MS);
+        assert.equal(await sharePage.evaluate("window.__savePickerCalls"), 0, "large anonymous download must not depend on a picker");
         const downloadedHash = await sha256File(downloadedPath);
         assert.equal(fs.statSync(downloadedPath).size, fixture.size, `${fixture.label}: byte length`);
         assert.equal(downloadedHash, fixture.sha256, `${fixture.label}: SHA-256 source == download`);
