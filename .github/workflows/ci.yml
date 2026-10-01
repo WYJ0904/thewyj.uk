@@ -156,6 +156,7 @@ jobs:
             node --check functions/api/status.js
             node --check local-backend/test_tools_js.mjs
             node --check local-backend/test_finance_candidates_js.mjs
+            node --check local-backend/test_finance_disclosure_js.mjs
             node --check local-backend/test_core_js.mjs
             node --check local-backend/test_tts_js.mjs
             node --check local-backend/test_language_js.mjs
@@ -176,6 +177,7 @@ jobs:
             node --check local-backend/test_task15_pdf_js.mjs
             node --check local-backend/test_task16_d1_js.mjs
             node --check local-backend/test_finance_js.mjs
+            node --check local-backend/test_finance_history_js.mjs
             node --check local-backend/test_task17_d1_js.mjs
             node --check local-backend/test_task18_d1_js.mjs
             node --check local-backend/test_task18_browser.mjs
@@ -242,6 +244,8 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_finance_candidates_js.mjs 2>&1 | tee artifacts/javascript-finance-candidates.log
+          node local-backend/test_finance_disclosure_js.mjs 2>&1 | tee artifacts/javascript-finance-disclosure.log
+          node local-backend/test_finance_history_js.mjs 2>&1 | tee artifacts/javascript-finance-history.log
 
       - name: Test interaction feedback and click-to-render timeline
         run: |

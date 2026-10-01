@@ -332,7 +332,8 @@ class ThewyjApiClient(
     }
 
     private fun parsePendingReviewSummary(json: JSONObject): ApiCall<PendingReviewSummary> = runCatching {
-        val rows = json.optJSONArray("records")
+        val rows = json.getJSONArray("records")
+        require(json.has("total_count")) { "canonical pending count missing" }
         val records = buildList {
             if (rows != null) {
                 for (index in 0 until rows.length()) {

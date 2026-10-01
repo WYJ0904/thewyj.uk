@@ -1581,6 +1581,7 @@ textarea::placeholder {
 .finance-summary-section,
 .finance-candidates-section,
 .finance-ledger-panel,
+.finance-insight-panel,
 .finance-side-panel {
   min-width: 0;
   padding: var(--space-6);
@@ -1589,6 +1590,46 @@ textarea::placeholder {
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
 }
+
+.finance-fold > .finance-fold-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--color-text);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.finance-fold > .finance-fold-title::-webkit-details-marker { display: none; }
+.finance-fold > .finance-fold-title::after { content: "⌄"; font-size: 1.4rem; }
+.finance-fold[open] > .finance-fold-title::after { transform: rotate(180deg); }
+.finance-fold > .finance-fold-title small { color: var(--color-text-muted); font-size: .85rem; font-weight: 400; }
+.finance-fold > .finance-fold-title:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 4px; }
+.finance-fold { overflow: hidden; }
+.finance-fold[open] > .finance-fold-title { margin-bottom: var(--space-4); }
+.finance-insight-panel .finance-side-panel {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.finance-history-controls {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-raised, var(--color-surface));
+  border: 1px solid var(--color-border);
+}
+.finance-history-controls p { margin: 0; color: var(--color-text-secondary); }
+.finance-history-controls label { display: grid; gap: var(--space-2); }
+.finance-history-controls select { min-height: 44px; width: 100%; }
+.finance-history-controls .action-row { flex-wrap: wrap; }
+.finance-fold-title > small { text-align: right; max-width: 55%; }
 
 .transfer-page {
   max-width: 1080px;
@@ -2037,6 +2078,7 @@ textarea::placeholder {
 
 .finance-content-grid {
   display: grid;
+  align-items: start;
   grid-template-columns: minmax(0, 1.75fr) minmax(300px, 0.75fr);
   gap: var(--space-5);
   margin-top: var(--space-5);
@@ -4549,6 +4591,7 @@ progress {
   .finance-summary-section,
   .finance-candidates-section,
   .finance-ledger-panel,
+  .finance-insight-panel,
   .finance-side-panel,
   .finance-locked {
     padding: var(--space-4);

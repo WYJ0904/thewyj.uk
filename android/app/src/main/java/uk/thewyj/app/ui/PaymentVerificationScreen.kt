@@ -66,14 +66,13 @@ fun PaymentVerificationScreen(
         onPauseOrDispose { }
     }
     LaunchedEffect(resumeEpoch) {
-        state.refresh()
-        state.reconcile()
+        scope.launch { state.refresh(); state.reconcile() }
     }
     LaunchedEffect(state.accountId) { PaymentReviewSignals.changes.collect { state.refresh(); state.reconcile() } }
     // #4: bounded catch-up for records the server still owns (Web confirm → this
     // screen). It restarts when the set of pending records changes and stops by
     // itself after PendingReconciliationPolicy.windowMs.
-    val pendingKey = state.items.joinToString("|") { "${it.canonicalIdentity.ifBlank { it.recognitionId }}:${it.syncState}" }
+    val pendingKey = "${state.canonicalObserved}:${state.canonicalCurrent}:" + state.items.joinToString("|") { "${it.canonicalIdentity.ifBlank { it.recognitionId }}:${it.syncState}" }
     LaunchedEffect(pendingKey) { state.catchUpReconciliation() }
     // Countdown display only; no background polling of Room or the network.
     LaunchedEffect(tick, state.items.size) {
@@ -129,12 +128,15 @@ fun PaymentVerificationScreen(
             }
             if (state.loading && state.items.isEmpty()) {
                 Text("正在读取待确认交易…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else if (!state.canonicalObserved) {
+                Text(if (state.reconciling) "正在核对云端待处理交易…" else "云端待处理状态尚未核对，请刷新重试",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else if (state.items.isEmpty()) {
                 ThewyjCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(ThewyjSpacing.Lg), verticalArrangement = Arrangement.spacedBy(ThewyjSpacing.Xs)) {
-                        Text("本机暂无待核实交易", fontWeight = FontWeight.SemiBold)
+                        Text("云端暂无待核实交易", fontWeight = FontWeight.SemiBold)
                         Text(
-                            "识别到的支付确认后会直接写入财务账本；这里为空说明没有遗漏。",
+                            if (state.canonicalCurrent) "本次云端核对没有待处理交易。" else "这是上次核对结果，正在更新云端状态。",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -197,7 +199,7 @@ fun PaymentVerificationScreen(
                         }
                         if (item.authority == PaymentVerificationCenter.Authority.NEEDS_AMOUNT && !item.ticketActive) {
                             Text(
-                                "若「${item.appLabel}」不向系统提供页面文字（例如微信），自动核实会失败，请用「填写金额」手动记账。",
+                                "将先读取页面文字；文字不可用时使用设备端截图识别，请停留在这笔交易的正确详情页。",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -335,7 +337,7 @@ private fun amountLine(item: PaymentVerificationCenter.Item): String {
 }
 
 private fun sourceLine(item: PaymentVerificationCenter.Item): String {
-    val time = if (item.occurredAtMs > 0L) java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.CHINA)
+    val time = if (item.occurredAtMs > 0L) java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.CHINA)
         .format(java.util.Date(item.occurredAtMs)) else "时间待核对"
     val merchant = item.merchant.ifBlank { "未识别商户" }
     val edited = if (item.hasEdits) " · 已人工修正" else ""

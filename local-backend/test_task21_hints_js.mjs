@@ -809,6 +809,49 @@ try {
   assert.equal(afterLegacyIgnore.payload.total_count, 0);
   assert.equal(afterLegacyIgnore.payload.records[0].state, "ignored");
 
+  // Two amountless updates are still one review when the local archive proves
+  // the same notification instance. Nearby records from another instance stay
+  // separate even when their source app and visible money shape are identical.
+  const blankEvents = ["evt-blank-instance-a", "evt-blank-instance-b"];
+  const blankIds = [];
+  for (const eventId of blankEvents) {
+    const created = await request(db, "/api/notification/hints", {
+      method: "POST", token: USER.token,
+      body: hintBody(eventId, { source_package: "com.eg.android.AlipayGphone",
+        app_label: "支付宝", payment_channel: "alipay", amount_minor: null, direction: null }),
+    });
+    assert.equal(created.response.status, 200, JSON.stringify(created.payload));
+    blankIds.push(created.payload.hints[0].id);
+  }
+  assert.notEqual(blankIds[0], blankIds[1]);
+  for (const eventId of blankEvents) {
+    const repaired = await request(db, "/api/notification/hints", {
+      method: "POST", token: USER.token,
+      body: hintBody(eventId, { source_package: "com.eg.android.AlipayGphone",
+        app_label: "支付宝", payment_channel: "alipay", lifecycle_identity: "e".repeat(64) }),
+    });
+    assert.equal(repaired.response.status, 200, JSON.stringify(repaired.payload));
+  }
+  const blankSummary = await request(db, "/api/notification/pending-summary", { token: USER.token });
+  const joinedBlank = blankSummary.payload.records.filter((row) =>
+    row.state === "pending" && row.event_ids.some((id) => blankEvents.includes(id)));
+  assert.equal(joinedBlank.length, 1);
+  assert.deepEqual(new Set(joinedBlank[0].event_ids), new Set(blankEvents));
+  const separateBlank = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody("evt-blank-other-instance", { source_package: "com.eg.android.AlipayGphone",
+      app_label: "支付宝", payment_channel: "alipay", amount_minor: null, direction: null,
+      lifecycle_identity: "f".repeat(64) }),
+  });
+  assert.equal(separateBlank.response.status, 200, JSON.stringify(separateBlank.payload));
+  assert.notEqual(separateBlank.payload.hints[0].id, joinedBlank[0].id);
+  for (const hintId of [joinedBlank[0].id, separateBlank.payload.hints[0].id]) {
+    const ignored = await request(db, "/api/notification/hints/ignore", {
+      method: "POST", token: USER.token, body: { hint_id: hintId },
+    });
+    assert.equal(ignored.response.status, 200);
+  }
+
   // A complete low-confidence income has the same direct-booking contract as
   // an expense. Replaying its event must retain one ledger entry and zero pending.
   const incomeBody = hintBody("evt-final-income-cent", {

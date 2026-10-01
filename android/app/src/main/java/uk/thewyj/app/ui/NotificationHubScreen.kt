@@ -158,7 +158,9 @@ fun NotificationHubScreen(
             ThewyjCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        if (state.pendingSyncCurrent) "已核对 ${state.pendingPayments} 项待处理交易" else "待处理交易正在核对",
+                        if (state.pendingSyncCurrent) "已核对 ${state.pendingPayments} 项待处理交易"
+                        else if (state.pendingObservationAt.isNotBlank()) "待处理 ${state.pendingPayments} 项 · 正在更新"
+                        else "待处理交易正在核对",
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(

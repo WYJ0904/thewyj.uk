@@ -5,6 +5,32 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NotificationParserTest {
+    @Test fun couponOnlyMessagesCannotBecomeStructuredPaymentThroughLegacyFallback() {
+        for (message in uk.thewyj.app.task21.payment.CouponRecognitionFixtures.nonCashMessages) {
+            for (source in listOf("com.tencent.mm", "com.eg.android.AlipayGphone")) {
+                val output = parse(source, "微信支付", message)
+                assertEquals(message, ParseStatus.UNPARSED, output.parseStatus)
+                assertEquals(message, NotificationEventType.MARKETING, output.eventType)
+                assertEquals(message, FinanceDirection.UNKNOWN, output.direction)
+                assertEquals(message, 0L, output.amountMinor)
+            }
+        }
+    }
+
+    @Test fun legacyFallbackAttributesRealPaymentAndRefundAmountsInsteadOfCouponAmounts() {
+        for ((message, direction) in listOf(
+            "获得50元餐券，支付成功 实付¥0.01" to FinanceDirection.EXPENSE,
+            "支付成功 实付¥0.01，50元餐券已到账" to FinanceDirection.EXPENSE,
+            "优惠券6元已退回；退款成功¥0.01" to FinanceDirection.REFUND,
+            "返现已到账¥0.01至银行卡，另赠50元餐券" to FinanceDirection.INCOME,
+        )) {
+            val output = parse("com.tencent.mm", "微信支付", message)
+            assertEquals(message, ParseStatus.PARSED, output.parseStatus)
+            assertEquals(message, direction, output.direction)
+            assertEquals(message, 1L, output.amountMinor)
+        }
+    }
+
     private val receivedAt = 1_700_000_000_000L
 
     private fun parse(sourcePackage: String, title: String, text: String) =

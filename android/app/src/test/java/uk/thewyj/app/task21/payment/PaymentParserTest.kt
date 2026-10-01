@@ -14,6 +14,66 @@ import uk.thewyj.app.task21.FinanceDirection
  * never a transaction.
  */
 class PaymentParserTest {
+    @Test fun couponReceiptKeepsThousandsSeparatorsInActualCashAmount() {
+        val message = "付款成功 实付¥5,000.00，已使用50元优惠券"
+        for (result in listOf(wechat("微信支付", message), alipay("支付宝", message),
+            bankNotification("招商银行", message), sms("【招商银行】", message))) {
+            assertEquals(PaymentRecognitionStatus.CONFIRMED_PAYMENT, result.status)
+            assertEquals(500000L, result.amountMinor)
+            assertEquals(FinanceDirection.EXPENSE, result.direction)
+        }
+    }
+    @Test fun couponFaceValuesAndFutureSpendThresholdsNeverBecomePayments() {
+        for (message in CouponRecognitionFixtures.nonCashMessages) {
+            val results = listOf(
+                wechat("微信支付", message),
+                alipay("支付宝", message),
+                bankNotification("招商银行", message),
+                sms("【湖北恒隆】", message),
+            )
+            for (result in results) {
+                assertEquals(message, PaymentRecognitionStatus.NOT_PAYMENT, result.status)
+                assertNull(message, result.amountMinor)
+                assertNull(message, result.direction)
+                assertFalse(message, result.isTransactionLike)
+            }
+        }
+    }
+
+    @Test fun couponMentionsCannotReplaceActualOneCentPaymentAmountOrDirection() {
+        val messages = listOf(
+            "获得50元餐券，支付成功 实付¥0.01",
+            "支付成功 实付¥0.01，50元餐券已到账",
+            "优惠券已到账¥6.00；已支付¥0.01",
+            "使用50元优惠券，付款成功0.01元",
+        )
+        for (message in messages) {
+            for (result in listOf(wechat("微信支付", message), alipay("支付宝", message),
+                bankNotification("招商银行", message), sms("【招商银行】", message))) {
+                assertEquals(message, PaymentRecognitionStatus.CONFIRMED_PAYMENT, result.status)
+                assertEquals(message, 1L, result.amountMinor)
+                assertEquals(message, FinanceDirection.EXPENSE, result.direction)
+            }
+        }
+    }
+
+    @Test fun actualRefundAndCashbackRemainPaymentsWhenCouponsAreAlsoReturnedOrIssued() {
+        val cases = listOf(
+            "优惠券6元已退回；退款成功¥0.01" to FinanceDirection.REFUND,
+            "退款成功¥0.01，50元餐券已返还至券包" to FinanceDirection.REFUND,
+            "退款已到账¥0.01，50元餐券已返还" to FinanceDirection.REFUND,
+            "返现已到账¥0.01至银行卡，另赠50元餐券" to FinanceDirection.INCOME,
+        )
+        for ((message, direction) in cases) {
+            for (result in listOf(wechat("微信支付", message), alipay("支付宝", message),
+                bankNotification("招商银行", message), sms("【招商银行】", message))) {
+                assertEquals(message, PaymentRecognitionStatus.CONFIRMED_PAYMENT, result.status)
+                assertEquals(message, 1L, result.amountMinor)
+                assertEquals(message, direction, result.direction)
+            }
+        }
+    }
+
     private fun wechat(title: String, text: String) = PaymentParserRegistry.parse(
         sourcePackage = "com.tencent.mm",
         sourceType = PaymentSourceType.NOTIFICATION,

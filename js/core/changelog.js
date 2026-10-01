@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?v=20260929-transfer-hotfix-r2";
+import { fetchWithTimeout } from "./api.js?v=20261002-release-r1";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 

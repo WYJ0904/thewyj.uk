@@ -332,7 +332,7 @@ class AndroidPaymentRecognitionHookArchiveTest {
         )
 
         assertNotNull(outcome)
-        assertEquals("bank-notification-2", outcome!!.parserVersion)
+        assertEquals("bank-notification-3", outcome!!.parserVersion)
         assertEquals(listOf("bank_notification_without_amount"), outcome.reasons)
         assertEquals(setOf("amount", "direction"), outcome.missingFields)
         assertFalse(outcome.reasons.joinToString().contains("交易提醒"))

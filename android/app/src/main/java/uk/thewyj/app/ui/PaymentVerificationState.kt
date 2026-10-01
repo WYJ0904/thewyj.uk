@@ -25,6 +25,10 @@ class PaymentVerificationState(
     private val reconciliationInFlight = AtomicBoolean(false)
     @Volatile private var reconciliationRequested = false
     private var lastCompleteObservation: PaymentHintSync.Result? = null
+    private var canonicalMutation = 0L
+    var canonicalObserved by mutableStateOf(false)
+    var canonicalCurrent by mutableStateOf(false)
+    var reconciling by mutableStateOf(false)
 
     var items by mutableStateOf<List<PaymentVerificationCenter.Item>>(emptyList())
     var loading by mutableStateOf(true)
@@ -43,16 +47,31 @@ class PaymentVerificationState(
         loading = items.isEmpty()
         error = ""
         try {
-            val snapshot = lastCompleteObservation
+            val cached = withContext(Dispatchers.IO) { center.cachedObservation(accountId) }
+            val snapshot = cached ?: lastCompleteObservation
             val refreshed = withContext(Dispatchers.IO) {
-                if (snapshot != null) center.reconciledItems(accountId, snapshot).filter { it.recoveryOnly }
+                if (snapshot != null && cached != null) {
+                    val display = center.reconciledItems(accountId, snapshot)
+                    val retained = display.filter { it.recoveryOnly }.map { it.recognitionId }.toSet()
+                    val local = center.localItems(accountId).filter { item ->
+                        item.recoveryOnly && item.recognitionId !in retained && display.any { cloud ->
+                            !cloud.recoveryOnly && cloud.eventIds.any { it in item.eventIds } &&
+                                ((item.amountMinor != null && item.amountMinor != cloud.amountMinor) ||
+                                    (item.direction != uk.thewyj.app.task21.FinanceDirection.UNKNOWN && item.direction != cloud.direction))
+                        }
+                    }
+                    display + local
+                }
+                else if (snapshot != null) center.reconciledItems(accountId, snapshot).filter { it.recoveryOnly }
                 else center.localItems(accountId)
             }
             if (generation == refreshGeneration) {
                 // A local signal must not repaint a stale server snapshot over
                 // a card that this UI just terminalized. The cloud set changes
                 // only when a fresh summary arrives through reconcile().
-                items = if (snapshot != null) items.filterNot { it.recoveryOnly } + refreshed else refreshed
+                items = if (cached != null) refreshed else if (snapshot != null)
+                    items.filterNot { it.recoveryOnly } + refreshed else refreshed
+                if (snapshot != null) { lastCompleteObservation = snapshot; canonicalObserved = true }
             }
         } catch (cancellation: CancellationException) {
             // Leaving this Compose surface (for example opening WeChat) is a
@@ -72,31 +91,41 @@ class PaymentVerificationState(
             return
         }
         try {
+            reconciling = true
             var attempt = 0
             do {
                 reconciliationRequested = false
-                val generation = refreshGeneration
+                val generation = canonicalMutation
                 val observation = withContext(Dispatchers.IO) {
                     if (reconcileOverride != null) reconcileOverride.invoke(accountId) else center.reconcile(accountId)
                 }
-                if (generation != refreshGeneration) {
+                if (generation != canonicalMutation) {
                     reconciliationRequested = true
                 } else if (observation?.completeObservation == true) {
                     val refreshed = withContext(Dispatchers.IO) { center.reconciledItems(accountId, observation) }
-                    if (generation == refreshGeneration) {
+                    if (generation == canonicalMutation) {
                         lastCompleteObservation = observation
                         items = refreshed
+                        canonicalObserved = true
+                        canonicalCurrent = !observation.fromCache
+                        error = ""
                     } else reconciliationRequested = true
+                } else {
+                    canonicalCurrent = false
+                    error = "暂未取得完整云端待处理列表，请刷新重试"
                 }
                 attempt += 1
             } while (reconciliationRequested && attempt < 2)
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (_: Throwable) {
+            canonicalCurrent = false
+            error = "云端待处理状态暂时无法核对，请刷新重试"
             // Keep the already rendered local Room result when cloud is slow,
             // unauthorized or unavailable. The next explicit/bounded pull retries.
         } finally {
             reconciliationInFlight.set(false)
+            reconciling = false
         }
     }
 
@@ -168,9 +197,11 @@ class PaymentVerificationState(
     }
 
     suspend fun confirm(item: PaymentVerificationCenter.Item) {
+        canonicalMutation += 1
         val result = withContext(Dispatchers.IO) { center.confirmAndBook(accountId, item.recognitionId) }
         message = result.message
-        if (result.ok) items = items.filterNot { it.recognitionId == item.recognitionId }
+        if (result.ok && result.syncState == PaymentVerificationCenter.SyncState.SYNCED)
+            items = items.filterNot { it.recognitionId == item.recognitionId }
         refresh()
         if (result.ok) reconcile()
     }
@@ -178,6 +209,7 @@ class PaymentVerificationState(
     suspend fun ignore(item: PaymentVerificationCenter.Item) {
         if (busyRecognitionId.isNotBlank()) return
         busyRecognitionId = item.recognitionId
+        canonicalMutation += 1
         busyAction = "ignore"
         error = ""
         message = "正在同步忽略状态…"
@@ -241,7 +273,7 @@ class PaymentVerificationState(
     }
 
     /** Server-owned states of the records currently on screen. */
-    fun syncStates(): List<String> = items.map { it.syncState.name }
+    fun syncStates(): List<String> = if (!canonicalCurrent) listOf("UNRESOLVED_REMOTE") else items.map { it.syncState.name }
 
     companion object {
         fun formatMinor(amountMinor: Long): String {

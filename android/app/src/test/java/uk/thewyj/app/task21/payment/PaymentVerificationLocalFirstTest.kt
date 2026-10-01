@@ -41,6 +41,27 @@ class PaymentVerificationLocalFirstTest {
 
     @After fun tearDown() { database.close() }
 
+    @Test fun roomSignalsDuringCloudPullCannotTurnNineCanonicalItemsIntoZero() = runBlocking {
+        val app = RuntimeEnvironment.getApplication()
+        val center = PaymentVerificationCenter(app, hintedStore = RoomPaymentRecognitionStore(database),
+            hintedArchive = RoomNotificationStore(database), hintedQueuedRequests = { emptyList() })
+        lateinit var state: PaymentVerificationState
+        var pulls = 0
+        val records = (1..9).map { PendingReviewIdentity("hint", "hint-nine-$it", "event-nine-$it", "device-a",
+            appLabel = "微信", sourcePackage = "com.tencent.mm", occurredAtMs = 1_789_000_000_000L + it * 1000) }
+        state = PaymentVerificationState(app, "nine-account", center, reconcileOverride = {
+            pulls++
+            state.refresh() // Room invalidation while the HTTP result is arriving.
+            PaymentHintSync.Result(9, 0, 0, true, completeObservation = true,
+                pendingCount = 9, pendingRecords = records, pendingEventIds = records.map { it.eventId }.toSet())
+        })
+        state.refresh()
+        state.reconcile()
+        assertEquals(9, state.items.count { !it.recoveryOnly })
+        assertEquals(records.map { it.canonicalId }.toSet(), state.items.filterNot { it.recoveryOnly }.map { it.canonicalIdentity }.toSet())
+        assertTrue(pulls <= 2)
+    }
+
     @Test fun oneCentRoomItemPaintsWhileTransportHangs() = runBlocking {
         val app = RuntimeEnvironment.getApplication()
         val accountId = "account-a"

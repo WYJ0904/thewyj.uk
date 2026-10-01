@@ -8,6 +8,32 @@ import uk.thewyj.app.task21.screenshot.ScreenshotEvidence
 import java.io.File
 
 class NotificationCaptureCoordinatorTest {
+    @Test fun voucherRejectedByPaymentHookCannotFallBackToQueuedFinanceEvent() {
+        val dir = File.createTempFile("wyj-coupon", ".tmp").let { it.delete(); it.mkdirs(); it }
+        try {
+            val transport = FakeTransport()
+            val coordinator = NotificationCaptureCoordinator(
+                archiveFor = { id -> LocalNotificationArchive.inDirectory(dir, id) },
+                queueFor = { id -> NotificationOfflineQueue.inDirectory(dir, id) },
+                transport = transport,
+                account = { NotificationCaptureCoordinator.CaptureAccount("a", "device-a", "token-a", true) },
+                paymentHook = object : PaymentRecognitionHook {
+                    override fun outcomeFor(input: NotificationCaptureInput): PaymentIngestOutcome? = null
+                    override fun onCapture(accountId: String, input: NotificationCaptureInput,
+                        sourceAppLabel: String, uploadEventId: String) = Unit
+                },
+            )
+            for (message in uk.thewyj.app.task21.payment.CouponRecognitionFixtures.nonCashMessages) {
+                coordinator.onNotification("com.tencent.mm", "微信支付", message, "", "", 1L)
+            }
+            assertTrue(coordinator.queuedOperationIds().isEmpty())
+            assertEquals(0, coordinator.flush())
+            assertTrue(transport.calls.isEmpty())
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
     private class FakeTransport : NotificationIngestTransport {
         val calls = mutableListOf<String>()
         var fail = false

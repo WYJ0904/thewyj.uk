@@ -14,6 +14,26 @@ import uk.thewyj.app.task21.store.PaymentRecognitionStoreContract
  * flow, candidate edit-before-confirm and finance correction reporting.
  */
 class PaymentRecognitionCoordinatorTest {
+    @Test fun exactVoucherSmsAndVoucherNotificationsCreateNoRecognitionTicketOrCandidate() {
+        val store = FakeStore()
+        val notifier = FakeNotifier()
+        val coordinator = coordinator(store, notifier, Clock())
+        for ((source, type, title) in listOf(
+            Triple("10690000", PaymentSourceType.SMS, "【湖北恒隆】"),
+            Triple("com.tencent.mm", PaymentSourceType.NOTIFICATION, "微信支付"),
+            Triple("com.eg.android.AlipayGphone", PaymentSourceType.NOTIFICATION, "支付宝"),
+        )) {
+            val outcome = coordinator.onSourceEvent(
+                "account-a", source, type, "coupon-only#$source", title, CouponRecognitionFixtures.sms,
+            )
+            assertEquals("not_a_payment", outcome.skippedReason)
+        }
+        assertTrue(store.recognitions.isEmpty())
+        assertTrue(store.tickets.isEmpty())
+        assertTrue(store.candidates.isEmpty())
+        assertTrue(notifier.messages.isEmpty())
+    }
+
     private class Clock(var value: Long = 1_000L) {
         fun advance(ms: Long) {
             value += ms
