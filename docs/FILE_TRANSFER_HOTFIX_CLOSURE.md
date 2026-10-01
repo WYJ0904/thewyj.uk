@@ -1,7 +1,12 @@
 # File Transfer Hotfix closure report
 
-Status: **awaiting physical Android acceptance**. Task 24 remains COMPLETE. This
+Status: **Acceptance 3 PASS; approved for Android 1.3.26 / 39 release**. Task 24 remains COMPLETE. This
 independent hotfix is not Task 25.
+
+
+> Current status: Acceptance 3 PASS. Samsung gates below are historical and are now closed. See [1.3.26 release closure](ACCEPTANCE3_RELEASE_CLOSURE.md) for the current release and approved stack order.
+
+## Historical implementation and acceptance evidence
 
 ## Baseline
 
@@ -10,8 +15,8 @@ independent hotfix is not Task 25.
 - Worktree branch: `codex/file-transfer-hotfix`
 - PR: [#79](https://github.com/WYJ0904/thewyj.uk/pull/79)
 - Production runtime implementation: `ecf03ee54f42036a996feef191f44a3f96faa8cd`
-- Final PR head and merge commit: pending physical Android acceptance.
-- Existing formal Android release: `uk.thewyj.app` 1.3.19 (32); in-app update metadata unchanged.
+- Accepted final implementation: a20e83b3d80df8747199e483e0b2327198fd3460; PR #79 merge: e0b5d4a25a7369bc0cf4fd310676764d8b66a87c.
+- Release catalogue: uk.thewyj.app 1.3.26 (39); official update state is published by /api/app/config.
 
 ## Root causes and corrections
 

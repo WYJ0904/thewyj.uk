@@ -1,13 +1,13 @@
 {
   "applicationId": "uk.thewyj.app",
-  "versionName": "1.3.19",
-  "versionCode": 32,
+  "versionName": "1.3.26",
+  "versionCode": 39,
   "minimumVersionCode": 1,
-  "releaseDate": "2026-09-27",
-  "releaseBuild": "2026-09-27-task24-release-1.3.19",
-  "releaseNotes": "Task 24 正式版：支付金额和方向识别完整后自动记账；通知与财务共用待确认记录并同步清除终态；保留无障碍/OCR、截图归档与财务删除联动。",
-  "apkFileName": "thewyj-android-1.3.19.apk",
-  "apkKey": "app/android/thewyj-android-1.3.19.apk",
-  "apkSha256": "1e79d8d791ed6cc5761f8fb8bac5f9c8320ae1b89f40f1f8b76ed1c9c50429e9",
-  "apkSizeBytes": 47676877
+  "releaseDate": "2026-10-02",
+  "releaseBuild": "2026-10-02-release-1.3.26",
+  "releaseNotes": "- 优化财务页面折叠布局，预算与分类统计卡片显示更清晰。\n- 新增更明显的历史账目与全部月份入口，跨月查看账目更方便。\n- 修复部分浏览器下载文件时出现的 JavaScript / 文件保存报错。\n- 提升大文件和多种文件格式的分享、下载及撤销兼容性。\n- 改进下载授权、分享撤销和存储配额恢复逻辑。\n- 保留升级前已有账目、识别记录和本地数据。\n- 修复若干稳定性与交互问题。",
+  "apkFileName": "thewyj-android-1.3.26.apk",
+  "apkKey": "app/android/thewyj-android-1.3.26.apk",
+  "apkSha256": "73b35b91720792611e58e1abb244d7370c93f039620285e9fe896a7506f74ab3",
+  "apkSizeBytes": 47726133
 }

@@ -6,6 +6,10 @@ Task 25：**UNBLOCKED**；仓库中尚未开始 Task 25 实现。
 
 PR [#78](https://github.com/WYJ0904/thewyj.uk/pull/78) 已合并到 `main`（`4479300d67b939829799b7bd000fa8a4f044888b`）。[完整 Task 24 Closure Report](https://github.com/WYJ0904/thewyj.uk/pull/78#issuecomment-5856432642) 记录了最终验收与发布证据。
 
+## 后续正式版本（2026-10-02）
+
+Task 24 的历史验收保持 COMPLETE。后续维护已完成 Acceptance 3 PASS，正式版本目录更新为 Android 1.3.26 / 39。当前更新接口和发布证据见 [Acceptance 3 release closure](ACCEPTANCE3_RELEASE_CLOSURE.md)。以下 1.3.19 和早期 candidate 描述保留为当时的历史记录。
+
 ## 最终验收与发布（2026-09-27）
 
 - PR head `4dd3aada2b6cb1eaf2596ef3a74c3d254b45d1cb` 的 [Core CI](https://github.com/WYJ0904/thewyj.uk/actions/runs/36322713652) 和合并后 `main` 的 [Core CI](https://github.com/WYJ0904/thewyj.uk/actions/runs/36323191793) 均为 6/6 SUCCESS；本机 Android 445/445 unit tests、lint、debug build 与发布一致性 46/46 通过。

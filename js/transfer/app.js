@@ -1,7 +1,7 @@
-import { randomId } from "../core/capabilities.js?v=20261001-acceptance-r2";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261001-acceptance-r2";
-import { getSafeStorage } from "../core/storage.js?v=20261001-acceptance-r2";
-import { withInteractionFeedback } from "../core/perf.js?v=20261001-acceptance-r2";
+import { randomId } from "../core/capabilities.js?v=20261002-release-r1";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261002-release-r1";
+import { getSafeStorage } from "../core/storage.js?v=20261002-release-r1";
+import { withInteractionFeedback } from "../core/perf.js?v=20261002-release-r1";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";

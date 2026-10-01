@@ -27,9 +27,9 @@ android {
         // matches the browsers/WebView versions the cloud TTS player needs.
         minSdk = 30
         targetSdk = 36
-        // Task 24 device closure: notification/media and Finance state convergence.
-        versionCode = 32
-        versionName = "1.3.19"
+        // Accepted 1.3.26 release; reuse the verified signed candidate bytes.
+        versionCode = 39
+        versionName = "1.3.26"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "THEWYJ_BASE_URL", "\"$thewyjBaseUrl\"")
     }
