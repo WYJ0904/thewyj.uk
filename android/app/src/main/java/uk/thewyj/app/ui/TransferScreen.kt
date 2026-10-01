@@ -28,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -61,8 +62,13 @@ import uk.thewyj.app.task22.TransferShare
 import uk.thewyj.app.task22.TransferUploadWorker
 import uk.thewyj.app.task22.TransferApiException
 import uk.thewyj.app.task22.QueuedTransfer
+import uk.thewyj.app.task22.TransferOwnerReview
+import uk.thewyj.app.task22.TransferCleanupStore
+import uk.thewyj.app.task22.TransferOwnerSnapshot
+import uk.thewyj.app.task22.TransferUsage
+import uk.thewyj.app.task22.formatTransferBytes
+import uk.thewyj.app.core.web.ExternalBrowser
 import java.util.UUID
-import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -72,11 +78,32 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
     val queueStore = remember(context, account.id) { TransferQueueStore.inDirectory(context.filesDir, account.id) }
     val configStore = remember(context, account.id) { TransferConfigStore.inDirectory(context.filesDir, account.id) }
     val api = remember(context) { TransferApiClient(context) }
+    val cleanupStore = remember(account.id) { TransferCleanupStore.inDirectory(context.filesDir, account.id) }
     var queue by remember { mutableStateOf<List<QueuedTransfer>>(emptyList()) }
-    var shares by remember { mutableStateOf<List<TransferShare>>(emptyList()) }
+    suspend fun <T> ownerRequest(action: () -> T): T {
+        try { return withContext(Dispatchers.IO) { action() } } catch (error: TransferApiException) {
+            if (error.status != 401 || uk.thewyj.app.AppGraph.sessionRepository.refresh() !=
+                uk.thewyj.app.core.session.RefreshWorkResult.SUCCESS) throw error
+            return withContext(Dispatchers.IO) { action() }
+        }
+    }
+    val owner = remember(account.id) { TransferOwnerReview(
+        load = {
+            ownerRequest {
+                val caps = api.capabilities()
+                TransferOwnerSnapshot(
+                    TransferUsage(caps.optLong("stored_bytes", caps.optLong("used_bytes")),
+                        caps.optLong("reserved_bytes"), caps.optLong("storage_limit_bytes")), api.listShares(),
+                )
+            }
+        },
+        revokeRemote = { id -> ownerRequest { api.revoke(id) } },
+    ) }
+    val ownerState by owner.state.collectAsState()
+    val shares = ownerState.snapshot?.shares.orEmpty()
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
-    var quota by remember { mutableStateOf("配额加载中") }
+    val quota = ownerState.snapshot?.usage?.label ?: if (ownerState.failed) "配额暂时不可用" else "配额加载中"
     var minutes by remember { mutableIntStateOf(configStore.load().minutes) }
     var maxDownloads by remember { mutableIntStateOf(configStore.load().maxDownloads) }
     var oneTime by remember { mutableStateOf(configStore.load().oneTime) }
@@ -90,11 +117,16 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
     val filesLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
         scope.launch {
-            val items = queueStore.load().toMutableList()
-            for (uri in uris) {
+            val sources = withContext(Dispatchers.IO) { uris.mapNotNull { uri ->
                 runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-                val source = SafTransferPicker.documentSource(context, uri) ?: continue
-                if (source.sizeBytes <= 0) continue
+                SafTransferPicker.documentSource(context, uri)
+            }.filter { it.sizeBytes > 0 } }
+            if (sources.isEmpty()) { message = "未添加文件：空文件或无法读取的文件不支持上传"; return@launch }
+            val oldSessions = queueStore.load().map { it.sessionId }.filter(String::isNotBlank)
+            cleanupStore.add(oldSessions)
+            if (queueStore.load().isNotEmpty()) queueStore.resetStaleSessionBatch()
+            val items = queueStore.load().toMutableList()
+            for (source in sources) {
                 items.add(
                     QueuedTransfer(
                         localId = UUID.randomUUID().toString(),
@@ -112,7 +144,11 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
         if (tree == null) return@rememberLauncherForActivityResult
         scope.launch {
             runCatching { SafTransferPicker.persistAccess(context, tree) }
-            val sources = withContext(Dispatchers.IO) { SafTransferPicker.treeSources(context, tree) }
+            val sources = withContext(Dispatchers.IO) { SafTransferPicker.treeSources(context, tree).filter { it.sizeBytes > 0 } }
+            if (sources.isEmpty()) { message = "文件夹中没有可上传的非空文件"; return@launch }
+            val oldSessions = queueStore.load().map { it.sessionId }.filter(String::isNotBlank)
+            cleanupStore.add(oldSessions)
+            if (queueStore.load().isNotEmpty()) queueStore.resetStaleSessionBatch()
             val items = queueStore.load().toMutableList()
             for (source in sources) {
                 if (source.sizeBytes <= 0) continue
@@ -129,21 +165,22 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
         queue = queueStore.load()
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(account.id) {
         refreshQueue()
-        if (queue.any { it.status == TransferItemStatus.PENDING || it.status == TransferItemStatus.UPLOADING }) {
+        if (cleanupStore.pending().isNotEmpty() || queue.any { it.status == TransferItemStatus.PENDING || it.status == TransferItemStatus.UPLOADING }) {
             TransferUploadWorker.enqueue(context)
         }
-        runCatching { withContext(Dispatchers.IO) { api.capabilities() } }.onSuccess { payload ->
-            val used = payload.optLong("used_bytes", 0)
-            val limit = payload.optLong("storage_limit_bytes", 0)
-            quota = "已用 ${formatBytes(used)} / ${formatBytes(limit)}"
-        }.onFailure { quota = "配额暂时不可用" }
+        owner.refresh()
+        var previous = queue.map { it.localId to it.status }
+        var lastRemote = System.currentTimeMillis()
         while (true) {
             delay(700)
-            queue = queueStore.load()
-            if (queue.any { it.status == TransferItemStatus.DONE }) {
-                runCatching { withContext(Dispatchers.IO) { api.listShares() } }.onSuccess { shares = it }.onFailure { }
+            queue = withContext(Dispatchers.IO) { queueStore.load() }
+            val statuses = queue.map { it.localId to it.status }
+            if (statuses != previous || System.currentTimeMillis() - lastRemote >= 15_000) {
+                previous = statuses
+                lastRemote = System.currentTimeMillis()
+                owner.refresh()
             }
         }
     }
@@ -167,6 +204,7 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
                 message = "分享已创建。"
                 queueStore.save(queue.filterNot { it.status == TransferItemStatus.DONE })
                 refreshQueue()
+                owner.refresh()
             }.onFailure { error ->
                 Log.e("T22UI", "complete failed", error)
                 if (error is TransferApiException && TransferRecoveryPolicy.shouldResetCompletion(error.code)) {
@@ -194,19 +232,26 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedButton(onClick = onBack, shape = ThewyjRadius.Medium) { Text("返回") }
                     Spacer(Modifier.width(12.dp))
-                    Column {
+                    Column(Modifier.weight(1f)) {
                         Text("文件传输", style = MaterialTheme.typography.headlineMedium)
                         Text(quota, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        OutlinedButton(onClick = { scope.launch { owner.refresh() } }, enabled = !ownerState.refreshing) {
+                            Text(if (ownerState.refreshing) "正在刷新…" else "刷新分享与配额")
+                        }
                     }
                 }
+            }
+            if (ownerState.message.isNotBlank()) {
+                item { Text(ownerState.message, color = if (ownerState.failed) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.primary) }
             }
             item {
                 ThewyjCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(ThewyjSpacing.Xl), verticalArrangement = Arrangement.spacedBy(ThewyjSpacing.Md)) {
                         Text("分享设置", style = MaterialTheme.typography.titleMedium)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Md)) {
-                            OutlinedButton(onClick = { filesLauncher.launch(arrayOf("*/*")) }, shape = ThewyjRadius.Medium) { Text("选择文件") }
-                            OutlinedButton(onClick = { folderLauncher.launch(null) }, shape = ThewyjRadius.Medium) { Text("选择文件夹") }
+                            OutlinedButton(onClick = { filesLauncher.launch(arrayOf("*/*")) }, enabled = !busy, shape = ThewyjRadius.Medium) { Text("选择文件") }
+                            OutlinedButton(onClick = { folderLauncher.launch(null) }, enabled = !busy, shape = ThewyjRadius.Medium) { Text("选择文件夹") }
                         }
                         HorizontalDivider()
                         Column(verticalArrangement = Arrangement.spacedBy(ThewyjSpacing.Xs)) {
@@ -267,6 +312,7 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
             items(queue, key = { it.localId }) { item ->
                 TransferItemRow(
                     item = item,
+                    enabled = !busy,
                     onPause = {
                         queueStore.upsert(item.copy(status = TransferItemStatus.PAUSED))
                         refreshQueue()
@@ -278,9 +324,19 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
                     },
                     onCancel = {
                         scope.launch {
-                            runCatching { api.abort(item.sessionId) }
+                            val sessions = queueStore.load().map { it.sessionId }.filter(String::isNotBlank).distinct()
+                            cleanupStore.add(sessions)
+                            queueStore.update(item.localId) { it.copy(status = TransferItemStatus.CANCELLED) }
                             queueStore.remove(item.localId)
+                            queueStore.resetStaleSessionBatch()
                             refreshQueue()
+                            val release = runCatching { withContext(Dispatchers.IO) {
+                                sessions.forEach { id -> api.releaseSession(id); cleanupStore.complete(id) }
+                            } }
+                            message = if (release.isSuccess) "已取消，上传预留已释放" else
+                                "文件已取消；云端释放暂时失败，将后台重试：${release.exceptionOrNull()?.message.orEmpty()}"
+                            owner.refresh()
+                            TransferUploadWorker.enqueue(context)
                         }
                     },
                 )
@@ -292,7 +348,7 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
                             Text("分享已创建", style = MaterialTheme.typography.titleMedium)
                             Text(shareLink)
                             OutlinedButton(
-                                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(shareLink))) },
+                                onClick = { ExternalBrowser.open(context, shareLink) },
                                 shape = ThewyjRadius.Medium,
                             ) { Text("在浏览器打开") }
                         }
@@ -310,23 +366,27 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Column {
+                                    Column(Modifier.weight(1f)) {
                                         Text("${share.fileCount} 个文件 · ${formatBytes(share.totalBytes)}")
                                         Text("下载 ${share.downloadCount}/${share.maxDownloads}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        ownerState.errors[share.id]?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                                     }
-                                    Spacer(Modifier.fillMaxWidth(0.05f))
+                                    Spacer(Modifier.width(12.dp))
                                     OutlinedButton(
                                         onClick = {
                                             scope.launch {
-                                                Log.i("T22UI", "revoke invoked id=${share.id}")
-                                                runCatching { withContext(Dispatchers.IO) { api.revoke(share.id) } }
-                                                    .onSuccess { Log.i("T22UI", "revoke ok ${share.id}"); shares = shares.filterNot { it.id == share.id } }
-                                                    .onFailure { Log.e("T22UI", "revoke failed", it); message = it.message ?: "撤销失败" }
+                                                if (owner.revoke(share.id)) {
+                                                    if (shareLink == TransferLinks.shareLink(BuildConfig.THEWYJ_BASE_URL, share.id)) {
+                                                        shareLink = ""
+                                                    }
+                                                    message = "分享已撤销。"
+                                                }
                                             }
                                         },
+                                        enabled = share.id !in ownerState.revoking,
                                         shape = ThewyjRadius.Small,
                                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                                    ) { Text("撤销") }
+                                    ) { Text(if (share.id in ownerState.revoking) "撤销中…" else "撤销") }
                                 }
                             }
                         }
@@ -343,6 +403,7 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
 @Composable
 private fun TransferItemRow(
     item: QueuedTransfer,
+    enabled: Boolean = true,
     onPause: () -> Unit,
     onResume: () -> Unit,
     onCancel: () -> Unit,
@@ -362,12 +423,13 @@ private fun TransferItemRow(
             LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
                 if (item.status == TransferItemStatus.PAUSED || item.status == TransferItemStatus.ERROR || item.status == TransferItemStatus.PENDING) {
-                    OutlinedButton(onClick = onResume, shape = ThewyjRadius.Small) { Text(if (item.status == TransferItemStatus.ERROR) "重试" else "继续") }
+                    OutlinedButton(onClick = onResume, enabled = enabled, shape = ThewyjRadius.Small) { Text(if (item.status == TransferItemStatus.ERROR) "重试" else "继续") }
                 } else if (item.status == TransferItemStatus.UPLOADING) {
-                    OutlinedButton(onClick = onPause, shape = ThewyjRadius.Small) { Text("暂停") }
+                    OutlinedButton(onClick = onPause, enabled = enabled, shape = ThewyjRadius.Small) { Text("暂停") }
                 }
                 OutlinedButton(
                     onClick = onCancel,
+                    enabled = enabled,
                     shape = ThewyjRadius.Small,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) { Text("取消") }
@@ -376,9 +438,4 @@ private fun TransferItemRow(
     }
 }
 
-private fun formatBytes(bytes: Long): String = when {
-    bytes < 1024 -> "$bytes B"
-    bytes < 1024 * 1024 -> String.format(Locale.CHINA, "%.1f KB", bytes / 1024.0)
-    bytes < 1024L * 1024 * 1024 -> String.format(Locale.CHINA, "%.1f MB", bytes / 1024.0 / 1024.0)
-    else -> String.format(Locale.CHINA, "%.2f GB", bytes / 1024.0 / 1024.0 / 1024.0)
-}
+private fun formatBytes(bytes: Long): String = formatTransferBytes(bytes)

@@ -55,6 +55,31 @@ class NotificationRouteAndSourceAppPolicyTest {
         )
     }
 
+    @Test fun coldAndWarmShareIntentsKeepDistinctFragmentsAndQuery() {
+        val first = NotificationRoutePolicy.resolve("", "", "https", "thewyj.uk", "/transfer", null,
+            uriQuery = "foo=bar", uriFragment = "share=first1234567890")
+        val second = NotificationRoutePolicy.resolve("", "", "https", "thewyj.uk", "/transfer", null,
+            uriFragment = "share=second1234567890")
+        assertEquals(NotificationRoutePolicy.Target.Route("/transfer?foo=bar#share=first1234567890"), first)
+        assertEquals(NotificationRoutePolicy.Target.Route("/transfer#share=second1234567890"), second)
+    }
+
+    @Test fun untrustedHttpsIntentsCannotInjectAnAppRoute() {
+        for ((scheme, host, userInfo, port) in listOf(
+            listOf("http", "thewyj.uk", "", "-1"),
+            listOf("https", "evil-thewyj.uk", "", "-1"),
+            listOf("https", "sub.thewyj.uk", "", "-1"),
+            listOf("https", "thewyj.uk", "user", "-1"),
+            listOf("https", "thewyj.uk", "", "444"),
+            listOf("javascript", "thewyj.uk", "", "-1"),
+            listOf("file", "thewyj.uk", "", "-1"),
+        )) {
+            assertEquals(NotificationRoutePolicy.Target.None,
+                NotificationRoutePolicy.resolve("", "", scheme, host, "/transfer", null,
+                    uriFragment = "share=abc123", uriUserInfo = userInfo, uriPort = port.toInt()))
+        }
+    }
+
     @Test fun sourceAppActionIsOnlyOfferedWhenItCanReallyLaunch() {
         assertTrue(SourceAppActionPolicy.shouldOffer(enabled = true, resolvable = true))
         assertFalse("uninstalled source app", SourceAppActionPolicy.shouldOffer(enabled = false, resolvable = false))

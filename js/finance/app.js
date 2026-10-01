@@ -1,4 +1,4 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20260927-task24-release-r16";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20260929-transfer-hotfix-r2";
 const SCHEMA_VERSION = 1;
 const MAX_LOCAL_TRANSACTIONS = 5000;
 const MAX_PENDING_OPERATIONS = 500;

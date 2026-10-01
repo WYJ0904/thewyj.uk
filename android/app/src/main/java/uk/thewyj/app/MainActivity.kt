@@ -71,6 +71,10 @@ class MainActivity : ComponentActivity() {
             uriHost = uri?.host,
             uriPath = uri?.encodedPath,
             routeParam = uri?.getQueryParameter("route"),
+            uriQuery = uri?.encodedQuery,
+            uriFragment = uri?.encodedFragment,
+            uriUserInfo = uri?.userInfo,
+            uriPort = uri?.port ?: -1,
         )
         when (decision) {
             is uk.thewyj.app.task21.payment.NotificationRoutePolicy.Target.Payment -> {

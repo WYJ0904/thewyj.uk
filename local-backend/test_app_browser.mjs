@@ -699,13 +699,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20260927-task24-release-r16');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20260927-task24-release-r16');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260927-task24-release-r16');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260927-task24-release-r16');
-        const cachedChangelog = await caches.match('/changelog.js?v=20260927-task24-release-r16');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260927-task24-release-r16');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20260927-task24-release-r16');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20260929-transfer-hotfix-r2');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20260929-transfer-hotfix-r2');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20260929-transfer-hotfix-r2');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20260929-transfer-hotfix-r2');
+        const cachedChangelog = await caches.match('/changelog.js?v=20260929-transfer-hotfix-r2');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20260929-transfer-hotfix-r2');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20260929-transfer-hotfix-r2');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -2413,6 +2413,7 @@ async function main() {
       // local legacy hint/candidate endpoints when that route is absent.
       "/api/notification/pending-summary",
       "/api/transfer/capabilities",
+      "/api/transfer/uploads",
       "/api/transfer/shares",
       // Cloud TTS is a Cloudflare-only route; the local legacy backend matrix
       // answers 404 and dictation falls back to the device engine exactly as

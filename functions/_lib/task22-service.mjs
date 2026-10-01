@@ -107,14 +107,33 @@ export async function storageLimitBytes(db, account, guestId = "") {
   return FREE_STORAGE_LIMIT_BYTES;
 }
 
-async function activeBytes(db, owner) {
+// Logical quota counts every file reference in every currently usable share.
+// A download-limit reservation remains usable by its bounded existing grant.
+function liveShareSql(alias, now) {
+  return `${alias}.expires_at > ${now} AND (${alias}.state = 'active' OR
+    (${alias}.state = 'delete_pending' AND ${alias}.deletion_reason = 'download_limit' AND EXISTS (
+      SELECT 1 FROM task22_download_grants quota_grant WHERE quota_grant.share_id = ${alias}.id
+        AND quota_grant.state IN ('active','completed') AND quota_grant.expires_at > ${now})))`;
+}
+
+async function quotaBytes(db, owner) {
+  const now = isoNow();
   const [sessions, shares] = await Promise.all([
     first(db, `SELECT COALESCE(SUM(total_bytes), 0) AS bytes FROM task22_upload_sessions
-      WHERE owner_kind = ?1 AND owner_ref = ?2 AND state = 'active'`, [owner.kind, owner.ref]),
-    first(db, `SELECT COALESCE(SUM(total_bytes), 0) AS bytes FROM task22_shares
-      WHERE owner_kind = ?1 AND owner_ref = ?2 AND state IN ('active', 'revoked')`, [owner.kind, owner.ref]),
+      WHERE owner_kind = ?1 AND owner_ref = ?2 AND state = 'active' AND expires_at > ?3`,
+    [owner.kind, owner.ref, now]),
+    first(db, `SELECT COALESCE(SUM(file.size_bytes), 0) AS bytes FROM task22_share_files file
+      JOIN task22_shares share ON share.id = file.share_id
+      WHERE share.owner_kind = ?1 AND share.owner_ref = ?2 AND ${liveShareSql("share", "?3")}`,
+    [owner.kind, owner.ref, now]),
   ]);
-  return Number(sessions?.bytes || 0) + Number(shares?.bytes || 0);
+  const reservedBytes = Number(sessions?.bytes || 0);
+  const storedBytes = Number(shares?.bytes || 0);
+  return { stored_bytes: storedBytes, reserved_bytes: reservedBytes, used_bytes: storedBytes + reservedBytes };
+}
+
+async function activeBytes(db, owner) {
+  return (await quotaBytes(db, owner)).used_bytes;
 }
 
 async function consumeCreateQuota(db, owner) {
@@ -189,13 +208,15 @@ export async function transferCapabilities(db, account, input = {}) {
   else owner = { kind: "guest", ref: "" };
   const limit = account?.is_super_admin ? OWNER_STORAGE_LIMIT_BYTES
     : account?.id ? await storageLimitBytes(db, account) : GUEST_STORAGE_LIMIT_BYTES;
+  const usage = schemaReady && owner.ref ? await quotaBytes(db, owner)
+    : { stored_bytes: 0, reserved_bytes: 0, used_bytes: 0 };
   return {
     task: 22,
     schema_version: TASK22_SCHEMA_VERSION,
     schema_ready: schemaReady,
     owner_kind: owner.kind,
     storage_limit_bytes: limit,
-    used_bytes: schemaReady && owner.ref ? await activeBytes(db, owner) : 0,
+    ...usage,
     max_share_bytes: MAX_SHARE_BYTES,
     max_files_per_share: MAX_FILE_COUNT_PER_SHARE,
     part_size_bytes: PART_SIZE_BYTES,
@@ -406,13 +427,39 @@ export async function uploadSessionState(db, account, input) {
   return sessionPayload(session, files, parts);
 }
 
+export async function listUploadSessions(db, account, input = {}) {
+  const owner = await ownerContext(db, account, input);
+  const rows = await all(db, `SELECT s.id, s.state, s.file_count, s.total_bytes,
+      s.created_at, s.updated_at, s.expires_at,
+      (SELECT COUNT(*) FROM task22_upload_files f WHERE f.session_id = s.id) AS allocated_files,
+      (SELECT COALESCE(SUM(p.size_bytes), 0) FROM task22_upload_parts p
+        WHERE p.session_id = s.id) AS uploaded_bytes
+    FROM task22_upload_sessions s
+    WHERE s.owner_kind = ?1 AND s.owner_ref = ?2 AND s.state = 'active'
+      AND s.expires_at > ?3
+    ORDER BY s.created_at DESC LIMIT 200`, [owner.kind, owner.ref, isoNow()]);
+  return rows.map((row) => ({
+    id: row.id,
+    state: row.state,
+    file_count: Number(row.file_count),
+    total_bytes: Number(row.total_bytes),
+    allocated_files: Number(row.allocated_files),
+    uploaded_bytes: Number(row.uploaded_bytes),
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    expires_at: row.expires_at,
+  }));
+}
+
 export async function completeUploadSession(db, storage, account, env, input) {
   requireAllowedFields(input, new Set(["session_id", "guest_id"]));
   const owner = await ownerContext(db, account, input);
   const session = await requireOwnedSession(db, account, owner, input.session_id);
   if (session.state === "published" && session.share_id) {
     const share = await first(db, "SELECT * FROM task22_shares WHERE id = ?1", [session.share_id]);
-    if (share) return sharePayload(share, await shareFileRows(db, share.id));
+    if (share && !['revoked','deleted'].includes(share.state) && share.deletion_reason !== 'owner_revoked') {
+      return sharePayload(share, await shareFileRows(db, share.id));
+    }
   }
   if (session.state !== "active") throw new Task22Error("上传任务已结束", 409, "transfer_session_not_active");
   if (isExpired(session)) {
@@ -512,10 +559,14 @@ export async function abortUploadSession(db, storage, account, input) {
   requireAllowedFields(input, new Set(["session_id", "guest_id"]));
   const owner = await ownerContext(db, account, input);
   const session = await requireOwnedSession(db, account, owner, input.session_id);
-  if (session.state === "aborted") return { id: session.id, state: "aborted", no_change: true };
+  if (session.state === "aborted" || session.state === "expired" || session.state === "failed") {
+    return { id: session.id, state: session.state, no_change: true,
+      cleanup_pending: session.cleanup_state === "pending" };
+  }
   if (session.state === "published") throw new Task22Error("已完成的上传任务不能取消，请撤销分享", 409, "transfer_session_published");
   await expireSession(db, storage, session, "owner_aborted");
-  return { id: session.id, state: "aborted" };
+  const settled = await sessionRow(db, session.id);
+  return { id: session.id, state: "aborted", cleanup_pending: settled?.cleanup_state === "pending" };
 }
 
 async function shareFileRows(db, shareId) {
@@ -524,8 +575,8 @@ async function shareFileRows(db, shareId) {
 
 export async function listShares(db, account, input = {}) {
   const owner = await ownerContext(db, account, input);
-  const rows = await all(db, `SELECT * FROM task22_shares WHERE owner_kind = ?1 AND owner_ref = ?2
-    AND state IN ('active', 'revoked', 'delete_pending') ORDER BY created_at DESC LIMIT 200`, [owner.kind, owner.ref]);
+  const rows = await all(db, `SELECT share.* FROM task22_shares share WHERE owner_kind = ?1 AND owner_ref = ?2
+    AND ${liveShareSql("share", "?3")} ORDER BY created_at DESC LIMIT 200`, [owner.kind, owner.ref, isoNow()]);
   const files = await all(db, `SELECT * FROM task22_share_files WHERE share_id IN
     (SELECT id FROM task22_shares WHERE owner_kind = ?1 AND owner_ref = ?2) ORDER BY relative_path`, [owner.kind, owner.ref]);
   const byShare = new Map();
@@ -543,6 +594,8 @@ export async function shareMetadata(db, storage, env, input) {
     throw new Task22Error("分享不存在或已过期", 404, "share_not_found");
   }
   if (row.state === "revoked") throw new Task22Error("分享已被撤销", 410, "share_revoked");
+  if (row.state === "deleted") throw new Task22Error("分享已终结", 404, "share_not_found");
+  if (row.deletion_reason === "owner_revoked") throw new Task22Error("分享已被撤销", 410, "share_revoked");
   await checkPassword(row, input.password, env);
   return sharePayload(row, await shareFileRows(db, row.id));
 }
@@ -593,13 +646,34 @@ async function releaseDownloadRequest(db, digest, requestId) {
     active_request_expires_at = '' WHERE token_digest = ?1 AND active_request_id = ?2`, [digest, requestId]);
 }
 
-async function finalizeDownload(db, storage, row, digest, requestId) {
+async function finalizeDownload(db, digest, requestId) {
   await run(db, `UPDATE task22_download_grants SET state = 'completed', completed_at = ?2,
     last_used_at = ?2, active_request_id = '', active_request_expires_at = ''
     WHERE token_digest = ?1 AND active_request_id = ?3`, [digest, isoNow(), requestId]);
-  if (row.state === "delete_pending") {
-    await removeShare(db, storage, row, row.deletion_reason || "download_limit");
-  }
+  // The existing grant still covers retries and the other files in the share.
+  // Scheduled cleanup removes the share after this bounded grant expires.
+}
+
+async function finalizeSingleObjectDownload(db, row, digest) {
+  const now = isoNow();
+  await run(db, `UPDATE task22_download_grants SET state = 'completed', completed_at = ?2,
+    last_used_at = ?2 WHERE token_digest = ?1 AND share_id = ?3
+      AND state IN ('active', 'completed')`, [digest, now, row.id]);
+  // A small initial WebView GET can finish before DownloadListener hands the
+  // URL to the native downloader. Keep its grant/files valid through the TTL.
+}
+
+/** Observe the native stream pump only after every byte reaches the response. */
+function completedSingleObjectBody(context, body, length, onComplete) {
+  // Workers derives wire Content-Length from the stream's native length.
+  // An ordinary identity TransformStream makes the response chunked even when
+  // the manually supplied header contains the correct object size.
+  const { readable, writable } = typeof FixedLengthStream === "function"
+    ? new FixedLengthStream(length) : new TransformStream();
+  const completion = body.pipeTo(writable).then(onComplete).catch(() => undefined);
+  if (typeof context.waitUntil === "function") context.waitUntil(completion);
+  else void completion;
+  return readable;
 }
 
 /**
@@ -672,7 +746,8 @@ export async function streamFileDownload(context, shareIdValue, fileIdValue, tok
     JOIN task22_shares AS share ON share.id = grant.share_id
     WHERE grant.token_digest = ?1 AND grant.share_id = ?2
       AND grant.state IN ('active', 'completed') AND grant.expires_at > ?3
-      AND share.state IN ('active', 'delete_pending')`, [digest, shareId, now]);
+      AND share.state IN ('active', 'delete_pending') AND share.deletion_reason != 'owner_revoked'
+      AND share.expires_at > ?3`, [digest, shareId, now]);
   if (!row) throw new Task22Error("下载授权无效或已过期", 403, "transfer_download_grant_invalid");
   const file = await first(db, "SELECT * FROM task22_share_files WHERE share_id = ?1 AND file_id = ?2", [shareId, fileId]);
   if (!file) throw new Task22Error("分享文件不存在", 404, "transfer_share_file_not_found");
@@ -707,7 +782,7 @@ export async function streamFileDownload(context, shareIdValue, fileIdValue, tok
   const headers = new Headers({
     "Content-Type": file.mime_type,
     "Content-Disposition": safeContentDisposition(file.file_name),
-    "Cache-Control": "private, no-store",
+    "Cache-Control": "private, no-store, no-transform",
     "X-Content-Type-Options": "nosniff",
     "Accept-Ranges": "bytes",
   });
@@ -725,23 +800,16 @@ export async function streamFileDownload(context, shareIdValue, fileIdValue, tok
     // The uploaded file is one R2 object: hand the body to the client as-is so
     // the runtime streams it natively (a JavaScript pump is killed by the
     // Workers CPU limit and truncates large downloads).
-    if (fullResponse) {
-      await run(db, `UPDATE task22_download_grants SET state = 'completed', completed_at = ?2,
-        last_used_at = ?2, active_request_id = '', active_request_expires_at = ''
-        WHERE token_digest = ?1 AND active_request_id = ?3`, [digest, isoNow(), requestId]);
-    } else {
-      await releaseDownloadRequest(db, digest, requestId);
-    }
+    await releaseDownloadRequest(db, digest, requestId);
     const object = requestedRange
       ? await storage.get(singleObject, { range: { offset: requestedRange.offset, length: requestedRange.length } })
       : await storage.get(singleObject);
     if (!object?.body) throw new Task22Error("下载数据暂时不可用", 503, "transfer_file_missing", true);
-    if (fullResponse && row.state === "delete_pending") {
-      // Metadata disappears right away; the object itself is removed by the
-      // cleanup pass once the response has finished streaming.
-      await retireShareRows(db, row.id);
-    }
-    return new Response(object.body, { status: requestedRange ? 206 : 200, headers });
+    const body = fullResponse
+      ? completedSingleObjectBody(context, object.body, totalBytes,
+        () => finalizeSingleObjectDownload(db, row, digest))
+      : object.body;
+    return new Response(body, { status: requestedRange ? 206 : 200, headers });
   }
   const body = concatenatedParts(
     storage,
@@ -749,7 +817,7 @@ export async function streamFileDownload(context, shareIdValue, fileIdValue, tok
     requestedRange?.offset || 0,
     requestedRange?.length ?? null,
     fullResponse
-      ? () => void finalizeDownload(db, storage, row, digest, requestId).catch(() => undefined)
+      ? () => void finalizeDownload(db, digest, requestId).catch(() => undefined)
       : () => void releaseDownloadRequest(db, digest, requestId).catch(() => undefined),
     () => void releaseDownloadRequest(db, digest, requestId).catch(() => undefined),
   );
@@ -758,9 +826,24 @@ export async function streamFileDownload(context, shareIdValue, fileIdValue, tok
 
 async function expireSession(db, storage, session, reason) {
   const targetState = reason === "owner_aborted" ? "aborted" : "expired";
+  const now = isoNow();
   await run(db, `UPDATE task22_upload_sessions SET state = ?2, deleted_at = ?3,
-    updated_at = ?3 WHERE id = ?1 AND state = 'active'`, [session.id, targetState, isoNow()]);
-  await deleteSessionObjects(db, storage, session.id);
+    updated_at = ?3, cleanup_state = 'pending', cleanup_retry_at = '', cleanup_completed_at = ''
+    WHERE id = ?1 AND state = 'active'`, [session.id, targetState, now]);
+  return await deleteSessionObjects(db, storage, session.id);
+}
+
+function multipartAlreadyGone(error) {
+  const status = Number(error?.status || error?.statusCode || 0);
+  return status === 404 || /NoSuchUpload|upload.*not found|upload.*does not exist/i
+    .test(String(error?.code || error?.message || ""));
+}
+
+async function retrySessionCleanupLater(db, sessionId) {
+  const retryAt = isoNow(new Date(Date.now() + 30 * 60 * 1000));
+  await run(db, `UPDATE task22_upload_sessions SET cleanup_state = 'pending',
+    cleanup_attempts = cleanup_attempts + 1, cleanup_retry_at = ?2, updated_at = ?3
+    WHERE id = ?1 AND state IN ('aborted', 'expired', 'failed')`, [sessionId, retryAt, isoNow()]);
 }
 
 /**
@@ -769,33 +852,41 @@ async function expireSession(db, storage, session, reason) {
  * per-part objects.
  */
 async function deleteSessionObjects(db, storage, sessionId) {
-  const bucket = requireStorage(storage);
+  let bucket;
+  try { bucket = requireStorage(storage); } catch (_) {
+    await retrySessionCleanupLater(db, sessionId);
+    return false;
+  }
   const files = await all(db, "SELECT id, object_key, upload_id FROM task22_upload_files WHERE session_id = ?1", [sessionId]);
+  const objectKeys = new Set();
+  let failed = 0;
   for (const file of files) {
     if (!file.object_key) continue;
     if (file.upload_id) {
-      try { await bucket.resumeMultipartUpload(file.object_key, file.upload_id).abort(); } catch (_) { /* already completed */ }
+      try { await bucket.resumeMultipartUpload(file.object_key, file.upload_id).abort(); }
+      catch (error) { if (!multipartAlreadyGone(error)) failed += 1; }
     }
-    try { await bucket.delete(file.object_key); } catch (_) { /* retried by cleanup */ }
+    objectKeys.add(file.object_key);
   }
   const parts = await all(db, "SELECT object_key FROM task22_upload_parts WHERE session_id = ?1", [sessionId]);
   for (const part of parts) {
-    if (!part.object_key) continue;
-    try { await bucket.delete(part.object_key); } catch (_) { /* legacy part object */ }
+    if (part.object_key) objectKeys.add(part.object_key);
   }
-  await run(db, "DELETE FROM task22_upload_parts WHERE session_id = ?1", [sessionId]);
-}
-
-/**
- * Retires a share whose final allowed download has been served: metadata must
- * disappear at once, but the R2 object has to survive until the response has
- * finished streaming, so object deletion stays with the cleanup pass.
- */
-async function retireShareRows(db, shareId) {
-  await run(db, "DELETE FROM task22_download_grants WHERE share_id = ?1", [shareId]);
-  await run(db, "DELETE FROM task22_upload_parts WHERE file_id IN (SELECT file_id FROM task22_share_files WHERE share_id = ?1)", [shareId]);
-  await run(db, "DELETE FROM task22_share_files WHERE share_id = ?1", [shareId]);
-  await run(db, "DELETE FROM task22_shares WHERE id = ?1", [shareId]);
+  for (const key of objectKeys) {
+    try { await bucket.delete(key); } catch (_) { failed += 1; }
+  }
+  if (failed) {
+    await retrySessionCleanupLater(db, sessionId);
+    return false;
+  }
+  const now = isoNow();
+  await requireDatabase(db).batch([
+    db.prepare("DELETE FROM task22_upload_parts WHERE session_id = ?1").bind(sessionId),
+    db.prepare(`UPDATE task22_upload_sessions SET cleanup_state = 'complete',
+      cleanup_retry_at = '', cleanup_completed_at = ?2, updated_at = ?2
+      WHERE id = ?1 AND state IN ('aborted', 'expired', 'failed')`).bind(sessionId, now),
+  ]);
+  return true;
 }
 
 export async function revokeShare(db, storage, account, input) {
@@ -806,9 +897,19 @@ export async function revokeShare(db, storage, account, input) {
   if (row.owner_kind !== owner.kind || row.owner_ref !== owner.ref) {
     throw new Task22Error("只有创建者可以撤销分享", 403, "forbidden");
   }
-  if (row.state === "revoked") return { id: row.id, state: "revoked", no_change: true };
-  await removeShare(db, storage, row, "owner_revoked");
-  return { id: row.id, state: "revoked" };
+  if (row.state === "revoked" || (row.state === "deleted" && row.deletion_reason === "owner_revoked")) {
+    return { id: row.id, state: "revoked", no_change: true };
+  }
+  // Invalidate the public link and all bearer grants before touching R2. A
+  // storage failure must never leave a revoked file downloadable.
+  await db.batch([
+    db.prepare("UPDATE task22_shares SET state='revoked', deletion_reason='owner_revoked', updated_at=?2 WHERE id=?1")
+      .bind(row.id, isoNow()),
+    db.prepare("UPDATE task22_download_grants SET state='revoked', active_request_id='', active_request_expires_at='' WHERE share_id=?1")
+      .bind(row.id),
+  ]);
+  const cleaned = await removeShare(db, storage, { ...row, state: "revoked" }, "owner_revoked");
+  return { id: row.id, state: "revoked", cleanup_pending: !cleaned };
 }
 
 async function removeShare(db, storage, row, reason) {
@@ -822,16 +923,24 @@ async function removeShare(db, storage, row, reason) {
   let failed = 0;
   for (const file of shareFiles) {
     if (file.object_key) {
-      try { await bucket.delete(file.object_key); } catch (_) { failed += 1; }
-      if (file.upload_id) {
+      const other = await first(db, `SELECT 1 AS present FROM task22_share_files sf
+        JOIN task22_shares share ON share.id=sf.share_id WHERE sf.object_key=?1 AND share.id!=?2
+        AND ${liveShareSql("share", "?3")} LIMIT 1`, [file.object_key, row.id, now]);
+      if (!other) try { await bucket.delete(file.object_key); } catch (_) { failed += 1; }
+      if (!other && file.upload_id) {
         try { await bucket.resumeMultipartUpload(file.object_key, file.upload_id).abort(); } catch (_) { /* already completed */ }
       }
     }
   }
-  const parts = await all(db, `SELECT object_key FROM task22_upload_parts WHERE file_id IN
+  const parts = await all(db, `SELECT object_key, file_id FROM task22_upload_parts WHERE file_id IN
     (SELECT file_id FROM task22_share_files WHERE share_id = ?1)`, [row.id]);
   for (const part of parts) {
     if (!part.object_key) continue;
+    const referenced = await first(db, `SELECT 1 AS present FROM task22_share_files sf
+      JOIN task22_shares share ON share.id=sf.share_id WHERE share.id!=?1
+        AND (sf.file_id=?2 OR sf.object_key=?3) AND ${liveShareSql("share", "?4")} LIMIT 1`,
+    [row.id, part.file_id, part.object_key, now]);
+    if (referenced) continue;
     try { await bucket.delete(part.object_key); } catch (_) { failed += 1; }
   }
   if (failed) {
@@ -839,9 +948,12 @@ async function removeShare(db, storage, row, reason) {
       cleanup_retry_at = ?2, updated_at = ?2 WHERE id = ?1`, [row.id, isoNow(new Date(Date.now() + 30 * 60 * 1000))]);
     return false;
   }
-  await run(db, "DELETE FROM task22_upload_parts WHERE file_id IN (SELECT file_id FROM task22_share_files WHERE share_id = ?1)", [row.id]);
+  await run(db, `DELETE FROM task22_upload_parts WHERE file_id IN
+    (SELECT file_id FROM task22_share_files WHERE share_id = ?1)
+    AND NOT EXISTS (SELECT 1 FROM task22_share_files sf WHERE sf.file_id=task22_upload_parts.file_id AND sf.share_id!=?1)`, [row.id]);
   await run(db, "DELETE FROM task22_share_files WHERE share_id = ?1", [row.id]);
-  await run(db, "DELETE FROM task22_shares WHERE id = ?1", [row.id]);
+  // Keep an owner-scoped tombstone for idempotent repeated revoke/complete.
+  await run(db, "UPDATE task22_shares SET state='deleted', updated_at=?2 WHERE id=?1", [row.id, now]);
   return true;
 }
 
@@ -858,16 +970,47 @@ export async function cleanupExpiredTransfers(db, storage, options = {}) {
     WHERE expires_at <= ?1 AND state = 'active'`, [now]);
   await run(db, `DELETE FROM task22_download_grants
     WHERE expires_at <= ?1 AND state IN ('completed', 'expired', 'revoked')`, [now]);
+  const orphanShareFiles = await first(db, `SELECT COUNT(*) AS count FROM task22_share_files sf
+    WHERE NOT EXISTS (SELECT 1 FROM task22_shares s WHERE s.id = sf.share_id)
+      AND NOT EXISTS (SELECT 1 FROM task22_download_grants g WHERE g.share_id = sf.share_id
+        AND g.state = 'active' AND g.expires_at > ?1)`, [now]);
+  await run(db, `DELETE FROM task22_share_files
+    WHERE NOT EXISTS (SELECT 1 FROM task22_shares s WHERE s.id = task22_share_files.share_id)
+      AND NOT EXISTS (SELECT 1 FROM task22_download_grants g
+        WHERE g.share_id = task22_share_files.share_id AND g.state = 'active' AND g.expires_at > ?1)`, [now]);
   const sessions = await all(db, `SELECT * FROM task22_upload_sessions
     WHERE state = 'active' AND expires_at <= ?1 ORDER BY expires_at ASC LIMIT ?2`, [now, limit]);
   let sessionsRemoved = 0;
+  let sessionsCleanupPending = 0;
   for (const session of sessions) {
-    await expireSession(db, storage, session, "expired");
-    sessionsRemoved += 1;
+    try {
+      if (!await expireSession(db, storage, session, "expired")) sessionsCleanupPending += 1;
+      sessionsRemoved += 1;
+    } catch (_) {
+      sessionsCleanupPending += 1;
+    }
+  }
+  const cleanupPending = await all(db, `SELECT id FROM task22_upload_sessions
+    WHERE state IN ('aborted', 'expired', 'failed') AND cleanup_state = 'pending'
+      AND (cleanup_retry_at = '' OR cleanup_retry_at <= ?1)
+    ORDER BY updated_at ASC LIMIT ?2`, [now, limit]);
+  let sessionsRetried = 0;
+  let sessionsRetryFailed = 0;
+  for (const session of cleanupPending) {
+    try {
+      if (await deleteSessionObjects(db, storage, session.id)) sessionsRetried += 1;
+      else sessionsRetryFailed += 1;
+    } catch (_) {
+      sessionsRetryFailed += 1;
+    }
   }
   const shares = await all(db, `SELECT * FROM task22_shares
     WHERE (expires_at <= ?1 OR state IN ('revoked', 'delete_pending'))
       AND state != 'deleted'
+      AND NOT (state = 'delete_pending' AND EXISTS (
+        SELECT 1 FROM task22_download_grants AS grant
+        WHERE grant.share_id = task22_shares.id
+          AND grant.state IN ('active', 'completed') AND grant.expires_at > ?1))
       AND (cleanup_retry_at = '' OR cleanup_retry_at <= ?1)
     ORDER BY expires_at ASC LIMIT ?2`, [now, limit]);
   let removed = 0;
@@ -911,8 +1054,17 @@ export async function cleanupExpiredTransfers(db, storage, options = {}) {
         orphanInspected += 1;
         const fileId = object.key.slice(objectPrefix.length).split("/")[0];
         const linked = fileId
-          ? await first(db, `SELECT sf.file_id FROM task22_share_files AS sf
-              JOIN task22_shares AS s ON s.id = sf.share_id WHERE sf.file_id = ?1`, [fileId])
+          ? await first(db, `SELECT uf.id FROM task22_upload_files AS uf
+              LEFT JOIN task22_upload_sessions AS us ON us.id = uf.session_id
+              WHERE uf.id = ?1 AND (
+                (us.state = 'active' AND us.expires_at > ?2)
+                OR EXISTS (SELECT 1 FROM task22_share_files AS sf
+                  JOIN task22_shares AS s ON s.id = sf.share_id
+                  WHERE sf.file_id = uf.id)
+                OR EXISTS (SELECT 1 FROM task22_share_files AS sf
+                  JOIN task22_download_grants AS g ON g.share_id = sf.share_id
+                  WHERE sf.file_id = uf.id AND g.state = 'active' AND g.expires_at > ?2)
+              )`, [fileId, now])
           : { file_id: "unknown" };
         const age = Date.now() - new Date(object.uploaded || 0).getTime();
         if (!linked && age > 24 * 60 * 60 * 1000) {
@@ -925,9 +1077,13 @@ export async function cleanupExpiredTransfers(db, storage, options = {}) {
   }
   return {
     sessions_removed: sessionsRemoved,
+    sessions_cleanup_pending: sessionsCleanupPending,
+    sessions_retried: sessionsRetried,
+    sessions_retry_failed: sessionsRetryFailed,
     shares_inspected: shares.length,
     shares_removed: removed,
     shares_failed: failed,
+    orphan_share_files_removed: Number(orphanShareFiles?.count || 0),
     orphan_inspected: orphanInspected,
     orphan_removed: orphanRemoved,
   };
@@ -935,16 +1091,31 @@ export async function cleanupExpiredTransfers(db, storage, options = {}) {
 
 export async function task22Counts(db) {
   const tableCount = async (table) => Number((await first(db, `SELECT COUNT(*) AS count FROM ${table}`))?.count || 0);
-  const [sessions, files, parts, shares, shareFiles, grants, activeBytesTotal] = await Promise.all([
+  const now = isoNow();
+  const [sessions, files, parts, shares, shareFiles, grants, sessionBytes, shareBytes] = await Promise.all([
     tableCount("task22_upload_sessions"),
     tableCount("task22_upload_files"),
     tableCount("task22_upload_parts"),
     tableCount("task22_shares"),
     tableCount("task22_share_files"),
     tableCount("task22_download_grants"),
-    first(db, "SELECT COALESCE(SUM(total_bytes), 0) AS bytes FROM task22_shares WHERE state IN ('active', 'revoked')"),
+    first(db, `SELECT
+      COALESCE(SUM(CASE WHEN state = 'active' AND expires_at > ?1 THEN total_bytes ELSE 0 END), 0) AS reserved_bytes,
+      COALESCE(SUM(CASE WHEN state = 'active' AND expires_at <= ?1 THEN total_bytes ELSE 0 END), 0) AS expired_reserved_bytes
+      FROM task22_upload_sessions`, [now]),
+    first(db, `SELECT COALESCE(SUM(file.size_bytes), 0) AS stored_bytes FROM task22_share_files file
+      JOIN task22_shares share ON share.id=file.share_id WHERE ${liveShareSql("share", "?1")}`, [isoNow()]),
   ]);
-  return { sessions, files, parts, shares, shareFiles, grants, active_bytes: Number(activeBytesTotal?.bytes || 0) };
+  const reservedBytes = Number(sessionBytes?.reserved_bytes || 0);
+  const storedBytes = Number(shareBytes?.stored_bytes || 0);
+  return {
+    sessions, files, parts, shares, shareFiles, grants,
+    stored_bytes: storedBytes,
+    reserved_bytes: reservedBytes,
+    expired_reserved_bytes: Number(sessionBytes?.expired_reserved_bytes || 0),
+    used_bytes: storedBytes + reservedBytes,
+    active_bytes: storedBytes + reservedBytes,
+  };
 }
 
 export const __testing = Object.freeze({

@@ -31,10 +31,17 @@ class TransferQueueStore(private val file: File) {
         }
     }
 
-    fun save(items: List<QueuedTransfer>) {
+    fun generation(): Long = synchronized(lock) {
+        if (!file.exists()) 0 else runCatching { JSONObject(file.readText()).optLong("batch_generation") }.getOrDefault(0)
+    }
+
+    fun save(items: List<QueuedTransfer>) = synchronized(lock) { save(items, generation()) }
+
+    private fun save(items: List<QueuedTransfer>, generation: Long) {
         synchronized(lock) {
             val root = JSONObject()
             root.put("schema", 1)
+            root.put("batch_generation", generation)
             root.put("items", JSONArray().apply {
                 for (item in items) put(item.toJson())
             })
@@ -79,6 +86,10 @@ class TransferQueueStore(private val file: File) {
         updated
     }
 
+    fun updateIfGeneration(localId: String, expected: Long, transform: (QueuedTransfer) -> QueuedTransfer): QueuedTransfer? = synchronized(lock) {
+        if (generation() != expected) null else update(localId, transform)
+    }
+
     /**
      * An expired server upload invalidates every file allocated in that
      * session. Keep the SAF sources, but rebuild all server-side state as one
@@ -94,11 +105,11 @@ class TransferQueueStore(private val file: File) {
                 partCount = 0,
                 uploadedParts = emptySet(),
                 uploadedBytes = 0,
-                status = TransferItemStatus.PENDING,
+                status = if (item.status == TransferItemStatus.PAUSED) TransferItemStatus.PAUSED else TransferItemStatus.PENDING,
                 errorMessage = "",
             )
         }
-        save(reset)
+        save(reset, generation() + 1)
         reset
     }
 

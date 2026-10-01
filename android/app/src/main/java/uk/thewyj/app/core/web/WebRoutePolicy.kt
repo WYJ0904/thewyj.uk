@@ -45,7 +45,9 @@ class WebRoutePolicy(baseUrl: String) {
             }
         }
         if (uri.scheme.equals("https", ignoreCase = true)) {
-            return if (uri.host.equals(trusted.host, ignoreCase = true) && effectivePort(uri) == effectivePort(trusted)) {
+            if (uri.userInfo != null) return NavigationDecision.Blocked
+            return if (uri.host.equals(trusted.host, ignoreCase = true) &&
+                effectivePort(uri) == effectivePort(trusted)) {
                 NavigationDecision.Internal
             } else {
                 NavigationDecision.External
@@ -67,7 +69,7 @@ class WebRoutePolicy(baseUrl: String) {
         val uri = runCatching { URI(rawUrl) }.getOrNull() ?: return null
         if (uri.userInfo != null) return null
         val path = uri.rawPath.orEmpty().ifBlank { "/" }
-        val known = path in setOf("/", "/login", "/register", "/trial", "/changelog", "/select", "/language", "/finance", "/account", "/recharge", "/admin", "/tools") ||
+        val known = path in setOf("/", "/login", "/register", "/trial", "/changelog", "/select", "/language", "/finance", "/transfer", "/account", "/recharge", "/admin", "/tools") ||
             Regex("^/language/(english|japanese)$").matches(path) ||
             Regex("^/tools/[a-z0-9-]+$").matches(path) ||
             Regex("^/share/(text|file|clipboard|qr|room)/[A-Za-z0-9_-]+$").matches(path)

@@ -7,10 +7,12 @@ import org.junit.Test
 class WebRoutePolicyTest {
     private val policy = WebRoutePolicy("https://thewyj.uk")
     @Test fun spaNavigationOnlyAcceptsKnownSameOriginPages() {
-        listOf("/select", "/finance", "/language/japanese", "/tools/json", "/share/file/abc_123").forEach {
+        listOf("/select", "/finance", "/transfer", "/language/japanese", "/tools/json", "/share/file/abc_123").forEach {
             assertEquals(it, policy.spaRoute("https://thewyj.uk$it"))
         }
         assertEquals("/finance?month=2026-09#top", policy.spaRoute("https://thewyj.uk/finance?month=2026-09#top"))
+        assertEquals("/transfer?foo=bar#share=abc123",
+            policy.spaRoute("https://thewyj.uk/transfer?foo=bar#share=abc123"))
         listOf("https://evil.example/finance", "https://user@thewyj.uk/finance", "https://thewyj.uk/api/me", "https://thewyj.uk/app.js", "https://thewyj.uk/unknown").forEach {
             assertEquals(null, policy.spaRoute(it))
         }
@@ -32,6 +34,8 @@ class WebRoutePolicyTest {
     fun lookalikeAndSubdomainOriginsCannotEnterTrustedWebView() {
         assertEquals(NavigationDecision.External, policy.decide("https://evil-thewyj.uk/"))
         assertEquals(NavigationDecision.External, policy.decide("https://preview.thewyj.uk/"))
+        assertEquals(NavigationDecision.Blocked, policy.decide("https://user@thewyj.uk/transfer"))
+        assertEquals(null, policy.spaRoute("https://thewyj.uk:444/transfer#share=abc"))
     }
 
     @Test

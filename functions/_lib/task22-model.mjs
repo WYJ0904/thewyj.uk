@@ -74,9 +74,14 @@ function safeComponent(value, maximum) {
   return text;
 }
 
+// Preserve ordinary cross-platform names, including combining marks and emoji.
+// Percent escapes, separators and controls remain excluded by this pattern and
+// safeComponent so a displayed name cannot become a decoded traversal path.
+const SAFE_NAME_PATTERN = /^[\p{L}\p{M}\p{N}\p{Extended_Pictographic}\u200d _.,()\[\]+=#&'-]+$/u;
+
 export function cleanFileName(value) {
   const name = safeComponent(value, 255);
-  if (!/^[\p{L}\p{N} _.,()\[\]+=-]+$/u.test(name)) {
+  if (!SAFE_NAME_PATTERN.test(name)) {
     throw new Task22Error("文件名包含不允许的字符", 400, "transfer_name_invalid");
   }
   return name;
@@ -108,7 +113,7 @@ export function cleanRelativePath(value) {
       throw new Task22Error("文件相对路径不能包含目录穿越", 400, "transfer_path_traversal");
     }
     const safe = safeComponent(component, 255);
-    if (!/^[\p{L}\p{N} _.,()\[\]+=-]+$/u.test(safe)) {
+    if (!SAFE_NAME_PATTERN.test(safe)) {
       throw new Task22Error("路径组件包含不允许的字符", 400, "transfer_path_invalid");
     }
     return safe;
@@ -260,6 +265,7 @@ export function sessionPayload(row, files = [], parts = {}) {
 export function sharePayload(row, files = []) {
   return {
     id: String(row.id || ""),
+    state: String(row.state || ""),
     expires_at: String(row.expires_at || ""),
     total_bytes: Number(row.total_bytes || 0),
     file_count: Number(row.file_count || 0),
@@ -269,6 +275,7 @@ export function sharePayload(row, files = []) {
     password_required: Boolean(row.password_hash),
     revoked: String(row.state || "") === "revoked",
     destroyed: String(row.state || "") === "delete_pending",
+    can_authorize: String(row.state || "") === "active",
     files: files.map((file) => ({
       file_id: String(file.file_id || ""),
       relative_path: String(file.relative_path || ""),

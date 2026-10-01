@@ -6,6 +6,10 @@
          launcher-capable apps; QUERY_ALL_PACKAGES is intentionally not used. -->
     <queries>
         <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
@@ -66,7 +70,11 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="thewyj.uk" />
+                <!-- Public /transfer URLs belong to browsers. Retain private
+                     app routes and the custom thewyj scheme. -->
+                <data android:scheme="https" android:host="thewyj.uk" android:path="/finance" />
+                <data android:scheme="https" android:host="thewyj.uk" android:path="/account" />
+                <data android:scheme="https" android:host="thewyj.uk" android:path="/recharge" />
             </intent-filter>
         </activity>
         <service

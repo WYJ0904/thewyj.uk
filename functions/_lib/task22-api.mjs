@@ -20,6 +20,7 @@ import {
   createUploadSession,
   ensureTask22Schema,
   listShares,
+  listUploadSessions,
   revokeShare,
   shareMetadata,
   streamFileDownload,
@@ -30,6 +31,7 @@ import {
 
 const ROUTES = new Map([
   ["GET /api/transfer/capabilities", { mode: "read", auth: "public", limit: 120, window: 60 }],
+  ["GET /api/transfer/uploads", { mode: "read", auth: "optional", limit: 60, window: 60 }],
   ["POST /api/transfer/uploads", { mode: "write", auth: "optional", limit: 30, window: 60, body: 8 * 1024 }],
   ["POST /api/transfer/uploads/files", { mode: "write", auth: "optional", limit: 60, window: 60, body: 16 * 1024 }],
   ["PUT /api/transfer/uploads/parts", { mode: "write", auth: "optional", limit: 180, window: 60, raw: true }],
@@ -120,6 +122,11 @@ async function execute(context, account, descriptor) {
 
   if (path === "/api/transfer/capabilities") {
     return response({ ok: true, ...await transferCapabilities(db, account, { guest_id: url.searchParams.get("guest_id") || "" }), build: TASK22_BUILD }, 200, context, { "Cache-Control": "no-store" });
+  }
+  if (method === "GET" && path === "/api/transfer/uploads") {
+    return response({ ok: true, uploads: await listUploadSessions(db, account, {
+      guest_id: url.searchParams.get("guest_id") || guestIdFrom(context),
+    }) }, 200, context, { "Cache-Control": "no-store" });
   }
   if (path === "/api/transfer/uploads") {
     const payload = await payloadFor(descriptor.body);

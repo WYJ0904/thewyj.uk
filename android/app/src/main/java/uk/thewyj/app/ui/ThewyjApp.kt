@@ -116,7 +116,17 @@ fun ThewyjApp(viewModel: AppViewModel) {
     }
 
     Box(Modifier.fillMaxSize()) {
-        when (val current = session) {
+        if (isPublicTransferRoute(webRoute) && session !is SessionState.Authenticated) {
+            PublicTransferShell(
+                route = webRoute,
+                webEpoch = webEpoch,
+                navigationEpoch = navigationEpoch,
+                onRouteChanged = viewModel::onWebRouteChanged,
+                onLeave = { viewModel.openRoute("/login") },
+                onWebError = viewModel::setNotice,
+                onThemeChanged = viewModel::onWebThemeChanged,
+            )
+        } else when (val current = session) {
             SessionState.Initializing -> LoadingScreen()
             is SessionState.StorageUnavailable -> Surface(Modifier.fillMaxSize()) {
                 Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.Center) {
@@ -157,6 +167,34 @@ fun ThewyjApp(viewModel: AppViewModel) {
         }
         SnackbarHost(hostState = snackbar, modifier = Modifier.align(Alignment.BottomCenter))
     }
+}
+
+/** A recipient needs only the public share route, even while session recovery runs. */
+@Composable
+private fun PublicTransferShell(
+    route: String,
+    webEpoch: Int,
+    navigationEpoch: Int,
+    onRouteChanged: (String) -> Unit,
+    onLeave: () -> Unit,
+    onWebError: (String) -> Unit,
+    onThemeChanged: (Boolean) -> Unit,
+) {
+    var backRequest by remember { mutableIntStateOf(0) }
+    BackHandler { backRequest += 1 }
+    ThewyjWebView(
+        route = route,
+        navigationEpoch = navigationEpoch,
+        sessionEpoch = webEpoch,
+        backNavigationRequest = backRequest,
+        onRefreshSession = {},
+        onLogout = onLeave,
+        onRouteChanged = onRouteChanged,
+        onCanGoBackChanged = {},
+        onMainFrameError = onWebError,
+        onThemeChanged = onThemeChanged,
+        onUnhandledBack = onLeave,
+    )
 }
 
 @Composable

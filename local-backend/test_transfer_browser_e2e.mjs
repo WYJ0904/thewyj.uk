@@ -339,19 +339,57 @@ async function main() {
       FIXTURES.map((fixture) => fixture.fileName).sort(),
       "the share card must list both original file names",
     );
+    assert.match(await page.evaluate("document.querySelector('#transferShareFiles')?.textContent || ''"), /MiB/,
+      "binary file size must be labeled MiB rather than MB");
+    await page.waitFor(
+      "!document.querySelector('#transferShareOwnerActions')?.classList.contains('hidden')",
+      20_000, "owner revoke action",
+    );
+    await page.waitFor(
+      `document.querySelector('#transferMyShares')?.textContent.includes(${JSON.stringify(FIXTURES[0].fileName)})`,
+      20_000, "owner share filename",
+    );
 
-    // 5. Download from the share link in a *fresh* tab - the recipient path.
+    // 5. openPage creates a fresh browser context: no cookie, localStorage or
+    // owner login can be inherited by this recipient.
     const sharePage = await openPage({ cdpUrl: CDP_URL, baseUrl: BASE_URL, width: 1280, height: 900, mobile: false });
     await sharePage.setDownloadBehavior(DOWNLOAD_DIR);
+    const wireDownloads = new Map();
+    sharePage.client.listeners.add((message) => {
+      // Downloads move out of the renderer; Network.responseReceived is not
+      // guaranteed for this request. Keep its actual, already authorized URL
+      // in this test process only, without minting another recipient grant.
+      if (message.method !== "Browser.downloadWillBegin") return;
+      const download = message.params;
+      if (!download?.url?.includes(`/api/transfer/shares/${shareId}/download?`)) return;
+      wireDownloads.set(download.suggestedFilename, download.url);
+    });
     try {
       await sharePage.navigate(`/transfer#share=${encodeURIComponent(shareId)}`);
       await sharePage.waitFor("document.querySelectorAll('[data-transfer-download]').length >= 2", 40_000, "share download buttons");
+      const recipientState = await sharePage.evaluate(`({
+        path: location.pathname,
+        fragment: location.hash,
+        session: localStorage.getItem('wyjAccountSession'),
+        authHidden: document.querySelector('#authPanel')?.classList.contains('hidden'),
+        recoveryHidden: document.querySelector('#sessionRecovery')?.classList.contains('hidden'),
+        transferVisible: !document.querySelector('#transferPage')?.classList.contains('hidden'),
+      })`);
+      assert.equal(recipientState.path, "/transfer");
+      assert.equal(recipientState.fragment, `#share=${shareId}`);
+      assert.equal(recipientState.session, null, "recipient context has no owner session");
+      assert.equal(recipientState.authHidden, true, "recipient must not see login");
+      assert.equal(recipientState.recoveryHidden, true, "recipient must not see Android session recovery");
+      assert.equal(recipientState.transferVisible, true);
+      assert.equal(await sharePage.evaluate(
+        "document.querySelector('#transferShareOwnerActions')?.classList.contains('hidden')",
+      ), true, "anonymous recipient must not receive owner revoke controls");
       const buttons = await sharePage.evaluate(
         "Array.from(document.querySelectorAll('[data-transfer-download]')).map((button) => button.dataset.transferDownload)",
       );
       assert.equal(buttons.length, 2, "the share page must expose both downloads");
 
-      for (const fixture of FIXTURES) {
+      for (const [index, fixture] of FIXTURES.entries()) {
         // A real recipient downloads each file from the same share page. Browser
         // download permission is scoped to this isolated context, so no second
         // context is needed (creating one per file could stall before navigation
@@ -360,7 +398,19 @@ async function main() {
         const downloadedPath = path.join(DOWNLOAD_DIR, fixture.fileName);
         // Browsers without the File System Access API download through the
         // anchor branch; pin that branch so a headless run writes a real file.
-        await sharePage.evaluate("delete window.showSaveFilePicker; true");
+        if (index === 0) {
+          await sharePage.evaluate("delete window.showSaveFilePicker; true");
+        } else {
+          // The Android shell must use its native bounded download path even
+          // when a WebView advertises the File System Access picker.
+          await sharePage.evaluate(`(() => {
+            Object.defineProperty(navigator, 'userAgent', {
+              configurable: true, value: navigator.userAgent + ' thewyj-android/1.3.21',
+            });
+            window.showSaveFilePicker = () => { throw new Error('Android must use the native download'); };
+            return true;
+          })()`);
+        }
         const clicked = await sharePage.evaluate(`(() => {
           const buttons = Array.from(document.querySelectorAll('[data-transfer-download]'));
           const match = buttons.find((button) => {
@@ -376,6 +426,17 @@ async function main() {
         const downloadedHash = await sha256File(downloadedPath);
         assert.equal(fs.statSync(downloadedPath).size, fixture.size, `${fixture.label}: byte length`);
         assert.equal(downloadedHash, fixture.sha256, `${fixture.label}: SHA-256 source == download`);
+        const wireUrl = wireDownloads.get(fixture.fileName);
+        assert.ok(wireUrl, `${fixture.label}: browser download event observed`);
+        assert.equal(new URL(wireUrl).origin, new URL(BASE_URL).origin);
+        const wire = await fetch(wireUrl, { headers: { "Accept-Encoding": "identity" } });
+        try {
+          assert.equal(wire.status, 200, `${fixture.label}: real HTTP header probe`);
+          assert.equal(Number(wire.headers.get("content-length")), fixture.size,
+            `${fixture.label}: wire Content-Length survives the native stream`);
+          assert.match(wire.headers.get("cache-control"), /no-transform/,
+            `${fixture.label}: wire response prohibits proxy transformation`);
+        } finally { await wire.body?.cancel(); }
         assert.ok(
           path.extname(downloadedPath) === path.extname(fixture.fileName),
           `${fixture.label}: extension must survive (${downloadedPath})`,
@@ -386,6 +447,9 @@ async function main() {
         );
         console.log(`[transfer-browser] verified ${fixture.fileName} bytes=${fixture.size} sha256=${downloadedHash}`);
       }
+      const shareAfterDownloads = await fetch(`${BASE_URL}/api/transfer/shares/${shareId}`).then((response) => response.json());
+      assert.equal(Number(shareAfterDownloads.share.download_count), 1,
+        "files in one recipient session must reuse its unexpired grant");
     } finally {
       await sharePage.close();
     }
@@ -403,6 +467,97 @@ async function main() {
       staleComplete.status >= 400,
       `the superseded one-file session must not be publishable (HTTP ${staleComplete.status})`,
     );
+    // Cancelling a new upload must release its server reservation, even when
+    // the multipart upload has already begun. The published share remains.
+    await page.setFile("#transferFileInput", FIXTURES[0].path);
+    await page.waitFor(`(() => {
+      const saved = JSON.parse(localStorage.getItem(${JSON.stringify(queueKey)}) || '{}');
+      return saved.queue?.length === 1 && Boolean(saved.queue[0].sessionId);
+    })()`, 30_000, "cancel fixture has a reserved session");
+    const cancelledSessionId = await page.evaluate(`(() => {
+      const saved = JSON.parse(localStorage.getItem(${JSON.stringify(queueKey)}) || '{}');
+      return saved.queue?.[0]?.sessionId || '';
+    })()`);
+    await page.click("[data-transfer-cancel]");
+    await page.waitFor(`(() => {
+      const saved = JSON.parse(localStorage.getItem(${JSON.stringify(queueKey)}) || '{}');
+      return saved.queue?.length === 0;
+    })()`, 30_000, "cancel removes the queued file");
+    let cancelledState;
+    let quota;
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      cancelledState = await api(`/api/transfer/uploads/${cancelledSessionId}`, null, session);
+      quota = await api("/api/transfer/capabilities", null, session);
+      if (cancelledState.data?.state === "aborted" && quota.data?.reserved_bytes === 0) break;
+      await delay(200);
+    }
+    assert.equal(cancelledState.data?.state, "aborted", JSON.stringify(cancelledState.data));
+    assert.equal(quota.data?.reserved_bytes, 0, JSON.stringify(quota.data));
+    assert.equal(quota.data?.used_bytes, quota.data?.stored_bytes, "cancel releases reserved quota");
+    console.log("[transfer-browser] cancelled upload released its session and quota");
+
+    // Removing one file from a two-file reservation must abort that whole
+    // immutable batch, then re-upload the survivor under a new session.
+    await page.setFile("#transferFileInput", FIXTURES[0].path);
+    await page.waitFor("document.querySelector('#transferCompleteBtn')?.disabled === false", TRANSFER_TIMEOUT_MS,
+      "replacement fixture first upload finished");
+    await page.setFile("#transferFileInput", FIXTURES[1].path);
+    await page.waitFor("document.querySelectorAll('[data-transfer-item]').length === 2 && document.querySelector('#transferCompleteBtn')?.disabled === false",
+      TRANSFER_TIMEOUT_MS, "replacement fixture two-file batch finished");
+    const twoFileSessionId = await page.evaluate(`(() => {
+      const saved = JSON.parse(localStorage.getItem(${JSON.stringify(queueKey)}) || '{}');
+      return saved.queue?.[0]?.sessionId || '';
+    })()`);
+    assert.ok(twoFileSessionId);
+    await page.click("[data-transfer-item]:nth-child(2) [data-transfer-cancel]");
+    await page.waitFor(`(() => {
+      const saved = JSON.parse(localStorage.getItem(${JSON.stringify(queueKey)}) || '{}');
+      return saved.queue?.length === 1 && saved.queue[0].status === 'done'
+        && saved.queue[0].sessionId && saved.queue[0].sessionId !== ${JSON.stringify(twoFileSessionId)};
+    })()`, TRANSFER_TIMEOUT_MS, "surviving file rebuilt under a new session");
+    const superseded = await api(`/api/transfer/uploads/${twoFileSessionId}`, null, session);
+    assert.equal(superseded.data?.state, "aborted", "superseded two-file reservation is terminal");
+    await page.click("[data-transfer-cancel]");
+    await page.waitFor(`(() => {
+      const saved = JSON.parse(localStorage.getItem(${JSON.stringify(queueKey)}) || '{}');
+      return saved.queue?.length === 0;
+    })()`, 30_000, "last survivor cancelled");
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      quota = await api("/api/transfer/capabilities", null, session);
+      if (quota.data?.reserved_bytes === 0) break;
+      await delay(200);
+    }
+    assert.equal(quota.data?.reserved_bytes, 0, "batch replacement and final cancel leave no reservation");
+    console.log("[transfer-browser] two-file deletion rebuilt the survivor without ghost quota");
+    await page.waitFor(`document.querySelector('[data-transfer-revoke="${shareId}"]')`, 20_000, "owner share revoke control");
+    await page.evaluate(`(() => {
+      const original = window.fetch;
+      const gate = new Promise(resolve => { window.__releaseRevoke = resolve; });
+      window.__revokePosts = 0;
+      window.fetch = (input, init) => {
+        if (String(input).endsWith('/api/transfer/shares/${shareId}/revoke')) {
+          window.__revokePosts++;
+          return gate.then(() => original(input, init));
+        }
+        return original(input, init);
+      };
+    })()`);
+    await page.click(`[data-transfer-revoke="${shareId}"]`);
+    await page.waitFor(`(() => { const b=document.querySelector('[data-transfer-revoke="${shareId}"]');
+      return b?.disabled && b.textContent.includes('撤销中'); })()`, 10_000, "immediate revoke processing label");
+    await page.evaluate(`document.querySelector('[data-transfer-revoke="${shareId}"]').dispatchEvent(new MouseEvent('click',{bubbles:true})); true`);
+    assert.equal(await page.evaluate("window.__revokePosts"), 1, "repeated revoke clicks must be single-flight");
+    await page.evaluate("window.__releaseRevoke(); true");
+    await page.waitFor(`!document.querySelector('[data-transfer-revoke="${shareId}"]')`, 20_000, "revoked share disappears from owner list");
+    const gone = await fetch(`${BASE_URL}/api/transfer/shares/${shareId}`);
+    assert.ok([404,410].includes(gone.status), "public link is invalid after owner UI revoke");
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      quota = await api("/api/transfer/capabilities", null, session);
+      if (quota.data?.stored_bytes === 0 && quota.data?.reserved_bytes === 0) break;
+      await delay(200);
+    }
+    assert.equal(quota.data?.used_bytes, 0, "synthetic share revoke releases all test quota");
+    console.log("[transfer-browser] synthetic share revoked and quota returned to zero");
     console.log(
       `[transfer-browser] PASS source == download SHA-256 and byte length for ${FIXTURES.map((fixture) => `${fixture.fileName} (${fixture.size} bytes)`).join(", ")}`,
     );

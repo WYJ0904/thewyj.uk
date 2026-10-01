@@ -1,5 +1,5 @@
 export const APP_VERSION = "2026-09-26-task24-canonical-review-r15";
-export const ASSET_RELEASE = "20260927-task24-release-r16";
+export const ASSET_RELEASE = "20260929-transfer-hotfix-r2";
 
 export const API_TIMEOUT_MS = 30000;
 export const AI_TIMEOUT_MS = 25000;

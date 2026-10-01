@@ -148,7 +148,11 @@ class TransferApiClient(context: Context) {
         return withAuth { token -> executeJson(open("/api/transfer/uploads/$sessionId", "GET", token), null) }
     }
 
-    fun complete(sessionId: String): TransferShare {
+    fun complete(sessionId: String): TransferShare = completeTransferWithRecovery(
+        sessionId, publish = ::publishSession, observe = ::sessionState,
+    )
+
+    private fun publishSession(sessionId: String): TransferShare {
         val payload = withAuth { token ->
             executeJson(open("/api/transfer/uploads/$sessionId/complete", "POST", token, "application/json"), JSONObject())
         }
@@ -158,6 +162,17 @@ class TransferApiClient(context: Context) {
     fun abort(sessionId: String) {
         withAuth { token ->
             executeJson(open("/api/transfer/uploads/$sessionId/abort", "POST", token, "application/json"), JSONObject())
+        }
+    }
+
+    /** Release exactly the queued session even if complete raced with cancel. */
+    fun releaseSession(sessionId: String) {
+        try { abort(sessionId) } catch (error: TransferApiException) {
+            if (error.status in setOf(404, 410)) return
+            if (error.code != "transfer_session_published") throw error
+            val shareId = sessionState(sessionId).optString("share_id")
+            if (shareId.isBlank()) throw error
+            revoke(shareId)
         }
     }
 
