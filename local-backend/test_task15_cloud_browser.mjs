@@ -408,6 +408,9 @@ async function main() {
       })()`);
       assert.equal(current.status, 200, JSON.stringify(current.data));
       assert.equal(current.data.account?.username, USERNAME);
+      // This test owns the offline/throttling profile. Do not carry it into
+      // the following native-auth fixture, which supplies its own health delay.
+      await send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
     });
 
     await check("Task 20 native startup and route transitions never paint web login", async () => {
