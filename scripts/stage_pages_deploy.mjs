@@ -10,6 +10,7 @@ const ROOT_FILES = Object.freeze([
   "app.js",
   "changelog.js",
   "design-system.css",
+  "favicon.ico",
   "icon-192.png",
   "icon-512.png",
   "index.html",

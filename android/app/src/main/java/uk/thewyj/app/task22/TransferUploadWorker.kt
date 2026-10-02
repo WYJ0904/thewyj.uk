@@ -49,7 +49,7 @@ class TransferUploadWorker(
             )
         }
         return NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification_aeris)
             .setContentTitle("正在上传文件")
             .setContentText("文件传输进行中")
             .setOngoing(true)

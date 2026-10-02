@@ -28,7 +28,7 @@ export const CAPABILITY = Object.freeze({
 
 export const CAPABILITY_MESSAGE = Object.freeze({
   cryptoRandomUUID: "当前浏览器版本过旧：缺少 crypto.randomUUID，已使用兼容 ID 生成器。",
-  cryptoSubtle: "当前浏览器的 WebCrypto 不可用，文件校验与分片上传无法进行；请升级浏览器或改用 thewyj Android 应用。",
+  cryptoSubtle: "当前浏览器的 WebCrypto 不可用，文件校验与分片上传无法进行；请升级浏览器或改用 Aeris Android 应用。",
   localStorage: "当前浏览器禁用了本地存储，词表与设置无法保存；请关闭无痕模式或允许站点数据。",
   sessionStorage: "当前浏览器禁用了会话存储，登录状态可能无法在标签页间保持。",
   fileApi: "当前浏览器不支持 File/Blob/ArrayBuffer，文件与图片工具不可用。",

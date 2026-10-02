@@ -9,25 +9,25 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20261003-aeris-p2-r2";
+} from "./js/core/config.js?v=20261003-aeris-p3-2";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?v=20261003-aeris-p2-r2";
+} from "./js/core/capabilities.js?v=20261003-aeris-p3-2";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20261003-aeris-p2-r2";
+} from "./js/core/api.js?v=20261003-aeris-p3-2";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20261003-aeris-p2-r2";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261003-aeris-p2-r2";
+} from "./js/core/changelog.js?v=20261003-aeris-p3-2";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261003-aeris-p3-2";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -38,20 +38,21 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20261003-aeris-p2-r2";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261003-aeris-p2-r2";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261003-aeris-p2-r2";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261003-aeris-p2-r2";
-import { installMotionSystem, motionDuration } from "./js/core/motion.js?v=20261003-aeris-p2-r2";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20261003-aeris-p2-r2";
-import { speakText, stopSpeech } from "./js/language/speech.js?v=20261003-aeris-p2-r2";
+} from "./js/core/session.js?v=20261003-aeris-p3-2";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261003-aeris-p3-2";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261003-aeris-p3-2";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261003-aeris-p3-2";
+import { installMotionSystem, motionDuration } from "./js/core/motion.js?v=20261003-aeris-p3-2";
+import { initPublicExperience } from "./js/core/public-experience.js?v=20261003-aeris-p3-2";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20261003-aeris-p3-2";
+import { speakText, stopSpeech } from "./js/language/speech.js?v=20261003-aeris-p3-2";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?v=20261003-aeris-p2-r2";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20261003-aeris-p2-r2";
-import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20261003-aeris-p2-r2";
-import { createTransferController } from "./js/transfer/app.js?v=20261003-aeris-p2-r2";
+} from "./js/language/speech-rate.js?v=20261003-aeris-p3-2";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20261003-aeris-p3-2";
+import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20261003-aeris-p3-2";
+import { createTransferController } from "./js/transfer/app.js?v=20261003-aeris-p3-2";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -59,15 +60,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?v=20261003-aeris-p2-r2";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261003-aeris-p2-r2";
+} from "./js/core/perf.js?v=20261003-aeris-p3-2";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261003-aeris-p3-2";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20261003-aeris-p2-r2";
+} from "./js/language/history.js?v=20261003-aeris-p3-2";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -104,16 +105,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20261003-aeris-p2-r2";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261003-aeris-p2-r2";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20261003-aeris-p2-r2";
+} from "./js/language/quiz.js?v=20261003-aeris-p3-2";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261003-aeris-p3-2";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20261003-aeris-p3-2";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20261003-aeris-p2-r2";
+} from "./js/language/wrong-book.js?v=20261003-aeris-p3-2";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -122,7 +123,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20261003-aeris-p2-r2";
+} from "./js/membership/account.js?v=20261003-aeris-p3-2";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -130,19 +131,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20261003-aeris-p2-r2";
+} from "./js/membership/plans.js?v=20261003-aeris-p3-2";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20261003-aeris-p2-r2";
+} from "./js/membership/recharge.js?v=20261003-aeris-p3-2";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20261003-aeris-p2-r2";
+} from "./js/admin/formatters.js?v=20261003-aeris-p3-2";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -1448,6 +1449,12 @@ function renderDashboard() {
   const toolSummary = window.WYJTools?.getSummary?.() || { favorites: [], recent: [] };
   renderDashboardToolShelf("dashboardFavoriteTools", toolSummary.favorites || [], "还没有收藏工具。");
   renderDashboardToolShelf("dashboardRecentTools", toolSummary.recent || [], "还没有使用记录。");
+  const pending = financeCandidatesController?.dashboardSummary?.();
+  if ($("dashboardNotificationPending")) $("dashboardNotificationPending").textContent = pending?.known ? `${pending.count} 项` : "未读取";
+  if ($("dashboardNotificationStatus")) $("dashboardNotificationStatus").textContent = pending?.known ? (pending.count ? "有识别交易等待核实。" : "已读取，没有待核实交易。") : "在账本中核实通知识别的交易。";
+  const transfer = transferController?.dashboardSummary?.() || { count: 0, paused: 0, running: false };
+  if ($("dashboardTransferCount")) $("dashboardTransferCount").textContent = `${transfer.count} 个任务`;
+  if ($("dashboardTransferStatus")) $("dashboardTransferStatus").textContent = !transfer.count ? "暂无本机传输任务。" : transfer.running ? "传输正在进行，打开查看进度。" : transfer.paused ? `${transfer.paused} 个任务已暂停。` : "打开传输页继续管理队列。";
   renderLatestUpdate();
 
   setDashboardService("dashboardAccountStatus", backendAvailable ? "在线" : "离线", backendAvailable ? "is-online" : "is-offline");
@@ -6248,7 +6255,7 @@ async function exportWrongBook(scope = "current") {
 
   try {
     const blob = await createWrongBookPdf(book, {
-      title: scope === "history" ? "thewyj 历史错题本" : "thewyj 本轮错题本",
+      title: scope === "history" ? "Aeris 历史错题本" : "Aeris 本轮错题本",
       meta: {
         profile: state.profile,
         scope: scope === "history" ? "历史错题" : "本轮错题",
@@ -6758,6 +6765,7 @@ function auditRuntimeCapabilities() {
 
 async function boot() {
   initDesignSystem();
+  initPublicExperience();
   installLocalTestBindings();
   auditRuntimeCapabilities();
   if (state.account?.id) {
@@ -6802,6 +6810,11 @@ async function boot() {
   $("publicLanguageTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
   $("publicToolsTrialBtn")?.addEventListener("click", () => showTrial(true, "text"));
   $("publicRegisterBtn")?.addEventListener("click", () => showAuth("", { mode: "register", path: "/register" }));
+  $("publicLoginBtn")?.addEventListener("click", () => showAuth("", { mode: "login", path: "/login" }));
+  $("publicFinanceLoginBtn")?.addEventListener("click", () => showAuth("登录后查看自己的账本", { mode: "login", path: "/login" }));
+  $("publicFilesLoginBtn")?.addEventListener("click", () => showAuth("登录后管理自己的文件传输", { mode: "login", path: "/login" }));
+  $("dashboardNotificationsBtn")?.addEventListener("click", () => showFinance(true));
+  $("dashboardTransferBtn")?.addEventListener("click", () => showTransfer(true));
   $("publicPlansBtn")?.addEventListener("click", () => showAuth("登录后可查看实时套餐并提交充值申请", { mode: "login", path: "/login" }));
   $("publicChangelogBtn")?.addEventListener("click", () => showChangelog(true));
   $("changelogTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));

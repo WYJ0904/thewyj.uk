@@ -57,7 +57,7 @@ class AppUpdateInstaller(private val context: Context) {
         if (target.exists()) target.delete()
         val request = DownloadManager.Request(Uri.parse(config.downloadUrl))
             .setMimeType("application/vnd.android.package-archive")
-            .setTitle("thewyj ${config.latestVersionName}")
+            .setTitle("Aeris ${config.latestVersionName}")
             .setDescription("正在下载官方安装包")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
             .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, "updates/$fileName")

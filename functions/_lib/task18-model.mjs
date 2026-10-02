@@ -115,7 +115,7 @@ export function messagePayload(row) {
     title: String(row.title || ""),
     body: String(row.body || ""),
     type: String(row.message_type || "normal"),
-    sender_label: "thewyj 管理员通知",
+    sender_label: "Aeris 管理员通知",
     created_at: String(row.created_at || ""),
     expires_at: String(row.expires_at || ""),
     requires_confirmation: Boolean(row.requires_confirmation),

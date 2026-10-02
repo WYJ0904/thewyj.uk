@@ -644,10 +644,11 @@ async function main() {
       assert.equal(await evaluate("!document.querySelector('#accountBar').classList.contains('hidden')"), true);
       assert.equal(await evaluate("!document.querySelector('#navGuestActions').classList.contains('hidden')"), true);
       assert.equal(await evaluate("document.querySelector('#accountMenu').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("document.querySelector('#publicHomeTitle').textContent.trim()"), "thewyj");
-      assert.equal(await evaluate("document.querySelectorAll('#publicCapabilityGallery [data-capability-panel]').length"), 5);
-      assert.equal(await evaluate("document.querySelector('#publicHome').textContent.includes('没有第三方追踪')"), true);
-      assert.equal(await evaluate("document.querySelector('#publicSplitFlap').dataset.phrases"), "学习|工具|财务|分享");
+      assert.equal(await evaluate("document.querySelector('#publicHomeTitle').textContent.trim()"), "Aeris");
+      assert.equal(await evaluate("document.querySelectorAll('#publicCapabilityGallery [data-capability-panel]').length"), 4);
+      assert.equal(await evaluate("document.querySelector('#publicHome').textContent.includes('留在本机')"), true);
+      assert.equal(await evaluate("document.querySelector('#publicSplitFlap')"), null);
+      assert.equal(await evaluate("document.querySelectorAll('#publicCapabilityGallery [role=tab]').length"), 4);
       await click("#siteNavToggle");
       assert.equal(await evaluate("document.querySelector('#siteNavToggle').getAttribute('aria-expanded')"), "true");
       assert.equal(await evaluate("document.querySelectorAll('#siteNavPanel a').length"), 8);
@@ -699,13 +700,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20261003-aeris-p2-r2');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20261003-aeris-p2-r2');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261003-aeris-p2-r2');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261003-aeris-p2-r2');
-        const cachedChangelog = await caches.match('/changelog.js?v=20261003-aeris-p2-r2');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261003-aeris-p2-r2');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20261003-aeris-p2-r2');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261003-aeris-p3-2');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261003-aeris-p3-2');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261003-aeris-p3-2');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261003-aeris-p3-2');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261003-aeris-p3-2');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261003-aeris-p3-2');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261003-aeris-p3-2');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -718,10 +719,10 @@ async function main() {
       assert.equal(pwa.cachedLearningSync, true);
       assert.equal(pwa.cachedWorkflows, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v1.3.26");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v1.3.27");
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-10-02-release-1.3.26");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-10-03-aeris-p3-1.3.27");
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
       const mobilePublic = await evaluate(`({
         viewport: document.documentElement.clientWidth,
@@ -836,7 +837,7 @@ async function main() {
       );
       assert.equal(await evaluate("document.querySelector('#changelogPage').textContent.includes('可配置工具工作流')"), true);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v1.3.26");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v1.3.27");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
@@ -873,16 +874,16 @@ async function main() {
 
     await check("authenticated product home continuity and responsive layout", async () => {
       assert.equal(await evaluate("document.body.dataset.experience"), "public");
-      assert.equal(await evaluate("document.querySelector('#modulePickerTitle').textContent.trim()"), "thewyj");
+      assert.equal(await evaluate("document.querySelector('#modulePickerTitle').textContent.trim()"), "继续今天的事");
       assert.ok((await evaluate("document.querySelector('#dashboardGreeting').textContent")).includes(`欢迎回来，${USERNAME}`));
       assert.equal(await evaluate("document.querySelector('#modulePicker').classList.contains('authenticated-home')"), true);
-      assert.equal(await evaluate("document.querySelectorAll('#modulePicker .public-hero').length"), 1);
+      assert.equal(await evaluate("document.querySelectorAll('#modulePicker .public-hero').length"), 0);
       assert.equal(await evaluate("document.querySelectorAll('.dashboard-metric').length"), 0);
-      assert.equal(await evaluate("document.querySelectorAll('.authenticated-product-card').length"), 4);
+      assert.equal(await evaluate("document.querySelectorAll('.aeris-launchpad-card').length"), 6);
       assert.equal(await evaluate("document.querySelectorAll('[data-dashboard-project]').length"), 2);
       assert.equal(await evaluate("document.querySelectorAll('#modulePicker [data-module=language]').length >= 1"), true);
       assert.equal(await evaluate("document.querySelectorAll('#modulePicker [data-module=tools]').length >= 1"), true);
-      assert.equal(await evaluate("document.querySelectorAll('#modulePicker [data-module=finance]').length >= 1"), true);
+      assert.equal(await evaluate("Boolean(document.querySelector('#dashboardFinanceBtn'))"), true);
       assert.match(await evaluate("document.querySelector('#dashboardAccountStatus').textContent"), /在线|离线/);
       assert.ok((await evaluate("document.querySelector('#dashboardLatestResult').textContent")).length > 4);
       await assertReadable("#dashboardMembershipName");
@@ -902,25 +903,25 @@ async function main() {
       const mobileHome = await evaluate(`({
         viewport: innerWidth,
         scrollWidth: document.documentElement.scrollWidth,
-        cards: document.querySelectorAll('.authenticated-product-card').length,
-        productColumns: getComputedStyle(document.querySelector('.authenticated-product-grid')).gridTemplateColumns.split(' ').length,
-        heroHeight: document.querySelector('.authenticated-hero').getBoundingClientRect().height,
+        cards: document.querySelectorAll('.aeris-launchpad-card').length,
+        productColumns: getComputedStyle(document.querySelector('.aeris-launchpad-grid')).gridTemplateColumns.split(' ').length,
+        heroHeight: document.querySelector('.aeris-launchpad-heading').getBoundingClientRect().height,
         headingVisible: document.querySelector('#modulePickerTitle').getBoundingClientRect().height > 0,
       })`);
       assert.ok(mobileHome.scrollWidth <= mobileHome.viewport + 1, JSON.stringify(mobileHome));
-      assert.equal(mobileHome.cards, 4);
+      assert.equal(mobileHome.cards, 6);
       assert.equal(mobileHome.productColumns, 1);
-      assert.ok(mobileHome.heroHeight >= 700, JSON.stringify(mobileHome));
+      assert.ok(mobileHome.heroHeight > 40 && mobileHome.heroHeight < 220, JSON.stringify(mobileHome));
       assert.equal(mobileHome.headingVisible, true);
       const mobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       fs.writeFileSync(path.join(TEST_ROOT, `authenticated-home-390-${RUN_ID}.png`), Buffer.from(mobileShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
       const desktopHome = await evaluate(`({
-        productColumns: getComputedStyle(document.querySelector('.authenticated-product-grid')).gridTemplateColumns.split(' ').length,
-        learningColumns: getComputedStyle(document.querySelector('.authenticated-learning-actions')).gridTemplateColumns.split(' ').length,
+        productColumns: getComputedStyle(document.querySelector('.aeris-launchpad-grid')).gridTemplateColumns.split(' ').length,
+        learningColumns: getComputedStyle(document.querySelector('.aeris-launchpad-links')).gridTemplateColumns.split(' ').length,
       })`);
-      assert.equal(desktopHome.productColumns, 12);
-      assert.equal(desktopHome.learningColumns, 2);
+      assert.equal(desktopHome.productColumns, 3);
+      assert.equal(desktopHome.learningColumns, 1);
       const wideShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `authenticated-home-1920-${RUN_ID}.png`), Buffer.from(wideShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 768, deviceScaleFactor: 1, mobile: false });
@@ -1073,7 +1074,7 @@ async function main() {
     });
 
     await check("locked toolbox, direct-route guard and membership plans", async () => {
-      await click('[data-module="finance"]');
+      await click('#dashboardFinanceBtn');
       await waitFor("location.pathname === '/finance' && !document.querySelector('#financeLocked')?.classList.contains('hidden')", 8_000, "locked finance page");
       assert.equal(await evaluate("document.querySelector('#financeWorkspace').classList.contains('hidden')"), true);
       assert.ok((await evaluate("document.querySelector('#financeLocked').textContent")).includes("财务会员 8 CNY/月"));
@@ -1999,7 +2000,7 @@ async function main() {
         };
         return true;
       })()`);
-      await click('[data-module="finance"]');
+      await click('#dashboardFinanceBtn');
       await waitFor("location.pathname === '/finance' && !document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 8_000, "finance workspace");
       assert.equal(await evaluate("document.querySelector('#financeRecordedSection').open"), false,
         "recorded transactions start collapsed");

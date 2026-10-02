@@ -180,7 +180,7 @@ async function main() {
 
     await check("finance candidate refresh shows feedback before the request", async () => {
       await page.waitFor(
-        "state.account?.entitlements?.includes('finance_access') || Boolean(document.querySelector('[data-module=\"finance\"]'))",
+        "state.account?.entitlements?.includes('finance_access') || Boolean(document.querySelector('#dashboardFinanceBtn'))",
         25_000,
         "finance entitlement",
       );

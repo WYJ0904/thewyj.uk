@@ -175,13 +175,13 @@ class PaymentStatusStateMachine(private val now: () -> Long = System::currentTim
             PaymentRecognitionState.DETECTED_AMOUNT_KNOWN -> PaymentStatusNotificationMessage(
                 notificationId = record.notificationId,
                 recognitionId = record.recognitionId,
-                title = "thewyj · 已识别交易",
+                title = "Aeris · 已识别交易",
                 body = if (directionLabel.isBlank()) "$app：已识别金额 $amountLabel" else "$app：识别到$directionLabel $amountLabel",
             )
             PaymentRecognitionState.DETECTED_AMOUNT_UNKNOWN -> PaymentStatusNotificationMessage(
                 notificationId = record.notificationId,
                 recognitionId = record.recognitionId,
-                title = "thewyj · 发现疑似交易",
+                title = "Aeris · 发现疑似交易",
                 body = "暂未识别到金额。请在 90 秒内打开「$app」查看这笔交易，thewyj 将尝试自动核实金额。",
                 // One tap opens the payment app; the user still has to navigate
                 // to the real transaction page themselves.
@@ -191,20 +191,20 @@ class PaymentStatusStateMachine(private val now: () -> Long = System::currentTim
             PaymentRecognitionState.WAITING_FOR_ENRICHMENT -> PaymentStatusNotificationMessage(
                 notificationId = record.notificationId,
                 recognitionId = record.recognitionId,
-                title = "thewyj · 等待核实金额",
+                title = "Aeris · 等待核实金额",
                 body = "请在 90 秒内打开「$app」对应交易页面，thewyj 将尝试自动核实金额。",
                 openPackage = sourcePackage,
             )
             PaymentRecognitionState.ENRICHMENT_VERIFIED -> PaymentStatusNotificationMessage(
                 notificationId = record.notificationId,
                 recognitionId = record.recognitionId,
-                title = "thewyj · 金额核实成功",
+                title = "Aeris · 金额核实成功",
                 body = "$app：已识别金额 $amountLabel",
             )
             PaymentRecognitionState.ENRICHMENT_EXPIRED -> PaymentStatusNotificationMessage(
                 notificationId = record.notificationId,
                 recognitionId = record.recognitionId,
-                title = "thewyj · 交易金额尚未核实",
+                title = "Aeris · 交易金额尚未核实",
                 body = "未能识别这笔交易的金额。请打开 thewyj，点击「核实交易金额」，然后打开「$app」对应交易页面。",
                 openPackage = sourcePackage,
                 offerManualVerification = true,
@@ -212,43 +212,43 @@ class PaymentStatusStateMachine(private val now: () -> Long = System::currentTim
             PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION -> PaymentStatusNotificationMessage(
                 notificationId = record.notificationId,
                 recognitionId = record.recognitionId,
-                title = "thewyj · 等待确认记账",
+                title = "Aeris · 等待确认记账",
                 body = "$app：识别到 $amountLabel，等待确认记账",
             )
             PaymentRecognitionState.FINANCE_RECORDED -> PaymentStatusNotificationMessage(
                 notificationId = record.notificationId,
                 recognitionId = record.recognitionId,
-                title = "thewyj · 已记录到财务",
+                title = "Aeris · 已记录到财务",
                 body = if (directionLabel.isBlank()) "$app：$amountLabel 已记录到财务" else "$app：$directionLabel $amountLabel 已记录到财务",
             )
             PaymentRecognitionState.FINANCE_MANUALLY_CONFIRMED -> PaymentStatusNotificationMessage(
                 notificationId = record.notificationId,
                 recognitionId = record.recognitionId,
-                title = "thewyj · 已确认记账",
+                title = "Aeris · 已确认记账",
                 body = "$app：$amountLabel 已按你的确认记录",
             )
             PaymentRecognitionState.FINANCE_CORRECTED -> PaymentStatusNotificationMessage(
                 notificationId = record.notificationId,
                 recognitionId = record.recognitionId,
-                title = "thewyj · 已更新财务记录",
+                title = "Aeris · 已更新财务记录",
                 body = "$app：$amountLabel 已按你的修改更新",
             )
             PaymentRecognitionState.DUPLICATE_IGNORED -> PaymentStatusNotificationMessage(
                 notificationId = record.notificationId,
                 recognitionId = record.recognitionId,
-                title = "thewyj · 已识别为重复",
+                title = "Aeris · 已识别为重复",
                 body = "这笔交易已经记录过，未重复记账。",
             )
             PaymentRecognitionState.IGNORED -> PaymentStatusNotificationMessage(
                 notificationId = record.notificationId,
                 recognitionId = record.recognitionId,
-                title = "thewyj · 已忽略",
+                title = "Aeris · 已忽略",
                 body = "该提醒未计入财务。",
             )
             PaymentRecognitionState.VERIFICATION_FAILED -> PaymentStatusNotificationMessage(
                 notificationId = record.notificationId,
                 recognitionId = record.recognitionId,
-                title = "thewyj · 暂未找到可靠的交易金额",
+                title = "Aeris · 暂未找到可靠的交易金额",
                 body = "请确认已经打开对应交易详情页面后重试。",
                 offerManualVerification = true,
             )

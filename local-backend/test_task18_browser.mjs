@@ -197,7 +197,7 @@ async function main() {
       assert.equal(created.status, 201, JSON.stringify(created.data));
       await navigate(`/select?message=${RUN_ID}`);
       await waitFor("!document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 15_000, "required message modal");
-      assert.equal(await evaluate("document.querySelector('#siteMessageSource').textContent"), "thewyj 管理员通知");
+      assert.equal(await evaluate("document.querySelector('#siteMessageSource').textContent"), "Aeris 管理员通知");
       assert.equal(await evaluate("document.querySelector('#siteMessageBody').textContent"), XSS_BODY);
       assert.equal(await evaluate("typeof globalThis.task18Xss"), "undefined");
       assert.equal(await evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth"), true);

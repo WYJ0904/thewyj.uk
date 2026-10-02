@@ -248,7 +248,7 @@ try {
   }, "task18-single-send");
   assert.equal(single.response.status, 201, JSON.stringify(single.payload));
   assert.equal(single.payload.message.body, xssBody);
-  assert.equal(single.payload.message.sender_label, "thewyj 管理员通知");
+  assert.equal(single.payload.message.sender_label, "Aeris 管理员通知");
   assert.equal((await pendingMessages(db, USERS.one)).some((item) => item.id === single.payload.message.id), true);
   assert.equal((await pendingMessages(db, USERS.two)).some((item) => item.id === single.payload.message.id), false);
   const dismissedSingle = await receipt(db, USERS.one, single.payload.message.id, "dismiss");

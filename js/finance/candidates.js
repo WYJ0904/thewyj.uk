@@ -1,5 +1,5 @@
-import { randomId } from "../core/capabilities.js?v=20261003-aeris-p2-r2";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261003-aeris-p2-r2";
+import { randomId } from "../core/capabilities.js?v=20261003-aeris-p3-2";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261003-aeris-p3-2";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -7,7 +7,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20261003-aeris-p2-r2";
+} from "../core/perf.js?v=20261003-aeris-p3-2";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -462,7 +462,7 @@ export function createFinanceCandidatesController({
       const candidate = currentCandidates.find((item) => String(item.id) === String(id));
       const eventId = String(candidate?.event_id || "");
       if (!/thewyj-android\//.test(navigator.userAgent) || !eventId) {
-        render(currentCandidates, "请在收到这笔交易通知的 Android thewyj App 中打开财务页，再点击「核实交易」。");
+        render(currentCandidates, "请在收到这笔交易通知的 Android Aeris App 中打开财务页，再点击「核实交易」。");
       } else {
         window.location.href = `thewyj://payment/verify?event_id=${encodeURIComponent(eventId)}`;
       }
@@ -568,5 +568,6 @@ export function createFinanceCandidatesController({
     if (!element("financePage")?.classList.contains("hidden")) reload();
   }
 
-  return Object.freeze({ show, hide, reload, accountUpdated, handleClick });
+  const dashboardSummary = () => ({ known: hasCanonicalObservation && renderedForAccount === String(account()?.id || ""), count: currentCandidates.length });
+  return Object.freeze({ show, hide, reload, accountUpdated, handleClick, dashboardSummary });
 }

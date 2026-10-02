@@ -213,11 +213,9 @@ private fun LoadingScreen() {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Image(painterResource(R.drawable.ic_launcher), contentDescription = null, modifier = Modifier.size(72.dp))
-            Spacer(Modifier.height(ThewyjSpacing.Lg))
-            Text("thewyj", style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.height(ThewyjSpacing.Lg))
-            CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+            Text("Aeris", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(ThewyjSpacing.Md))
+            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
             Spacer(Modifier.height(ThewyjSpacing.Md))
             Text("正在安全恢复会话", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -245,9 +243,9 @@ private fun AuthScreen(
                 .padding(horizontal = 24.dp, vertical = 40.dp),
             verticalArrangement = Arrangement.Center,
         ) {
-            Image(painterResource(R.drawable.ic_launcher), contentDescription = null, modifier = Modifier.size(64.dp))
+            Image(painterResource(R.drawable.ic_launcher), contentDescription = "Aeris", modifier = Modifier.size(64.dp))
             Spacer(Modifier.height(ThewyjSpacing.Lg))
-            Text("thewyj", style = MaterialTheme.typography.displaySmall)
+            Text("Aeris", style = MaterialTheme.typography.displaySmall)
             if (BuildConfig.DEBUG) {
                 Text("测试环境：${Uri.parse(BuildConfig.THEWYJ_BASE_URL).host}", style = MaterialTheme.typography.bodySmall)
             }
@@ -265,7 +263,7 @@ private fun AuthScreen(
                     }
                     Spacer(Modifier.height(ThewyjSpacing.Xl))
                     Text(
-                        if (registerMode) "创建同一个 thewyj 账户" else "欢迎回来",
+                        if (registerMode) "创建 Aeris 账户" else "欢迎回来",
                         style = MaterialTheme.typography.titleLarge,
                     )
                     Spacer(Modifier.height(ThewyjSpacing.Lg))
@@ -609,7 +607,7 @@ private fun AppUpdateCard(
                     "新版本 v${updateState.versionName} (${updateState.versionCode})" +
                         if (updateState.notes.isNotBlank()) "\n更新说明：${updateState.notes}" else ""
                 is UpdateUiState.NeedsInstallPermission ->
-                    "请先允许 thewyj 安装应用；返回应用后继续更新流程。"
+                    "请先允许 Aeris 安装应用；返回应用后继续更新流程。"
                 is UpdateUiState.ReadyToInstall -> "安装包已通过 SHA-256 校验，即将打开系统安装器。"
                 is UpdateUiState.Failed -> updateState.message
                 else -> "更新使用官网正式地址，下载完成后由 Android 系统安装器确认安装。"

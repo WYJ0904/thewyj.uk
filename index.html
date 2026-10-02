@@ -4,35 +4,45 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
-    <title>thewyj — 学习、工具、财务与分享</title>
-    <link rel="icon" href="/icon-192.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20261003-aeris-p2-r2" />
-    <link rel="stylesheet" href="/styles.css?v=20261003-aeris-p2-r2" />
-    <link rel="stylesheet" href="/product-ui.css?v=20261003-aeris-p2-r2" />
-    <link rel="stylesheet" href="/design-system.css?v=20261003-aeris-p2-r2" />
-    <link rel="stylesheet" href="/public-experience.css?v=20261003-aeris-p2-r2" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20261003-aeris-p2-r2" />
+    <title>Aeris — 学习、工具、账本与文件</title>
+    <meta name="description" content="Aeris：继续语言学习，处理文本与文件，管理账本和传输。" />
+    <meta property="og:title" content="Aeris — 学习、工具、账本与文件" />
+    <meta property="og:description" content="从一件小事开始，登录后接着自己的进度。" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://thewyj.uk/" />
+    <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?v=20261003-aeris-p3-2" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="application-name" content="Aeris" />
+    <link rel="icon" href="/favicon.ico?v=20261003-aeris-p3-2" sizes="any" />
+    <link rel="icon" href="/assets/brand/favicon-32.png?v=20261003-aeris-p3-2" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png?v=20261003-aeris-p3-2" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20261003-aeris-p3-2" />
+    <link rel="stylesheet" href="/styles.css?v=20261003-aeris-p3-2" />
+    <link rel="stylesheet" href="/product-ui.css?v=20261003-aeris-p3-2" />
+    <link rel="stylesheet" href="/design-system.css?v=20261003-aeris-p3-2" />
+    <link rel="stylesheet" href="/public-experience.css?v=20261003-aeris-p3-2" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20261003-aeris-p3-2" />
   </head>
   <body>
-    <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 thewyj" aria-hidden="false">
+    <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 Aeris" aria-hidden="false">
       <div class="entry-content" id="splashMedia">
-        <img class="entry-logo" id="splashImage" src="/icon-192.png" alt="" />
-        <strong>thewyj</strong>
+        <img class="entry-logo" id="splashImage" src="/icon-192.png?v=20261003-aeris-p3-2" width="192" height="192" alt="" />
+        <strong>Aeris</strong>
         <span class="entry-progress" aria-hidden="true"></span>
       </div>
     </div>
 
     <main class="app-shell app-shell-pending" id="appShell" aria-hidden="true">
       <section class="session-recovery hidden" id="sessionRecovery" aria-hidden="true" aria-labelledby="sessionRecoveryTitle">
-        <h1 id="sessionRecoveryTitle">thewyj</h1>
+        <h1 id="sessionRecoveryTitle">Aeris</h1>
         <p id="sessionRecoveryMessage" role="status">正在打开你的页面…</p>
         <button id="retrySessionRecoveryBtn" type="button">重试连接</button>
       </section>
       <nav class="site-nav" id="accountBar" aria-label="主导航">
         <div class="site-nav-bar">
-          <a class="site-brand" href="/" data-site-nav="home" aria-label="thewyj 首页">
-            <img src="/icon-192.png" alt="" />
-            <span class="site-brand-copy"><strong>thewyj</strong><small id="siteVersionLabel">v2026.09.12.5</small></span>
+          <a class="site-brand" href="/" data-site-nav="home" aria-label="Aeris 首页">
+            <img src="/icon-192.png?v=20261003-aeris-p3-2" width="192" height="192" alt="" />
+            <span class="site-brand-copy"><strong>Aeris</strong><small id="siteVersionLabel">v2026.09.12.5</small></span>
           </a>
           <button class="site-nav-toggle" id="siteNavToggle" type="button" aria-expanded="false" aria-controls="siteNavPanel" aria-label="打开主导航">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
@@ -88,104 +98,38 @@
       </aside>
 
       <section class="public-home hidden" id="publicHome" aria-labelledby="publicHomeTitle" aria-hidden="true">
-        <section class="public-intro public-hero">
-          <div class="public-hero-scene" aria-hidden="true">
-            <div class="hero-scene-card hero-scene-learning"><small>日语测试</small><strong>電話</strong><span>でんわ</span><i>12 / 20</i></div>
-            <div class="hero-scene-card hero-scene-finance"><small>本月余额</small><strong>¥ 3,284.60</strong><span>预算内 72%</span><i>财务</i></div>
-            <div class="hero-scene-card hero-scene-tools"><small>工具搜索</small><strong>JSON 格式化</strong><span>仅在浏览器处理</span><i>工具箱</i></div>
-            <div class="hero-scene-line"></div>
+        <header class="aeris-public-intro">
+          <div class="aeris-intro-heading"><img src="/icon-192.png?v=20261003-aeris-p3-2" alt="Aeris" width="64" height="64" /><div><h1 id="publicHomeTitle">Aeris</h1><p>学习、工具、账本与文件，一处继续。</p></div></div>
+          <div class="public-actions aeris-entry-actions"><button class="primary" id="publicLoginBtn" type="button">登录</button><button class="button-secondary" id="publicRegisterBtn" type="button">注册</button><a class="button-link button-secondary" id="publicDownloadBtn" href="/download" data-site-nav="download">下载 Android</a></div>
+        </header>
+        <section class="aeris-product-window" id="publicCapabilityGallery" aria-labelledby="publicCapabilitiesTitle" data-product-window>
+          <header class="aeris-window-heading"><h2 id="publicCapabilitiesTitle">先试一件小事</h2><p>直接操作，了解四个入口。</p></header>
+          <div class="aeris-product-tabs" role="tablist" aria-label="Aeris 产品入口">
+            <button class="capability-trigger" id="publicLearningTab" role="tab" type="button" aria-selected="true" aria-expanded="true" aria-controls="capabilityLearningBody" data-public-product="learning">学习</button>
+            <button class="capability-trigger" id="publicToolsTab" role="tab" type="button" aria-selected="false" aria-expanded="false" aria-controls="capabilityToolsBody" data-public-product="tools" tabindex="-1">工具</button>
+            <button class="capability-trigger" id="publicFinanceTab" role="tab" type="button" aria-selected="false" aria-expanded="false" aria-controls="capabilityFinanceBody" data-public-product="finance" tabindex="-1">账本</button>
+            <button class="capability-trigger" id="publicFilesTab" role="tab" type="button" aria-selected="false" aria-expanded="false" aria-controls="capabilityShareBody" data-public-product="files" tabindex="-1">文件</button>
           </div>
-          <div class="public-intro-copy">
-            <p class="section-kicker">一个账户，日常所需</p>
-            <h1 id="publicHomeTitle">thewyj</h1>
-            <p class="public-hero-statement">把每天真正会用到的能力，放进一个清楚、可靠的产品。</p>
-            <div class="public-hero-motion" aria-label="学习、工具、财务与分享">
-              <span>从</span>
-              <span class="split-flap" id="publicSplitFlap" data-phrases="学习|工具|财务|分享"><span data-split-flap-word aria-hidden="true">学习</span></span>
-              <span>开始</span>
-            </div>
-            <p class="public-lead">练习英语和日语，处理文本、文件与图片，维护个人财务，并在需要时安全地临时分享。一个账户，同一套云端数据与权益。</p>
-            <div class="public-actions">
-              <button class="primary" id="publicTrialBtn" type="button">开始免费试用</button>
-              <button class="button-secondary" id="publicRegisterBtn" type="button">创建账户</button>
-            </div>
-            <ul class="public-trust-list" aria-label="服务特点">
-              <li>试用无需注册</li>
-              <li>文件默认本地处理</li>
-              <li>没有第三方追踪</li>
-            </ul>
-          </div>
-        </section>
-
-        <section class="public-section public-capabilities" aria-labelledby="publicCapabilitiesTitle">
-          <header class="public-section-heading">
-            <p class="section-kicker">核心能力</p>
-            <h2 id="publicCapabilitiesTitle">不是功能清单，是一套能衔接的日常工作流</h2>
-            <p>选择一项查看真实产品界面。桌面端支持悬停、焦点和点击，触屏使用点击展开。</p>
-          </header>
-          <div class="capability-gallery" id="publicCapabilityGallery">
-            <article class="capability-panel active" data-capability-panel="learning">
-              <button class="capability-trigger" type="button" aria-expanded="true" aria-controls="capabilityLearningBody">
-                <span class="capability-index">01</span><span><strong id="publicLearningTitle">学习</strong><small>英语与日语</small></span>
-              </button>
-              <div class="capability-body" id="capabilityLearningBody">
-                <div class="capability-copy"><p>词表、释义与听写、假名标音、错题重新判定、统计和成就保留在同一条学习路径里。</p><button class="button-secondary" id="publicLanguageTrialBtn" type="button">试做最多 10 题</button></div>
-                <div class="product-preview learning-preview" aria-label="日语答题界面预览"><div class="preview-toolbar"><span>日语测试</span><small>12 / 20</small></div><div class="preview-question"><strong>電話</strong><span>でんわ</span></div><div class="preview-answer">中文意思</div><div class="preview-feedback"><b>正确</b><span>标准释义：电话</span></div></div>
-              </div>
-            </article>
-            <article class="capability-panel" data-capability-panel="tools">
-              <button class="capability-trigger" type="button" aria-expanded="false" aria-controls="capabilityToolsBody">
-                <span class="capability-index">02</span><span><strong id="publicToolsTitle">工具箱</strong><small>浏览器本地处理</small></span>
-              </button>
-              <div class="capability-body" id="capabilityToolsBody" hidden>
-                <div class="capability-copy"><p>文本、文件、图片、随机生成器和临时工具支持模糊搜索、收藏、最近使用与工作流。</p><button class="button-secondary" id="publicToolsTrialBtn" type="button">试用本地工具</button></div>
-                <div class="product-preview tools-preview" aria-label="工具搜索界面预览"><div class="preview-search">搜索 JSON、图片、哈希…</div><div class="preview-tool-grid"><span>JSON 格式化</span><span>图片压缩</span><span>SHA-256</span><span>随机密码</span></div><small>103 项工具目录</small></div>
-              </div>
-            </article>
-            <article class="capability-panel" data-capability-panel="finance">
-              <button class="capability-trigger" type="button" aria-expanded="false" aria-controls="capabilityFinanceBody">
-                <span class="capability-index">03</span><span><strong>财务</strong><small>同一份云端账本</small></span>
-              </button>
-              <div class="capability-body" id="capabilityFinanceBody" hidden>
-                <div class="capability-copy"><p>收入、支出、退款、预算和分类共享同一套服务端规则，Web 与 Android 使用相同 canonical transaction。</p></div>
-                <div class="product-preview finance-preview" aria-label="财务账本界面预览"><div class="preview-finance-stats"><span><small>收入</small><b>¥ 8,520</b></span><span><small>支出</small><b>¥ 5,235.40</b></span><span><small>余额</small><b>¥ 3,284.60</b></span></div><div class="preview-transaction"><span>日常餐饮<small>今天 12:20</small></span><b>- ¥ 32.00</b></div><div class="preview-budget"><span>月预算</span><i><b></b></i><small>剩余 28%</small></div></div>
-              </div>
-            </article>
-            <article class="capability-panel" data-capability-panel="share">
-              <button class="capability-trigger" type="button" aria-expanded="false" aria-controls="capabilityShareBody">
-                <span class="capability-index">04</span><span><strong>分享</strong><small>临时且受控</small></span>
-              </button>
-              <div class="capability-body" id="capabilityShareBody" hidden>
-                <div class="capability-copy"><p>临时文本、文件、剪贴板、二维码和留言房间支持密码、期限、次数与阅后销毁。</p></div>
-                <div class="product-preview share-preview" aria-label="临时文件分享界面预览"><div class="preview-file"><span class="preview-file-icon">PDF</span><span><strong>project-notes.pdf</strong><small>2.4 MB · 私有 R2</small></span></div><div class="preview-share-meta"><span>24 小时后过期</span><span>剩余 3 次下载</span></div><div class="preview-share-link">thewyj.uk/share/file/••••••</div></div>
-              </div>
-            </article>
-            <article class="capability-panel" data-capability-panel="account">
-              <button class="capability-trigger" type="button" aria-expanded="false" aria-controls="capabilityAccountBody">
-                <span class="capability-index">05</span><span><strong>账户</strong><small>权益与跨设备</small></span>
-              </button>
-              <div class="capability-body" id="capabilityAccountBody" hidden>
-                <div class="capability-copy"><p>账户、会员、学习同步、财务账本、反馈与站内消息都由同一身份体系保护。</p></div>
-                <div class="product-preview account-preview" aria-label="账户权益界面预览"><div class="preview-account"><span>WYJ 用户</span><b>已同步</b></div><div class="preview-entitlements"><span>语言学习</span><span>在线工具</span><span>财务账本</span></div><div class="preview-update"><small>最近更新</small><strong>管理员分级与站内消息</strong></div></div>
-              </div>
-            </article>
+          <div class="aeris-window-content">
+            <section class="aeris-product-panel active" id="capabilityLearningBody" role="tabpanel" aria-labelledby="publicLearningTab" data-capability-panel="learning">
+              <div class="aeris-panel-copy"><h3 id="publicLearningTitle">从一道题开始</h3><p>释义、听写和错题复习；登录后接着上次的进度。</p><button class="button-secondary" id="publicLanguageTrialBtn" type="button">开始语言小测</button></div>
+              <div class="aeris-live-sample"><p class="aeris-question" lang="ja">電話 <small>でんわ</small></p><p>这个词的意思是？</p><div class="aeris-answer-options" role="group" aria-label="选择释义"><button type="button" data-public-answer="train" aria-pressed="false">电车</button><button type="button" data-public-answer="phone" aria-pressed="false">电话</button><button type="button" data-public-answer="weather" aria-pressed="false">天气</button></div><p class="aeris-sample-status" id="publicLearningResult" role="status">选择一个答案。</p><button class="button-ghost" id="publicLearningReset" type="button">再试一次</button></div>
+            </section>
+            <section class="aeris-product-panel" id="capabilityToolsBody" role="tabpanel" aria-labelledby="publicToolsTab" data-capability-panel="tools" hidden>
+              <div class="aeris-panel-copy"><h3 id="publicToolsTitle">处理手边的文本</h3><p>文本、JSON、图片与文件工具；常用项可以留在自己的工作台。</p><button class="button-secondary" id="publicToolsTrialBtn" type="button">打开免费工具</button></div>
+              <div class="aeris-live-sample"><label for="publicTextInput">输入一段文本</label><textarea id="publicTextInput" rows="4" maxlength="10000" placeholder="在这里输入或粘贴"></textarea><div class="aeris-live-metrics" aria-live="polite"><span><output id="publicTextCharacters">0</output> 字符</span><span><output id="publicTextLines">0</output> 行</span></div><button class="button-ghost" id="publicTextClear" type="button">清空</button><small>仅在本机统计。</small></div>
+            </section>
+            <section class="aeris-product-panel" id="capabilityFinanceBody" role="tabpanel" aria-labelledby="publicFinanceTab" data-capability-panel="finance" hidden>
+              <div class="aeris-panel-copy"><h3>先看一笔结余</h3><p>收入、支出与预算归于同一份账本；Web 与 Android 使用同一账户。</p><button class="button-secondary" id="publicFinanceLoginBtn" type="button">登录查看账本</button></div>
+              <div class="aeris-live-sample"><p>本机估算</p><div class="aeris-budget-inputs"><label>收入（元）<input id="publicBudgetIncome" type="number" min="0" max="999999999" step="0.01" inputmode="decimal" value="0" /></label><label>支出（元）<input id="publicBudgetExpense" type="number" min="0" max="999999999" step="0.01" inputmode="decimal" value="0" /></label></div><p class="aeris-budget-result">结余 <output id="publicBudgetBalance" aria-live="polite">¥0.00</output></p><small>这里的估算不会写入账本。</small></div>
+            </section>
+            <section class="aeris-product-panel" id="capabilityShareBody" role="tabpanel" aria-labelledby="publicFilesTab" data-capability-panel="files" hidden>
+              <div class="aeris-panel-copy"><h3>整理要传的文件</h3><p>文件队列、暂停续传与链接分享；登录后管理自己的传输。</p><button class="button-secondary" id="publicFilesLoginBtn" type="button">登录打开文件传输</button></div>
+              <div class="aeris-live-sample"><button class="button-secondary" id="publicFilesChoose" type="button">选择文件预览</button><input class="hidden" id="publicFilesInput" type="file" multiple /><ul class="aeris-file-preview" id="publicFilesPreview" aria-live="polite"><li>尚未选择文件。</li></ul><small>仅查看本机清单，上传从登录后的传输页开始。</small></div>
+            </section>
           </div>
         </section>
-
-        <section class="public-privacy-band" aria-labelledby="publicPrivacyTitle">
-          <div><p class="section-kicker">隐私与本地处理</p><h2 id="publicPrivacyTitle">试用文本和图片留在当前浏览器</h2><p>文本统计、JSON、单张图片压缩和格式转换不上传服务器。匿名试用不保存服务器学习记录，也不能创建临时分享。</p></div>
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/></svg>
-        </section>
-
-        <section class="public-section" aria-labelledby="publicPlansTitle">
-          <header class="public-section-heading"><p class="section-kicker">账户与套餐</p><h2 id="publicPlansTitle">按需要选择学习、工具或财务权益</h2><p>提供语言学习、工具箱、财务账本与全功能方案。付款和开通仍沿用登录后的管理员人工确认流程。</p></header>
-          <div class="public-card-grid public-card-grid-three">
-            <article class="public-plan-card"><h3>免费体验</h3><p>无需注册，开放五项明确试用功能。</p></article>
-            <article class="public-plan-card"><h3>按模块订阅</h3><p>可分别选择语言学习、工具箱、财务账本或组合套餐。</p></article>
-            <article class="public-plan-card"><h3>永久权益</h3><p>提供双语言和全功能永久方案。</p></article>
-          </div>
-          <div class="public-actions"><button class="primary" id="publicPlansBtn" type="button">登录后查看套餐</button><a class="primary" id="publicDownloadBtn" href="/download">下载 Android App</a><button class="button-ghost" id="publicChangelogBtn" type="button">查看更新日志</button></div>
-        </section>
+        <footer class="aeris-public-footer"><p id="publicPrivacyTitle">预览中的文本、估算和文件清单留在本机。</p><div class="public-actions"><button class="button-ghost" id="publicTrialBtn" type="button">免费试用</button><button class="button-ghost" id="publicPlansBtn" type="button">账户与会员</button><button class="button-ghost" id="publicChangelogBtn" type="button">更新日志</button></div></footer>
       </section>
 
       <section class="public-page hidden" id="changelogPage" aria-labelledby="changelogTitle" aria-hidden="true">
@@ -197,7 +141,7 @@
         <header class="public-page-header">
           <p class="section-kicker">Android App</p>
           <h1 id="downloadTitle">下载正式版 App</h1>
-          <p>thewyj 官方 Android 安装包（<strong>要求 Android 11 / API 30 及以上</strong>），与网页端共用同一套账号、财务与通知保存服务。语音朗读由云端生成，不依赖设备语音包；OCR 模型随安装包提供，无需 Google Play Services。<span id="downloadNotice">下载后可用 SHA-256 校验安装包完整性。</span></p>
+          <p>Aeris 官方 Android 安装包（<strong>要求 Android 11 / API 30 及以上</strong>），与网页端共用同一套账号、财务与通知保存服务。语音朗读由云端生成，不依赖设备语音包；OCR 模型随安装包提供，无需 Google Play Services。<span id="downloadNotice">下载后可用 SHA-256 校验安装包完整性。</span></p>
         </header>
         <div class="download-card" id="downloadCard">
           <dl class="download-meta">
@@ -212,7 +156,7 @@
             <a class="button-link button-secondary" id="downloadSecondaryBtn" href="/api/app/download">备用下载链接</a>
             <button class="button-ghost" id="downloadCopyShaBtn" type="button">复制校验值</button>
           </div>
-          <p class="download-hint">安装说明：下载后在系统提示中允许安装；首次使用需登录 thewyj 账号。升级安装会保留登录状态与本地数据。</p>
+          <p class="download-hint">安装说明：下载后在系统提示中允许安装；首次使用需登录 Aeris 账号。升级安装会保留登录状态与本地数据。</p>
         </div>
         <div class="public-actions"><a class="button-link button-secondary" href="/changelog" data-site-nav="changelog">查看更新日志</a></div>
       </section>
@@ -253,7 +197,7 @@
 
         <section class="trial-workbench hidden" id="trialJsonPanel" data-trial-panel="json" aria-labelledby="trialJsonTitle">
           <div class="trial-workbench-heading"><div><h2 id="trialJsonTitle">JSON 格式化和校验</h2><p>内容只在浏览器中解析，不发送到服务器。</p></div><span class="local-only-badge">仅本机</span></div>
-          <label class="trial-large-field"><span>JSON 内容</span><textarea id="trialJsonInput" maxlength="200000" spellcheck="false" placeholder='例如：{"name":"WYJ"}'></textarea></label>
+          <label class="trial-large-field"><span>JSON 内容</span><textarea id="trialJsonInput" maxlength="200000" spellcheck="false" placeholder='例如：{"name":"Aeris"}'></textarea></label>
           <div class="action-row"><button class="primary" id="trialJsonFormatBtn" type="button">格式化</button><button class="button-secondary" id="trialJsonValidateBtn" type="button">仅校验</button><button class="button-ghost" id="trialJsonClearBtn" type="button">清空</button></div>
           <p class="trial-message" id="trialJsonMessage" aria-live="polite"></p><pre class="trial-json-output hidden" id="trialJsonOutput" tabindex="0"></pre>
         </section>
@@ -270,118 +214,18 @@
       </section>
 
       <section class="module-picker authenticated-home hidden" id="modulePicker" aria-labelledby="modulePickerTitle" aria-hidden="true">
-        <section class="public-intro public-hero authenticated-hero">
-          <div class="public-hero-scene" aria-hidden="true">
-            <div class="hero-scene-card hero-scene-learning"><small>语言学习</small><strong>继续练习</strong><span>英语与日语</span><i>今日进度已保留</i></div>
-            <div class="hero-scene-card hero-scene-finance"><small>本月余额</small><strong id="dashboardFinanceBalance">¥0.00</strong><span id="dashboardFinanceSync">打开财务账本后显示摘要</span><i>财务</i></div>
-            <div class="hero-scene-card hero-scene-tools"><small>在线工具</small><strong>快速打开</strong><span>收藏与最近使用</span><i>103 项工具</i></div>
-            <div class="hero-scene-line"></div>
-          </div>
-          <div class="public-intro-copy">
-            <p class="section-kicker" id="dashboardGreeting">欢迎回来</p>
-            <h1 id="modulePickerTitle">thewyj</h1>
-            <p class="public-hero-statement">继续今天真正要做的事。</p>
-            <p class="public-lead">学习、工具、财务与临时分享仍在同一个主页。你的进度、收藏和权益已经就位。</p>
-            <p class="authenticated-membership-line" id="moduleMembershipStatus">普通注册用户</p>
-            <div class="public-actions authenticated-hero-actions">
-              <button class="primary" type="button" data-module="language">继续学习</button>
-              <button class="button-secondary" type="button" data-module="tools">打开工具箱</button>
-              <button class="button-secondary" type="button" data-module="finance">打开财务账本</button>
-            </div>
-            <div class="authenticated-identity" aria-label="账户摘要">
-              <span><small>当前会员</small><strong id="dashboardMembershipName">普通用户</strong></span>
-              <span><small>连续学习</small><strong><b id="dashboardStreak">0</b> 天</strong></span>
-              <span><small>当前错题</small><strong><b id="dashboardWrongCount">0</b> 个</strong></span>
-            </div>
-          </div>
+        <header class="aeris-launchpad-heading"><div><p id="dashboardGreeting">欢迎回来</p><h1 id="modulePickerTitle">继续今天的事</h1></div><div class="aeris-account-state"><strong id="dashboardMembershipName">普通用户</strong><span id="dashboardMembershipExpiry">无有效会员到期时间</span></div></header>
+        <p class="module-access-message hidden" id="moduleAccessMessage" aria-live="polite"></p>
+        <p class="aeris-membership-status" id="moduleMembershipStatus"></p>
+        <section class="aeris-launchpad-grid" aria-labelledby="dashboardEntryTitle"><h2 class="aeris-section-label" id="dashboardEntryTitle">你的入口</h2>
+          <article class="aeris-launchpad-card" aria-labelledby="dashboardLearningTitle"><header><h3 id="dashboardLearningTitle">接着学习</h3><button class="button-ghost" type="button" data-module="language">全部语言</button></header><p id="dashboardLatestResult">还没有测试记录，从一轮练习开始。</p><div class="aeris-study-status"><span>连续 <b id="dashboardStreak">0</b> 天</span><span>错题 <b id="dashboardWrongCount">0</b> 个</span></div><div class="aeris-launchpad-links"><button type="button" data-dashboard-project="english"><strong>英语</strong><small id="dashboardEnglishGoal">0 / 20 题</small><span aria-hidden="true">→</span></button><button type="button" data-dashboard-project="japanese"><strong>日语</strong><small id="dashboardJapaneseGoal">0 / 20 题</small><span aria-hidden="true">→</span></button></div><div class="dashboard-resume hidden" id="dashboardResumeSection"><strong>有一轮测试尚未完成</strong><div class="action-row compact"><button class="hidden" id="dashboardResumeEnglish" type="button" data-dashboard-resume="english">继续英语测试</button><button class="hidden" id="dashboardResumeJapanese" type="button" data-dashboard-resume="japanese">继续日语测试</button></div></div></article>
+          <article class="aeris-launchpad-card" aria-labelledby="dashboardToolsTitle"><header><h3 id="dashboardToolsTitle">常用工具</h3><span class="status-badge" id="toolsMemberBadge">会员功能</span></header><h4>收藏</h4><div id="dashboardFavoriteTools"><p class="dashboard-empty">还没有收藏工具。</p></div><h4>最近使用</h4><div id="dashboardRecentTools"><p class="dashboard-empty">还没有使用记录。</p></div><button class="button-secondary" type="button" data-module="tools">打开工具箱</button></article>
+          <article class="aeris-launchpad-card" aria-labelledby="dashboardFinanceTitle"><header><h3 id="dashboardFinanceTitle">账本摘要</h3><span class="status-badge" id="financeMemberBadge">会员功能</span></header><span>本月余额</span><strong class="aeris-summary-number" id="dashboardFinanceBalance">¥0.00</strong><p id="dashboardFinanceSync">打开账本后更新。</p><button class="button-secondary" id="dashboardFinanceBtn" type="button">打开账本</button></article>
+          <article class="aeris-launchpad-card" aria-labelledby="dashboardNotificationsTitle"><header><h3 id="dashboardNotificationsTitle">通知待核实</h3></header><strong class="aeris-summary-number" id="dashboardNotificationPending">未读取</strong><p id="dashboardNotificationStatus">在账本中核实通知识别的交易。</p><button class="button-secondary" id="dashboardNotificationsBtn" type="button">查看待核实交易</button></article>
+          <article class="aeris-launchpad-card" aria-labelledby="dashboardTransferTitle"><header><h3 id="dashboardTransferTitle">文件传输</h3></header><strong class="aeris-summary-number" id="dashboardTransferCount">0 个任务</strong><p id="dashboardTransferStatus">暂无本机传输任务。</p><button class="button-secondary" id="dashboardTransferBtn" type="button">打开文件传输</button></article>
+          <article class="aeris-launchpad-card" aria-labelledby="dashboardAccountTitle"><header><h3 id="dashboardAccountTitle">账户与权益</h3></header><p id="dashboardEntitlements">基础功能</p><button class="button-secondary" id="dashboardMembershipBtn" type="button">管理账户与会员</button></article>
         </section>
-
-        <div class="authenticated-home-body">
-          <p class="module-access-message hidden" id="moduleAccessMessage" aria-live="polite"></p>
-
-          <section class="public-section authenticated-products" aria-labelledby="dashboardEntryTitle">
-            <header class="public-section-heading authenticated-section-heading">
-              <p class="section-kicker">你的产品主页</p>
-              <h2 id="dashboardEntryTitle">从上次停下的地方继续</h2>
-              <p>摘要留在对应产品旁边，需要完整信息时再进入功能页面。</p>
-            </header>
-
-            <div class="authenticated-product-grid">
-              <article class="authenticated-product-card authenticated-learning-card" aria-labelledby="dashboardLearningTitle">
-                <header class="authenticated-card-heading">
-                  <div><p class="section-kicker">学习</p><h3 id="dashboardLearningTitle">英语与日语</h3><p id="dashboardLatestResult">完成第一轮测试后显示结果。</p></div>
-                  <button class="button-ghost" type="button" data-module="language">全部语言项目</button>
-                </header>
-                <div class="authenticated-learning-actions">
-                  <button class="authenticated-learning-link" type="button" data-dashboard-project="english">
-                    <span class="module-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H4Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v17a3 3 0 0 1 3-3h3Z"/></svg></span>
-                    <span><strong>英语学习</strong><small id="dashboardEnglishGoal">0 / 20 题</small></span><span class="module-arrow" aria-hidden="true">→</span>
-                  </button>
-                  <button class="authenticated-learning-link" type="button" data-dashboard-project="japanese">
-                    <span class="module-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H4Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v17a3 3 0 0 1 3-3h3Z"/></svg></span>
-                    <span><strong>日语学习</strong><small id="dashboardJapaneseGoal">0 / 20 题</small></span><span class="module-arrow" aria-hidden="true">→</span>
-                  </button>
-                </div>
-                <div class="dashboard-resume hidden" id="dashboardResumeSection">
-                  <strong>有一轮测试尚未完成</strong>
-                  <div class="action-row compact"><button class="hidden" id="dashboardResumeEnglish" type="button" data-dashboard-resume="english">继续英语测试</button><button class="hidden" id="dashboardResumeJapanese" type="button" data-dashboard-resume="japanese">继续日语测试</button></div>
-                </div>
-              </article>
-
-              <article class="authenticated-product-card" aria-labelledby="dashboardToolsTitle">
-                <header class="authenticated-card-heading">
-                  <div><p class="section-kicker">工具箱</p><h3 id="dashboardToolsTitle">收藏与最近使用</h3><p>本地处理工具优先，工作流随时可打开。</p></div>
-                  <span class="status-badge" id="toolsMemberBadge">会员功能</span>
-                </header>
-                <div class="dashboard-tool-shelf"><h4>收藏</h4><div id="dashboardFavoriteTools"><p class="dashboard-empty">还没有收藏工具。</p></div></div>
-                <div class="dashboard-tool-shelf"><h4>最近使用</h4><div id="dashboardRecentTools"><p class="dashboard-empty">还没有使用记录。</p></div></div>
-                <button class="button-secondary authenticated-card-action" type="button" data-module="tools">查看全部 103 项工具</button>
-              </article>
-
-              <article class="authenticated-product-card authenticated-finance-card" aria-labelledby="dashboardFinanceTitle">
-                <header class="authenticated-card-heading">
-                  <div><p class="section-kicker">财务</p><h3 id="dashboardFinanceTitle">本月简洁摘要</h3><p>详细交易、预算与分类留在账本内。</p></div>
-                  <span class="status-badge" id="financeMemberBadge">会员功能</span>
-                </header>
-                <div class="authenticated-finance-preview"><span>当前余额</span><strong data-dashboard-balance-copy>¥0.00</strong><small data-dashboard-finance-copy>打开财务账本后显示本机摘要。</small></div>
-                <button class="button-secondary authenticated-card-action" id="dashboardFinanceBtn" type="button">打开财务账本</button>
-              </article>
-
-              <article class="authenticated-product-card authenticated-account-card" aria-labelledby="dashboardAccountTitle">
-                <header class="authenticated-card-heading"><div><p class="section-kicker">账户与权益</p><h3 id="dashboardAccountTitle">当前访问范围</h3><p id="dashboardMembershipExpiry">无有效会员到期时间</p></div></header>
-                <div class="authenticated-entitlements"><span>合并权益</span><strong id="dashboardEntitlements">基础功能</strong></div>
-                <button class="button-secondary authenticated-card-action" id="dashboardMembershipBtn" type="button">查看会员与权益</button>
-              </article>
-            </div>
-          </section>
-
-          <section class="authenticated-support" aria-label="更新与数据同步">
-            <article class="authenticated-update-card" aria-labelledby="dashboardUpdatesTitle">
-              <div><p class="section-kicker">最近更新</p><h2 id="dashboardUpdatesTitle">产品继续在这里生长</h2><p id="dashboardUpdateDate">等待版本信息</p><p id="dashboardUpdateSummary">正在读取最近更新。</p></div>
-              <button class="button-ghost" id="dashboardChangelogBtn" type="button">查看完整更新日志</button>
-            </article>
-
-            <details class="authenticated-service-details">
-              <summary><span><strong>数据同步与服务</strong><small>本地功能不会因单项服务异常而停止</small></span><span class="status-badge" id="dashboardAccountStatus">检测中</span></summary>
-              <div class="authenticated-service-body">
-                <dl class="dashboard-service-list">
-                  <div><dt>学习数据</dt><dd id="dashboardSyncStatus">本地可用</dd></div>
-                  <div><dt>AI 判卷</dt><dd id="dashboardAiStatus">检测中</dd></div>
-                  <div><dt>临时分享</dt><dd id="dashboardShareStatus">检测中</dd></div>
-                </dl>
-                <div class="dashboard-sync-actions" aria-label="学习数据同步与备份">
-                  <div class="action-row compact">
-                    <button class="button-secondary" id="learningSyncNowBtn" type="button">立即同步</button>
-                    <button class="button-ghost" id="learningSyncExportBtn" type="button">导出 JSON</button>
-                    <button class="button-ghost" id="learningSyncImportBtn" type="button">导入 JSON</button>
-                  </div>
-                  <input class="hidden" id="learningSyncFileInput" type="file" accept="application/json,.json" />
-                  <p id="learningSyncDetail" aria-live="polite">本地修改会在联网后自动同步。</p>
-                </div>
-              </div>
-            </details>
-          </section>
-        </div>
+        <section class="aeris-launchpad-support" aria-label="最近活动与数据状态"><article aria-labelledby="dashboardUpdatesTitle"><h2 id="dashboardUpdatesTitle">最近活动</h2><p id="dashboardUpdateDate">正在读取更新</p><p id="dashboardUpdateSummary">正在读取最近更新。</p><button class="button-ghost" id="dashboardChangelogBtn" type="button">查看更新日志</button></article><details class="authenticated-service-details"><summary><span>数据与服务</span><span class="status-badge" id="dashboardAccountStatus">检测中</span></summary><div class="authenticated-service-body"><dl class="dashboard-service-list"><div><dt>学习数据</dt><dd id="dashboardSyncStatus">本地可用</dd></div><div><dt>AI 判卷</dt><dd id="dashboardAiStatus">检测中</dd></div><div><dt>临时分享</dt><dd id="dashboardShareStatus">检测中</dd></div></dl><div class="dashboard-sync-actions" aria-label="学习数据同步与备份"><div class="action-row compact"><button class="button-secondary" id="learningSyncNowBtn" type="button">立即同步</button><button class="button-ghost" id="learningSyncExportBtn" type="button">导出 JSON</button><button class="button-ghost" id="learningSyncImportBtn" type="button">导入 JSON</button></div><input class="hidden" id="learningSyncFileInput" type="file" accept="application/json,.json" /><p id="learningSyncDetail" aria-live="polite">本地修改会在联网后自动同步。</p></div></div></details></section>
       </section>
 
       <section class="finance-page hidden" id="financePage" aria-labelledby="financeTitle" aria-hidden="true">
@@ -462,7 +306,7 @@
           <div>
             <p class="section-kicker">文件传输 2.0</p>
             <h1 id="transferTitle">文件传输</h1>
-            <p>多文件、目录结构、分片断点续传；控制面经 thewyj API，大数据面直写私有 R2。</p>
+            <p>多文件、目录结构、分片断点续传；上传大文件、暂停续传，并生成自己的分享链接。</p>
           </div>
           <div class="transfer-header-actions">
             <span class="status-badge" id="transferQuotaText" data-tone="info">配额加载中</span>
@@ -568,7 +412,7 @@
       </div>
       <section class="project-picker hidden" id="projectPicker" aria-labelledby="projectPickerTitle">
         <header class="project-brand">
-          <img src="/icon-192.png" alt="thewyj Logo" />
+          <img src="/icon-192.png?v=20261003-aeris-p3-2" width="192" height="192" alt="Aeris Logo" />
           <div><p class="section-kicker">语言学习</p><h1 id="projectPickerTitle">选择语言测试</h1></div>
         </header>
         <div class="project-grid" aria-label="选择项目">
@@ -587,7 +431,7 @@
       <section class="project-app hidden" id="projectApp" aria-hidden="true">
         <header class="topbar hidden" id="topbar">
           <div class="brand">
-            <img class="brand-icon" src="/icon-192.png" alt="" />
+            <img class="brand-icon" src="/icon-192.png?v=20261003-aeris-p3-2" width="192" height="192" alt="" />
             <div>
               <h1>语言学习</h1>
               <p id="modelLabel" aria-live="polite">检测中</p>
@@ -611,7 +455,7 @@
         </section>
 
         <section class="panel auth-panel hidden" id="authPanel">
-          <img class="auth-logo" src="/icon-192.png" alt="" />
+          <img class="auth-logo" src="/assets/brand/aeris-lockup.png?v=20261003-aeris-p3-2" width="320" height="320" alt="Aeris" />
           <h2 id="authTitle">账户登录</h2>
           <div class="auth-tabs" role="tablist" aria-label="账户入口">
             <button class="active" id="showLoginBtn" type="button" role="tab" aria-controls="loginForm" aria-selected="true">登录</button>
@@ -1089,7 +933,7 @@
     <div class="modal-layer hidden" id="siteMessageModal" aria-hidden="true">
       <section class="modal-panel site-message-panel" role="dialog" aria-modal="true" aria-labelledby="siteMessageTitle" aria-describedby="siteMessageBody">
         <button class="modal-close" id="siteMessageCloseIcon" type="button" aria-label="关闭消息"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
-        <p class="section-kicker" id="siteMessageSource">thewyj 管理员通知</p>
+        <p class="section-kicker" id="siteMessageSource">Aeris 管理员通知</p>
         <span class="status-badge" id="siteMessageType">普通</span>
         <h2 id="siteMessageTitle"></h2>
         <div class="site-message-body" id="siteMessageBody"></div>
@@ -1246,10 +1090,10 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20261003-aeris-p2-r2"></script>
-    <script type="module" src="/tools.js?v=20261003-aeris-p2-r2"></script>
-    <script src="/workflows.js?v=20261003-aeris-p2-r2"></script>
-    <script src="/learning-sync.js?v=20261003-aeris-p2-r2"></script>
-    <script type="module" src="/app.js?v=20261003-aeris-p2-r2"></script>
+    <script src="/changelog.js?v=20261003-aeris-p3-2"></script>
+    <script type="module" src="/tools.js?v=20261003-aeris-p3-2"></script>
+    <script src="/workflows.js?v=20261003-aeris-p3-2"></script>
+    <script src="/learning-sync.js?v=20261003-aeris-p3-2"></script>
+    <script type="module" src="/app.js?v=20261003-aeris-p3-2"></script>
   </body>
 </html>

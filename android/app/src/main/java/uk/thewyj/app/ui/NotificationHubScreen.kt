@@ -155,7 +155,7 @@ fun NotificationHubScreen(
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("通知访问未开启", fontWeight = FontWeight.SemiBold)
                     Text(
-                        "系统通知栏里的通知不会被保存，也无法用于支付金额识别。请在系统设置中允许 thewyj 的通知访问。",
+                        "系统通知栏里的通知不会被保存，也无法用于支付金额识别。请在系统设置中允许 Aeris 的通知访问。",
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

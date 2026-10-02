@@ -17,7 +17,7 @@ export function isTask20AndroidClient(request) {
 
 export function requireTask20AndroidClient(request) {
   if (!isTask20AndroidClient(request)) {
-    throw new Task12Error("此接口仅供 thewyj Android App 使用", 403, "task20_android_client_required");
+    throw new Task12Error("此接口仅供 Aeris Android App 使用", 403, "task20_android_client_required");
   }
 }
 
