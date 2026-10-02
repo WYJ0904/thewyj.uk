@@ -29,7 +29,7 @@ def white_icon(size, fraction=.74):
     out=Image.new('RGBA',(size,size),'white');out.alpha_composite(contained(size,mark,fraction));return out.convert('RGB')
 def save(image,path):path.parent.mkdir(parents=True,exist_ok=True);image.save(path,optimize=True)
 save(mark,brand/'aeris-monogram.png')
-lockup=im.copy();lockup.thumbnail((320,320),Image.Resampling.LANCZOS);save(lockup,brand/'aeris-lockup.png')
+lockup=im.copy();lockup.thumbnail((320,320),Image.Resampling.LANCZOS);save(lockup,brand/'aeris-lockup.png');save(lockup,ROOT/'assets/logo.png')
 for size in (32,64):save(white_icon(size),brand/f'favicon-{size}.png')
 white_icon(64).save(ROOT/'favicon.ico',sizes=[(16,16),(32,32),(48,48),(64,64)])
 save(white_icon(180),brand/'apple-touch-icon.png')
