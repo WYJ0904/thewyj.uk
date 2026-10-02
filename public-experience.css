@@ -1162,7 +1162,7 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
 .aeris-launchpad-card h4 {font-size:13px;margin:0;color:var(--ds-text-secondary,#475569);}
 .aeris-launchpad-card p {font-size:13px;line-height:1.6;margin:0;color:var(--ds-text-secondary,#475569);overflow-wrap:anywhere;}
 .aeris-launchpad-card .button-secondary {margin-top:auto;min-height:44px;}
-.aeris-launchpad-card .dashboard-empty {padding:0;border:0;background:none;}
+.aeris-launchpad-card .dashboard-empty {min-height:0;display:block;padding:0;border:0;background:none;text-align:left;}
 .aeris-launchpad-links {display:grid;gap:8px;}
 .aeris-launchpad-links>button {display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;text-align:left;min-height:48px;font-size:14px;}
 .aeris-launchpad-links small {font-size:12px;color:var(--ds-text-secondary,#475569);}
