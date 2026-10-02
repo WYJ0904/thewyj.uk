@@ -220,6 +220,9 @@ jobs:
           set -euo pipefail
           node scripts/check_storage_contract.mjs 2>&1 | tee artifacts/frontend-storage-contract.log
 
+      - name: Test transfer progress and persistence coalescing
+        run: node local-backend/test_transfer_updates_js.mjs
+
       - name: Test JavaScript tools
         run: |
           set -euo pipefail
@@ -845,6 +848,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_interaction_feedback_browser.mjs 2>&1 | tee artifacts/interaction-feedback-browser.log
+
+      - name: Aeris P1 route coalescing and inactive rendering contract
+        run: |
+          set -euo pipefail
+          node qa/aeris/p1-navigation-lifecycle.mjs 2>&1 | tee artifacts/aeris-p1-navigation.log
 
 
       - name: Run cloud-only P0 browser flow

@@ -45,6 +45,7 @@ fun isPublicTransferRoute(route: String): Boolean {
 class AppViewModel : ViewModel() {
     private val repository = AppGraph.sessionRepository
     private val webRoutePolicy = WebRoutePolicy(BuildConfig.THEWYJ_BASE_URL)
+    private val webObservation = WebNavigationObservation()
     val session: StateFlow<SessionState> = repository.state
 
     private val mutableDestination = MutableStateFlow(AppDestination.HOME)
@@ -156,6 +157,7 @@ class AppViewModel : ViewModel() {
 
     private fun requestRoute(route: String) {
         if (mutableWebRoute.value == route) return
+        webObservation.requested(route)
         mutableWebRoute.value = route
         mutableNavigationEpoch.value += 1
     }
@@ -165,8 +167,9 @@ class AppViewModel : ViewModel() {
         if (webRoutePolicy.decide(url) != NavigationDecision.Internal) return
         val route = uri.rawPath.orEmpty().ifBlank { "/" } + uri.rawQuery?.let { "?$it" }.orEmpty() +
             uri.rawFragment?.let { "#$it" }.orEmpty()
+        if (!webObservation.accept(route)) return
         mutableWebRoute.value = route
-        mutableDestination.value = destinationForRoute(route)
+        mutableDestination.value = webObservationDestination(mutableDestination.value, route)
     }
 
     fun setNotice(message: String) {

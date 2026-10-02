@@ -2,6 +2,8 @@ package uk.thewyj.app.task22
 
 import org.json.JSONObject
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 data class TransferConfig(
     val minutes: Int = 1440,
@@ -26,18 +28,26 @@ data class TransferConfig(
 }
 
 class TransferConfigStore(private val file: File) {
+    private val lock = locks.computeIfAbsent(file.canonicalPath) { Any() }
 
-    fun load(): TransferConfig {
-        if (!file.exists()) return TransferConfig()
-        return runCatching { TransferConfig.fromJson(JSONObject(file.readText(Charsets.UTF_8))) }.getOrDefault(TransferConfig())
+    fun load(): TransferConfig = synchronized(lock) {
+        if (!file.exists()) return@synchronized TransferConfig()
+        runCatching { TransferConfig.fromJson(JSONObject(file.readText(Charsets.UTF_8))) }.getOrDefault(TransferConfig())
     }
 
-    fun save(config: TransferConfig) {
+    fun save(config: TransferConfig) = synchronized(lock) {
         file.parentFile?.mkdirs()
-        file.writeText(config.toJson().toString(), Charsets.UTF_8)
+        val tmp = File(file.parentFile, file.name + ".tmp")
+        tmp.writeText(config.toJson().toString(), Charsets.UTF_8)
+        runCatching {
+            Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        }.recoverCatching {
+            Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }.getOrThrow()
     }
 
     companion object {
+        private val locks = java.util.concurrent.ConcurrentHashMap<String, Any>()
         fun inDirectory(directory: File, accountId: String): TransferConfigStore {
             val safe = accountId.replace(Regex("""[^A-Za-z0-9._-]"""), "_").take(80)
             return TransferConfigStore(File(directory, "transfer-config-$safe.json"))

@@ -35,6 +35,8 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -109,22 +111,14 @@ fun NotificationHubScreen(
         // Snapshot semantics: entering the page loads once. While the user stays
         // here the list never auto-refreshes (no flicker, no scroll jump); new
         // notifications keep being stored in the background.
-        state.refresh()
         state.refreshApps()
         state.refreshRules()
     }
     LaunchedEffect(pendingResumeEpoch) { state.refreshPendingPayments() }
     LaunchedEffect(account.id) { PaymentReviewSignals.changes.collect { state.refreshPendingPayments() } }
 
-    // One natural vertical page: pending card + tabs + search/filter + list all
-    // scroll together instead of a fixed header over a small scrolling list.
-    Box(Modifier.fillMaxSize()) {
-    Column(
-        modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .background(MaterialTheme.colorScheme.background),
-    ) {
+    // The header scrolls with history, while only visible history rows are composed.
+    val header: @Composable () -> Unit = {
         Text(
             "通知历史",
             style = MaterialTheme.typography.headlineSmall,
@@ -204,12 +198,20 @@ fun NotificationHubScreen(
                 )
             }
         }
-        when (tab) {
-            0 -> NotificationHistorySection(state)
-            1 -> NotificationAppsSection(state, scope)
-            else -> NotificationRulesSection(state, scope)
-        }
     }
+    Box(modifier.fillMaxSize()) {
+        if (tab == 0) {
+            NotificationHistorySection(state, header)
+        } else {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                .background(MaterialTheme.colorScheme.background)) {
+                header()
+                when (tab) {
+                    1 -> NotificationAppsSection(state, scope)
+                    else -> NotificationRulesSection(state, scope)
+                }
+            }
+        }
         // Detail overlay: renders only from the already-loaded safe DTO, so a
         // malformed/null field can never crash the process.
         state.detail?.let { item ->
@@ -261,7 +263,9 @@ private fun NotificationDetailOverlay(
     LaunchedEffect(item.revisionId) {
         if (mediaPresentation != NotificationMediaPresentation.AVAILABLE || item.mediaPath.isBlank()) return@LaunchedEffect
         val file = runCatching { loadMedia(item.mediaPath) }.getOrNull()
-        val decoded = file?.let { android.graphics.BitmapFactory.decodeFile(it.absolutePath) }
+        val decoded = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            file?.let { android.graphics.BitmapFactory.decodeFile(it.absolutePath) }
+        }
         bitmap = decoded
         if (decoded == null) mediaUnavailable = true
     }
@@ -432,8 +436,14 @@ private fun NotificationEntitlementGate(modifier: Modifier) {
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-private fun NotificationHistorySection(state: NotificationHubState) {
+private fun NotificationHistorySection(state: NotificationHubState, header: @Composable () -> Unit) {
     val scope = rememberCoroutineScope()
+    val search = remember(state, scope) {
+        NotificationSearchController(scope, state::setSearchText, state::refresh)
+    }
+    DisposableEffect(search) { onDispose { search.cancel() } }
+    LaunchedEffect(state) { state.refreshIfNeeded() }
+
     val appLabels = remember { mutableStateMapOf<String, String>() }
     var filterSheet by remember { mutableStateOf(false) }
     var refreshing by remember { mutableStateOf(false) }
@@ -448,6 +458,7 @@ private fun NotificationHistorySection(state: NotificationHubState) {
     }
 
     fun manualRefresh() {
+        search.cancel()
         scope.launch {
             refreshing = true
             state.refresh()
@@ -457,135 +468,147 @@ private fun NotificationHistorySection(state: NotificationHubState) {
         }
     }
 
-    Column(Modifier.fillMaxWidth()) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = state.search,
-                onValueChange = { value -> scope.launch { state.setSearch(value) } },
-                label = { Text("搜索标题或内容") },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
-            )
-            OutlinedButton(onClick = { filterSheet = true }, shape = ThewyjRadius.Medium) {
-                Text(if (state.appFilter.isBlank()) "筛选" else "已筛选")
-            }
-            OutlinedButton(onClick = { manualRefresh() }, enabled = !refreshing, shape = ThewyjRadius.Medium) {
-                Text(if (refreshing) "刷新中…" else "刷新")
-            }
-        }
-        FlowRow(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text("包含已移除", style = MaterialTheme.typography.bodySmall)
-            Switch(
-                checked = state.includeRemoved,
-                onCheckedChange = { value ->
-                    state.includeRemoved = value
-                    scope.launch { state.refresh() }
-                },
-            )
-            if (state.selected.isEmpty()) {
-                OutlinedButton(onClick = { state.selectAll() }) { Text("全选") }
-            } else {
-                OutlinedButton(onClick = { state.clearSelection() }) { Text("取消选择") }
-            }
-            if (state.selected.isNotEmpty()) {
-                Button(onClick = { scope.launch { state.deleteSelected() } }) {
-                    Text("删除所选 (${state.selected.size})")
+    LazyColumn(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        item(key = "hub-header", contentType = "header") { header() }
+        item(key = "history-controls", contentType = "controls") {
+            Column(Modifier.fillMaxWidth()) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    OutlinedTextField(
+                        value = state.search,
+                        onValueChange = search::submit,
+                        label = { Text("搜索标题或内容") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedButton(onClick = { filterSheet = true }, shape = ThewyjRadius.Medium) {
+                        Text(if (state.appFilter.isBlank()) "筛选" else "已筛选")
+                    }
+                    OutlinedButton(onClick = { manualRefresh() }, enabled = !refreshing, shape = ThewyjRadius.Medium) {
+                        Text(if (refreshing) "刷新中…" else "刷新")
+                    }
                 }
-                OutlinedButton(onClick = { scope.launch { state.clearAll() } }) { Text("清空全部") }
-            }
-        }
-        if (state.appFilter.isNotBlank()) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "已筛选：${appLabels[state.appFilter] ?: state.appFilter}",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = { scope.launch { state.setAppFilter("") } }) { Text("清除筛选") }
-            }
-        }
-        if (filterSheet) {
-            ModalBottomSheet(onDismissRequest = { filterSheet = false }) {
-                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("按应用筛选", style = MaterialTheme.typography.titleMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = state.appFilter.isBlank(),
-                            onClick = { scope.launch { state.setAppFilter("") } },
-                            label = { Text("全部应用", maxLines = 1, softWrap = false) },
+                FlowRow(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("包含已移除", style = MaterialTheme.typography.bodySmall)
+                    Switch(
+                        checked = state.includeRemoved,
+                        onCheckedChange = { value ->
+                            search.cancel()
+                            state.includeRemoved = value
+                            scope.launch { state.refresh() }
+                        },
+                    )
+                    if (state.selected.isEmpty()) {
+                        OutlinedButton(onClick = { state.selectAll() }) { Text("全选") }
+                    } else {
+                        OutlinedButton(onClick = { state.clearSelection() }) { Text("取消选择") }
+                    }
+                    if (state.selected.isNotEmpty()) {
+                        Button(onClick = { scope.launch { state.deleteSelected() } }) {
+                            Text("删除所选 (${state.selected.size})")
+                        }
+                        OutlinedButton(onClick = { scope.launch { state.clearAll() } }) { Text("清空全部") }
+                    }
+                }
+                if (state.appFilter.isNotBlank()) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "已筛选：${appLabels[state.appFilter] ?: state.appFilter}",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f),
                         )
-                        filterPackages.forEach { packageName ->
-                            FilterChip(
-                                selected = state.appFilter == packageName,
-                                onClick = {
-                                    scope.launch {
-                                        state.setAppFilter(if (state.appFilter == packageName) "" else packageName)
-                                    }
-                                },
-                                label = { Text(appLabels[packageName] ?: packageName, maxLines = 1, softWrap = false) },
-                            )
+                        TextButton(onClick = { search.cancel(); scope.launch { state.setAppFilter("") } }) { Text("清除筛选") }
+                    }
+                }
+                if (filterSheet) {
+                    ModalBottomSheet(onDismissRequest = { filterSheet = false }) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("按应用筛选", style = MaterialTheme.typography.titleMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterChip(
+                                    selected = state.appFilter.isBlank(),
+                                    onClick = { search.cancel(); scope.launch { state.setAppFilter("") } },
+                                    label = { Text("全部应用", maxLines = 1, softWrap = false) },
+                                )
+                                filterPackages.forEach { packageName ->
+                                    FilterChip(
+                                        selected = state.appFilter == packageName,
+                                        onClick = {
+                                            search.cancel()
+                                            scope.launch {
+                                                state.setAppFilter(if (state.appFilter == packageName) "" else packageName)
+                                            }
+                                        },
+                                        label = { Text(appLabels[packageName] ?: packageName, maxLines = 1, softWrap = false) },
+                                    )
+                                }
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("包含已移除", modifier = Modifier.weight(1f))
+                                Switch(
+                                    checked = state.includeRemoved,
+                                    onCheckedChange = { value ->
+                                        search.cancel()
+                                        state.includeRemoved = value
+                                        scope.launch { state.refresh() }
+                                    },
+                                )
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(onClick = {
+                                    search.cancel()
+                                    state.includeRemoved = true
+                                    scope.launch { state.setAppFilter("") }
+                                }) { Text("重置") }
+                                ThewyjPrimaryButton(text = { Text("完成") }, onClick = { filterSheet = false })
+                            }
                         }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("包含已移除", modifier = Modifier.weight(1f))
-                        Switch(
-                            checked = state.includeRemoved,
-                            onCheckedChange = { value ->
-                                state.includeRemoved = value
-                                scope.launch { state.refresh() }
-                            },
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = {
-                            state.includeRemoved = true
-                            scope.launch { state.setAppFilter("") }
-                        }) { Text("重置") }
-                        ThewyjPrimaryButton(text = { Text("完成") }, onClick = { filterSheet = false })
-                    }
                 }
             }
         }
-        when {
-            state.loading -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { Text("正在读取本地通知…") }
-            state.error.isNotBlank() -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { Text(state.error) }
-            state.items.isEmpty() -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                Text("还没有保存任何通知。授权通知访问后，被选中的应用会出现在这里。")
+        items(state.items, key = { it.revisionId }, contentType = { "notification" }) { item ->
+            Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+                NotificationHistoryCard(
+                    state = state,
+                    item = item,
+                    appLabel = notificationHistorySourceLabel(
+                        mediaOrigin = item.mediaOrigin,
+                        sourcePackage = item.sourcePackage,
+                        title = item.title,
+                        text = item.text,
+                        resolvedAppLabel = appLabels[item.sourcePackage] ?: item.sourcePackage,
+                    ),
+                    onOpen = { scope.launch { state.openDetail(item) } },
+                    onDelete = { scope.launch { state.deleteOne(item.revisionId) } },
+                )
             }
-            else -> Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
-                state.items.forEach { item ->
-                    NotificationHistoryCard(
-                        state = state,
-                        item = item,
-                        appLabel = notificationHistorySourceLabel(
-                            mediaOrigin = item.mediaOrigin,
-                            sourcePackage = item.sourcePackage,
-                            title = item.title,
-                            text = item.text,
-                            resolvedAppLabel = appLabels[item.sourcePackage] ?: item.sourcePackage,
-                        ),
-                        onOpen = { scope.launch { state.openDetail(item) } },
-                        onDelete = { scope.launch { state.deleteOne(item.revisionId) } },
-                    )
+        }
+        item(key = "history-footer", contentType = "footer") {
+            when {
+                state.loading -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Text("正在读取本地通知…")
                 }
-                if (state.hasMore) {
-                    OutlinedButton(
-                        onClick = { scope.launch { state.loadMore() } },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    ) {
-                        Text("加载更多通知")
-                    }
+                state.error.isNotBlank() -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { Text(state.error) }
+                state.items.isEmpty() -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Text("还没有保存任何通知。授权通知访问后，被选中的应用会出现在这里。")
                 }
+            }
+            if (state.hasMore) {
+                OutlinedButton(
+                    onClick = { scope.launch { state.loadMore() } },
+                    enabled = !state.loading && !state.loadingMore,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                ) { Text(if (state.loadingMore) "正在读取本地通知…" else "加载更多通知") }
             }
         }
     }
@@ -628,6 +651,10 @@ private fun NotificationHistoryCard(
     onDelete: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val selected by remember(state, item.revisionId) {
+        derivedStateOf { state.selected.contains(item.revisionId) }
+    }
+
     val mediaPresentation = remember(item.revisionId, item.mediaState, item.mediaOrigin) {
         NotificationMediaPresentation.presentationState(
             item.mediaState,
@@ -643,7 +670,7 @@ private fun NotificationHistoryCard(
     ThewyjCard(Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable(onClick = onOpen)) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.Top) {
             Checkbox(
-                checked = state.selected.contains(item.revisionId),
+                checked = selected,
                 onCheckedChange = { scope.launch { state.toggleSelection(item.revisionId) } },
             )
             Column(Modifier.weight(1f)) {

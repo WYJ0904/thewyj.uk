@@ -25,9 +25,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
@@ -57,7 +60,12 @@ fun ThewyjWebView(
     onVerifyPayment: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     onUnhandledBack: () -> Unit = {},
+    active: Boolean = true,
 ) {
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val lifecycleState by lifecycle.currentStateFlow.collectAsState()
+    val effectiveActive = active && lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
+    val currentActive = rememberUpdatedState(effectiveActive)
     val context = androidx.compose.ui.platform.LocalContext.current
     val policy = remember { WebRoutePolicy(BuildConfig.THEWYJ_BASE_URL) }
     val loads = remember { WebLoadPolicy(sessionEpoch) }
@@ -97,6 +105,7 @@ fun ThewyjWebView(
             speechBridge = speechBridge,
             onThemeChanged = { dark -> themeCallback.value(dark) },
             onVerifyPayment = { eventId -> verifyPaymentCallback.value(eventId) },
+            onPageReady = { view -> view.syncPageActivity(currentActive.value) },
             onChooseFiles = { callback, params ->
                 pendingFileSelection.value?.onReceiveValue(null)
                 pendingFileSelection.value = callback
@@ -110,18 +119,25 @@ fun ThewyjWebView(
         )
     }
 
-    AndroidView(factory = { webView }, modifier = modifier.fillMaxSize())
+    AndroidView(factory = { webView }, modifier = modifier.fillMaxSize(), update = {
+        it.visibility = if (effectiveActive) View.VISIBLE else View.INVISIBLE
+    })
+    LaunchedEffect(effectiveActive) {
+        if (effectiveActive) webView.onResume()
+        webView.syncPageActivity(effectiveActive)
+        if (!effectiveActive) webView.onPause()
+        if (effectiveActive) webView.evaluateJavascript(
+            "window.dispatchEvent(new Event('thewyj:payment-updated'))", null)
+    }
     LaunchedEffect(Unit) {
         PaymentReviewSignals.changes.collect {
-            webView.evaluateJavascript("window.dispatchEvent(new Event('thewyj:payment-updated'))", null)
+            if (currentActive.value) webView.evaluateJavascript(
+                "window.dispatchEvent(new Event('thewyj:payment-updated'))", null)
         }
     }
-    LifecycleResumeEffect(Unit) {
-        webView.evaluateJavascript("window.dispatchEvent(new Event('thewyj:payment-updated'))", null)
-        onPauseOrDispose { }
-    }
 
-    LaunchedEffect(navigationEpoch, sessionEpoch) {
+    LaunchedEffect(navigationEpoch, sessionEpoch, effectiveActive) {
+        if (!effectiveActive) return@LaunchedEffect
         webView.awaitViewport()
         val target = policy.urlFor(route)
         if (BuildConfig.DEBUG) Log.i("ThewyjSession", "web-navigation-ready width=${webView.width} height=${webView.height}")
@@ -133,7 +149,7 @@ fun ThewyjWebView(
         }
     }
     LaunchedEffect(backNavigationRequest) {
-        if (backNavigationRequest != initialBackRequest) {
+        if (effectiveActive && backNavigationRequest != initialBackRequest) {
             webView.evaluateJavascript("Boolean(window.WYJAndroidNavigation?.back())") { handled ->
                 if (handled != "true") {
                     if (webView.canGoBack()) webView.goBack() else unhandledBackCallback.value()
@@ -153,6 +169,18 @@ fun ThewyjWebView(
     }
 }
 
+private fun WebView.syncPageActivity(active: Boolean) {
+    // This signal is local to this document; process-wide pauseTimers is not used.
+    evaluateJavascript("""
+        (() => {
+          if (!document.documentElement) return;
+          const active = $active;
+          document.documentElement.dataset.androidWebActive = String(active);
+          document.dispatchEvent(new CustomEvent('thewyj:webview-active', { detail: { active } }));
+        })();
+    """.trimIndent(), null)
+}
+
 @SuppressLint("SetJavaScriptEnabled")
 private fun createWebView(
     context: Context,
@@ -165,6 +193,7 @@ private fun createWebView(
     speechBridge: AndroidSpeechBridge,
     onThemeChanged: (Boolean) -> Unit,
     onVerifyPayment: (String) -> Unit,
+    onPageReady: (WebView) -> Unit,
     onChooseFiles: (ValueCallback<Array<Uri>>, WebChromeClient.FileChooserParams) -> Boolean,
 ): WebView = WebView(context).apply {
     // WRAP_CONTENT lets Chromium compute a zero CSS viewport inside AndroidView.
@@ -266,6 +295,7 @@ private fun createWebView(
          */
         override fun onPageFinished(view: WebView, url: String?) {
             super.onPageFinished(view, url)
+            onPageReady(view)
             runCatching {
                 view.evaluateJavascript(
                     "(document.documentElement && document.documentElement.dataset.theme) || ''",
