@@ -1185,3 +1185,17 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
 @media (prefers-reduced-motion:reduce) {.aeris-product-panel {animation:none;}}
 .auth-logo { width:112px;height:112px;object-fit:contain;background:#fff;border-radius:8px; }
 body[data-experience="public"] #versionNotice:not(.hidden) { position:relative;inset:auto;max-width:1072px;width:calc(100% - 48px);margin:16px auto 0;box-shadow:none;animation:none;z-index:auto; } .aeris-membership-status { font-size:13px;color:var(--ds-text-secondary,#475569);margin:0 0 18px; }
+/* Browser zoom can reduce the layout viewport below a phone's physical width. */
+body[data-experience="public"] {min-width:0;}
+@media (max-width:360px) {
+  body[data-experience="public"] .site-nav-bar {display:flex;flex-wrap:wrap;gap:6px;}
+  body[data-experience="public"] .site-brand {flex:1 0 80px;max-width:100%;}
+  body[data-experience="public"] .site-nav-actions {flex-basis:100%;justify-content:flex-start;}
+  .aeris-intro-heading {align-items:flex-start;flex-direction:column;gap:8px;}
+  .aeris-entry-actions {flex-wrap:wrap;}
+  .aeris-entry-actions>* {flex:1 1 100px;}
+  .aeris-product-tabs {grid-template-columns:repeat(2,minmax(0,1fr));}
+  .aeris-product-tabs>button {padding-inline:2px;white-space:normal;}
+  .aeris-budget-inputs {grid-template-columns:1fr;}
+  .aeris-answer-options {flex-wrap:wrap;}
+}
