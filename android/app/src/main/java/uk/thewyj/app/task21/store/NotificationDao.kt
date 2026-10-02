@@ -232,9 +232,9 @@ interface NotificationDao {
           AND (:packageFilter = '' OR i.sourcePackage = :packageFilter)
           AND (:fromTime = 0 OR r.capturedAt >= :fromTime)
           AND (:toTime = 0 OR r.capturedAt <= :toTime)
-          AND (:query = '' OR EXISTS (
-              SELECT 1 FROM notification_revisions AS searched
-              WHERE searched.instanceId = i.instanceId
+          AND (:query = '' OR i.instanceId IN (
+              SELECT searched.instanceId FROM notification_revisions AS searched
+              WHERE searched.accountId = :accountId
                 AND (searched.title LIKE '%' || :query || '%' OR searched.text LIKE '%' || :query || '%'
                      OR searched.bigText LIKE '%' || :query || '%' OR searched.subText LIKE '%' || :query || '%'
                      OR searched.infoText LIKE '%' || :query || '%' OR searched.summaryText LIKE '%' || :query || '%'
@@ -293,9 +293,9 @@ interface NotificationDao {
           AND (:packageFilter = '' OR i.sourcePackage = :packageFilter)
           AND (:fromTime = 0 OR r.capturedAt >= :fromTime)
           AND (:toTime = 0 OR r.capturedAt <= :toTime)
-          AND (:query = '' OR EXISTS (
-              SELECT 1 FROM notification_revisions AS searched
-              WHERE searched.instanceId = i.instanceId
+          AND (:query = '' OR i.instanceId IN (
+              SELECT searched.instanceId FROM notification_revisions AS searched
+              WHERE searched.accountId = :accountId
                 AND (searched.title LIKE '%' || :query || '%' OR searched.text LIKE '%' || :query || '%'
                      OR searched.bigText LIKE '%' || :query || '%' OR searched.subText LIKE '%' || :query || '%'
                      OR searched.infoText LIKE '%' || :query || '%' OR searched.summaryText LIKE '%' || :query || '%'

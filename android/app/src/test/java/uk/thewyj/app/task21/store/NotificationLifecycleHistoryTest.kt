@@ -105,6 +105,42 @@ class NotificationLifecycleHistoryTest {
         assertEquals(1, store.lifecycleHistory(account, NotificationQuery(search = "消息正文")).size)
     }
 
+    @Test fun searchOlderRevisionKeepsLatestFoldedStatusAndReadableSnapshots() {
+        val account = "account-search-history"
+        store.record(account, capture("live", 1_000, "连接", "旧状态关键字").copy(archiveKind = "live"), 1_000)
+        store.record(account, capture("live", 2_000, "连接", "最新状态").copy(archiveKind = "live"), 2_000)
+        store.record(account, capture("messages", 3_000, "消息", "旧消息关键字"), 3_000)
+        store.record(account, capture("messages", 4_000, "消息", "后续消息"), 4_000)
+        store.record("other-account", capture("other", 5_000, "消息", "关键字"), 5_000)
+
+        val query = NotificationQuery(search = "关键字", limit = 2)
+        val first = store.lifecycleHistory(account, query)
+        val second = store.lifecycleHistory(account, query.copy(offset = 2))
+        assertEquals(listOf("后续消息", "旧消息关键字"), first.map { it.text })
+        assertEquals(listOf("最新状态"), second.map { it.text })
+        assertEquals(3, store.lifecycleHistoryCount(account, query))
+        assertEquals(3, (first + second).map { it.revisionId }.distinct().size)
+    }
+
+    @Test(timeout = 15_000) fun unmatchedSearchWithThousandsOfStatusRevisionsFinishes() {
+        val account = "account-long-status-history"
+        store.record(account, capture("long-live", 1_000, "状态", "revision-0").copy(archiveKind = "live"), 1_000)
+        val initial = store.recentRevisions(account, store.lifecycleHistory(account, NotificationQuery()).single().instanceId).single()
+        database.runInTransaction {
+            for (index in 1..3_000) {
+                database.notificationDao().insertRevision(initial.copy(
+                    revisionId = "long-live-$index", capturedAt = 1_000L + index,
+                    text = "revision-$index", contentHash = "hash-$index",
+                ))
+            }
+        }
+        val query = NotificationQuery(search = "AerisP1UniqueNoMatches")
+        assertEquals(emptyList<NotificationHistoryItem>(), store.lifecycleHistory(account, query))
+        assertEquals(0, store.lifecycleHistoryCount(account, query))
+        assertEquals(3_001, store.revisions(account, initial.instanceId).size)
+        assertEquals("revision-3000", store.lifecycleHistory(account, NotificationQuery()).single().text)
+    }
+
     private fun capture(key: String, at: Long, title: String, text: String) = NotificationCapture(
         sourcePackage = "com.example.app",
         sourceType = "notification",
