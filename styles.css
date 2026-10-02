@@ -2661,11 +2661,6 @@ textarea {
   box-shadow: 0 0 0 2px rgba(255, 111, 77, 0.12);
 }
 
-button:active:not(:disabled) {
-  transform: scale(0.98);
-  filter: brightness(1.08);
-}
-
 @keyframes accountPageIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }

@@ -3,6 +3,7 @@ package uk.thewyj.app.ui
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -13,6 +14,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import uk.thewyj.app.task21.store.NotificationHistoryItem
 import uk.thewyj.app.task21.store.NotificationQuery
 import uk.thewyj.app.task21.store.NotificationRepository
@@ -31,11 +34,22 @@ import uk.thewyj.app.task21.payment.PendingReviewReconciler
 class NotificationHubState(
     context: Context,
     val accountId: String,
+    deleteWriter: (suspend (List<String>) -> Int)? = null,
+    pinWriter: (suspend (String, Boolean) -> Boolean)? = null,
     historyReader: (suspend (NotificationQuery) -> List<NotificationHistoryItem>)? = null,
 ) {
     private val appContext = context.applicationContext
     private val repository = NotificationRepository(context.applicationContext, accountId)
     private val readHistory = historyReader ?: repository::history
+    private val writeDelete = deleteWriter ?: repository::deleteSnapshots
+    private val writePin = pinWriter ?: repository::setPinned
+    private val pendingActions = mutableStateMapOf<String, Boolean>()
+    private fun pendingPresentation(row: NotificationHistoryItem): NotificationHistoryItem =
+        if (pendingActions.containsKey("pin:${row.instanceId}")) row.copy(pinned = pendingActions.getValue("pin:${row.instanceId}")) else row
+    var actionMessage by mutableStateOf("")
+    fun clearActionMessage() { actionMessage = "" }
+    fun actionPending(item: NotificationHistoryItem): Boolean =
+        pendingActions.containsKey("delete:${item.revisionId}") || pendingActions.containsKey("pin:${item.instanceId}")
     private val historyGeneration = java.util.concurrent.atomic.AtomicLong()
     private var historyRead: Deferred<HistoryRead>? = null
     private var lastLoadedQuery: NotificationQuery? = null
@@ -121,7 +135,8 @@ class NotificationHubState(
                 read.await()
             }
             if (generation != historyGeneration.get()) return
-            val next = result.rows.take(visibleLimit)
+            val next = result.rows.filterNot { pendingActions.containsKey("delete:${it.revisionId}") }
+                .take(visibleLimit).map(::pendingPresentation)
             Snapshot.withMutableSnapshot {
                 // Preserve unchanged row identities; pinned/status changes replace one row.
                 for (index in next.indices) {
@@ -267,7 +282,7 @@ class NotificationHubState(
     }
 
     suspend fun loadMore() {
-        if (!hasMore || loading || loadingMore) return
+        if (!hasMore || loading || loadingMore || pendingActions.keys.any { it.startsWith("delete:") }) return
         val generation = historyGeneration.get()
         val offset = items.size
         loadingMore = true
@@ -275,7 +290,8 @@ class NotificationHubState(
             val next = readHistory(query().copy(limit = HISTORY_PAGE_SIZE + 1, offset = offset))
             if (generation != historyGeneration.get() || offset != items.size) return
             hasMore = next.size > HISTORY_PAGE_SIZE
-            items.addAll(next.take(HISTORY_PAGE_SIZE))
+            val existing = items.map { it.revisionId }.toSet()
+            items.addAll(next.take(HISTORY_PAGE_SIZE).filterNot { it.revisionId in existing }.map(::pendingPresentation))
             visibleLimit = items.size.coerceAtLeast(HISTORY_PAGE_SIZE)
             lastLoadedQuery = query()
         } catch (cancelled: CancellationException) {
@@ -300,29 +316,71 @@ class NotificationHubState(
     }
 
     suspend fun deleteSelected(): Int {
-        // The list is per saved snapshot: delete exactly what the user selected.
-        val removed = repository.deleteSnapshots(selected.toList())
-        refresh()
-        return removed
+        return deleteOptimistically(selected.toList())
     }
 
     suspend fun deleteOne(revisionId: String): Int {
-        val removed = repository.deleteSnapshots(listOf(revisionId))
-        refresh()
-        return removed
+        return deleteOptimistically(listOf(revisionId))
+    }
+
+    private suspend fun deleteOptimistically(requested: List<String>): Int {
+        val ids = requested.distinct().filter { id ->
+            !pendingActions.containsKey("delete:$id") && items.firstOrNull { it.revisionId == id }?.let { !actionPending(it) } == true
+        }.toSet()
+        if (ids.isEmpty()) return 0
+        val backup = items.mapIndexedNotNull { index, item -> if (item.revisionId in ids) index to item else null }
+        val selectedBefore = selected.filter { it in ids }
+        ids.forEach { pendingActions["delete:$it"] = true }
+        val generation = historyGeneration.incrementAndGet()
+        historyRead?.cancel(); loading = false
+        items.removeAll { it.revisionId in ids }; selected.removeAll(ids)
+        // Complete the accepted local transaction even if navigation disposes its caller.
+        return withContext(NonCancellable) {
+            try {
+                writeDelete(ids.toList())
+            } catch (failure: Exception) {
+                if (historyGeneration.get() == generation) {
+                    backup.forEach { (index, item) ->
+                        if (items.none { it.revisionId == item.revisionId }) items.add(index.coerceAtMost(items.size), item)
+                    }
+                    selected.addAll(selectedBefore.filter { !selected.contains(it) })
+                } else {
+                    ids.forEach { pendingActions.remove("delete:$it") }
+                    refresh() // A different query owns the list; never restore old-query rows.
+                }
+                actionMessage = "删除失败，已恢复通知，请稍后重试。"
+                0
+            } finally { ids.forEach { pendingActions.remove("delete:$it") } }
+        }.also {
+            // Counters are independent from the committed deletion result.
+            runCatching { stats = repository.stats(); pinnedCount = repository.pinnedCount() }
+        }
     }
 
     /** Favourite / unfavourite one notification; favourites survive retention. */
     suspend fun togglePinned(item: NotificationHistoryItem): Boolean {
-        val wasDetailOpen = detail?.revisionId == item.revisionId
+        if (actionPending(item)) return items.firstOrNull { it.revisionId == item.revisionId }?.pinned ?: item.pinned
         val next = !item.pinned
-        repository.setPinned(item.instanceId, next)
-        if (detail?.revisionId == item.revisionId) detail = detail?.copy(pinned = next)
-        refresh()
-        if (wasDetailOpen && detail?.revisionId == item.revisionId) {
-            detail = items.firstOrNull { it.revisionId == item.revisionId } ?: detail
+        val key = "pin:${item.instanceId}"
+        pendingActions[key] = next
+        fun patch(value: Boolean) {
+            for (index in items.indices) if (items[index].instanceId == item.instanceId && items[index].pinned != value) {
+                items[index] = items[index].copy(pinned = value)
+            }
+            if (detail?.instanceId == item.instanceId) detail = detail?.copy(pinned = value)
         }
-        return next
+        val delta = if (next) 1 else -1
+        patch(next); pinnedCount = (pinnedCount + delta).coerceAtLeast(0)
+        return withContext(NonCancellable) {
+            try {
+                check(writePin(item.instanceId, next)) { "notification no longer exists" }
+                next
+            } catch (failure: Exception) {
+                patch(item.pinned); pinnedCount = (pinnedCount - delta).coerceAtLeast(0)
+                actionMessage = "收藏失败，已恢复原状态，请稍后重试。"
+                item.pinned
+            } finally { pendingActions.remove(key) }
+        }
     }
 
     suspend fun openDetail(item: NotificationHistoryItem) {

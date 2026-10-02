@@ -175,10 +175,7 @@ class TransferUploadWorker(
                           )
                         }
                         current = store.updateIfGeneration(current.localId, generation) { latest ->
-                            latest.copy(
-                                uploadedParts = latest.uploadedParts + partNumber,
-                                uploadedBytes = if (partNumber in latest.uploadedParts) latest.uploadedBytes else latest.uploadedBytes + length,
-                            )
+                            latest.acknowledgedPart(partNumber, length)
                         } ?: throw TransferWorkPausedException(userInitiated = false)
                     }
                     store.updateIfGeneration(current.localId, generation) { latest ->

@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import { installMotionSystem, pressedReleaseDelay, motionDuration } from '../js/core/motion.js';
+
+function fixture(reduced=false){
+ let time=0,id=0;const timers=new Map(),events=new Map(),windowEvents=new Map(),observers=[];
+ const view={performance:{now:()=>time},matchMedia:()=>({matches:reduced}),setTimeout:(f,ms)=>{timers.set(++id,{f,at:time+ms});return id;},clearTimeout:n=>timers.delete(n),queueMicrotask:f=>f(),addEventListener:(type,f)=>windowEvents.set(type,f),removeEventListener:type=>windowEvents.delete(type),MutationObserver:class{constructor(f){observers.push(f)}observe(){}disconnect(){}}};
+ const doc={defaultView:view,hidden:false,documentElement:{},querySelectorAll:()=>[],addEventListener:(type,f)=>{if(!events.has(type))events.set(type,[]);events.get(type).push(f);},removeEventListener:(type,f)=>events.set(type,(events.get(type)||[]).filter(x=>x!==f))};
+ const button={disabled:false,attributes:new Map(),closest(selector){return selector==='[inert]'||selector==='summary'||selector==="[role='tablist']"?null:this;},getAttribute(name){return this.attributes.get(name)??null},setAttribute(name,v){this.attributes.set(name,v)},removeAttribute(name){this.attributes.delete(name)}};
+ const send=(type,extra={})=>{const e={target:button,button:0,isPrimary:true,pointerId:1,defaultPrevented:false,...extra};for(const f of events.get(type)||[])f(e);return e;};
+ const advance=ms=>{time+=ms;for(const [n,t]of [...timers])if(t.at<=time){timers.delete(n);t.f();}};
+ return{doc,view,button,events,windowEvents,observers,send,advance,timers};
+}
+assert.equal(pressedReleaseDelay(0,15),65);assert.equal(pressedReleaseDelay(20,10),80);assert.equal(pressedReleaseDelay(0,90),0);
+assert.equal(motionDuration('sheet',{matchMedia:()=>({matches:true})}),0);
+
+const f=fixture();const dispose=installMotionSystem(f.doc);assert.equal(installMotionSystem(f.doc),dispose);assert.equal(f.events.get('pointerdown').length,1);
+f.send('pointerdown');assert.equal(f.button.getAttribute('data-aeris-pressed'),'true');
+f.advance(10);f.send('pointerup');f.advance(69);assert.equal(f.button.getAttribute('data-aeris-pressed'),'true');f.advance(1);assert.equal(f.button.getAttribute('data-aeris-pressed'),null);
+// A new input interrupts an old release; its timer cannot clear the new press.
+f.send('pointerdown');f.advance(5);f.send('pointerup');f.advance(5);f.send('pointerdown');f.advance(80);assert.equal(f.button.getAttribute('data-aeris-pressed'),'true');f.send('pointercancel');assert.equal(f.button.getAttribute('data-aeris-pressed'),null);
+f.button.disabled=true;f.send('pointerdown');assert.equal(f.button.getAttribute('data-aeris-pressed'),null);f.button.disabled=false;
+f.send('keydown',{key:' ',repeat:false});assert.equal(f.button.getAttribute('data-aeris-pressed'),'true');f.send('keyup',{key:' '});f.advance(80);assert.equal(f.button.getAttribute('data-aeris-pressed'),null);
+f.send('pointerdown');f.windowEvents.get('blur')();assert.equal(f.button.getAttribute('data-aeris-pressed'),null);dispose();assert.equal(f.events.get('pointerdown').length,0);
+
+function disclosure(reduced=false,large=false){
+ const f=fixture(reduced);const animations=[];const details={tagName:'DETAILS',open:false,isConnected:true,style:{height:'',overflow:''},querySelector:()=>summary,getBoundingClientRect:()=>({height:details.open?(large?2000:140):40}),animate(keys,options){let resolve,reject;const a={keys,options,finished:new Promise((r,j)=>{resolve=r;reject=j}),finish:()=>resolve(),cancel:()=>reject(new Error('cancel'))};animations.push(a);return a;}};
+ const summary={parentElement:details,attributes:new Map(),setAttribute(n,v){this.attributes.set(n,v)},getBoundingClientRect:()=>({height:40}),closest:s=>s==='summary'?summary:null};installMotionSystem(f.doc);const click=()=>f.send('click',{target:summary,preventDefault(){this.defaultPrevented=true}});return{...f,details,summary,animations,click};
+}
+const d=disclosure();d.click();assert.equal(d.details.open,true);d.click();assert.equal(d.summary.attributes.get('aria-expanded'),'false');d.click();assert.equal(d.summary.attributes.get('aria-expanded'),'true');d.animations.at(-1).finish();await Promise.resolve();assert.equal(d.details.open,true);
+// A programmatic data-owner open supersedes an in-flight close.
+d.click();d.observers[0]([{target:d.details}]);await Promise.resolve();assert.equal(d.details.open,true);assert.equal(d.summary.attributes.get('aria-expanded'),'true');
+const reduced=disclosure(true);reduced.click();assert.equal(reduced.details.open,true);reduced.click();assert.equal(reduced.details.open,false);assert.equal(reduced.animations.length,0);
+const large=disclosure(false,true);large.click();assert.ok(large.animations.every(a=>a.keys.every(k=>!('height'in k))));
+console.log('PASS motion: cancellation, short tap, keyboard, duplicate install, interruption, programmatic reopen, reduced motion and large disclosure');

@@ -6,6 +6,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,14 +39,14 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedButton
+import uk.thewyj.app.core.design.ThewyjOutlinedButton as OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import uk.thewyj.app.core.design.ThewyjTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,6 +59,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import uk.thewyj.app.core.design.ThewyjHapticEvent
+import uk.thewyj.app.core.design.ThewyjHapticPolicy
+import uk.thewyj.app.core.design.thewyjPressedFeedback
+import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -356,19 +363,10 @@ private fun AuthenticatedShell(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                AppDestination.entries.forEach { item ->
-                    NavigationBarItem(
-                        selected = destination == item,
-                        onClick = {
-                            val selection = bottomNavigationSelection(item, overlays)
-                            overlays = selection.overlays
-                            onDestination(selection.destination)
-                        },
-                        icon = { Icon(destinationIcon(item), contentDescription = null) },
-                        label = { Text(item.label) },
-                    )
-                }
+            ThewyjBottomNavigation(destination) { item ->
+                val selection = bottomNavigationSelection(item, overlays)
+                overlays = selection.overlays
+                onDestination(selection.destination)
             }
         },
     ) { padding ->
@@ -468,6 +466,40 @@ private fun AuthenticatedShell(
                     },
                 )
             }
+        }
+    }
+}
+
+/** Press preview is confined to the footer. It never routes before a completed click. */
+@Composable
+private fun ThewyjBottomNavigation(destination: AppDestination, onSelect: (AppDestination) -> Unit) {
+    val view = LocalView.current
+    val haptic = remember(view) { ThewyjHapticPolicy() }
+    var preview by remember { mutableStateOf<AppDestination?>(null) }
+    LaunchedEffect(destination) { if (preview == destination) preview = null }
+    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+        AppDestination.entries.forEach { item ->
+            val source = remember(item) { MutableInteractionSource() }
+            LaunchedEffect(source) {
+                source.interactions.collectLatest { interaction ->
+                    when (interaction) {
+                        is PressInteraction.Press -> preview = item
+                        is PressInteraction.Cancel -> if (preview == item) preview = null
+                        is PressInteraction.Release -> { kotlinx.coroutines.delay(80); if (preview == item) preview = null }
+                    }
+                }
+            }
+            NavigationBarItem(
+                selected = (preview ?: destination) == item,
+                onClick = {
+                    if (destination != item) haptic.perform(view, ThewyjHapticEvent.Destination)
+                    onSelect(item)
+                },
+                modifier = Modifier.thewyjPressedFeedback(source, surfaceOnly = true),
+                interactionSource = source,
+                icon = { Icon(destinationIcon(item), contentDescription = null) },
+                label = { Text(item.label) },
+            )
         }
     }
 }

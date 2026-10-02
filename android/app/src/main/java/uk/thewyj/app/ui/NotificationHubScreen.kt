@@ -2,6 +2,8 @@ package uk.thewyj.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,20 +22,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
+import uk.thewyj.app.core.design.ThewyjButton as Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import uk.thewyj.app.core.design.ThewyjIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import uk.thewyj.app.core.design.ThewyjOutlinedButton as OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import uk.thewyj.app.core.design.ThewyjTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.derivedStateOf
@@ -56,6 +58,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Surface
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.Role
+import uk.thewyj.app.core.design.ThewyjHapticPolicy
+import uk.thewyj.app.core.design.ThewyjHapticEvent
+import uk.thewyj.app.core.design.thewyjPressedFeedback
+import uk.thewyj.app.core.design.ThewyjSwipeReveal
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
 import uk.thewyj.app.core.auth.AccountSnapshot
@@ -97,6 +107,15 @@ fun NotificationHubScreen(
     val context = LocalContext.current
     val state = remember(account.id) { NotificationHubState(context, account.id) }
     val scope = rememberCoroutineScope()
+    val view = LocalView.current
+    val haptic = remember(view) { ThewyjHapticPolicy() }
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(state.actionMessage) {
+        if (state.actionMessage.isNotBlank()) {
+            snackbar.showSnackbar(state.actionMessage)
+            state.clearActionMessage()
+        }
+    }
     var tab by remember { mutableIntStateOf(0) }
     var notificationAccess by remember { mutableStateOf(PermissionCenter.notificationListenerGranted(context)) }
     var pendingResumeEpoch by remember { mutableIntStateOf(0) }
@@ -193,7 +212,7 @@ fun NotificationHubScreen(
             listOf("历史", "应用", "规则与保留").forEachIndexed { index, label ->
                 Tab(
                     selected = tab == index,
-                    onClick = { tab = index },
+                    onClick = { if (tab != index) haptic.perform(view, ThewyjHapticEvent.Tab); tab = index },
                     text = { Text(label) },
                 )
             }
@@ -221,9 +240,11 @@ fun NotificationHubScreen(
                 onMoreRevisions = { scope.launch { state.loadMoreRevisions() } },
                 onClose = state::closeDetail,
                 onTogglePinned = { scope.launch { state.togglePinned(item) } },
+                pinEnabled = !state.actionPending(item),
                 loadMedia = { path -> state.mediaFile(path) },
             )
         }
+        SnackbarHost(snackbar, modifier = Modifier.align(Alignment.BottomCenter))
     }
 }
 
@@ -234,6 +255,7 @@ private fun NotificationDetailOverlay(
     onMoreRevisions: () -> Unit = {},
     onClose: () -> Unit,
     onTogglePinned: () -> Unit = {},
+    pinEnabled: Boolean = true,
     loadMedia: suspend (String) -> java.io.File? = { null },
 ) {
     val context = LocalContext.current
@@ -322,7 +344,7 @@ private fun NotificationDetailOverlay(
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onTogglePinned, shape = ThewyjRadius.Medium) {
+                OutlinedButton(onClick = onTogglePinned, enabled = pinEnabled, shape = ThewyjRadius.Medium) {
                     Text(if (item.pinned) "取消收藏" else "收藏这条通知")
                 }
                 Text(
@@ -438,6 +460,7 @@ private fun NotificationEntitlementGate(modifier: Modifier) {
 @Composable
 private fun NotificationHistorySection(state: NotificationHubState, header: @Composable () -> Unit) {
     val scope = rememberCoroutineScope()
+    var revealedRevision by remember { mutableStateOf<String?>(null) }
     val search = remember(state, scope) {
         NotificationSearchController(scope, state::setSearchText, state::refresh)
     }
@@ -590,6 +613,8 @@ private fun NotificationHistorySection(state: NotificationHubState, header: @Com
                     ),
                     onOpen = { scope.launch { state.openDetail(item) } },
                     onDelete = { scope.launch { state.deleteOne(item.revisionId) } },
+                    revealed = revealedRevision == item.revisionId,
+                    onReveal = { open -> revealedRevision = if (open) item.revisionId else null },
                 )
             }
         }
@@ -649,8 +674,13 @@ private fun NotificationHistoryCard(
     appLabel: String,
     onOpen: () -> Unit,
     onDelete: () -> Unit,
+    revealed: Boolean = false,
+    onReveal: (Boolean) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
+    val view = LocalView.current
+    val haptic = remember(view) { ThewyjHapticPolicy() }
+    val interaction = remember(item.revisionId) { MutableInteractionSource() }
     val selected by remember(state, item.revisionId) {
         derivedStateOf { state.selected.contains(item.revisionId) }
     }
@@ -667,7 +697,27 @@ private fun NotificationHistoryCard(
     val readableBody = item.bigText.ifBlank { item.text }.ifBlank { item.summaryText }
         .ifBlank { item.infoText }.ifBlank { item.textLines.joinToString("\n") }
     val noReadableText = item.title.isBlank() && readableBody.isBlank() && item.textLines.isEmpty()
-    ThewyjCard(Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable(onClick = onOpen)) {
+    ThewyjSwipeReveal(
+        identity = item.revisionId,
+        revealed = revealed,
+        onReveal = onReveal,
+        onThreshold = { haptic.perform(view, ThewyjHapticEvent.SwipeThreshold) },
+        actions = {
+            TextButton(onClick = {
+                scope.launch { state.togglePinned(item) }
+                haptic.perform(view, ThewyjHapticEvent.ImportantToggle)
+                onReveal(false)
+            }, enabled = !state.actionPending(item)) { Text(if (item.pinned) "取消收藏" else "收藏") }
+        },
+    ) {
+    ThewyjCard(Modifier.fillMaxWidth().padding(vertical = 4.dp)
+        .thewyjPressedFeedback(interaction, surfaceOnly = true)
+        .combinedClickable(interactionSource = interaction, indication = androidx.compose.material3.ripple(), role = Role.Button,
+            onClickLabel = "打开通知详情", onClick = onOpen,
+            onLongClickLabel = "选择这条通知", onLongClick = {
+                scope.launch { state.toggleSelection(item.revisionId) }
+                haptic.perform(view, ThewyjHapticEvent.LongPressSelection)
+            })) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.Top) {
             Checkbox(
                 checked = selected,
@@ -752,7 +802,7 @@ private fun NotificationHistoryCard(
                     }
                 }
             }
-            IconButton(onClick = onDelete, modifier = Modifier.size(40.dp)) {
+            IconButton(onClick = onDelete, enabled = !state.actionPending(item), modifier = Modifier.size(48.dp)) {
                 Icon(
                     androidx.compose.material.icons.Icons.Default.Delete,
                     contentDescription = "删除这条通知",
@@ -760,6 +810,7 @@ private fun NotificationHistoryCard(
                 )
             }
         }
+    }
     }
 }
 
