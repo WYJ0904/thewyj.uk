@@ -68,7 +68,11 @@ class NotificationRepository(
     suspend fun deleteSnapshots(revisionIds: List<String>): Int = withContext(Dispatchers.IO) {
         val mediaPaths = store.mediaPathsOfRevisions(accountId, revisionIds)
         val removed = store.deleteRevisions(accountId, revisionIds)
-        if (mediaPaths.isNotEmpty()) media.deleteAll(mediaPaths)
+        if (mediaPaths.isNotEmpty()) runCatching { media.deleteAll(mediaPaths) }.onFailure {
+            // The DB transaction already committed. A picture cleanup failure
+            // cannot turn that into a failed delete or resurrect its UI row.
+            android.util.Log.w("NotificationMedia", "post-delete picture cleanup failed", it)
+        }
         removed
     }
 

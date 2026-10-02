@@ -55,6 +55,7 @@ artifacts/
 # Android local/build state
 android/local.properties
 android/.gradle/
+android/.kotlin/
 android/**/build/
 *.apk
 *.aab

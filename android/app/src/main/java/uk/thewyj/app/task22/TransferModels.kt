@@ -76,6 +76,13 @@ data class TransferSession(
     val expiresAt: String = "",
 )
 
+/** A real acknowledged part also confirms that a resumed worker is uploading. */
+internal fun QueuedTransfer.acknowledgedPart(number: Int, length: Long): QueuedTransfer = copy(
+    uploadedParts = uploadedParts + number,
+    uploadedBytes = if (number in uploadedParts) uploadedBytes else uploadedBytes + length,
+    status = if (status == TransferItemStatus.PENDING) TransferItemStatus.UPLOADING else status,
+)
+
 data class TransferAllocation(
     val fileId: String,
     val partSize: Long,

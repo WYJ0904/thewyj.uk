@@ -520,10 +520,6 @@ body[data-experience="workspace"] .account-badge {
   outline-offset: 2px;
 }
 
-.site-nav-links .site-nav-card > a:active {
-  transform: translateY(1px);
-}
-
 .project-picker {
   width: min(calc(100% - 40px), 920px);
 }
