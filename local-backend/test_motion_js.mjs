@@ -34,4 +34,17 @@ d.click();d.observers[0]([{target:d.details}]);await Promise.resolve();assert.eq
 d.details.open=false;await Promise.resolve();assert.equal(d.summary.attributes.get('aria-expanded'),'false');assert.equal(d.details.open,false);
 const reduced=disclosure(true);reduced.click();assert.equal(reduced.details.open,true);reduced.click();assert.equal(reduced.details.open,false);assert.equal(reduced.animations.length,0);
 const large=disclosure(false,true);large.click();assert.ok(large.animations.every(a=>a.keys.every(k=>!('height'in k))));
+// Selection can be committed by an async owner after event dispatch. Only the
+// tablist's aria-selected mutations schedule work, and layout geometry must not
+// inherit pressed scale from getBoundingClientRect().
+const t=fixture();let selected;const frames=new Map();let frameId=0;
+t.view.requestAnimationFrame=callback=>{frames.set(++frameId,callback);return frameId;};t.view.cancelAnimationFrame=n=>frames.delete(n);
+const group={isConnected:true,classList:{add(){},remove(){}},append(node){this.indicator=node;},getBoundingClientRect:()=>({left:500,width:200}),querySelector:()=>selected};
+const tab=(left)=>({offsetLeft:left,offsetWidth:100,offsetParent:group,closest:()=>group,getBoundingClientRect:()=>({left:520+left,width:85})});
+const login=tab(0),register=tab(100);selected=login;t.doc.querySelectorAll=()=>[group];t.doc.createElement=()=>({style:{},setAttribute(){},remove(){}});
+const stopTabs=installMotionSystem(t.doc);assert.equal(group.indicator.style.transform,'translateX(0px)');assert.equal(group.indicator.style.width,'100px');
+const flush=()=>{for(const [id,callback]of [...frames]){frames.delete(id);callback();}};
+selected=register;t.observers[1]([{target:register}]);selected=login;t.observers[1]([{target:login}]);assert.equal(frames.size,1);flush();assert.equal(group.indicator.style.transform,'translateX(0px)');
+selected=register;t.observers[1]([{target:register}]);flush();assert.equal(group.indicator.style.transform,'translateX(100px)');assert.equal(group.indicator.style.width,'100px');
+t.observers[1]([{target:register}]);stopTabs();assert.equal(frames.size,0);
 console.log('PASS motion: cancellation, short tap, keyboard, duplicate install, interruption, programmatic reopen, reduced motion and large disclosure');

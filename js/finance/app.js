@@ -1,5 +1,5 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20261003-aeris-p2";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261003-aeris-p2";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20261003-aeris-p2-r2";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261003-aeris-p2-r2";
 const SCHEMA_VERSION = 1;
 const MAX_LOCAL_TRANSACTIONS = 5000;
 const MAX_PENDING_OPERATIONS = 500;
