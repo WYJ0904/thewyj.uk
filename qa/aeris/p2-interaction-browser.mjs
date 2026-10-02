@@ -5,8 +5,8 @@ const results=[];
 for(const width of [390,1366,1920]){
  const page=await openPage({cdpUrl:process.env.WYJ_CDP_URL||'http://127.0.0.1:9225',baseUrl,width,height:900,mobile:width===390});
  try{
-  await page.navigate('/login');await page.waitFor("Boolean(document.querySelector('#showLoginBtn'))");
-  const point=async selector=>page.evaluate(`(()=>{const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};})()`);
+  await page.navigate('/login');await page.waitFor("document.documentElement.dataset.aerisMotionReady==='true' && (!document.getElementById('entryScreen') || document.getElementById('entryScreen').classList.contains('hidden'))");
+  const point=async selector=>page.evaluate(`(()=>{const element=document.querySelector(${JSON.stringify(selector)});element.scrollIntoView({block:'center'});const r=element.getBoundingClientRect();const x=r.x+r.width/2,y=r.y+r.height/2;const hit=document.elementFromPoint(x,y);if(!element.contains(hit))throw new Error('input target occluded by '+hit?.id);return{x,y};})()`);
   const press=async selector=>{const p=await point(selector);await page.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',buttons:1,clickCount:1,...p});return p;};
   const release=p=>page.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',buttons:0,clickCount:1,...p});
   const p=await press('#showRegisterBtn');await page.waitFor("document.querySelector('#showRegisterBtn').dataset.aerisPressed==='true'",1000);

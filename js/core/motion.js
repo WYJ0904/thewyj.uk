@@ -124,6 +124,7 @@ export function installMotionSystem(doc = globalThis.document) {
   view.addEventListener("resize", resize); disposers.push(() => view.removeEventListener("resize", resize));
   for (const group of tabGroups) if (group.getBoundingClientRect().width > 0) updateIndicator(group);
 
-  const dispose = () => { reset(); for (const cleanup of disposers) cleanup(); for (const [group, indicator] of indicators) { indicator.remove(); group.classList.remove("ds-motion-tabs"); } installed.delete(doc); };
+  doc.documentElement.setAttribute?.("data-aeris-motion-ready", "true");
+  const dispose = () => { reset(); for (const cleanup of disposers) cleanup(); for (const [group, indicator] of indicators) { indicator.remove(); group.classList.remove("ds-motion-tabs"); } doc.documentElement.removeAttribute?.("data-aeris-motion-ready"); installed.delete(doc); };
   installed.set(doc, dispose); return dispose;
 }
