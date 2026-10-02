@@ -23,6 +23,7 @@ export function installMotionSystem(doc = globalThis.document) {
   const disposers = [];
   const disclosures = new WeakMap();
   const indicators = new Map();
+  const indicatorFrames = new Map();
   const clock = () => view.performance.now();
   const target = node => node?.closest?.("button,a[href],summary,[role='button'],[role='tab'],input[type='checkbox'],input[type='radio']");
   const usable = node => node && !node.disabled && node.getAttribute("aria-disabled") !== "true" && !node.closest("[inert]");
@@ -116,14 +117,32 @@ export function installMotionSystem(doc = globalThis.document) {
     if (!selected) return;
     let indicator = indicators.get(group);
     if (!indicator) { indicator = doc.createElement("span"); indicator.className = "ds-tab-indicator"; indicator.setAttribute("aria-hidden", "true"); group.append(indicator); group.classList.add("ds-motion-tabs"); indicators.set(group, indicator); }
-    const outer = group.getBoundingClientRect(), inner = selected.getBoundingClientRect();
-    indicator.style.width = `${inner.width}px`; indicator.style.transform = `translateX(${inner.left - outer.left}px)`;
+    // Layout coordinates stay stable while pressed scale changes visual bounds.
+    let left = selected.offsetLeft, parent = selected.offsetParent;
+    while (parent && parent !== group) { left += parent.offsetLeft; parent = parent.offsetParent; }
+    indicator.style.width = `${selected.offsetWidth}px`; indicator.style.transform = `translateX(${left}px)`;
   }
   const tabGroups = [...doc.querySelectorAll("[role='tablist']")];
-  listen("click", () => view.queueMicrotask(() => {
+  function scheduleIndicator(group) {
+    if (indicatorFrames.has(group)) return;
+    indicatorFrames.set(group, view.requestAnimationFrame(() => {
+      indicatorFrames.delete(group);
+      if (group.getBoundingClientRect().width > 0) updateIndicator(group);
+    }));
+  }
+  listen("click", () => {
     // Covers a tablist revealed by navigation; no observer on progress events.
-    for (const group of tabGroups) if (group.getBoundingClientRect().width > 0) updateIndicator(group);
-  }));
+    for (const group of tabGroups) scheduleIndicator(group);
+  }, { capture: false });
+  // Async and programmatic tab owners can commit selection after click dispatch.
+  const tabObserver = new view.MutationObserver(records => {
+    for (const record of records) {
+      const group = record.target.closest?.("[role='tablist']");
+      if (group) scheduleIndicator(group);
+    }
+  });
+  for (const group of tabGroups) tabObserver.observe(group, { subtree: true, attributes: true, attributeFilter: ["aria-selected"] });
+  disposers.push(() => { tabObserver.disconnect(); for (const frame of indicatorFrames.values()) view.cancelAnimationFrame(frame); indicatorFrames.clear(); });
   const resize = () => { for (const group of indicators.keys()) updateIndicator(group); };
   view.addEventListener("resize", resize); disposers.push(() => view.removeEventListener("resize", resize));
   for (const group of tabGroups) if (group.getBoundingClientRect().width > 0) updateIndicator(group);

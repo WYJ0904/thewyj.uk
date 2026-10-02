@@ -14,11 +14,14 @@ for(const width of [390,1366,1920]){
   for(const selector of ['#showLoginBtn','#showRegisterBtn','#showLoginBtn'])await page.click(selector);
   await page.waitFor("document.querySelector('#showLoginBtn').getAttribute('aria-selected')==='true'");
   assert.equal(await page.evaluate("document.querySelectorAll('#authPanel .ds-tab-indicator').length"),1);
+  const aligned="(()=>{const s=document.querySelector('#authPanel [role=tab][aria-selected=true]'),i=document.querySelector('#authPanel .ds-tab-indicator');const a=s.getBoundingClientRect(),b=i.getBoundingClientRect();return Math.abs(a.left-b.left)<=2&&Math.abs(a.width-b.width)<=2;})()";
+  await page.waitFor(aligned,2000);
   await page.evaluate("document.querySelector('#showRegisterBtn').focus()");
   await page.send('Input.dispatchKeyEvent',{type:'keyDown',key:' ',code:'Space',windowsVirtualKeyCode:32});
   assert.equal(await page.evaluate("document.querySelector('#showRegisterBtn').dataset.aerisPressed"),'true');
   await page.send('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
   await page.waitFor("document.querySelector('#showRegisterBtn').getAttribute('aria-selected')==='true'");
+  await page.waitFor(aligned,2000);
   await page.click('#showLoginBtn');
   // System/browser reduced motion: actual Chrome media emulation on the CI runner.
   await page.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
@@ -44,7 +47,7 @@ for(const width of [390,1366,1920]){
   const overflow=await page.evaluate("document.documentElement.scrollWidth>innerWidth+1");assert.equal(overflow,false);
   await page.waitFor("document.querySelectorAll('[data-aeris-pressed]').length===0",2000);
   assert.deepEqual(page.runtimeErrors,[]);
-  results.push({width,pressed:true,keyboard:true,rapidTab:true,indicatorCount:1,reducedMotion:style,disclosureReversal:true,escape:true,rapidNavigation:rapid,repeatedDestination:repeated,overflow:false,runtimeErrors:[]});
+  results.push({width,pressed:true,keyboard:true,rapidTab:true,indicatorCount:1,indicatorAligned:true,reducedMotion:style,disclosureReversal:true,escape:true,rapidNavigation:rapid,repeatedDestination:repeated,overflow:false,runtimeErrors:[]});
  }finally{await page.close();}
 }
 const output=path.resolve(process.env.AERIS_P2_OUTPUT||'artifacts/aeris-p2-interaction.json');fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(results,null,2));console.log(JSON.stringify(results));
