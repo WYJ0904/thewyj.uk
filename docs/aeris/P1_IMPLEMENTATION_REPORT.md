@@ -51,6 +51,7 @@ With the activity signal false, persisted uploaded bytes advanced from 48 to 80 
 - Real browser EXE and MP4 files, both >16 MiB: upload → publish → browser download, exact source/download SHA-256 and size. Cancellation, two-file deletion, session recovery and quota restoration passed.
 - Browser interaction feedback regression: eight checks passed across account, finance, learning, transfer, tools, membership and traces.
 - The route/activity regression is now a Core CI cloud-only browser step. CI completion must be verified from the associated PR checks; local validation alone is not the remote gate.
+- The first CI run caught three stale static-test release-token fixtures. Their expected version was advanced to `20261002-aeris-p1`; every asset/module/precache assertion is retained. No assertion or test was removed, weakened or skipped.
 
 ## Release and gate accounting
 
