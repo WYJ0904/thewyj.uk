@@ -62,19 +62,22 @@ export function installMotionSystem(doc = globalThis.document) {
   // Native details semantics remain the authority, including programmatic opens.
   // Only a small disclosure is allowed to animate layout; large ledgers keep a
   // single layout change plus a short compositor effect.
+  function setDisclosureOpen(details, state, value) {
+    if (details.open !== value) { state.ownedWrites++; details.open = value; }
+  }
   function animateDisclosure(details, summary) {
     let state = disclosures.get(details);
-    if (!state) { state = { targetOpen: details.open, generation: 0, animation: null, height: details.style.height, overflow: details.style.overflow }; disclosures.set(details, state); }
+    if (!state) { state = { targetOpen: details.open, generation: 0, ownedWrites: 0, animation: null, height: details.style.height, overflow: details.style.overflow }; disclosures.set(details, state); }
     const start = details.getBoundingClientRect().height;
     state.targetOpen = !state.targetOpen; const generation = ++state.generation;
     state.animation?.cancel(); details.style.height = state.height; details.style.overflow = state.overflow;
-    if (state.targetOpen) details.open = true;
+    if (state.targetOpen) setDisclosureOpen(details, state, true);
     summary.setAttribute("aria-expanded", String(state.targetOpen));
     const end = state.targetOpen ? details.getBoundingClientRect().height : summary.getBoundingClientRect().height;
     const finish = () => {
       if (generation !== state.generation) return;
       details.style.height = state.height; details.style.overflow = state.overflow;
-      details.open = state.targetOpen; state.animation = null;
+      setDisclosureOpen(details, state, state.targetOpen); state.animation = null;
     };
     const duration = motionDuration("expand", view);
     if (!duration || typeof details.animate !== "function") { finish(); return; }
@@ -82,7 +85,7 @@ export function installMotionSystem(doc = globalThis.document) {
       details.style.overflow = "hidden";
       state.animation = details.animate([{ height: `${start}px` }, { height: `${end}px` }], { duration, easing: MOTION.easing });
     } else {
-      details.open = state.targetOpen;
+      setDisclosureOpen(details, state, state.targetOpen);
       state.animation = details.animate([{ opacity: 0.94 }, { opacity: 1 }], { duration: motionDuration("fast", view), easing: MOTION.easing });
     }
     state.animation.finished.then(finish, () => {});
@@ -96,11 +99,12 @@ export function installMotionSystem(doc = globalThis.document) {
   const disclosureObserver = new view.MutationObserver(records => {
     for (const record of records) {
       const details = record.target; const state = disclosures.get(details);
-      if (!state || !details.open || state.targetOpen) continue;
-      // A data-owner reopening an in-flight close supersedes its old completion.
-      state.targetOpen = true; state.generation++; state.animation?.cancel(); state.animation = null;
+      if (!state) continue;
+      if (state.ownedWrites > 0) { state.ownedWrites--; continue; }
+      // Data/viewport owners can open or close; either supersedes old completion.
+      state.targetOpen = details.open; state.generation++; state.animation?.cancel(); state.animation = null;
       details.style.height = state.height; details.style.overflow = state.overflow;
-      details.querySelector("summary")?.setAttribute("aria-expanded", "true");
+      details.querySelector("summary")?.setAttribute("aria-expanded", String(details.open));
     }
   });
   disclosureObserver.observe(doc.documentElement, { subtree: true, attributes: true, attributeFilter: ["open"] });

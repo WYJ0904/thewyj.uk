@@ -24,11 +24,14 @@ f.send('pointerdown');f.windowEvents.get('blur')();assert.equal(f.button.getAttr
 
 function disclosure(reduced=false,large=false){
  const f=fixture(reduced);const animations=[];const details={tagName:'DETAILS',open:false,isConnected:true,style:{height:'',overflow:''},querySelector:()=>summary,getBoundingClientRect:()=>({height:details.open?(large?2000:140):40}),animate(keys,options){let resolve,reject;const a={keys,options,finished:new Promise((r,j)=>{resolve=r;reject=j}),finish:()=>resolve(),cancel:()=>reject(new Error('cancel'))};animations.push(a);return a;}};
+ let open=false;Object.defineProperty(details,'open',{get:()=>open,set:value=>{open=value;queueMicrotask(()=>f.observers.forEach(callback=>callback([{target:details}])));}});
  const summary={parentElement:details,attributes:new Map(),setAttribute(n,v){this.attributes.set(n,v)},getBoundingClientRect:()=>({height:40}),closest:s=>s==='summary'?summary:null};installMotionSystem(f.doc);const click=()=>f.send('click',{target:summary,preventDefault(){this.defaultPrevented=true}});return{...f,details,summary,animations,click};
 }
 const d=disclosure();d.click();assert.equal(d.details.open,true);d.click();assert.equal(d.summary.attributes.get('aria-expanded'),'false');d.click();assert.equal(d.summary.attributes.get('aria-expanded'),'true');d.animations.at(-1).finish();await Promise.resolve();assert.equal(d.details.open,true);
 // A programmatic data-owner open supersedes an in-flight close.
 d.click();d.observers[0]([{target:d.details}]);await Promise.resolve();assert.equal(d.details.open,true);assert.equal(d.summary.attributes.get('aria-expanded'),'true');
+// A responsive/programmatic close is equally authoritative and stays closed.
+d.details.open=false;await Promise.resolve();assert.equal(d.summary.attributes.get('aria-expanded'),'false');assert.equal(d.details.open,false);
 const reduced=disclosure(true);reduced.click();assert.equal(reduced.details.open,true);reduced.click();assert.equal(reduced.details.open,false);assert.equal(reduced.animations.length,0);
 const large=disclosure(false,true);large.click();assert.ok(large.animations.every(a=>a.keys.every(k=>!('height'in k))));
 console.log('PASS motion: cancellation, short tap, keyboard, duplicate install, interruption, programmatic reopen, reduced motion and large disclosure');

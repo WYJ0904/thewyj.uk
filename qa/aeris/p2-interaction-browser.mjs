@@ -29,9 +29,10 @@ for(const width of [390,1366,1920]){
   await page.send('Emulation.setEmulatedMedia',{features:[]});
   const username=process.env.WYJ_TEST_ADMIN_USER||'wyj',secret=process.env.WYJ_TEST_ADMIN_SECRET;
   assert.ok(secret,'isolated CI admin fixture required');await page.setFields({'#usernameInput':username,'#secretInput':secret});await page.click('#loginSubmitBtn');await page.waitFor("location.pathname==='/select'",30000);
-  await page.navigate('/finance');await page.waitFor("Boolean(document.querySelector('#financeInsightDisclosure > summary'))");
+  await page.navigate('/finance');await page.waitFor("document.documentElement.dataset.aerisMotionReady==='true' && !document.getElementById('entryScreen')");
+  const initialOpen=await page.evaluate("document.querySelector('#financeInsightDisclosure').open");
   const summary='#financeInsightDisclosure > summary';for(let i=0;i<4;i++)await page.click(summary);
-  await page.waitFor("document.querySelector('#financeInsightDisclosure > summary').getAttribute('aria-expanded')==='true'");
+  await page.waitFor(`document.querySelector('#financeInsightDisclosure').open===${initialOpen} && document.querySelector('#financeInsightDisclosure > summary').getAttribute('aria-expanded')===${JSON.stringify(String(initialOpen))}`);
   await page.click('#financeAddTransactionBtn');await page.waitFor("!document.querySelector('#financeTransactionModal').classList.contains('hidden')");
   await page.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await page.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
   await page.waitFor("document.querySelector('#financeTransactionModal').classList.contains('hidden')");
