@@ -1186,7 +1186,7 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
 .auth-logo { width:112px;height:112px;object-fit:contain;background:#fff;border-radius:8px; }
 body[data-experience="public"] #versionNotice:not(.hidden) { position:relative;inset:auto;max-width:1072px;width:calc(100% - 48px);margin:16px auto 0;box-shadow:none;animation:none;z-index:auto; } .aeris-membership-status { font-size:13px;color:var(--ds-text-secondary,#475569);margin:0 0 18px; }
 /* Browser zoom can reduce the layout viewport below a phone's physical width. */
-body[data-experience="public"] {min-width:0;}
+html:has(body[data-experience="public"]),body[data-experience="public"] {min-width:0;}
 @media (max-width:360px) {
   body[data-experience="public"] .site-nav-bar {display:flex;flex-wrap:wrap;gap:6px;}
   body[data-experience="public"] .site-brand {flex:1 0 80px;max-width:100%;}
