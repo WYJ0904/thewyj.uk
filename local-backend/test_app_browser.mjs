@@ -1074,7 +1074,7 @@ async function main() {
     });
 
     await check("locked toolbox, direct-route guard and membership plans", async () => {
-      await click('[data-module="finance"]');
+      await click('#dashboardFinanceBtn');
       await waitFor("location.pathname === '/finance' && !document.querySelector('#financeLocked')?.classList.contains('hidden')", 8_000, "locked finance page");
       assert.equal(await evaluate("document.querySelector('#financeWorkspace').classList.contains('hidden')"), true);
       assert.ok((await evaluate("document.querySelector('#financeLocked').textContent")).includes("财务会员 8 CNY/月"));
@@ -2000,7 +2000,7 @@ async function main() {
         };
         return true;
       })()`);
-      await click('[data-module="finance"]');
+      await click('#dashboardFinanceBtn');
       await waitFor("location.pathname === '/finance' && !document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 8_000, "finance workspace");
       assert.equal(await evaluate("document.querySelector('#financeRecordedSection').open"), false,
         "recorded transactions start collapsed");
