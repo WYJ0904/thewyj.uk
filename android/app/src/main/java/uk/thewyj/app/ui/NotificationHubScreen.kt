@@ -713,6 +713,7 @@ private fun NotificationHistoryCard(
     ThewyjCard(Modifier.fillMaxWidth().padding(vertical = 4.dp)
         .thewyjPressedFeedback(interaction, surfaceOnly = true)
         .combinedClickable(interactionSource = interaction, indication = androidx.compose.material3.ripple(), role = Role.Button,
+            hapticFeedbackEnabled = false, // The shared policy owns long-press feedback.
             onClickLabel = "打开通知详情", onClick = onOpen,
             onLongClickLabel = "选择这条通知", onLongClick = {
                 scope.launch { state.toggleSelection(item.revisionId) }
