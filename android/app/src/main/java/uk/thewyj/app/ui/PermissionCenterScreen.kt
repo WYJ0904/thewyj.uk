@@ -93,7 +93,7 @@ fun PermissionCenterScreen(onBack: () -> Unit) {
             }
             item {
                 Text(
-                    "thewyj 不会绕过 Android 安全机制：通知访问、无障碍和安装未知应用都必须由你在系统界面中确认。",
+                    "Aeris 不会绕过 Android 安全机制：通知访问、无障碍和安装未知应用都必须由你在系统界面中确认。",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )

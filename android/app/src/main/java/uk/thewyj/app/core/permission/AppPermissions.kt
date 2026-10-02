@@ -42,9 +42,9 @@ data class AppPermissionState(
 
 object PermissionCopy {
     const val POST_NOTIFICATIONS_TITLE = "通知权限"
-    const val POST_NOTIFICATIONS_PURPOSE = "允许 thewyj 主动发送「已识别交易 / 待核实」通知；拒绝后识别结果只在应用内显示。"
+    const val POST_NOTIFICATIONS_PURPOSE = "允许 Aeris 主动发送「已识别交易 / 待核实」通知；拒绝后识别结果只在应用内显示。"
     const val LISTENER_TITLE = "通知访问"
-    const val LISTENER_PURPOSE = "把系统通知栏里的通知保存到本机通知历史，并用于支付金额识别。thewyj 只在本地保存原文。"
+    const val LISTENER_PURPOSE = "把系统通知栏里的通知保存到本机通知历史，并用于支付金额识别。Aeris 只在本地保存原文。"
     const val ACCESSIBILITY_TITLE = "无障碍（金额核实）"
     const val ACCESSIBILITY_PURPOSE = "仅在你点击「核实交易金额」后的 90 秒内读取对应应用的交易页面，用于补全金额；不执行自动点击。"
     const val SMS_TITLE = "短信（银行通知）"
@@ -54,7 +54,7 @@ object PermissionCopy {
         "三星手机每张新截图都会覆盖同一个系统通知，只有允许读取截图才能把每一张都保存到通知历史。" +
             "Android 14 及以上如果只选择「部分照片」，新截图不会被读取，应用会如实显示该状态并退回通知自带图片。"
     const val INSTALL_TITLE = "安装未知应用"
-    const val INSTALL_PURPOSE = "允许 thewyj 调起系统安装器安装新版本 APK。安装过程始终由 Android 系统界面确认。"
+    const val INSTALL_PURPOSE = "允许 Aeris 调起系统安装器安装新版本 APK。安装过程始终由 Android 系统界面确认。"
     const val BATTERY_TITLE = "后台运行（可选）"
     const val BATTERY_PURPOSE = "关闭电池优化可让上传续传与会话刷新更稳定；不开启不影响日常使用。"
     const val RESTRICTED_HINT =

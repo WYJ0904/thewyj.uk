@@ -607,7 +607,7 @@ private fun AppUpdateCard(
                     "新版本 v${updateState.versionName} (${updateState.versionCode})" +
                         if (updateState.notes.isNotBlank()) "\n更新说明：${updateState.notes}" else ""
                 is UpdateUiState.NeedsInstallPermission ->
-                    "请先允许 thewyj 安装应用；返回应用后继续更新流程。"
+                    "请先允许 Aeris 安装应用；返回应用后继续更新流程。"
                 is UpdateUiState.ReadyToInstall -> "安装包已通过 SHA-256 校验，即将打开系统安装器。"
                 is UpdateUiState.Failed -> updateState.message
                 else -> "更新使用官网正式地址，下载完成后由 Android 系统安装器确认安装。"

@@ -362,7 +362,7 @@ class PaymentVerificationCenter(
             // Captured with an amount, so the server already owns the candidate.
             // Booking again here would create a second transaction for one
             // payment.
-            return BookResult(false, "这笔交易请在财务页确认，thewyj 不会重复记账")
+            return BookResult(false, "这笔交易请在财务页确认，Aeris 不会重复记账")
         }
         var candidate = store.candidateForRecognition(accountId, recognitionId)
         if (candidate == null) {

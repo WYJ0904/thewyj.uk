@@ -362,7 +362,7 @@ private fun createWebView(
                 .setMimeType(mimeType)
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 .setTitle(downloadName(url, contentDisposition))
-                .setDescription("来自 thewyj 的下载")
+                .setDescription("来自 Aeris 的下载")
                 .setAllowedOverMetered(true)
                 .setAllowedOverRoaming(true)
             CookieManager.getInstance().getCookie(url)?.takeIf(String::isNotBlank)?.let {

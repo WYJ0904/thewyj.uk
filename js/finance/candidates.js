@@ -462,7 +462,7 @@ export function createFinanceCandidatesController({
       const candidate = currentCandidates.find((item) => String(item.id) === String(id));
       const eventId = String(candidate?.event_id || "");
       if (!/thewyj-android\//.test(navigator.userAgent) || !eventId) {
-        render(currentCandidates, "请在收到这笔交易通知的 Android thewyj App 中打开财务页，再点击「核实交易」。");
+        render(currentCandidates, "请在收到这笔交易通知的 Android Aeris App 中打开财务页，再点击「核实交易」。");
       } else {
         window.location.href = `thewyj://payment/verify?event_id=${encodeURIComponent(eventId)}`;
       }
