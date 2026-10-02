@@ -61,4 +61,25 @@ try {
   fs.mkdirSync(path.dirname(output), { recursive: true });
   fs.writeFileSync(output, JSON.stringify(results, null, 2));
   console.log(JSON.stringify(results));
+} catch (error) {
+  // Preserve the actual failed owner state before closing the isolated context.
+  // Never log authentication tokens or file bodies.
+  results.failure=String(error);
+  results.runtimeErrors=page.runtimeErrors;
+  try { results.diagnostic=await page.evaluate(`({
+    path:location.pathname,active:document.documentElement.dataset.androidWebActive,
+    completeDisabled:document.querySelector('#transferCompleteBtn')?.disabled,
+    message:document.querySelector('#transferMessage')?.textContent,
+    queueText:document.querySelector('#transferQueue')?.textContent,
+    queues:Object.keys(localStorage).filter(k=>k.startsWith('wyjTransferQueue:')).map(k=>({
+      items:(JSON.parse(localStorage.getItem(k)||'{}').queue||[]).map(x=>({
+        name:x.name,status:x.status,error:x.error,lastError:x.lastError,
+        size:x.size,uploaded:x.uploaded,partCount:x.partCount,uploadedParts:x.uploadedParts,
+        partHashes:x.partHashes,performance:x.performance
+      }))
+    }))
+  })`); } catch (diagnosticError) {results.diagnosticError=String(diagnosticError);}
+  const output=path.resolve(process.env.AERIS_NAV_OUTPUT||'artifacts/p1-navigation-lifecycle.json');
+  fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(results,null,2));
+  console.error('[aeris-navigation-diagnostic] '+JSON.stringify(results));throw error;
 } finally { await page.close(); }
