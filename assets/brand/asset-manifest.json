@@ -1,0 +1,148 @@
+{
+  "sourceSha256": "dbf8197b90853499b1adc3b070f9220515e7a2096a533bbe4006699d1f9b5f5f",
+  "sourceSize": [
+    1254,
+    1254
+  ],
+  "monogramCrop": [
+    272,
+    202,
+    982,
+    769
+  ],
+  "operations": [
+    "source pixel crop",
+    "near-white matte for platform alpha",
+    "proportional Lanczos resize",
+    "platform safety padding",
+    "alpha-only monochrome"
+  ],
+  "adaptiveSafeCirclePassed": true,
+  "assets": [
+    {
+      "path": "icon-192.png",
+      "bytes": 11401,
+      "sha256": "455cc55b9335fa03e2167fea7361242241136f47a7cc56f0cfb7fcf8f065c696"
+    },
+    {
+      "path": "icon-512.png",
+      "bytes": 53696,
+      "sha256": "942fef5531e439f0d8879b7bf8e160bb2977d3e1dfb12eca1fab4e68cd56c2da"
+    },
+    {
+      "path": "favicon.ico",
+      "bytes": 6253,
+      "sha256": "e8ea76143ae28d384616811bbcc405c41e5afa972623e90943cb3e3c6c74ece9"
+    },
+    {
+      "path": "assets/brand/aeris-lockup.png",
+      "bytes": 71244,
+      "sha256": "afdc3e7b323731e060d10000b2d8f0a17ae278432ac65502aba93b188964d2bd"
+    },
+    {
+      "path": "assets/brand/aeris-maskable-512.png",
+      "bytes": 37420,
+      "sha256": "1166a8f14c85eecc3d034b38de019b2d1d1ab2de5eb0c9c94d5fef58132f1c1f"
+    },
+    {
+      "path": "assets/brand/aeris-monogram.png",
+      "bytes": 261706,
+      "sha256": "1800dc22bfa779989419eca151c012a42a6ab374362af693c451a6ed6fc47b60"
+    },
+    {
+      "path": "assets/brand/aeris-og.png",
+      "bytes": 216512,
+      "sha256": "941b3831e2dbb76b4d02a6b1c78b48a90ec8520fe25a1d44877163b09e7ade5d"
+    },
+    {
+      "path": "assets/brand/apple-touch-icon.png",
+      "bytes": 10337,
+      "sha256": "d2a360b4f07008be6b1009eb4443e5f9d45a203b795a556cc5b53d8c8ccfd485"
+    },
+    {
+      "path": "assets/brand/favicon-32.png",
+      "bytes": 1050,
+      "sha256": "d0d30ca5a338432d9581ea5f1e33571988f5d75c76e2875b4db42d8d3a6d6f66"
+    },
+    {
+      "path": "assets/brand/favicon-64.png",
+      "bytes": 2494,
+      "sha256": "e7e4c3018c84799e1c489d24c35e7f5dd618115bb37681debd8f20fe767dc60d"
+    },
+    {
+      "path": "assets/brand/source-original.png",
+      "bytes": 841594,
+      "sha256": "dbf8197b90853499b1adc3b070f9220515e7a2096a533bbe4006699d1f9b5f5f"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-nodpi/ic_aeris_foreground.png",
+      "bytes": 27605,
+      "sha256": "a92296ca1d83be9b5e4fbffb9867cd6d6b499e3e6088a386b497f5dfd6d374c9"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-nodpi/ic_aeris_monochrome.png",
+      "bytes": 9411,
+      "sha256": "b966cd360075b41e91c164b1f5d641195460180b1c64f473cb5a0e5ca33e11bc"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-nodpi/ic_launcher.png",
+      "bytes": 11401,
+      "sha256": "455cc55b9335fa03e2167fea7361242241136f47a7cc56f0cfb7fcf8f065c696"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-nodpi/ic_notification_aeris.png",
+      "bytes": 2969,
+      "sha256": "60967a858b1a2001e593ea8aba176e7f3decf337c99c2cb3bdd410cfc4ff717e"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+      "bytes": 2935,
+      "sha256": "d2d7f5a9114600d7452893f1cd5460ac4f4740d94076168adba01bd06e0cbb88"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png",
+      "bytes": 2935,
+      "sha256": "d2d7f5a9114600d7452893f1cd5460ac4f4740d94076168adba01bd06e0cbb88"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+      "bytes": 1795,
+      "sha256": "3f973f60733d15e80920a8af703b96450e7452bbeac71bd2b65b0ac0cdef9350"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png",
+      "bytes": 1795,
+      "sha256": "3f973f60733d15e80920a8af703b96450e7452bbeac71bd2b65b0ac0cdef9350"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+      "bytes": 4348,
+      "sha256": "790d47fc83e22f65b93617e140d21d08a003e8afc77afe0d7c3b0ad55a6f34b0"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",
+      "bytes": 4348,
+      "sha256": "790d47fc83e22f65b93617e140d21d08a003e8afc77afe0d7c3b0ad55a6f34b0"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+      "bytes": 7532,
+      "sha256": "5cf1985ce5c92f61e404e4bb6ab137c2f203dc0ea6b10169e2c95e84bd817ebd"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",
+      "bytes": 7532,
+      "sha256": "5cf1985ce5c92f61e404e4bb6ab137c2f203dc0ea6b10169e2c95e84bd817ebd"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+      "bytes": 11401,
+      "sha256": "455cc55b9335fa03e2167fea7361242241136f47a7cc56f0cfb7fcf8f065c696"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png",
+      "bytes": 11401,
+      "sha256": "455cc55b9335fa03e2167fea7361242241136f47a7cc56f0cfb7fcf8f065c696"
+    }
+  ]
+}

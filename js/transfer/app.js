@@ -1,8 +1,8 @@
-import { randomId } from "../core/capabilities.js?v=20261003-aeris-p2-r2";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261003-aeris-p2-r2";
-import { getSafeStorage } from "../core/storage.js?v=20261003-aeris-p2-r2";
-import { withInteractionFeedback } from "../core/perf.js?v=20261003-aeris-p2-r2";
-import { createTransferUpdateScheduler } from "./updates.js?v=20261003-aeris-p2-r2";
+import { randomId } from "../core/capabilities.js?v=20261003-aeris-p3-1";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261003-aeris-p3-1";
+import { getSafeStorage } from "../core/storage.js?v=20261003-aeris-p3-1";
+import { withInteractionFeedback } from "../core/perf.js?v=20261003-aeris-p3-1";
+import { createTransferUpdateScheduler } from "./updates.js?v=20261003-aeris-p3-1";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -1556,5 +1556,6 @@ export function createTransferController({
     }
   }
 
-  return Object.freeze({ show, hide, accountUpdated, addFiles, renderQueue });
+  const dashboardSummary = () => ({ count: queue.length, paused: queue.filter(entry => entry.paused).length, running });
+  return Object.freeze({ show, hide, accountUpdated, addFiles, renderQueue, dashboardSummary });
 }

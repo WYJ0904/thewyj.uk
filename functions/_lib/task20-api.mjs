@@ -145,7 +145,7 @@ async function executeRoute(context, descriptor, account) {
     return response({
       ok: true,
       app: {
-        name: "thewyj",
+        name: "Aeris",
         application_id: "uk.thewyj.app",
         latest_version_code: Math.max(1, Number.parseInt(String(context.env.ANDROID_LATEST_VERSION_CODE || "1"), 10) || 1),
         latest_version_name: String(context.env.ANDROID_LATEST_VERSION_NAME || "1.0.0").slice(0, 40),

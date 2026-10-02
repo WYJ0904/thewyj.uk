@@ -55,7 +55,7 @@ object UpdateFlow {
         is UpdateUiState.Available -> "发现新版本 v${state.versionName} (${state.versionCode})${if (state.mandatory) "，此版本需要更新" else ""}"
         is UpdateUiState.Downloading -> "正在下载 ${state.percent}%"
         is UpdateUiState.Verifying -> "正在校验安装包…"
-        is UpdateUiState.NeedsInstallPermission -> "请先允许 thewyj 安装应用，返回后继续安装 v${state.versionName}"
+        is UpdateUiState.NeedsInstallPermission -> "请先允许 Aeris 安装应用，返回后继续安装 v${state.versionName}"
         is UpdateUiState.ReadyToInstall -> "安装包已就绪，即将打开系统安装器 v${state.versionName}"
         is UpdateUiState.Failed -> state.message
     }

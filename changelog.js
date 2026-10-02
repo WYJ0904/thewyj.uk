@@ -1,5 +1,22 @@
 (() => {
   const entries = [
+{
+  "version": "1.3.27",
+  "build": "2026-10-03-aeris-p3-1.3.27",
+  "date": "2026-10-03",
+  "title": "Aeris 品牌与产品入口",
+  "features": [
+    "统一 Aeris 品牌、正式 Logo、Android 图标与 Splash。",
+    "公共首页提供学习、工具、账本与文件的可操作入口。",
+    "登录后直接进入个人 Launchpad，接着已有进度。"
+  ],
+  "improvements": [
+    "保留 P1/P2 导航、即时反馈、减少动态效果和性能成果。",
+    "同签名升级保留登录、通知、账目与文件传输数据。"
+  ],
+  "fixes": [],
+  "security": []
+},
     {
       "version": "1.3.26",
       "build": "2026-10-02-release-1.3.26",

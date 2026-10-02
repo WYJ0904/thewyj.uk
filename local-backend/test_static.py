@@ -95,8 +95,9 @@ class StaticSiteTests(unittest.TestCase):
 
     def test_manifest_and_service_worker_shell_are_deployable(self):
         manifest = json.loads((ROOT / "manifest.webmanifest").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["name"], "thewyj")
-        self.assertEqual(manifest["short_name"], "WYJ")
+        self.assertEqual(manifest["name"], "Aeris")
+        self.assertEqual(manifest["short_name"], "Aeris")
+        self.assertTrue(any(icon.get("purpose") == "maskable" for icon in manifest["icons"]))
         self.assertEqual(manifest["start_url"], "/")
         self.assertEqual(manifest["background_color"], "#f6f8fb")
         self.assertEqual(manifest["theme_color"], "#ffffff")
@@ -110,7 +111,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20261003-aeris-p2-r2"
+        release_token = "20261003-aeris-p3-1"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "design-system.css", "public-experience.css", "workspace-experience.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
@@ -120,7 +121,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)', self.app)
         for module in ("api", "config", "router", "session", "storage", "ui", "design-system"):
             self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20261003-aeris-p2-r2"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20261003-aeris-p3-1"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         for asset in ("design-system.css", "public-experience.css", "workspace-experience.css"):
@@ -134,7 +135,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertFalse((ROOT / "404.html").exists())
 
     def test_browser_module_graph_uses_one_release_version(self):
-        release_token = "20261003-aeris-p2-r2"
+        release_token = "20261003-aeris-p3-1"
         import_pattern = re.compile(
             r'(?:from\s+|import\s+)["\'](\.{1,2}/[^"\']+\.js(?:\?[^"\']*)?)["\']'
         )
@@ -184,7 +185,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("function processTrialImage(", self.app)
         self.assertNotIn('data-trial-tool="temporary', self.html)
         self.assertNotIn('data-trial-tool="batch', self.html)
-        self.assertIn("匿名试用不保存服务器学习记录，也不能创建临时分享", self.html)
+        self.assertIn("不保存匿名学习记录，不开放临时分享", self.html)
+        self.assertIn("预览中的文本、估算和文件清单留在本机", self.html)
 
     def test_changelog_feedback_and_voting_contract(self):
         self.assertIn("globalThis.WYJ_CHANGELOG", self.changelog)
@@ -253,18 +255,19 @@ class StaticSiteTests(unittest.TestCase):
         self.assertNotRegex(self.html, r">\s*[文+×↕]\s*<")
 
     def test_task19_design_system_two_contract(self):
-        self.assertIn('href="/design-system.css?v=20261003-aeris-p2-r2"', self.html)
-        self.assertIn('href="/public-experience.css?v=20261003-aeris-p2-r2"', self.html)
-        self.assertIn('href="/workspace-experience.css?v=20261003-aeris-p2-r2"', self.html)
+        self.assertIn('href="/design-system.css?v=20261003-aeris-p3-1"', self.html)
+        self.assertIn('href="/public-experience.css?v=20261003-aeris-p3-1"', self.html)
+        self.assertIn('href="/workspace-experience.css?v=20261003-aeris-p3-1"', self.html)
         self.assertIn('id="siteNavToggle"', self.html)
         self.assertIn('id="siteNavPanel"', self.html)
         self.assertIn('id="themeToggleBtn"', self.html)
         self.assertIn('id="themeToggleLabel"', self.html)
         self.assertIn('data-theme="dark"', self.design_styles)
-        self.assertEqual(self.html.count('data-capability-panel='), 5)
-        self.assertIn('id="publicSplitFlap"', self.html)
-        self.assertIn('data-phrases="学习|工具|财务|分享"', self.html)
-        self.assertIn('一个账户，日常所需', self.html)
+        self.assertEqual(self.html.count('data-capability-panel='), 4)
+        self.assertNotIn('id="publicSplitFlap"', self.html)
+        self.assertNotIn('hero-scene-card', self.html)
+        for name in ("publicTextInput", "publicBudgetIncome", "publicFilesInput", "publicLearningResult", "dashboardNotificationPending", "dashboardTransferCount"):
+            self.assertIn(f'id="{name}"', self.html)
         self.assertNotIn('One account. Everyday work.', self.html)
         self.assertIn('.capability-body[hidden]', self.public_styles)
         self.assertIn('@media (prefers-reduced-motion: reduce)', self.design_styles)
@@ -282,14 +285,15 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('.authenticated-product-grid', self.workspace_styles)
         self.assertIn('.authenticated-service-details', self.workspace_styles)
         self.assertIn('class="module-picker authenticated-home hidden"', self.html)
-        self.assertIn('id="modulePickerTitle">thewyj</h1>', self.html)
+        self.assertIn('id="modulePickerTitle">继续今天的事</h1>', self.html)
         self.assertNotIn('class="dashboard-metric"', self.html)
         self.assertNotIn('个人工作区', self.html)
         self.assertNotIn('今日概览', self.html)
         self.assertIn('data-dashboard-project="english"', self.html)
         self.assertIn('data-dashboard-project="japanese"', self.html)
         self.assertIn('data-module="tools"', self.html)
-        self.assertIn('data-module="finance"', self.html)
+        self.assertIn('id="dashboardFinanceBtn"', self.html)
+        self.assertIn('$("dashboardFinanceBtn")?.addEventListener', self.app)
         self.assertIn('id="adminUserMatch"', self.html)
         self.assertIn('id="adminUserLoadMoreBtn"', self.html)
         self.assertIn('id="adminRoleUserSearch"', self.html)

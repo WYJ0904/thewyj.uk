@@ -266,6 +266,7 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_core_js.mjs 2>&1 | tee artifacts/javascript-core.log
+          node local-backend/test_aeris_public_js.mjs 2>&1 | tee artifacts/aeris-p3-public-unit.log
 
       - name: Test cloud TTS provider fallback
         run: |
@@ -855,6 +856,7 @@ jobs:
           set -euo pipefail
           node qa/aeris/p1-navigation-lifecycle.mjs 2>&1 | tee artifacts/aeris-p1-navigation.log
           node qa/aeris/p2-interaction-browser.mjs 2>&1 | tee artifacts/aeris-p2-interaction.log
+          node qa/aeris/p3-brand-public-browser.mjs 2>&1 | tee artifacts/aeris-p3-brand-public.log
 
 
       - name: Run cloud-only P0 browser flow

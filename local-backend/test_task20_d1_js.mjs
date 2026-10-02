@@ -107,7 +107,7 @@ try {
   await test("app configuration exposes stable Android identity without secrets", async () => {
     const result = await requestHandler(db, "/api/app/config");
     assert.equal(result.response.status, 200);
-    assert.equal(result.payload.app.name, "thewyj");
+    assert.equal(result.payload.app.name, "Aeris");
     assert.equal(result.payload.app.application_id, "uk.thewyj.app");
     assert.equal(JSON.stringify(result.payload).includes(SESSION_SECRET), false);
     const unsafe = await requestHandler(db, "/api/app/config", {

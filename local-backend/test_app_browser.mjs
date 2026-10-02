@@ -644,10 +644,11 @@ async function main() {
       assert.equal(await evaluate("!document.querySelector('#accountBar').classList.contains('hidden')"), true);
       assert.equal(await evaluate("!document.querySelector('#navGuestActions').classList.contains('hidden')"), true);
       assert.equal(await evaluate("document.querySelector('#accountMenu').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("document.querySelector('#publicHomeTitle').textContent.trim()"), "thewyj");
-      assert.equal(await evaluate("document.querySelectorAll('#publicCapabilityGallery [data-capability-panel]').length"), 5);
-      assert.equal(await evaluate("document.querySelector('#publicHome').textContent.includes('没有第三方追踪')"), true);
-      assert.equal(await evaluate("document.querySelector('#publicSplitFlap').dataset.phrases"), "学习|工具|财务|分享");
+      assert.equal(await evaluate("document.querySelector('#publicHomeTitle').textContent.trim()"), "Aeris");
+      assert.equal(await evaluate("document.querySelectorAll('#publicCapabilityGallery [data-capability-panel]').length"), 4);
+      assert.equal(await evaluate("document.querySelector('#publicHome').textContent.includes('留在本机')"), true);
+      assert.equal(await evaluate("document.querySelector('#publicSplitFlap')"), null);
+      assert.equal(await evaluate("document.querySelectorAll('#publicCapabilityGallery [role=tab]').length"), 4);
       await click("#siteNavToggle");
       assert.equal(await evaluate("document.querySelector('#siteNavToggle').getAttribute('aria-expanded')"), "true");
       assert.equal(await evaluate("document.querySelectorAll('#siteNavPanel a').length"), 8);
@@ -699,13 +700,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20261003-aeris-p2-r2');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20261003-aeris-p2-r2');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261003-aeris-p2-r2');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261003-aeris-p2-r2');
-        const cachedChangelog = await caches.match('/changelog.js?v=20261003-aeris-p2-r2');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261003-aeris-p2-r2');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20261003-aeris-p2-r2');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261003-aeris-p3-1');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261003-aeris-p3-1');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261003-aeris-p3-1');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261003-aeris-p3-1');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261003-aeris-p3-1');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261003-aeris-p3-1');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261003-aeris-p3-1');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -873,7 +874,7 @@ async function main() {
 
     await check("authenticated product home continuity and responsive layout", async () => {
       assert.equal(await evaluate("document.body.dataset.experience"), "public");
-      assert.equal(await evaluate("document.querySelector('#modulePickerTitle').textContent.trim()"), "thewyj");
+      assert.equal(await evaluate("document.querySelector('#modulePickerTitle').textContent.trim()"), "继续今天的事");
       assert.ok((await evaluate("document.querySelector('#dashboardGreeting').textContent")).includes(`欢迎回来，${USERNAME}`));
       assert.equal(await evaluate("document.querySelector('#modulePicker').classList.contains('authenticated-home')"), true);
       assert.equal(await evaluate("document.querySelectorAll('#modulePicker .public-hero').length"), 1);

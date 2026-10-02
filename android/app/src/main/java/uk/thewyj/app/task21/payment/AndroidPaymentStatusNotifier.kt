@@ -30,7 +30,7 @@ class AndroidPaymentStatusNotifier(private val context: Context) : PaymentStatus
         if (!canPost()) return false
         ensureChannel()
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification_aeris)
             .setContentTitle(message.title)
             .setContentText(message.body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message.body))

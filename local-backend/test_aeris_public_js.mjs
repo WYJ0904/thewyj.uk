@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {publicTextMetrics,publicBudgetBalance,publicLearningResult} from '../js/core/public-experience.js';
+assert.deepEqual(publicTextMetrics('A😀\r\n你'),{characters:5,lines:2});
+assert.deepEqual(publicTextMetrics(''),{characters:0,lines:0});
+assert.deepEqual(publicTextMetrics('a\rb\nc'),{characters:5,lines:3});
+assert.equal(publicBudgetBalance('0.1','0.2'),-.1);
+assert.equal(publicBudgetBalance('100.01','30.02'),69.99);
+assert.equal(publicBudgetBalance('bad','-20'),0);
+assert.equal(publicBudgetBalance('1e99','0'),0);
+assert.ok(publicLearningResult('phone').startsWith('正确'));
+assert.ok(publicLearningResult('weather').startsWith('再想一下'));
+console.log('PASS P3 public preview: Unicode, line endings, money precision, bounded invalid values, answer feedback');
