@@ -36,6 +36,7 @@ for(const width of [390,1366,1920]){
   await page.click('#financeAddTransactionBtn');await page.waitFor("!document.querySelector('#financeTransactionModal').classList.contains('hidden')");
   await page.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await page.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
   await page.waitFor("document.querySelector('#financeTransactionModal').classList.contains('hidden')");
+  await page.navigate('/select?native-navigation=1');await page.waitFor("Boolean(window.WYJAndroidNavigation)");
   const rapid=await page.evaluate("(async()=>{const before=history.length;await Promise.all(Array.from({length:30},(_,i)=>window.WYJAndroidNavigation.navigate(['/tools','/finance','/select'][i%3])));return{path:location.pathname,growth:history.length-before};})()");
   assert.equal(rapid.path,'/select');assert.equal(rapid.growth,1);
   const overflow=await page.evaluate("document.documentElement.scrollWidth>innerWidth+1");assert.equal(overflow,false);
