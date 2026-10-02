@@ -877,13 +877,13 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#modulePickerTitle').textContent.trim()"), "继续今天的事");
       assert.ok((await evaluate("document.querySelector('#dashboardGreeting').textContent")).includes(`欢迎回来，${USERNAME}`));
       assert.equal(await evaluate("document.querySelector('#modulePicker').classList.contains('authenticated-home')"), true);
-      assert.equal(await evaluate("document.querySelectorAll('#modulePicker .public-hero').length"), 1);
+      assert.equal(await evaluate("document.querySelectorAll('#modulePicker .public-hero').length"), 0);
       assert.equal(await evaluate("document.querySelectorAll('.dashboard-metric').length"), 0);
-      assert.equal(await evaluate("document.querySelectorAll('.authenticated-product-card').length"), 4);
+      assert.equal(await evaluate("document.querySelectorAll('.aeris-launchpad-card').length"), 6);
       assert.equal(await evaluate("document.querySelectorAll('[data-dashboard-project]').length"), 2);
       assert.equal(await evaluate("document.querySelectorAll('#modulePicker [data-module=language]').length >= 1"), true);
       assert.equal(await evaluate("document.querySelectorAll('#modulePicker [data-module=tools]').length >= 1"), true);
-      assert.equal(await evaluate("document.querySelectorAll('#modulePicker [data-module=finance]').length >= 1"), true);
+      assert.equal(await evaluate("Boolean(document.querySelector('#dashboardFinanceBtn'))"), true);
       assert.match(await evaluate("document.querySelector('#dashboardAccountStatus').textContent"), /在线|离线/);
       assert.ok((await evaluate("document.querySelector('#dashboardLatestResult').textContent")).length > 4);
       await assertReadable("#dashboardMembershipName");
@@ -903,25 +903,25 @@ async function main() {
       const mobileHome = await evaluate(`({
         viewport: innerWidth,
         scrollWidth: document.documentElement.scrollWidth,
-        cards: document.querySelectorAll('.authenticated-product-card').length,
-        productColumns: getComputedStyle(document.querySelector('.authenticated-product-grid')).gridTemplateColumns.split(' ').length,
-        heroHeight: document.querySelector('.authenticated-hero').getBoundingClientRect().height,
+        cards: document.querySelectorAll('.aeris-launchpad-card').length,
+        productColumns: getComputedStyle(document.querySelector('.aeris-launchpad-grid')).gridTemplateColumns.split(' ').length,
+        heroHeight: document.querySelector('.aeris-launchpad-heading').getBoundingClientRect().height,
         headingVisible: document.querySelector('#modulePickerTitle').getBoundingClientRect().height > 0,
       })`);
       assert.ok(mobileHome.scrollWidth <= mobileHome.viewport + 1, JSON.stringify(mobileHome));
-      assert.equal(mobileHome.cards, 4);
+      assert.equal(mobileHome.cards, 6);
       assert.equal(mobileHome.productColumns, 1);
-      assert.ok(mobileHome.heroHeight >= 700, JSON.stringify(mobileHome));
+      assert.ok(mobileHome.heroHeight > 40 && mobileHome.heroHeight < 220, JSON.stringify(mobileHome));
       assert.equal(mobileHome.headingVisible, true);
       const mobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       fs.writeFileSync(path.join(TEST_ROOT, `authenticated-home-390-${RUN_ID}.png`), Buffer.from(mobileShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
       const desktopHome = await evaluate(`({
-        productColumns: getComputedStyle(document.querySelector('.authenticated-product-grid')).gridTemplateColumns.split(' ').length,
-        learningColumns: getComputedStyle(document.querySelector('.authenticated-learning-actions')).gridTemplateColumns.split(' ').length,
+        productColumns: getComputedStyle(document.querySelector('.aeris-launchpad-grid')).gridTemplateColumns.split(' ').length,
+        learningColumns: getComputedStyle(document.querySelector('.aeris-launchpad-links')).gridTemplateColumns.split(' ').length,
       })`);
-      assert.equal(desktopHome.productColumns, 12);
-      assert.equal(desktopHome.learningColumns, 2);
+      assert.equal(desktopHome.productColumns, 3);
+      assert.equal(desktopHome.learningColumns, 1);
       const wideShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `authenticated-home-1920-${RUN_ID}.png`), Buffer.from(wideShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 768, deviceScaleFactor: 1, mobile: false });
