@@ -37,12 +37,14 @@ for(const width of [390,1366,1920]){
   await page.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await page.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
   await page.waitFor("document.querySelector('#financeTransactionModal').classList.contains('hidden')");
   await page.navigate('/select?native-navigation=1');await page.waitFor("Boolean(window.WYJAndroidNavigation)");
-  const rapid=await page.evaluate("(async()=>{const before=history.length;await Promise.all(Array.from({length:30},(_,i)=>window.WYJAndroidNavigation.navigate(['/tools','/finance','/select'][i%3])));return{path:location.pathname,growth:history.length-before};})()");
-  assert.equal(rapid.path,'/select');assert.equal(rapid.growth,1);
+  const rapid=await page.evaluate("(async()=>{const before=history.length;await Promise.all(Array.from({length:30},(_,i)=>window.WYJAndroidNavigation.navigate(['/tools','/select','/finance'][i%3])));return{path:location.pathname,growth:history.length-before};})()");
+  assert.equal(rapid.path,'/finance');assert.equal(rapid.growth,1);
+  const repeated=await page.evaluate("(async()=>{const before=history.length;await Promise.all(Array.from({length:30},()=>window.WYJAndroidNavigation.navigate('/finance')));return{path:location.pathname,growth:history.length-before};})()");
+  assert.equal(repeated.path,'/finance');assert.equal(repeated.growth,0);
   const overflow=await page.evaluate("document.documentElement.scrollWidth>innerWidth+1");assert.equal(overflow,false);
   await page.waitFor("document.querySelectorAll('[data-aeris-pressed]').length===0",2000);
   assert.deepEqual(page.runtimeErrors,[]);
-  results.push({width,pressed:true,keyboard:true,rapidTab:true,indicatorCount:1,reducedMotion:style,disclosureReversal:true,escape:true,rapidNavigation:rapid,overflow:false,runtimeErrors:[]});
+  results.push({width,pressed:true,keyboard:true,rapidTab:true,indicatorCount:1,reducedMotion:style,disclosureReversal:true,escape:true,rapidNavigation:rapid,repeatedDestination:repeated,overflow:false,runtimeErrors:[]});
  }finally{await page.close();}
 }
 const output=path.resolve(process.env.AERIS_P2_OUTPUT||'artifacts/aeris-p2-interaction.json');fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(results,null,2));console.log(JSON.stringify(results));
