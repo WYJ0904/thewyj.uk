@@ -1,7 +1,8 @@
-import { randomId } from "../core/capabilities.js?v=20261002-release-r1";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261002-release-r1";
-import { getSafeStorage } from "../core/storage.js?v=20261002-release-r1";
-import { withInteractionFeedback } from "../core/perf.js?v=20261002-release-r1";
+import { randomId } from "../core/capabilities.js?v=20261002-aeris-p1";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261002-aeris-p1";
+import { getSafeStorage } from "../core/storage.js?v=20261002-aeris-p1";
+import { withInteractionFeedback } from "../core/perf.js?v=20261002-aeris-p1";
+import { createTransferUpdateScheduler } from "./updates.js?v=20261002-aeris-p1";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -374,6 +375,7 @@ export function createTransferController({
   appVersion = "",
 }) {
   let initialized = false;
+  let visible = false;
   let queue = [];
   let queueOwner = "";
   let activeSession = null;
@@ -394,6 +396,12 @@ export function createTransferController({
   let cleanupInFlight = null;
   let capabilities = { storage_limit_bytes: 500 * 1024 * 1024,
     stored_bytes: 0, reserved_bytes: 0, used_bytes: 0 };
+  let progressNodes = new Map();
+  const updates = createTransferUpdateScheduler({
+    generation: () => ownerGeneration,
+    updateProgress: patchQueueProgress,
+    persist: writeQueue,
+  });
 
   const element = (id) => document.getElementById(id);
   const authenticated = () => Boolean(account()?.id);
@@ -433,7 +441,7 @@ export function createTransferController({
     return payload;
   }
 
-  function persistQueue() {
+  function writeQueue() {
     const value = { account: authenticated() ? String(account().id) : `guest:${guestId()}`, queue };
     const serializable = {
       account: value.account,
@@ -441,6 +449,9 @@ export function createTransferController({
     };
     storage.setItem(transferQueueStorageKey(value.account), JSON.stringify(serializable));
   }
+
+  // Allocation, pause/error/done and cleanup boundaries stay immediately durable.
+  function persistQueue() { updates.persistNow(); }
 
   function currentOwner() {
     return authenticated() ? String(account().id) : `guest:${guestId()}`;
@@ -516,6 +527,7 @@ export function createTransferController({
   }
 
   function renderQueue() {
+    updates.cancelProgress();
     const list = element("transferQueue");
     if (!list) return;
     if (!queue.length) {
@@ -546,8 +558,29 @@ export function createTransferController({
         </article>`;
       }).join("");
     }
+    progressNodes = new Map();
+    list.querySelectorAll?.("[data-transfer-item]").forEach((row) => {
+      progressNodes.set(row.dataset.transferItem, {
+        row, detail: row.querySelector?.("small"), progress: row.querySelector?.("progress"),
+      });
+    });
     const complete = queue.length > 0 && queue.every((item) => item.status === "done");
     element("transferCompleteBtn").disabled = !complete;
+    renderQuota();
+  }
+
+  function patchQueueProgress() {
+    for (const item of queue) {
+      if (item.status !== "uploading") continue;
+      const nodes = progressNodes.get(item.id);
+      if (!nodes?.row.isConnected) continue;
+      const percent = item.size ? Math.min(100, Math.round(item.uploaded / item.size * 100)) : 0;
+      const text = `${item.relativePath} · ${formatBytes(item.uploaded)} / ${formatBytes(item.size)}`
+        + (item.speed ? ` · ${formatBytes(item.speed)}/s` : "")
+        + (item.eta ? ` · 剩余 ${Math.ceil(item.eta)}s` : "");
+      if (nodes.detail && nodes.detail.textContent !== text) nodes.detail.textContent = text;
+      if (nodes.progress && Number(nodes.progress.value) !== percent) nodes.progress.value = percent;
+    }
     renderQuota();
   }
 
@@ -872,13 +905,13 @@ export function createTransferController({
           if (!item.uploadedParts.includes(partNumber)) item.uploadedParts.push(partNumber);
           item.uploaded = Math.min(item.size, item.uploaded + (uploadedBytes || length));
           delete item.failedPart;
-          persistQueue();
+          updates.persistLater();
           const elapsed = (Date.now() - startedAt) / 1000;
           if (elapsed > 0.5 && item.uploaded > startBytes) {
             item.speed = (item.uploaded - startBytes) / Math.max(0.2, elapsed);
             item.eta = item.size > item.uploaded ? (item.size - item.uploaded) / Math.max(1, item.speed) : 0;
           }
-          renderQueue();
+          if (visible && document.documentElement?.dataset?.androidWebActive !== "false") updates.progress();
         },
       });
     } catch (error) {
@@ -1441,6 +1474,10 @@ export function createTransferController({
   function initialize() {
     if (initialized) return;
     initialized = true;
+    document.addEventListener("thewyj:webview-active", (event) => {
+      if (event.detail?.active && visible) renderQueue();
+      else updates.cancelProgress();
+    });
     element("transferPage")?.addEventListener("click", handleClick);
     element("transferDropZone")?.addEventListener("dragover", (event) => event.preventDefault());
     element("transferDropZone")?.addEventListener("drop", handleDrop);
@@ -1477,6 +1514,7 @@ export function createTransferController({
   }
 
   async function show() {
+    visible = true;
     initialize();
     restoreQueue();
     restoreCleanupQueue();
@@ -1498,9 +1536,13 @@ export function createTransferController({
 
   function hide() {
     // Pausing is safe: queue state persists and resumes on the next visit.
+    visible = false;
+    updates.flushPending();
+    updates.cancelProgress();
   }
 
   function accountUpdated() {
+    updates.cancel();
     ownerGeneration += 1;
     ownedShareIds = new Set();
     updateCurrentShareActions();

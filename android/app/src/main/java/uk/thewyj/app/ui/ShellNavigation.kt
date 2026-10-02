@@ -29,3 +29,21 @@ fun bottomNavigationSelection(
     destination = tapped,
     overlays = ShellOverlayState(),
 )
+
+/** A delayed WebView observation must not dismiss an explicitly selected native page. */
+fun webObservationDestination(current: AppDestination, route: String): AppDestination =
+    if (current.route == null) current else destinationForRoute(route)
+
+/** Only the latest native request may acknowledge a programmatic route change. */
+internal class WebNavigationObservation {
+    private var pendingPath: String? = null
+
+    fun requested(route: String) { pendingPath = java.net.URI(route).rawPath }
+
+    fun accept(route: String): Boolean {
+        val expected = pendingPath ?: return true
+        if (java.net.URI(route).rawPath != expected) return false
+        pendingPath = null
+        return true
+    }
+}

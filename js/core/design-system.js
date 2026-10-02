@@ -142,7 +142,8 @@ function setupSplitFlap() {
 
   const start = () => {
     stop();
-    if (reducedMotion?.matches || document.visibilityState === "hidden") return;
+    if (reducedMotion?.matches || document.visibilityState === "hidden"
+      || document.documentElement.dataset.androidWebActive === "false") return;
     intervalId = window.setInterval(advance, 2600);
   };
 
@@ -154,6 +155,10 @@ function setupSplitFlap() {
   reducedMotion?.addEventListener?.("change", start);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible" && root.getClientRects().length) start();
+    else stop();
+  });
+  document.addEventListener("thewyj:webview-active", (event) => {
+    if (event.detail?.active && root.getClientRects().length) start();
     else stop();
   });
 }

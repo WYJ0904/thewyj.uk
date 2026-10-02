@@ -6,6 +6,13 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.snapshots.Snapshot
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import uk.thewyj.app.task21.store.NotificationHistoryItem
 import uk.thewyj.app.task21.store.NotificationQuery
 import uk.thewyj.app.task21.store.NotificationRepository
@@ -24,9 +31,23 @@ import uk.thewyj.app.task21.payment.PendingReviewReconciler
 class NotificationHubState(
     context: Context,
     val accountId: String,
+    historyReader: (suspend (NotificationQuery) -> List<NotificationHistoryItem>)? = null,
 ) {
     private val appContext = context.applicationContext
     private val repository = NotificationRepository(context.applicationContext, accountId)
+    private val readHistory = historyReader ?: repository::history
+    private val historyGeneration = java.util.concurrent.atomic.AtomicLong()
+    private var historyRead: Deferred<HistoryRead>? = null
+    private var lastLoadedQuery: NotificationQuery? = null
+    var loadingMore by mutableStateOf(false)
+        private set
+
+    private data class HistoryRead(
+        val rows: List<NotificationHistoryItem>,
+        val stats: NotificationStoreStats,
+        val retentionDays: Int,
+        val pinnedCount: Int,
+    )
     private val paymentStore: PaymentRecognitionStoreContract =
         RoomPaymentRecognitionStore(NotificationDatabase.get(context.applicationContext))
     private val credentialStore = uk.thewyj.app.core.auth.SecureCredentialStore(context.applicationContext)
@@ -85,22 +106,51 @@ class NotificationHubState(
     )
 
     suspend fun refresh() {
+        val generation = historyGeneration.incrementAndGet()
+        val requested = query()
+        historyRead?.cancel()
         loading = true
         error = ""
         try {
-            val results = repository.history(query())
-            hasMore = results.size > visibleLimit
-            items.clear()
-            items.addAll(results.take(visibleLimit))
-            selected.clear()
-            stats = repository.stats()
-            settingsRetentionDays = repository.settings().retentionDays
-            pinnedCount = repository.pinnedCount()
+            val result = coroutineScope {
+                val read = async {
+                    HistoryRead(readHistory(requested), repository.stats(),
+                        repository.settings().retentionDays, repository.pinnedCount())
+                }
+                historyRead = read
+                read.await()
+            }
+            if (generation != historyGeneration.get()) return
+            val next = result.rows.take(visibleLimit)
+            Snapshot.withMutableSnapshot {
+                // Preserve unchanged row identities; pinned/status changes replace one row.
+                for (index in next.indices) {
+                    if (index >= items.size) items.add(next[index])
+                    else if (items[index] != next[index]) items[index] = next[index]
+                }
+                while (items.size > next.size) items.removeAt(items.lastIndex)
+                hasMore = result.rows.size > visibleLimit
+                selected.clear()
+                stats = result.stats
+                settingsRetentionDays = result.retentionDays
+                pinnedCount = result.pinnedCount
+            }
+            lastLoadedQuery = requested
+        } catch (cancelled: CancellationException) {
+            // Superseding a read must not cancel its caller's completed pin/delete action.
+            if (!currentCoroutineContext().isActive) throw cancelled
         } catch (failure: Throwable) {
-            error = failure.message ?: "读取通知历史失败"
+            if (generation == historyGeneration.get()) error = failure.message ?: "读取通知历史失败"
         } finally {
-            loading = false
+            if (generation == historyGeneration.get()) {
+                loading = false
+                historyRead = null
+            }
         }
+    }
+
+    suspend fun refreshIfNeeded() {
+        if (lastLoadedQuery != query()) refresh()
     }
 
     suspend fun refreshApps() {
@@ -198,9 +248,16 @@ class NotificationHubState(
     }
 
     suspend fun setSearch(value: String) {
+        setSearchText(value)
+        refresh()
+    }
+
+    fun setSearchText(value: String) {
+        if (search == value) return
         search = value
         visibleLimit = HISTORY_PAGE_SIZE
-        refresh()
+        historyGeneration.incrementAndGet()
+        historyRead?.cancel()
     }
 
     suspend fun setAppFilter(value: String) {
@@ -210,10 +267,22 @@ class NotificationHubState(
     }
 
     suspend fun loadMore() {
-        if (!hasMore) return
-        val next = repository.history(query().copy(limit = HISTORY_PAGE_SIZE + 1, offset = items.size))
-        hasMore = next.size > HISTORY_PAGE_SIZE
-        items.addAll(next.take(HISTORY_PAGE_SIZE))
+        if (!hasMore || loading || loadingMore) return
+        val generation = historyGeneration.get()
+        val offset = items.size
+        loadingMore = true
+        try {
+            val next = readHistory(query().copy(limit = HISTORY_PAGE_SIZE + 1, offset = offset))
+            if (generation != historyGeneration.get() || offset != items.size) return
+            hasMore = next.size > HISTORY_PAGE_SIZE
+            items.addAll(next.take(HISTORY_PAGE_SIZE))
+            visibleLimit = items.size.coerceAtLeast(HISTORY_PAGE_SIZE)
+            lastLoadedQuery = query()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Throwable) {
+            if (generation == historyGeneration.get()) error = failure.message ?: "读取通知历史失败"
+        } finally { loadingMore = false }
     }
 
     /** Selection tracks saved snapshots, matching what the list shows. */
@@ -248,8 +317,11 @@ class NotificationHubState(
         val wasDetailOpen = detail?.revisionId == item.revisionId
         val next = !item.pinned
         repository.setPinned(item.instanceId, next)
+        if (detail?.revisionId == item.revisionId) detail = detail?.copy(pinned = next)
         refresh()
-        if (wasDetailOpen) detail = items.firstOrNull { it.revisionId == item.revisionId }
+        if (wasDetailOpen && detail?.revisionId == item.revisionId) {
+            detail = items.firstOrNull { it.revisionId == item.revisionId } ?: detail
+        }
         return next
     }
 

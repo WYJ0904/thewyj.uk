@@ -28,7 +28,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -46,6 +49,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import uk.thewyj.app.core.auth.AccountSnapshot
 import uk.thewyj.app.core.design.ThewyjCard
 import uk.thewyj.app.core.design.ThewyjPrimaryButton
@@ -79,7 +84,8 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
     val configStore = remember(context, account.id) { TransferConfigStore.inDirectory(context.filesDir, account.id) }
     val api = remember(context) { TransferApiClient(context) }
     val cleanupStore = remember(account.id) { TransferCleanupStore.inDirectory(context.filesDir, account.id) }
-    var queue by remember { mutableStateOf<List<QueuedTransfer>>(emptyList()) }
+    var queue by remember(account.id) { mutableStateOf<List<QueuedTransfer>>(emptyList()) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     suspend fun <T> ownerRequest(action: () -> T): T {
         try { return withContext(Dispatchers.IO) { action() } } catch (error: TransferApiException) {
             if (error.status != 401 || uk.thewyj.app.AppGraph.sessionRepository.refresh() !=
@@ -99,19 +105,39 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
         },
         revokeRemote = { id -> ownerRequest { api.revoke(id) } },
     ) }
-    val ownerState by owner.state.collectAsState()
+    val ownerState by owner.state.collectAsStateWithLifecycle()
     val shares = ownerState.snapshot?.shares.orEmpty()
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
     val quota = ownerState.snapshot?.usage?.label ?: if (ownerState.failed) "配额暂时不可用" else "配额加载中"
-    var minutes by remember { mutableIntStateOf(configStore.load().minutes) }
-    var maxDownloads by remember { mutableIntStateOf(configStore.load().maxDownloads) }
-    var oneTime by remember { mutableStateOf(configStore.load().oneTime) }
-    var password by remember { mutableStateOf(configStore.load().password) }
+    var minutes by remember(account.id) { mutableIntStateOf(1440) }
+    var maxDownloads by remember(account.id) { mutableIntStateOf(5) }
+    var oneTime by remember(account.id) { mutableStateOf(false) }
+    var password by remember(account.id) { mutableStateOf("") }
+    var configEdited by remember(account.id) { mutableStateOf(false) }
+    val configWrites = remember(account.id) { Mutex() }
     var shareLink by remember { mutableStateOf("") }
 
+    fun currentConfig() = TransferConfig(minutes, maxDownloads, oneTime, password)
+
+    suspend fun saveConfig(config: TransferConfig) = configWrites.withLock {
+        withContext(Dispatchers.IO) { configStore.save(config) }
+    }
+
     fun persistConfig() {
-        configStore.save(TransferConfig(minutes = minutes, maxDownloads = maxDownloads, oneTime = oneTime, password = password))
+        configEdited = true
+        val config = currentConfig()
+        scope.launch { saveConfig(config) }
+    }
+
+    LaunchedEffect(account.id) {
+        val stored = withContext(Dispatchers.IO) { configStore.load() }
+        if (!configEdited) {
+            minutes = stored.minutes
+            maxDownloads = stored.maxDownloads
+            oneTime = stored.oneTime
+            password = stored.password
+        }
     }
 
     val filesLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -122,65 +148,67 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
                 SafTransferPicker.documentSource(context, uri)
             }.filter { it.sizeBytes > 0 } }
             if (sources.isEmpty()) { message = "未添加文件：空文件或无法读取的文件不支持上传"; return@launch }
-            val oldSessions = queueStore.load().map { it.sessionId }.filter(String::isNotBlank)
-            cleanupStore.add(oldSessions)
-            if (queueStore.load().isNotEmpty()) queueStore.resetStaleSessionBatch()
-            val items = queueStore.load().toMutableList()
-            for (source in sources) {
-                items.add(
-                    QueuedTransfer(
-                        localId = UUID.randomUUID().toString(),
-                        source = source,
-                    ),
-                )
+            queue = withContext(Dispatchers.IO) {
+                val existing = queueStore.load()
+                cleanupStore.add(existing.map { it.sessionId }.filter(String::isNotBlank))
+                if (existing.isNotEmpty()) queueStore.resetStaleSessionBatch()
+                val items = queueStore.load() + sources.map { source ->
+                    QueuedTransfer(localId = UUID.randomUUID().toString(), source = source)
+                }
+                queueStore.save(items)
+                items
             }
-            queueStore.save(items)
-            queue = items
-            persistConfig()
+            saveConfig(currentConfig())
             TransferUploadWorker.enqueue(context)
         }
     }
     val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
         if (tree == null) return@rememberLauncherForActivityResult
         scope.launch {
-            runCatching { SafTransferPicker.persistAccess(context, tree) }
-            val sources = withContext(Dispatchers.IO) { SafTransferPicker.treeSources(context, tree).filter { it.sizeBytes > 0 } }
-            if (sources.isEmpty()) { message = "文件夹中没有可上传的非空文件"; return@launch }
-            val oldSessions = queueStore.load().map { it.sessionId }.filter(String::isNotBlank)
-            cleanupStore.add(oldSessions)
-            if (queueStore.load().isNotEmpty()) queueStore.resetStaleSessionBatch()
-            val items = queueStore.load().toMutableList()
-            for (source in sources) {
-                if (source.sizeBytes <= 0) continue
-                items.add(QueuedTransfer(localId = UUID.randomUUID().toString(), source = source))
+            val sources = withContext(Dispatchers.IO) {
+                runCatching { SafTransferPicker.persistAccess(context, tree) }
+                SafTransferPicker.treeSources(context, tree).filter { it.sizeBytes > 0 }
             }
-            queueStore.save(items)
-            queue = items
-            persistConfig()
+            if (sources.isEmpty()) { message = "文件夹中没有可上传的非空文件"; return@launch }
+            queue = withContext(Dispatchers.IO) {
+                val existing = queueStore.load()
+                cleanupStore.add(existing.map { it.sessionId }.filter(String::isNotBlank))
+                if (existing.isNotEmpty()) queueStore.resetStaleSessionBatch()
+                val items = queueStore.load() + sources.map { source ->
+                    QueuedTransfer(localId = UUID.randomUUID().toString(), source = source)
+                }
+                queueStore.save(items)
+                items
+            }
+            saveConfig(currentConfig())
             TransferUploadWorker.enqueue(context)
         }
     }
 
-    fun refreshQueue() {
-        queue = queueStore.load()
+    suspend fun refreshQueue() {
+        queue = withContext(Dispatchers.IO) { queueStore.load() }
     }
 
-    LaunchedEffect(account.id) {
+    LaunchedEffect(account.id, lifecycle) {
         refreshQueue()
-        if (cleanupStore.pending().isNotEmpty() || queue.any { it.status == TransferItemStatus.PENDING || it.status == TransferItemStatus.UPLOADING }) {
+        if (withContext(Dispatchers.IO) { cleanupStore.pending().isNotEmpty() } ||
+            queue.any { it.status == TransferItemStatus.PENDING || it.status == TransferItemStatus.UPLOADING }) {
             TransferUploadWorker.enqueue(context)
         }
-        owner.refresh()
-        var previous = queue.map { it.localId to it.status }
-        var lastRemote = System.currentTimeMillis()
-        while (true) {
-            delay(700)
-            queue = withContext(Dispatchers.IO) { queueStore.load() }
-            val statuses = queue.map { it.localId to it.status }
-            if (statuses != previous || System.currentTimeMillis() - lastRemote >= 15_000) {
-                previous = statuses
-                lastRemote = System.currentTimeMillis()
-                owner.refresh()
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            refreshQueue()
+            owner.refresh()
+            var previous = queue.map { it.localId to it.status }
+            var lastRemote = System.currentTimeMillis()
+            while (true) {
+                delay(700)
+                refreshQueue()
+                val statuses = queue.map { it.localId to it.status }
+                if (statuses != previous || System.currentTimeMillis() - lastRemote >= 15_000) {
+                    previous = statuses
+                    lastRemote = System.currentTimeMillis()
+                    owner.refresh()
+                }
             }
         }
     }
@@ -202,7 +230,10 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
                 Log.i("T22UI", "complete ok share=${share.id}")
                 shareLink = TransferLinks.shareLink(BuildConfig.THEWYJ_BASE_URL, share.id)
                 message = "分享已创建。"
-                queueStore.save(queue.filterNot { it.status == TransferItemStatus.DONE })
+                withContext(Dispatchers.IO) {
+                    // Remove only the completed batch; preserve concurrent worker updates.
+                    pending.forEach { queueStore.remove(it.localId) }
+                }
                 refreshQueue()
                 owner.refresh()
             }.onFailure { error ->
@@ -314,21 +345,32 @@ fun TransferScreen(account: AccountSnapshot, onBack: () -> Unit) {
                     item = item,
                     enabled = !busy,
                     onPause = {
-                        queueStore.upsert(item.copy(status = TransferItemStatus.PAUSED))
-                        refreshQueue()
+                        scope.launch {
+                            withContext(Dispatchers.IO) {
+                                queueStore.update(item.localId) { it.copy(status = TransferItemStatus.PAUSED) }
+                            }
+                            refreshQueue()
+                        }
                     },
                     onResume = {
-                        queueStore.upsert(item.copy(status = TransferItemStatus.PENDING, errorMessage = ""))
-                        refreshQueue()
-                        TransferUploadWorker.enqueue(context)
+                        scope.launch {
+                            withContext(Dispatchers.IO) {
+                                queueStore.update(item.localId) { it.copy(status = TransferItemStatus.PENDING, errorMessage = "") }
+                            }
+                            refreshQueue()
+                            TransferUploadWorker.enqueue(context)
+                        }
                     },
                     onCancel = {
                         scope.launch {
-                            val sessions = queueStore.load().map { it.sessionId }.filter(String::isNotBlank).distinct()
-                            cleanupStore.add(sessions)
-                            queueStore.update(item.localId) { it.copy(status = TransferItemStatus.CANCELLED) }
-                            queueStore.remove(item.localId)
-                            queueStore.resetStaleSessionBatch()
+                            val sessions = withContext(Dispatchers.IO) {
+                                val ids = queueStore.load().map { it.sessionId }.filter(String::isNotBlank).distinct()
+                                cleanupStore.add(ids)
+                                queueStore.update(item.localId) { it.copy(status = TransferItemStatus.CANCELLED) }
+                                queueStore.remove(item.localId)
+                                queueStore.resetStaleSessionBatch()
+                                ids
+                            }
                             refreshQueue()
                             val release = runCatching { withContext(Dispatchers.IO) {
                                 sessions.forEach { id -> api.releaseSession(id); cleanupStore.complete(id) }

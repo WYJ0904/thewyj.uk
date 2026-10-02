@@ -118,6 +118,7 @@ dependencies {
     implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
 
     testImplementation(libs.junit)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("org.json:json:20240303")
     testImplementation(libs.robolectric)
     androidTestImplementation(platform(libs.androidx.compose.bom))

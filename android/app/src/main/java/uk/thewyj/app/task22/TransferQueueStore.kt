@@ -12,27 +12,46 @@ import java.nio.file.StandardCopyOption
  * demand and are never loaded into memory.
  */
 class TransferQueueStore(private val file: File) {
-    private val lock = locks.computeIfAbsent(file.canonicalPath) { Any() }
+    private val fileKey = file.canonicalPath
+    private val lock = locks.computeIfAbsent(fileKey) { Any() }
+
+    private data class CachedQueue(
+        val modified: Long,
+        val length: Long,
+        val generation: Long,
+        val items: List<QueuedTransfer>,
+    )
+
+    private fun snapshot(): CachedQueue {
+        if (!file.exists()) {
+            snapshots.remove(fileKey)
+            return CachedQueue(0, 0, 0, emptyList())
+        }
+        val modified = file.lastModified()
+        val length = file.length()
+        snapshots[fileKey]?.let { if (it.modified == modified && it.length == length) return it }
+        return runCatching {
+            val root = JSONObject(file.readText(Charsets.UTF_8))
+            val array = root.optJSONArray("items") ?: JSONArray()
+            val items = buildList {
+                for (index in 0 until array.length()) {
+                    runCatching { QueuedTransfer.fromJson(array.getJSONObject(index)) }
+                        .getOrNull()?.let(::add)
+                }
+            }
+            CachedQueue(modified, length, root.optLong("batch_generation"), items)
+                .also { snapshots[fileKey] = it }
+        }.getOrDefault(CachedQueue(modified, length, 0, emptyList()))
+    }
 
     fun load(): List<QueuedTransfer> {
         synchronized(lock) {
-            if (!file.exists()) return emptyList()
-            return runCatching {
-                val root = JSONObject(file.readText(Charsets.UTF_8))
-                val array = root.optJSONArray("items") ?: JSONArray()
-                buildList {
-                    for (index in 0 until array.length()) {
-                        runCatching { QueuedTransfer.fromJson(array.getJSONObject(index)) }
-                            .getOrNull()
-                            ?.let(::add)
-                    }
-                }
-            }.getOrDefault(emptyList())
+            return snapshot().items
         }
     }
 
     fun generation(): Long = synchronized(lock) {
-        if (!file.exists()) 0 else runCatching { JSONObject(file.readText()).optLong("batch_generation") }.getOrDefault(0)
+        snapshot().generation
     }
 
     fun save(items: List<QueuedTransfer>) = synchronized(lock) { save(items, generation()) }
@@ -58,6 +77,7 @@ class TransferQueueStore(private val file: File) {
             }.recoverCatching {
                 Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
             }.getOrThrow()
+            snapshots[fileKey] = CachedQueue(file.lastModified(), file.length(), generation, items.toList())
         }
     }
 
@@ -121,6 +141,7 @@ class TransferQueueStore(private val file: File) {
 
     companion object {
         private val locks = java.util.concurrent.ConcurrentHashMap<String, Any>()
+        private val snapshots = java.util.concurrent.ConcurrentHashMap<String, CachedQueue>()
         fun inDirectory(directory: File, accountId: String): TransferQueueStore {
             val safe = accountId.replace(Regex("""[^A-Za-z0-9._-]"""), "_").take(80)
             return TransferQueueStore(File(directory, "transfer-queue-$safe.json"))

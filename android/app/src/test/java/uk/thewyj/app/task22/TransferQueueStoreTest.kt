@@ -7,6 +7,27 @@ import org.junit.Test
 import java.io.File
 
 class TransferQueueStoreTest {
+    @Test fun cachedReadsObserveWorkerUpdatesAndGenerationChangesAcrossInstances() {
+        val dir = java.nio.file.Files.createTempDirectory("transfer-cache").toFile()
+        try {
+            val ui = TransferQueueStore.inDirectory(dir, "cache-account")
+            val worker = TransferQueueStore.inDirectory(dir, "cache-account")
+            ui.upsert(QueuedTransfer(localId = "a", source = source("a")))
+            val before = ui.load()
+            assertTrue(before === worker.load())
+            worker.update("a") { it.copy(uploadedParts = setOf(1), uploadedBytes = 1024) }
+            // UI actions use the current durable record, not a stale screen DTO.
+            ui.update("a") { it.copy(status = TransferItemStatus.PAUSED) }
+            assertEquals(setOf(1), worker.load().single().uploadedParts)
+            assertEquals(1024L, worker.load().single().uploadedBytes)
+            val generation = worker.generation()
+            ui.resetStaleSessionBatch()
+            assertEquals(generation + 1, worker.generation())
+            assertEquals(null, worker.updateIfGeneration("a", generation) { it.copy(uploadedBytes = 999) })
+            assertEquals(0L, worker.load().single().uploadedBytes)
+        } finally { dir.deleteRecursively() }
+    }
+
     @Test fun separateInstancesSerializeReadModifyWrite() {
         val dir = java.nio.file.Files.createTempDirectory("transfer-queue-concurrency").toFile()
         val pool = java.util.concurrent.Executors.newFixedThreadPool(4)

@@ -87,6 +87,8 @@ import uk.thewyj.app.task21.payment.PaymentVerificationCenter
 import uk.thewyj.app.core.session.SessionState
 import uk.thewyj.app.core.update.UpdateUiState
 import uk.thewyj.app.core.web.ThewyjWebView
+import uk.thewyj.app.core.web.webContentActive
+import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun ThewyjApp(viewModel: AppViewModel) {
@@ -96,7 +98,6 @@ fun ThewyjApp(viewModel: AppViewModel) {
     val webEpoch by viewModel.webEpoch.collectAsStateWithLifecycle()
     val navigationEpoch by viewModel.navigationEpoch.collectAsStateWithLifecycle()
     val notice by viewModel.notice.collectAsStateWithLifecycle()
-    val updateState by viewModel.updateState.collectAsStateWithLifecycle()
     val nativeDark by viewModel.nativeDark.collectAsStateWithLifecycle()
     val authBusy by viewModel.authBusy.collectAsStateWithLifecycle()
     val paymentVerification by viewModel.paymentVerification.collectAsStateWithLifecycle()
@@ -146,7 +147,7 @@ fun ThewyjApp(viewModel: AppViewModel) {
                 webRoute = webRoute,
                 webEpoch = webEpoch,
                 navigationEpoch = navigationEpoch,
-                updateState = updateState,
+                updateState = viewModel.updateState,
                 onDestination = viewModel::select,
                 onOpenRoute = viewModel::openRoute,
                 onWebRouteChanged = viewModel::onWebRouteChanged,
@@ -322,7 +323,7 @@ private fun AuthenticatedShell(
     webRoute: String,
     webEpoch: Int,
     navigationEpoch: Int,
-    updateState: UpdateUiState,
+    updateState: StateFlow<UpdateUiState>,
     onDestination: (AppDestination) -> Unit,
     onOpenRoute: (String) -> Unit,
     onWebRouteChanged: (String) -> Unit,
@@ -349,7 +350,7 @@ private fun AuthenticatedShell(
     }
     BackHandler {
         if (overlays.anyVisible) overlays = ShellOverlayState()
-        else if (destination == AppDestination.MY) onDestination(AppDestination.HOME)
+        else if (destination.route == null) onDestination(AppDestination.HOME)
         else backNavigationRequest += 1
     }
     Scaffold(
@@ -374,6 +375,7 @@ private fun AuthenticatedShell(
         Box(Modifier.fillMaxSize().padding(padding)) {
             ThewyjWebView(
                 route = webRoute,
+                active = webContentActive(destination.route == null, overlays.anyVisible),
                 navigationEpoch = navigationEpoch,
                 sessionEpoch = webEpoch,
                 backNavigationRequest = backNavigationRequest,
@@ -408,7 +410,7 @@ private fun AuthenticatedShell(
                     account = state.account,
                     mode = state.mode,
                     message = state.message,
-                    updateState = updateState,
+                    updateStateFlow = updateState,
                     onOpenRoute = onOpenRoute,
                     onOpenNotifications = { onDestination(AppDestination.NOTIFICATIONS) },
                     onOpenTransfer = { overlays = overlays.copy(transfer = true) },
@@ -475,7 +477,7 @@ private fun MyScreen(
     account: AccountSnapshot,
     mode: ConnectionMode,
     message: String,
-    updateState: UpdateUiState,
+    updateStateFlow: StateFlow<UpdateUiState>,
     onOpenRoute: (String) -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenTransfer: () -> Unit,
@@ -486,6 +488,7 @@ private fun MyScreen(
     onInstallUpdate: () -> Unit,
     onLogout: () -> Unit,
 ) {
+    val updateState by updateStateFlow.collectAsStateWithLifecycle()
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(ThewyjSpacing.Lg),
