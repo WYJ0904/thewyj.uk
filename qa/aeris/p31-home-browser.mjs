@@ -21,7 +21,8 @@ for(const width of [320,390,1366,1920]){
    assert.deepEqual(page.runtimeErrors,[]);cases.push({width,theme,sections:6,scenes:3,capabilities:5,pricesFromCatalog:true,keyboard:true,reducedMotion:true,zoom:true,overflow:false});
   }
   for(const [selector,expected] of [['[data-public-capability=learning]','/trial'],['[data-public-capability=tools]','/trial'],['[data-public-capability=finance]','/login'],['[data-public-capability=files]','/transfer'],['[data-public-capability=account]','/login'],['#publicTrialBtn','/trial'],['#publicPlansBtn','/login'],['[data-public-section=final] [data-public-trigger=publicLoginBtn]','/login'],['[data-public-section=final] [data-public-trigger=publicRegisterBtn]','/register'],['[data-public-section=final] [data-site-nav=download]','/download'],['#publicChangelogBtn','/changelog']]){
-   await page.navigate('/');await page.waitFor("document.documentElement.dataset.aerisMotionReady==='true' && !document.getElementById('entryScreen')");await page.click(selector);await page.waitFor(`location.pathname===${JSON.stringify(expected)}`,30000,'existing entry '+selector);
+   if(await page.evaluate("location.pathname!=='/'")){await page.click('.site-brand[data-site-nav=home]');await page.waitFor("location.pathname==='/' && !document.querySelector('#publicHome').classList.contains('hidden')");}
+   await page.click(selector);await page.waitFor(`location.pathname===${JSON.stringify(expected)}`,30000,'existing entry '+selector);
   }
   assert.deepEqual(page.runtimeErrors,[]);
  }finally{await page.close();}
