@@ -242,7 +242,7 @@ async function main() {
       await waitFor("location.pathname === '/login' && document.querySelector('#loginError')?.textContent.includes('注册成功')", 15_000, "registration success");
       await setFields({ "#usernameInput": USERNAME, "#secretInput": USER_SECRET });
       await click("#loginSubmitBtn");
-      await waitFor("location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')", 15_000, "dashboard after login");
+      await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 15_000, "dashboard after login");
       assert.ok((await evaluate("localStorage.getItem('wyjAccountSession') || ''")).length > 20);
     });
 
@@ -253,15 +253,15 @@ async function main() {
 
     await check("hard refresh preserves the canonical session", async () => {
       await send("Page.reload", { ignoreCache: true });
-      await waitFor("location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')", 20_000, "dashboard after hard refresh");
+      await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 20_000, "dashboard after hard refresh");
       assert.equal(await evaluate("localStorage.getItem('wyjAccountSession')"), originalSession);
     });
 
     await check("closing and reopening a tab preserves the session", async () => {
       await client.send("Target.closeTarget", { targetId });
-      await attachPage(`${BASE_URL}/select?reopen=${RUN_ID}`);
+      await attachPage(`${BASE_URL}/?reopen=${RUN_ID}`);
       await waitFor("document.readyState !== 'loading' && document.querySelector('#appShell')", 20_000, "reopened app shell");
-      await waitFor("location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')", 20_000, "dashboard after tab reopen");
+      await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 20_000, "dashboard after tab reopen");
       assert.equal(await evaluate("localStorage.getItem('wyjAccountSession')"), originalSession);
     });
 
@@ -422,7 +422,7 @@ async function main() {
       const latency = await send("Page.addScriptToEvaluateOnNewDocument", { source: `const originalFetch=window.fetch;window.fetch=async(...args)=>{const response=await originalFetch(...args);if(String(args[0]).includes('/api/health'))await new Promise(r=>setTimeout(r,1200));return response;};` });
       try {
         await evaluate("localStorage.removeItem('wyjAccountCache')");
-        for (const route of ['/select','/language','/tools','/finance','/account']) {
+        for (const route of ['/','/language','/tools','/finance','/account']) {
           await navigate(route);
           await waitFor("state.account && document.querySelector('#sessionRecovery').classList.contains('hidden')", 20000, 'authenticated route');
           await delay(250);
@@ -439,7 +439,7 @@ async function main() {
     });
 
     await check("Task 20 warm native navigation reuses the document and session without a recovery screen", async () => {
-      await navigate('/select');
+      await navigate('/');
       await waitFor("Boolean(window.WYJAndroidNavigation)", 20000, 'native route dispatcher ready');
       await evaluate(`window.__qaWarmDocument = crypto.randomUUID(); window.__qaWarmAuthRequests = [];
         const fetchBeforeWarm = window.fetch;
@@ -449,7 +449,7 @@ async function main() {
           return fetchBeforeWarm(...args);
         };`);
       const marker = await evaluate('window.__qaWarmDocument');
-      for (const route of ['/language','/finance','/account','/recharge','/select','/language']) {
+      for (const route of ['/language','/finance','/account','/recharge','/','/language']) {
         await evaluate(`(${authVisibilityProbe.toString()})();`);
         await evaluate(`window.WYJAndroidNavigation.navigate(${JSON.stringify(route)})`);
         await delay(250);
@@ -480,7 +480,7 @@ async function main() {
         assert.equal(granted.status,200);
       } finally { await request('/api/logout',{},admin.data.session); }
       for (const destination of ['tool','language']) {
-        await navigate('/select');
+        await navigate('/');
         await waitFor('Boolean(window.WYJAndroidNavigation)',20000,'native route dispatcher');
         await evaluate(`(()=>{
           const original=window.fetch;
@@ -851,7 +851,7 @@ async function main() {
     });
 
     await check("Task 20 shared dialog portal, bounds, focus and scroll in both themes", async () => {
-      await navigate('/select');
+      await navigate('/');
       const ids = await evaluate("[...document.querySelectorAll('.modal-layer')].map(e=>e.id)");
       assert.ok(ids.includes('financeTransactionModal') && ids.includes('membershipModal'));
       for (const theme of ['light','dark']) {
@@ -883,7 +883,7 @@ async function main() {
         await waitFor("document.getElementById('siteNavPanel').getBoundingClientRect().height>100",3000,'visible navigation');
         await click('[data-site-nav="trial"]');
         await waitFor("location.pathname==='/trial'",3000,'trial navigation');
-        await navigate('/select');
+        await navigate('/');
       }
     });
 

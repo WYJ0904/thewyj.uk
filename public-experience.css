@@ -1149,38 +1149,38 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
 .aeris-file-preview li {padding:8px 0;border-bottom:1px solid var(--ds-border,#d8dee7);font-size:14px;overflow-wrap:anywhere;}
 .aeris-public-footer {display:flex;align-items:center;justify-content:space-between;gap:18px;padding-top:22px;font-size:13px;color:var(--ds-text-secondary,#475569);}
 .aeris-public-footer .public-actions {gap:6px;margin:0;}
-.aeris-launchpad-heading {display:flex;align-items:center;justify-content:space-between;gap:20px;margin:0 0 28px;}
-.aeris-launchpad-heading h1 {font-size:30px;line-height:1.25;letter-spacing:-.025em;margin:8px 0;}
-.aeris-launchpad-heading p {font-size:15px;color:var(--ds-text-secondary,#475569);margin:0;}
+
+
+
 .aeris-account-state {display:flex;flex-direction:column;align-items:flex-end;gap:6px;font-size:13px;}
 .aeris-account-state span {color:var(--ds-text-secondary,#475569);}
-.aeris-launchpad-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;}
+
 .aeris-section-label {grid-column:1/-1;font-size:15px;margin:0 0 2px;color:var(--ds-text-secondary,#475569);}
-.aeris-launchpad-card {display:flex;flex-direction:column;gap:12px;min-width:0;padding:22px;border:1px solid var(--ds-border,#d8dee7);background:var(--ds-surface,#fff);border-radius:8px;}
-.aeris-launchpad-card header {display:flex;align-items:center;justify-content:space-between;gap:8px;}
-.aeris-launchpad-card h3 {font-size:18px;line-height:1.35;margin:0;}
-.aeris-launchpad-card h4 {font-size:13px;margin:0;color:var(--ds-text-secondary,#475569);}
-.aeris-launchpad-card p {font-size:13px;line-height:1.6;margin:0;color:var(--ds-text-secondary,#475569);overflow-wrap:anywhere;}
-.aeris-launchpad-card .button-secondary {margin-top:auto;min-height:44px;}
-.aeris-launchpad-card .dashboard-empty {min-height:0;display:block;padding:0;border:0;background:none;text-align:left;}
-.aeris-launchpad-links {display:grid;gap:8px;}
-.aeris-launchpad-links>button {display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;text-align:left;min-height:48px;font-size:14px;}
-.aeris-launchpad-links small {font-size:12px;color:var(--ds-text-secondary,#475569);}
+
+
+
+
+
+
+
+
+
+
 .aeris-study-status {display:flex;gap:16px;font-size:13px;color:var(--ds-text-secondary,#475569);}
 .aeris-summary-number {font-size:24px;line-height:1.3;letter-spacing:-.02em;overflow-wrap:anywhere;}
-.aeris-launchpad-support {display:grid;grid-template-columns:1fr 1fr;gap:24px;border-top:1px solid var(--ds-border,#d8dee7);margin-top:24px;padding-top:24px;}
-.aeris-launchpad-support h2 {font-size:16px;margin:0 0 10px;}
-.aeris-launchpad-support p {font-size:13px;line-height:1.6;color:var(--ds-text-secondary,#475569);margin:6px 0;}
-.aeris-launchpad-support .authenticated-service-details {border:0;box-shadow:none;background:transparent;margin:0;}
+
+
+
+
 @keyframes aerisPanelIn {from {opacity:.6;transform:translateY(6px);}to {opacity:1;transform:translateY(0);}}
 @media (hover:hover) and (pointer:fine) {.aeris-product-tabs>button:hover {background:var(--ds-surface-subtle,#f8fafc);}}
-@media (max-width:900px) {.aeris-launchpad-grid {grid-template-columns:repeat(2,minmax(0,1fr));}.aeris-public-intro {align-items:flex-start;flex-direction:column;gap:20px;}}
+@media (max-width:900px) {.aeris-public-intro {align-items:flex-start;flex-direction:column;gap:20px;}}
 @media (max-width:560px) {
   #modulePicker {padding:24px 16px 32px;}.aeris-intro-heading img {width:52px;height:52px;}.aeris-intro-heading h1 {font-size:31px;}.aeris-intro-heading p {font-size:13px;}
   .aeris-entry-actions {width:100%;gap:8px;}.aeris-entry-actions>* {flex:1;padding-inline:12px;}.aeris-window-heading {padding:20px 18px 12px;}.aeris-product-tabs {margin:0 12px;}
   .aeris-window-content {padding:20px 18px;min-height:475px;}.aeris-product-panel {grid-template-columns:1fr;gap:20px;}.aeris-panel-copy {padding:0;}.aeris-panel-copy h3 {font-size:21px;}.aeris-panel-copy p {margin-bottom:14px;max-width:none;font-size:14px;}
   .aeris-live-sample {border-left:0;border-top:1px solid var(--ds-border,#d8dee7);padding:18px 0 0;min-height:235px;}.aeris-public-footer {align-items:flex-start;flex-direction:column;gap:8px;}
-  .aeris-launchpad-heading {align-items:flex-start;flex-direction:column;gap:10px;}.aeris-account-state {align-items:flex-start;flex-direction:row;flex-wrap:wrap;}.aeris-launchpad-grid,.aeris-launchpad-support {grid-template-columns:1fr;}.aeris-launchpad-card {padding:18px;}
+  .aeris-account-state {align-items:flex-start;flex-direction:row;flex-wrap:wrap;}
 }
 @media (prefers-reduced-motion:reduce) {.aeris-product-panel {animation:none;}}
 .auth-logo { width:112px;height:112px;object-fit:contain;background:#fff;border-radius:8px; }
@@ -1240,13 +1240,14 @@ html:has(body[data-experience="public"]),body[data-experience="public"] {min-wid
 .capability-copy>.button-link {flex-shrink:0;white-space:normal;}
 .preview-demo-label {margin:0 0 12px;color:var(--ds-text-secondary);font-size:12px;}
 .product-preview * {min-width:0;overflow-wrap:anywhere;}
-.capability-trigger:focus-visible {outline:var(--ds-focus-ring);outline-offset:-4px;}
+.capability-trigger:focus-visible {outline:2px solid var(--ds-focus);outline-offset:-4px;}
 @media (max-width:760px) {
   #publicHome>.aeris-product-window,#publicHome>.aeris-privacy-section,#publicHome>.aeris-plans-section,#publicHome>.aeris-final-cta {width:calc(100% - 32px);}
   .capability-copy>.button-link {width:100%;}
   .preview-budget {grid-template-columns:1fr;}
   .preview-file,.preview-account,.preview-share-meta,.preview-transaction {flex-wrap:wrap;}
 }
+
 @media (max-width:360px) {
   .public-hero {height:auto;min-height:640px;padding:204px 16px 32px;}
   .hero-scene-card {width:150px;padding:12px;}
@@ -1255,4 +1256,66 @@ html:has(body[data-experience="public"]),body[data-experience="public"] {min-wid
   .capability-copy,.capability-body,.product-preview {gap:12px;padding:12px;}
   .preview-file {padding:8px;}
   .preview-file-icon {flex-shrink:0;}
+}
+
+/* P3.3: the same product home before/after sign-in, with less marketing chrome. */
+.public-hero {height:min(680px,calc(100dvh - 96px));min-height:600px;}
+.hero-scene-card {opacity:1;}
+.home-brand {display:flex;align-items:center;gap:18px;}
+.home-brand h1 {margin:0;font-size:56px;line-height:1.1;}
+.home-purpose {margin:20px 0 0;color:var(--ds-stage-text-secondary);font-size:17px;}
+.home-identity {display:flex;flex-wrap:wrap;gap:6px 14px;margin:20px 0 0;font-size:13px;color:var(--ds-stage-text-secondary);}
+.home-identity span:first-child {font-weight:650;color:var(--ds-stage-text);}
+.home-account-status {display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;width:min(calc(100% - 40px),var(--ds-container-default));margin:0 auto 16px;font-size:13px;color:var(--ds-text-secondary);}
+.home-account-status>p {flex-basis:100%;margin:0;}
+#publicHome [data-home-personal][hidden] {display:none!important;}
+.aeris-window-heading {display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
+.aeris-window-heading p {margin:0;font-size:13px;}
+.aeris-product-panel {grid-template-columns:minmax(0,.45fr) minmax(0,1.55fr);gap:24px;}
+.aeris-panel-copy h3 {font-size:17px;}
+.aeris-panel-copy p {font-size:13px;}
+.public-capabilities .public-section-heading {max-width:none;}
+.public-section-heading h2 {font-size:25px;}
+.public-section-heading>p:last-child {font-size:13px;}
+.capability-body {height:auto;display:flex;flex-direction:column;}
+.capability-copy p {font-size:14px;line-height:1.7;}
+.home-personal-summary {min-width:0;padding-bottom:16px;border-bottom:1px solid var(--ds-border);font-size:13px;line-height:1.65;}
+.home-personal-summary p {margin:0 0 8px;overflow-wrap:anywhere;}
+.home-personal-summary h4 {margin:10px 0 6px;font-size:12px;color:var(--ds-text-secondary);}
+.home-learning-meta,.home-project-links {display:flex;flex-wrap:wrap;gap:8px 16px;margin:8px 0;}
+.home-project-links button {min-height:44px;white-space:normal;}
+.home-project-links small {color:var(--ds-text-secondary);margin-left:6px;}
+.home-personal-summary .dashboard-tool-link {min-height:44px;font-size:13px;white-space:normal;}
+.home-personal-summary .dashboard-empty {display:block;min-height:0;padding:0;border:0;background:none;text-align:left;}
+.home-personal-summary .authenticated-service-details {border:0;background:none;box-shadow:none;margin:12px 0 0;}
+.aeris-home-section-heading h2 {font-size:22px;}
+.aeris-final-cta {margin-top:32px;font-size:14px;color:var(--ds-text-secondary);}
+@media (max-width:760px) {
+  .public-hero {height:auto;min-height:640px;padding:320px 16px 40px;}
+  .home-brand h1 {font-size:42px;}
+  .home-brand .aeris-hero-logo {width:52px;height:52px;}
+  .hero-scene-card {width:140px;min-height:98px;padding:12px;opacity:1;}
+  .hero-scene-card strong {font-size:18px;overflow-wrap:anywhere;}
+  .hero-scene-learning {top:20px;left:16px;right:auto;}
+  .hero-scene-learning strong {font-size:26px;}
+  .hero-scene-finance {top:64px;left:auto;right:12px;}
+  .hero-scene-tools {display:grid;top:174px;left:36px;right:auto;bottom:auto;width:170px;}
+  .aeris-product-panel {grid-template-columns:1fr;gap:12px;}
+  .aeris-window-content {min-height:400px;}
+  .aeris-panel-copy h3 {margin-bottom:6px;}
+  .aeris-panel-copy p {margin-bottom:0;}
+  .home-account-status {width:calc(100% - 32px);}
+}
+@media (max-width:360px) {
+  .home-brand {gap:12px;}
+  .home-brand h1 {font-size:36px;}
+  .public-hero {min-height:640px;padding-top:320px;}
+  .hero-scene-tools {width:140px;left:22px;}
+}
+@media (max-width:240px) {
+  .public-hero {display:flex;flex-direction:column;align-items:stretch;gap:28px;min-height:0;padding:24px 12px;}
+  .public-hero-scene {position:relative;inset:auto;display:flex;flex-direction:column;gap:12px;width:100%;overflow:visible;}
+  .hero-scene-card {position:relative;inset:auto;width:calc(100% - 8px);min-height:98px;margin-inline:4px;}
+  .home-brand {flex-wrap:wrap;gap:8px;}
+  .public-hero .public-intro-copy {width:100%;}
 }

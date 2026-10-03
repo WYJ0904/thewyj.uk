@@ -147,7 +147,7 @@ async function clickWithImmediateFeedback(selector, label) {
 
 /** Opens a module the way a user does: module picker tile, direct route fallback. */
 async function openModule(kind, readyCondition, timeout = 30_000) {
-  await page.navigate("/select");
+  await page.navigate("/");
   const tile = `[data-module="${kind}"]`;
   const hasTile = await page.evaluate(`Boolean(document.querySelector(${JSON.stringify(tile)}))`);
   if (hasTile) await page.click(tile);
@@ -199,7 +199,7 @@ async function main() {
     });
 
     await check("learning sync now shows feedback before the upload", async () => {
-      await page.navigate("/select");
+      await page.navigate("/");
       await page.waitFor("document.querySelector('#learningSyncNowBtn')", 25_000, "learning sync button");
       await page.evaluate("document.querySelector('#learningSyncNowBtn')?.scrollIntoView()");
       await clickWithImmediateFeedback("#learningSyncNowBtn", "learning sync");
@@ -311,7 +311,7 @@ async function main() {
           respond: () => ({ status: 200, contentType: "image/png", delayMs: 20, bodyBase64: TINY_PNG_BASE64 }),
         },
       ]);
-      await page.navigate("/select");
+      await page.navigate("/");
       await page.click("#accountBtn");
       await page.waitFor("document.querySelector('#membershipBtn')", 10_000, "account menu");
       const opened = await page.evaluate(`(() => {
@@ -418,7 +418,7 @@ async function main() {
         await errorPage.waitFor("!document.querySelector('#loginForm')?.classList.contains('hidden')", 15_000, "login form");
         await errorPage.setFields({ "#usernameInput": BROWSER_USER, "#secretInput": BROWSER_SECRET });
         await errorPage.click("#loginSubmitBtn");
-        await errorPage.waitFor("location.pathname === '/select'", 30_000, "dashboard for the error path");
+        await errorPage.waitFor("location.pathname === '/'", 30_000, "dashboard for the error path");
         await errorPage.click("#accountBtn");
         await errorPage.waitFor("document.querySelector('#membershipBtn')", 10_000, "account menu for the error path");
         await errorPage.evaluate("document.querySelector('#membershipBtn').click(); true");

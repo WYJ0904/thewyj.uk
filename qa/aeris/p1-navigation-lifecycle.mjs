@@ -11,7 +11,7 @@ const results = {};
 try {
   await registerAndSignIn(page, { username: `nv${Date.now().toString(36)}`, secret: "Aeris-Navigation-2026!" });
   const session = await page.evaluate("localStorage.getItem('wyjAccountSession')");
-  await page.navigate("/select?native-navigation=1");
+  await page.navigate("/?native-navigation=1");
   await page.waitFor("Boolean(window.WYJAndroidNavigation)");
   await page.evaluate("window.__aerisDocumentMarker = 'retained'; true");
   const rapid = await page.evaluate(`(async () => {

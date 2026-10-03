@@ -111,7 +111,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20261003-aeris-p32-2"
+        release_token = "20261003-aeris-p33-2"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "design-system.css", "public-experience.css", "workspace-experience.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
@@ -121,7 +121,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)', self.app)
         for module in ("api", "config", "router", "session", "storage", "ui", "design-system"):
             self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20261003-aeris-p32-2"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20261003-aeris-p33-2"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         for asset in ("design-system.css", "public-experience.css", "workspace-experience.css"):
@@ -135,7 +135,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertFalse((ROOT / "404.html").exists())
 
     def test_browser_module_graph_uses_one_release_version(self):
-        release_token = "20261003-aeris-p32-2"
+        release_token = "20261003-aeris-p33-2"
         import_pattern = re.compile(
             r'(?:from\s+|import\s+)["\'](\.{1,2}/[^"\']+\.js(?:\?[^"\']*)?)["\']'
         )
@@ -186,7 +186,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertNotIn('data-trial-tool="temporary', self.html)
         self.assertNotIn('data-trial-tool="batch', self.html)
         self.assertIn("不保存匿名学习记录，不开放临时分享", self.html)
-        self.assertIn("预览中的文本、估算和文件清单留在本机", self.html)
+        self.assertIn("上方试用，都在当前浏览器运行", self.html)
+        self.assertIn("试算不记账；文件清单不自动上传", self.html)
 
     def test_changelog_feedback_and_voting_contract(self):
         self.assertIn("globalThis.WYJ_CHANGELOG", self.changelog)
@@ -255,9 +256,9 @@ class StaticSiteTests(unittest.TestCase):
         self.assertNotRegex(self.html, r">\s*[文+×↕]\s*<")
 
     def test_task19_design_system_two_contract(self):
-        self.assertIn('href="/design-system.css?v=20261003-aeris-p32-2"', self.html)
-        self.assertIn('href="/public-experience.css?v=20261003-aeris-p32-2"', self.html)
-        self.assertIn('href="/workspace-experience.css?v=20261003-aeris-p32-2"', self.html)
+        self.assertIn('href="/design-system.css?v=20261003-aeris-p33-2"', self.html)
+        self.assertIn('href="/public-experience.css?v=20261003-aeris-p33-2"', self.html)
+        self.assertIn('href="/workspace-experience.css?v=20261003-aeris-p33-2"', self.html)
         self.assertIn('id="siteNavToggle"', self.html)
         self.assertIn('id="siteNavPanel"', self.html)
         self.assertIn('id="themeToggleBtn"', self.html)
@@ -296,8 +297,14 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('.authenticated-home', self.workspace_styles)
         self.assertIn('.authenticated-product-grid', self.workspace_styles)
         self.assertIn('.authenticated-service-details', self.workspace_styles)
-        self.assertIn('class="module-picker authenticated-home hidden"', self.html)
-        self.assertIn('id="modulePickerTitle">继续今天的事</h1>', self.html)
+        self.assertEqual(self.html.count('id="publicHome"'), 1)
+        self.assertIn('data-legacy-home-marker', self.html)
+        self.assertNotIn('继续今天的事', self.html)
+        self.assertNotIn('class="aeris-launchpad-card"', self.html)
+        self.assertIn('home.dataset.sessionMode = account ? "authenticated" : "guest"', self.app)
+        self.assertIn('showPublicHome(false)', self.app)
+        for phrase in ('一个账户，日常所需', '一处继续', '清楚、可靠的产品', '不是功能清单'):
+            self.assertNotIn(phrase, self.html)
         self.assertNotIn('class="dashboard-metric"', self.html)
         self.assertNotIn('个人工作区', self.html)
         self.assertNotIn('今日概览', self.html)

@@ -519,8 +519,8 @@ async function main() {
   const useSession = async (session, pathname) => {
     await evaluate(`localStorage.setItem('wyjAccountSession', ${JSON.stringify(session)}); location.href = ${JSON.stringify(pathname)}; true`);
     await waitFor("!document.querySelector('#entryScreen') && !document.querySelector('#appShell')?.classList.contains('app-shell-pending')", 12_000, `${pathname} after splash`);
-    const routeReady = pathname === "/select"
-      ? "!document.querySelector('#modulePicker')?.classList.contains('hidden')"
+    const routeReady = pathname === "/"
+      ? "!document.querySelector('#publicHome')?.classList.contains('hidden')"
       : pathname === "/recharge"
         ? "!document.querySelector('#membershipModal')?.classList.contains('hidden')"
         : pathname === "/admin"
@@ -550,7 +550,7 @@ async function main() {
       const diagnostic = await evaluate(`({
         pathname: location.pathname,
         loginError: document.querySelector('#loginError')?.textContent || '',
-        modulePickerHidden: document.querySelector('#modulePicker')?.classList.contains('hidden'),
+        modulePickerHidden: document.querySelector('#publicHome')?.classList.contains('hidden'),
         authPanelHidden: document.querySelector('#authPanel')?.classList.contains('hidden'),
         sessionLength: (localStorage.getItem('wyjAccountSession') || '').length,
         accountCached: Boolean(localStorage.getItem('wyjAccountCache')),
@@ -700,13 +700,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20261003-aeris-p32-2');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20261003-aeris-p32-2');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261003-aeris-p32-2');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261003-aeris-p32-2');
-        const cachedChangelog = await caches.match('/changelog.js?v=20261003-aeris-p32-2');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261003-aeris-p32-2');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20261003-aeris-p32-2');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261003-aeris-p33-2');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261003-aeris-p33-2');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261003-aeris-p33-2');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261003-aeris-p33-2');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261003-aeris-p33-2');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261003-aeris-p33-2');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261003-aeris-p33-2');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -862,7 +862,7 @@ async function main() {
       assert.equal(await evaluate("location.pathname"), "/login");
       assert.equal(await evaluate("document.querySelector('#usernameInput').value"), USERNAME);
       await click("#loginSubmitBtn");
-      await waitFor("location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')", 12_000, "module picker");
+      await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 12_000, "module picker");
       assert.ok((await evaluate("localStorage.getItem('wyjAccountSession') || ''")).length > 20);
       assert.equal(await evaluate("document.documentElement.dataset.themePreference"), "light");
     });
@@ -874,21 +874,23 @@ async function main() {
 
     await check("authenticated product home continuity and responsive layout", async () => {
       assert.equal(await evaluate("document.body.dataset.experience"), "public");
-      assert.equal(await evaluate("document.querySelector('#modulePickerTitle').textContent.trim()"), "继续今天的事");
-      assert.ok((await evaluate("document.querySelector('#dashboardGreeting').textContent")).includes(`欢迎回来，${USERNAME}`));
-      assert.equal(await evaluate("document.querySelector('#modulePicker').classList.contains('authenticated-home')"), true);
-      assert.equal(await evaluate("document.querySelectorAll('#modulePicker .public-hero').length"), 0);
+      assert.equal(await evaluate("document.querySelector('#publicHomeTitle').textContent.trim()"), "Aeris");
+      assert.ok((await evaluate("document.querySelector('#dashboardGreeting').textContent")).includes(`${USERNAME}`));
+      assert.equal(await evaluate("document.querySelector('#publicHome').dataset.sessionMode === 'authenticated'"), true);
+      assert.equal(await evaluate("document.querySelectorAll('#publicHome .public-hero').length"), 1);
       assert.equal(await evaluate("document.querySelectorAll('.dashboard-metric').length"), 0);
-      assert.equal(await evaluate("document.querySelectorAll('.aeris-launchpad-card').length"), 6);
+      assert.equal(await evaluate("document.querySelectorAll('.capability-panel').length"), 5);
       assert.equal(await evaluate("document.querySelectorAll('[data-dashboard-project]').length"), 2);
-      assert.equal(await evaluate("document.querySelectorAll('#modulePicker [data-module=language]').length >= 1"), true);
-      assert.equal(await evaluate("document.querySelectorAll('#modulePicker [data-module=tools]').length >= 1"), true);
+      assert.equal(await evaluate("document.querySelectorAll('#publicHome [data-module=language]').length >= 1"), true);
+      assert.equal(await evaluate("document.querySelectorAll('#publicHome [data-module=tools]').length >= 1"), true);
       assert.equal(await evaluate("Boolean(document.querySelector('#dashboardFinanceBtn'))"), true);
       assert.match(await evaluate("document.querySelector('#dashboardAccountStatus').textContent"), /在线|离线/);
       assert.ok((await evaluate("document.querySelector('#dashboardLatestResult').textContent")).length > 4);
       await assertReadable("#dashboardMembershipName");
       await assertReadable("#dashboardMembershipExpiry");
+      await click('[data-core-capability=tools]>.capability-trigger');
       await assertReadable(".dashboard-empty");
+      await click('[data-core-capability=learning]>.capability-trigger');
       assert.equal(await evaluate("document.documentElement.dataset.themePreference"), "light");
       await click("#themeToggleBtn");
       assert.equal(await evaluate("document.documentElement.dataset.themePreference"), "dark");
@@ -898,30 +900,31 @@ async function main() {
       assert.equal(await evaluate("document.documentElement.dataset.themePreference"), "light");
       assert.equal(await evaluate("document.documentElement.dataset.theme"), "light");
       await delay(240);
-      assert.deepEqual(await auditVisibleTextContrast("#modulePicker"), []);
+      assert.deepEqual(await auditVisibleTextContrast("#publicHome"), []);
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
       const mobileHome = await evaluate(`({
         viewport: innerWidth,
         scrollWidth: document.documentElement.scrollWidth,
-        cards: document.querySelectorAll('.aeris-launchpad-card').length,
-        productColumns: getComputedStyle(document.querySelector('.aeris-launchpad-grid')).gridTemplateColumns.split(' ').length,
-        heroHeight: document.querySelector('.aeris-launchpad-heading').getBoundingClientRect().height,
-        headingVisible: document.querySelector('#modulePickerTitle').getBoundingClientRect().height > 0,
+        cards: document.querySelectorAll('.capability-panel').length,
+        productColumns: getComputedStyle(document.querySelector('.capability-gallery')).gridTemplateColumns.split(' ').length,
+        heroHeight: document.querySelector('.public-hero').getBoundingClientRect().height,
+        headingVisible: document.querySelector('#publicHomeTitle').getBoundingClientRect().height > 0,
       })`);
       assert.ok(mobileHome.scrollWidth <= mobileHome.viewport + 1, JSON.stringify(mobileHome));
-      assert.equal(mobileHome.cards, 6);
+      assert.equal(mobileHome.cards, 5);
       assert.equal(mobileHome.productColumns, 1);
-      assert.ok(mobileHome.heroHeight > 40 && mobileHome.heroHeight < 220, JSON.stringify(mobileHome));
+      assert.ok(mobileHome.heroHeight >= 600 && mobileHome.heroHeight < 1100, JSON.stringify(mobileHome));
       assert.equal(mobileHome.headingVisible, true);
       const mobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       fs.writeFileSync(path.join(TEST_ROOT, `authenticated-home-390-${RUN_ID}.png`), Buffer.from(mobileShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
       const desktopHome = await evaluate(`({
-        productColumns: getComputedStyle(document.querySelector('.aeris-launchpad-grid')).gridTemplateColumns.split(' ').length,
-        learningColumns: getComputedStyle(document.querySelector('.aeris-launchpad-links')).gridTemplateColumns.split(' ').length,
+        productColumns: getComputedStyle(document.querySelector('.capability-gallery')).gridTemplateColumns.split(' ').length,
+        learningButtons: [...document.querySelectorAll('[data-dashboard-project]')].map(e=>{const r=e.getBoundingClientRect();return {width:r.width,height:r.height};}),
       })`);
       assert.equal(desktopHome.productColumns, 3);
-      assert.equal(desktopHome.learningColumns, 1);
+      assert.equal(desktopHome.learningButtons.length, 2);
+      assert.ok(desktopHome.learningButtons.every(r=>r.width>=44&&r.height>=44));
       const wideShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `authenticated-home-1920-${RUN_ID}.png`), Buffer.from(wideShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 768, deviceScaleFactor: 1, mobile: false });
@@ -1041,7 +1044,7 @@ async function main() {
       const created = mine.feedback.find((item) => item.title === browserFeedbackTitle);
       assert.ok(created, JSON.stringify(mine));
       browserFeedbackId = created.id;
-      assert.equal(created.route, "/select");
+      assert.equal(created.route, "/");
       assert.equal(created.app_version, await evaluate("APP_VERSION"));
       const shot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       fs.writeFileSync(path.join(TEST_ROOT, `feedback-390-${RUN_ID}.png`), Buffer.from(shot.data, "base64"));
@@ -1058,7 +1061,7 @@ async function main() {
       });
       await evaluate("window.dispatchEvent(new Event('offline')); true");
       await waitFor("backendAvailable === false", 3_000, "offline state");
-      assert.equal(await evaluate("location.pathname"), "/select");
+      assert.equal(await evaluate("location.pathname"), "/");
       assert.equal(await evaluate("localStorage.getItem('wyjAccountSession')"), userSession);
 
       await send("Network.emulateNetworkConditions", {
@@ -1069,7 +1072,7 @@ async function main() {
       });
       await evaluate("window.dispatchEvent(new Event('online')); true");
       await waitFor("backendAvailable === true", 20_000, "automatic backend recovery");
-      assert.equal(await evaluate("location.pathname"), "/select");
+      assert.equal(await evaluate("location.pathname"), "/");
       assert.equal(await evaluate("localStorage.getItem('wyjAccountSession')"), userSession);
     });
 
@@ -1086,11 +1089,11 @@ async function main() {
       );
       await click('[data-close-modal="membershipModal"]');
       await click("#financeBackBtn");
-      await waitFor("location.pathname === '/select'", 4_000, "finance back to dashboard");
+      await waitFor("location.pathname === '/'", 4_000, "finance back to dashboard");
 
       await click('[data-module="tools"]');
       await waitFor("!document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, "membership modal");
-      assert.equal(await evaluate("location.pathname"), "/select");
+      assert.equal(await evaluate("location.pathname"), "/");
       await waitFor("selectedMembershipGoal === 'tools' && document.querySelectorAll('#membershipPlanList [data-plan]').length === 3", 12_000, "tool membership choices");
       const expectedByGoal = {
         english: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
@@ -1175,7 +1178,7 @@ async function main() {
       await waitFor("paymentQrObjectUrl === '' && !document.querySelector('#paymentQrImage').getAttribute('src')", 3_000, "payment QR object URL revoked");
       await evaluate("HTMLImageElement.prototype.decode = window.__wyjOriginalImageDecode; delete window.__wyjOriginalImageDecode; true");
       await evaluate("location.href = '/tools'; true");
-      await waitFor("location.pathname === '/select' && !document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, "direct tools guard");
+      await waitFor("location.pathname === '/' && !document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, "direct tools guard");
       await waitFor("!document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, "open payment order restored");
       assert.equal(await evaluate("selectedMembershipGoal"), "tools");
       assert.equal(await evaluate("document.querySelector('#paymentOrderBox').classList.contains('hidden')"), false);
@@ -1228,8 +1231,8 @@ async function main() {
         await waitFor("!currentPaymentOrder && document.querySelector('#paymentOrderBox').classList.contains('hidden')", 8_000, `${method} order cancellation`);
         await click('[data-close-modal="membershipModal"]');
       }
-      await useSession(userSession, "/select");
-      await waitFor("!document.querySelector('#modulePicker')?.classList.contains('hidden')", 8_000, "main user dashboard restored");
+      await useSession(userSession, "/");
+      await waitFor("!document.querySelector('#publicHome')?.classList.contains('hidden')", 8_000, "main user dashboard restored");
     });
 
     await check("word import, export, shuffle and clear", async () => {
@@ -1241,7 +1244,7 @@ async function main() {
       } catch (error) {
         const state = await evaluate(`({
           path: location.pathname,
-          moduleHidden: document.querySelector('#modulePicker')?.classList.contains('hidden'),
+          moduleHidden: document.querySelector('#publicHome')?.classList.contains('hidden'),
           pickerHidden: document.querySelector('#projectPicker')?.classList.contains('hidden'),
           projectHidden: document.querySelector('#projectApp')?.classList.contains('hidden'),
           workspaceHidden: document.querySelector('#workspace')?.classList.contains('hidden'),
@@ -1496,9 +1499,9 @@ async function main() {
       const ensureEnglishProject = async () => {
         if (await evaluate("location.pathname === '/tools'")) {
           await tap("#leaveToolsBtn");
-          await waitFor("location.pathname === '/select'", 5_000, "leave tools");
+          await waitFor("location.pathname === '/'", 5_000, "leave tools");
         }
-        if (await evaluate("location.pathname === '/select'")) {
+        if (await evaluate("location.pathname === '/'")) {
           await tap('[data-module="language"]');
           await waitFor("location.pathname === '/language'", 5_000, "language picker from dashboard");
         }
@@ -1610,14 +1613,14 @@ async function main() {
       await tap('[data-view="quizView"]');
       await tap("#accountMenu summary");
       await tap("#homeBtn");
-      await waitFor("location.pathname === '/select'", 5_000, "scenario D dashboard");
+      await waitFor("location.pathname === '/'", 5_000, "scenario D dashboard");
       await tap('[data-module="language"]');
       await tap('[data-project="english"]');
       await waitFor("location.pathname === '/language/english'", 8_000, "scenario D first return");
       assert.ok(Number((await evaluate("document.querySelector('#progressLabel').textContent")).split("/")[0]) <= 2);
       await tap("#backProjectBtn");
       await tap("#languageBackBtn");
-      await waitFor("location.pathname === '/select'", 5_000, "scenario D module picker");
+      await waitFor("location.pathname === '/'", 5_000, "scenario D module picker");
       await tap('[data-module="tools"]');
       await waitFor("location.pathname === '/tools' && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 10_000, "scenario D tools");
       await tap("#leaveToolsBtn");
@@ -1984,7 +1987,7 @@ async function main() {
         };
       })();`;
       await send("Page.addScriptToEvaluateOnNewDocument", { source: financeStubSource });
-      await useSession(userSession, "/select");
+      await useSession(userSession, "/");
       await evaluate(financeStubSource);
       await evaluate(`(() => {
         const server = window.__financeBrowserServer;
@@ -2107,8 +2110,8 @@ async function main() {
       // than showing a stale green delete banner on another route or later visit.
       await click(`[data-finance-delete="${expenseId}"]`);
       await waitFor("!document.querySelector('#financeUndoBar').classList.contains('hidden')", 3_000, "second finance delete undo");
-      await navigate("/select");
-      await waitFor("location.pathname === '/select'", 4_000, "leave finance with undo pending");
+      await navigate("/");
+      await waitFor("location.pathname === '/'", 4_000, "leave finance with undo pending");
       await navigate("/finance");
       await waitFor("location.pathname === '/finance' && !document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 8_000, "return to finance");
       assert.equal(
@@ -2230,7 +2233,7 @@ async function main() {
     });
 
     await check("accepted feature voting can be added and cancelled", async () => {
-      await useSession(userSession, "/select");
+      await useSession(userSession, "/");
       await click("#accountMenu summary");
       await click("#feedbackBtn");
       await waitFor("!document.querySelector('#feedbackModal')?.classList.contains('hidden')", 3_000, "feedback modal for voting");
@@ -2249,8 +2252,8 @@ async function main() {
     });
 
     await check("full member toolbox, AI vocabulary and account secret/logout draft cleanup", async () => {
-      await useSession(userSession, "/select");
-      await waitFor("!document.querySelector('#modulePicker')?.classList.contains('hidden')", 8_000, "member module picker");
+      await useSession(userSession, "/");
+      await waitFor("!document.querySelector('#publicHome')?.classList.contains('hidden')", 8_000, "member module picker");
       assert.ok((await evaluate("document.querySelector('#moduleMembershipStatus').textContent")).includes("全功能包月会员"));
       await click('[data-module="tools"]');
       await waitFor("location.pathname === '/tools' && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 12_000, "member tools access");
@@ -2271,7 +2274,7 @@ async function main() {
       assert.equal(await evaluate("localStorage.getItem('wyj_theme_preference_v1')"), themeBeforeLogout);
       await setFields({ "#usernameInput": USERNAME, "#secretInput": USER_SECRET });
       await click("#loginSubmitBtn");
-      await waitFor("location.pathname === '/select'", 10_000, "relogin");
+      await waitFor("location.pathname === '/'", 10_000, "relogin");
       assert.equal(await evaluate("localStorage.getItem('wyj_theme_preference_v1')"), themeBeforeLogout);
       await click('[data-module="language"]');
       await click('[data-project="english"]');
@@ -2295,7 +2298,7 @@ async function main() {
 
     await check("self-service account deletion", async () => {
       const disposable = await createUser("selfdelete");
-      await useSession(disposable.session, "/select");
+      await useSession(disposable.session, "/");
       await click("#accountBtn");
       await click("#openDeleteAccountBtn");
       await waitFor("!document.querySelector('#deleteAccountModal')?.classList.contains('hidden')", 3_000, "delete confirmation");
@@ -2346,23 +2349,23 @@ async function main() {
       // browser matrix without the native HttpOnly cookie.
       const refreshedMember = await api("/api/login", { username: USERNAME, secret: USER_SECRET_NEW });
       assert.ok(String(refreshedMember.session || "").length > 20, "matrix user could not sign in again");
-      await evaluate(`localStorage.setItem('wyjAccountSession', ${JSON.stringify(refreshedMember.session)}); location.href = '/select?native-navigation=1'; true`);
+      await evaluate(`localStorage.setItem('wyjAccountSession', ${JSON.stringify(refreshedMember.session)}); location.href = '/?native-navigation=1'; true`);
       await waitFor("!!window.WYJAndroidNavigation", 10_000, "native navigation bridge");
-      await waitFor("!document.querySelector('#modulePicker')?.classList.contains('hidden')", 10_000, "module picker for native navigation");
+      await waitFor("!document.querySelector('#publicHome')?.classList.contains('hidden')", 10_000, "module picker for native navigation");
       const initial = await evaluate(
-        "location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')",
+        "location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')",
       );
       assert.equal(initial, true);
 
       // Every tap applies the URL and the surface immediately, even while the
       // previous tab is still loading data.
       const targets = [
-        { route: "/select", surface: "#modulePicker" },
+        { route: "/", surface: "#publicHome" },
         { route: "/language", surface: "#projectPicker" },
         { route: "/tools", surface: "#toolsPanel" },
         { route: "/finance", surface: "#financePage" },
         { route: "/transfer", surface: "#transferPage" },
-        { route: "/select", surface: "#modulePicker" },
+        { route: "/", surface: "#publicHome" },
       ];
       for (const target of targets) {
         const started = await evaluate(
@@ -2383,14 +2386,14 @@ async function main() {
       // queued page.
       await evaluate(`(() => {
         const navigation = window.WYJAndroidNavigation;
-        for (const route of ['/language/japanese', '/tools', '/finance', '/transfer', '/select']) {
+        for (const route of ['/language/japanese', '/tools', '/finance', '/transfer', '/']) {
           navigation.navigate(route);
         }
         window.__wyjRapidStart = performance.now();
         return true;
       })()`);
       await waitFor(
-        "location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')",
+        "location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')",
         3_000,
         "coalesced rapid navigation",
       );
