@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {publicTextMetrics,publicBudgetBalance,publicLearningResult} from '../js/core/public-experience.js';
+import {publicTextMetrics,publicBudgetBalance,publicLearningResult,publicPlanCatalog} from '../js/core/public-experience.js';
 assert.deepEqual(publicTextMetrics('A😀\r\n你'),{characters:5,lines:2});
 assert.deepEqual(publicTextMetrics(''),{characters:0,lines:0});
 assert.deepEqual(publicTextMetrics('a\rb\nc'),{characters:5,lines:3});
@@ -9,4 +9,6 @@ assert.equal(publicBudgetBalance('bad','-20'),0);
 assert.equal(publicBudgetBalance('1e99','0'),0);
 assert.ok(publicLearningResult('phone').startsWith('正确'));
 assert.ok(publicLearningResult('weather').startsWith('再想一下'));
+const plans=[{code:'module',name:'目录模块',price_cents:1234,currency:'CNY',duration_months:1,purchasable:true,entitlements:[]},{code:'all',name:'目录全功能',price_cents:4321,currency:'CNY',duration_months:1,purchasable:true,entitlements:['all_features_access']},{code:'life',name:'目录永久',price_cents:78900,currency:'CNY',lifetime:true,purchasable:true},{code:'hidden',price_cents:1,currency:'CNY',purchasable:false},{code:'invalid',currency:'CNY',purchasable:true}];
+const catalog=publicPlanCatalog(plans);assert.equal(catalog.modules.length,1);assert.equal(catalog.modules[0].price,'¥12.34');assert.equal(catalog.modules[0].term,'每月');assert.equal(catalog.permanent.length,2);assert.equal(catalog.permanent[1].term,'永久');assert.deepEqual(publicPlanCatalog(null),{modules:[],permanent:[]});assert.equal(plans[0].price_cents,1234);
 console.log('PASS P3 public preview: Unicode, line endings, money precision, bounded invalid values, answer feedback');

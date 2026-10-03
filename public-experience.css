@@ -1187,6 +1187,64 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
 body[data-experience="public"] #versionNotice:not(.hidden) { position:relative;inset:auto;max-width:1072px;width:calc(100% - 48px);margin:16px auto 0;box-shadow:none;animation:none;z-index:auto; } .aeris-membership-status { font-size:13px;color:var(--ds-text-secondary,#475569);margin:0 0 18px; }
 /* Browser zoom can reduce the layout viewport below a phone's physical width. */
 html:has(body[data-experience="public"]),body[data-experience="public"] {min-width:0;}
+/* P3.1 restores the information architecture with the current Aeris surfaces. */
+#publicHome [data-public-section] {min-width:0;}
+.aeris-home-hero {margin-bottom:40px;}
+.aeris-home-hero .aeris-public-intro {margin-bottom:24px;}
+.aeris-scene-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;}
+.aeris-scene-card {display:flex;flex-direction:column;gap:12px;min-width:0;padding:20px;border:1px solid var(--ds-border);border-radius:8px;background:var(--ds-surface);}
+.aeris-scene-card header {display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.aeris-scene-card h3 {font-size:14px;margin:0;}
+.aeris-scene-card header span,.aeris-scene-card small {font-size:12px;color:var(--ds-text-secondary);}
+.aeris-scene-card p {font-size:13px;line-height:1.6;margin:0;color:var(--ds-text-secondary);}
+.aeris-scene-word {display:grid;gap:4px;}
+.aeris-scene-word strong {font-size:30px;line-height:1.25;}
+.aeris-scene-word span {font-size:13px;color:var(--ds-text-secondary);}
+.aeris-scene-ledger {display:grid;gap:8px;}
+.aeris-scene-ledger strong {font-size:23px;}
+.aeris-scene-code {font-family:ui-monospace,monospace;font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0;padding:12px;background:var(--ds-surface-subtle);border-radius:4px;}
+.aeris-scene-card>button {margin-top:auto;align-self:flex-start;min-height:44px;padding-inline:0;white-space:normal;text-align:left;}
+.aeris-capabilities-section {display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.6fr);gap:48px;margin-top:64px;}
+.aeris-home-section-heading>p:first-child {font-size:12px;font-weight:650;letter-spacing:.08em;color:var(--ds-text-secondary);margin:0 0 10px;}
+.aeris-home-section-heading h2 {font-size:27px;line-height:1.4;letter-spacing:-.025em;margin:0 0 12px;}
+.aeris-home-section-heading>p {font-size:14px;line-height:1.8;color:var(--ds-text-secondary);margin:0;}
+.aeris-capability-list {min-width:0;}
+.aeris-capability-link {display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:16px;min-height:96px;padding:20px 0;border-bottom:1px solid var(--ds-border);color:var(--ds-text);text-decoration:none;}
+.aeris-capability-link:first-child {border-top:1px solid var(--ds-border);}
+.aeris-capability-number {font-size:12px;color:var(--ds-text-secondary);}
+.aeris-capability-link h3 {font-size:17px;margin:0 0 6px;}
+.aeris-capability-link p {font-size:13px;line-height:1.7;margin:0;color:var(--ds-text-secondary);overflow-wrap:anywhere;}
+.aeris-capability-entry {font-size:12px;white-space:nowrap;color:var(--ds-brand);}
+.aeris-privacy-section {margin-top:64px;padding:28px 0;border-top:1px solid var(--ds-border);border-bottom:1px solid var(--ds-border);}
+.aeris-privacy-section .aeris-home-section-heading h2 {font-size:23px;}
+.aeris-privacy-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;margin-top:24px;}
+.aeris-privacy-grid h3 {font-size:14px;margin:0 0 10px;}
+.aeris-privacy-grid p {font-size:13px;line-height:1.8;color:var(--ds-text-secondary);margin:0;}
+.aeris-plans-section {margin-top:64px;}
+.aeris-plan-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:24px;}
+.aeris-plan-card {display:flex;flex-direction:column;align-items:stretch;gap:14px;min-width:0;padding:22px;border:1px solid var(--ds-border);border-radius:8px;background:var(--ds-surface);}
+.aeris-plan-card h3 {font-size:18px;margin:0;}
+.aeris-plan-card>p {font-size:13px;line-height:1.8;color:var(--ds-text-secondary);margin:0;}
+.aeris-plan-features {padding-left:18px;font-size:14px;line-height:2;margin:0 0 8px;}
+.aeris-plan-catalog {list-style:none;padding:0;margin:0;min-height:0;font-size:12px;}
+.aeris-plan-catalog li {display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 8px;padding:9px 0;border-bottom:1px solid var(--ds-border);}
+.aeris-plan-catalog strong {font-weight:650;white-space:nowrap;}
+.aeris-plan-card>button {margin-top:auto;min-height:44px;white-space:normal;}
+.aeris-catalog-status {display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:14px;}
+.aeris-catalog-status p {font-size:12px;color:var(--ds-text-secondary);margin:0;}
+.aeris-final-cta {margin-top:48px;padding:28px 0 0;border-top:1px solid var(--ds-border);display:flex;justify-content:space-between;align-items:center;gap:24px;}
+.aeris-final-cta h2 {font-size:23px;margin:0 0 10px;}
+.aeris-final-cta p {font-size:14px;color:var(--ds-text-secondary);margin:0;line-height:1.7;}
+.aeris-final-cta .public-actions {flex-wrap:wrap;flex-shrink:0;margin:0;}
+.aeris-final-cta button,.aeris-final-cta a {min-height:44px;}
+@media (hover:hover) and (pointer:fine) {.aeris-capability-link:hover {background:var(--ds-surface-subtle);}}
+@media (max-width:900px) {.aeris-capabilities-section {grid-template-columns:1fr;gap:24px;}.aeris-plan-grid {grid-template-columns:1fr;}.aeris-plan-catalog {min-height:0;}.aeris-final-cta {align-items:flex-start;flex-direction:column;}}
+@media (max-width:560px) {
+  .aeris-scene-grid,.aeris-privacy-grid {grid-template-columns:1fr;gap:12px;}.aeris-scene-card {padding:18px;gap:10px;}.aeris-home-hero {margin-bottom:28px;}
+  .aeris-home-section-heading h2 {font-size:23px;}.aeris-capabilities-section,.aeris-privacy-section,.aeris-plans-section {margin-top:40px;}
+  .aeris-capability-link {grid-template-columns:20px minmax(0,1fr);gap:8px 12px;padding:18px 0;}.aeris-capability-entry {grid-column:2;}
+  .aeris-plan-card {padding:18px;}.aeris-final-cta .public-actions {width:100%;gap:8px;}.aeris-final-cta .public-actions>* {flex:1 1 110px;white-space:normal;}
+}
 @media (max-width:360px) {
   body[data-experience="public"] .site-nav-bar {display:flex;flex-wrap:wrap;gap:6px;}
   body[data-experience="public"] .site-brand {flex:1 0 80px;max-width:100%;}
