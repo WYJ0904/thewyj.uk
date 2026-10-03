@@ -787,7 +787,7 @@ jobs:
             --d1 WYJ_DB \
             --r2 WYJ_STORAGE \
             --show-interactive-dev-session false \
-            --log-level info \
+            --log-level debug \
             --binding WYJ_ENVIRONMENT=development \
             --binding CLOUD_FOUNDATION_ENABLED=true \
             --binding CLOUD_STATUS_MODE=cloud \
