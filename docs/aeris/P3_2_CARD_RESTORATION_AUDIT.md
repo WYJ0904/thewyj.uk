@@ -71,7 +71,11 @@ height is 525.04px in both; tools, finance, share and account are 520px in both.
 All five restored previews were opened and visually inspected. The account
 preview has a small content-height difference from the explicit demo label and
 honest account wording; its outer card composition and width remain intact.
-Forty local width/theme/preview combinations and twenty half-width reflow
-combinations had no horizontal overflow or clipped preview text. The retained
+The local matrix records actual innerWidth for every width/theme/preview case.
+The CUA window clamps below 240px; exact 160/195px layouts are checked separately
+in CI with explicit viewport assertions and preview-clipping checks. A 240px
+manual probe caught the budget's minimum track overriding the compatibility
+rule; placing compatibility after the unchanged P2 CSS resolves the clipping.
+The retained
 Product Window produced nine Unicode characters/two lines, a 69.99 local
 balance, answer feedback, and an owned file-list preview without uploading.

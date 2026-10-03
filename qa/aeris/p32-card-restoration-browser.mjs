@@ -7,7 +7,7 @@ const baseUrl=process.env.WYJ_TEST_BASE||'http://127.0.0.1:8894';
 assert.equal(new URL(baseUrl).hostname,'127.0.0.1');
 const results=[];
 const previews={learning:['電話','でんわ','正确'],tools:['JSON 格式化','图片压缩','SHA-256','随机密码'],finance:['收入','支出','余额','日常餐饮','月预算','非真实数据'],share:['project-notes.pdf','24 小时','3 次','share/file','无实际上传'],account:['演示账户','演示已同步','语言学习','最近更新','非当前用户状态']};
-const measure=`(()=>{const gallery=document.querySelector('.capability-gallery'),active=gallery.querySelector('.capability-panel.active'),preview=active.querySelector('.product-preview'),rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};return {viewport:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,columns:getComputedStyle(gallery).gridTemplateColumns.split(' ').length,span:getComputedStyle(active).gridColumnStart,gallery:rect(gallery),active:rect(active),preview:rect(preview),border:getComputedStyle(active).borderTopWidth,selected:active.dataset.coreCapability,visibleBodies:[...gallery.querySelectorAll('.capability-body')].filter(e=>!e.hidden).length};})()`;
+const measure=`(()=>{const gallery=document.querySelector('.capability-gallery'),active=gallery.querySelector('.capability-panel.active'),preview=active.querySelector('.product-preview'),rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};return {viewport:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,columns:getComputedStyle(gallery).gridTemplateColumns.split(' ').length,span:getComputedStyle(active).gridColumnStart,gallery:rect(gallery),active:rect(active),preview:rect(preview),clipped:[preview,...preview.querySelectorAll('*')].filter(e=>e.clientWidth>0&&e.scrollWidth>e.clientWidth+1).map(e=>e.className),border:getComputedStyle(active).borderTopWidth,selected:active.dataset.coreCapability,visibleBodies:[...gallery.querySelectorAll('.capability-body')].filter(e=>!e.hidden).length};})()`;
 for(const width of [320,390,1366,1920]){
   const page=await openPage({cdpUrl:process.env.WYJ_CDP_URL||'http://127.0.0.1:9225',baseUrl,width,height:900,mobile:width<=390});
   try{
@@ -24,11 +24,13 @@ for(const width of [320,390,1366,1920]){
       for(const [kind,content]of Object.entries(previews)){
         await page.click(`[data-core-capability=${kind}]>.capability-trigger`);await delay(180);
         const text=await page.evaluate("document.querySelector('.capability-panel.active .product-preview').textContent");for(const token of content)assert.ok(text.includes(token),`${kind}: missing visual content ${token}`);
-        const geometry=await page.evaluate(measure);assert.equal(geometry.selected,kind);assert.equal(geometry.visibleBodies,1);assert.ok(geometry.preview.width>0&&geometry.preview.height>=299);assert.ok(geometry.overflow<=1);assert.notEqual(geometry.border,'0px');
+        const geometry=await page.evaluate(measure);assert.equal(geometry.viewport,width);assert.equal(geometry.selected,kind);assert.equal(geometry.visibleBodies,1);assert.ok(geometry.preview.width>0&&geometry.preview.height>=299);assert.ok(geometry.overflow<=1);assert.deepEqual(geometry.clipped,[]);assert.notEqual(geometry.border,'0px');
         if(width>980){assert.equal(geometry.columns,3);assert.equal(geometry.span,'span 2');assert.ok(geometry.active.width>geometry.gallery.width*.6);assert.ok(geometry.active.height>=519);}else{assert.equal(geometry.columns,1);}
         assert.equal(await page.evaluate("window.__p32Nodes.every((node,i)=>node===document.querySelectorAll('.capability-body')[i])"),true);
         cards.push(geometry);
-        await page.send('Emulation.setDeviceMetricsOverride',{width:Math.floor(width/2),height:450,deviceScaleFactor:2,mobile:false});assert.ok((await page.evaluate(measure)).overflow<=1,`${kind} 200% reflow`);await page.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<=390});
+        await page.send('Emulation.setDeviceMetricsOverride',{width:Math.floor(width/2),height:450,deviceScaleFactor:2,mobile:false});
+        const reflow=await page.evaluate(measure);assert.equal(reflow.viewport,Math.floor(width/2));assert.ok(reflow.overflow<=1,`${kind} 200% reflow`);assert.deepEqual(reflow.clipped,[],`${kind} preview must remain readable at 200%`);geometry.reflow=reflow;
+        await page.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<=390});
       }
       await page.evaluate("document.querySelector('[data-core-capability=learning]>.capability-trigger').focus()");
       await page.send('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});await page.send('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});assert.equal((await page.evaluate(measure)).selected,'tools');

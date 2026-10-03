@@ -301,29 +301,6 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
   width: min(640px, 60%);
 }
 
-.aeris-hero-logo {object-fit:contain;background:#fff;border-radius:8px;}
-.aeris-window-shortcuts {display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
-#publicHome>.aeris-product-window,#publicHome>.aeris-privacy-section,#publicHome>.aeris-plans-section,#publicHome>.aeris-final-cta {width:min(calc(100% - 40px),var(--ds-container-default));margin-left:auto;margin-right:auto;}
-.capability-copy>.button-link {flex-shrink:0;white-space:normal;}
-.preview-demo-label {margin:0 0 12px;color:var(--ds-text-secondary);font-size:12px;}
-.product-preview * {min-width:0;overflow-wrap:anywhere;}
-.capability-trigger:focus-visible {outline:var(--ds-focus-ring);outline-offset:-4px;}
-@media (max-width:760px) {
-  #publicHome>.aeris-product-window,#publicHome>.aeris-privacy-section,#publicHome>.aeris-plans-section,#publicHome>.aeris-final-cta {width:calc(100% - 32px);}
-  .capability-copy>.button-link {width:100%;}
-  .preview-budget {grid-template-columns:1fr;}
-  .preview-file,.preview-account,.preview-share-meta,.preview-transaction {flex-wrap:wrap;}
-}
-@media (max-width:360px) {
-  .public-hero {height:auto;min-height:640px;padding:204px 16px 32px;}
-  .hero-scene-card {width:150px;padding:12px;}
-  .public-hero h1 {font-size:44px;}
-  .public-hero .public-actions>* {width:100%;white-space:normal;}
-  .capability-copy,.capability-body,.product-preview {gap:12px;padding:12px;}
-  .preview-file {padding:8px;}
-  .preview-file-icon {flex-shrink:0;}
-}
-
 .public-hero .section-kicker {
   color: var(--ds-stage-brand);
 }
@@ -1254,4 +1231,28 @@ html:has(body[data-experience="public"]),body[data-experience="public"] {min-wid
   .aeris-product-tabs>button {padding-inline:2px;white-space:normal;}
   .aeris-budget-inputs {grid-template-columns:1fr;}
   .aeris-answer-options {flex-wrap:wrap;}
+}
+
+/* Minimal Aeris/reflow compatibility after the unchanged P2 rules. */
+.aeris-hero-logo {object-fit:contain;background:#fff;border-radius:8px;}
+.aeris-window-shortcuts {display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+#publicHome>.aeris-product-window,#publicHome>.aeris-privacy-section,#publicHome>.aeris-plans-section,#publicHome>.aeris-final-cta {width:min(calc(100% - 40px),var(--ds-container-default));margin-left:auto;margin-right:auto;}
+.capability-copy>.button-link {flex-shrink:0;white-space:normal;}
+.preview-demo-label {margin:0 0 12px;color:var(--ds-text-secondary);font-size:12px;}
+.product-preview * {min-width:0;overflow-wrap:anywhere;}
+.capability-trigger:focus-visible {outline:var(--ds-focus-ring);outline-offset:-4px;}
+@media (max-width:760px) {
+  #publicHome>.aeris-product-window,#publicHome>.aeris-privacy-section,#publicHome>.aeris-plans-section,#publicHome>.aeris-final-cta {width:calc(100% - 32px);}
+  .capability-copy>.button-link {width:100%;}
+  .preview-budget {grid-template-columns:1fr;}
+  .preview-file,.preview-account,.preview-share-meta,.preview-transaction {flex-wrap:wrap;}
+}
+@media (max-width:360px) {
+  .public-hero {height:auto;min-height:640px;padding:204px 16px 32px;}
+  .hero-scene-card {width:150px;padding:12px;}
+  .public-hero h1 {font-size:44px;}
+  .public-hero .public-actions>* {width:100%;white-space:normal;}
+  .capability-copy,.capability-body,.product-preview {gap:12px;padding:12px;}
+  .preview-file {padding:8px;}
+  .preview-file-icon {flex-shrink:0;}
 }
