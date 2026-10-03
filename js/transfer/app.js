@@ -1,8 +1,9 @@
-import { randomId } from "../core/capabilities.js?v=20261003-aeris-p3-2";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261003-aeris-p3-2";
-import { getSafeStorage } from "../core/storage.js?v=20261003-aeris-p3-2";
-import { withInteractionFeedback } from "../core/perf.js?v=20261003-aeris-p3-2";
-import { createTransferUpdateScheduler } from "./updates.js?v=20261003-aeris-p3-2";
+import { randomId } from "../core/capabilities.js?v=20261003-aeris-p3-3";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261003-aeris-p3-3";
+import { getSafeStorage } from "../core/storage.js?v=20261003-aeris-p3-3";
+import { withInteractionFeedback } from "../core/perf.js?v=20261003-aeris-p3-3";
+import { createTransferUpdateScheduler } from "./updates.js?v=20261003-aeris-p3-3";
+import { putPartWithRecovery } from "./upload-part.js?v=20261003-aeris-p3-3";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -785,26 +786,15 @@ export function createTransferController({
     item.controllers.add(controller);
     item.controller = controller;
     item.activeUploads = (Number(item.activeUploads) || 0) + 1;
-    const response = await fetch(
-      `/api/transfer/uploads/${item.sessionId}/files/${item.fileId}/parts/${partNumber}`,
-      {
-        method: "PUT",
-        headers: headers({ "Content-Type": "application/octet-stream", "X-Part-Sha256": partHash }),
-        body,
-        signal: controller.signal,
-      },
-    ).finally(() => {
+    await putPartWithRecovery({
+      url: `/api/transfer/uploads/${item.sessionId}/files/${item.fileId}/parts/${partNumber}`,
+      headers: () => headers({ "Content-Type": "application/octet-stream", "X-Part-Sha256": partHash }),
+      body, signal: controller.signal,
+    }).finally(() => {
       item.controllers?.delete(controller);
       item.activeUploads = Math.max(0, (Number(item.activeUploads) || 1) - 1);
       if (item.activeUploads === 0) item.controller = null;
     });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      const error = new Error(data.error || `分片上传失败（HTTP ${response.status}）`);
-      error.code = data.code || "part_failed";
-      error.status = response.status;
-      throw error;
-    }
     return body.size;
   }
 

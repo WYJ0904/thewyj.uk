@@ -223,6 +223,9 @@ jobs:
       - name: Test transfer progress and persistence coalescing
         run: node local-backend/test_transfer_updates_js.mjs
 
+      - name: Test stalled multipart connection recovery
+        run: node local-backend/test_upload_part_recovery_js.mjs
+
       - name: Test JavaScript tools
         run: |
           set -euo pipefail
