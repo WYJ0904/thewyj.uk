@@ -936,6 +936,8 @@ async function main() {
     });
 
     await check("learning data sync is local-first and receives a second-device update", async () => {
+      await click('[data-core-capability=account]>.capability-trigger');
+      await click('.authenticated-service-details>summary');
       await waitFor(
         "/已同步|已合并/.test(document.querySelector('#dashboardSyncStatus')?.textContent || '')",
         15_000,
