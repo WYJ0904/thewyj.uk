@@ -34,6 +34,7 @@ class PaymentHintSync(
     private val accountOverride: (() -> uk.thewyj.app.task21.NotificationCaptureCoordinator.CaptureAccount?)? = null,
 ) {
     private val app = context.applicationContext
+    private val productionStore = hintedStore == null
     private val sessions = NotificationSessionProvider(app)
     private val store: PaymentRecognitionStoreContract =
         hintedStore ?: RoomPaymentRecognitionStore(NotificationDatabase.get(app))
@@ -88,7 +89,7 @@ class PaymentHintSync(
                 }
                 continue
             }
-            if (record.kind == "hint") {
+            if (record.kind == "hint" || record.kind == "booking") {
                 ids.forEach { eventId ->
                     if (record.state == "confirmed" && record.transactionId.isNotBlank()) {
                         applyConfirmed(account, eventId, record.transactionId, JSONObject())
@@ -132,6 +133,10 @@ class PaymentHintSync(
         val account = (accountOverride?.invoke()
             ?: runCatching { sessions.currentAccount() }.getOrNull()) ?: return false
         if (!account.financeEntitled || account.accountId != accountId) return false
+        if (productionStore) {
+            LocalPaymentLedger.recover(app, accountId, account.deviceId)
+            uk.thewyj.app.task21.NotificationCapturePipeline.create(app, sessions).flushDetailed()
+        }
         val recognition = runCatching { store.recognition(accountId, recognitionId) }.getOrNull() ?: return false
         val archivedIds = runCatching {
             (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
@@ -380,11 +385,12 @@ class PaymentHintSync(
             store.recognitionsByState(account.accountId, PaymentVerificationCenter.ATTENTION_STATES, 200)
         }.getOrDefault(emptyList())
         val archive = archiveSink ?: NotificationArchiveSinkFactory.forContext(app)
-        val allRequested = local.flatMap { recognition ->
+        val allRequested = (local.flatMap { recognition ->
             listOf(recognition.uploadEventId.trim()) +
                 runCatching { archive.structuredEventIdsForRecognition(account.accountId, recognition.sourceEventId) }
                     .getOrDefault(emptyList())
-        }.filter(String::isNotBlank).distinct()
+        } + store.localBookings(account.accountId).filter { it.syncState != "synced" }.map { it.eventId })
+            .filter(String::isNotBlank).distinct()
         val cursor = SUMMARY_CURSORS.computeIfAbsent(account.accountId) { AtomicInteger() }
         val start = if (allRequested.isEmpty()) 0 else Math.floorMod(cursor.getAndAdd(200), allRequested.size)
         val requested = if (allRequested.size <= 200) allRequested else (allRequested + allRequested).drop(start).take(200)
@@ -427,7 +433,7 @@ class PaymentHintSync(
                 continue
             }
             when (row.optString("kind")) {
-                "hint" -> eventIds.forEach { eventId ->
+                "hint", "booking" -> eventIds.forEach { eventId ->
                     if (state == "confirmed" && row.optString("transaction_id").isNotBlank()) {
                         applyConfirmed(account, eventId, row.optString("transaction_id"), row)
                     } else if (state in setOf("ignored", "rejected", "superseded", "expired")) {
@@ -544,6 +550,7 @@ class PaymentHintSync(
     ) {
         val accountId = account.accountId
         val cacheChanged = CanonicalPendingCache(app, accountId).terminalize(eventIds, "confirmed", financeEntryId)
+        if (financeEntryId.isNotBlank()) eventIds.forEach { store.acknowledgeLocalBooking(accountId, it, financeEntryId) }
         eventIds.forEach { eventId ->
             runCatching {
                 (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
@@ -624,6 +631,7 @@ class PaymentHintSync(
     ) {
         val accountId = account.accountId
         val cacheChanged = CanonicalPendingCache(app, accountId).terminalize(setOf(eventId), "confirmed", financeEntryId)
+        if (financeEntryId.isNotBlank()) store.acknowledgeLocalBooking(accountId, eventId, financeEntryId)
         // The archive link is canonical and independent of the local recognition
         // row: a Web/Android confirm must close the notification-side state even
         // when this device never created a local candidate for that event.

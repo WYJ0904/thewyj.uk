@@ -27,7 +27,7 @@ object PendingReviewReconciler {
         remoteSummary: PendingReviewSummary,
     ): Snapshot {
         val local = localRecognitions.filter { it.state in PaymentVerificationCenter.ATTENTION_STATES }
-        val localIds = local.map { it.uploadEventId.trim() }.filter(String::isNotEmpty).toSet()
+        val localIds = local.map { PaymentAutoBook.eventId(it) }.toSet()
         val unresolved = local.count { it.uploadEventId.isBlank() }
         val pending = remoteSummary.records.filter { it.state == "pending" }.distinctBy { it.id }
         val terminalIds = remoteSummary.records.filter { it.state != "pending" }.flatMap { it.eventIds }.toSet()
@@ -36,11 +36,11 @@ object PendingReviewReconciler {
         val localOnly = (localIds - pendingIds - terminalIds).size
         val remoteOnly = (remoteSummary.totalCount - overlap).coerceAtLeast(0)
         return Snapshot(
-            // The user-visible count is the server's canonical actionable set.
-            // Local-only rows remain in Room for offline recovery, but cannot
-            // inflate the normal notification/Finance pending count.
-            total = remoteSummary.totalCount,
-            local = (localIds - terminalIds).size + unresolved,
+            // The same stable-ID union is projected into Finance. Locally
+            // incomplete money remains actionable while its hint is offline.
+            // Booked transactions never belong to this review set.
+            total = remoteSummary.totalCount + localOnly,
+            local = (localIds - terminalIds).size,
             remote = remoteSummary.totalCount,
             overlap = overlap,
             localOnly = localOnly,

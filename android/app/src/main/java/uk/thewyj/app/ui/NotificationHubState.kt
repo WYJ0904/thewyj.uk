@@ -241,7 +241,7 @@ class NotificationHubState(
         val recovery = result.third
         localPendingPayments = recovery.size
         if (remote == null) {
-            pendingPayments = 0
+            pendingPayments = local.size
             remotePendingPayments = 0
             sharedPendingPayments = 0
             localOnlyPendingPayments = recovery.size
@@ -252,13 +252,13 @@ class NotificationHubState(
             return
         }
         val reconciled = PendingReviewReconciler.reconcile(local, remote)
-        pendingPayments = remote.totalCount
+        pendingPayments = reconciled.total
         remotePendingPayments = reconciled.remote
         sharedPendingPayments = reconciled.overlap
         localOnlyPendingPayments = recovery.size
         remoteOnlyPendingPayments = reconciled.remoteOnly
         pendingObservationAt = reconciled.observedAt
-        pendingSyncCurrent = fresh && reconciled.complete
+        pendingSyncCurrent = fresh && reconciled.complete && reconciled.localOnly == 0
         unresolvedPendingPayments = recovery.count { it.eventIds.isEmpty() }
     }
 

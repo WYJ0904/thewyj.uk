@@ -447,6 +447,12 @@ try {
   assert.equal(referencedUpdate.payload.operation_results[0].transaction_id,
     referencedFirst.payload.operation_results[0].transaction_id,
     "exact provider reference reuses the first Finance transaction across event IDs");
+  const bookedSummary = await request(db, "/api/notification/pending-summary?event_ids=evt-task21-00000001", { token: USERS.subscriber.token });
+  assert.equal(bookedSummary.response.status, 200);
+  const receiptOnly = bookedSummary.payload.records.find(row => row.kind === "booking" && row.event_id === "evt-task21-00000001");
+  assert.ok(receiptOnly, "an automatic booking without hint/candidate must still expose its exact terminal receipt");
+  assert.equal(receiptOnly.state, "confirmed");
+  assert.ok(receiptOnly.transaction_id);
   const referencedRaw = await db.prepare(`SELECT COUNT(*) AS count FROM task16_finance_raw_events
     WHERE user_id = ?1 AND provider_reference = ?2`).bind(USERS.subscriber.id, "WECHATREF0001").first();
   assert.equal(Number(referencedRaw.count), 1);

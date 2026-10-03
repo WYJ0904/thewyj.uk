@@ -696,7 +696,12 @@ export async function listFinanceTransactions(db, account, input = {}) {
   const beforeId = input.before_id ? cleanId(input.before_id, "游标账目标识") : "~~~~~~~~";
   const limit = Math.min(100, Math.max(1, Number.parseInt(String(input.limit || 50), 10) || 50));
   const includeDeleted = String(input.include_deleted || "").toLowerCase() === "true";
-  const rows = await all(db, `SELECT * FROM task16_finance_transactions
+  const rows = await all(db, `SELECT *, (SELECT json_group_array(raw.source_event_id)
+      FROM task16_finance_transaction_events link
+      JOIN task16_finance_raw_events raw ON raw.id = link.raw_event_id
+      WHERE link.transaction_id = task16_finance_transactions.id AND link.relation_status = 'active'
+        AND raw.user_id = ?1 AND raw.source_type = 'notification') AS notification_event_ids_json
+    FROM task16_finance_transactions
     WHERE user_id = ?1
       AND (occurred_at_ms < ?2 OR (occurred_at_ms = ?2 AND id < ?3))
       ${includeDeleted ? "" : "AND status = 'active'"}

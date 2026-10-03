@@ -146,6 +146,11 @@ class PaymentVerificationCenter(
 
     /** Called only from a background IO coroutine after the first local paint. */
     suspend fun reconcile(accountId: String): PaymentHintSync.Result? {
+        val localAccount = sessions.currentAccount()
+        if (localAccount?.accountId == accountId && localAccount.financeEntitled) {
+            LocalPaymentLedger.recover(app, accountId, localAccount.deviceId)
+            pipeline.flushDetailed()
+        }
         // Retry enrichment and pull terminal state after the local first paint.
         val pulled = runCatching { hintSync.sync() }.getOrNull()
         val credentials = runCatching { SecureCredentialStore(app).loadActive() }.getOrNull()
@@ -190,7 +195,11 @@ class PaymentVerificationCenter(
                 val identities = listOf(recognition.uploadEventId) +
                     archive.structuredEventIdsForRecognition(accountId, recognition.sourceEventId)
                 val bookingId = bookingEventId(recognition)
+                val candidate = store.candidateForRecognition(accountId, recognition.recognitionId)
+                val incompleteMoney = !PaymentAutoBook.eligible(candidate?.effectiveAmountMinor ?: recognition.amountMinor,
+                    candidate?.effectiveDirection?.takeIf(String::isNotBlank) ?: recognition.direction)
                 val unsent = identities.any { it in queue || "hint:$it" in queue } || bookingId in queue ||
+                    incompleteMoney ||
                     recognition.state == PaymentRecognitionState.ENRICHMENT_VERIFIED.name ||
                     store.ticketsForRecognition(accountId, recognition.recognitionId).any(tickets::isActive)
                 if (includeAllLocal) {
@@ -204,7 +213,7 @@ class PaymentVerificationCenter(
                     PendingReviewVisibility.Placement.CANONICAL -> recognition to false
                     PendingReviewVisibility.Placement.RECOVERY -> recognition to true
                     PendingReviewVisibility.Placement.HIDDEN ->
-                        if (unsent && recognition.state == PaymentRecognitionState.ENRICHMENT_VERIFIED.name) {
+                        if (incompleteMoney || (unsent && recognition.state == PaymentRecognitionState.ENRICHMENT_VERIFIED.name)) {
                             recognition to true
                         } else null
                 }
@@ -522,7 +531,8 @@ class PaymentVerificationCenter(
 
     companion object {
         fun requiresManualOcrReview(candidate: PaymentCandidate): Boolean =
-            candidate.reason == "ocr_amount_suggestion" && candidate.editedAmountMinor == null
+            candidate.reason == "ocr_amount_suggestion" && candidate.editedAmountMinor == null &&
+                !PaymentAutoBook.eligible(candidate.effectiveAmountMinor, candidate.effectiveDirection)
 
         val ATTENTION_STATES = listOf(
             PaymentRecognitionState.DETECTED_AMOUNT_UNKNOWN.name,

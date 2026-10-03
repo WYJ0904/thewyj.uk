@@ -287,6 +287,17 @@ class PaymentRecognitionCoordinatorTest {
         val recognitions = mutableMapOf<String, PaymentRecognitionRecord>()
         val tickets = mutableMapOf<String, PaymentTicket>()
         val candidates = mutableMapOf<String, PaymentCandidate>()
+        val bookings = mutableMapOf<Pair<String, String>, LocalPaymentBooking>()
+        override fun localBooking(accountId: String, eventId: String) = bookings[accountId to eventId]
+        override fun localBookings(accountId: String) = bookings.values.filter { it.accountId == accountId }
+        override fun bookLocally(booking: LocalPaymentBooking, recognition: PaymentRecognitionRecord, candidate: PaymentCandidate) {
+            bookings.putIfAbsent(booking.accountId to booking.eventId, booking)
+            saveCandidate(candidate)
+            saveRecognition(recognition)
+        }
+        override fun acknowledgeLocalBooking(accountId: String, eventId: String, transactionId: String) {
+            bookings[accountId to eventId]?.let { bookings[accountId to eventId] = it.copy(transactionId = transactionId, syncState = "synced") }
+        }
 
         override fun saveRecognition(record: PaymentRecognitionRecord) {
             recognitions[record.recognitionId] = record
@@ -379,8 +390,10 @@ class PaymentRecognitionCoordinatorTest {
         )
         assertNotNull(outcome.state)
         assertTrue(outcome.candidateId.isNotBlank())
-        assertEquals(1, store.pendingCandidateCount("account-a"))
-        assertEquals(PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name, store.recognition("account-a", outcome.recognitionId)?.state)
+        assertEquals(0, store.pendingCandidateCount("account-a"))
+        assertEquals("confirmed", store.candidates.values.single().status)
+        assertTrue(store.candidates.values.single().financeTransactionId.isNotBlank())
+        assertEquals(PaymentRecognitionState.FINANCE_RECORDED.name, store.recognition("account-a", outcome.recognitionId)?.state)
         // Two state transitions, but they reuse one notification id so the user
         // sees a single notification that updates in place.
         assertEquals(1, notifier.messages.map { it.notificationId }.distinct().size)
@@ -446,7 +459,9 @@ class PaymentRecognitionCoordinatorTest {
         assertEquals(first.recognitionId, second.recognitionId)
         assertEquals(2, notifier.messages.size)
         assertEquals(1, notifier.messages.map { it.notificationId }.distinct().size)
-        assertEquals(1, store.pendingCandidateCount("account-a"))
+        assertEquals(0, store.pendingCandidateCount("account-a"))
+        assertEquals("confirmed", store.candidates.values.single().status)
+        assertTrue(store.candidates.values.single().financeTransactionId.isNotBlank())
     }
 
     @Test fun amountUnknownCreatesNinetySecondTicketAndHintNotification() {
@@ -524,7 +539,9 @@ class PaymentRecognitionCoordinatorTest {
             ),
         )
         assertTrue(outcome is EnrichmentOutcome.Applied)
-        assertEquals(1, store.pendingCandidateCount("account-a"))
+        assertEquals(0, store.pendingCandidateCount("account-a"))
+        assertEquals("confirmed", store.candidates.values.single().status)
+        assertTrue(store.candidates.values.single().financeTransactionId.isNotBlank())
         assertTrue(notifier.messages.any { it.body.contains("28.00") })
     }
 
@@ -608,6 +625,10 @@ class PaymentRecognitionCoordinatorTest {
             "account-a", "com.tencent.mm", PaymentSourceType.NOTIFICATION,
             "notification#key-7#7000", "微信支付", "支付成功 ￥20.00",
         )
+        val captured = store.candidate("account-a", outcome.candidateId)!!
+        store.saveCandidate(captured.copy(status = "pending", financeTransactionId = ""))
+        val recognition = store.recognition("account-a", outcome.recognitionId)!!
+        store.saveRecognition(recognition.copy(state = "FINANCE_PENDING_CONFIRMATION"))
         val candidateId = outcome.candidateId
         assertTrue(candidateId.isNotBlank())
 
@@ -711,7 +732,9 @@ class PaymentRecognitionCoordinatorTest {
             "notification#key-12#12000", "微信支付", "支付成功 ￥28.00",
         )
         assertFalse(known.notificationPosted)
-        assertEquals(1, store.pendingCandidateCount("account-a"))
+        assertEquals(0, store.pendingCandidateCount("account-a"))
+        assertEquals("confirmed", store.candidates.values.single().status)
+        assertTrue(store.candidates.values.single().financeTransactionId.isNotBlank())
         val unknown = coordinator.onSourceEvent(
             "account-a", "com.tencent.mm", PaymentSourceType.NOTIFICATION,
             "notification#key-13#13000", "", "转账",

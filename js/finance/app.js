@@ -1,5 +1,6 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20261003-aeris-p33-3";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261003-aeris-p33-3";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20261003-autobook-1";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261003-autobook-1";
+import { mergeLocalNotificationLedger } from "./notification-ledger.js?v=20261003-autobook-1";
 const SCHEMA_VERSION = 1;
 const MAX_LOCAL_TRANSACTIONS = 5000;
 const MAX_PENDING_OPERATIONS = 500;
@@ -123,6 +124,9 @@ function normalizeTransaction(value) {
     created_at: safeText(value.created_at, 40),
     updated_at: safeText(value.updated_at, 40),
     deleted_at: safeText(value.deleted_at, 40),
+    native_notification_event_id: safeText(value.native_notification_event_id, 80),
+    native_notification_pending: value.native_notification_pending === true,
+    notification_event_ids: Array.isArray(value.notification_event_ids) ? value.notification_event_ids.map(id => safeText(id, 80)).filter(Boolean) : [],
   };
 }
 
@@ -206,6 +210,7 @@ function emptyStore(accountId, deviceId) {
     device_id: deviceId,
     server_version: 0,
     hydrated: false,
+    notification_identity_hydrated: false,
     transactions: {},
     categories: {},
     budgets: {},
@@ -221,6 +226,7 @@ function normalizeStore(value, accountId, deviceId) {
   const result = emptyStore(accountId, safeText(source.device_id, 80) || deviceId);
   result.server_version = Math.max(0, Number(source.server_version) || 0);
   result.hydrated = Boolean(source.hydrated);
+  result.notification_identity_hydrated = source.notification_identity_hydrated === true;
   for (const [kind, normalizer] of [["transactions", normalizeTransaction], ["categories", normalizeCategory], ["budgets", normalizeBudget]]) {
     const items = source[kind] && typeof source[kind] === "object" ? Object.values(source[kind]) : [];
     for (const item of items.slice(0, kind === "transactions" ? MAX_LOCAL_TRANSACTIONS : 1000)) {
@@ -357,9 +363,13 @@ export function createFinanceController({
   function ensureStore() {
     const nextAccountId = String(account()?.id || "");
     if (!nextAccountId) return null;
-    if (store && currentAccountId === nextAccountId) return store;
+    if (store && currentAccountId === nextAccountId) {
+      if (mergeLocalNotificationLedger(store.transactions, globalThis.window?.WYJLocalPaymentLedger, nextAccountId)) persist();
+      return store;
+    }
     currentAccountId = nextAccountId;
     store = normalizeStore(safeJson(storage.getItem(storageKey(nextAccountId)), {}), nextAccountId, deviceId());
+    if (mergeLocalNotificationLedger(store.transactions, globalThis.window?.WYJLocalPaymentLedger, nextAccountId)) persist();
     return store;
   }
 
@@ -485,7 +495,7 @@ export function createFinanceController({
       return;
     }
     list.innerHTML = filtered.map((item) => {
-      const title = item.merchant || item.counterparty || categoryName(item.category_id);
+      const title = item.merchant || item.counterparty || (item.source_kind === "automatic" ? "未识别商户" : categoryName(item.category_id));
       const sign = item.direction === "expense" ? "-" : "+";
       const directionLabel = { income: "收入", expense: "支出", refund: "退款" }[item.direction];
       return `<article class="finance-transaction${item.status === "deleted" ? " is-deleted" : ""}" data-finance-transaction="${escapeHtml(item.id)}">
@@ -553,7 +563,7 @@ export function createFinanceController({
     renderBudgets();
     renderCategoryStats();
     renderUndo();
-    const pending = store.pending.length;
+    const pending = store.pending.length + Object.values(store.transactions).filter(item => item.native_notification_pending).length;
     element("financeResolveConflictBtn")?.classList.toggle("hidden", !conflictPending);
     if (conflictPending) setSyncState("需要处理冲突", "warning", `${pending} 项本地修改等待确认后重试。`);
     else if (syncPromise) setSyncState("同步中", "info", `${pending} 项本地修改正在同步。`);
@@ -638,10 +648,11 @@ export function createFinanceController({
     // A count mismatch means something never reached this client through the
     // change feed; re-read the server pages instead of trusting the cursor.
     const localActive = Object.values(store.transactions).filter((item) => item.status === "active").length;
-    if (!store.hydrated || Number(bootstrap.transaction_count || 0) > localActive) {
+    if (!store.hydrated || !store.notification_identity_hydrated || Number(bootstrap.transaction_count || 0) > localActive) {
       const serverTransactions = await fetchAllTransactions(true);
       for (const item of Object.values(serverTransactions)) mergeServerEntity("transaction", item);
       store.hydrated = true;
+      store.notification_identity_hydrated = true;
     }
     store.server_version = Math.max(store.server_version, Number(bootstrap.server_version || 0));
   }
@@ -823,6 +834,7 @@ export function createFinanceController({
   function openTransactionEditor(id = "") {
     ensureStore();
     const item = id ? store.transactions[id] : null;
+    if (item?.native_notification_pending) { setMessage("已记账，正在等待云端同步；同步完成后可编辑。", "info"); return; }
     element("financeTransactionId").value = item?.id || "";
     element("financeTransactionDirection").value = item?.direction || "expense";
     element("financeTransactionAmount").value = item ? (item.amount_minor / 100).toFixed(2) : "";
@@ -875,6 +887,7 @@ export function createFinanceController({
 
   function deleteTransaction(id) {
     const item = store.transactions[id];
+    if (item?.native_notification_pending) { setMessage("已记账，正在等待云端同步；同步完成后可删除。", "info"); return; }
     if (!item || item.status === "deleted") return;
     store.transactions[id] = { ...item, status: "deleted", deleted_at: timestamp(), updated_at: timestamp() };
     undoTransactionId = id;
@@ -1070,6 +1083,10 @@ export function createFinanceController({
     }
     window.addEventListener("online", () => {
       if (!element("financePage")?.classList.contains("hidden")) syncNow();
+    });
+    document.addEventListener("thewyj:payment-updated", () => {
+      ensureStore();
+      if (!element("financePage")?.classList.contains("hidden")) { renderAll(); void syncNow(); }
     });
   }
 

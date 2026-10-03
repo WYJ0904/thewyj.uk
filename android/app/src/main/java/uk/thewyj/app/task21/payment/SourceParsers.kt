@@ -30,7 +30,10 @@ object WeChatPaymentParser : PaymentMessageParser {
             )
         }
         val amount = PaymentText.amountMinor(normalized)
-        val direction = PaymentText.direction(normalized)
+        // A channel title such as "微信支付" is not an expense instruction.
+        val directionText = if (title.trim() in setOf("微信支付", "微信", "支付宝"))
+            NotificationCashEvidence.cashText(PaymentText.normalize("", text, bigText, subText)).orEmpty() else normalized
+        val direction = PaymentText.direction(directionText)
         // A payment-channel notification ("微信支付 / 转账199元") is a real
         // settlement even without the "转账成功" wording; ordinary chat with a
         // sender prefix or chat wording stays out of the finance pipeline.
@@ -147,7 +150,9 @@ object AlipayPaymentParser : PaymentMessageParser {
             )
         }
         val amount = PaymentText.amountMinor(normalized)
-        val direction = PaymentText.direction(normalized)
+        val directionText = if (title.trim() in setOf("微信支付", "微信", "支付宝"))
+            NotificationCashEvidence.cashText(PaymentText.normalize("", text, bigText, subText)).orEmpty() else normalized
+        val direction = PaymentText.direction(directionText)
         val paymentTitle = PaymentText.isPaymentChannelTitle(title)
         if (!paymentTitle && PaymentText.hasSenderPrefix(normalized)) {
             return ParsedPaymentMessage(

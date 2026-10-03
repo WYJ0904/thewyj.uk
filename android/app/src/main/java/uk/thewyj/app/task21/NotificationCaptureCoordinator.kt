@@ -283,7 +283,9 @@ class NotificationCaptureCoordinator(
             val payloadForPayment = StructuredEventJson.ingestPayload("1", current.deviceId, eventId, structured)
             // The archive now owns the non-terminal state: pending until the
             // server answers with a transaction id (or fails).
-            archiveSink?.markFinanceOutcome(current.accountId, eventId, "pending")
+            val localTransactionId = paymentHook?.localFinanceTransactionId(current.accountId, eventId).orEmpty()
+            archiveSink?.markFinanceOutcome(current.accountId, eventId,
+                if (localTransactionId.isNotBlank()) "confirmed" else "pending", localTransactionId)
             queueFor(current.accountId).enqueue(eventId, payloadForPayment)
             return
         }
@@ -411,6 +413,7 @@ class NotificationCaptureCoordinator(
         if (!current.financeEntitled) {
             return FlushResult(0, ingestQueue.pendingCount(), 0, authenticationRequired = false, retryableFailures = 0)
         }
+        paymentHook?.prepareLocalBookings(current.accountId, current.deviceId)
         var uploaded = 0
         var discardedInvalid = 0
         var authenticationRequired = false
@@ -433,8 +436,6 @@ class NotificationCaptureCoordinator(
             }
             when {
                 response.ok -> {
-                    ingestQueue.remove(request.operationId)
-                    uploaded += 1
                     // Record the backend result for the same event id so the
                     // device log ends with the real transaction id.
                     runCatching {
@@ -443,6 +444,13 @@ class NotificationCaptureCoordinator(
                         val transactionId = result?.optString("transaction_id").orEmpty()
                         val candidateId = result?.optString("candidate_id").orEmpty()
                         val eventId = result?.optJSONObject("event")?.optString("event_id").orEmpty()
+                        if (paymentHook?.localFinanceTransactionId(current.accountId, request.operationId)?.isNotBlank() == true &&
+                            transactionId.isBlank()) {
+                            // An HTTP success without a ledger receipt cannot
+                            // acknowledge a locally booked transaction.
+                            retryableFailures += 1
+                            return@runCatching
+                        }
                         outcomes.add(
                             IngestOutcome(
                                 operationId = request.operationId,
@@ -453,20 +461,21 @@ class NotificationCaptureCoordinator(
                         )
                         // P0-2: a booked event closes its local pending state.
                         if (transactionId.isNotBlank()) {
-                            runCatching {
-                                paymentHook?.onFinanceOutcome(
+                            paymentHook?.onFinanceOutcome(
                                     accountId = current.accountId,
                                     eventId = eventId.ifBlank { request.operationId },
                                     transactionId = transactionId,
                                 )
-                            }
                         }
+                        // Persist the receipt before removing the durable request.
+                        ingestQueue.remove(request.operationId)
+                        uploaded += 1
                         CaptureTrace.stage(
                             eventId.ifBlank { request.operationId },
                             "finance-api-ok",
                             "transactionId=${transactionId.ifBlank { "-" }} candidateId=${candidateId.ifBlank { "-" }}",
                         )
-                    }
+                    }.onFailure { retryableFailures += 1 }
                 }
                 response.status in setOf(400, 404, 409) -> {
                     val reason = ingestFailureReason(response)
@@ -476,9 +485,14 @@ class NotificationCaptureCoordinator(
                     // from the queue - the amount was recognised and the payment
                     // silently never reached Finance. Only a duplicate that
                     // carries a real ledger identity may drop the payload.
-                    if (ingestWasAlreadyHandled(response.body) && ingestOwnsLedgerIdentity(response.body)) {
+                    val localTransactionId = paymentHook?.localFinanceTransactionId(current.accountId, request.operationId).orEmpty()
+                    val receipt = runCatching { org.json.JSONObject(response.body).optJSONArray("operation_results")
+                        ?.optJSONObject(0)?.optString("transaction_id").orEmpty() }.getOrDefault("")
+                    if (ingestWasAlreadyHandled(response.body) && ingestOwnsLedgerIdentity(response.body) &&
+                        (localTransactionId.isBlank() || receipt.isNotBlank())) {
                         // The server already has this exact event: nothing to
                         // keep (a replay is not a lost payment).
+                        if (receipt.isNotBlank()) paymentHook?.onFinanceOutcome(current.accountId, request.operationId, receipt)
                         ingestQueue.remove(request.operationId)
                         discardedInvalid += 1
                     } else {
@@ -492,7 +506,7 @@ class NotificationCaptureCoordinator(
                         // Real client/server contract failure. Never drop the
                         // payload silently: record why and surface it.
                         val updated = ingestQueue.markRejected(request.operationId, reason)
-                        archiveSink?.markFinanceOutcome(current.accountId, request.operationId, "failed")
+                        if (localTransactionId.isBlank()) archiveSink?.markFinanceOutcome(current.accountId, request.operationId, "failed")
                         rejected += RejectedIngest(
                             operationId = request.operationId,
                             reason = reason,

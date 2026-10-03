@@ -39,15 +39,15 @@ class PendingReviewReconcilerTest {
 
         val result = PendingReviewReconciler.reconcile(local, remote)
 
-        assertEquals(3, result.total)
+        assertEquals(5, result.total)
         assertEquals(3, result.local)
         assertEquals(3, result.remote)
         assertEquals(1, result.overlap)
-        assertEquals(1, result.localOnly)
+        assertEquals(2, result.localOnly)
         assertEquals(1, result.unresolved)
         assertEquals(2, result.remoteOnly)
         assertTrue(result.complete)
-        assertEquals(remote.totalCount, result.total)
+        assertEquals(remote.totalCount + result.localOnly, result.total)
     }
 
     @Test
