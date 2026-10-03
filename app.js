@@ -9,25 +9,25 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20261003-aeris-p32-2";
+} from "./js/core/config.js?v=20261003-aeris-p33-3";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?v=20261003-aeris-p32-2";
+} from "./js/core/capabilities.js?v=20261003-aeris-p33-3";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20261003-aeris-p32-2";
+} from "./js/core/api.js?v=20261003-aeris-p33-3";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20261003-aeris-p32-2";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261003-aeris-p32-2";
+} from "./js/core/changelog.js?v=20261003-aeris-p33-3";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261003-aeris-p33-3";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -38,21 +38,21 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20261003-aeris-p32-2";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261003-aeris-p32-2";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261003-aeris-p32-2";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261003-aeris-p32-2";
-import { installMotionSystem, motionDuration } from "./js/core/motion.js?v=20261003-aeris-p32-2";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261003-aeris-p32-2";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20261003-aeris-p32-2";
-import { speakText, stopSpeech } from "./js/language/speech.js?v=20261003-aeris-p32-2";
+} from "./js/core/session.js?v=20261003-aeris-p33-3";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261003-aeris-p33-3";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261003-aeris-p33-3";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261003-aeris-p33-3";
+import { installMotionSystem, motionDuration } from "./js/core/motion.js?v=20261003-aeris-p33-3";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261003-aeris-p33-3";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20261003-aeris-p33-3";
+import { speakText, stopSpeech } from "./js/language/speech.js?v=20261003-aeris-p33-3";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?v=20261003-aeris-p32-2";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20261003-aeris-p32-2";
-import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20261003-aeris-p32-2";
-import { createTransferController } from "./js/transfer/app.js?v=20261003-aeris-p32-2";
+} from "./js/language/speech-rate.js?v=20261003-aeris-p33-3";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20261003-aeris-p33-3";
+import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20261003-aeris-p33-3";
+import { createTransferController } from "./js/transfer/app.js?v=20261003-aeris-p33-3";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -60,15 +60,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?v=20261003-aeris-p32-2";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261003-aeris-p32-2";
+} from "./js/core/perf.js?v=20261003-aeris-p33-3";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261003-aeris-p33-3";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20261003-aeris-p32-2";
+} from "./js/language/history.js?v=20261003-aeris-p33-3";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -105,16 +105,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20261003-aeris-p32-2";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261003-aeris-p32-2";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20261003-aeris-p32-2";
+} from "./js/language/quiz.js?v=20261003-aeris-p33-3";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261003-aeris-p33-3";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20261003-aeris-p33-3";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20261003-aeris-p32-2";
+} from "./js/language/wrong-book.js?v=20261003-aeris-p33-3";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -123,7 +123,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20261003-aeris-p32-2";
+} from "./js/membership/account.js?v=20261003-aeris-p33-3";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -131,19 +131,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20261003-aeris-p32-2";
+} from "./js/membership/plans.js?v=20261003-aeris-p33-3";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20261003-aeris-p32-2";
+} from "./js/membership/recharge.js?v=20261003-aeris-p33-3";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20261003-aeris-p32-2";
+} from "./js/admin/formatters.js?v=20261003-aeris-p33-3";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -1206,7 +1206,7 @@ function renderAccountUi() {
   if (!account && state.session) $("navGuestActions")?.classList.add("hidden");
   $("accountMenu")?.classList.toggle("hidden", !account);
   if (!account && $("accountMenu")) $("accountMenu").open = false;
-  if ($("navHomeLabel")) $("navHomeLabel").textContent = account ? "个人首页" : "首页";
+  if ($("navHomeLabel")) $("navHomeLabel").textContent = "首页";
   const activeNavigation = location.pathname.startsWith("/language")
     ? "language"
     : location.pathname.startsWith("/tools")
@@ -1234,7 +1234,7 @@ function renderAccountUi() {
   $("accountBtn")?.classList.toggle("hidden", !account);
   $("logoutBtn")?.classList.toggle("hidden", !account);
   $("adminBtn")?.classList.toggle("hidden", !isAdmin(account));
-  $("homeBtn")?.classList.toggle("hidden", !account || location.pathname === "/select");
+  $("homeBtn")?.classList.toggle("hidden", !account || ["/", "/select"].includes(location.pathname));
   if ($("moduleMembershipStatus")) {
     $("moduleMembershipStatus").textContent = summary.permanent
       ? `${summary.name} · 永久有效`
@@ -1252,7 +1252,25 @@ function renderAccountUi() {
     $("financeMemberBadge").classList.toggle("active", financeAccess);
   }
   renderAccountDetails();
+  renderHomeSessionUi(account);
   renderDashboard();
+}
+
+// One home and the existing account owner; adapt presentation without new data owners.
+function renderHomeSessionUi(account) {
+  const home = $("publicHome");
+  if (!home) return;
+  home.dataset.sessionMode = account ? "authenticated" : "guest";
+  home.querySelectorAll("[data-home-personal]").forEach(node => { node.hidden = !account; });
+  $("publicLoginBtn").textContent = account ? "账户" : "登录";
+  $("publicRegisterBtn").textContent = account ? "继续学习" : "注册";
+  const labels = { learning: account ? "打开学习" : "试做最多 10 题", tools: account ? "打开工具箱" : "试用本地工具", finance: account ? "打开账本" : "登录查看账本", files: "文件与分享", account: account ? "管理账户" : "登录账户" };
+  home.querySelectorAll("[data-public-capability]").forEach(node => { node.textContent = labels[node.dataset.publicCapability]; });
+  $("publicPlansBtn").textContent = account ? "管理套餐与权益" : "查看套餐与权益";
+  if (!account) {
+    const demo = { Learning: ["日语测试 · 演示", "電話", "でんわ", "12 / 20"], Finance: ["本月余额 · 演示", "¥ 3,284.60", "预算内 72%", "财务"], Tools: ["工具搜索", "JSON 格式化", "仅在浏览器处理", "工具箱"] };
+    for (const [kind,values] of Object.entries(demo)) ["Label", "Value", "Detail", "Status"].forEach((suffix,index) => { $("homeScene"+kind+suffix).textContent = values[index]; });
+  }
 }
 
 function renderAccountDetails() {
@@ -1399,7 +1417,7 @@ function dismissVersionNotice() {
 }
 
 function renderDashboard() {
-  if (!$('modulePicker') || !state.account) return;
+  if (!state.session || !state.account || $("publicHome")?.classList.contains("hidden") || document.hidden || document.documentElement.dataset.androidWebActive === "false") return;
   const account = state.account;
   const summary = accountMembershipSummary(account);
   const entitlements = [...accountEntitlements(account)].map(entitlementLabel);
@@ -1408,7 +1426,7 @@ function renderDashboard() {
   const englishGoal = dashboardGoal("english");
   const japaneseGoal = dashboardGoal("japanese");
 
-  $("dashboardGreeting").textContent = `欢迎回来，${account.username}`;
+  $("dashboardGreeting").textContent = account.username;
   $("dashboardMembershipName").textContent = summary.name || "普通用户";
   $("dashboardMembershipExpiry").textContent = summary.permanent
     ? "永久有效"
@@ -1425,17 +1443,18 @@ function renderDashboard() {
     : "完成第一轮测试后显示结果。";
 
   const finance = financeController?.dashboardSummary?.() || { balance_minor: 0, pending: 0, available: false };
-  const financeBalance = formatFinanceMoney(finance.balance_minor);
+  const financeKnown = finance.available && Number.isFinite(finance.balance_minor) && Boolean(finance.last_sync_at || finance.pending);
+  const financeBalance = financeKnown ? formatFinanceMoney(finance.balance_minor) : "尚未读取";
   if ($("dashboardFinanceBalance")) $("dashboardFinanceBalance").textContent = financeBalance;
   document.querySelectorAll("[data-dashboard-balance-copy]").forEach((element) => { element.textContent = financeBalance; });
   if ($("dashboardFinanceSync")) {
-    const financeStatus = finance.available
+    const financeStatus = financeKnown
       ? finance.pending
         ? `${finance.pending} 项本机修改等待同步`
         : finance.last_sync_at
           ? `最近同步 ${formatLocalDateTime(finance.last_sync_at)}`
           : "打开财务账本后开始同步"
-      : "财务会员 8 CNY/月；全功能会员已包含";
+      : "打开账本读取账户数据。";
     $("dashboardFinanceSync").textContent = financeStatus;
     document.querySelectorAll("[data-dashboard-finance-copy]").forEach((element) => { element.textContent = financeStatus; });
   }
@@ -1447,6 +1466,18 @@ function renderDashboard() {
   });
 
   const toolSummary = window.WYJTools?.getSummary?.() || { favorites: [], recent: [] };
+  $("homeSceneLearningLabel").textContent = "学习记录";
+  $("homeSceneLearningValue").textContent = latest ? quizLanguageLabel(latest.language) : "暂无记录";
+  $("homeSceneLearningDetail").textContent = latest ? `${latest.total} 题 · 正确率 ${latest.accuracy}%` : "完成测试后显示进度";
+  $("homeSceneLearningStatus").textContent = `${Object.keys(state.historyWrongBook).length} 个错题`;
+  $("homeSceneFinanceLabel").textContent = "本月账本";
+  $("homeSceneFinanceValue").textContent = financeBalance;
+  $("homeSceneFinanceDetail").textContent = financeKnown ? (finance.pending ? `${finance.pending} 项等待同步` : "账户账本摘要") : "打开账本读取";
+  $("homeSceneFinanceStatus").textContent = financeKnown ? "已读取" : "未读取";
+  $("homeSceneToolsLabel").textContent = "最近工具";
+  $("homeSceneToolsValue").textContent = toolSummary.recent?.[0]?.name || toolSummary.favorites?.[0]?.name || "暂无记录";
+  $("homeSceneToolsDetail").textContent = `${toolSummary.favorites?.length || 0} 项收藏`;
+  $("homeSceneToolsStatus").textContent = "工具箱";
   renderDashboardToolShelf("dashboardFavoriteTools", toolSummary.favorites || [], "还没有收藏工具。");
   renderDashboardToolShelf("dashboardRecentTools", toolSummary.recent || [], "还没有使用记录。");
   const pending = financeCandidatesController?.dashboardSummary?.();
@@ -1659,7 +1690,7 @@ function closeModal(id, immediate = false) {
     if ((id === "membershipModal" && location.pathname === "/recharge") || (id === "accountModal" && location.pathname === "/account")) {
       if (state.session && state.account) {
         showModulePicker(false);
-        pushRoute("/select", true);
+        pushRoute("/", true);
       }
     }
   };
@@ -2971,7 +3002,7 @@ async function showAdminPanel(pushHistory = true) {
     return;
   }
   if (!isAdmin()) {
-    history.replaceState({}, "", "/select");
+    history.replaceState({}, "", "/");
     showModulePicker(false, "当前账户没有管理员权限，已返回功能选择。");
     return;
   }
@@ -3829,22 +3860,12 @@ function showModulePicker(pushHistory = true, message = "") {
     showAuth(pendingAuthMessage || "请先登录", { replace: true });
     return;
   }
-  stopProjectActivity();
-  currentProject = "";
-  state.quizLanguage = "";
-  hidePrimaryScreens();
-  setExperienceMode("public");
-  $("modulePicker").classList.remove("hidden");
-  $("modulePicker").setAttribute("aria-hidden", "false");
+  showPublicHome(pushHistory);
   const accessMessage = $("moduleAccessMessage");
   if (accessMessage) {
     accessMessage.textContent = message;
     accessMessage.classList.toggle("hidden", !message);
   }
-  document.body.classList.add("project-picker-active");
-  if (pushHistory) pushRoute("/select");
-  renderAccountUi();
-  renderDashboard();
 }
 
 function showProjectPicker(pushHistory = true) {
@@ -4012,7 +4033,7 @@ async function handleToolsAccessFailure(error, generation) {
     ? ""
     : `在线工具箱暂时无法打开：${error.message || "请稍后重试"}`;
   showModulePicker(false, accessMessage);
-  pushRoute("/select", true);
+  pushRoute("/", true);
   if (error.code === "membership_required") {
     $("rechargeMessage").textContent = "当前会员不包含在线工具箱，请选择工具箱或全功能会员。";
     await openMembershipModal({ goal: "tools" });
@@ -4211,8 +4232,9 @@ async function renderCurrentRoute(path, generation = routeGeneration) {
       return;
     }
     if (["/", "/login", "/register", "/select"].includes(path)) {
-      showModulePicker(false);
-      if (path !== "/select") pushRoute("/select", true);
+      showPublicHome(false);
+      // /select remains a native/deep-link alias for this exact same DOM.
+      if (path !== "/") pushRoute("/" + location.search, true);
       return;
     }
     if (path === "/language") {
@@ -4252,7 +4274,7 @@ async function renderCurrentRoute(path, generation = routeGeneration) {
       return;
     }
     showModulePicker(false);
-    pushRoute("/select", true);
+    pushRoute("/", true);
 }
 
 function updateLanguageUi() {
@@ -6511,7 +6533,7 @@ async function login(event) {
     pendingAuthMessage = "";
     $("modelLabel").textContent = data.model || "Cloudflare 云端";
     showModulePicker(false);
-    pushRoute("/select", true);
+    pushRoute("/", true);
     updateStats();
     if (!persisted) {
       window.setTimeout(() => alert(
@@ -6809,15 +6831,12 @@ async function boot() {
     await withInteractionFeedback(link, `site-nav-${destination}`, () => navigateFromSiteNav(destination));
   }));
   $("publicTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
-  $("publicLanguageTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
-  $("publicToolsTrialBtn")?.addEventListener("click", () => showTrial(true, "text"));
-  $("publicRegisterBtn")?.addEventListener("click", () => showAuth("", { mode: "register", path: "/register" }));
-  $("publicLoginBtn")?.addEventListener("click", () => showAuth("", { mode: "login", path: "/login" }));
-  $("publicFinanceLoginBtn")?.addEventListener("click", () => showAuth("登录后查看自己的账本", { mode: "login", path: "/login" }));
-  $("publicFilesLoginBtn")?.addEventListener("click", () => showAuth("登录后管理自己的文件传输", { mode: "login", path: "/login" }));
+  // Capability anchors use the existing site-nav dispatcher in both sessions.
+  $("publicRegisterBtn")?.addEventListener("click", () => state.session && state.account ? showProjectPicker(true) : showAuth("", { mode: "register", path: "/register" }));
+  $("publicLoginBtn")?.addEventListener("click", () => state.session && state.account ? $("accountBtn").click() : showAuth("", { mode: "login", path: "/login" }));
   $("dashboardNotificationsBtn")?.addEventListener("click", () => showFinance(true));
   $("dashboardTransferBtn")?.addEventListener("click", () => showTransfer(true));
-  $("publicPlansBtn")?.addEventListener("click", () => showAuth("登录后可查看实时套餐并提交充值申请", { mode: "login", path: "/login" }));
+  $("publicPlansBtn")?.addEventListener("click", () => state.session && state.account ? $("membershipBtn").click() : showAuth("登录后可查看实时套餐并提交充值申请", { mode: "login", path: "/login" }));
   $("publicPlanRetryBtn")?.addEventListener("click", () => {
     void loadMembershipPlans(true).then(plans=>renderPublicPlanCatalog(document,plans)).catch(error=>renderPublicPlanCatalog(document,[],error.message));
   });
@@ -7169,6 +7188,7 @@ async function boot() {
     adoptExternalAccountSession(nextSession);
   });
   document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") renderDashboard();
     if (shouldProbeCloudBackend() && document.visibilityState === "visible" && (state.session || !backendAvailable)) {
       scheduleBackendRecovery(150);
     }
@@ -7176,6 +7196,7 @@ async function boot() {
       void loadPendingSiteMessages({ force: true });
     }
   });
+  document.addEventListener("thewyj:webview-active", event => { if (event.detail?.active !== false) renderDashboard(); });
   window.setInterval(() => {
     if (shouldProbeCloudBackend() && document.visibilityState === "visible"
       && document.documentElement.dataset.androidWebActive !== "false" && navigator.onLine !== false) {

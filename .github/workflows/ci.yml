@@ -863,6 +863,7 @@ jobs:
           node qa/aeris/p3-brand-public-browser.mjs 2>&1 | tee artifacts/aeris-p3-brand-public.log
           node qa/aeris/p31-home-browser.mjs 2>&1 | tee artifacts/aeris-p31-home.log
           node qa/aeris/p32-card-restoration-browser.mjs 2>&1 | tee artifacts/aeris-p32-cards.log
+          node qa/aeris/p33-shared-home-browser.mjs 2>&1 | tee artifacts/aeris-p33-shared-home.log
 
 
       - name: Run cloud-only P0 browser flow

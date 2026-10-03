@@ -174,7 +174,7 @@ async function main() {
       );
       await setFields({ "#usernameInput": USERNAME, "#secretInput": USER_SECRET });
       await click("#loginSubmitBtn");
-      await waitFor("location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')", 15_000, "user dashboard");
+      await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 15_000, "user dashboard");
     });
 
     const userSession = await evaluate("localStorage.getItem('wyjAccountSession')");
@@ -195,7 +195,7 @@ async function main() {
         idempotency_key: `task18-browser-required:${RUN_ID}`,
       }, adminSession);
       assert.equal(created.status, 201, JSON.stringify(created.data));
-      await navigate(`/select?message=${RUN_ID}`);
+      await navigate(`/?message=${RUN_ID}`);
       await waitFor("!document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 15_000, "required message modal");
       assert.equal(await evaluate("document.querySelector('#siteMessageSource').textContent"), "Aeris 管理员通知");
       assert.equal(await evaluate("document.querySelector('#siteMessageBody').textContent"), XSS_BODY);
@@ -203,11 +203,11 @@ async function main() {
       assert.equal(await evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth"), true);
       await click("#siteMessageCloseBtn");
       await waitFor("document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 8_000, "required message closed");
-      await navigate(`/select?message-repeat=${RUN_ID}`);
+      await navigate(`/?message-repeat=${RUN_ID}`);
       await waitFor("!document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 15_000, "required message repeats");
       await click("#siteMessageAcknowledgeBtn");
       await waitFor("document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 8_000, "required message acknowledged");
-      await navigate(`/select?message-acked=${RUN_ID}`);
+      await navigate(`/?message-acked=${RUN_ID}`);
       await delay(1_000);
       assert.equal(await evaluate("document.querySelector('#siteMessageModal')?.classList.contains('hidden')"), true);
     });
@@ -225,11 +225,11 @@ async function main() {
         idempotency_key: `task18-browser-dismiss:${RUN_ID}`,
       }, adminSession);
       assert.equal(created.status, 201, JSON.stringify(created.data));
-      await navigate(`/select?ordinary=${RUN_ID}`);
+      await navigate(`/?ordinary=${RUN_ID}`);
       await waitFor("!document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 15_000, "ordinary message modal");
       await click("#siteMessageCloseIcon");
       await waitFor("document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 8_000, "ordinary message dismissed");
-      await navigate(`/select?ordinary-dismissed=${RUN_ID}`);
+      await navigate(`/?ordinary-dismissed=${RUN_ID}`);
       await delay(1_000);
       assert.equal(await evaluate("document.querySelector('#siteMessageModal')?.classList.contains('hidden')"), true);
     });

@@ -31,7 +31,7 @@ for(const width of [390,1366,1920]){
   await release(reduced);await page.click('#showLoginBtn');
   await page.send('Emulation.setEmulatedMedia',{features:[]});
   const username=process.env.WYJ_TEST_ADMIN_USER||'wyj',secret=process.env.WYJ_TEST_ADMIN_SECRET;
-  assert.ok(secret,'isolated CI admin fixture required');await page.setFields({'#usernameInput':username,'#secretInput':secret});await page.click('#loginSubmitBtn');await page.waitFor("location.pathname==='/select'",30000);
+  assert.ok(secret,'isolated CI admin fixture required');await page.setFields({'#usernameInput':username,'#secretInput':secret});await page.click('#loginSubmitBtn');await page.waitFor("location.pathname==='/'",30000);
   await page.navigate('/finance');await page.waitFor("document.documentElement.dataset.aerisMotionReady==='true' && !document.getElementById('entryScreen')");
   const initialOpen=await page.evaluate("document.querySelector('#financeInsightDisclosure').open");
   const summary='#financeInsightDisclosure > summary';for(let i=0;i<4;i++)await page.click(summary);
@@ -39,8 +39,8 @@ for(const width of [390,1366,1920]){
   await page.click('#financeAddTransactionBtn');await page.waitFor("!document.querySelector('#financeTransactionModal').classList.contains('hidden')");
   await page.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await page.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
   await page.waitFor("document.querySelector('#financeTransactionModal').classList.contains('hidden')");
-  await page.navigate('/select?native-navigation=1');await page.waitFor("Boolean(window.WYJAndroidNavigation)");
-  const rapid=await page.evaluate("(async()=>{const before=history.length;await Promise.all(Array.from({length:30},(_,i)=>window.WYJAndroidNavigation.navigate(['/tools','/select','/finance'][i%3])));return{path:location.pathname,growth:history.length-before};})()");
+  await page.navigate('/?native-navigation=1');await page.waitFor("Boolean(window.WYJAndroidNavigation)");
+  const rapid=await page.evaluate("(async()=>{const before=history.length;await Promise.all(Array.from({length:30},(_,i)=>window.WYJAndroidNavigation.navigate(['/tools','/','/finance'][i%3])));return{path:location.pathname,growth:history.length-before};})()");
   assert.equal(rapid.path,'/finance');assert.equal(rapid.growth,1);
   const repeated=await page.evaluate("(async()=>{const before=history.length;await Promise.all(Array.from({length:30},()=>window.WYJAndroidNavigation.navigate('/finance')));return{path:location.pathname,growth:history.length-before};})()");
   assert.equal(repeated.path,'/finance');assert.equal(repeated.growth,0);

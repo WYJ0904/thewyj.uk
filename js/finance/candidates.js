@@ -1,5 +1,5 @@
-import { randomId } from "../core/capabilities.js?v=20261003-aeris-p32-2";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261003-aeris-p32-2";
+import { randomId } from "../core/capabilities.js?v=20261003-aeris-p33-3";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261003-aeris-p33-3";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -7,7 +7,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20261003-aeris-p32-2";
+} from "../core/perf.js?v=20261003-aeris-p33-3";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);

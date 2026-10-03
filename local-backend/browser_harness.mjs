@@ -378,7 +378,7 @@ export const CLICK_AND_PROBE = (selector) => `(() => {
  *     already exists). A localized toast is an assertion on top, never the only
  *     reason to re-register.
  *  3. Whatever the UI said, the account must be usable: the helper signs in and
- *     requires the authenticated `/select` dashboard.
+ *     requires the authenticated `/` dashboard.
  */
 export async function registerAndSignIn(page, { username, secret, label = "member", uiTimeoutMs = 45_000 } = {}) {
   const registerResponses = page.watchResponses("/api/register");
@@ -440,7 +440,7 @@ export async function registerAndSignIn(page, { username, secret, label = "membe
   await page.click("#loginSubmitBtn");
   try {
     await page.waitFor(
-      "location.pathname === '/select' && !document.querySelector('#modulePicker')?.classList.contains('hidden')",
+      "location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')",
       45_000,
       `${label} dashboard`,
     );
