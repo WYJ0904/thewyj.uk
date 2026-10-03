@@ -76,6 +76,11 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
             dao.upsertCandidate(candidate.copy(financeTransactionId = saved.transactionId).toEntity())
             dao.upsertRecognition(recognition.toEntity())
             database.notificationDao().markFinanceOutcomeByEventId(booking.accountId, booking.eventId, "confirmed", saved.transactionId)
+            // Legacy recognitions may have several upload aliases on one exact
+            // archived lifecycle. Local booking closes that lifecycle now even
+            // while canonical cloud identity is still being reconciled.
+            RoomNotificationStore(database).structuredEventIdsForRecognition(booking.accountId, recognition.sourceEventId)
+                .forEach { eventId -> database.notificationDao().markFinanceOutcomeByEventId(booking.accountId, eventId, "confirmed", saved.transactionId) }
         }
     }
     override fun acknowledgeLocalBooking(accountId: String, eventId: String, transactionId: String) {

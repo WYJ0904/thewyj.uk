@@ -38,7 +38,7 @@ export function mergeLocalNotificationLedger(transactions, snapshot, accountId) 
 
 export function mergeLocalNotificationReviews(records, snapshot, accountId) {
   if (!snapshot || snapshot.account_id !== accountId) return records;
-  const booked = new Set((snapshot.transactions || []).map(row => row.event_id));
+  const booked = new Set((snapshot.transactions || []).flatMap(row => [...(row.event_ids || []), row.event_id]).filter(Boolean));
   const ids = row => [...(row.event_ids || []), row.event_id].filter(Boolean);
   const pending = records.filter(row => row.state === "pending" && !ids(row).some(id => booked.has(id)));
   const observed = new Set(records.flatMap(ids));

@@ -256,7 +256,7 @@ class PaymentRecognitionCoordinator(
     }
 
     /** Atomic durable booking shared by normal, enrichment, recovery and retry paths. */
-    fun autoBook(accountId: String, recognitionId: String, knownTransactionId: String = ""): LocalPaymentBooking? {
+    fun autoBook(accountId: String, recognitionId: String, knownTransactionId: String = "", syncState: String = "pending"): LocalPaymentBooking? {
         val recognition = store.recognition(accountId, recognitionId) ?: return null
         if (recognition.state in setOf("IGNORED", "DUPLICATE_IGNORED", "FINANCE_CORRECTED")) return null
         val existingCandidate = store.candidateForRecognition(accountId, recognitionId)
@@ -283,7 +283,7 @@ class PaymentRecognitionCoordinator(
             currency = recognition.currency, merchant = candidate.effectiveMerchant,
             occurredAtMs = candidate.effectiveOccurredAtMs, sourcePackage = recognition.sourcePackage,
             paymentChannel = recognition.paymentChannel, providerReference = recognition.providerReference,
-            syncState = if (knownTransactionId.isNotBlank() || existingCandidate?.financeTransactionId?.isNotBlank() == true) "synced" else "pending",
+            syncState = if (knownTransactionId.isNotBlank() || existingCandidate?.financeTransactionId?.isNotBlank() == true) "synced" else syncState,
             createdAtMs = now(),
         )
         store.bookLocally(booking,

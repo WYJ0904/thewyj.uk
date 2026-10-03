@@ -11,6 +11,8 @@ assert.equal(Object.values(transactions)[0].amount_minor, 3400);
 assert.equal(mergeLocalNotificationLedger(transactions, snapshot, "account-a"), false);
 assert.equal(Object.keys(transactions).length, 1);
 assert.deepEqual(mergeLocalNotificationReviews([{ state: "pending", event_id: row.event_id }], snapshot, "account-a"), []);
+assert.deepEqual(mergeLocalNotificationReviews([{ state: "pending", event_id: "evt-old-alias" }],
+  { ...snapshot, transactions: [{ ...row, event_ids: [row.event_id, "evt-old-alias"] }] }, "account-a"), []);
 const restored = JSON.parse(JSON.stringify(transactions));
 const receipt = { ...snapshot, transactions: [{ ...row, id: "txn:legacy-server-id", sync_state: "synced" }] };
 assert.equal(mergeLocalNotificationLedger(restored, receipt, "account-a"), true);

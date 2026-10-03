@@ -68,6 +68,50 @@ class LocalPaymentBookingTest {
         assertEquals(0, store.pendingCandidateCount("account-a"))
     }
 
+    @Test fun ambiguousOldUploadIdentityDoesNotMakeCompleteMoneyAReview() {
+        store.saveRecognition(PaymentRecognitionRecord("rec-ambiguous", "account-a", "FINANCE_PENDING_CONFIRMATION", 2304,
+            "com.tencent.mm", "NOTIFICATION", "notification#legacy-key#1000", "", "wechat", 3400,
+            "CNY", "EXPENSE", "", "", 1000, 1000))
+        val booking = coordinator.autoBook("account-a", "rec-ambiguous", syncState = "identity_pending")!!
+        assertEquals("identity_pending", booking.syncState)
+        assertEquals("FINANCE_RECORDED", store.recognition("account-a", "rec-ambiguous")?.state)
+        assertEquals(0, store.pendingCandidateCount("account-a"))
+        assertEquals(3400, booking.amountMinor)
+    }
+
+    @Test fun ambiguousIdentityRequiresOneProvedCanonicalTransactionWithoutRebooking() {
+        store.saveRecognition(PaymentRecognitionRecord("rec-alias", "account-a", "FINANCE_PENDING_CONFIRMATION", 2305,
+            "com.tencent.mm", "NOTIFICATION", "notification#legacy-key#1000", "", "wechat", 3400,
+            "CNY", "EXPENSE", "", "", 1000, 1000))
+        val booking = coordinator.autoBook("account-a", "rec-alias", syncState = "identity_pending")!!
+        val archive = object : NotificationArchiveSink {
+            override fun store(accountId: String, input: NotificationCaptureInput, parsed: StructuredNotificationEvent?) = false
+            override fun markRemoved(accountId: String, input: NotificationCaptureInput) {}
+            override fun structuredEventIdsForRecognition(accountId: String, recognitionSourceEventId: String) = listOf("evt-alias-a", "evt-alias-b")
+        }
+        fun receipt(event: String, transaction: String) = uk.thewyj.app.core.network.PendingReviewIdentity(
+            "booking", event, event, "device-a", "confirmed", transaction)
+        assertEquals(0, LocalPaymentReceiptReconciler.apply("account-a", store, archive,
+            listOf(receipt("evt-alias-a", "txn:one"), receipt("evt-alias-b", "txn:two"))))
+        assertEquals("identity_pending", store.localBookings("account-a").single().syncState)
+        assertEquals(1, LocalPaymentReceiptReconciler.apply("account-a", store, archive,
+            listOf(receipt("evt-alias-a", "txn:canonical"), receipt("evt-alias-b", "txn:canonical"))))
+        assertEquals("synced", store.localBookings("account-a").single().syncState)
+        assertEquals("txn:canonical", store.localBooking("account-a", booking.eventId)?.transactionId)
+        assertEquals(1, store.localBookings("account-a").size)
+    }
+
+    @Test fun persistedLocalBookingRemovesAliasedManualReviewWithoutFabricatingReceipt() {
+        val summary = uk.thewyj.app.core.network.PendingReviewSummary("now", 2, 2, 0, false, listOf(
+            uk.thewyj.app.core.network.PendingReviewIdentity("hint", "hint-booked", "evt-old-alias", "device-a"),
+            uk.thewyj.app.core.network.PendingReviewIdentity("hint", "hint-needs-money", "evt-needs-money", "device-a")))
+        val projected = LocalPaymentReviewProjection.apply(summary, setOf("evt-old-alias", "evt-local-booking"))
+        assertEquals(1, projected.totalCount)
+        assertEquals("evt-needs-money", projected.records.single().eventId)
+        assertTrue(projected.records.none { it.state == "confirmed" })
+        assertTrue(projected.records.all { it.transactionId.isEmpty() })
+    }
+
     @Test fun oldLocalRecoveryCompleteMoneyBooksOnceAndReceiptSurvivesRestart() {
         val recognition = PaymentRecognitionRecord("rec-old-34", "account-a", "FINANCE_PENDING_CONFIRMATION", 2301,
             "com.tencent.mm", "NOTIFICATION", "notification#legacy#1", "", "wechat", 3400, "CNY", "EXPENSE", "", "", 1000, 1000)

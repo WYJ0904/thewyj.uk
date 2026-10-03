@@ -20,7 +20,12 @@ object LocalPaymentLedger {
             val exact = archive.structuredEventIdsForRecognition(accountId, record.sourceEventId).distinct()
             // Never guess between multiple archived events. Existing upload identity
             // wins only if the archive does not prove a different unique identity.
-            if (exact.size > 1 && record.uploadEventId !in exact) continue
+            if (exact.size > 1 && record.uploadEventId !in exact) {
+                // Money completeness still books locally. Identity ambiguity
+                // blocks only an unsafe cloud replay, never asks for confirmation.
+                if (coordinator.autoBook(accountId, record.recognitionId, syncState = "identity_pending") != null) changed = true
+                continue
+            }
             val id = exact.singleOrNull() ?: record.uploadEventId
             if (id in ignored) continue
             if (id.isNotBlank() && id != record.uploadEventId) store.saveRecognition(record.copy(uploadEventId = id))
@@ -40,8 +45,29 @@ object LocalPaymentLedger {
         }
         if (changed) PaymentReviewSignals.publish()
         val queue = NotificationOfflineQueue.inDirectory(context.filesDir, accountId)
+        for (booking in store.localBookings(accountId).filter { it.syncState == "identity_pending" }) {
+            val recognition = store.recognition(accountId, booking.recognitionId) ?: continue
+            val aliases = archive.structuredEventIdsForRecognition(accountId, recognition.sourceEventId).distinct()
+            val revisions = aliases.mapNotNull { database.notificationDao().revisionForEventId(accountId, it) }
+            if (revisions.any { (it.amountMinor > 0 && it.amountMinor != booking.amountMinor) ||
+                    (it.direction in setOf("INCOME", "EXPENSE", "REFUND") && it.direction != booking.direction) }) continue
+            val proofs = aliases.map { archive.archivedLifecycleIdentity(accountId, it) }.filter(String::isNotBlank).distinct()
+            if (proofs.size != 1 || aliases.isEmpty()) continue
+            // Existing hint reconciliation accepts exact archived lifecycle proof
+            // and complete money, merges aliases and books once on the server.
+            // It rejects conflicting evidence rather than guessing a new event.
+            for (alias in aliases) queue.enqueueHint("hint:$alias", StructuredEventJson.hintPayload(
+                deviceId = deviceId, sourceEventId = alias, sourceType = "notification",
+                sourcePackage = booking.sourcePackage, appLabel = PaymentAppLabels.resolve(context, booking.sourcePackage),
+                amountMinor = booking.amountMinor, direction = booking.direction, merchant = booking.merchant,
+                currency = booking.currency, confidence = store.candidateForRecognition(accountId, booking.recognitionId)?.confidence ?: 0,
+                recognitionStatus = "CONFIRMED_PAYMENT", reasons = listOf("exact_archive_identity_recovery"),
+                parserVersion = "local-autobook-v1", providerReference = booking.providerReference,
+                paymentChannel = booking.paymentChannel, lifecycleIdentity = proofs.single(), occurredAtMs = booking.occurredAtMs,
+            ))
+        }
         val queued = queue.peekRequests().map { it.operationId }.toSet()
-        for (booking in store.localBookings(accountId).filter { it.syncState != "synced" }) {
+        for (booking in store.localBookings(accountId).filter { it.syncState == "pending" }) {
             if (booking.eventId in queued) continue
             val event = StructuredNotificationEvent(
                 eventId = booking.eventId,
@@ -53,7 +79,8 @@ object LocalPaymentLedger {
                 direction = FinanceDirection.valueOf(booking.direction), amountMinor = booking.amountMinor,
                 currency = booking.currency, merchant = booking.merchant, counterparty = booking.merchant,
                 paymentChannel = booking.paymentChannel, providerReference = booking.providerReference,
-                confidence = 950, occurredAtMs = booking.occurredAtMs, receivedAtMs = booking.occurredAtMs,
+                confidence = store.candidateForRecognition(accountId, booking.recognitionId)?.confidence?.coerceIn(0, 1000) ?: 0,
+                occurredAtMs = booking.occurredAtMs, receivedAtMs = booking.occurredAtMs,
             )
             queue.enqueue(booking.eventId, StructuredEventJson.ingestPayload("1", deviceId, booking.eventId, event))
         }
@@ -64,14 +91,21 @@ object LocalPaymentLedger {
         val account = NotificationSessionProvider(context).currentAccount()
         if (account == null || !account.financeEntitled) return "null"
         val store = RoomPaymentRecognitionStore(NotificationDatabase.get(context))
+        val archive = RoomNotificationStore(NotificationDatabase.get(context))
         val transactions = JSONArray()
-        for (booking in store.localBookings(account.accountId)) transactions.put(JSONObject()
+        for (booking in store.localBookings(account.accountId)) {
+            val aliases = store.recognition(account.accountId, booking.recognitionId)?.let {
+                archive.structuredEventIdsForRecognition(account.accountId, it.sourceEventId)
+            }.orEmpty() + booking.eventId
+            transactions.put(JSONObject()
+            .put("event_ids", JSONArray(aliases.distinct()))
             .put("event_id", booking.eventId).put("sync_state", booking.syncState)
             .put("local_id", PaymentAutoBook.transactionId(booking.accountId, booking.eventId))
             .put("id", booking.transactionId).put("amount_minor", booking.amountMinor)
             .put("direction", booking.direction.lowercase()).put("currency", booking.currency)
             .put("merchant", booking.merchant).put("occurred_at_ms", booking.occurredAtMs)
             .put("source_kind", "automatic").put("status", "active").put("reconciliation_state", "automatic"))
+        }
         val reviews = JSONArray()
         for (record in store.recognitionsByState(account.accountId, PaymentVerificationCenter.ATTENTION_STATES, 5000)) {
             val candidate = store.candidateForRecognition(account.accountId, record.recognitionId)

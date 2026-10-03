@@ -67,13 +67,16 @@ class PaymentHintSync(
     )
 
     /** Apply the same account-scoped summary used by the Finance page. */
-    fun applySummary(accountId: String, summary: PendingReviewSummary, pullEpoch: Long? = null): Result {
+    fun applySummary(accountId: String, remoteSummary: PendingReviewSummary, pullEpoch: Long? = null): Result {
         val account = (accountOverride?.invoke()
             ?: runCatching { sessions.currentAccount() }.getOrNull()) ?: return Result(0, 0, 0, false)
         if (!account.financeEntitled || account.accountId != accountId) return Result(0, 0, 0, false)
+        val summary = LocalPaymentReviewProjection.apply(remoteSummary, bookedEventIds(accountId))
         val cache = CanonicalPendingCache(app, accountId)
         val previousPending = cache.read()?.records?.filter { it.state == "pending" }?.sortedBy { it.canonicalId }
         if (!cache.save(summary, pullEpoch ?: cache.epoch())) return Result(0, 0, 0, false)
+        if (LocalPaymentReceiptReconciler.apply(accountId, store,
+                archiveSink ?: NotificationArchiveSinkFactory.forContext(app), summary.records) > 0) PaymentReviewSignals.publish()
         val states = mutableMapOf<String, String>()
         val pendingIds = mutableSetOf<String>()
         var confirmed = 0
@@ -122,6 +125,15 @@ class PaymentHintSync(
             pendingCount = summary.totalCount,
             pendingRecords = summary.records.filter { it.state == "pending" },
         )
+    }
+
+    private fun bookedEventIds(accountId: String): Set<String> {
+        val archive = archiveSink ?: NotificationArchiveSinkFactory.forContext(app)
+        return store.localBookings(accountId).flatMap { booking ->
+            listOf(booking.eventId) + store.recognition(accountId, booking.recognitionId)?.let {
+                archive.structuredEventIdsForRecognition(accountId, it.sourceEventId)
+            }.orEmpty()
+        }.toSet()
     }
 
     /**
@@ -389,7 +401,11 @@ class PaymentHintSync(
             listOf(recognition.uploadEventId.trim()) +
                 runCatching { archive.structuredEventIdsForRecognition(account.accountId, recognition.sourceEventId) }
                     .getOrDefault(emptyList())
-        } + store.localBookings(account.accountId).filter { it.syncState != "synced" }.map { it.eventId })
+        } + store.localBookings(account.accountId).filter { it.syncState != "synced" }.flatMap { booking ->
+            listOf(booking.eventId) + store.recognition(account.accountId, booking.recognitionId)?.let { recognition ->
+                archive.structuredEventIdsForRecognition(account.accountId, recognition.sourceEventId)
+            }.orEmpty()
+        })
             .filter(String::isNotBlank).distinct()
         val cursor = SUMMARY_CURSORS.computeIfAbsent(account.accountId) { AtomicInteger() }
         val start = if (allRequested.isEmpty()) 0 else Math.floorMod(cursor.getAndAdd(200), allRequested.size)
@@ -405,8 +421,19 @@ class PaymentHintSync(
         if (!response.ok) return Observation()
         val payload = runCatching { JSONObject(response.body) }.getOrNull()
             ?: return Observation()
-        val records = payload.optJSONArray("records") ?: return Observation()
-        if (allowArchiveRepair && repairArchivedReviewAliases(account, records)) {
+        val receivedRecords = payload.optJSONArray("records") ?: return Observation()
+        val records = JSONArray()
+        val bookedIds = bookedEventIds(account.accountId)
+        for (index in 0 until receivedRecords.length()) {
+            val row = receivedRecords.optJSONObject(index) ?: continue
+            val item = PendingReviewIdentity.fromJson(row)
+            if (item?.state == "pending" && (item.eventIds + item.eventId).any(bookedIds::contains)) {
+                payload.put("total_count", (payload.optInt("total_count") - 1).coerceAtLeast(0))
+                val key = if (item.kind == "hint") "hint_count" else "candidate_count"
+                payload.put(key, (payload.optInt(key) - 1).coerceAtLeast(0))
+            } else records.put(row)
+        }
+        if (allowArchiveRepair && repairArchivedReviewAliases(account, receivedRecords)) {
             return reconcileExactReviewIdentities(account, allowArchiveRepair = false)
         }
         val parsed = (0 until records.length()).mapNotNull { records.optJSONObject(it)?.let(PendingReviewIdentity::fromJson) }
@@ -418,6 +445,7 @@ class PaymentHintSync(
         val states = mutableMapOf<String, String>()
         val pendingIds = mutableSetOf<String>()
         val pendingRecords = mutableListOf<PendingReviewIdentity>()
+        if (LocalPaymentReceiptReconciler.apply(account.accountId, store, archive, parsed) > 0) PaymentReviewSignals.publish()
         for (index in 0 until records.length()) {
             val row = records.optJSONObject(index) ?: continue
             val eventIds = buildSet {
@@ -549,6 +577,7 @@ class PaymentHintSync(
         financeEntryId: String,
     ) {
         val accountId = account.accountId
+        if (store.localBooking(accountId, PaymentAutoBook.eventId(recognition))?.syncState == "identity_pending") return
         val cacheChanged = CanonicalPendingCache(app, accountId).terminalize(eventIds, "confirmed", financeEntryId)
         if (financeEntryId.isNotBlank()) eventIds.forEach { store.acknowledgeLocalBooking(accountId, it, financeEntryId) }
         eventIds.forEach { eventId ->
@@ -630,6 +659,8 @@ class PaymentHintSync(
         hint: JSONObject,
     ) {
         val accountId = account.accountId
+        val localRecognition = recognitionForHint(account, eventId, hint)
+        if (localRecognition != null && store.localBooking(accountId, PaymentAutoBook.eventId(localRecognition))?.syncState == "identity_pending") return
         val cacheChanged = CanonicalPendingCache(app, accountId).terminalize(setOf(eventId), "confirmed", financeEntryId)
         if (financeEntryId.isNotBlank()) store.acknowledgeLocalBooking(accountId, eventId, financeEntryId)
         // The archive link is canonical and independent of the local recognition

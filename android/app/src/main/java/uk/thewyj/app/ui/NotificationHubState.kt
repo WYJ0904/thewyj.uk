@@ -212,7 +212,7 @@ class NotificationHubState(
                 null
             }
             val observation = fetched?.let { hintSync.applySummary(accountId, it, pullEpoch) }
-            val remote = if (observation?.completeObservation == true) fetched else cache.read()
+            val remote = cache.read()
             val local = paymentStore.recognitionsByState(
                 accountId,
                 uk.thewyj.app.task21.payment.PaymentVerificationCenter.ATTENTION_STATES,

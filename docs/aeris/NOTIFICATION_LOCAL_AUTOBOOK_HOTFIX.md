@@ -18,6 +18,8 @@ Missing amount or direction remains a review. Merchant, category, note, confiden
 
 Room schema 9 adds an account/event keyed local transaction and outbox record. The local transaction, recognition, candidate, and archive closure are committed together. Recovery re-evaluates legacy evidence and repairs exact archive identities. It preserves existing archive/cloud transaction receipts. No amount/time similarity heuristic is used to deduplicate payments.
 
+Ambiguous legacy upload identities still book complete money locally and close local review. Only cloud replay waits for identity proof. A full exact receipt set that maps the archived aliases to one canonical transaction resolves it automatically; conflicting receipts remain a synchronization identity issue, without asking for manual money confirmation or creating a second cloud transaction.
+
 New automatic transaction IDs are deterministic from account + stable event ID. Existing server IDs remain authoritative. The existing Finance controller projects the native ledger into its existing account-scoped cache and removes provisional IDs when a legacy receipt resolves them. Server ledger reads include exact notification event links so an already cached cloud booking cannot become a second provisional entry.
 
 An HTTP success without a transaction receipt cannot acknowledge a local booking. Receipt persistence precedes queue removal. Incomplete local reviews and cloud reviews form an identity union; complete booked transactions are excluded from that review set.
