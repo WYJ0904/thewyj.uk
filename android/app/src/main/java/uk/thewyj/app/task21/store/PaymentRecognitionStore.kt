@@ -12,6 +12,11 @@ import uk.thewyj.app.task21.FinanceDirection
  * in-memory fake so the whole pipeline is unit testable without a device.
  */
 interface PaymentRecognitionStoreContract {
+    fun localBooking(accountId: String, eventId: String): uk.thewyj.app.task21.payment.LocalPaymentBooking?
+    fun localBookings(accountId: String): List<uk.thewyj.app.task21.payment.LocalPaymentBooking>
+    fun bookLocally(booking: uk.thewyj.app.task21.payment.LocalPaymentBooking, recognition: PaymentRecognitionRecord, candidate: PaymentCandidate)
+    fun acknowledgeLocalBooking(accountId: String, eventId: String, transactionId: String)
+
     fun saveRecognition(record: PaymentRecognitionRecord)
     fun recognition(accountId: String, recognitionId: String): PaymentRecognitionRecord?
     fun recognitionBySourceEvent(accountId: String, sourceEventId: String): PaymentRecognitionRecord?
@@ -62,6 +67,28 @@ interface PaymentRecognitionStoreContract {
 
 class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : PaymentRecognitionStoreContract {
     private val dao get() = database.paymentDao()
+    override fun localBooking(accountId: String, eventId: String) = dao.localBooking(accountId, eventId)?.toModel()
+    override fun localBookings(accountId: String) = dao.localBookings(accountId).map { it.toModel() }
+    override fun bookLocally(booking: uk.thewyj.app.task21.payment.LocalPaymentBooking, recognition: PaymentRecognitionRecord, candidate: PaymentCandidate) {
+        database.runInTransaction {
+            dao.insertLocalBooking(booking.toEntity())
+            val saved = dao.localBooking(booking.accountId, booking.eventId)!!
+            dao.upsertCandidate(candidate.copy(financeTransactionId = saved.transactionId).toEntity())
+            dao.upsertRecognition(recognition.toEntity())
+            database.notificationDao().markFinanceOutcomeByEventId(booking.accountId, booking.eventId, "confirmed", saved.transactionId)
+            // Legacy recognitions may have several upload aliases on one exact
+            // archived lifecycle. Local booking closes that lifecycle now even
+            // while canonical cloud identity is still being reconciled.
+            RoomNotificationStore(database).structuredEventIdsForRecognition(booking.accountId, recognition.sourceEventId)
+                .forEach { eventId -> database.notificationDao().markFinanceOutcomeByEventId(booking.accountId, eventId, "confirmed", saved.transactionId) }
+        }
+    }
+    override fun acknowledgeLocalBooking(accountId: String, eventId: String, transactionId: String) {
+        database.runInTransaction {
+            dao.acknowledgeLocalBooking(accountId, eventId, transactionId)
+            database.notificationDao().markFinanceOutcomeByEventId(accountId, eventId, "confirmed", transactionId)
+        }
+    }
 
     override fun saveRecognition(record: PaymentRecognitionRecord) = dao.upsertRecognition(record.toEntity())
 

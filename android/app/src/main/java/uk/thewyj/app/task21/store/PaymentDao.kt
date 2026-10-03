@@ -8,6 +8,24 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PaymentDao {
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insertLocalBooking(booking: LocalPaymentBookingEntity)
+
+    @Query("SELECT * FROM local_payment_bookings WHERE accountId = :accountId AND eventId = :eventId")
+    fun localBooking(accountId: String, eventId: String): LocalPaymentBookingEntity?
+
+    @Query("SELECT * FROM local_payment_bookings WHERE accountId = :accountId ORDER BY createdAtMs")
+    fun localBookings(accountId: String): List<LocalPaymentBookingEntity>
+
+    @Query("""SELECT r.* FROM payment_recognitions r WHERE r.accountId = :accountId
+        AND r.state NOT IN ('IGNORED', 'DUPLICATE_IGNORED', 'FINANCE_CORRECTED')
+        AND NOT EXISTS (SELECT 1 FROM local_payment_bookings b WHERE b.accountId = r.accountId AND b.recognitionId = r.recognitionId)
+        ORDER BY r.updatedAtMs DESC""")
+    fun unbookedRecognitions(accountId: String): List<PaymentRecognitionEntity>
+
+    @Query("UPDATE local_payment_bookings SET transactionId = :transactionId, syncState = 'synced' WHERE accountId = :accountId AND eventId = :eventId")
+    fun acknowledgeLocalBooking(accountId: String, eventId: String, transactionId: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun upsertRecognition(recognition: PaymentRecognitionEntity)
 

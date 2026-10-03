@@ -48,6 +48,7 @@ class PaymentRecognitionCoordinator(
         }
         val existing = store.recognitionBySourceEvent(accountId, sourceEventId)
         if (existing != null) {
+            autoBook(accountId, existing.recognitionId)
             return Outcome(existing.recognitionId, null, skippedReason = "duplicate_source_event")
         }
         val parsed = PaymentParserRegistry.parse(
@@ -90,7 +91,7 @@ class PaymentRecognitionCoordinator(
 
         var ticketId = ""
         var candidateId = ""
-        if (!amountKnown || parsed.status == PaymentRecognitionStatus.INSUFFICIENT_INFORMATION) {
+        if (!PaymentAutoBook.eligible(parsed.amountMinor, parsed.direction?.name.orEmpty())) {
             val ticket = tickets.create(
                 accountId = accountId,
                 recognitionId = recognitionId,
@@ -120,8 +121,8 @@ class PaymentRecognitionCoordinator(
                 state = record.state
             }
         } else {
-            // Amount (and usually direction) known: create a candidate that the
-            // user can edit before confirming; the backend may auto-record.
+            // The candidate preserves recognition evidence. Complete money is
+            // committed locally below; cloud availability never gates booking.
             val candidate = candidateFor(
                 accountId = accountId,
                 recognitionId = recognitionId,
@@ -130,19 +131,7 @@ class PaymentRecognitionCoordinator(
             )
             store.saveCandidate(candidate)
             candidateId = candidate.candidateId
-            transition = statusMachine.transition(
-                current = record,
-                next = PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION,
-                recognitionId = recognitionId,
-                sourceAppLabel = sourceAppLabel,
-                amountLabel = amountLabel,
-                directionLabel = directionLabel,
-            )
-            if (transition is PaymentStatusTransition.Updated) {
-                record = transition.record
-                notificationPosted = post(transition) || notificationPosted
-                state = record.state
-            }
+
         }
 
         store.saveRecognition(
@@ -165,6 +154,7 @@ class PaymentRecognitionCoordinator(
                 updatedAtMs = now(),
             ),
         )
+        if (autoBook(accountId, recognitionId) != null) state = PaymentRecognitionState.FINANCE_RECORDED
         return Outcome(
             recognitionId = recognitionId,
             state = state,
@@ -247,6 +237,7 @@ class PaymentRecognitionCoordinator(
                     }
                     val verifiedTicket = tickets.markCandidateCreated(outcome.ticket)
                     store.saveTicket(verifiedTicket)
+                    autoBook(accountId, recognition.recognitionId)
                 }
                 return EnrichmentOutcome.Applied(outcome.ticket)
             }
@@ -262,6 +253,53 @@ class PaymentRecognitionCoordinator(
                 return outcome
             }
         }
+    }
+
+    /** Atomic durable booking shared by normal, enrichment, recovery and retry paths. */
+    fun autoBook(accountId: String, recognitionId: String, knownTransactionId: String = "", syncState: String = "pending"): LocalPaymentBooking? {
+        val recognition = store.recognition(accountId, recognitionId) ?: return null
+        if (recognition.state in setOf("IGNORED", "DUPLICATE_IGNORED", "FINANCE_CORRECTED")) return null
+        val existingCandidate = store.candidateForRecognition(accountId, recognitionId)
+        if (existingCandidate?.status == "rejected") return null
+        val amount = existingCandidate?.effectiveAmountMinor ?: recognition.amountMinor
+        val direction = existingCandidate?.effectiveDirection?.takeIf { it.isNotBlank() } ?: recognition.direction
+        if (!PaymentAutoBook.eligible(amount, direction)) return null
+        val eventId = PaymentAutoBook.eventId(recognition)
+        val previous = store.localBooking(accountId, eventId)
+        // A real server receipt predates this upgrade: keep that ledger identity.
+        val transactionId = previous?.transactionId ?: knownTransactionId.takeIf(String::isNotBlank)
+            ?: existingCandidate?.financeTransactionId?.takeIf { it.isNotBlank() }
+            ?: PaymentAutoBook.transactionId(accountId, eventId)
+        val candidate = existingCandidate ?: PaymentCandidate(
+            candidateId = "cand-" + recognitionId, accountId = accountId, recognitionId = recognitionId,
+            status = "pending", amountMinor = amount, direction = direction, category = "",
+            merchant = recognition.merchant, occurredAtMs = recognition.createdAtMs,
+            channel = recognition.paymentChannel, confidence = 0, reason = "recovered_complete_payment",
+            createdAtMs = recognition.createdAtMs, updatedAtMs = now(),
+        )
+        val booking = previous ?: LocalPaymentBooking(
+            accountId = accountId, eventId = eventId, recognitionId = recognitionId,
+            transactionId = transactionId, amountMinor = amount!!, direction = direction.uppercase(),
+            currency = recognition.currency, merchant = candidate.effectiveMerchant,
+            occurredAtMs = candidate.effectiveOccurredAtMs, sourcePackage = recognition.sourcePackage,
+            paymentChannel = recognition.paymentChannel, providerReference = recognition.providerReference,
+            syncState = if (knownTransactionId.isNotBlank() || existingCandidate?.financeTransactionId?.isNotBlank() == true) "synced" else syncState,
+            createdAtMs = now(),
+        )
+        store.bookLocally(booking,
+            recognition.copy(state = PaymentRecognitionState.FINANCE_RECORDED.name, uploadEventId = eventId, updatedAtMs = now()),
+            candidate.copy(status = "confirmed", financeTransactionId = transactionId, updatedAtMs = now()),
+        )
+        store.ticketsForRecognition(accountId, recognitionId).filter { !it.state.terminal }
+            .forEach { store.saveTicket(tickets.markConfirmed(it)) }
+        if (recognition.state != PaymentRecognitionState.FINANCE_RECORDED.name) {
+            post(PaymentStatusTransition.Updated(
+                PaymentStatusRecord(recognitionId, PaymentRecognitionState.FINANCE_RECORDED, now(), recognition.notificationId),
+                PaymentStatusNotificationMessage(recognition.notificationId, recognitionId, "Aeris · 已记录到财务",
+                    "${formatAmount(amount!!)} 已记录到本机账本，将自动同步"),
+            ))
+        }
+        return booking
     }
 
     /** Lazily expires tickets and tells the user once per expired recognition. */

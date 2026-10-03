@@ -105,6 +105,7 @@ class PaymentStatusStateMachine(private val now: () -> Long = System::currentTim
         return when (from) {
             PaymentRecognitionState.DETECTED_AMOUNT_KNOWN ->
                 to in setOf(
+                    PaymentRecognitionState.WAITING_FOR_ENRICHMENT,
                     PaymentRecognitionState.FINANCE_RECORDED,
                     PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION,
                     PaymentRecognitionState.FINANCE_MANUALLY_CONFIRMED,
@@ -191,8 +192,9 @@ class PaymentStatusStateMachine(private val now: () -> Long = System::currentTim
             PaymentRecognitionState.WAITING_FOR_ENRICHMENT -> PaymentStatusNotificationMessage(
                 notificationId = record.notificationId,
                 recognitionId = record.recognitionId,
-                title = "Aeris · 等待核实金额",
-                body = "请在 90 秒内打开「$app」对应交易页面，thewyj 将尝试自动核实金额。",
+                title = if (amountLabel.isNotBlank()) "Aeris · 等待核实收支方向" else "Aeris · 等待核实金额",
+                body = if (amountLabel.isNotBlank()) "$app：已识别 $amountLabel，收支方向尚未明确。"
+                    else "请在 90 秒内打开「$app」对应交易页面，Aeris 将尝试自动核实金额。",
                 openPackage = sourcePackage,
             )
             PaymentRecognitionState.ENRICHMENT_VERIFIED -> PaymentStatusNotificationMessage(

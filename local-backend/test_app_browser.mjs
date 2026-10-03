@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const RELEASE = JSON.parse(fs.readFileSync(path.join(ROOT, "android", "release-metadata.json"), "utf8"));
 const BASE_URL = process.env.WYJ_TEST_BASE || "http://127.0.0.1:8892";
 const CDP_URL = process.env.WYJ_CDP_URL || "http://127.0.0.1:9223";
 const ADMIN_SECRET = process.env.WYJ_TEST_ADMIN_SECRET || "";
@@ -700,13 +701,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20261003-aeris-p33-3');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20261003-aeris-p33-3');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261003-aeris-p33-3');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261003-aeris-p33-3');
-        const cachedChangelog = await caches.match('/changelog.js?v=20261003-aeris-p33-3');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261003-aeris-p33-3');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20261003-aeris-p33-3');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261003-autobook-1');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261003-autobook-1');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261003-autobook-1');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261003-autobook-1');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261003-autobook-1');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261003-autobook-1');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261003-autobook-1');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -719,10 +720,10 @@ async function main() {
       assert.equal(pwa.cachedLearningSync, true);
       assert.equal(pwa.cachedWorkflows, true);
       await waitFor("!document.querySelector('#versionNotice')?.classList.contains('hidden')", 3_000, "first-version notice");
-      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), "v1.3.27");
+      assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), `v${RELEASE.versionName}`);
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), "2026-10-03-aeris-p3-1.3.27");
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), RELEASE.releaseBuild);
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
       const mobilePublic = await evaluate(`({
         viewport: document.documentElement.clientWidth,
@@ -837,7 +838,7 @@ async function main() {
       );
       assert.equal(await evaluate("document.querySelector('#changelogPage').textContent.includes('可配置工具工作流')"), true);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
-      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), "v1.3.27");
+      assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), `v${RELEASE.versionName}`);
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);

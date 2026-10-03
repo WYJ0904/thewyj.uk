@@ -22,6 +22,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PaymentRecognitionEntity::class,
         PaymentTicketEntity::class,
         PaymentCandidateEntity::class,
+        LocalPaymentBookingEntity::class,
     ],
     version = NotificationDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -31,7 +32,7 @@ abstract class NotificationDatabase : RoomDatabase() {
     abstract fun paymentDao(): PaymentDao
 
     companion object {
-        const val SCHEMA_VERSION = 8
+        const val SCHEMA_VERSION = 9
         const val DATABASE_NAME = "wyj-notifications.db"
 
         @Volatile
@@ -46,7 +47,7 @@ abstract class NotificationDatabase : RoomDatabase() {
                 )
                     // The local archive is user data: never drop it on upgrade.
                     .addMigrations(
-                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
+                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
                     )
                     .build()
                     .also { instance = it }
@@ -159,6 +160,17 @@ abstract class NotificationDatabase : RoomDatabase() {
                         "(`text` LIKE '正在%连接%' OR `text` LIKE '%正在运行' OR `text` LIKE '已连接%' OR " +
                         "`bigText` LIKE '正在%连接%' OR `bigText` LIKE '%正在运行' OR `bigText` LIKE '已连接%')",
                 )
+            }
+        }
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""CREATE TABLE IF NOT EXISTS `local_payment_bookings` (
+                    `accountId` TEXT NOT NULL, `eventId` TEXT NOT NULL, `recognitionId` TEXT NOT NULL,
+                    `transactionId` TEXT NOT NULL, `amountMinor` INTEGER NOT NULL, `direction` TEXT NOT NULL,
+                    `currency` TEXT NOT NULL, `merchant` TEXT NOT NULL, `occurredAtMs` INTEGER NOT NULL,
+                    `sourcePackage` TEXT NOT NULL, `paymentChannel` TEXT NOT NULL, `providerReference` TEXT NOT NULL,
+                    `syncState` TEXT NOT NULL, `createdAtMs` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `eventId`))""")
             }
         }
 

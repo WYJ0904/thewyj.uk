@@ -129,11 +129,6 @@ class PaymentParserTest {
             "支付 100 元" to 10_000L,
             "付款100" to 10_000L,
             "付款100元" to 10_000L,
-            "¥100" to 10_000L,
-            "￥100" to 10_000L,
-            "CNY 100" to 10_000L,
-            "100 CNY" to 10_000L,
-            "RMB 100" to 10_000L,
             "转账100元" to 10_000L,
             "已支付 ¥1000" to 100_000L,
             "已支付1,000.50元" to 100_050L,
@@ -143,6 +138,13 @@ class PaymentParserTest {
             assertEquals("amount for $message", expected, result.amountMinor)
             assertTrue("$message must be transaction-like", result.isTransactionLike)
             assertNotNull("$message needs a direction", result.direction)
+        }
+        for (message in listOf("¥100", "￥100", "CNY 100", "100 CNY", "RMB 100")) {
+            val result = wechat("微信支付", message)
+            assertEquals(10_000L, result.amountMinor)
+            assertNull("generic app title must not fabricate an expense direction", result.direction)
+            assertTrue(result.missingFields.contains("direction"))
+            assertFalse(PaymentAutoBook.eligible(result.amountMinor, result.direction?.name.orEmpty()))
         }
     }
 

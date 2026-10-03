@@ -17,11 +17,13 @@ import uk.thewyj.app.ui.AppViewModel
 import uk.thewyj.app.ui.ThewyjApp
 
 class MainActivity : ComponentActivity() {
+    private val paymentSyncRunning = java.util.concurrent.atomic.AtomicBoolean(false)
     private val viewModel by viewModels<AppViewModel>()
     private val connectivityManager by lazy { getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager }
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
             viewModel.onNetworkAvailable()
+            syncPayments()
         }
     }
 
@@ -42,8 +44,20 @@ class MainActivity : ComponentActivity() {
         runCatching { connectivityManager.registerDefaultNetworkCallback(networkCallback) }
         // P0-2/P0-3: cold start and resume both reconcile the shared pending-hint
         // state, so web-side confirmations reach the app without a manual refresh.
+        syncPayments()
+    }
+
+    private fun syncPayments() {
+        if (!paymentSyncRunning.compareAndSet(false, true)) return
         Thread {
-            runCatching { uk.thewyj.app.task21.payment.PaymentHintSync(applicationContext).sync() }
+            try {
+                runCatching {
+                    val sessions = uk.thewyj.app.task21.NotificationSessionProvider(applicationContext)
+                    uk.thewyj.app.task21.NotificationCapturePipeline.create(applicationContext, sessions).flushDetailed()
+                    uk.thewyj.app.task21.payment.PaymentHintSync(applicationContext).sync()
+                    uk.thewyj.app.task21.payment.PaymentReviewSignals.publish()
+                }
+            } finally { paymentSyncRunning.set(false) }
         }.start()
     }
 

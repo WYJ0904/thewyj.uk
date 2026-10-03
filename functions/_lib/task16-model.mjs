@@ -326,6 +326,7 @@ export function reconciliationScore(event, candidate, candidateEvents = []) {
 
 export function publicTransaction(row) {
   return {
+    ...(row.notification_event_ids_json ? { notification_event_ids: JSON.parse(row.notification_event_ids_json) } : {}),
     id: String(row.id || ""),
     direction: String(row.direction || ""),
     amount_minor: Number(row.amount_minor || 0),

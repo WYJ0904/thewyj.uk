@@ -734,6 +734,24 @@ export async function notificationPendingSummary(db, account, input = {}) {
     LEFT JOIN task16_finance_transactions ht
       ON ht.user_id = c.user_id AND ht.id = h.finance_entry_id AND ht.status = 'active'
     WHERE c.user_id = ?1
+    UNION ALL
+    SELECT 'booking', raw.source_event_id, raw.source_event_id, raw.device_id,
+      CASE WHEN txn.status = 'active' THEN 'confirmed' ELSE 'ignored' END,
+      CASE WHEN txn.status = 'active' THEN txn.id ELSE '' END, txn.updated_at,
+      json_array(raw.source_event_id), COALESCE(e.source_package, ''),
+      CASE e.source_package WHEN 'com.tencent.mm' THEN '微信'
+        WHEN 'com.eg.android.AlipayGphone' THEN '支付宝' ELSE COALESCE(e.source_package, '') END,
+      txn.amount_minor, txn.direction, txn.merchant, txn.occurred_at_ms, COALESCE(e.confidence, 950), '[]'
+    FROM task16_finance_raw_events raw
+    JOIN task16_finance_transaction_events link ON link.raw_event_id = raw.id AND link.relation_status = 'active'
+    JOIN task16_finance_transactions txn ON txn.user_id = raw.user_id AND txn.id = link.transaction_id
+    LEFT JOIN task21_notification_events e ON e.user_id = raw.user_id AND e.event_id = raw.source_event_id
+    WHERE raw.user_id = ?1 AND raw.source_type = 'notification'
+      AND raw.source_event_id IN (SELECT value FROM json_each(?2))
+      AND NOT EXISTS (SELECT 1 FROM task21_notification_pending_hints h
+        WHERE h.user_id = raw.user_id AND h.source_event_id = raw.source_event_id)
+      AND NOT EXISTS (SELECT 1 FROM task21_notification_candidates c
+        WHERE c.user_id = raw.user_id AND c.event_id = raw.source_event_id)
   ), visible AS (
     SELECT * FROM review WHERE state = 'pending' OR EXISTS (
       SELECT 1 FROM json_each(review.event_ids) ids WHERE ids.value IN (SELECT value FROM json_each(?2))

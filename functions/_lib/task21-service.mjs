@@ -161,7 +161,7 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
   const now = isoNow();
   const version = await nextFinanceVersion(db, account.id, now);
   const rawId = `raw:${crypto.randomUUID()}`;
-  const transactionId = `txn:${crypto.randomUUID()}`;
+  const transactionId = `txn:notif:${(await sha256Hex(`${account.id}\n${event.event_id}`)).slice(0, 48)}`;
   // This token is a provider-issued reference, never a notification body.
   const occurredAtMs = event.occurred_at_ms || event.received_at_ms;
   const metadata = { capture_version: event.parser_version || "task21", payment_channel: event.payment_channel };
@@ -219,6 +219,7 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
       JSON.stringify({
         transaction: publicTransaction({
           id: transactionId,
+          notification_event_ids_json: JSON.stringify([event.event_id]),
           direction: event.direction,
           amount_minor: event.amount_minor,
           currency: event.currency,
@@ -401,10 +402,10 @@ async function attachEventOutcome(db, account, event, deviceId, now) {
   if (["ignored", "superseded", "expired"].includes(canonicalHint?.state)) {
     return { transactionId: "", candidateId: "" };
   }
-  if (canonicalHint) {
+  {
     const rejected = await first(db, `SELECT id FROM task21_notification_candidates
       WHERE user_id = ?1 AND event_id IN (?2, ?3) AND status = 'rejected' LIMIT 1`,
-    [account.id, canonicalHint.source_event_id, event.event_id]);
+    [account.id, canonicalHint?.source_event_id || event.event_id, event.event_id]);
     if (rejected) return { transactionId: "", candidateId: "" };
   }
   const isTransactionLike = event.event_type === "transaction" || event.event_type === "refund";
@@ -434,6 +435,10 @@ async function attachEventOutcome(db, account, event, deviceId, now) {
   if (autoIngest) {
     transactionId = (await createAutomaticFinanceTransaction(db, account, deviceId, event)).transaction_id;
     await linkEvidence(db, account, event, "", true, "confirmed", now, transactionId);
+    await run(db, `UPDATE task21_notification_candidates
+      SET status = 'confirmed', finance_transaction_id = ?3, updated_at = ?4
+      WHERE user_id = ?1 AND event_id = ?2 AND status = 'pending'`,
+    [account.id, event.event_id, transactionId, now]);
   } else if (makeCandidate) {
     candidateId = (await candidateForEvent(db, account, event, now)).id;
   }
@@ -498,7 +503,7 @@ async function processIngest(db, account, deviceId, operation) {
     const existingEvent = await first(db, `SELECT * FROM task21_notification_events
       WHERE user_id = ?1 AND event_id = ?2`, [account.id, event.event_id]);
     if (!existingEvent) throw error;
-    if (existingEvent.finance_transaction_id || existingEvent.candidate_id) {
+    if (existingEvent.finance_transaction_id) {
       return {
         event: publicNotificationEvent(existingEvent),
         duplicate: true,

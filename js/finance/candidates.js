@@ -1,5 +1,6 @@
-import { randomId } from "../core/capabilities.js?v=20261003-aeris-p33-3";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261003-aeris-p33-3";
+import { mergeLocalNotificationReviews } from "./notification-ledger.js?v=20261003-autobook-1";
+import { randomId } from "../core/capabilities.js?v=20261003-autobook-1";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261003-autobook-1";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -7,7 +8,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20261003-aeris-p33-3";
+} from "../core/perf.js?v=20261003-autobook-1";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -334,6 +335,10 @@ export function createFinanceCandidatesController({
     section.classList.remove("hidden");
     section.setAttribute("aria-hidden", "false");
     section.setAttribute("aria-busy", "true");
+    if (globalThis.window?.WYJLocalPaymentLedger?.account_id === currentAccountId) {
+      const rows = currentCandidates.map(row => ({ ...row, kind: row.hint ? "hint" : "candidate", state: "pending" }));
+      render(canonicalPendingCandidates({ records: mergeLocalNotificationReviews(rows, globalThis.window?.WYJLocalPaymentLedger, currentAccountId) }));
+    }
     // Never blank an already useful list while refreshing. Apart from the
     // visible have/empty/have flicker, rebuilding here destroyed a user's open
     // editor and the amount they had just typed.
@@ -350,7 +355,8 @@ export function createFinanceCandidatesController({
       // the row the user just confirmed).
       if (!listVersion.isCurrent(version)) return;
       hasCanonicalObservation = true;
-      render(canonicalPendingCandidates(summary));
+      render(canonicalPendingCandidates({ ...summary, records: mergeLocalNotificationReviews(
+        summary.records, globalThis.window?.WYJLocalPaymentLedger, currentAccountId) }));
       section.setAttribute("aria-busy", "false");
     } catch (error) {
       if (!listVersion.isCurrent(version)) return;
@@ -539,7 +545,12 @@ export function createFinanceCandidatesController({
       pendingDisclosure.restore();
       element("financeCandidatesSection")?.addEventListener("click", handleClick);
       element("financeCandidatesSection")?.addEventListener("submit", handleSubmit);
-      document.addEventListener("thewyj:payment-updated", () => { void reload({ force: true }); });
+      document.addEventListener("thewyj:payment-updated", () => {
+        const snapshot = globalThis.window?.WYJLocalPaymentLedger;
+        const rows = currentCandidates.map(row => ({ ...row, kind: row.hint ? "hint" : "candidate", state: "pending" }));
+        render(canonicalPendingCandidates({ records: mergeLocalNotificationReviews(rows, snapshot, String(account()?.id || "")) }));
+        void reload({ force: true });
+      });
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible" && hasAccess()) void reload({ force: true });
       });

@@ -203,6 +203,8 @@ data class PaymentIngestOutcome(
 )
 
 interface PaymentRecognitionHook {
+    fun localFinanceTransactionId(accountId: String, eventId: String): String = ""
+    fun prepareLocalBookings(accountId: String, deviceId: String) {}
     /**
      * [uploadEventId] is the structured-event identity that this capture was
      * queued under, or blank when the event stays local (an amount-unknown

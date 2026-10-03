@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +42,10 @@ import uk.thewyj.app.task21.payment.PaymentReviewSignals
 import java.net.URI
 import java.net.URLDecoder
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 import kotlin.coroutines.resume
 import org.json.JSONObject
 
@@ -67,6 +72,7 @@ fun ThewyjWebView(
     val effectiveActive = active && lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
     val currentActive = rememberUpdatedState(effectiveActive)
     val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
     val policy = remember { WebRoutePolicy(BuildConfig.THEWYJ_BASE_URL) }
     val loads = remember { WebLoadPolicy(sessionEpoch) }
     val initialBackRequest = remember { backNavigationRequest }
@@ -105,7 +111,10 @@ fun ThewyjWebView(
             speechBridge = speechBridge,
             onThemeChanged = { dark -> themeCallback.value(dark) },
             onVerifyPayment = { eventId -> verifyPaymentCallback.value(eventId) },
-            onPageReady = { view -> view.syncPageActivity(currentActive.value) },
+            onPageReady = { view ->
+                view.syncPageActivity(currentActive.value)
+                scope.launch { if (currentActive.value) view.publishPaymentLedger(context, policy) }
+            },
             onChooseFiles = { callback, params ->
                 pendingFileSelection.value?.onReceiveValue(null)
                 pendingFileSelection.value = callback
@@ -126,13 +135,11 @@ fun ThewyjWebView(
         if (effectiveActive) webView.onResume()
         webView.syncPageActivity(effectiveActive)
         if (!effectiveActive) webView.onPause()
-        if (effectiveActive) webView.evaluateJavascript(
-            "window.dispatchEvent(new Event('thewyj:payment-updated'))", null)
+        if (effectiveActive) webView.publishPaymentLedger(context, policy)
     }
     LaunchedEffect(Unit) {
-        PaymentReviewSignals.changes.collect {
-            if (currentActive.value) webView.evaluateJavascript(
-                "window.dispatchEvent(new Event('thewyj:payment-updated'))", null)
+        PaymentReviewSignals.changes.collectLatest {
+            if (currentActive.value) webView.publishPaymentLedger(context, policy)
         }
     }
 
@@ -167,6 +174,23 @@ fun ThewyjWebView(
             webView.destroy()
         }
     }
+}
+
+private suspend fun WebView.publishPaymentLedger(context: Context, policy: WebRoutePolicy) {
+    val snapshot = withContext(Dispatchers.IO) {
+        uk.thewyj.app.task21.payment.LocalPaymentLedger.snapshot(context.applicationContext)
+    }
+    val activeAccount = withContext(Dispatchers.IO) {
+        uk.thewyj.app.task21.NotificationSessionProvider(context).currentAccount()?.accountId
+    }
+    if (visibility != View.VISIBLE || policy.decide(url.orEmpty()) != NavigationDecision.Internal) return
+    if (snapshot != "null" && JSONObject(snapshot).optString("account_id") != activeAccount) return
+    evaluateJavascript("""
+        (() => {
+          window.WYJLocalPaymentLedger = $snapshot;
+          document.dispatchEvent(new CustomEvent('thewyj:payment-updated', { detail: $snapshot }));
+        })();
+    """.trimIndent(), null)
 }
 
 private fun WebView.syncPageActivity(active: Boolean) {

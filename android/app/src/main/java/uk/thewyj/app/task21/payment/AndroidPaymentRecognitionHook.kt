@@ -63,19 +63,20 @@ class AndroidPaymentRecognitionHook private constructor(
         // The user must always see the real app name ("微信"), never the package
         // name and never the generic 「该应用」 the notifications used to show.
         val label = sourceAppLabel.ifBlank { PaymentAppLabels.resolve(appContext, input.sourcePackage) }
-        coordinator.onSourceEvent(
+        val outcome = coordinator.onSourceEvent(
             accountId = accountId,
             sourcePackage = input.sourcePackage,
             sourceType = sourceType,
             sourceEventId = sourceEventIdOf(input),
             title = input.title,
-            text = input.text,
+            text = (listOf(input.text) + input.textLines).filter(String::isNotBlank).joinToString(" "),
             bigText = input.bigText,
             subText = input.subText,
             sourceAppLabel = label,
             uploadEventId = uploadEventId,
             occurredAtMs = if (input.postTime > 0) input.postTime else input.receivedAtMs,
         )
+        if (outcome.recognitionId.isNotBlank() && outcome.state != null) PaymentReviewSignals.publish()
     }
 
     /**
@@ -119,8 +120,7 @@ class AndroidPaymentRecognitionHook private constructor(
         ) {
             return null
         }
-        val confirmed = parsed.status == PaymentRecognitionStatus.CONFIRMED_PAYMENT &&
-            (parsed.amountMinor ?: 0) > 0
+        val confirmed = PaymentAutoBook.eligible(parsed.amountMinor, parsed.direction?.name.orEmpty())
         return PaymentIngestOutcome(
             confirmed = confirmed,
             amountMinor = parsed.amountMinor ?: 0,
@@ -189,6 +189,7 @@ class AndroidPaymentRecognitionHook private constructor(
      */
     override fun onFinanceOutcome(accountId: String, eventId: String, transactionId: String) {
         if (accountId.isBlank() || eventId.isBlank() || transactionId.isBlank()) return
+        store.acknowledgeLocalBooking(accountId, eventId, transactionId)
         // T24.3-03: the archive link is keyed by the structured event id and must
         // close BEFORE the local recognition/candidate lookups. A payment the
         // server booked automatically has no local candidate row, and the old
@@ -233,6 +234,13 @@ class AndroidPaymentRecognitionHook private constructor(
         PaymentAppLabels.resolve(appContext, input.sourcePackage)
 
     fun coordinator(): PaymentRecognitionCoordinator = coordinator
+
+    override fun localFinanceTransactionId(accountId: String, eventId: String): String =
+        store.localBooking(accountId, eventId)?.transactionId.orEmpty()
+
+    override fun prepareLocalBookings(accountId: String, deviceId: String) {
+        if (recognitionStore == null) LocalPaymentLedger.recover(appContext, accountId, deviceId)
+    }
 
     companion object {
         private val PUBLISHING = ConcurrentHashMap.newKeySet<String>()

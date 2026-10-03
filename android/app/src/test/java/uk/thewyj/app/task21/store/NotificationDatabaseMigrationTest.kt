@@ -52,7 +52,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9,
             )
             .allowMainThreadQueries()
             .build()
@@ -118,7 +118,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9,
             )
             .allowMainThreadQueries()
             .build()
@@ -154,7 +154,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9,
             )
             .allowMainThreadQueries()
             .build()
@@ -194,7 +194,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9,
             )
             .allowMainThreadQueries()
             .build()
@@ -221,7 +221,7 @@ class NotificationDatabaseMigrationTest {
         insertV7MediaRow()
 
         database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
-            .addMigrations(NotificationDatabase.MIGRATION_7_8)
+            .addMigrations(NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9)
             .allowMainThreadQueries()
             .build()
         val store = RoomNotificationStore(database!!)
@@ -243,7 +243,7 @@ class NotificationDatabaseMigrationTest {
         createDatabaseFromSchema(schema, version = 7)
         insertV7StatusLifecycle()
         database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
-            .addMigrations(NotificationDatabase.MIGRATION_7_8)
+            .addMigrations(NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9)
             .allowMainThreadQueries()
             .build()
         val store = RoomNotificationStore(database!!)

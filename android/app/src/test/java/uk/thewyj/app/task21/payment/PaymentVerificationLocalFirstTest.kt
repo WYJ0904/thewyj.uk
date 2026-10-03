@@ -135,7 +135,7 @@ class PaymentVerificationLocalFirstTest {
             app, hintedStore = store, hintedArchive = RoomNotificationStore(database),
             hintedQueuedRequests = { listOf(QueuedNotificationRequest("hint:event-offline", "/api/notification/hints", "{}")) },
         )
-        assertFalse(center.localItems(accountId).any { it.recognitionId == "rec-legacy-orphan" })
+        assertTrue(center.localItems(accountId).any { it.recognitionId == "rec-legacy-orphan" && it.needsVerification })
         val records = listOf(
             PendingReviewIdentity("hint", "hint-matched", "event-matched", "device-a",
                 sourcePackage = "com.tencent.mm", appLabel = "微信", amountMinor = 10_200L,
@@ -157,8 +157,8 @@ class PaymentVerificationLocalFirstTest {
         assertEquals(records.map { it.appLabel }, items.filterNot { it.recoveryOnly }.map { it.appLabel })
         assertEquals(records.map { it.eventIds }, items.filterNot { it.recoveryOnly }.map { it.eventIds })
         assertEquals(records.map { it.state }, items.filterNot { it.recoveryOnly }.map { it.canonicalState })
-        assertEquals(listOf("rec-offline"), items.filter { it.recoveryOnly }.map { it.recognitionId })
-        assertFalse(items.any { it.recognitionId == "rec-legacy-orphan" })
+        assertEquals(setOf("rec-offline", "rec-legacy-orphan"), items.filter { it.recoveryOnly }.map { it.recognitionId }.toSet())
+        assertTrue(items.any { it.recognitionId == "rec-legacy-orphan" && it.direction == uk.thewyj.app.task21.FinanceDirection.UNKNOWN })
     }
 
     @Test fun localRefreshCannotResurrectAnOptimisticallyTerminalizedCanonicalCard() = runBlocking {
