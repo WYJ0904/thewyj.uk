@@ -7,10 +7,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20261003-aeris-p31-1";
-import { randomToolResult } from "./js/tools/random.js?v=20261003-aeris-p31-1";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20261003-aeris-p31-1";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20261003-aeris-p31-1";
+} from "./js/tools/catalog.js?v=20261003-aeris-p31-2";
+import { randomToolResult } from "./js/tools/random.js?v=20261003-aeris-p31-2";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20261003-aeris-p31-2";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20261003-aeris-p31-2";
 import {
   csvString,
   decodeLocalText,
@@ -19,15 +19,15 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20261003-aeris-p31-1";
+} from "./js/tools/file.js?v=20261003-aeris-p31-2";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20261003-aeris-p31-1";
-import { runToolRenderer } from "./js/tools/runner.js?v=20261003-aeris-p31-1";
+} from "./js/tools/image.js?v=20261003-aeris-p31-2";
+import { runToolRenderer } from "./js/tools/runner.js?v=20261003-aeris-p31-2";
 (() => {
   "use strict";
 
