@@ -1,9 +1,9 @@
-import { randomId } from "../core/capabilities.js?v=20261003-aeris-p3-3";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261003-aeris-p3-3";
-import { getSafeStorage } from "../core/storage.js?v=20261003-aeris-p3-3";
-import { withInteractionFeedback } from "../core/perf.js?v=20261003-aeris-p3-3";
-import { createTransferUpdateScheduler } from "./updates.js?v=20261003-aeris-p3-3";
-import { putPartWithRecovery } from "./upload-part.js?v=20261003-aeris-p3-3";
+import { randomId } from "../core/capabilities.js?v=20261003-aeris-p31-2";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261003-aeris-p31-2";
+import { getSafeStorage } from "../core/storage.js?v=20261003-aeris-p31-2";
+import { withInteractionFeedback } from "../core/perf.js?v=20261003-aeris-p31-2";
+import { createTransferUpdateScheduler } from "./updates.js?v=20261003-aeris-p31-2";
+import { putPartWithRecovery } from "./upload-part.js?v=20261003-aeris-p31-2";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";

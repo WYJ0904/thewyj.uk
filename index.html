@@ -10,23 +10,23 @@
     <meta property="og:description" content="从一件小事开始，登录后接着自己的进度。" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://thewyj.uk/" />
-    <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?v=20261003-aeris-p3-3" />
+    <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?v=20261003-aeris-p31-2" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="application-name" content="Aeris" />
-    <link rel="icon" href="/favicon.ico?v=20261003-aeris-p3-3" sizes="any" />
-    <link rel="icon" href="/assets/brand/favicon-32.png?v=20261003-aeris-p3-3" type="image/png" sizes="32x32" />
-    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png?v=20261003-aeris-p3-3" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20261003-aeris-p3-3" />
-    <link rel="stylesheet" href="/styles.css?v=20261003-aeris-p3-3" />
-    <link rel="stylesheet" href="/product-ui.css?v=20261003-aeris-p3-3" />
-    <link rel="stylesheet" href="/design-system.css?v=20261003-aeris-p3-3" />
-    <link rel="stylesheet" href="/public-experience.css?v=20261003-aeris-p3-3" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20261003-aeris-p3-3" />
+    <link rel="icon" href="/favicon.ico?v=20261003-aeris-p31-2" sizes="any" />
+    <link rel="icon" href="/assets/brand/favicon-32.png?v=20261003-aeris-p31-2" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png?v=20261003-aeris-p31-2" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20261003-aeris-p31-2" />
+    <link rel="stylesheet" href="/styles.css?v=20261003-aeris-p31-2" />
+    <link rel="stylesheet" href="/product-ui.css?v=20261003-aeris-p31-2" />
+    <link rel="stylesheet" href="/design-system.css?v=20261003-aeris-p31-2" />
+    <link rel="stylesheet" href="/public-experience.css?v=20261003-aeris-p31-2" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20261003-aeris-p31-2" />
   </head>
   <body>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 Aeris" aria-hidden="false">
       <div class="entry-content" id="splashMedia">
-        <img class="entry-logo" id="splashImage" src="/icon-192.png?v=20261003-aeris-p3-3" width="192" height="192" alt="" />
+        <img class="entry-logo" id="splashImage" src="/icon-192.png?v=20261003-aeris-p31-2" width="192" height="192" alt="" />
         <strong>Aeris</strong>
         <span class="entry-progress" aria-hidden="true"></span>
       </div>
@@ -41,7 +41,7 @@
       <nav class="site-nav" id="accountBar" aria-label="主导航">
         <div class="site-nav-bar">
           <a class="site-brand" href="/" data-site-nav="home" aria-label="Aeris 首页">
-            <img src="/icon-192.png?v=20261003-aeris-p3-3" width="192" height="192" alt="" />
+            <img src="/icon-192.png?v=20261003-aeris-p31-2" width="192" height="192" alt="" />
             <span class="site-brand-copy"><strong>Aeris</strong><small id="siteVersionLabel">v2026.09.12.5</small></span>
           </a>
           <button class="site-nav-toggle" id="siteNavToggle" type="button" aria-expanded="false" aria-controls="siteNavPanel" aria-label="打开主导航">
@@ -98,11 +98,32 @@
       </aside>
 
       <section class="public-home hidden" id="publicHome" aria-labelledby="publicHomeTitle" aria-hidden="true">
+        <section class="aeris-home-hero" data-public-section="hero" aria-labelledby="publicHomeTitle">
         <header class="aeris-public-intro">
-          <div class="aeris-intro-heading"><img src="/icon-192.png?v=20261003-aeris-p3-3" alt="Aeris" width="64" height="64" /><div><h1 id="publicHomeTitle">Aeris</h1><p>学习、工具、账本与文件，一处继续。</p></div></div>
+          <div class="aeris-intro-heading"><img src="/icon-192.png?v=20261003-aeris-p31-2" alt="Aeris" width="64" height="64" /><div><h1 id="publicHomeTitle">Aeris</h1><p>学习、工具、账本与文件，一处继续。</p></div></div>
           <div class="public-actions aeris-entry-actions"><button class="primary" id="publicLoginBtn" type="button">登录</button><button class="button-secondary" id="publicRegisterBtn" type="button">注册</button><a class="button-link button-secondary" id="publicDownloadBtn" href="/download" data-site-nav="download">下载 Android</a></div>
         </header>
-        <section class="aeris-product-window" id="publicCapabilityGallery" aria-labelledby="publicCapabilitiesTitle" data-product-window>
+          <h2 class="sr-only" id="publicScenariosTitle">三种日常产品场景</h2>
+          <div class="aeris-scene-grid" aria-labelledby="publicScenariosTitle">
+            <article class="aeris-scene-card" data-public-scene="learning">
+              <header><h3>学习 · 日语测试</h3><span>演示词条</span></header>
+              <div class="aeris-scene-word"><strong lang="ja">電話</strong><span lang="ja">でんわ</span><small>释义、听写，再到错题复习。</small></div>
+              <button class="button-ghost" type="button" data-public-open="learning" aria-controls="capabilityLearningBody">试一道题 <span aria-hidden="true">→</span></button>
+            </article>
+            <article class="aeris-scene-card" data-public-scene="finance">
+              <header><h3>财务 · 账本摘要</h3><span>功能预览</span></header>
+              <div class="aeris-scene-ledger"><strong>本月余额</strong><p>收入 − 支出 = 结余</p><small>正式账本里查看月度收支、分类与预算。</small></div>
+              <button class="button-ghost" type="button" data-public-open="finance" aria-controls="capabilityFinanceBody">在本机试算 <span aria-hidden="true">→</span></button>
+            </article>
+            <article class="aeris-scene-card" data-public-scene="tools">
+              <header><h3>工具 · 文本与 JSON</h3><span>本机工具</span></header>
+              <pre class="aeris-scene-code" aria-label="JSON 文本示例"><code>{ "text": "Aeris" }</code></pre>
+              <p>统计文本，整理格式，处理手边的小事。</p>
+              <button class="button-ghost" type="button" data-public-open="tools" aria-controls="capabilityToolsBody">输入一段文本 <span aria-hidden="true">→</span></button>
+            </article>
+          </div>
+        </section>
+        <section class="aeris-product-window" id="publicCapabilityGallery" aria-labelledby="publicCapabilitiesTitle" data-product-window data-public-section="window">
           <header class="aeris-window-heading"><h2 id="publicCapabilitiesTitle">先试一件小事</h2><p>直接操作，了解四个入口。</p></header>
           <div class="aeris-product-tabs" role="tablist" aria-label="Aeris 产品入口">
             <button class="capability-trigger" id="publicLearningTab" role="tab" type="button" aria-selected="true" aria-expanded="true" aria-controls="capabilityLearningBody" data-public-product="learning">学习</button>
@@ -129,7 +150,34 @@
             </section>
           </div>
         </section>
-        <footer class="aeris-public-footer"><p id="publicPrivacyTitle">预览中的文本、估算和文件清单留在本机。</p><div class="public-actions"><button class="button-ghost" id="publicTrialBtn" type="button">免费试用</button><button class="button-ghost" id="publicPlansBtn" type="button">账户与会员</button><button class="button-ghost" id="publicChangelogBtn" type="button">更新日志</button></div></footer>
+        <section class="aeris-capabilities-section" data-public-section="capabilities" aria-labelledby="publicCoreCapabilitiesTitle">
+          <header class="aeris-home-section-heading"><p>核心能力</p><h2 id="publicCoreCapabilitiesTitle">日常所需，各有入口。</h2><p>体验之后，接着自己的进度。工具、记录与分享使用已有的工作流程。</p></header>
+          <div class="aeris-capability-list">
+            <a class="aeris-capability-link" href="/language" data-site-nav="language" data-public-capability="learning"><span class="aeris-capability-number" aria-hidden="true">01</span><div><h3>学习</h3><p>英语与日语词表、释义和听写、错题复习、统计与成就。</p></div><span class="aeris-capability-entry">开始小测 <span aria-hidden="true">↗</span></span></a>
+            <a class="aeris-capability-link" href="/tools" data-site-nav="tools" data-public-capability="tools"><span class="aeris-capability-number" aria-hidden="true">02</span><div><h3>工具箱</h3><p>搜索文本、JSON、图片与文件工具；登录后使用收藏、最近使用和工作流。</p></div><span class="aeris-capability-entry">打开工具 <span aria-hidden="true">↗</span></span></a>
+            <a class="aeris-capability-link" href="/finance" data-site-nav="finance" data-public-capability="finance"><span class="aeris-capability-number" aria-hidden="true">03</span><div><h3>财务与账本</h3><p>记录收入、支出和退款，按分类查看预算；Web 与 Android 接着同一份账本。</p></div><span class="aeris-capability-entry">登录查看 <span aria-hidden="true">↗</span></span></a>
+            <a class="aeris-capability-link" href="/transfer" data-site-nav="transfer" data-public-capability="files"><span class="aeris-capability-number" aria-hidden="true">04</span><div><h3>文件与分享</h3><p>分片上传、暂停续传、保留目录结构，以及带期限、密码和下载次数的分享链接。</p></div><span class="aeris-capability-entry">文件传输 <span aria-hidden="true">↗</span></span></a>
+            <a class="aeris-capability-link" href="/account" data-public-trigger="publicLoginBtn" data-public-capability="account"><span class="aeris-capability-number" aria-hidden="true">05</span><div><h3>账户与跨设备</h3><p>管理登录、会员权益、学习同步与账户设置，保留自己的数据和使用记录。</p></div><span class="aeris-capability-entry">登录账户 <span aria-hidden="true">↗</span></span></a>
+          </div>
+        </section>
+        <section class="aeris-privacy-section" data-public-section="privacy" aria-labelledby="publicPrivacyTitle">
+          <header class="aeris-home-section-heading"><p>隐私与本地处理</p><h2 id="publicPrivacyTitle">处理之前，先知道数据去哪里。</h2></header>
+          <div class="aeris-privacy-grid">
+            <article><h3>留在本机的处理</h3><p>预览中的文本、估算和文件清单留在本机。匿名试用中的文本、JSON、单张图片压缩与格式转换，也在当前浏览器处理。</p></article>
+            <article><h3>需要同步或传输的数据</h3><p>正式学习记录与账本使用账户同步；文件传输和分享会上传你提交的内容。Android 通知原文保存在本机。</p></article>
+            <article><h3>匿名体验与正式数据分开</h3><p>语言小测使用演示词表，不写入正式账户的学习记录。Product Window 的估算不记账，所选文件只显示清单，不自动上传。</p></article>
+          </div>
+        </section>
+        <section class="aeris-plans-section" data-public-section="plans" aria-labelledby="publicPlansTitle">
+          <header class="aeris-home-section-heading"><p>账户与套餐</p><h2 id="publicPlansTitle">先体验，再按需要选择权益。</h2><p>价格与可购买方案读取当前正式套餐目录。开通继续使用现有付款申请与管理员确认流程。</p></header>
+          <div class="aeris-plan-grid">
+            <article class="aeris-plan-card"><h3>免费体验</h3><p class="aeris-plan-note">无需注册</p><ul class="aeris-plan-features"><li>英语或日语小测，最多 10 题</li><li>文本统计与 JSON 格式化</li><li>单张图片压缩与格式转换</li></ul><p>先使用演示功能，登录后再进入自己的数据。</p><button class="button-secondary" id="publicTrialBtn" type="button">开始免费试用</button></article>
+            <article class="aeris-plan-card"><h3>模块权益与订阅</h3><p class="aeris-plan-note">按日常需要选择</p><ul class="aeris-plan-catalog" id="publicModulePlans" aria-label="当前模块订阅"><li>正在读取当前套餐目录…</li></ul><button class="button-secondary" id="publicPlansBtn" type="button">查看套餐与权益</button></article>
+            <article class="aeris-plan-card"><h3>全功能与永久权益</h3><p class="aeris-plan-note">组合权益，或长期使用</p><ul class="aeris-plan-catalog" id="publicPermanentPlans" aria-label="当前全功能与永久方案"><li>正在读取当前套餐目录…</li></ul><p>各方案包含的功能与有效期，以账户页面当前详情为准。</p><button class="button-secondary" type="button" data-public-trigger="publicPlansBtn">查看完整方案</button></article>
+          </div>
+          <div class="aeris-catalog-status"><p id="publicPlanStatus" role="status">正在读取当前套餐目录…</p><button class="button-ghost hidden" id="publicPlanRetryBtn" type="button">重试读取套餐</button></div>
+        </section>
+        <footer class="aeris-final-cta" data-public-section="final" aria-labelledby="publicFinalTitle"><div><h2 id="publicFinalTitle">从手边的一件事开始。</h2><p>继续学习、处理文本，或打开自己的账本与文件。</p></div><div class="public-actions"><button class="primary" type="button" data-public-trigger="publicLoginBtn">登录</button><button class="button-secondary" type="button" data-public-trigger="publicRegisterBtn">注册</button><a class="button-link button-secondary" href="/download" data-site-nav="download">下载 Android</a><button class="button-ghost" id="publicChangelogBtn" type="button">查看更新日志</button></div></footer>
       </section>
 
       <section class="public-page hidden" id="changelogPage" aria-labelledby="changelogTitle" aria-hidden="true">
@@ -412,7 +460,7 @@
       </div>
       <section class="project-picker hidden" id="projectPicker" aria-labelledby="projectPickerTitle">
         <header class="project-brand">
-          <img src="/icon-192.png?v=20261003-aeris-p3-3" width="192" height="192" alt="Aeris Logo" />
+          <img src="/icon-192.png?v=20261003-aeris-p31-2" width="192" height="192" alt="Aeris Logo" />
           <div><p class="section-kicker">语言学习</p><h1 id="projectPickerTitle">选择语言测试</h1></div>
         </header>
         <div class="project-grid" aria-label="选择项目">
@@ -431,7 +479,7 @@
       <section class="project-app hidden" id="projectApp" aria-hidden="true">
         <header class="topbar hidden" id="topbar">
           <div class="brand">
-            <img class="brand-icon" src="/icon-192.png?v=20261003-aeris-p3-3" width="192" height="192" alt="" />
+            <img class="brand-icon" src="/icon-192.png?v=20261003-aeris-p31-2" width="192" height="192" alt="" />
             <div>
               <h1>语言学习</h1>
               <p id="modelLabel" aria-live="polite">检测中</p>
@@ -455,7 +503,7 @@
         </section>
 
         <section class="panel auth-panel hidden" id="authPanel">
-          <img class="auth-logo" src="/assets/brand/aeris-lockup.png?v=20261003-aeris-p3-3" width="320" height="320" alt="Aeris" />
+          <img class="auth-logo" src="/assets/brand/aeris-lockup.png?v=20261003-aeris-p31-2" width="320" height="320" alt="Aeris" />
           <h2 id="authTitle">账户登录</h2>
           <div class="auth-tabs" role="tablist" aria-label="账户入口">
             <button class="active" id="showLoginBtn" type="button" role="tab" aria-controls="loginForm" aria-selected="true">登录</button>
@@ -1090,10 +1138,10 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20261003-aeris-p3-3"></script>
-    <script type="module" src="/tools.js?v=20261003-aeris-p3-3"></script>
-    <script src="/workflows.js?v=20261003-aeris-p3-3"></script>
-    <script src="/learning-sync.js?v=20261003-aeris-p3-3"></script>
-    <script type="module" src="/app.js?v=20261003-aeris-p3-3"></script>
+    <script src="/changelog.js?v=20261003-aeris-p31-2"></script>
+    <script type="module" src="/tools.js?v=20261003-aeris-p31-2"></script>
+    <script src="/workflows.js?v=20261003-aeris-p31-2"></script>
+    <script src="/learning-sync.js?v=20261003-aeris-p31-2"></script>
+    <script type="module" src="/app.js?v=20261003-aeris-p31-2"></script>
   </body>
 </html>

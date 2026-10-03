@@ -9,9 +9,33 @@ export function publicBudgetBalance(income,expense) {
 export function publicLearningResult(answer) {
   return answer==='phone'?'正确，電話的意思是“电话”。':'再想一下：電話的意思是“电话”。';
 }
+/** Presentation of the existing membership owner's catalog; no pricing rules. */
+export function publicPlanCatalog(plans) {
+  const result={modules:[],permanent:[]};
+  for(const plan of Array.isArray(plans)?plans:[]){
+    if(plan.purchasable!==true||!Number.isSafeInteger(plan.price_cents)||plan.price_cents<0||!/^\w{3}$/.test(plan.currency||''))continue;
+    let price;try{price=new Intl.NumberFormat('zh-CN',{style:'currency',currency:plan.currency}).format(plan.price_cents/100);}catch{continue;}
+    const term=plan.lifetime===true?'永久':Number(plan.duration_months)===1?'每月':Number(plan.duration_months)>0?`${plan.duration_months} 个月`:'';
+    const group=plan.lifetime===true||plan.entitlements?.includes('all_features_access')?'permanent':'modules';
+    result[group].push({code:plan.code,name:plan.name,price,term,description:plan.description||''});
+  }
+  return result;
+}
+export function renderPublicPlanCatalog(doc,plans,error='') {
+  const catalog=publicPlanCatalog(plans);
+  for(const [group,id]of [['modules','publicModulePlans'],['permanent','publicPermanentPlans']]){
+    const list=doc.getElementById(id);if(!list)continue;
+    const nodes=catalog[group].map(plan=>{const item=doc.createElement('li');item.dataset.planCode=plan.code;const name=doc.createElement('span');name.textContent=plan.name;const price=doc.createElement('strong');price.textContent=`${plan.price} · ${plan.term}`;item.append(name,price);return item;});
+    if(!nodes.length){const item=doc.createElement('li');item.textContent=error?'目录暂不可用，请在账户页面查看。':'当前没有可购买的对应方案。';nodes.push(item);}list.replaceChildren(...nodes);
+  }
+  const status=doc.getElementById('publicPlanStatus');if(status)status.textContent=error?'当前套餐目录读取失败，其他入口仍可使用。':'价格与权益来自当前套餐目录，具体开通规则以账户页面为准。';
+  doc.getElementById('publicPlanRetryBtn')?.classList.toggle('hidden',!error);
+}
 export function initPublicExperience(doc=globalThis.document) {
   const root=doc?.querySelector('[data-product-window]');if(!root||root.dataset.initialized==='true')return;
   root.dataset.initialized='true';const tabs=[...root.querySelectorAll('[data-public-product]')];
+  doc.querySelectorAll('#publicHome [data-public-trigger]').forEach(button=>button.addEventListener('click',event=>{event.preventDefault();doc.getElementById(button.dataset.publicTrigger)?.click();}));
+  doc.querySelectorAll('#publicHome [data-public-open]').forEach(button=>button.addEventListener('click',()=>{const tab=tabs.find(item=>item.dataset.publicProduct===button.dataset.publicOpen);tab?.click();tab?.focus({preventScroll:true});root.scrollIntoView({block:'start',behavior:globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});}));
   function select(tab,{focus=false}={}) {
     for(const button of tabs){const active=button===tab;button.setAttribute('aria-selected',String(active));button.setAttribute('aria-expanded',String(active));button.tabIndex=active?0:-1;const panel=doc.getElementById(button.getAttribute('aria-controls'));panel.hidden=!active;panel.classList.toggle('active',active);}
     root.dataset.selected=tab.dataset.publicProduct;if(focus)tab.focus();
