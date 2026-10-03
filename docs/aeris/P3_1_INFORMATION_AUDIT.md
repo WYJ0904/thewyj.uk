@@ -1,5 +1,10 @@
 # P3.1 owner acceptance correction
 
+> Historical P3.1 correction: owner visual/product acceptance **FAIL**. Restoring
+> information as new grids and link rows did not restore the accepted UI.
+> Task 19 and exact P2 `b8c1715` Card/Accordion composition take precedence.
+> See `P3_2_CARD_RESTORATION_AUDIT.md`; the original findings below are retained.
+
 Compared P2 `b8c1715e5d5c5069de162c1b35a737548bdcb29a` with P3 `82771cc1e194d5d9339ee1119bafa99422d5f8dd` before editing. P3 removed three hero scenes, the fifth account capability, the privacy/local-processing band and the three plan categories. Four working Product Window panels alone were insufficient to preserve the public product explanation.
 
 P3 initial closure passed technical gates but failed owner visual/product acceptance because the public homepage removed too much of the P2 information architecture. P3.1 restored the information architecture without reverting P3 branding or interaction improvements.

@@ -1,5 +1,10 @@
 # P3 Brand & Public Experience audit
 
+> Historical P3 proposal: owner visual/product acceptance **FAIL**. Its public-home
+> simplification is superseded by Task 19's accepted Card/Accordion composition
+> and P2 `b8c1715`. See `P3_2_CARD_RESTORATION_AUDIT.md`. The original audit below
+> remains as history, not as authorization to remove the accepted public cards.
+
 Base main: `b8c1715e5d5c5069de162c1b35a737548bdcb29a`. Remote main, clean tree, P2 merged PRs #83/#84, all six final CI jobs and physical Samsung evidence were checked again. P2 motion, tab convergence, stable notification identity, local optimistic rollback, latest navigation and IO queue safeguards remain the baseline.
 
 The earlier Experience Pass branch is already an ancestor of main. P3 uses a fresh scoped branch from this verified main.

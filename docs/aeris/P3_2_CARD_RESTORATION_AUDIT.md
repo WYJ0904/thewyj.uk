@@ -64,3 +64,14 @@ the signed-in Launchpad still has no marketing scene cards.
 
 Final visual/CI/Production results are recorded in the P3.2 Closure Report.
 This phase does not authorize or implement P4.
+
+The actual 1366px browser comparison measured the same 1200px gallery, three
+392px tracks, and 796px two-column active card in P2 and P3.2. Learning card
+height is 525.04px in both; tools, finance, share and account are 520px in both.
+All five restored previews were opened and visually inspected. The account
+preview has a small content-height difference from the explicit demo label and
+honest account wording; its outer card composition and width remain intact.
+Forty local width/theme/preview combinations and twenty half-width reflow
+combinations had no horizontal overflow or clipped preview text. The retained
+Product Window produced nine Unicode characters/two lines, a 69.99 local
+balance, answer feedback, and an owned file-list preview without uploading.
