@@ -1286,6 +1286,7 @@ html:has(body[data-experience="public"]),body[data-experience="public"] {min-wid
 .home-project-links button {min-height:44px;white-space:normal;}
 .home-project-links small {color:var(--ds-text-secondary);margin-left:6px;}
 .home-personal-summary .dashboard-tool-link {min-height:44px;font-size:13px;white-space:normal;}
+.home-personal-summary button {min-height:44px;}
 .home-personal-summary .dashboard-empty {display:block;min-height:0;padding:0;border:0;background:none;text-align:left;}
 .home-personal-summary .authenticated-service-details {border:0;background:none;box-shadow:none;margin:12px 0 0;}
 .aeris-home-section-heading h2 {font-size:22px;}

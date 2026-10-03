@@ -700,13 +700,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20261003-aeris-p33-2');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20261003-aeris-p33-2');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261003-aeris-p33-2');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261003-aeris-p33-2');
-        const cachedChangelog = await caches.match('/changelog.js?v=20261003-aeris-p33-2');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261003-aeris-p33-2');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20261003-aeris-p33-2');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261003-aeris-p33-3');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261003-aeris-p33-3');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261003-aeris-p33-3');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261003-aeris-p33-3');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261003-aeris-p33-3');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261003-aeris-p33-3');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261003-aeris-p33-3');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -1504,6 +1504,7 @@ async function main() {
           await waitFor("location.pathname === '/'", 5_000, "leave tools");
         }
         if (await evaluate("location.pathname === '/'")) {
+          await tap('[data-core-capability=learning]>.capability-trigger');
           await tap('[data-module="language"]');
           await waitFor("location.pathname === '/language'", 5_000, "language picker from dashboard");
         }
@@ -1616,6 +1617,7 @@ async function main() {
       await tap("#accountMenu summary");
       await tap("#homeBtn");
       await waitFor("location.pathname === '/'", 5_000, "scenario D dashboard");
+      await tap('[data-core-capability=learning]>.capability-trigger');
       await tap('[data-module="language"]');
       await tap('[data-project="english"]');
       await waitFor("location.pathname === '/language/english'", 8_000, "scenario D first return");
@@ -1623,6 +1625,7 @@ async function main() {
       await tap("#backProjectBtn");
       await tap("#languageBackBtn");
       await waitFor("location.pathname === '/'", 5_000, "scenario D module picker");
+      await tap('[data-core-capability=tools]>.capability-trigger');
       await tap('[data-module="tools"]');
       await waitFor("location.pathname === '/tools' && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 10_000, "scenario D tools");
       await tap("#leaveToolsBtn");
