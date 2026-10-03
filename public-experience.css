@@ -301,6 +301,29 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
   width: min(640px, 60%);
 }
 
+.aeris-hero-logo {object-fit:contain;background:#fff;border-radius:8px;}
+.aeris-window-shortcuts {display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+#publicHome>.aeris-product-window,#publicHome>.aeris-privacy-section,#publicHome>.aeris-plans-section,#publicHome>.aeris-final-cta {width:min(calc(100% - 40px),var(--ds-container-default));margin-left:auto;margin-right:auto;}
+.capability-copy>.button-link {flex-shrink:0;white-space:normal;}
+.preview-demo-label {margin:0 0 12px;color:var(--ds-text-secondary);font-size:12px;}
+.product-preview * {min-width:0;overflow-wrap:anywhere;}
+.capability-trigger:focus-visible {outline:var(--ds-focus-ring);outline-offset:-4px;}
+@media (max-width:760px) {
+  #publicHome>.aeris-product-window,#publicHome>.aeris-privacy-section,#publicHome>.aeris-plans-section,#publicHome>.aeris-final-cta {width:calc(100% - 32px);}
+  .capability-copy>.button-link {width:100%;}
+  .preview-budget {grid-template-columns:1fr;}
+  .preview-file,.preview-account,.preview-share-meta,.preview-transaction {flex-wrap:wrap;}
+}
+@media (max-width:360px) {
+  .public-hero {height:auto;min-height:640px;padding:204px 16px 32px;}
+  .hero-scene-card {width:150px;padding:12px;}
+  .public-hero h1 {font-size:44px;}
+  .public-hero .public-actions>* {width:100%;white-space:normal;}
+  .capability-copy,.capability-body,.product-preview {gap:12px;padding:12px;}
+  .preview-file {padding:8px;}
+  .preview-file-icon {flex-shrink:0;}
+}
+
 .public-hero .section-kicker {
   color: var(--ds-stage-brand);
 }
@@ -1108,7 +1131,7 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
 /* P3 public and personal entry surfaces. Product workspace pages retain owners. */
 .site-brand img,.entry-logo,.auth-logo img {object-fit:contain;background:#fff;border-radius:8px;flex-shrink:0;filter:none;}
 .site-brand-copy strong {letter-spacing:-.025em;}
-#publicHome,#modulePicker {max-width:1120px;margin:0 auto;width:100%;padding:32px 24px 48px;}
+#modulePicker {max-width:1120px;margin:0 auto;width:100%;padding:32px 24px 48px;}
 .aeris-public-intro {display:flex;align-items:center;justify-content:space-between;gap:32px;margin-bottom:32px;}
 .aeris-intro-heading {display:flex;align-items:center;gap:18px;min-width:0;}
 .aeris-intro-heading img {width:64px;height:64px;object-fit:contain;flex-shrink:0;border-radius:12px;}
@@ -1176,7 +1199,7 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
 @media (hover:hover) and (pointer:fine) {.aeris-product-tabs>button:hover {background:var(--ds-surface-subtle,#f8fafc);}}
 @media (max-width:900px) {.aeris-launchpad-grid {grid-template-columns:repeat(2,minmax(0,1fr));}.aeris-public-intro {align-items:flex-start;flex-direction:column;gap:20px;}}
 @media (max-width:560px) {
-  #publicHome,#modulePicker {padding:24px 16px 32px;}.aeris-intro-heading img {width:52px;height:52px;}.aeris-intro-heading h1 {font-size:31px;}.aeris-intro-heading p {font-size:13px;}
+  #modulePicker {padding:24px 16px 32px;}.aeris-intro-heading img {width:52px;height:52px;}.aeris-intro-heading h1 {font-size:31px;}.aeris-intro-heading p {font-size:13px;}
   .aeris-entry-actions {width:100%;gap:8px;}.aeris-entry-actions>* {flex:1;padding-inline:12px;}.aeris-window-heading {padding:20px 18px 12px;}.aeris-product-tabs {margin:0 12px;}
   .aeris-window-content {padding:20px 18px;min-height:475px;}.aeris-product-panel {grid-template-columns:1fr;gap:20px;}.aeris-panel-copy {padding:0;}.aeris-panel-copy h3 {font-size:21px;}.aeris-panel-copy p {margin-bottom:14px;max-width:none;font-size:14px;}
   .aeris-live-sample {border-left:0;border-top:1px solid var(--ds-border,#d8dee7);padding:18px 0 0;min-height:235px;}.aeris-public-footer {align-items:flex-start;flex-direction:column;gap:8px;}
@@ -1187,34 +1210,11 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
 body[data-experience="public"] #versionNotice:not(.hidden) { position:relative;inset:auto;max-width:1072px;width:calc(100% - 48px);margin:16px auto 0;box-shadow:none;animation:none;z-index:auto; } .aeris-membership-status { font-size:13px;color:var(--ds-text-secondary,#475569);margin:0 0 18px; }
 /* Browser zoom can reduce the layout viewport below a phone's physical width. */
 html:has(body[data-experience="public"]),body[data-experience="public"] {min-width:0;}
-/* P3.1 restores the information architecture with the current Aeris surfaces. */
+/* P3.2 restores P2 card composition; P3 window, catalog and entry owners remain. */
 #publicHome [data-public-section] {min-width:0;}
-.aeris-home-hero {margin-bottom:40px;}
-.aeris-home-hero .aeris-public-intro {margin-bottom:24px;}
-.aeris-scene-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;}
-.aeris-scene-card {display:flex;flex-direction:column;gap:12px;min-width:0;padding:20px;border:1px solid var(--ds-border);border-radius:8px;background:var(--ds-surface);}
-.aeris-scene-card header {display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;}
-.aeris-scene-card h3 {font-size:14px;margin:0;}
-.aeris-scene-card header span,.aeris-scene-card small {font-size:12px;color:var(--ds-text-secondary);}
-.aeris-scene-card p {font-size:13px;line-height:1.6;margin:0;color:var(--ds-text-secondary);}
-.aeris-scene-word {display:grid;gap:4px;}
-.aeris-scene-word strong {font-size:30px;line-height:1.25;}
-.aeris-scene-word span {font-size:13px;color:var(--ds-text-secondary);}
-.aeris-scene-ledger {display:grid;gap:8px;}
-.aeris-scene-ledger strong {font-size:23px;}
-.aeris-scene-code {font-family:ui-monospace,monospace;font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0;padding:12px;background:var(--ds-surface-subtle);border-radius:4px;}
-.aeris-scene-card>button {margin-top:auto;align-self:flex-start;min-height:44px;padding-inline:0;white-space:normal;text-align:left;}
-.aeris-capabilities-section {display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.6fr);gap:48px;margin-top:64px;}
 .aeris-home-section-heading>p:first-child {font-size:12px;font-weight:650;letter-spacing:.08em;color:var(--ds-text-secondary);margin:0 0 10px;}
 .aeris-home-section-heading h2 {font-size:27px;line-height:1.4;letter-spacing:-.025em;margin:0 0 12px;}
 .aeris-home-section-heading>p {font-size:14px;line-height:1.8;color:var(--ds-text-secondary);margin:0;}
-.aeris-capability-list {min-width:0;}
-.aeris-capability-link {display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:16px;min-height:96px;padding:20px 0;border-bottom:1px solid var(--ds-border);color:var(--ds-text);text-decoration:none;}
-.aeris-capability-link:first-child {border-top:1px solid var(--ds-border);}
-.aeris-capability-number {font-size:12px;color:var(--ds-text-secondary);}
-.aeris-capability-link h3 {font-size:17px;margin:0 0 6px;}
-.aeris-capability-link p {font-size:13px;line-height:1.7;margin:0;color:var(--ds-text-secondary);overflow-wrap:anywhere;}
-.aeris-capability-entry {font-size:12px;white-space:nowrap;color:var(--ds-brand);}
 .aeris-privacy-section {margin-top:64px;padding:28px 0;border-top:1px solid var(--ds-border);border-bottom:1px solid var(--ds-border);}
 .aeris-privacy-section .aeris-home-section-heading h2 {font-size:23px;}
 .aeris-privacy-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;margin-top:24px;}
@@ -1237,12 +1237,10 @@ html:has(body[data-experience="public"]),body[data-experience="public"] {min-wid
 .aeris-final-cta p {font-size:14px;color:var(--ds-text-secondary);margin:0;line-height:1.7;}
 .aeris-final-cta .public-actions {flex-wrap:wrap;flex-shrink:0;margin:0;}
 .aeris-final-cta button,.aeris-final-cta a {min-height:44px;}
-@media (hover:hover) and (pointer:fine) {.aeris-capability-link:hover {background:var(--ds-surface-subtle);}}
-@media (max-width:900px) {.aeris-capabilities-section {grid-template-columns:1fr;gap:24px;}.aeris-plan-grid {grid-template-columns:1fr;}.aeris-plan-catalog {min-height:0;}.aeris-final-cta {align-items:flex-start;flex-direction:column;}}
+@media (max-width:900px) {.aeris-plan-grid {grid-template-columns:1fr;}.aeris-plan-catalog {min-height:0;}.aeris-final-cta {align-items:flex-start;flex-direction:column;}}
 @media (max-width:560px) {
-  .aeris-scene-grid,.aeris-privacy-grid {grid-template-columns:1fr;gap:12px;}.aeris-scene-card {padding:18px;gap:10px;}.aeris-home-hero {margin-bottom:28px;}
-  .aeris-home-section-heading h2 {font-size:23px;}.aeris-capabilities-section,.aeris-privacy-section,.aeris-plans-section {margin-top:40px;}
-  .aeris-capability-link {grid-template-columns:20px minmax(0,1fr);gap:8px 12px;padding:18px 0;}.aeris-capability-entry {grid-column:2;}
+  .aeris-privacy-grid {grid-template-columns:1fr;gap:12px;}
+  .aeris-home-section-heading h2 {font-size:23px;}.aeris-privacy-section,.aeris-plans-section {margin-top:40px;}
   .aeris-plan-card {padding:18px;}.aeris-final-cta .public-actions {width:100%;gap:8px;}.aeris-final-cta .public-actions>* {flex:1 1 110px;white-space:normal;}
 }
 @media (max-width:360px) {

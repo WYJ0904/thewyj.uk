@@ -22,6 +22,8 @@ for(const width of [320,390,1366,1920]){
   }
   for(const [selector,expected] of [['[data-public-capability=learning]','/trial'],['[data-public-capability=tools]','/trial'],['[data-public-capability=finance]','/login'],['[data-public-capability=files]','/transfer'],['[data-public-capability=account]','/login'],['#publicTrialBtn','/trial'],['#publicPlansBtn','/login'],['[data-public-section=final] [data-public-trigger=publicLoginBtn]','/login'],['[data-public-section=final] [data-public-trigger=publicRegisterBtn]','/register'],['[data-public-section=final] [data-site-nav=download]','/download'],['#publicChangelogBtn','/changelog']]){
    if(await page.evaluate("location.pathname!=='/'")){await page.click('.site-brand[data-site-nav=home]');await page.waitFor("location.pathname==='/' && !document.querySelector('#publicHome').classList.contains('hidden')");}
+   const capability=selector.match(/data-public-capability=(\w+)/)?.[1];
+   if(capability)await page.click(`[data-core-capability=${capability==='files'?'share':capability}]>.capability-trigger`);
    await page.click(selector);await page.waitFor(`location.pathname===${JSON.stringify(expected)}`,30000,'existing entry '+selector);
   }
   assert.deepEqual(page.runtimeErrors,[]);

@@ -111,7 +111,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("/assets/logo.png", self.worker)
         self.assertNotIn("/assets/splash-screen.png", self.worker)
         self.assertRegex(self.worker, r'const CACHE = "wyj-shell-[^"]+"')
-        release_token = "20261003-aeris-p31-2"
+        release_token = "20261003-aeris-p32-1"
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "design-system.css", "public-experience.css", "workspace-experience.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             self.assertIn(f'/{asset}?v={release_token}', self.html)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
@@ -121,7 +121,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)', self.app)
         for module in ("api", "config", "router", "session", "storage", "ui", "design-system"):
             self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20261003-aeris-p31-2"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20261003-aeris-p32-1"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         for asset in ("design-system.css", "public-experience.css", "workspace-experience.css"):
@@ -135,7 +135,7 @@ class StaticSiteTests(unittest.TestCase):
         self.assertFalse((ROOT / "404.html").exists())
 
     def test_browser_module_graph_uses_one_release_version(self):
-        release_token = "20261003-aeris-p31-2"
+        release_token = "20261003-aeris-p32-1"
         import_pattern = re.compile(
             r'(?:from\s+|import\s+)["\'](\.{1,2}/[^"\']+\.js(?:\?[^"\']*)?)["\']'
         )
@@ -255,9 +255,9 @@ class StaticSiteTests(unittest.TestCase):
         self.assertNotRegex(self.html, r">\s*[文+×↕]\s*<")
 
     def test_task19_design_system_two_contract(self):
-        self.assertIn('href="/design-system.css?v=20261003-aeris-p31-2"', self.html)
-        self.assertIn('href="/public-experience.css?v=20261003-aeris-p31-2"', self.html)
-        self.assertIn('href="/workspace-experience.css?v=20261003-aeris-p31-2"', self.html)
+        self.assertIn('href="/design-system.css?v=20261003-aeris-p32-1"', self.html)
+        self.assertIn('href="/public-experience.css?v=20261003-aeris-p32-1"', self.html)
+        self.assertIn('href="/workspace-experience.css?v=20261003-aeris-p32-1"', self.html)
         self.assertIn('id="siteNavToggle"', self.html)
         self.assertIn('id="siteNavPanel"', self.html)
         self.assertIn('id="themeToggleBtn"', self.html)
@@ -265,7 +265,13 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('data-theme="dark"', self.design_styles)
         self.assertEqual(self.html.count('data-capability-panel='), 4)
         self.assertNotIn('id="publicSplitFlap"', self.html)
-        self.assertNotIn('hero-scene-card', self.html)
+        # P3.2 owner correction restores Task 19/P2 cards in the public home.
+        self.assertEqual(self.html.count('class="hero-scene-card hero-scene-'), 3)
+        self.assertEqual(self.html.count('data-core-capability='), 5)
+        for name in ('learning', 'tools', 'finance', 'share', 'account'):
+            self.assertIn(f'product-preview {name}-preview', self.html)
+        self.assertNotIn('aeris-capability-link', self.html)
+        self.assertNotIn('aeris-scene-grid', self.html)
         self.assertEqual(self.html.count('data-public-scene='), 3)
         self.assertEqual(self.html.count('data-public-capability='), 5)
         for section in ('hero', 'window', 'capabilities', 'privacy', 'plans', 'final'):
