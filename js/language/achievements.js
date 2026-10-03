@@ -1,4 +1,4 @@
-import { calculateLongestStudyStreak, localDayKey } from "./history.js?v=20261003-aeris-p3-2";
+import { calculateLongestStudyStreak, localDayKey } from "./history.js?v=20261003-aeris-p3-3";
 
 export const ACHIEVEMENT_TIERS = Object.freeze({
   bronze: { label: "初阶", points: 10 },

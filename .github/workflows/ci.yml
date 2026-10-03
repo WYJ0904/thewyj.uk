@@ -223,6 +223,9 @@ jobs:
       - name: Test transfer progress and persistence coalescing
         run: node local-backend/test_transfer_updates_js.mjs
 
+      - name: Test stalled multipart connection recovery
+        run: node local-backend/test_upload_part_recovery_js.mjs
+
       - name: Test JavaScript tools
         run: |
           set -euo pipefail
@@ -776,7 +779,8 @@ jobs:
             exit 1
           fi
 
-          npx wrangler pages dev . \
+          node scripts/stage_pages_deploy.mjs
+          npx wrangler pages dev .wrangler/pages-output \
             --ip 127.0.0.1 \
             --port 8894 \
             --persist-to "${RUNNER_TEMP}/task15-cloud-state" \
