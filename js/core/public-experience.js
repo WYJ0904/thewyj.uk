@@ -36,6 +36,31 @@ export function initPublicExperience(doc=globalThis.document) {
   root.dataset.initialized='true';const tabs=[...root.querySelectorAll('[data-public-product]')];
   doc.querySelectorAll('#publicHome [data-public-trigger]').forEach(button=>button.addEventListener('click',event=>{event.preventDefault();doc.getElementById(button.dataset.publicTrigger)?.click();}));
   doc.querySelectorAll('#publicHome [data-public-open]').forEach(button=>button.addEventListener('click',()=>{const tab=tabs.find(item=>item.dataset.publicProduct===button.dataset.publicOpen);tab?.click();tab?.focus({preventScroll:true});root.scrollIntoView({block:'start',behavior:globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});}));
+  // The restored P2 gallery owns only disclosure selection, never product data.
+  const gallery=doc.querySelector('[data-core-card-gallery]');
+  const cards=[...(gallery?.querySelectorAll('[data-core-capability]')||[])];
+  for(const [index,card]of cards.entries()){
+    const trigger=card.querySelector('.capability-trigger');
+    trigger.addEventListener('focus',()=>trigger.click());
+    trigger.addEventListener('click',()=>{
+      for(const item of cards){
+        const active=item===card;
+        item.classList.toggle('active',active);
+        item.querySelector('.capability-trigger').setAttribute('aria-expanded',String(active));
+        item.querySelector('.capability-body').hidden=!active;
+      }
+    });
+    trigger.addEventListener('keydown',event=>{
+      let next=index;
+      if(event.key==='ArrowRight'||event.key==='ArrowDown')next=(index+1)%cards.length;
+      else if(event.key==='ArrowLeft'||event.key==='ArrowUp')next=(index+cards.length-1)%cards.length;
+      else if(event.key==='Home')next=0;
+      else if(event.key==='End')next=cards.length-1;
+      else return;
+      event.preventDefault();
+      const button=cards[next].querySelector('.capability-trigger');button.click();button.focus({preventScroll:true});
+    });
+  }
   function select(tab,{focus=false}={}) {
     for(const button of tabs){const active=button===tab;button.setAttribute('aria-selected',String(active));button.setAttribute('aria-expanded',String(active));button.tabIndex=active?0:-1;const panel=doc.getElementById(button.getAttribute('aria-controls'));panel.hidden=!active;panel.classList.toggle('active',active);}
     root.dataset.selected=tab.dataset.publicProduct;if(focus)tab.focus();
