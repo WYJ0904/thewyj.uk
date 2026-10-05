@@ -58,6 +58,9 @@ for(const width of [390,1366,1920]) {
     assert.equal(await page.evaluate("window.__p4StableLedger.every(n=>n.isConnected)"),true,'Offline/error state retains existing rows');
     failed=false;
     await page.navigate('/tools');await page.waitFor("!document.getElementById('entryScreen') && document.querySelectorAll('[data-tool-card]').length>20");
+    // Catalog paints before remote preferences. Measure the user toggle after
+    // that initial hydration, rather than conflating it with saved favorites.
+    await page.evaluate("window.WYJTools.show('/tools').then(()=>true)");
     await page.evaluate("window.__p4Tools=[...document.querySelectorAll('[data-tool-card]')];true");
     const toolId=await page.evaluate("window.__p4Tools[0].dataset.toolCard");
     const favoriteBefore=await page.evaluate(`document.querySelector('[data-toggle-favorite="${toolId}"]').getAttribute('aria-pressed')`);
