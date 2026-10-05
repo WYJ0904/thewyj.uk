@@ -453,13 +453,20 @@ private fun TransferItemRow(
     val percent = if (item.source.sizeBytes > 0) ((item.uploadedBytes * 100) / item.source.sizeBytes).toInt() else 0
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = ThewyjRadius.Medium,
+        shape = ThewyjRadius.Small,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.padding(ThewyjSpacing.Lg), verticalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
+        Column(Modifier.padding(ThewyjSpacing.Md), verticalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
             Text(item.source.relativePath, style = MaterialTheme.typography.titleSmall)
             Text(
-                "${formatBytes(item.uploadedBytes)} / ${formatBytes(item.source.sizeBytes)} · ${item.status.name}${if (item.errorMessage.isNotBlank()) " · ${item.errorMessage}" else ""}",
+                "${formatBytes(item.uploadedBytes)} / ${formatBytes(item.source.sizeBytes)} · ${when (item.status) {
+                    TransferItemStatus.PENDING -> "等待上传"
+                    TransferItemStatus.UPLOADING -> "上传中"
+                    TransferItemStatus.PAUSED -> "已暂停"
+                    TransferItemStatus.DONE -> "上传完成"
+                    TransferItemStatus.ERROR -> "上传失败"
+                    TransferItemStatus.CANCELLED -> "已取消"
+                }}${if (item.errorMessage.isNotBlank()) " · ${item.errorMessage}" else ""}",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth())
