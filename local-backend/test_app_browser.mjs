@@ -1473,6 +1473,11 @@ async function main() {
       }
       await setFiles("#wrongDataFileInput", [wrongFailureFile]);
       await waitFor("state.currentWrongBook.network?.correct_answer === '网络'", 4_000, "restore imported rubric after network failure");
+      await send("Network.emulateNetworkConditions", { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
+      await evaluate("window.dispatchEvent(new Event('offline')); true");
+      await waitFor("backendAvailable === false", 3_000, "review transport actually offline");
+      const reviewRequestCount = await evaluate("window.__rejudgeFetches.length");
+      try {
       await click("#reviewBtn");
       // A saved preceding QA round can still be active. Follow the real replace
       // confirmation instead of mistaking that round's visible quiz for review.
@@ -1487,6 +1492,13 @@ async function main() {
       await waitFor("!document.querySelector('#roundSummaryModal')?.classList.contains('hidden')", 4_000, "review summary");
       assert.equal(await evaluate("document.querySelector('#roundCorrectCount').textContent"), "1");
       await click("#roundSetupBtn");
+      assert.equal(await evaluate("window.__rejudgeFetches.length"), reviewRequestCount, "offline review cannot rely on the remote quiz/judge fixture");
+      assert.equal(await evaluate("localStorage.getItem('wyjAccountSession')"), userSession);
+      } finally {
+        await send("Network.emulateNetworkConditions", { offline: false, latency: 80, downloadThroughput: 1_500_000, uploadThroughput: 750_000 });
+        await evaluate("window.dispatchEvent(new Event('online')); true");
+        await waitFor("backendAvailable === true", 20_000, "review transport restored");
+      }
     });
 
     await check("mobile language question state and rejudge scenarios A-H", async () => {
