@@ -118,6 +118,36 @@ assert.deepEqual(loadJson("missing", { ok: true }, new MemoryStorage()), { ok: t
 const storage = new MemoryStorage();
 assert.equal(safeStorageSet(storage, "answer", 42), true);
 assert.equal(storage.getItem("answer"), "42");
+let durableWrites = 0;
+const durable = new MemoryStorage();
+const durableSet = durable.setItem.bind(durable);
+durable.setItem = (key, value) => { durableWrites++; durableSet(key, value); };
+assert.equal(safeStorageSet(durable, "progress", "42"), true);
+assert.equal(safeStorageSet(durable, "progress", "42"), true);
+assert.equal(durableWrites, 1, "equal readable durable values avoid a second write");
+let retryWrites = 0;
+const transient = new MemoryStorage();
+transient.__wyjPersistent = false;
+transient.setItem("progress", "42");
+transient.setItem = () => { retryWrites++; };
+assert.equal(safeStorageSet(transient, "progress", "42"), false);
+assert.equal(retryWrites, 1, "an equal in-memory value cannot suppress a persistence retry");
+const retryNative = new MemoryStorage();
+let retryAllowed = false, nativeAttempts = 0;
+const retryNativeSet = retryNative.setItem.bind(retryNative);
+retryNative.setItem = (key, value) => {
+  nativeAttempts++;
+  if (!retryAllowed) throw new DOMException("blocked", "SecurityError");
+  retryNativeSet(key, value);
+};
+globalThis.p5RetryStorage = retryNative;
+const retryFacade = getSafeStorage("p5RetryStorage");
+assert.equal(safeStorageSet(retryFacade, "progress", "42"), false);
+retryAllowed = true;
+safeStorageSet(retryFacade, "progress", "42");
+assert.equal(nativeAttempts, 2);
+assert.equal(retryNative.getItem("progress"), "42", "a failed durable write is retried with the preserved value");
+delete globalThis.p5RetryStorage;
 Object.defineProperty(globalThis, "blockedStorage", {
   configurable: true,
   get() { throw new DOMException("blocked", "SecurityError"); },
