@@ -710,13 +710,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20261006-p5-architecture-2');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20261006-p5-architecture-2');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261006-p5-architecture-2');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261006-p5-architecture-2');
-        const cachedChangelog = await caches.match('/changelog.js?v=20261006-p5-architecture-2');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261006-p5-architecture-2');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20261006-p5-architecture-2');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261006-p5-architecture-3');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261006-p5-architecture-3');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261006-p5-architecture-3');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261006-p5-architecture-3');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261006-p5-architecture-3');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261006-p5-architecture-3');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261006-p5-architecture-3');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -1474,7 +1474,12 @@ async function main() {
       await setFiles("#wrongDataFileInput", [wrongFailureFile]);
       await waitFor("state.currentWrongBook.network?.correct_answer === '网络'", 4_000, "restore imported rubric after network failure");
       await click("#reviewBtn");
-      await waitFor("document.querySelector('#quizView').classList.contains('active')", 8_000, "offline review start");
+      // A saved preceding QA round can still be active. Follow the real replace
+      // confirmation instead of mistaking that round's visible quiz for review.
+      if (await evaluate("!document.querySelector('#confirmModal').classList.contains('hidden')")) {
+        await click("#acceptConfirmBtn");
+      }
+      await waitFor("document.querySelector('#quizView').classList.contains('active') && document.querySelector('#wordText').textContent.trim() === 'network' && !document.querySelector('#submitBtn').disabled", 8_000, "offline review question ready");
       await setFields({ "#answerInput": "网络" });
       await click("#submitBtn");
       await waitFor("document.querySelector('#resultTitle')?.classList.contains('ok') && !document.querySelector('#nextNowBtn')?.disabled", 5_000, "offline review answer");

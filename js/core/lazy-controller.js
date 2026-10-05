@@ -1,3 +1,14 @@
+/** Chrome retains a failed module URL. Retry a root fetch on explicit entry only. */
+export function createRetryableImport(url, importer = specifier => import(specifier)) {
+  let failures = 0;
+  return async () => {
+    const target = new URL(url);
+    if (failures) target.searchParams.set("module_retry", String(failures));
+    try { return await importer(target.href); }
+    catch (error) { failures++; throw error; }
+  };
+}
+
 /** Loads one existing owner; router, durable state and transport remain with it. */
 export function createLazyController({ load, methods = [], summary = () => ({}), loadForSummary = true, onReady = () => {}, onError = () => {} }) {
   let owner = null, pending = null, visible = false, generation = 0;

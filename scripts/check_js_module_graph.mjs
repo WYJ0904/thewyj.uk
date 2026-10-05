@@ -24,7 +24,8 @@ function importsFor(filePath) {
   const specifiers = [];
   const staticImport = /(?:^|\n)\s*(?:import|export)\s+(?:[^'";]*?\s+from\s+)?["']([^"']+)["']/g;
   const dynamicImport = /\bimport\(\s*["']([^"']+)["']\s*\)/g;
-  for (const pattern of [staticImport, dynamicImport]) {
+  const retryableImport = /\bcreateRetryableImport\(\s*new\s+URL\(\s*["']([^"']+)["']\s*,\s*import\.meta\.url\s*\)/g;
+  for (const pattern of [staticImport, dynamicImport, retryableImport]) {
     let match;
     while ((match = pattern.exec(source))) specifiers.push(match[1]);
   }

@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
-import {createLazyController,installLazyTools} from '../js/core/lazy-controller.js';
+import {createLazyController,installLazyTools,createRetryableImport} from '../js/core/lazy-controller.js';
+const imported=[];
+const importRetry=createRetryableImport('https://thewyj.uk/workflows.js?v=accepted-generation',async url=>{imported.push(url);if(imported.length===1)throw Error('owned cached module failure');return true});
+await assert.rejects(importRetry());assert.equal(await importRetry(),true);assert.equal(await importRetry(),true);
+assert.equal(new URL(imported[0]).searchParams.get('module_retry'),null);
+assert.equal(new URL(imported[1]).searchParams.get('module_retry'),'1');assert.equal(imported[1],imported[2]);
 let release,loads=0,shows=0,hidden=0;
 const pending=new Promise(r=>release=r),owner={show:()=>{shows++;return true},hide:()=>hidden++,dashboardSummary:()=>({known:true,count:3})};
 const c=createLazyController({load:()=>{loads++;return pending},summary:()=>({known:false,count:0}),loadForSummary:false});
