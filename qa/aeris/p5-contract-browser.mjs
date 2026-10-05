@@ -8,6 +8,9 @@ try {
  await p.click('a[data-site-nav][href="/tools"]');await p.waitFor("document.querySelectorAll('[data-tool-card]').length===24");let batches=0;
  while(!(await p.evaluate("document.querySelector('#toolCatalogMoreBtn').hidden"))){await p.click('#toolCatalogMoreBtn');batches++;}
  const total=await p.evaluate("document.querySelectorAll('[data-tool-card]').length");assert.equal(total,103);
+ // Entry mounts the public catalogue before account preferences arrive. Settle
+ // that owner before comparing row identity across an unchanged model.
+ await p.evaluate("window.WYJTools.show('/tools',{})");
  await p.evaluate("window.__p5ToolRow=document.querySelector('[data-tool-card]');true");await p.click('a[data-site-nav][href="/"]');await p.waitFor("location.pathname==='/'");assert.equal(await p.evaluate("window.__p5ToolRow.isConnected"),false);
  await p.click('a[data-site-nav][href="/tools"]');await p.waitFor("document.querySelectorAll('[data-tool-card]').length===103");assert.equal(await p.evaluate("window.__p5ToolRow===document.querySelector('[data-tool-card]')"),true);
  await p.navigate('/tools/workflows');await p.waitFor("!!window.WYJWorkflows && window.WYJTools.isReady() && location.pathname==='/tools/workflows'");
