@@ -60,7 +60,9 @@ for(const width of [390,1366,1920]) {
     await page.navigate('/tools');await page.waitFor("!document.getElementById('entryScreen') && document.querySelectorAll('[data-tool-card]').length>20");
     await page.evaluate("window.__p4Tools=[...document.querySelectorAll('[data-tool-card]')];true");
     const toolId=await page.evaluate("window.__p4Tools[0].dataset.toolCard");
-    await page.click(`[data-toggle-favorite="${toolId}"]`);await page.waitFor(`document.querySelector('[data-toggle-favorite="${toolId}"]').getAttribute('aria-pressed')==='true'`);
+    const favoriteBefore=await page.evaluate(`document.querySelector('[data-toggle-favorite="${toolId}"]').getAttribute('aria-pressed')`);
+    const favoriteAfter=favoriteBefore==='true'?'false':'true';
+    await page.click(`[data-toggle-favorite="${toolId}"]`);await page.waitFor(`document.querySelector('[data-toggle-favorite="${toolId}"]').getAttribute('aria-pressed')===${JSON.stringify(favoriteAfter)}`);
     assert.equal(await page.evaluate("window.__p4Tools.slice(1).every(n=>n.isConnected)"),true,'Favorite update retains all unaffected catalog entries');
     await page.click(`[data-open-tool="${toolId}"]`);await page.waitFor("!document.querySelector('#toolWorkbench').classList.contains('hidden')");
     await page.click('#closeToolWorkbenchBtn');await page.waitFor("document.querySelector('#toolWorkbench').classList.contains('hidden')");
