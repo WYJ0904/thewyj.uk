@@ -99,16 +99,38 @@ function fakeFinanceDocument() {
     addEventListener() {},
   };
   const list = {
-    innerHTML: "",
+    html: "", children: [],
+    get innerHTML() { return this.children.length ? this.children.map(node => node.html).join("") : this.html; },
+    set innerHTML(value) { this.html = value; this.children = []; },
+    get firstElementChild() { return this.children[0] || null; },
+    insertBefore(node, cursor) {
+      node.remove();
+      const index = cursor ? this.children.indexOf(cursor) : this.children.length;
+      this.children.splice(index, 0, node); node.parentNode = this;
+    },
     querySelector() { return null; },
     querySelectorAll() { return []; },
   };
+  const message = { textContent: "", hidden: true };
   globalThis.document = {
     activeElement: null,
-    getElementById(id) { return id === "financeCandidatesSection" ? section : id === "financeCandidateList" ? list : null; },
+    getElementById(id) { return id === "financeCandidatesSection" ? section : id === "financeCandidateList" ? list : id === "financeCandidateMessage" ? message : null; },
+    createElement(tag) {
+      assert.equal(tag, "template");
+      return { content: {}, set innerHTML(html) {
+        this.content.firstElementChild = {
+          html, dataset: {}, parentNode: null,
+          get nextElementSibling() { return this.parentNode?.children[this.parentNode.children.indexOf(this) + 1] || null; },
+          remove() { if (this.parentNode) this.parentNode.children.splice(this.parentNode.children.indexOf(this), 1); this.parentNode = null; },
+          replaceWith(node) { const parent = this.parentNode, index = parent.children.indexOf(this); parent.children.splice(index, 1, node); node.parentNode = parent; this.parentNode = null; },
+          contains() { return false; }, querySelectorAll() { return []; },
+        };
+      }};
+    },
     addEventListener() {},
   };
-  return { list, section, attributes };
+  list.ownerDocument = globalThis.document;
+  return { list, section, attributes, message };
 }
 
 const priorDocument = globalThis.document;
@@ -181,7 +203,7 @@ try {
     isSuperAdmin: () => false,
   });
   await failing.show();
-  assert.match(list.innerHTML, /暂时无法加载/);
+  assert.match(document.getElementById("financeCandidateMessage").textContent, /暂时无法加载/);
   assert.equal(candidateReads, 0, "A 503 summary response must not query independent detail lists");
   assert.ok(priorHtml.includes("暂无待处理") || priorHtml.includes("正在同步"));
 

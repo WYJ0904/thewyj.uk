@@ -1,6 +1,7 @@
-import { mergeLocalNotificationReviews } from "./notification-ledger.js?v=20261003-autobook-1";
-import { randomId } from "../core/capabilities.js?v=20261003-autobook-1";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261003-autobook-1";
+import { mergeLocalNotificationReviews } from "./notification-ledger.js?v=20261005-p4-workspace-1";
+import { randomId } from "../core/capabilities.js?v=20261005-p4-workspace-1";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261005-p4-workspace-1";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-workspace-1";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -8,7 +9,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20261003-autobook-1";
+} from "../core/perf.js?v=20261005-p4-workspace-1";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -212,14 +213,13 @@ export function createFinanceCandidatesController({
     currentCandidates = [...candidates];
     if (element("financePendingCount")) element("financePendingCount").textContent = hasCanonicalObservation ? String(candidates.length) : "待核对";
     pendingDisclosure?.pending(candidates.map(item => item.canonical_id || item.id));
-    const banner = message
-      ? `<div class="finance-candidate-message"><p>${escapeHtml(message)}</p></div>`
-      : "";
-    if (!candidates.length) {
-      list.innerHTML = banner || '<div class="finance-candidate-empty"><strong>暂无待处理通知交易</strong><p>已完成核实和记账的交易会直接从待处理移除。</p></div>';
-      return;
-    }
-    list.innerHTML = banner + candidates.map((candidate) => {
+    const banner = element("financeCandidateMessage");
+    if (banner) { banner.textContent = message; banner.hidden = !message; }
+    reconcileKeyedRows(list, candidates, {
+      key: candidate => candidate.canonical_id || candidate.id,
+      signature: candidate => JSON.stringify([candidate, busyIds.has(String(candidate.id || ""))]),
+      empty: '<div class="finance-candidate-empty"><strong>暂无待处理通知交易</strong><p>已完成核实和记账的交易会直接从待处理移除。</p></div>',
+      render: (candidate) => {
       const id = String(candidate.id || "");
       const presentation = candidatePresentation(candidate);
       const { direction } = presentation;
@@ -269,7 +269,8 @@ export function createFinanceCandidatesController({
           </div>
         </form>
       </article>`;
-    }).join("");
+      },
+    });
     restoreEditorState(list, editorState);
   }
 

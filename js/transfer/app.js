@@ -1,9 +1,10 @@
-import { randomId } from "../core/capabilities.js?v=20261003-autobook-1";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261003-autobook-1";
-import { getSafeStorage } from "../core/storage.js?v=20261003-autobook-1";
-import { withInteractionFeedback } from "../core/perf.js?v=20261003-autobook-1";
-import { createTransferUpdateScheduler } from "./updates.js?v=20261003-autobook-1";
-import { putPartWithRecovery } from "./upload-part.js?v=20261003-autobook-1";
+import { randomId } from "../core/capabilities.js?v=20261005-p4-workspace-1";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261005-p4-workspace-1";
+import { getSafeStorage } from "../core/storage.js?v=20261005-p4-workspace-1";
+import { withInteractionFeedback } from "../core/perf.js?v=20261005-p4-workspace-1";
+import { createTransferUpdateScheduler } from "./updates.js?v=20261005-p4-workspace-1";
+import { putPartWithRecovery } from "./upload-part.js?v=20261005-p4-workspace-1";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-workspace-1";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -513,14 +514,20 @@ export function createTransferController({
     const reserved = Number(capabilities.reserved_bytes || 0);
     const used = Number(capabilities.used_bytes ?? (stored + reserved));
     const limit = capabilities.storage_limit_bytes || 0;
-    element("transferQuotaText").textContent = hasBreakdown
+    const text = hasBreakdown
       ? `已存储 ${formatQuotaBytes(stored)} · 上传预留 ${formatQuotaBytes(reserved)} · 总计 ${formatQuotaBytes(used)} / ${formatQuotaBytes(limit)}`
       : `已用 ${formatQuotaBytes(used)} / ${formatQuotaBytes(limit)}`;
+    setText("transferQuotaText", text);
     const progress = element("transferQuotaBar");
-    if (progress) progress.max = String(Math.max(1, limit));
-    if (progress) progress.value = String(Math.min(limit, used));
-    element("transferUploadedBytes").textContent = formatBytes(queue.reduce((sum, item) => sum + (item.uploaded || 0), 0));
-    element("transferTotalBytes").textContent = formatBytes(queue.reduce((sum, item) => sum + item.size, 0));
+    if (progress && Number(progress.max) !== Math.max(1, limit)) progress.max = Math.max(1, limit);
+    if (progress && Number(progress.value) !== Math.min(limit, used)) progress.value = Math.min(limit, used);
+    setText("transferUploadedBytes", formatBytes(queue.reduce((sum, item) => sum + (item.uploaded || 0), 0)));
+    setText("transferTotalBytes", formatBytes(queue.reduce((sum, item) => sum + item.size, 0)));
+  }
+
+  function setText(id, value) {
+    const node = element(id);
+    if (node && node.textContent !== value) node.textContent = value;
   }
 
   function itemById(id) {
@@ -531,10 +538,14 @@ export function createTransferController({
     updates.cancelProgress();
     const list = element("transferQueue");
     if (!list) return;
-    if (!queue.length) {
-      list.innerHTML = '<div class="transfer-empty">还没有选择文件。拖入文件、选择文件或粘贴图片。</div>';
-    } else {
-      list.innerHTML = queue.map((item) => {
+    reconcileKeyedRows(list, queue, {
+      key: item => item.id,
+      // Numeric progress is patched by the existing rAF scheduler. A status
+      // change in one file must not replace other uploading files or controls.
+      signature: item => JSON.stringify([item.name, item.relativePath, item.size, item.status,
+        item.error, item.needsFile, transferItemAction(item)]),
+      empty: '<div class="transfer-empty">还没有选择文件。拖入文件、选择文件或粘贴图片。</div>',
+      render: (item) => {
         const percent = item.size ? Math.min(100, Math.round((item.uploaded / item.size) * 100)) : 0;
         const action = transferItemAction(item);
         const phase = action === "preparing" ? " · 正在创建安全上传任务" : item.error ? ` · ${escapeHtml(item.error)}` : "";
@@ -547,9 +558,9 @@ export function createTransferController({
               : "";
         return `<article class="transfer-item" data-transfer-item="${escapeHtml(item.id)}">
           <div class="transfer-item-main">
-            <strong>${escapeHtml(item.name)}</strong>
+            <div class="transfer-item-heading"><strong>${escapeHtml(item.name)}</strong><span class="transfer-item-state">${escapeHtml({pending:"等待上传",uploading:"上传中",paused:"已暂停",done:"上传完成",error:"上传失败",cancelled:"已取消"}[item.status] || "准备中")}</span></div>
             <small>${escapeHtml(item.relativePath)} · ${formatBytes(item.uploaded)} / ${formatBytes(item.size)}${item.speed ? ` · ${formatBytes(item.speed)}/s` : ""}${item.eta ? ` · 剩余 ${Math.ceil(item.eta)}s` : ""}${item.needsFile ? " · 已恢复，请重新选择同一文件继续" : ""}${phase}</small>
-            <progress max="100" value="${percent}"></progress>
+            <progress max="100" value="${percent}" aria-label="${escapeHtml(item.name)} 上传进度"></progress>
           </div>
           <div class="transfer-item-actions">
             ${primaryAction}
@@ -557,8 +568,8 @@ export function createTransferController({
             <button class="danger-text" type="button" data-transfer-cancel="${escapeHtml(item.id)}">取消</button>
           </div>
         </article>`;
-      }).join("");
-    }
+      },
+    });
     progressNodes = new Map();
     list.querySelectorAll?.("[data-transfer-item]").forEach((row) => {
       progressNodes.set(row.dataset.transferItem, {
@@ -567,7 +578,7 @@ export function createTransferController({
     });
     const complete = queue.length > 0 && queue.every((item) => item.status === "done");
     element("transferCompleteBtn").disabled = !complete;
-    renderQuota();
+    patchQueueProgress();
   }
 
   function patchQueueProgress() {
@@ -1163,13 +1174,17 @@ export function createTransferController({
         list.innerHTML = '<div class="transfer-empty">还没有创建过文件分享。</div>';
         return;
       }
-      list.innerHTML = shares.map((share) => `<article class="transfer-share-row">
+      reconcileKeyedRows(list, shares, {
+        key: share => share.id,
+        signature: share => JSON.stringify(share),
+        render: share => `<article class="transfer-share-row">
         <div><strong>${escapeHtml(share.file_count)} 个文件 · ${formatBytes(share.total_bytes)}</strong><small>${escapeHtml((share.files || []).map((file) => file.file_name).join("、") || "文件名暂不可用")}</small><small>${new Date(share.expires_at).toLocaleString("zh-CN")} 到期 · 下载 ${share.download_count}/${share.max_downloads}${share.password_required ? " · 有密码" : ""}</small></div>
         <div class="transfer-share-actions">
           <button type="button" data-transfer-open="${escapeHtml(share.id)}">查看</button>
           <button class="danger-text" type="button" data-transfer-revoke="${escapeHtml(share.id)}"><span data-pending-label="撤销中…">撤销</span></button>
         </div>
-      </article>`).join("");
+      </article>`,
+      });
     } catch (error) {
       if (generation !== sharesListGeneration || owner !== ownerGeneration) return;
       list.innerHTML = `<div class="transfer-empty">分享列表加载失败：${escapeHtml(error.message || "请稍后重试")}</div>`;

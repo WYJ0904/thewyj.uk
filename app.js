@@ -9,25 +9,26 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20261003-autobook-1";
+} from "./js/core/config.js?v=20261005-p4-workspace-1";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261005-p4-workspace-1";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?v=20261003-autobook-1";
+} from "./js/core/capabilities.js?v=20261005-p4-workspace-1";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20261003-autobook-1";
+} from "./js/core/api.js?v=20261005-p4-workspace-1";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20261003-autobook-1";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261003-autobook-1";
+} from "./js/core/changelog.js?v=20261005-p4-workspace-1";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261005-p4-workspace-1";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -38,21 +39,21 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20261003-autobook-1";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261003-autobook-1";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261003-autobook-1";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261003-autobook-1";
-import { installMotionSystem, motionDuration } from "./js/core/motion.js?v=20261003-autobook-1";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261003-autobook-1";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20261003-autobook-1";
-import { speakText, stopSpeech } from "./js/language/speech.js?v=20261003-autobook-1";
+} from "./js/core/session.js?v=20261005-p4-workspace-1";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261005-p4-workspace-1";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261005-p4-workspace-1";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261005-p4-workspace-1";
+import { installMotionSystem, motionDuration } from "./js/core/motion.js?v=20261005-p4-workspace-1";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261005-p4-workspace-1";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20261005-p4-workspace-1";
+import { speakText, stopSpeech } from "./js/language/speech.js?v=20261005-p4-workspace-1";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?v=20261003-autobook-1";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20261003-autobook-1";
-import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20261003-autobook-1";
-import { createTransferController } from "./js/transfer/app.js?v=20261003-autobook-1";
+} from "./js/language/speech-rate.js?v=20261005-p4-workspace-1";
+import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20261005-p4-workspace-1";
+import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20261005-p4-workspace-1";
+import { createTransferController } from "./js/transfer/app.js?v=20261005-p4-workspace-1";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -60,15 +61,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?v=20261003-autobook-1";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261003-autobook-1";
+} from "./js/core/perf.js?v=20261005-p4-workspace-1";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261005-p4-workspace-1";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20261003-autobook-1";
+} from "./js/language/history.js?v=20261005-p4-workspace-1";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -105,16 +106,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20261003-autobook-1";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261003-autobook-1";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20261003-autobook-1";
+} from "./js/language/quiz.js?v=20261005-p4-workspace-1";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261005-p4-workspace-1";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20261005-p4-workspace-1";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20261003-autobook-1";
+} from "./js/language/wrong-book.js?v=20261005-p4-workspace-1";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -123,7 +124,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20261003-autobook-1";
+} from "./js/membership/account.js?v=20261005-p4-workspace-1";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -131,19 +132,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20261003-autobook-1";
+} from "./js/membership/plans.js?v=20261005-p4-workspace-1";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20261003-autobook-1";
+} from "./js/membership/recharge.js?v=20261005-p4-workspace-1";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20261003-autobook-1";
+} from "./js/admin/formatters.js?v=20261005-p4-workspace-1";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -1298,13 +1299,9 @@ function renderAccountDetails() {
     ["注册时间", formatLocalDateTime(account.registered_at, "未知")],
     ["最后登录", formatLocalDateTime(account.last_login_at, "从未")],
   ];
-  details.innerHTML = "";
-  rows.forEach(([label, value]) => {
-    const term = document.createElement("dt");
-    const description = document.createElement("dd");
-    term.textContent = label;
-    description.textContent = value;
-    details.append(term, description);
+  reconcileKeyedRows(details, rows, {
+    key: ([label]) => label,
+    render: ([label, value]) => `<div class="account-setting-row"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value ?? "")}</dd></div>`,
   });
   $("changeSecretForm")?.classList.toggle("hidden", isSuperAdmin(account));
   $("openDeleteAccountBtn")?.closest(".danger-zone")?.classList.toggle("hidden", isAdmin(account));
@@ -2520,7 +2517,11 @@ function renderAdminUsers(data = null, { append = false } = {}) {
   if (count) count.textContent = adminUserPage.query
     ? `找到 ${adminUserPage.total} 个用户，已显示 ${adminUsers.length} 个`
     : `共 ${adminUserPage.total} 个用户，已显示 ${adminUsers.length} 个`;
-  list.innerHTML = adminUsers.map((user) => {
+  reconcileKeyedRows(list, adminUsers, {
+    key: user => user.id,
+    signature: user => JSON.stringify([user, isSuperAdmin(), state.account?.id]),
+    empty: `<p class="admin-empty-state">${adminUserPage.query ? "没有匹配的用户" : "暂无用户"}</p>`,
+    render: (user) => {
     const protectedUser = user.is_admin || (!isSuperAdmin() && user.id === state.account?.id);
     const roleLabel = user.is_super_admin ? "站点所有者" : user.is_admin ? "管理员" : "普通用户";
     const stateClass = user.banned ? "account-state-bad" : "account-state-good";
@@ -2542,8 +2543,8 @@ function renderAdminUsers(data = null, { append = false } = {}) {
       <div class="admin-user-security"><p><span class="admin-field-name">登录密钥</span><span class="secret-value">不可读取 · 可安全重置</span></p><p class="admin-last-login">最后登录：${escapeHtml(formatLocalDateTime(user.last_login_at, "从未"))}</p></div>
       <div class="action-row compact admin-user-actions"><button data-admin-edit type="button" ${protectedUser ? "disabled" : ""}>编辑</button></div>
     </article>`;
-  }).join("") || `<p class="admin-empty-state">${adminUserPage.query ? "没有匹配的用户" : "暂无用户"}</p>`;
-  list.querySelectorAll("[data-admin-edit]").forEach((button) => button.addEventListener("click", () => openAdminEditor(button.closest("[data-user-id]").dataset.userId)));
+    },
+  });
   const loadMore = $("adminUserLoadMoreBtn");
   if (loadMore) {
     loadMore.classList.toggle("hidden", !adminUserPage.has_more);
@@ -2586,12 +2587,11 @@ async function loadAdminUsers({ page = 1, append = false } = {}) {
 
 function markAdminUserSearchPending() {
   adminUserSearchSequence += 1;
-  adminUsers = [];
   const list = $("adminUserList");
   if (list) {
     list.setAttribute("aria-busy", "true");
-    list.innerHTML = '<p class="admin-empty-state">正在搜索用户…</p>';
   }
+  if ($("adminUserCount")) $("adminUserCount").textContent = "正在搜索，保留上次结果…";
   const loadMore = $("adminUserLoadMoreBtn");
   if (loadMore) loadMore.classList.add("hidden");
 }
@@ -5520,6 +5520,11 @@ function showWord(options = {}) {
   $("wordLabel").classList.toggle("has-reading", Boolean(reading));
   $("wordLabel").classList.toggle("dictation-display", dictation);
   $("progressLabel").textContent = `${state.index + 1}/${state.words.length}`;
+  $("progressLabel").setAttribute("role", "progressbar");
+  $("progressLabel").setAttribute("aria-label", "本轮学习进度");
+  $("progressLabel").setAttribute("aria-valuemin", "0");
+  $("progressLabel").setAttribute("aria-valuemax", String(state.words.length));
+  $("progressLabel").setAttribute("aria-valuenow", String(state.index + 1));
   $("scoreLabel").textContent = `得分 ${state.score}`;
   $("quizLanguageLabel").textContent = quizLanguageLabel(state.quizLanguage);
   $("practiceModeLabel").textContent = state.mode.startsWith("review-") ? "错题复习" : practiceModeLabel(state.practiceMode);
@@ -6961,6 +6966,10 @@ async function boot() {
     loadAdminUsers({ page: 1 });
   });
   $("adminUserLoadMoreBtn").addEventListener("click", () => loadAdminUsers({ page: adminUserPage.page + 1, append: true }));
+  $("adminUserList").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-admin-edit]");
+    if (button && !button.disabled) openAdminEditor(button.closest("[data-user-id]").dataset.userId);
+  });
   $("adminMessageForm")?.addEventListener("submit", sendAdminMessage);
   $("adminMessageTargetSearch")?.addEventListener("input", () => {
     window.clearTimeout(adminMessageTargetSearchTimer);
