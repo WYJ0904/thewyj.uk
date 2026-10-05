@@ -13,4 +13,9 @@ const real={init:()=>initialized++,isReady:()=>true,prepare:()=>true,show:path=>
 const tools=installLazyTools({loadTools:async()=>{toolsLoads++;root.WYJTools=real;root.WYJTools.primitives={owned:true}},loadWorkflows:async()=>{workflowLoads++;root.WYJWorkflows={init(){}}}},root);
 tools.init({});await tools.prepare();assert.equal(root.WYJTools.primitives.owned,true);await tools.show('/tools',{});await tools.show('/tools/workflows',{});await tools.show('/tools/workflows',{});
 assert.equal(toolsLoads,1);assert.equal(workflowLoads,1);assert.equal(initialized,1);assert.deepEqual(toolShows,['/tools','/tools/workflows','/tools/workflows']);
+const failedRoot={};let workflowAttempts=0;
+const workflowRetry=installLazyTools({loadTools:async()=>{failedRoot.WYJTools={...real,show:()=>true}},loadWorkflows:async()=>{if(!workflowAttempts++)throw Error('owned workflow transport');failedRoot.WYJWorkflows={init(){}}}},failedRoot);
+workflowRetry.init({});await assert.rejects(workflowRetry.show('/tools/workflows',{}));
+assert.equal(await workflowRetry.show('/tools/workflows',{}),true);
+assert.equal(workflowAttempts,2,'failed workflow imports remain retryable without a page reload');
 console.log('P5 lazy ownership: single load, late-hide guard, retry, unchanged summaries and workflow compatibility PASS');

@@ -47,7 +47,8 @@ export function installLazyTools({ loadTools, loadWorkflows, onReady = () => {},
       const request = ++generation, value = await ensure();
       if (request !== generation) return;
       if (path.startsWith('/tools/workflows')) {
-        workflows ||= Promise.resolve().then(loadWorkflows).then(() => root.WYJWorkflows.init(context));
+        workflows ||= Promise.resolve().then(loadWorkflows).then(() => root.WYJWorkflows.init(context))
+          .catch(error => { workflows = null; throw error; });
         await workflows;
         if (request !== generation) return;
       }
