@@ -52,6 +52,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.material.icons.Icons
@@ -710,7 +713,8 @@ private fun NotificationHistoryCard(
             }, enabled = !state.actionPending(item)) { Text(if (item.pinned) "取消收藏" else "收藏") }
         },
     ) {
-    ThewyjCard(Modifier.fillMaxWidth().padding(vertical = 4.dp)
+    Surface(modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
+        .semantics { this.selected = selected }
         .thewyjPressedFeedback(interaction, surfaceOnly = true)
         .combinedClickable(interactionSource = interaction, indication = androidx.compose.material3.ripple(), role = Role.Button,
             hapticFeedbackEnabled = false, // The shared policy owns long-press feedback.
@@ -718,8 +722,11 @@ private fun NotificationHistoryCard(
             onLongClickLabel = "选择这条通知", onLongClick = {
                 scope.launch { state.toggleSelection(item.revisionId) }
                 haptic.perform(view, ThewyjHapticEvent.LongPressSelection)
-            })) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.Top) {
+            }),
+        shape = ThewyjRadius.Small,
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+    ) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp), verticalAlignment = Alignment.Top) {
             Checkbox(
                 checked = selected,
                 onCheckedChange = { scope.launch { state.toggleSelection(item.revisionId) } },
@@ -728,20 +735,26 @@ private fun NotificationHistoryCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         appLabel,
+                        modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.labelLarge,
                         maxLines = 1,
                         softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
                     )
+                    Text(formatTime(item.postTime), style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (item.title.isNotBlank()) {
                     Text(
                         item.title,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Medium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 if (readableBody.isNotBlank()) {
-                    Text(readableBody, style = MaterialTheme.typography.bodySmall, maxLines = 3)
+                    Text(readableBody, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 } else if (mediaPresentation == NotificationMediaPresentation.AVAILABLE) {
                     Text("仅包含图片内容", style = MaterialTheme.typography.bodySmall)
                 } else if (noReadableText) {
@@ -751,10 +764,11 @@ private fun NotificationHistoryCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Text(
-                    formatTime(item.postTime) +
-                        (if (item.collapsedUpdates && item.revisionCount > 1) " · 有状态更新" else "") +
-                        (if (item.financeLinked) " · 已关联财务" else ""),
+                if (item.collapsedUpdates && item.revisionCount > 1 || item.financeLinked) Text(
+                    listOfNotNull(
+                        "有状态更新".takeIf { item.collapsedUpdates && item.revisionCount > 1 },
+                        "已关联财务".takeIf { item.financeLinked },
+                    ).joinToString(" · "),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -7,10 +7,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20261003-autobook-1";
-import { randomToolResult } from "./js/tools/random.js?v=20261003-autobook-1";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20261003-autobook-1";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20261003-autobook-1";
+} from "./js/tools/catalog.js?v=20261005-p4-pending-5";
+import { randomToolResult } from "./js/tools/random.js?v=20261005-p4-pending-5";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20261005-p4-pending-5";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20261005-p4-pending-5";
 import {
   csvString,
   decodeLocalText,
@@ -19,17 +19,20 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20261003-autobook-1";
+} from "./js/tools/file.js?v=20261005-p4-pending-5";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20261003-autobook-1";
-import { runToolRenderer } from "./js/tools/runner.js?v=20261003-autobook-1";
+} from "./js/tools/image.js?v=20261005-p4-pending-5";
+import { runToolRenderer } from "./js/tools/runner.js?v=20261005-p4-pending-5";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261005-p4-pending-5";
 (() => {
   "use strict";
+  const boundToolRoots = new WeakSet();
+  let catalogSearchTimer = 0;
 
   async function fetchStaticText(url, timeoutMs = 10000) {
     const controller = typeof AbortController === "undefined" ? null : new AbortController();
@@ -196,18 +199,13 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20261003-autobook-1";
   function renderCategories() {
     const target = byId("toolCategoryList");
     if (!target) return;
-    target.innerHTML = CATEGORY_DEFINITIONS.map((category) => {
+    reconcileKeyedRows(target, CATEGORY_DEFINITIONS, { key: category => category.id, render: (category) => {
       const count = CATALOG_TOOLS.filter((tool) => tool.category === category.id).length;
-      return `<button class="tool-category-card${currentCategory === category.id ? " active" : ""}" type="button" data-tool-category="${category.id}">
+      return `<button class="tool-category-card${currentCategory === category.id ? " active" : ""}" type="button" data-tool-category="${category.id}" aria-pressed="${currentCategory === category.id}">
         <span class="tool-category-mark" aria-hidden="true">${iconSvg(category.id)}</span>
         <span><strong>${category.name}</strong><small>${category.description}</small><em>${count} 个工具</em></span>
       </button>`;
-    }).join("");
-    target.querySelectorAll("[data-tool-category]").forEach((button) => button.addEventListener("click", () => {
-      currentCategory = currentCategory === button.dataset.toolCategory ? "all" : button.dataset.toolCategory;
-      renderCategories();
-      renderCatalog();
-    }));
+    }});
   }
 
   function visibleTools() {
@@ -220,13 +218,19 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20261003-autobook-1";
     const category = categoryFor(tool);
     return `<article class="tool-card" data-tool-card="${tool.id}">
       <button class="tool-open" type="button" data-open-tool="${tool.id}"><span>${iconSvg(category.id)}</span><strong>${tool.name}</strong><small>${tool.description}</small><em>${category.name}</em></button>
-      <button class="tool-card-favorite${favorite ? " active" : ""}" type="button" data-toggle-favorite="${tool.id}" aria-label="${favorite ? "取消收藏" : "收藏"}">${iconSvg("bookmark", "ui-icon bookmark-icon")}</button>
+      <button class="tool-card-favorite${favorite ? " active" : ""}" type="button" data-toggle-favorite="${tool.id}" aria-pressed="${Boolean(favorite)}" aria-label="${favorite ? "取消收藏" : "收藏"} ${tool.name}">${iconSvg("bookmark", "ui-icon bookmark-icon")}</button>
     </article>`;
   }
 
   function bindToolButtons(root = document) {
-    root.querySelectorAll("[data-open-tool]").forEach((button) => button.addEventListener("click", () => openTool(button.dataset.openTool)));
-    root.querySelectorAll("[data-toggle-favorite]").forEach((button) => button.addEventListener("click", () => toggleFavorite(button.dataset.toggleFavorite)));
+    if (boundToolRoots.has(root)) return;
+    boundToolRoots.add(root);
+    root.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-open-tool],[data-toggle-favorite]");
+      if (!button || !root.contains(button) || button.disabled) return;
+      if (button.dataset.openTool) openTool(button.dataset.openTool);
+      else toggleFavorite(button.dataset.toggleFavorite);
+    });
   }
 
   function renderCatalog() {
@@ -235,7 +239,10 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20261003-autobook-1";
     if (!target) return;
     byId("toolCatalogTitle").textContent = currentCategory === "all" ? "全部工具" : CATEGORY_MAP.get(currentCategory).name;
     byId("toolResultCount").textContent = `${tools.length} 项`;
-    target.innerHTML = tools.map(toolCard).join("") || '<p class="tool-empty">没有匹配的工具</p>';
+    reconcileKeyedRows(target, tools, { key: tool => tool.id,
+      signature: tool => `${tool.id}:${Boolean(favoriteFor(tool.id))}`, render: toolCard,
+      empty: '<p class="tool-empty">没有匹配的工具</p>' });
+    target.setAttribute("aria-busy", "false");
     bindToolButtons(target);
   }
 
@@ -253,11 +260,13 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20261003-autobook-1";
     favoriteSection?.classList.toggle("hidden", !favoriteTools.length);
     recentSection?.classList.toggle("hidden", !recentTools.length);
     if (byId("favoriteToolsList")) {
-      byId("favoriteToolsList").innerHTML = favoriteTools.map((tool) => `<button type="button" data-open-tool="${tool.id}">${favoriteFor(tool.id)?.pinned ? "已固定 · " : ""}${tool.name}</button>`).join("");
+      reconcileKeyedRows(byId("favoriteToolsList"), favoriteTools, { key: tool => tool.id,
+        render: tool => `<button type="button" data-open-tool="${tool.id}">${favoriteFor(tool.id)?.pinned ? "已固定 · " : ""}${tool.name}</button>` });
       bindToolButtons(byId("favoriteToolsList"));
     }
     if (byId("recentToolsList")) {
-      byId("recentToolsList").innerHTML = recentTools.map((tool) => `<button type="button" data-open-tool="${tool.id}">${tool.name}</button>`).join("");
+      reconcileKeyedRows(byId("recentToolsList"), recentTools, { key: tool => tool.id,
+        render: tool => `<button type="button" data-open-tool="${tool.id}">${tool.name}</button>` });
       bindToolButtons(byId("recentToolsList"));
     }
   }
@@ -568,6 +577,7 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20261003-autobook-1";
   }
 
   function hide() {
+    window.clearTimeout(catalogSearchTimer);
     viewRevision++;
     stopRoomPolling();
     cancelActiveUpload(false);
@@ -582,7 +592,21 @@ import { runToolRenderer } from "./js/tools/runner.js?v=20261003-autobook-1";
     renderCategories();
     renderCatalog();
     bridge?.onPreferencesChanged?.();
-    byId("toolSearchInput")?.addEventListener("input", () => { currentCategory = "all"; renderCategories(); renderCatalog(); });
+    const queueSearch = (event) => {
+      if (event.isComposing) return;
+      window.clearTimeout(catalogSearchTimer);
+      byId("toolCatalog")?.setAttribute("aria-busy", "true");
+      catalogSearchTimer = window.setTimeout(() => { currentCategory = "all"; renderCategories(); renderCatalog(); }, 120);
+    };
+    byId("toolSearchInput")?.addEventListener("input", queueSearch);
+    byId("toolSearchInput")?.addEventListener("compositionend", queueSearch);
+    byId("toolCategoryList")?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-tool-category]");
+      if (!button) return;
+      window.clearTimeout(catalogSearchTimer);
+      currentCategory = currentCategory === button.dataset.toolCategory ? "all" : button.dataset.toolCategory;
+      renderCategories(); renderCatalog();
+    });
     byId("closeToolWorkbenchBtn")?.addEventListener("click", () => closeWorkbench(true));
     byId("favoriteToolBtn")?.addEventListener("click", () => currentTool && toggleFavorite(currentTool.id));
     byId("pinToolBtn")?.addEventListener("click", () => currentTool && toggleFavorite(currentTool.id, !Boolean(favoriteFor(currentTool.id)?.pinned)));

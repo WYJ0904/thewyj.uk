@@ -187,11 +187,8 @@ class NotificationHubState(
             // verification screen even after Finance had no pending candidates.
             val hintSync = uk.thewyj.app.task21.payment.PaymentHintSync(appContext)
             runCatching { hintSync.sync() }
-            // The banner is the entry point to the native pending-verification
-            // screen, so it counts exactly what that screen lists: local
-            // recognitions that still need the user. Backend candidates are
-            // reported separately instead of being summed, otherwise an
-            // uploaded payment would be counted twice.
+            // Room supplies identity evidence and independent recovery items;
+            // the complete server summary owns the normal pending count.
             val localBefore = paymentStore.recognitionsByState(
                 accountId,
                 uk.thewyj.app.task21.payment.PaymentVerificationCenter.ATTENTION_STATES,
@@ -235,31 +232,39 @@ class NotificationHubState(
             Triple(resolved, remote to (observation?.completeObservation == true), recovery)
         }
         if (generation != pendingGeneration) return
-        val local = result.first
-        val remote = result.second.first
-        val fresh = result.second.second
-        val recovery = result.third
-        localPendingPayments = recovery.size
+        applyPendingSummary(result.first, result.second.first, result.second.second,
+            result.third.size, result.third.count { it.eventIds.isEmpty() })
+    }
+
+    /** Presentation only; neither recovery identities nor Room rows are changed. */
+    internal fun applyPendingSummary(
+        local: List<uk.thewyj.app.task21.payment.PaymentRecognitionRecord>,
+        remote: uk.thewyj.app.core.network.PendingReviewSummary?,
+        fresh: Boolean,
+        recoveryCount: Int,
+        unresolvedCount: Int,
+    ) {
+        localPendingPayments = recoveryCount
         if (remote == null) {
-            pendingPayments = local.size
+            pendingPayments = 0 // Unknown canonical set; recovery stays visible.
             remotePendingPayments = 0
             sharedPendingPayments = 0
-            localOnlyPendingPayments = recovery.size
+            localOnlyPendingPayments = recoveryCount
             remoteOnlyPendingPayments = 0
             pendingObservationAt = ""
             pendingSyncCurrent = false
-            unresolvedPendingPayments = recovery.count { it.eventIds.isEmpty() }
+            unresolvedPendingPayments = unresolvedCount
             return
         }
         val reconciled = PendingReviewReconciler.reconcile(local, remote)
         pendingPayments = reconciled.total
         remotePendingPayments = reconciled.remote
         sharedPendingPayments = reconciled.overlap
-        localOnlyPendingPayments = recovery.size
+        localOnlyPendingPayments = recoveryCount
         remoteOnlyPendingPayments = reconciled.remoteOnly
         pendingObservationAt = reconciled.observedAt
-        pendingSyncCurrent = fresh && reconciled.complete && reconciled.localOnly == 0
-        unresolvedPendingPayments = recovery.count { it.eventIds.isEmpty() }
+        pendingSyncCurrent = fresh && reconciled.complete
+        unresolvedPendingPayments = unresolvedCount
     }
 
     suspend fun setSearch(value: String) {

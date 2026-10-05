@@ -27,9 +27,9 @@ android {
         // matches the browsers/WebView versions the cloud TTS player needs.
         minSdk = 30
         targetSdk = 36
-        // Notification local-first auto-booking; same package and signing identity.
-        versionCode = 41
-        versionName = "1.3.28"
+        // P4 workspace presentation; preserve package, data and signing identity.
+        versionCode = 43
+        versionName = "1.3.30"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "THEWYJ_BASE_URL", "\"$thewyjBaseUrl\"")
     }

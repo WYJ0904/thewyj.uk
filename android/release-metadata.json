@@ -1,13 +1,13 @@
 {
   "applicationId": "uk.thewyj.app",
-  "versionName": "1.3.28",
-  "versionCode": 41,
+  "versionName": "1.3.30",
+  "versionCode": 43,
   "minimumVersionCode": 1,
-  "releaseDate": "2026-10-03",
-  "releaseBuild": "2026-10-03-local-autobook-1.3.28",
-  "releaseNotes": "- 金额与收支方向完整时立即记入本机账本，商户缺失不阻止记账。\n- 联网后自动同步；恢复、重启及重复通知使用同一事件与账目关联。\n- 修复通知与财务页面状态刷新，保留已有账目、会话与 Aeris 首页。",
-  "apkFileName": "thewyj-android-1.3.28.apk",
-  "apkKey": "app/android/thewyj-android-1.3.28.apk",
-  "apkSha256": "360e0c25444101e9df02f1c419dfffc055fe970df5591e2bbaa6770eef54541f",
+  "releaseDate": "2026-10-05",
+  "releaseBuild": "2026-10-05-aeris-p4-canonical-1.3.30",
+  "releaseNotes": "- 云端待核实与本机恢复分开展示；旧记录和身份保留。\n- 修复本机恢复记录导致待处理数量不一致、长期核对中的问题。\n- 保留自动记账、识别、OCR、历史与文件传输。",
+  "apkFileName": "thewyj-android-1.3.30.apk",
+  "apkKey": "app/android/thewyj-android-1.3.30.apk",
+  "apkSha256": "a2779c164ffb673daa689f1cba1453c349a2aed4204606ee845f85f87aaff151",
   "apkSizeBytes": 47893965
 }

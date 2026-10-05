@@ -37,10 +37,16 @@ export function mergeLocalNotificationLedger(transactions, snapshot, accountId) 
 }
 
 export function mergeLocalNotificationReviews(records, snapshot, accountId) {
-  if (!snapshot || snapshot.account_id !== accountId) return records;
+  // Local evidence must not add or subtract from the server's canonical set.
+  return records.filter(row => row.state === "pending");
+}
+
+/** Local recovery keeps its original identity and is never a canonical review. */
+export function localNotificationRecovery(records, snapshot, accountId) {
+  if (!snapshot || snapshot.account_id !== accountId) return [];
   const booked = new Set((snapshot.transactions || []).flatMap(row => [...(row.event_ids || []), row.event_id]).filter(Boolean));
   const ids = row => [...(row.event_ids || []), row.event_id].filter(Boolean);
-  const pending = records.filter(row => row.state === "pending" && !ids(row).some(id => booked.has(id)));
   const observed = new Set(records.flatMap(ids));
-  return [...pending, ...(snapshot.reviews || []).filter(row => !ids(row).some(id => observed.has(id) || booked.has(id)))];
+  return (snapshot.reviews || []).filter(row => row.state === "pending" &&
+    !ids(row).some(id => observed.has(id) || booked.has(id)));
 }

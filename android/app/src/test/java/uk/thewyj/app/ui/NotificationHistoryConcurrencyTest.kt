@@ -72,4 +72,41 @@ class NotificationHistoryConcurrencyTest {
         assertSame(first, state.items[0]); assertNotSame(second, state.items[1])
         assertTrue(state.items[1].pinned)
     }
+
+    @Test fun largeFixturePaginationSelectionDetailPinAndDeletePreserveUnaffectedRows() = runBlocking {
+        val fixture = (0 until 125).map { row("p4-safe-$it").copy(text = "P4 isolated notification $it") }.toMutableList()
+        val state = NotificationHubState(
+            RuntimeEnvironment.getApplication(), "p4-large-isolated-fixture",
+            deleteWriter = { ids -> val before = fixture.size; fixture.removeAll { it.revisionId in ids }; before - fixture.size },
+            pinWriter = { id, pinned ->
+                val index = fixture.indexOfFirst { it.instanceId == id }
+                if (index < 0) false else { fixture[index] = fixture[index].copy(pinned = pinned); true }
+            },
+            historyReader = { query -> fixture.filter { query.search.isBlank() || it.text.contains(query.search) }
+                .drop(query.offset).take(query.limit) },
+        )
+        state.refresh()
+        assertEquals(50, state.items.size)
+        val first = state.items.first()
+        state.loadMore(); state.loadMore()
+        assertEquals(125, state.items.size)
+        assertFalse(state.hasMore)
+        assertSame(first, state.items.first())
+        state.toggleSelection(first.revisionId)
+        assertEquals(listOf(first.revisionId), state.selected.toList())
+        state.detail = first
+        state.closeDetail()
+        assertNull(state.detail)
+        assertSame(first, state.items.first())
+        val unaffected = state.items[1]
+        assertTrue(state.togglePinned(first))
+        assertTrue(state.items.first().pinned)
+        assertSame(unaffected, state.items[1])
+        assertEquals(1, state.deleteOne(first.revisionId))
+        assertEquals(124, state.items.size)
+        assertFalse(state.items.any { it.revisionId == first.revisionId })
+        assertTrue(state.selected.isEmpty())
+        state.refresh()
+        assertFalse(state.items.any { it.revisionId == first.revisionId })
+    }
 }

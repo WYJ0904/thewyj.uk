@@ -19,6 +19,7 @@ fs.mkdirSync(DOWNLOAD_ROOT, { recursive: true });
 const wordsFile = path.join(TEST_ROOT, `app-words-${RUN_ID}.txt`);
 const wrongFile = path.join(TEST_ROOT, `app-wrong-${RUN_ID}.json`);
 const wrongFailureFile = path.join(TEST_ROOT, `app-wrong-failure-${RUN_ID}.json`);
+const wrongNoRubricFile = path.join(TEST_ROOT, `app-wrong-no-rubric-${RUN_ID}.json`);
 const trialImageFile = path.join(TEST_ROOT, `app-trial-${RUN_ID}.png`);
 fs.writeFileSync(wordsFile, "hello\nworld\nstudy\n", "utf8");
 fs.writeFileSync(wrongFile, JSON.stringify({
@@ -42,6 +43,14 @@ fs.writeFileSync(wrongFailureFile, JSON.stringify({
   historyWrongBook: {
     network: { last_answer: "网络", original_answer: "网络", correct_answer: "网络", accepted: ["网络连接"], wrong_count: 1 },
   },
+}, null, 2), "utf8");
+// Persist the missing-rubric fixture through the real import/sync path. Clearing
+// only the in-memory entry after importing a known rubric races background
+// sync, which legitimately restores the standard meaning and allows fallback.
+fs.writeFileSync(wrongNoRubricFile, JSON.stringify({
+  type: "vocab-wrong-book", version: 1, language: "english",
+  currentWrongBook: { network: { last_answer: "网络", original_answer: "网络", correct_answer: "", accepted: [], wrong_count: 1 } },
+  historyWrongBook: { network: { last_answer: "网络", original_answer: "网络", correct_answer: "", accepted: [], wrong_count: 1 } },
 }, null, 2), "utf8");
 fs.writeFileSync(
   trialImageFile,
@@ -701,13 +710,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20261003-autobook-1');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20261003-autobook-1');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261003-autobook-1');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261003-autobook-1');
-        const cachedChangelog = await caches.match('/changelog.js?v=20261003-autobook-1');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261003-autobook-1');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20261003-autobook-1');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261005-p4-pending-5');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261005-p4-pending-5');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261005-p4-pending-5');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261005-p4-pending-5');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261005-p4-pending-5');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261005-p4-pending-5');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261005-p4-pending-5');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -1424,16 +1433,10 @@ async function main() {
       );
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       await send("Emulation.setTouchEmulationEnabled", { enabled: false });
-      await setFiles("#wrongDataFileInput", [wrongFailureFile]);
+      await setFiles("#wrongDataFileInput", [wrongNoRubricFile]);
       await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 1", 6_000, "wrong data reimport");
+      await waitFor("state.currentWrongBook.network?.correct_answer === '' && state.historyWrongBook.network?.correct_answer === ''", 4_000, "missing rubric imported durably");
       await evaluate(`(() => {
-        for (const book of [state.currentWrongBook, state.historyWrongBook]) {
-          if (!book.network) continue;
-          book.network.correct_answer = '';
-          book.network.accepted = [];
-          book.network.rubric = { gloss: '', accepted: [], language: 'english', notes: '' };
-        }
-        renderWrongBook();
         window.__rejudgeFailureOriginalFetch = window.fetch;
         window.fetch = (...args) => {
           const url = String(args[0]?.url || args[0] || '');
@@ -1490,6 +1493,11 @@ async function main() {
       }, admin.session);
       await useSession(userSession, "/language/english");
       await waitFor("location.pathname === '/language/english' && !document.querySelector('#workspace')?.classList.contains('hidden')", 12_000, "mobile English workspace");
+      // This scenario asserts an empty current wrong book after its own retry.
+      // Give A-H a separate real profile so late sync from the preceding
+      // import/offline-review fixture cannot introduce unrelated "network".
+      await setFields({ "#profileInput": `P4-AH-${RUN_ID}` });
+      await waitFor(`state.profile === ${JSON.stringify(`P4-AH-${RUN_ID}`)}`, 4_000, "isolated A-H learning profile");
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
       await send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
       await send("Network.setUserAgentOverride", {

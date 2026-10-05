@@ -1,6 +1,7 @@
-import { mergeLocalNotificationReviews } from "./notification-ledger.js?v=20261003-autobook-1";
-import { randomId } from "../core/capabilities.js?v=20261003-autobook-1";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261003-autobook-1";
+import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?v=20261005-p4-pending-5";
+import { randomId } from "../core/capabilities.js?v=20261005-p4-pending-5";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261005-p4-pending-5";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-pending-5";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -8,7 +9,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20261003-autobook-1";
+} from "../core/perf.js?v=20261005-p4-pending-5";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -139,6 +140,7 @@ export function createFinanceCandidatesController({
 }) {
   let busyIds = new Set();
   let currentCandidates = [];
+  let canonicalRecords = [];
   let renderedForAccount = "";
   let hasCanonicalObservation = false;
   let bound = false;
@@ -209,17 +211,17 @@ export function createFinanceCandidatesController({
     const section = element("financeCandidatesSection");
     if (!list || !section) return;
     const editorState = captureEditorState(list);
+    renderRecovery();
     currentCandidates = [...candidates];
     if (element("financePendingCount")) element("financePendingCount").textContent = hasCanonicalObservation ? String(candidates.length) : "待核对";
     pendingDisclosure?.pending(candidates.map(item => item.canonical_id || item.id));
-    const banner = message
-      ? `<div class="finance-candidate-message"><p>${escapeHtml(message)}</p></div>`
-      : "";
-    if (!candidates.length) {
-      list.innerHTML = banner || '<div class="finance-candidate-empty"><strong>暂无待处理通知交易</strong><p>已完成核实和记账的交易会直接从待处理移除。</p></div>';
-      return;
-    }
-    list.innerHTML = banner + candidates.map((candidate) => {
+    const banner = element("financeCandidateMessage");
+    if (banner) { banner.textContent = message; banner.hidden = !message; }
+    reconcileKeyedRows(list, candidates, {
+      key: candidate => candidate.canonical_id || candidate.id,
+      signature: candidate => JSON.stringify([candidate, busyIds.has(String(candidate.id || ""))]),
+      empty: '<div class="finance-candidate-empty"><strong>暂无待处理通知交易</strong><p>已完成核实和记账的交易会直接从待处理移除。</p></div>',
+      render: (candidate) => {
       const id = String(candidate.id || "");
       const presentation = candidatePresentation(candidate);
       const { direction } = presentation;
@@ -240,12 +242,12 @@ export function createFinanceCandidatesController({
           <span class="finance-direction is-${escapeHtml(direction)}">${presentation.directionLabel}</span>
           <div class="finance-candidate-copy"><strong>${presentation.amountUnknown ? "金额待补" : escapeHtml(formatMinor(candidate.amount_minor, candidate.currency))}</strong>
           <small>${escapeHtml(sources)} · ${escapeHtml(occurred)}</small>
-          <small>${escapeHtml(presentation.merchantLabel)} · ${escapeHtml(missingLabel)}</small>
+          <small><span class="finance-candidate-merchant" title="${escapeHtml(presentation.merchantLabel)}">${escapeHtml(presentation.merchantLabel)}</span><span>${escapeHtml(missingLabel)}</span></small>
           <details class="finance-candidate-evidence"><summary>查看识别依据</summary><p>${escapeHtml(evidenceReason)}</p><p>结构化证据 ${evidenceCount} 条 · 置信度 ${confidence}/1000${editedCount ? ` · 用户已修改 ${editedCount} 次` : ""}</p><p>核实标识：${escapeHtml(candidate.canonical_id || "")}</p><p>事件标识：${escapeHtml(candidate.event_id || id)}</p></details></div>
         </div>
         <div class="finance-candidate-actions">
-          <button type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${presentation.primaryAction}</button>
-          ${presentation.missing.length ? `<button class="button-ghost" type="button" data-finance-candidate-verify="${escapeHtml(id)}" ${busy ? "disabled" : ""}>核实交易</button>` : ""}
+          ${presentation.missing.length ? `<button class="primary" type="button" data-finance-candidate-verify="${escapeHtml(id)}" ${busy ? "disabled" : ""}>核实交易</button>` : ""}
+          <button ${presentation.missing.length ? 'class="button-ghost"' : ''} type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${presentation.primaryAction}</button>
           <button class="button-ghost" type="button" data-finance-candidate-edit="${escapeHtml(id)}" ${busy ? "disabled" : ""}>编辑</button>
           <button class="danger-text" type="button" data-finance-candidate-reject="${escapeHtml(id)}" ${busy ? "disabled" : ""}>忽略</button>
           <small>忽略只关闭这条候选，不会撤销实际支付。</small>
@@ -269,8 +271,27 @@ export function createFinanceCandidatesController({
           </div>
         </form>
       </article>`;
-    }).join("");
+      },
+    });
     restoreEditorState(list, editorState);
+  }
+
+  function renderRecovery() {
+    const section = element("financeRecoverySection"), list = element("financeRecoveryList");
+    if (!section || !list) return;
+    const rows = hasAccess() ? localNotificationRecovery(canonicalRecords,
+      globalThis.window?.WYJLocalPaymentLedger, String(account()?.id || "")) : [];
+    section.classList.toggle("hidden", !rows.length);
+    section.setAttribute("aria-hidden", String(!rows.length));
+    element("financeRecoveryCount").textContent = String(rows.length);
+    reconcileKeyedRows(list, rows, {
+      key: row => `${row.kind}:${row.id}`, signature: row => JSON.stringify(row), empty: "",
+      render: row => `<article class="finance-candidate" data-recovery-identity="${escapeHtml(`${row.kind}:${row.id}`)}">
+        <strong>${escapeHtml(row.app_label || row.source_package || "本机记录")}</strong>
+        <p>${Number(row.amount_minor) > 0 ? escapeHtml(formatMinor(row.amount_minor)) : "金额待核实"} · ${escapeHtml(DIRECTION_LABELS[row.direction] || DIRECTION_LABELS.unknown)}</p>
+        <small>${Number(row.occurred_at_ms) > 0 ? escapeHtml(new Date(Number(row.occurred_at_ms)).toLocaleString("zh-CN")) : "时间未知"}</small>
+      </article>`,
+    });
   }
 
   function occurredLocalValue(value) {
@@ -325,6 +346,7 @@ export function createFinanceCandidatesController({
     const list = element("financeCandidateList");
     if (!section) return;
     if (!hasAccess()) {
+      element("financeRecoverySection")?.classList.add("hidden");
       section.classList.add("hidden");
       section.setAttribute("aria-hidden", "true");
       renderedForAccount = "";
@@ -336,8 +358,7 @@ export function createFinanceCandidatesController({
     section.setAttribute("aria-hidden", "false");
     section.setAttribute("aria-busy", "true");
     if (globalThis.window?.WYJLocalPaymentLedger?.account_id === currentAccountId) {
-      const rows = currentCandidates.map(row => ({ ...row, kind: row.hint ? "hint" : "candidate", state: "pending" }));
-      render(canonicalPendingCandidates({ records: mergeLocalNotificationReviews(rows, globalThis.window?.WYJLocalPaymentLedger, currentAccountId) }));
+      render(canonicalPendingCandidates({ records: mergeLocalNotificationReviews(canonicalRecords, globalThis.window?.WYJLocalPaymentLedger, currentAccountId) }));
     }
     // Never blank an already useful list while refreshing. Apart from the
     // visible have/empty/have flicker, rebuilding here destroyed a user's open
@@ -355,6 +376,7 @@ export function createFinanceCandidatesController({
       // the row the user just confirmed).
       if (!listVersion.isCurrent(version)) return;
       hasCanonicalObservation = true;
+      canonicalRecords = summary.records;
       render(canonicalPendingCandidates({ ...summary, records: mergeLocalNotificationReviews(
         summary.records, globalThis.window?.WYJLocalPaymentLedger, currentAccountId) }));
       section.setAttribute("aria-busy", "false");
@@ -409,6 +431,8 @@ export function createFinanceCandidatesController({
       // reconciles with the server list. Invalidate any request that started
       // before this decision; its response cannot restore the terminal row.
       listVersion.begin();
+      canonicalRecords = canonicalRecords.map(row => String(row.id) === String(id)
+        ? { ...row, state: confirm ? "confirmed" : "ignored" } : row);
       currentCandidates = currentCandidates.filter((item) => String(item.id) !== String(id));
       render(currentCandidates, confirm ? "已记账，正在同步…" : "已忽略。");
       trace.mark(INTERACTION_STAGES.STATE_APPLY, confirm ? "booked" : "ignored");
@@ -547,8 +571,7 @@ export function createFinanceCandidatesController({
       element("financeCandidatesSection")?.addEventListener("submit", handleSubmit);
       document.addEventListener("thewyj:payment-updated", () => {
         const snapshot = globalThis.window?.WYJLocalPaymentLedger;
-        const rows = currentCandidates.map(row => ({ ...row, kind: row.hint ? "hint" : "candidate", state: "pending" }));
-        render(canonicalPendingCandidates({ records: mergeLocalNotificationReviews(rows, snapshot, String(account()?.id || "")) }));
+        render(canonicalPendingCandidates({ records: mergeLocalNotificationReviews(canonicalRecords, snapshot, String(account()?.id || "")) }));
         void reload({ force: true });
       });
       document.addEventListener("visibilitychange", () => {
@@ -563,6 +586,7 @@ export function createFinanceCandidatesController({
     // must not rebuild state behind the next route.
     listVersion.begin();
     const section = element("financeCandidatesSection");
+    element("financeRecoverySection")?.classList.add("hidden");
     if (section) {
       section.classList.add("hidden");
       section.setAttribute("aria-hidden", "true");
@@ -574,6 +598,7 @@ export function createFinanceCandidatesController({
       hide();
       renderedForAccount = "";
       currentCandidates = [];
+      canonicalRecords = [];
       hasCanonicalObservation = false;
     }
     if (!element("financePage")?.classList.contains("hidden")) reload();

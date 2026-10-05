@@ -1,6 +1,7 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20261003-autobook-1";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261003-autobook-1";
-import { mergeLocalNotificationLedger } from "./notification-ledger.js?v=20261003-autobook-1";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20261005-p4-pending-5";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261005-p4-pending-5";
+import { mergeLocalNotificationLedger } from "./notification-ledger.js?v=20261005-p4-pending-5";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-pending-5";
 const SCHEMA_VERSION = 1;
 const MAX_LOCAL_TRANSACTIONS = 5000;
 const MAX_PENDING_OPERATIONS = 500;
@@ -13,6 +14,7 @@ const ENTITY_COLLECTION_KEYS = Object.freeze({
   category: "categories",
   budget: "budgets",
 });
+const moneyFormatters = new Map();
 
 function safeJson(value, fallback) {
   try {
@@ -91,7 +93,12 @@ export function amountTextToMinor(value) {
 export function formatFinanceMoney(minor, currency = "CNY") {
   const amount = Number(minor || 0) / 100;
   try {
-    return new Intl.NumberFormat("zh-CN", { style: "currency", currency, minimumFractionDigits: 2 }).format(amount);
+    let formatter = moneyFormatters.get(currency);
+    if (!formatter) {
+      formatter = new Intl.NumberFormat("zh-CN", { style: "currency", currency, minimumFractionDigits: 2 });
+      moneyFormatters.set(currency, formatter);
+    }
+    return formatter.format(amount);
   } catch (_) {
     return `${amount.toFixed(2)} ${currency}`;
   }
@@ -345,6 +352,12 @@ export function createFinanceController({
   let initialized = false;
   let serverDeniedAccess = false;
   let ledgerAllMonths = false;
+  let ledgerLimit = CLIENT_PAGE_SIZE;
+  let ledgerFilter = "";
+  let searchTimer = 0;
+  let insightsTimer = 0;
+  let insightsFrame = 0;
+  let insightsSignature = "";
 
   const element = (id) => document.getElementById(id);
   let recordedDisclosure = null;
@@ -427,7 +440,8 @@ export function createFinanceController({
       if (!select) continue;
       const current = select.value;
       const first = id === "financeCategoryFilter" ? "全部分类" : id === "financeBudgetCategory" ? "总预算（不限定分类）" : "未分类";
-      select.innerHTML = `<option value="">${first}</option>${options}`;
+      const html = `<option value="">${first}</option>${options}`;
+      if (select.innerHTML !== html) select.innerHTML = html;
       if ([...select.options].some((item) => item.value === current)) select.value = current;
     }
   }
@@ -450,8 +464,9 @@ export function createFinanceController({
     if (selected) { selected.textContent = `按 ${currentMonth()} 查看`; selected.disabled = !ledgerAllMonths; }
     const select = element("financeHistoryMonthSelect");
     if (select) {
-      select.innerHTML = '<option value="">选择历史月份</option>' + periods.map(row =>
+      const html = '<option value="">选择历史月份</option>' + periods.map(row =>
         `<option value="${row.month}">${row.month} · ${row.count} 笔</option>`).join("");
+      if (select.innerHTML !== html) select.innerHTML = html;
       select.value = !ledgerAllMonths && periods.some(row => row.month === currentMonth()) ? currentMonth() : "";
     }
   }
@@ -469,13 +484,16 @@ export function createFinanceController({
   function renderTransactions() {
     const list = element("financeTransactionList");
     if (!list || !store) return;
-    const filtered = filterFinanceTransactions(Object.values(store.transactions), {
+    const filters = {
       query: element("financeSearchInput")?.value,
       direction: element("financeDirectionFilter")?.value,
       category_id: element("financeCategoryFilter")?.value,
       status: element("financeStatusFilter")?.value,
       month: ledgerAllMonths ? "" : currentMonth(),
-    });
+    };
+    const filter = JSON.stringify([currentAccountId, filters]);
+    if (ledgerFilter !== filter) { ledgerFilter = filter; ledgerLimit = CLIENT_PAGE_SIZE; }
+    const filtered = filterFinanceTransactions(Object.values(store.transactions), filters);
     renderHistoryNavigation();
     if (element("financeTransactionCount")) element("financeTransactionCount").textContent = `${filtered.length} 笔`;
     if (element("financeRecordedCount")) element("financeRecordedCount").textContent = String(filtered.length);
@@ -490,19 +508,24 @@ export function createFinanceController({
       const query = safeText(element("financeSearchInput")?.value, 24);
       filterSummary.textContent = [month, direction, status, query ? `“${query}”` : ""].filter(Boolean).join(" · ");
     }
-    if (!filtered.length) {
-      list.innerHTML = '<div class="finance-empty"><strong>暂无符合条件的账目</strong><p>可以新增一笔，或调整月份和筛选条件。</p></div>';
-      return;
-    }
-    list.innerHTML = filtered.map((item) => {
+    const visible = filtered.slice(0, ledgerLimit);
+    reconcileKeyedRows(list, visible, {
+      key: item => item.id,
+      signature: item => JSON.stringify([item, categoryName(item.category_id)]),
+      empty: '<div class="finance-empty"><strong>暂无符合条件的账目</strong><p>可以新增一笔，或调整月份和筛选条件。</p></div>',
+      render: (item) => {
       const title = item.merchant || item.counterparty || (item.source_kind === "automatic" ? "未识别商户" : categoryName(item.category_id));
       const sign = item.direction === "expense" ? "-" : "+";
       const directionLabel = { income: "收入", expense: "支出", refund: "退款" }[item.direction];
       return `<article class="finance-transaction${item.status === "deleted" ? " is-deleted" : ""}" data-finance-transaction="${escapeHtml(item.id)}">
-        <div class="finance-transaction-main"><span class="finance-direction is-${escapeHtml(item.direction)}">${directionLabel}</span><div><strong>${escapeHtml(title)}</strong><small>${escapeHtml(categoryName(item.category_id))} · ${escapeHtml(new Date(item.occurred_at_ms).toLocaleString("zh-CN"))}${item.source_kind === "automatic" ? " · Android 自动识别" : ""}</small>${item.note ? `<p>${escapeHtml(item.note)}</p>` : ""}</div></div>
+        <div class="finance-transaction-main"><span class="finance-direction is-${escapeHtml(item.direction)}">${directionLabel}</span><div><strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong><small>${escapeHtml(categoryName(item.category_id))} · ${escapeHtml(new Date(item.occurred_at_ms).toLocaleString("zh-CN"))}${item.source_kind === "automatic" ? " · Android 自动识别" : ""}${item.native_notification_pending ? " · 等待同步" : ""}${item.status === "deleted" ? " · 已删除" : ""}</small>${item.note ? `<p title="${escapeHtml(item.note)}">${escapeHtml(item.note)}</p>` : ""}</div></div>
         <div class="finance-transaction-side"><strong class="is-${escapeHtml(item.direction)}">${sign}${escapeHtml(formatFinanceMoney(item.amount_minor, item.currency))}</strong><div class="finance-row-actions">${item.status === "deleted" ? `<button type="button" data-finance-restore="${escapeHtml(item.id)}">恢复</button>` : `<button type="button" data-finance-edit="${escapeHtml(item.id)}">编辑</button><button class="danger-text" type="button" data-finance-delete="${escapeHtml(item.id)}">删除</button>`}</div></div>
       </article>`;
-    }).join("");
+      },
+    });
+    const more = element("financeLedgerMoreBtn");
+    if (more) { more.hidden = visible.length >= filtered.length; more.textContent = `加载更多账目（已显示 ${visible.length} / ${filtered.length}）`; }
+    list.setAttribute("aria-busy", "false");
   }
 
   function categoryExpense(categoryId, budget) {
@@ -545,6 +568,35 @@ export function createFinanceController({
     list.innerHTML = entries.length ? entries.slice(0, 8).map(([id, amount]) => `<div class="finance-category-stat"><span>${escapeHtml(id === "uncategorized" ? "未分类" : categoryName(id))}</span><progress max="${maximum}" value="${amount}" aria-label="${escapeHtml(id === "uncategorized" ? "未分类" : categoryName(id))} ${escapeHtml(formatFinanceMoney(amount))}"></progress><strong>${escapeHtml(formatFinanceMoney(amount))}</strong></div>`).join("") : '<p class="finance-empty-inline">本月还没有支出分类数据。</p>';
   }
 
+  function cancelDeferredRendering() {
+    window.clearTimeout(searchTimer);
+    window.clearTimeout(insightsTimer);
+    window.cancelAnimationFrame(insightsFrame);
+    searchTimer = insightsTimer = insightsFrame = 0;
+  }
+
+  function scheduleInsights() {
+    const signature = JSON.stringify([currentAccountId, currentMonth(), store.categories, store.budgets,
+      Object.values(store.transactions).map(item => [item.id, item.status, item.direction, item.amount_minor, item.category_id, item.occurred_at_ms])]);
+    if (signature === insightsSignature) return;
+    window.clearTimeout(insightsTimer);
+    window.cancelAnimationFrame(insightsFrame);
+    const accountId = currentAccountId;
+    for (const id of ["financeBudgetSummary", "financeCategoryStats"]) element(id)?.setAttribute("aria-busy", "true");
+    // Let the ledger paint before calculating the independent insight panels.
+    insightsFrame = window.requestAnimationFrame(() => {
+      insightsFrame = 0;
+      insightsTimer = window.setTimeout(() => {
+        insightsTimer = 0;
+        if (!store || accountId !== currentAccountId || element("financePage")?.classList.contains("hidden")) return;
+        renderBudgets();
+        renderCategoryStats();
+        insightsSignature = signature;
+        for (const id of ["financeBudgetSummary", "financeCategoryStats"]) element(id)?.setAttribute("aria-busy", "false");
+      }, 0);
+    });
+  }
+
   function renderUndo() {
     const bar = element("financeUndoBar");
     if (!bar) return;
@@ -560,8 +612,7 @@ export function createFinanceController({
     renderCategoryOptions();
     renderSummary();
     renderTransactions();
-    renderBudgets();
-    renderCategoryStats();
+    scheduleInsights();
     renderUndo();
     const pending = store.pending.length + Object.values(store.transactions).filter(item => item.native_notification_pending).length;
     element("financeResolveConflictBtn")?.classList.toggle("hidden", !conflictPending);
@@ -653,8 +704,10 @@ export function createFinanceController({
       for (const item of Object.values(serverTransactions)) mergeServerEntity("transaction", item);
       store.hydrated = true;
       store.notification_identity_hydrated = true;
+      // Only a completed snapshot may advance to the bootstrap watermark.
+      // A cheap count refresh must not skip edits/deletes in the change feed.
+      store.server_version = Math.max(store.server_version, Number(bootstrap.server_version || 0));
     }
-    store.server_version = Math.max(store.server_version, Number(bootstrap.server_version || 0));
   }
 
   async function pullChanges() {
@@ -1043,6 +1096,7 @@ export function createFinanceController({
     if (button.id === "financeAddTransactionBtn") openTransactionEditor();
     else if (button.id === "financeAllMonthsBtn") { ledgerAllMonths = true; renderAll(); }
     else if (button.id === "financeSelectedMonthBtn") { ledgerAllMonths = false; renderAll(); }
+    else if (button.id === "financeLedgerMoreBtn") { ledgerLimit += CLIENT_PAGE_SIZE; renderTransactions(); }
     else if (button.id === "financeManageCategoriesBtn") openCategoryManager();
     else if (button.id === "financeManageBudgetsBtn") openBudgetManager();
     else if (button.id === "financeSyncBtn") syncNow();
@@ -1078,8 +1132,13 @@ export function createFinanceController({
       ledgerAllMonths = false;
       renderAll();
     });
-    for (const id of ["financeSearchInput", "financeDirectionFilter", "financeCategoryFilter", "financeStatusFilter"]) {
-      element(id)?.addEventListener(id === "financeSearchInput" ? "input" : "change", renderAll);
+    element("financeSearchInput")?.addEventListener("input", () => {
+      window.clearTimeout(searchTimer);
+      element("financeTransactionList")?.setAttribute("aria-busy", "true");
+      searchTimer = window.setTimeout(() => { searchTimer = 0; renderTransactions(); }, 160);
+    });
+    for (const id of ["financeDirectionFilter", "financeCategoryFilter", "financeStatusFilter"]) {
+      element(id)?.addEventListener("change", renderTransactions);
     }
     window.addEventListener("online", () => {
       if (!element("financePage")?.classList.contains("hidden")) syncNow();
@@ -1107,6 +1166,7 @@ export function createFinanceController({
   }
 
   function hide() {
+    cancelDeferredRendering();
     for (const id of ["financeTransactionModal", "financeCategoryModal", "financeBudgetModal"]) closeLayer(id);
     // Undo is intentionally page-local. Keeping it across route changes made a
     // stale green「账目已删除 · 撤销」bar reappear on unrelated screens and after
@@ -1117,6 +1177,10 @@ export function createFinanceController({
   }
 
   function resetAccount() {
+    cancelDeferredRendering();
+    insightsSignature = "";
+    ledgerFilter = "";
+    ledgerLimit = CLIENT_PAGE_SIZE;
     ledgerAllMonths = false;
     syncController?.abort();
     syncPromise = null;

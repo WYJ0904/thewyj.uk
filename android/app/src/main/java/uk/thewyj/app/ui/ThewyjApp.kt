@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -66,6 +67,7 @@ import uk.thewyj.app.core.design.thewyjPressedFeedback
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -529,7 +531,7 @@ private fun MyScreen(
                 Text("同一个账户，连接 thewyj.uk 的全部服务", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             ThewyjCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(ThewyjSpacing.Xl)) {
+                Column(Modifier.padding(ThewyjSpacing.Lg)) {
                     Text(account.username, style = MaterialTheme.typography.titleLarge)
                     Text(
                         account.membershipLabel.ifBlank { "普通用户" },
@@ -781,12 +783,17 @@ private fun MyAdvancedSection(
 private fun SettingsAction(title: String, subtitle: String, onClick: () -> Unit) {
     TextButton(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
         contentPadding = PaddingValues(vertical = ThewyjSpacing.Md),
     ) {
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-            Text(title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
+                Text(title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+                Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(start = ThewyjSpacing.Md))
         }
     }
 }

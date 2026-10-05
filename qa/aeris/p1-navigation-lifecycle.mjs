@@ -8,6 +8,19 @@ const baseUrl = process.env.WYJ_TEST_BASE || "http://127.0.0.1:8902";
 assert.equal(new URL(baseUrl).hostname, "127.0.0.1");
 const page = await openPage({ cdpUrl: process.env.WYJ_CDP_URL || "http://127.0.0.1:9226", baseUrl, width: 1366, height: 900, mobile: false });
 const results = {};
+const partRequests = new Map();
+page.client.listeners.add(message => {
+  const params = message.params || {};
+  if (message.method === "Network.requestWillBeSent") {
+    const match = /\/parts\/(\d+)$/.exec(params.request?.url || "");
+    if (match) partRequests.set(params.requestId, { part: Number(match[1]), started: Date.now() });
+  }
+  const entry = partRequests.get(params.requestId);
+  if (!entry) return;
+  if (message.method === "Network.responseReceived") { entry.status = params.response?.status; entry.responseAt = Date.now(); }
+  if (message.method === "Network.loadingFinished") entry.finishedAt = Date.now();
+  if (message.method === "Network.loadingFailed") { entry.failedAt = Date.now(); entry.error = params.errorText; }
+});
 try {
   await registerAndSignIn(page, { username: `nv${Date.now().toString(36)}`, secret: "Aeris-Navigation-2026!" });
   const session = await page.evaluate("localStorage.getItem('wyjAccountSession')");
@@ -65,6 +78,7 @@ try {
   // Preserve the actual failed owner state before closing the isolated context.
   // Never log authentication tokens or file bodies.
   results.failure=String(error);
+  results.partRequests=[...partRequests.values()];
   results.runtimeErrors=page.runtimeErrors;
   try { results.diagnostic=await page.evaluate(`({
     path:location.pathname,active:document.documentElement.dataset.androidWebActive,
