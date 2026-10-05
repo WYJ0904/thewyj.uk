@@ -1,4 +1,4 @@
-import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20261006-p5-architecture-3";
+import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20261006-p5-architecture-4";
 
 export const MAX_STUDY_RECORDS = 500;
 

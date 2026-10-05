@@ -11,9 +11,10 @@ try {
  // Entry mounts the public catalogue before account preferences arrive. Settle
  // that owner before comparing row identity across an unchanged model.
  await p.evaluate("window.WYJTools.show('/tools',{})");
+ await p.evaluate("document.querySelector('#dismissVersionNoticeBtn')?.click();true");
  await p.evaluate("window.__p5ToolRow=document.querySelector('[data-tool-card]');true");await p.click('a[data-site-nav][href="/"]');await p.waitFor("location.pathname==='/'");assert.equal(await p.evaluate("window.__p5ToolRow.isConnected"),false);
  await p.click('a[data-site-nav][href="/tools"]');await p.waitFor("document.querySelectorAll('[data-tool-card]').length===103");assert.equal(await p.evaluate("window.__p5ToolRow===document.querySelector('[data-tool-card]')"),true);
- await p.navigate('/tools/workflows');await p.waitFor("!!window.WYJWorkflows && window.WYJTools.isReady() && location.pathname==='/tools/workflows'");
+ await p.click('#openWorkflowBtn');await p.waitFor("!!window.WYJWorkflows && window.WYJTools.isReady() && location.pathname==='/tools/workflows'&&!document.querySelector('#workflowWorkspace').classList.contains('hidden')");
  const rows=Array.from({length:120},(_,i)=>({id:`p5-contract:${i}`,merchant:'P5 contract',direction:'expense',amount_minor:i+1,currency:'CNY',status:'active',revision:1,occurred_at_ms:Date.UTC(2026,9,5,12)-i*60000}));
  const reviews=[{kind:'hint',id:'p5-contract-hint',event_id:'p5-contract-event',event_ids:['p5-contract-event'],state:'pending',amount_minor:null,direction:null,occurred_at_ms:rows[0].occurred_at_ms,source_package:'com.tencent.mm'}];
  await p.intercept([{match:'/api/finance/bootstrap',respond:()=>({body:{ok:true,server_version:1,transaction_count:120,categories:[],budgets:[]}})},{match:'/api/finance/transactions?',respond:()=>({body:{ok:true,server_version:1,transactions:rows}})},{match:'/api/finance/changes?',respond:()=>({body:{ok:true,server_version:1,has_more:false,changes:[]}})},{match:'/api/notification/pending-summary',respond:()=>({body:{ok:true,records:reviews,total_count:1,truncated:false}})}]);
