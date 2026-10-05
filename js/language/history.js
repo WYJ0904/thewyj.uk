@@ -1,4 +1,4 @@
-import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20261005-p4-workspace-2";
+import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20261005-p4-workspace-3";
 
 export const MAX_STUDY_RECORDS = 500;
 

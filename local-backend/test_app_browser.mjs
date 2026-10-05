@@ -710,13 +710,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20261005-p4-workspace-2');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20261005-p4-workspace-2');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261005-p4-workspace-2');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261005-p4-workspace-2');
-        const cachedChangelog = await caches.match('/changelog.js?v=20261005-p4-workspace-2');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261005-p4-workspace-2');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20261005-p4-workspace-2');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261005-p4-workspace-3');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261005-p4-workspace-3');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261005-p4-workspace-3');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261005-p4-workspace-3');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261005-p4-workspace-3');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261005-p4-workspace-3');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261005-p4-workspace-3');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -1493,6 +1493,11 @@ async function main() {
       }, admin.session);
       await useSession(userSession, "/language/english");
       await waitFor("location.pathname === '/language/english' && !document.querySelector('#workspace')?.classList.contains('hidden')", 12_000, "mobile English workspace");
+      // This scenario asserts an empty current wrong book after its own retry.
+      // Give A-H a separate real profile so late sync from the preceding
+      // import/offline-review fixture cannot introduce unrelated "network".
+      await setFields({ "#profileInput": `P4-AH-${RUN_ID}` });
+      await waitFor(`state.profile === ${JSON.stringify(`P4-AH-${RUN_ID}`)}`, 4_000, "isolated A-H learning profile");
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
       await send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
       await send("Network.setUserAgentOverride", {

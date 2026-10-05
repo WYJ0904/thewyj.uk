@@ -1,7 +1,7 @@
-import { mergeLocalNotificationReviews } from "./notification-ledger.js?v=20261005-p4-workspace-2";
-import { randomId } from "../core/capabilities.js?v=20261005-p4-workspace-2";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261005-p4-workspace-2";
-import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-workspace-2";
+import { mergeLocalNotificationReviews } from "./notification-ledger.js?v=20261005-p4-workspace-3";
+import { randomId } from "../core/capabilities.js?v=20261005-p4-workspace-3";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261005-p4-workspace-3";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-workspace-3";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -9,7 +9,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20261005-p4-workspace-2";
+} from "../core/perf.js?v=20261005-p4-workspace-3";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -240,12 +240,12 @@ export function createFinanceCandidatesController({
           <span class="finance-direction is-${escapeHtml(direction)}">${presentation.directionLabel}</span>
           <div class="finance-candidate-copy"><strong>${presentation.amountUnknown ? "金额待补" : escapeHtml(formatMinor(candidate.amount_minor, candidate.currency))}</strong>
           <small>${escapeHtml(sources)} · ${escapeHtml(occurred)}</small>
-          <small>${escapeHtml(presentation.merchantLabel)} · ${escapeHtml(missingLabel)}</small>
+          <small><span class="finance-candidate-merchant" title="${escapeHtml(presentation.merchantLabel)}">${escapeHtml(presentation.merchantLabel)}</span><span>${escapeHtml(missingLabel)}</span></small>
           <details class="finance-candidate-evidence"><summary>查看识别依据</summary><p>${escapeHtml(evidenceReason)}</p><p>结构化证据 ${evidenceCount} 条 · 置信度 ${confidence}/1000${editedCount ? ` · 用户已修改 ${editedCount} 次` : ""}</p><p>核实标识：${escapeHtml(candidate.canonical_id || "")}</p><p>事件标识：${escapeHtml(candidate.event_id || id)}</p></details></div>
         </div>
         <div class="finance-candidate-actions">
-          <button type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${presentation.primaryAction}</button>
-          ${presentation.missing.length ? `<button class="button-ghost" type="button" data-finance-candidate-verify="${escapeHtml(id)}" ${busy ? "disabled" : ""}>核实交易</button>` : ""}
+          ${presentation.missing.length ? `<button class="primary" type="button" data-finance-candidate-verify="${escapeHtml(id)}" ${busy ? "disabled" : ""}>核实交易</button>` : ""}
+          <button ${presentation.missing.length ? 'class="button-ghost"' : ''} type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${presentation.missing.length ? "手动补全" : presentation.primaryAction}</button>
           <button class="button-ghost" type="button" data-finance-candidate-edit="${escapeHtml(id)}" ${busy ? "disabled" : ""}>编辑</button>
           <button class="danger-text" type="button" data-finance-candidate-reject="${escapeHtml(id)}" ${busy ? "disabled" : ""}>忽略</button>
           <small>忽略只关闭这条候选，不会撤销实际支付。</small>
