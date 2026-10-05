@@ -19,6 +19,7 @@ fs.mkdirSync(DOWNLOAD_ROOT, { recursive: true });
 const wordsFile = path.join(TEST_ROOT, `app-words-${RUN_ID}.txt`);
 const wrongFile = path.join(TEST_ROOT, `app-wrong-${RUN_ID}.json`);
 const wrongFailureFile = path.join(TEST_ROOT, `app-wrong-failure-${RUN_ID}.json`);
+const wrongNoRubricFile = path.join(TEST_ROOT, `app-wrong-no-rubric-${RUN_ID}.json`);
 const trialImageFile = path.join(TEST_ROOT, `app-trial-${RUN_ID}.png`);
 fs.writeFileSync(wordsFile, "hello\nworld\nstudy\n", "utf8");
 fs.writeFileSync(wrongFile, JSON.stringify({
@@ -42,6 +43,14 @@ fs.writeFileSync(wrongFailureFile, JSON.stringify({
   historyWrongBook: {
     network: { last_answer: "网络", original_answer: "网络", correct_answer: "网络", accepted: ["网络连接"], wrong_count: 1 },
   },
+}, null, 2), "utf8");
+// Persist the missing-rubric fixture through the real import/sync path. Clearing
+// only the in-memory entry after importing a known rubric races background
+// sync, which legitimately restores the standard meaning and allows fallback.
+fs.writeFileSync(wrongNoRubricFile, JSON.stringify({
+  type: "vocab-wrong-book", version: 1, language: "english",
+  currentWrongBook: { network: { last_answer: "网络", original_answer: "网络", correct_answer: "", accepted: [], wrong_count: 1 } },
+  historyWrongBook: { network: { last_answer: "网络", original_answer: "网络", correct_answer: "", accepted: [], wrong_count: 1 } },
 }, null, 2), "utf8");
 fs.writeFileSync(
   trialImageFile,
@@ -1424,16 +1433,10 @@ async function main() {
       );
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       await send("Emulation.setTouchEmulationEnabled", { enabled: false });
-      await setFiles("#wrongDataFileInput", [wrongFailureFile]);
+      await setFiles("#wrongDataFileInput", [wrongNoRubricFile]);
       await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 1", 6_000, "wrong data reimport");
+      await waitFor("state.currentWrongBook.network?.correct_answer === '' && state.historyWrongBook.network?.correct_answer === ''", 4_000, "missing rubric imported durably");
       await evaluate(`(() => {
-        for (const book of [state.currentWrongBook, state.historyWrongBook]) {
-          if (!book.network) continue;
-          book.network.correct_answer = '';
-          book.network.accepted = [];
-          book.network.rubric = { gloss: '', accepted: [], language: 'english', notes: '' };
-        }
-        renderWrongBook();
         window.__rejudgeFailureOriginalFetch = window.fetch;
         window.fetch = (...args) => {
           const url = String(args[0]?.url || args[0] || '');
