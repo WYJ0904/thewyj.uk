@@ -1,7 +1,7 @@
-import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?v=20261005-p4-pending-5";
-import { randomId } from "../core/capabilities.js?v=20261005-p4-pending-5";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261005-p4-pending-5";
-import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-pending-5";
+import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?v=20261006-p5-architecture-1";
+import { randomId } from "../core/capabilities.js?v=20261006-p5-architecture-1";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261006-p5-architecture-1";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261006-p5-architecture-1";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -9,7 +9,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20261005-p4-pending-5";
+} from "../core/perf.js?v=20261006-p5-architecture-1";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -154,6 +154,8 @@ export function createFinanceCandidatesController({
   let refreshInFlight = null;
 
   const element = (id) => document.getElementById(id);
+  const reviewRows = createParkedRows(() => element("financeCandidateList"));
+  const recoveryRows = createParkedRows(() => element("financeRecoveryList"));
   let pendingDisclosure = null;
 
   function deviceId() {
@@ -562,6 +564,8 @@ export function createFinanceCandidatesController({
   }
 
   function show() {
+    reviewRows.resume();
+    recoveryRows.resume();
     if (!bound) {
       bound = true;
       pendingDisclosure = createFinanceDisclosure({ element: element("financeCandidatesSection"), storage,
@@ -582,6 +586,8 @@ export function createFinanceCandidatesController({
   }
 
   function hide() {
+    reviewRows.park();
+    recoveryRows.park();
     // Invalidate any request started for the page being left. Its late response
     // must not rebuild state behind the next route.
     listVersion.begin();
@@ -596,6 +602,8 @@ export function createFinanceCandidatesController({
   function accountUpdated() {
     if (renderedForAccount && renderedForAccount !== String(account()?.id || "")) {
       hide();
+      reviewRows.clear();
+      recoveryRows.clear();
       renderedForAccount = "";
       currentCandidates = [];
       canonicalRecords = [];
@@ -607,3 +615,4 @@ export function createFinanceCandidatesController({
   const dashboardSummary = () => ({ known: hasCanonicalObservation && renderedForAccount === String(account()?.id || ""), count: currentCandidates.length });
   return Object.freeze({ show, hide, reload, accountUpdated, handleClick, dashboardSummary });
 }
+import { createParkedRows } from "../core/parked-rows.js?v=20261006-p5-architecture-1";

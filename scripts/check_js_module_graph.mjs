@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const DEFAULT_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const ROOT = path.resolve(process.env.WYJ_MODULE_GRAPH_ROOT || DEFAULT_ROOT);
 const ENTRY_FILES = ["app.js", "tools.js"];
+if (fs.existsSync(path.join(ROOT, "workflows.js"))) ENTRY_FILES.push("workflows.js");
 const MODULE_ROOT = path.join(ROOT, "js");
 
 function walk(directory) {

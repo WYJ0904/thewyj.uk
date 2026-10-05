@@ -9,26 +9,26 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20261005-p4-pending-5";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261005-p4-pending-5";
+} from "./js/core/config.js?v=20261006-p5-architecture-1";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261006-p5-architecture-1";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?v=20261005-p4-pending-5";
+} from "./js/core/capabilities.js?v=20261006-p5-architecture-1";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20261005-p4-pending-5";
+} from "./js/core/api.js?v=20261006-p5-architecture-1";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20261005-p4-pending-5";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261005-p4-pending-5";
+} from "./js/core/changelog.js?v=20261006-p5-architecture-1";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261006-p5-architecture-1";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -39,21 +39,21 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20261005-p4-pending-5";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261005-p4-pending-5";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261005-p4-pending-5";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261005-p4-pending-5";
-import { installMotionSystem, motionDuration } from "./js/core/motion.js?v=20261005-p4-pending-5";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261005-p4-pending-5";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20261005-p4-pending-5";
-import { speakText, stopSpeech } from "./js/language/speech.js?v=20261005-p4-pending-5";
+} from "./js/core/session.js?v=20261006-p5-architecture-1";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261006-p5-architecture-1";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261006-p5-architecture-1";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261006-p5-architecture-1";
+import { installMotionSystem, motionDuration } from "./js/core/motion.js?v=20261006-p5-architecture-1";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261006-p5-architecture-1";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20261006-p5-architecture-1";
+import { speakText, stopSpeech } from "./js/language/speech.js?v=20261006-p5-architecture-1";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?v=20261005-p4-pending-5";
-import { createFinanceController, formatFinanceMoney } from "./js/finance/app.js?v=20261005-p4-pending-5";
-import { createFinanceCandidatesController } from "./js/finance/candidates.js?v=20261005-p4-pending-5";
-import { createTransferController } from "./js/transfer/app.js?v=20261005-p4-pending-5";
+} from "./js/language/speech-rate.js?v=20261006-p5-architecture-1";
+import { formatFinanceMoney } from "./js/finance/format.js?v=20261006-p5-architecture-1";
+import { createLazyController, installLazyTools } from "./js/core/lazy-controller.js?v=20261006-p5-architecture-1";
+import { createDashboardView } from "./js/core/dashboard.js?v=20261006-p5-architecture-1";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -61,15 +61,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?v=20261005-p4-pending-5";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261005-p4-pending-5";
+} from "./js/core/perf.js?v=20261006-p5-architecture-1";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261006-p5-architecture-1";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20261005-p4-pending-5";
+} from "./js/language/history.js?v=20261006-p5-architecture-1";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -106,16 +106,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20261005-p4-pending-5";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261005-p4-pending-5";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20261005-p4-pending-5";
+} from "./js/language/quiz.js?v=20261006-p5-architecture-1";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261006-p5-architecture-1";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20261006-p5-architecture-1";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20261005-p4-pending-5";
+} from "./js/language/wrong-book.js?v=20261006-p5-architecture-1";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -124,7 +124,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20261005-p4-pending-5";
+} from "./js/membership/account.js?v=20261006-p5-architecture-1";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -132,19 +132,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20261005-p4-pending-5";
+} from "./js/membership/plans.js?v=20261006-p5-architecture-1";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20261005-p4-pending-5";
+} from "./js/membership/recharge.js?v=20261006-p5-architecture-1";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20261005-p4-pending-5";
+} from "./js/admin/formatters.js?v=20261006-p5-architecture-1";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -265,6 +265,7 @@ let toolsInitialized = false;
 let financeController = null;
 let financeCandidatesController = null;
 let transferController = null;
+let dashboardView = null;
 let routeRender = Promise.resolve();
 let routeGeneration = 0;
 let adminUsers = [];
@@ -1317,34 +1318,7 @@ function dashboardGoal(language) {
   return { completed, goal };
 }
 
-function setDashboardService(id, label, status) {
-  const node = $(id);
-  if (!node) return;
-  node.textContent = label;
-  node.classList.remove("is-online", "is-warning", "is-offline");
-  node.classList.add(status);
-}
-
-function renderDashboardToolShelf(id, items, emptyMessage) {
-  const target = $(id);
-  if (!target) return;
-  target.innerHTML = "";
-  if (!items.length) {
-    const empty = document.createElement("p");
-    empty.className = "dashboard-empty";
-    empty.textContent = emptyMessage;
-    target.appendChild(empty);
-    return;
-  }
-  items.slice(0, 5).forEach((item) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "dashboard-tool-link";
-    button.textContent = item.name || item.tool_id;
-    button.addEventListener("click", () => showTools(`/tools/${encodeURIComponent(item.tool_id)}`, true));
-    target.appendChild(button);
-  });
-}
+function setDashboardService(id, label, status) { dashboardView?.setService(id, label, status); }
 
 function changelogEntries() {
   return mergeChangelogEntries(cloudChangelogEntries || [], staticChangelogEntries(window));
@@ -1413,92 +1387,7 @@ function dismissVersionNotice() {
   $("versionNotice")?.classList.add("hidden");
 }
 
-function renderDashboard() {
-  if (!state.session || !state.account || $("publicHome")?.classList.contains("hidden") || document.hidden || document.documentElement.dataset.androidWebActive === "false") return;
-  const account = state.account;
-  const summary = accountMembershipSummary(account);
-  const entitlements = [...accountEntitlements(account)].map(entitlementLabel);
-  const records = [...state.studyRecords].sort((left, right) => Date.parse(right.finishedAt) - Date.parse(left.finishedAt));
-  const latest = records[0];
-  const englishGoal = dashboardGoal("english");
-  const japaneseGoal = dashboardGoal("japanese");
-
-  $("dashboardGreeting").textContent = account.username;
-  $("dashboardMembershipName").textContent = summary.name || "普通用户";
-  $("dashboardMembershipExpiry").textContent = summary.permanent
-    ? "永久有效"
-    : summary.expires_at
-      ? `到期 ${formatLocalDateTime(summary.expires_at)}`
-      : "无有效会员到期时间";
-  $("dashboardEntitlements").textContent = entitlements.length ? entitlements.join("、") : "基础功能";
-  $("dashboardStreak").textContent = String(calculateStudyStreak(records));
-  $("dashboardWrongCount").textContent = String(Object.keys(state.historyWrongBook).length);
-  $("dashboardEnglishGoal").textContent = `${englishGoal.completed} / ${englishGoal.goal} 题`;
-  $("dashboardJapaneseGoal").textContent = `${japaneseGoal.completed} / ${japaneseGoal.goal} 题`;
-  $("dashboardLatestResult").textContent = latest
-    ? `最近一次：${quizLanguageLabel(latest.language)} ${practiceModeLabel(latest.practiceMode)}，${latest.total} 题，正确率 ${latest.accuracy}%`
-    : "完成第一轮测试后显示结果。";
-
-  const finance = financeController?.dashboardSummary?.() || { balance_minor: 0, pending: 0, available: false };
-  const financeKnown = finance.available && Number.isFinite(finance.balance_minor) && Boolean(finance.last_sync_at || finance.pending);
-  const financeBalance = financeKnown ? formatFinanceMoney(finance.balance_minor) : "尚未读取";
-  if ($("dashboardFinanceBalance")) $("dashboardFinanceBalance").textContent = financeBalance;
-  document.querySelectorAll("[data-dashboard-balance-copy]").forEach((element) => { element.textContent = financeBalance; });
-  if ($("dashboardFinanceSync")) {
-    const financeStatus = financeKnown
-      ? finance.pending
-        ? `${finance.pending} 项本机修改等待同步`
-        : finance.last_sync_at
-          ? `最近同步 ${formatLocalDateTime(finance.last_sync_at)}`
-          : "打开财务账本后开始同步"
-      : "打开账本读取账户数据。";
-    $("dashboardFinanceSync").textContent = financeStatus;
-    document.querySelectorAll("[data-dashboard-finance-copy]").forEach((element) => { element.textContent = financeStatus; });
-  }
-
-  const resumable = ["english", "japanese"].filter((language) => Boolean(loadProjectRuntime(language)?.roundActive));
-  $("dashboardResumeSection").classList.toggle("hidden", !resumable.length);
-  [["dashboardResumeEnglish", "english"], ["dashboardResumeJapanese", "japanese"]].forEach(([id, language]) => {
-    $(id).classList.toggle("hidden", !resumable.includes(language));
-  });
-
-  const toolSummary = window.WYJTools?.getSummary?.() || { favorites: [], recent: [] };
-  $("homeSceneLearningLabel").textContent = "学习记录";
-  $("homeSceneLearningValue").textContent = latest ? quizLanguageLabel(latest.language) : "暂无记录";
-  $("homeSceneLearningDetail").textContent = latest ? `${latest.total} 题 · 正确率 ${latest.accuracy}%` : "完成测试后显示进度";
-  $("homeSceneLearningStatus").textContent = `${Object.keys(state.historyWrongBook).length} 个错题`;
-  $("homeSceneFinanceLabel").textContent = "本月账本";
-  $("homeSceneFinanceValue").textContent = financeBalance;
-  $("homeSceneFinanceDetail").textContent = financeKnown ? (finance.pending ? `${finance.pending} 项等待同步` : "账户账本摘要") : "打开账本读取";
-  $("homeSceneFinanceStatus").textContent = financeKnown ? "已读取" : "未读取";
-  $("homeSceneToolsLabel").textContent = "最近工具";
-  $("homeSceneToolsValue").textContent = toolSummary.recent?.[0]?.name || toolSummary.favorites?.[0]?.name || "暂无记录";
-  $("homeSceneToolsDetail").textContent = `${toolSummary.favorites?.length || 0} 项收藏`;
-  $("homeSceneToolsStatus").textContent = "工具箱";
-  renderDashboardToolShelf("dashboardFavoriteTools", toolSummary.favorites || [], "还没有收藏工具。");
-  renderDashboardToolShelf("dashboardRecentTools", toolSummary.recent || [], "还没有使用记录。");
-  const pending = financeCandidatesController?.dashboardSummary?.();
-  if ($("dashboardNotificationPending")) $("dashboardNotificationPending").textContent = pending?.known ? `${pending.count} 项` : "未读取";
-  if ($("dashboardNotificationStatus")) $("dashboardNotificationStatus").textContent = pending?.known ? (pending.count ? "有识别交易等待核实。" : "已读取，没有待核实交易。") : "在账本中核实通知识别的交易。";
-  const transfer = transferController?.dashboardSummary?.() || { count: 0, paused: 0, running: false };
-  if ($("dashboardTransferCount")) $("dashboardTransferCount").textContent = `${transfer.count} 个任务`;
-  if ($("dashboardTransferStatus")) $("dashboardTransferStatus").textContent = !transfer.count ? "暂无本机传输任务。" : transfer.running ? "传输正在进行，打开查看进度。" : transfer.paused ? `${transfer.paused} 个任务已暂停。` : "打开传输页继续管理队列。";
-  renderLatestUpdate();
-
-  setDashboardService("dashboardAccountStatus", backendAvailable ? "在线" : "离线", backendAvailable ? "is-online" : "is-offline");
-  renderLearningSyncDashboardStatus();
-  setDashboardService(
-    "dashboardAiStatus",
-    !backendAvailable ? "网络不可用" : aiAvailable ? "可用" : "规则模式",
-    backendAvailable && aiAvailable ? "is-online" : "is-warning",
-  );
-  const canShare = isSuperAdmin(account) || hasAccountEntitlement("temporary_share_access", account);
-  setDashboardService(
-    "dashboardShareStatus",
-    canShare ? (backendAvailable ? "可用" : "离线") : "未开通",
-    canShare && backendAvailable ? "is-online" : canShare ? "is-offline" : "is-warning",
-  );
-}
+function renderDashboard() { dashboardView?.render(); }
 
 function feedbackTypeLabel(value) {
   return FEEDBACK_TYPE_LABELS[value] || value || "其他反馈";
@@ -4012,6 +3901,7 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
   document.body.classList.remove("project-picker-active");
   renderAccountUi();
   try {
+    const preparing = Promise.resolve(window.WYJTools.prepare()).catch(error => ({ error }));
     if (!access) {
       try {
         access = await apiGet("/api/tools/access");
@@ -4020,6 +3910,9 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
         offline = true;
       }
     }
+    if (!isRouteGenerationCurrent(generation)) return;
+    const prepared = await preparing;
+    if (prepared?.error) throw prepared.error;
     if (!isRouteGenerationCurrent(generation)) return;
     await window.WYJTools.show(path, { access, offline });
   } catch (error) {
@@ -4091,12 +3984,13 @@ async function showTransfer(pushHistory = true, generation = routeGeneration) {
   }
 }
 
-function showShareRoute(path) {
+async function showShareRoute(path, generation = routeGeneration) {
   stopProjectActivity();
   currentProject = "";
   state.quizLanguage = "";
   hidePrimaryScreens();
-  if (!window.WYJTools?.showShareViewer?.(path)) return false;
+  if (!(await window.WYJTools?.showShareViewer?.(path))) return false;
+  if (!isRouteGenerationCurrent(generation)) return true;
   document.body.classList.add("project-picker-active");
   renderAccountUi();
   return true;
@@ -4187,7 +4081,7 @@ function routeCurrent() {
 async function renderCurrentRoute(path, generation = routeGeneration) {
     if (!isRouteGenerationCurrent(generation)) return;
     if (path.startsWith("/share/")) {
-      if (!showShareRoute(path)) pushRoute(state.session && state.account ? "/select" : "/login", true);
+      if (!(await showShareRoute(path, generation)) && isRouteGenerationCurrent(generation)) pushRoute(state.session && state.account ? "/select" : "/login", true);
       return;
     }
     if (!state.session || !state.account) {
@@ -4706,7 +4600,17 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
   handleMembershipRequired: () => openMembershipModal({ goal: membershipGoalForCurrentContext() }),
 });
 
-financeController = createFinanceController({
+installLazyTools({
+  loadTools: () => import("./tools.js?v=20261006-p5-architecture-1"),
+  loadWorkflows: () => import("./workflows.js?v=20261006-p5-architecture-1"),
+  onReady: () => renderDashboard(),
+});
+
+financeController = createLazyController({
+  methods: ["syncNow", "verifyTransaction", "render"],
+  summary: () => ({ available: false, balance_minor: 0, pending: 0 }),
+  onReady: () => renderDashboard(),
+  load: async () => (await import("./js/finance/app.js?v=20261006-p5-architecture-1")).createFinanceController({
   api,
   apiGet,
   storage: localStorage,
@@ -4725,9 +4629,14 @@ financeController = createFinanceController({
   onSummaryChanged: () => renderDashboard(),
   openDialog: openModal,
   closeDialog: (id) => closeModal(id, true),
+  }),
 });
 
-financeCandidatesController = createFinanceCandidatesController({
+financeCandidatesController = createLazyController({
+  loadForSummary: false,
+  methods: ["reload", "handleClick"],
+  summary: () => ({ known: false, count: 0 }),
+  load: async () => (await import("./js/finance/candidates.js?v=20261006-p5-architecture-1")).createFinanceCandidatesController({
   api,
   apiGet,
   storage: localStorage,
@@ -4735,9 +4644,14 @@ financeCandidatesController = createFinanceCandidatesController({
   hasEntitlement: (code, account) => hasAccountEntitlement(code, account),
   isSuperAdmin: (account) => isSuperAdmin(account),
   onCandidateChanged: (transactionId) => { void financeController?.verifyTransaction?.(transactionId); },
+  }),
 });
 
-transferController = createTransferController({
+transferController = createLazyController({
+  methods: ["addFiles", "renderQueue"],
+  summary: () => ({ count: 0, paused: 0, running: false }),
+  onReady: () => { transferController?.accountUpdated?.(); renderDashboard(); },
+  load: async () => (await import("./js/transfer/app.js?v=20261006-p5-architecture-1")).createTransferController({
   storage: localStorage,
   account: () => state.account,
   hasEntitlement: (code, account) => hasAccountEntitlement(code, account),
@@ -4747,6 +4661,27 @@ transferController = createTransferController({
     else pushRoute(path);
   },
   appVersion: APP_VERSION,
+  }),
+});
+
+dashboardView = createDashboardView({
+  state: () => state, finance: () => financeController, pending: () => financeCandidatesController,
+  transfer: () => transferController, online: () => backendAvailable, ai: () => aiAvailable,
+  openTool: id => showTools(`/tools/${encodeURIComponent(id)}`, true),
+  accountMembershipSummary,
+  accountEntitlements,
+  entitlementLabel,
+  calculateStudyStreak,
+  dashboardGoal,
+  formatLocalDateTime,
+  quizLanguageLabel,
+  practiceModeLabel,
+  formatFinanceMoney,
+  loadProjectRuntime,
+  renderLatestUpdate,
+  renderLearningSyncDashboardStatus,
+  isSuperAdmin,
+  hasAccountEntitlement,
 });
 
 function applyBackendStatus(data) {
@@ -7228,7 +7163,7 @@ async function boot() {
     $("appShell").classList.remove("app-shell-pending");
     $("appShell").classList.add("app-shell-ready");
     $("appShell").setAttribute("aria-hidden", "false");
-    if (initialPath.startsWith("/share/") && showShareRoute(initialPath)) return;
+    if (initialPath.startsWith("/share/")) { void showShareRoute(initialPath); return; }
     if (initialPath === "/transfer") {
       hidePrimaryScreens();
       $("transferPage")?.classList.remove("hidden");

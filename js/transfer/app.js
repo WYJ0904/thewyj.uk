@@ -1,10 +1,10 @@
-import { randomId } from "../core/capabilities.js?v=20261005-p4-pending-5";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261005-p4-pending-5";
-import { getSafeStorage } from "../core/storage.js?v=20261005-p4-pending-5";
-import { withInteractionFeedback } from "../core/perf.js?v=20261005-p4-pending-5";
-import { createTransferUpdateScheduler } from "./updates.js?v=20261005-p4-pending-5";
-import { putPartWithRecovery } from "./upload-part.js?v=20261005-p4-pending-5";
-import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-pending-5";
+import { randomId } from "../core/capabilities.js?v=20261006-p5-architecture-1";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261006-p5-architecture-1";
+import { getSafeStorage } from "../core/storage.js?v=20261006-p5-architecture-1";
+import { withInteractionFeedback } from "../core/perf.js?v=20261006-p5-architecture-1";
+import { createTransferUpdateScheduler } from "./updates.js?v=20261006-p5-architecture-1";
+import { putPartWithRecovery } from "./upload-part.js?v=20261006-p5-architecture-1";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261006-p5-architecture-1";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -1553,9 +1553,11 @@ export function createTransferController({
     updateCurrentShareActions();
     restoreQueue();
     restoreCleanupQueue();
-    renderQueue();
-    void loadCapabilities();
-    void loadMyShares();
+    if (visible) {
+      renderQueue();
+      void loadCapabilities();
+      void loadMyShares();
+    }
     if (location.pathname === "/transfer" && recipientShareId() === null) {
       void Promise.all([loadUnfinishedSessions(), retryCleanupPending()]);
     }

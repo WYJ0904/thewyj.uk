@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {createLazyController,installLazyTools} from '../js/core/lazy-controller.js';
+let release,loads=0,shows=0,hidden=0;
+const pending=new Promise(r=>release=r),owner={show:()=>{shows++;return true},hide:()=>hidden++,dashboardSummary:()=>({known:true,count:3})};
+const c=createLazyController({load:()=>{loads++;return pending},summary:()=>({known:false,count:0}),loadForSummary:false});
+assert.deepEqual(c.dashboardSummary(),{known:false,count:0});assert.equal(loads,0);
+const first=c.show();c.hide();release(owner);assert.equal(await first,false);assert.equal(shows,0);
+assert.equal(await c.show(),true);assert.equal(loads,1);assert.equal(shows,1);c.hide();assert.equal(hidden,1);assert.deepEqual(c.dashboardSummary(),{known:true,count:3});
+let attempt=0;const retry=createLazyController({load:()=>{if(!attempt++)throw Error('owned transport');return owner}});
+await assert.rejects(retry.show());assert.equal(await retry.show(),true);assert.equal(attempt,2);
+const root={};let toolsLoads=0,workflowLoads=0,initialized=0,toolShows=[];
+const real={init:()=>initialized++,isReady:()=>true,prepare:()=>true,show:path=>toolShows.push(path),hide(){},getSummary:()=>({favorites:[],recent:[]})};
+const tools=installLazyTools({loadTools:async()=>{toolsLoads++;root.WYJTools=real;root.WYJTools.primitives={owned:true}},loadWorkflows:async()=>{workflowLoads++;root.WYJWorkflows={init(){}}}},root);
+tools.init({});await tools.prepare();assert.equal(root.WYJTools.primitives.owned,true);await tools.show('/tools',{});await tools.show('/tools/workflows',{});await tools.show('/tools/workflows',{});
+assert.equal(toolsLoads,1);assert.equal(workflowLoads,1);assert.equal(initialized,1);assert.deepEqual(toolShows,['/tools','/tools/workflows','/tools/workflows']);
+console.log('P5 lazy ownership: single load, late-hide guard, retry, unchanged summaries and workflow compatibility PASS');

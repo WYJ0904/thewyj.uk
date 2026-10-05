@@ -65,7 +65,7 @@ export function getSafeStorage(name = "localStorage") {
       fallback.setItem(key, value);
       if (!nativeStorage) return;
       try {
-        nativeStorage.setItem(key, value);
+        if (!persistent || nativeStorage.getItem(key) !== String(value)) nativeStorage.setItem(key, value);
         if (nativeStorage.getItem(key) !== String(value)) throw new Error("storage_readback_mismatch");
       } catch (error) {
         persistent = false;
@@ -100,6 +100,7 @@ export function loadJson(key, fallback, storage = null) {
 
 export function safeStorageSet(storage, key, value) {
   try {
+    if (storage?.__wyjPersistent !== false && storage.getItem(key) === String(value)) return true;
     storage.setItem(key, String(value));
     if (storage.getItem(key) !== String(value)) throw new Error("storage_readback_mismatch");
     if (storage?.__wyjPersistent === false) return false;
