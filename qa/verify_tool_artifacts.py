@@ -247,6 +247,12 @@ def decode_qr(path: Path) -> str:
     curved = getattr(detector, "detectAndDecodeCurved", None)
     if callable(curved):
         detectors.append(curved)
+    # Some valid dense masks defeat the classic detector at every scale. The
+    # independent ArUco detector can decode them; payload equality below still
+    # rejects incorrect or corrupted artifacts.
+    aruco = getattr(cv2, "QRCodeDetectorAruco", None)
+    if callable(aruco):
+        detectors.append(aruco().detectAndDecode)
     # Dense or thin-module renders (the dynamic share QR encodes a longer URL)
     # can defeat the decoder at native size. Nearest-neighbour upscaling keeps
     # the module edges exact, so the independent decoder stays independent while
