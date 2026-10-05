@@ -58,6 +58,7 @@ async function screenshot(page,name) {
   const target=path.join(path.dirname(output),`${mode}-${name}.png`);fs.writeFileSync(target,Buffer.from(data,'base64'));return target;
 }
 const cases=[],pressures=[];
+const visualOnly=process.env.AERIS_P4_VISUAL_ONLY==='true';
 for(const width of [390,1366,1920]) {
   const page=await openPage({cdpUrl,baseUrl,width,height:900,mobile:width===390});
   try {
@@ -88,6 +89,7 @@ for(const width of [390,1366,1920]) {
         assert.ok(geometry.overflow<=1,`${name} ${width} ${theme} overflow ${geometry.overflow}`);
       }
     }
+    if (visualOnly) { assert.deepEqual(page.runtimeErrors,[]); continue; }
     // Identical large-ledger and input workload before and after implementation.
     await page.navigate('/finance');await page.waitFor("!document.getElementById('entryScreen') && document.querySelector('#financeRecordedCount').textContent==='1500'");
     await page.evaluate("document.querySelector('#financeRecordedSection').open=true;window.__p4Start();window.__p4OriginalRow=document.querySelector('[data-finance-transaction]');true");
@@ -110,7 +112,7 @@ for(const width of [390,1366,1920]) {
 
 // Actual disk File -> multipart D1/R2 on loopback, with exact acknowledgements.
 const transfers=[];
-for(let repeat=0;repeat<3;repeat++) {
+for(let repeat=0;repeat<(visualOnly?0:3);repeat++) {
   const page=await openPage({cdpUrl,baseUrl,width:1366,height:900,mobile:false});
   try {
     await page.send('Page.addScriptToEvaluateOnNewDocument',{source:instrumentation});await login(page);await page.navigate('/transfer');
