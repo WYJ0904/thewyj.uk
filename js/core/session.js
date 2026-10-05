@@ -1,4 +1,4 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?v=20261006-p5-architecture-1";
+import { getSafeStorage, safeStorageSet } from "./storage.js?v=20261006-p5-architecture-2";
 
 export const ACCOUNT_SESSION_KEY = "wyjAccountSession";
 export const ACCOUNT_CACHE_KEY = "wyjAccountCache";

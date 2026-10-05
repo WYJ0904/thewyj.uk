@@ -1,4 +1,4 @@
-import { BUSINESS_TIME_ZONE } from "./config.js?v=20261006-p5-architecture-1";
+import { BUSINESS_TIME_ZONE } from "./config.js?v=20261006-p5-architecture-2";
 
 export const $ = (id) => document.getElementById(id);
 
