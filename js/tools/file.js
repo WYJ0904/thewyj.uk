@@ -147,7 +147,21 @@ export function md5Bytes(input) {
 
 export async function digestFile(file, algorithm) {
   const bytes = new Uint8Array(await file.arrayBuffer());
-  if (algorithm === "MD5") return md5Bytes(bytes);
+  if (algorithm === "MD5") {
+    if (bytes.length >= 256 * 1024 && typeof Worker === "function") {
+      const worker = new Worker(new URL("./digest-worker.js?v=20261006-p5-architecture-4", import.meta.url), { type: "module" });
+      try {
+        return await new Promise((resolve, reject) => {
+          const timer = setTimeout(() => { worker.terminate(); reject(new Error("文件哈希计算超时，请重试")); }, 30_000);
+          const finish = action => { clearTimeout(timer); action(); };
+          worker.onmessage = event => finish(() => event.data.error ? reject(new Error(event.data.error)) : resolve(event.data.hash));
+          worker.onerror = () => finish(() => reject(new Error("文件哈希计算失败，请重试")));
+          worker.postMessage({ buffer: bytes.buffer }, [bytes.buffer]);
+        });
+      } finally { worker.terminate(); }
+    }
+    return md5Bytes(bytes);
+  }
   const digest = new Uint8Array(await crypto.subtle.digest(algorithm, bytes));
   return [...digest].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }

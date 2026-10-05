@@ -1058,15 +1058,6 @@
     if (initialized) { bridge = context; return; }
     initialized = true;
     bridge = context;
-    byId("openWorkflowBtn")?.addEventListener("click", async () => {
-      const button = byId("openWorkflowBtn");
-      // #7: opening the workflow workbench loads saved workflows; the tile shows
-      // the pending state until the first render lands.
-      await withFeedback(button, "workflow-open", async () => {
-        bridge.navigate("/tools/workflows");
-        await show("/tools/workflows", accessOptions);
-      });
-    });
     byId("closeWorkflowBtn")?.addEventListener("click", () => {
       if (activeRun) activeRun.controller.abort();
       hide({ cancel: true });

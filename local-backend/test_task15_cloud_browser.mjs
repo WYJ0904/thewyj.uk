@@ -497,6 +497,8 @@ async function main() {
         })()`);
         try {
           await waitFor('window.__qaPreferencesHeld',10000,'real preferences response held');
+          await setFields({'#toolSearchInput':'随机日期'});
+          await waitFor("Boolean(document.querySelector('[data-open-tool=\"random-date\"]'))",4000,'search reaches a tool outside the initial catalogue batch');
           await click('[data-open-tool="random-date"]');
           await setFields({'#randomStartDate':'2026-01-02'});
           if(destination==='language') await click('[data-site-nav="language"]');

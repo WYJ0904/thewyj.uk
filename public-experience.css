@@ -1249,7 +1249,7 @@ html:has(body[data-experience="public"]),body[data-experience="public"] {min-wid
 }
 
 @media (max-width:360px) {
-  .public-hero {height:auto;min-height:640px;padding:204px 16px 32px;}
+  .public-hero {height:auto;padding:204px 16px 32px;}
   .hero-scene-card {width:150px;padding:12px;}
   .public-hero h1 {font-size:44px;}
   .public-hero .public-actions>* {width:100%;white-space:normal;}

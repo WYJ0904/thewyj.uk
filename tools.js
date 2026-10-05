@@ -7,10 +7,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20261005-p4-pending-5";
-import { randomToolResult } from "./js/tools/random.js?v=20261005-p4-pending-5";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20261005-p4-pending-5";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20261005-p4-pending-5";
+} from "./js/tools/catalog.js?v=20261006-p5-architecture-4";
+import { randomToolResult } from "./js/tools/random.js?v=20261006-p5-architecture-4";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20261006-p5-architecture-4";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20261006-p5-architecture-4";
 import {
   csvString,
   decodeLocalText,
@@ -19,16 +19,17 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20261005-p4-pending-5";
+} from "./js/tools/file.js?v=20261006-p5-architecture-4";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20261005-p4-pending-5";
-import { runToolRenderer } from "./js/tools/runner.js?v=20261005-p4-pending-5";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261005-p4-pending-5";
+} from "./js/tools/image.js?v=20261006-p5-architecture-4";
+import { runToolRenderer } from "./js/tools/runner.js?v=20261006-p5-architecture-4";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261006-p5-architecture-4";
+import { createParkedRows } from "./js/core/parked-rows.js?v=20261006-p5-architecture-4";
 (() => {
   "use strict";
   const boundToolRoots = new WeakSet();
@@ -68,6 +69,9 @@ import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261005-p4-pendin
   const TOOL_PREFERENCES_TTL_MS = 30_000;
 
   const byId = (id) => document.getElementById(id);
+  const catalogRows = createParkedRows(() => byId("toolCatalog"));
+  const CATALOG_BATCH = 24;
+  let catalogLimit = CATALOG_BATCH, catalogFilter = "";
   const categoryFor = (tool) => CATEGORY_MAP.get(tool.category);
   const favoriteFor = (toolId) => preferences.favorites.find((item) => item.tool_id === toolId);
   const configsFor = (toolId) => preferences.configs.filter((item) => item.tool_id === toolId);
@@ -234,15 +238,21 @@ import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261005-p4-pendin
   }
 
   function renderCatalog() {
+    if (byId("toolsPanel")?.classList.contains("hidden")) return;
+    catalogRows.resume();
     const tools = visibleTools();
     const target = byId("toolCatalog");
     if (!target) return;
     byId("toolCatalogTitle").textContent = currentCategory === "all" ? "全部工具" : CATEGORY_MAP.get(currentCategory).name;
     byId("toolResultCount").textContent = `${tools.length} 项`;
-    reconcileKeyedRows(target, tools, { key: tool => tool.id,
+    const filter = `${currentCategory}:${byId("toolSearchInput")?.value || ""}`;
+    if (filter !== catalogFilter) { catalogFilter = filter; catalogLimit = CATALOG_BATCH; }
+    reconcileKeyedRows(target, tools.slice(0, catalogLimit), { key: tool => tool.id,
       signature: tool => `${tool.id}:${Boolean(favoriteFor(tool.id))}`, render: toolCard,
       empty: '<p class="tool-empty">没有匹配的工具</p>' });
     target.setAttribute("aria-busy", "false");
+    const more = byId("toolCatalogMoreBtn");
+    if (more) { more.hidden = tools.length <= catalogLimit; more.textContent = `显示更多（剩余 ${Math.max(0, tools.length - catalogLimit)} 项）`; }
     bindToolButtons(target);
   }
 
@@ -584,14 +594,14 @@ import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261005-p4-pendin
     window.WYJWorkflows?.hide?.({ cancel: true });
     byId("toolsPanel")?.classList.add("hidden");
     byId("toolsPanel")?.setAttribute("aria-hidden", "true");
+    catalogRows.park();
   }
 
   function init(context) {
     bridge = context;
     ensureAccountPreferences();
-    renderCategories();
-    renderCatalog();
     bridge?.onPreferencesChanged?.();
+    byId("toolCatalogMoreBtn")?.addEventListener("click", () => { catalogLimit += CATALOG_BATCH; renderCatalog(); });
     const queueSearch = (event) => {
       if (event.isComposing) return;
       window.clearTimeout(catalogSearchTimer);
@@ -622,12 +632,16 @@ import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261005-p4-pendin
     window.WYJWorkflows?.init?.(context);
   }
 
+  // Only public catalogue metadata; permission checks remain in the route owner.
+  function prepare() { renderCategories(); renderCatalog(); }
+
   window.WYJTools = {
     init,
     // Browser regressions navigate between full documents. The module object
     // exists before app.js has restored the canonical account; API-backed
     // tools are ready only after both the bridge and authenticated account do.
     isReady: () => Boolean(bridge?.isAuthenticated?.()),
+    prepare,
     show,
     hide,
     openTool,

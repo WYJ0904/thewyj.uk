@@ -42,8 +42,11 @@ try {
 
   write("js/core/a.js", 'import "./missing.js";\n');
   check(1, "imports missing module");
+  write("js/core/a.js");
+  write("app.js", 'createRetryableImport(new URL("./js/core/missing.js?v=fixture", import.meta.url));\n');
+  check(1, "imports missing module");
 } finally {
   fs.rmSync(fixture, { recursive: true, force: true });
 }
 
-console.log("ES module graph checker self-tests: 4 passed");
+console.log("ES module graph checker self-tests: 5 passed");

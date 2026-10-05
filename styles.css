@@ -17,20 +17,13 @@
 }
 
 body {
-  margin: 0;
-  min-height: 100vh;
-  color: var(--ink);
   background:
     linear-gradient(180deg, rgba(32, 58, 67, 0.10), transparent 280px),
     var(--bg);
 }
 
 .entry-screen {
-  position: fixed;
-  inset: 0;
   z-index: 50;
-  display: grid;
-  place-items: center;
   pointer-events: none;
   background:
     linear-gradient(180deg, rgba(32, 58, 67, 0.08), transparent 48%),
@@ -39,8 +32,6 @@ body {
 }
 
 .entry-content {
-  display: grid;
-  place-items: center;
   gap: 14px;
   color: #203a43;
   font-size: 24px;
@@ -62,12 +53,9 @@ textarea {
 }
 
 button {
-  min-height: 44px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
-  color: var(--ink);
-  padding: 0 16px;
   cursor: pointer;
 }
 
@@ -79,14 +67,11 @@ button.primary {
 }
 
 button:disabled {
-  opacity: 1;
   cursor: wait;
 }
 
 .app-shell {
   width: min(760px, 100%);
-  min-height: 100vh;
-  margin: 0 auto;
   padding: max(70px, calc(env(safe-area-inset-top) + 58px)) 14px 24px;
   animation: appShellIn 0.8s ease 0.28s both;
 }
@@ -106,8 +91,6 @@ button:disabled {
 }
 
 .brand-icon {
-  width: 48px;
-  height: 48px;
   border-radius: 12px;
   box-shadow: 0 10px 24px rgba(15, 118, 110, 0.25);
 }
@@ -126,7 +109,6 @@ h1 {
 
 .brand p {
   margin-top: 4px;
-  color: var(--muted);
   font-size: 13px;
 }
 
@@ -154,7 +136,6 @@ h1 {
 .panel,
 .quiz-card,
 .result-panel {
-  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: 0 14px 35px rgba(17, 24, 39, 0.08);
@@ -241,7 +222,6 @@ h1 {
 
 .auth-panel {
   margin-top: 64px;
-  padding: 28px;
 }
 
 .language-panel {
@@ -314,7 +294,6 @@ textarea {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fbfdff;
-  color: var(--ink);
   outline: none;
 }
 
@@ -332,7 +311,6 @@ textarea {
 
 textarea {
   min-height: 260px;
-  resize: vertical;
   padding: 14px;
   line-height: 1.7;
 }
@@ -804,7 +782,6 @@ textarea {
 }
 
 .result-title.ok {
-  color: var(--ok);
 }
 
 .result-title.bad {
@@ -1233,12 +1210,9 @@ textarea {
 
 .module-card {
   position: relative;
-  display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
-  align-items: center;
   min-height: 184px;
   padding: 26px;
-  text-align: left;
   border-color: rgba(96, 187, 238, 0.32);
   background: rgba(8, 21, 37, 0.86);
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.18);
@@ -1342,7 +1316,6 @@ textarea {
 
 .tool-category-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
   margin: 20px 0 30px;
 }
@@ -1425,7 +1398,6 @@ textarea {
 
 .tool-catalog {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1447,7 +1419,6 @@ textarea {
   padding: 16px 42px 16px 14px;
   text-align: left;
   border: 0;
-  background: transparent;
 }
 
 .tool-open > span {
@@ -1488,7 +1459,6 @@ textarea {
   padding: 0;
   border: 0;
   color: #8ba4b8;
-  background: transparent;
   font-size: 20px;
 }
 
@@ -1826,7 +1796,6 @@ textarea {
 
 .payment-method-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1881,7 +1850,6 @@ textarea {
 
 .plan-option:disabled {
   cursor: not-allowed;
-  opacity: 1;
 }
 
 .admin-current-memberships {
@@ -1929,7 +1897,6 @@ textarea {
 
 .admin-checkbox {
   display: flex !important;
-  align-items: center;
   gap: 8px;
 }
 
@@ -1944,7 +1911,6 @@ textarea {
   }
 
   .tool-catalog {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -2107,7 +2073,6 @@ textarea {
   border: 1px solid rgba(94, 199, 255, 0.24);
   border-radius: 6px;
   font-size: 13px;
-  white-space: nowrap;
 }
 
 .auth-panel,
@@ -2213,9 +2178,6 @@ textarea {
   position: absolute;
   top: 12px;
   right: 12px;
-  width: 40px;
-  min-height: 40px;
-  padding: 0;
   font-size: 25px;
 }
 
@@ -2274,8 +2236,6 @@ textarea {
   margin: 0 0 8px;
   color: #75d3ff;
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0;
 }
 
 .plan-grid {
@@ -2380,7 +2340,6 @@ textarea {
 
 .admin-toolbar {
   display: flex;
-  align-items: end;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 12px;
@@ -2594,7 +2553,6 @@ textarea {
 }
 
 .field-disabled {
-  opacity: 1;
 }
 
 .field-disabled input,
@@ -2712,7 +2670,7 @@ textarea {
   .plan-option { min-height: 104px; }
   .admin-panel { margin-top: 64px; }
   .admin-header { align-items: start; flex-direction: column; }
-  .admin-toolbar { align-items: stretch; flex-direction: column; gap: 6px; }
+  .admin-toolbar { flex-direction: column; gap: 6px; }
   .admin-search { flex-basis: auto; max-width: none; }
   .admin-toolbar > p { margin: 0; }
   .admin-user-card { grid-template-columns: 1fr; }
@@ -2785,28 +2743,18 @@ textarea {
 }
 
 html {
-  min-width: 320px;
-  min-height: 100%;
   background: #050a12;
 }
 
 body {
-  min-width: 320px;
   min-height: 100vh;
   min-height: 100dvh;
-  overflow-x: hidden;
   color: var(--ink);
   background: #050a12;
 }
 
 .entry-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
   overflow: hidden;
-  visibility: visible;
-  opacity: 1;
-  pointer-events: auto;
   isolation: isolate;
   background: transparent;
   animation: splashBackdropIn 420ms ease-out both;
@@ -2947,19 +2895,12 @@ body {
     max(14px, env(safe-area-inset-right))
     max(28px, env(safe-area-inset-bottom))
     max(14px, env(safe-area-inset-left));
-  animation: none;
 }
 
 .app-shell.app-shell-pending {
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
 }
 
 .app-shell.app-shell-ready {
-  visibility: visible;
-  opacity: 1;
-  pointer-events: auto;
   animation: appShellIn 520ms ease-out both;
 }
 
@@ -3005,9 +2946,7 @@ body {
 .project-card {
   position: relative;
   min-height: 178px;
-  display: grid;
   place-items: center;
-  align-content: center;
   gap: 18px;
   padding: 24px;
   border: 1px solid rgba(99, 203, 255, 0.38);
@@ -3071,7 +3010,6 @@ body {
 
 .project-app {
   width: min(900px, 100%);
-  margin: 0 auto;
 }
 
 .topbar {
@@ -3083,8 +3021,6 @@ body {
   height: 48px;
   aspect-ratio: 1 / 1;
   border-radius: 0;
-  object-fit: contain;
-  box-shadow: none;
   filter: drop-shadow(0 0 13px rgba(85, 196, 247, 0.24));
 }
 
@@ -3098,8 +3034,6 @@ body {
 }
 
 .topbar-actions {
-  display: flex;
-  align-items: center;
   gap: 10px;
 }
 
@@ -3128,7 +3062,6 @@ button {
   border-color: var(--line);
   background: rgba(11, 27, 44, 0.9);
   color: var(--ink);
-  box-shadow: none;
 }
 
 button:hover {
@@ -3156,7 +3089,6 @@ select:focus-visible {
 }
 
 button:disabled {
-  opacity: 1;
 }
 
 .status {

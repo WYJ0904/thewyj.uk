@@ -334,7 +334,6 @@ body {
 }
 
 body[data-experience="workspace"] {
-  background: var(--ds-workspace-canvas-warm);
 }
 
 body,

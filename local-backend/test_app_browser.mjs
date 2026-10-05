@@ -710,13 +710,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20261005-p4-pending-5');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20261005-p4-pending-5');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261005-p4-pending-5');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261005-p4-pending-5');
-        const cachedChangelog = await caches.match('/changelog.js?v=20261005-p4-pending-5');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261005-p4-pending-5');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20261005-p4-pending-5');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261006-p5-architecture-4');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261006-p5-architecture-4');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261006-p5-architecture-4');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261006-p5-architecture-4');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261006-p5-architecture-4');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261006-p5-architecture-4');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261006-p5-architecture-4');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -1473,8 +1473,18 @@ async function main() {
       }
       await setFiles("#wrongDataFileInput", [wrongFailureFile]);
       await waitFor("state.currentWrongBook.network?.correct_answer === '网络'", 4_000, "restore imported rubric after network failure");
+      await send("Network.emulateNetworkConditions", { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
+      await evaluate("window.dispatchEvent(new Event('offline')); true");
+      await waitFor("backendAvailable === false", 3_000, "review transport actually offline");
+      const reviewRequestCount = await evaluate("window.__rejudgeFetches.length");
+      try {
       await click("#reviewBtn");
-      await waitFor("document.querySelector('#quizView').classList.contains('active')", 8_000, "offline review start");
+      // A saved preceding QA round can still be active. Follow the real replace
+      // confirmation instead of mistaking that round's visible quiz for review.
+      if (await evaluate("!document.querySelector('#confirmModal').classList.contains('hidden')")) {
+        await click("#acceptConfirmBtn");
+      }
+      await waitFor("document.querySelector('#quizView').classList.contains('active') && document.querySelector('#wordText').textContent.trim() === 'network' && !document.querySelector('#submitBtn').disabled", 8_000, "offline review question ready");
       await setFields({ "#answerInput": "网络" });
       await click("#submitBtn");
       await waitFor("document.querySelector('#resultTitle')?.classList.contains('ok') && !document.querySelector('#nextNowBtn')?.disabled", 5_000, "offline review answer");
@@ -1482,6 +1492,13 @@ async function main() {
       await waitFor("!document.querySelector('#roundSummaryModal')?.classList.contains('hidden')", 4_000, "review summary");
       assert.equal(await evaluate("document.querySelector('#roundCorrectCount').textContent"), "1");
       await click("#roundSetupBtn");
+      assert.equal(await evaluate("window.__rejudgeFetches.length"), reviewRequestCount, "offline review cannot rely on the remote quiz/judge fixture");
+      assert.equal(await evaluate("localStorage.getItem('wyjAccountSession')"), userSession);
+      } finally {
+        await send("Network.emulateNetworkConditions", { offline: false, latency: 80, downloadThroughput: 1_500_000, uploadThroughput: 750_000 });
+        await evaluate("window.dispatchEvent(new Event('online')); true");
+        await waitFor("backendAvailable === true", 20_000, "review transport restored");
+      }
     });
 
     await check("mobile language question state and rejudge scenarios A-H", async () => {

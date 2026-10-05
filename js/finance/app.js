@@ -1,7 +1,10 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20261005-p4-pending-5";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261005-p4-pending-5";
-import { mergeLocalNotificationLedger } from "./notification-ledger.js?v=20261005-p4-pending-5";
-import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-pending-5";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20261006-p5-architecture-4";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261006-p5-architecture-4";
+import { mergeLocalNotificationLedger } from "./notification-ledger.js?v=20261006-p5-architecture-4";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261006-p5-architecture-4";
+import { formatFinanceMoney } from "./format.js?v=20261006-p5-architecture-4";
+import { createParkedRows } from "../core/parked-rows.js?v=20261006-p5-architecture-4";
+export { formatFinanceMoney } from "./format.js?v=20261006-p5-architecture-4";
 const SCHEMA_VERSION = 1;
 const MAX_LOCAL_TRANSACTIONS = 5000;
 const MAX_PENDING_OPERATIONS = 500;
@@ -14,7 +17,6 @@ const ENTITY_COLLECTION_KEYS = Object.freeze({
   category: "categories",
   budget: "budgets",
 });
-const moneyFormatters = new Map();
 
 function safeJson(value, fallback) {
   try {
@@ -88,20 +90,6 @@ export function amountTextToMinor(value) {
   const [whole, fraction = ""] = text.split(".");
   const amount = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
   return Number.isSafeInteger(amount) && amount > 0 && amount <= 10_000_000_000_000 ? amount : 0;
-}
-
-export function formatFinanceMoney(minor, currency = "CNY") {
-  const amount = Number(minor || 0) / 100;
-  try {
-    let formatter = moneyFormatters.get(currency);
-    if (!formatter) {
-      formatter = new Intl.NumberFormat("zh-CN", { style: "currency", currency, minimumFractionDigits: 2 });
-      moneyFormatters.set(currency, formatter);
-    }
-    return formatter.format(amount);
-  } catch (_) {
-    return `${amount.toFixed(2)} ${currency}`;
-  }
 }
 
 function normalizeTransaction(value) {
@@ -360,6 +348,7 @@ export function createFinanceController({
   let insightsSignature = "";
 
   const element = (id) => document.getElementById(id);
+  const ledgerRows = createParkedRows(() => element("financeTransactionList"));
   let recordedDisclosure = null;
   const storageKey = (accountId) => `wyjFinance:v1:${encodeURIComponent(String(accountId || "guest"))}`;
   const deviceKey = "wyjFinanceDevice:v1";
@@ -1150,6 +1139,7 @@ export function createFinanceController({
   }
 
   async function show() {
+    ledgerRows.resume();
     initialize();
     ensureStore();
     const allowed = hasAccess();
@@ -1166,6 +1156,7 @@ export function createFinanceController({
   }
 
   function hide() {
+    ledgerRows.park();
     cancelDeferredRendering();
     for (const id of ["financeTransactionModal", "financeCategoryModal", "financeBudgetModal"]) closeLayer(id);
     // Undo is intentionally page-local. Keeping it across route changes made a
@@ -1177,6 +1168,7 @@ export function createFinanceController({
   }
 
   function resetAccount() {
+    ledgerRows.clear();
     cancelDeferredRendering();
     insightsSignature = "";
     ledgerFilter = "";
