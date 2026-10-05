@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';import fs from 'node:fs';import crypto from 'node:crypto';
 import {openPage,delay} from '../../local-backend/browser_harness.mjs';
-const mode=process.env.AERIS_P5_MODE||'baseline',baseUrl=process.env.WYJ_TEST_BASE||'http://127.0.0.1:8936';assert.equal(new URL(baseUrl).hostname,'127.0.0.1');
+const mode=process.env.AERIS_P5_MODE||'after',baseUrl=process.env.WYJ_TEST_BASE||'http://127.0.0.1:8938';assert.equal(new URL(baseUrl).hostname,'127.0.0.1');
 const p=await openPage({cdpUrl:process.env.WYJ_CDP_URL||'http://127.0.0.1:9250',baseUrl,width:390,height:900,mobile:true});
+fs.mkdirSync('artifacts/aeris-p5',{recursive:true});
 try {
  await p.send('Page.addScriptToEvaluateOnNewDocument',{source:fs.readFileSync('qa/aeris/p5-probe.js','utf8')});
  await p.navigate('/login');await p.waitFor('!document.getElementById("entryScreen")');await p.setFields({'#usernameInput':'wyj','#secretInput':process.env.WYJ_TEST_ADMIN_SECRET});await p.click('#loginSubmitBtn');await p.waitFor("location.pathname==='/'");await p.navigate('/tools/file-md5');await p.waitFor("!document.querySelector('#toolWorkbench').classList.contains('hidden')");
