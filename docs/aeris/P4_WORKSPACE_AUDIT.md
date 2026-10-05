@@ -76,7 +76,7 @@ changed. This is the only business-adjacent change in P4.
 fetching, persistence, matching, deduplication or terminal lifecycle decisions.
 Public/internal names, package, domain, persistent keys, schema and bridge IDs
 are unchanged. The new helper is included in the offline shell. The final browser asset release is
-`20261005-p4-workspace-4`, so the bounded multipart response correction is not
+`20261005-p4-pending-5`, so the bounded multipart response correction is not
 hidden behind a previously cached preview bundle.
 
 ## Regression evidence and boundaries
@@ -125,3 +125,8 @@ Physical upload stutter/WAN throughput need device profiling. The separately
 reported HTTP/1 download-tail issue is not changed by this presentation work;
 HTTP/2 retrieval of the official baseline APK matched bytes and certificate.
 No P5, P6, Task 25 or network protocol redesign is included.
+
+## P4 canonical pending closure repair
+
+The normal review projection now uses server records exclusively. Unmatched local recognitions remain in a separate recovery section with their original identities. A complete successful server observation is current even when recovery exists. Recognition, OCR, capture, auto-booking, lifecycle and Room identities are unchanged. Regression coverage includes 3 canonical / 2 recovery, exact-alias convergence and empty/error/partial fallback. Signed verification candidate 1.3.30/43 uses the existing release certificate; release promotion remains gated by fresh device acceptance.
+

@@ -1,6 +1,20 @@
 (() => {
   const entries = [
 {
+  "version": "1.3.30",
+  "build": "2026-10-05-aeris-p4-canonical-1.3.30",
+  "date": "2026-10-05",
+  "title": "Aeris 待处理与本机恢复收口",
+  "features": [],
+  "improvements": [
+    "云端待核实与本机恢复分开展示，旧记录保持可追踪。"
+  ],
+  "fixes": [
+    "完整云端观察不再被本机恢复记录阻止完成核对。"
+  ],
+  "security": []
+},
+{
   "version": "1.3.29",
   "build": "2026-10-05-aeris-p4-1.3.29",
   "date": "2026-10-05",

@@ -1,7 +1,7 @@
-import { mergeLocalNotificationReviews } from "./notification-ledger.js?v=20261005-p4-workspace-4";
-import { randomId } from "../core/capabilities.js?v=20261005-p4-workspace-4";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261005-p4-workspace-4";
-import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-workspace-4";
+import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?v=20261005-p4-pending-5";
+import { randomId } from "../core/capabilities.js?v=20261005-p4-pending-5";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261005-p4-pending-5";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-pending-5";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -9,7 +9,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20261005-p4-workspace-4";
+} from "../core/perf.js?v=20261005-p4-pending-5";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -140,6 +140,7 @@ export function createFinanceCandidatesController({
 }) {
   let busyIds = new Set();
   let currentCandidates = [];
+  let canonicalRecords = [];
   let renderedForAccount = "";
   let hasCanonicalObservation = false;
   let bound = false;
@@ -210,6 +211,7 @@ export function createFinanceCandidatesController({
     const section = element("financeCandidatesSection");
     if (!list || !section) return;
     const editorState = captureEditorState(list);
+    renderRecovery();
     currentCandidates = [...candidates];
     if (element("financePendingCount")) element("financePendingCount").textContent = hasCanonicalObservation ? String(candidates.length) : "待核对";
     pendingDisclosure?.pending(candidates.map(item => item.canonical_id || item.id));
@@ -274,6 +276,24 @@ export function createFinanceCandidatesController({
     restoreEditorState(list, editorState);
   }
 
+  function renderRecovery() {
+    const section = element("financeRecoverySection"), list = element("financeRecoveryList");
+    if (!section || !list) return;
+    const rows = hasAccess() ? localNotificationRecovery(canonicalRecords,
+      globalThis.window?.WYJLocalPaymentLedger, String(account()?.id || "")) : [];
+    section.classList.toggle("hidden", !rows.length);
+    section.setAttribute("aria-hidden", String(!rows.length));
+    element("financeRecoveryCount").textContent = String(rows.length);
+    reconcileKeyedRows(list, rows, {
+      key: row => `${row.kind}:${row.id}`, signature: row => JSON.stringify(row), empty: "",
+      render: row => `<article class="finance-candidate" data-recovery-identity="${escapeHtml(`${row.kind}:${row.id}`)}">
+        <strong>${escapeHtml(row.app_label || row.source_package || "本机记录")}</strong>
+        <p>${Number(row.amount_minor) > 0 ? escapeHtml(formatMinor(row.amount_minor)) : "金额待核实"} · ${escapeHtml(DIRECTION_LABELS[row.direction] || DIRECTION_LABELS.unknown)}</p>
+        <small>${Number(row.occurred_at_ms) > 0 ? escapeHtml(new Date(Number(row.occurred_at_ms)).toLocaleString("zh-CN")) : "时间未知"}</small>
+      </article>`,
+    });
+  }
+
   function occurredLocalValue(value) {
     const ms = Number(value) || 0;
     if (ms <= 0) return "";
@@ -326,6 +346,7 @@ export function createFinanceCandidatesController({
     const list = element("financeCandidateList");
     if (!section) return;
     if (!hasAccess()) {
+      element("financeRecoverySection")?.classList.add("hidden");
       section.classList.add("hidden");
       section.setAttribute("aria-hidden", "true");
       renderedForAccount = "";
@@ -337,8 +358,7 @@ export function createFinanceCandidatesController({
     section.setAttribute("aria-hidden", "false");
     section.setAttribute("aria-busy", "true");
     if (globalThis.window?.WYJLocalPaymentLedger?.account_id === currentAccountId) {
-      const rows = currentCandidates.map(row => ({ ...row, kind: row.hint ? "hint" : "candidate", state: "pending" }));
-      render(canonicalPendingCandidates({ records: mergeLocalNotificationReviews(rows, globalThis.window?.WYJLocalPaymentLedger, currentAccountId) }));
+      render(canonicalPendingCandidates({ records: mergeLocalNotificationReviews(canonicalRecords, globalThis.window?.WYJLocalPaymentLedger, currentAccountId) }));
     }
     // Never blank an already useful list while refreshing. Apart from the
     // visible have/empty/have flicker, rebuilding here destroyed a user's open
@@ -356,6 +376,7 @@ export function createFinanceCandidatesController({
       // the row the user just confirmed).
       if (!listVersion.isCurrent(version)) return;
       hasCanonicalObservation = true;
+      canonicalRecords = summary.records;
       render(canonicalPendingCandidates({ ...summary, records: mergeLocalNotificationReviews(
         summary.records, globalThis.window?.WYJLocalPaymentLedger, currentAccountId) }));
       section.setAttribute("aria-busy", "false");
@@ -410,6 +431,8 @@ export function createFinanceCandidatesController({
       // reconciles with the server list. Invalidate any request that started
       // before this decision; its response cannot restore the terminal row.
       listVersion.begin();
+      canonicalRecords = canonicalRecords.map(row => String(row.id) === String(id)
+        ? { ...row, state: confirm ? "confirmed" : "ignored" } : row);
       currentCandidates = currentCandidates.filter((item) => String(item.id) !== String(id));
       render(currentCandidates, confirm ? "已记账，正在同步…" : "已忽略。");
       trace.mark(INTERACTION_STAGES.STATE_APPLY, confirm ? "booked" : "ignored");
@@ -548,8 +571,7 @@ export function createFinanceCandidatesController({
       element("financeCandidatesSection")?.addEventListener("submit", handleSubmit);
       document.addEventListener("thewyj:payment-updated", () => {
         const snapshot = globalThis.window?.WYJLocalPaymentLedger;
-        const rows = currentCandidates.map(row => ({ ...row, kind: row.hint ? "hint" : "candidate", state: "pending" }));
-        render(canonicalPendingCandidates({ records: mergeLocalNotificationReviews(rows, snapshot, String(account()?.id || "")) }));
+        render(canonicalPendingCandidates({ records: mergeLocalNotificationReviews(canonicalRecords, snapshot, String(account()?.id || "")) }));
         void reload({ force: true });
       });
       document.addEventListener("visibilitychange", () => {
@@ -564,6 +586,7 @@ export function createFinanceCandidatesController({
     // must not rebuild state behind the next route.
     listVersion.begin();
     const section = element("financeCandidatesSection");
+    element("financeRecoverySection")?.classList.add("hidden");
     if (section) {
       section.classList.add("hidden");
       section.setAttribute("aria-hidden", "true");
@@ -575,6 +598,7 @@ export function createFinanceCandidatesController({
       hide();
       renderedForAccount = "";
       currentCandidates = [];
+      canonicalRecords = [];
       hasCanonicalObservation = false;
     }
     if (!element("financePage")?.classList.contains("hidden")) reload();

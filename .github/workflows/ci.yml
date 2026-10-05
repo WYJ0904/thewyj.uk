@@ -866,6 +866,7 @@ jobs:
           node qa/aeris/p32-card-restoration-browser.mjs 2>&1 | tee artifacts/aeris-p32-cards.log
           node qa/aeris/p33-shared-home-browser.mjs 2>&1 | tee artifacts/aeris-p33-shared-home.log
           node qa/aeris/p4-behavior-browser.mjs 2>&1 | tee artifacts/aeris-p4-workspace-behavior.log
+          node qa/aeris/p4-pending-recovery-browser.mjs 2>&1 | tee artifacts/aeris-p4-pending-recovery.log
           node qa/aeris/p4-finance-cursor-browser.mjs 2>&1 | tee artifacts/aeris-p4-finance-cursor.log
 
 

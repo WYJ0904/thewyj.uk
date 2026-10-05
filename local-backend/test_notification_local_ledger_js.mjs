@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mergeLocalNotificationLedger, mergeLocalNotificationReviews } from "../js/finance/notification-ledger.js";
+import { mergeLocalNotificationLedger, mergeLocalNotificationReviews, localNotificationRecovery } from "../js/finance/notification-ledger.js";
 const row = { event_id: "evt-wechat-34", id: "txn:notif:123456789012", local_id: "txn:notif:123456789012",
   amount_minor: 3400, direction: "expense", merchant: "", currency: "CNY", occurred_at_ms: 1791023378000,
   source_kind: "automatic", status: "active", sync_state: "pending" };
@@ -10,9 +10,9 @@ assert.equal(mergeLocalNotificationLedger(transactions, snapshot, "account-a"), 
 assert.equal(Object.values(transactions)[0].amount_minor, 3400);
 assert.equal(mergeLocalNotificationLedger(transactions, snapshot, "account-a"), false);
 assert.equal(Object.keys(transactions).length, 1);
-assert.deepEqual(mergeLocalNotificationReviews([{ state: "pending", event_id: row.event_id }], snapshot, "account-a"), []);
+assert.equal(mergeLocalNotificationReviews([{ state: "pending", event_id: row.event_id }], snapshot, "account-a").length, 1, "only the server observation terminalizes canonical reviews");
 assert.deepEqual(mergeLocalNotificationReviews([{ state: "pending", event_id: "evt-old-alias" }],
-  { ...snapshot, transactions: [{ ...row, event_ids: [row.event_id, "evt-old-alias"] }] }, "account-a"), []);
+  { ...snapshot, transactions: [{ ...row, event_ids: [row.event_id, "evt-old-alias"] }] }, "account-a"), [{ state: "pending", event_id: "evt-old-alias" }]);
 const restored = JSON.parse(JSON.stringify(transactions));
 const receipt = { ...snapshot, transactions: [{ ...row, id: "txn:legacy-server-id", sync_state: "synced" }] };
 assert.equal(mergeLocalNotificationLedger(restored, receipt, "account-a"), true);
@@ -24,7 +24,22 @@ const alreadyBooked = { "txn:old-cloud-booking": { id: "txn:old-cloud-booking", 
 assert.equal(mergeLocalNotificationLedger(alreadyBooked, snapshot, "account-a"), false);
 assert.equal(Object.keys(alreadyBooked).length, 1, "an exact old cloud event link prevents provisional duplicate booking");
 const missing = { id: "missing-amount", kind: "hint", event_id: "missing-amount", amount_minor: null, direction: "expense", state: "pending" };
-assert.equal(mergeLocalNotificationReviews([], { ...snapshot, reviews: [missing] }, "account-a").length, 1);
+assert.equal(mergeLocalNotificationReviews([], { ...snapshot, reviews: [missing] }, "account-a").length, 0);
+assert.equal(localNotificationRecovery([], { ...snapshot, reviews: [missing] }, "account-a").length, 1);
 assert.equal(mergeLocalNotificationReviews([missing], { ...snapshot, reviews: [missing] }, "account-a").length, 1);
 assert.equal(mergeLocalNotificationReviews([{ ...missing, state: "ignored" }], { ...snapshot, reviews: [missing] }, "account-a").length, 0);
-console.log("notification local ledger: offline projection, receipts, restart, dedupe, account isolation and review union PASS");
+assert.equal(localNotificationRecovery([missing], { ...snapshot, reviews: [missing] }, "account-a").length, 0);
+assert.equal(localNotificationRecovery([{ ...missing, state: "ignored" }], { ...snapshot, reviews: [missing] }, "account-a").length, 0);
+const canonical = Array.from({ length: 3 }, (_, i) => Object.freeze({ ...missing, id: `remote-${i}`, event_id: `event-${i}` }));
+const localOnly = [0, 1].map(i => Object.freeze({ ...missing, id: `legacy-${i}`, event_id: `pay-verify:legacy-${i}` }));
+const mixed = Object.freeze({ ...snapshot, reviews: Object.freeze([...canonical, ...localOnly]) });
+const saved = JSON.stringify(mixed);
+assert.equal(mergeLocalNotificationReviews(canonical, mixed, "account-a").length, 3);
+assert.deepEqual(localNotificationRecovery(canonical, mixed, "account-a"), localOnly);
+assert.equal(JSON.stringify(mixed), saved, "projection preserves every local field and identity");
+const later = [...canonical, { ...localOnly[0], id: "canonical-matched", event_ids: [localOnly[0].event_id, "archive-alias"], event_id: "archive-alias" }];
+assert.equal(mergeLocalNotificationReviews(later, mixed, "account-a").length, 4);
+assert.deepEqual(localNotificationRecovery(later, mixed, "account-a"), [localOnly[1]]);
+assert.equal(localNotificationRecovery([], mixed, "other-account").length, 0);
+assert.equal(localNotificationRecovery([], null, "account-a").length, 0);
+console.log("notification local ledger: canonical-only review, immutable recovery, exact alias convergence, receipts and account isolation PASS");

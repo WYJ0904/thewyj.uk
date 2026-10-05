@@ -1,7 +1,7 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20261005-p4-workspace-4";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261005-p4-workspace-4";
-import { mergeLocalNotificationLedger } from "./notification-ledger.js?v=20261005-p4-workspace-4";
-import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-workspace-4";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20261005-p4-pending-5";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261005-p4-pending-5";
+import { mergeLocalNotificationLedger } from "./notification-ledger.js?v=20261005-p4-pending-5";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-pending-5";
 const SCHEMA_VERSION = 1;
 const MAX_LOCAL_TRANSACTIONS = 5000;
 const MAX_PENDING_OPERATIONS = 500;

@@ -36,10 +36,8 @@ object PendingReviewReconciler {
         val localOnly = (localIds - pendingIds - terminalIds).size
         val remoteOnly = (remoteSummary.totalCount - overlap).coerceAtLeast(0)
         return Snapshot(
-            // The same stable-ID union is projected into Finance. Locally
-            // incomplete money remains actionable while its hint is offline.
-            // Booked transactions never belong to this review set.
-            total = remoteSummary.totalCount + localOnly,
+            // Local-only identities belong to recovery, outside the normal set.
+            total = remoteSummary.totalCount,
             local = (localIds - terminalIds).size,
             remote = remoteSummary.totalCount,
             overlap = overlap,

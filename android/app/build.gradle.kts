@@ -28,8 +28,8 @@ android {
         minSdk = 30
         targetSdk = 36
         // P4 workspace presentation; preserve package, data and signing identity.
-        versionCode = 42
-        versionName = "1.3.29"
+        versionCode = 43
+        versionName = "1.3.30"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "THEWYJ_BASE_URL", "\"$thewyjBaseUrl\"")
     }

@@ -39,7 +39,7 @@ class PendingReviewReconcilerTest {
 
         val result = PendingReviewReconciler.reconcile(local, remote)
 
-        assertEquals(5, result.total)
+        assertEquals(3, result.total)
         assertEquals(3, result.local)
         assertEquals(3, result.remote)
         assertEquals(1, result.overlap)
@@ -47,7 +47,23 @@ class PendingReviewReconcilerTest {
         assertEquals(1, result.unresolved)
         assertEquals(2, result.remoteOnly)
         assertTrue(result.complete)
-        assertEquals(remote.totalCount + result.localOnly, result.total)
+        assertEquals(remote.totalCount, result.total)
+        assertEquals(listOf("local-a", "local-b", "legacy-local"), local.map { it.recognitionId })
+        val matched = remote.copy(totalCount = 4, records = remote.records +
+            PendingReviewIdentity("hint", "now-matched", "event-local", "device-a"))
+        val converged = PendingReviewReconciler.reconcile(local, matched)
+        assertEquals(4, converged.total)
+        assertEquals(1, converged.localOnly)
+        assertEquals(2, converged.overlap)
+        assertEquals("", local.last().uploadEventId)
+    }
+
+    @Test fun emptyRemoteLeavesLegacyOnlyInRecovery() {
+        val local = listOf(recognition("legacy-a", ""), recognition("legacy-b", ""))
+        val result = PendingReviewReconciler.reconcile(local, summary())
+        assertEquals(0, result.total)
+        assertEquals(2, result.localOnly)
+        assertTrue(result.complete)
     }
 
     @Test

@@ -33,6 +33,33 @@ import uk.thewyj.app.task21.store.RoomNotificationStore
 class NotificationHubMainThreadTest {
     private val context: Context = RuntimeEnvironment.getApplication()
 
+    @Test fun completeCanonicalSummaryIsCurrentWithTwoIndependentRecoveryItems() {
+        val state = NotificationHubState(context, "canonical-recovery-account")
+        val rows = (1..3).map { uk.thewyj.app.core.network.PendingReviewIdentity("hint", "hint-$it", "event-$it", "device") }
+        val local = (1..2).map { uk.thewyj.app.task21.payment.PaymentRecognitionRecord(
+            "legacy-$it", "canonical-recovery-account", "WAITING_FOR_ENRICHMENT", it,
+            "com.example.pay", "NOTIFICATION", "source-$it", "", "wechat", null,
+            "CNY", "UNKNOWN", "", "", 1_000, 1_000) }
+        val summary = uk.thewyj.app.core.network.PendingReviewSummary("now", 3, 3, 0, false, rows)
+        state.applyPendingSummary(local, summary, true, 2, 2)
+        assertEquals(3, state.pendingPayments)
+        assertEquals(2, state.localOnlyPendingPayments)
+        assertTrue(state.pendingSyncCurrent)
+        assertTrue(local.all { it.uploadEventId.isEmpty() && it.recognitionId.startsWith("legacy-") })
+        state.applyPendingSummary(emptyList(), summary.copy(totalCount = 0, records = emptyList()), true, 2, 2)
+        assertEquals(0, state.pendingPayments)
+        assertEquals(2, state.localOnlyPendingPayments)
+        assertTrue(state.pendingSyncCurrent)
+        state.applyPendingSummary(emptyList(), summary, false, 2, 2)
+        assertEquals(3, state.pendingPayments)
+        assertFalse(state.pendingSyncCurrent)
+        state.applyPendingSummary(emptyList(), summary.copy(truncated = true), true, 2, 2)
+        assertFalse(state.pendingSyncCurrent)
+        state.applyPendingSummary(emptyList(), null, false, 2, 2)
+        assertFalse(state.pendingSyncCurrent)
+        assertEquals(2, state.localOnlyPendingPayments)
+    }
+
     @Test
     fun pendingPaymentRefreshNeverTouchesRoomOnTheMainThread() = runBlocking {
         val state = NotificationHubState(context, "main-thread-account")
