@@ -232,7 +232,7 @@ export async function openPage({ cdpUrl, baseUrl, width = 412, height = 915, mob
   const intercept = async (rules) => {
     for (const rule of rules) interceptRules.push(rule);
     await send("Fetch.enable", {
-      patterns: rules.map((rule) => ({ urlPattern: `*${rule.match}*`, requestStage: "Request" })),
+      patterns: interceptRules.map((rule) => ({ urlPattern: `*${rule.match}*`, requestStage: "Request" })),
     });
     return {
       setState: (state) => {

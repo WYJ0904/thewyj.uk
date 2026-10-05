@@ -76,7 +76,9 @@ changed. This is the only business-adjacent change in P4.
 fetching, persistence, matching, deduplication or terminal lifecycle decisions.
 Public/internal names, package, domain, persistent keys, schema and bridge IDs
 are unchanged. Asset cache version advances to `20261005-p4-workspace-1` and the
-new helper is included in the offline shell.
+new helper is included in the offline shell. The final browser asset release is
+`20261005-p4-workspace-2`, so the bounded multipart response correction is not
+hidden behind a previously cached preview bundle.
 
 ## Regression evidence and boundaries
 
@@ -90,6 +92,27 @@ The native isolated 125-row state test covers pagination, selection, details,
 pin, delete and subsequent refresh, preserving unaffected row objects.
 Android's initial local run has 510 tests, zero failures/errors/skips, plus
 successful lintDebug and assembleDebug. This is not frame pacing/device proof.
+
+CI exposed two test-infrastructure issues: old pinned cache-version assertions,
+and a missing-rubric failure fixture that only cleared memory while background
+learning sync could restore its imported standard meaning. The assertions now
+pin the new cache version; the fixture imports missing meaning durably, retaining
+all failure/recovery assertions. No grading behavior is changed.
+
+The file lifecycle CI also stalled with 12/13 parts acknowledged. Multipart IO
+now requires actual byte/state progress to reset the idle watchdog and bounds
+the acknowledgement phase after the request body is sent. Slow uploads with
+advancing bytes retain their existing idle policy; same URL/body/hash retries
+remain bounded and idempotent. The unit regression covers duplicate events and
+response events that would otherwise extend the acknowledgement wait. There
+is no change to part size, concurrency, SHA, API/storage layout or downloads.
+
+The Windows Wrangler dev proxy exited intermittently during repeated navigation.
+Settled-theme visual captures use an isolated static/legacy fixture gateway;
+their Finance/review/admin/empty-transfer responses are presentation fixtures.
+Earlier before/after upload measurements and the full Cloud-only CI still use
+Pages Functions, D1 and R2. This gateway is not a Production/security or device
+validation substitute.
 
 No migration is added or applied remotely. Production migration list reports no
 pending migrations. Read-only D1 baseline finds 99 transactions with 99 distinct

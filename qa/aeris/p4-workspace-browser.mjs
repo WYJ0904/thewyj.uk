@@ -51,6 +51,13 @@ async function installFixtures(page) {
     {match:'/api/notification/pending-summary',respond:()=>({body:{ok:true,records:pending,total_count:pending.length,truncated:false}})},
     {match:'/api/admin/users?',respond:({url})=>{const params=new URL(url).searchParams,p=Number(params.get('page')||1),query=params.get('q')||params.get('query')||'';const users=Array.from({length:30},(_,i)=>({id:`p4-user-${(p-1)*30+i}`,username:`P4 safe user ${(p-1)*30+i}`,role:'user',is_admin:false,is_super_admin:false,banned:false,registered_at:new Date().toISOString(),entitlements:['tools_access'],memberships:[]}));return{body:{ok:true,users,total:160,page:p,limit:30,has_more:p<6,query,match:'partial'}};}},
   ]);
+  if (visualOnly) await page.intercept([
+    // Visual-only runs may use an isolated static/legacy gateway when the
+    // Windows Wrangler dev proxy exits. Real transfer performance/integrity
+    // remains measured separately against Pages D1/R2 and in Core CI.
+    {match:'/api/transfer/capabilities',respond:()=>({body:{ok:true,stored_bytes:0,reserved_bytes:0,used_bytes:0,storage_limit_bytes:5*1024**3,authenticated:true}})},
+    {match:'/api/transfer/shares',respond:()=>({body:{ok:true,shares:[]}})},
+  ]);
 }
 async function screenshot(page,name) {
   await page.evaluate("(async()=>{await Promise.all(document.getAnimations().filter(a=>a.playState==='running' && a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));return true;})()");
