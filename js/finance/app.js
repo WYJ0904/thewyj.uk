@@ -653,8 +653,10 @@ export function createFinanceController({
       for (const item of Object.values(serverTransactions)) mergeServerEntity("transaction", item);
       store.hydrated = true;
       store.notification_identity_hydrated = true;
+      // Only a completed snapshot may advance to the bootstrap watermark.
+      // A cheap count refresh must not skip edits/deletes in the change feed.
+      store.server_version = Math.max(store.server_version, Number(bootstrap.server_version || 0));
     }
-    store.server_version = Math.max(store.server_version, Number(bootstrap.server_version || 0));
   }
 
   async function pullChanges() {
