@@ -75,9 +75,8 @@ changed. This is the only business-adjacent change in P4.
 `reconcileKeyedRows` is a small DOM presentation helper. It does not own data,
 fetching, persistence, matching, deduplication or terminal lifecycle decisions.
 Public/internal names, package, domain, persistent keys, schema and bridge IDs
-are unchanged. Asset cache version advances to `20261005-p4-workspace-1` and the
-new helper is included in the offline shell. The final browser asset release is
-`20261005-p4-workspace-2`, so the bounded multipart response correction is not
+are unchanged. The new helper is included in the offline shell. The final browser asset release is
+`20261005-p4-workspace-4`, so the bounded multipart response correction is not
 hidden behind a previously cached preview bundle.
 
 ## Regression evidence and boundaries

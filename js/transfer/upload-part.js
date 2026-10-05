@@ -37,7 +37,7 @@ export async function putPartWithRecovery({
           // Slow but progressing uploads retain the idle policy. Once the body
           // is sent, response events cannot extend the acknowledgement budget.
           acknowledgementTimer = setTimeout(() => {
-            finish(Object.assign(new Error("分片已发送，但服务器尚未确认，正在重试。"), {code:"part_ack_timeout",retryable:true}));
+            finish(Object.assign(new Error("分片已发送，但服务器尚未确认，请继续上传。"), {code:"part_ack_timeout",retryable:true}));
             xhr.abort();
           }, acknowledgementTimeoutMs);
         };

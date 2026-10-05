@@ -1,7 +1,7 @@
-import { mergeLocalNotificationReviews } from "./notification-ledger.js?v=20261005-p4-workspace-3";
-import { randomId } from "../core/capabilities.js?v=20261005-p4-workspace-3";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261005-p4-workspace-3";
-import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-workspace-3";
+import { mergeLocalNotificationReviews } from "./notification-ledger.js?v=20261005-p4-workspace-4";
+import { randomId } from "../core/capabilities.js?v=20261005-p4-workspace-4";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261005-p4-workspace-4";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261005-p4-workspace-4";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -9,7 +9,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20261005-p4-workspace-3";
+} from "../core/perf.js?v=20261005-p4-workspace-4";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -245,7 +245,7 @@ export function createFinanceCandidatesController({
         </div>
         <div class="finance-candidate-actions">
           ${presentation.missing.length ? `<button class="primary" type="button" data-finance-candidate-verify="${escapeHtml(id)}" ${busy ? "disabled" : ""}>核实交易</button>` : ""}
-          <button ${presentation.missing.length ? 'class="button-ghost"' : ''} type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${presentation.missing.length ? "手动补全" : presentation.primaryAction}</button>
+          <button ${presentation.missing.length ? 'class="button-ghost"' : ''} type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${presentation.primaryAction}</button>
           <button class="button-ghost" type="button" data-finance-candidate-edit="${escapeHtml(id)}" ${busy ? "disabled" : ""}>编辑</button>
           <button class="danger-text" type="button" data-finance-candidate-reject="${escapeHtml(id)}" ${busy ? "disabled" : ""}>忽略</button>
           <small>忽略只关闭这条候选，不会撤销实际支付。</small>

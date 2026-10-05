@@ -4,8 +4,8 @@ import {
   BACKEND_NETWORK_MESSAGE,
   GET_RETRYABLE_STATUS,
   STATUS_RETRY_BASE_DELAYS_MS,
-} from "./config.js?v=20261005-p4-workspace-3";
-import { accountSessionHeaders } from "./session.js?v=20261005-p4-workspace-3";
+} from "./config.js?v=20261005-p4-workspace-4";
+import { accountSessionHeaders } from "./session.js?v=20261005-p4-workspace-4";
 
 export const CANONICAL_SESSION_ERROR_CODES = new Set([
   "authentication_required",
