@@ -52,7 +52,7 @@ branch assets are substituted before publication. No raw payloads are logged.
   Repeated serial permission reads are freshness checks; no permission, finance,
   membership or share/revoke TTL cache was added to conceal them.
 
-## Preliminary comparison
+## Measured comparison
 
 | Measure | Immutable P4 base | P5 working implementation |
 | --- | ---: | ---: |
@@ -69,12 +69,29 @@ branch assets are substituted before publication. No raw payloads are logged.
 | Numeric upload queue root rewrites | 0 | 0 |
 | Both download SHA-256 round trips | PASS | PASS |
 | Active global intervals / observers | 1 / 2 | 1 / 2 |
+| Authenticated 1366px scripting / style / layout (ms, one cycle sample) | 88 / 231 / 154 | 59 / 157 / 107 |
+| Authenticated 1366px JS heap after cycle (bytes, without forced GC) | 6,344,460 | 5,056,184 |
 
 Authenticated home still loads owners needed to display its cached summaries;
 resource counts there are not claimed lower. Baseline/final cold startup,
 trusted first interaction, raw CDP script/style/layout/heap and route samples
 are in the JSON artifacts. Settled-ready includes test settle and is not touch
 latency. No overall hash throughput or WAN transfer improvement is claimed.
+Trusted desktop input-to-second-frame samples are 4.6–8.5 ms before and
+3.9–8.5 ms after; they are not physical touchscreen latency. One 390px guest
+cold sample rose from 1,746 to 1,917 ms, while the repeated identical comparison
+was 1,457 to 1,430 ms. Cold startup has variance; no universal startup speedup
+is claimed. JSON parse counts did not decrease in authenticated route cycles.
+
+Actual Samsung WebView comparison used verified 60/120 Hz display modes and
+actual native navigation/scroll gestures, with Production APIs unchanged.
+Home connected/hidden elements fell from 4,756/3,928 to 3,142/2,316. Canonical
+3 and recovery 2 were retained in all four samples. At 60 Hz p95/p99 were
+12/17 ms before and 11/13 ms after; Android jank counters were 43/119 and
+66/130, with 8.333 ms deadlines in the 60 Hz profile. At 120 Hz they were
+3/232 and 3/251, p95/p99 10/11 and 10/13 ms. No sampled frame exceeded 100 ms
+or 700 ms. These counters do not establish universally improved scroll jank.
+The original adaptive display setting was restored after comparison.
 
 ## Regression and gates (in progress)
 
@@ -84,9 +101,18 @@ tools, workflow deep link, parked node identity, candidate draft and no runtime
 errors. P1/P2/P3.3 and P4 browser regressions passed. 390/1366/1920 light/dark
 nine-workspace before/after matrix passed without horizontal overflow.
 
-Android inputs have no changes. Local full 512 tests/lintDebug/assembleDebug
-passed after a no-cache rerun corrected missing cached class outputs. The
-existing signed 1.3.30/43 binary remains applicable; no debug APK is installed.
+Initial Android inputs were unchanged and 512 tests/lintDebug/assembleDebug
+passed. Required fresh physical WebView file interaction then exposed an
+existing 1.3.30/43 defect: three selected SAF files delivered no change event,
+while single selection worked. This was reproduced using immutable P4 static
+assets, not attributed to lazy loading. The callback now explicitly reads
+ClipData before the existing single-file parser fallback. URI order and identity
+are retained and the existing content-provider-only filter remains enforced.
+Three meaningful JVM cases cover multiple URIs, fallback and unsafe URI rejection.
+The resulting full 515 tests/lintDebug/assembleDebug and signed assembleRelease
+passed. A new Production-base 1.3.31/44 candidate uses the existing release
+certificate; no debug APK is installed. Metadata and all Wrangler environments
+are advanced together, without publishing during candidate verification.
 Current working device comparison preserved canonical 3 and recovery 2.
 Final CI, device, publication and closure are recorded separately when complete.
 

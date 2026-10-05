@@ -1,6 +1,21 @@
 (() => {
   const entries = [
 {
+  "version": "1.3.31",
+  "build": "2026-10-06-aeris-p5-performance-1.3.31",
+  "date": "2026-10-06",
+  "title": "Aeris 工作区性能与文件多选",
+  "features": [],
+  "improvements": [
+    "按需加载工作区和目录，减少隐藏列表与相同持久化写入。",
+    "大文件 MD5 移到后台计算，保持算法和完整性校验。"
+  ],
+  "fixes": [
+    "Android WebView 多选文件完整接收 SAF ClipData，保留原 URI 和顺序。"
+  ],
+  "security": []
+},
+{
   "version": "1.3.30",
   "build": "2026-10-05-aeris-p4-canonical-1.3.30",
   "date": "2026-10-05",

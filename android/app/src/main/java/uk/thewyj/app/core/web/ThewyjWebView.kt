@@ -92,10 +92,18 @@ fun ThewyjWebView(
         val callback = pendingFileSelection.value
         pendingFileSelection.value = null
         val selected = if (result.resultCode == Activity.RESULT_OK) {
-            WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data)
-                ?.filter { it.scheme == "content" }
-                ?.toTypedArray()
-                ?.takeIf { it.isNotEmpty() }
+            val clip = result.data?.clipData
+            val clipUris = clip?.let { data ->
+                (0 until data.itemCount).mapNotNull { data.getItemAt(it).uri?.toString() }
+            }.orEmpty()
+            val parsedUris = if (clipUris.isEmpty()) {
+                WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data)
+                    ?.map { it.toString() }.orEmpty()
+            } else emptyList()
+            chooseWebFileUris(clipUris, parsedUris)
+                .map(Uri::parse)
+                .toTypedArray()
+                .takeIf { it.isNotEmpty() }
         } else null
         callback?.onReceiveValue(selected)
     }
