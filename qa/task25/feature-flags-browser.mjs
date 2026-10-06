@@ -45,6 +45,15 @@ for (const width of [390, 1366]) {
     assert.ok(await page.evaluate(`document.getElementById('featureFlagAudit').textContent.includes(${JSON.stringify(flagKey)})`));
     assert.ok(await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 1'));
 
+    const target = path.resolve('artifacts/task25'); fs.mkdirSync(target, { recursive: true });
+    const adminScreenshot = await page.send('Page.captureScreenshot', { format: 'png' });
+    fs.writeFileSync(path.join(target, `feature-console-${width}.png`), Buffer.from(adminScreenshot.data, 'base64'));
+    // An active harmless fixture proves that losing connectivity actually closes a decision.
+    await page.click('#featureFlagKillSwitch');
+    await page.click('#featureChannel_stable');
+    await page.click('#saveFeatureFlagBtn');
+    await page.waitFor("document.getElementById('featureConsoleStatus').textContent === '设置已保存' && !document.getElementById('saveFeatureFlagBtn').disabled");
+
     // Account preferences are server confirmed and cannot change the formal APK.
     await page.click('#accountBtn');
     await page.waitFor("!document.getElementById('releaseChannelSection').classList.contains('hidden') && !document.getElementById('saveReleaseChannelBtn').disabled");
@@ -55,16 +64,16 @@ for (const width of [390, 1366]) {
       const server = await page.evaluate(`fetch('/api/release-channel', { headers: { 'X-Session-Token': localStorage.getItem('wyjAccountSession') } }).then(r => r.json())`);
       assert.equal(server.channel, channel);
     }
-    assert.equal(await page.evaluate(`window.AerisFeatures.enabled(${JSON.stringify(flagKey)})`), false);
+    await page.click('#refreshReleaseChannelBtn');
+    await page.waitFor(`window.AerisFeatures.enabled(${JSON.stringify(flagKey)}) === true`);
     await page.send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
     await page.waitFor(`window.AerisFeatures.enabled(${JSON.stringify(flagKey)}) === false`);
     await page.send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
     await page.click('#refreshReleaseChannelBtn');
     await page.waitFor("!document.getElementById('saveReleaseChannelBtn').disabled");
-    assert.equal(await page.evaluate(`window.AerisFeatures.enabled(${JSON.stringify(flagKey)})`), false);
+    await page.waitFor(`window.AerisFeatures.enabled(${JSON.stringify(flagKey)}) === true`);
     assert.deepEqual(page.runtimeErrors, []);
     const screenshot = await page.send('Page.captureScreenshot', { format: 'png' });
-    const target = path.resolve('artifacts/task25'); fs.mkdirSync(target, { recursive: true });
     fs.writeFileSync(path.join(target, `feature-channels-${width}.png`), Buffer.from(screenshot.data, 'base64'));
     results.push({ width, adminCreate: true, zeroPercent: true, userOverride: true, killSwitch: true,
       channelPersistence: true, xssSafe: true, noOverflow: true, offlineRecovery: true });

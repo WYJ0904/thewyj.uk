@@ -32,17 +32,17 @@ Historical Windows artifact paths are not cloud prerequisites. GitHub source, cl
 
 | Capability | Actual observation |
 | --- | --- |
-| GitHub clone/read/write | Clone/read work; linked account reports repository admin/push permission; branch push/PR still to exercise |
+| GitHub clone/read/write | Clone/read and REST Git-object fast-forward writes work; draft [PR #96](https://github.com/WYJ0904/thewyj.uk/pull/96) created |
 | Actions / PR | API and logs readable; Core CI and signed candidate workflows exist |
 | Repository secrets | `gh secret list` returns HTTP 403 `Resource not accessible by integration`; secret names/values cannot be enumerated |
-| Signing CI | Prior signed-candidate run [35616140542](https://github.com/WYJ0904/thewyj.uk/actions/runs/35616140542) failed at Validate signing secrets; fresh candidate run still required |
+| Signing CI | Fresh Task 25 run [37505069396](https://github.com/WYJ0904/thewyj.uk/actions/runs/37505069396) failed at Validate signing secrets: `THEWYJ_ANDROID_KEYSTORE_B64` missing; CI discovery proves all four required signing secrets absent |
 | Cloudflare | Pinned Wrangler 4.118.0 installed via npm; `wrangler whoami` reports not authenticated; no configured Cloudflare runtime credential |
 | Existing infrastructure | Pages project `thewyj-uk`; preserve existing Pages/D1/R2 deployment system |
 | Preview | D1 `wyj-cloud-preview` / `a3e6253b-689f-49f3-998b-7c5828ea255a`; R2 `wyj-cloud-preview` |
 | Production | D1 `wyj-cloud-production` / `11c288d8-c584-409f-bb1f-7e7af11793e5`; R2 `wyj-cloud-production` |
 | Production read access | Public app config is HTTP 200 using curl; initial Python urllib request was 403, so that client failure does not establish a Production outage |
-| Android | Project/wrapper present; JDK 21 available; installing SDK 36/build-tools 36.0.0 in cloud workspace |
-| Gradle | Wrapper 9.4.1; downloading distribution |
+| Android | SDK 36/build-tools 36.0.0/platform-tools installed; complete Temurin JDK 21 installed because original Java runtime lacked javac |
+| Gradle | Wrapper 9.4.1 installed and exercised; 520 JVM tests PASS (76 XML suites), full lint/build continuing |
 | Signing locally | Existing environment-based signing config preserved; no local release signing credentials configured |
 | Instrumentation | No `/dev/kvm` or physical Samsung attached; compile instrumentation and execute feasible JVM/browser checks |
 
@@ -68,7 +68,7 @@ Planned gates:
 ## Current blockers and device boundary
 
 - Cloudflare deployment/D1/R2 administration currently lacks authenticated runtime credentials; actual remote operations will be tested, not assumed unavailable.
-- Signing secrets and workflow dispatch authorization must be tested on this task's candidate.
+- Workflow dispatch works. Fresh signing workflow and CI discovery prove required signing credentials absent; release signing is blocked without changing the Stable identity.
 - Physical acceptance is NOT EXECUTED: current Stable → candidate in-place Samsung upgrade; final signature/install compatibility; Back/Resume; actual Samsung WebView; real offline/recovery; haptic/system permissions. These remain separate from software checks.
 
 Resume by reading this file, git status/log, main HEAD, open PR and Actions results. Continue from completed gates; do not repeat predecessors or advance Task 26.
@@ -90,4 +90,8 @@ Git HTTPS push failed (401); exact local Git objects/commits are uploaded throug
 
 Actual Pages project listing, remote Production D1 inspection and remote R2 object access each reject the operation because `CLOUDFLARE_API_TOKEN` is absent. No temporary account, parallel deployment, Production migration or R2 write is used. A CI credential-presence job and the existing signed-candidate workflow will test repository/CI credentials separately; absence in the cloud shell is not treated as proof about GitHub Secrets.
 
-Remaining: full Android acceptance, actual browser acceptance, candidate 1.3.34/47 packaging, GitHub CI/emulator, fresh signing workflow and remote deployment gates. Physical Samsung acceptance remains NOT EXECUTED.
+Actual Chromium Pages acceptance PASS at 390/1366px. GitHub PR #96 is draft. Initial Core CI [37505064825](https://github.com/WYJ0904/thewyj.uk/actions/runs/37505064825) found the emulator job's `sdkmanager` PATH error; repaired by resolving the runner's installed SDK tool explicitly, matching the existing Android build job. No failing product assertion was removed.
+
+CI credential discovery completed successfully and its artifact/log proves all six standard Cloudflare/signing bindings are absent. The discovery job being green means the check ran, **not** that remote Preview or deployment passed. Repository environments are empty; secrets enumeration remains 403. Authoritative machine-readable discovery evidence is stored under `docs/task25/evidence/`.
+
+Remaining: complete lint/build, candidate 1.3.34/47 packaging, final Core CI/emulator, closure and remote deployment gates. Physical Samsung acceptance remains NOT EXECUTED. Remote Cloudflare and signed build blockers are additional to the device boundary, so the device-only SOFTWARE PASS formula cannot yet be used.

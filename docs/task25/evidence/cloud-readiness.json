@@ -1,0 +1,16 @@
+{
+  "credential_presence": {
+    "CLOUDFLARE_API_TOKEN": false,
+    "CLOUDFLARE_ACCOUNT_ID": false,
+    "THEWYJ_ANDROID_KEYSTORE_B64": false,
+    "THEWYJ_ANDROID_KEYSTORE_PASSWORD": false,
+    "THEWYJ_ANDROID_KEY_ALIAS": false,
+    "THEWYJ_ANDROID_KEY_PASSWORD": false
+  },
+  "cloud_credentials_configured": false,
+  "signing_credentials_configured": false,
+  "remote_preview": "BLOCKED_MISSING_CREDENTIALS",
+  "production_migration": "NOT_EXECUTED",
+  "production_deployment": "NOT_EXECUTED",
+  "stable_pointer_changed": false
+}
