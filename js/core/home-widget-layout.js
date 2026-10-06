@@ -67,7 +67,7 @@ export function layoutHomeWidgets(config,stage,sizes,priority='') {
 export const MOBILE_WIDGET_SIZES=Object.freeze({small:{width:222,height:144},medium:{width:272,height:188},large:{width:312,height:242}});
 /** Independent flow slots. No desktop coordinates, scaling, drag or global canvas. */
 export function layoutMobileWidgets(config,stageWidth,sizes=MOBILE_WIDGET_SIZES) {
-  const padding=Math.min(12,Math.max(4,stageWidth*.035)),verticalRoom=24;
+  const padding=Math.min(12,Math.max(4,stageWidth*.035)),verticalRoom=16;
   return Object.fromEntries(Object.entries(config).map(([id,item])=>{
     const preferred=sizes[item.size],angle=Math.abs(item.rotation)*Math.PI/180;
     const width=Math.max(1,Math.floor(Math.min(preferred.width,(stageWidth-2*padding-preferred.height*Math.sin(angle))/Math.cos(angle))));
