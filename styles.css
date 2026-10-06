@@ -3370,3 +3370,14 @@ textarea::placeholder {
     transition-duration: 100ms;
   }
 }
+
+/* Task 25: forms stay inside existing admin/account surfaces. */
+.feature-console form { display: grid; gap: 12px; margin-block: 20px; max-width: 640px; }
+.feature-console label { display: grid; gap: 6px; }
+.feature-console .action-row label { display: flex; align-items: center; gap: 8px; }
+.feature-console input:not([type=checkbox]), .feature-console select, .feature-console textarea, #releaseChannelSelect { min-height: 44px; width: 100%; max-width: 100%; }
+.feature-console input[type=checkbox] { width: 20px; height: 20px; }
+.feature-console fieldset { min-width: 0; }
+.feature-console pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow: auto; }
+#releaseChannelSection { padding-block: 12px; }
+#releaseChannelSection .action-row { flex-wrap: wrap; margin-block: 12px; }

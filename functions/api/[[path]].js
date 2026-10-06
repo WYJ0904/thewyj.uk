@@ -9,6 +9,7 @@ import { handleTask18Request } from "../_lib/task18-api.mjs";
 import { handleTask20Request } from "../_lib/task20-api.mjs";
 import { handleTask21Request } from "../_lib/task21-api.mjs";
 import { handleTask22Request } from "../_lib/task22-api.mjs";
+import { handleTask25Request } from "../_lib/task25-api.mjs";
 import { handleTtsRequest } from "../_lib/tts-api.mjs";
 import { resolveTask12Account } from "../_lib/task12-auth.mjs";
 import { recordAdminAction } from "../_lib/task18-service.mjs";
@@ -75,6 +76,7 @@ export async function onRequest(context) {
   const response = await handleTask12Request(context)
     || await handleTask20Request(context)
     || await handleTask18Request(context)
+    || await handleTask25Request(context)
     || await handleTask21Request(context)
     || await handleTask22Request(context)
     || await handleTtsRequest(context)

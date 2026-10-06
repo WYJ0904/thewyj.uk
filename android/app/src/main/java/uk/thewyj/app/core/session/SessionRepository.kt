@@ -17,6 +17,8 @@ import uk.thewyj.app.core.network.AppConfig
 import uk.thewyj.app.core.web.WebSessionController
 import uk.thewyj.app.core.web.WebSessionException
 import java.util.UUID
+import uk.thewyj.app.core.features.FeatureSnapshot
+import uk.thewyj.app.core.features.ReleaseChannel
 
 class SessionRepository(
     private val store: CredentialStore,
@@ -99,6 +101,16 @@ class SessionRepository(
     }
 
     suspend fun appConfig(): ApiCall<AppConfig> = api.appConfig()
+
+    suspend fun featureSnapshot(): ApiCall<FeatureSnapshot> {
+        val credentials = store.loadActive() ?: return ApiCall.Failure("authentication_required", "请先登录", ApiFailureKind.AUTHENTICATION)
+        return api.featureSnapshot(credentials.accessToken, credentials.account.id)
+    }
+
+    suspend fun setReleaseChannel(channel: ReleaseChannel, revision: Int): ApiCall<FeatureSnapshot> {
+        val credentials = store.loadActive() ?: return ApiCall.Failure("authentication_required", "请先登录", ApiFailureKind.AUTHENTICATION)
+        return api.setReleaseChannel(credentials.accessToken, credentials.account.id, channel, revision)
+    }
 
     private suspend fun verifyLocked(credentials: DeviceCredentials): RefreshWorkResult {
         webSession.installAccessCookie(credentials.accessToken, credentials.accessExpiresAtEpochMs)

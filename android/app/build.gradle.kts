@@ -30,6 +30,16 @@ android {
         // P4 workspace presentation; preserve package, data and signing identity.
         versionCode = 46
         versionName = "1.3.33"
+        // Candidate overrides do not advance committed Stable metadata or pointers.
+        val candidateCode = providers.gradleProperty("THEWYJ_CANDIDATE_VERSION_CODE").orNull
+        val candidateName = providers.gradleProperty("THEWYJ_CANDIDATE_VERSION_NAME").orNull
+        if (candidateCode != null || candidateName != null) {
+            require(candidateCode != null && candidateName != null)
+            require(candidateCode.toInt() > requireNotNull(versionCode))
+            require(candidateName.matches(Regex("[0-9]+(\\.[0-9]+){2,3}")))
+            versionCode = candidateCode.toInt()
+            versionName = candidateName
+        }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "THEWYJ_BASE_URL", "\"$thewyjBaseUrl\"")
     }
@@ -76,6 +86,8 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
+    sourceSets.getByName("test").resources.directories.add("../../qa/task25")
+    sourceSets.getByName("androidTest").assets.directories.add("../../qa/task25")
 
     packaging {
         resources.excludes += setOf(

@@ -1,0 +1,488 @@
+{
+  "now_ms": 1791288000000,
+  "cases": [
+    {
+      "name": "server_on",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": true,
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": true,
+      "expected_enabled": true
+    },
+    {
+      "name": "server_off",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": false,
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": true,
+      "expected_enabled": false
+    },
+    {
+      "name": "stable",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "stable",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": false,
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": true,
+      "expected_enabled": false
+    },
+    {
+      "name": "beta",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "beta",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": true,
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": true,
+      "expected_enabled": true
+    },
+    {
+      "name": "wrong_account",
+      "account_id": "another-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": true,
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": false,
+      "expected_enabled": false
+    },
+    {
+      "name": "anonymous",
+      "account_id": "",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": true,
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": false,
+      "expected_enabled": false
+    },
+    {
+      "name": "expired",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:00.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": true,
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": false,
+      "expected_enabled": false
+    },
+    {
+      "name": "malformed_expiry",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "not-a-date",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": true,
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": false,
+      "expected_enabled": false
+    },
+    {
+      "name": "unknown_channel",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "canary",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": true,
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": false,
+      "expected_enabled": false
+    },
+    {
+      "name": "future_schema",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 2,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": true,
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": false,
+      "expected_enabled": false
+    },
+    {
+      "name": "coerced_boolean",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": "true",
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": false,
+      "expected_enabled": false
+    },
+    {
+      "name": "null_boolean",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": null,
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": false,
+      "expected_enabled": false
+    },
+    {
+      "name": "coerced_revision",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": true,
+            "reason": "user_override",
+            "revision": "3"
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": false,
+      "expected_enabled": false
+    },
+    {
+      "name": "zero_revision",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": true,
+            "reason": "user_override",
+            "revision": 0
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": false,
+      "expected_enabled": false
+    },
+    {
+      "name": "coerced_channel_revision",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": "2",
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": true,
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": false,
+      "expected_enabled": false
+    },
+    {
+      "name": "unbounded_ttl",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": 31,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": true,
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": false,
+      "expected_enabled": false
+    },
+    {
+      "name": "missing_ttl",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": null,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": true,
+            "reason": "user_override",
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": false,
+      "expected_enabled": false
+    },
+    {
+      "name": "missing_flags",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": null
+      },
+      "valid": false,
+      "expected_enabled": false
+    },
+    {
+      "name": "missing_reason",
+      "account_id": "task25-contract-user",
+      "snapshot": {
+        "schema_version": 1,
+        "account_id": "task25-contract-user",
+        "channel": "experimental",
+        "channel_revision": 2,
+        "max_age_seconds": 30,
+        "expires_at": "2026-10-06T12:00:30.000Z",
+        "flags": {
+          "aeris_experimental_badge": {
+            "enabled": true,
+            "reason": null,
+            "revision": 3
+          },
+          "task25_validation": {
+            "enabled": false,
+            "reason": "global_off",
+            "revision": 1
+          }
+        }
+      },
+      "valid": false,
+      "expected_enabled": false
+    }
+  ]
+}

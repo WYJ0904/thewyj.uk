@@ -72,3 +72,22 @@ Planned gates:
 - Physical acceptance is NOT EXECUTED: current Stable → candidate in-place Samsung upgrade; final signature/install compatibility; Back/Resume; actual Samsung WebView; real offline/recovery; haptic/system permissions. These remain separate from software checks.
 
 Resume by reading this file, git status/log, main HEAD, open PR and Actions results. Continue from completed gates; do not repeat predecessors or advance Task 26.
+
+## Software implementation checkpoint
+
+The additive `0024` migration, server evaluator, audited admin API/UI, account channel UI, native memory-only consumer and shared contract vectors are implemented. Global OFF, kill switch and excluded channels cannot be bypassed by a user override. Configuration revisions prevent lost writes; a transaction nonce prevents a losing override write from using the winner's revision.
+
+Validated in cloud so far:
+
+- D1/API: 12 acceptance groups, including genuine synthetic Android device-session access, WebView cookie and browser token producing the same canonical evaluation; rate limits, CSRF, isolation, concurrency, audit and migration replay.
+- Web/native shared vectors: 19 cases; Web parser PASS, Android JVM/runtime checks queued.
+- Local isolated Pages/D1/R2 migration: all 24 files applied; never Production D1.
+- Initial Kotlin compilation PASS. Full Gradle tests/lint/build now use a downloaded complete JDK 21; the environment's original Java runtime lacked `javac`.
+- Stable metadata: all 36 consistency checks PASS. Complete public Stable download and certificate verified: SHA `17da079bc7428dc87b1b0b2141ca011f6297101fba3a5d2cc6bbac3fe289048c`, certificate `2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03`.
+- Web generation: `20261006-task25-flags-1`; added modules are precached. Business-module edits outside Task 25 are generation strings only.
+
+Git HTTPS push failed (401); exact local Git objects/commits are uploaded through the authenticated GitHub REST Git API, with a fast-forward and expected-head check. This preserves commit SHAs and avoids a local-only handoff.
+
+Actual Pages project listing, remote Production D1 inspection and remote R2 object access each reject the operation because `CLOUDFLARE_API_TOKEN` is absent. No temporary account, parallel deployment, Production migration or R2 write is used. A CI credential-presence job and the existing signed-candidate workflow will test repository/CI credentials separately; absence in the cloud shell is not treated as proof about GitHub Secrets.
+
+Remaining: full Android acceptance, actual browser acceptance, candidate 1.3.34/47 packaging, GitHub CI/emulator, fresh signing workflow and remote deployment gates. Physical Samsung acceptance remains NOT EXECUTED.

@@ -6,6 +6,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import uk.thewyj.app.BuildConfig
+import uk.thewyj.app.core.features.FeatureSnapshot
+import uk.thewyj.app.core.features.ReleaseChannel
 import uk.thewyj.app.core.auth.AccountSnapshot
 import uk.thewyj.app.core.auth.DeviceCredentials
 import java.io.IOException
@@ -209,6 +211,10 @@ interface AccountApi {
     suspend fun currentAccount(accessToken: String): ApiCall<AccountSnapshot>
     suspend fun logout(refreshToken: String, accessToken: String, deviceId: String): ApiCall<Unit>
     suspend fun appConfig(): ApiCall<AppConfig>
+    suspend fun featureSnapshot(accessToken: String, accountId: String): ApiCall<FeatureSnapshot> =
+        ApiCall.Failure("task25_disabled", "体验通道服务尚未启用", ApiFailureKind.RETRYABLE)
+    suspend fun setReleaseChannel(accessToken: String, accountId: String, channel: ReleaseChannel, revision: Int): ApiCall<FeatureSnapshot> =
+        ApiCall.Failure("task25_disabled", "体验通道服务尚未启用", ApiFailureKind.RETRYABLE)
 
     /** Number of backend payment candidates waiting for review. */
     suspend fun pendingCandidateCount(accessToken: String): ApiCall<Int>
@@ -313,6 +319,17 @@ class ThewyjApiClient(
             )
         }
     }
+
+    override suspend fun featureSnapshot(accessToken: String, accountId: String): ApiCall<FeatureSnapshot> =
+        request(path = "/api/features", method = "GET", accessToken = accessToken).map {
+            requireNotNull(FeatureSnapshot.fromJson(it.getJSONObject("snapshot"), accountId))
+        }
+
+    override suspend fun setReleaseChannel(accessToken: String, accountId: String, channel: ReleaseChannel, revision: Int): ApiCall<FeatureSnapshot> =
+        request(path = "/api/release-channel", method = "POST", accessToken = accessToken,
+            body = JSONObject().put("channel", channel.wireValue).put("expected_revision", revision)).map {
+            requireNotNull(FeatureSnapshot.fromJson(it.getJSONObject("snapshot"), accountId))
+        }
 
     override suspend fun pendingCandidateCount(accessToken: String): ApiCall<Int> {
         return pendingReviewSummary(accessToken).map { it.totalCount }
