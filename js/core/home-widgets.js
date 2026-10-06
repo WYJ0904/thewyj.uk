@@ -183,13 +183,14 @@ export function createHomeWidgets({ root, accountId, navigate, storage = getSafe
     if(!draft)return;draft[edited]=sanitizeHomeWidgets({version:1,[edited]:{size:form.elements.size.value,rotation:form.elements.rotation.value,x:Number(form.elements.x.value)/100,y:Number(form.elements.y.value)/100,contentMode:form.elements.contentMode.value}})[edited];
     text(form.querySelector("output"),`${draft[edited].rotation}°`);apply(edited);
   });
-  form.addEventListener("submit",event=>{event.preventDefault();config=draft;draft=null;persist();dialog.close();apply();});
+  form.addEventListener("submit",event=>{event.preventDefault();if(!dialog.open||!draft)return;config=sanitizeHomeWidgets(draft);draft=null;persist();dialog.close();apply();});
   form.addEventListener("click",event=>{
     if(event.target.closest("[data-widget-reset]")){draft[edited]={...defaults[edited]};fillEditor();apply(edited);}
     if(event.target.closest("[data-widget-angle-reset]")){draft[edited].rotation=defaults[edited].rotation;fillEditor();apply(edited);}
     if(event.target.closest("[data-widget-cancel]"))dialog.close();
   });
-  dialog.addEventListener("close",()=>{draft=null;edited="";apply();});
+  // close is queued: an older dialog session must not clear a newly opened draft.
+  dialog.addEventListener("close",()=>{if(dialog.open)return;draft=null;edited="";apply();});
   const resize=()=>{desktop=isHomeWidgetDesktop(view.innerWidth);cancelGesture();apply();if(draft)fillEditor();};
   view.addEventListener("resize",resize);
   let observedWidth=-1,observedHeight=-1;
