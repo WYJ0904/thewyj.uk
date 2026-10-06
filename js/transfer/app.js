@@ -1,10 +1,10 @@
-import { randomId } from "../core/capabilities.js?v=20261006-p5-architecture-4";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261006-p5-architecture-4";
-import { getSafeStorage } from "../core/storage.js?v=20261006-p5-architecture-4";
-import { withInteractionFeedback } from "../core/perf.js?v=20261006-p5-architecture-4";
-import { createTransferUpdateScheduler } from "./updates.js?v=20261006-p5-architecture-4";
-import { putPartWithRecovery } from "./upload-part.js?v=20261006-p5-architecture-4";
-import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261006-p5-architecture-4";
+import { randomId } from "../core/capabilities.js?v=20261006-p6-closure-1";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261006-p6-closure-1";
+import { getSafeStorage } from "../core/storage.js?v=20261006-p6-closure-1";
+import { withInteractionFeedback } from "../core/perf.js?v=20261006-p6-closure-1";
+import { createTransferUpdateScheduler } from "./updates.js?v=20261006-p6-closure-1";
+import { putPartWithRecovery } from "./upload-part.js?v=20261006-p6-closure-1";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261006-p6-closure-1";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -332,6 +332,12 @@ export function transferItemAction(item) {
   return "none";
 }
 
+/** Pause is an intent flag even after interrupted PUTs settle to pending. */
+export function transferItemStatusLabel(item) {
+  if (item?.paused && !["done", "cancelled"].includes(item.status)) return "已暂停";
+  return { pending: "等待上传", uploading: "上传中", paused: "已暂停", done: "上传完成", error: "上传失败", cancelled: "已取消" }[item?.status] || "准备中";
+}
+
 /** Ids of the queue items a session was opened for. */
 export function sessionBatchIds(queue) {
   return (Array.isArray(queue) ? queue : [])
@@ -558,7 +564,7 @@ export function createTransferController({
               : "";
         return `<article class="transfer-item" data-transfer-item="${escapeHtml(item.id)}">
           <div class="transfer-item-main">
-            <div class="transfer-item-heading"><strong>${escapeHtml(item.name)}</strong><span class="transfer-item-state">${escapeHtml({pending:"等待上传",uploading:"上传中",paused:"已暂停",done:"上传完成",error:"上传失败",cancelled:"已取消"}[item.status] || "准备中")}</span></div>
+            <div class="transfer-item-heading"><strong>${escapeHtml(item.name)}</strong><span class="transfer-item-state">${escapeHtml(transferItemStatusLabel(item))}</span></div>
             <small>${escapeHtml(item.relativePath)} · ${formatBytes(item.uploaded)} / ${formatBytes(item.size)}${item.speed ? ` · ${formatBytes(item.speed)}/s` : ""}${item.eta ? ` · 剩余 ${Math.ceil(item.eta)}s` : ""}${item.needsFile ? " · 已恢复，请重新选择同一文件继续" : ""}${phase}</small>
             <progress max="100" value="${percent}" aria-label="${escapeHtml(item.name)} 上传进度"></progress>
           </div>
@@ -1063,9 +1069,13 @@ export function createTransferController({
       activeSession = null;
       persistQueue();
       ownedShareIds.add(payload.share.id);
+      renderQueue();
       renderShare(payload.share);
       element("transferShareCard")?.scrollIntoView({ block: "start", behavior: "smooth" });
       setMessage("分享已创建。", "success");
+      // Publication moves the reservation into stored usage and creates an
+      // owner-list entry. Refresh both existing owners without another upload.
+      void Promise.all([loadCapabilities(), loadMyShares()]);
     } catch (error) {
       setMessage(error.message || "创建分享失败。", "error");
     }

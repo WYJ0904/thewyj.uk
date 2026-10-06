@@ -331,6 +331,11 @@ async function main() {
     const shareLink = await page.evaluate("document.querySelector('#transferShareLink')?.value || ''");
     const shareId = decodeURIComponent(shareLink.split("#share=")[1] || "");
     assert.ok(shareId, `share id missing in ${shareLink}`);
+    await page.waitFor("document.querySelectorAll('#transferQueue [data-transfer-item]').length === 0", 10_000,
+      "published queue clears without re-entering the page");
+    const storedLabel = `${(FIXTURES.reduce((sum, fixture) => sum + fixture.size, 0) / 1024 / 1024).toFixed(1)} MiB`;
+    await page.waitFor(`document.querySelector('#transferQuotaText').textContent.includes(${JSON.stringify('已存储 '+storedLabel)}) && document.querySelector('#transferQuotaText').textContent.includes('上传预留 0 MiB')`,
+      20_000, "publication refreshes stored/reserved quota immediately");
     const listed = await page.evaluate(
       "Array.from(document.querySelectorAll('#transferShareFiles .transfer-share-file strong')).map((node) => node.textContent)",
     );
