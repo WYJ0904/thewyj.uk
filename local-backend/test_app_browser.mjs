@@ -1649,16 +1649,14 @@ async function main() {
       await tap("#accountMenu summary");
       await tap("#homeBtn");
       await waitFor("location.pathname === '/'", 5_000, "scenario D dashboard");
-      await tap('[data-core-capability=learning]>.capability-trigger');
-      await tap('[data-module="language"]');
+      await tap('[data-home-widget-open=learning]');
       await tap('[data-project="english"]');
       await waitFor("location.pathname === '/language/english'", 8_000, "scenario D first return");
       assert.ok(Number((await evaluate("document.querySelector('#progressLabel').textContent")).split("/")[0]) <= 2);
       await tap("#backProjectBtn");
       await tap("#languageBackBtn");
       await waitFor("location.pathname === '/'", 5_000, "scenario D module picker");
-      await tap('[data-core-capability=tools]>.capability-trigger');
-      await tap('[data-module="tools"]');
+      await tap('[data-home-widget-open=tools]');
       await waitFor("location.pathname === '/tools' && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 10_000, "scenario D tools");
       await tap("#leaveToolsBtn");
       await ensureEnglishProject();
