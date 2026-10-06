@@ -659,6 +659,10 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#publicHome').textContent.includes('留在本机')"), true);
       assert.equal(await evaluate("document.querySelector('#publicSplitFlap')"), null);
       assert.equal(await evaluate("document.querySelectorAll('#publicCapabilityGallery [role=tab]').length"), 4);
+      // Compact navigation remains keyboard accessible on narrow viewports.
+      // Desktop now exposes the five primary destinations inline.
+      assert.equal(await evaluate("document.querySelectorAll('.home-inline-nav a').length"),5);
+      await send("Emulation.setDeviceMetricsOverride",{width:390,height:900,deviceScaleFactor:1,mobile:true});
       await click("#siteNavToggle");
       assert.equal(await evaluate("document.querySelector('#siteNavToggle').getAttribute('aria-expanded')"), "true");
       assert.equal(await evaluate("document.querySelectorAll('#siteNavPanel a').length"), 8);
@@ -681,6 +685,7 @@ async function main() {
       await waitFor("location.pathname === '/trial' && !document.querySelector('#trialPage')?.classList.contains('hidden')", 4_000, "keyboard trial navigation");
       await click("#trialHomeBtn");
       await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 4_000, "home after keyboard trial navigation");
+      await send("Emulation.setDeviceMetricsOverride",{width:1366,height:900,deviceScaleFactor:1,mobile:false});
 
       const navigationMatrix = [
         { destination: "home", selector: "#navHomeLink", pathname: "/", surface: "#publicHome" },
@@ -700,6 +705,7 @@ async function main() {
         }
       }
 
+      if(!await evaluate("document.querySelector('#homeProductDetails').open"))await click('#homeProductDetails>summary');
       await click('.capability-trigger[aria-controls="capabilityToolsBody"]');
       assert.equal(await evaluate("document.querySelector('[data-capability-panel=tools]').classList.contains('active')"), true);
       assert.equal(await evaluate("getComputedStyle(document.querySelector('#capabilityLearningBody')).display"), "none");
@@ -710,13 +716,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20261006-p6-closure-3');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20261006-p6-closure-3');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261006-p6-closure-3');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261006-p6-closure-3');
-        const cachedChangelog = await caches.match('/changelog.js?v=20261006-p6-closure-3');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261006-p6-closure-3');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20261006-p6-closure-3');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261006-home-refinement-1');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261006-home-refinement-1');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261006-home-refinement-1');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261006-home-refinement-1');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261006-home-refinement-1');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261006-home-refinement-1');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261006-home-refinement-1');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -883,6 +889,7 @@ async function main() {
     let browserFeedbackId = "";
 
     await check("authenticated product home continuity and responsive layout", async () => {
+      if(!await evaluate("document.querySelector('#homeProductDetails').open"))await click('#homeProductDetails>summary');
       assert.equal(await evaluate("document.body.dataset.experience"), "public");
       assert.equal(await evaluate("document.querySelector('#publicHomeTitle').textContent.trim()"), "Aeris");
       assert.ok((await evaluate("document.querySelector('#dashboardGreeting').textContent")).includes(`${USERNAME}`));
@@ -1530,8 +1537,7 @@ async function main() {
           await waitFor("location.pathname === '/'", 5_000, "leave tools");
         }
         if (await evaluate("location.pathname === '/'")) {
-          await tap('[data-core-capability=learning]>.capability-trigger');
-          await tap('[data-module="language"]');
+          await tap('[data-home-widget-open=learning]');
           await waitFor("location.pathname === '/language'", 5_000, "language picker from dashboard");
         }
         if (await evaluate("location.pathname === '/language'")) {
@@ -1643,16 +1649,14 @@ async function main() {
       await tap("#accountMenu summary");
       await tap("#homeBtn");
       await waitFor("location.pathname === '/'", 5_000, "scenario D dashboard");
-      await tap('[data-core-capability=learning]>.capability-trigger');
-      await tap('[data-module="language"]');
+      await tap('[data-home-widget-open=learning]');
       await tap('[data-project="english"]');
       await waitFor("location.pathname === '/language/english'", 8_000, "scenario D first return");
       assert.ok(Number((await evaluate("document.querySelector('#progressLabel').textContent")).split("/")[0]) <= 2);
       await tap("#backProjectBtn");
       await tap("#languageBackBtn");
       await waitFor("location.pathname === '/'", 5_000, "scenario D module picker");
-      await tap('[data-core-capability=tools]>.capability-trigger');
-      await tap('[data-module="tools"]');
+      await tap('[data-home-widget-open=tools]');
       await waitFor("location.pathname === '/tools' && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 10_000, "scenario D tools");
       await tap("#leaveToolsBtn");
       await ensureEnglishProject();

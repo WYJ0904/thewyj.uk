@@ -20,6 +20,7 @@ for(const width of [320,390,1366,1920]){
   try{
     await page.navigate('/');await page.waitFor("document.documentElement.dataset.aerisMotionReady==='true' && !document.getElementById('entryScreen') && !document.querySelector('#publicHome').classList.contains('hidden')");
     await page.evaluate("window.__p33Home=document.querySelector('#publicHome');window.__p33Skeleton=[...window.__p33Home.querySelectorAll('[data-public-section],.hero-scene-card,.capability-panel,[role=tabpanel]')];true");
+    await page.click('#homeProductDetails>summary');
     for(const session of ['guest','authenticated']){
       if(session==='authenticated'){
         await page.click('#publicLoginBtn');await page.waitFor("location.pathname==='/login'");await page.setFields({'#usernameInput':process.env.WYJ_TEST_ADMIN_USER||'wyj','#secretInput':process.env.WYJ_TEST_ADMIN_SECRET});await page.click('#loginSubmitBtn');
@@ -42,10 +43,10 @@ for(const width of [320,390,1366,1920]){
       if(session==='authenticated'){
         const sessionValue=await page.evaluate("localStorage.getItem('wyjAccountSession')");assert.ok(sessionValue?.length>20);const fingerprint=createHash('sha256').update(sessionValue).digest('hex');
         for(const route of ['/','/select','/?native-navigation=1']){
-          await page.navigate(route);await page.waitFor("!document.getElementById('entryScreen') && !document.querySelector('#publicHome').classList.contains('hidden') && document.querySelector('#publicHome').dataset.sessionMode==='authenticated'",30000,'session restored shared home');check(await page.evaluate(geometry),width,'authenticated');assert.equal(await page.evaluate("localStorage.getItem('wyjAccountSession')"),sessionValue);
+          await page.navigate(route);await page.waitFor("!document.getElementById('entryScreen') && !document.querySelector('#publicHome').classList.contains('hidden') && document.querySelector('#publicHome').dataset.sessionMode==='authenticated'",30000,'session restored shared home');if(!await page.evaluate("document.querySelector('#homeProductDetails').open"))await page.click('#homeProductDetails>summary');check(await page.evaluate(geometry),width,'authenticated');assert.equal(await page.evaluate("localStorage.getItem('wyjAccountSession')"),sessionValue);
           if(route.includes('native-navigation'))assert.equal(await page.evaluate("Boolean(window.WYJAndroidNavigation)"),true);
         }
-        await page.send('Page.reload',{ignoreCache:true});await page.waitFor("!document.getElementById('entryScreen') && document.querySelector('#publicHome').dataset.sessionMode==='authenticated'",30000);check(await page.evaluate(geometry),width,'authenticated');assert.equal(await page.evaluate("localStorage.getItem('wyjAccountSession')"),sessionValue);
+        await page.send('Page.reload',{ignoreCache:true});await page.waitFor("!document.getElementById('entryScreen') && document.querySelector('#publicHome').dataset.sessionMode==='authenticated'",30000);if(!await page.evaluate("document.querySelector('#homeProductDetails').open"))await page.click('#homeProductDetails>summary');check(await page.evaluate(geometry),width,'authenticated');assert.equal(await page.evaluate("localStorage.getItem('wyjAccountSession')"),sessionValue);
         restores.push({width,realLogin:true,hardReload:true,aliasSelect:true,nativeRouteBridge:true,sessionFingerprint:fingerprint,home:'/',sameTemplate:true});
       }
     }

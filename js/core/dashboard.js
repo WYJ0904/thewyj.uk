@@ -1,10 +1,20 @@
-import { $, escapeHtml } from "./ui.js?v=20261006-p6-closure-3";
-import { reconcileKeyedRows } from "./keyed-list.js?v=20261006-p6-closure-3";
+import { $, escapeHtml } from "./ui.js?v=20261006-home-refinement-1";
+import { reconcileKeyedRows } from "./keyed-list.js?v=20261006-home-refinement-1";
+import { createHomeWidgets } from "./home-widgets.js?v=20261006-home-refinement-1";
+import { projectHomeWidgets } from "./home-widget-data.js?v=20261006-home-refinement-1";
 const bound = new WeakSet();
 const setText = (node,value) => { if(node && node.textContent!==String(value))node.textContent=String(value); };
 
 /** Shared home presentation. State and service owners remain in their modules. */
 export function createDashboardView(context) {
+ const widgets=createHomeWidgets({root:$("publicHome"),accountId:()=>context.state().account?.id,navigate:context.openHomeModule});
+ const recentRoot=$("homeRecentActivity");
+ recentRoot.addEventListener('click',event=>{const button=event.target.closest('[data-home-activity]');if(button)context.openHomeModule(button.dataset.homeActivity);});
+ function present(snapshot) {
+  widgets.render(snapshot);
+  reconcileKeyedRows(recentRoot,snapshot.activity,{key:x=>x.id,signature:x=>JSON.stringify(x),render:x=>`<li><button type="button" data-home-activity="${escapeHtml(x.path)}">${escapeHtml(x.label)}<small>${escapeHtml(context.formatLocalDateTime(x.at))}</small></button></li>`,empty:'<li>'+(snapshot.demo?'登录后显示自己的学习与工具记录。':'暂无最近活动。完成学习或使用工具后会显示在这里。')+'</li>'});
+ }
+ function prepare() {widgets.setAccount();if(!context.state().account)present(projectHomeWidgets({demo:true}));}
  const { accountMembershipSummary, accountEntitlements, entitlementLabel, calculateStudyStreak, dashboardGoal, formatLocalDateTime, quizLanguageLabel, practiceModeLabel, formatFinanceMoney, loadProjectRuntime, renderLatestUpdate, renderLearningSyncDashboardStatus, isSuperAdmin, hasAccountEntitlement }=context;
  function setDashboardService(id,label,status) { const node=$(id);if(!node)return;setText(node,label);const wanted="dashboard-service "+status;if(node.dataset.serviceTone===status)return;node.classList.remove("is-online","is-offline","is-warning");node.classList.add(status);node.dataset.serviceTone=status; }
  function renderDashboardToolShelf(id,items,emptyMessage) {
@@ -13,6 +23,7 @@ export function createDashboardView(context) {
   if(!bound.has(target)){bound.add(target);target.addEventListener("click",e=>{const button=e.target.closest("[data-dashboard-tool]");if(button&&target.contains(button))context.openTool(button.dataset.dashboardTool);});}
  }
  function render() {
+  prepare();
   const state=context.state(),financeController=context.finance(),financeCandidatesController=context.pending(),transferController=context.transfer(),backendAvailable=context.online(),aiAvailable=context.ai();
   if (!state.session || !state.account || $("publicHome")?.classList.contains("hidden") || document.hidden || document.documentElement.dataset.androidWebActive === "false") return;
   const account = state.account;
@@ -63,18 +74,7 @@ export function createDashboardView(context) {
   });
 
   const toolSummary = window.WYJTools?.getSummary?.() || { favorites: [], recent: [] };
-  setText($("homeSceneLearningLabel"), "学习记录");
-  setText($("homeSceneLearningValue"), latest ? quizLanguageLabel(latest.language) : "暂无记录");
-  setText($("homeSceneLearningDetail"), latest ? `${latest.total} 题 · 正确率 ${latest.accuracy}%` : "完成测试后显示进度");
-  setText($("homeSceneLearningStatus"), `${Object.keys(state.historyWrongBook).length} 个错题`);
-  setText($("homeSceneFinanceLabel"), "本月账本");
-  setText($("homeSceneFinanceValue"), financeBalance);
-  setText($("homeSceneFinanceDetail"), financeKnown ? (finance.pending ? `${finance.pending} 项等待同步` : "账户账本摘要") : "打开账本读取");
-  setText($("homeSceneFinanceStatus"), financeKnown ? "已读取" : "未读取");
-  setText($("homeSceneToolsLabel"), "最近工具");
-  setText($("homeSceneToolsValue"), toolSummary.recent?.[0]?.name || toolSummary.favorites?.[0]?.name || "暂无记录");
-  setText($("homeSceneToolsDetail"), `${toolSummary.favorites?.length || 0} 项收藏`);
-  setText($("homeSceneToolsStatus"), "工具箱");
+  present(projectHomeWidgets({records,wrongCount:Object.keys(state.historyWrongBook).length,streak:calculateStudyStreak(records),goals:[{language:'english',...englishGoal},{language:'japanese',...japaneseGoal}],finance,financeKnown,tools:toolSummary,toolsReady:window.WYJTools?.isReady?.()||false,workflow:window.WYJWorkflows?.getSummary?.()||{},online:backendAvailable,learningStatus:context.learningStatus(),money:formatFinanceMoney,language:quizLanguageLabel,time:formatLocalDateTime}));
   renderDashboardToolShelf("dashboardFavoriteTools", toolSummary.favorites || [], "还没有收藏工具。");
   renderDashboardToolShelf("dashboardRecentTools", toolSummary.recent || [], "还没有使用记录。");
   const pending = financeCandidatesController?.dashboardSummary?.();
@@ -100,5 +100,5 @@ export function createDashboardView(context) {
   );
 }
 
- return Object.freeze({render, setService: setDashboardService});
+ return Object.freeze({render,prepare,hide:widgets.hide,setService: setDashboardService});
 }

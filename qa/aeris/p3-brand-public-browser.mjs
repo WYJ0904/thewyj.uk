@@ -8,6 +8,7 @@ for(const width of [390,1366,1920]){const page=await openPage({cdpUrl:process.en
  assert.deepEqual(await page.evaluate("[...document.querySelectorAll('#publicHome [data-public-section]')].map(x=>x.dataset.publicSection)"),['hero','window','capabilities','privacy','plans','final']);
  assert.equal(await page.evaluate("document.querySelectorAll('#publicHome [data-public-scene]').length"),3);assert.equal(await page.evaluate("document.querySelectorAll('#publicHome [data-public-capability]').length"),5);assert.equal(await page.evaluate("document.querySelectorAll('#publicHome .aeris-plan-card').length"),3);
  for(const theme of ['light','dark']){await page.evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)}`);
+  if(!await page.evaluate("document.querySelector('#homeProductDetails').open"))await page.click('#homeProductDetails>summary');
   for(const id of ['#publicLoginBtn','#publicRegisterBtn','#publicDownloadBtn'])assert.ok(await page.evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(id)}),r=e.getBoundingClientRect();return r.width>0&&r.height>=43&&r.x>=0&&r.right<=innerWidth+1;})()`));
   await page.evaluate("window.__p3Panels=[...document.querySelectorAll('#publicCapabilityGallery [role=tabpanel]')];true");
   for(const selector of ['#publicToolsTab','#publicFinanceTab','#publicFilesTab','#publicLearningTab','#publicFinanceTab','#publicToolsTab'])await page.click(selector);

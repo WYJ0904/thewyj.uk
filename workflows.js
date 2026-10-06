@@ -1099,6 +1099,11 @@
   }
 
   root.WYJWorkflows = Object.freeze({
+    // Read-only projection through this owner; no additional transport or run history.
+    getSummary() {
+      if(!account()?.id)return {known:false,recent:[]};
+      try {const cache=JSON.parse(safeLocalGet(storageKey())||'{}');const recent=(Array.isArray(cache.workflows)?cache.workflows:[]).slice(0,MAX_WORKFLOWS).flatMap(value=>{try{const item=validateWorkflow(value);return [{id:item.id,name:item.name,updated_at:item.updated_at}];}catch(_){return [];}}).sort((a,b)=>Date.parse(b.updated_at)-Date.parse(a.updated_at));return {known:true,recent:recent.slice(0,3)};}catch(_){return {known:false,recent:[]};}
+    },
     init,
     show,
     hide,

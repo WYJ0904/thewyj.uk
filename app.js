@@ -9,26 +9,26 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20261006-p6-closure-3";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261006-p6-closure-3";
+} from "./js/core/config.js?v=20261006-home-refinement-1";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261006-home-refinement-1";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?v=20261006-p6-closure-3";
+} from "./js/core/capabilities.js?v=20261006-home-refinement-1";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20261006-p6-closure-3";
+} from "./js/core/api.js?v=20261006-home-refinement-1";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20261006-p6-closure-3";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261006-p6-closure-3";
+} from "./js/core/changelog.js?v=20261006-home-refinement-1";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261006-home-refinement-1";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -39,21 +39,21 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20261006-p6-closure-3";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261006-p6-closure-3";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261006-p6-closure-3";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261006-p6-closure-3";
-import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?v=20261006-p6-closure-3";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261006-p6-closure-3";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20261006-p6-closure-3";
-import { speakText, stopSpeech } from "./js/language/speech.js?v=20261006-p6-closure-3";
+} from "./js/core/session.js?v=20261006-home-refinement-1";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261006-home-refinement-1";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261006-home-refinement-1";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261006-home-refinement-1";
+import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?v=20261006-home-refinement-1";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261006-home-refinement-1";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20261006-home-refinement-1";
+import { speakText, stopSpeech } from "./js/language/speech.js?v=20261006-home-refinement-1";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?v=20261006-p6-closure-3";
-import { formatFinanceMoney } from "./js/finance/format.js?v=20261006-p6-closure-3";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?v=20261006-p6-closure-3";
-import { createDashboardView } from "./js/core/dashboard.js?v=20261006-p6-closure-3";
+} from "./js/language/speech-rate.js?v=20261006-home-refinement-1";
+import { formatFinanceMoney } from "./js/finance/format.js?v=20261006-home-refinement-1";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?v=20261006-home-refinement-1";
+import { createDashboardView } from "./js/core/dashboard.js?v=20261006-home-refinement-1";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -61,15 +61,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?v=20261006-p6-closure-3";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261006-p6-closure-3";
+} from "./js/core/perf.js?v=20261006-home-refinement-1";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261006-home-refinement-1";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20261006-p6-closure-3";
+} from "./js/language/history.js?v=20261006-home-refinement-1";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -106,16 +106,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20261006-p6-closure-3";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261006-p6-closure-3";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20261006-p6-closure-3";
+} from "./js/language/quiz.js?v=20261006-home-refinement-1";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261006-home-refinement-1";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20261006-home-refinement-1";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20261006-p6-closure-3";
+} from "./js/language/wrong-book.js?v=20261006-home-refinement-1";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -124,7 +124,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20261006-p6-closure-3";
+} from "./js/membership/account.js?v=20261006-home-refinement-1";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -132,19 +132,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20261006-p6-closure-3";
+} from "./js/membership/plans.js?v=20261006-home-refinement-1";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20261006-p6-closure-3";
+} from "./js/membership/recharge.js?v=20261006-home-refinement-1";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20261006-p6-closure-3";
+} from "./js/admin/formatters.js?v=20261006-home-refinement-1";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -1224,7 +1224,7 @@ function renderAccountUi() {
           : ["/", "/select", "/login", "/register"].includes(location.pathname)
             ? "home"
             : "";
-  document.querySelectorAll(".site-nav-links [data-site-nav]").forEach((link) => {
+  document.querySelectorAll(".site-nav-links [data-site-nav], .home-inline-nav [data-site-nav]").forEach((link) => {
     const active = link.dataset.siteNav === activeNavigation;
     link.classList.toggle("active", active);
     if (active) link.setAttribute("aria-current", "page");
@@ -1264,15 +1264,12 @@ function renderHomeSessionUi(account) {
   if (!home) return;
   home.dataset.sessionMode = account ? "authenticated" : "guest";
   home.querySelectorAll("[data-home-personal]").forEach(node => { node.hidden = !account; });
-  $("publicLoginBtn").textContent = account ? "账户" : "登录";
-  $("publicRegisterBtn").textContent = account ? "继续学习" : "注册";
+  $("publicLoginBtn").textContent = "账户";
+  $("publicRegisterBtn").textContent = "继续学习";
   const labels = { learning: account ? "打开学习" : "试做最多 10 题", tools: account ? "打开工具箱" : "试用本地工具", finance: account ? "打开账本" : "登录查看账本", files: "文件与分享", account: account ? "管理账户" : "登录账户" };
   home.querySelectorAll("[data-public-capability]").forEach(node => { node.textContent = labels[node.dataset.publicCapability]; });
   $("publicPlansBtn").textContent = account ? "管理套餐与权益" : "查看套餐与权益";
-  if (!account) {
-    const demo = { Learning: ["日语测试 · 演示", "電話", "でんわ", "12 / 20"], Finance: ["本月余额 · 演示", "¥ 3,284.60", "预算内 72%", "财务"], Tools: ["工具搜索", "JSON 格式化", "仅在浏览器处理", "工具箱"] };
-    for (const [kind,values] of Object.entries(demo)) ["Label", "Value", "Detail", "Status"].forEach((suffix,index) => { $("homeScene"+kind+suffix).textContent = values[index]; });
-  }
+  dashboardView?.prepare();
 }
 
 function renderAccountDetails() {
@@ -4601,14 +4598,14 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
 });
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?v=20261006-p6-closure-3", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?v=20261006-p6-closure-3", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?v=20261006-home-refinement-1", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?v=20261006-home-refinement-1", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?v=20261006-p6-closure-3", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?v=20261006-p6-closure-3", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?v=20261006-p6-closure-3", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?v=20261006-home-refinement-1", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?v=20261006-home-refinement-1", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?v=20261006-home-refinement-1", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render"],
@@ -4672,6 +4669,8 @@ dashboardView = createDashboardView({
   state: () => state, finance: () => financeController, pending: () => financeCandidatesController,
   transfer: () => transferController, online: () => backendAvailable, ai: () => aiAvailable,
   openTool: id => showTools(`/tools/${encodeURIComponent(id)}`, true),
+  openHomeModule: target => { dashboardView?.hide();return target.startsWith('/tools/') ? showTools(target,true) : navigateFromSiteNav(target==='learning'?'language':target); },
+  learningStatus: () => learningSyncStatus,
   accountMembershipSummary,
   accountEntitlements,
   entitlementLabel,
@@ -6582,6 +6581,7 @@ function closeAccountMenu() {
 }
 
 function dismissTopOverlay() {
+  if ($("homeWidgetEditor")?.open) { $("homeWidgetEditor").close(); return true; }
   const modal = [...document.querySelectorAll(".modal-layer:not(.hidden)")].at(-1);
   if (modal) {
     if (modal.hasAttribute("data-confirm-only")) modal.querySelector("button")?.focus({ preventScroll: true });
@@ -6611,6 +6611,7 @@ function installNativeNavigation() {
     pushRoute,
     renderRoute: routeCurrent,
     beforeNavigate: () => {
+      dashboardView?.hide();
       closeAccountMenu();
       for (const modal of document.querySelectorAll(".modal-layer:not(.hidden)")) {
         // A native tab cannot acknowledge a message or a confirm-only result.
@@ -6776,7 +6777,8 @@ async function boot() {
   }));
   $("publicTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
   // Capability anchors use the existing site-nav dispatcher in both sessions.
-  $("publicRegisterBtn")?.addEventListener("click", () => state.session && state.account ? showProjectPicker(true) : showAuth("", { mode: "register", path: "/register" }));
+  $("publicRegisterBtn")?.addEventListener("click", () => navigateFromSiteNav('language'));
+  $("homeSearchBtn")?.addEventListener("click", async event => {await withInteractionFeedback(event.currentTarget,'home-tool-search',()=>navigateFromSiteNav('tools'));if(!$("toolsDashboard")?.classList.contains('hidden'))$("toolSearchInput")?.focus();else if(!$("trialPage")?.classList.contains('hidden'))$("trialTextInput")?.focus();});
   $("publicLoginBtn")?.addEventListener("click", () => state.session && state.account ? $("accountBtn").click() : showAuth("", { mode: "login", path: "/login" }));
   $("dashboardNotificationsBtn")?.addEventListener("click", () => showFinance(true));
   $("dashboardTransferBtn")?.addEventListener("click", () => showTransfer(true));
