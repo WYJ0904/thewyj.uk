@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?v=20261006-p6-closure-3";
+import { fetchWithTimeout } from "./api.js?v=20261006-home-refinement-1";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 

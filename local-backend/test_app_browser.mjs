@@ -710,13 +710,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20261006-p6-closure-3');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20261006-p6-closure-3');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261006-p6-closure-3');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261006-p6-closure-3');
-        const cachedChangelog = await caches.match('/changelog.js?v=20261006-p6-closure-3');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261006-p6-closure-3');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20261006-p6-closure-3');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261006-home-refinement-1');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261006-home-refinement-1');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261006-home-refinement-1');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261006-home-refinement-1');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261006-home-refinement-1');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261006-home-refinement-1');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261006-home-refinement-1');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -883,6 +883,7 @@ async function main() {
     let browserFeedbackId = "";
 
     await check("authenticated product home continuity and responsive layout", async () => {
+      await click('#homeProductDetails>summary');
       assert.equal(await evaluate("document.body.dataset.experience"), "public");
       assert.equal(await evaluate("document.querySelector('#publicHomeTitle').textContent.trim()"), "Aeris");
       assert.ok((await evaluate("document.querySelector('#dashboardGreeting').textContent")).includes(`${USERNAME}`));

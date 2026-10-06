@@ -13,12 +13,14 @@ for(const width of [320,390,1366,1920]){
   try{
     await page.navigate('/');await page.waitFor("document.documentElement.dataset.aerisMotionReady==='true' && !document.getElementById('entryScreen')");
     assert.equal(await page.evaluate("document.querySelectorAll('.aeris-scene-grid,.aeris-capability-list,.aeris-capability-link,#publicSplitFlap').length"),0);
+    await page.click('#homeProductDetails>summary');
     const ids=await page.evaluate("[...document.querySelectorAll('[id]')].map(e=>e.id)");assert.equal(new Set(ids).size,ids.length);
     await page.evaluate("window.__p32Nodes=[...document.querySelectorAll('.capability-body')];true");
     for(const theme of ['light','dark']){
       await page.evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)}`);
       const scene=await page.evaluate("[...document.querySelectorAll('.hero-scene-card')].map(e=>{const r=e.getBoundingClientRect();return {position:getComputedStyle(e).position,x:r.x,y:r.y,width:r.width,height:r.height,transform:getComputedStyle(e).transform};})");
-      assert.equal(scene.length,3);assert.ok(scene.every(s=>s.position==='absolute'));
+      assert.equal(scene.length,3);assert.ok(scene.every(s=>s.position===(width>980?'absolute':'relative')));
+      if(width<=980)assert.ok(scene.every(s=>s.transform==='none'),'mobile uses readable stacked cards');
       if(width>980){assert.ok(scene.every(s=>s.x>width/2));assert.ok(new Set(scene.map(s=>Math.round(s.x))).size===3);assert.ok(new Set(scene.map(s=>Math.round(s.y))).size===3);assert.ok(scene.every(s=>s.transform!=='none'));}
       const cards=[];
       for(const [kind,content]of Object.entries(previews)){
