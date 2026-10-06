@@ -1,6 +1,21 @@
 (() => {
   const entries = [
 {
+  "version": "1.3.33",
+  "build": "2026-10-06-aeris-mobile-floating-1.3.33",
+  "date": "2026-10-06",
+  "title": "Aeris 首页与手机悬浮卡片",
+  "features": ["全新 Aeris 首页与可配置 Widget。"],
+  "improvements": [
+    "恢复手机端悬浮卡片布局，保留轻微旋转、错位与独立浮层。",
+    "手机与桌面的 Widget 位置、尺寸和旋转现在独立保存。",
+    "改进手机端触控、旋转与尺寸边界处理。",
+    "首页交互与稳定性优化。"
+  ],
+  "fixes": ["修复桌面布局应用到手机后可能出现的卡片越界问题。"],
+  "security": []
+},
+{
   "version": "1.3.32",
   "build": "2026-10-06-aeris-p6-closure-1.3.32",
   "date": "2026-10-06",

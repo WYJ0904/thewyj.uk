@@ -877,6 +877,7 @@ jobs:
           node qa/aeris/p6-experience-browser.mjs 2>&1 | tee artifacts/aeris-p6-experience.log
           node qa/aeris/p6-parked-rows-browser.mjs 2>&1 | tee artifacts/aeris-p6-parked-rows.log
           node qa/aeris/home-widgets-browser.mjs 2>&1 | tee artifacts/home-widgets-browser.log
+          node qa/aeris/mobile-widgets-browser.mjs 2>&1 | tee artifacts/mobile-widgets-browser.log
 
 
       - name: Run cloud-only P0 browser flow

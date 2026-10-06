@@ -19,8 +19,8 @@ for(const width of [320,390,1366,1920]){
     for(const theme of ['light','dark']){
       await page.evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)}`);
       const scene=await page.evaluate("[...document.querySelectorAll('.hero-scene-card')].map(e=>{const r=e.getBoundingClientRect();return {position:getComputedStyle(e).position,x:r.x,y:r.y,width:r.width,height:r.height,transform:getComputedStyle(e).transform};})");
-      assert.equal(scene.length,3);assert.ok(scene.every(s=>s.position===(width>980?'absolute':'relative')));
-      if(width<=980)assert.ok(scene.every(s=>s.transform==='none'),'mobile uses readable stacked cards');
+      assert.equal(scene.length,3);assert.ok(scene.every(s=>s.position==='absolute'));
+      if(width<=980)assert.ok(scene.every(s=>s.transform!=='none'),'mobile retains its independent static floating composition');
       if(width>980){assert.ok(scene.every(s=>s.x>width/2));assert.ok(new Set(scene.map(s=>Math.round(s.x))).size===3);assert.ok(new Set(scene.map(s=>Math.round(s.y))).size===3);assert.ok(scene.every(s=>s.transform!=='none'));}
       const cards=[];
       for(const [kind,content]of Object.entries(previews)){
