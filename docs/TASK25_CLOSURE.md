@@ -51,6 +51,8 @@ READY FOR TASK 26: NO
 
 凭据 discovery job 的 green 仅表示检查完成。其原先从 API token 缺失推断 Preview 不可部署的字段已由真实 Git integration/HTTP 证据纠正；现在将 D1/R2 管理和 Pages 发布分别记录。
 
+后续报告提交 `1a30f17` 的 CI [37509287826](https://github.com/WYJ0904/thewyj.uk/actions/runs/37509287826) 曾有两次失败：P33 重载后的可见/布局等待竞态，以及 Wrangler Pages 开发代理连接重置导致 P4 请求失败。这些失败保留在 Actions。修复将 Pages CI 对齐云端 Node 24，并在首页几何采样前等待可见与 ResizeObserver 帧布局；保留全部原断言。Local P33 全部 guest/authenticated/reload cases 与 P4 三尺寸验证通过。最终分支 CI 结果以 PR #96 closure addendum 和对应最新 Actions 为准；上表的 8/8 是明确固定源 HEAD 的验收，不替代后续检查。
+
 可恢复证据位于 [docs/task25/evidence](task25/evidence)：`core-ci.json`、`local-software-acceptance.json`、`android-runtime-acceptance.json`、`browser-acceptance.json`、候选 metadata、hosted Preview smoke 和 Production Stable smoke。GitHub artifact 有保留期限，关键状态/来源/hash 同时保存在仓库；会话文本不是唯一记录。
 
 ## Cloudflare Preview 与 Production

@@ -1,0 +1,14 @@
+{
+  "pinned_code_success_run": 37505935692,
+  "report_commit_failure_run": 37509287826,
+  "failed_attempts": [
+    {"attempt": 1, "case": "P33 hard reload home geometry before visibility/layout settled"},
+    {"attempt": 2, "case": "P4 tools hydration after Wrangler Pages proxy connection reset/broken pipe"}
+  ],
+  "repairs": ["Pages CI uses Node 24", "P33 awaits visible home and frame layout after viewport/navigation changes"],
+  "product_code_changed": false,
+  "original_assertions_removed": false,
+  "local_p33": "PASS: 8 guest, 8 authenticated cases, 4 restore sets",
+  "local_p4": "PASS: 390/1366/1920px",
+  "followup_status_source": "latest branch Actions and PR #96 closure addendum"
+}
