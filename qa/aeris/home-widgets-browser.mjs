@@ -11,6 +11,7 @@ try {
  await p.navigate('/');await p.waitFor(ready);assert.equal(await p.evaluate("document.querySelector('.home-purpose').textContent"),'学习 · 工具 · 账本 · 文件');
  assert.equal(await p.evaluate("document.querySelectorAll('[data-widget-demo]:not([hidden])').length"),3);
  assert.equal(await p.evaluate("document.querySelectorAll('[data-home-widget-open]').length"),3);
+ assert.ok(await p.evaluate("[...document.querySelectorAll('[data-widget-edit]')].every(e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44})"),'settings targets retain the 44 px minimum');
  assert.equal(await p.evaluate("document.querySelector('.home-inline-nav [aria-current=page]')?.dataset.siteNav"),'home');
  assert.equal(await p.evaluate("document.querySelector('#homeProductDetails').open"),false);
  await p.click('[data-home-widget-open=learning]');await p.waitFor("location.pathname==='/trial'");await p.evaluate('history.back()');await p.waitFor(ready);
@@ -25,14 +26,17 @@ try {
  await p.navigate('/');await p.waitFor(ready);assert.equal(await p.evaluate(`localStorage.getItem(${JSON.stringify(key)})`),saved);await p.waitFor("document.querySelector('[data-home-widget=learning]').dataset.size==='large'");
  await p.click('[data-widget-edit=learning]');await p.click('[data-widget-angle-reset]');assert.equal(await p.evaluate("document.querySelector('#homeWidgetEditor [name=rotation]').value"),'2');await p.click('[data-widget-cancel]');assert.equal(await p.evaluate(`localStorage.getItem(${JSON.stringify(key)})`),saved);
  await p.click('#homeLayoutReset');await p.click('#homeLayoutToggle');await p.send('Performance.enable');
+ await p.evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
  await p.evaluate("window.__homeWrites=0;window.__homeOriginalSet=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(String(k).startsWith('aerisHomeWidgets:'))window.__homeWrites++;return window.__homeOriginalSet.call(this,k,v);};true");
  const handle=await p.evaluate("(()=>{const r=document.querySelector('[data-widget-drag=learning]').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()");
+ const dragHit=await p.evaluate(`(()=>{const e=document.elementFromPoint(${handle.x},${handle.y});return {tag:e?.tagName,drag:e?.dataset?.widgetDrag,edit:e?.dataset?.widgetEdit,editing:document.querySelector('.public-hero-scene').dataset.editing};})()`);
+ assert.equal(dragHit.drag,'learning','drag handle must be visible and unobstructed');
  const before=await p.send('Performance.getMetrics');
  await p.send('Input.dispatchMouseEvent',{type:'mousePressed',...handle,button:'left',clickCount:1});
  for(let i=1;i<=12;i++){await p.send('Input.dispatchMouseEvent',{type:'mouseMoved',x:handle.x+10*i,y:handle.y+5*i,buttons:1});await delay(18);}
  assert.equal(await p.evaluate('__homeWrites'),0,'no persistent writes during drag');
  await p.send('Input.dispatchMouseEvent',{type:'mouseReleased',x:handle.x+120,y:handle.y+60,button:'left',clickCount:1});
- assert.equal(await p.evaluate('__homeWrites'),1,'one commit after drag');
+ assert.equal(await p.evaluate('__homeWrites'),1,'one commit after drag: '+JSON.stringify(dragHit));
  await p.evaluate("document.querySelector('[data-home-widget-open=learning]').dispatchEvent(new MouseEvent('click',{bubbles:true,detail:1}));true");assert.equal(await p.evaluate('location.pathname'),'/','pointerup must not navigate');
  const after=await p.send('Performance.getMetrics');result.drag={writesDuring:0,writesAfter:1,metricsBefore:before.metrics,metricsAfter:after.metrics};assert.ok((await p.evaluate(bounds)).every(x=>x.inside));
  await delay(510);

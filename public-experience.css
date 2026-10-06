@@ -1356,7 +1356,7 @@ html:has(body[data-experience="public"]),body[data-experience="public"] {min-wid
 #publicHome [data-size=small] .home-widget-main strong {font-size:22px;}
 #publicHome [data-size=large] .home-widget-main {gap:12px;justify-content:flex-start;padding-top:27px;}
 #publicHome [data-size=large] .home-widget-extra {display:block;font-size:12px;border-top:1px solid var(--ds-border);padding-top:10px;width:100%;}
-.home-widget-edit,.home-widget-drag {position:absolute;top:8px;right:8px;width:36px;min-height:36px;padding:0;background:transparent;border:0;border-radius:6px;color:var(--ds-text-secondary);opacity:.55;}
+.home-widget-edit,.home-widget-drag {position:absolute;top:4px;right:4px;width:44px;min-height:44px;padding:0;background:transparent;border:0;border-radius:6px;color:var(--ds-text-secondary);opacity:1;}
 .home-widget-edit {font-size:22px;line-height:1;}
 .home-widget-drag {display:none;right:48px;font-size:22px;touch-action:none;cursor:grab;}
 #publicHome .home-widget-demo {position:absolute;right:48px;top:14px;font-size:11px;line-height:24px;color:var(--ds-text-secondary);pointer-events:none;}
