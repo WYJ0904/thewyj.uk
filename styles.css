@@ -3375,6 +3375,8 @@ textarea::placeholder {
 .feature-console form { display: grid; gap: 12px; margin-block: 20px; max-width: 640px; }
 .feature-console label { display: grid; gap: 6px; }
 .feature-console .action-row label { display: flex; align-items: center; gap: 8px; }
+.feature-console .feature-console-toolbar { align-items: end; flex-wrap: wrap; }
+.feature-console .feature-console-toolbar label { display: grid; min-width: 0; flex: 1 1 240px; }
 .feature-console input:not([type=checkbox]), .feature-console select, .feature-console textarea, #releaseChannelSelect { min-height: 44px; width: 100%; max-width: 100%; }
 .feature-console input[type=checkbox] { width: 20px; height: 20px; }
 .feature-console fieldset { min-width: 0; }

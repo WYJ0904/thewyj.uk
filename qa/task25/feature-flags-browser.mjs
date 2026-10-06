@@ -17,6 +17,7 @@ for (const width of [390, 1366]) {
     await page.click('#loginSubmitBtn');
     await page.waitFor("location.pathname === '/'", 30000);
     await page.navigate('/admin');
+    await page.evaluate("document.getElementById('dismissVersionNoticeBtn')?.click()");
     await page.waitFor("!document.getElementById('adminFeatureFlagsTab').classList.contains('hidden')", 30000);
     await page.click('#adminFeatureFlagsTab');
     await page.waitFor("document.getElementById('featureFlagSelect').options.length >= 2");
@@ -46,6 +47,7 @@ for (const width of [390, 1366]) {
     assert.ok(await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 1'));
 
     const target = path.resolve('artifacts/task25'); fs.mkdirSync(target, { recursive: true });
+    await page.evaluate("document.getElementById('adminFeatureFlagsView').scrollIntoView({ block: 'start' })");
     const adminScreenshot = await page.send('Page.captureScreenshot', { format: 'png' });
     fs.writeFileSync(path.join(target, `feature-console-${width}.png`), Buffer.from(adminScreenshot.data, 'base64'));
     // An active harmless fixture proves that losing connectivity actually closes a decision.

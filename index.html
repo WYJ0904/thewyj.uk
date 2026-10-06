@@ -912,7 +912,7 @@
         <section class="admin-view feature-console" id="adminFeatureFlagsView" role="tabpanel" aria-labelledby="adminFeatureFlagsTab">
           <h2>功能开关与放量</h2>
           <p>紧急关闭、全局 OFF 和通道限制优先于用户覆盖。保存后影响新的服务端评估，已有预览功能最多 30 秒内关闭。</p>
-          <div class="action-row"><label>功能<select id="featureFlagSelect"></select></label><button id="newFeatureFlagBtn" type="button">新建功能</button><button id="refreshFeatureFlagsBtn" type="button">刷新配置</button></div>
+          <div class="action-row feature-console-toolbar"><label>功能<select id="featureFlagSelect"></select></label><button id="newFeatureFlagBtn" type="button">新建功能</button><button id="refreshFeatureFlagsBtn" type="button">刷新配置</button></div>
           <form id="featureFlagForm" data-revision="0">
             <label>功能标识<input id="featureFlagKey" required pattern="[a-z][a-z0-9._\-]{1,63}" maxlength="64" /></label>
             <label>说明<textarea id="featureFlagDescription" maxlength="500"></textarea></label>
