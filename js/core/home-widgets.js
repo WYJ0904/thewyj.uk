@@ -195,5 +195,5 @@ export function createHomeWidgets({ root, accountId, navigate, storage = getSafe
   let observedWidth=-1,observedHeight=-1;
   const observer=new view.ResizeObserver(entries=>{const {width,height}=entries[0].contentRect;if(width===observedWidth&&height===observedHeight)return;observedWidth=width;observedHeight=height;if(frame||interaction)return;frame=view.requestAnimationFrame(()=>{frame=0;apply();});});observer.observe(stage);
   setAccount();
-  return Object.freeze({render,setAccount,snapshot:()=>sanitizeHomeWidgets(config),hide:()=>{cancelGesture();if(dialog.open)dialog.close();},dispose:()=>{cancelGesture();observer.disconnect();view.removeEventListener("resize",resize);}});
+  return Object.freeze({render,setAccount,snapshot:()=>sanitizeHomeWidgets(config),hide:()=>{const active=Boolean(interaction);cancelGesture();if(active)apply();if(dialog.open)dialog.close();},dispose:()=>{cancelGesture();observer.disconnect();view.removeEventListener("resize",resize);}});
 }

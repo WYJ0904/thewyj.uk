@@ -6581,6 +6581,7 @@ function closeAccountMenu() {
 }
 
 function dismissTopOverlay() {
+  if ($("homeWidgetEditor")?.open) { $("homeWidgetEditor").close(); return true; }
   const modal = [...document.querySelectorAll(".modal-layer:not(.hidden)")].at(-1);
   if (modal) {
     if (modal.hasAttribute("data-confirm-only")) modal.querySelector("button")?.focus({ preventScroll: true });
@@ -6610,6 +6611,7 @@ function installNativeNavigation() {
     pushRoute,
     renderRoute: routeCurrent,
     beforeNavigate: () => {
+      dashboardView?.hide();
       closeAccountMenu();
       for (const modal of document.querySelectorAll(".modal-layer:not(.hidden)")) {
         // A native tab cannot acknowledge a message or a confirm-only result.
