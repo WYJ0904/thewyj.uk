@@ -9,8 +9,15 @@
   },
   "cloud_credentials_configured": false,
   "signing_credentials_configured": false,
-  "remote_preview": "BLOCKED_MISSING_CREDENTIALS",
   "production_migration": "NOT_EXECUTED",
   "production_deployment": "NOT_EXECUTED",
-  "stable_pointer_changed": false
+  "stable_pointer_changed": false,
+  "credential_probe_run": 37505064825,
+  "credential_probe_artifact_id": 11431442122,
+  "remote_d1_administration": "BLOCKED_MISSING_CREDENTIALS",
+  "remote_r2_administration": "BLOCKED_MISSING_CREDENTIALS",
+  "pages_preview_deployment": "PASS_EXISTING_GIT_INTEGRATION",
+  "pages_preview_evidence": "hosted-preview-smoke.json",
+  "remote_feature_acceptance": "BLOCKED_TASK25_SCHEMA_NOT_READY",
+  "initial_preview_inference_superseded_by_real_http_probe": true
 }

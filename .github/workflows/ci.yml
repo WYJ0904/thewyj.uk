@@ -43,7 +43,9 @@ jobs:
           signing_ready = all(presence[key] for key in keys[2:])
           result = {'credential_presence': presence, 'cloud_credentials_configured': cloud_ready,
                     'signing_credentials_configured': signing_ready,
-                    'remote_preview': 'NOT_EXECUTED' if cloud_ready else 'BLOCKED_MISSING_CREDENTIALS',
+                    'remote_d1_administration': 'NOT_EXECUTED' if cloud_ready else 'BLOCKED_MISSING_CREDENTIALS',
+                    'remote_r2_administration': 'NOT_EXECUTED' if cloud_ready else 'BLOCKED_MISSING_CREDENTIALS',
+                    'pages_git_integration': 'INDEPENDENT_HTTP_CHECK_REQUIRED',
                     'production_migration': 'NOT_EXECUTED', 'production_deployment': 'NOT_EXECUTED',
                     'stable_pointer_changed': False}
           pathlib.Path('artifacts').mkdir(exist_ok=True)

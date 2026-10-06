@@ -36,15 +36,15 @@ Historical Windows artifact paths are not cloud prerequisites. GitHub source, cl
 | Actions / PR | API and logs readable; Core CI and signed candidate workflows exist |
 | Repository secrets | `gh secret list` returns HTTP 403 `Resource not accessible by integration`; secret names/values cannot be enumerated |
 | Signing CI | Fresh Task 25 run [37505069396](https://github.com/WYJ0904/thewyj.uk/actions/runs/37505069396) failed at Validate signing secrets: `THEWYJ_ANDROID_KEYSTORE_B64` missing; CI discovery proves all four required signing secrets absent |
-| Cloudflare | Pinned Wrangler 4.118.0 installed via npm; `wrangler whoami` reports not authenticated; no configured Cloudflare runtime credential |
+| Cloudflare | Wrangler 4.118.0 not authenticated. Existing Git integration **does** deploy Pages Preview automatically; API administration remains unauthenticated. Dashboard link identifies account `97c274a981e8dd6703aa6388e11c4614` |
 | Existing infrastructure | Pages project `thewyj-uk`; preserve existing Pages/D1/R2 deployment system |
 | Preview | D1 `wyj-cloud-preview` / `a3e6253b-689f-49f3-998b-7c5828ea255a`; R2 `wyj-cloud-preview` |
 | Production | D1 `wyj-cloud-production` / `11c288d8-c584-409f-bb1f-7e7af11793e5`; R2 `wyj-cloud-production` |
 | Production read access | Public app config is HTTP 200 using curl; initial Python urllib request was 403, so that client failure does not establish a Production outage |
 | Android | SDK 36/build-tools 36.0.0/platform-tools installed; complete Temurin JDK 21 installed because original Java runtime lacked javac |
-| Gradle | Wrapper 9.4.1 installed and exercised; 520 JVM tests PASS (76 XML suites), full lint/build continuing |
+| Gradle | Wrapper 9.4.1 exercised; 520 JVM tests PASS (76 XML suites), lint PASS (0 errors), debug/instrumentation/release APK/AAB builds PASS |
 | Signing locally | Existing environment-based signing config preserved; no local release signing credentials configured |
-| Instrumentation | No `/dev/kvm` or physical Samsung attached; compile instrumentation and execute feasible JVM/browser checks |
+| Instrumentation | Local machine has no `/dev/kvm` or Samsung; GitHub Android 11 software emulator executed all 19 shared vectors successfully ([runtime job](https://github.com/WYJ0904/thewyj.uk/actions/runs/37505935692/job/112415101968)) |
 
 ## Stable Android protection
 
@@ -54,7 +54,7 @@ Preserve `android/release-metadata.json`, existing `ANDROID_*` bindings, Stable 
 
 ## Current stage
 
-Software implementation in progress. Production migration/deployment have not been performed. No real user data has been used as a test fixture.
+Software implementation and automatic acceptance complete. Core CI [37505935692](https://github.com/WYJ0904/thewyj.uk/actions/runs/37505935692) SUCCESS, 8/8 including both browser regression jobs and Android runtime. Hosted Pages Preview deployed by the existing Git integration. Preview Task 25 API returns `503 task25_schema_not_ready`; D1 migration administration is blocked by the absent API token. Production migration/deployment have not been performed. Final blocked-release [closure](TASK25_CLOSURE.md) records completed work, evidence and external gates. No real user data has been used as a test fixture.
 
 Planned gates:
 
@@ -67,7 +67,7 @@ Planned gates:
 
 ## Current blockers and device boundary
 
-- Cloudflare deployment/D1/R2 administration currently lacks authenticated runtime credentials; actual remote operations will be tested, not assumed unavailable.
+- Cloudflare API/D1/R2 administration lacks credentials; Pages deployment through Git integration is available and proved. Preview's Task 25 schema is not ready, and Production schema inspection/migration remains unauthenticated.
 - Workflow dispatch works. Fresh signing workflow and CI discovery prove required signing credentials absent; release signing is blocked without changing the Stable identity.
 - Physical acceptance is NOT EXECUTED: current Stable → candidate in-place Samsung upgrade; final signature/install compatibility; Back/Resume; actual Samsung WebView; real offline/recovery; haptic/system permissions. These remain separate from software checks.
 
@@ -92,6 +92,10 @@ Actual Pages project listing, remote Production D1 inspection and remote R2 obje
 
 Actual Chromium Pages acceptance PASS at 390/1366px. GitHub PR #96 is draft. Initial Core CI [37505064825](https://github.com/WYJ0904/thewyj.uk/actions/runs/37505064825) found the emulator job's `sdkmanager` PATH error; repaired by resolving the runner's installed SDK tool explicitly, matching the existing Android build job. No failing product assertion was removed.
 
-CI credential discovery completed successfully and its artifact/log proves all six standard Cloudflare/signing bindings are absent. The discovery job being green means the check ran, **not** that remote Preview or deployment passed. Repository environments are empty; secrets enumeration remains 403. Authoritative machine-readable discovery evidence is stored under `docs/task25/evidence/`.
+CI credential discovery completed successfully and its artifact/log proves all six standard Cloudflare/signing bindings are absent. The discovery job being green means the check ran, **not** that remote feature acceptance or deployment passed. Repository environments are empty; secrets enumeration remains 403. Its original `remote_preview` field was an inference about API credentials, superseded by the actual Git integration/HTTP probe below; the workflow now reports D1/R2 administration separately. Machine-readable evidence is stored under `docs/task25/evidence/`.
 
-Remaining: complete lint/build, candidate 1.3.34/47 packaging, final Core CI/emulator, closure and remote deployment gates. Physical Samsung acceptance remains NOT EXECUTED. Remote Cloudflare and signed build blockers are additional to the device boundary, so the device-only SOFTWARE PASS formula cannot yet be used.
+Actual hosted Preview [c4838955](https://c4838955.thewyj-uk.pages.dev) deployed commit `13b952fd64e502aec6af0e800c9a4a3be737d5da` successfully. Status proves environment `preview`, D1/R2 bindings and Task 25 master ON. `qa/task25/remote-preview-smoke.py` created only a synthetic ordinary Preview account; registration/browser/native logins PASS, anonymous access 401 and non-admin access 403. Browser token, native token and WebView cookie each receive the same `503 task25_schema_not_ready`. This is a real remote acceptance blocker, not a missing Pages deployment. One earlier probe also created a synthetic account before correcting its native client/device request; no real user record was changed.
+
+Candidate 1.3.34/47 unsigned APK/AAB build PASS and actual package/version verified. Hashes and unreleased metadata: `docs/task25/evidence/candidate-local-metadata.json`. Stable metadata/config remains unchanged; final public download hash equals discovery. GitHub also stores the candidate in [Android artifact 11432003030](https://github.com/WYJ0904/thewyj.uk/actions/runs/37505935692/artifacts/11432003030) (90-day retention).
+
+Remaining external gates: remote D1 schema/migration administration, existing identity release signing, and physical Samsung acceptance. Local software, CI, emulator and unsigned candidate are complete; full software release acceptance and overall release remain BLOCKED. They are additional to the device boundary, so the device-only SOFTWARE PASS formula cannot be used. Do not start Task 26.
