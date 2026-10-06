@@ -1,6 +1,23 @@
 (() => {
   const entries = [
 {
+  "version": "1.3.32",
+  "build": "2026-10-06-aeris-p6-closure-1.3.32",
+  "date": "2026-10-06",
+  "title": "Aeris 最终体验验收与状态修复",
+  "features": [],
+  "improvements": [
+    "Android 系统减弱动画同步到 WebView，保留浏览器原有偏好。"
+  ],
+  "fixes": [
+    "后台刷新与返回页面只恢复同一组待核实 DOM 行，保留编辑草稿。",
+    "暂停上传状态保持；分享发布立即刷新配额、列表并清空已完成队列。"
+  ],
+  "security": [
+    "正式签名原地升级；用户历史数据与 recognition/candidate/ticket identities 保持。"
+  ]
+},
+{
   "version": "1.3.31",
   "build": "2026-10-06-aeris-p5-performance-1.3.31",
   "date": "2026-10-06",

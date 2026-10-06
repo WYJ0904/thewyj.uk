@@ -67,6 +67,8 @@ fun ThewyjWebView(
     onUnhandledBack: () -> Unit = {},
     active: Boolean = true,
 ) {
+    val reducedMotion = uk.thewyj.app.core.design.LocalThewyjReducedMotion.current
+    val currentReducedMotion = rememberUpdatedState(reducedMotion)
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val lifecycleState by lifecycle.currentStateFlow.collectAsState()
     val effectiveActive = active && lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
@@ -120,6 +122,7 @@ fun ThewyjWebView(
             onThemeChanged = { dark -> themeCallback.value(dark) },
             onVerifyPayment = { eventId -> verifyPaymentCallback.value(eventId) },
             onPageReady = { view ->
+                view.evaluateJavascript(webReducedMotionScript(currentReducedMotion.value), null)
                 view.syncPageActivity(currentActive.value)
                 scope.launch { if (currentActive.value) view.publishPaymentLedger(context, policy) }
             },
@@ -139,6 +142,9 @@ fun ThewyjWebView(
     AndroidView(factory = { webView }, modifier = modifier.fillMaxSize(), update = {
         it.visibility = if (effectiveActive) View.VISIBLE else View.INVISIBLE
     })
+    LaunchedEffect(webView, reducedMotion) {
+        webView.evaluateJavascript(webReducedMotionScript(reducedMotion), null)
+    }
     LaunchedEffect(effectiveActive) {
         if (effectiveActive) webView.onResume()
         webView.syncPageActivity(effectiveActive)

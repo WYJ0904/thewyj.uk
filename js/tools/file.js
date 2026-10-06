@@ -149,7 +149,7 @@ export async function digestFile(file, algorithm) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (algorithm === "MD5") {
     if (bytes.length >= 256 * 1024 && typeof Worker === "function") {
-      const worker = new Worker(new URL("./digest-worker.js?v=20261006-p6-closure-2", import.meta.url), { type: "module" });
+      const worker = new Worker(new URL("./digest-worker.js?v=20261006-p6-closure-3", import.meta.url), { type: "module" });
       try {
         return await new Promise((resolve, reject) => {
           const timer = setTimeout(() => { worker.terminate(); reject(new Error("文件哈希计算超时，请重试")); }, 30_000);

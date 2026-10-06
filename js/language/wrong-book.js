@@ -4,7 +4,7 @@ import {
   sanitizeAccepted,
   sanitizeStoredRubric,
   wordMatchesLanguage,
-} from "./quiz.js?v=20261006-p6-closure-2";
+} from "./quiz.js?v=20261006-p6-closure-3";
 
 export const MAX_WRONG_BOOK_ITEMS = 250;
 

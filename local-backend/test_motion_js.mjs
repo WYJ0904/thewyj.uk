@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { installMotionSystem, pressedReleaseDelay, motionDuration } from '../js/core/motion.js';
+import { installMotionSystem, pressedReleaseDelay, motionDuration, prefersReducedMotion } from '../js/core/motion.js';
 
 function fixture(reduced=false){
  let time=0,id=0;const timers=new Map(),events=new Map(),windowEvents=new Map(),observers=[];
@@ -12,6 +12,12 @@ function fixture(reduced=false){
 }
 assert.equal(pressedReleaseDelay(0,15),65);assert.equal(pressedReleaseDelay(20,10),80);assert.equal(pressedReleaseDelay(0,90),0);
 assert.equal(motionDuration('sheet',{matchMedia:()=>({matches:true})}),0);
+const nativeView={document:{documentElement:{dataset:{androidReducedMotion:'true'}}},matchMedia:()=>({matches:false})};
+assert.equal(motionDuration('sheet',nativeView),0,'real native preference works when the WebView media query reports false');
+nativeView.document.documentElement.dataset.androidReducedMotion='false';
+assert.equal(motionDuration('sheet',nativeView),280,'restoring the native preference restores normal motion');
+nativeView.matchMedia=()=>({matches:true});
+assert.equal(prefersReducedMotion(nativeView),true,'native false never overrides browser reduced motion');
 
 const f=fixture();const dispose=installMotionSystem(f.doc);assert.equal(installMotionSystem(f.doc),dispose);assert.equal(f.events.get('pointerdown').length,1);
 f.send('pointerdown');assert.equal(f.button.getAttribute('data-aeris-pressed'),'true');
