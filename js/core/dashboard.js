@@ -1,5 +1,5 @@
-import { $, escapeHtml } from "./ui.js?v=20261006-p5-architecture-4";
-import { reconcileKeyedRows } from "./keyed-list.js?v=20261006-p5-architecture-4";
+import { $, escapeHtml } from "./ui.js?v=20261006-p6-closure-3";
+import { reconcileKeyedRows } from "./keyed-list.js?v=20261006-p6-closure-3";
 const bound = new WeakSet();
 const setText = (node,value) => { if(node && node.textContent!==String(value))node.textContent=String(value); };
 

@@ -9,6 +9,7 @@ import {
   shouldAdoptStoredQueue,
   transferQueueStorageKey,
   transferItemAction,
+  transferItemStatusLabel,
   uploadWorkerCount,
 } from "../js/transfer/app.js";
 
@@ -106,6 +107,11 @@ assert.equal(transferItemAction({ status: "preparing", uploaded: 0 }), "preparin
 assert.equal(transferItemAction({ status: "uploading", uploaded: 1 }), "pause");
 assert.equal(transferItemAction({ status: "uploading", uploaded: 1, paused: true }), "resume");
 assert.equal(transferItemAction({ status: "error", uploaded: 0 }), "retry");
+assert.equal(transferItemStatusLabel({ status: "uploading", paused: true }), "已暂停");
+assert.equal(transferItemStatusLabel({ status: "pending", paused: true }), "已暂停", "settled PUTs cannot erase the user's paused indication");
+assert.equal(transferItemStatusLabel({ status: "pending", paused: false }), "等待上传");
+assert.equal(transferItemStatusLabel({ status: "done", paused: true }), "上传完成", "terminal upload state wins over an old pause flag");
+assert.equal(transferItemStatusLabel({ status: "cancelled", paused: true }), "已取消");
 assert.equal(restoreQueueEntry({ id: "preparing", size: 800 * 1024 * 1024, uploaded: 0, status: "preparing" }).status, "pending");
 
 // An expired/aborted restored batch is reset as one unit. File handles survive

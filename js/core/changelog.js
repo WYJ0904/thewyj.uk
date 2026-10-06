@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?v=20261006-p5-architecture-4";
+import { fetchWithTimeout } from "./api.js?v=20261006-p6-closure-3";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 

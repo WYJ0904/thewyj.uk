@@ -834,3 +834,22 @@ small {
     transition-duration: 1ms !important;
   }
 }
+
+/* Some Android WebViews do not map the real OS animator preference to media. */
+html[data-android-reduced-motion="true"] {
+  --ds-pressed-scale: 1;
+  --ds-duration-pressed: 0ms;
+  --ds-duration-expand: 0ms;
+  --ds-duration-page: 0ms;
+  --ds-duration-sheet: 0ms;
+}
+html[data-android-reduced-motion="true"] [data-aeris-pressed="true"] { scale: 1; }
+html[data-android-reduced-motion="true"] .ds-tab-indicator { transition: none; }
+html[data-android-reduced-motion="true"] *,
+html[data-android-reduced-motion="true"] *::before,
+html[data-android-reduced-motion="true"] *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+}

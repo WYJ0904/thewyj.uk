@@ -9,8 +9,13 @@ export function pressedReleaseDelay(started, now, minimum = MOTION.pressed) {
   return Math.max(0, minimum - Math.max(0, now - started));
 }
 
+export function prefersReducedMotion(view = globalThis.window) {
+  return view?.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
+    || view?.document?.documentElement?.dataset?.androidReducedMotion === "true";
+}
+
 export function motionDuration(kind, view = globalThis.window) {
-  return view?.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? 0 : (MOTION[kind] ?? MOTION.fast);
+  return prefersReducedMotion(view) ? 0 : (MOTION[kind] ?? MOTION.fast);
 }
 
 const installed = new WeakMap();
@@ -39,7 +44,7 @@ export function installMotionSystem(doc = globalThis.document) {
   }
   function release(node, cancel = false) {
     const item = pressed.get(node); if (!item) return;
-    const remaining = cancel ? 0 : pressedReleaseDelay(item.at, clock());
+    const remaining = cancel || prefersReducedMotion(view) ? 0 : pressedReleaseDelay(item.at, clock());
     if (!remaining) clear(node);
     else item.timer = view.setTimeout(() => clear(node), remaining);
   }
@@ -58,6 +63,7 @@ export function installMotionSystem(doc = globalThis.document) {
   listen("keydown", event => { if (!event.repeat && (event.key === "Enter" || event.key === " ")) press(target(event.target)); });
   listen("keyup", event => { if (event.key === "Enter" || event.key === " ") release(target(event.target)); });
   listen("visibilitychange", () => { if (doc.hidden) reset(); });
+  listen("thewyj:reduced-motion", reset);
   view.addEventListener("blur", reset); disposers.push(() => view.removeEventListener("blur", reset));
 
   // Native details semantics remain the authority, including programmatic opens.

@@ -21,8 +21,18 @@ try {
  await p.navigate('/finance');await p.waitFor("document.querySelector('#financeRecordedCount').textContent==='120'&&document.querySelector('#financePendingCount').textContent==='1'");
  await p.click('[data-finance-candidate-edit="p5-contract-hint"]');await p.evaluate("document.querySelector('[data-finance-candidate-editor]').elements.amount.value='0.01';window.__p5LedgerRow=document.querySelector('[data-finance-transaction]');window.__p5ReviewRow=document.querySelector('[data-canonical-identity]');true");
  await p.click('a[data-site-nav][href="/"]');await p.waitFor("location.pathname==='/'");assert.equal(await p.evaluate("window.__p5LedgerRow.isConnected||window.__p5ReviewRow.isConnected"),false);
+ // A genuine native payment signal may arrive after Finance has been hidden.
+ // It must update the same detached owner rather than create a second DOM set.
+ await p.evaluate("document.dispatchEvent(new CustomEvent('thewyj:payment-updated'));true");await delay(200);
+ assert.equal(await p.evaluate("document.querySelector('#financeCandidateList').childElementCount"),0,'background reconciliation stays off the connected hidden DOM');
  await p.click('a[data-site-nav][href="/finance"]');await p.waitFor("document.querySelector('#financePendingCount').textContent==='1' && document.querySelector('[data-finance-candidate-editor]')");
+ assert.equal(await p.evaluate("document.querySelectorAll('#financeCandidateList [data-canonical-identity]').length"),1,'one canonical record returns as exactly one row');
  assert.equal(await p.evaluate("window.__p5LedgerRow===document.querySelector('[data-finance-transaction]')&&window.__p5ReviewRow===document.querySelector('[data-canonical-identity]')"),true);
  assert.equal(await p.evaluate("document.querySelector('[data-finance-candidate-editor]').elements.amount.value"),'0.01');
+ await p.click('a[data-site-nav][href="/"]');await p.waitFor("location.pathname==='/'");reviews[0]={...reviews[0],merchant:'P6 hidden display update'};
+ await p.evaluate("document.dispatchEvent(new Event('visibilitychange'));true");await delay(300);
+ await p.click('a[data-site-nav][href="/finance"]');await p.waitFor("document.querySelector('#financeCandidateList').textContent.includes('P6 hidden display update')");
+ assert.equal(await p.evaluate("document.querySelectorAll('#financeCandidateList [data-canonical-identity]').length"),1);
+ assert.equal(await p.evaluate("document.querySelector('[data-finance-candidate-editor]').elements.amount.value"),'0.01','an updated hidden row retains the existing unsubmitted amount');
  assert.deepEqual(p.runtimeErrors,[]);console.log(JSON.stringify({catalogTotal:total,batches,toolsParkedIdentity:true,workflowDeepLink:true,ledgerParkedIdentity:true,reviewDraftPreserved:true,runtimeErrors:0}));
 }finally{await p.close();}
