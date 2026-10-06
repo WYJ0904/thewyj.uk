@@ -1,7 +1,8 @@
 {
   "schema_version": 1,
   "keys": [
-    { "family": "home-widget-preferences", "storage": "localStorage", "source": "js/core/home-widgets.js", "fragment": "aerisHomeWidgets:v1:" },
+    { "family": "home-widget-preferences", "storage": "localStorage", "source": "js/core/home-widget-layout.js", "fragment": "aerisHomeWidgets:v1:" },
+    { "family": "home-widget-profiles", "storage": "localStorage", "source": "js/core/home-widget-layout.js", "fragment": "aerisHomeWidgets:v2:" },
     { "family": "account-session", "storage": "localStorage", "source": "js/core/session.js", "fragment": "wyjAccountSession" },
     { "family": "account-cache", "storage": "localStorage", "source": "js/core/session.js", "fragment": "wyjAccountCache" },
     { "family": "legacy-session", "storage": "localStorage/sessionStorage", "source": "js/core/session.js", "fragment": "vocabSession" },

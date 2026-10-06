@@ -1,7 +1,7 @@
-import { $, escapeHtml } from "./ui.js?v=20261006-home-refinement-1";
-import { reconcileKeyedRows } from "./keyed-list.js?v=20261006-home-refinement-1";
-import { createHomeWidgets } from "./home-widgets.js?v=20261006-home-refinement-1";
-import { projectHomeWidgets } from "./home-widget-data.js?v=20261006-home-refinement-1";
+import { $, escapeHtml } from "./ui.js?v=20261006-mobile-floating-1";
+import { reconcileKeyedRows } from "./keyed-list.js?v=20261006-mobile-floating-1";
+import { createHomeWidgets } from "./home-widgets.js?v=20261006-mobile-floating-1";
+import { projectHomeWidgets } from "./home-widget-data.js?v=20261006-mobile-floating-1";
 const bound = new WeakSet();
 const setText = (node,value) => { if(node && node.textContent!==String(value))node.textContent=String(value); };
 

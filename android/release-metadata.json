@@ -1,13 +1,13 @@
 {
   "applicationId": "uk.thewyj.app",
-  "versionName": "1.3.32",
-  "versionCode": 45,
+  "versionName": "1.3.33",
+  "versionCode": 46,
   "minimumVersionCode": 1,
   "releaseDate": "2026-10-06",
-  "releaseBuild": "2026-10-06-aeris-p6-closure-1.3.32",
-  "releaseNotes": "- 修复后台刷新后待核实行重复显示，保留 canonical 与本机恢复分离。\n- 上传暂停状态持续显示，创建分享后立即刷新配额与我的分享。\n- 系统减弱动画偏好同步到 Android WebView。\n- 保留历史数据、识别与自动记账、文件完整性和正式签名。",
-  "apkFileName": "thewyj-android-1.3.32.apk",
-  "apkKey": "app/android/thewyj-android-1.3.32.apk",
-  "apkSha256": "4b0512bbc05c69ccf79fe81dc20be5a6fb3f99ecd1437242de4d8dd26fd6fd08",
+  "releaseBuild": "2026-10-06-aeris-mobile-floating-1.3.33",
+  "releaseNotes": "- 全新 Aeris 首页与可配置 Widget。\n- 恢复手机端悬浮卡片布局。\n- 手机与桌面的 Widget 位置、尺寸和旋转现在独立保存。\n- 修复桌面布局应用到手机后可能出现的卡片越界问题。\n- 改进手机端触控、旋转与尺寸边界处理。\n- 首页交互与稳定性优化。",
+  "apkFileName": "thewyj-android-1.3.33.apk",
+  "apkKey": "app/android/thewyj-android-1.3.33.apk",
+  "apkSha256": "17da079bc7428dc87b1b0b2141ca011f6297101fba3a5d2cc6bbac3fe289048c",
   "apkSizeBytes": 47893965
 }
