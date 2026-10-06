@@ -110,6 +110,7 @@ export function createHomeWidgets({ root, accountId, navigate, storage = getSafe
       const suffix=id[0].toUpperCase()+id.slice(1);
       text(root.querySelector(`#homeScene${suffix}Label`),choice.label||labels[id]);
       text(root.querySelector(`#homeScene${suffix}Value`),choice.value||"尚未读取");
+      const valueNode=root.querySelector(`#homeScene${suffix}Value`);if(valueNode.title!==String(choice.value||''))valueNode.title=String(choice.value||'');
       text(root.querySelector(`#homeScene${suffix}Detail`),choice.detail||"");
       text(root.querySelector(`#homeScene${suffix}Status`),choice.status||"");
       text(cards[id].querySelector("[data-widget-extra]"),choice.extra||model.extra||"");

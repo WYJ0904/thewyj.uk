@@ -11,6 +11,7 @@ try {
  await p.navigate('/');await p.waitFor(ready);assert.equal(await p.evaluate("document.querySelector('.home-purpose').textContent"),'学习 · 工具 · 账本 · 文件');
  assert.equal(await p.evaluate("document.querySelectorAll('[data-widget-demo]:not([hidden])').length"),3);
  assert.equal(await p.evaluate("document.querySelectorAll('[data-home-widget-open]').length"),3);
+ assert.equal(await p.evaluate("document.querySelector('.home-inline-nav [aria-current=page]')?.dataset.siteNav"),'home');
  assert.equal(await p.evaluate("document.querySelector('#homeProductDetails').open"),false);
  await p.click('[data-home-widget-open=learning]');await p.waitFor("location.pathname==='/trial'");await p.evaluate('history.back()');await p.waitFor(ready);
  await p.click('#publicLoginBtn');await p.waitFor("location.pathname==='/login'");await p.setFields({'#usernameInput':process.env.WYJ_TEST_ADMIN_USER||'wyj','#secretInput':process.env.WYJ_TEST_ADMIN_SECRET});await p.click('#loginSubmitBtn');await p.waitFor(ready+"&&document.querySelector('#publicHome').dataset.sessionMode==='authenticated'",30000);
@@ -43,6 +44,7 @@ try {
  for(const size of ['small','medium','large']){
   await p.click('[data-widget-edit=finance]');await p.setFields({'#homeWidgetEditor [name=size]':size});await p.click('#homeWidgetEditor [type=submit]');assert.ok((await p.evaluate(bounds)).every(x=>x.inside));
  }
+ const longLabel=await p.evaluate("(()=>{const value=document.querySelector('#homeSceneToolsValue'),saved=value.textContent;value.textContent='受控 QA 长工作流名称'.repeat(8);const r=value.getBoundingClientRect(),card=value.closest('[data-home-widget]').getBoundingClientRect();const result={height:r.height,inside:r.bottom<=card.bottom&&r.right<=card.right};value.textContent=saved;return result;})()");assert.ok(longLabel.inside&&longLabel.height<65,'long workflow labels stay inside the card, full value remains available in its accessible name/title');
  await p.send('Emulation.setDeviceMetricsOverride',{width:390,height:1000,deviceScaleFactor:1,mobile:true});await delay(100);
  assert.ok((await p.evaluate(bounds)).every(x=>x.position==='relative'&&x.transform==='none'));assert.ok(await p.evaluate("document.querySelector('.public-intro-copy').getBoundingClientRect().bottom<document.querySelector('.public-hero-scene').getBoundingClientRect().top"));assert.equal(await p.evaluate('document.documentElement.scrollWidth>innerWidth+1'),false);
  await p.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});assert.equal(await p.evaluate("getComputedStyle(document.querySelector('.hero-scene-card')).transitionDuration"),'0s');

@@ -659,6 +659,10 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#publicHome').textContent.includes('留在本机')"), true);
       assert.equal(await evaluate("document.querySelector('#publicSplitFlap')"), null);
       assert.equal(await evaluate("document.querySelectorAll('#publicCapabilityGallery [role=tab]').length"), 4);
+      // Compact navigation remains keyboard accessible on narrow viewports.
+      // Desktop now exposes the five primary destinations inline.
+      assert.equal(await evaluate("document.querySelectorAll('.home-inline-nav a').length"),5);
+      await send("Emulation.setDeviceMetricsOverride",{width:390,height:900,deviceScaleFactor:1,mobile:true});
       await click("#siteNavToggle");
       assert.equal(await evaluate("document.querySelector('#siteNavToggle').getAttribute('aria-expanded')"), "true");
       assert.equal(await evaluate("document.querySelectorAll('#siteNavPanel a').length"), 8);
@@ -681,6 +685,7 @@ async function main() {
       await waitFor("location.pathname === '/trial' && !document.querySelector('#trialPage')?.classList.contains('hidden')", 4_000, "keyboard trial navigation");
       await click("#trialHomeBtn");
       await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 4_000, "home after keyboard trial navigation");
+      await send("Emulation.setDeviceMetricsOverride",{width:1366,height:900,deviceScaleFactor:1,mobile:false});
 
       const navigationMatrix = [
         { destination: "home", selector: "#navHomeLink", pathname: "/", surface: "#publicHome" },
@@ -700,6 +705,7 @@ async function main() {
         }
       }
 
+      if(!await evaluate("document.querySelector('#homeProductDetails').open"))await click('#homeProductDetails>summary');
       await click('.capability-trigger[aria-controls="capabilityToolsBody"]');
       assert.equal(await evaluate("document.querySelector('[data-capability-panel=tools]').classList.contains('active')"), true);
       assert.equal(await evaluate("getComputedStyle(document.querySelector('#capabilityLearningBody')).display"), "none");
@@ -883,7 +889,7 @@ async function main() {
     let browserFeedbackId = "";
 
     await check("authenticated product home continuity and responsive layout", async () => {
-      await click('#homeProductDetails>summary');
+      if(!await evaluate("document.querySelector('#homeProductDetails').open"))await click('#homeProductDetails>summary');
       assert.equal(await evaluate("document.body.dataset.experience"), "public");
       assert.equal(await evaluate("document.querySelector('#publicHomeTitle').textContent.trim()"), "Aeris");
       assert.ok((await evaluate("document.querySelector('#dashboardGreeting').textContent")).includes(`${USERNAME}`));
@@ -1531,8 +1537,7 @@ async function main() {
           await waitFor("location.pathname === '/'", 5_000, "leave tools");
         }
         if (await evaluate("location.pathname === '/'")) {
-          await tap('[data-core-capability=learning]>.capability-trigger');
-          await tap('[data-module="language"]');
+          await tap('[data-home-widget-open=learning]');
           await waitFor("location.pathname === '/language'", 5_000, "language picker from dashboard");
         }
         if (await evaluate("location.pathname === '/language'")) {

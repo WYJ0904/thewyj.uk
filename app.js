@@ -1224,7 +1224,7 @@ function renderAccountUi() {
           : ["/", "/select", "/login", "/register"].includes(location.pathname)
             ? "home"
             : "";
-  document.querySelectorAll(".site-nav-links [data-site-nav]").forEach((link) => {
+  document.querySelectorAll(".site-nav-links [data-site-nav], .home-inline-nav [data-site-nav]").forEach((link) => {
     const active = link.dataset.siteNav === activeNavigation;
     link.classList.toggle("active", active);
     if (active) link.setAttribute("aria-current", "page");
