@@ -6,8 +6,8 @@ try {
  await p.navigate('/');await p.waitFor('!document.getElementById("entryScreen")');
  const registration=await p.evaluate("navigator.serviceWorker.register('/sw.js').then(()=>navigator.serviceWorker.ready).then(r=>({scope:r.scope,state:r.active.state}))");
  await p.waitFor("navigator.serviceWorker.controller!==null",25000);
- await p.evaluate("(async()=>{await Promise.all(['/js/core/lazy-controller.js?v=20261006-p6-closure-1','/js/core/dashboard.js?v=20261006-p6-closure-1','/js/finance/format.js?v=20261006-p6-closure-1','/js/tools/digest-worker.js?v=20261006-p6-closure-1'].map(u=>fetch(u)));return true})()");await delay(500);
- const cache=await p.evaluate("(async()=>{const keys=await caches.keys(),items=await Promise.all(keys.map(k=>caches.open(k).then(c=>c.keys())));return {keys,paths:items.flat().map(r=>new URL(r.url).pathname),sensitive:items.flat().some(r=>new URL(r.url).pathname.startsWith('/api/'))};})()");assert.equal(cache.sensitive,false);assert.ok(cache.keys.every(k=>k.includes('20261006-p6-closure-1')));
+ await p.evaluate("(async()=>{await Promise.all(['/js/core/lazy-controller.js?v=20261006-p6-closure-2','/js/core/dashboard.js?v=20261006-p6-closure-2','/js/finance/format.js?v=20261006-p6-closure-2','/js/tools/digest-worker.js?v=20261006-p6-closure-2'].map(u=>fetch(u)));return true})()");await delay(500);
+ const cache=await p.evaluate("(async()=>{const keys=await caches.keys(),items=await Promise.all(keys.map(k=>caches.open(k).then(c=>c.keys())));return {keys,paths:items.flat().map(r=>new URL(r.url).pathname),sensitive:items.flat().some(r=>new URL(r.url).pathname.startsWith('/api/'))};})()");assert.equal(cache.sensitive,false);assert.ok(cache.keys.every(k=>k.includes('20261006-p6-closure-2')));
  await p.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
  await p.send('Page.reload',{ignoreCache:false});await p.waitFor("document.querySelector('#appShell')&&!document.querySelector('#appShell').classList.contains('app-shell-pending')",35000);
  assert.equal(await p.evaluate("document.querySelector('#publicHome').dataset.sessionMode"),'guest');
