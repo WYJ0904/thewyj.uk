@@ -101,7 +101,14 @@ try {
   pass('audit failure cannot partially commit a kill switch; successful retry overrides targeted ON');
 
   const unavailableDb = { prepare() { throw new Error('isolated_d1_outage'); } };
-  for (const failure of [{ TASK25_FEATURE_FLAGS_ENABLED: 'false' }, { WYJ_DB: unavailableDb }]) {
+  const unavailableFlagQueries = {
+    prepare(sql) { if (sql.includes('task25_')) throw new Error('isolated_flag_query_outage'); return db.prepare(sql); },
+    batch(statements) { return db.batch(statements); },
+  };
+  // Also exercise production's enabled D1 rate limiter with only the optional
+  // flag queries unavailable; canonical accounts and distribution remain live.
+  const flagOnlyFailure = { WYJ_DB: unavailableFlagQueries, D1_RATE_LIMIT_ENABLED: 'true' };
+  for (const failure of [{ TASK25_FEATURE_FLAGS_ENABLED: 'false' }, { WYJ_DB: unavailableDb }, flagOnlyFailure]) {
     assert.equal((await request('/api/features', failure)).status, 503);
     assert.deepEqual((await (await request('/api/app/config', failure)).json()).app, configBefore);
     const download = await request('/api/app/download', failure);
@@ -109,6 +116,7 @@ try {
     assert.equal(download.headers.get('Cache-Control'), 'private, no-store');
     assert.equal(createHash('sha256').update(Buffer.from(await download.arrayBuffer())).digest('hex'), createHash('sha256').update(apkBytes).digest('hex'));
   }
+  assert.equal((await request('/api/me', flagOnlyFailure)).status, 200);
   pass('master OFF and flag database outage preserve old-client config/download; moving APK pointer cannot be cached');
   console.log(`Task 25 release resilience: ${groups} groups passed (isolated fixtures; no Production operations)`);
 } finally { await mf.dispose(); await rm(runtime, { recursive: true, force: true }); }
