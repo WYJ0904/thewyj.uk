@@ -1,0 +1,72 @@
+name: Task 25 hosted release preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      preview_origin:
+        description: Existing thewyj-uk Pages Preview origin
+        required: true
+        default: https://codex-task25-flags-release-c.thewyj-uk.pages.dev
+  push:
+    branches: [codex/task25-flags-release-channels]
+    paths:
+      - .github/workflows/task25-hosted-preflight.yml
+      - qa/task25/hosted-release-preflight.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: task25-hosted-preflight-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  hosted-preflight:
+    if: github.ref == 'refs/heads/codex/task25-flags-release-channels'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Discover current CI inputs without exposing values
+        id: readiness
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          WYJ_TASK25_ADMIN_SESSION: ${{ secrets.WYJ_TASK25_ADMIN_SESSION }}
+          THEWYJ_ANDROID_KEYSTORE_B64: ${{ secrets.THEWYJ_ANDROID_KEYSTORE_B64 }}
+          THEWYJ_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.THEWYJ_ANDROID_KEYSTORE_PASSWORD }}
+          THEWYJ_ANDROID_KEY_ALIAS: ${{ secrets.THEWYJ_ANDROID_KEY_ALIAS }}
+          THEWYJ_ANDROID_KEY_PASSWORD: ${{ secrets.THEWYJ_ANDROID_KEY_PASSWORD }}
+        run: python3 qa/task25/hosted-release-preflight.py --discover-only --output-dir artifacts/task25-hosted-preflight
+      - name: Install existing pinned Cloudflare tooling only when needed
+        if: steps.readiness.outputs.cloud_ready == 'true'
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Read-only Cloudflare checks and actual hosted Preview probes
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          WYJ_TASK25_ADMIN_SESSION: ${{ secrets.WYJ_TASK25_ADMIN_SESSION }}
+          TASK25_PREVIEW_ORIGIN: ${{ inputs.preview_origin || 'https://codex-task25-flags-release-c.thewyj-uk.pages.dev' }}
+          TASK25_EXPECTED_SOURCE: ${{ github.sha }}
+        run: python3 qa/task25/hosted-release-preflight.py --output-dir artifacts/task25-hosted-preflight
+      - name: Save explicit gate outcomes, never release approval
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: task25-hosted-preflight-${{ github.run_attempt }}
+          path: |
+            artifacts/task25-hosted-preflight/*.json
+            artifacts/task25-hosted-preflight/*.png
+          if-no-files-found: error
+          retention-days: 90
