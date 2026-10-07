@@ -120,7 +120,7 @@ P1 修复的 [37617315706](https://github.com/WYJ0904/thewyj.uk/actions/runs/376
 | 权限、默认值、kill/audit/outage | 沿用已通过的 Admin/CSRF/用户隔离；新增 audit 失败无部分提交、kill 优先于指定用户 ON、100% Experimental 不进入 Stable/Beta；master OFF / Flag D1 故障仍提供旧客户端 config/download |
 | 移动 APK 缓存修复 | `/api/app/download` 改 `private, no-store`，防止新 hash/metadata 仍取得缓存的旧 APK；API 路径、Stable 内容和所有 `ANDROID_*` 字段保持原值 |
 | 候选 signing pipeline | 原四项 signing inputs 完整定义；使用 candidate Gradle properties，版本 name/code 都须前进、base URL 为纯 HTTPS origin；独立核验 APK manifest、APK/AAB 原证书和签名；source SHA/hash/size 记录；keystore 清理 |
-| Release gate / metadata preparation | 11 项 signing/proposal gate tests PASS；unsigned/stale/missing PASS evidence、emulator、非原地升级、数据/session 丢失、错误 R2 bucket/key/readback 均拒绝。工具只在仓库外原子生成一致 proposal，不上传/部署/移动 pointer |
+| Release gate / metadata preparation | 12 项 signing/proposal gate tests PASS；unsigned/stale/missing PASS evidence、emulator、非原地升级、数据/session 丢失、错误 R2 bucket/key/readback 均拒绝。工具只在仓库外原子生成含 changelog 的一致 proposal，并执行原 Python/JS 两套 release guards，不上传/部署/移动 pointer |
 | 可云端执行的 Admin smoke | 同一脚本实际在隔离 development Pages/D1/R2 执行 8 项 contract PASS、安全收尾 PASS；CI 已接入。Hosted Admin 尚未执行，不能由本地结果替代 |
 | 相关回归 | 原 12 D1/API groups、19 shared cases，Task 20 18 groups/Android contract，36 Stable consistency checks 和 checker regression，Pages Worker build PASS；520 JVM/完整 browser 既有证据保留，新 CI 验证工作流/候选改动 |
 | Production plan | [TASK25_RELEASE_PLAN.md](TASK25_RELEASE_PLAN.md) 明确原 Pages 项目/direct pre-merge deploy 与 main Git deploy、只读 preflight、schema/ledger 校验、additive migration、dark deploy→master ON、完整 Production smoke、紧急关闭和无损恢复；没有新建基础设施或 Production 执行 |

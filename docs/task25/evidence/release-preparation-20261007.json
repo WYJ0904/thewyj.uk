@@ -9,7 +9,7 @@
   "mergeable_state": "clean",
   "behind_main": 0,
   "local_release_resilience_groups": 5,
-  "candidate_and_proposal_guard_tests": 11,
+  "candidate_and_proposal_guard_tests": 12,
   "original_d1_api_groups": 12,
   "shared_contract_cases": 19,
   "task20_integration_groups": 18,
@@ -32,5 +32,6 @@
   "r2_objects_changed": false,
   "real_user_data_changed": false,
   "task26_started": false,
-  "new_branch_ci_evidence": "LATEST_FINAL_PR_ACCEPTANCE_ADDENDUM"
+  "new_branch_ci_evidence": "LATEST_FINAL_PR_ACCEPTANCE_ADDENDUM",
+  "proposal_existing_python_js_release_guards": "PASS"
 }

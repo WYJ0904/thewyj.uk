@@ -1,8 +1,14 @@
 import copy
 import json
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
 import unittest
 
-from scripts.prepare_task25_android_release import REQUIRED_GATES, proposed_configuration, validate_receipt
+from scripts.prepare_task25_android_release import REQUIRED_GATES, proposed_changelog, proposed_configuration, validate_receipt
 from scripts.stage_android_candidate import ROOT, STABLE_PATH
 
 
@@ -65,6 +71,33 @@ class ReleaseProposalTests(unittest.TestCase):
             self.assertEqual(proposal['env'][env]['vars']['TASK25_FEATURE_FLAGS_ENABLED'], config['env'][env]['vars']['TASK25_FEATURE_FLAGS_ENABLED'])
         self.assertEqual(stable, original_stable)
         self.assertEqual(config, original_config)
+
+    def test_proposal_passes_both_existing_release_guards_with_history_preserved(self):
+        stable = json.loads(STABLE_PATH.read_text())
+        meta, config = proposed_configuration(stable, json.loads((ROOT / 'wrangler.jsonc').read_text()),
+            self.candidate, '2026-10-07', 'task25-release-47', '- 体验通道与版本更新。')
+        original_changelog = (ROOT / 'changelog.js').read_text()
+        changelog = proposed_changelog(original_changelog, meta)
+        self.assertIn(stable['releaseBuild'], changelog)
+        with self.assertRaises(ValueError): proposed_changelog(changelog, meta)
+        with tempfile.TemporaryDirectory(prefix='task25-release-guard-') as directory:
+            root = Path(directory)
+            (root / 'android/app').mkdir(parents=True)
+            (root / 'scripts').mkdir()
+            gradle = (ROOT / 'android/app/build.gradle.kts').read_text()
+            gradle = re.sub(r'versionCode\s*=\s*46\b', 'versionCode = 47', gradle, count=1)
+            gradle = gradle.replace('versionName = "1.3.33"', 'versionName = "1.3.34"', 1)
+            (root / 'android/app/build.gradle.kts').write_text(gradle)
+            (root / 'android/release-metadata.json').write_text(json.dumps(meta))
+            (root / 'wrangler.jsonc').write_text(json.dumps(config))
+            (root / 'changelog.js').write_text(changelog)
+            shutil.copyfile(ROOT / 'index.html', root / 'index.html')
+            for script in ['check_android_release_consistency.py', 'check_android_release.mjs']:
+                shutil.copyfile(ROOT / 'scripts' / script, root / 'scripts' / script)
+            for command in [[sys.executable, str(root / 'scripts/check_android_release_consistency.py')],
+                            ['node', str(root / 'scripts/check_android_release.mjs')]]:
+                result = subprocess.run(command, cwd=root, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
 if __name__ == '__main__':

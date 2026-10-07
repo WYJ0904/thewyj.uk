@@ -57,6 +57,16 @@ def proposed_configuration(stable, config, candidate, date, build, notes):
     return result, updated
 
 
+def proposed_changelog(source, metadata):
+    entry = {'version': metadata['versionName'], 'build': metadata['releaseBuild'], 'date': metadata['releaseDate'],
+        'title': '体验通道与版本更新', 'features': [line.lstrip('- ').strip() for line in metadata['releaseNotes'].splitlines() if line.strip()],
+        'improvements': [], 'fixes': [], 'security': []}
+    marker = 'const entries = ['
+    if source.count(marker) != 1 or metadata['releaseBuild'] in source:
+        raise ValueError('Changelog baseline drift or duplicate build')
+    return source.replace(marker, marker + '\n' + json.dumps(entry, ensure_ascii=False, indent=2) + ',', 1)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ['candidate-metadata', 'acceptance', 'apk', 'aab', 'r2-readback', 'release-notes-file', 'output-dir']:
@@ -84,6 +94,7 @@ def main():
             raise ValueError('Stable baseline drift; reconcile before preparing release')
         metadata, config = proposed_configuration(stable, json.loads((ROOT / 'wrangler.jsonc').read_text()), candidate,
             args.release_date, args.release_build, notes)
+        changelog = proposed_changelog((ROOT / 'changelog.js').read_text(), metadata)
         gradle, code_count = re.subn(r'versionCode\s*=\s*46\b', 'versionCode = 47', (ROOT / 'android/app/build.gradle.kts').read_text(), count=1)
         gradle, name_count = re.subn(r'versionName\s*=\s*"1\.3\.33"', 'versionName = "1.3.34"', gradle, count=1)
         if code_count != 1 or name_count != 1: raise ValueError('Gradle Stable baseline drift')
@@ -96,6 +107,7 @@ def main():
         (staging / 'android/release-metadata.json').write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + '\n')
         (staging / 'wrangler.jsonc').write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n')
         (staging / 'android/app/build.gradle.kts').write_text(gradle)
+        (staging / 'changelog.js').write_text(changelog)
         staging.rename(destination)
     print('Reviewable release proposal only:', destination)
     print('No R2 upload/deployment/Stable pointer change performed. Preview requires independent bucket readback before applying its proposal.')
