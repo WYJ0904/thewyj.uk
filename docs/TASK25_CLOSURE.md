@@ -53,6 +53,8 @@ READY FOR TASK 26: NO
 
 后续报告提交 `1a30f17` 的 CI [37509287826](https://github.com/WYJ0904/thewyj.uk/actions/runs/37509287826) 曾有两次失败：P33 重载后的可见/布局等待竞态，以及 Wrangler Pages 开发代理连接重置导致 P4 请求失败。这些失败保留在 Actions。修复将 Pages CI 对齐云端 Node 24，并在首页几何采样前等待可见与 ResizeObserver 帧布局；保留全部原断言。Local P33 全部 guest/authenticated/reload cases 与 P4 三尺寸验证通过。最终软件分支 `c2a4801` 的 [37512761641](https://github.com/WYJ0904/thewyj.uk/actions/runs/37512761641) 已实际完成，8/8 SUCCESS，取代上述失败的 follow-up 检查点。此后文档提交的检查结果以 PR #96 closure addendum 和最新 Actions 为准。
 
+证据提交 `d7a5f3f` 的 [37615300468](https://github.com/WYJ0904/thewyj.uk/actions/runs/37615300468) 另捕获 P1 恢复断言的观察时序问题：250ms 合并写入的持久化进度可能落后于已显示的百分比。测试现在等待确认进度超过暂停时的实际显示值后再恢复，并保留原有隐藏/恢复/session 断言。实际本地 Pages/D1/R2 browser PASS，观察值见 [p1-resume-regression.json](task25/evidence/p1-resume-regression.json)。没有修改生产上传或 Task 25 产品代码。修复后的完整 CI 状态以最终 PR closure addendum 为准；失败 run 保留，不算 PASS。
+
 可恢复证据位于 [docs/task25/evidence](task25/evidence)：`core-ci.json`、`local-software-acceptance.json`、`android-runtime-acceptance.json`、`browser-acceptance.json`、候选 metadata、hosted Preview smoke 和 Production Stable smoke。GitHub artifact 有保留期限，关键状态/来源/hash 同时保存在仓库；会话文本不是唯一记录。
 
 ## Cloudflare Preview 与 Production

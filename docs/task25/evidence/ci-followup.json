@@ -13,7 +13,8 @@
   ],
   "repairs": [
     "Pages CI uses Node 24",
-    "P33 awaits visible home and frame layout after viewport/navigation changes"
+    "P33 awaits visible home and frame layout after viewport/navigation changes",
+    "P1 waits for acknowledged percentage beyond the suspended display before asserting resume advancement; original assertions retained"
   ],
   "product_code_changed": false,
   "original_assertions_removed": false,
@@ -23,5 +24,8 @@
   "final_software_head": "c2a4801c8ad861d5864a9e37e3f1d6805794f10e",
   "final_software_run": 37512761641,
   "final_software_conclusion": "SUCCESS",
-  "final_software_jobs": "8/8 SUCCESS"
+  "final_software_jobs": "8/8 SUCCESS",
+  "evidence_commit_failure_run": 37615300468,
+  "evidence_commit_failure_case": "P1 resume sampled a newer persistence value that was still behind the already displayed percentage",
+  "local_p1_resume": "PASS; actual held/hidden/resumed values in p1-resume-regression.json"
 }
