@@ -452,6 +452,7 @@ jobs:
         run: |
           set -euo pipefail
           npm run test:task25 2>&1 | tee artifacts/task25-contracts.log
+          npm run test:task25-release 2>&1 | tee artifacts/task25-release-validation.log
 
       - name: Upload JavaScript and static reports
         if: always()
@@ -1003,6 +1004,18 @@ jobs:
         run: |
           set -euo pipefail
           node qa/task25/feature-flags-browser.mjs 2>&1 | tee artifacts/task25-browser.log
+          python3 - <<'PY'
+          import json, os, subprocess, urllib.request
+          origin = 'http://127.0.0.1:8894'
+          request = urllib.request.Request(origin + '/api/login',
+              data=json.dumps({'username': 'wyj', 'secret': os.environ['WYJ_TEST_ADMIN_SECRET']}).encode(),
+              headers={'Content-Type': 'application/json', 'Origin': origin})
+          with urllib.request.urlopen(request, timeout=30) as response:
+              session = json.load(response)['session']
+          subprocess.run(['python3', 'qa/task25/remote-admin-smoke.py', '--origin', origin,
+              '--environment', 'development', '--output', 'artifacts/task25-admin-release-smoke.json'],
+              env={**os.environ, 'WYJ_TASK25_ADMIN_SESSION': session}, check=True)
+          PY
 
       - name: Run complete toolbox browser matrix on Cloudflare D1 and R2
         env:

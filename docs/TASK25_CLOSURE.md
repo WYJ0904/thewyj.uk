@@ -2,7 +2,7 @@
 
 UTC date: 2026-10-07. Repository: [WYJ0904/thewyj.uk](https://github.com/WYJ0904/thewyj.uk). Branch: `codex/task25-flags-release-channels`. [Draft PR #96](https://github.com/WYJ0904/thewyj.uk/pull/96). Base/main HEAD remains `efc05c3596c83a12d668911c5f891d2d5f3c395a`.
 
-**软件实现和可执行自动化测试已完成，最终软件分支 CI 8/8 PASS。2026-10-07 托管 Preview 的账户身份、feature snapshot 和三通道验收也已通过，取代昨日的 schema-not-ready 状态。完整软件发布验收仍受远程管理员放量、Production D1 管理与既有签名凭据阻塞；Samsung 真机验收另行保留。没有开始 Task 26。**
+**已复用最终 `a95409e` / CI 37619113548 的 8/8 PASS 基线，继续完成 release preparation、故障验证和发布保护修复。2026-10-07 托管 Preview 的账户身份、feature snapshot 和三通道验收也已通过，取代昨日的 schema-not-ready 状态。完整软件发布验收仍受远程管理员放量、Production D1 管理与既有签名凭据阻塞；Samsung 真机验收另行保留。新分支 HEAD/完整 CI 以最终 PR 验收 addendum 为准。没有开始 Task 26。**
 
 ```text
 TASK 25 SOFTWARE IMPLEMENTATION / AUTOMATED TESTS: PASS
@@ -19,7 +19,7 @@ READY FOR TASK 26: NO
 - 从仓库、已合并 PR、Actions 和最终 closure 自动恢复了 Experience Pass P1–P6：全部 PASS，复用既有证据，没有重做旧 BLOCKED 检查点。[P6 最终 closure](https://github.com/WYJ0904/thewyj.uk/pull/93#issuecomment-6007877132)明确 Experience Pass COMPLETE；后续 #94/#95 也已闭环。各阶段来源见 [execution record](TASK25_EXECUTION.md#experience-pass-recovery)。
 - 没有将历史 Windows 路径设为云端执行前提，也没有将 Android 软件工作整体归类为 DEVICE-DEPENDENT。
 - 仓库中未找到原 Task 25 详细计划；本次实现范围按用户明确的云端交接规则执行：Feature Flags、服务端管理 contract/UI、账户通道、百分比放量/kill switch、native/WebView 一致性、migration、candidate 和 Stable 保护。
-- 软件代码验收与固定候选源 HEAD：`13b952fd64e502aec6af0e800c9a4a3be737d5da`。后续提交记录证据、恢复脚本和修正凭据发现字段；没有更改业务软件或 Stable 发布配置。
+- 初次软件验收与固定 unsigned 候选源 HEAD：`13b952fd64e502aec6af0e800c9a4a3be737d5da`。最终既有基线为 `a95409e`；本次 release preparation 只增加下文列出的发布保护/验证，不重做已通过的 Feature Flag 设计或更改 Stable 配置。
 
 ## 已完成的软件
 
@@ -109,3 +109,32 @@ P1 修复的 [37617315706](https://github.com/WYJ0904/thewyj.uk/actions/runs/376
 3. **Physical Samsung**：云端没有实体 Samsung，以上升级/设备行为验收未执行。
 
 后续 Codex 先读取当前 branch/status、main、PR #96、Actions 和 execution/closure 文件，从这些点继续。可用凭据出现后先检查 Preview/Production schema 与 migration ledger，再仅执行既有 additive migration；以 synthetic Preview 账户/无害 flag 完成远程 contract 后才作 server/web Production 发布决定；既有 signer 构建核验证书后再进行物理 gate。不要重做 P1–P6，不要 reset Production，不要提前移动 Stable pointer，不要开始 Task 26。
+
+## Release preparation continuation — 2026-10-07
+
+本次唯一继承基线：[最终 GitHub 验收](https://github.com/WYJ0904/thewyj.uk/pull/96#issuecomment-6037889812)、当时 Closure 和 PR #96；源 HEAD `a95409e9b44cfb7ba0225a2dace356c728bb578c`，[Core CI 37619113548](https://github.com/WYJ0904/thewyj.uk/actions/runs/37619113548) 8/8 SUCCESS。已有 PASS 均保留。开始时 worktree clean，main 仍为 `efc05c3`，PR Draft/open/unmerged；GitHub mergeable clean 和本地 `merge-tree` 均证明没有冲突，分支落后 main 为 0。四类凭据/设备条件没有解锁。
+
+| 新增完成项 | 实测结果 |
+| --- | --- |
+| Migration release failure/retry | 5 组真实隔离 D1/R2 release resilience PASS：末尾故障完整回滚 schema/seed/marker/ledger；原 SQL 重试成功；replay 不改变已有 definition/override/preference/audit 或既有业务表数据 |
+| 权限、默认值、kill/audit/outage | 沿用已通过的 Admin/CSRF/用户隔离；新增 audit 失败无部分提交、kill 优先于指定用户 ON、100% Experimental 不进入 Stable/Beta；master OFF / Flag D1 故障仍提供旧客户端 config/download |
+| 移动 APK 缓存修复 | `/api/app/download` 改 `private, no-store`，防止新 hash/metadata 仍取得缓存的旧 APK；API 路径、Stable 内容和所有 `ANDROID_*` 字段保持原值 |
+| 候选 signing pipeline | 原四项 signing inputs 完整定义；使用 candidate Gradle properties，版本 name/code 都须前进、base URL 为纯 HTTPS origin；独立核验 APK manifest、APK/AAB 原证书和签名；source SHA/hash/size 记录；keystore 清理 |
+| Release gate / metadata preparation | 11 项 signing/proposal gate tests PASS；unsigned/stale/missing PASS evidence、emulator、非原地升级、数据/session 丢失、错误 R2 bucket/key/readback 均拒绝。工具只在仓库外原子生成一致 proposal，不上传/部署/移动 pointer |
+| 可云端执行的 Admin smoke | 同一脚本实际在隔离 development Pages/D1/R2 执行 8 项 contract PASS、安全收尾 PASS；CI 已接入。Hosted Admin 尚未执行，不能由本地结果替代 |
+| 相关回归 | 原 12 D1/API groups、19 shared cases，Task 20 18 groups/Android contract，36 Stable consistency checks 和 checker regression，Pages Worker build PASS；520 JVM/完整 browser 既有证据保留，新 CI 验证工作流/候选改动 |
+| Production plan | [TASK25_RELEASE_PLAN.md](TASK25_RELEASE_PLAN.md) 明确原 Pages 项目/direct pre-merge deploy 与 main Git deploy、只读 preflight、schema/ledger 校验、additive migration、dark deploy→master ON、完整 Production smoke、紧急关闭和无损恢复；没有新建基础设施或 Production 执行 |
+| R2/pointer ordering | 先新 versioned signed object、再完整回读验证，最后一次一致 Pages metadata/pointer deployment；旧 46 object 保留；失败前不改 pointer，失败后整体配置 rollback；Preview artifact/bucket 独立验证 |
+
+安全证据：[release-preparation-20261007.json](task25/evidence/release-preparation-20261007.json)、[local-admin-release-smoke.json](task25/evidence/local-admin-release-smoke.json)。签名和物理 gate 的 mocked rejection tests 只证明保护逻辑，未产生实际 signed/physical PASS。最新完整 CI、最终 HEAD 和 Preview deployment 在本次最终 PR closure addendum 中记录；不要把早期 8/8 当作新提交的证明。
+
+Production 既有版本只读 status/config 仍 200，app release 字段与原 baseline 完全相同。新的 migration/deployment/API/Admin/rollout/kill Production acceptance 均 NOT EXECUTED。Stable 保持 **1.3.33/46**，candidate 保持 **1.3.34/47 unsigned/unreleased**。R2 object/download pointer/metadata/signing identity 没有改动。实体 Samsung 所列验收全部未执行。
+
+| 剩余 blocker | 解锁后下一条具体命令/动作 |
+| --- | --- |
+| Remote administrator session | 现有授权 session 安全进入 `WYJ_TASK25_ADMIN_SESSION` 后，先运行 `python3 qa/task25/remote-admin-smoke.py --environment preview --origin https://codex-task25-flags-release-c.thewyj-uk.pages.dev --output artifacts/task25-preview-admin-smoke.json`，再做托管 Admin UI；Production schema/deploy 完成后运行同脚本 Production 模式 |
+| Cloudflare management credentials | 先 `npx wrangler d1 execute WYJ_DB --env production --remote --file cloudflare/task25-production-preflight.sql --json` 与 migrations list；只有 ledger/schema/pending 核验通过才 apply 0024，随后按 release plan dark deploy、master ON 和完整 Production smoke |
+| 四项原 signing credentials | `gh workflow run android-signed-candidate.yml --ref codex/task25-flags-release-channels -f version_name=1.3.34 -f version_code=47 -f base_url=https://thewyj.uk`；核验本次实际源码 SHA、APK/AAB、原证书/hash/size，保持候选未发布 |
+| Physical Samsung | `adb devices -l`、检查已装 `uk.thewyj.app` Stable 46/原证书/数据后，`adb -s <physical-serial> install -r <verified-signed-1.3.34-candidate.apk>`；按 release plan 验证 Android 16 上升级、session/data、全部 flags/channel、生命周期、断网/服务失败、haptic/权限 |
+
+PR #96 继续 Draft；main 未合并；所有正式 gate PASS 前，不 Ready、不 merge、不发布 signed Stable 47。最终状态仍是本文开头的五项 BLOCKED/PASS 组合，**READY FOR TASK 26: NO**。

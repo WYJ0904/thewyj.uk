@@ -1,0 +1,25 @@
+{
+  "checked_at_utc": "2026-10-07T13:59:58.473847+00:00",
+  "origin": "http://127.0.0.1:8894",
+  "environment": "development",
+  "acceptance": "PASS",
+  "checks": [
+    "global_OFF",
+    "global_ON",
+    "three_explicit_channel_gates",
+    "independent_deterministic_percentage",
+    "targeted_ON_OFF_inherit",
+    "kill_switch",
+    "synthetic_channel_preference",
+    "ordinary_admin_denied_audit_and_Stable_preserved"
+  ],
+  "failure_class": null,
+  "cleanup_pass": true,
+  "test_flag": "task25_release_1012ad8f10",
+  "final_flag_global_off": true,
+  "final_flag_kill_switch": true,
+  "real_user_data_modified": false,
+  "stable_pointer_modified": false,
+  "synthetic_account_id": "1c16116f-09ea-4354-bf50-8bcbb8748ed1",
+  "admin_session_persisted": false
+}

@@ -65,28 +65,21 @@ jobs:
           test -n "${THEWYJ_ANDROID_KEY_ALIAS}" || { echo "::error::Missing THEWYJ_ANDROID_KEY_ALIAS"; exit 1; }
           test -n "${THEWYJ_ANDROID_KEY_PASSWORD}" || { echo "::error::Missing THEWYJ_ANDROID_KEY_PASSWORD"; exit 1; }
 
-      - name: Prepare release version and keystore
+      - name: Validate candidate inputs and prepare original keystore
         env:
           CANDIDATE_VERSION_NAME: ${{ inputs.version_name }}
           CANDIDATE_VERSION_CODE: ${{ inputs.version_code }}
+          CANDIDATE_BASE_URL: ${{ inputs.base_url }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import os, pathlib, re
-          path = pathlib.Path("android/app/build.gradle.kts")
-          text = path.read_text(encoding="utf-8")
-          code = os.environ["CANDIDATE_VERSION_CODE"]
-          name = os.environ["CANDIDATE_VERSION_NAME"]
-          if not code.isdigit() or int(code) < 1:
-              raise SystemExit("invalid version_code")
-          if not re.fullmatch(r"[0-9]+(?:\.[0-9]+){2,3}", name):
-              raise SystemExit("invalid version_name")
-          text, code_count = re.subn(r"versionCode\s*=\s*\d+", f"versionCode = {code}", text, count=1)
-          text, name_count = re.subn(r'versionName\s*=\s*"[^"]+"', f'versionName = "{name}"', text, count=1)
-          if code_count != 1 or name_count != 1:
-              raise SystemExit("could not patch Android version")
-          path.write_text(text, encoding="utf-8")
+          import json, os
+          from scripts.stage_android_candidate import STABLE_PATH, validate_origin, validate_version
+          validate_version(os.environ['CANDIDATE_VERSION_NAME'], int(os.environ['CANDIDATE_VERSION_CODE']),
+                           json.loads(STABLE_PATH.read_text()))
+          validate_origin(os.environ['CANDIDATE_BASE_URL'])
           PY
+          umask 077
           keystore="${RUNNER_TEMP}/thewyj-release.jks"
           printf '%s' "${KEYSTORE_B64}" | base64 --decode > "${keystore}"
           chmod 600 "${keystore}"
@@ -96,10 +89,15 @@ jobs:
         working-directory: android
         env:
           CANDIDATE_BASE_URL: ${{ inputs.base_url }}
+          CANDIDATE_VERSION_NAME: ${{ inputs.version_name }}
+          CANDIDATE_VERSION_CODE: ${{ inputs.version_code }}
         run: |
           set -euo pipefail
           chmod +x gradlew
-          ./gradlew clean testDebugUnitTest lintDebug assembleDebugAndroidTest assembleRelease bundleRelease --no-daemon --stacktrace -PTHEWYJ_BASE_URL="${CANDIDATE_BASE_URL}"
+          ./gradlew clean testDebugUnitTest lintDebug assembleDebugAndroidTest assembleRelease bundleRelease --no-daemon --stacktrace \
+            -PTHEWYJ_BASE_URL="${CANDIDATE_BASE_URL}" \
+            -PTHEWYJ_CANDIDATE_VERSION_NAME="${CANDIDATE_VERSION_NAME}" \
+            -PTHEWYJ_CANDIDATE_VERSION_CODE="${CANDIDATE_VERSION_CODE}"
 
       - name: Verify APK package and signature
         env:
@@ -111,7 +109,7 @@ jobs:
           test -f "${apk}"
           aapt2="$(find "${ANDROID_SDK_ROOT}/build-tools" -type f -name aapt2 -print | sort -V | tail -n 1)"
           apksigner="$(find "${ANDROID_SDK_ROOT}/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
-          badging="$("${aapt2}" dump badging "${apk}" | head -n 1)"
+          badging="$("${aapt2}" dump badging "${apk}" | sed -n '1p')"
           printf '%s\n' "${badging}"
           printf '%s\n' "${badging}" | grep -F "name='uk.thewyj.app'"
           printf '%s\n' "${badging}" | grep -F "versionCode='${CANDIDATE_VERSION_CODE}'"
@@ -148,3 +146,7 @@ jobs:
             artifacts/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 90
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f "${RUNNER_TEMP}/thewyj-release.jks"

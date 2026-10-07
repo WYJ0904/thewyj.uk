@@ -128,7 +128,9 @@ async function serveAndroidRelease(context) {
   const headers = new Headers({
     "Content-Type": "application/vnd.android.package-archive",
     "Content-Disposition": `attachment; filename="${fileName.replace(/[^A-Za-z0-9._-]/g, "")}"`,
-    "Cache-Control": "public, max-age=300",
+    // This URL follows the release pointer. Caching its previous APK while
+    // /config announces a new hash creates a partially published update.
+    "Cache-Control": "private, no-store",
     "X-Content-Type-Options": "nosniff",
   });
   if (Number(object.size) > 0) headers.set("Content-Length", String(object.size));
