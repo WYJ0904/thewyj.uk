@@ -180,3 +180,13 @@ PHYSICAL DEVICE ACCEPTANCE: BLOCKED / NOT EXECUTED
 TASK 25 RELEASE STATUS: BLOCKED
 READY FOR TASK 26: NO
 ```
+
+
+### Current-head Admin UI runner follow-up
+
+Continuation commit `7b78a31` run [37657127773](https://github.com/WYJ0904/thewyj.uk/actions/runs/37657127773) completed **FAILURE, 7/8**, at the new Admin UI runner; accepted P1–P6, original 390/1366 Task25 UI and API release smoke passed first. Preserve this failed result, never call it final green. The initial asynchronous console catalogue could refill the form while the runner started writing/evaluating. A development 150ms-latency reproduction without the readiness wait fails with fixture selection lost; the repaired runner waits for the actual loaded console, and all nine checks/cleanup pass under the same latency. Atomic scope-check-and-click ensures a late selection change cannot mutate any pre-existing flag or non-synthetic override target. Original assertions remain. Failure diagnostics expose only fixture state, never credentials. CI now exercises this latency path. See `admin-ui-readiness-regression.json` and `local-admin-ui-latency-release-smoke.json`. Latest repair HEAD/CI/Preview/artifacts in the final PR addendum replace this intermediate failed run as the final source, without erasing it.
+
+Current 7b78 unsigned artifact11498693833 independently matches accepted APK/AAB hashes, package/version and original unsigned state; actual Gradle aggregate 520 tests, zero failures/skips. Hosted Preview869e025a-8e98-419b-ba32-d66d47310622 independently passes browser/native/WebView 200/same-account decisions and Beta→Experimental→Stable; APK GET/HEAD still503. These are distinct gates. Production public metadata/hash/certificate stay Stable46; no Task25 write.
+
+
+Observed remaining ordering dependency: the unchanged approved candidate embeds Production (`https://thewyj.uk`) and its native/WebView clients use BuildConfig. Actual Production feature/channel endpoints both return404. Full signed-Samsung channel/flag acceptance requires that service, while the latest user rule forbids any Task25 Production migration/deploy until full Samsung PASS. This dependency is recorded in `production-physical-ordering.json` and the plan; no changed-origin binary, mock/proxy response, cross-environment session routing or partial-device PASS is substituted. Signing/device availability can unlock independent upgrade/data/lifecycle checks, but cannot by itself satisfy this ordering dependency. Production stays untouched.

@@ -1,0 +1,87 @@
+{
+  "checked_at_utc": "2026-10-07T17:35:34.188123+00:00",
+  "failed_ci": {
+    "run_id": 37657127773,
+    "head": "7b78a31b94c2743ea119d055039c5e94b0b8166b",
+    "conclusion": "failure",
+    "successful_jobs": 7,
+    "failed_job_id": 112918073389,
+    "failed_step": "Task 25 feature administration and release channel browser acceptance",
+    "artifact_id": 11499937481
+  },
+  "failed_ui_report": {
+    "checked_at_utc": "2026-10-07T17:25:17.970Z",
+    "origin": "http://127.0.0.1:8894",
+    "environment": "development",
+    "acceptance": "FAILED",
+    "checks": [],
+    "failure_class": "Error",
+    "cleanup_pass": true,
+    "fixture_flags": [
+      "task25_hosted_ui_ccf820576e"
+    ],
+    "synthetic_account_id": "fe0d3fad-50aa-440d-8575-ee338721c885",
+    "real_user_data_modified": false,
+    "stable_pointer_modified": false,
+    "admin_session_persisted": false,
+    "physical_device_acceptance": "NOT_EXECUTED"
+  },
+  "latency_before_readiness_wait": {
+    "checked_at_utc": "2026-10-07T17:31:07.290Z",
+    "origin": "http://127.0.0.1:8894",
+    "environment": "development",
+    "acceptance": "FAILED",
+    "checks": [],
+    "failure_class": "Error",
+    "cleanup_pass": true,
+    "failure_step": "save_flag",
+    "diagnostic": {
+      "console_status": "\u5df2\u8bfb\u53d6\u6700\u65b0\u914d\u7f6e",
+      "selected_is_fixture": false,
+      "form_revision": "1",
+      "evaluate_channel": "stable",
+      "fixture_evaluation": []
+    },
+    "fixture_flags": [
+      "task25_hosted_ui_da2f5a9f6e"
+    ],
+    "synthetic_account_id": "aa2cd563-784d-4a6f-aa98-82d1d0357d5f",
+    "real_user_data_modified": false,
+    "stable_pointer_modified": false,
+    "admin_session_persisted": false,
+    "physical_device_acceptance": "NOT_EXECUTED"
+  },
+  "latency_after_fix": {
+    "checked_at_utc": "2026-10-07T17:33:03.308Z",
+    "origin": "http://127.0.0.1:8894",
+    "environment": "development",
+    "acceptance": "PASS",
+    "checks": [
+      "UI_create_read_global_OFF_ON",
+      "UI_targeting_and_channel_scope",
+      "UI_percentage_independent_bucket",
+      "synthetic_UI_three_channels",
+      "browser_native_WebView_same_account_contract",
+      "UI_kill_switch",
+      "UI_refresh_persistence_audit",
+      "ordinary_admin_denied",
+      "Stable_metadata_preserved"
+    ],
+    "failure_class": null,
+    "cleanup_pass": true,
+    "failure_step": null,
+    "diagnostic": null,
+    "fixture_flags": [
+      "task25_hosted_ui_1170bcc8aa"
+    ],
+    "synthetic_account_id": "97e4eefe-409d-49c6-bfe1-a8978b02aaec",
+    "real_user_data_modified": false,
+    "stable_pointer_modified": false,
+    "admin_session_persisted": false,
+    "physical_device_acceptance": "NOT_EXECUTED"
+  },
+  "existing_assertions_removed": false,
+  "product_feature_code_changed": false,
+  "stable_modified": false,
+  "production_write_performed": false
+}

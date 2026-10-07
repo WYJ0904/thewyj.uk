@@ -31,7 +31,7 @@ const api = (route, payload = undefined, session = admin, expected = 200, cookie
   return JSON.parse(output.slice(0, index));
 };
 const results = [], fixtureKeys = [];
-let user, token, native, deviceId, actor, failure = null, cleanup = true;
+let user, token, native, deviceId, actor, failure = null, cleanup = true, stage = 'preflight', diagnostic = null;
 const pages = [];
 try {
   const status = api('/api/status', undefined, '');
@@ -52,6 +52,10 @@ try {
   const authenticatedPage = async account => {
     const page = await openPage({ cdpUrl: process.env.WYJ_CDP_URL || 'http://127.0.0.1:9225', baseUrl: origin, width: 1366, height: 915, mobile: false });
     pages.push(page);
+    const latency = Number(process.env.WYJ_TASK25_UI_LATENCY_MS || 0);
+    if (environment === 'development' && latency > 0) await page.send('Network.emulateNetworkConditions', {
+      offline: false, latency, downloadThroughput: -1, uploadThroughput: -1,
+    });
     await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `localStorage.setItem('wyjAccountSession', ${JSON.stringify(account.id === actor.id ? admin : token)}); localStorage.setItem('wyjAccountCache', ${JSON.stringify(JSON.stringify(account))});` });
     return page;
   };
@@ -60,18 +64,36 @@ try {
   await adminPage.evaluate("document.getElementById('dismissVersionNoticeBtn')?.click()");
   await adminPage.waitFor("!document.getElementById('adminFeatureFlagsTab').classList.contains('hidden')");
   await adminPage.click('#adminFeatureFlagsTab');
+  // The console deliberately rejects submit while its initial catalogue is
+  // loading. A visible tab alone does not establish that its form is ready.
+  await adminPage.waitFor("document.getElementById('featureConsoleStatus').textContent === '已读取最新配置' && document.getElementById('featureFlagSelect').options.length >= 2");
   const key = 'task25_hosted_ui_' + randomBytes(5).toString('hex');
   fixtureKeys.push(key); // Cleanup can discover a write even if its response fails.
   const selected = () => adminPage.setFields({ '#featureFlagSelect': key });
+  // Check scope and click in the same browser task, so a delayed catalogue
+  // render can never redirect a test write to a pre-existing flag.
+  const clickOwn = selector => adminPage.evaluate(`(() => {
+    const form = document.getElementById('featureFlagForm'), key = ${JSON.stringify(key)};
+    if (document.getElementById('featureFlagKey').value !== key ||
+        (Number(form.dataset.revision) > 0 && document.getElementById('featureFlagSelect').value !== key) ||
+        (${JSON.stringify(selector)} === '#saveFeatureOverrideBtn' && document.getElementById('featureOverrideUser').value !== ${JSON.stringify(user.id)})) {
+      throw new Error('Fixture scope lost; no management write performed');
+    }
+    const button = document.querySelector(${JSON.stringify(selector)});
+    if (!button || button.disabled) throw new Error('Fixture control is not ready');
+    button.click(); return true;
+  })()`);
   const save = async () => {
+    stage = 'save_flag';
     const prior = await adminPage.evaluate("Number(document.getElementById('featureFlagForm').dataset.revision)");
-    await adminPage.click('#saveFeatureFlagBtn');
+    await clickOwn('#saveFeatureFlagBtn');
     await adminPage.waitFor(`Array.from(document.getElementById('featureFlagSelect').options).some(o => o.value === ${JSON.stringify(key)}) && document.getElementById('featureConsoleStatus').textContent === '设置已保存' && !document.getElementById('saveFeatureFlagBtn').disabled`);
     await selected();
     assert.ok(await adminPage.evaluate(`Number(document.getElementById('featureFlagForm').dataset.revision) > ${prior}`));
   };
   const checkbox = (id, checked) => adminPage.evaluate(`document.getElementById(${JSON.stringify(id)}).checked = ${JSON.stringify(checked)}`);
   const evaluate = async (channel, enabled, reason = '') => {
+    stage = `evaluate_${channel}_${reason}_${enabled ? 'ON' : 'OFF'}`;
     await adminPage.setFields({ '#featureEvaluateUser': user.id, '#featureEvaluateChannel': channel });
     await adminPage.evaluate("document.getElementById('featureEvaluationResult').textContent = ''");
     await adminPage.click('#evaluateFeatureBtn');
@@ -86,13 +108,13 @@ try {
   await save();
   await evaluate('experimental', false, 'percentage_rollout');
   await adminPage.setFields({ '#featureOverrideUser': user.id, '#featureOverrideValue': 'on' });
-  await adminPage.click('#saveFeatureOverrideBtn');
+  await clickOwn('#saveFeatureOverrideBtn');
   await adminPage.waitFor("document.getElementById('featureConsoleStatus').textContent === '设置已保存' && !document.getElementById('saveFeatureOverrideBtn').disabled");
   await evaluate('experimental', true, 'user_override');
   await evaluate('stable', false, 'channel_excluded');
   await evaluate('beta', false, 'channel_excluded');
   await adminPage.setFields({ '#featureOverrideValue': 'inherit' });
-  await adminPage.click('#saveFeatureOverrideBtn');
+  await clickOwn('#saveFeatureOverrideBtn');
   await adminPage.waitFor("document.getElementById('featureConsoleStatus').textContent === '设置已保存' && !document.getElementById('saveFeatureOverrideBtn').disabled");
   await adminPage.setFields({ '#featureFlagPercentage': 37.25 });
   for (const channel of ['stable', 'beta', 'experimental']) await checkbox('featureChannel_' + channel, true);
@@ -140,7 +162,19 @@ try {
   results.push('UI_create_read_global_OFF_ON', 'UI_targeting_and_channel_scope', 'UI_percentage_independent_bucket',
     'synthetic_UI_three_channels', 'browser_native_WebView_same_account_contract', 'UI_kill_switch',
     'UI_refresh_persistence_audit', 'ordinary_admin_denied', 'Stable_metadata_preserved');
-} catch (error) { failure = error.name; console.error('Admin UI acceptance failed:', error.name); }
+} catch (error) {
+  failure = error.name;
+  try {
+    if (pages[0]) diagnostic = await pages[0].evaluate(`(() => ({
+      console_status: document.getElementById('featureConsoleStatus')?.textContent,
+      selected_is_fixture: ${JSON.stringify(fixtureKeys)}.includes(document.getElementById('featureFlagSelect')?.value),
+      form_revision: document.getElementById('featureFlagForm')?.dataset.revision,
+      evaluate_channel: document.getElementById('featureEvaluateChannel')?.value,
+      fixture_evaluation: document.getElementById('featureEvaluationResult')?.textContent.split('\\n').filter(line => ${JSON.stringify(fixtureKeys)}.some(key => line.startsWith(key + ': ')))
+    }))()`);
+  } catch { /* Diagnostics never replace a failed acceptance. */ }
+  console.error('Admin UI acceptance failed:', error.name, 'at', stage);
+}
 finally {
   for (const key of fixtureKeys) {
     try {
@@ -165,6 +199,7 @@ finally {
 }
 const report = { checked_at_utc: new Date().toISOString(), origin, environment,
   acceptance: !failure && cleanup ? 'PASS' : 'FAILED', checks: results, failure_class: failure, cleanup_pass: cleanup,
+  failure_step: failure ? stage : null, diagnostic,
   fixture_flags: fixtureKeys, synthetic_account_id: user?.id, real_user_data_modified: false, stable_pointer_modified: false,
   admin_session_persisted: false, physical_device_acceptance: 'NOT_EXECUTED' };
 fs.mkdirSync(path.dirname(arg('output')), { recursive: true });
