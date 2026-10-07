@@ -55,6 +55,8 @@ READY FOR TASK 26: NO
 
 证据提交 `d7a5f3f` 的 [37615300468](https://github.com/WYJ0904/thewyj.uk/actions/runs/37615300468) 另捕获 P1 恢复断言的观察时序问题：250ms 合并写入的持久化进度可能落后于已显示的百分比。测试现在等待确认进度超过暂停时的实际显示值后再恢复，并保留原有隐藏/恢复/session 断言。实际本地 Pages/D1/R2 browser PASS，观察值见 [p1-resume-regression.json](task25/evidence/p1-resume-regression.json)。没有修改生产上传或 Task 25 产品代码。修复后的完整 CI 状态以最终 PR closure addendum 为准；失败 run 保留，不算 PASS。
 
+P1 修复的 [37617315706](https://github.com/WYJ0904/thewyj.uk/actions/runs/37617315706) 实际通过 P1（隐藏 16%，恢复 32%，session 保留），但在后续 P5 工具行身份断言失败，因此整轮仍为 FAILURE。P5 现在先等待账户偏好缓存及全部 103 张目录卡片反映该偏好，再采样“模型不变”时的行身份，保留全部原有身份/草稿断言并增加失败诊断。实际本地验证全部 PASS，见 [p5-hydration-regression.json](task25/evidence/p5-hydration-regression.json)。产品代码不变，最终完整 CI 以 PR closure addendum 为准。
+
 可恢复证据位于 [docs/task25/evidence](task25/evidence)：`core-ci.json`、`local-software-acceptance.json`、`android-runtime-acceptance.json`、`browser-acceptance.json`、候选 metadata、hosted Preview smoke 和 Production Stable smoke。GitHub artifact 有保留期限，关键状态/来源/hash 同时保存在仓库；会话文本不是唯一记录。
 
 ## Cloudflare Preview 与 Production

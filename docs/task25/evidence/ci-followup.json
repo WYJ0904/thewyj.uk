@@ -14,7 +14,8 @@
   "repairs": [
     "Pages CI uses Node 24",
     "P33 awaits visible home and frame layout after viewport/navigation changes",
-    "P1 waits for acknowledged percentage beyond the suspended display before asserting resume advancement; original assertions retained"
+    "P1 waits for acknowledged percentage beyond the suspended display before asserting resume advancement; original assertions retained",
+    "P5 waits for account preference cache and all 103 rows to match it before unchanged-model identity sampling; original assertions retained"
   ],
   "product_code_changed": false,
   "original_assertions_removed": false,
@@ -27,5 +28,10 @@
   "final_software_jobs": "8/8 SUCCESS",
   "evidence_commit_failure_run": 37615300468,
   "evidence_commit_failure_case": "P1 resume sampled a newer persistence value that was still behind the already displayed percentage",
-  "local_p1_resume": "PASS; actual held/hidden/resumed values in p1-resume-regression.json"
+  "local_p1_resume": "PASS; actual held/hidden/resumed values in p1-resume-regression.json",
+  "p1_repair_run": 37617315706,
+  "p1_repair_result": "PASS in CI; held/hidden 16 percent, resumed 32 percent, session preserved",
+  "p1_repair_run_overall": "FAILURE at later P5 identity assertion; not 8/8 PASS",
+  "p5_failure_case": "Catalog identity compared before account preference hydration was reflected in rows",
+  "local_p5": "PASS; tools/ledger identity, draft, workflow, 103 rows, zero runtime errors"
 }
