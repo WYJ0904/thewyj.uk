@@ -12,6 +12,9 @@ on:
     paths:
       - .github/workflows/task25-hosted-preflight.yml
       - qa/task25/hosted-release-preflight.py
+      - qa/task25/remote-admin-smoke.py
+      - qa/task25/remote-admin-ui-smoke.mjs
+      - qa/task25/remote-download-smoke.py
 
 permissions:
   contents: read

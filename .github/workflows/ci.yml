@@ -1019,7 +1019,8 @@ jobs:
               env={**os.environ, 'WYJ_TASK25_ADMIN_SESSION': session}, check=True)
           subprocess.run(['node', 'qa/task25/remote-admin-ui-smoke.mjs', '--origin', origin,
               '--environment', 'development', '--output', 'artifacts/task25-admin-ui-release-smoke.json'],
-              env={**os.environ, 'WYJ_TASK25_ADMIN_SESSION': session, 'WYJ_TASK25_UI_LATENCY_MS': '150'}, check=True)
+              env={**os.environ, 'WYJ_TASK25_ADMIN_SESSION': session, 'WYJ_TASK25_UI_LATENCY_MS': '150',
+                   'WYJ_TASK25_RATE_LIMIT_REGRESSION': 'true'}, check=True)
           PY
 
       - name: Run complete toolbox browser matrix on Cloudflare D1 and R2

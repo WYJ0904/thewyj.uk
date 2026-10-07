@@ -114,6 +114,7 @@ def main():
     result = command([sys.executable, 'qa/task25/remote-download-smoke.py', '--environment', 'preview',
                       '--origin', origin, '--output', str(out / 'preview-download.json')], timeout=480)
     report['gates']['preview_apk_download'] = 'PASS' if result and result.returncode == 0 else 'BLOCKED_DOWNLOAD'
+    preview_boundary = True
     cloud = child_env(KEYS[:2])
     cloud['CLOUDFLARE_ACCOUNT_ID'] = cloud.get('CLOUDFLARE_ACCOUNT_ID') or PAGES_ACCOUNT
     account = cloud['CLOUDFLARE_ACCOUNT_ID']
@@ -140,11 +141,17 @@ def main():
                                        'ANDROID_LATEST_VERSION_CODE', 'ANDROID_LATEST_VERSION_NAME', 'TASK25_FEATURE_FLAGS_ENABLED')
                             and value.get('type') == 'plain_text'}}
                 deployment = project.get('canonical_deployment') or {}
+                production_db = configs['production']['d1_bindings'].get('WYJ_DB', {}).get('id')
+                preview_db = configs['preview']['d1_bindings'].get('WYJ_DB', {}).get('id')
+                production_bucket = configs['production']['r2_bindings'].get('WYJ_STORAGE', {}).get('name')
+                preview_bucket = configs['preview']['r2_bindings'].get('WYJ_STORAGE', {}).get('name')
+                preview_boundary = not ((production_db and production_db == preview_db) or
+                                        (production_bucket and production_bucket == preview_bucket))
                 write(out / 'cloudflare-project-readonly.json', {'account_id': account, 'project': project['name'],
                     'active_production_deployment_id': deployment.get('id'), 'deployment_configs': configs,
                     'active_source_commit': deployment.get('deployment_trigger', {}).get('metadata', {}).get('commit_hash'),
                     'secret_values_persisted': False, 'review_required': True})
-                report['gates']['cloudflare_project_configuration'] = 'EXECUTED_REVIEW_REQUIRED'
+                report['gates']['cloudflare_project_configuration'] = 'EXECUTED_REVIEW_REQUIRED' if preview_boundary else 'BLOCKED_PREVIEW_PRODUCTION_BINDING_COLLISION'
             except (ValueError, TypeError, AttributeError):
                 report['gates']['cloudflare_project_configuration'] = 'BLOCKED_PROJECT_READ'
         for name, cmd in [('production_d1_schema', ['d1', 'execute', 'WYJ_DB', '--env', 'production', '--remote',
@@ -184,7 +191,7 @@ def main():
             report['gates']['preview_r2_object'] = r2['acceptance']
     else:
         report['gates']['cloudflare_d1_r2'] = 'BLOCKED_CLOUDFLARE_ACCOUNT_CONFIG' if discovery['cloud_ready'] else 'BLOCKED: CLOUDFLARE ADMIN TOKEN'
-    if discovery['admin_session_present'] and preserved:
+    if discovery['admin_session_present'] and preserved and preview_boundary:
         admin_env = child_env((KEYS[2],))
         result = command([sys.executable, 'qa/task25/remote-admin-smoke.py', '--environment', 'preview',
                           '--origin', origin, '--output', str(out / 'preview-admin-api.json')], env=admin_env, timeout=600)
@@ -214,7 +221,8 @@ def main():
                     try: process.wait(timeout=10)
                     except subprocess.TimeoutExpired: process.kill(); process.wait(timeout=10)
     else:
-        report['gates']['preview_admin_api'] = report['gates']['preview_admin_ui'] = 'BLOCKED: ADMIN SESSION' if not discovery['admin_session_present'] else 'BLOCKED_BASELINE_NOT_ESTABLISHED'
+        report['gates']['preview_admin_api'] = report['gates']['preview_admin_ui'] = ('BLOCKED: ADMIN SESSION' if not discovery['admin_session_present'] else
+            'BLOCKED_PREVIEW_PRODUCTION_BINDING_COLLISION' if not preview_boundary else 'BLOCKED_BASELINE_NOT_ESTABLISHED')
     report['gates']['production_signing'] = 'INPUTS_PRESENT_NOT_VERIFIED' if discovery['original_signing_inputs_present'] else 'BLOCKED: PRODUCTION SIGNING CREDENTIALS'
     sdk = os.environ.get('ANDROID_SDK_ROOT') or os.environ.get('ANDROID_HOME', '/workspace/android-sdk')
     adb = shutil.which('adb') or str(Path(sdk) / 'platform-tools/adb')

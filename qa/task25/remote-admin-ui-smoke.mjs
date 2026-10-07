@@ -15,6 +15,7 @@ const url = new URL(origin);
 assert.ok((environment === 'preview' && url.protocol === 'https:' && url.hostname.endsWith('.thewyj-uk.pages.dev')) ||
   (environment === 'development' && /^http:\/\/127\.0\.0\.1:\d+$/.test(origin)), 'Only explicit development or existing hosted Preview is allowed');
 assert.equal(url.origin, origin, 'Origin cannot include credentials/path/query');
+if (process.env.WYJ_TASK25_RATE_LIMIT_REGRESSION === 'true') assert.equal(environment, 'development', 'Quota precharge is development-only');
 const admin = process.env.WYJ_TASK25_ADMIN_SESSION;
 assert.ok(admin, 'BLOCKED: ADMIN SESSION; no records created');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'task25-admin-ui-'));
@@ -27,10 +28,13 @@ const api = (route, payload = undefined, session = admin, expected = 200, cookie
   if (payload !== undefined) args.push('--request', 'POST', '--data-binary', '@-');
   const output = execFileSync('curl', args, { input: payload === undefined ? undefined : JSON.stringify(payload), encoding: 'utf8', maxBuffer: 1024 * 1024 });
   const index = output.lastIndexOf('\n');
-  assert.equal(Number(output.slice(index + 1)), expected, `Unexpected HTTP status for ${route}`);
+  const code = Number(output.slice(index + 1));
+  if (Array.isArray(expected)) assert.ok(expected.includes(code), `Unexpected HTTP status for ${route}`);
+  else assert.equal(code, expected, `Unexpected HTTP status for ${route}`);
   return JSON.parse(output.slice(0, index));
 };
 const results = [], fixtureKeys = [];
+const rateBudget = { observed_429: false, cooldown_ms: 0, server_limits_changed: false };
 let user, token, native, deviceId, actor, failure = null, cleanup = true, stage = 'preflight', diagnostic = null;
 const pages = [];
 try {
@@ -49,6 +53,29 @@ try {
   token = api('/api/login', { username, secret }, '').session;
   deviceId = crypto.randomUUID();
   native = api('/api/app/login', { username, secret, device_id: deviceId, app_version: '1.3.34' }, '').access_token;
+  // Separate acceptance scripts can share the same authorized administrator.
+  // Its per-route management quota is authoritative, not a disposable fixture.
+  // CI deliberately exhausts only its development actor's read-only simulation
+  // quota; all ordinary operations still require their original exact status.
+  if (process.env.WYJ_TASK25_RATE_LIMIT_REGRESSION === 'true') {
+    assert.equal(environment, 'development', 'Quota precharge is development-only');
+    for (let i = 0; i < 61; i++) {
+      const response = api('/api/admin/feature-flags/evaluate', { user_id: user.id, channel: 'stable' }, admin, [200, 429]);
+      if (response.code === 'task25_rate_limited') {
+        assert.equal(response.retryable, true);
+        rateBudget.observed_429 = true;
+        break;
+      }
+    }
+    assert.equal(rateBudget.observed_429, true, 'Development management quota must actually reject excess requests');
+  }
+  // Task25 management uses a fixed 60-second server window. Start the UI
+  // sequence in the next window rather than disabling limits, clearing rows
+  // or retrying a rejected/ambiguous management write. Use server time.
+  const serverTime = Date.parse(api('/api/status', undefined, '').time);
+  assert.ok(Number.isFinite(serverTime), 'Server timestamp required for management request pacing');
+  rateBudget.cooldown_ms = Math.min(60_000, 60_000 - serverTime % 60_000 + 250);
+  await new Promise(resolve => setTimeout(resolve, rateBudget.cooldown_ms));
   const authenticatedPage = async account => {
     const page = await openPage({ cdpUrl: process.env.WYJ_CDP_URL || 'http://127.0.0.1:9225', baseUrl: origin, width: 1366, height: 915, mobile: false });
     pages.push(page);
@@ -201,7 +228,7 @@ const report = { checked_at_utc: new Date().toISOString(), origin, environment,
   acceptance: !failure && cleanup ? 'PASS' : 'FAILED', checks: results, failure_class: failure, cleanup_pass: cleanup,
   failure_step: failure ? stage : null, diagnostic,
   fixture_flags: fixtureKeys, synthetic_account_id: user?.id, real_user_data_modified: false, stable_pointer_modified: false,
-  admin_session_persisted: false, physical_device_acceptance: 'NOT_EXECUTED' };
+  admin_session_persisted: false, physical_device_acceptance: 'NOT_EXECUTED', management_rate_budget: rateBudget };
 fs.mkdirSync(path.dirname(arg('output')), { recursive: true });
 fs.writeFileSync(arg('output'), JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify(report));

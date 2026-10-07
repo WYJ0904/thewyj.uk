@@ -1,0 +1,34 @@
+{
+  "checked_at_utc": "2026-10-07T18:57:17.012Z",
+  "origin": "http://127.0.0.1:8896",
+  "environment": "development",
+  "acceptance": "PASS",
+  "checks": [
+    "UI_create_read_global_OFF_ON",
+    "UI_targeting_and_channel_scope",
+    "UI_percentage_independent_bucket",
+    "synthetic_UI_three_channels",
+    "browser_native_WebView_same_account_contract",
+    "UI_kill_switch",
+    "UI_refresh_persistence_audit",
+    "ordinary_admin_denied",
+    "Stable_metadata_preserved"
+  ],
+  "failure_class": null,
+  "cleanup_pass": true,
+  "failure_step": null,
+  "diagnostic": null,
+  "fixture_flags": [
+    "task25_hosted_ui_facd3cc643"
+  ],
+  "synthetic_account_id": "264c61f5-849c-4dfa-825c-47ce01bce5ef",
+  "real_user_data_modified": false,
+  "stable_pointer_modified": false,
+  "admin_session_persisted": false,
+  "physical_device_acceptance": "NOT_EXECUTED",
+  "management_rate_budget": {
+    "observed_429": true,
+    "cooldown_ms": 31217,
+    "server_limits_changed": false
+  }
+}
