@@ -1,12 +1,12 @@
 # Task 25 Closure Report — release blocked
 
-UTC date: 2026-10-06. Repository: [WYJ0904/thewyj.uk](https://github.com/WYJ0904/thewyj.uk). Branch: `codex/task25-flags-release-channels`. [Draft PR #96](https://github.com/WYJ0904/thewyj.uk/pull/96). Base/main HEAD remains `efc05c3596c83a12d668911c5f891d2d5f3c395a`.
+UTC date: 2026-10-07. Repository: [WYJ0904/thewyj.uk](https://github.com/WYJ0904/thewyj.uk). Branch: `codex/task25-flags-release-channels`. [Draft PR #96](https://github.com/WYJ0904/thewyj.uk/pull/96). Base/main HEAD remains `efc05c3596c83a12d668911c5f891d2d5f3c395a`.
 
-**软件实现和可执行自动化测试已完成。完整 Task 25 软件发布验收仍受远程 D1/schema 与既有签名凭据阻塞；Samsung 真机验收另行保留。没有开始 Task 26。**
+**软件实现和可执行自动化测试已完成，最终软件分支 CI 8/8 PASS。2026-10-07 托管 Preview 的账户身份、feature snapshot 和三通道验收也已通过，取代昨日的 schema-not-ready 状态。完整软件发布验收仍受远程管理员放量、Production D1 管理与既有签名凭据阻塞；Samsung 真机验收另行保留。没有开始 Task 26。**
 
 ```text
 TASK 25 SOFTWARE IMPLEMENTATION / AUTOMATED TESTS: PASS
-TASK 25 SOFTWARE: BLOCKED — remote schema/migration and existing release-signing gates
+TASK 25 SOFTWARE: BLOCKED — hosted admin rollout, Production migration and existing release-signing gates
 PHYSICAL DEVICE ACCEPTANCE: BLOCKED / NOT EXECUTED
 TASK 25 RELEASE STATUS: BLOCKED
 READY FOR TASK 26: NO
@@ -46,31 +46,32 @@ READY FOR TASK 26: NO
 | Android lint/build | lint PASS（0 errors，85 warnings）；debug APK、instrumentation compile、release APK/AAB、candidate 47 构建 PASS |
 | Android software runtime | Android 11/API 30 `google_apis` x86_64 emulator：一个 instrumentation test 执行全部 19 shared cases PASS；[job](https://github.com/WYJ0904/thewyj.uk/actions/runs/37505935692/job/112415101968)，[artifact](https://github.com/WYJ0904/thewyj.uk/actions/runs/37505935692/artifacts/11432770347) |
 | Static/release safeguards | 31 static tests、36 release consistency checks、module graph/storage contract/cloud-only gate、Pages Functions build PASS；实际 debug/release package/version 检查 PASS |
-| Core CI | [37505935692](https://github.com/WYJ0904/thewyj.uk/actions/runs/37505935692) SUCCESS，8/8：Python、JavaScript/static、repository audit、Android unit/lint/candidate、Android runtime、application browser、cloud-only browser、credential discovery |
+| Core CI | 最终软件提交 `c2a4801` 的 [37512761641](https://github.com/WYJ0904/thewyj.uk/actions/runs/37512761641) SUCCESS，8/8：Python、JavaScript/static、repository audit、Android unit/lint/candidate、Android runtime、application browser、cloud-only browser、credential discovery；固定 candidate 的 [37505935692](https://github.com/WYJ0904/thewyj.uk/actions/runs/37505935692) 也为 8/8 SUCCESS |
 | CI 修复 | 首次 emulator `sdkmanager` PATH 错误已修正为解析 runner 实际 SDK 路径，最终 runtime PASS；没有删减失败产品断言 |
 
 凭据 discovery job 的 green 仅表示检查完成。其原先从 API token 缺失推断 Preview 不可部署的字段已由真实 Git integration/HTTP 证据纠正；现在将 D1/R2 管理和 Pages 发布分别记录。
 
-后续报告提交 `1a30f17` 的 CI [37509287826](https://github.com/WYJ0904/thewyj.uk/actions/runs/37509287826) 曾有两次失败：P33 重载后的可见/布局等待竞态，以及 Wrangler Pages 开发代理连接重置导致 P4 请求失败。这些失败保留在 Actions。修复将 Pages CI 对齐云端 Node 24，并在首页几何采样前等待可见与 ResizeObserver 帧布局；保留全部原断言。Local P33 全部 guest/authenticated/reload cases 与 P4 三尺寸验证通过。最终分支 CI 结果以 PR #96 closure addendum 和对应最新 Actions 为准；上表的 8/8 是明确固定源 HEAD 的验收，不替代后续检查。
+后续报告提交 `1a30f17` 的 CI [37509287826](https://github.com/WYJ0904/thewyj.uk/actions/runs/37509287826) 曾有两次失败：P33 重载后的可见/布局等待竞态，以及 Wrangler Pages 开发代理连接重置导致 P4 请求失败。这些失败保留在 Actions。修复将 Pages CI 对齐云端 Node 24，并在首页几何采样前等待可见与 ResizeObserver 帧布局；保留全部原断言。Local P33 全部 guest/authenticated/reload cases 与 P4 三尺寸验证通过。最终软件分支 `c2a4801` 的 [37512761641](https://github.com/WYJ0904/thewyj.uk/actions/runs/37512761641) 已实际完成，8/8 SUCCESS，取代上述失败的 follow-up 检查点。此后文档提交的检查结果以 PR #96 closure addendum 和最新 Actions 为准。
 
 可恢复证据位于 [docs/task25/evidence](task25/evidence)：`core-ci.json`、`local-software-acceptance.json`、`android-runtime-acceptance.json`、`browser-acceptance.json`、候选 metadata、hosted Preview smoke 和 Production Stable smoke。GitHub artifact 有保留期限，关键状态/来源/hash 同时保存在仓库；会话文本不是唯一记录。
 
 ## Cloudflare Preview 与 Production
 
-现有 Cloudflare **Git integration 可以部署 Pages**。实际 [Preview c4838955](https://c4838955.thewyj-uk.pages.dev) 成功发布该代码，branch alias 为 [codex-task25-flags-release-c](https://codex-task25-flags-release-c.thewyj-uk.pages.dev)。没有新建平行基础设施。
+现有 Cloudflare **Git integration 可以部署 Pages**。最终软件提交已发布至 [Preview 8e567f72](https://8e567f72.thewyj-uk.pages.dev)，branch alias 为 [codex-task25-flags-release-c](https://codex-task25-flags-release-c.thewyj-uk.pages.dev)。没有新建平行基础设施。
 
 | 项目 | 实测状态 |
 | --- | --- |
 | 配置边界 | Preview D1 `a3e6253b-689f-49f3-998b-7c5828ea255a` / R2 `wyj-cloud-preview`；Production D1 `11c288d8-c584-409f-bb1f-7e7af11793e5` / R2 `wyj-cloud-production`，原 bindings 未变 |
 | Hosted Preview | `api/status` 200，environment=preview、D1/R2 bindings=true、Task 25 master ON；app config 200，Stable 46/hash 保留 |
 | Hosted authentication | 仅新建 synthetic Preview 账户；注册 201、browser/native login 200、匿名 feature 请求 401、普通用户 admin 请求 403；未改变真实用户、Finance、Notification、File 数据 |
-| Hosted Task 25 contract | browser token、native token、WebView cookie 全部 `503 task25_schema_not_ready`；远程 feature/channel/rollout acceptance BLOCKED。不能把本地或 CI D1 通过冒充远程 migration 通过 |
+| Hosted Task 25 contract | 2026-10-07 实际复测：browser token、native token、WebView cookie 全部 200，canonical account 与 flag decisions 一致；Beta → Experimental → Stable 切换全部 PASS。昨日三路 `503 task25_schema_not_ready` 仅为历史检查点。远程管理员 flag/rollout mutation 未执行，普通用户权限拒绝 403 PASS |
+| Preview migration provenance | API 的 schema marker 检查和 D1 读写已可用，但本会话没有执行 remote migration；直接 D1/migration ledger 检查仍缺管理凭据。不能据此宣称已核验迁移执行者、时间或远程 ledger |
 | Cloudflare API | 本地 Wrangler 未登录；实际 Pages API、remote D1、R2 管理命令均因缺 API token 拒绝；Actions 也证明标准 token/account bindings 未配置。Git integration 不提供本会话 D1/R2 管理凭据 |
 | Production migration | NOT EXECUTED；直接 remote schema 检查被凭据阻断；没有 reset/drop/覆盖 Production D1 |
-| Production Task 25 deployment | NOT EXECUTED；保留 Draft PR，远程 schema/功能 Preview gate 未通过，因此未合并触发 Production 发布 |
+| Production Task 25 deployment | NOT EXECUTED；保留 Draft PR，远程管理员放量和 Production schema/migration gate 未通过，因此未合并触发 Production 发布 |
 | Existing Production smoke | `api/status`、`api/app/config`、完整 APK 下载均 200；metadata 与发现基线相同；完整 APK hash 与基线相同。这是既有 Production 的只读 smoke，不是 Task 25 Production acceptance |
 
-参考 [hosted-preview-smoke.json](task25/evidence/hosted-preview-smoke.json)、[production-stable-smoke.json](task25/evidence/production-stable-smoke.json)、[cloud-readiness.json](task25/evidence/cloud-readiness.json)。`qa/task25/remote-preview-smoke.py` 会先核验 Pages hostname 和 environment=preview，才允许创建 synthetic 账户；凭据不会进入报告。早期一次 probe 在修正 native UA/UUID 前也建立了一个 synthetic Preview 账户；未触及真实用户。
+最新证据：[hosted-preview-smoke-20261007.json](task25/evidence/hosted-preview-smoke-20261007.json)、[final-state-20261007.json](task25/evidence/final-state-20261007.json)、[cloud-readiness.json](task25/evidence/cloud-readiness.json)。昨日 [hosted-preview-smoke.json](task25/evidence/hosted-preview-smoke.json) 的 503 和 [production-stable-smoke.json](task25/evidence/production-stable-smoke.json) 的完整 APK hash 保留为历史证据。`qa/task25/remote-preview-smoke.py` 先核验 Pages hostname 和 environment=preview，才创建 synthetic 账户；凭据不进入报告。本次新增一个 synthetic Preview 账户，仅切换其自身通道并撤销此次 browser/native sessions。早期两次 probe 也仅创建 synthetic Preview 账户；未触及真实用户。
 
 ## Android candidate 与 Stable
 
@@ -99,7 +100,7 @@ READY FOR TASK 26: NO
 
 ## Blockers 与继续执行边界
 
-1. **D1/R2 administration credential**：已有 Pages 发布通路，但 Preview Task 25 schema 未就绪；无法执行 remote D1 preflight/migration，Production migration/功能验收也不能进行。
+1. **Remote administration credential**：Pages 部署和 Preview 用户 contract PASS。缺少授权管理员 session，未执行 hosted admin flag/rollout mutation；缺少 Cloudflare API token，无法直接检查 Preview migration ledger 或进行 Production D1 preflight/migration/功能验收。2026-10-07 实际 Production 只读 SQL 再次因缺 token 拒绝。
 2. **Existing Android signer credential**：四项 signing secret 缺失，无法生成与当前 Stable certificate 一致的 signed candidate；unsigned 软件产物已完成。
 3. **Physical Samsung**：云端没有实体 Samsung，以上升级/设备行为验收未执行。
 

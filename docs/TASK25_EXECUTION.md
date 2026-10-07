@@ -1,6 +1,6 @@
 # Task 25 cloud execution
 
-Updated: 2026-10-06 (UTC). This file is the recovery entry point for this task.
+Updated: 2026-10-07 (UTC). This file is the recovery entry point for this task.
 
 ## Baseline and scope
 
@@ -54,7 +54,7 @@ Preserve `android/release-metadata.json`, existing `ANDROID_*` bindings, Stable 
 
 ## Current stage
 
-Software implementation and automatic acceptance complete. Core CI [37505935692](https://github.com/WYJ0904/thewyj.uk/actions/runs/37505935692) SUCCESS, 8/8 including both browser regression jobs and Android runtime. Hosted Pages Preview deployed by the existing Git integration. Preview Task 25 API returns `503 task25_schema_not_ready`; D1 migration administration is blocked by the absent API token. Production migration/deployment have not been performed. Final blocked-release [closure](TASK25_CLOSURE.md) records completed work, evidence and external gates. No real user data has been used as a test fixture.
+Software implementation and automatic acceptance complete. Final software commit `c2a4801` Core CI [37512761641](https://github.com/WYJ0904/thewyj.uk/actions/runs/37512761641) SUCCESS, 8/8 including both browser regression jobs and Android runtime. Hosted Pages Preview deployed by the existing Git integration. Actual 2026-10-07 Preview browser/native/WebView features all return 200 with matching identity/decisions, and Beta/Experimental/Stable preferences pass; this supersedes yesterday's schema-not-ready checkpoint. Hosted administrator rollout, direct migration ledger inspection and Production preflight/migration remain unexecuted because authorized administration credentials are unavailable. Production migration/deployment have not been performed. Final blocked-release [closure](TASK25_CLOSURE.md) records completed work, evidence and external gates. No real user data has been used as a test fixture.
 
 Planned gates:
 
@@ -67,7 +67,7 @@ Planned gates:
 
 ## Current blockers and device boundary
 
-- Cloudflare API/D1/R2 administration lacks credentials; Pages deployment through Git integration is available and proved. Preview's Task 25 schema is not ready, and Production schema inspection/migration remains unauthenticated.
+- Cloudflare API/D1/R2 administration lacks credentials; Pages deployment and hosted Preview user/channel/identity contract are PASS. The remote administrator rollout gate is unexecuted; direct Preview ledger and Production schema inspection/migration remain unauthenticated. Do not restore the superseded Preview schema-not-ready blocker.
 - Workflow dispatch works. Fresh signing workflow and CI discovery prove required signing credentials absent; release signing is blocked without changing the Stable identity.
 - Physical acceptance is NOT EXECUTED: current Stable → candidate in-place Samsung upgrade; final signature/install compatibility; Back/Resume; actual Samsung WebView; real offline/recovery; haptic/system permissions. These remain separate from software checks.
 
@@ -80,7 +80,7 @@ The additive `0024` migration, server evaluator, audited admin API/UI, account c
 Validated in cloud so far:
 
 - D1/API: 12 acceptance groups, including genuine synthetic Android device-session access, WebView cookie and browser token producing the same canonical evaluation; rate limits, CSRF, isolation, concurrency, audit and migration replay.
-- Web/native shared vectors: 19 cases; Web parser PASS, Android JVM/runtime checks queued.
+- Web/native shared vectors: 19 cases; Web parser, Android JVM and Android 11 runtime PASS.
 - Local isolated Pages/D1/R2 migration: all 24 files applied; never Production D1.
 - Initial Kotlin compilation PASS. Full Gradle tests/lint/build now use a downloaded complete JDK 21; the environment's original Java runtime lacked `javac`.
 - Stable metadata: all 36 consistency checks PASS. Complete public Stable download and certificate verified: SHA `17da079bc7428dc87b1b0b2141ca011f6297101fba3a5d2cc6bbac3fe289048c`, certificate `2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03`.
@@ -94,7 +94,7 @@ Actual Chromium Pages acceptance PASS at 390/1366px. GitHub PR #96 is draft. Ini
 
 CI credential discovery completed successfully and its artifact/log proves all six standard Cloudflare/signing bindings are absent. The discovery job being green means the check ran, **not** that remote feature acceptance or deployment passed. Repository environments are empty; secrets enumeration remains 403. Its original `remote_preview` field was an inference about API credentials, superseded by the actual Git integration/HTTP probe below; the workflow now reports D1/R2 administration separately. Machine-readable evidence is stored under `docs/task25/evidence/`.
 
-Actual hosted Preview [c4838955](https://c4838955.thewyj-uk.pages.dev) deployed commit `13b952fd64e502aec6af0e800c9a4a3be737d5da` successfully. Status proves environment `preview`, D1/R2 bindings and Task 25 master ON. `qa/task25/remote-preview-smoke.py` created only a synthetic ordinary Preview account; registration/browser/native logins PASS, anonymous access 401 and non-admin access 403. Browser token, native token and WebView cookie each receive the same `503 task25_schema_not_ready`. This is a real remote acceptance blocker, not a missing Pages deployment. One earlier probe also created a synthetic account before correcting its native client/device request; no real user record was changed.
+Historical 2026-10-06 hosted Preview [c4838955](https://c4838955.thewyj-uk.pages.dev) deployed commit `13b952fd64e502aec6af0e800c9a4a3be737d5da` successfully. Status proved environment `preview`, D1/R2 bindings and Task 25 master ON. The synthetic ordinary user probe had browser/native login PASS, anonymous 401, ordinary admin 403 and all three feature consumers `503 task25_schema_not_ready`. Preserve this evidence, but the 2026-10-07 real 200/channel acceptance below supersedes that blocker. One earlier probe also created a synthetic account before correcting its native client/device request; no real user record was changed.
 
 Candidate 1.3.34/47 unsigned APK/AAB build PASS and actual package/version verified. Hashes and unreleased metadata: `docs/task25/evidence/candidate-local-metadata.json`. Stable metadata/config remains unchanged; final public download hash equals discovery. GitHub also stores the candidate in [Android artifact 11432003030](https://github.com/WYJ0904/thewyj.uk/actions/runs/37505935692/artifacts/11432003030) (90-day retention).
 
@@ -104,4 +104,12 @@ Remaining external gates: remote D1 schema/migration administration, existing id
 
 Report commit `1a30f17` triggered [37509287826](https://github.com/WYJ0904/thewyj.uk/actions/runs/37509287826). Its first attempt caught a pre-existing P33 hard-reload visibility/layout race; the second passed P33 but the Wrangler Pages development proxy crashed with connection resets/broken pipes during P4. These attempts are failed and are not represented as 8/8 PASS. The earlier code acceptance [37505935692](https://github.com/WYJ0904/thewyj.uk/actions/runs/37505935692) remains genuinely 8/8 PASS for the pinned candidate.
 
-The Pages CI job now uses Node 24, matching the cloud workspace. P33 waits for the restored home to be visible and allows its existing ResizeObserver/frame layout to settle before geometric snapshots, including viewport changes. Every original geometric/session assertion remains. Local P33 passes all guest/authenticated/reload cases; P4 passes 390/1366/1920px on the persistent Node 24 Pages fixture. Product code, migrations, candidate and Stable metadata are unchanged. Final follow-up checks and outcomes are recorded by the latest branch Actions and the PR #96 closure addendum; never infer success from the older run alone.
+The Pages CI job now uses Node 24, matching the cloud workspace. P33 waits for the restored home to be visible and allows its existing ResizeObserver/frame layout to settle before geometric snapshots, including viewport changes. Every original geometric/session assertion remains. Local P33 passes all guest/authenticated/reload cases; P4 passes 390/1366/1920px on the persistent Node 24 Pages fixture. Product code, migrations, candidate and Stable metadata are unchanged. Final software branch `c2a4801` run [37512761641](https://github.com/WYJ0904/thewyj.uk/actions/runs/37512761641) actually completed SUCCESS, 8/8. Evidence-only follow-up commits use latest branch Actions and the PR #96 closure addendum as their check source.
+
+## 2026-10-07 recovery and hosted acceptance
+
+Recovery confirmed clean `codex/task25-flags-release-channels` at `c2a4801`, unchanged main `efc05c3`, open Draft PR #96 and final software CI 8/8 SUCCESS. The existing [takeover comment](https://github.com/WYJ0904/thewyj.uk/pull/96#issuecomment-6023232280) also records that CI outcome; its remote schema assumption is now superseded by the actual API probe.
+
+Immutable [Preview 8e567f72](https://8e567f72.thewyj-uk.pages.dev) proves environment=preview, D1/R2 bindings and master ON. A single additional synthetic Preview account passed registration/browser/native login, ordinary admin denial, all three identity consumers and Beta → Experimental → Stable changes. Its newly created sessions were revoked. See `docs/task25/evidence/hosted-preview-smoke-20261007.json`. This proves the live schema marker and user read/write contract are available; this Codex did not execute a remote migration and cannot establish its executor/time/ledger without management credentials.
+
+Current environment status lists no configured credentials/identities. Latest CI readiness artifact `11435633925` confirms six standard bindings absent. Fresh `wrangler whoami` is unauthenticated and an actual `--env production --remote` read-only Task 25 table inspection rejects missing token. No temporary Cloudflare account, parallel infrastructure, Production SQL mutation or Stable write was performed. Existing Production status/config remain 200 with every app release field equal to the discovery baseline. adb lists no physical device. See `final-state-20261007.json` and `cloud-readiness.json`.
