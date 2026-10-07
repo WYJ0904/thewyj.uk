@@ -27,6 +27,7 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+      WYJ_TASK25_ADMIN_SESSION: ${{ secrets.WYJ_TASK25_ADMIN_SESSION }}
       THEWYJ_ANDROID_KEYSTORE_B64: ${{ secrets.THEWYJ_ANDROID_KEYSTORE_B64 }}
       THEWYJ_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.THEWYJ_ANDROID_KEYSTORE_PASSWORD }}
       THEWYJ_ANDROID_KEY_ALIAS: ${{ secrets.THEWYJ_ANDROID_KEY_ALIAS }}
@@ -37,12 +38,13 @@ jobs:
           python3 - <<'PY'
           import json, os, pathlib
           keys = ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'THEWYJ_ANDROID_KEYSTORE_B64',
-                  'THEWYJ_ANDROID_KEYSTORE_PASSWORD', 'THEWYJ_ANDROID_KEY_ALIAS', 'THEWYJ_ANDROID_KEY_PASSWORD']
+                  'THEWYJ_ANDROID_KEYSTORE_PASSWORD', 'THEWYJ_ANDROID_KEY_ALIAS', 'THEWYJ_ANDROID_KEY_PASSWORD', 'WYJ_TASK25_ADMIN_SESSION']
           presence = {key: bool(os.environ.get(key)) for key in keys}
           cloud_ready = all(presence[key] for key in keys[:2])
-          signing_ready = all(presence[key] for key in keys[2:])
+          signing_ready = all(presence[key] for key in keys[2:6])
           result = {'credential_presence': presence, 'cloud_credentials_configured': cloud_ready,
                     'signing_credentials_configured': signing_ready,
+                    'admin_session_configured': presence['WYJ_TASK25_ADMIN_SESSION'],
                     'remote_d1_administration': 'NOT_EXECUTED' if cloud_ready else 'BLOCKED_MISSING_CREDENTIALS',
                     'remote_r2_administration': 'NOT_EXECUTED' if cloud_ready else 'BLOCKED_MISSING_CREDENTIALS',
                     'pages_git_integration': 'INDEPENDENT_HTTP_CHECK_REQUIRED',
@@ -1014,6 +1016,9 @@ jobs:
               session = json.load(response)['session']
           subprocess.run(['python3', 'qa/task25/remote-admin-smoke.py', '--origin', origin,
               '--environment', 'development', '--output', 'artifacts/task25-admin-release-smoke.json'],
+              env={**os.environ, 'WYJ_TASK25_ADMIN_SESSION': session}, check=True)
+          subprocess.run(['node', 'qa/task25/remote-admin-ui-smoke.mjs', '--origin', origin,
+              '--environment', 'development', '--output', 'artifacts/task25-admin-ui-release-smoke.json'],
               env={**os.environ, 'WYJ_TASK25_ADMIN_SESSION': session}, check=True)
           PY
 

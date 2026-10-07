@@ -16,26 +16,44 @@ if __package__ in (None, ''):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from scripts.stage_android_candidate import artifact, ROOT, STABLE_PATH, verify_artifacts
 
-REQUIRED_GATES = ('production_migration', 'production_deployment', 'production_smoke',
+PREDEPLOY_GATES = ('preview_admin_api', 'preview_admin_ui', 'preview_apk_download', 'cloudflare_d1_preflight')
+REQUIRED_GATES = (*PREDEPLOY_GATES, 'production_migration', 'production_deployment', 'production_smoke',
     'original_signing', 'samsung_physical', 'ci', 'final_review', 'main_ci')
+SAMSUNG_CHECKS = ('package_version', 'signing_continuity', 'session_preservation', 'room_data_preservation',
+    'pending_recovery_identity', 'finance_pending', 'legacy_local_only_recovery', 'notification_finance_sync',
+    'amount_notification_accounting', 'back', 'resume', 'cold_start', 'warm_start', 'webview_native_consistency',
+    'account_targeting_rollout', 'stable_beta_experimental', 'kill_switch', 'offline_flag_fallback',
+    'offline_startup', 'online_to_offline', 'flag_service_unavailable', 'foreground_background', 'webview_reload',
+    'process_restoration', 'network_recovery', 'apk_update_metadata', 'release_channel_recognition', 'haptic', 'system_install_permissions')
+PRODUCTION_ENTRY_GATES = (*PREDEPLOY_GATES, 'original_signing', 'samsung_physical', 'ci')
 
 
-def validate_receipt(receipt, candidate, readback):
+def validate_acceptance(receipt, candidate, gates):
     if not re.fullmatch(r'[0-9a-f]{40}', candidate.get('source_commit', '')):
         raise ValueError('Candidate source SHA missing')
     if receipt.get('source_commit') != candidate['source_commit']:
         raise ValueError('Acceptance receipt is for a different candidate source')
     if candidate.get('signingStatus') != 'verified' or candidate.get('versionName') != '1.3.34' or candidate.get('versionCode') != 47:
         raise ValueError('Only original-signed Task 25 1.3.34/47 is eligible')
-    for gate in REQUIRED_GATES:
+    for gate in gates:
         item = receipt.get(gate, {})
         if item.get('status') != 'PASS' or not item.get('evidence'):
             raise ValueError(f'Release gate missing actual PASS/evidence: {gate}')
     device = receipt.get('samsung', {})
     if (device.get('manufacturer', '').lower() != 'samsung' or device.get('android_sdk') != 36 or
         device.get('from_version_code') != 46 or device.get('to_version_code') != 47 or
+        device.get('before_version') != '1.3.33/46' or device.get('after_version') != '1.3.34/47' or
+        any(not device.get(key) for key in ['model', 'android_version', 'adb_identity']) or
         any(device.get(key) is not True for key in ['physical', 'in_place', 'data_preserved', 'session_preserved'])):
         raise ValueError('Physical Samsung Android 16 in-place upgrade evidence incomplete')
+    for check in SAMSUNG_CHECKS:
+        item = device.get('checks', {}).get(check, {})
+        if item.get('status') != 'PASS' or not item.get('evidence'):
+            raise ValueError(f'Physical Samsung observation missing PASS/evidence: {check}')
+
+
+def validate_receipt(receipt, candidate, readback):
+    validate_acceptance(receipt, candidate, REQUIRED_GATES)
     r2 = receipt.get('r2', {})
     if (r2.get('bucket') != 'wyj-cloud-production' or r2.get('key') != 'app/android/thewyj-android-1.3.34.apk' or
         r2.get('readback_sha256') != readback['sha256'] or r2.get('readback_size_bytes') != readback['sizeBytes'] or

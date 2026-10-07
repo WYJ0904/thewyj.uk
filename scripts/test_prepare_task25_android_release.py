@@ -8,7 +8,7 @@ import sys
 import tempfile
 import unittest
 
-from scripts.prepare_task25_android_release import REQUIRED_GATES, proposed_changelog, proposed_configuration, validate_receipt
+from scripts.prepare_task25_android_release import REQUIRED_GATES, SAMSUNG_CHECKS, PRODUCTION_ENTRY_GATES, proposed_changelog, proposed_configuration, validate_acceptance, validate_receipt
 from scripts.stage_android_candidate import ROOT, STABLE_PATH
 
 
@@ -20,6 +20,9 @@ class ReleaseProposalTests(unittest.TestCase):
         self.receipt = {'source_commit': 'a' * 40,
             **{key: {'status': 'PASS', 'evidence': 'isolated-test-receipt-only'} for key in REQUIRED_GATES},
             'samsung': {'manufacturer': 'Samsung', 'android_sdk': 36, 'from_version_code': 46, 'to_version_code': 47,
+                'model': 'isolated-receipt-fixture', 'android_version': '16', 'adb_identity': 'isolated-not-a-device',
+                'before_version': '1.3.33/46', 'after_version': '1.3.34/47',
+                'checks': {key: {'status': 'PASS', 'evidence': 'isolated-guard-test-only'} for key in SAMSUNG_CHECKS},
                 'physical': True, 'in_place': True, 'data_preserved': True, 'session_preserved': True},
             'r2': {'bucket': 'wyj-cloud-production', 'key': 'app/android/thewyj-android-1.3.34.apk',
                 'readback_sha256': 'b' * 64, 'readback_size_bytes': 1234}}
@@ -36,6 +39,14 @@ class ReleaseProposalTests(unittest.TestCase):
         self.receipt['samsung_physical']['evidence'] = ''
         with self.assertRaises(ValueError): validate_receipt(self.receipt, self.candidate, self.readback)
 
+    def test_production_entry_cannot_skip_preview_signing_device_or_ci_gates(self):
+        validate_acceptance(self.receipt, self.candidate, PRODUCTION_ENTRY_GATES)
+        for key in PRODUCTION_ENTRY_GATES:
+            receipt = copy.deepcopy(self.receipt)
+            receipt[key]['status'] = 'BLOCKED'
+            with self.subTest(gate=key), self.assertRaises(ValueError):
+                validate_acceptance(receipt, self.candidate, PRODUCTION_ENTRY_GATES)
+
     def test_unsigned_or_stale_source_never_promotes(self):
         for patch in [{'signingStatus': 'unsigned'}, {'source_commit': 'c' * 40}, {'versionCode': 46}]:
             with self.subTest(patch=patch), self.assertRaises(ValueError):
@@ -47,6 +58,16 @@ class ReleaseProposalTests(unittest.TestCase):
             receipt = copy.deepcopy(self.receipt)
             receipt['samsung'][key] = value
             with self.subTest(key=key), self.assertRaises(ValueError): validate_receipt(receipt, self.candidate, self.readback)
+
+    def test_missing_physical_observation_or_device_identity_is_rejected(self):
+        for key in SAMSUNG_CHECKS:
+            receipt = copy.deepcopy(self.receipt)
+            receipt['samsung']['checks'][key]['status'] = 'NOT_EXECUTED'
+            with self.subTest(check=key), self.assertRaises(ValueError): validate_receipt(receipt, self.candidate, self.readback)
+        for key in ['model', 'android_version', 'adb_identity', 'before_version', 'after_version']:
+            receipt = copy.deepcopy(self.receipt)
+            receipt['samsung'][key] = ''
+            with self.subTest(identity=key), self.assertRaises(ValueError): validate_receipt(receipt, self.candidate, self.readback)
 
     def test_wrong_bucket_pointer_or_readback_blocks_metadata(self):
         for patch in [{'bucket': 'wyj-cloud-preview'}, {'key': 'app/android/thewyj-android-1.3.33.apk'},

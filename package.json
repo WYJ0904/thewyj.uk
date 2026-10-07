@@ -23,7 +23,7 @@
     "test:task21-notification": "node local-backend/test_task21_notification_js.mjs",
     "test:task22": "node local-backend/test_task22_d1_js.mjs",
     "test:task25": "node local-backend/test_task25_d1_js.mjs && node local-backend/test_task25_client_js.mjs",
-    "test:task25-release": "node qa/task25/release-validation.mjs && python3 -m unittest scripts.test_stage_android_candidate scripts.test_prepare_task25_android_release -v"
+    "test:task25-release": "node qa/task25/release-validation.mjs && node qa/task25/download-validation.mjs && python3 -m unittest scripts.test_stage_android_candidate scripts.test_prepare_task25_android_release -v"
   },
   "devDependencies": {
     "miniflare": "5.20260730.0-alpha",

@@ -1,10 +1,12 @@
 # Task 25 release execution plan
 
-This is preparation, not permission to bypass a failed gate. Baseline: PR #96 Draft, main `efc05c3596c83a12d668911c5f891d2d5f3c395a`, accepted software/Preview/CI in the saved closure and final GitHub acceptance. Task 26 remains closed. Stable is 1.3.33/46, candidate is 1.3.34/47. Current remote administrator session, Cloudflare management token, original signing inputs and physical Samsung are unavailable.
+This is preparation, not permission to bypass a failed gate. Continuation baseline is `156bc29b1711d66ab42e8eceeb8e476da5ad5239`, PR #96 Draft, main `efc05c3596c83a12d668911c5f891d2d5f3c395a`, CI 37638087020 8/8 SUCCESS and the saved closure/final GitHub acceptance. Task 26 remains closed. Stable is 1.3.33/46, candidate is 1.3.34/47 unsigned/unreleased. Current remote administrator session, Cloudflare management token, original signing inputs and physical Samsung are unavailable.
+
+Latest user rules supersede the earlier early-Production path. **No Production migration or deployment until hosted Preview Admin API AND UI, Preview R2/APK download, Cloudflare/D1 read-only preflight, original-signed candidate, physical Samsung, current-head CI, clean worktree and candidate integrity/version checks all PASS.** A token alone only unlocks read-only Production preflight and isolated Preview repairs. Local UI/API, emulator or unsigned-build results never satisfy these gates. PR #96 remains Draft and main unchanged until these gates and subsequent Production acceptance pass.
 
 ## Deployment system and boundaries
 
-The repository has Core CI and `android-signed-candidate.yml`; it has **no separate Production deployment or Android publication workflow**. Existing Cloudflare Pages Git integration deploys PR Preview and main Production. Retain project `thewyj-uk`; do not create another project/account. A direct Wrangler deployment to that same project's Production branch is the pre-merge path needed for Production acceptance while #96 stays Draft. Main Git deployment after the release gates is the final deployment path.
+The repository has Core CI and `android-signed-candidate.yml`; it has **no separate Production deployment or Android publication workflow**. Existing Cloudflare Pages Git integration deploys PR Preview and main Production. Retain project `thewyj-uk`; do not create another project/account. Only after every pre-entry gate above passes, a direct Wrangler deployment to that same project's Production branch provides Production acceptance while #96 stays Draft. Main Git deployment after acceptance is the final deployment path.
 
 | Environment | D1 | R2 |
 | --- | --- | --- |
@@ -15,14 +17,20 @@ Root/Production master switch is currently OFF; Preview is ON. All initial featu
 
 ## Production preflight and migration
 
-After existing Cloudflare credentials and an authorized hosted admin session become available, pin the final candidate/source SHA, latest successful CI and current main; check PR #96 is still Draft/unmerged and mergeable. Fetch the latest main and use `git merge-tree --write-tree origin/main HEAD`. Repeat read-only Production status/config/hash smoke and record the existing Pages deployment ID and its bindings/variables for rollback. Record a D1 Time Travel bookmark using `npx wrangler d1 time-travel info WYJ_DB --env production --timestamp <current-UTC-ISO>`; inspect it privately and do not reset/restore Production as a routine step.
+After existing Cloudflare credentials become available, pin the final candidate/source SHA, latest successful CI and current main; check PR #96 is still Draft/unmerged and mergeable. Fetch the latest main and use `git merge-tree --write-tree origin/main HEAD`. Repeat read-only Production status/config/hash smoke and record the active Pages deployment ID and its bindings/variables for rollback. GitHub's successful main-associated Pages check does not establish the currently active deployment. Record a D1 Time Travel bookmark using `npx wrangler d1 time-travel info WYJ_DB --env production --timestamp <current-UTC-ISO>`; inspect it privately and do not reset/restore Production as a routine step. These reads are permitted before Samsung acceptance; all Production writes remain gated.
 
 ```sh
 npx wrangler d1 execute WYJ_DB --env production --remote --file cloudflare/task25-production-preflight.sql --json
 npx wrangler d1 migrations list WYJ_DB --env production --remote
 ```
 
-Inspect the ledger, previous migration names, Task 12 FK parent and all existing Task 25 table/index/trigger definitions. No Task 25 objects is a normal pre-migration state. If any objects already exist, compare their columns/defaults/checks/FKs/triggers with 0024 before trusting a schema marker; `CREATE IF NOT EXISTS` cannot repair an incompatible table. A partial/incompatible schema or unknown outstanding older migration requires reconciliation, not blindly applying all pending migrations. Only when the pending list is exactly `0024_feature_flags_release_channels.sql` (or already applied with compatible schema), continue:
+Inspect the ledger, previous migration names, Task 12 FK parent and all existing Task 25 table/index/trigger definitions. No Task 25 objects is a normal pre-migration state. If any objects already exist, compare their columns/defaults/checks/FKs/triggers with 0024 before trusting a schema marker; `CREATE IF NOT EXISTS` cannot repair an incompatible table. A partial/incompatible schema or unknown outstanding older migration requires reconciliation. If 0024 is already recorded and compatible, **skip application**, capture evidence and only verify. Otherwise the pending list must be exactly `0024_feature_flags_release_channels.sql` and all pre-entry gates must have passed before applying it once. Complete `docs/task25/release-acceptance.template.json` with reviewed real evidence, exact source/base main/CI run ID and run the read-only entry guard first:
+
+```sh
+python3 scripts/check_task25_production_gates.py --candidate-metadata <original-signed-candidate.json> --acceptance <reviewed-receipt.json> --apk <signed-candidate.apk> --aab <signed-candidate.aab>
+```
+
+The guard validates all pre-entry receipts and physical observations, actual APK+AAB bytes/signatures, exact clean source, Draft PR mergeability, base main and eight actual successful GitHub CI jobs. It never migrates/deploys/publishes. Receipt labels still require reviewed external proof. Only successful validation plus reviewed evidence unlocks these commands:
 
 ```sh
 npx wrangler d1 migrations apply WYJ_DB --env production --remote
@@ -36,6 +44,8 @@ Failure before commit: leave master OFF; verify no ledger/marker/partial objects
 
 ## Server/Web rollout and Production acceptance
 
+Every pre-entry gate, including signed Samsung acceptance and Preview APK download, must already be PASS before step 1. Server/web deployment is not an exception in this continuation.
+
 1. Migration and schema/ledger checks PASS.
 2. From an isolated checkout of the pinned candidate, stage with `npm ci --ignore-scripts --no-audit --no-fund` and `node scripts/stage_pages_deploy.mjs`.
 3. Deploy initially with the existing Production master OFF to prove compatibility: `npx wrangler pages deploy .wrangler/pages-output --project-name thewyj-uk --branch main --commit-hash <pinned-SHA>`. Preserve Production D1/R2 bindings, all existing secrets and every `ANDROID_*` value. Inspect the resulting deployment/variables; do not assume Preview variables apply to Production.
@@ -47,12 +57,30 @@ After an existing session is supplied securely as `WYJ_TASK25_ADMIN_SESSION`, ex
 
 ```sh
 python3 qa/task25/remote-admin-smoke.py --environment preview --origin https://codex-task25-flags-release-c.thewyj-uk.pages.dev --output artifacts/task25-preview-admin-smoke.json
+node qa/task25/remote-admin-ui-smoke.mjs --environment preview --origin https://codex-task25-flags-release-c.thewyj-uk.pages.dev --output artifacts/task25-preview-admin-ui.json
 python3 qa/task25/remote-admin-smoke.py --environment production --origin https://thewyj.uk --output artifacts/task25-production-admin-smoke.json
 ```
 
 The script proves environment, master, Stable metadata and administrator access **before** fixture creation. It creates one synthetic account and one uniquely named unconsumed harmless flag, tests actual APIs, and independently computes SHA256 buckets. Finally it leaves that flag globally OFF, rollout 0 and killed, returns only its synthetic preference to Stable and revokes its session. It never changes an existing user's preferences/data. Failure or failed cleanup returns nonzero and cannot count as PASS. Credentials use a private temporary headers file, no redirect following, no plaintext report/log fields. Its local execution is software evidence; hosted Admin API/UI are still unexecuted until authorized session evidence exists.
 
 Emergency path: use `POST /api/admin/feature-flags` with the complete current definition, current `expected_revision` and `kill_switch:true`; refetch/retry on 409, verify audit and evaluation. If admin/D1 is unavailable, set the existing Pages Production master OFF and redeploy/roll back through the same project. New evaluations stop immediately; already valid memory snapshots expire within 30 seconds and clients close features when paused/offline/refresh fails. Flags do not replace business authorization. Failed audit writes atomically roll back the flag change; the release test injects this failure.
+
+## Preview R2/APK download gate
+
+Current hosted feature Preview is healthy, but APK GET returns `503 app_download_unavailable`. Public status proves an R2 binding, not the bucket/key inventory or permission health. Without management access, missing object versus configuration/permission failure remains unverified. Do not cross to Production storage or publish the unsigned candidate as a fallback.
+
+With Cloudflare access, inspect the existing project's Preview binding/bucket, configured key `app/android/thewyj-android-1.3.33.apk`, object metadata/type/length/hash, route and permissions. Retrieve the object read-only first:
+
+```sh
+npx wrangler r2 object get wyj-cloud-preview/app/android/thewyj-android-1.3.33.apk --remote --file artifacts/task25-preview-stable-readback.apk
+python3 qa/task25/remote-download-smoke.py --environment preview --origin https://codex-task25-flags-release-c.thewyj-uk.pages.dev --output artifacts/task25-preview-download.json
+```
+
+Compare readback against independently verified Stable 46: 47,893,965 bytes, SHA256 `17da079bc7428dc87b1b0b2141ca011f6297101fba3a5d2cc6bbac3fe289048c`, original certificate. Inspect before any repair; preserve existing objects and all Production bindings/object/pointer. Record any Preview-only config change. An absent Preview object may be populated with the exact verified existing Stable binary after confirming absence and correct isolated bucket; never overwrite an existing formal binary with different bytes.
+
+The hosted probe checks HEAD plus browser/native/WebView HTTP-agent GET bytes/type/length/hash, no-store, cache miss and stale validators. It returns BLOCKED on failure; status/config alone never count as download PASS. It is HTTP contract evidence, not Samsung acceptance. Six actual isolated R2 groups cover identical clients, HEAD metadata without body streaming, stale moving-pointer validators, missing binding/object, temporary R2 failure, configured size/available R2 SHA256 mismatch and legacy objects lacking stored SHA256. Known mismatch fails retryably instead of returning 200 with a misleading hash; legacy multipart compatibility still requires full signed-object readback before publication. No stale/cross-environment fallback. Hosted fault injection must use Preview-only fixtures without damaging the release object or real user data.
+
+The separate Admin UI runner above uses an existing authorized session in an isolated Chrome context, actual console controls, one newly registered synthetic target and one unconsumed flag. It checks OFF/ON, targeting, channel exclusion, independent percentage, synthetic channel UI, browser/native/WebView same-account decisions, kill, refresh/audit, ordinary GET/POST denial and Stable metadata; then kills its flag and revokes only new synthetic sessions. A screenshot and environment-labelled report are saved. Explicit development execution tests the runner, not hosted acceptance. Administrator preferences and existing users are never changed. The original local-only browser fixture guard stays intact.
 
 ## Original signing and candidate
 
@@ -68,11 +96,11 @@ Use the workflow for the pinned final source; record exact checked-out SHA, run/
 
 After access is actually available, run `adb devices -l`, select the physical Samsung serial, record model/Android 16/WebView version, and inspect `adb -s <serial> shell dumpsys package uk.thewyj.app` to confirm installed Stable 46. Verify that installed APK's original certificate, active account and local data, then execute `adb -s <serial> install -r <verified-signed-1.3.34-candidate.apk>` once. Never uninstall, clear data, use `-d`, or substitute an emulator for this gate.
 
-Record actual outcome for package/signature/version47, retained session/local data; Stable/Beta/Experimental; native/WebView same-account decisions and targeted/deterministic rollout; Back/Resume/foreground/background/WebView reload/process restoration; offline startup, online-to-offline, flag unavailable and recovery; existing cache TTL/OFF fallback without disabling the rest of the app; haptic/install/system permissions on this Samsung/Android 16. Use only synthetic test accounts/harmless flags for changed preferences. Restore temporary network conditions. Every item remains NOT_EXECUTED until actually observed on the signed candidate; a failure is a release blocker, never a changed assertion.
+Record actual model, Android version, serial/ADB identity, before 1.3.33/46 and after 1.3.34/47. Record individual evidence for package/signing continuity, retained session and Room data, pending/recovery identity, Finance pending, legacy local-only recovery, notification→Finance synchronization and obvious-amount notification accounting; Stable/Beta/Experimental and release-channel recognition; native/WebView same-account decisions and targeted/deterministic rollout; Back/Resume/cold/warm start/foreground/background/WebView reload/process restoration; offline startup, online-to-offline, unavailable flag service and network recovery; cache/OFF fallback without disabling the rest of the app; APK/update metadata, haptic/install/system permissions on Samsung/Android 16. Use only synthetic test accounts/harmless flags for changed preferences. Restore temporary network conditions. Every receipt observation stays NOT_EXECUTED until actually observed on the signed candidate; a failure is a release blocker, never a changed assertion. No uninstall, app-data clear, Room clear or real-user deletion.
 
 ## Final promotion and failure recovery
 
-Only after Production migration/deploy/smoke, original APK/AAB signing, physical Samsung, necessary CI and final review all PASS: make #96 Ready, merge, verify exact main SHA/main CI, and complete final Production server deployment with the approved master setting. Main Git deployment uses the committed root/Production master OFF baseline unless a separately gated final configuration is prepared; it must not silently supersede the accepted ON deployment. Verify the effective setting and deploy the approved final configuration on the same project, then repeat smoke before any binary promotion. Recheck the published Stable 46 before touching distribution. Keep versioned objects immutable; there is currently no separate `latest` R2 object to rewrite. `/api/app/download` follows `ANDROID_APK_KEY` in the Pages deployment; `/api/app/config` and all three channels follow the same deployment variables.
+Only after all Preview/preflight/signing/Samsung/CI pre-entry gates, Production migration/deploy/smoke and final review all PASS: make #96 Ready, merge, verify exact main SHA/main CI, and complete final Production server deployment with the approved master setting. Main Git deployment uses the committed root/Production master OFF baseline unless a separately gated final configuration is prepared; it must not silently supersede the accepted ON deployment. Verify the effective setting and deploy the approved final configuration on the same project, then repeat smoke before any binary promotion. Recheck the published Stable 46 before touching distribution. Keep versioned objects immutable; there is currently no separate `latest` R2 object to rewrite. `/api/app/download` follows `ANDROID_APK_KEY` in the Pages deployment; `/api/app/config` and all three channels follow the same deployment variables.
 
 1. Verify candidate hashes/signatures again, and save current release configuration/deployment rollback evidence.
 2. Upload **only a new versioned key**: `npx wrangler r2 object put wyj-cloud-production/app/android/thewyj-android-1.3.34.apk --remote --file <verified-signed-candidate.apk> --content-type application/vnd.android.package-archive`. Check the key does not already contain different bytes before writing. Do not overwrite/remove `app/android/thewyj-android-1.3.33.apk` or write an unsigned artifact. Retain AAB in the signed Actions artifact; this application distributes APK, not AAB.
@@ -82,7 +110,7 @@ Only after Production migration/deploy/smoke, original APK/AAB signing, physical
 
 Download responses now use `private, no-store` because the route changes with the pointer. Before promotion ensure old `max-age=300` responses have expired (five minutes after the Task 25 server rollout) or purge that URL via the existing Cloudflare account. Already running clients with old metadata can detect a hash mismatch and refetch; do not disable verification. After-pointer failure: roll back the whole Pages release configuration/deployment to 46, keep both immutable R2 objects, verify old metadata/download. A timed-out deploy is an unknown outcome: inspect active deployment/config/hash before retrying; never assume failure and publish a second pointer blindly.
 
-No gate currently authorizes these writes. The present release remains BLOCKED; the closure lists actual execution and future actions separately.
+Before publication, draft the metadata/changelog details without activating them. Upload and read back the immutable signed artifacts; the guarded atomic file proposal requires this readback. Verify the download/storage path, then activate metadata and Stable download pointer together in one reviewed deployment **last**. Do not publicly advertise 47 while its APK is unavailable. The existing distribution mechanism serves APK; the signed AAB is independently verified and retained in the signed Actions artifact, not placed behind the APK endpoint. No gate currently authorizes these writes. Release remains BLOCKED; closure separates actual execution from future actions.
 
 ```sh
 python3 scripts/prepare_task25_android_release.py --candidate-metadata <verified-candidate-metadata.json> --acceptance <reviewed-release-receipt.json> --apk <signed-candidate.apk> --aab <signed-candidate.aab> --r2-readback <production-readback.apk> --release-date <UTC-date> --release-build <reviewed-build-id> --release-notes-file <reviewed-notes.txt> --output-dir <new-directory-outside-checkout>

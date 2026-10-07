@@ -40,7 +40,9 @@ try {
     TASK25_FEATURE_FLAGS_ENABLED: 'true', D1_RATE_LIMIT_ENABLED: 'false',
     ANDROID_LATEST_VERSION_NAME: metadata.versionName, ANDROID_LATEST_VERSION_CODE: String(metadata.versionCode),
     ANDROID_APK_KEY: metadata.apkKey, ANDROID_APK_FILE_NAME: metadata.apkFileName,
-    ANDROID_APK_SHA256: metadata.apkSha256, ANDROID_APK_SIZE_BYTES: String(metadata.apkSizeBytes) };
+    // These are synthetic bytes, so integrity metadata must describe this
+    // fixture rather than claiming the real Stable APK's hash and size.
+    ANDROID_APK_SHA256: createHash('sha256').update(apkBytes).digest('hex'), ANDROID_APK_SIZE_BYTES: String(apkBytes.length) };
   const request = (route, override = {}) => dispatch({ env: { ...env, ...override }, data: { requestId: crypto.randomUUID() },
     request: new Request('https://thewyj.uk' + route, { headers: { 'X-Session-Token': token, 'User-Agent': 'Thewyj-Android/1.3.33' } }) });
   const configBefore = (await (await request('/api/app/config')).json()).app;
@@ -49,6 +51,9 @@ try {
   const existingRows = async () => Promise.all(tables.map(async ({ name }) =>
     [name, (await db.prepare(`SELECT * FROM "${name}" ORDER BY rowid`).all()).results]));
   const beforeRows = await existingRows();
+  const preflight = splitSql(await readFile(path.join(root, 'cloudflare/task25-production-preflight.sql'), 'utf8'));
+  await db.batch(preflight.map(sql => db.prepare(sql)));
+  assert.deepEqual(await existingRows(), beforeRows, 'The actual Production preflight file must be read-only');
   const migration = await readFile(path.join(root, 'cloudflare/migrations/0024_feature_flags_release_channels.sql'), 'utf8');
   const ledger = "INSERT INTO wyj_d1_migrations(name, applied_at) VALUES ('0024_feature_flags_release_channels.sql', 'fixture');";
   await assert.rejects(db.batch(splitSql(migration + '\n' + ledger + '\nINSERT INTO missing_release_table VALUES(1);').map(sql => db.prepare(sql))));
@@ -59,6 +64,9 @@ try {
   pass('late migration failure rolls back tables, schema marker, seeds and ledger; old client stays available');
 
   await db.batch(splitSql(migration + '\n' + ledger).map(sql => db.prepare(sql)));
+  const inspected = await db.batch(preflight.map(sql => db.prepare(sql)));
+  assert.ok(inspected[0].results.some(row => row.name === 'idx_task25_overrides_user'));
+  assert.equal(inspected.at(-1).results[0].name, '0024_feature_flags_release_channels.sql');
   const migratedRows = await existingRows();
   assert.deepEqual(migratedRows.filter(([name]) => name !== 'wyj_d1_migrations'), beforeRows.filter(([name]) => name !== 'wyj_d1_migrations'));
   assert.deepEqual((await (await request('/api/app/config')).json()).app, configBefore);

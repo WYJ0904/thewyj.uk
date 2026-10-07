@@ -138,3 +138,45 @@ Production 既有版本只读 status/config 仍 200，app release 字段与原 b
 | Physical Samsung | `adb devices -l`、检查已装 `uk.thewyj.app` Stable 46/原证书/数据后，`adb -s <physical-serial> install -r <verified-signed-1.3.34-candidate.apk>`；按 release plan 验证 Android 16 上升级、session/data、全部 flags/channel、生命周期、断网/服务失败、haptic/权限 |
 
 PR #96 继续 Draft；main 未合并；所有正式 gate PASS 前，不 Ready、不 merge、不发布 signed Stable 47。最终状态仍是本文开头的五项 BLOCKED/PASS 组合，**READY FOR TASK 26: NO**。
+
+
+## Final Release Closure continuation — baseline 156bc29, 2026-10-07
+
+This continuation uses the saved report and [final GitHub acceptance](https://github.com/WYJ0904/thewyj.uk/pull/96#issuecomment-6040667270). Existing Experience Pass P1–P6 and accepted flags/channels/evaluation/UI/native/WebView contracts are retained. The current continuation commit and its final CI/Preview/artifact IDs are recorded in the newest PR #96 Closure addendum; prior green CI is not used to authorize a later unchecked source.
+
+| Required acceptance | Actual outcome |
+| --- | --- |
+| TASK 25 SOFTWARE IMPLEMENTATION | PASS, accepted implementation retained; bounded APK integrity/HEAD repair added |
+| AUTOMATED TESTS | Local PASS: five actual D1 resilience groups + six R2 distribution groups + 14 candidate/promotion guards; 18 Task20 groups, 12 Task25 D1/API groups, 19 shared cases, 36 Stable consistency checks and Worker compile. Baseline CI 37638087020 remains genuine 8/8 SUCCESS; continuation CI outcome is in final GitHub addendum |
+| ADMIN ACCEPTANCE | **BLOCKED: ADMIN SESSION**. Nine actual browser checks pass only in development with safe cleanup. Hosted Preview API AND UI remain NOT_EXECUTED |
+| D1 MIGRATION | 0024 implementation/resilience PASS; Production read-only inspection rejected missing token. Production ledger/application NOT_VERIFIED / NOT_EXECUTED. If already applied, verify and skip; never repeat/reset |
+| PREVIEW R2 | **BLOCKED**: actual browser/native/WebView APK GET 503 `app_download_unavailable`; status/config 200 and R2 bound. Root cause/inventory/permission health unverified. HEAD repair and all six isolated failure tests PASS, not hosted download PASS |
+| PRODUCTION DEPLOYMENT | Task25 NOT_EXECUTED. Existing public status/config/download/hash/certificate PASS, metadata identical. GitHub main-associated deployment `840c4eaa-30b8-483c-9ba1-ee5159332932`; current active ID privately unverified |
+| SIGNED APK/AAB | **BLOCKED: PRODUCTION SIGNING CREDENTIALS**; candidate stays unsigned/unreleased. No signed hash or formal signing PASS exists |
+| SIGNING IDENTITY | Stable original certificate independently reverified: `2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03`; no new identity |
+| SAMSUNG PHYSICAL DEVICE ACCEPTANCE | **BLOCKED / NOT EXECUTED**; adb actual list empty. No emulator substitution, uninstall, app/Room clear or invented observation |
+| PRODUCTION SMOKE | Existing version's public read-only smoke PASS; Task25 migration/deployment/admin/channel/flag/rollout/targeting/kill/read-write/fallback/post-release smoke NOT_EXECUTED |
+| Stable version / R2 / pointer / metadata | **1.3.33/46**, `wyj-cloud-production/app/android/thewyj-android-1.3.33.apk`; hash `17da079bc7428dc87b1b0b2141ca011f6297101fba3a5d2cc6bbac3fe289048c`, 47,893,965 bytes. No overwrite/delete/pointer/config/metadata/signing change |
+| final main HEAD / PR | main remains `efc05c3596c83a12d668911c5f891d2d5f3c395a`; #96 Draft/open/unmerged, clean merge, no behind-main drift. No final released main exists |
+| Android candidate provenance | Baseline artifact 11491530194 / CI37638087020, PR head156bc29; actual checkout6706775e test-merge ref, not main merge. Package1.3.34/47; APK `c43875b6028a10f825c816e7bb062c8f1cf27ef7c37462cbee8b73fb34730351` (47,898,061 bytes), AAB `0764029b1c0df5dfabc37e2c826a0ab4cd7c78b1af0eaf149d0a1bb88c0ccfd2` (24,663,647 bytes). Both unsigned/unreleased; current-head artifact source/hash proof in final addendum |
+| Preview deployment | Baseline successful156bc29 deployment `bd27403a-0f30-410a-bacc-f9a993360c55`; continuation deployment ID/HTTP outcomes in final addendum. Historical schema-not-ready is superseded, never revived as a blocker |
+| rollback / data deletion | No Production promotion occurred, so rollback NOT_REQUIRED / NOT_EXECUTED; retain old46 object and whole-deployment rollback plan. **Real user data deleted: NO** |
+
+Latest user order is now enforced in [release plan](TASK25_RELEASE_PLAN.md): hosted Preview Admin API/UI + Preview APK download + read-only D1/Cloudflare preflight + original-signed candidate + all Samsung observations + current CI/clean source/integrity → read-only entry guard → Production migration/verify/deploy/smoke → final review/Ready/merge/main CI/final-main deployment → immutable signed object/readback → reviewed metadata and pointer together last → post-release smoke. No early server/web Production exception.
+
+Remaining blockers and next concrete action after each becomes available:
+
+| Blocker | Next action |
+| --- | --- |
+| ADMIN SESSION | Run `python3 qa/task25/remote-admin-smoke.py --environment preview --origin https://codex-task25-flags-release-c.thewyj-uk.pages.dev --output artifacts/task25-preview-admin.json`, then `node qa/task25/remote-admin-ui-smoke.mjs --environment preview --origin https://codex-task25-flags-release-c.thewyj-uk.pages.dev --output artifacts/task25-preview-admin-ui.json` with existing securely bound session/CDP Chrome |
+| CLOUDFLARE ADMIN TOKEN / Preview503 | First read-only `npx wrangler d1 execute WYJ_DB --env production --remote --file cloudflare/task25-production-preflight.sql --json` plus migration list, active deployment/bindings and recovery bookmark. Retrieve Preview46 object with `npx wrangler r2 object get wyj-cloud-preview/app/android/thewyj-android-1.3.33.apk --remote --file artifacts/task25-preview-stable-readback.apk`; compare original bytes/certificate, diagnose/repair Preview only, run `python3 qa/task25/remote-download-smoke.py --environment preview --origin https://codex-task25-flags-release-c.thewyj-uk.pages.dev --output artifacts/task25-preview-download.json`. Token alone does not authorize Production writes |
+| PRODUCTION SIGNING CREDENTIALS | Four original inputs only; `gh workflow run android-signed-candidate.yml --ref codex/task25-flags-release-channels -f version_name=1.3.34 -f version_code=47 -f base_url=https://thewyj.uk`. Pin actual source and independently verify both signatures/Stable certificate/package/version/hash/size; keep unreleased |
+| Physical Samsung | After signed candidate PASS: `/workspace/android-sdk/platform-tools/adb devices -l`, inspect actual Stable46 device/package/certificate/session/Room/pending data, then `adb -s <physical-serial> install -r <exact-original-signed-47.apk>`. Observe and record every required checklist item without uninstall/data clear; retain every failure as blocker |
+
+```text
+TASK 25 SOFTWARE IMPLEMENTATION / AUTOMATED TESTS: PASS
+TASK 25 SOFTWARE: BLOCKED
+PHYSICAL DEVICE ACCEPTANCE: BLOCKED / NOT EXECUTED
+TASK 25 RELEASE STATUS: BLOCKED
+READY FOR TASK 26: NO
+```
