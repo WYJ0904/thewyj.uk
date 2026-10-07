@@ -123,3 +123,5 @@ Before publication, draft the metadata/changelog details without activating them
 ```sh
 python3 scripts/prepare_task25_android_release.py --candidate-metadata <verified-candidate-metadata.json> --acceptance <reviewed-release-receipt.json> --apk <signed-candidate.apk> --aab <signed-candidate.aab> --r2-readback <production-readback.apk> --release-date <UTC-date> --release-build <reviewed-build-id> --release-notes-file <reviewed-notes.txt> --output-dir <new-directory-outside-checkout>
 ```
+
+Visible UI evidence must show the console, not a preceding notification. The hosted runner refuses hidden/inert/occluded controls and never changes existing administrator message receipts to manufacture acceptance. Only isolated development actors may dismiss preceding test notices. Account settings is reached through the normal open account menu. CJK fonts and a bounded full-console screenshot make the artifact reviewable; DOM state behind an overlay is insufficient. Hosted admin session absence or obstruction blocks only dependent acceptance, never Production/Stable gate bypass.

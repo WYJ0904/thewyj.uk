@@ -35,7 +35,18 @@ const api = (route, payload = undefined, session = admin, expected = 200, cookie
 };
 const results = [], fixtureKeys = [];
 const rateBudget = { observed_429: false, cooldown_ms: 0, server_limits_changed: false };
-let user, token, native, deviceId, actor, failure = null, cleanup = true, stage = 'preflight', diagnostic = null;
+const visibility = { occlusion_guard_enabled: true, development_fixture_messages_dismissed: 0,
+  occluded_control_refused: false, hosted_message_receipts_modified: false, console_screenshot_unobstructed: false };
+function requireVisibleControl(element) {
+  if (!element || element.disabled || element.closest('[inert]')) throw new Error('UI control is unavailable or inert');
+  element.scrollIntoView({ block: 'center', behavior: 'instant' });
+  const rect = element.getBoundingClientRect(), style = getComputedStyle(element);
+  const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+  if (!rect.width || !rect.height || style.visibility !== 'visible' || !hit || !element.contains(hit)) {
+    throw new Error('UI control is hidden or occluded; no click performed');
+  }
+}
+let user, token, native, deviceId, actor, failure = null, cleanup = true, stage = 'preflight', diagnostic = null, controlSelector = null, controlPage = null;
 const pages = [];
 try {
   const status = api('/api/status', undefined, '');
@@ -87,10 +98,49 @@ try {
     return page;
   };
   const adminPage = await authenticatedPage(actor), userPage = await authenticatedPage(user);
+  const settleFixtureNotices = async page => {
+    // Only the explicitly isolated development actor may dismiss preceding
+    // test messages. Never mutate a hosted administrator's message receipts.
+    if (environment !== 'development') return;
+    for (let i = 0; i < 10; i++) {
+      if (await page.evaluate("document.getElementById('siteMessageModal').classList.contains('hidden')")) return;
+      assert.equal(actor.id, 'task15-ci-super-admin', 'Only the explicit development fixture actor may dismiss test messages');
+      assert.equal(await page.evaluate(`(() => {
+        try { (${requireVisibleControl.toString()})(document.getElementById('accountBtn')); return false; }
+        catch { return true; }
+      })()`), true, 'Actual notification must block the underlying control');
+      visibility.occluded_control_refused = true;
+      await page.click('#siteMessageCloseBtn');
+      visibility.development_fixture_messages_dismissed++;
+      await page.waitFor("!document.getElementById('siteMessageCloseBtn').disabled");
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    assert.equal(await page.evaluate("document.getElementById('siteMessageModal').classList.contains('hidden')"), true,
+      'Development message fixture queue must settle');
+  };
+  const waitVisibleControl = async (page, selector) => {
+    const deadline = Date.now() + 5000;
+    do {
+      await settleFixtureNotices(page);
+      if (await page.evaluate(`(() => { try { (${requireVisibleControl.toString()})(document.querySelector(${JSON.stringify(selector)})); return true; } catch { return false; } })()`)) return;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } while (Date.now() < deadline);
+    throw new Error('UI control remains blocked; no click performed');
+  };
+  const visibleClick = async (page, selector) => {
+    stage = 'UI_visible_control_' + selector;
+    controlSelector = selector;
+    controlPage = page;
+    await waitVisibleControl(page, selector);
+    return page.evaluate(`(() => {
+      const button = document.querySelector(${JSON.stringify(selector)});
+      (${requireVisibleControl.toString()})(button); button.click(); return true;
+    })()`);
+  };
   await adminPage.navigate('/admin');
   await adminPage.evaluate("document.getElementById('dismissVersionNoticeBtn')?.click()");
   await adminPage.waitFor("!document.getElementById('adminFeatureFlagsTab').classList.contains('hidden')");
-  await adminPage.click('#adminFeatureFlagsTab');
+  await visibleClick(adminPage, '#adminFeatureFlagsTab');
   // The console deliberately rejects submit while its initial catalogue is
   // loading. A visible tab alone does not establish that its form is ready.
   await adminPage.waitFor("document.getElementById('featureConsoleStatus').textContent === '已读取最新配置' && document.getElementById('featureFlagSelect').options.length >= 2");
@@ -99,7 +149,11 @@ try {
   const selected = () => adminPage.setFields({ '#featureFlagSelect': key });
   // Check scope and click in the same browser task, so a delayed catalogue
   // render can never redirect a test write to a pre-existing flag.
-  const clickOwn = selector => adminPage.evaluate(`(() => {
+  const clickOwn = async selector => {
+    controlSelector = selector;
+    controlPage = adminPage;
+    await waitVisibleControl(adminPage, selector);
+    return adminPage.evaluate(`(() => {
     const form = document.getElementById('featureFlagForm'), key = ${JSON.stringify(key)};
     if (document.getElementById('featureFlagKey').value !== key ||
         (Number(form.dataset.revision) > 0 && document.getElementById('featureFlagSelect').value !== key) ||
@@ -107,9 +161,10 @@ try {
       throw new Error('Fixture scope lost; no management write performed');
     }
     const button = document.querySelector(${JSON.stringify(selector)});
-    if (!button || button.disabled) throw new Error('Fixture control is not ready');
+    (${requireVisibleControl.toString()})(button);
     button.click(); return true;
   })()`);
+  };
   const save = async () => {
     stage = 'save_flag';
     const prior = await adminPage.evaluate("Number(document.getElementById('featureFlagForm').dataset.revision)");
@@ -123,11 +178,11 @@ try {
     stage = `evaluate_${channel}_${reason}_${enabled ? 'ON' : 'OFF'}`;
     await adminPage.setFields({ '#featureEvaluateUser': user.id, '#featureEvaluateChannel': channel });
     await adminPage.evaluate("document.getElementById('featureEvaluationResult').textContent = ''");
-    await adminPage.click('#evaluateFeatureBtn');
+    await visibleClick(adminPage, '#evaluateFeatureBtn');
     const expected = `${key}: ${enabled ? 'ON' : 'OFF'} (${reason}`;
     await adminPage.waitFor(`document.getElementById('featureEvaluationResult').textContent.includes(${JSON.stringify(expected)})`);
   };
-  await adminPage.click('#newFeatureFlagBtn');
+  await visibleClick(adminPage, '#newFeatureFlagBtn');
   await adminPage.setFields({ '#featureFlagKey': key, '#featureFlagDescription': 'Unconsumed harmless Preview acceptance fixture', '#featureFlagPercentage': 0 });
   await save();
   await evaluate('experimental', false, 'global_off');
@@ -154,11 +209,13 @@ try {
   }
   await userPage.navigate('/');
   await userPage.evaluate("document.getElementById('dismissVersionNoticeBtn')?.click()");
-  await userPage.click('#accountBtn');
+  await visibleClick(userPage, '#accountMenu summary');
+  await userPage.waitFor("document.getElementById('accountMenu').open");
+  await visibleClick(userPage, '#accountBtn');
   await userPage.waitFor("!document.getElementById('releaseChannelSection').classList.contains('hidden') && !document.getElementById('saveReleaseChannelBtn').disabled");
   for (const channel of ['beta', 'experimental', 'stable']) {
     await userPage.setFields({ '#releaseChannelSelect': channel });
-    await userPage.click('#saveReleaseChannelBtn');
+    await visibleClick(userPage, '#saveReleaseChannelBtn');
     await userPage.waitFor(`window.AerisFeatures.channel() === '${channel}' && !document.getElementById('saveReleaseChannelBtn').disabled`);
     const snapshots = [api('/api/features', undefined, token).snapshot, api('/api/features', undefined, native).snapshot,
       api('/api/features', undefined, '', 200, native).snapshot];
@@ -169,10 +226,12 @@ try {
   await save();
   await evaluate('stable', false, 'kill_switch');
   await adminPage.navigate('/admin');
-  await adminPage.click('#adminFeatureFlagsTab');
+  await visibleClick(adminPage, '#adminFeatureFlagsTab');
   await adminPage.waitFor(`Array.from(document.getElementById('featureFlagSelect').options).some(o => o.value === ${JSON.stringify(key)})`);
   await selected();
   assert.equal(await adminPage.evaluate("document.getElementById('featureFlagKillSwitch').checked"), true);
+  await visibleClick(adminPage, '#adminFeatureFlagsView details > summary');
+  assert.equal(await adminPage.evaluate("document.getElementById('featureFlagAudit').closest('details').open"), true);
   assert.ok(await adminPage.evaluate(`document.getElementById('featureFlagAudit').textContent.includes(${JSON.stringify(key)})`));
   api('/api/admin/feature-flags', undefined, token, 403);
   const current = api('/api/admin/feature-flags').flags.find(flag => flag.flag_key === key);
@@ -183,7 +242,15 @@ try {
   assert.equal(await userPage.evaluate("document.getElementById('adminFeatureFlagsTab').classList.contains('hidden')"), true);
   assert.deepEqual(api('/api/app/config', undefined, '').app, originalConfig);
   assert.deepEqual(adminPage.runtimeErrors, []);
-  const screenshot = await adminPage.send('Page.captureScreenshot', { format: 'png' });
+  await settleFixtureNotices(adminPage);
+  assert.equal(await adminPage.evaluate("document.querySelector('.modal-layer:not(.hidden)') === null && !document.getElementById('featureFlagForm').closest('[inert]')"), true,
+    'A visible unobstructed console is required; DOM assertions behind a modal are insufficient');
+  await adminPage.evaluate("window.scrollTo({top: 0, behavior: 'instant'})");
+  visibility.console_screenshot_unobstructed = true;
+  const layout = (await adminPage.send('Page.getLayoutMetrics')).cssContentSize;
+  assert.ok(layout.width <= 2000 && layout.height <= 10000, 'Console capture bounds required');
+  const screenshot = await adminPage.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true,
+    clip: { x: 0, y: 0, width: layout.width, height: layout.height, scale: 1 } });
   fs.mkdirSync(path.dirname(arg('output')), { recursive: true });
   fs.writeFileSync(arg('output') + '.png', Buffer.from(screenshot.data, 'base64'));
   results.push('UI_create_read_global_OFF_ON', 'UI_targeting_and_channel_scope', 'UI_percentage_independent_bucket',
@@ -192,13 +259,23 @@ try {
 } catch (error) {
   failure = error.name;
   try {
-    if (pages[0]) diagnostic = await pages[0].evaluate(`(() => ({
+    if (pages[0]) diagnostic = await (controlPage || pages[0]).evaluate(`(() => ({
       console_status: document.getElementById('featureConsoleStatus')?.textContent,
       selected_is_fixture: ${JSON.stringify(fixtureKeys)}.includes(document.getElementById('featureFlagSelect')?.value),
       form_revision: document.getElementById('featureFlagForm')?.dataset.revision,
       evaluate_channel: document.getElementById('featureEvaluateChannel')?.value,
-      fixture_evaluation: document.getElementById('featureEvaluationResult')?.textContent.split('\\n').filter(line => ${JSON.stringify(fixtureKeys)}.some(key => line.startsWith(key + ': ')))
+      fixture_evaluation: document.getElementById('featureEvaluationResult')?.textContent.split('\\n').filter(line => ${JSON.stringify(fixtureKeys)}.some(key => line.startsWith(key + ': '))),
+      visible_modal_ids: Array.from(document.querySelectorAll('.modal-layer:not(.hidden)')).map(element => element.id),
+      control: (() => { const element = document.querySelector(${JSON.stringify(controlSelector)}); if (!element) return null;
+        const rect = element.getBoundingClientRect(), style = getComputedStyle(element), hit = document.elementFromPoint(rect.x + rect.width/2, rect.y + rect.height/2);
+        return { selector: ${JSON.stringify(controlSelector)}, inert: Boolean(element.closest('[inert]')), visibility: style.visibility,
+          x: rect.x, y: rect.y, width: rect.width, height: rect.height, hit_id: hit?.id, hit_tag: hit?.tagName }; })()
     }))()`);
+    if (environment === 'development' && controlPage) {
+      const screenshot = await controlPage.send('Page.captureScreenshot', { format: 'png' });
+      fs.mkdirSync(path.dirname(arg('output')), { recursive: true });
+      fs.writeFileSync(arg('output') + '.failed.png', Buffer.from(screenshot.data, 'base64'));
+    }
   } catch { /* Diagnostics never replace a failed acceptance. */ }
   console.error('Admin UI acceptance failed:', error.name, 'at', stage);
 }
@@ -228,7 +305,8 @@ const report = { checked_at_utc: new Date().toISOString(), origin, environment,
   acceptance: !failure && cleanup ? 'PASS' : 'FAILED', checks: results, failure_class: failure, cleanup_pass: cleanup,
   failure_step: failure ? stage : null, diagnostic,
   fixture_flags: fixtureKeys, synthetic_account_id: user?.id, real_user_data_modified: false, stable_pointer_modified: false,
-  admin_session_persisted: false, physical_device_acceptance: 'NOT_EXECUTED', management_rate_budget: rateBudget };
+  admin_session_persisted: false, physical_device_acceptance: 'NOT_EXECUTED', management_rate_budget: rateBudget,
+  ui_visibility: visibility };
 fs.mkdirSync(path.dirname(arg('output')), { recursive: true });
 fs.writeFileSync(arg('output'), JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify(report));

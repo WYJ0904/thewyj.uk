@@ -86,6 +86,7 @@ def main():
         if os.environ.get('GITHUB_OUTPUT'):
             with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
                 stream.write('cloud_ready=' + str(discovery['cloud_ready']).lower() + '\n')
+                stream.write('admin_ready=' + str(discovery['admin_session_present']).lower() + '\n')
         print(json.dumps(discovery, indent=2))
         return
     discovery = json.loads((out / 'credential-presence.json').read_text())
