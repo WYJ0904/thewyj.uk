@@ -86,7 +86,7 @@ class PaymentAccessibilityServiceGateTest {
         PaymentAccessibilityStatus.onSkipped("reset", "gate-test-reset")
         val event = AccessibilityEvent.obtain(AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED).apply {
             packageName = "com.tencent.mm"
-            className = "com.tencent.mm.ui.LauncherUI"
+            className = "com.tencent.mm.plugin.remittance.ui.RemittanceDetailUI"
         }
         service.onAccessibilityEvent(event)
 
@@ -103,7 +103,7 @@ class PaymentAccessibilityServiceGateTest {
         assertTrue(
             "the first event must reach the page/OCR stage instead of being dropped: " +
                 PaymentAccessibilityStatus.lastParserResult,
-            PaymentAccessibilityStatus.lastParserResult in setOf("no_text", "ocr_unavailable"),
+            PaymentAccessibilityStatus.lastParserResult in setOf("read_queued", "no_text", "ocr_unavailable"),
         )
         PaymentTicketPackageSignal.clear()
     }

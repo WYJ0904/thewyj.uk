@@ -76,8 +76,7 @@ internal object NotificationCashEvidence {
                     if (voucherAt >= 0 && cashAt <= voucherAt) continue
                 }
                 val rawAmount = match.groupValues[4].replace(",", "")
-                val value = rawAmount.toDoubleOrNull() ?: continue
-                if (value <= 0 || value > 10_000_000) continue
+                if (PaymentText.parseMinor(rawAmount) == null) continue
                 facts.add(match.range.first to "${rule.canonicalVerb} ¥$rawAmount")
             }
         }
