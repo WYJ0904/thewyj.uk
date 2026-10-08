@@ -24,3 +24,6 @@
 -keep class com.google.mlkit.common.internal.CommonComponentRegistrar { public <init>(); }
 -keep class com.google.mlkit.vision.common.internal.VisionCommonRegistrar { public <init>(); }
 -keep class com.google.mlkit.vision.text.internal.TextRegistrar { public <init>(); }
+
+# Public references needed to verify the ordinary signed artifact on hardware.
+-include proguard-runtime-contracts.pro

@@ -86,17 +86,24 @@ class FormalReleaseDeviceTest {
         assumeTrue(args.getString("formalAcceptance") == "true" && args.getString("livePaymentPage") == "true")
         ordinaryRelease()
         val credentials = SecureCredentialStore(context)
-        val original = credentials.loadActive() ?: error("Existing encrypted session required")
-        assertTrue("Existing authorized administrator is required for a new isolated Finance test account", original.account.isAdmin)
+        var original = credentials.loadActive() ?: error("Existing encrypted session required")
         val originalDevice = DeviceIdentityStore(context).getOrCreate()
         val api = ThewyjApiClient()
+        if (original.accessExpiresAtEpochMs <= System.currentTimeMillis() + 60_000) {
+            val renewed = api.refresh(original, originalDevice, UUID.randomUUID().toString())
+            assertTrue("Existing session must renew through its normal authenticated refresh API", renewed is ApiCall.Success)
+            original = (renewed as ApiCall.Success).value
+            credentials.saveActive(original)
+        }
+        assertTrue("Existing authorized administrator is required for a new isolated Finance test account", original.account.isAdmin)
         // The backup is encrypted and kept on-device until final physical acceptance is complete.
         SecureCredentialStore(context, ".task25-original-backup").saveActive(original)
         val store = RoomPaymentRecognitionStore(NotificationDatabase.get(context))
         val originalBookings = store.localBookings(original.account.id)
         val username = "t25r8_" + UUID.randomUUID().toString().replace("-", "").take(12)
         val secret = UUID.randomUUID().toString() + UUID.randomUUID()
-        val fixtureDevice = UUID.randomUUID().toString()
+        // A normal account switch on this phone keeps its real device identity.
+        val fixtureDevice = originalDevice
         val registration = api.register(username, secret)
         assertTrue("Normal synthetic registration must succeed", registration is ApiCall.Success)
         val login = api.login(username, secret, fixtureDevice)
