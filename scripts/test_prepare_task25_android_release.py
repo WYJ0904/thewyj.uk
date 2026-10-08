@@ -8,7 +8,7 @@ import sys
 import tempfile
 import unittest
 
-from scripts.prepare_task25_android_release import REQUIRED_GATES, SAMSUNG_CHECKS, SAMSUNG_PREDEPLOY_CHECKS, PRODUCTION_ENTRY_GATES, production_entry_gates, proposed_changelog, proposed_configuration, validate_acceptance, validate_receipt
+from scripts.prepare_task25_android_release import REQUIRED_GATES, SAMSUNG_CHECKS, SAMSUNG_PREDEPLOY_CHECKS, DEFERRED_ANDROID_ACCOUNTING_CHECKS, PRODUCTION_ENTRY_GATES, production_entry_gates, proposed_changelog, proposed_configuration, validate_acceptance, validate_receipt
 from scripts.stage_android_candidate import ROOT, STABLE_PATH
 
 
@@ -67,6 +67,22 @@ class ReleaseProposalTests(unittest.TestCase):
                 'physical': True, 'in_place': True, 'data_preserved': True, 'session_preserved': True},
             'r2': {'bucket': 'wyj-cloud-production', 'key': 'app/android/thewyj-android-1.3.34.apk',
                 'readback_sha256': 'b' * 64, 'readback_size_bytes': 1234}}
+
+    def test_android_accounting_followup_does_not_block_task25_release(self):
+        # The next signed APK will own these regression checks. Deferral does
+        # not certify them or relax Task 25 signature/data/channel requirements.
+        self.assertEqual(len(DEFERRED_ANDROID_ACCOUNTING_CHECKS), 5)
+        self.assertFalse(set(DEFERRED_ANDROID_ACCOUNTING_CHECKS) & set(SAMSUNG_CHECKS))
+        for check in DEFERRED_ANDROID_ACCOUNTING_CHECKS:
+            self.receipt['samsung']['checks'][check] = {
+                'status': 'NOT_EXECUTED', 'evidence': ''}
+        validate_receipt(self.receipt, self.candidate, self.readback)
+        for check in ('package_version', 'signing_continuity', 'room_data_preservation',
+                      'stable_beta_experimental', 'kill_switch', 'apk_update_metadata'):
+            changed = copy.deepcopy(self.receipt)
+            changed['samsung']['checks'][check]['status'] = 'NOT_EXECUTED'
+            with self.subTest(required_task25_check=check), self.assertRaises(ValueError):
+                validate_receipt(changed, self.candidate, self.readback)
 
     def test_every_unexecuted_gate_blocks_proposal(self):
         validate_receipt(self.receipt, self.candidate, self.readback)
