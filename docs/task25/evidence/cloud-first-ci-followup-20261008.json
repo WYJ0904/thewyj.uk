@@ -1,0 +1,41 @@
+{
+  "checked_at_utc": "2026-10-08T12:19:31.558804+00:00",
+  "failed_source": "aa087c2e61dc2968ea19c2f990af66ed4bff08b0",
+  "failed_ci_run": 37774133818,
+  "failed_ci_conclusion": "failure",
+  "jobs_successful": 6,
+  "jobs_failed": 2,
+  "application_failure": {
+    "artifact_id": 11549311959,
+    "artifact_sha256": "d915947d860dca950b9bb657107c90b1a0f2b0c6323dc25d423814e99a2e9cf6",
+    "assertion_preserved": "financeBudgetSummary text includes 50.00",
+    "cause": "Category options render synchronously; independent budget insight panels render in a later animation frame. Test observed category before budget completed.",
+    "repair": "Wait for budget aria-busy=false; force a500ms deferred insight callback in the browser fixture; keep original amount assertion."
+  },
+  "local_application_after_repair": {
+    "checks": 24,
+    "passed": 24,
+    "runtime_errors": [],
+    "deferred_budget_fixture_ms": 500,
+    "finance_check": {
+      "name": "finance ledger local-first CRUD, budget, reconnect, reload and mobile layout",
+      "status": "passed",
+      "milliseconds": 6945
+    }
+  },
+  "admin_ui_cleanup_failure": {
+    "artifact_id": 11548983133,
+    "artifact_sha256": "16bfb78647ca4437533b8c0cab7764872089feb2a70c88ba08849b879068ab9c",
+    "ui_checks_completed": 9,
+    "acceptance": "FAILED",
+    "cleanup_pass": false,
+    "observed_account_delete_http": 200,
+    "observed_following_me_http": 401,
+    "cause": "Open synthetic browser context makes a background authenticated request, which consumes the deleted canonical session before explicit CLI verification.",
+    "repair": "Close only runner-owned isolated browser contexts before account cleanup; retain exact delete200 and account_deleted403 assertions."
+  },
+  "server_or_finance_business_logic_changed": false,
+  "real_user_data_modified": false,
+  "release_assertions_removed": false,
+  "samsung_or_hosted_admin_acceptance_claimed": false
+}

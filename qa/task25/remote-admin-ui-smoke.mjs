@@ -283,6 +283,12 @@ try {
   console.error('Admin UI acceptance failed:', error.name, 'at', stage);
 }
 finally {
+  // Stop only this runner's isolated browser contexts before revoking its
+  // synthetic account. Background requests otherwise consume the revoked
+  // canonical session before the explicit account_deleted check can read it.
+  for (const page of pages.splice(0)) {
+    try { await page.close(); } catch { cleanup = false; }
+  }
   for (const key of fixtureKeys) {
     try {
       const current = api('/api/admin/feature-flags').flags.find(flag => flag.flag_key === key);

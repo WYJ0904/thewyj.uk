@@ -2038,13 +2038,26 @@ async function main() {
         };
         return true;
       })()`);
+      // Budget insights paint in a separate animation frame after category
+      // hydration. Exercise that boundary without changing the ledger data.
+      await evaluate(`(() => {
+        window.__financeBudgetOriginalRaf = window.requestAnimationFrame;
+        window.requestAnimationFrame = (callback) => window.__financeBudgetOriginalRaf.call(window, (time) => {
+          if (document.querySelector('#financeBudgetSummary')?.getAttribute('aria-busy') === 'true') {
+            setTimeout(() => callback(time), 500);
+          } else callback(time);
+        });
+      })()`);
       await click('#dashboardFinanceBtn');
       await waitFor("location.pathname === '/finance' && !document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 8_000, "finance workspace");
       assert.equal(await evaluate("document.querySelector('#financeRecordedSection').open"), false,
         "recorded transactions start collapsed");
       assert.equal(await evaluate("document.querySelector('#financeLocked').classList.contains('hidden')"), true);
       await waitFor("document.querySelector('#financeCategoryFilter')?.textContent.includes('云端预置分类')", 4_000, "pre-existing finance category hydration");
+      await waitFor("document.querySelector('#financeBudgetSummary')?.getAttribute('aria-busy') === 'false'", 4_000,
+        "deferred finance budget hydration");
       assert.ok((await evaluate("document.querySelector('#financeBudgetSummary').textContent")).includes("50.00"));
+      await evaluate("window.requestAnimationFrame = window.__financeBudgetOriginalRaf; delete window.__financeBudgetOriginalRaf;");
 
       await click("#financeManageCategoriesBtn");
       await setFields({ "#financeCategoryName": "餐饮", "#financeCategoryAppliesTo": "expense" });
