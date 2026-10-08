@@ -62,7 +62,7 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
                 "amounts=${decision.candidates.map { it.minor }.distinct().size} decision=${decision.reason} " +
                 "pendingOutgoing=${PaymentPageContext.pendingOutgoing(normalized)} " +
                 "completion=${PaymentText.hasCompletion(joined)} " +
-                "direction=${PaymentText.direction(joined)?.name ?: "unknown"}",
+                "direction=${if (PaymentPageContext.pendingOutgoing(normalized)) "EXPENSE" else PaymentText.direction(joined)?.name ?: "unknown"}",
         )
         // A screenshot is only evidence when the page *is* a payment page. A
         // product price, a chat line that mentions money or a random ¥xx must

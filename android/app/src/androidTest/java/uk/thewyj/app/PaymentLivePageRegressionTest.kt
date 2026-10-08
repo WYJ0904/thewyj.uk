@@ -82,6 +82,24 @@ class PaymentLivePageRegressionTest {
             assertTrue("the real framework service must be bound in this instrumented process", PaymentAccessibilityStatus.connected)
             val repetitions = args.getString("repetitions", "10").toInt()
             repeat(repetitions) { index ->
+                if (index == 5) {
+                    val activityState = device.executeShellCommand("dumpsys activity activities")
+                    val top = activityState.lineSequence().first { it.contains("topResumedActivity") && it.contains("com.tencent.mm/") }
+                    val paymentTask = Regex(" t([0-9]+)").find(top)!!.groupValues[1].toInt()
+                    context.startActivity(android.content.Intent(context, MainActivity::class.java).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+                    SystemClock.sleep(900)
+                    assertEquals(context.packageName, device.currentPackageName)
+                    device.pressHome()
+                    SystemClock.sleep(300)
+                    automation.adoptShellPermissionIdentity("android.permission.REORDER_TASKS")
+                    try {
+                        (context.getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager).moveTaskToFront(paymentTask, 0)
+                    } finally { automation.dropShellPermissionIdentity() }
+                    SystemClock.sleep(700)
+                    assertEquals("com.tencent.mm", device.currentPackageName)
+                    assertTrue(PaymentAccessibilityStatus.connected)
+                    instrumentation.sendStatus(0, Bundle().apply { putString("paymentLifecycle", "returnedToAeris=true backgrounded=true sameWechatDetailResumed=true serviceConnected=true") })
+                }
                 assertTrue(device.openNotification()) // Leave the payment foreground: pending callbacks must cancel.
                 SystemClock.sleep(400)
                 val sourceId = "live-one-cent-$index"
