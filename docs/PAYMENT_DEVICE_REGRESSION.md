@@ -43,3 +43,11 @@ adb shell am instrument -w -e class uk.thewyj.app.PaymentLivePageRegressionTest 
 ```
 
 Historical-frame hardware OCR and rendered synthetic other-amount OCR are separate tests; neither is labelled as a live accessibility repetition. Final per-case results, hashes, installed version, preserved-data counts and CI state belong to the local closure report. Original user data, original video and Stable pointers are retained.
+# Formal R8 follow-up: screenshot cooldown and page debounce
+
+The ordinary signed1.3.36/49 candidate (both payment test flags false) completed the first two live one-cent entries through the production gateway, with exactly one system-observed verification each and one fixture booking each. Entry3 did not trigger. The original account's97 bookings and normal server session were retained.
+
+The actual log showed its empty-tree read at18:49:42.664, at the4,000ms boundary after the previous empty-tree read at18:49:38.670 and successful OCR. The normal log did not record the exact screenshot-request tick; the source and timestamps identify a remaining cooldown below250ms as the failure mechanism. The page retry budget separately debounces reads for250ms. Such a timer fires too early, is rejected by `beginAttempt`, and schedules no successor. The87ms unit fixture represents that short-delay interval; it is not a claim that the failing device's unlogged delay was exactly87ms. This is a cooldown/debounce interaction, not an amount-parser failure.
+
+`PaymentPageRetry.nextDelayMs` now accepts the screenshot delay and raises it to the remaining page debounce before checking the unchanged12-second budget. The service routes every scheduled delay through that decision and emits only a non-sensitive retry reason/count/delay in its existing status log. The8-attempt limit, page/account/ticket/window identity, confidence thresholds and cancellation rules remain. Added tests reproduce the87ms boundary and verify that adjustment cannot extend the deadline. Final hardware acceptance remains unvalidated until all ten entries pass on the rebuilt ordinary R8 artifact; earlier failed evidence is retained.
+

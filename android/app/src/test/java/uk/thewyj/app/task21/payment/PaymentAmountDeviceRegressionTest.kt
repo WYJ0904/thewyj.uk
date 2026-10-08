@@ -5,6 +5,25 @@ import org.junit.Test
 import uk.thewyj.app.task21.FinanceDirection
 
 class PaymentAmountDeviceRegressionTest {
+    @Test fun remainingScreenshotCooldownCannotScheduleInsidePageDebounce() {
+        val now = 42_664L
+        val retry = PaymentPageRetry("real-samsung-case3", now)
+        assertTrue(retry.beginAttempt(now))
+        val remainingScreenshotCooldown = PaymentScreenshotThrottle.retryDelayMs(38_751L, now, 4_000L)
+        assertEquals(87L, remainingScreenshotCooldown)
+        val scheduledDelay = requireNotNull(retry.nextDelayMs(now, remainingScreenshotCooldown))
+        assertEquals(250L, scheduledDelay)
+        assertTrue("the scheduled callback must actually be eligible", retry.beginAttempt(now + scheduledDelay))
+        assertEquals(2, retry.attempts)
+    }
+
+    @Test fun debounceAdjustmentCannotExtendFiniteRetryWindow() {
+        val retry = PaymentPageRetry("near-deadline", 1_000L)
+        assertTrue(retry.beginAttempt(12_900L))
+        assertNull(retry.nextDelayMs(12_900L, 5L))
+        assertEquals(1, retry.attempts)
+        assertFalse(retry.beginAttempt(13_150L))
+    }
     private fun page(vararg lines: String, groups: List<List<String>> = emptyList()) = PaymentPageSemantics.extract(
         PaymentPageSnapshot("com.tencent.mm", lines.toList(), 1_000L, groups))
 

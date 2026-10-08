@@ -135,13 +135,16 @@ class FormalReleaseDeviceTest {
             assertTrue(NotificationSessionProvider(context).currentAccount()?.accountId == fixture.account.id)
             Configurator.getInstance().uiAutomationFlags = UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES
             val automation = instrumentation.getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
+            fun fixtureFile(name: String, content: String) {
+                FormalNotificationObserver.fixtureFile(automation, "$observerDirectory/$name", content)
+            }
             val device = UiDevice.getInstance(instrumentation)
             observerDevice = device
             device.executeShellCommand("cmd notification allow_listener $observerComponent")
             val observerDeadline = SystemClock.uptimeMillis() + 10_000
             while (!device.executeShellCommand("cat $observerDirectory/formal-observer-ready").contains("ready") && SystemClock.uptimeMillis() < observerDeadline) SystemClock.sleep(100)
             assertTrue("The actual system notification observer must bind", device.executeShellCommand("cat $observerDirectory/formal-observer-ready").contains("ready"))
-            device.executeShellCommand("printf '' > $observerDirectory/formal-fixture-notifications.jsonl")
+            fixtureFile("formal-fixture-notifications.jsonl", "")
             val enabled = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
             val own = enabled.split(':').filter { android.content.ComponentName.unflattenFromString(it)?.className == "uk.thewyj.app.task21.payment.ThewyjPaymentAccessibilityService" }
             assertTrue("Existing accessibility permission required", own.isNotEmpty())
@@ -183,7 +186,7 @@ class FormalReleaseDeviceTest {
                     sourceId, "微信支付", "你建立了一笔转账", sourceAppLabel = "微信")
                 assertTrue(outcome.ticketId.isNotBlank())
                 val notificationId = store.recognition(fixture.account.id, outcome.recognitionId)!!.notificationId
-                device.executeShellCommand("echo $notificationId > $observerDirectory/formal-notification-ids")
+                fixtureFile("formal-notification-ids", "$notificationId\n")
                 PaymentTicketPackageSignal.publish("com.tencent.mm")
                 device.pressBack()
                 val deadline = SystemClock.uptimeMillis() + 15_000
@@ -198,16 +201,14 @@ class FormalReleaseDeviceTest {
                 assertTrue(replay is EnrichmentOutcome.Rejected)
                 assertEquals(baseline + index + 1, store.localBookings(fixture.account.id).size)
                 val noticeDeadline = SystemClock.uptimeMillis() + 5000
-                fun verifiedNotices() = device.executeShellCommand("cat $observerDirectory/formal-fixture-notifications.jsonl").lineSequence()
-                    .mapNotNull { runCatching { JSONObject(it) }.getOrNull() }
-                    .filter { it.optInt("id") == notificationId && it.optString("title").contains("金额核实成功") }.toList()
+                fun verifiedNotices() = FormalNotificationObserver.verifiedJournal(device.executeShellCommand("cat $observerDirectory/formal-fixture-notifications.jsonl"), notificationId)
                 while (verifiedNotices().isEmpty() && SystemClock.uptimeMillis() < noticeDeadline) {
                     SystemClock.sleep(100)
                 }
                 val verified = verifiedNotices()
                 assertEquals("The system must observe exactly one verification notification", 1, verified.size)
-                assertTrue(verified.single().getString("body").contains("¥0.01"))
-                assertFalse(verified.single().getString("body").contains("¥10.00"))
+                assertTrue(verified[0].getString("body").contains("¥0.01"))
+                assertFalse(verified[0].getString("body").contains("¥10.00"))
                 val recorded = manager.activeNotifications.singleOrNull { it.id == notificationId }
                 assertNotNull("The final accounting notification must remain visible", recorded)
                 assertTrue(recorded!!.notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("¥0.01"))

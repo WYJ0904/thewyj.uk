@@ -212,10 +212,11 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
     private fun scheduleRetry(scan: Scan, reason: String, requestedDelay: Long? = null) {
         if (!current(scan)) return
         val remaining = PaymentPageRetry.MAX_WINDOW_MS - (SystemClock.uptimeMillis() - scan.budget.startedAtMs)
-        val delay = requestedDelay ?: scan.budget.nextDelayMs(SystemClock.uptimeMillis())
+        val delay = scan.budget.nextDelayMs(SystemClock.uptimeMillis(), requestedDelay)
         if (delay == null || delay > remaining || scan.budget.attempts >= PaymentPageRetry.MAX_ATTEMPTS) { PaymentDiagnostics.emit("retry", "reason=budget_exhausted attempts=${scan.budget.attempts}"); return }
         retryCallback?.let(mainHandler::removeCallbacks)
         retryCallback = Runnable { retryCallback = null; readPage(scan) }.also { mainHandler.postDelayed(it, delay.coerceAtLeast(1)) }
+        PaymentAccessibilityStatus.onParserResult("retry_$reason attempt=${scan.budget.attempts} delay=$delay")
         PaymentDiagnostics.emit("retry", "reason=$reason attempt=${scan.budget.attempts} delay=$delay remaining=$remaining")
     }
     private fun cancelScan(reason: String) {
