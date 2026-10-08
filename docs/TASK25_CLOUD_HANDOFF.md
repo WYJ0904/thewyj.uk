@@ -1,5 +1,7 @@
 # Task 25 Cloud-first Closure / Windows continuation
 
+> **Current user-authorized release order (supersedes older handoff gates):** first finish Task 25 Web/Production and release its own originally signed Android APK as a standalone update; second, investigate the deferred Android accessibility/OCR/payment/accounting problems and release another newly versioned signed APK; only after the second release passes acceptance may Task 26 start. Task 25's release guard now requires 24 Task25-specific Samsung checks and defers the five accounting checks named in `DEFERRED_ANDROID_ACCOUNTING_CHECKS`. Deferral is never PASS. Still verify true in-place update, original certificate, preserved user data/session/Room, flag/channel/native-WebView/fallback, exact signed R2 object/pointer and rollback. All historic 29-check demands in this document describe an earlier scope and are superseded for Release A only.
+
 Updated 2026-10-08 (Asia/Hong_Kong). This is a continuation of PR96, not Task26. The final source SHA, final CI run/artifact hashes and newest Preview deployment are recorded in the newest [PR96 Closure comment](https://github.com/WYJ0904/thewyj.uk/pull/96); obtain them before any release action. This document and its evidence are committed before that final CI run so the run validates the actual handoff changes.
 
 ## Actual cloud result
