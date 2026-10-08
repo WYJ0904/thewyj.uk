@@ -75,6 +75,7 @@ android {
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
+                "proguard-runtime-contracts.pro",
             )
             testProguardFiles("proguard-test-rules.pro")
         }
