@@ -8,11 +8,35 @@ import sys
 import tempfile
 import unittest
 
-from scripts.prepare_task25_android_release import REQUIRED_GATES, SAMSUNG_CHECKS, PRODUCTION_ENTRY_GATES, proposed_changelog, proposed_configuration, validate_acceptance, validate_receipt
+from scripts.prepare_task25_android_release import REQUIRED_GATES, SAMSUNG_CHECKS, SAMSUNG_PREDEPLOY_CHECKS, PRODUCTION_ENTRY_GATES, production_entry_gates, proposed_changelog, proposed_configuration, validate_acceptance, validate_receipt
 from scripts.stage_android_candidate import ROOT, STABLE_PATH
 
 
 class ReleaseProposalTests(unittest.TestCase):
+    def test_authorized_server_order_keeps_every_final_physical_gate(self):
+        self.receipt['production_gate_order'] = {
+            'authorization': 'human_approved_compatible_server_before_channel_acceptance',
+            'evidence': 'isolated-human-authorization-fixture',
+            'initial_feature_definitions_off': True, 'stable_pointer_unchanged': True}
+        self.receipt['samsung_predeployment'] = {'status': 'PASS', 'evidence': 'isolated-device-fixture'}
+        gates = production_entry_gates(self.receipt)
+        for check in set(SAMSUNG_CHECKS) - set(SAMSUNG_PREDEPLOY_CHECKS):
+            changed = copy.deepcopy(self.receipt)
+            changed['samsung']['checks'][check]['status'] = 'NOT_EXECUTED'
+            validate_acceptance(changed, self.candidate, gates)
+            with self.subTest(final_check=check), self.assertRaises(ValueError):
+                validate_receipt(changed, self.candidate, self.readback)
+        for check in SAMSUNG_PREDEPLOY_CHECKS:
+            changed = copy.deepcopy(self.receipt)
+            changed['samsung']['checks'][check]['status'] = 'NOT_EXECUTED'
+            with self.subTest(predeployment_check=check), self.assertRaises(ValueError):
+                validate_acceptance(changed, self.candidate, gates)
+        for key in ['authorization', 'evidence', 'initial_feature_definitions_off', 'stable_pointer_unchanged']:
+            changed = copy.deepcopy(self.receipt)
+            del changed['production_gate_order'][key]
+            with self.subTest(authorization=key), self.assertRaises(ValueError):
+                production_entry_gates(changed)
+
     def test_integrated_candidate_advances_from_installed_bugfix_without_weakening_gates(self):
         self.candidate.update(versionName='1.3.36', versionCode=49)
         self.receipt['release_target'] = {'versionName': '1.3.36', 'versionCode': 49,

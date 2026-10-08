@@ -26,6 +26,21 @@ SAMSUNG_CHECKS = ('package_version', 'signing_continuity', 'session_preservation
     'offline_startup', 'online_to_offline', 'flag_service_unavailable', 'foreground_background', 'webview_reload',
     'process_restoration', 'network_recovery', 'apk_update_metadata', 'release_channel_recognition', 'haptic', 'system_install_permissions')
 PRODUCTION_ENTRY_GATES = (*PREDEPLOY_GATES, 'original_signing', 'samsung_physical', 'ci')
+COMPATIBLE_SERVER_ENTRY_GATES = (*PREDEPLOY_GATES, 'original_signing', 'samsung_predeployment', 'ci')
+SAMSUNG_PREDEPLOY_CHECKS = tuple(check for check in SAMSUNG_CHECKS if check not in (
+    'webview_native_consistency', 'account_targeting_rollout', 'stable_beta_experimental', 'kill_switch',
+    'offline_flag_fallback', 'flag_service_unavailable', 'release_channel_recognition'))
+
+
+def production_entry_gates(receipt):
+    order = receipt.get('production_gate_order')
+    if order is None:
+        return PRODUCTION_ENTRY_GATES
+    if (order.get('authorization') != 'human_approved_compatible_server_before_channel_acceptance' or
+        not order.get('evidence') or order.get('initial_feature_definitions_off') is not True or
+        order.get('stable_pointer_unchanged') is not True):
+        raise ValueError('Changed Production gate order needs the explicit human authorization and safe defaults')
+    return COMPATIBLE_SERVER_ENTRY_GATES
 
 
 def release_target(receipt):
@@ -60,7 +75,8 @@ def validate_acceptance(receipt, candidate, gates):
         any(not device.get(key) for key in ['model', 'android_version', 'adb_identity']) or
         any(device.get(key) is not True for key in ['physical', 'in_place', 'data_preserved', 'session_preserved'])):
         raise ValueError('Physical Samsung Android 16 in-place upgrade evidence incomplete')
-    for check in SAMSUNG_CHECKS:
+    checks = SAMSUNG_PREDEPLOY_CHECKS if tuple(gates) == COMPATIBLE_SERVER_ENTRY_GATES else SAMSUNG_CHECKS
+    for check in checks:
         item = device.get('checks', {}).get(check, {})
         if item.get('status') != 'PASS' or not item.get('evidence'):
             raise ValueError(f'Physical Samsung observation missing PASS/evidence: {check}')

@@ -5,20 +5,35 @@ artifact bytes, current source/worktree, Draft PR and actual GitHub CI status.
 """
 import argparse
 import json
+import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
+import urllib.request
 
 if __package__ in (None, ''):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from scripts.prepare_task25_android_release import PRODUCTION_ENTRY_GATES, validate_acceptance
+from scripts.prepare_task25_android_release import production_entry_gates, validate_acceptance
 from scripts.stage_android_candidate import ROOT, artifact, verify_artifacts
 
 
 def github(route):
-    result = subprocess.run(['gh', 'api', 'repos/WYJ0904/thewyj.uk/' + route],
-        capture_output=True, text=True, check=True, timeout=45)
-    return json.loads(result.stdout)
+    if shutil.which('gh'):
+        result = subprocess.run(['gh', 'api', 'repos/WYJ0904/thewyj.uk/' + route],
+            capture_output=True, text=True, check=True, timeout=45)
+        return json.loads(result.stdout)
+    # Reuse the existing authenticated Git HTTPS credential on local Windows.
+    # GET only; credentials stay in memory and never enter logs or argv.
+    result = subprocess.run(['git', 'credential', 'fill'], input='protocol=https\nhost=github.com\n\n',
+        cwd=ROOT, env={**os.environ, 'GIT_TERMINAL_PROMPT': '0', 'GCM_INTERACTIVE': 'never'},
+        capture_output=True, text=True, check=True, timeout=30)
+    credential = dict(line.split('=', 1) for line in result.stdout.splitlines() if '=' in line)
+    request = urllib.request.Request('https://api.github.com/repos/WYJ0904/thewyj.uk/' + route,
+        headers={'Authorization': 'Bearer ' + credential['password'], 'Accept': 'application/vnd.github+json',
+                 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'thewyj-task25-readonly-release-guard'})
+    with urllib.request.urlopen(request, timeout=45) as response:
+        return json.load(response)
 
 
 def main():
@@ -29,7 +44,7 @@ def main():
     try:
         candidate = json.loads(args.candidate_metadata.read_text())
         receipt = json.loads(args.acceptance.read_text())
-        validate_acceptance(receipt, candidate, PRODUCTION_ENTRY_GATES)
+        validate_acceptance(receipt, candidate, production_entry_gates(receipt))
         for field in ['apk', 'aab']:
             actual = artifact(getattr(args, field))
             if any(actual[key] != candidate[field][key] for key in ['sha256', 'sizeBytes']):

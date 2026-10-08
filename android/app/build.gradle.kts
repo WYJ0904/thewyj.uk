@@ -8,6 +8,8 @@ val thewyjBaseUrl = providers.gradleProperty("THEWYJ_BASE_URL")
     .orElse("https://thewyj.uk")
     .get()
 val paymentDeviceTest = providers.gradleProperty("THEWYJ_PAYMENT_DEVICE_TEST").orElse("false").get().toBoolean()
+// Targets the ordinary R8 build for external instrumentation; it does not enable payment injection.
+val releaseAcceptance = providers.gradleProperty("THEWYJ_RELEASE_ACCEPTANCE").orElse("false").get().toBoolean()
 
 val releaseSigning = mapOf(
     "storeFile" to providers.environmentVariable("THEWYJ_ANDROID_KEYSTORE_FILE").orNull.orEmpty(),
@@ -18,7 +20,7 @@ val releaseSigning = mapOf(
 val hasReleaseSigning = releaseSigning.values.all(String::isNotBlank)
 
 android {
-    testBuildType = if (paymentDeviceTest) "release" else "debug"
+    testBuildType = if (paymentDeviceTest || releaseAcceptance) "release" else "debug"
     namespace = "uk.thewyj.app"
     compileSdk = 36
 
@@ -74,6 +76,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            testProguardFiles("proguard-test-rules.pro")
         }
     }
 
