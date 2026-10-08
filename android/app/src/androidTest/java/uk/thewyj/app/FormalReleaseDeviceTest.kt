@@ -73,6 +73,8 @@ class FormalReleaseDeviceTest {
         ordinaryRelease()
         val saved = SecureCredentialStore(context).loadActive()
         assertNotNull("Existing encrypted session must survive upgrade", saved)
+        val serverSession = runBlocking { ThewyjApiClient().currentAccount(saved!!.accessToken) }
+        assertTrue("Original session must still authenticate normally on the server", serverSession is ApiCall.Success && serverSession.value.id == saved!!.account.id)
         val store = RoomPaymentRecognitionStore(NotificationDatabase.get(context))
         val bookings = store.localBookings(saved!!.account.id)
         val prefs = context.getSharedPreferences("task25.formal.acceptance", Context.MODE_PRIVATE)
@@ -102,8 +104,9 @@ class FormalReleaseDeviceTest {
         val originalBookings = store.localBookings(original.account.id)
         val username = "t25r8_" + UUID.randomUUID().toString().replace("-", "").take(12)
         val secret = UUID.randomUUID().toString() + UUID.randomUUID()
-        // A normal account switch on this phone keeps its real device identity.
-        val fixtureDevice = originalDevice
+        // Native relogin revokes every session for the supplied logical device.
+        // Keep the original server session intact with a separate fixture ID.
+        val fixtureDevice = UUID.randomUUID().toString()
         val registration = api.register(username, secret)
         assertTrue("Normal synthetic registration must succeed", registration is ApiCall.Success)
         val login = api.login(username, secret, fixtureDevice)
@@ -113,6 +116,10 @@ class FormalReleaseDeviceTest {
         val grant = JSONObject().put("user_id", fixture.account.id).put("entitlement", "finance_access")
             .put("allowed", true).put("note", "Task25 formal R8 acceptance: new synthetic account only; revoked after payment checks")
         var granted = false
+        var observerDevice: UiDevice? = null
+        val observerPackage = instrumentation.context.packageName
+        val observerComponent = "$observerPackage/uk.thewyj.app.FormalNotificationObserver"
+        val observerDirectory = "/sdcard/Android/data/$observerPackage/files"
         try {
             request("/api/admin/entitlement", original.accessToken, grant); granted = true
             val liveAccount = api.currentAccount(fixture.accessToken)
@@ -122,11 +129,19 @@ class FormalReleaseDeviceTest {
             SecureCredentialStore(context, ".task25-r8-fixture").saveActive(fixture)
             context.getSharedPreferences("task25.formal.acceptance", Context.MODE_PRIVATE).edit()
                 .putString("fixture_device", fixtureDevice).putString("fixture_account", fixture.account.id).commit()
+            assertTrue(context.getSharedPreferences("uk.thewyj.app.device.v1", Context.MODE_PRIVATE).edit()
+                .putString("device_id", fixtureDevice).commit())
             credentials.saveActive(fixture)
             assertTrue(NotificationSessionProvider(context).currentAccount()?.accountId == fixture.account.id)
             Configurator.getInstance().uiAutomationFlags = UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES
             val automation = instrumentation.getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
             val device = UiDevice.getInstance(instrumentation)
+            observerDevice = device
+            device.executeShellCommand("cmd notification allow_listener $observerComponent")
+            val observerDeadline = SystemClock.uptimeMillis() + 10_000
+            while (!device.executeShellCommand("cat $observerDirectory/formal-observer-ready").contains("ready") && SystemClock.uptimeMillis() < observerDeadline) SystemClock.sleep(100)
+            assertTrue("The actual system notification observer must bind", device.executeShellCommand("cat $observerDirectory/formal-observer-ready").contains("ready"))
+            device.executeShellCommand("printf '' > $observerDirectory/formal-fixture-notifications.jsonl")
             val enabled = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
             val own = enabled.split(':').filter { android.content.ComponentName.unflattenFromString(it)?.className == "uk.thewyj.app.task21.payment.ThewyjPaymentAccessibilityService" }
             assertTrue("Existing accessibility permission required", own.isNotEmpty())
@@ -167,6 +182,8 @@ class FormalReleaseDeviceTest {
                 val outcome = coordinator.onSourceEvent(fixture.account.id, "com.tencent.mm", PaymentSourceType.NOTIFICATION,
                     sourceId, "微信支付", "你建立了一笔转账", sourceAppLabel = "微信")
                 assertTrue(outcome.ticketId.isNotBlank())
+                val notificationId = store.recognition(fixture.account.id, outcome.recognitionId)!!.notificationId
+                device.executeShellCommand("echo $notificationId > $observerDirectory/formal-notification-ids")
                 PaymentTicketPackageSignal.publish("com.tencent.mm")
                 device.pressBack()
                 val deadline = SystemClock.uptimeMillis() + 15_000
@@ -180,25 +197,34 @@ class FormalReleaseDeviceTest {
                     PaymentEnrichment("com.tencent.mm", 1L, "CNY", uk.thewyj.app.task21.FinanceDirection.EXPENSE, null, null, null, System.currentTimeMillis(), 900), outcome.ticketId)
                 assertTrue(replay is EnrichmentOutcome.Rejected)
                 assertEquals(baseline + index + 1, store.localBookings(fixture.account.id).size)
-                val notificationId = store.recognition(fixture.account.id, outcome.recognitionId)!!.notificationId
                 val noticeDeadline = SystemClock.uptimeMillis() + 5000
-                var notice = manager.activeNotifications.singleOrNull { it.id == notificationId && it.notification.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.contains("金额核实成功") == true }
-                while (notice == null && SystemClock.uptimeMillis() < noticeDeadline) {
+                fun verifiedNotices() = device.executeShellCommand("cat $observerDirectory/formal-fixture-notifications.jsonl").lineSequence()
+                    .mapNotNull { runCatching { JSONObject(it) }.getOrNull() }
+                    .filter { it.optInt("id") == notificationId && it.optString("title").contains("金额核实成功") }.toList()
+                while (verifiedNotices().isEmpty() && SystemClock.uptimeMillis() < noticeDeadline) {
                     SystemClock.sleep(100)
-                    notice = manager.activeNotifications.singleOrNull { it.id == notificationId && it.notification.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.contains("金额核实成功") == true }
                 }
-                assertNotNull("The actual production notifier must display ¥0.01", notice)
-                assertTrue(notice!!.notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("¥0.01"))
-                assertFalse(notice.notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("¥10.00"))
-                proof("formalPaymentCase", "case=${index+1} expectedMinor=1 actualMinor=${booking.amountMinor} fixtureRows=${store.localBookings(fixture.account.id).size} duplicateRows=0 ordinaryGateway=true")
-                manager.cancel(notice.id)
+                val verified = verifiedNotices()
+                assertEquals("The system must observe exactly one verification notification", 1, verified.size)
+                assertTrue(verified.single().getString("body").contains("¥0.01"))
+                assertFalse(verified.single().getString("body").contains("¥10.00"))
+                val recorded = manager.activeNotifications.singleOrNull { it.id == notificationId }
+                assertNotNull("The final accounting notification must remain visible", recorded)
+                assertTrue(recorded!!.notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("¥0.01"))
+                proof("formalPaymentCase", "case=${index+1} expectedMinor=1 actualMinor=${booking.amountMinor} verificationCount=${verified.size} fixtureRows=${store.localBookings(fixture.account.id).size} duplicateRows=0 ordinaryGateway=true systemNotificationObserver=true")
+                manager.cancel(notificationId)
             }
             assertTrue("Original Finance rows must remain identical", originalBookings == store.localBookings(original.account.id))
             proof("formalFinanceProtection", "originalBookingsBefore=${originalBookings.size} originalBookingsAfter=${store.localBookings(original.account.id).size} originalRowsIdentical=true syntheticAccountOnly=true")
         } finally {
+            observerDevice?.executeShellCommand("cmd notification disallow_listener $observerComponent")
             credentials.saveActive(original)
+            assertTrue(context.getSharedPreferences("uk.thewyj.app.device.v1", Context.MODE_PRIVATE).edit()
+                .putString("device_id", originalDevice).commit())
             assertTrue("Original encrypted account/session must be restored", credentials.loadActive() == original)
             if (granted) request("/api/admin/entitlement", original.accessToken, grant.put("allowed", false))
+            val serverSession = api.currentAccount(original.accessToken)
+            assertTrue("Original session must remain valid on the real server", serverSession is ApiCall.Success && serverSession.value.id == original.account.id)
             assertTrue("Original Finance rows must remain identical after restoration", originalBookings == store.localBookings(original.account.id))
             proof("formalRestoration", "originalSessionRestored=true originalFinanceRowsIdentical=true syntheticFinanceEntitlementRevoked=$granted originalDeviceIdentityPreserved=${DeviceIdentityStore(context).getOrCreate() == originalDevice}")
         }
