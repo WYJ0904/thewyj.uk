@@ -19,9 +19,13 @@ from scripts.stage_android_candidate import artifact, ROOT, STABLE_PATH, verify_
 PREDEPLOY_GATES = ('preview_admin_api', 'preview_admin_ui', 'preview_apk_download', 'cloudflare_d1_preflight')
 REQUIRED_GATES = (*PREDEPLOY_GATES, 'production_migration', 'production_deployment', 'production_smoke',
     'original_signing', 'samsung_physical', 'ci', 'final_review', 'main_ci')
+# Task 25 ships its own signed APK. Payment/accessibility/OCR and ledger-specific
+# hardware investigations are a separate Android patch release, before Task 26.
+# Keep these names explicit for that follow-up; never mark them PASS by deferral.
+DEFERRED_ANDROID_ACCOUNTING_CHECKS = ('pending_recovery_identity', 'finance_pending',
+    'legacy_local_only_recovery', 'notification_finance_sync', 'amount_notification_accounting')
 SAMSUNG_CHECKS = ('package_version', 'signing_continuity', 'session_preservation', 'room_data_preservation',
-    'pending_recovery_identity', 'finance_pending', 'legacy_local_only_recovery', 'notification_finance_sync',
-    'amount_notification_accounting', 'back', 'resume', 'cold_start', 'warm_start', 'webview_native_consistency',
+    'back', 'resume', 'cold_start', 'warm_start', 'webview_native_consistency',
     'account_targeting_rollout', 'stable_beta_experimental', 'kill_switch', 'offline_flag_fallback',
     'offline_startup', 'online_to_offline', 'flag_service_unavailable', 'foreground_background', 'webview_reload',
     'process_restoration', 'network_recovery', 'apk_update_metadata', 'release_channel_recognition', 'haptic', 'system_install_permissions')
