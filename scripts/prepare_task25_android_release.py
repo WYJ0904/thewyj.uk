@@ -47,9 +47,17 @@ def production_entry_gates(receipt):
     return COMPATIBLE_SERVER_ENTRY_GATES
 
 
+# Freeze Release A to the reviewed Task 25 candidate. The installed local
+# bugfix is 1.3.35/48, while the publicly advertised Stable stays 1.3.33/46.
+# Never silently fall back to obsolete 1.3.34/47 if a receipt omits its target.
+TASK25_RELEASE_TARGET = {'versionName': '1.3.36', 'versionCode': 49,
+    'installedVersionName': '1.3.35', 'installedVersionCode': 48}
+
+
 def release_target(receipt):
-    target = receipt.get('release_target', {'versionName': '1.3.34', 'versionCode': 47,
-        'installedVersionName': '1.3.33', 'installedVersionCode': 46})
+    target = receipt.get('release_target')
+    if not isinstance(target, dict) or target != TASK25_RELEASE_TARGET:
+        raise ValueError('Task 25 needs explicit reviewed 1.3.36/49 from installed 1.3.35/48; no legacy default')
     stable = json.loads(STABLE_PATH.read_text(encoding='utf-8'))
     validate_version(target['versionName'], target['versionCode'], stable)
     if (not isinstance(target['installedVersionCode'], int) or isinstance(target['installedVersionCode'], bool) or
