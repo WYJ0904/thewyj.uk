@@ -13,6 +13,23 @@ from scripts.stage_android_candidate import ROOT, STABLE_PATH
 
 
 class ReleaseProposalTests(unittest.TestCase):
+    def test_integrated_candidate_advances_from_installed_bugfix_without_weakening_gates(self):
+        self.candidate.update(versionName='1.3.36', versionCode=49)
+        self.receipt['release_target'] = {'versionName': '1.3.36', 'versionCode': 49,
+            'installedVersionName': '1.3.35', 'installedVersionCode': 48}
+        self.receipt['samsung'].update(from_version_code=48, to_version_code=49,
+            before_version='1.3.35/48', after_version='1.3.36/49')
+        self.receipt['r2']['key'] = 'app/android/thewyj-android-1.3.36.apk'
+        validate_receipt(self.receipt, self.candidate, self.readback)
+        for gate in REQUIRED_GATES:
+            changed = copy.deepcopy(self.receipt)
+            changed[gate]['status'] = 'NOT_EXECUTED'
+            with self.subTest(gate=gate), self.assertRaises(ValueError):
+                validate_receipt(changed, self.candidate, self.readback)
+        for code in (47, 48):
+            with self.subTest(downgrade=code), self.assertRaises(ValueError):
+                validate_receipt(self.receipt, {**self.candidate, 'versionCode': code}, self.readback)
+
     def setUp(self):
         self.candidate = {'source_commit': 'a' * 40, 'signingStatus': 'verified', 'versionName': '1.3.34', 'versionCode': 47,
             'apk': {'sha256': 'b' * 64, 'sizeBytes': 1234}}

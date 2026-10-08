@@ -14,7 +14,7 @@ import tempfile
 
 if __package__ in (None, ''):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from scripts.stage_android_candidate import artifact, ROOT, STABLE_PATH, verify_artifacts
+from scripts.stage_android_candidate import artifact, ROOT, STABLE_PATH, verify_artifacts, validate_version
 
 PREDEPLOY_GATES = ('preview_admin_api', 'preview_admin_ui', 'preview_apk_download', 'cloudflare_d1_preflight')
 REQUIRED_GATES = (*PREDEPLOY_GATES, 'production_migration', 'production_deployment', 'production_smoke',
@@ -28,21 +28,35 @@ SAMSUNG_CHECKS = ('package_version', 'signing_continuity', 'session_preservation
 PRODUCTION_ENTRY_GATES = (*PREDEPLOY_GATES, 'original_signing', 'samsung_physical', 'ci')
 
 
+def release_target(receipt):
+    target = receipt.get('release_target', {'versionName': '1.3.34', 'versionCode': 47,
+        'installedVersionName': '1.3.33', 'installedVersionCode': 46})
+    stable = json.loads(STABLE_PATH.read_text(encoding='utf-8'))
+    validate_version(target['versionName'], target['versionCode'], stable)
+    if (not isinstance(target['installedVersionCode'], int) or isinstance(target['installedVersionCode'], bool) or
+        target['installedVersionCode'] < stable['versionCode'] or target['installedVersionCode'] >= target['versionCode'] or
+        not re.fullmatch(r'[0-9]+(?:\.[0-9]+){2,3}', target['installedVersionName'])):
+        raise ValueError('Reviewed installed baseline must advance in place to the release target')
+    return target
+
+
 def validate_acceptance(receipt, candidate, gates):
+    target = release_target(receipt)
     if not re.fullmatch(r'[0-9a-f]{40}', candidate.get('source_commit', '')):
         raise ValueError('Candidate source SHA missing')
     if receipt.get('source_commit') != candidate['source_commit']:
         raise ValueError('Acceptance receipt is for a different candidate source')
-    if candidate.get('signingStatus') != 'verified' or candidate.get('versionName') != '1.3.34' or candidate.get('versionCode') != 47:
-        raise ValueError('Only original-signed Task 25 1.3.34/47 is eligible')
+    if candidate.get('signingStatus') != 'verified' or candidate.get('versionName') != target['versionName'] or candidate.get('versionCode') != target['versionCode']:
+        raise ValueError('Only the original-signed reviewed Task 25 release target is eligible')
     for gate in gates:
         item = receipt.get(gate, {})
         if item.get('status') != 'PASS' or not item.get('evidence'):
             raise ValueError(f'Release gate missing actual PASS/evidence: {gate}')
     device = receipt.get('samsung', {})
     if (device.get('manufacturer', '').lower() != 'samsung' or device.get('android_sdk') != 36 or
-        device.get('from_version_code') != 46 or device.get('to_version_code') != 47 or
-        device.get('before_version') != '1.3.33/46' or device.get('after_version') != '1.3.34/47' or
+        device.get('from_version_code') != target['installedVersionCode'] or device.get('to_version_code') != target['versionCode'] or
+        device.get('before_version') != f"{target['installedVersionName']}/{target['installedVersionCode']}" or
+        device.get('after_version') != f"{target['versionName']}/{target['versionCode']}" or
         any(not device.get(key) for key in ['model', 'android_version', 'adb_identity']) or
         any(device.get(key) is not True for key in ['physical', 'in_place', 'data_preserved', 'session_preserved'])):
         raise ValueError('Physical Samsung Android 16 in-place upgrade evidence incomplete')
@@ -55,16 +69,16 @@ def validate_acceptance(receipt, candidate, gates):
 def validate_receipt(receipt, candidate, readback):
     validate_acceptance(receipt, candidate, REQUIRED_GATES)
     r2 = receipt.get('r2', {})
-    if (r2.get('bucket') != 'wyj-cloud-production' or r2.get('key') != 'app/android/thewyj-android-1.3.34.apk' or
+    if (r2.get('bucket') != 'wyj-cloud-production' or r2.get('key') != f"app/android/thewyj-android-{candidate['versionName']}.apk" or
         r2.get('readback_sha256') != readback['sha256'] or r2.get('readback_size_bytes') != readback['sizeBytes'] or
         readback['sha256'] != candidate['apk']['sha256'] or readback['sizeBytes'] != candidate['apk']['sizeBytes']):
         raise ValueError('New immutable Production R2 object readback is not the exact signed candidate')
 
 
 def proposed_configuration(stable, config, candidate, date, build, notes):
-    result = {**stable, 'versionName': '1.3.34', 'versionCode': 47, 'releaseDate': date,
-        'releaseBuild': build, 'releaseNotes': notes, 'apkFileName': 'thewyj-android-1.3.34.apk',
-        'apkKey': 'app/android/thewyj-android-1.3.34.apk', 'apkSha256': candidate['apk']['sha256'],
+    result = {**stable, 'versionName': candidate['versionName'], 'versionCode': candidate['versionCode'], 'releaseDate': date,
+        'releaseBuild': build, 'releaseNotes': notes, 'apkFileName': f"thewyj-android-{candidate['versionName']}.apk",
+        'apkKey': f"app/android/thewyj-android-{candidate['versionName']}.apk", 'apkSha256': candidate['apk']['sha256'],
         'apkSizeBytes': candidate['apk']['sizeBytes']}
     fields = {'ANDROID_LATEST_VERSION_CODE': 'versionCode', 'ANDROID_LATEST_VERSION_NAME': 'versionName',
         'ANDROID_RELEASE_DATE': 'releaseDate', 'ANDROID_RELEASE_BUILD': 'releaseBuild', 'ANDROID_RELEASE_NOTES': 'releaseNotes',
@@ -106,15 +120,15 @@ def main():
             actual = artifact(getattr(args, field))
             if any(actual[key] != candidate[field][key] for key in ['sha256', 'sizeBytes']):
                 raise ValueError('Artifact differs from candidate metadata')
-        verify_artifacts(args.apk, args.aab, '1.3.34', 47, 'verified')
+        verify_artifacts(args.apk, args.aab, candidate['versionName'], candidate['versionCode'], 'verified')
         stable = json.loads(STABLE_PATH.read_text())
         if stable['versionName'] != '1.3.33' or stable['versionCode'] != 46:
             raise ValueError('Stable baseline drift; reconcile before preparing release')
         metadata, config = proposed_configuration(stable, json.loads((ROOT / 'wrangler.jsonc').read_text()), candidate,
             args.release_date, args.release_build, notes)
         changelog = proposed_changelog((ROOT / 'changelog.js').read_text(), metadata)
-        gradle, code_count = re.subn(r'versionCode\s*=\s*46\b', 'versionCode = 47', (ROOT / 'android/app/build.gradle.kts').read_text(), count=1)
-        gradle, name_count = re.subn(r'versionName\s*=\s*"1\.3\.33"', 'versionName = "1.3.34"', gradle, count=1)
+        gradle, code_count = re.subn(r'versionCode\s*=\s*46\b', f"versionCode = {candidate['versionCode']}", (ROOT / 'android/app/build.gradle.kts').read_text(), count=1)
+        gradle, name_count = re.subn(r'versionName\s*=\s*"1\.3\.33"', f'versionName = "{candidate["versionName"]}"', gradle, count=1)
         if code_count != 1 or name_count != 1: raise ValueError('Gradle Stable baseline drift')
     except (ValueError, KeyError, OSError) as error:
         parser.error(str(error))

@@ -34,7 +34,7 @@ def main():
             actual = artifact(getattr(args, field))
             if any(actual[key] != candidate[field][key] for key in ['sha256', 'sizeBytes']):
                 raise ValueError('Artifact differs from pinned candidate metadata')
-        verify_artifacts(args.apk, args.aab, '1.3.34', 47, 'verified')
+        verify_artifacts(args.apk, args.aab, candidate['versionName'], candidate['versionCode'], 'verified')
         head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=ROOT, capture_output=True,
             text=True, check=True).stdout.strip()
         dirty = subprocess.run(['git', 'status', '--porcelain'], cwd=ROOT, capture_output=True,
