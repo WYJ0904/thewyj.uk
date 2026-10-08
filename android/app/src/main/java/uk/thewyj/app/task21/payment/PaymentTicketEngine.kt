@@ -24,7 +24,7 @@ enum class PaymentTicketState {
         get() = this in setOf(CONFIRMED, REJECTED, DUPLICATE, EXPIRED, FAILED)
 
     val active: Boolean
-        get() = this in setOf(CREATED, WAITING_FOR_ACCESSIBILITY, ENRICHED, CANDIDATE_CREATED)
+        get() = this in setOf(CREATED, WAITING_FOR_ACCESSIBILITY, ENRICHED)
 }
 
 data class PaymentTicket(
@@ -112,6 +112,7 @@ class PaymentTicketEngine(
      * still be inside its 90 second window; otherwise nothing is applied.
      */
     fun enrich(ticket: PaymentTicket, enrichment: PaymentEnrichment): EnrichmentOutcome {
+        if (ticket.state == PaymentTicketState.CANDIDATE_CREATED) return EnrichmentOutcome.Rejected(ticket, "ticket_consumed")
         if (ticket.state.terminal) {
             return EnrichmentOutcome.Rejected(ticket, "ticket_terminal")
         }
@@ -122,6 +123,11 @@ class PaymentTicketEngine(
             return EnrichmentOutcome.Rejected(ticket, "package_mismatch")
         }
         val attempts = ticket.attempts + 1
+        if (enrichment.confidence < 800) return EnrichmentOutcome.Insufficient(ticket.copy(attempts = attempts))
+        if (ticket.amountHintMinor != null && "amount" !in ticket.missingFields &&
+            enrichment.amountMinor != null && ticket.amountHintMinor != enrichment.amountMinor) {
+            return EnrichmentOutcome.Rejected(ticket, "amount_conflict")
+        }
         val amountMinor = enrichment.amountMinor?.takeIf { it > 0 } ?: ticket.amountHintMinor?.takeIf {
             it > 0 && "amount" !in ticket.missingFields
         }

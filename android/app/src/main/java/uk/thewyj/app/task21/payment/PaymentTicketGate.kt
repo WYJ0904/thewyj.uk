@@ -17,8 +17,8 @@ class PaymentTicketPackageCache(
     private val refreshIntervalMs: Long = DEFAULT_REFRESH_MS,
     private val now: () -> Long = System::currentTimeMillis,
 ) {
-    private var values: Set<String> = emptySet()
-    private var refreshedAtMs: Long = Long.MIN_VALUE / 4
+    @Volatile private var values: Set<String> = emptySet()
+    @Volatile private var refreshedAtMs: Long = Long.MIN_VALUE / 4
 
     fun contains(sourcePackage: String): Boolean =
         values.contains(sourcePackage.lowercase(Locale.ROOT))

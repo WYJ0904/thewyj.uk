@@ -1,6 +1,9 @@
 package uk.thewyj.app.task21.payment
 
 import uk.thewyj.app.task21.FinanceDirection
+import java.math.BigDecimal
+import java.math.RoundingMode
+import java.text.Normalizer
 
 /**
  * Shared text analysis for payment parsers. Everything here is pure: it never
@@ -8,10 +11,10 @@ import uk.thewyj.app.task21.FinanceDirection
  */
 internal object PaymentText {
     private val amountPatterns = listOf(
-        Regex("""(?:人民币|人民幣|RMB|CNY|￥|¥)\s*([0-9][0-9,]*\.?[0-9]{0,2})""", RegexOption.IGNORE_CASE),
-        Regex("""([0-9][0-9,]*\.?[0-9]{0,2})\s*(?:元|圓|块|塊|CNY|RMB|人民币|人民幣)""", RegexOption.IGNORE_CASE),
+        Regex("""(?:人民币|人民幣|RMB|CNY|￥|¥)\s*([0-9][0-9,]*(?:\.[0-9]+)?)(?![0-9.,])""", RegexOption.IGNORE_CASE),
+        Regex("""(?<![0-9.,])([0-9][0-9,]*(?:\.[0-9]+)?)\s*(?:元|圓|块|塊|CNY|RMB|人民币|人民幣)""", RegexOption.IGNORE_CASE),
         Regex(
-            """(?:交易金额|交易金額|付款金额|付款金額|支付金额|支付金額|收款金额|收款金額|扣款金额|扣款金額|退款金额|退款金額|消费金额|消費金額|金额|金額)[:：]?\s*([0-9][0-9,]*\.?[0-9]{0,2})""",
+            """(?:交易金额|交易金額|付款金额|付款金額|支付金额|支付金額|收款金额|收款金額|扣款金额|扣款金額|退款金额|退款金額|消费金额|消費金額|金额|金額)[:：]?\s*([0-9][0-9,]*(?:\.[0-9]+)?)(?![0-9.,])""",
         ),
     )
 
@@ -33,11 +36,11 @@ internal object PaymentText {
     private val bareAmountPatterns = listOf(
         // 已支付100 / 支付 100
         Regex(
-            """(?:$verbAlternation)\s*[:：]?\s*([0-9][0-9,]{0,12}(?:\.[0-9]{1,2})?)(?![0-9A-Za-z\-/:])""",
+            """(?:$verbAlternation)\s*[:：]?\s*([0-9][0-9,]{0,12}(?:\.[0-9]{1,2})?)(?![0-9A-Za-z\-/：:.,])""",
         ),
         // 100 已支付 / 100元 支付成功
         Regex(
-            """(?<![0-9A-Za-z])([0-9][0-9,]{0,12}(?:\.[0-9]{1,2})?)\s*(?:元|圓|块|塊)?\s*(?:$verbAlternation)""",
+            """(?<![0-9A-Za-z.,:：])([0-9][0-9,]{0,12}(?:\.[0-9]{1,2})?)\s*(?:元|圓|块|塊)?\s*(?:$verbAlternation)""",
         ),
     )
 
@@ -145,16 +148,13 @@ internal object PaymentText {
             .joinToString(" ")
             .replace(Regex("""[\r\n\u3000]+"""), " ")
             .replace(Regex("""\s+"""), " ")
-            .replace(",", "")
+            .let(::normalizeMoneyText)
             .trim()
 
     fun amountMinor(normalized: String): Long? {
         for (pattern in amountPatterns) {
-            val match = pattern.find(normalized) ?: continue
-            val raw = match.groupValues.getOrNull(1).orEmpty().replace(",", "")
-            val value = raw.toDoubleOrNull() ?: continue
-            if (value <= 0.0 || value > 10_000_000.0) continue
-            return Math.round(value * 100.0)
+            val match = pattern.find(normalizeMoneyText(normalized)) ?: continue
+            return parseMinor(match.groupValues.getOrNull(1).orEmpty())
         }
         return bareAmountMinor(normalized)
     }
@@ -166,11 +166,8 @@ internal object PaymentText {
     fun amountsMinor(normalized: String): List<Long> {
         val found = mutableListOf<Long>()
         for (pattern in amountPatterns) {
-            for (match in pattern.findAll(normalized)) {
-                val raw = match.groupValues.getOrNull(1).orEmpty().replace(",", "")
-                val value = raw.toDoubleOrNull() ?: continue
-                if (value <= 0.0 || value > 10_000_000.0) continue
-                found.add(Math.round(value * 100.0))
+            for (match in pattern.findAll(normalizeMoneyText(normalized))) {
+                parseMinor(match.groupValues.getOrNull(1).orEmpty())?.let(found::add)
             }
         }
         bareAmountMinor(normalized)?.let { found.add(it) }
@@ -196,10 +193,7 @@ internal object PaymentText {
             val window = normalized.substring(index, minOf(normalized.length, index + label.length + 20))
             for (pattern in amountPatterns) {
                 val match = pattern.find(window) ?: continue
-                val raw = match.groupValues.getOrNull(1).orEmpty().replace(",", "")
-                val value = raw.toDoubleOrNull() ?: continue
-                if (value <= 0.0 || value > 10_000_000.0) continue
-                return Math.round(value * 100.0)
+                return parseMinor(match.groupValues.getOrNull(1).orEmpty())
             }
         }
         for (pattern in decisiveAmountPatterns) {
@@ -207,10 +201,7 @@ internal object PaymentText {
             val window = normalized.substring(match.range.first, minOf(normalized.length, match.range.last + 24))
             for (amountPattern in amountPatterns) {
                 val amountMatch = amountPattern.find(window) ?: continue
-                val raw = amountMatch.groupValues.getOrNull(1).orEmpty().replace(",", "")
-                val value = raw.toDoubleOrNull() ?: continue
-                if (value <= 0.0 || value > 10_000_000.0) continue
-                return Math.round(value * 100.0)
+                return parseMinor(amountMatch.groupValues.getOrNull(1).orEmpty())
             }
         }
         return null
@@ -229,20 +220,41 @@ internal object PaymentText {
         for (match in bareAmountPatterns.flatMap { pattern -> pattern.findAll(normalized).map { pattern to it } }
             .sortedBy { (_, match) -> match.range.first }) {
             val (_, hit) = match
-            val raw = hit.groupValues.getOrNull(1).orEmpty().replace(",", "")
-            val digits = raw.substringBefore('.').length
-            val value = raw.toDoubleOrNull() ?: continue
-            if (value <= 0.0 || value > 10_000_000.0) continue
+            val raw = hit.groupValues.getOrNull(1).orEmpty()
+            val digits = raw.substringBefore('.').replace(",", "").length
+            val value = parseMinor(raw) ?: continue
             // A bare 8+ digit run is a reference number, not money.
             if (!raw.contains('.') && digits > 7) continue
             val start = (hit.range.first - 12).coerceAtLeast(0)
             val end = (hit.range.last + 13).coerceAtMost(normalized.length)
             val window = normalized.substring(start, end)
             if (amountNoiseTerms.any { window.contains(it) }) continue
-            return Math.round(value * 100.0)
+            return value
         }
         return null
     }
+
+    fun normalizeMoneyText(value: String): String = Normalizer.normalize(value.replace('，', '\uE000'), Normalizer.Form.NFKC).replace('\uE000', '，')
+        .replace('\u00a0', ' ').replace('\u202f', ' ').replace('\u2007', ' ').trim()
+
+    /** Exact CNY minor units: never round a malformed or over-precise amount. */
+    fun parseMinor(value: String): Long? = runCatching {
+        val raw = normalizeMoneyText(value)
+        val canonical = when {
+            ',' !in raw -> raw
+            '.' in raw || Regex("""[1-9][0-9]{0,2}(?:,[0-9]{3})+(?:\.[0-9]{1,2})?""").matches(raw) -> {
+                if (!Regex("""[1-9][0-9]{0,2}(?:,[0-9]{3})+(?:\.[0-9]{1,2})?""").matches(raw)) return null
+                raw.replace(",", "")
+            }
+            Regex("""[0-9]+,[0-9]{1,2}""").matches(raw) -> raw.replace(',', '.')
+            else -> return null
+        }
+        if (!Regex("""[0-9]{1,8}(?:\.[0-9]{1,2})?""").matches(canonical)) return null
+        if (canonical.startsWith('0') && canonical.substringBefore('.').length > 1) return null
+        val decimal = BigDecimal(canonical)
+        if (decimal <= BigDecimal.ZERO || decimal > BigDecimal("10000000")) return null
+        decimal.movePointRight(2).setScale(0, RoundingMode.UNNECESSARY).longValueExact()
+    }.getOrNull()
 
     /**
      * Real-device finding (Alipay/bank detail pages): the payee label 收款方 /

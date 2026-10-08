@@ -165,7 +165,7 @@ class PaymentRecognitionCoordinator(
     }
 
     /** Accessibility evidence for the currently active ticket of that package. */
-    fun onAccessibilityEnrichment(accountId: String, enrichment: PaymentEnrichment): EnrichmentOutcome {
+    fun onAccessibilityEnrichment(accountId: String, enrichment: PaymentEnrichment, expectedTicketId: String? = null): EnrichmentOutcome {
         val ticket = store.activeTicketForPackage(accountId, enrichment.sourcePackage)
             ?: return EnrichmentOutcome.Rejected(
                 ticket = PaymentTicket(
@@ -183,6 +183,7 @@ class PaymentRecognitionCoordinator(
                 ),
                 reason = "no_active_ticket",
             )
+        if (expectedTicketId != null && ticket.ticketId != expectedTicketId) return EnrichmentOutcome.Rejected(ticket, "ticket_changed")
         val outcome = tickets.enrich(ticket, enrichment)
         when (outcome) {
             is EnrichmentOutcome.Applied -> {

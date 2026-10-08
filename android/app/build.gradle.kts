@@ -7,6 +7,7 @@ plugins {
 val thewyjBaseUrl = providers.gradleProperty("THEWYJ_BASE_URL")
     .orElse("https://thewyj.uk")
     .get()
+val paymentDeviceTest = providers.gradleProperty("THEWYJ_PAYMENT_DEVICE_TEST").orElse("false").get().toBoolean()
 
 val releaseSigning = mapOf(
     "storeFile" to providers.environmentVariable("THEWYJ_ANDROID_KEYSTORE_FILE").orNull.orEmpty(),
@@ -17,6 +18,7 @@ val releaseSigning = mapOf(
 val hasReleaseSigning = releaseSigning.values.all(String::isNotBlank)
 
 android {
+    testBuildType = if (paymentDeviceTest) "release" else "debug"
     namespace = "uk.thewyj.app"
     compileSdk = 36
 
@@ -42,6 +44,8 @@ android {
         }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "THEWYJ_BASE_URL", "\"$thewyjBaseUrl\"")
+        buildConfigField("boolean", "PAYMENT_DIAGNOSTICS", providers.gradleProperty("THEWYJ_PAYMENT_DIAGNOSTICS").orElse("false").get().toBoolean().toString())
+        buildConfigField("boolean", "PAYMENT_DEVICE_TEST", paymentDeviceTest.toString())
     }
 
     signingConfigs {
@@ -64,8 +68,8 @@ android {
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = !paymentDeviceTest
+            isShrinkResources = !paymentDeviceTest
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

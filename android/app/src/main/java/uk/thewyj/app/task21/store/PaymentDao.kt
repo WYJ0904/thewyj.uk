@@ -74,7 +74,7 @@ interface PaymentDao {
         """
         SELECT * FROM payment_tickets
         WHERE accountId = :accountId AND sourcePackage = :sourcePackage
-          AND state IN ('CREATED', 'WAITING_FOR_ACCESSIBILITY', 'ENRICHED', 'CANDIDATE_CREATED')
+          AND state IN ('CREATED', 'WAITING_FOR_ACCESSIBILITY', 'ENRICHED')
         ORDER BY createdAtMs DESC LIMIT 1
         """,
     )
@@ -92,7 +92,7 @@ interface PaymentDao {
         """
         SELECT DISTINCT sourcePackage FROM payment_tickets
         WHERE accountId = :accountId AND expiresAtMs > :nowMs
-          AND state IN ('CREATED', 'WAITING_FOR_ACCESSIBILITY', 'ENRICHED', 'CANDIDATE_CREATED')
+          AND state IN ('CREATED', 'WAITING_FOR_ACCESSIBILITY', 'ENRICHED')
         """,
     )
     fun activeTicketPackages(accountId: String, nowMs: Long): List<String>

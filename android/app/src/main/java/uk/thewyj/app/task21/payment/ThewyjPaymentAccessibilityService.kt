@@ -1,427 +1,270 @@
 package uk.thewyj.app.task21.payment
 
 import android.accessibilityservice.AccessibilityService
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
-import android.util.Log
-import uk.thewyj.app.task21.NotificationSessionProvider
-import uk.thewyj.app.task21.store.NotificationDatabase
-import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
 import java.util.concurrent.Executors
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
-/**
- * Payment enrichment service.
- *
- * It only reads the page of a package that currently owns an active 90 second
- * ticket, only for finance-entitled accounts, and only extracts the minimal
- * transaction fields. It never persists or uploads screenshots, passwords,
- * OTPs, chat history, contacts or the full node tree. A screenshot may exist
- * in memory only while an explicit ticket is active, for on-device OCR.
- */
+/** Ticket-scoped payment enrichment. No page prose or screenshots are persisted. */
 class ThewyjPaymentAccessibilityService : AccessibilityService() {
     private val tickets = PaymentTicketEngine()
     private val ticketPackages = PaymentTicketPackageCache()
-    private val lastWindowIds = ConcurrentHashMap<String, Int>()
-    private val screenshotRetryPackages = ConcurrentHashMap.newKeySet<String>()
-    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    @Volatile private var lastTicketPackage = ""
-    @Volatile private var lastTicketWindowId: Int? = null
-    @Volatile private var lastTicketEventAtMs = 0L
-    @Volatile private var ocrVerifier: PaymentScreenshotVerifier? = null
-    @Volatile private var lastScreenshotAtMs = 0L
-    /**
-     * Room must never be touched on the main thread (the framework throws
-     * "Cannot access database on the main thread"), so every ticket lookup and
-     * enrichment runs here. The previous main-thread query was swallowed by a
-     * runCatching and made the service report `no_active_ticket` forever.
-     */
     private val worker = Executors.newSingleThreadExecutor()
+    private val mainHandler = Handler(Looper.getMainLooper())
     private val refreshScheduled = AtomicBoolean(false)
+    private val readScheduled = AtomicBoolean(false)
+    private val screenshotInFlight = AtomicBoolean(false)
+    @Volatile private var active: Scan? = null
+    @Volatile private var generation = 0L
+    private var pageClass = ""
+    private var retryCallback: Runnable? = null
+    private var lastScreenshotAtMs = 0L
+    private var ocrVerifier: PaymentScreenshotVerifier? = null
+    private val androidGateway by lazy { AndroidPaymentAccessibilityGateway(this) }
+    private fun gateway() = PaymentAccessibilityDeviceTest.gateway() ?: androidGateway
+    private class Scan(val accountId: String, val ticket: PaymentTicket, val windowId: Int?, val generation: Long, val budget: PaymentPageRetry, val gateway: PaymentAccessibilityGateway) {
+        val applying = AtomicBoolean(false)
+    }
+    private data class PageRead(val lines: List<String>, val groups: List<List<String>>, val nodes: Int)
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         PaymentAccessibilityStatus.onConnected()
-        // #10: a reconnect (or an account/session refresh that rebinds the
-        // service) starts from the real Room state instead of another account's
-        // memory-only signal.
         PaymentTicketPackageSignal.clear()
-        scheduleTicketPackageRefresh(force = true)
+        cancelScan("service_connected")
+        refreshPackages(force = true)
     }
-
     override fun onUnbind(intent: android.content.Intent?): Boolean {
+        cancelScan("service_unbound")
         PaymentAccessibilityStatus.onDisconnected()
         return super.onUnbind(intent)
     }
-
     override fun onDestroy() {
-        // Never let a destroyed service instance leave a stale "connected"
-        // claim behind: the capability banner must fall back to the system
-        // grant instead of reporting a live connection that no longer exists.
+        cancelScan("service_destroyed")
         PaymentAccessibilityStatus.onDisconnected()
         mainHandler.removeCallbacksAndMessages(null)
-        screenshotRetryPackages.clear()
-        runCatching { worker.shutdown() }
+        worker.shutdown()
         super.onDestroy()
     }
+    override fun onInterrupt() { cancelScan("service_interrupted") }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        val currentEvent = event ?: return
-        val eventType = currentEvent.eventType
-        val eventPackage = currentEvent.packageName?.toString().orEmpty()
-        PaymentAccessibilityStatus.onEvent(eventPackage, eventType)
-        if (eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
-            eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED &&
-            eventType != AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED &&
-            eventType != AccessibilityEvent.TYPE_WINDOWS_CHANGED
-        ) {
+        val e = event ?: return
+        val foreground = rootInActiveWindow?.packageName?.toString().orEmpty()
+        val pkg = e.packageName?.toString().orEmpty().ifBlank { foreground }
+        PaymentAccessibilityStatus.onEvent(pkg, e.eventType)
+        if (active != null && foreground.isNotBlank() && foreground != active?.ticket?.sourcePackage) cancelScan("page_left:$foreground")
+        if (pkg.isBlank() || pkg == packageName || e.eventType !in EVENT_TYPES) return
+        if (ticketPackages.needsRefresh()) refreshPackages(force = false)
+        if (!ticketPackages.contains(pkg) && !PaymentTicketPackageSignal.recentlySignalled(pkg)) {
+            PaymentAccessibilityStatus.onSkipped(pkg, "no_active_ticket")
             return
         }
-        val packageName = currentEvent.packageName?.toString().orEmpty()
-        if (packageName.isEmpty() || packageName == this.packageName) return
-        if (currentEvent.windowId >= 0) lastWindowIds[packageName] = currentEvent.windowId
-
-        // In-memory gate only: without an active verification ticket this
-        // package has no business being read, so SystemUI/launcher/IME noise
-        // never touches the database, the node tree or the log.
-        if (ticketPackages.needsRefresh()) scheduleTicketPackageRefresh(force = false)
-        if (!ticketPackages.contains(packageName) && !PaymentTicketPackageSignal.recentlySignalled(packageName)) {
-            maybeRetryAfterSystemOverlay(packageName)
-            PaymentAccessibilityStatus.onSkipped(packageName, "no_active_ticket")
+        val eventClass = e.className?.toString().orEmpty().take(160)
+        if (e.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && eventClass != pageClass) {
+            cancelScan("window_state_changed")
+            pageClass = eventClass
+        }
+        PaymentDiagnostics.emit("event", "pkg=$pkg class=$eventClass type=${PaymentAccessibilityStatus.eventTypeName(e.eventType)} window=${e.windowId}")
+        if (pkg == "com.tencent.mm" && PaymentPageContext.blockedWechatActivity(pageClass)) {
+            PaymentAccessibilityStatus.onParserResult("not_payment_detail")
             return
         }
-        if (!ticketPackages.contains(packageName)) {
-            // #10: the ticket was created after the last cache refresh, so this
-            // first event is read and handed to the worker, where the Room ticket
-            // is re-checked before anything is parsed or enriched. A package
-            // without a real ticket is rejected there and the cache is refreshed.
-            PaymentAccessibilityStatus.onTicketSignal(packageName)
-            scheduleTicketPackageRefresh(force = true)
-        }
-        lastTicketPackage = packageName
-        lastTicketWindowId = PaymentScreenshotTarget.resolve(currentEvent.windowId, packageWindowId(packageName))
-        lastTicketEventAtMs = System.currentTimeMillis()
+        queueRead(pkg, e.windowId.takeIf { it >= 0 })
+    }
 
-        // Reading the window must happen on the accessibility thread. The active
-        // window is preferred; when it exposes nothing (dialogs, transitions, or
-        // apps that render custom views) the package's own interactive window is
-        // used instead.
-        var lines = collectText(rootInActiveWindow)
-        if (lines.isEmpty()) lines = collectText(packageWindowRoot(packageName))
-        PaymentAccessibilityStatus.onPageRead(lines.size)
-        if (lines.isEmpty()) {
+    /** Room/account lookup is always off the accessibility thread. */
+    private fun queueRead(pkg: String, eventWindow: Int?) {
+        if (!readScheduled.compareAndSet(false, true)) { PaymentDiagnostics.emit("debounce", "reason=read_pending"); return }
+        val requestedGeneration = generation
+        PaymentAccessibilityStatus.onParserResult("read_queued")
+        execute {
+            try {
+                val gateway = gateway()
+                val account = gateway.financeAccountId() ?: return@execute
+                val ticket = gateway.activeTicket(account, pkg)
+                if (ticket == null || !tickets.isActive(ticket)) { refreshPackages(true); return@execute }
+                mainHandler.post {
+                    if (generation != requestedGeneration) return@post
+                    val window = paymentWindow(pkg)
+                    val root = rootInActiveWindow?.takeIf { it.packageName?.toString() == pkg }
+                    val id = window?.id ?: root?.windowId ?: eventWindow
+                    val key = "${ticket.ticketId}|$pkg|$id|$pageClass"
+                    val previous = active
+                    val scan = if (previous?.budget?.key == key && !previous.budget.cancelled) previous else {
+                        cancelScan("new_ticket_or_window")
+                        Scan(account, ticket, id, generation, PaymentPageRetry(key, SystemClock.uptimeMillis()), gateway).also { active = it }
+                    }
+                    readPage(scan)
+                }
+            } finally { readScheduled.set(false) }
+        }
+    }
+
+    private fun paymentWindow(pkg: String) = runCatching {
+        windows.firstOrNull { it.root?.packageName?.toString() == pkg && (it.isActive || it.isFocused) }
+    }.getOrNull()
+    private fun foregroundMatches(scan: Scan): Boolean {
+        val root = rootInActiveWindow
+        if (root != null && root.packageName?.toString() != scan.ticket.sourcePackage) return false
+        val window = paymentWindow(scan.ticket.sourcePackage)
+        return (root != null || window != null) && (scan.windowId == null || window?.id == scan.windowId || root?.windowId == scan.windowId)
+    }
+    private fun current(scan: Scan): Boolean = active === scan && generation == scan.generation && !scan.budget.cancelled &&
+        SystemClock.uptimeMillis() - scan.budget.startedAtMs <= PaymentPageRetry.MAX_WINDOW_MS && tickets.isActive(scan.ticket)
+
+    private fun readPage(scan: Scan) {
+        if (!current(scan) || !scan.budget.beginAttempt(SystemClock.uptimeMillis(), retryCallback != null)) return
+        val root = rootInActiveWindow
+        if (root != null && root.packageName?.toString() != scan.ticket.sourcePackage) { cancelScan("root_package_mismatch"); return }
+        val target = root ?: paymentWindow(scan.ticket.sourcePackage)?.root
+        PaymentDiagnostics.emit("root", "ticket=${PaymentDiagnostics.identity(scan.ticket.ticketId)} retry=${scan.budget.attempts - 1} null=${target == null} pkg=${target?.packageName} window=${target?.windowId}")
+        if (target == null) { PaymentAccessibilityStatus.onParserResult("root_null"); scheduleRetry(scan, "root_null"); return }
+        val page = collectText(target)
+        PaymentAccessibilityStatus.onPageRead(page.lines.size)
+        PaymentDiagnostics.emit("tree", "nodes=${page.nodes} texts=${page.lines.size} tokenGroups=${page.groups.size}")
+        if (page.lines.isEmpty()) {
             PaymentAccessibilityStatus.onParserResult("no_text")
-            // WeChat exposes no text at all: fall back to a local screenshot +
-            // on-device OCR. The image never leaves the device and never creates
-            // a transaction by itself.
-            // A device without a usable OCR engine must degrade to the manual
-            // path, never crash the accessibility callback (the service would
-            // otherwise stop receiving events after one bad window).
-            val windowId = PaymentScreenshotTarget.resolve(currentEvent.windowId, packageWindowId(packageName))
-            runCatching { requestScreenshotVerification(packageName, windowId) }.onFailure { error ->
-                PaymentAccessibilityStatus.onParserResult("ocr_unavailable")
-                Log.w(TAG, "screenshot verification unavailable", error)
-                scheduleMiss(packageName)
-            }
-            return
-        }
-        runCatching {
-            worker.execute { handlePageSnapshot(packageName, lines) }
-        }.onFailure { error ->
-            Log.w(TAG, "enrichment queue rejected: ${error.javaClass.simpleName}")
-        }
-    }
-
-    /** Background half of the pipeline: ticket check, parse, enrich, persist. */
-    private fun handlePageSnapshot(sourcePackage: String, lines: List<String>) {
-        val store = RoomPaymentRecognitionStore(NotificationDatabase.get(this))
-        val account = runCatching { NotificationSessionProvider(this).currentAccount() }.getOrNull()
-        if (account == null || !account.financeEntitled) {
-            PaymentAccessibilityStatus.onSkipped(sourcePackage, "no_finance_account")
-            return
-        }
-        val ticket = runCatching { store.activeTicketForPackage(account.accountId, sourcePackage) }.getOrNull()
-        if (ticket == null || !tickets.isActive(ticket)) {
-            // The cached package list is stale (ticket just expired): drop it so
-            // the next event re-reads the real state.
-            scheduleTicketPackageRefresh(force = true)
-            PaymentAccessibilityStatus.onParserResult("no_active_ticket")
-            return
-        }
-        val enrichment = PaymentPageSemantics.extract(
-            PaymentPageSnapshot(
-                sourcePackage = sourcePackage,
-                textLines = lines,
-                capturedAtMs = System.currentTimeMillis(),
-            ),
-        )
-        if (enrichment == null) {
-            PaymentAccessibilityStatus.onParserResult("unparsed")
-            requestScreenshotVerification(sourcePackage, lastWindowIds[sourcePackage])
-            return
-        }
-        PaymentAccessibilityStatus.onParserResult(
-            "amount=${enrichment.amountMinor ?: "unknown"} direction=${enrichment.direction ?: "unknown"}",
-        )
-        runCatching {
-            AndroidPaymentRecognitionHook.get(this)
-                .onAccessibilityEnrichment(account.accountId, enrichment)
-        }.onSuccess {
-            // The ticket may now be consumed; refresh so the gate stays exact.
-            scheduleTicketPackageRefresh(force = true)
-        }.onFailure { error ->
-            Log.w("T22PAY", "enrichment failed: ${error.javaClass.simpleName}")
-        }
-    }
-
-    /**
-     * Takes at most one screenshot every few seconds, only while a ticket is
-     * open, and hands it to the local OCR verifier. Every failure mode
-     * (secure window, rate limit, OCR error) simply leaves the manual path.
-     */
-    private fun requestScreenshotVerification(sourcePackage: String, windowId: Int?) {
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) return
-        val now = System.currentTimeMillis()
-        val retryDelay = PaymentScreenshotThrottle.retryDelayMs(
-            lastScreenshotAtMs,
-            now,
-            SCREENSHOT_MIN_INTERVAL_MS,
-        )
-        if (retryDelay > 0) {
-            scheduleScreenshotRetry(sourcePackage, windowId, retryDelay)
-            return
-        }
-        lastScreenshotAtMs = now
-        val service = this
-        val displayFallbackStarted = AtomicBoolean(false)
-        lateinit var startDisplayFallback: () -> Unit
-        fun callback(fallbackOnUnparsed: Boolean) = object : TakeScreenshotCallback {
-            override fun onSuccess(result: ScreenshotResult) {
-                val bitmap = android.graphics.Bitmap.wrapHardwareBuffer(result.hardwareBuffer, result.colorSpace)
-                    ?.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
-                result.hardwareBuffer.close()
-                if (bitmap == null) {
-                    PaymentAccessibilityStatus.onParserResult("ocr_no_bitmap")
-                    if (fallbackOnUnparsed) startDisplayFallback() else scheduleMiss(sourcePackage)
-                    return
-                }
-                runCatching {
-                    service.worker.execute {
-                        val verifier = ocrVerifier ?: runCatching {
-                            PaymentScreenshotVerifier(MlKitOcrEngine(service)).also { ocrVerifier = it }
-                        }.getOrElse { error ->
-                            PaymentAccessibilityStatus.onParserResult("ocr_engine_unavailable")
-                            Log.w(TAG, "OCR engine unavailable", error)
-                            bitmap.recycle()
-                            reportMiss(sourcePackage)
-                            return@execute
-                        }
-                        val enrichment = runCatching {
-                            kotlinx.coroutines.runBlocking {
-                                verifier.verify(bitmap, sourcePackage, System.currentTimeMillis())
-                            }
-                        }.getOrNull()
-                        bitmap.recycle()
-                        if (enrichment == null) {
-                            PaymentAccessibilityStatus.onParserResult("ocr_unparsed")
-                            if (fallbackOnUnparsed) {
-                                mainHandler.post { startDisplayFallback() }
-                            } else {
-                                reportMiss(sourcePackage)
-                            }
-                            return@execute
-                        }
-                        PaymentAccessibilityStatus.onParserResult(
-                            "ocr amount=${enrichment.amountMinor ?: "unknown"} direction=${enrichment.direction ?: "unknown"}",
-                        )
-                        val account = runCatching {
-                            NotificationSessionProvider(service).currentAccount()
-                        }.getOrNull()
-                        if (account != null && account.financeEntitled) {
-                            // Completes the *existing* candidate/hint for this
-                            // package; it never creates a second transaction.
-                            runCatching {
-                                val outcome = AndroidPaymentRecognitionHook.get(service)
-                                    .onAccessibilityEnrichment(account.accountId, enrichment)
-                                val result = when (outcome) {
-                                    is EnrichmentOutcome.Applied -> "applied"
-                                    is EnrichmentOutcome.Insufficient -> "insufficient"
-                                    is EnrichmentOutcome.Rejected -> "rejected:${outcome.reason}"
-                                }
-                                Log.i(TAG, "ocr-enrichment result=$result")
-                            }
-                        }
-                    }
-                }.onFailure { bitmap.recycle() }
-            }
-
-            override fun onFailure(errorCode: Int) {
-                if (fallbackOnUnparsed) {
-                    Log.i(TAG, "window screenshot failed code=$errorCode; using display fallback")
-                    startDisplayFallback()
-                } else {
-                    PaymentAccessibilityStatus.onParserResult("ocr_screenshot_failed_$errorCode")
-                    scheduleMiss(sourcePackage)
-                }
-            }
-        }
-        val displayCallback = callback(fallbackOnUnparsed = false)
-        startDisplayFallback = displayFallback@{
-            if (!displayFallbackStarted.compareAndSet(false, true)) return@displayFallback
-            runCatching {
-                takeScreenshot(android.view.Display.DEFAULT_DISPLAY, mainExecutor, displayCallback)
-            }.onFailure {
-                PaymentAccessibilityStatus.onParserResult("ocr_screenshot_unavailable")
-                Log.w(TAG, "display screenshot request unavailable: ${it.javaClass.simpleName}")
-                scheduleMiss(sourcePackage)
-            }
-        }
-        val windowScreenshotStarted = if (
-            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE && windowId != null
-        ) {
-            runCatching {
-                takeScreenshotOfWindow(windowId, mainExecutor, callback(fallbackOnUnparsed = true))
-            }.isSuccess
+            screenshot(scan)
         } else {
-            false
-        }
-        if (!windowScreenshotStarted) {
-            startDisplayFallback()
-        }
-    }
-
-    /**
-     * The page could not be read. Misses are diagnostic while the ticket stays
-     * active; the coordinator closes it only at the advertised expiry.
-     */
-    private fun reportMiss(sourcePackage: String) {
-        val account = runCatching { NotificationSessionProvider(this).currentAccount() }.getOrNull() ?: return
-        if (!account.financeEntitled) return
-        runCatching {
-            AndroidPaymentRecognitionHook.get(this).onAccessibilityMiss(account.accountId, sourcePackage)
+            val snapshot = PaymentPageSnapshot(scan.ticket.sourcePackage, page.lines, System.currentTimeMillis(), page.groups)
+            execute {
+                if (!validTicket(scan)) return@execute
+                val enrichment = PaymentPageSemantics.extract(snapshot)
+                if (enrichment == null) mainHandler.post { if (current(scan)) screenshot(scan) }
+                else mainHandler.post {
+                    if (current(scan) && foregroundMatches(scan)) execute { apply(scan, enrichment) }
+                }
+            }
         }
     }
 
-    private fun scheduleMiss(sourcePackage: String) {
-        runCatching { worker.execute { reportMiss(sourcePackage) } }
+    private fun validTicket(scan: Scan): Boolean {
+        if (!current(scan)) return false
+        if (gateway() !== scan.gateway) return false
+        val account = scan.gateway.financeAccountId()
+        val ticket = account?.takeIf { it == scan.accountId }?.let { scan.gateway.activeTicket(it, scan.ticket.sourcePackage) }
+        val valid = ticket != null && ticket.ticketId == scan.ticket.ticketId && tickets.isActive(ticket)
+        if (!valid) PaymentDiagnostics.emit("discard", "reason=ticket_or_account_changed ticket=${PaymentDiagnostics.identity(scan.ticket.ticketId)}")
+        return valid
+    }
+    private fun apply(scan: Scan, enrichment: PaymentEnrichment) {
+        if (!validTicket(scan) || !scan.applying.compareAndSet(false, true)) return
+        val outcome = runCatching { scan.gateway.enrich(scan.accountId, scan.ticket.ticketId, enrichment) }.getOrNull()
+        PaymentDiagnostics.emit("verification", "transaction=${PaymentDiagnostics.identity(scan.ticket.recognitionId)} ticket=${PaymentDiagnostics.identity(scan.ticket.ticketId)} minor=${enrichment.amountMinor} confidence=${enrichment.confidence} outcome=${outcome?.javaClass?.simpleName}")
+        PaymentAccessibilityStatus.onParserResult("${enrichment.evidenceSource.name.lowercase()} amount=${enrichment.amountMinor} direction=${enrichment.direction} result=${outcome?.javaClass?.simpleName}")
+        if (outcome is EnrichmentOutcome.Applied) {
+            mainHandler.post { if (active === scan) cancelScan("verified") }
+            refreshPackages(true)
+        } else {
+            scan.applying.set(false)
+            mainHandler.post { scheduleRetry(scan, "insufficient") }
+        }
     }
 
-    private fun scheduleScreenshotRetry(sourcePackage: String, windowId: Int?, delayMs: Long) {
-        if (!screenshotRetryPackages.add(sourcePackage)) return
-        mainHandler.postDelayed({
-            screenshotRetryPackages.remove(sourcePackage)
-            runCatching {
-                worker.execute {
-                    val account = runCatching { NotificationSessionProvider(this).currentAccount() }.getOrNull()
-                    val ticket = if (account != null && account.financeEntitled) {
-                        runCatching {
-                            RoomPaymentRecognitionStore(NotificationDatabase.get(this))
-                                .activeTicketForPackage(account.accountId, sourcePackage)
-                        }.getOrNull()
-                    } else {
-                        null
-                    }
-                    if (ticket != null && tickets.isActive(ticket)) {
+    /** Screenshot callbacks keep the ticket/account/window captured before the request. */
+    private fun screenshot(scan: Scan) {
+        if (!current(scan) || !foregroundMatches(scan)) { scheduleRetry(scan, "screenshot_root_not_ready"); return }
+        val delay = PaymentScreenshotThrottle.retryDelayMs(lastScreenshotAtMs, SystemClock.uptimeMillis(), SCREENSHOT_MIN_INTERVAL_MS)
+        if (delay > 0) { scheduleRetry(scan, "ocr_cooldown", delay); return }
+        if (!screenshotInFlight.compareAndSet(false, true)) { scheduleRetry(scan, "ocr_in_flight"); return }
+        lastScreenshotAtMs = SystemClock.uptimeMillis()
+        fun callback(windowCapture: Boolean): TakeScreenshotCallback = object : TakeScreenshotCallback {
+            override fun onSuccess(result: ScreenshotResult) {
+                screenshotInFlight.set(false)
+                if (!current(scan) || !foregroundMatches(scan)) { result.hardwareBuffer.close(); PaymentDiagnostics.emit("discard", "reason=page_changed_during_capture"); return }
+                val bitmap = try { runCatching { android.graphics.Bitmap.wrapHardwareBuffer(result.hardwareBuffer, result.colorSpace)?.copy(android.graphics.Bitmap.Config.ARGB_8888, false) }.getOrNull() }
+                    finally { result.hardwareBuffer.close() }
+                if (bitmap == null) { scheduleRetry(scan, "no_bitmap"); return }
+                execute {
+                    try {
+                        if (!validTicket(scan)) return@execute
+                        val verifier = ocrVerifier ?: PaymentScreenshotVerifier(MlKitOcrEngine(this@ThewyjPaymentAccessibilityService)).also { ocrVerifier = it }
+                        val enrichment = kotlinx.coroutines.runBlocking { verifier.verify(bitmap, scan.ticket.sourcePackage, System.currentTimeMillis()) }
                         mainHandler.post {
-                            requestScreenshotVerification(
-                                sourcePackage,
-                                lastWindowIds[sourcePackage] ?: windowId,
-                            )
+                            if (!current(scan) || !foregroundMatches(scan)) { PaymentDiagnostics.emit("discard", "reason=page_changed_during_ocr"); return@post }
+                            if (enrichment == null) { PaymentAccessibilityStatus.onParserResult("ocr_unparsed"); scheduleRetry(scan, "ocr_unparsed") }
+                            else execute { apply(scan, enrichment.copy(evidenceSource = PaymentEvidenceSource.OCR)) }
                         }
-                    }
+                    } finally { bitmap.recycle() }
                 }
             }
-        }, delayMs.coerceAtLeast(1L))
-    }
-
-    private fun maybeRetryAfterSystemOverlay(eventPackage: String) {
-        val targetPackage = lastTicketPackage
-        val elapsed = System.currentTimeMillis() - lastTicketEventAtMs
-        if (targetPackage.isBlank() || !PaymentOverlayRetryPolicy.shouldRetry(eventPackage, elapsed)) return
-        scheduleScreenshotRetry(targetPackage, lastTicketWindowId, 1L)
-    }
-
-    /**
-     * Root of the interactive window that belongs to [sourcePackage], so a page
-     * is still read when it is not the active window (for example while a system
-     * dialog or the keyboard holds focus).
-     */
-    private fun packageWindowRoot(sourcePackage: String): AccessibilityNodeInfo? = runCatching {
-        windows
-            ?.mapNotNull { it?.root }
-            ?.firstOrNull { it.packageName?.toString() == sourcePackage }
-    }.getOrNull()
-
-    private fun packageWindowId(sourcePackage: String): Int? = runCatching {
-        windows
-            ?.firstOrNull { window -> window?.root?.packageName?.toString() == sourcePackage }
-            ?.id
-    }.getOrNull()
-
-    override fun onInterrupt() = Unit
-
-    /**
-     * Bounded traversal: depth and node count are capped and password fields are
-     * skipped, so a hostile page cannot turn this into a screen scraper.
-     */
-    private fun collectText(root: AccessibilityNodeInfo?): List<String> {
-        val node = root ?: return emptyList()
-        val collected = mutableListOf<String>()
-        val queue = ArrayDeque<Pair<AccessibilityNodeInfo, Int>>()
-        queue.add(node to 0)
-        var visited = 0
-        while (queue.isNotEmpty() && collected.size < MAX_TEXT_LINES && visited < MAX_NODES) {
-            val (current, depth) = queue.removeFirst()
-            visited += 1
-            if (depth <= MAX_DEPTH && !current.isPassword) {
-                val text = current.text?.toString().orEmpty()
-                val description = current.contentDescription?.toString().orEmpty()
-                if (text.isNotBlank()) collected.add(text)
-                if (description.isNotBlank()) collected.add(description)
-                for (index in 0 until current.childCount) {
-                    val child = current.getChild(index) ?: continue
-                    queue.add(child to depth + 1)
-                }
+            override fun onFailure(errorCode: Int) {
+                screenshotInFlight.set(false)
+                PaymentDiagnostics.emit("screenshot", "window=$windowCapture error=$errorCode")
+                if (windowCapture && errorCode != ERROR_TAKE_SCREENSHOT_SECURE_WINDOW && errorCode != ERROR_TAKE_SCREENSHOT_INTERVAL_TIME_SHORT && current(scan) && foregroundMatches(scan)) {
+                    if (screenshotInFlight.compareAndSet(false, true)) runCatching { takeScreenshot(android.view.Display.DEFAULT_DISPLAY, mainExecutor, callback(false)) }
+                        .onFailure { screenshotInFlight.set(false); scheduleRetry(scan, "display_unavailable") }
+                } else scheduleRetry(scan, "screenshot_error_$errorCode")
             }
         }
-        return collected.distinct()
+        PaymentDiagnostics.emit("screenshot", "ticket=${PaymentDiagnostics.identity(scan.ticket.ticketId)} window=${scan.windowId}")
+        runCatching {
+            if (android.os.Build.VERSION.SDK_INT >= 34 && scan.windowId != null) takeScreenshotOfWindow(scan.windowId, mainExecutor, callback(true))
+            else takeScreenshot(android.view.Display.DEFAULT_DISPLAY, mainExecutor, callback(false))
+        }.onFailure { screenshotInFlight.set(false); scheduleRetry(scan, "screenshot_unavailable") }
     }
 
+    private fun scheduleRetry(scan: Scan, reason: String, requestedDelay: Long? = null) {
+        if (!current(scan)) return
+        val remaining = PaymentPageRetry.MAX_WINDOW_MS - (SystemClock.uptimeMillis() - scan.budget.startedAtMs)
+        val delay = requestedDelay ?: scan.budget.nextDelayMs(SystemClock.uptimeMillis())
+        if (delay == null || delay > remaining || scan.budget.attempts >= PaymentPageRetry.MAX_ATTEMPTS) { PaymentDiagnostics.emit("retry", "reason=budget_exhausted attempts=${scan.budget.attempts}"); return }
+        retryCallback?.let(mainHandler::removeCallbacks)
+        retryCallback = Runnable { retryCallback = null; readPage(scan) }.also { mainHandler.postDelayed(it, delay.coerceAtLeast(1)) }
+        PaymentDiagnostics.emit("retry", "reason=$reason attempt=${scan.budget.attempts} delay=$delay remaining=$remaining")
+    }
+    private fun cancelScan(reason: String) {
+        active?.budget?.cancel()
+        active = null; generation++
+        retryCallback?.let(mainHandler::removeCallbacks); retryCallback = null
+        PaymentDiagnostics.emit("cancel", "reason=$reason")
+    }
+    private fun execute(block: () -> Unit) {
+        runCatching { worker.execute { runCatching(block).onFailure { PaymentDiagnostics.emit("failure", "type=${it.javaClass.simpleName}"); active?.let { scan -> mainHandler.post { scheduleRetry(scan, "worker_failure") } } } } }
+    }
+    private fun refreshPackages(force: Boolean) {
+        if ((!force && !ticketPackages.needsRefresh()) || !refreshScheduled.compareAndSet(false, true)) return
+        execute {
+            try {
+                val gateway = gateway()
+                val account = gateway.financeAccountId()
+                val packages = if (account != null) gateway.activePackages(account, System.currentTimeMillis()) else emptySet()
+                ticketPackages.refreshWith(packages)
+                PaymentAccessibilityStatus.onTicketPackages(packages)
+                mainHandler.post {
+                    val pkg = rootInActiveWindow?.packageName?.toString().orEmpty()
+                    if (active == null && pkg in packages) queueRead(pkg, rootInActiveWindow?.windowId)
+                    else if (active == null && pkg.isBlank() && packages.size == 1) queueRead(packages.single(), null)
+                }
+            } finally { refreshScheduled.set(false) }
+        }
+    }
+    private fun collectText(root: AccessibilityNodeInfo): PageRead {
+        val lines = mutableListOf<String>(); val groups = mutableListOf<List<String>>()
+        val queue = ArrayDeque<Pair<AccessibilityNodeInfo, Int>>(); queue.add(root to 0)
+        var visited = 0
+        while (queue.isNotEmpty() && lines.size < MAX_TEXT_LINES && visited < MAX_NODES) {
+            val (node, depth) = queue.removeFirst(); visited++
+            if (depth > MAX_DEPTH || node.isPassword || node.packageName?.toString() != root.packageName?.toString()) continue
+            listOf(node.text, node.contentDescription).mapNotNull { it?.toString()?.takeIf(String::isNotBlank) }.forEach(lines::add)
+            val children = (0 until node.childCount).mapNotNull(node::getChild)
+            if (children.size in 2..4 && children.none { it.isPassword }) groups.add(children.map { it.text?.toString().orEmpty() })
+            children.forEach { queue.add(it to depth + 1) }
+        }
+        return PageRead(lines, groups, visited)
+    }
     companion object {
         private const val MAX_NODES = 220
         private const val MAX_DEPTH = 12
         private const val MAX_TEXT_LINES = 60
-        private const val TAG = "ThewyjAccessibility"
-        /** One OCR attempt per window; never a screenshot loop. */
         private const val SCREENSHOT_MIN_INTERVAL_MS = 4_000L
-    }
-
-    /**
-     * Re-reads the packages that own an active ticket. Runs off the main thread
-     * and coalesces concurrent requests into one query.
-     */
-    private fun scheduleTicketPackageRefresh(force: Boolean) {
-        if (!force && !ticketPackages.needsRefresh()) return
-        if (!refreshScheduled.compareAndSet(false, true)) return
-        runCatching {
-            worker.execute {
-                try {
-                    val account = runCatching { NotificationSessionProvider(this).currentAccount() }.getOrNull()
-                    if (account != null && account.financeEntitled) {
-                        val store = RoomPaymentRecognitionStore(NotificationDatabase.get(this))
-                        val packages = runCatching {
-                            store.activeTicketPackages(account.accountId, System.currentTimeMillis())
-                        }.getOrDefault(emptySet())
-                        ticketPackages.refreshWith(packages)
-                        PaymentAccessibilityStatus.onTicketPackages(packages)
-                    }
-                } finally {
-                    refreshScheduled.set(false)
-                }
-            }
-        }.onFailure {
-            refreshScheduled.set(false)
-        }
+        private val EVENT_TYPES = setOf(AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED, AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
+            AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED, AccessibilityEvent.TYPE_WINDOWS_CHANGED, AccessibilityEvent.TYPE_VIEW_CLICKED,
+            AccessibilityEvent.TYPE_VIEW_FOCUSED, AccessibilityEvent.TYPE_VIEW_SCROLLED)
     }
 }

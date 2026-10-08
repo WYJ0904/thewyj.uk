@@ -110,6 +110,9 @@ object PaymentAccessibilityStatus {
         android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> "window_content"
         android.view.accessibility.AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> "view_text"
         android.view.accessibility.AccessibilityEvent.TYPE_WINDOWS_CHANGED -> "windows_changed"
+        android.view.accessibility.AccessibilityEvent.TYPE_VIEW_CLICKED -> "view_clicked"
+        android.view.accessibility.AccessibilityEvent.TYPE_VIEW_FOCUSED -> "view_focused"
+        android.view.accessibility.AccessibilityEvent.TYPE_VIEW_SCROLLED -> "view_scrolled"
         else -> "type_$eventType"
     }
 

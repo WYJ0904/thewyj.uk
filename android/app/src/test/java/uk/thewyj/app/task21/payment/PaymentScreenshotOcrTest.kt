@@ -25,6 +25,15 @@ import uk.thewyj.app.task21.FinanceDirection
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
 class PaymentScreenshotOcrTest {
+    @Test fun twoOcrScalesMustAgreeBeforeAnyAmountIsAccepted() {
+        val engine = object : AmountConfirmingOcrEngine {
+            override suspend fun recognize(bitmap: Bitmap) = listOf("付款成功", "¥10.00")
+            override suspend fun confirmAmount(bitmap: Bitmap, expectedMinor: Long) = 1L
+        }
+        val bitmap = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)
+        assertNull(runBlocking { PaymentScreenshotVerifier(engine).verify(bitmap, "com.tencent.mm", 1_000L) })
+        bitmap.recycle()
+    }
     private class FakeOcr(var lines: List<String>, var fail: Boolean = false) : OcrEngine {
         var calls = 0
         override suspend fun recognize(bitmap: Bitmap): List<String> {
