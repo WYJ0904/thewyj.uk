@@ -548,14 +548,14 @@ jobs:
         run: |
           set -euo pipefail
           ./gradlew assembleRelease bundleRelease assembleDebugAndroidTest --no-daemon --stacktrace \
-            -PTHEWYJ_CANDIDATE_VERSION_NAME=1.3.34 -PTHEWYJ_CANDIDATE_VERSION_CODE=47
+            -PTHEWYJ_CANDIDATE_VERSION_NAME=1.3.36 -PTHEWYJ_CANDIDATE_VERSION_CODE=49
           mkdir -p ../artifacts/task25-candidate
-          cp app/build/outputs/apk/release/app-release-unsigned.apk ../artifacts/task25-candidate/thewyj-android-1.3.34-candidate-unsigned.apk
-          cp app/build/outputs/bundle/release/app-release.aab ../artifacts/task25-candidate/thewyj-android-1.3.34-candidate-unsigned.aab
+          cp app/build/outputs/apk/release/app-release-unsigned.apk ../artifacts/task25-candidate/thewyj-android-1.3.36-candidate-unsigned.apk
+          cp app/build/outputs/bundle/release/app-release.aab ../artifacts/task25-candidate/thewyj-android-1.3.36-candidate-unsigned.aab
           python3 ../scripts/stage_android_candidate.py \
-            --apk ../artifacts/task25-candidate/thewyj-android-1.3.34-candidate-unsigned.apk \
-            --aab ../artifacts/task25-candidate/thewyj-android-1.3.34-candidate-unsigned.aab \
-            --version-name 1.3.34 --version-code 47 --signing-status unsigned \
+            --apk ../artifacts/task25-candidate/thewyj-android-1.3.36-candidate-unsigned.apk \
+            --aab ../artifacts/task25-candidate/thewyj-android-1.3.36-candidate-unsigned.aab \
+            --version-name 1.3.36 --version-code 49 --signing-status unsigned \
             --output ../artifacts/task25-candidate/candidate-metadata.json
 
       - name: Upload Android reports and test APK

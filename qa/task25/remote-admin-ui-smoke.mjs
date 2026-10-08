@@ -13,7 +13,8 @@ for (const name of ['origin', 'environment', 'output']) assert.ok(process.argv.i
 const origin = arg('origin').replace(/\/$/, ''), environment = arg('environment');
 const url = new URL(origin);
 assert.ok((environment === 'preview' && url.protocol === 'https:' && url.hostname.endsWith('.thewyj-uk.pages.dev')) ||
-  (environment === 'development' && /^http:\/\/127\.0\.0\.1:\d+$/.test(origin)), 'Only explicit development or existing hosted Preview is allowed');
+  (environment === 'development' && /^http:\/\/127\.0\.0\.1:\d+$/.test(origin)) ||
+  (environment === 'production' && origin === 'https://thewyj.uk'), 'Origin must match the explicitly selected existing environment');
 assert.equal(url.origin, origin, 'Origin cannot include credentials/path/query');
 if (process.env.WYJ_TASK25_RATE_LIMIT_REGRESSION === 'true') assert.equal(environment, 'development', 'Quota precharge is development-only');
 const admin = process.env.WYJ_TASK25_ADMIN_SESSION;
@@ -46,7 +47,7 @@ function requireVisibleControl(element) {
     throw new Error('UI control is hidden or occluded; no click performed');
   }
 }
-let user, token, native, deviceId, actor, failure = null, cleanup = true, stage = 'preflight', diagnostic = null, controlSelector = null, controlPage = null;
+let user, token, native, deviceId, actor, fixtureUsername, fixtureSecret, accountDeleted = false, failure = null, cleanup = true, stage = 'preflight', diagnostic = null, controlSelector = null, controlPage = null;
 const pages = [];
 try {
   const status = api('/api/status', undefined, '');
@@ -60,6 +61,8 @@ try {
   assert.ok(actor.is_admin, 'Administrator authorization required before creating fixtures');
   api('/api/admin/feature-flags');
   const username = 't25ui_' + randomBytes(5).toString('hex'), secret = randomBytes(24).toString('base64url');
+  fixtureSecret = secret;
+  fixtureUsername = username;
   user = api('/api/register', { username, secret, confirm_secret: secret }, '', 201).account;
   token = api('/api/login', { username, secret }, '').session;
   deviceId = crypto.randomUUID();
@@ -284,6 +287,8 @@ finally {
     try {
       const current = api('/api/admin/feature-flags').flags.find(flag => flag.flag_key === key);
       if (current) {
+        if (user) current.revision = api('/api/admin/feature-flags/override', { flag_key: key,
+          user_id: user.id, enabled: null, expected_revision: current.revision }).override.revision;
         const flag = api('/api/admin/feature-flags', { flag_key: key, description: current.description, enabled: false,
           kill_switch: true, channels: current.channels, rollout_percentage: 0, expected_revision: current.revision }).flag;
         assert.equal(flag.enabled, false); assert.equal(flag.kill_switch, true);
@@ -291,12 +296,19 @@ finally {
     } catch { cleanup = false; }
   }
   try {
+    if (user && !token) token = api('/api/login', { username: fixtureUsername, secret: fixtureSecret }, '').session;
     if (token) {
       const preference = api('/api/release-channel', undefined, token);
       if (preference.channel !== 'stable') api('/api/release-channel', { channel: 'stable', expected_revision: preference.revision }, token);
-      api('/api/logout', {}, token);
     }
     if (native) api('/api/app/session/logout', { device_id: deviceId }, native);
+    if (token) {
+      const identity = api('/api/me', undefined, token).account;
+      assert.equal(identity.id, user.id); assert.equal(identity.is_admin, false);
+      assert.equal(api('/api/account/delete', { secret: fixtureSecret }, token).account_deleted, true);
+      assert.equal(api('/api/me', undefined, token, 403).code, 'account_deleted');
+      accountDeleted = true;
+    }
   } catch { cleanup = false; }
   for (const page of pages) await page.close();
   fs.rmSync(temp, { recursive: true, force: true });
@@ -305,6 +317,7 @@ const report = { checked_at_utc: new Date().toISOString(), origin, environment,
   acceptance: !failure && cleanup ? 'PASS' : 'FAILED', checks: results, failure_class: failure, cleanup_pass: cleanup,
   failure_step: failure ? stage : null, diagnostic,
   fixture_flags: fixtureKeys, synthetic_account_id: user?.id, real_user_data_modified: false, stable_pointer_modified: false,
+  synthetic_account_soft_deleted: accountDeleted, test_flags_retained_for_audit: fixtureKeys.length > 0,
   admin_session_persisted: false, physical_device_acceptance: 'NOT_EXECUTED', management_rate_budget: rateBudget,
   ui_visibility: visibility };
 fs.mkdirSync(path.dirname(arg('output')), { recursive: true });

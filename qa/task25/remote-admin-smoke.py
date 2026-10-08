@@ -35,8 +35,10 @@ def main():
         parser.error('Existing WYJ_TASK25_ADMIN_SESSION required; no synthetic records created')
     stable = json.loads((Path(__file__).resolve().parents[2] / 'android/release-metadata.json').read_text())
     checks, flag, token = [], None, None
+    account = username = secret = key = None
     failure = None
     cleanup_ok = True
+    account_deleted = False
     with tempfile.TemporaryDirectory(prefix='task25-admin-') as directory:
         headers = Path(directory) / 'headers'
         headers.touch(mode=0o600)
@@ -126,20 +128,32 @@ def main():
             # Never include response bodies, credentials or exception arguments.
             failure = type(error).__name__
         finally:
-            if flag:
+            if key:
                 try:
                     current = request('/api/admin/feature-flags', session=admin)
-                    flag = next(item for item in current['flags'] if item['flag_key'] == flag['flag_key'])
-                    save(enabled=False, kill_switch=True, rollout_percentage=0)
-                    assert not flag['enabled'] and flag['kill_switch'] and flag['rollout_percentage'] == 0
+                    flag = next((item for item in current['flags'] if item['flag_key'] == key), None)
+                    if flag and account:
+                        cleared = request('/api/admin/feature-flags/override', {'flag_key': flag['flag_key'],
+                            'user_id': account, 'enabled': None, 'expected_revision': flag['revision']}, admin)
+                        flag['revision'] = cleared['override']['revision']
+                    if flag:
+                        save(enabled=False, kill_switch=True, rollout_percentage=0)
+                        assert not flag['enabled'] and flag['kill_switch'] and flag['rollout_percentage'] == 0
                 except Exception:
                     cleanup_ok = False
-            if token:
+            if account:
                 try:
+                    if not token:
+                        token = request('/api/login', {'username': username, 'secret': secret})['session']
                     pref = request('/api/release-channel', session=token)
                     if pref['channel'] != 'stable':
                         request('/api/release-channel', {'channel': 'stable', 'expected_revision': pref['revision']}, token)
-                    request('/api/logout', {}, token)
+                    identity = request('/api/me', session=token)['account']
+                    assert identity['id'] == account and not identity['is_admin']
+                    assert request('/api/account/delete', {'secret': secret}, token)['account_deleted']
+                    rejected = request('/api/me', session=token, expect=403)
+                    assert rejected['code'] == 'account_deleted'
+                    account_deleted = True
                 except Exception:
                     cleanup_ok = False
     report = {'checked_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'origin': origin,
@@ -148,7 +162,8 @@ def main():
         'test_flag': flag['flag_key'] if flag else None, 'final_flag_global_off': not flag['enabled'] if flag else None,
         'final_flag_kill_switch': flag['kill_switch'] if flag else None,
         'real_user_data_modified': False, 'stable_pointer_modified': False,
-        'synthetic_account_id': locals().get('account'), 'admin_session_persisted': False}
+        'synthetic_account_id': locals().get('account'), 'synthetic_account_soft_deleted': account_deleted,
+        'test_flag_retained_for_audit': bool(flag), 'admin_session_persisted': False}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, indent=2))
