@@ -10,10 +10,37 @@ import unittest
 
 from scripts.prepare_task25_android_release import REQUIRED_GATES, SAMSUNG_CHECKS, SAMSUNG_PREDEPLOY_CHECKS, DEFERRED_ANDROID_ACCOUNTING_CHECKS, PRODUCTION_ENTRY_GATES, MAIN_FIRST_AUTHORIZATION, MAIN_FIRST_ENTRY_GATES, production_entry_gates, proposed_changelog, proposed_configuration, validate_acceptance, validate_receipt
 from scripts.check_task25_production_gates import validate_ci, validate_merged_source
-from scripts.stage_android_candidate import ROOT, STABLE_PATH
+from scripts.stage_android_candidate import ROOT, STABLE_PATH, EXPECTED_CERTIFICATE
 
 
 class ReleaseProposalTests(unittest.TestCase):
+    def test_actual_unpublished_same_version_baseline_retains_all_final_gates(self):
+        self.receipt['release_target'].update(installedVersionName='1.3.36', installedVersionCode=49)
+        self.receipt['samsung'].update(from_version_code=49, before_version='1.3.36/49')
+        self.receipt['same_version_revalidation'] = {'evidence': 'isolated-baseline-proof',
+            'unpublished_candidate': True, 'public_stable_version_code': 46,
+            'installed_apk_sha256': 'e' * 64, 'installed_certificate_sha256': EXPECTED_CERTIFICATE}
+        validate_receipt(self.receipt, self.candidate, self.readback)
+        for check in SAMSUNG_CHECKS:
+            changed = copy.deepcopy(self.receipt)
+            changed['samsung']['checks'][check]['status'] = 'NOT_EXECUTED'
+            with self.subTest(check=check), self.assertRaises(ValueError):
+                validate_receipt(changed, self.candidate, self.readback)
+        for key in self.receipt['same_version_revalidation']:
+            changed = copy.deepcopy(self.receipt)
+            del changed['same_version_revalidation'][key]
+            with self.subTest(proof=key), self.assertRaises(ValueError):
+                validate_receipt(changed, self.candidate, self.readback)
+        for patch in [{'installed_certificate_sha256': 'f' * 64}, {'installed_apk_sha256': 'bad'},
+                      {'public_stable_version_code': 49}, {'unpublished_candidate': False}]:
+            changed = copy.deepcopy(self.receipt)
+            changed['same_version_revalidation'].update(patch)
+            with self.subTest(proof=patch), self.assertRaises(ValueError):
+                validate_receipt(changed, self.candidate, self.readback)
+        changed = copy.deepcopy(self.receipt)
+        changed['samsung'].update(from_version_code=48, before_version='1.3.35/48')
+        with self.assertRaises(ValueError): validate_receipt(changed, self.candidate, self.readback)
+
     def test_main_first_order_retains_signing_preview_main_ci_and_final_device_protection(self):
         self.receipt['production_gate_order'] = {'authorization': MAIN_FIRST_AUTHORIZATION,
             'evidence': 'isolated-explicit-user-order-fixture', 'initial_feature_definitions_off': True,

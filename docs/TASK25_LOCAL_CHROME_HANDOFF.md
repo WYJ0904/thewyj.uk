@@ -28,6 +28,8 @@ Rollback was not required: this continuation made no Production writes. Future s
 
 ## Minimal local continuation
 
+The local Samsung was freshly observed on 2026-10-09 with an earlier unpublished1.3.36/49 acceptance APK already installed. Record the actual49 baseline. The receipt may use installed1.3.36/49 only with `same_version_revalidation` evidence, the independently read installed APK SHA256/original certificate, `unpublished_candidate:true` and the current public Stable46. This permits ordinary `install -r` for the exact final-source49 candidate, never downgrade/uninstall or a fabricated48 baseline. Original signing, preserved session/Room and all24 final Task25 observations remain mandatory. The older48→49 upgrade evidence remains historical.
+
 Open the existing repository **in Windows local Codex with access to the connected Samsung and a supported control interface for the already logged-in Chrome**. The user has already authorized normal tests, signing with existing material, merge, migration and release; do not request those permissions again. Preserve local edits/artifacts before synchronizing:
 
 ```powershell

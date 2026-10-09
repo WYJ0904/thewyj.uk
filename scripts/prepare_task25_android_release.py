@@ -14,7 +14,7 @@ import tempfile
 
 if __package__ in (None, ''):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from scripts.stage_android_candidate import artifact, ROOT, STABLE_PATH, verify_artifacts, validate_version
+from scripts.stage_android_candidate import artifact, ROOT, STABLE_PATH, verify_artifacts, validate_version, EXPECTED_CERTIFICATE
 
 PREDEPLOY_GATES = ('preview_admin_api', 'preview_admin_ui', 'preview_apk_download', 'cloudflare_d1_preflight')
 REQUIRED_GATES = (*PREDEPLOY_GATES, 'production_migration', 'production_deployment', 'production_smoke',
@@ -63,12 +63,25 @@ TASK25_RELEASE_TARGET = {'versionName': '1.3.36', 'versionCode': 49,
 
 def release_target(receipt):
     target = receipt.get('release_target')
-    if not isinstance(target, dict) or target != TASK25_RELEASE_TARGET:
-        raise ValueError('Task 25 needs explicit reviewed 1.3.36/49 from installed 1.3.35/48; no legacy default')
+    revalidation_target = {**TASK25_RELEASE_TARGET,
+        'installedVersionName': '1.3.36', 'installedVersionCode': 49}
+    if not isinstance(target, dict) or target not in (TASK25_RELEASE_TARGET, revalidation_target):
+        raise ValueError('Task 25 needs explicit reviewed 1.3.36/49 and the actual installed 48 or unpublished candidate 49; no legacy default')
     stable = json.loads(STABLE_PATH.read_text(encoding='utf-8'))
     validate_version(target['versionName'], target['versionCode'], stable)
+    if target == revalidation_target:
+        # Local acceptance already installed an earlier unpublished 49. Record
+        # that real baseline, never claim a second 48 -> 49 update or downgrade
+        # the phone. All final signing/session/Room/24 observations still apply.
+        proof = receipt.get('same_version_revalidation', {})
+        if (not isinstance(proof, dict) or not proof.get('evidence') or
+            proof.get('unpublished_candidate') is not True or
+            proof.get('public_stable_version_code') != stable['versionCode'] or
+            proof.get('installed_certificate_sha256') != EXPECTED_CERTIFICATE or
+            not re.fullmatch(r'[0-9a-f]{64}', proof.get('installed_apk_sha256', ''))):
+            raise ValueError('Same-version revalidation needs reviewed unpublished baseline APK/certificate and public Stable evidence')
     if (not isinstance(target['installedVersionCode'], int) or isinstance(target['installedVersionCode'], bool) or
-        target['installedVersionCode'] < stable['versionCode'] or target['installedVersionCode'] >= target['versionCode'] or
+        target['installedVersionCode'] < stable['versionCode'] or target['installedVersionCode'] > target['versionCode'] or
         not re.fullmatch(r'[0-9]+(?:\.[0-9]+){2,3}', target['installedVersionName'])):
         raise ValueError('Reviewed installed baseline must advance in place to the release target')
     return target
