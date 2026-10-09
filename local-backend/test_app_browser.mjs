@@ -7,7 +7,8 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const RELEASE = JSON.parse(fs.readFileSync(path.join(ROOT, "android", "release-metadata.json"), "utf8"));
 const changelogSource = fs.readFileSync(path.join(ROOT, "changelog.js"), "utf8");
 const LATEST_CHANGELOG_VERSION = changelogSource.match(/version:\s*"([^"]+)"/)?.[1];
-assert.ok(LATEST_CHANGELOG_VERSION, "The latest public changelog version must be present.");
+const LATEST_CHANGELOG_BUILD = changelogSource.match(/build:\s*"([^"]+)"/)?.[1];
+assert.ok(LATEST_CHANGELOG_VERSION && LATEST_CHANGELOG_BUILD, "The latest public changelog version and build must be present.");
 const BASE_URL = process.env.WYJ_TEST_BASE || "http://127.0.0.1:8892";
 const CDP_URL = process.env.WYJ_CDP_URL || "http://127.0.0.1:9223";
 const ADMIN_SECRET = process.env.WYJ_TEST_ADMIN_SECRET || "";
@@ -741,7 +742,7 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#siteVersionLabel').textContent.trim()"), `v${LATEST_CHANGELOG_VERSION}`);
       await click("#dismissVersionNoticeBtn");
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
-      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), RELEASE.releaseBuild);
+      assert.equal(await evaluate("localStorage.getItem('wyjChangelogSeenVersion:v1')"), LATEST_CHANGELOG_BUILD);
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
       const mobilePublic = await evaluate(`({
         viewport: document.documentElement.clientWidth,
