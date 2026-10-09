@@ -1,4 +1,8 @@
-# Current cloud-first continuation — 2026-10-08
+# Current final-release continuation — 2026-10-09
+
+The current continuation is [TASK25_LOCAL_CHROME_HANDOFF.md](TASK25_LOCAL_CHROME_HANDOFF.md), with exact final source/CI/Preview/artifact identifiers in the newest PR96 Closure. The latest main-before-Production order is supported while final original signing/Samsung/Stable protection remains. Local Chrome/USB is not connected to this cloud executor; TinyFish use stopped at the user's instruction. Current required release gates remain BLOCKED. Task26 has not started. The preceding reports below remain historical evidence.
+
+# Earlier cloud-first continuation — 2026-10-08
 
 The current authoritative cloud result and Windows handoff are [TASK25_CLOUD_HANDOFF.md](TASK25_CLOUD_HANDOFF.md), with final source/CI/Preview/candidate IDs in the newest PR96 Closure. CLOUD_BLOCKED / LOCAL_REQUIRED / DEVICE_DEFERRED; TASK25_FULL_PASS:NO, READY FOR TASK26:NO. Candidate target is1.3.36/49; Stable stays1.3.33/46. Fresh Preview download PASS supersedes old503. Historical PASS and FAILURE below are preserved, not current deployment conclusions.
 

@@ -31,6 +31,8 @@ SAMSUNG_CHECKS = ('package_version', 'signing_continuity', 'session_preservation
     'process_restoration', 'network_recovery', 'apk_update_metadata', 'release_channel_recognition', 'haptic', 'system_install_permissions')
 PRODUCTION_ENTRY_GATES = (*PREDEPLOY_GATES, 'original_signing', 'samsung_physical', 'ci')
 COMPATIBLE_SERVER_ENTRY_GATES = (*PREDEPLOY_GATES, 'original_signing', 'samsung_predeployment', 'ci')
+MAIN_FIRST_AUTHORIZATION = 'human_approved_main_before_production_before_samsung'
+MAIN_FIRST_ENTRY_GATES = (*PREDEPLOY_GATES, 'original_signing', 'ci', 'final_review', 'main_ci')
 SAMSUNG_PREDEPLOY_CHECKS = tuple(check for check in SAMSUNG_CHECKS if check not in (
     'webview_native_consistency', 'account_targeting_rollout', 'stable_beta_experimental', 'kill_switch',
     'offline_flag_fallback', 'flag_service_unavailable', 'release_channel_recognition'))
@@ -40,10 +42,15 @@ def production_entry_gates(receipt):
     order = receipt.get('production_gate_order')
     if order is None:
         return PRODUCTION_ENTRY_GATES
-    if (order.get('authorization') != 'human_approved_compatible_server_before_channel_acceptance' or
+    if (not isinstance(order, dict) or order.get('authorization') not in (
+        'human_approved_compatible_server_before_channel_acceptance', MAIN_FIRST_AUTHORIZATION) or
         not order.get('evidence') or order.get('initial_feature_definitions_off') is not True or
         order.get('stable_pointer_unchanged') is not True):
         raise ValueError('Changed Production gate order needs the explicit human authorization and safe defaults')
+    if order['authorization'] == MAIN_FIRST_AUTHORIZATION:
+        if order.get('samsung_before_stable_promotion') is not True:
+            raise ValueError('Main-first server deployment cannot waive final Samsung/Stable acceptance')
+        return MAIN_FIRST_ENTRY_GATES
     return COMPATIBLE_SERVER_ENTRY_GATES
 
 
@@ -79,6 +86,11 @@ def validate_acceptance(receipt, candidate, gates):
         item = receipt.get(gate, {})
         if item.get('status') != 'PASS' or not item.get('evidence'):
             raise ValueError(f'Release gate missing actual PASS/evidence: {gate}')
+    if tuple(gates) == MAIN_FIRST_ENTRY_GATES:
+        # The user explicitly ordered main CI/server deployment before Task 25
+        # device behavior. Final binary promotion still uses REQUIRED_GATES and
+        # all SAMSUNG_CHECKS; this path does not establish physical acceptance.
+        return
     device = receipt.get('samsung', {})
     if (device.get('manufacturer', '').lower() != 'samsung' or device.get('android_sdk') != 36 or
         device.get('from_version_code') != target['installedVersionCode'] or device.get('to_version_code') != target['versionCode'] or

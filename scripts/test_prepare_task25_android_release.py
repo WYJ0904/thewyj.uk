@@ -8,11 +8,57 @@ import sys
 import tempfile
 import unittest
 
-from scripts.prepare_task25_android_release import REQUIRED_GATES, SAMSUNG_CHECKS, SAMSUNG_PREDEPLOY_CHECKS, DEFERRED_ANDROID_ACCOUNTING_CHECKS, PRODUCTION_ENTRY_GATES, production_entry_gates, proposed_changelog, proposed_configuration, validate_acceptance, validate_receipt
+from scripts.prepare_task25_android_release import REQUIRED_GATES, SAMSUNG_CHECKS, SAMSUNG_PREDEPLOY_CHECKS, DEFERRED_ANDROID_ACCOUNTING_CHECKS, PRODUCTION_ENTRY_GATES, MAIN_FIRST_AUTHORIZATION, MAIN_FIRST_ENTRY_GATES, production_entry_gates, proposed_changelog, proposed_configuration, validate_acceptance, validate_receipt
+from scripts.check_task25_production_gates import validate_ci, validate_merged_source
 from scripts.stage_android_candidate import ROOT, STABLE_PATH
 
 
 class ReleaseProposalTests(unittest.TestCase):
+    def test_main_first_order_retains_signing_preview_main_ci_and_final_device_protection(self):
+        self.receipt['production_gate_order'] = {'authorization': MAIN_FIRST_AUTHORIZATION,
+            'evidence': 'isolated-explicit-user-order-fixture', 'initial_feature_definitions_off': True,
+            'stable_pointer_unchanged': True, 'samsung_before_stable_promotion': True}
+        self.receipt['samsung_physical']['status'] = 'NOT_EXECUTED'
+        for check in self.receipt['samsung']['checks'].values():
+            check['status'] = 'NOT_EXECUTED'
+        gates = production_entry_gates(self.receipt)
+        self.assertEqual(gates, MAIN_FIRST_ENTRY_GATES)
+        validate_acceptance(self.receipt, self.candidate, gates)
+        with self.assertRaises(ValueError):
+            validate_receipt(self.receipt, self.candidate, self.readback)
+        for key in MAIN_FIRST_ENTRY_GATES:
+            changed = copy.deepcopy(self.receipt)
+            changed[key]['status'] = 'NOT_EXECUTED'
+            with self.subTest(gate=key), self.assertRaises(ValueError):
+                validate_acceptance(changed, self.candidate, gates)
+        changed = copy.deepcopy(self.receipt)
+        changed['production_gate_order']['samsung_before_stable_promotion'] = False
+        with self.assertRaises(ValueError): production_entry_gates(changed)
+
+    def test_main_first_rejects_drift_wrong_merge_tree_and_incomplete_main_ci(self):
+        source, head, base, tree = 'a' * 40, 'b' * 40, 'c' * 40, 'd' * 40
+        pr = {'draft': False, 'merged': True, 'state': 'closed', 'head': {'sha': source}, 'merge_commit_sha': head}
+        validate_merged_source(pr, source, head, head, base, [base, source], tree, tree)
+        for patch in [{'draft': True}, {'merged': False}, {'state': 'open'},
+                      {'head': {'sha': base}}, {'merge_commit_sha': source}]:
+            with self.subTest(pr=patch), self.assertRaises(ValueError):
+                validate_merged_source({**pr, **patch}, source, head, head, base, [base, source], tree, tree)
+        for current_main, parents, candidate_tree in [(source, [base, source], tree),
+                (head, [source, base], tree), (head, [base, source], base)]:
+            with self.subTest(main=current_main, parents=parents, tree=candidate_tree), self.assertRaises(ValueError):
+                validate_merged_source(pr, source, head, current_main, base, parents, tree, candidate_tree)
+        run = {'head_sha': head, 'status': 'completed', 'conclusion': 'success'}
+        jobs = {'total_count': 8, 'jobs': [{'status': 'completed', 'conclusion': 'success'} for _ in range(8)]}
+        validate_ci(run, jobs, head)
+        with self.assertRaises(ValueError): validate_ci(run, jobs, source)
+        for status in ['failure', 'skipped', 'cancelled', None]:
+            changed = copy.deepcopy(jobs)
+            changed['jobs'][0]['conclusion'] = status
+            with self.subTest(job_status=status), self.assertRaises(ValueError): validate_ci(run, changed, head)
+        for count in [7, 9]:
+            with self.subTest(job_count=count), self.assertRaises(ValueError):
+                validate_ci(run, {**jobs, 'total_count': count}, head)
+
     def test_authorized_server_order_keeps_every_final_physical_gate(self):
         self.receipt['production_gate_order'] = {
             'authorization': 'human_approved_compatible_server_before_channel_acceptance',

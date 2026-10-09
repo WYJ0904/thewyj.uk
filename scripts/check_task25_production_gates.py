@@ -1,7 +1,8 @@
 """Read-only Production entry guard; never migrates, deploys or publishes.
 
 Receipt labels require reviewed real evidence. Independently checks signed
-artifact bytes, current source/worktree, Draft PR and actual GitHub CI status.
+artifact bytes, source/worktree, PR state and actual GitHub CI status. The
+explicit main-first mode requires the exact merged tree and successful main CI.
 """
 import argparse
 import json
@@ -14,7 +15,7 @@ import urllib.request
 
 if __package__ in (None, ''):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from scripts.prepare_task25_android_release import production_entry_gates, validate_acceptance
+from scripts.prepare_task25_android_release import MAIN_FIRST_ENTRY_GATES, production_entry_gates, validate_acceptance
 from scripts.stage_android_candidate import ROOT, artifact, verify_artifacts
 
 
@@ -36,6 +37,21 @@ def github(route):
         return json.load(response)
 
 
+def validate_ci(run, jobs, source):
+    if (run.get('head_sha') != source or run.get('status') != 'completed' or run.get('conclusion') != 'success' or
+        jobs.get('total_count') != 8 or len(jobs.get('jobs', [])) != 8 or
+        any(job.get('status') != 'completed' or job.get('conclusion') != 'success' for job in jobs['jobs'])):
+        raise ValueError('Pinned source needs all eight actual GitHub CI jobs successful')
+
+
+def validate_merged_source(pr, candidate_source, head, current_main, base_main, parents, head_tree, candidate_tree):
+    if (pr.get('draft') is not False or pr.get('merged') is not True or pr.get('state') != 'closed' or
+        pr.get('head', {}).get('sha') != candidate_source or pr.get('merge_commit_sha') != head or
+        current_main != head or parents != [base_main, candidate_source] or not base_main or
+        not head_tree or head_tree != candidate_tree):
+        raise ValueError('Main-first entry needs merged #96, unchanged base main and the exact signed candidate tree')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ['candidate-metadata', 'acceptance', 'apk', 'aab']:
@@ -44,7 +60,8 @@ def main():
     try:
         candidate = json.loads(args.candidate_metadata.read_text())
         receipt = json.loads(args.acceptance.read_text())
-        validate_acceptance(receipt, candidate, production_entry_gates(receipt))
+        gates = production_entry_gates(receipt)
+        validate_acceptance(receipt, candidate, gates)
         for field in ['apk', 'aab']:
             actual = artifact(getattr(args, field))
             if any(actual[key] != candidate[field][key] for key in ['sha256', 'sizeBytes']):
@@ -54,27 +71,38 @@ def main():
             text=True, check=True).stdout.strip()
         dirty = subprocess.run(['git', 'status', '--porcelain'], cwd=ROOT, capture_output=True,
             text=True, check=True).stdout.strip()
-        if dirty or head != candidate['source_commit']:
-            raise ValueError('Production requires a clean checkout of the exact signed candidate source')
+        if dirty:
+            raise ValueError('Production requires a clean checkout')
         pr = github('pulls/96')
-        if (not pr['draft'] or pr['merged'] or pr['state'] != 'open' or
-            pr['head']['sha'] != head or pr['mergeable'] is not True or pr['mergeable_state'] != 'clean'):
-            raise ValueError('PR #96 must remain Draft/unmerged at the pinned source and clean-mergeable')
-        if receipt.get('base_main_commit') != pr['base']['sha']:
-            raise ValueError('Main drifted since release acceptance; reconcile first')
-        run_id = receipt['ci']['run_id']
-        if not isinstance(run_id, int) or isinstance(run_id, bool):
-            raise ValueError('CI run ID missing')
-        run = github(f'actions/runs/{run_id}')
-        jobs = github(f'actions/runs/{run_id}/jobs?per_page=100')
-        if (run['head_sha'] != head or run['status'] != 'completed' or run['conclusion'] != 'success' or
-            jobs['total_count'] != 8 or len(jobs['jobs']) != 8 or
-            any(job['status'] != 'completed' or job['conclusion'] != 'success' for job in jobs['jobs'])):
-            raise ValueError('Pinned candidate needs all eight actual current-head CI jobs successful')
+        main_first = tuple(gates) == MAIN_FIRST_ENTRY_GATES
+        if main_first:
+            if receipt.get('final_main_commit') != head:
+                raise ValueError('Receipt must pin the final main deployment source')
+            def git_value(*args):
+                return subprocess.run(['git', *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+            validate_merged_source(pr, candidate['source_commit'], head,
+                github('git/ref/heads/main')['object']['sha'], receipt.get('base_main_commit'),
+                git_value('show', '-s', '--format=%P', head).split(),
+                git_value('rev-parse', head + '^{tree}'), git_value('rev-parse', candidate['source_commit'] + '^{tree}'))
+        else:
+            if head != candidate['source_commit']:
+                raise ValueError('Production requires the exact signed candidate source')
+            if (not pr['draft'] or pr['merged'] or pr['state'] != 'open' or
+                pr['head']['sha'] != head or pr['mergeable'] is not True or pr['mergeable_state'] != 'clean'):
+                raise ValueError('PR #96 must remain Draft/unmerged at the pinned source and clean-mergeable')
+            if receipt.get('base_main_commit') != pr['base']['sha']:
+                raise ValueError('Main drifted since release acceptance; reconcile first')
+        for gate, source in [('ci', candidate['source_commit']), *([('main_ci', head)] if main_first else [])]:
+            run_id = receipt[gate]['run_id']
+            if not isinstance(run_id, int) or isinstance(run_id, bool):
+                raise ValueError('CI run ID missing: ' + gate)
+            validate_ci(github(f'actions/runs/{run_id}'), github(f'actions/runs/{run_id}/jobs?per_page=100'), source)
     except (ValueError, KeyError, OSError, subprocess.SubprocessError) as error:
         parser.error(str(error))
-    print(json.dumps({'production_entry': 'PASS', 'source_commit': head, 'base_main_commit': pr['base']['sha'],
-        'ci_run': run_id, 'pr': 96, 'pr_draft': True, 'worktree_clean': True,
+    print(json.dumps({'production_entry': 'PASS', 'source_commit': candidate['source_commit'],
+        'deployment_source_commit': head, 'base_main_commit': receipt['base_main_commit'],
+        'ci_run': receipt['ci']['run_id'], 'main_ci_run': receipt['main_ci']['run_id'] if main_first else None,
+        'pr': 96, 'pr_draft': pr['draft'], 'worktree_clean': True, 'stable_promotion_authorized': False,
         'migration_deployment_publish_executed': False}, indent=2))
 
 

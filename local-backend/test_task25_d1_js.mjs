@@ -170,12 +170,29 @@ try {
   }
   check('real device-session token, WebView cookie and browser token share canonical evaluation');
 
-  const limited = await Promise.all(Array.from({ length: 31 }, () => request('/api/admin/feature-flags/evaluate', {
-    user: users.owner, method: 'POST', environment: { D1_RATE_LIMIT_ENABLED: 'true' }, body: { user_id: users.two.id },
-  })));
-  assert.equal(limited.filter(r => r.status === 429).length, 1);
-  assert.equal(limited.filter(r => r.status === 200).length, 30);
-  assert.ok(Number(limited.find(r => r.status === 429).headers.get('Retry-After')) > 0);
+  // Keep the concurrent requests in one real D1 fixed window. Wall-clock
+  // execution can straddle a minute boundary and legitimately get 31 successes.
+  // Advance the fixture clock explicitly to also verify quota recovery.
+  const realNow = Date.now;
+  const windowStart = Math.floor(realNow() / 60000) * 60000;
+  let rateNow = windowStart + 59500;
+  Date.now = () => rateNow;
+  try {
+    const limitedRequest = () => request('/api/admin/feature-flags/evaluate', {
+      user: users.owner, method: 'POST', environment: { D1_RATE_LIMIT_ENABLED: 'true' }, body: { user_id: users.two.id },
+    });
+    const limited = await Promise.all(Array.from({ length: 31 }, limitedRequest));
+    assert.equal(limited.filter(r => r.status === 429).length, 1);
+    assert.equal(limited.filter(r => r.status === 200).length, 30);
+    assert.equal(limited.find(r => r.status === 429).headers.get('Retry-After'), '1');
+    assert.equal((await limitedRequest()).status, 429);
+    rateNow = windowStart + 60000;
+    assert.equal((await limitedRequest()).status, 200);
+    const windows = await db.prepare(`SELECT request_count FROM cloud_rate_limit_windows
+      WHERE route = ?1 ORDER BY window_started_at`).bind(
+        '/api/admin/feature-flags/evaluate:task25:POST:/api/admin/feature-flags/evaluate').all();
+    assert.deepEqual(windows.results.map(row => row.request_count), [31, 1]);
+  } finally { Date.now = realNow; }
   check('authenticated mutation rate limit and Retry-After contract');
 
   for (const invalid of ['yes', 1, null]) assert.throws(() => flagDefinition({ flag_key: 'invalid', enabled: invalid, expected_revision: 0 }));

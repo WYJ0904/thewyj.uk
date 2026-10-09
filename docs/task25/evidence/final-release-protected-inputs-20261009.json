@@ -1,0 +1,11 @@
+{
+  "checked_at_utc": "2026-10-09T01:43:20.274881+00:00",
+  "base_source": "c0ed2433d41ae7de861c12f658b7bd7a2bb54a3e",
+  "protected_files_unchanged": {
+    "android/release-metadata.json": true,
+    "android/app/build.gradle.kts": true,
+    "wrangler.jsonc": true,
+    "cloudflare/migrations/0024_feature_flags_release_channels.sql": true,
+    ".github/workflows/android-signed-candidate.yml": true
+  }
+}
