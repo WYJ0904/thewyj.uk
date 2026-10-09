@@ -55,8 +55,14 @@ try {
   assert.equal(status.features.task25_feature_flags, true);
   const stable = JSON.parse(fs.readFileSync(new URL('../../android/release-metadata.json', import.meta.url), 'utf8'));
   const originalConfig = api('/api/app/config', undefined, '').app;
-  assert.equal(originalConfig.latest_version_code, 46);
+  // The same strict hosted acceptance is valid after guarded Stable promotion.
+  // Compare every advertised artifact field with the reviewed release file,
+  // rather than requiring the pre-publication version forever.
+  assert.equal(originalConfig.application_id, stable.applicationId);
+  assert.equal(originalConfig.latest_version_code, stable.versionCode);
+  assert.equal(originalConfig.latest_version_name, stable.versionName);
   assert.equal(originalConfig.apk_sha256, stable.apkSha256);
+  assert.equal(originalConfig.apk_size_bytes, stable.apkSizeBytes);
   actor = api('/api/me').account;
   assert.ok(actor.is_admin, 'Administrator authorization required before creating fixtures');
   api('/api/admin/feature-flags');
