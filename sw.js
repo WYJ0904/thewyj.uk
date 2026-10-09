@@ -1,4 +1,4 @@
-const CACHE = "wyj-shell-20261009-task25-release49-es-modules";
+const CACHE = "wyj-shell-20261009-release49-changelog-scroll-fix-es-modules";
 const NAVIGATION_TIMEOUT_MS = 5000;
 const ASSET_TIMEOUT_MS = 10000;
 const CORE_SHELL = [
