@@ -669,7 +669,16 @@ async function main() {
       await send("Emulation.setDeviceMetricsOverride",{width:390,height:900,deviceScaleFactor:1,mobile:true});
       await click("#siteNavToggle");
       assert.equal(await evaluate("document.querySelector('#siteNavToggle').getAttribute('aria-expanded')"), "true");
-      assert.equal(await evaluate("document.querySelectorAll('#siteNavPanel a').length"), 8);
+      assert.equal(await evaluate("document.querySelectorAll('#siteNavPanel a').length"), 6);
+      const primaryReleaseLinks = await evaluate(`Array.from(document.querySelectorAll('.site-release-actions > a')).map(link => ({
+        destination: link.dataset.siteNav, href: link.getAttribute('href'),
+        outsidePanel: !link.closest('details, #siteNavPanel'),
+        visible: link.getBoundingClientRect().width > 0 && link.getBoundingClientRect().height > 0,
+      }))`);
+      assert.deepEqual(primaryReleaseLinks, [
+        { destination: "download", href: "/download", outsidePanel: true, visible: true },
+        { destination: "changelog", href: "/changelog", outsidePanel: true, visible: true },
+      ]);
       assert.equal(await evaluate("document.querySelector('[data-site-nav=download]').getAttribute('href')"), "/download");
       assert.equal(await evaluate("document.querySelector('[data-site-nav=trial]').getAttribute('href')"), "/trial");
       await click("[data-site-nav=trial]");
