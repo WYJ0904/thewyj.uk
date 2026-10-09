@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?v=20261006-task25-flags-1";
+import { fetchWithTimeout } from "./api.js?v=20261009-task25-release49";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 

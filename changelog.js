@@ -1,5 +1,20 @@
 (() => {
   const entries = [
+{
+  "version": "1.3.36",
+  "build": "2026-10-09-task25-channels-1.3.36",
+  "date": "2026-10-09",
+  "title": "体验通道与版本更新",
+  "features": [
+    "新增 Stable、Beta、Experimental 三档体验通道。",
+    "支持按用户及灰度比例控制功能开放，并提供紧急关闭开关。",
+    "Web 与 Android 统一使用服务端功能开关决策。",
+    "完善 Android 更新渠道识别、下载缓存与版本校验。"
+  ],
+  "improvements": [],
+  "fixes": [],
+  "security": []
+},
   {
     version: "2026.10.09.1",
     build: "2026-10-09-task25-web-production",
