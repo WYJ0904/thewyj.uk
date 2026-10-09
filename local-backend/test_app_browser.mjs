@@ -859,6 +859,14 @@ async function main() {
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
       assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), `v${LATEST_CHANGELOG_VERSION}`);
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
+      await evaluate("scrollTo({top: 1200, behavior: 'instant'}); true");
+      assert.ok(Number(await evaluate("scrollY")) > 300, "changelog fixture must be scrolled");
+      await click("#changelogTrialBtn");
+      await waitFor("location.pathname === '/trial' && !document.querySelector('#trialPage')?.classList.contains('hidden')", 5_000, "trial after scrolled changelog");
+      await evaluate("history.back(); true");
+      await waitFor("location.pathname === '/changelog' && !document.querySelector('#changelogPage')?.classList.contains('hidden')", 5_000, "changelog browser-back route");
+      await evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+      assert.equal(Number(await evaluate("Math.round(scrollY)")), 0, "changelog must reopen at newest entry");
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
         await waitFor("!document.querySelector('#entryScreen')", 6_000, `${pathName} splash removal`);
