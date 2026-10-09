@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from scripts.prepare_task25_android_release import REQUIRED_GATES, SAMSUNG_CHECKS, SAMSUNG_PREDEPLOY_CHECKS, DEFERRED_ANDROID_ACCOUNTING_CHECKS, PRODUCTION_ENTRY_GATES, MAIN_FIRST_AUTHORIZATION, MAIN_FIRST_ENTRY_GATES, production_entry_gates, proposed_changelog, proposed_configuration, validate_acceptance, validate_receipt
 from scripts.check_task25_production_gates import validate_ci, validate_merged_source
@@ -128,6 +129,18 @@ class ReleaseProposalTests(unittest.TestCase):
                 validate_receipt(self.receipt, {**self.candidate, 'versionCode': code}, self.readback)
 
     def setUp(self):
+        # Positive release vectors describe the reviewed pre-publication state.
+        # Keep them isolated when real metadata advances after the release.
+        self.baseline = {**json.loads(STABLE_PATH.read_text(encoding='utf-8')),
+            'versionName': '1.3.33', 'versionCode': 46,
+            'releaseBuild': '2026-10-06-aeris-mobile-floating-1.3.33'}
+        temporary = tempfile.TemporaryDirectory(prefix='task25-version-vector-')
+        self.addCleanup(temporary.cleanup)
+        self.baseline_path = Path(temporary.name) / 'release-metadata.json'
+        self.baseline_path.write_text(json.dumps(self.baseline), encoding='utf-8')
+        stable_patch = patch('scripts.prepare_task25_android_release.STABLE_PATH', self.baseline_path)
+        stable_patch.start()
+        self.addCleanup(stable_patch.stop)
         self.candidate = {'source_commit': 'a' * 40, 'signingStatus': 'verified', 'versionName': '1.3.36', 'versionCode': 49,
             'apk': {'sha256': 'b' * 64, 'sizeBytes': 1234}}
         self.readback = {'sha256': 'b' * 64, 'sizeBytes': 1234}
@@ -142,6 +155,12 @@ class ReleaseProposalTests(unittest.TestCase):
                 'physical': True, 'in_place': True, 'data_preserved': True, 'session_preserved': True},
             'r2': {'bucket': 'wyj-cloud-production', 'key': 'app/android/thewyj-android-1.3.36.apk',
                 'readback_sha256': 'b' * 64, 'readback_size_bytes': 1234}}
+
+    def test_already_published_49_still_blocks_republication(self):
+        self.baseline_path.write_text(json.dumps({**self.baseline,
+            'versionName': '1.3.36', 'versionCode': 49}), encoding='utf-8')
+        with self.assertRaisesRegex(ValueError, 'must both advance beyond Stable'):
+            validate_receipt(self.receipt, self.candidate, self.readback)
 
     def test_target_must_be_explicit_and_cannot_revert_to_old_candidate(self):
         validate_receipt(self.receipt, self.candidate, self.readback)
@@ -225,7 +244,7 @@ class ReleaseProposalTests(unittest.TestCase):
         with self.assertRaises(ValueError): validate_receipt(self.receipt, self.candidate, {**self.readback, 'sha256': 'd' * 64})
 
     def test_metadata_all_channels_and_pointer_are_one_consistent_proposal(self):
-        stable, config = json.loads(STABLE_PATH.read_text()), json.loads((ROOT / 'wrangler.jsonc').read_text())
+        stable, config = copy.deepcopy(self.baseline), json.loads((ROOT / 'wrangler.jsonc').read_text())
         original_stable, original_config = copy.deepcopy(stable), copy.deepcopy(config)
         meta, proposal = proposed_configuration(stable, config, self.candidate, '2026-10-07', 'task25-release-49', 'Task 25 release')
         for values in [proposal['vars'], proposal['env']['preview']['vars'], proposal['env']['production']['vars']]:
@@ -241,7 +260,7 @@ class ReleaseProposalTests(unittest.TestCase):
         self.assertEqual(config, original_config)
 
     def test_proposal_passes_both_existing_release_guards_with_history_preserved(self):
-        stable = json.loads(STABLE_PATH.read_text())
+        stable = copy.deepcopy(self.baseline)
         meta, config = proposed_configuration(stable, json.loads((ROOT / 'wrangler.jsonc').read_text()),
             self.candidate, '2026-10-07', 'task25-release-49', '- 体验通道与版本更新。')
         original_changelog = (ROOT / 'changelog.js').read_text()

@@ -13,7 +13,9 @@ from scripts.stage_android_candidate import (
 
 class CandidateGateTests(unittest.TestCase):
     def test_upgrade_only_accepts_advancing_name_and_code(self):
-        stable = json.loads(STABLE_PATH.read_text())
+        # This is an isolated pre-release version vector, not today's pointer.
+        # Publishing 49 must not turn a historical 46 -> 47 test into a failure.
+        stable = {'versionName': '1.3.33', 'versionCode': 46}
         validate_version('1.3.34', 47, stable)
         for name, code in [('1.3.34', 46), ('1.3.33', 47), ('1.3.32', 48), ('1.3.34-debug', 47)]:
             with self.subTest(name=name, code=code), self.assertRaises(ValueError):
