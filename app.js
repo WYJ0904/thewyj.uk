@@ -3649,6 +3649,17 @@ function showChangelog(pushHistory = true) {
   renderChangelog();
   if (pushHistory) pushRoute("/changelog");
   renderAccountUi();
+  // The single-page app reuses the document scroll offset between routes.
+  // Every navigation to /changelog begins with its newest entry, not the
+  // position retained from the previous page or browser history.
+  const showNewestEntry = () => {
+    if (location.pathname !== "/changelog" || $("changelogPage")?.classList.contains("hidden")) return;
+    const scroller = document.scrollingElement || document.documentElement;
+    scroller.scrollTop = 0;
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  };
+  showNewestEntry();
+  window.requestAnimationFrame(showNewestEntry);
 }
 
 let androidDownloadController = null;
@@ -7135,7 +7146,7 @@ async function boot() {
     toolsInitialized = true;
   }
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`).catch(() => {});
+    navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}&changelog-nav=latest-1`).catch(() => {});
   }
   const initialPath = location.pathname.replace(/\/+$/, "") || "/";
   const shouldProbeCloudBackend = () => !location.pathname.startsWith("/share/");
