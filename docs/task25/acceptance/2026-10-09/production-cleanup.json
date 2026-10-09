@@ -1,0 +1,13 @@
+{
+  "acceptance": "PASS",
+  "only_owned_new_ordinary_account_soft_deleted": true,
+  "account_id": "18423059-2ef0-42a7-b1fc-99666dfca545",
+  "former_browser_native_sessions_denied": true,
+  "fixture_flag_off": true,
+  "fixture_flag_killed": true,
+  "fixture_rollout_zero": true,
+  "synthetic_preference_restored_stable": true,
+  "audit_rows_retained": true,
+  "existing_users_or_passwords_modified": false,
+  "stable_pointer_modified": false
+}

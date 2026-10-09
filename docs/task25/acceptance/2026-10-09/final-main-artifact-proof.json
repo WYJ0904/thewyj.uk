@@ -1,0 +1,22 @@
+{
+  "source_commit": "f9baa86d85702cca74811b13508cd8067de31132",
+  "source_tree": "fa287a61fe612eb92715b04264b6358e8f5ee78c",
+  "original_signing_verified": true,
+  "actual_final_main_standard_release_build": true,
+  "candidate_override_not_used_on_published49": true,
+  "apk": {
+    "fileName": "thewyj-android-1.3.36-candidate.apk",
+    "sha256": "798ef91a7be32c8d6e181ff4813a173014c0bce73ca4f93077c7030df63ccb48",
+    "sizeBytes": 48124971
+  },
+  "aab": {
+    "fileName": "thewyj-android-1.3.36-candidate.aab",
+    "sha256": "2ca2c15e8c934f609e4454aa5f12bbb29693f83fdcc72dfe6d5c80abcf2ce60a",
+    "sizeBytes": 24744491
+  },
+  "actualPackageBadging": "package: name='uk.thewyj.app' versionCode='49' versionName='1.3.36' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+  "certificateSha256": "2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03",
+  "apkSignatureVerified": true,
+  "aabSignatureVerified": true,
+  "same_bytes_as_24_physical_checks_R2_and_public_download": true
+}

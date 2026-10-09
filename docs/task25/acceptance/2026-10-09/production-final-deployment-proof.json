@@ -1,0 +1,11 @@
+{
+  "deployment_id": "1e67f1e0-43d2-402d-b819-484efa4979ee",
+  "source_main": "f9baa86d85702cca74811b13508cd8067de31132",
+  "service_ON_durable": true,
+  "version_name": "1.3.36",
+  "version_code": 49,
+  "old_bindings_secret_names_non_Android_variables_preserved": true,
+  "moving_pointer_and_metadata_one_deployment": true,
+  "rollback_id": "840c4eaa-30b8-483c-9ba1-ee5159332932",
+  "no_D1_restore_or_drop": true
+}

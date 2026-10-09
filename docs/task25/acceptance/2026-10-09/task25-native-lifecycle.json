@@ -1,0 +1,13 @@
+{
+  "cold_start": true,
+  "native_channel_UI_visible": true,
+  "ui_haptic_action_executed": true,
+  "application_uid": 10406,
+  "back_destination": "HOME",
+  "foreground_background": true,
+  "background_native_snapshot_closed": true,
+  "resume": true,
+  "warm_start": true,
+  "same_activity_instance": true,
+  "restored_account_sha256": "442df1975a205469301b36da82d57051b35cdd354849f50a301e3fe564076e87"
+}

@@ -1,0 +1,7 @@
+{
+  "only_owned_fixture_soft_deleted": true,
+  "owned_flag_off_killed_zero": true,
+  "original_same_session_restored": true,
+  "server_authenticated": true,
+  "original_fresh_login": false
+}

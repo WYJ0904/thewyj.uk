@@ -1,0 +1,33 @@
+{
+  "source_commit": "adb504432d548b024e4292fdf0b5edf3031af3b4",
+  "observed_runtime_commit": "b45d4f7fd478285cacc951c38eeb6d6618f92563",
+  "origin": "https://0b1a7c84.thewyj-uk.pages.dev",
+  "acceptance": "PASS",
+  "checks": [
+    "UI_create_read_global_OFF_ON",
+    "UI_targeting_and_channel_scope",
+    "UI_percentage_independent_bucket",
+    "synthetic_UI_three_channels",
+    "browser_native_WebView_same_account_contract",
+    "UI_kill_switch",
+    "UI_refresh_persistence_audit",
+    "ordinary_admin_denied",
+    "Stable_metadata_preserved"
+  ],
+  "browser_evidence": {
+    "first_seven": "actual local Chrome existing profile",
+    "kill_and_refresh_audit": "actual Codex in-app Chromium; Chrome disconnected"
+  },
+  "independent_bucket": 2823,
+  "percentage": 37.25,
+  "all_three_HTTP_contracts_saved": true,
+  "kill_visible_result": "aeris_experimental_badge: OFF (global_off, v1)\ntask25_release_34edc1d5c1: OFF (kill_switch, v11)\ntask25_release_ac70ee519d: OFF (kill_switch, v12)\ntask25_ui_352ac4ad26: OFF (kill_switch, v8)\ntask25_ui_553d249002: OFF (kill_switch, v8)\ntask25_validation: OFF (global_off, v1)",
+  "real_user_data_modified": false,
+  "stable_pointer_modified": false,
+  "fixture_flag_off": true,
+  "fixture_flag_killed": true,
+  "fixture_rollout_zero": true,
+  "cleanup_pass": true,
+  "checked_at_utc": "2026-10-09T05:56:07.538Z",
+  "cleanup_evidence": "preview-cleanup.json"
+}

@@ -1,0 +1,9 @@
+{
+  "initial_signed_source": "adb504432d548b024e4292fdf0b5edf3031af3b4",
+  "fresh_signed_source": "893a76987a664e024b2a22443b36a7e249305ed3",
+  "apk_sha256": "798ef91a7be32c8d6e181ff4813a173014c0bce73ca4f93077c7030df63ccb48",
+  "aab_sha256": "2ca2c15e8c934f609e4454aa5f12bbb29693f83fdcc72dfe6d5c80abcf2ce60a",
+  "android_server_source_unchanged": true,
+  "fresh_actual_build_not_metadata_relabel": true,
+  "physical_production_preview_bytes_identical": true
+}

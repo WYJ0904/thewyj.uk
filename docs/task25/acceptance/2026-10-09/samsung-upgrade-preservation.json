@@ -1,0 +1,23 @@
+{
+  "acceptance": "PASS",
+  "in_place_same_version_revalidation": true,
+  "before_version": "1.3.36/49",
+  "after_version": "1.3.36/49",
+  "original_account_unchanged": true,
+  "normal_existing_session_authenticated": true,
+  "fresh_original_login": false,
+  "original_bookings_preserved": 98,
+  "original_bookings_sha256": "fab63356cbc1adccaca372aff36fb1dc57d89809872c1ca76d4e6100d500b7f8",
+  "all_original_account_scoped_tables_retained": {
+    "local_payment_bookings": true,
+    "notification_app_policies": true,
+    "notification_instances": true,
+    "notification_revisions": true,
+    "notification_rules": true,
+    "notification_settings": true,
+    "payment_candidates": true,
+    "payment_recognitions": true,
+    "payment_tickets": true
+  },
+  "original_signer_continuity": true
+}

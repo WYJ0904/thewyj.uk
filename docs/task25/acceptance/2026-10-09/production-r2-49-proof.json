@@ -1,0 +1,10 @@
+{
+  "bucket": "wyj-cloud-production",
+  "key": "app/android/thewyj-android-1.3.36.apk",
+  "readback_sha256": "798ef91a7be32c8d6e181ff4813a173014c0bce73ca4f93077c7030df63ccb48",
+  "readback_size_bytes": 48124971,
+  "acceptance": "PASS",
+  "prior_key_absent": true,
+  "original_46_object_retained": true,
+  "Stable_pointer_still_46": true
+}

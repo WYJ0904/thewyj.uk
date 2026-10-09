@@ -1,0 +1,103 @@
+{
+  "origin": "https://thewyj.uk",
+  "source_main": "829336098d3ef520e8850f74caa405b963bc357d",
+  "browser": "actual in-app Chromium",
+  "observations": [
+    {
+      "phase": "global_OFF",
+      "channel": "experimental",
+      "enabled": false,
+      "reason": "global_off"
+    },
+    {
+      "phase": "global_ON_zero_percentage",
+      "channel": "experimental",
+      "enabled": false,
+      "reason": "percentage_rollout"
+    },
+    {
+      "phase": "targeted_ON",
+      "channel": "experimental",
+      "enabled": true,
+      "reason": "user_override"
+    },
+    {
+      "phase": "Stable_excluded",
+      "channel": "stable",
+      "enabled": false,
+      "reason": "channel_excluded"
+    },
+    {
+      "phase": "Beta_excluded",
+      "channel": "beta",
+      "enabled": false,
+      "reason": "channel_excluded"
+    },
+    {
+      "phase": "targeted_OFF",
+      "channel": "experimental",
+      "enabled": false,
+      "reason": "user_override"
+    },
+    {
+      "phase": "independent_bucket_1771_below_3725",
+      "channel": "stable",
+      "enabled": true,
+      "reason": "percentage_rollout"
+    },
+    {
+      "phase": "deterministic_repeat",
+      "channel": "stable",
+      "enabled": true,
+      "reason": "percentage_rollout"
+    },
+    {
+      "phase": "actual_kill_switch",
+      "channel": "stable",
+      "enabled": false,
+      "reason": "kill_switch"
+    },
+    {
+      "phase": "refresh_and_visible_audit",
+      "passed": true
+    },
+    {
+      "phase": "fixture_neutralized",
+      "off": true,
+      "killed": true,
+      "rollout": 0
+    },
+    {
+      "phase": "real_UI_channel",
+      "channel": "beta"
+    },
+    {
+      "phase": "real_UI_channel",
+      "channel": "experimental"
+    },
+    {
+      "phase": "real_UI_channel",
+      "channel": "stable"
+    },
+    {
+      "phase": "ordinary_UI_admin_denied",
+      "passed": true
+    }
+  ],
+  "acceptance": "PASS",
+  "checks": [
+    "UI_global_OFF_ON",
+    "UI_targeted_ON_OFF_inherit",
+    "UI_three_channel_scope",
+    "UI_independent_percentage_repeat",
+    "UI_kill_switch",
+    "UI_refresh_audit_persistence",
+    "ordinary_UI_admin_denied",
+    "real_synthetic_UI_three_channels",
+    "browser_native_cookie_identity"
+  ],
+  "cleanup_pass": true,
+  "actual_API_mutations_exercised_by_UI": true,
+  "existing_account_preferences_modified": false,
+  "cleanup_evidence": "production-cleanup.json"
+}

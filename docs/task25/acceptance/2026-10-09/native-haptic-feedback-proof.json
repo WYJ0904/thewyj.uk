@@ -1,0 +1,10 @@
+{
+  "application_uid": 10406,
+  "actual_UI_request_records": [
+    "      10-09 15:15:48.786 | external | ignored_for_settings | duration:    -1ms | start:              | end:              | scale:      NONE (1.00) | adaptiveScale=1.00 | flags:    0 | usage: UNKNOWN | uk.thewyj.app (uid=10406, deviceId=0) | reason: performHapticFeedback(constant=4): ViewRootImpl#performHapticFeedback | played: null | original: null",
+    "      10-09 15:22:48.918 | external | ignored_for_settings | duration:    -1ms | start:              | end:              | scale:      NONE (1.00) | adaptiveScale=1.00 | flags:    0 | usage: UNKNOWN | uk.thewyj.app (uid=10406, deviceId=0) | reason: performHapticFeedback(constant=4): ViewRootImpl#performHapticFeedback | played: null | original: null",
+    "      10-09 15:27:55.874 |   effect |             finished | duration:   111ms | start: 15:27:55.875 | end: 15:27:55.985 | scale:      NONE (1.00) | adaptiveScale=1.00 | flags:    0 | usage: TOUCH | uk.thewyj.app (uid=10406, deviceId=0) | reason: performHapticFeedback(constant=4): ViewRootImpl#performHapticFeedback | played: SemHaptic: mType=50065, mMagnitude=-1, mScale=1.000000 | original: null"
+  ],
+  "system_setting_restored_to": 0,
+  "enabled_feedback_completed": true
+}

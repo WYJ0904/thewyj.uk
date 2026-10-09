@@ -1,0 +1,7 @@
+{
+  "actual_server_429_owned_account_only": true,
+  "physical_network_online": true,
+  "native_snapshot_closed": true,
+  "account_preserved": true,
+  "message": "操作过于频繁，请稍后重试 (task25_rate_limited)"
+}

@@ -1,0 +1,7 @@
+{
+  "offline_cold_start": true,
+  "native_shell_visible": true,
+  "cached_account_retained": true,
+  "flags_closed": true,
+  "fresh_login": false
+}

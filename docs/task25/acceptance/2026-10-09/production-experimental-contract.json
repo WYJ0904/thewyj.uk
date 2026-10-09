@@ -1,0 +1,11 @@
+{
+  "origin": "https://thewyj.uk",
+  "channel": "experimental",
+  "acceptance": "PASS",
+  "actual_normal_browser_native_cookie_identity": true,
+  "kill_switch_actual": true,
+  "ordinary_get_post_denied": true,
+  "revision_preserved": true,
+  "Stable46_preserved": true,
+  "physical_Samsung_acceptance": false
+}

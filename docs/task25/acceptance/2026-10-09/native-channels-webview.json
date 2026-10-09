@@ -1,0 +1,10 @@
+{
+  "actual_original_R8_gateway": true,
+  "normally_authenticated_owned_account": true,
+  "native_ON_observed": true,
+  "Beta": true,
+  "Experimental": true,
+  "Stable": true,
+  "actual_WebView_same_canonical_account": true,
+  "actual_WebView_native_Stable_and_ON_agree": true
+}

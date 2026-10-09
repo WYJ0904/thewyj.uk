@@ -1,0 +1,44 @@
+{
+  "checked_at": "2026-10-09T09:09:29.055Z",
+  "ledger": [
+    {
+      "ledger_count": 1,
+      "applied_at": "2026-10-09 06:27:23"
+    }
+  ],
+  "schema_version": 1,
+  "flags": [
+    {
+      "flag_key": "aeris_experimental_badge",
+      "enabled": 0,
+      "kill_switch": 0,
+      "rollout_basis_points": 10000,
+      "revision": 1
+    },
+    {
+      "flag_key": "task25_phys_c98bac3cfb1d",
+      "enabled": 0,
+      "kill_switch": 1,
+      "rollout_basis_points": 0,
+      "revision": 9
+    },
+    {
+      "flag_key": "task25_validation",
+      "enabled": 0,
+      "kill_switch": 0,
+      "rollout_basis_points": 0,
+      "revision": 1
+    },
+    {
+      "flag_key": "task25_web_39fdd27d2b25",
+      "enabled": 0,
+      "kill_switch": 1,
+      "rollout_basis_points": 0,
+      "revision": 8
+    }
+  ],
+  "explicit_objects": 11,
+  "only_owned_QA_soft_deleted": true,
+  "owned_QA_count": 3,
+  "database_rows_written": 0
+}

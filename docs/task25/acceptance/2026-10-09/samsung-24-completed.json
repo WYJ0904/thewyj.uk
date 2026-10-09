@@ -1,0 +1,106 @@
+{
+  "mandatory_checks": {
+    "package_version": {
+      "status": "PASS",
+      "evidence": "samsung-upgrade-preservation.json; exact original-signed install-r; before/after real audit; installed APK hash798ef91a"
+    },
+    "signing_continuity": {
+      "status": "PASS",
+      "evidence": "samsung-upgrade-preservation.json; exact original-signed install-r; before/after real audit; installed APK hash798ef91a"
+    },
+    "session_preservation": {
+      "status": "PASS",
+      "evidence": "samsung-upgrade-preservation.json; exact original-signed install-r; before/after real audit; installed APK hash798ef91a"
+    },
+    "room_data_preservation": {
+      "status": "PASS",
+      "evidence": "samsung-upgrade-preservation.json; exact original-signed install-r; before/after real audit; installed APK hash798ef91a"
+    },
+    "back": {
+      "status": "PASS",
+      "evidence": "task25-native-lifecycle.json actual unmodified R8 MainActivity; UI navigation and live snapshot invalidation/restoration on physical S25+"
+    },
+    "resume": {
+      "status": "PASS",
+      "evidence": "task25-native-lifecycle.json actual unmodified R8 MainActivity; UI navigation and live snapshot invalidation/restoration on physical S25+"
+    },
+    "cold_start": {
+      "status": "PASS",
+      "evidence": "task25-native-lifecycle.json actual unmodified R8 MainActivity; UI navigation and live snapshot invalidation/restoration on physical S25+"
+    },
+    "warm_start": {
+      "status": "PASS",
+      "evidence": "task25-native-lifecycle.json actual unmodified R8 MainActivity; UI navigation and live snapshot invalidation/restoration on physical S25+"
+    },
+    "webview_native_consistency": {
+      "status": "PASS",
+      "evidence": "native-channels-webview.json actual original signed R8 gateway; physical native UI changes, same canonical account/Stable/ON in real WebView DOM"
+    },
+    "account_targeting_rollout": {
+      "status": "PASS",
+      "evidence": "native-decision override_off/on/inherit and independent SHA bucket exact percentage_off/on boundary; actual physical original R8 SDK state matches every real server mutation"
+    },
+    "stable_beta_experimental": {
+      "status": "PASS",
+      "evidence": "native-channels-webview.json actual original signed R8 gateway; physical native UI changes, same canonical account/Stable/ON in real WebView DOM"
+    },
+    "kill_switch": {
+      "status": "PASS",
+      "evidence": "native-decision-kill.json actual live physical native OFF reason kill_switch; restored ON verified"
+    },
+    "offline_flag_fallback": {
+      "status": "PASS",
+      "evidence": "native-network.json real device networks disabled/restored; actual native ON->closed->ON with original signed gateway"
+    },
+    "offline_startup": {
+      "status": "PASS",
+      "evidence": "native-offline-cold.json force-stopped physical app cold startup while real WiFi/mobile0; cached account retained/no fresh login/flagsOFF"
+    },
+    "online_to_offline": {
+      "status": "PASS",
+      "evidence": "native-network.json real device networks disabled/restored; actual native ON->closed->ON with original signed gateway"
+    },
+    "flag_service_unavailable": {
+      "status": "PASS",
+      "evidence": "owned-quota-failure.json: real Production GET144 only disposable account; HTTP200118/42926; native-service-unavailable.json actual native closes flags with retryable429 while physical network and cached identity retained; no mocks/proxy/global service disable"
+    },
+    "foreground_background": {
+      "status": "PASS",
+      "evidence": "task25-native-lifecycle.json actual unmodified R8 MainActivity; UI navigation and live snapshot invalidation/restoration on physical S25+"
+    },
+    "webview_reload": {
+      "status": "PASS",
+      "evidence": "native-webview-reload.json actual SDK WebView.reload; same native/Web canonical QA identity/Stable/ON after reload"
+    },
+    "process_restoration": {
+      "status": "PASS",
+      "evidence": "native-process-restoration.json after actual external am force-stop; same persisted owned account and live Stable/ON through original R8 gateway"
+    },
+    "network_recovery": {
+      "status": "PASS",
+      "evidence": "native-network.json real device networks disabled/restored; actual native ON->closed->ON with original signed gateway"
+    },
+    "apk_update_metadata": {
+      "status": "PASS",
+      "evidence": "native-update-46.json real native UI checks current public Stable46; correct checksum/size and UpToDate for installed49; no downgrade"
+    },
+    "release_channel_recognition": {
+      "status": "PASS",
+      "evidence": "native-channels-webview.json actual original signed R8 gateway; physical native UI changes, same canonical account/Stable/ON in real WebView DOM"
+    },
+    "haptic": {
+      "status": "PASS",
+      "evidence": "native-haptic-feedback-proof.json real UI action with system feedback temporarily enabled, application UID10406 completed; original disabled0 restored; disabled honor separately verified"
+    },
+    "system_install_permissions": {
+      "status": "PASS",
+      "evidence": "native-update-46.json real PackageManager.canRequestPackageInstalls true existing permission; no permission change"
+    }
+  },
+  "count": 24,
+  "device": "SM-S9360",
+  "original_existing_native_identity_restored": true,
+  "original_98_bookings_unchanged": true,
+  "all_original_account_tables_retained": true,
+  "no_original_fresh_login": true
+}

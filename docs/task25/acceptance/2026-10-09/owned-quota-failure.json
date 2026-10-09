@@ -1,0 +1,8 @@
+{
+  "normal_owned_authenticated_feature_requests": 144,
+  "HTTP200": 118,
+  "HTTP429": 26,
+  "only_owned_account_bucket": true,
+  "database_counter_manipulated": false,
+  "Production_service_disabled": false
+}

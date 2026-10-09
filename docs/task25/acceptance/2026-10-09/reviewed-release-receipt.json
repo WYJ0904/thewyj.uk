@@ -1,0 +1,239 @@
+{
+  "source_commit": "893a76987a664e024b2a22443b36a7e249305ed3",
+  "base_main_commit": "efc05c3596c83a12d668911c5f891d2d5f3c395a",
+  "final_main_commit": "893a76987a664e024b2a22443b36a7e249305ed3",
+  "production_migration": {
+    "status": "PASS",
+    "evidence": "normal canonical migrations apply succeeded once; production-migration-verification.json ledger1/schema1/11 explicit objects plus four automatic PK indexes/two definitionsOFF; fallback import not executed"
+  },
+  "production_deployment": {
+    "status": "PASS",
+    "evidence": "active0fa1a498-7e57-458b-8757-ede4329796a7 at main893a769; root/Production persistedON; existing D1/R2/vars/secrets preserved; Stable46 until finalguard"
+  },
+  "production_smoke": {
+    "status": "PASS",
+    "evidence": "production-admin-ui.json actual nine categories/API mutations; all three production client contracts; production-download.json; production-cleanup.json"
+  },
+  "original_signing": {
+    "status": "PASS",
+    "evidence": "signed-main-893a769/candidate-metadata.json fresh actual Gradle APK/AAB build from current main; hashes identical to installed and both R2 readbacks; original certificate independently verified"
+  },
+  "samsung_physical": {
+    "status": "PASS",
+    "evidence": "24 actual mandatory observations backed by original R8 SDK UI/state, physical network/haptic/PackageManager, installed exact798 APK; owned-physical-cleanup.json restores original existing server session; original-room-final.json retains98 bookings exacthash and all original account tables"
+  },
+  "ci": {
+    "status": "PASS",
+    "run_id": 37906434926,
+    "evidence": "https://github.com/WYJ0904/thewyj.uk/actions/runs/37906434926 all actual8 jobs SUCCESS at fresh original-signed source893a769"
+  },
+  "final_review": {
+    "status": "PASS",
+    "evidence": "reviewed original entryguard and followup exact Android/server equivalence plus fresh signed main artifacts; all24 actual same-byte physical observations; all8 current main CI; PR98 preserved; current main clean; defaultsOFF fixtures cleaned; metadata/both buckets ready for guarded atomic49 promotion"
+  },
+  "main_ci": {
+    "status": "PASS",
+    "run_id": 37906434926,
+    "evidence": "https://github.com/WYJ0904/thewyj.uk/actions/runs/37906434926 all actual8 jobs SUCCESS at fresh original-signed source893a769"
+  },
+  "samsung": {
+    "manufacturer": "Samsung",
+    "android_sdk": 36,
+    "from_version_code": 49,
+    "to_version_code": 49,
+    "physical": true,
+    "in_place": true,
+    "data_preserved": true,
+    "session_preserved": true,
+    "model": "SM-S9360",
+    "android_version": "16",
+    "adb_identity": "R5CY22MEHJN",
+    "before_version": "1.3.36/49",
+    "after_version": "1.3.36/49",
+    "checks": {
+      "package_version": {
+        "status": "PASS",
+        "evidence": "samsung-upgrade-preservation.json; exact original-signed install-r; before/after real audit; installed APK hash798ef91a"
+      },
+      "signing_continuity": {
+        "status": "PASS",
+        "evidence": "samsung-upgrade-preservation.json; exact original-signed install-r; before/after real audit; installed APK hash798ef91a"
+      },
+      "session_preservation": {
+        "status": "PASS",
+        "evidence": "samsung-upgrade-preservation.json; exact original-signed install-r; before/after real audit; installed APK hash798ef91a"
+      },
+      "room_data_preservation": {
+        "status": "PASS",
+        "evidence": "samsung-upgrade-preservation.json; exact original-signed install-r; before/after real audit; installed APK hash798ef91a"
+      },
+      "pending_recovery_identity": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "finance_pending": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "legacy_local_only_recovery": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "notification_finance_sync": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "amount_notification_accounting": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "back": {
+        "status": "PASS",
+        "evidence": "task25-native-lifecycle.json actual unmodified R8 MainActivity; UI navigation and live snapshot invalidation/restoration on physical S25+"
+      },
+      "resume": {
+        "status": "PASS",
+        "evidence": "task25-native-lifecycle.json actual unmodified R8 MainActivity; UI navigation and live snapshot invalidation/restoration on physical S25+"
+      },
+      "cold_start": {
+        "status": "PASS",
+        "evidence": "task25-native-lifecycle.json actual unmodified R8 MainActivity; UI navigation and live snapshot invalidation/restoration on physical S25+"
+      },
+      "warm_start": {
+        "status": "PASS",
+        "evidence": "task25-native-lifecycle.json actual unmodified R8 MainActivity; UI navigation and live snapshot invalidation/restoration on physical S25+"
+      },
+      "webview_native_consistency": {
+        "status": "PASS",
+        "evidence": "native-channels-webview.json actual original signed R8 gateway; physical native UI changes, same canonical account/Stable/ON in real WebView DOM"
+      },
+      "account_targeting_rollout": {
+        "status": "PASS",
+        "evidence": "native-decision override_off/on/inherit and independent SHA bucket exact percentage_off/on boundary; actual physical original R8 SDK state matches every real server mutation"
+      },
+      "stable_beta_experimental": {
+        "status": "PASS",
+        "evidence": "native-channels-webview.json actual original signed R8 gateway; physical native UI changes, same canonical account/Stable/ON in real WebView DOM"
+      },
+      "kill_switch": {
+        "status": "PASS",
+        "evidence": "native-decision-kill.json actual live physical native OFF reason kill_switch; restored ON verified"
+      },
+      "offline_flag_fallback": {
+        "status": "PASS",
+        "evidence": "native-network.json real device networks disabled/restored; actual native ON->closed->ON with original signed gateway"
+      },
+      "offline_startup": {
+        "status": "PASS",
+        "evidence": "native-offline-cold.json force-stopped physical app cold startup while real WiFi/mobile0; cached account retained/no fresh login/flagsOFF"
+      },
+      "online_to_offline": {
+        "status": "PASS",
+        "evidence": "native-network.json real device networks disabled/restored; actual native ON->closed->ON with original signed gateway"
+      },
+      "flag_service_unavailable": {
+        "status": "PASS",
+        "evidence": "owned-quota-failure.json: real Production GET144 only disposable account; HTTP200118/42926; native-service-unavailable.json actual native closes flags with retryable429 while physical network and cached identity retained; no mocks/proxy/global service disable"
+      },
+      "foreground_background": {
+        "status": "PASS",
+        "evidence": "task25-native-lifecycle.json actual unmodified R8 MainActivity; UI navigation and live snapshot invalidation/restoration on physical S25+"
+      },
+      "webview_reload": {
+        "status": "PASS",
+        "evidence": "native-webview-reload.json actual SDK WebView.reload; same native/Web canonical QA identity/Stable/ON after reload"
+      },
+      "process_restoration": {
+        "status": "PASS",
+        "evidence": "native-process-restoration.json after actual external am force-stop; same persisted owned account and live Stable/ON through original R8 gateway"
+      },
+      "network_recovery": {
+        "status": "PASS",
+        "evidence": "native-network.json real device networks disabled/restored; actual native ON->closed->ON with original signed gateway"
+      },
+      "apk_update_metadata": {
+        "status": "PASS",
+        "evidence": "native-update-46.json real native UI checks current public Stable46; correct checksum/size and UpToDate for installed49; no downgrade"
+      },
+      "release_channel_recognition": {
+        "status": "PASS",
+        "evidence": "native-channels-webview.json actual original signed R8 gateway; physical native UI changes, same canonical account/Stable/ON in real WebView DOM"
+      },
+      "haptic": {
+        "status": "PASS",
+        "evidence": "native-haptic-feedback-proof.json real UI action with system feedback temporarily enabled, application UID10406 completed; original disabled0 restored; disabled honor separately verified"
+      },
+      "system_install_permissions": {
+        "status": "PASS",
+        "evidence": "native-update-46.json real PackageManager.canRequestPackageInstalls true existing permission; no permission change"
+      }
+    }
+  },
+  "r2": {
+    "bucket": "wyj-cloud-production",
+    "key": "app/android/thewyj-android-1.3.36.apk",
+    "readback_sha256": "798ef91a7be32c8d6e181ff4813a173014c0bce73ca4f93077c7030df63ccb48",
+    "readback_size_bytes": 48124971
+  },
+  "preview_admin_api": {
+    "status": "PASS",
+    "evidence": "preview-admin-api.json"
+  },
+  "preview_admin_ui": {
+    "status": "PASS",
+    "evidence": "preview-admin-ui.json"
+  },
+  "preview_apk_download": {
+    "status": "PASS",
+    "evidence": "preview-download.json"
+  },
+  "cloudflare_d1_preflight": {
+    "status": "PASS",
+    "evidence": "d1-preflight-summary.json"
+  },
+  "release_target": {
+    "versionName": "1.3.36",
+    "versionCode": 49,
+    "installedVersionName": "1.3.36",
+    "installedVersionCode": 49
+  },
+  "production_gate_order": {
+    "authorization": "human_approved_main_before_production_before_samsung",
+    "evidence": "explicit Windows Local Task25 release instruction 2026-10-09 and latest user website publication continuation",
+    "initial_feature_definitions_off": true,
+    "stable_pointer_unchanged": true,
+    "samsung_before_stable_promotion": true
+  },
+  "same_version_revalidation": {
+    "evidence": "phone-package-before-private.txt and independently pulled phone-before49.apk; public Stable46 verified",
+    "unpublished_candidate": true,
+    "public_stable_version_code": 46,
+    "installed_apk_sha256": "f6528bbf79e7dafd4b642cc9256ba54a60ff69e4e7b08c1e72026ae78b241dbd",
+    "installed_certificate_sha256": "2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03"
+  },
+  "initial_signed_source_commit": "adb504432d548b024e4292fdf0b5edf3031af3b4",
+  "initial_merged_main_commit": "829336098d3ef520e8850f74caa405b963bc357d",
+  "provenance_followup": {
+    "initial_main_entry_guard_retained": "production-entry-guard.json",
+    "original_merged_main_tree_equal": true,
+    "PR98_web_only_preserved": true,
+    "Android_and_functions_source_unchanged": true,
+    "fresh_current_main_original_signed_build": true,
+    "byte_identical_APK_AAB_proven": true,
+    "only_subsequent_web_test_docs_and_service_activation_changes": true
+  },
+  "post_publication_main_commit": "f9baa86d85702cca74811b13508cd8067de31132",
+  "post_publication_original_signing": {
+    "status": "PASS",
+    "evidence": "signed-final-main-f9baa86/final-main-artifact-proof.json exact current tree freshly invoked standard-release build; original APK/AAB same bytes as all24/R2/public download"
+  },
+  "post_publication_ci": {
+    "status": "PASS",
+    "run_id": 37909888712,
+    "evidence": "final-main-ci.json exact f9baa86 all8 actual jobs SUCCESS"
+  },
+  "post_publication_checks": {
+    "status": "PASS",
+    "evidence": "production-final-deployment-proof.json; production-download-final49.json; public49-release-guard.txt; native-update-49.json; production-final-d1-proof.json; final-main-artifact-proof.json; Chrome screenshot showing public49 and current website cache graph"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "phase": "process_restoration",
+  "actual_native_original_R8": true,
+  "same_owned_account": true,
+  "enabled": true,
+  "reason": "percentage_rollout",
+  "revision": 8
+}

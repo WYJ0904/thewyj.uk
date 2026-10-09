@@ -1,0 +1,27 @@
+{
+  "checked_at_utc": "2026-10-09T02:44:41.160117+00:00",
+  "origin": "https://0b1a7c84.thewyj-uk.pages.dev",
+  "environment": "preview",
+  "acceptance": "PASS",
+  "checks": [
+    "global_OFF",
+    "global_ON",
+    "three_explicit_channel_gates",
+    "independent_deterministic_percentage",
+    "targeted_ON_OFF_inherit",
+    "kill_switch",
+    "synthetic_channel_preference",
+    "ordinary_admin_denied_audit_and_Stable_preserved"
+  ],
+  "failure_class": null,
+  "cleanup_pass": true,
+  "test_flag": "task25_release_ac70ee519d",
+  "final_flag_global_off": true,
+  "final_flag_kill_switch": true,
+  "real_user_data_modified": false,
+  "stable_pointer_modified": false,
+  "synthetic_account_id": "98971cb6-5f4c-4db0-8d75-4e5b5e44d271",
+  "synthetic_account_soft_deleted": true,
+  "test_flag_retained_for_audit": true,
+  "admin_session_persisted": false
+}

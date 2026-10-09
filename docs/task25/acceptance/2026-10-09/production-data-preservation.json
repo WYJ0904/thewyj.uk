@@ -1,0 +1,28 @@
+{
+  "existing_tables_observed": 82,
+  "all_existing_tables_retained": true,
+  "count_changes_after_authorized_fixture_registration": {
+    "cloud_rate_limit_windows": {
+      "before": 44,
+      "after": 78
+    },
+    "task12_login_audit_logs": {
+      "before": 177,
+      "after": 179
+    },
+    "task12_sessions": {
+      "before": 3,
+      "after": 5
+    },
+    "task12_users": {
+      "before": 42,
+      "after": 43
+    },
+    "task20_device_sessions": {
+      "before": 11,
+      "after": 12
+    }
+  },
+  "canonical_SQL_does_not_modify_business_tables": true,
+  "raw_business_records_exported": false
+}

@@ -1,0 +1,8 @@
+{
+  "online_to_offline": true,
+  "cached_ON_closed_on_real_device": true,
+  "offline_account_preserved": true,
+  "network_recovery": true,
+  "wifi_restored": "1",
+  "mobile_restored": "1"
+}
