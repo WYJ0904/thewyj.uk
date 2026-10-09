@@ -116,7 +116,7 @@ class StaticSiteTests(unittest.TestCase):
             entry = self.app if asset in ("tools.js", "workflows.js") else self.html
             self.assertIn(f'/{asset}?v={release_token}', entry)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
-        self.assertIn('const CACHE = "wyj-shell-20261009-task25-web-changelog-es-modules"', self.worker)
+        self.assertIn('const CACHE = "wyj-shell-20261009-changelog-newest-route-es-modules"', self.worker)
         self.assertIn('export const APP_VERSION = "2026-09-26-task24-canonical-review-r15"', self.core)
         self.assertIn(f'export const ASSET_RELEASE = "{release_token}"', self.core)
         self.assertIn('navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)', self.app)
