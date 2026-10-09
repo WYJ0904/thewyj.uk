@@ -116,13 +116,13 @@ class StaticSiteTests(unittest.TestCase):
             entry = self.app if asset in ("tools.js", "workflows.js") else self.html
             self.assertIn(f'/{asset}?v={release_token}', entry)
             self.assertIn(f'/{asset}?v={release_token}', self.worker)
-        self.assertIn('const CACHE = "wyj-shell-20261009-task25-release49-es-modules"', self.worker)
+        self.assertIn('const CACHE = "wyj-shell-20261009-release49-changelog-latest1-es-modules"', self.worker)
         self.assertIn('export const APP_VERSION = "2026-09-26-task24-canonical-review-r15"', self.core)
         self.assertIn(f'export const ASSET_RELEASE = "{release_token}"', self.core)
-        self.assertIn('navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)', self.app)
+        self.assertIn('navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}&changelog-nav=latest-1`)', self.app)
         for module in ("api", "config", "router", "session", "storage", "ui", "design-system"):
             self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
-        self.assertIn('type="module" src="/app.js?v=20261009-task25-release49"', self.html)
+        self.assertIn('type="module" src="/app.js?v=20261009-task25-release49&changelog-nav=latest-1"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         for asset in ("design-system.css", "public-experience.css", "workspace-experience.css"):
