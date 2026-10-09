@@ -3152,7 +3152,7 @@ textarea::placeholder {
 
 .workflow-sidebar {
   position: sticky;
-  top: 84px;
+  top: calc(var(--site-nav-height, 68px) + 16px);
   display: grid;
   gap: var(--space-4);
   padding: var(--space-4);
@@ -4335,7 +4335,7 @@ progress {
 
   .workspace > .tabs {
     position: sticky;
-    top: calc(116px + env(safe-area-inset-top));
+    top: calc(var(--site-nav-height, calc(68px + env(safe-area-inset-top))) + 8px);
     z-index: 700;
     padding: 4px;
     background: var(--color-surface);
