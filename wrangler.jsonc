@@ -58,7 +58,7 @@
     "LEGACY_API_FALLBACK_ENABLED": "false",
     "TASK11_IMPORT_ENABLED": "false",
     "TASK11_PRODUCTION_IMPORT_ENABLED": "false",
-    "TASK25_FEATURE_FLAGS_ENABLED": "false"
+    "TASK25_FEATURE_FLAGS_ENABLED": "true"
   },
   "env": {
     "preview": {
@@ -192,7 +192,7 @@
         "LEGACY_API_FALLBACK_ENABLED": "false",
         "TASK11_IMPORT_ENABLED": "false",
         "TASK11_PRODUCTION_IMPORT_ENABLED": "false",
-        "TASK25_FEATURE_FLAGS_ENABLED": "false"
+        "TASK25_FEATURE_FLAGS_ENABLED": "true"
       },
       "d1_databases": [
         {
