@@ -3649,6 +3649,17 @@ function showChangelog(pushHistory = true) {
   renderChangelog();
   if (pushHistory) pushRoute("/changelog");
   renderAccountUi();
+  // An SPA route shares the document scroll position with the previous page.
+  // Opening the changelog always starts at its newest entry, including when
+  // a user follows a deep link after Chrome restores an older scroll position.
+  const resetToLatestChangelog = () => {
+    if (location.pathname !== "/changelog" || $("changelogPage")?.classList.contains("hidden")) return;
+    const scroller = document.scrollingElement || document.documentElement;
+    scroller.scrollTop = 0;
+    window.scrollTo(0, 0);
+  };
+  resetToLatestChangelog();
+  window.requestAnimationFrame(resetToLatestChangelog);
 }
 
 let androidDownloadController = null;
