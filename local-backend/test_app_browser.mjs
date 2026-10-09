@@ -859,6 +859,15 @@ async function main() {
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
       assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), `v${LATEST_CHANGELOG_VERSION}`);
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
+      // Regression: a deep scroll on the homepage must not carry into
+      // /changelog; the first visible entry is always the newest release.
+      await navigate(`/?app-matrix=${RUN_ID}-changelog-scroll`);
+      await waitFor("!document.querySelector('#entryScreen') && !document.querySelector('#publicHome')?.classList.contains('hidden')", 8_000, "home before changelog scroll regression");
+      await evaluate("window.scrollTo(0, document.documentElement.scrollHeight); true");
+      assert.ok(Number(await evaluate("window.scrollY")) > 200, "home needs a scrollable position for this regression");
+      await click("#publicChangelogBtn");
+      await waitFor("location.pathname === '/changelog' && !document.querySelector('#changelogPage')?.classList.contains('hidden') && window.scrollY <= 2", 8_000, "changelog resets previous page scroll");
+      assert.equal(await evaluate("document.querySelector('#changelogList article .changelog-entry-header span')?.textContent.trim()"), `v${LATEST_CHANGELOG_VERSION}`);
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
         await waitFor("!document.querySelector('#entryScreen')", 6_000, `${pathName} splash removal`);
