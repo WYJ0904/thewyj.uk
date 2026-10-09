@@ -64,10 +64,12 @@ class PaymentAccessibilityServiceGateTest {
         val controller = Robolectric.buildService(ThewyjPaymentAccessibilityService::class.java).create()
         PaymentAccessibilityStatus.onConnected()
         assertTrue(PaymentAccessibilityStatus.connected)
+        assertTrue(PaymentAccessibilityStatus.connection.value)
 
         controller.destroy()
 
         assertFalse(PaymentAccessibilityStatus.connected)
+        assertFalse(PaymentAccessibilityStatus.connection.value)
     }
 
     /**

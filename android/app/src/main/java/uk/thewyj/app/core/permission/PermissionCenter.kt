@@ -52,7 +52,7 @@ object PermissionCenter {
                 actionLabel = "打开系统设置",
                 kind = PermissionKind.SYSTEM_SETTINGS,
                 granted = accessibility,
-                statusText = PermissionDecisions.settingsStatus(accessibility, "无障碍"),
+                statusText = PermissionDecisions.accessibilityStatus(accessibility, uk.thewyj.app.task21.payment.PaymentAccessibilityStatus.connected),
                 restrictedSettingsRisk = risk,
                 restrictedHint = if (risk && !accessibility) PermissionCopy.RESTRICTED_HINT else "",
             ),

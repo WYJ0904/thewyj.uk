@@ -49,7 +49,7 @@ const {
 } = await import("../js/core/session.js");
 const { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet, storageWriteFailure } = await import("../js/core/storage.js");
 const { createApiClient, isCanonicalSessionFailure } = await import("../js/core/api.js");
-const { mergeChangelogEntries } = await import("../js/core/changelog.js");
+const { mergeChangelogEntries, createChangelogSelection } = await import("../js/core/changelog.js");
 
 assert(APP_ROUTE_MANIFEST.includes("/tools/:tool_id"));
 const visited = [];
@@ -224,6 +224,25 @@ const mergedEntries = mergeChangelogEntries(
 assert.deepEqual(mergedEntries.map((entry) => entry.build), ["task14-current", "cloud-older"]);
 assert.equal(mergedEntries[1].title, "云端旧版本");
 assert(Object.isFrozen(mergedEntries));
+
+const releaseSelection = createChangelogSelection();
+assert.equal(releaseSelection.current(mergedEntries), null, "Fresh entry defaults to latest, not a previous session version");
+assert.equal(releaseSelection.choose("cloud-older", mergedEntries), true);
+assert.equal(releaseSelection.current(mergedEntries), "cloud-older", "Explicit older release survives same-document navigation");
+assert.equal(releaseSelection.choose("stale-unknown-build", mergedEntries), false);
+assert.equal(releaseSelection.current(mergedEntries), "cloud-older");
+assert.equal(releaseSelection.current([mergedEntries[0]]), null, "Removed selections fall back to latest");
+releaseSelection.choose("cloud-older", mergedEntries);
+releaseSelection.clear();
+assert.equal(releaseSelection.current(mergedEntries), null, "An explicit latest-release action overrides an older selection");
+assert.equal(createChangelogSelection().current(mergedEntries), null);
+const numericOrder = mergeChangelogEntries([
+  { ...staticEntry, build: "patch9", version: "1.3.9" },
+  { ...staticEntry, build: "patch10", version: "1.3.10" },
+  { ...staticEntry, build: "previous-day-larger-version", version: "2026.10.09.9", date: "2026-08-22" },
+]);
+assert.deepEqual(numericOrder.map((entry) => entry.build), ["patch10", "patch9", "previous-day-larger-version"]);
+assert.equal(mergeChangelogEntries([staticEntry], [{ ...staticEntry, title: "stale cache content" }])[0].title, staticEntry.title);
 
 const calls = [];
 let sessionExpired = 0;

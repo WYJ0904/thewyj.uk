@@ -3683,7 +3683,6 @@ textarea::placeholder {
   background: var(--color-surface-subtle);
 }
 
-.admin-request-status,
 .achievement-status,
 .achievement-tier,
 .room-sync-status {
@@ -3691,7 +3690,6 @@ textarea::placeholder {
 }
 
 .admin-current-memberships span,
-.admin-request-status,
 .achievement-status,
 .achievement-tier {
   color: var(--ds-info);
@@ -3703,6 +3701,28 @@ textarea::placeholder {
   border-radius: 999px;
   color: var(--ds-info);
   background: var(--color-primary-soft);
+}
+
+/* A status badge is a label; its grid and confirmation time are ordinary layout. */
+.admin-request-status {
+  background: transparent;
+  border-radius: 0;
+}
+.admin-request-status .admin-request-badge {
+  color: var(--color-text-secondary);
+  background: var(--color-surface-subtle);
+}
+.admin-request-status .admin-request-badge[data-tone="success"] {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+.admin-request-status .admin-request-badge[data-tone="pending"] {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+.admin-request-status .admin-request-badge[data-tone="error"] {
+  color: var(--color-error);
+  background: var(--color-error-soft);
 }
 
 .admin-editor {

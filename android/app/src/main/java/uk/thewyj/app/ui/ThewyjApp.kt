@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -369,6 +370,7 @@ private fun AuthenticatedShell(
         else backNavigationRequest += 1
     }
     Scaffold(
+        modifier = Modifier.imePadding(),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             ThewyjBottomNavigation(destination) { item ->
@@ -378,7 +380,7 @@ private fun AuthenticatedShell(
             }
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             ThewyjWebView(
                 route = webRoute,
                 active = webContentActive(destination.route == null, overlays.anyVisible),
@@ -589,9 +591,14 @@ private fun MyScreen(
                             OutlinedButton(
                                 onClick = { onSelectChannel(channel) },
                                 enabled = !featureState.loading && featureState.snapshot != null,
-                                modifier = Modifier.fillMaxWidth(),
+                                shape = ThewyjRadius.Medium,
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                modifier = Modifier.fillMaxWidth().heightIn(min = ThewyjTouch.Minimum),
                             ) {
-                                Text(channel.label + if (featureState.snapshot?.channel == channel) " · 已选" else "")
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
+                                    Text(channel.label, modifier = Modifier.weight(1f), softWrap = true)
+                                    if (featureState.snapshot?.channel == channel) Text("已选", style = MaterialTheme.typography.labelLarge)
+                                }
                             }
                         }
                         if (featureState.enabled("aeris_experimental_badge")) Text("预览体验已开放")
@@ -607,7 +614,7 @@ private fun MyScreen(
                 onRefresh = onRefresh,
                 onLogout = onLogout,
             )
-            Spacer(Modifier.height(ThewyjSpacing.Lg))
+            Spacer(Modifier.height(ThewyjSpacing.Xl))
         }
     }
 }
