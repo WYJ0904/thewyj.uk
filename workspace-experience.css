@@ -1057,7 +1057,7 @@ body[data-experience="workspace"] .account-badge {
   }
 
   .workspace > .tabs {
-    top: calc(68px + env(safe-area-inset-top));
+    top: calc(var(--site-nav-height, calc(68px + env(safe-area-inset-top))) + 8px);
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--ds-space-1);
     overflow: visible;
