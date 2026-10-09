@@ -1,5 +1,9 @@
 # Task 25 release execution plan
 
+## Post-migration activation — local execution 2026-10-09
+
+Original signing, initial merge/main CI, the Production entry guard, canonical0024 and hosted Production acceptance completed before service activation. A later web-only PR98 merge redeployed the tracked bootstrap OFF values. Root and Production now persist the already accepted ON service setting in Git, while the two initial feature definitions remain OFF and Stable46 stays unchanged pending all24 physical checks. Keep this setting in subsequent release metadata deployments. Missing configuration and failed feature fetches still close optional features; the client contract separately checks that default fallback and infrastructure isolation. Preserve the PR98 changelog/PWA changes. Android/server source equivalence and freshly rebuilt original-signed artifact hashes must be recorded when advancing the release provenance beyond the initial signed/merged tree; the original entry-guard evidence remains historical evidence, not a claim that a later tree is identical.
+
 ## Current execution order — 2026-10-09 user instruction
 
 The latest explicit order is: fixes → automated tests/build → original signing/package/version/hashes → migration/rollback preflight → PR merge and main CI → Production migration/server rollout → immutable signed APK publication → actual Samsung upgrade/Task25 acceptance → final Production smoke and Stable promotion. This supersedes the older Draft-before-Production and independent-Samsung-before-server ordering below. It does not waive any final signing, device, data preservation, migration, CI, R2 or rollback acceptance. The five accounting specialties remain a separate second APK release, and Task26 remains closed until that release is accepted.
