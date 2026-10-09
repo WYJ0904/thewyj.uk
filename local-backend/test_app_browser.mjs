@@ -1114,7 +1114,7 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#financeWorkspace').classList.contains('hidden')"), true);
       assert.ok((await evaluate("document.querySelector('#financeLocked').textContent")).includes("财务会员 8 CNY/月"));
       await click("#financeUpgradeBtn");
-      await waitFor("selectedMembershipGoal === 'finance' && document.querySelectorAll('#membershipPlanList [data-plan]').length === 3", 8_000, "finance membership choices");
+      await waitFor("typeof selectedMembershipGoal !== 'undefined' && selectedMembershipGoal === 'finance' && document.querySelectorAll('#membershipPlanList [data-plan]').length === 3", 8_000, "finance membership choices");
       assert.deepEqual(
         await evaluate("[...document.querySelectorAll('#membershipPlanList [data-plan]')].map(node => node.dataset.plan)"),
         ["finance_monthly", "all_access_monthly", "all_access_lifetime"],
@@ -1126,7 +1126,7 @@ async function main() {
       await click('[data-module="tools"]');
       await waitFor("!document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, "membership modal");
       assert.equal(await evaluate("location.pathname"), "/");
-      await waitFor("selectedMembershipGoal === 'tools' && document.querySelectorAll('#membershipPlanList [data-plan]').length === 3", 12_000, "tool membership choices");
+      await waitFor("typeof selectedMembershipGoal !== 'undefined' && selectedMembershipGoal === 'tools' && document.querySelectorAll('#membershipPlanList [data-plan]').length === 3", 12_000, "tool membership choices");
       const expectedByGoal = {
         english: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
         japanese: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
@@ -1140,7 +1140,7 @@ async function main() {
       const observedCodes = new Set();
       for (const [goal, expectedCodes] of Object.entries(expectedByGoal)) {
         await click(`[data-membership-goal="${goal}"]`);
-        await waitFor(`selectedMembershipGoal === ${JSON.stringify(goal)} && document.querySelectorAll('#membershipPlanList [data-plan]').length === ${expectedCodes.length}`, 3_000, `${goal} membership choices`);
+        await waitFor(`typeof selectedMembershipGoal !== 'undefined' && selectedMembershipGoal === ${JSON.stringify(goal)} && document.querySelectorAll('#membershipPlanList [data-plan]').length === ${expectedCodes.length}`, 3_000, `${goal} membership choices`);
         const plans = await evaluate(`[...document.querySelectorAll('#membershipPlanList [data-plan]')].map(node => ({ code: node.dataset.plan, text: node.textContent }))`);
         assert.deepEqual(plans.map((item) => item.code), expectedCodes);
         plans.forEach((item) => {
