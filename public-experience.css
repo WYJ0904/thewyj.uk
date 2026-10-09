@@ -1233,6 +1233,26 @@ html:has(body[data-experience="public"]),body[data-experience="public"] {min-wid
   .aeris-answer-options {flex-wrap:wrap;}
 }
 
+/* Long public changelog versions must reflow at 200% browser zoom. */
+@media (max-width: 360px) {
+  body[data-experience="public"] .site-brand {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+  }
+  body[data-experience="public"] .site-brand-copy {
+    min-width: 0;
+  }
+  body[data-experience="public"] .site-brand-copy small,
+  body[data-experience="public"] #versionNotice strong,
+  body[data-experience="public"] #versionNotice p {
+    overflow-wrap: anywhere;
+  }
+  body[data-experience="public"] #versionNotice:not(.hidden) > div {
+    min-width: 0;
+  }
+}
+
 /* Minimal Aeris/reflow compatibility after the unchanged P2 rules. */
 .aeris-hero-logo {object-fit:contain;background:#fff;border-radius:8px;}
 .aeris-window-shortcuts {display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
