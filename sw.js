@@ -1,4 +1,4 @@
-const CACHE = "wyj-shell-20261009-task25-release49-es-modules";
+const CACHE = "wyj-shell-20261009-release49-changelog-latest1-es-modules";
 const NAVIGATION_TIMEOUT_MS = 5000;
 const ASSET_TIMEOUT_MS = 10000;
 const CORE_SHELL = [
@@ -11,7 +11,7 @@ const CORE_SHELL = [
   "/workspace-experience.css?v=20261009-task25-release49",
   "/changelog.js?v=20261009-task25-release49",
   "/learning-sync.js?v=20261009-task25-release49",
-  "/app.js?v=20261009-task25-release49",
+  "/app.js?v=20261009-task25-release49&changelog-nav=latest-1",
   "/js/core/api.js?v=20261009-task25-release49",
   "/js/core/changelog.js?v=20261009-task25-release49",
   "/js/core/capabilities.js?v=20261009-task25-release49",
