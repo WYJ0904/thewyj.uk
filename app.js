@@ -3637,6 +3637,17 @@ function showPublicHome(pushHistory = true) {
   void loadMembershipPlans().then(plans=>renderPublicPlanCatalog(document,plans)).catch(error=>renderPublicPlanCatalog(document,[],error.message));
 }
 
+function resetChangelogScroll() {
+  const goToLatest = () => {
+    if (currentRoutePath() !== "/changelog" || $("changelogPage")?.classList.contains("hidden")) return;
+    // Route switching in this SPA otherwise preserves scrollY from the last
+    // page, so opening the changelog can land in months-old entries.
+    window.scrollTo({ left: 0, top: 0, behavior: "instant" });
+  };
+  goToLatest();
+  window.requestAnimationFrame(() => window.requestAnimationFrame(goToLatest));
+}
+
 function showChangelog(pushHistory = true) {
   stopProjectActivity();
   currentProject = "";
@@ -3649,6 +3660,7 @@ function showChangelog(pushHistory = true) {
   renderChangelog();
   if (pushHistory) pushRoute("/changelog");
   renderAccountUi();
+  resetChangelogScroll();
 }
 
 let androidDownloadController = null;
