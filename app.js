@@ -3637,6 +3637,18 @@ function showPublicHome(pushHistory = true) {
   void loadMembershipPlans().then(plans=>renderPublicPlanCatalog(document,plans)).catch(error=>renderPublicPlanCatalog(document,[],error.message));
 }
 
+function resetChangelogScroll() {
+  const goToLatest = () => {
+    if (currentRoutePath() !== "/changelog" || $("changelogPage")?.classList.contains("hidden")) return;
+    // This is one long SPA document: changing the visible route does not reset
+    // the previous page's scroll position. Always enter release notes at newest.
+    window.scrollTo({ left: 0, top: 0, behavior: "instant" });
+  };
+  goToLatest();
+  // Also win against layout settling and browser history scroll restoration.
+  window.requestAnimationFrame(() => window.requestAnimationFrame(goToLatest));
+}
+
 function showChangelog(pushHistory = true) {
   stopProjectActivity();
   currentProject = "";
@@ -3649,6 +3661,7 @@ function showChangelog(pushHistory = true) {
   renderChangelog();
   if (pushHistory) pushRoute("/changelog");
   renderAccountUi();
+  resetChangelogScroll();
 }
 
 let androidDownloadController = null;
