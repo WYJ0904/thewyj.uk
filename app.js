@@ -9,26 +9,26 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20261006-mobile-floating-1";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261006-mobile-floating-1";
+} from "./js/core/config.js?v=20261006-task25-flags-1";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261006-task25-flags-1";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?v=20261006-mobile-floating-1";
+} from "./js/core/capabilities.js?v=20261006-task25-flags-1";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20261006-mobile-floating-1";
+} from "./js/core/api.js?v=20261006-task25-flags-1";
 import {
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20261006-mobile-floating-1";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261006-mobile-floating-1";
+} from "./js/core/changelog.js?v=20261006-task25-flags-1";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261006-task25-flags-1";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -39,21 +39,23 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20261006-mobile-floating-1";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261006-mobile-floating-1";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261006-mobile-floating-1";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261006-mobile-floating-1";
-import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?v=20261006-mobile-floating-1";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261006-mobile-floating-1";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20261006-mobile-floating-1";
-import { speakText, stopSpeech } from "./js/language/speech.js?v=20261006-mobile-floating-1";
+} from "./js/core/session.js?v=20261006-task25-flags-1";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261006-task25-flags-1";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261006-task25-flags-1";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261006-task25-flags-1";
+import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?v=20261006-task25-flags-1";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261006-task25-flags-1";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20261006-task25-flags-1";
+import { createFeatureController } from "./js/core/feature-flags.js?v=20261006-task25-flags-1";
+import { createFeatureConsole } from "./js/core/feature-console.js?v=20261006-task25-flags-1";
+import { speakText, stopSpeech } from "./js/language/speech.js?v=20261006-task25-flags-1";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?v=20261006-mobile-floating-1";
-import { formatFinanceMoney } from "./js/finance/format.js?v=20261006-mobile-floating-1";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?v=20261006-mobile-floating-1";
-import { createDashboardView } from "./js/core/dashboard.js?v=20261006-mobile-floating-1";
+} from "./js/language/speech-rate.js?v=20261006-task25-flags-1";
+import { formatFinanceMoney } from "./js/finance/format.js?v=20261006-task25-flags-1";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?v=20261006-task25-flags-1";
+import { createDashboardView } from "./js/core/dashboard.js?v=20261006-task25-flags-1";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -61,15 +63,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?v=20261006-mobile-floating-1";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261006-mobile-floating-1";
+} from "./js/core/perf.js?v=20261006-task25-flags-1";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261006-task25-flags-1";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20261006-mobile-floating-1";
+} from "./js/language/history.js?v=20261006-task25-flags-1";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -106,16 +108,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20261006-mobile-floating-1";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261006-mobile-floating-1";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20261006-mobile-floating-1";
+} from "./js/language/quiz.js?v=20261006-task25-flags-1";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261006-task25-flags-1";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20261006-task25-flags-1";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20261006-mobile-floating-1";
+} from "./js/language/wrong-book.js?v=20261006-task25-flags-1";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -124,7 +126,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20261006-mobile-floating-1";
+} from "./js/membership/account.js?v=20261006-task25-flags-1";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -132,19 +134,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20261006-mobile-floating-1";
+} from "./js/membership/plans.js?v=20261006-task25-flags-1";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20261006-mobile-floating-1";
+} from "./js/membership/recharge.js?v=20261006-task25-flags-1";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20261006-mobile-floating-1";
+} from "./js/admin/formatters.js?v=20261006-task25-flags-1";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -266,6 +268,9 @@ let financeController = null;
 let financeCandidatesController = null;
 let transferController = null;
 let dashboardView = null;
+let featureController = null;
+let featureConsole = null;
+let featureInfrastructureAvailable = false;
 let routeRender = Promise.resolve();
 let routeGeneration = 0;
 let adminUsers = [];
@@ -1199,6 +1204,8 @@ function accountWordLimit(language = state.quizLanguage) {
 }
 
 function renderAccountUi() {
+  featureController?.updateAccount();
+  featureConsole?.setAvailable(featureInfrastructureAvailable);
   const account = state.session && state.account ? state.account : null;
   const badge = $("accountBadge");
   if (!badge) return;
@@ -2899,6 +2906,7 @@ async function showAdminPanel(pushHistory = true) {
   $("adminPanel").setAttribute("aria-hidden", "false");
   renderAccountUi();
   await loadAdminData();
+  await featureConsole?.load();
 }
 
 function leaveAdminPanel() {
@@ -4598,14 +4606,14 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
 });
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?v=20261006-mobile-floating-1", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?v=20261006-mobile-floating-1", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?v=20261006-task25-flags-1", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?v=20261006-task25-flags-1", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?v=20261006-mobile-floating-1", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?v=20261006-mobile-floating-1", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?v=20261006-mobile-floating-1", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?v=20261006-task25-flags-1", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?v=20261006-task25-flags-1", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?v=20261006-task25-flags-1", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render"],
@@ -4665,6 +4673,16 @@ transferController = createLazyController({
   }),
 });
 
+featureConsole = createFeatureConsole({ api, apiGet,
+  getAccount: () => state.session ? state.account : null,
+  refreshFeatures: () => featureController?.refresh(),
+});
+featureController = createFeatureController({ api, apiGet,
+  getAccount: () => state.session ? state.account : null,
+  onAvailable: () => featureConsole?.setAvailable(featureInfrastructureAvailable),
+});
+window.AerisFeatures = Object.freeze({ enabled: key => featureController.enabled(key), channel: () => featureController.channel() });
+
 dashboardView = createDashboardView({
   state: () => state, finance: () => financeController, pending: () => financeCandidatesController,
   transfer: () => transferController, online: () => backendAvailable, ai: () => aiAvailable,
@@ -4695,6 +4713,11 @@ function applyBackendStatus(data) {
 }
 
 function markBackendReachable(data = {}) {
+  if (typeof data.features?.task25_feature_flags === "boolean") {
+    featureInfrastructureAvailable = data.features.task25_feature_flags;
+    featureController?.setAvailable(featureInfrastructureAvailable);
+    featureConsole?.setAvailable(featureInfrastructureAvailable);
+  }
   backendAvailable = true;
   backendFailureMessage = "";
   if (typeof data.ai_ready === "boolean") aiAvailable = data.ai_ready;

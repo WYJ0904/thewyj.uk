@@ -1,0 +1,20 @@
+{
+  "source_commit": "13b952fd64e502aec6af0e800c9a4a3be737d5da",
+  "core_ci_run": 37505935692,
+  "job_id": 112415101968,
+  "artifact_id": 11432770347,
+  "runtime": "isolated Android 11/api30 google_apis x86_64 emulator",
+  "instrumented_test": "uk.thewyj.app.FeatureContractInstrumentedTest",
+  "shared_contract_cases": 19,
+  "suites": [
+    {
+      "file": "outputs/androidTest-results/connected/debug/TEST-emulator-5554 - 11-_app-.xml",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "time_seconds": "0.018"
+    }
+  ],
+  "result": "PASS",
+  "physical_samsung_acceptance": "NOT_EXECUTED"
+}

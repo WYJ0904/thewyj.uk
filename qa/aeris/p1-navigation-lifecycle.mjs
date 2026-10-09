@@ -53,10 +53,16 @@ try {
     document.dispatchEvent(new CustomEvent('thewyj:webview-active',{detail:{active:false}}));
     return { displayed:document.querySelector('#transferQueue progress').value, uploaded:${queueItem}?.uploaded };
   })()`);
-  // Wait for an actual persisted acknowledgement; wall time alone does not
-  // guarantee a PUT has completed on the local R2 fixture.
-  await page.waitFor(`${queueItem}?.uploaded > ${held.uploaded}`, 20000, "acknowledgement while inactive");
+  results.activity = { held };
+  // Progress paints on rAF while persistence is coalesced for 250 ms. The
+  // stored bytes can lag the already painted percentage at suspension. Wait
+  // for an acknowledgement beyond that displayed percentage, so resuming
+  // must expose genuinely newer progress rather than the same painted value.
+  await page.waitFor(`(() => { const item=${queueItem}; return item?.uploaded > ${held.uploaded}
+    && Math.min(100, Math.round(item.uploaded / item.size * 100)) > ${held.displayed}; })()`,
+  20000, "acknowledgement beyond suspended displayed progress");
   const hidden = await page.evaluate(`({displayed:document.querySelector('#transferQueue progress').value, uploaded:${queueItem}?.uploaded})`);
+  results.activity.hidden = hidden;
   assert.equal(hidden.displayed, held.displayed, "hidden WebView must not repaint numeric progress");
   assert.ok(hidden.uploaded > held.uploaded, "durable upload acknowledgements continue while rendering is inactive");
   const resumed = await page.evaluate(`(() => {
@@ -64,6 +70,7 @@ try {
     document.dispatchEvent(new CustomEvent('thewyj:webview-active',{detail:{active:true}}));
     return { displayed:document.querySelector('#transferQueue progress').value, marker:window.__aerisDocumentMarker };
   })()`);
+  results.activity.resumed = resumed;
   assert.ok(resumed.displayed > held.displayed); assert.equal(resumed.marker, "retained");
   assert.equal(await page.evaluate("localStorage.getItem('wyjAccountSession')"), session);
   results.activity = { held, hidden, resumed, sessionPreserved: true };

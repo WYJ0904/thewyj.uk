@@ -1,4 +1,4 @@
-import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20261006-mobile-floating-1";
+import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?v=20261006-task25-flags-1";
 
 export const MAX_STUDY_RECORDS = 500;
 

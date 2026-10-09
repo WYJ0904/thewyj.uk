@@ -11,6 +11,16 @@ try {
  // Entry mounts the public catalogue before account preferences arrive. Settle
  // that owner before comparing row identity across an unchanged model.
  await p.evaluate("window.WYJTools.show('/tools',{})");
+ await p.waitFor(`(() => {
+   const account=JSON.parse(localStorage.getItem('wyjAccountCache')||'null');
+   if(!account?.id)return false;
+   const cached=JSON.parse(localStorage.getItem('toolPreferences:v1:'+encodeURIComponent(account.id))||'null');
+   if(!cached)return false;
+   const rows=[...document.querySelectorAll('[data-tool-card]')];
+   return rows.length===103 && rows.every(row =>
+     row.querySelector('[data-toggle-favorite]')?.getAttribute('aria-pressed')===String(
+       (cached.favorites||[]).some(favorite=>favorite.tool_id===row.dataset.toolCard)));
+ })()`,20000,'account preferences reflected in catalogue');
  await p.evaluate("document.querySelector('#dismissVersionNoticeBtn')?.click();true");
  await p.evaluate("window.__p5ToolRow=document.querySelector('[data-tool-card]');true");await p.click('a[data-site-nav][href="/"]');await p.waitFor("location.pathname==='/'");assert.equal(await p.evaluate("window.__p5ToolRow.isConnected"),false);
  await p.click('a[data-site-nav][href="/tools"]');await p.waitFor("document.querySelectorAll('[data-tool-card]').length===103");assert.equal(await p.evaluate("window.__p5ToolRow===document.querySelector('[data-tool-card]')"),true);
@@ -35,4 +45,12 @@ try {
  assert.equal(await p.evaluate("document.querySelectorAll('#financeCandidateList [data-canonical-identity]').length"),1);
  assert.equal(await p.evaluate("document.querySelector('[data-finance-candidate-editor]').elements.amount.value"),'0.01','an updated hidden row retains the existing unsubmitted amount');
  assert.deepEqual(p.runtimeErrors,[]);console.log(JSON.stringify({catalogTotal:total,batches,toolsParkedIdentity:true,workflowDeepLink:true,ledgerParkedIdentity:true,reviewDraftPreserved:true,runtimeErrors:0}));
+}catch(error){
+ const diagnostic=await p.evaluate(`({path:location.pathname,
+   savedKey:window.__p5ToolRow?.dataset.toolCard,savedConnected:window.__p5ToolRow?.isConnected,
+   savedFavorite:window.__p5ToolRow?.querySelector('[data-toggle-favorite]')?.getAttribute('aria-pressed'),
+   currentKey:document.querySelector('[data-tool-card]')?.dataset.toolCard,
+   currentFavorite:document.querySelector('[data-tool-card] [data-toggle-favorite]')?.getAttribute('aria-pressed'),
+   catalogRows:document.querySelectorAll('[data-tool-card]').length})`).catch(()=>({diagnosticUnavailable:true}));
+ console.error('[p5-contract-diagnostic] '+JSON.stringify(diagnostic));throw error;
 }finally{await p.close();}

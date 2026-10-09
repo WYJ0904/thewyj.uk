@@ -1,0 +1,26 @@
+{
+  "utc_date": "2026-10-07",
+  "production": {
+    "status_http": 200,
+    "config_http": 200,
+    "environment": "production",
+    "app_fields_unchanged": true,
+    "version": "1.3.33",
+    "version_code": 46,
+    "apk_sha256": "17da079bc7428dc87b1b0b2141ca011f6297101fba3a5d2cc6bbac3fe289048c"
+  },
+  "preview": {
+    "url": "https://8e567f72.thewyj-uk.pages.dev",
+    "status_http": 200,
+    "config_http": 200,
+    "environment": "preview",
+    "bindings": {
+      "d1": true,
+      "r2": true,
+      "workers_ai": true
+    },
+    "feature_flags_master": true,
+    "stable_code": 46,
+    "stable_hash": "17da079bc7428dc87b1b0b2141ca011f6297101fba3a5d2cc6bbac3fe289048c"
+  }
+}

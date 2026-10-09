@@ -7,6 +7,9 @@ plugins {
 val thewyjBaseUrl = providers.gradleProperty("THEWYJ_BASE_URL")
     .orElse("https://thewyj.uk")
     .get()
+val paymentDeviceTest = providers.gradleProperty("THEWYJ_PAYMENT_DEVICE_TEST").orElse("false").get().toBoolean()
+// Targets the ordinary R8 build for external instrumentation; it does not enable payment injection.
+val releaseAcceptance = providers.gradleProperty("THEWYJ_RELEASE_ACCEPTANCE").orElse("false").get().toBoolean()
 
 val releaseSigning = mapOf(
     "storeFile" to providers.environmentVariable("THEWYJ_ANDROID_KEYSTORE_FILE").orNull.orEmpty(),
@@ -17,6 +20,7 @@ val releaseSigning = mapOf(
 val hasReleaseSigning = releaseSigning.values.all(String::isNotBlank)
 
 android {
+    testBuildType = if (paymentDeviceTest || releaseAcceptance) "release" else "debug"
     namespace = "uk.thewyj.app"
     compileSdk = 36
 
@@ -30,8 +34,20 @@ android {
         // P4 workspace presentation; preserve package, data and signing identity.
         versionCode = 46
         versionName = "1.3.33"
+        // Candidate overrides do not advance committed Stable metadata or pointers.
+        val candidateCode = providers.gradleProperty("THEWYJ_CANDIDATE_VERSION_CODE").orNull
+        val candidateName = providers.gradleProperty("THEWYJ_CANDIDATE_VERSION_NAME").orNull
+        if (candidateCode != null || candidateName != null) {
+            require(candidateCode != null && candidateName != null)
+            require(candidateCode.toInt() > requireNotNull(versionCode))
+            require(candidateName.matches(Regex("[0-9]+(\\.[0-9]+){2,3}")))
+            versionCode = candidateCode.toInt()
+            versionName = candidateName
+        }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "THEWYJ_BASE_URL", "\"$thewyjBaseUrl\"")
+        buildConfigField("boolean", "PAYMENT_DIAGNOSTICS", providers.gradleProperty("THEWYJ_PAYMENT_DIAGNOSTICS").orElse("false").get().toBoolean().toString())
+        buildConfigField("boolean", "PAYMENT_DEVICE_TEST", paymentDeviceTest.toString())
     }
 
     signingConfigs {
@@ -54,12 +70,14 @@ android {
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = !paymentDeviceTest
+            isShrinkResources = !paymentDeviceTest
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
+                "proguard-runtime-contracts.pro",
             )
+            testProguardFiles("proguard-test-rules.pro")
         }
     }
 
@@ -76,6 +94,8 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
+    sourceSets.getByName("test").resources.directories.add("../../qa/task25")
+    sourceSets.getByName("androidTest").assets.directories.add("../../qa/task25")
 
     packaging {
         resources.excludes += setOf(

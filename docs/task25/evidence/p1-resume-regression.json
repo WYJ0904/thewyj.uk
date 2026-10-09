@@ -1,0 +1,30 @@
+{
+  "rapid": {
+    "path": "/finance",
+    "historyGrowth": 1,
+    "handlerMs": 9
+  },
+  "transferNavigation": {
+    "immediatePath": "/transfer",
+    "firstRafMs": 74.1000000089407,
+    "marker": "retained",
+    "path": "/transfer"
+  },
+  "activity": {
+    "held": {
+      "displayed": 8,
+      "uploaded": 16777216
+    },
+    "hidden": {
+      "displayed": 8,
+      "uploaded": 50331648
+    },
+    "resumed": {
+      "displayed": 24,
+      "marker": "retained"
+    },
+    "sessionPreserved": true
+  },
+  "scope": "Local isolated Pages/D1/R2 browser regression; no physical device claim",
+  "verified_at_utc": "2026-10-07"
+}

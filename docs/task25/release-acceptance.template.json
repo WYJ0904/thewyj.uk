@@ -1,0 +1,200 @@
+{
+  "source_commit": null,
+  "base_main_commit": null,
+  "final_main_commit": null,
+  "production_migration": {
+    "status": "NOT_EXECUTED",
+    "evidence": ""
+  },
+  "production_deployment": {
+    "status": "NOT_EXECUTED",
+    "evidence": ""
+  },
+  "production_smoke": {
+    "status": "NOT_EXECUTED",
+    "evidence": ""
+  },
+  "original_signing": {
+    "status": "BLOCKED",
+    "evidence": ""
+  },
+  "samsung_physical": {
+    "status": "NOT_EXECUTED",
+    "evidence": ""
+  },
+  "ci": {
+    "status": "NOT_EXECUTED",
+    "evidence": "",
+    "run_id": null
+  },
+  "final_review": {
+    "status": "NOT_EXECUTED",
+    "evidence": ""
+  },
+  "main_ci": {
+    "status": "NOT_EXECUTED",
+    "evidence": "",
+    "run_id": null
+  },
+  "samsung": {
+    "manufacturer": "",
+    "android_sdk": null,
+    "from_version_code": 48,
+    "to_version_code": 49,
+    "physical": false,
+    "in_place": false,
+    "data_preserved": false,
+    "session_preserved": false,
+    "model": "",
+    "android_version": "",
+    "adb_identity": "",
+    "before_version": "1.3.35/48",
+    "after_version": "1.3.36/49",
+    "checks": {
+      "package_version": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "signing_continuity": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "session_preservation": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "room_data_preservation": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "pending_recovery_identity": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "finance_pending": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "legacy_local_only_recovery": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "notification_finance_sync": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "amount_notification_accounting": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "back": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "resume": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "cold_start": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "warm_start": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "webview_native_consistency": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "account_targeting_rollout": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "stable_beta_experimental": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "kill_switch": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "offline_flag_fallback": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "offline_startup": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "online_to_offline": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "flag_service_unavailable": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "foreground_background": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "webview_reload": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "process_restoration": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "network_recovery": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "apk_update_metadata": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "release_channel_recognition": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "haptic": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      },
+      "system_install_permissions": {
+        "status": "NOT_EXECUTED",
+        "evidence": ""
+      }
+    }
+  },
+  "r2": {
+    "bucket": "wyj-cloud-production",
+    "key": "app/android/thewyj-android-1.3.36.apk",
+    "readback_sha256": null,
+    "readback_size_bytes": null
+  },
+  "preview_admin_api": {
+    "status": "NOT_EXECUTED",
+    "evidence": ""
+  },
+  "preview_admin_ui": {
+    "status": "NOT_EXECUTED",
+    "evidence": ""
+  },
+  "preview_apk_download": {
+    "status": "NOT_EXECUTED",
+    "evidence": ""
+  },
+  "cloudflare_d1_preflight": {
+    "status": "NOT_EXECUTED",
+    "evidence": ""
+  },
+  "release_target": {
+    "versionName": "1.3.36",
+    "versionCode": 49,
+    "installedVersionName": "1.3.35",
+    "installedVersionCode": 48
+  }
+}

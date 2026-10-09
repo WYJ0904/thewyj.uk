@@ -17,6 +17,8 @@ function check(g,width,session){
 }
 for(const width of [320,390,1366,1920]){
   const page=await openPage({cdpUrl:process.env.WYJ_CDP_URL||'http://127.0.0.1:9225',baseUrl,width,height:900,mobile:width<=390});
+  // Widget ResizeObserver work is applied on the next frame after a viewport or route change.
+  const settleLayout=()=>page.evaluate("document.fonts.ready.then(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve(true)))))");
   try{
     await page.navigate('/');await page.waitFor("document.documentElement.dataset.aerisMotionReady==='true' && !document.getElementById('entryScreen') && !document.querySelector('#publicHome').classList.contains('hidden')");
     await page.evaluate("window.__p33Home=document.querySelector('#publicHome');window.__p33Skeleton=[...window.__p33Home.querySelectorAll('[data-public-section],.hero-scene-card,.capability-panel,[role=tabpanel]')];true");
@@ -33,7 +35,7 @@ for(const width of [320,390,1366,1920]){
         const previews=[];
         for(const kind of ['learning','tools','finance','share','account']){
           await page.click(`[data-core-capability=${kind}]>.capability-trigger`);await delay(180);const g=await page.evaluate(geometry);check(g,width,session);previews.push({kind,geometry:g});
-          await page.send('Emulation.setDeviceMetricsOverride',{width:Math.floor(width/2),height:450,deviceScaleFactor:2,mobile:false});const reflow=await page.evaluate(geometry);assert.equal(reflow.width,Math.floor(width/2));assert.ok(reflow.overflow<=1);assert.deepEqual(reflow.previewClipped,[]);await page.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<=390});
+          await page.send('Emulation.setDeviceMetricsOverride',{width:Math.floor(width/2),height:450,deviceScaleFactor:2,mobile:false});await settleLayout();const reflow=await page.evaluate(geometry);assert.equal(reflow.width,Math.floor(width/2));assert.ok(reflow.overflow<=1);assert.deepEqual(reflow.previewClipped,[]);await page.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<=390});await settleLayout();
         }
         const copy=await page.evaluate("document.querySelector('#publicHome').textContent");for(const phrase of ['一个账户，日常所需','一处继续','清楚、可靠的产品','不是功能清单','继续今天的事'])assert.equal(copy.includes(phrase),false);
         assert.equal(await page.evaluate("document.querySelectorAll('#publicHome .section-kicker').length"),0);
@@ -43,10 +45,10 @@ for(const width of [320,390,1366,1920]){
       if(session==='authenticated'){
         const sessionValue=await page.evaluate("localStorage.getItem('wyjAccountSession')");assert.ok(sessionValue?.length>20);const fingerprint=createHash('sha256').update(sessionValue).digest('hex');
         for(const route of ['/','/select','/?native-navigation=1']){
-          await page.navigate(route);await page.waitFor("!document.getElementById('entryScreen') && !document.querySelector('#publicHome').classList.contains('hidden') && document.querySelector('#publicHome').dataset.sessionMode==='authenticated'",30000,'session restored shared home');if(!await page.evaluate("document.querySelector('#homeProductDetails').open"))await page.click('#homeProductDetails>summary');check(await page.evaluate(geometry),width,'authenticated');assert.equal(await page.evaluate("localStorage.getItem('wyjAccountSession')"),sessionValue);
+          await page.navigate(route);await page.waitFor("!document.getElementById('entryScreen') && !document.querySelector('#publicHome').classList.contains('hidden') && document.querySelector('#publicHome').dataset.sessionMode==='authenticated'",30000,'session restored shared home');if(!await page.evaluate("document.querySelector('#homeProductDetails').open"))await page.click('#homeProductDetails>summary');await settleLayout();check(await page.evaluate(geometry),width,'authenticated');assert.equal(await page.evaluate("localStorage.getItem('wyjAccountSession')"),sessionValue);
           if(route.includes('native-navigation'))assert.equal(await page.evaluate("Boolean(window.WYJAndroidNavigation)"),true);
         }
-        await page.send('Page.reload',{ignoreCache:true});await page.waitFor("!document.getElementById('entryScreen') && document.querySelector('#publicHome').dataset.sessionMode==='authenticated'",30000);if(!await page.evaluate("document.querySelector('#homeProductDetails').open"))await page.click('#homeProductDetails>summary');check(await page.evaluate(geometry),width,'authenticated');assert.equal(await page.evaluate("localStorage.getItem('wyjAccountSession')"),sessionValue);
+        await page.send('Page.reload',{ignoreCache:true});await page.waitFor("!document.getElementById('entryScreen') && document.querySelector('#publicHome').dataset.sessionMode==='authenticated' && !document.querySelector('#publicHome').classList.contains('hidden') && document.querySelector('#publicHome').getBoundingClientRect().height > 0",30000,'hard reload restores visible authenticated home');if(!await page.evaluate("document.querySelector('#homeProductDetails').open"))await page.click('#homeProductDetails>summary');await settleLayout();check(await page.evaluate(geometry),width,'authenticated');assert.equal(await page.evaluate("localStorage.getItem('wyjAccountSession')"),sessionValue);
         restores.push({width,realLogin:true,hardReload:true,aliasSelect:true,nativeRouteBridge:true,sessionFingerprint:fingerprint,home:'/',sameTemplate:true});
       }
     }

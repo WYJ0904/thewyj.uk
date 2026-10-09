@@ -19,6 +19,47 @@ defaults:
     shell: bash
 
 jobs:
+  task25-cloud-readiness:
+    name: Task 25 cloud credential discovery
+    if: github.ref == 'refs/heads/main' || (startsWith(github.head_ref, 'codex/task25-') && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+      WYJ_TASK25_ADMIN_SESSION: ${{ secrets.WYJ_TASK25_ADMIN_SESSION }}
+      THEWYJ_ANDROID_KEYSTORE_B64: ${{ secrets.THEWYJ_ANDROID_KEYSTORE_B64 }}
+      THEWYJ_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.THEWYJ_ANDROID_KEYSTORE_PASSWORD }}
+      THEWYJ_ANDROID_KEY_ALIAS: ${{ secrets.THEWYJ_ANDROID_KEY_ALIAS }}
+      THEWYJ_ANDROID_KEY_PASSWORD: ${{ secrets.THEWYJ_ANDROID_KEY_PASSWORD }}
+    steps:
+      - name: Record credential presence without exposing values
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib
+          keys = ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'THEWYJ_ANDROID_KEYSTORE_B64',
+                  'THEWYJ_ANDROID_KEYSTORE_PASSWORD', 'THEWYJ_ANDROID_KEY_ALIAS', 'THEWYJ_ANDROID_KEY_PASSWORD', 'WYJ_TASK25_ADMIN_SESSION']
+          presence = {key: bool(os.environ.get(key)) for key in keys}
+          cloud_ready = all(presence[key] for key in keys[:2])
+          signing_ready = all(presence[key] for key in keys[2:6])
+          result = {'credential_presence': presence, 'cloud_credentials_configured': cloud_ready,
+                    'signing_credentials_configured': signing_ready,
+                    'admin_session_configured': presence['WYJ_TASK25_ADMIN_SESSION'],
+                    'remote_d1_administration': 'NOT_EXECUTED' if cloud_ready else 'BLOCKED_MISSING_CREDENTIALS',
+                    'remote_r2_administration': 'NOT_EXECUTED' if cloud_ready else 'BLOCKED_MISSING_CREDENTIALS',
+                    'pages_git_integration': 'INDEPENDENT_HTTP_CHECK_REQUIRED',
+                    'production_migration': 'NOT_EXECUTED', 'production_deployment': 'NOT_EXECUTED',
+                    'stable_pointer_changed': False}
+          pathlib.Path('artifacts').mkdir(exist_ok=True)
+          pathlib.Path('artifacts/task25-cloud-readiness.json').write_text(json.dumps(result, indent=2) + '\n')
+          print(json.dumps(result, indent=2))
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: task25-cloud-readiness
+          path: artifacts/task25-cloud-readiness.json
+          retention-days: 90
+
   python-tests:
     name: Python syntax and unittest
     runs-on: ubuntu-latest
@@ -409,6 +450,12 @@ jobs:
           set -euo pipefail
           python scripts/functional_audit_gate.py 2>&1 | tee artifacts/functional-audit-gate.log
 
+      - name: Task 25 flags, rollout, migration and Web/native contracts
+        run: |
+          set -euo pipefail
+          npm run test:task25 2>&1 | tee artifacts/task25-contracts.log
+          npm run test:task25-release 2>&1 | tee artifacts/task25-release-validation.log
+
       - name: Upload JavaScript and static reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -495,6 +542,22 @@ jobs:
             --apk app/build/outputs/apk/debug/app-debug.apk \
             --allow-debug-suffix 2>&1 | tee ../artifacts/android-release-apk-check.log
 
+      - name: Build an unreleased Task 25 candidate without advancing Stable
+        if: startsWith(github.head_ref, 'codex/task25-')
+        working-directory: android
+        run: |
+          set -euo pipefail
+          ./gradlew assembleRelease bundleRelease assembleDebugAndroidTest --no-daemon --stacktrace \
+            -PTHEWYJ_CANDIDATE_VERSION_NAME=1.3.36 -PTHEWYJ_CANDIDATE_VERSION_CODE=49
+          mkdir -p ../artifacts/task25-candidate
+          cp app/build/outputs/apk/release/app-release-unsigned.apk ../artifacts/task25-candidate/thewyj-android-1.3.36-candidate-unsigned.apk
+          cp app/build/outputs/bundle/release/app-release.aab ../artifacts/task25-candidate/thewyj-android-1.3.36-candidate-unsigned.aab
+          python3 ../scripts/stage_android_candidate.py \
+            --apk ../artifacts/task25-candidate/thewyj-android-1.3.36-candidate-unsigned.apk \
+            --aab ../artifacts/task25-candidate/thewyj-android-1.3.36-candidate-unsigned.aab \
+            --version-name 1.3.36 --version-code 49 --signing-status unsigned \
+            --output ../artifacts/task25-candidate/candidate-metadata.json
+
       - name: Upload Android reports and test APK
         if: always()
         uses: actions/upload-artifact@v7
@@ -505,8 +568,56 @@ jobs:
             android/app/build/reports/tests/
             android/app/build/reports/lint-results-debug.*
             android/app/build/outputs/apk/debug/app-debug.apk
+            artifacts/task25-candidate/
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 90
+
+  task25-android-instrumentation:
+    name: Task 25 Android runtime contract
+    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - name: Install compile SDK and enable emulator acceleration
+        run: |
+          set -euo pipefail
+          sudo chmod a+rw /dev/kvm
+          android_sdk="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          sdkmanager="$(find "${android_sdk}/cmdline-tools" -type f -path '*/bin/sdkmanager' -print | sort -V | tail -n 1)"
+          test -x "${sdkmanager}"
+          echo "ANDROID_HOME=${android_sdk}" >> "${GITHUB_ENV}"
+          echo "ANDROID_SDK_ROOT=${android_sdk}" >> "${GITHUB_ENV}"
+          set +o pipefail
+          yes | "${sdkmanager}" "platforms;android-36" "build-tools;36.0.0"
+          sdkmanager_status=${PIPESTATUS[1]}
+          set -o pipefail
+          test "${sdkmanager_status}" = 0
+          chmod +x android/gradlew
+      - name: Run shared contract on an isolated Android 11 emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: cd android && ./gradlew connectedDebugAndroidTest --no-daemon --stacktrace -Pandroid.testInstrumentationRunnerArguments.class=uk.thewyj.app.FeatureContractInstrumentedTest
+      - name: Upload Android runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: task25-android-runtime-${{ github.run_attempt }}
+          path: |
+            android/app/build/reports/androidTests/
+            android/app/build/outputs/androidTest-results/
+          retention-days: 90
 
   browser-tests:
     name: Browser flow (${{ matrix.suite }})
@@ -705,7 +816,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Set up Python readiness helper
         uses: actions/setup-python@v7
@@ -729,6 +840,8 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --disable-pip-version-check -r qa/requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
 
       - name: Prepare fresh Cloudflare-only D1 state
         run: |
@@ -815,6 +928,7 @@ jobs:
             --binding TASK21_NOTIFICATION_WRITES_ENABLED=true \
             --binding TASK22_TRANSFER_READS_ENABLED=true \
             --binding TASK22_TRANSFER_WRITES_ENABLED=true \
+            --binding TASK25_FEATURE_FLAGS_ENABLED=true \
             --binding WORKERS_AI_ENABLED=false \
             --binding LEGACY_API_FALLBACK_ENABLED=false \
             --binding WYJ_TASK12_PASSWORD_PEPPER="$WYJ_TASK12_PASSWORD_PEPPER" \
@@ -889,6 +1003,27 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_task18_browser.mjs 2>&1 | tee artifacts/task18-browser.log
+
+      - name: Task 25 feature administration and release channel browser acceptance
+        run: |
+          set -euo pipefail
+          node qa/task25/feature-flags-browser.mjs 2>&1 | tee artifacts/task25-browser.log
+          python3 - <<'PY'
+          import json, os, subprocess, urllib.request
+          origin = 'http://127.0.0.1:8894'
+          request = urllib.request.Request(origin + '/api/login',
+              data=json.dumps({'username': 'wyj', 'secret': os.environ['WYJ_TEST_ADMIN_SECRET']}).encode(),
+              headers={'Content-Type': 'application/json', 'Origin': origin})
+          with urllib.request.urlopen(request, timeout=30) as response:
+              session = json.load(response)['session']
+          subprocess.run(['python3', 'qa/task25/remote-admin-smoke.py', '--origin', origin,
+              '--environment', 'development', '--output', 'artifacts/task25-admin-release-smoke.json'],
+              env={**os.environ, 'WYJ_TASK25_ADMIN_SESSION': session}, check=True)
+          subprocess.run(['node', 'qa/task25/remote-admin-ui-smoke.mjs', '--origin', origin,
+              '--environment', 'development', '--output', 'artifacts/task25-admin-ui-release-smoke.json'],
+              env={**os.environ, 'WYJ_TASK25_ADMIN_SESSION': session, 'WYJ_TASK25_UI_LATENCY_MS': '150',
+                   'WYJ_TASK25_RATE_LIMIT_REGRESSION': 'true'}, check=True)
+          PY
 
       - name: Run complete toolbox browser matrix on Cloudflare D1 and R2
         env:

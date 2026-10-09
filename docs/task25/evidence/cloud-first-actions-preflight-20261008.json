@@ -1,0 +1,37 @@
+{
+  "source_commit": "c9772436a2cd16b8b2914b4216a1ba67a20afa64",
+  "checked_at_utc": "2026-10-08T11:51:12.514661+00:00",
+  "preview_origin": "https://codex-task25-flags-release-c.thewyj-uk.pages.dev",
+  "readiness_execution": "COMPLETED",
+  "release_acceptance": "BLOCKED",
+  "credential_presence": {
+    "CLOUDFLARE_API_TOKEN": false,
+    "CLOUDFLARE_ACCOUNT_ID": false,
+    "WYJ_TASK25_ADMIN_SESSION": false,
+    "THEWYJ_ANDROID_KEYSTORE_B64": false,
+    "THEWYJ_ANDROID_KEYSTORE_PASSWORD": false,
+    "THEWYJ_ANDROID_KEY_ALIAS": false,
+    "THEWYJ_ANDROID_KEY_PASSWORD": false
+  },
+  "production_migration": "NOT_EXECUTED",
+  "production_deployment": "NOT_EXECUTED",
+  "signed_candidate": "NOT_EXECUTED",
+  "physical_device_acceptance": "NOT_EXECUTED",
+  "stable_pointer_modified": false,
+  "real_user_data_modified": false,
+  "gates": {
+    "production_existing_readonly": "PASS",
+    "preview_apk_download": "PASS",
+    "cloudflare_d1_r2": "BLOCKED: CLOUDFLARE ADMIN TOKEN",
+    "preview_admin_api": "BLOCKED: ADMIN SESSION",
+    "preview_admin_ui": "BLOCKED: ADMIN SESSION",
+    "production_signing": "BLOCKED: PRODUCTION SIGNING CREDENTIALS",
+    "physical_samsung": "BLOCKED / NOT EXECUTED"
+  },
+  "adb_observation": {
+    "command_exit": 0,
+    "output": "List of devices attached",
+    "physical_identity_verified": false
+  },
+  "ordering_dependency": "PRODUCTION_FLAGS_CHANNELS_REQUIRED_BEFORE_FULL_PHYSICAL_ACCEPTANCE"
+}

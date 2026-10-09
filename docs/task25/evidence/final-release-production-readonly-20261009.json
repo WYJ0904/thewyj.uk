@@ -1,0 +1,158 @@
+{
+  "checked_at_utc": "2026-10-09T01:32:46.751758+00:00",
+  "origin": "https://thewyj.uk",
+  "status": {
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "body": {
+      "ok": true,
+      "status": "ok",
+      "service": "wyj-cloud-foundation",
+      "environment": "production",
+      "build": "2026-08-26-task15-cloud-only",
+      "time": "2026-10-09T01:32:49.484Z",
+      "auth": true,
+      "backend_ready": true,
+      "ai_ready": true,
+      "model": "@cf/meta/llama-3.1-8b-instruct-fast",
+      "bindings": {
+        "d1": true,
+        "r2": true,
+        "workers_ai": true
+      },
+      "task11": {
+        "schema_ready": true,
+        "schema_version": "1"
+      },
+      "task12": {
+        "schema_ready": true,
+        "schema_version": "1",
+        "session_strategy": "invalidate_legacy_sessions",
+        "password_pepper_configured": true
+      },
+      "task13": {
+        "schema_ready": true,
+        "schema_version": "1",
+        "payment_primary": true
+      },
+      "task14": {
+        "schema_ready": true,
+        "schema_version": "1",
+        "temporary_primary": true,
+        "secret_configured": true
+      },
+      "task15": {
+        "schema_ready": true,
+        "schema_version": "1",
+        "cloud_only": true
+      },
+      "task16": {
+        "schema_ready": true,
+        "schema_version": "1",
+        "cloud_reads": true,
+        "cloud_writes": true
+      },
+      "task18": {
+        "schema_ready": true,
+        "schema_version": "1",
+        "enabled": true,
+        "owner_count": 1
+      },
+      "task20": {
+        "schema_ready": true,
+        "schema_version": "1",
+        "enabled": true,
+        "session_secret_configured": true
+      },
+      "task22": {
+        "schema_ready": true,
+        "schema_version": "2",
+        "reads_enabled": true,
+        "writes_enabled": true
+      },
+      "features": {
+        "cloud_foundation": true,
+        "cloud_reads": true,
+        "cloud_writes": true,
+        "task11_cloud_reads": true,
+        "task11_cloud_writes": true,
+        "task12_cloud_accounts": true,
+        "task12_import": false,
+        "task12_password_pepper": true,
+        "task13_cloud_reads": true,
+        "task13_cloud_writes": true,
+        "task13_import": false,
+        "task13_payment_primary": true,
+        "task14_cloud_reads": true,
+        "task14_cloud_writes": true,
+        "task14_import": false,
+        "task14_temporary_primary": true,
+        "task14_legacy_writes_frozen": true,
+        "task14_temporary_secret": true,
+        "workers_ai": true,
+        "task15_cloud_only": true,
+        "task16_cloud_reads": true,
+        "task16_cloud_writes": true,
+        "task16_import": false,
+        "task18_admin_messages": true,
+        "task20_android_app": true,
+        "task22_transfer_reads": true,
+        "task22_transfer_writes": true,
+        "legacy_api_fallback": false,
+        "payment_cloud_migration": true
+      },
+      "rate_limit": {
+        "enabled": true,
+        "degraded": false,
+        "limit": 120,
+        "window_seconds": 60
+      },
+      "degraded_reasons": [],
+      "request_id": "46cabe8a-fb0f-44ea-b772-1e95eb453ee1"
+    }
+  },
+  "app/config": {
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "body": {
+      "ok": true,
+      "app": {
+        "name": "Aeris",
+        "application_id": "uk.thewyj.app",
+        "latest_version_code": 46,
+        "latest_version_name": "1.3.33",
+        "minimum_version_code": 1,
+        "download_url": "https://thewyj.uk/api/app/download",
+        "release_date": "2026-10-06",
+        "apk_file_name": "thewyj-android-1.3.33.apk",
+        "apk_sha256": "17da079bc7428dc87b1b0b2141ca011f6297101fba3a5d2cc6bbac3fe289048c",
+        "apk_size_bytes": 47893965,
+        "release_notes_build": "2026-10-06-aeris-mobile-floating-1.3.33",
+        "release_notes": "- 全新 Aeris 首页与可配置 Widget。\n- 恢复手机端悬浮卡片布局。\n- 手机与桌面的 Widget 位置、尺寸和旋转现在独立保存。\n- 修复桌面布局应用到手机后可能出现的卡片越界问题。\n- 改进手机端触控、旋转与尺寸边界处理。\n- 首页交互与稳定性优化。"
+      },
+      "request_id": "816c1915-61c5-44a1-b493-156490908473"
+    }
+  },
+  "features": {
+    "status": 404,
+    "content_type": "application/json; charset=utf-8",
+    "body": {
+      "ok": false,
+      "error": "接口不存在",
+      "code": "api_route_not_found",
+      "retryable": false,
+      "request_id": "a7bc8a15-9370-416c-a63b-86b34aae7c7f"
+    }
+  },
+  "release-channel": {
+    "status": 404,
+    "content_type": "application/json; charset=utf-8",
+    "body": {
+      "ok": false,
+      "error": "接口不存在",
+      "code": "api_route_not_found",
+      "retryable": false,
+      "request_id": "5fd1cce8-81ca-49ed-96d2-ac00ba14653f"
+    }
+  }
+}

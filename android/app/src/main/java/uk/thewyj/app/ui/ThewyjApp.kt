@@ -98,6 +98,8 @@ import uk.thewyj.app.core.update.UpdateUiState
 import uk.thewyj.app.core.web.ThewyjWebView
 import uk.thewyj.app.core.web.webContentActive
 import kotlinx.coroutines.flow.StateFlow
+import uk.thewyj.app.core.features.FeatureUiState
+import uk.thewyj.app.core.features.ReleaseChannel
 
 @Composable
 fun ThewyjApp(viewModel: AppViewModel) {
@@ -110,12 +112,14 @@ fun ThewyjApp(viewModel: AppViewModel) {
     val nativeDark by viewModel.nativeDark.collectAsStateWithLifecycle()
     val authBusy by viewModel.authBusy.collectAsStateWithLifecycle()
     val paymentVerification by viewModel.paymentVerification.collectAsStateWithLifecycle()
+    val features by viewModel.features.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = androidx.compose.ui.platform.LocalContext.current
 
     LifecycleResumeEffect(Unit) {
         viewModel.refreshUpdatePermission()
-        onPauseOrDispose { }
+        viewModel.resumeFeatures()
+        onPauseOrDispose { viewModel.pauseFeatures() }
     }
 
     LaunchedEffect(notice) {
@@ -157,6 +161,8 @@ fun ThewyjApp(viewModel: AppViewModel) {
                 webEpoch = webEpoch,
                 navigationEpoch = navigationEpoch,
                 updateState = viewModel.updateState,
+                featureState = features,
+                onSelectChannel = viewModel::selectReleaseChannel,
                 onDestination = viewModel::select,
                 onOpenRoute = viewModel::openRoute,
                 onWebRouteChanged = viewModel::onWebRouteChanged,
@@ -331,6 +337,8 @@ private fun AuthenticatedShell(
     webEpoch: Int,
     navigationEpoch: Int,
     updateState: StateFlow<UpdateUiState>,
+    featureState: FeatureUiState,
+    onSelectChannel: (ReleaseChannel) -> Unit,
     onDestination: (AppDestination) -> Unit,
     onOpenRoute: (String) -> Unit,
     onWebRouteChanged: (String) -> Unit,
@@ -409,6 +417,8 @@ private fun AuthenticatedShell(
                     mode = state.mode,
                     message = state.message,
                     updateStateFlow = updateState,
+                    featureState = featureState,
+                    onSelectChannel = onSelectChannel,
                     onOpenRoute = onOpenRoute,
                     onOpenNotifications = { onDestination(AppDestination.NOTIFICATIONS) },
                     onOpenTransfer = { overlays = overlays.copy(transfer = true) },
@@ -510,6 +520,8 @@ private fun MyScreen(
     mode: ConnectionMode,
     message: String,
     updateStateFlow: StateFlow<UpdateUiState>,
+    featureState: FeatureUiState,
+    onSelectChannel: (ReleaseChannel) -> Unit,
     onOpenRoute: (String) -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenTransfer: () -> Unit,
@@ -568,6 +580,25 @@ private fun MyScreen(
                 onOpenTransfer = onOpenTransfer,
                 onOpenPermissions = onOpenPermissions,
             )
+            if (featureState.available) {
+                ThewyjCard(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(ThewyjSpacing.Lg), verticalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
+                        Text("体验通道", style = MaterialTheme.typography.titleMedium)
+                        Text("Beta 和 Experimental 可接收开放的预览功能。尚未发布的 APK 不会替换正式版本。")
+                        ReleaseChannel.entries.forEach { channel ->
+                            OutlinedButton(
+                                onClick = { onSelectChannel(channel) },
+                                enabled = !featureState.loading && featureState.snapshot != null,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(channel.label + if (featureState.snapshot?.channel == channel) " · 已选" else "")
+                            }
+                        }
+                        if (featureState.enabled("aeris_experimental_badge")) Text("预览体验已开放")
+                        if (featureState.message.isNotBlank()) Text(featureState.message)
+                    }
+                }
+            }
             MyAdvancedSection(
                 updateState = updateState,
                 onCheckUpdate = onCheckUpdate,

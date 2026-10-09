@@ -1,0 +1,31 @@
+{
+  "source": "local isolated Pages/D1/R2",
+  "results": [
+    {
+      "width": 390,
+      "adminCreate": true,
+      "zeroPercent": true,
+      "userOverride": true,
+      "killSwitch": true,
+      "channelPersistence": true,
+      "xssSafe": true,
+      "noOverflow": true,
+      "offlineRecovery": true
+    },
+    {
+      "width": 1366,
+      "adminCreate": true,
+      "zeroPercent": true,
+      "userOverride": true,
+      "killSwitch": true,
+      "channelPersistence": true,
+      "xssSafe": true,
+      "noOverflow": true,
+      "offlineRecovery": true
+    }
+  ],
+  "source_commit": "13b952fd64e502aec6af0e800c9a4a3be737d5da",
+  "github_core_ci_run": 37505935692,
+  "github_artifact_id": 11432073503,
+  "remote_cloudflare_acceptance": false
+}

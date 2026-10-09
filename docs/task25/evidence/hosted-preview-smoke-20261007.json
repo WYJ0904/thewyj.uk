@@ -1,0 +1,29 @@
+{
+  "checked_at_utc": "2026-10-07T11:30:25.938878+00:00",
+  "origin": "https://8e567f72.thewyj-uk.pages.dev",
+  "deployment": "PASS_EXISTING_CLOUDFLARE_GIT_INTEGRATION",
+  "environment": "preview",
+  "d1_binding": true,
+  "r2_binding": true,
+  "service_master_enabled": true,
+  "synthetic_username": "t25cloud_65d85c81b0",
+  "synthetic_account_id": "6062c620-c057-4f86-b6f9-b835736e6879",
+  "real_user_data_modified": false,
+  "registration_http": 201,
+  "browser_login_http": 200,
+  "native_login_http": 200,
+  "anonymous_features_http": 401,
+  "ordinary_user_admin_http": 403,
+  "browser_features_http": 200,
+  "native_features_http": 200,
+  "webview_cookie_features_http": 200,
+  "features_error_code": null,
+  "channel_checks": [
+    "beta",
+    "experimental",
+    "stable"
+  ],
+  "task25_remote_acceptance": "USER_CHANNEL_AND_IDENTITY_PASS; ADMIN_ROLLOUT_NOT_EXECUTED",
+  "stable_version_code": 46,
+  "stable_apk_sha256": "17da079bc7428dc87b1b0b2141ca011f6297101fba3a5d2cc6bbac3fe289048c"
+}

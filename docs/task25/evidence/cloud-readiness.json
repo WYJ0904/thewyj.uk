@@ -1,0 +1,29 @@
+{
+  "credential_presence": {
+    "CLOUDFLARE_API_TOKEN": false,
+    "CLOUDFLARE_ACCOUNT_ID": false,
+    "THEWYJ_ANDROID_KEYSTORE_B64": false,
+    "THEWYJ_ANDROID_KEYSTORE_PASSWORD": false,
+    "THEWYJ_ANDROID_KEY_ALIAS": false,
+    "THEWYJ_ANDROID_KEY_PASSWORD": false
+  },
+  "cloud_credentials_configured": false,
+  "signing_credentials_configured": false,
+  "production_migration": "NOT_EXECUTED",
+  "production_deployment": "NOT_EXECUTED",
+  "stable_pointer_changed": false,
+  "credential_probe_run": 37512761641,
+  "credential_probe_artifact_id": 11435633925,
+  "remote_d1_administration": "BLOCKED_MISSING_CREDENTIALS",
+  "remote_r2_administration": "BLOCKED_MISSING_CREDENTIALS",
+  "pages_preview_deployment": "PASS_EXISTING_GIT_INTEGRATION",
+  "pages_preview_evidence": "hosted-preview-smoke-20261007.json",
+  "remote_feature_acceptance": "USER_CHANNEL_AND_IDENTITY_PASS_ADMIN_ROLLOUT_NOT_EXECUTED",
+  "initial_preview_inference_superseded_by_real_http_probe": true,
+  "preview_schema": "AVAILABLE_BY_AUTHENTICATED_API_PROBE",
+  "preview_migration_ledger": "NOT_INSPECTED",
+  "preview_migration_executed_by_this_codex": false,
+  "preview_migration_executor_time": "NOT_VERIFIED",
+  "production_remote_read_only_probe": "BLOCKED_MISSING_CREDENTIALS_2026-10-07",
+  "hosted_admin_rollout": "NOT_EXECUTED_NO_AUTHORIZED_ADMIN_SESSION"
+}

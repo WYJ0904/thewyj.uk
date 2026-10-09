@@ -1,0 +1,42 @@
+{
+  "checked_at_utc": "2026-10-09T01:44:54.636261+00:00",
+  "baseline_head": "c0ed2433d41ae7de861c12f658b7bd7a2bb54a3e",
+  "main_head": "efc05c3596c83a12d668911c5f891d2d5f3c395a",
+  "pr": 96,
+  "pr_state": "Draft/open/unmerged",
+  "baseline_core_ci": {
+    "id": 37780346466,
+    "status": "FAILURE",
+    "success_jobs": 5,
+    "failure_jobs": 1,
+    "skipped_jobs": 2,
+    "failed_job_id": 113322150384,
+    "native_contract_pass_at_utc": "2026-10-08T12:58:59.1776111Z",
+    "rate_assertion_failure_at_utc": "2026-10-08T12:59:01.0208067Z",
+    "assertion": "0 !== 1 (expected one HTTP429 for31 concurrent requests)",
+    "repair": "fixture clock pinned; original30x200/1x429 retained; exact Retry-After and real D1 next-window counters added"
+  },
+  "local_validation": {
+    "d1_api_groups": 12,
+    "shared_vectors": 19,
+    "d1_resilience_groups": 5,
+    "r2_distribution_groups": 6,
+    "signing_promotion_guard_tests": 20,
+    "status": "PASS"
+  },
+  "production_order": "explicit main merge/main CI before migration/server/device acceptance; final24 Samsung gates retained for Stable",
+  "main_job_scope": "credential discovery and Android emulator contract now included on trusted main; eight-job gate cannot accept skipped tests",
+  "resource_access": {
+    "executor": "cloud Linux",
+    "adb_device_count": 0,
+    "local_chrome_bridge_available": false,
+    "cloudflare_wrangler_authenticated": false,
+    "original_keystore_files_found": 0,
+    "runtime_configured_secret_count": 0,
+    "tinyfish": "explicitly prohibited by user; cancellation returned alreadyCOMPLETED; no final result used as acceptance"
+  },
+  "no_production_writes": true,
+  "stable_pointer_modified": false,
+  "real_user_data_modified": false,
+  "task26_started": false
+}

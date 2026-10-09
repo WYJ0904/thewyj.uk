@@ -1,0 +1,24 @@
+{
+  "checked_at_utc": "2026-10-07T17:36:56.333863+00:00",
+  "candidate_backend_origin": "https://thewyj.uk",
+  "production_origin_literal_present_in_candidate_dex": true,
+  "source_configuration": "BuildConfig.THEWYJ_BASE_URL from android/app/build.gradle.kts; official signed workflow base_url=https://thewyj.uk",
+  "production_feature_routes": [
+    {
+      "route": "/api/features",
+      "http_status": 404,
+      "code": "api_route_not_found"
+    },
+    {
+      "route": "/api/release-channel",
+      "http_status": 404,
+      "code": "api_route_not_found"
+    }
+  ],
+  "physical_flag_channel_acceptance_requires_compatible_service": true,
+  "latest_user_rule_requires_full_samsung_before_any_production_task25_write": true,
+  "ordering_dependency": "UNRESOLVED_UNDER_CURRENT_GATES",
+  "production_write_performed": false,
+  "candidate_origin_changed": false,
+  "stable_pointer_changed": false
+}

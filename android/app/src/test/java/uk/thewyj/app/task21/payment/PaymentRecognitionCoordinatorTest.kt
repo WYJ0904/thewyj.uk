@@ -14,6 +14,19 @@ import uk.thewyj.app.task21.store.PaymentRecognitionStoreContract
  * flow, candidate edit-before-confirm and finance correction reporting.
  */
 class PaymentRecognitionCoordinatorTest {
+    @Test fun staleScreenshotCannotEnrichTheNextTicketForTheSamePackage() {
+        val store = FakeStore()
+        val engine = PaymentTicketEngine(now = { 1000L })
+        val old = engine.create("account-a", "old-recognition", "com.tencent.mm", "old-event", "wechat")
+        val next = engine.create("account-a", "next-recognition", "com.tencent.mm", "next-event", "wechat")
+        store.saveTicket(next)
+        val result = PaymentRecognitionCoordinator(store, tickets = engine, now = { 1000L }).onAccessibilityEnrichment(
+            "account-a", PaymentEnrichment("com.tencent.mm", 1L, "CNY", FinanceDirection.EXPENSE, null, null, null, 1000L, 900), old.ticketId)
+        assertTrue(result is EnrichmentOutcome.Rejected)
+        assertEquals("ticket_changed", (result as EnrichmentOutcome.Rejected).reason)
+        assertNull(store.ticket("account-a", next.ticketId)?.amountHintMinor)
+        assertTrue(store.localBookings("account-a").isEmpty())
+    }
     @Test fun exactVoucherSmsAndVoucherNotificationsCreateNoRecognitionTicketOrCandidate() {
         val store = FakeStore()
         val notifier = FakeNotifier()

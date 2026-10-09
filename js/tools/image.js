@@ -1,4 +1,4 @@
-import { joinBytes } from "./file.js?v=20261006-mobile-floating-1";
+import { joinBytes } from "./file.js?v=20261006-task25-flags-1";
 
 function colorRgb(hex) {
   const normalized = String(hex || "").trim().replace(/^#/, "");

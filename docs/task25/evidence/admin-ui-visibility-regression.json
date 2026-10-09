@@ -1,0 +1,15 @@
+{
+  "previous_source_head": "73b028c4505aa1e768b2a7005851889792bf2d5f",
+  "previous_ci": 37672259949,
+  "previous_ci_status": "SUCCESS_8_OF_8",
+  "artifact_id": 11507035614,
+  "artifact_zip_sha256": "36672962096440475c8b149630e2f8255ea12638244020bbb13a877469232372",
+  "screenshot_path_in_artifact": "artifacts/task25-admin-ui-release-smoke.json.png",
+  "screenshot_sha256": "06c7c43229ff6749e7269ba2e93d138ae78676e1cca8904bda3ec296f783f680",
+  "actual_visual_finding": "Task18 notification obscures console; CI lacked CJK fonts. DOM state assertions passed but were insufficient for visible UI acceptance. Account settings was also activated inside a closed details menu. Hosted admin acceptance was never claimed PASS.",
+  "repair": "Require non-inert visible hit-tested controls before each UI click, wait for transient rendering, use normal open-account-menu interaction, reject protected hosted notification overlay without changing its receipts. Only development actors may dismiss preceding synthetic messages. Require unobstructed bounded full-page console capture and CI CJK fonts.",
+  "protected_hosted_receipts_mutated": false,
+  "production_mutation": false,
+  "physical_device_acceptance": "NOT_EXECUTED",
+  "local_current_report": "local-admin-ui-visible-release-smoke.json"
+}

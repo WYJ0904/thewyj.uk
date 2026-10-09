@@ -1,0 +1,37 @@
+{
+  "pinned_code_success_run": 37505935692,
+  "report_commit_failure_run": 37509287826,
+  "failed_attempts": [
+    {
+      "attempt": 1,
+      "case": "P33 hard reload home geometry before visibility/layout settled"
+    },
+    {
+      "attempt": 2,
+      "case": "P4 tools hydration after Wrangler Pages proxy connection reset/broken pipe"
+    }
+  ],
+  "repairs": [
+    "Pages CI uses Node 24",
+    "P33 awaits visible home and frame layout after viewport/navigation changes",
+    "P1 waits for acknowledged percentage beyond the suspended display before asserting resume advancement; original assertions retained",
+    "P5 waits for account preference cache and all 103 rows to match it before unchanged-model identity sampling; original assertions retained"
+  ],
+  "product_code_changed": false,
+  "original_assertions_removed": false,
+  "local_p33": "PASS: 8 guest, 8 authenticated cases, 4 restore sets",
+  "local_p4": "PASS: 390/1366/1920px",
+  "followup_status_source": "latest branch Actions and PR #96 closure addendum",
+  "final_software_head": "c2a4801c8ad861d5864a9e37e3f1d6805794f10e",
+  "final_software_run": 37512761641,
+  "final_software_conclusion": "SUCCESS",
+  "final_software_jobs": "8/8 SUCCESS",
+  "evidence_commit_failure_run": 37615300468,
+  "evidence_commit_failure_case": "P1 resume sampled a newer persistence value that was still behind the already displayed percentage",
+  "local_p1_resume": "PASS; actual held/hidden/resumed values in p1-resume-regression.json",
+  "p1_repair_run": 37617315706,
+  "p1_repair_result": "PASS in CI; held/hidden 16 percent, resumed 32 percent, session preserved",
+  "p1_repair_run_overall": "FAILURE at later P5 identity assertion; not 8/8 PASS",
+  "p5_failure_case": "Catalog identity compared before account preference hydration was reflected in rows",
+  "local_p5": "PASS; tools/ledger identity, draft, workflow, 103 rows, zero runtime errors"
+}

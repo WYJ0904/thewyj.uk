@@ -26,6 +26,7 @@ import {
 const ROUTES = new Map([
   ["GET /api/app/config", { auth: "public", limit: 120, window: 60, schema: false }],
   ["GET /api/app/download", { auth: "public", limit: 60, window: 60, schema: false }],
+  ["HEAD /api/app/download", { auth: "public", limit: 60, window: 60, schema: false }],
   ["POST /api/app/login", { auth: "public", body: 8 * 1024, limit: 12, window: 300 }],
   ["POST /api/app/session/refresh", { auth: "public", body: 8 * 1024, limit: 60, window: 60 }],
   ["POST /api/app/session/logout", { auth: "optional", body: 4 * 1024, limit: 30, window: 60 }],
@@ -114,27 +115,43 @@ function androidReleaseKey(context) {
  * download is byte-identical to the published release metadata.
  */
 async function serveAndroidRelease(context) {
+  const head = context.request.method.toUpperCase() === "HEAD";
+  const unavailable = () => {
+    const result = apiError("app_download_unavailable", "安装包暂时不可用，请稍后重试", 503, requestId(context), { retryable: true });
+    return head ? new Response(null, { status: result.status, headers: result.headers }) : result;
+  };
   const storage = context.env.WYJ_STORAGE;
-  if (!storage?.get) {
-    return apiError("app_download_unavailable", "安装包暂时不可用，请稍后重试", 503, requestId(context), { retryable: true });
-  }
+  const operation = head ? "head" : "get";
+  if (typeof storage?.[operation] !== "function") return unavailable();
   const key = androidReleaseKey(context);
-  const object = await storage.get(key).catch(() => null);
-  if (!object?.body) {
-    return apiError("app_download_unavailable", "安装包暂时不可用，请稍后重试", 503, requestId(context), { retryable: true });
-  }
+  const object = await storage[operation](key).catch(() => null);
+  if (!object || (!head && !object.body)) return unavailable();
   const fileName = String(context.env.ANDROID_APK_FILE_NAME || "thewyj-android.apk").slice(0, 120);
   const sha256 = String(context.env.ANDROID_APK_SHA256 || "").slice(0, 64).toLowerCase();
+  const expectedSize = Number.parseInt(String(context.env.ANDROID_APK_SIZE_BYTES || "0"), 10);
+  // Never stream an object known to differ from the published metadata. Older
+  // multipart uploads may have no SHA256 in R2; retain their compatibility and
+  // verify their full bytes/signature separately before a pointer is promoted.
+  const storedSha256 = object.checksums?.sha256;
+  const actualSha256 = storedSha256
+    ? Array.from(new Uint8Array(storedSha256), byte => byte.toString(16).padStart(2, "0")).join("") : "";
+  if ((expectedSize > 0 && Number(object.size) !== expectedSize) ||
+      (sha256 && actualSha256 && sha256 !== actualSha256)) {
+    if (!head) await object.body.cancel().catch(() => {});
+    return unavailable();
+  }
   const headers = new Headers({
     "Content-Type": "application/vnd.android.package-archive",
     "Content-Disposition": `attachment; filename="${fileName.replace(/[^A-Za-z0-9._-]/g, "")}"`,
-    "Cache-Control": "public, max-age=300",
+    // This URL follows the release pointer. Caching its previous APK while
+    // /config announces a new hash creates a partially published update.
+    "Cache-Control": "private, no-store",
     "X-Content-Type-Options": "nosniff",
   });
   if (Number(object.size) > 0) headers.set("Content-Length", String(object.size));
   if (sha256) headers.set("X-Apk-Sha256", sha256);
   if (object.httpEtag) headers.set("ETag", String(object.httpEtag));
-  return new Response(object.body, { status: 200, headers });
+  return new Response(head ? null : object.body, { status: 200, headers });
 }
 
 async function executeRoute(context, descriptor, account) {
@@ -163,7 +180,7 @@ async function executeRoute(context, descriptor, account) {
       },
     }, 200, context);
   }
-  if (method === "GET" && path === "/api/app/download") {
+  if (["GET", "HEAD"].includes(method) && path === "/api/app/download") {
     return await serveAndroidRelease(context);
   }
   if (method === "GET" && path === "/api/app/session") {

@@ -1,0 +1,37 @@
+{
+  "source_commit": "13b952fd64e502aec6af0e800c9a4a3be737d5da",
+  "source": "Codex cloud, SDK 36/build-tools 36.0.0/Temurin JDK 21/Gradle 9.4.1",
+  "task25_d1_api_acceptance_groups": 12,
+  "shared_web_native_vector_cases": 19,
+  "python_static_tests": 31,
+  "stable_consistency_checks": 36,
+  "real_browser_widths": [
+    390,
+    1366
+  ],
+  "functions_build": "PASS",
+  "module_graph": "PASS",
+  "storage_contract": "PASS",
+  "cloud_only_gate": "PASS",
+  "android_xml_suites": 76,
+  "android_jvm": {
+    "tests": 520,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "android_lint": {
+    "Error": 0,
+    "Warning": 85,
+    "Information": 0
+  },
+  "android_debug_build": "PASS",
+  "android_instrumentation_compile": "PASS",
+  "android_release_apk_aab_build": "PASS",
+  "android_candidate_47_build": "PASS_UNSIGNED",
+  "android_physical_acceptance": "NOT_EXECUTED",
+  "remote_preview": "BLOCKED_MISSING_CREDENTIALS",
+  "production_deployment": "NOT_EXECUTED",
+  "android_candidate_actual_package_badging": "package: name='uk.thewyj.app' versionCode='47' versionName='1.3.34' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+  "android_candidate_signing_verified": false
+}

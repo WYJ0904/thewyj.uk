@@ -1,0 +1,62 @@
+{
+  "failed_ci_run": 37667100312,
+  "failed_ci_attempt": 1,
+  "failed_source_head": "21f92702d53fca644596caeb7a04612293a34691",
+  "failed_job": 112952145910,
+  "overall_ci": "FAILURE_7_OF_8",
+  "failed_ci_report": {
+    "checked_at_utc": "2026-10-07T18:41:53.304Z",
+    "origin": "http://127.0.0.1:8894",
+    "environment": "development",
+    "acceptance": "FAILED",
+    "checks": [],
+    "failure_class": "Error",
+    "cleanup_pass": true,
+    "failure_step": "evaluate_stable_channel_excluded_OFF",
+    "diagnostic": {
+      "console_status": "操作过于频繁，请稍后重试",
+      "selected_is_fixture": true,
+      "form_revision": "3",
+      "evaluate_channel": "stable",
+      "fixture_evaluation": []
+    },
+    "fixture_flags": [
+      "task25_hosted_ui_fe6d28017a"
+    ],
+    "synthetic_account_id": "0dc5f92a-105f-4555-8743-e8132a3576f4",
+    "real_user_data_modified": false,
+    "stable_pointer_modified": false,
+    "admin_session_persisted": false,
+    "physical_device_acceptance": "NOT_EXECUTED"
+  },
+  "root_cause": "Sequential original browser/API/UI acceptance shares the same administrator and fixed 30-per-60-second per-route quota. This is a legitimate 429, not a wrong decision or lost fixture selection.",
+  "actual_local_old_report": {
+    "checked_at_utc": "2026-10-07T18:56:27.978Z",
+    "origin": "http://127.0.0.1:8896",
+    "environment": "development",
+    "acceptance": "FAILED",
+    "checks": [],
+    "failure_class": "Error",
+    "cleanup_pass": true,
+    "failure_step": "evaluate_experimental_global_off_OFF",
+    "diagnostic": {
+      "console_status": "操作过于频繁，请稍后重试",
+      "selected_is_fixture": true,
+      "form_revision": "1",
+      "evaluate_channel": "experimental",
+      "fixture_evaluation": []
+    },
+    "fixture_flags": [
+      "task25_hosted_ui_95737c5f95"
+    ],
+    "synthetic_account_id": "46827962-f88e-4883-ab8e-1b7b535b210e",
+    "real_user_data_modified": false,
+    "stable_pointer_modified": false,
+    "admin_session_persisted": false,
+    "physical_device_acceptance": "NOT_EXECUTED"
+  },
+  "actual_local_repair_report": "local-admin-ui-rate-regression.json",
+  "repair": "Use actual server time to begin UI operations in the next fixed window; CI explicitly requires a real development-only quota denial first. No server limit change, quota row deletion or original assertion removal.",
+  "hosted_admin_acceptance": "NOT_EXECUTED",
+  "physical_device_acceptance": "NOT_EXECUTED"
+}

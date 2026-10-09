@@ -4,6 +4,8 @@ import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +21,8 @@ import uk.thewyj.app.core.update.UpdateFlow
 import uk.thewyj.app.core.update.UpdateUiState
 import uk.thewyj.app.core.web.NavigationDecision
 import uk.thewyj.app.core.web.WebRoutePolicy
+import uk.thewyj.app.core.features.FeatureRepository
+import uk.thewyj.app.core.features.ReleaseChannel
 
 enum class AppDestination(val label: String, val route: String?) {
     HOME("主页", "/select"),
@@ -47,6 +51,10 @@ class AppViewModel : ViewModel() {
     private val webRoutePolicy = WebRoutePolicy(BuildConfig.THEWYJ_BASE_URL)
     private val webObservation = WebNavigationObservation()
     val session: StateFlow<SessionState> = repository.state
+    private val featureRepository = FeatureRepository(repository::featureSnapshot, repository::setReleaseChannel)
+    val features = featureRepository.state
+    private var featuresActive = false
+    private var featureJob: Job? = null
 
     private val mutableDestination = MutableStateFlow(AppDestination.HOME)
     val destination = mutableDestination.asStateFlow()
@@ -98,6 +106,40 @@ class AppViewModel : ViewModel() {
 
     init {
         viewModelScope.launch { repository.restore() }
+        viewModelScope.launch {
+            session.collectLatest { current ->
+                featureRepository.bind((current as? SessionState.Authenticated)?.account?.id.orEmpty())
+                if (featuresActive) resumeFeatures()
+            }
+        }
+    }
+
+    fun resumeFeatures() {
+        featuresActive = true
+        featureJob?.cancel()
+        featureJob = viewModelScope.launch {
+            val current = session.value as? SessionState.Authenticated
+            featureRepository.bind(current?.account?.id.orEmpty())
+            if (current?.mode != ConnectionMode.ONLINE) { featureRepository.invalidate(); return@launch }
+            do {
+                featureRepository.refresh()
+                if (!features.value.available) break
+                val expiry = features.value.snapshot?.expiresAtMs ?: (System.currentTimeMillis() + 30_000)
+                delay((expiry - System.currentTimeMillis()).coerceIn(1, 30_000))
+            } while (featuresActive)
+        }
+    }
+
+    fun pauseFeatures() {
+        featuresActive = false; featureJob?.cancel(); featureRepository.invalidate()
+    }
+
+    fun selectReleaseChannel(channel: ReleaseChannel) {
+        featureJob?.cancel()
+        featureJob = viewModelScope.launch {
+            featureRepository.select(channel)
+            if (featuresActive) resumeFeatures()
+        }
     }
 
     fun login(username: String, secret: String) {

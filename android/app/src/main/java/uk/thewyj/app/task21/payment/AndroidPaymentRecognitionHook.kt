@@ -149,8 +149,8 @@ class AndroidPaymentRecognitionHook private constructor(
         )
     }
 
-    fun onAccessibilityEnrichment(accountId: String, enrichment: PaymentEnrichment): EnrichmentOutcome {
-        val outcome = coordinator.onAccessibilityEnrichment(accountId, enrichment)
+    fun onAccessibilityEnrichment(accountId: String, enrichment: PaymentEnrichment, expectedTicketId: String? = null): EnrichmentOutcome {
+        val outcome = coordinator.onAccessibilityEnrichment(accountId, enrichment, expectedTicketId)
         if (outcome is EnrichmentOutcome.Applied) {
             // Room has the amount now; notify the UI before any network call.
             PaymentReviewSignals.publish()

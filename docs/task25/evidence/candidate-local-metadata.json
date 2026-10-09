@@ -1,0 +1,23 @@
+{
+  "applicationId": "uk.thewyj.app",
+  "versionName": "1.3.34",
+  "versionCode": 47,
+  "status": "unreleased",
+  "channel": "candidate",
+  "signingStatus": "unsigned",
+  "expectedCertificateSha256": "2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03",
+  "physicalDeviceAcceptance": "NOT_EXECUTED",
+  "stablePromotionAllowed": false,
+  "stableVersionCode": 46,
+  "stableApkSha256": "17da079bc7428dc87b1b0b2141ca011f6297101fba3a5d2cc6bbac3fe289048c",
+  "apk": {
+    "fileName": "thewyj-android-1.3.34-candidate-unsigned.apk",
+    "sha256": "72c9ab5659848cedb0dccbf1d36568c96d8053b4b33d9d4ceac7c646abcc4af4",
+    "sizeBytes": 47898061
+  },
+  "aab": {
+    "fileName": "thewyj-android-1.3.34-candidate-unsigned.aab",
+    "sha256": "2cf1755f78fb230deb73ab0683d6a9a6883782b13730da622918dc1d6b7fa635",
+    "sizeBytes": 24663369
+  }
+}
