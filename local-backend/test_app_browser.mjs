@@ -2084,7 +2084,7 @@ async function main() {
       await setFields({ "#financeCategoryName": "餐饮", "#financeCategoryAppliesTo": "expense" });
       await click("#financeCategoryForm button[type=submit]");
       await waitFor("document.querySelector('#financeCategoryManagerList')?.textContent.includes('餐饮')", 4_000, "finance category");
-      const categoryId = await evaluate("document.querySelector('#financeCategoryManagerList [data-finance-category-edit]')?.dataset.financeCategoryEdit");
+      const categoryId = await evaluate("[...document.querySelectorAll('#financeCategoryManagerList .finance-manager-row')].find(row => row.querySelector('strong')?.textContent === '餐饮')?.querySelector('[data-finance-category-edit]')?.dataset.financeCategoryEdit");
       assert.ok(categoryId);
       await click('[data-finance-close="financeCategoryModal"]');
 
@@ -2197,6 +2197,8 @@ async function main() {
       await click("#financeBudgetForm button[type=submit]");
       await waitFor("document.querySelector('#financeBudgetManagerList')?.textContent.includes('20.00')", 4_000, "finance budget");
       await click('[data-finance-close="financeBudgetModal"]');
+      await waitFor("document.querySelector('#financeBudgetSummary')?.getAttribute('aria-busy') === 'false' && document.querySelector('#financeCategoryStats')?.getAttribute('aria-busy') === 'false'", 4_000,
+        "finance insights rendered after budget and transaction updates");
       assert.ok((await evaluate("document.querySelector('#financeBudgetSummary').textContent")).includes("剩余"));
       assert.ok((await evaluate("document.querySelector('#financeCategoryStats').textContent")).includes("餐饮"));
 
