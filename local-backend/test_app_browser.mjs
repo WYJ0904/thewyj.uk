@@ -859,6 +859,15 @@ async function main() {
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
       assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), `v${LATEST_CHANGELOG_VERSION}`);
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
+      // Reproduce the user report: entering changelog from the bottom of a
+      // previously visited SPA route must show its newest dated entries.
+      await navigate(`/?app-matrix=${RUN_ID}-changelog-scroll`);
+      await waitFor("!document.querySelector('#entryScreen') && !document.querySelector('#publicHome')?.classList.contains('hidden')", 8_000, "home before changelog scroll check");
+      await evaluate("window.scrollTo(0, document.documentElement.scrollHeight); true");
+      assert.ok(Number(await evaluate("window.scrollY")) > 200, "home must actually scroll before the regression");
+      await click("#publicChangelogBtn");
+      await waitFor("location.pathname === '/changelog' && !document.querySelector('#changelogPage')?.classList.contains('hidden') && window.scrollY <= 2", 8_000, "changelog starts at page top");
+      assert.equal(await evaluate("document.querySelector('#changelogList article header time')?.getAttribute('datetime')"), "2026-10-09");
       for (const pathName of ["/tools", "/language", "/admin"]) {
         await navigate(`${pathName}?app-matrix=${RUN_ID}`);
         await waitFor("!document.querySelector('#entryScreen')", 6_000, `${pathName} splash removal`);
