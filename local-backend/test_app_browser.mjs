@@ -2382,6 +2382,12 @@ async function main() {
     await check("self-service account deletion", async () => {
       const disposable = await createUser("selfdelete");
       await useSession(disposable.session, "/");
+      const masteryKeys = await evaluate(`(() => {
+        const own='aerisMastery:v1:'+state.account.id,other='aerisMastery:v1:task26-deletion-other-fixture';
+        localStorage.setItem(own,JSON.stringify({schema_version:1,account_id:state.account.id,
+          outbox:[{language:'english',input:{event_id:crypto.randomUUID(),ticket_id:crypto.randomUUID(),kind:'answer_submitted',answer:'synthetic-private-answer',response_ms:1200}}],questions:{},cache:{},results:{}}));
+        localStorage.setItem(other,'other-account-fixture');return {own,other};
+      })()`);
       await click("#accountBtn");
       await click("#openDeleteAccountBtn");
       await waitFor("!document.querySelector('#deleteAccountModal')?.classList.contains('hidden')", 3_000, "delete confirmation");
@@ -2394,6 +2400,9 @@ async function main() {
         finishSessionInvalidationSync();
       }
       assert.equal((await request("/api/login", { username: disposable.username, secret: disposable.secret })).status, 403);
+      assert.equal(await evaluate(`localStorage.getItem(${JSON.stringify(masteryKeys.own)})`), null, "Deleted account's pending answers must be removed");
+      assert.equal(await evaluate(`localStorage.getItem(${JSON.stringify(masteryKeys.other)})`), "other-account-fixture", "Other account cache must remain");
+      await evaluate(`localStorage.removeItem(${JSON.stringify(masteryKeys.other)}); true`);
     });
 
     await check("mobile layout and reduced-motion startup", async () => {

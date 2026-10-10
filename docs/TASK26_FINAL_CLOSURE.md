@@ -29,6 +29,7 @@
 - D1/API 26 组：完整 forward migration 和 replay，所有既有表记录/会员价格/旧 Task25 settings 保留；auth/entitlement/CSRF/限流、opaque ticket、输入校验、单结果、重复/冲突/并发、CAS 重放、projection 失败后恢复、过期/算法不匹配、语言隔离、browser/native/WebView canonical transport、Admin 只读/非管理员拒绝、三通道/user/%/bucket/kill/audit、AI cache/配额/真实 timeout/异常输出/课程 fallback、原文不落库、120-event/4-query 批量恢复。
 - Client 17 组：账户和 storage version 隔离、稳定 ID、队列上限不丢数据、无本地 authority、严格收据/缓存验证、旧响应不覆盖新状态、delayed-response/account switch、flag OFF 不提交。离线时 flag refresh 不能取消已开始的安全持久化。
 - 新增 multi-window 2 组：先实际复现另一窗口确认后当前窗口仍可答旧题的问题，再验证原收据恢复/完成题锁定、新 ticket 清理旧 draft、其他账户隔离及不触发 fetch/write 循环。Runtime assets/SW 一起递增到 Task26r2；保留失败记录，没有修改正确结果预期。
+- 新增 account-deletion 1 组：实际复现新 Mastery/outbox key 被注销清理遗漏；修复仅删除成功注销账户的本地 key，其他账户及原有数据保护保持。完整 browser 注销场景亦新增同样的实际端到端断言；最终 runtime cache 递增到 r3。没有执行真实用户注销或改变服务端既有软删除策略。
 - 本地真实 Chromium 对隔离 Pages/D1：320px 曾通过 `7ee41f2` 的同版 CSS；修复离线 flag-refresh 竞态后的390/768/1366/1920px 已通过，均 light/dark/150%文字、44px controls、无横向 overflow、runtime errors=[]。390 包含真实 CDP 断网、服务已接受后丢响应、同 ID retry、malformed 响应保留 cache。最终 CI 将用完整五宽度矩阵验证最终源码，不能把四结果 JSON 描述为同 HEAD 五宽度 PASS。
 - Wrangler 本地官方001–0025 apply、functions compile、module graph、storage-contract、repository audit 已完成；新只读 preflight/schema 查询执行成功，4表/4索引/1trigger、schema1/mastery-v1/aeris-language-v1、invalid rows=0、pending receipts=0。测试账户和 flags 仅存在隔离 fixture，不在真实 Preview/Production 制造测试条件。
 
