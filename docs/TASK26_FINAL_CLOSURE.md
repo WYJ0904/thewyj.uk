@@ -21,6 +21,7 @@
 - 最新代码验证 checkpoint：`678d646c9a279ad69de0e09dbb39f13271833992`；[Core CI 38053754900](https://github.com/WYJ0904/thewyj.uk/actions/runs/38053754900) 正在执行，最终记录将在完成后补齐。
 - [保留的失败 run 38053153749](https://github.com/WYJ0904/thewyj.uk/actions/runs/38053153749)：Python/JS 静态合同仍固定 Release B 的缓存 token；资源已经一致更新，测试错误拒绝新的合法缓存版本。修复以唯一 ASSET_RELEASE 为基准，仍逐个核对 manifest/CSS/entry/import/SW cache；没有删断言、跳过用例或改正确性预期。仅重跑三个受影响本地用例，均 PASS；整合新源码由必要 Core CI 验证。
 - [后续失败 run 38053754900](https://github.com/WYJ0904/thewyj.uk/actions/runs/38053754900)：上述六项基础检查通过；应用 PWA cache lookup 和 P6 parked-row fixture 仍请求旧 query URL，后者与当前 imports 生成两个独立模块/WeakMap，丢失 parked identity/draft。已统一 QA 的资源版本读取，保留全部行为断言，并检查实际当前 cache name；本地受影响 PWA 离线/恢复验证通过。失败未隐藏或删除。
+- [38054464854](https://github.com/WYJ0904/thewyj.uk/actions/runs/38054464854) 实际七项通过及 Task26 前四宽度通过，第五宽度遇到真实 Admin30/minute限流。修复 fixture 重复同值写入，保留真正的 kill 操作，并记录429/遵守 server Retry-After、最多一次重试；没有关闭或增大生产限额，也不把失败列为凭据阻断。
 
 ## 已实际完成的验证
 

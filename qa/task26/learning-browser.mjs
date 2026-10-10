@@ -8,16 +8,31 @@ const baseUrl=process.env.WYJ_TEST_BASE||'http://127.0.0.1:8894',secret=process.
 assert.equal(new URL(baseUrl).hostname,'127.0.0.1','This destructive synthetic fixture is restricted to isolated local D1');
 assert.ok(secret,'Synthetic fixture password is required');
 const artifactRoot=path.resolve(process.env.WYJ_TEST_ARTIFACT_DIR||'artifacts','task26');fs.mkdirSync(artifactRoot,{recursive:true});
-const results=[];const flagKeys=['adaptive_learning','mastery_score','adaptive_review','ai_error_explanation','similar_word_explanation'];
+const results=[];const rateBudget={observed_429:0,cooldown_ms:0,server_limits_changed:false};
+const flagKeys=['adaptive_learning','mastery_score','adaptive_review','ai_error_explanation','similar_word_explanation'];
 const widths=process.env.WYJ_TASK26_WIDTHS?process.env.WYJ_TASK26_WIDTHS.split(',').map(Number):[320,390,768,1366,1920];
 assert.ok(widths.length&&widths.every(w=>[320,390,768,1366,1920].includes(w)),'Invalid browser width selection');
 for(const width of widths){
  const page=await openPage({cdpUrl:process.env.WYJ_CDP_URL||'http://127.0.0.1:9225',baseUrl,width,height:1000,mobile:width<768});
  const checks=[];let accountId;
- const call=async(route,body)=>page.evaluate(`(async()=>{const r=await fetch(${JSON.stringify(route)},{method:${JSON.stringify(body===undefined?'GET':'POST')},headers:{'X-Session-Token':localStorage.getItem('wyjAccountSession'),${body===undefined?'':"'Content-Type':'application/json'"}},${body===undefined?'':`body:JSON.stringify(${JSON.stringify(body)}),`}cache:'no-store'});return {status:r.status,body:await r.json()};})()`);
+ const call=async(route,body)=>{
+  for(let attempt=0;attempt<2;attempt++){
+   const response=await page.evaluate(`(async()=>{const r=await fetch(${JSON.stringify(route)},{method:${JSON.stringify(body===undefined?'GET':'POST')},headers:{'X-Session-Token':localStorage.getItem('wyjAccountSession'),${body===undefined?'':"'Content-Type':'application/json'"}},${body===undefined?'':`body:JSON.stringify(${JSON.stringify(body)}),`}cache:'no-store'});return {status:r.status,body:await r.json(),retry_after:r.headers.get('Retry-After')};})()`);
+   if(response.status!==429||attempt===1)return response;
+   assert.ok(['task25_rate_limited','learning_rate_limited'].includes(response.body.code),'Unexpected 429 contract');
+   const seconds=Number(response.retry_after);assert.ok(Number.isSafeInteger(seconds)&&seconds>0&&seconds<=60,'Bounded server Retry-After is required');
+   const cooldown=seconds*1000+100;rateBudget.observed_429++;rateBudget.cooldown_ms+=cooldown;
+   console.log(`Respecting ${response.body.code}: ${seconds}s Retry-After; server limits unchanged`);
+   for(let remaining=cooldown;remaining>0;remaining-=Math.min(30000,remaining))await new Promise(resolve=>setTimeout(resolve,Math.min(30000,remaining)));
+  }
+ };
  async function editFlag(key,patch){
   const {body}=await call('/api/admin/feature-flags');const f=body.flags.find(f=>f.flag_key===key);assert.ok(f,`missing ${key}`);
-  const response=await call('/api/admin/feature-flags',{flag_key:key,expected_revision:f.revision,enabled:true,kill_switch:false,channels:['experimental'],rollout_percentage:100,...patch});
+  const desired={enabled:true,kill_switch:false,channels:['experimental'],rollout_percentage:100,...patch};
+  // Viewports share an isolated fixture: retain real kill-switch transitions,
+  // without needless same-value mutations that consume the management budget.
+  if(f.enabled===desired.enabled&&f.kill_switch===desired.kill_switch&&f.rollout_percentage===desired.rollout_percentage&&JSON.stringify(f.channels)===JSON.stringify(desired.channels))return;
+  const response=await call('/api/admin/feature-flags',{flag_key:key,expected_revision:f.revision,...desired});
   assert.equal(response.status,200,JSON.stringify(response.body));
  }
  const pendingCount=()=>page.evaluate(`(JSON.parse(localStorage.getItem('aerisMastery:v1:'+${JSON.stringify(accountId)}))?.outbox||[]).length`);
@@ -100,5 +115,5 @@ for(const width of widths){
  }finally{await page.close();}
 }
 // All changes belonged to the disposable local owner and isolated database.
-const report={environment:'isolated_local_pages_d1',hosted_preview:false,production:false,physical_device:false,results};
+const report={environment:'isolated_local_pages_d1',hosted_preview:false,production:false,physical_device:false,rate_budget:rateBudget,results};
 fs.writeFileSync(path.join(artifactRoot,'browser-acceptance.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
