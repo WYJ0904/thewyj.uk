@@ -37,6 +37,7 @@ for(const width of widths){
  }
  const pendingCount=()=>page.evaluate(`(JSON.parse(localStorage.getItem('aerisMastery:v1:'+${JSON.stringify(accountId)}))?.outbox||[]).length`);
  const settle=()=>page.evaluate('document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))))');
+ const waitForMasteryVisible=()=>page.waitFor("!document.getElementById('entryScreen') && document.getElementById('sessionRecovery').classList.contains('hidden') && document.getElementById('masterySection').getClientRects().length>0 && getComputedStyle(document.getElementById('masterySection')).visibility==='visible'",30000);
  async function currentQuestion(){return page.evaluate(`JSON.parse(localStorage.getItem('aerisMastery:v1:'+${JSON.stringify(accountId)})).questions[location.pathname.endsWith('japanese')?'japanese':'english'].question`);}
  async function answerQuestion(correct){
   const q=await currentQuestion();const found=catalog(q.language).flatMap(p=>p.questions).find(candidate=>candidate.kind===q.kind&&candidate.prompt===q.prompt);
@@ -52,6 +53,7 @@ for(const width of widths){
   const preference=await call('/api/release-channel');const setPreference=await call('/api/release-channel',{channel:'experimental',expected_revision:preference.body.revision});assert.equal(setPreference.status,200);
   await page.navigate('/language/english');await page.evaluate("document.getElementById('dismissVersionNoticeBtn')?.click()");
   await page.waitFor("!document.getElementById('masterySection').classList.contains('hidden') && !document.getElementById('masteryStartBtn').disabled",30000);
+  await waitForMasteryVisible();
   await page.click('#masteryStartBtn');await page.waitFor("!document.getElementById('masteryQuiz').classList.contains('hidden') && !document.getElementById('masterySubmitBtn').disabled");
   const first=await answerQuestion(true);assert.equal(await pendingCount(),0);
   const server=await call('/api/learning/mastery/summary?language=english');assert.equal(server.status,200);assert.equal(server.body.account_id,accountId);assert.ok(server.body.points.some(p=>p.score>0));checks.push('correct_answer_mastery');
@@ -59,12 +61,15 @@ for(const width of widths){
   const second=await answerQuestion(false);assert.notEqual(second.ticket_id,first.ticket_id);await page.click('#masteryAiBtn');await page.waitFor("document.getElementById('masteryAiExplanation').textContent.includes('课程解析')",30000);checks.push('wrong_answer_course_ai_fallback');
   await page.click('#masteryWeakList button');assert.ok(await page.evaluate("document.getElementById('masteryDetail').textContent.includes('下次复习')"));checks.push('point_details');
   await page.navigate('/language/english');await page.waitFor("!document.getElementById('masterySection').classList.contains('hidden') && !document.getElementById('masteryResult').classList.contains('hidden')",30000);
+  await waitForMasteryVisible();
   assert.ok(await page.evaluate("document.getElementById('masteryCounts').textContent.includes('学习中')"));checks.push('reload_persistence');
   for(const theme of ['light','dark']){
    for(let cycle=0;cycle<3&&await page.evaluate('document.documentElement.dataset.theme')!==theme;cycle++)await page.click('#themeToggleBtn');
    await page.waitFor(`document.documentElement.dataset.theme===${JSON.stringify(theme)}`);await settle();
    assert.ok(await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),`horizontal overflow at ${width}/${theme}`);
-   assert.ok(await page.evaluate("Array.from(document.querySelectorAll('#masterySection button')).filter(b=>b.getClientRects().length).every(b=>b.scrollWidth<=b.clientWidth+1 && b.getBoundingClientRect().height>=43)"),`clipped/inaccessible controls at ${width}/${theme}`);
+   const controls=await page.evaluate("Array.from(document.querySelectorAll('#masterySection button')).filter(b=>b.getClientRects().length).map(b=>({fits:b.scrollWidth<=b.clientWidth+1,height:b.getBoundingClientRect().height}))");
+   assert.ok(controls.length>0,`Mastery controls must actually be visible at ${width}/${theme}`);
+   assert.ok(controls.every(b=>b.fits&&b.height>=43),`clipped/inaccessible controls at ${width}/${theme}`);
    await page.evaluate("document.getElementById('masterySection').scrollIntoView({block:'start'})");
    const screenshot=await page.send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(artifactRoot,`mastery-${width}-${theme}.png`),Buffer.from(screenshot.data,'base64'));
   }

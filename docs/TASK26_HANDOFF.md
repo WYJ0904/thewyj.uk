@@ -9,6 +9,7 @@
 - 基线 main：`550bc41bbaa01751d75c109f3246b9e174e4460d`，正式 Release B；没有从旧 Task 25 candidate 创建新基线。
 - [Draft PR #105](https://github.com/WYJ0904/thewyj.uk/pull/105)。保持 Draft；最终 HEAD/CI 以 [最终报告](TASK26_FINAL_CLOSURE.md) 和 PR 最新检查为准。
 - 核心实现：`b286cec`（引擎）、`7ee41f2`（API/D1/UI）、`27cdb57`（离线持久化与批量恢复）、`678d646`（缓存版本一致性静态检查）。
+- 最终软件源码：`47b1b3315647d9c148903a2a55d8a44320eda164`；[Core CI38055936636](https://github.com/WYJ0904/thewyj.uk/actions/runs/38055936636) 8/8 SUCCESS，75组 Task26 自动化、完整五宽度 browser PASS。后续纯报告/证据提交与该源码一致；交付 HEAD 的自动 CI 和最终 GitHub 验收记录以 PR105 为准。
 - 架构及审计：[TASK26_DESIGN.md](TASK26_DESIGN.md)；持续记录：[TASK26_EXECUTION.md](TASK26_EXECUTION.md)。正式 Release B 与既有设备证据：[RELEASE_B_FINAL_CLOSURE.md](RELEASE_B_FINAL_CLOSURE.md)。不要把旧设备验收改名为 Task 26 PASS。
 
 首先执行以下只读恢复检查，避免重复已经通过且源码未变的本地测试：
@@ -111,7 +112,7 @@ npx wrangler d1 execute WYJ_DB --env preview --remote --file cloudflare/task26-s
 
 ## 托管 Preview 验收与测试清理
 
-自动 Git Preview 成功只证明部署和公开资源；最新真实 URL/source 在最终报告与 PR Pages check 中。管理员正常登录后，在 Preview 创建专用测试账户/安全 flags targeting，用现有审计管理流程启用 Experimental 的 adaptive_learning/mastery_score/adaptive_review，验证 login → question → answer → mastery → next → wrong/explanation → review → reload，以及英语/日语隔离、会员边界、第二会话、非管理员 403、revision/audit、kill 与反复刷新。
+最终软件 Preview 为 https://f89651ae.thewyj-uk.pages.dev / deployment `f89651ae-009f-41bc-944e-cb75255308a1` / source47b1b33。自动 Git Preview 成功只证明部署和公开资源；后续报告提交的实际 URL/source 在 PR Pages check 中。管理员正常登录后，在 Preview 创建专用测试账户/安全 flags targeting，用现有审计管理流程启用 Experimental 的 adaptive_learning/mastery_score/adaptive_review，验证 login → question → answer → mastery → next → wrong/explanation → review → reload，以及英语/日语隔离、会员边界、第二会话、非管理员 403、revision/audit、kill 与反复刷新。
 
 继续验证已有课程解析、AI 正常/不可用、断网及恢复、服务失败、响应丢失后同 ID 重试、登录过期、错误账户或 malformed 响应。Web/browser/native/WebView transport 应读取同一账号与状态；对同 ticket 不可各端重复制造结果。五宽度、深浅主题和大字号保持现有严格断言。
 
