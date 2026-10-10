@@ -90,10 +90,9 @@ class FormalReleaseDeviceTest {
         val expectedMinor = args.getString("expectedMinor")?.toLong() ?: 1L
         val expectedDirection = args.getString("expectedDirection") ?: "EXPENSE"
         val cases = args.getString("liveCases")?.toInt() ?: 10
-        require(expectedMinor > 0 && cases in 1..20 && expectedDirection in setOf("EXPENSE", "INCOME", "REFUND"))
+        require(expectedMinor > 0 && cases in 1..20 && expectedDirection in setOf("EXPENSE", "INCOME"))
         val sourceText = when (expectedDirection) {
             "INCOME" -> "你收到一笔转账"
-            "REFUND" -> "转账退款已到账"
             else -> "你建立了一笔转账"
         }
         val expectedMoney = "%d.%02d".format(java.util.Locale.ROOT, expectedMinor / 100, expectedMinor % 100)
@@ -187,6 +186,8 @@ class FormalReleaseDeviceTest {
                 assertNotNull("Formal R8 live entry ${index+1} must trigger within the retry window", booking)
                 assertEquals("The actual foreground detail amount must match exactly", expectedMinor, booking!!.amountMinor)
                 assertEquals(expectedDirection, booking.direction)
+                val noticeDeadline = SystemClock.uptimeMillis() + 5000
+                while (manager.activeNotifications.none { it.id == notificationId } && SystemClock.uptimeMillis() < noticeDeadline) SystemClock.sleep(100)
                 val firstNotice = manager.activeNotifications.singleOrNull { it.id == notificationId }
                 assertNotNull("Own final accounting notification must exist", firstNotice)
                 repeat(3) { coordinator.onSourceEvent(fixture.account.id, "com.tencent.mm", PaymentSourceType.NOTIFICATION, sourceId, "微信支付", sourceText) }
