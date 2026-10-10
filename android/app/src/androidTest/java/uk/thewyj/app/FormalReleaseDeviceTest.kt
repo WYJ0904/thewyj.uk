@@ -139,6 +139,10 @@ class FormalReleaseDeviceTest {
                 .putString("device_id", fixtureDevice).commit())
             credentials.saveActive(fixture)
             assertTrue(NotificationSessionProvider(context).currentAccount()?.accountId == fixture.account.id)
+            args.getString("driverTransitionDelayMs")?.toLong()?.let {
+                require(it in 0L..10_000L)
+                SystemClock.sleep(it)
+            }
             Configurator.getInstance().uiAutomationFlags = UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES
             val automation = instrumentation.getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
             val device = UiDevice.getInstance(instrumentation)
