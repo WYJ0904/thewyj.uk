@@ -1011,11 +1011,6 @@ jobs:
           set -euo pipefail
           node local-backend/test_task18_browser.mjs 2>&1 | tee artifacts/task18-browser.log
 
-      - name: Task 26 adaptive learning and mastery browser acceptance
-        run: |
-          set -euo pipefail
-          node qa/task26/learning-browser.mjs 2>&1 | tee artifacts/task26-browser.log
-
       - name: Task 25 feature administration and release channel browser acceptance
         run: |
           set -euo pipefail
@@ -1043,6 +1038,14 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_tools_browser.mjs 2>&1 | tee artifacts/task15-cloud-toolbox.log
+
+      # Keep the existing strict Admin acceptance ahead of the new viewport
+      # fixtures so their shared per-route quota is not precharged by Task26.
+      # Task26 itself respects Retry-After; no server limits are disabled.
+      - name: Task 26 adaptive learning and mastery browser acceptance
+        run: |
+          set -euo pipefail
+          node qa/task26/learning-browser.mjs 2>&1 | tee artifacts/task26-browser.log
 
       - name: Stop Cloudflare-only browser fixtures
         if: always()
