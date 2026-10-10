@@ -87,6 +87,16 @@ class FormalReleaseDeviceTest {
         val args = InstrumentationRegistry.getArguments()
         assumeTrue(args.getString("formalAcceptance") == "true" && args.getString("livePaymentPage") == "true")
         ordinaryRelease()
+        val expectedMinor = args.getString("expectedMinor")?.toLong() ?: 1L
+        val expectedDirection = args.getString("expectedDirection") ?: "EXPENSE"
+        val cases = args.getString("liveCases")?.toInt() ?: 10
+        require(expectedMinor > 0 && cases in 1..20 && expectedDirection in setOf("EXPENSE", "INCOME", "REFUND"))
+        val sourceText = when (expectedDirection) {
+            "INCOME" -> "你收到一笔转账"
+            "REFUND" -> "转账退款已到账"
+            else -> "你建立了一笔转账"
+        }
+        val expectedMoney = "%d.%02d".format(java.util.Locale.ROOT, expectedMinor / 100, expectedMinor % 100)
         val credentials = SecureCredentialStore(context)
         var original = credentials.loadActive() ?: error("Existing encrypted session required")
         val originalDevice = DeviceIdentityStore(context).getOrCreate()
@@ -116,10 +126,6 @@ class FormalReleaseDeviceTest {
         val grant = JSONObject().put("user_id", fixture.account.id).put("entitlement", "finance_access")
             .put("allowed", true).put("note", "Task25 formal R8 acceptance: new synthetic account only; revoked after payment checks")
         var granted = false
-        var observerDevice: UiDevice? = null
-        val observerPackage = instrumentation.context.packageName
-        val observerComponent = "$observerPackage/uk.thewyj.app.FormalNotificationObserver"
-        val observerDirectory = "/sdcard/Android/data/$observerPackage/files"
         try {
             request("/api/admin/entitlement", original.accessToken, grant); granted = true
             val liveAccount = api.currentAccount(fixture.accessToken)
@@ -135,29 +141,13 @@ class FormalReleaseDeviceTest {
             assertTrue(NotificationSessionProvider(context).currentAccount()?.accountId == fixture.account.id)
             Configurator.getInstance().uiAutomationFlags = UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES
             val automation = instrumentation.getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
-            fun fixtureFile(name: String, content: String) {
-                FormalNotificationObserver.fixtureFile(automation, "$observerDirectory/$name", content)
-            }
             val device = UiDevice.getInstance(instrumentation)
-            observerDevice = device
-            device.executeShellCommand("cmd notification allow_listener $observerComponent")
-            val observerDeadline = SystemClock.uptimeMillis() + 10_000
-            while (!device.executeShellCommand("cat $observerDirectory/formal-observer-ready").contains("ready") && SystemClock.uptimeMillis() < observerDeadline) SystemClock.sleep(100)
-            assertTrue("The actual system notification observer must bind", device.executeShellCommand("cat $observerDirectory/formal-observer-ready").contains("ready"))
-            fixtureFile("formal-fixture-notifications.jsonl", "")
             val enabled = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
             val own = enabled.split(':').filter { android.content.ComponentName.unflattenFromString(it)?.className == "uk.thewyj.app.task21.payment.ThewyjPaymentAccessibilityService" }
             assertTrue("Existing accessibility permission required", own.isNotEmpty())
-            automation.adoptShellPermissionIdentity("android.permission.WRITE_SECURE_SETTINGS")
-            try {
-                assertTrue(Settings.Secure.putString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, enabled.split(':').filterNot { it in own }.joinToString(":")))
-                SystemClock.sleep(300)
-                assertTrue(Settings.Secure.putString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, enabled))
-            } finally {
-                Settings.Secure.putString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, enabled)
-                automation.dropShellPermissionIdentity()
-            }
-            val connectDeadline = SystemClock.uptimeMillis() + 10_000
+            // The user grants accessibility through normal settings. Never toggle
+            // secure settings or grant an auxiliary listener to prepare this test.
+            val connectDeadline = SystemClock.uptimeMillis() + 20_000
             while (!PaymentAccessibilityStatus.connected && SystemClock.uptimeMillis() < connectDeadline) SystemClock.sleep(100)
             assertTrue("The real framework service must bind", PaymentAccessibilityStatus.connected)
             val paymentTask = args.getString("wechatTask")!!.toInt()
@@ -167,13 +157,16 @@ class FormalReleaseDeviceTest {
                 finally { automation.dropShellPermissionIdentity() }
                 SystemClock.sleep(700)
                 assertTrue("The existing real transfer detail must remain open", device.executeShellCommand("dumpsys activity activities").contains("topResumedActivity") && device.currentPackageName == "com.tencent.mm")
+                args.getString("sourceUser")?.let { user ->
+                    assertTrue("The same source profile must remain foreground", device.executeShellCommand("dumpsys activity activities").lineSequence().any { it.contains("topResumedActivity") && it.contains(" u$user ") && it.contains("com.tencent.mm") })
+                }
             }
             foregroundWechat()
             assertTrue(device.executeShellCommand("dumpsys activity activities").lineSequence().any { it.contains("topResumedActivity") && it.contains("RemittanceDetailUI") })
             val coordinator = PaymentRecognitionCoordinator(store, notifier = AndroidPaymentStatusNotifier(context))
             val manager = context.getSystemService(NotificationManager::class.java)
             val baseline = store.localBookings(fixture.account.id).size
-            repeat(10) { index ->
+            repeat(cases) { index ->
                 if (index == 5) {
                     context.startActivity(android.content.Intent(context, MainActivity::class.java).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
                     SystemClock.sleep(1200); assertEquals(context.packageName, device.currentPackageName)
@@ -183,47 +176,41 @@ class FormalReleaseDeviceTest {
                 assertTrue(device.openNotification()); SystemClock.sleep(400)
                 val sourceId = "task25-r8-${fixture.account.id}-$index"
                 val outcome = coordinator.onSourceEvent(fixture.account.id, "com.tencent.mm", PaymentSourceType.NOTIFICATION,
-                    sourceId, "微信支付", "你建立了一笔转账", sourceAppLabel = "微信")
+                    sourceId, "微信支付", sourceText, sourceAppLabel = "微信")
                 assertTrue(outcome.ticketId.isNotBlank())
                 val notificationId = store.recognition(fixture.account.id, outcome.recognitionId)!!.notificationId
-                fixtureFile("formal-notification-ids", "$notificationId\n")
                 PaymentTicketPackageSignal.publish("com.tencent.mm")
                 device.pressBack()
                 val deadline = SystemClock.uptimeMillis() + 15_000
                 while (store.localBookings(fixture.account.id).size < baseline + index + 1 && SystemClock.uptimeMillis() < deadline) SystemClock.sleep(100)
                 val booking = store.localBookings(fixture.account.id).firstOrNull { it.recognitionId == outcome.recognitionId }
                 assertNotNull("Formal R8 live entry ${index+1} must trigger within the retry window", booking)
-                assertEquals("0.01 MUST NOT become 10.00", 1L, booking!!.amountMinor)
-                assertEquals("EXPENSE", booking.direction)
-                repeat(3) { coordinator.onSourceEvent(fixture.account.id, "com.tencent.mm", PaymentSourceType.NOTIFICATION, sourceId, "微信支付", "你建立了一笔转账") }
+                assertEquals("The actual foreground detail amount must match exactly", expectedMinor, booking!!.amountMinor)
+                assertEquals(expectedDirection, booking.direction)
+                val firstNotice = manager.activeNotifications.singleOrNull { it.id == notificationId }
+                assertNotNull("Own final accounting notification must exist", firstNotice)
+                repeat(3) { coordinator.onSourceEvent(fixture.account.id, "com.tencent.mm", PaymentSourceType.NOTIFICATION, sourceId, "微信支付", sourceText) }
                 val replay = AndroidPaymentRecognitionHook.get(context).onAccessibilityEnrichment(fixture.account.id,
-                    PaymentEnrichment("com.tencent.mm", 1L, "CNY", uk.thewyj.app.task21.FinanceDirection.EXPENSE, null, null, null, System.currentTimeMillis(), 900), outcome.ticketId)
+                    PaymentEnrichment("com.tencent.mm", expectedMinor, "CNY", uk.thewyj.app.task21.FinanceDirection.valueOf(expectedDirection), null, null, null, System.currentTimeMillis(), 900), outcome.ticketId)
                 assertTrue(replay is EnrichmentOutcome.Rejected)
                 assertEquals(baseline + index + 1, store.localBookings(fixture.account.id).size)
-                val noticeDeadline = SystemClock.uptimeMillis() + 5000
-                fun verifiedNotices() = FormalNotificationObserver.verifiedJournal(device.executeShellCommand("cat $observerDirectory/formal-fixture-notifications.jsonl"), notificationId)
-                while (verifiedNotices().isEmpty() && SystemClock.uptimeMillis() < noticeDeadline) {
-                    SystemClock.sleep(100)
-                }
-                val verified = verifiedNotices()
-                assertEquals("The system must observe exactly one verification notification", 1, verified.size)
-                assertTrue(verified[0].getString("body").contains("¥0.01"))
-                assertFalse(verified[0].getString("body").contains("¥10.00"))
                 val recorded = manager.activeNotifications.singleOrNull { it.id == notificationId }
                 assertNotNull("The final accounting notification must remain visible", recorded)
-                assertTrue(recorded!!.notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("¥0.01"))
-                proof("formalPaymentCase", "case=${index+1} expectedMinor=1 actualMinor=${booking.amountMinor} verificationCount=${verified.size} fixtureRows=${store.localBookings(fixture.account.id).size} duplicateRows=0 ordinaryGateway=true systemNotificationObserver=true")
+                assertEquals("Replay must not repost the same success notification", firstNotice!!.postTime, recorded!!.postTime)
+                assertTrue(recorded.notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("¥$expectedMoney"))
+                proof("formalPaymentCase", "case=${index+1} expectedMinor=$expectedMinor actualMinor=${booking.amountMinor} direction=${booking.direction} fixtureRows=${store.localBookings(fixture.account.id).size} duplicateRows=0 ordinaryGateway=true ownSystemNotificationObserved=true replayPostTimeUnchanged=true")
                 manager.cancel(notificationId)
             }
             assertTrue("Original Finance rows must remain identical", originalBookings == store.localBookings(original.account.id))
             proof("formalFinanceProtection", "originalBookingsBefore=${originalBookings.size} originalBookingsAfter=${store.localBookings(original.account.id).size} originalRowsIdentical=true syntheticAccountOnly=true")
         } finally {
-            observerDevice?.executeShellCommand("cmd notification disallow_listener $observerComponent")
             credentials.saveActive(original)
             assertTrue(context.getSharedPreferences("uk.thewyj.app.device.v1", Context.MODE_PRIVATE).edit()
                 .putString("device_id", originalDevice).commit())
             assertTrue("Original encrypted account/session must be restored", credentials.loadActive() == original)
             if (granted) request("/api/admin/entitlement", original.accessToken, grant.put("allowed", false))
+            val deleted = request("/api/account/delete", fixture.accessToken, JSONObject().put("secret", secret))
+            assertTrue("Only the owned synthetic account must be soft-deleted", deleted.optBoolean("account_deleted"))
             val serverSession = api.currentAccount(original.accessToken)
             assertTrue("Original session must remain valid on the real server", serverSession is ApiCall.Success && serverSession.value.id == original.account.id)
             assertTrue("Original Finance rows must remain identical after restoration", originalBookings == store.localBookings(original.account.id))
