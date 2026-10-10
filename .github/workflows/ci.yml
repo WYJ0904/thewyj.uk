@@ -542,20 +542,21 @@ jobs:
             --apk app/build/outputs/apk/debug/app-debug.apk \
             --allow-debug-suffix 2>&1 | tee ../artifacts/android-release-apk-check.log
 
-      - name: Build an unreleased Task 25 candidate without advancing Stable
+      - name: Validate an unreleased higher-version candidate without advancing Stable
         if: startsWith(github.head_ref, 'codex/task25-')
         working-directory: android
         run: |
           set -euo pipefail
+          read -r candidate_name candidate_code < <(python3 -c 'import json,re; from pathlib import Path; m=json.loads(Path("release-metadata.json").read_text()); g=Path("app/build.gradle.kts").read_text(); code=max(m["versionCode"],int(re.search(r"versionCode\s*=\s*(\d+)",g)[1]))+1; names=[m["versionName"],re.search(r"versionName\s*=\s*\"([0-9.]+)\"",g)[1]]; name=max(names,key=lambda v:tuple(map(int,v.split(".")))); parts=name.split("."); parts[-1]=str(int(parts[-1])+1); print(".".join(parts),code)')
           ./gradlew assembleRelease bundleRelease assembleDebugAndroidTest --no-daemon --stacktrace \
-            -PTHEWYJ_CANDIDATE_VERSION_NAME=1.3.36 -PTHEWYJ_CANDIDATE_VERSION_CODE=49
+            -PTHEWYJ_CANDIDATE_VERSION_NAME="$candidate_name" -PTHEWYJ_CANDIDATE_VERSION_CODE="$candidate_code"
           mkdir -p ../artifacts/task25-candidate
-          cp app/build/outputs/apk/release/app-release-unsigned.apk ../artifacts/task25-candidate/thewyj-android-1.3.36-candidate-unsigned.apk
-          cp app/build/outputs/bundle/release/app-release.aab ../artifacts/task25-candidate/thewyj-android-1.3.36-candidate-unsigned.aab
+          cp app/build/outputs/apk/release/app-release-unsigned.apk "../artifacts/task25-candidate/thewyj-android-${candidate_name}-candidate-unsigned.apk"
+          cp app/build/outputs/bundle/release/app-release.aab "../artifacts/task25-candidate/thewyj-android-${candidate_name}-candidate-unsigned.aab"
           python3 ../scripts/stage_android_candidate.py \
-            --apk ../artifacts/task25-candidate/thewyj-android-1.3.36-candidate-unsigned.apk \
-            --aab ../artifacts/task25-candidate/thewyj-android-1.3.36-candidate-unsigned.aab \
-            --version-name 1.3.36 --version-code 49 --signing-status unsigned \
+            --apk "../artifacts/task25-candidate/thewyj-android-${candidate_name}-candidate-unsigned.apk" \
+            --aab "../artifacts/task25-candidate/thewyj-android-${candidate_name}-candidate-unsigned.aab" \
+            --version-name "$candidate_name" --version-code "$candidate_code" --signing-status unsigned \
             --output ../artifacts/task25-candidate/candidate-metadata.json
 
       - name: Upload Android reports and test APK
