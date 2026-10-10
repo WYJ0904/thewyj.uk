@@ -732,13 +732,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20261010-aeris-release-b50');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20261010-aeris-release-b50');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261010-aeris-release-b50');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261010-aeris-release-b50');
-        const cachedChangelog = await caches.match('/changelog.js?v=20261010-aeris-release-b50');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261010-aeris-release-b50');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20261010-aeris-release-b50');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261010-aeris-release-b50-r1');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261010-aeris-release-b50-r1');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261010-aeris-release-b50-r1');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261010-aeris-release-b50-r1');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261010-aeris-release-b50-r1');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261010-aeris-release-b50-r1');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261010-aeris-release-b50-r1');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -870,6 +870,13 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#changelogPage').textContent.includes('可配置工具工作流')"), true);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
       assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), `v${LATEST_CHANGELOG_VERSION}`);
+      for (const width of [320, 390, 768, 1366, 1920]) {
+        await send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: width < 768 });
+        await evaluate("(async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); return true; })()");
+        const layout = await evaluate("({ viewport: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth })");
+        assert.ok(layout.scrollWidth <= layout.viewport + 1, `Historical changelog content must reflow at ${width}px: ${JSON.stringify(layout)}`);
+      }
+      await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       await evaluate("scrollTo({top: 1200, behavior: 'instant'}); true");
       assert.ok(Number(await evaluate("scrollY")) > 300, "changelog fixture must be scrolled");

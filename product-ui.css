@@ -900,6 +900,7 @@ textarea::placeholder {
   margin: 0;
   padding-left: 20px;
   color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .changelog-sections li + li {
