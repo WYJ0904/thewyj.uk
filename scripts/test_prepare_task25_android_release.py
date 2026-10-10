@@ -272,8 +272,11 @@ class ReleaseProposalTests(unittest.TestCase):
             (root / 'android/app').mkdir(parents=True)
             (root / 'scripts').mkdir()
             gradle = (ROOT / 'android/app/build.gradle.kts').read_text()
-            gradle = re.sub(r'versionCode\s*=\s*46\b', 'versionCode = 49', gradle, count=1)
-            gradle = gradle.replace('versionName = "1.3.33"', 'versionName = "1.3.36"', 1)
+            # This is a frozen Task25 fixture, independent of later release defaults.
+            gradle, codes = re.subn(r'versionCode\s*=\s*\d+\b', 'versionCode = 49', gradle, count=1)
+            gradle, names = re.subn(r'versionName\s*=\s*"[0-9.]+"', 'versionName = "1.3.36"', gradle, count=1)
+            self.assertEqual(codes, 1)
+            self.assertEqual(names, 1)
             (root / 'android/app/build.gradle.kts').write_text(gradle)
             (root / 'android/release-metadata.json').write_text(json.dumps(meta))
             (root / 'wrangler.jsonc').write_text(json.dumps(config))

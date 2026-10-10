@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const RELEASE = JSON.parse(fs.readFileSync(path.join(ROOT, "android", "release-metadata.json"), "utf8"));
 const changelogSource = fs.readFileSync(path.join(ROOT, "changelog.js"), "utf8");
-const LATEST_CHANGELOG_VERSION = changelogSource.match(/version:\s*"([^"]+)"/)?.[1];
-const LATEST_CHANGELOG_BUILD = changelogSource.match(/build:\s*"([^"]+)"/)?.[1];
+const changelogContext = vm.createContext({});
+vm.runInContext(changelogSource, changelogContext, { timeout: 1_000 });
+const LATEST_CHANGELOG_VERSION = changelogContext.WYJ_CHANGELOG?.[0]?.version;
+const LATEST_CHANGELOG_BUILD = changelogContext.WYJ_CHANGELOG?.[0]?.build;
 assert.ok(LATEST_CHANGELOG_VERSION && LATEST_CHANGELOG_BUILD, "The latest public changelog version and build must be present.");
 const BASE_URL = process.env.WYJ_TEST_BASE || "http://127.0.0.1:8892";
 const CDP_URL = process.env.WYJ_CDP_URL || "http://127.0.0.1:9223";
@@ -729,13 +732,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20261009-aeris-release-b-preview4');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20261009-aeris-release-b-preview4');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261009-aeris-release-b-preview4');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261009-aeris-release-b-preview4');
-        const cachedChangelog = await caches.match('/changelog.js?v=20261009-aeris-release-b-preview4');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261009-aeris-release-b-preview4');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20261009-aeris-release-b-preview4');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261010-aeris-release-b50-r1');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261010-aeris-release-b50-r1');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261010-aeris-release-b50-r1');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261010-aeris-release-b50-r1');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261010-aeris-release-b50-r1');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261010-aeris-release-b50-r1');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261010-aeris-release-b50-r1');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -867,6 +870,13 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#changelogPage').textContent.includes('可配置工具工作流')"), true);
       assert.ok(Number(await evaluate("document.querySelectorAll('#changelogPage .changelog-sections section').length")) >= 10);
       assert.equal(await evaluate("document.querySelector('#changelogCurrentVersion').textContent.trim()"), `v${LATEST_CHANGELOG_VERSION}`);
+      for (const width of [320, 390, 768, 1366, 1920]) {
+        await send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: width < 768 });
+        await evaluate("(async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); return true; })()");
+        const layout = await evaluate("({ viewport: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth })");
+        assert.ok(layout.scrollWidth <= layout.viewport + 1, `Historical changelog content must reflow at ${width}px: ${JSON.stringify(layout)}`);
+      }
+      await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       assert.equal(await evaluate("document.querySelector('#versionNotice').classList.contains('hidden')"), true);
       await evaluate("scrollTo({top: 1200, behavior: 'instant'}); true");
       assert.ok(Number(await evaluate("scrollY")) > 300, "changelog fixture must be scrolled");
