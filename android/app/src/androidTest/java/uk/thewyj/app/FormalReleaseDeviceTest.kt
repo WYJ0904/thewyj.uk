@@ -126,6 +126,7 @@ class FormalReleaseDeviceTest {
         val grant = JSONObject().put("user_id", fixture.account.id).put("entitlement", "finance_access")
             .put("allowed", true).put("note", "Task25 formal R8 acceptance: new synthetic account only; revoked after payment checks")
         var granted = false
+        var restoreNetwork: (() -> Unit)? = null
         try {
             request("/api/admin/entitlement", original.accessToken, grant); granted = true
             val liveAccount = api.currentAccount(fixture.accessToken)
@@ -171,6 +172,35 @@ class FormalReleaseDeviceTest {
             val manager = context.getSystemService(NotificationManager::class.java)
             val baseline = store.localBookings(fixture.account.id).size
             repeat(cases) { index ->
+                val offline = index == 0 && args.getString("offlineEntry") == "true"
+                if (offline) {
+                    val wifi = Settings.Global.getInt(context.contentResolver, "wifi_on")
+                    val mobile = Settings.Global.getInt(context.contentResolver, "mobile_data")
+                    require((wifi == 0 || wifi == 1) && (mobile == 0 || mobile == 1))
+                    val connectivity = context.getSystemService(android.net.ConnectivityManager::class.java)
+                    restoreNetwork = {
+                        device.executeShellCommand("svc wifi ${if (wifi == 1) "enable" else "disable"}")
+                        device.executeShellCommand("svc data ${if (mobile == 1) "enable" else "disable"}")
+                        val networkDeadline = SystemClock.uptimeMillis() + 15_000
+                        while (connectivity.activeNetwork == null && SystemClock.uptimeMillis() < networkDeadline) SystemClock.sleep(100)
+                        assertEquals(wifi, Settings.Global.getInt(context.contentResolver, "wifi_on"))
+                        assertEquals(mobile, Settings.Global.getInt(context.contentResolver, "mobile_data"))
+                    }
+                    device.executeShellCommand("svc wifi disable")
+                    device.executeShellCommand("svc data disable")
+                    SystemClock.sleep(1500)
+                    assertEquals(0, Settings.Global.getInt(context.contentResolver, "wifi_on"))
+                    assertEquals(0, Settings.Global.getInt(context.contentResolver, "mobile_data"))
+                    // A VPN can retain a virtual Network after its transport is
+                    // gone. Prove the real endpoint is unreachable without
+                    // altering that VPN or weakening any security setting.
+                    val probe = URL(BuildConfig.THEWYJ_BASE_URL + "/api/status").openConnection() as HttpURLConnection
+                    probe.connectTimeout = 2000; probe.readTimeout = 2000; probe.useCaches = false
+                    var endpointReached = false
+                    try { endpointReached = probe.responseCode > 0 } catch (_: java.io.IOException) { }
+                    finally { probe.disconnect() }
+                    assertFalse("The first booking must run while Production is actually unreachable", endpointReached)
+                }
                 if (index == 5) {
                     context.startActivity(android.content.Intent(context, MainActivity::class.java).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
                     SystemClock.sleep(1200); assertEquals(context.packageName, device.currentPackageName)
@@ -191,6 +221,12 @@ class FormalReleaseDeviceTest {
                 assertNotNull("Formal R8 live entry ${index+1} must trigger within the retry window", booking)
                 assertEquals("The actual foreground detail amount must match exactly", expectedMinor, booking!!.amountMinor)
                 assertEquals(expectedDirection, booking.direction)
+                if (offline) {
+                    assertEquals("Offline money must be durable locally before a server receipt", "pending", booking.syncState)
+                    proof("formalOffline", "wifiAndMobileDisabled=true productionEndpointUnreachable=true localAmountMinor=${booking.amountMinor} direction=${booking.direction} localBookingBeforeServerReceipt=true vpnUnchanged=true")
+                    restoreNetwork!!.invoke(); restoreNetwork = null
+                    proof("formalNetworkRestoration", "originalWifiAndMobileSettingsRestored=true")
+                }
                 val noticeDeadline = SystemClock.uptimeMillis() + 5000
                 while (manager.activeNotifications.none { it.id == notificationId } && SystemClock.uptimeMillis() < noticeDeadline) SystemClock.sleep(100)
                 val firstNotice = manager.activeNotifications.singleOrNull { it.id == notificationId }
@@ -216,33 +252,44 @@ class FormalReleaseDeviceTest {
                 manager.cancel(notificationId)
             }
             if (args.getString("verifyCloud") == "true") {
-                val pipeline = uk.thewyj.app.task21.NotificationCapturePipeline.create(context, NotificationSessionProvider(context))
-                LocalPaymentLedger.recover(context, fixture.account.id, fixtureDevice)
-                pipeline.flushDetailed()
+                fun resumeAerisForSync() {
+                    context.startActivity(android.content.Intent(context, MainActivity::class.java).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+                    SystemClock.sleep(1200)
+                    assertEquals(context.packageName, device.currentPackageName)
+                }
+                // Exercise the ordinary foreground recovery, not a Kotlin object
+                // whose INSTANCE field R8 may legally remove from the shipped APK.
+                resumeAerisForSync()
                 val syncDeadline = SystemClock.uptimeMillis() + 30_000
                 while (store.localBookings(fixture.account.id).any { it.syncState != "synced" } && SystemClock.uptimeMillis() < syncDeadline) SystemClock.sleep(100)
                 val local = store.localBookings(fixture.account.id)
                 assertTrue("Every local booking must receive a real server receipt", local.all { it.syncState == "synced" })
                 val remote = request("/api/finance/transactions?limit=100", fixture.accessToken).getJSONArray("transactions")
                 assertEquals("Exactly one remote row per verified test event", cases, remote.length())
-                val remoteIds = mutableListOf<String>()
+                val remoteIds = java.util.TreeSet<String>()
                 for (i in 0 until remote.length()) {
                     val row = remote.getJSONObject(i)
                     assertEquals(expectedMinor, row.getLong("amount_minor"))
                     assertEquals(expectedDirection, row.getString("direction").uppercase(java.util.Locale.ROOT))
                     remoteIds.add(row.getString("id"))
                 }
-                assertEquals(local.map { it.transactionId }.sorted(), remoteIds.sorted())
-                repeat(2) { LocalPaymentLedger.recover(context, fixture.account.id, fixtureDevice); pipeline.flushDetailed() }
+                val localIds = java.util.TreeSet<String>()
+                for (booking in local) localIds.add(booking.transactionId)
+                assertEquals(localIds, remoteIds)
+                repeat(2) { device.pressHome(); SystemClock.sleep(300); resumeAerisForSync() }
                 val replayRows = request("/api/finance/transactions?limit=100", fixture.accessToken).getJSONArray("transactions")
                 assertEquals(cases, replayRows.length())
-                val replayIds = (0 until replayRows.length()).map { replayRows.getJSONObject(it).getString("id") }
-                assertEquals(remoteIds.sorted(), replayIds.sorted())
-                proof("formalCloud", "normalProductionApi=true syncedLocalRows=${local.size} remoteRows=${remote.length()} exactAmountsAndDirection=true idsMatch=true repeatedOutboxFlushes=2 duplicateRemoteRows=0")
+                val replayIds = java.util.TreeSet<String>()
+                for (i in 0 until replayRows.length()) replayIds.add(replayRows.getJSONObject(i).getString("id"))
+                assertEquals(remoteIds, replayIds)
+                proof("formalCloud", "normalProductionApi=true syncedLocalRows=${local.size} remoteRows=${remote.length()} exactAmountsAndDirection=true idsMatch=true repeatedForegroundSyncs=2 duplicateRemoteRows=0")
+                foregroundWechat()
             }
             assertTrue("Original Finance rows must remain identical", originalBookings == store.localBookings(original.account.id))
             proof("formalFinanceProtection", "originalBookingsBefore=${originalBookings.size} originalBookingsAfter=${store.localBookings(original.account.id).size} originalRowsIdentical=true syntheticAccountOnly=true")
         } finally {
+            var networkRestoreFailure: Throwable? = null
+            try { restoreNetwork?.invoke() } catch (failure: Throwable) { networkRestoreFailure = failure }
             credentials.saveActive(original)
             assertTrue(context.getSharedPreferences("uk.thewyj.app.device.v1", Context.MODE_PRIVATE).edit()
                 .putString("device_id", originalDevice).commit())
@@ -254,6 +301,7 @@ class FormalReleaseDeviceTest {
             assertTrue("Original session must remain valid on the real server", serverSession is ApiCall.Success && serverSession.value.id == original.account.id)
             assertTrue("Original Finance rows must remain identical after restoration", originalBookings == store.localBookings(original.account.id))
             proof("formalRestoration", "originalSessionRestored=true originalFinanceRowsIdentical=true syntheticFinanceEntitlementRevoked=$granted originalDeviceIdentityPreserved=${DeviceIdentityStore(context).getOrCreate() == originalDevice}")
+            assertNull("Original network settings must also be restored", networkRestoreFailure)
         }
     }
 }
