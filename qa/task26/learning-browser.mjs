@@ -65,7 +65,8 @@ for(const width of widths){
   if(width===390){
    await page.click('#masteryNextBtn');await page.waitFor("!document.getElementById('masterySubmitBtn').disabled && document.getElementById('masteryAnswerInput').value===''");
    await page.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await page.waitFor('navigator.onLine===false');
-   await page.setFields({'#masteryAnswerInput':'offline-response'});await page.click('#masterySubmitBtn');assert.equal(await pendingCount(),1);
+   await page.setFields({'#masteryAnswerInput':'offline-response'});await page.click('#masterySubmitBtn');
+   await page.waitFor(`JSON.parse(localStorage.getItem('aerisMastery:v1:'+${JSON.stringify(accountId)})).outbox.length===1`,10000);assert.equal(await pendingCount(),1);
    assert.equal(await page.evaluate("document.getElementById('masteryResult').classList.contains('hidden')"),true);
    assert.ok(await page.evaluate("document.getElementById('masterySyncStatus').textContent.includes('待同步')"));
    const eventId=await page.evaluate(`JSON.parse(localStorage.getItem('aerisMastery:v1:'+${JSON.stringify(accountId)})).outbox[0].input.event_id`);
@@ -82,10 +83,10 @@ for(const width of widths){
     return {status:503,body:{ok:false,code:'learning_unavailable',error:'Injected response loss after real server acceptance'}};
    }}]);
    await page.setFields({'#masteryAnswerInput':'response-lost'});await page.click('#masterySubmitBtn');await page.waitFor("document.getElementById('masteryStatus').textContent.includes('待同步')",30000);assert.equal(serverAccepted,true);assert.equal(await pendingCount(),1);
-   faults.setState('normal');await page.click('#masteryRetryBtn');await page.waitFor(`JSON.parse(localStorage.getItem('aerisMastery:v1:'+${JSON.stringify(accountId)})).outbox.length===0`,30000);
+   faults.setState('normal');await page.waitFor("!document.getElementById('masteryRetryBtn').disabled",30000);await page.click('#masteryRetryBtn');await page.waitFor(`JSON.parse(localStorage.getItem('aerisMastery:v1:'+${JSON.stringify(accountId)})).outbox.length===0`,30000);
    assert.equal(await page.evaluate(`JSON.parse(localStorage.getItem('aerisMastery:v1:'+${JSON.stringify(accountId)})).results.japanese.receipt.event_id`),lostId);checks.push('accepted_response_loss_retry');
    const malformed=await page.intercept([{match:'/api/learning/mastery/summary',state:'broken',respond:({state})=>state==='broken'?{status:200,body:{ok:true,account_id:'wrong-account',points:[]}}:{continue:true}}]);
-   await page.click('#masteryRetryBtn');await page.waitFor("document.getElementById('masteryStatus').textContent.includes('响应无效')",30000);assert.ok(await page.evaluate("document.getElementById('masteryCounts').textContent.includes('学习中')"));malformed.setState('normal');checks.push('malformed_response_cache_preserved');
+   await page.waitFor("!document.getElementById('masteryRetryBtn').disabled",30000);await page.click('#masteryRetryBtn');await page.waitFor("document.getElementById('masteryStatus').textContent.includes('响应无效')",30000);assert.ok(await page.evaluate("document.getElementById('masteryCounts').textContent.includes('学习中')"));malformed.setState('normal');checks.push('malformed_response_cache_preserved');
   }
   await editFlag('adaptive_learning',{kill_switch:true});await page.click('#accountBtn');await page.waitFor("!document.getElementById('releaseChannelSection').classList.contains('hidden')");await page.click('#refreshReleaseChannelBtn');
   await page.waitFor("window.AerisFeatures.enabled('adaptive_learning')===false && document.getElementById('masterySection').classList.contains('hidden')",30000);

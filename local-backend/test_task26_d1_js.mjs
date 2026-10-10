@@ -8,10 +8,12 @@ import { cloudMiddleware } from '../functions/_lib/cloudflare-foundation.mjs';
 import { sessionStorageKey } from '../functions/_lib/task12-crypto.mjs';
 import { deterministicBucket } from '../functions/_lib/task25-model.mjs';
 import { replayMastery } from '../functions/_lib/task26-mastery.mjs';
+import { reconcilePoint } from '../functions/_lib/task26-service.mjs';
+import { catalog, COURSE_VERSION } from '../functions/_lib/task26-catalog.mjs';
 
 const root=path.resolve(import.meta.dirname,'..'),runtime=await mkdtemp(path.join(os.tmpdir(),'task26-'));
 const mf=new Miniflare({modules:true,script:'export default{fetch(){return new Response("isolated task26 fixture")}}',compatibilityDate:'2026-08-06',d1Databases:['WYJ_DB'],d1Persist:runtime});
-const users={owner:{id:'t26-owner',role:'super_admin'},one:{id:'t26-one',role:'user'},two:{id:'t26-two',role:'user'},free:{id:'t26-free',role:'user'},english:{id:'t26-english',role:'user'}};
+const users={owner:{id:'t26-owner',role:'super_admin'},one:{id:'t26-one',role:'user'},two:{id:'t26-two',role:'user'},free:{id:'t26-free',role:'user'},english:{id:'t26-english',role:'user'},backlog:{id:'t26-backlog',role:'user'}};
 const env={CLOUD_FOUNDATION_ENABLED:'true',TASK12_CLOUD_ACCOUNTS_ENABLED:'true',TASK20_ANDROID_APP_ENABLED:'true',TASK13_CLOUD_READS_ENABLED:'true',
  TASK11_CLOUD_READS_ENABLED:'true',TASK11_CLOUD_WRITES_ENABLED:'true',TASK25_FEATURE_FLAGS_ENABLED:'true',TASK26_ADAPTIVE_LEARNING_ENABLED:'true',D1_RATE_LIMIT_ENABLED:'false',WYJ_ENVIRONMENT:'preview'};
 const semantic=({request_id,...rest})=>rest;
@@ -29,6 +31,8 @@ try{
  }
  for(const u of [users.one,users.two,users.english])await db.prepare(`INSERT INTO task13_user_memberships(id,user_id,plan_code,starts_at,is_lifetime,source,source_ref,metadata_json,created_at,updated_at)
   VALUES(?1,?2,?3,?4,1,'test',?1,?5,?4,?4)`).bind(`${u.id}-membership`,u.id,u===users.english?'trial_single_language':'dual_language_lifetime',now,u===users.english?'{"language":"english"}':'{}').run();
+ for(const type of ['wrong_book','test_history'])await db.prepare(`INSERT INTO task11_learning_sync_records(user_id,data_type,record_id,payload_json,updated_at,client_id,client_version,created_at,server_updated_at)
+  VALUES(?1,?2,?2,'{"language":"english","word":"apple","historical_correct":true}',?3,'legacy-fixture-client','1',?3,?3)`).bind(users.one.id,type,now).run();
  async function request(route,{user=users.one,method='GET',body,raw,headers={},environment={},database=db,middleware=false}={}){
   const h=new Headers(headers);if(user&&!h.has('Cookie'))h.set('X-Session-Token',user.token);
   if(body!==undefined&&!h.has('Content-Type'))h.set('Content-Type','application/json');
@@ -174,6 +178,24 @@ try{
  await assert.rejects(db.prepare("UPDATE task26_learning_events SET correct=1 WHERE kind='answer_submitted'").run(),/task26_events_immutable/);
  const stored=(await db.prepare('SELECT * FROM task26_learning_events LIMIT 1').first());assert.ok(!('answer' in stored));assert.ok(!('raw_answer' in stored));
  check('event history is immutable; raw user answer content is not stored');
+ // A valid authoritative ledger backlog must be recoverable within D1 query
+ // limits: receipt materialization is one JSON-table update, not 120 queries.
+ const pointData=catalog('english')[0],questionData=pointData.questions[0],backlogIds=[];
+ for(let n=0;n<120;n++){
+  const id=crypto.randomUUID(),eventId=crypto.randomUUID(),accepted=new Date(Date.now()+n*1000).toISOString();backlogIds.push(id);
+  await db.batch([
+   db.prepare(`INSERT INTO task26_question_tickets(id,user_id,language,knowledge_id,question_id,question_json,point_json,course_version,algorithm_version,mode,issued_at,expires_at,outcome_event_id)
+    VALUES(?1,?2,'english',?3,?4,?5,?6,?7,'mastery-v1','adaptive',?8,?9,?10)`).bind(id,users.backlog.id,pointData.id,questionData.id,JSON.stringify(questionData),JSON.stringify(pointData),COURSE_VERSION,accepted,new Date(Date.parse(accepted)+86400000).toISOString(),eventId),
+   db.prepare(`INSERT INTO task26_learning_events(user_id,event_id,ticket_id,language,knowledge_id,question_id,family,kind,correct,response_ms,timing_verified,difficulty,accepted_at,algorithm_version,source,platform,channel,input_digest)
+    VALUES(?1,?2,?3,'english',?4,?5,?6,'answer_submitted',1,5000,1,1,?7,'mastery-v1','adaptive','browser','experimental',?8)`)
+    .bind(users.backlog.id,eventId,id,pointData.id,questionData.id,questionData.family,accepted,'1'.repeat(64)),
+  ]);
+ }
+ let prepared=0;const countedDb={prepare:sql=>{prepared++;return db.prepare(sql);},batch:stmts=>db.batch(stmts)};
+ const recovered=await reconcilePoint(countedDb,users.backlog.id,'english',pointData.id);assert.equal(recovered.attempt_count,120);assert.equal(recovered.effective_attempt_count,1);assert.ok(prepared<=4);
+ assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM task26_question_tickets WHERE user_id=?1 AND receipt_json IS NOT NULL').bind(users.backlog.id).first()).n,120);
+ assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM task11_learning_sync_records WHERE user_id=?1').bind(users.one.id).first()).n,2);
+ check('120-event recovery uses four prepared queries, restores every receipt and retains old wrong-book/history');
  const route='/api/learning/mastery/summary',window=Math.floor(Date.now()/1000/60)*60;
  const {sha256Hex}=await import('../functions/_lib/cloudflare-foundation.mjs');const key=await sha256Hex(`task26:GET:${route}\u0000${users.one.id}\u0000${window}`);
  await db.prepare('INSERT INTO cloud_rate_limit_windows(bucket_key,route,window_started_at,expires_at,request_count) VALUES(?1,?2,?3,?4,120)').bind(key,route,window,window+60).run();

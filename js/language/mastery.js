@@ -6,19 +6,20 @@ const REASONS={new:'新知识',weak:'巩固弱项',due:'到期复习',learning:'
 const time=value=>value?new Date(value).toLocaleString('zh-CN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'尚无安排';
 export function createMasteryController({getAccount,getLanguage,features,api,apiGet,document=globalThis.document,storage=getSafeStorage(),locks=globalThis.navigator?.locks}){
  const node=id=>document.getElementById(id),text=(id,value)=>{if(node(id))node(id).textContent=value;};
- let owner='',lang='',signature='',generation=0,store=null,question=null,receipt=null,summary=null,mode='adaptive',busy=false,syncing=false,message='',cached=false,controller=null,round=[];
+ let owner='',lang='',signature='',generation=0,identityGeneration=0,store=null,question=null,receipt=null,summary=null,mode='adaptive',busy=false,syncing=false,message='',cached=false,controller=null,round=[];
  const currentOwner=()=>String(getAccount()?.id||''),currentLang=()=>['english','japanese'].includes(getLanguage())?getLanguage():'english';
  const live=ticket=>ticket===generation&&owner===currentOwner()&&lang===currentLang();
  const allowed=()=>features.enabled('mastery_score')&&features.enabled('adaptive_learning');
  function load(accountId){const raw=storage.getItem(masteryStorageKey(accountId));return parseLearningStore(raw===null?null:JSON.parse(raw),accountId);}
  async function persist(change){
-  const accountId=owner,ticket=generation,language=lang;
+  const accountId=owner,identity=identityGeneration,language=lang;
   if(!locks?.request)throw new Error('浏览器不支持安全的多窗口学习同步，请使用普通测验。');
   await locks.request(`aeris-mastery:${accountId}`,()=>{
-   if(accountId!==currentOwner()||ticket!==generation||language!==currentLang())throw new Error('账户或语言已切换，答题保留在原账户中。');
+   if(accountId!==currentOwner()||identity!==identityGeneration||language!==currentLang())throw new Error('账户或语言已切换，答题保留在原账户中。');
    const next=change(load(accountId));
    if(!safeStorageSet(storage,masteryStorageKey(accountId),JSON.stringify(next)))throw new Error('本机存储不可写，不能保证答题恢复；请保留当前答案并恢复存储。');
    store=next;
+   render();
   });
  }
  function pointList(target,points){
@@ -153,7 +154,7 @@ export function createMasteryController({getAccount,getLanguage,features,api,api
   const nextOwner=currentOwner(),nextLang=currentLang(),nextSignature=`${nextOwner}:${nextLang}:${allowed()}:${features.enabled('adaptive_review')}:${features.channel()}`;
   if(!force&&signature===nextSignature)return;signature=nextSignature;generation++;controller?.abort();controller=new AbortController();busy=false;syncing=false;
   const switched=nextOwner!==owner||nextLang!==lang;owner=nextOwner;lang=nextLang;
-  if(switched){round=[];question=null;receipt=null;summary=null;node('masteryDetail')?.classList.add('hidden');text('masteryAiExplanation','');if(node('masteryAnswerInput'))node('masteryAnswerInput').value='';}
+  if(switched){identityGeneration++;round=[];question=null;receipt=null;summary=null;node('masteryDetail')?.classList.add('hidden');text('masteryAiExplanation','');if(node('masteryAnswerInput'))node('masteryAnswerInput').value='';}
   message='';store=null;
   if(owner){try{store=load(owner);question=store.questions[lang]?.question||null;mode=store.questions[lang]?.mode||'adaptive';
    const saved=store.results[lang];receipt=saved?.ticket_id===question?.ticket_id?parseAnswerReceipt(saved.receipt,saved.input,owner,lang):null;

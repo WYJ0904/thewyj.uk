@@ -37,7 +37,7 @@ AI uses existing runStructuredAi/WorkersAI, D1 cache, global/user quota, short t
 | AI | local-first/normal/cache/timeout/empty/malformed/quota/unavailable/untrusted-output handling; no pre-answer leakage or correctness modification |
 | UI | real Chromium320/390/768/1366/1920, light/dark, enlarged text, empty/error/loading, quiz→mastery→next→wrong/explain→review→reload, outbox/account/auth/network failures |
 | Android | existing package/signing/metadata retained, JVM/lint/build/runtime and new transport/WebView contracts; no emulator described as Samsung |
-| Regression | ordinary learning/wrong-book/rejudge, Finance/account/membership/home/notification/transfer/update and Task25 contracts; all eight exact-head Core CI jobs |
+| Regression | ordinary learning/wrong-book/rejudge, Finance, account, membership, homepage, notification, transfer, update and Task25 contracts; all eight exact-head Core CI jobs |
 | Hosted/Production | isolated real Preview schema/admin/full flow, then current ledger/bookmark/defaultOFF preflight, additive migration once, same-project deployment, Production smoke and Experimental→Beta→percentage Stable audit/kill/rollback |
 
 Current actual cloud Wrangler authentication, Actions Cloudflare token/account, original signing secrets and hosted Admin session are absent. GitHub and Pages Git integration are available. These facts do not stop implementation/isolated D1/browser/Android/CI work. They block only the corresponding hosted migration/admin/new-signing/promotion operations. Do not claim hosted schema/API/rollout PASS from local tests or merge/deploy active Task26 through a failed release gate. Recovery keeps additive tables/events and disables flags/rollout; never reset D1, drop historical data or overwrite Stable50 APK.
