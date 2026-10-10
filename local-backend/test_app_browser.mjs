@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const RELEASE = JSON.parse(fs.readFileSync(path.join(ROOT, "android", "release-metadata.json"), "utf8"));
 const changelogSource = fs.readFileSync(path.join(ROOT, "changelog.js"), "utf8");
-const LATEST_CHANGELOG_VERSION = changelogSource.match(/version:\s*"([^"]+)"/)?.[1];
-const LATEST_CHANGELOG_BUILD = changelogSource.match(/build:\s*"([^"]+)"/)?.[1];
+const changelogContext = vm.createContext({});
+vm.runInContext(changelogSource, changelogContext, { timeout: 1_000 });
+const LATEST_CHANGELOG_VERSION = changelogContext.WYJ_CHANGELOG?.[0]?.version;
+const LATEST_CHANGELOG_BUILD = changelogContext.WYJ_CHANGELOG?.[0]?.build;
 assert.ok(LATEST_CHANGELOG_VERSION && LATEST_CHANGELOG_BUILD, "The latest public changelog version and build must be present.");
 const BASE_URL = process.env.WYJ_TEST_BASE || "http://127.0.0.1:8892";
 const CDP_URL = process.env.WYJ_CDP_URL || "http://127.0.0.1:9223";

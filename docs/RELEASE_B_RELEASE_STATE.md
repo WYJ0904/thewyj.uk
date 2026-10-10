@@ -1,5 +1,9 @@
 # Release B cloud publication and user update acceptance
 
+## Current handoff — 2026-10-10
+
+The latest user instruction retains the accepted Samsung S25+/Android16 functional results and explicitly cancels the App-internal49→50 manual update test. Its status is **NOT EXECUTED — USER WAIVED**, not PASS or pending user action. No downgrade, reconnect, uninstall or data clearing is authorized for this test. The previous pending wording below is historical. Release B closes only after exact-head CI, accepted immutable APK verification and actual Production Stable50/download/cache acceptance; once that cloud closure passes, Task26 starts from the released main. Task26 retains its own signing/device/release gates.
+
 The user explicitly confirmed all Samsung Android16 functional acceptance on 2026-10-10 and authorized cloud publication without reconnecting ADB. Codex device evidence and user-attested acceptance remain distinct. App-internal update/download/system-install/startup acceptance is **PENDING USER ACCEPTANCE** and must not be changed to PASS without feedback.
 
 Accepted Android source: `5420b2d7403c00c43ae5acd33ae79e45ad1385f1`; merged PR103 source: `5da5b23cee428521a5a61e8f22a3c3b26874de45`. Their complete Git trees match. Candidate CI38033807473 and merged-main CI38036783477 both passed all eight jobs. Final artifact/source verification retains the actual ordinary R8 flags and original certificate.
