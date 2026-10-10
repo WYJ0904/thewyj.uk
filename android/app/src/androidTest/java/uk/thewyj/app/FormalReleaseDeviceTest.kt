@@ -91,7 +91,7 @@ class FormalReleaseDeviceTest {
         val expectedDirection = args.getString("expectedDirection") ?: "EXPENSE"
         val cases = args.getString("liveCases")?.toInt() ?: 10
         val sourceActivity = args.getString("sourceActivity") ?: "RemittanceDetailUI"
-        require(expectedMinor > 0 && cases in 1..20 && expectedDirection in setOf("EXPENSE", "INCOME"))
+        require(expectedMinor > 0 && cases >= 1 && cases <= 20 && (expectedDirection == "EXPENSE" || expectedDirection == "INCOME"))
         val sourceText = when (expectedDirection) {
             "INCOME" -> "你收到一笔转账"
             else -> "你建立了一笔转账"
