@@ -33,6 +33,8 @@ gh run list --repo WYJ0904/thewyj.uk --workflow ci.yml --branch codex/task26-ada
 
 Web 在现有语言工作区提供自适应/弱项/复习模式、掌握度概览、知识点详情、结果变化、课程例句和辨析。按账户隔离的 v1 outbox 先持久化再提交；不在客户端计算分数。离线及响应丢失保留同一 event ID，恢复后确认；切换账户不会提交或显示另一账户的状态。存储失败、未知版本、过期 ticket 或不可恢复响应保留证据并明确提示，不静默清空队列。普通 Quiz 是服务/flag/AI 故障时的独立降级入口。
 
+同账户另一窗口的确认会恢复原收据并锁定完成题；新 ticket 会清除旧 draft。storage 通知只恢复状态，不触发相互 fetch/persist 循环。这个实际问题有修复前失败记录及两个新增通过用例；Task26 runtime cache 已一起递增到 r2。
+
 AI 仅补充已经确定的错误解释，复用 Workers AI、现有 `rubric` 类缓存/配额/租约和 3 秒 timeout；缓存输入带 Task 26 namespace。AI 不可用、配额不足、超时或输出夹带分数/正确性字段时使用课程解析，不能改判或影响 Mastery。AI/课程内容只作为文本渲染。
 
 所有 API 复用账户、语言 entitlement、Task 25 决策、CSRF 和 D1 限流。没有任意修改普通用户分数的后台；Admin 新增只读聚合诊断，继续使用原有 flags、CAS revision 与 audit trail。

@@ -1,5 +1,5 @@
-import { getSafeStorage, safeStorageSet } from '../core/storage.js?v=20261010-aeris-task26-r1';
-import { emptyLearningStore, parseLearningStore, masteryStorageKey, parseIssuedQuestion, parseMasterySummary, parseAnswerReceipt, enqueueAnswer, acknowledgeAnswer, acceptSummaryCache } from './mastery-state.js?v=20261010-aeris-task26-r1';
+import { getSafeStorage, safeStorageSet } from '../core/storage.js?v=20261010-aeris-task26-r2';
+import { emptyLearningStore, parseLearningStore, masteryStorageKey, parseIssuedQuestion, parseMasterySummary, parseAnswerReceipt, enqueueAnswer, acknowledgeAnswer, acceptSummaryCache } from './mastery-state.js?v=20261010-aeris-task26-r2';
 
 const LABELS={new:'尚未学习',learning:'学习中',familiar:'较熟悉',mastered:'已掌握',needs_review:'待复习'};
 const REASONS={new:'新知识',weak:'巩固弱项',due:'到期复习',learning:'继续学习',spot:'掌握抽查'};
@@ -166,7 +166,22 @@ export function createMasteryController({getAccount,getLanguage,features,api,api
  node('masteryAnswerForm')?.addEventListener('submit',event=>void submit(event));node('masterySkipBtn')?.addEventListener('click',()=>void skip());
  node('masteryAiBtn')?.addEventListener('click',()=>void explain());node('masteryRetryBtn')?.addEventListener('click',()=>{void sync();if(!store?.outbox.length)void refresh();});
  globalThis.addEventListener?.('online',()=>update(true));globalThis.addEventListener?.('offline',()=>{message='当前离线，掌握度尚未同步。';render();});
- globalThis.addEventListener?.('storage',event=>{if(owner&&event.key===masteryStorageKey(owner)){try{store=load(owner);summary=store.cache[lang]||summary;render();}catch(error){message=error.message;render();}}});
+ globalThis.addEventListener?.('storage',event=>{
+  if(!owner||event.key!==masteryStorageKey(owner))return;
+  try{
+   const incoming=load(owner),nextQuestion=incoming.questions[lang]?.question||null,saved=incoming.results[lang];
+   const nextReceipt=saved?.ticket_id===nextQuestion?.ticket_id?parseAnswerReceipt(saved.receipt,saved.input,owner,lang):null;
+   const ticketChanged=question?.ticket_id!==nextQuestion?.ticket_id;
+   if(ticketChanged||receipt?.event_id!==nextReceipt?.event_id){
+    generation++;controller?.abort();controller=new AbortController();busy=false;syncing=false;
+    if(ticketChanged){if(node('masteryAnswerInput'))node('masteryAnswerInput').value='';text('masteryAiExplanation','');}
+    question=nextQuestion;receipt=nextReceipt;mode=incoming.questions[lang]?.mode||'adaptive';message='学习进度已由其他窗口更新。';
+   }
+   store=incoming;summary=store.cache[lang]||summary;cached=Boolean(summary);render();
+   // Hydrate without fetching/persisting: reciprocal storage events must not
+   // create a cross-window refresh/write loop or submit the ticket again.
+  }catch(error){message=error.message;render();}
+ });
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)update(true);});
  render();
  return Object.freeze({update,refresh,sync});
