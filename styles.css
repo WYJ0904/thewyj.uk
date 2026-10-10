@@ -2409,8 +2409,7 @@ textarea {
   overflow-wrap: anywhere;
 }
 .admin-user-facts p,
-.admin-user-security > p,
-.admin-request-status {
+.admin-user-security > p {
   display: grid;
   grid-template-columns: 76px minmax(0, 1fr);
   gap: 10px;
@@ -2421,6 +2420,41 @@ textarea {
 .admin-request-status span { color: var(--muted); font-size: 12px; }
 .admin-user-facts strong,
 .admin-request-status strong { color: #e9f8ff; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.admin-request-status {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  align-items: start;
+  gap: 8px;
+  min-width: 0;
+}
+.admin-request-status-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.admin-request-status .admin-request-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 8px;
+  border-radius: 6px;
+  line-height: 1.5;
+  white-space: normal;
+}
+.admin-request-confirmed {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.admin-request-confirmed time {
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
 .admin-user-actions button { min-width: 72px; }
 .secret-value { font-family: Consolas, monospace; overflow-wrap: anywhere; }
 .account-state-bad { color: #ff9c8f; }
@@ -2676,8 +2710,7 @@ textarea {
   .admin-user-card { grid-template-columns: 1fr; }
   .admin-user-card .action-row { justify-content: flex-start; }
   .admin-user-facts p,
-  .admin-user-security > p,
-  .admin-request-status { grid-template-columns: 74px minmax(0, 1fr); }
+  .admin-user-security > p { grid-template-columns: 74px minmax(0, 1fr); }
   .admin-user-actions button { min-width: 112px; }
   .account-details { grid-template-columns: 1fr; gap: 3px; }
   .account-details dd { margin-bottom: 8px; }

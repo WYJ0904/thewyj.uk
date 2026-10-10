@@ -1,7 +1,7 @@
-import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?v=20261009-task25-release49";
-import { randomId } from "../core/capabilities.js?v=20261009-task25-release49";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261009-task25-release49";
-import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261009-task25-release49";
+import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?v=20261009-aeris-release-b-preview4";
+import { randomId } from "../core/capabilities.js?v=20261009-aeris-release-b-preview4";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261009-aeris-release-b-preview4";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261009-aeris-release-b-preview4";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -9,7 +9,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20261009-task25-release49";
+} from "../core/perf.js?v=20261009-aeris-release-b-preview4";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -615,4 +615,4 @@ export function createFinanceCandidatesController({
   const dashboardSummary = () => ({ known: hasCanonicalObservation && renderedForAccount === String(account()?.id || ""), count: currentCandidates.length });
   return Object.freeze({ show, hide, reload, accountUpdated, handleClick, dashboardSummary });
 }
-import { createParkedRows, rowRenderRoot } from "../core/parked-rows.js?v=20261009-task25-release49";
+import { createParkedRows, rowRenderRoot } from "../core/parked-rows.js?v=20261009-aeris-release-b-preview4";

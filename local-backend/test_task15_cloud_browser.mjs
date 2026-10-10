@@ -830,6 +830,9 @@ async function main() {
     await check("Task 22 file transfer uploads, publishes and revokes through the real UI", async () => {
       await navigate("/transfer");
       await waitFor("!document.querySelector('#transferPage')?.classList.contains('hidden')", 15_000, "transfer page");
+      // The router reveals the container before the lazy owner initializes.
+      // Its initial empty queue is rendered only after show() binds the real UI.
+      await waitFor("Boolean(document.querySelector('#transferQueue .transfer-empty'))", 15_000, "transfer controller initialized with an empty queue");
       await evaluate(`transferController.addFiles([
         new File(["Task 22 browser fixture"], "ci-note.txt", { type: "text/plain" }),
         new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47]), "ci-dot.png"], { type: "image/png" }),

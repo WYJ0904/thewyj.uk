@@ -18,6 +18,7 @@ import uk.thewyj.app.core.design.ThewyjOutlinedButton as OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uk.thewyj.app.core.design.ThewyjCard
 import uk.thewyj.app.core.design.ThewyjPrimaryButton
 import uk.thewyj.app.core.design.ThewyjRadius
@@ -49,6 +51,8 @@ fun PermissionCenterScreen(onBack: () -> Unit) {
     fun refresh() {
         states = PermissionCenter.states(context)
     }
+    val accessibilityConnected by uk.thewyj.app.task21.payment.PaymentAccessibilityStatus.connection.collectAsStateWithLifecycle()
+    LaunchedEffect(accessibilityConnected) { refresh() }
     val runtimeLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         refresh()
     }
@@ -134,16 +138,15 @@ private fun PermissionCard(
 ) {
     ThewyjCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(ThewyjSpacing.Lg), verticalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
-            Row(
+            FlowRow(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalArrangement = Arrangement.spacedBy(ThewyjSpacing.Xs),
             ) {
                 Text(
                     state.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f),
                 )
                 StatusPill(state)
             }
@@ -179,13 +182,12 @@ private fun StatusPill(state: AppPermissionState) {
             MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
         else -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
     }
-    Surface(color = container, contentColor = content, shape = ThewyjRadius.Large) {
+    Surface(color = container, contentColor = content, shape = ThewyjRadius.Medium) {
         Text(
             state.statusText,
             modifier = Modifier.padding(horizontal = ThewyjSpacing.Md, vertical = ThewyjSpacing.Xs),
             style = MaterialTheme.typography.labelLarge,
-            maxLines = 1,
-            softWrap = false,
+            softWrap = true,
         )
     }
 }

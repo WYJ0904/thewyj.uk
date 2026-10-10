@@ -3152,7 +3152,7 @@ textarea::placeholder {
 
 .workflow-sidebar {
   position: sticky;
-  top: 84px;
+  top: calc(var(--site-nav-height, 68px) + 16px);
   display: grid;
   gap: var(--space-4);
   padding: var(--space-4);
@@ -3683,7 +3683,6 @@ textarea::placeholder {
   background: var(--color-surface-subtle);
 }
 
-.admin-request-status,
 .achievement-status,
 .achievement-tier,
 .room-sync-status {
@@ -3691,7 +3690,6 @@ textarea::placeholder {
 }
 
 .admin-current-memberships span,
-.admin-request-status,
 .achievement-status,
 .achievement-tier {
   color: var(--ds-info);
@@ -3703,6 +3701,28 @@ textarea::placeholder {
   border-radius: 999px;
   color: var(--ds-info);
   background: var(--color-primary-soft);
+}
+
+/* A status badge is a label; its grid and confirmation time are ordinary layout. */
+.admin-request-status {
+  background: transparent;
+  border-radius: 0;
+}
+.admin-request-status .admin-request-badge {
+  color: var(--color-text-secondary);
+  background: var(--color-surface-subtle);
+}
+.admin-request-status .admin-request-badge[data-tone="success"] {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+.admin-request-status .admin-request-badge[data-tone="pending"] {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+.admin-request-status .admin-request-badge[data-tone="error"] {
+  color: var(--color-error);
+  background: var(--color-error-soft);
 }
 
 .admin-editor {
@@ -4315,7 +4335,7 @@ progress {
 
   .workspace > .tabs {
     position: sticky;
-    top: calc(116px + env(safe-area-inset-top));
+    top: calc(var(--site-nav-height, calc(68px + env(safe-area-inset-top))) + 8px);
     z-index: 700;
     padding: 4px;
     background: var(--color-surface);

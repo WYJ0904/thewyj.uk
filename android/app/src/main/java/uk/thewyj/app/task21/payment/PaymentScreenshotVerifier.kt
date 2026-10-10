@@ -96,8 +96,12 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
             .map(PaymentText::normalizeMoneyText)
             .filter { it.isNotEmpty() && it.length <= 120 }
             .map { normalizeNumericTokens(it) }
+            // Observed Samsung OCR: the receipt label 時間 became 時閒.
+            // Correct only this complete label, never prose, dates or money.
+            .map { transferTimeLabel.replace(it) { match -> "${match.groupValues[1]}時間" } }
             .distinct()
 
+        private val transferTimeLabel = Regex("^(轉帳|轉賬)時閒$")
         private val numberPattern = Regex("""[0-9OoIlSsZzBbGg]{1,12}([.,][0-9OoIlSsZzBbGg]{1,2})?""")
 
         private fun normalizeNumericTokens(line: String): String =
@@ -162,10 +166,22 @@ class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
             .getOrNull()
             ?: return@withContext emptyList()
         val recognized = result.textBlocks.flatMap { it.lines }
-        val directRegions = recognized.mapNotNull { line ->
-            val bounds = line.boundingBox ?: return@mapNotNull null
-            val decision = PaymentPageAmountSelection.select(PaymentScreenshotVerifier.normalizeOcrLines(listOf(line.text)))
-            val amount = decision.amountMinor ?: return@mapNotNull null
+        val lines = recognized.map { it.text }
+        val regionLines = lines.map { PaymentScreenshotVerifier.normalizeOcrLines(listOf(it)).singleOrNull().orEmpty() }
+        val recoveredIndex = PaymentOcrTransferAmount.missingCurrencyIndex(
+            regionLines,
+            recognized.map { line -> line.boundingBox?.let { bounds ->
+                OcrAmountBounds(bounds.left, bounds.top, bounds.right, bounds.bottom)
+            } }, bitmap.width, bitmap.height,
+        )
+        // Use original indices: normalisation for geometry must never collapse duplicates.
+        val recovered = recoveredIndex?.let { index -> lines.mapIndexed { i, text ->
+            if (i == index) "¥${PaymentScreenshotVerifier.normalizeOcrLines(listOf(text)).single()}" else text
+        } } ?: lines
+        val directRegions = recognized.mapIndexedNotNull { index, line ->
+            val bounds = line.boundingBox ?: return@mapIndexedNotNull null
+            val decision = PaymentPageAmountSelection.select(PaymentScreenshotVerifier.normalizeOcrLines(listOf(recovered[index])))
+            val amount = decision.amountMinor ?: return@mapIndexedNotNull null
             AmountRegion(amount, android.graphics.Rect(bounds), decision.candidates.maxOf { it.score })
         }
         val splitSymbolRegions = recognized.zipWithNext().mapNotNull { (symbol, amount) ->
@@ -176,9 +192,9 @@ class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
             AmountRegion(minor, bounds, 850)
         }
         amountRegions = directRegions + splitSymbolRegions
-        val lines = recognized.map { it.text }
         android.util.Log.i("ThewyjAccessibility", "ocr-result blocks=${result.textBlocks.size} lines=${lines.size}")
-        lines
+        if (recoveredIndex != null) android.util.Log.i("ThewyjAccessibility", "ocr-currency-recovery transfer=true prominentRegion=true secondScaleRequired=true")
+        recovered
     }
 
     override suspend fun confirmAmount(bitmap: Bitmap, expectedMinor: Long): Long? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {

@@ -9,26 +9,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20261009-task25-release49";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261009-task25-release49";
+} from "./js/core/config.js?v=20261009-aeris-release-b-preview4";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261009-aeris-release-b-preview4";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?v=20261009-task25-release49";
+} from "./js/core/capabilities.js?v=20261009-aeris-release-b-preview4";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20261009-task25-release49";
+} from "./js/core/api.js?v=20261009-aeris-release-b-preview4";
 import {
+  createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20261009-task25-release49";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261009-task25-release49";
+} from "./js/core/changelog.js?v=20261009-aeris-release-b-preview4";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261009-aeris-release-b-preview4";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -39,23 +40,23 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20261009-task25-release49";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261009-task25-release49";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261009-task25-release49";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261009-task25-release49";
-import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?v=20261009-task25-release49";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261009-task25-release49";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20261009-task25-release49";
-import { createFeatureController } from "./js/core/feature-flags.js?v=20261009-task25-release49";
-import { createFeatureConsole } from "./js/core/feature-console.js?v=20261009-task25-release49";
-import { speakText, stopSpeech } from "./js/language/speech.js?v=20261009-task25-release49";
+} from "./js/core/session.js?v=20261009-aeris-release-b-preview4";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261009-aeris-release-b-preview4";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261009-aeris-release-b-preview4";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261009-aeris-release-b-preview4";
+import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?v=20261009-aeris-release-b-preview4";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261009-aeris-release-b-preview4";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20261009-aeris-release-b-preview4";
+import { createFeatureController } from "./js/core/feature-flags.js?v=20261009-aeris-release-b-preview4";
+import { createFeatureConsole } from "./js/core/feature-console.js?v=20261009-aeris-release-b-preview4";
+import { speakText, stopSpeech } from "./js/language/speech.js?v=20261009-aeris-release-b-preview4";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?v=20261009-task25-release49";
-import { formatFinanceMoney } from "./js/finance/format.js?v=20261009-task25-release49";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?v=20261009-task25-release49";
-import { createDashboardView } from "./js/core/dashboard.js?v=20261009-task25-release49";
+} from "./js/language/speech-rate.js?v=20261009-aeris-release-b-preview4";
+import { formatFinanceMoney } from "./js/finance/format.js?v=20261009-aeris-release-b-preview4";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?v=20261009-aeris-release-b-preview4";
+import { createDashboardView } from "./js/core/dashboard.js?v=20261009-aeris-release-b-preview4";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -63,15 +64,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?v=20261009-task25-release49";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261009-task25-release49";
+} from "./js/core/perf.js?v=20261009-aeris-release-b-preview4";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261009-aeris-release-b-preview4";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20261009-task25-release49";
+} from "./js/language/history.js?v=20261009-aeris-release-b-preview4";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -108,16 +109,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20261009-task25-release49";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261009-task25-release49";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20261009-task25-release49";
+} from "./js/language/quiz.js?v=20261009-aeris-release-b-preview4";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261009-aeris-release-b-preview4";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20261009-aeris-release-b-preview4";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20261009-task25-release49";
+} from "./js/language/wrong-book.js?v=20261009-aeris-release-b-preview4";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -126,7 +127,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20261009-task25-release49";
+} from "./js/membership/account.js?v=20261009-aeris-release-b-preview4";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -134,19 +135,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20261009-task25-release49";
+} from "./js/membership/plans.js?v=20261009-aeris-release-b-preview4";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20261009-task25-release49";
+} from "./js/membership/recharge.js?v=20261009-aeris-release-b-preview4";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20261009-task25-release49";
+} from "./js/admin/formatters.js?v=20261009-aeris-release-b-preview4";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -1231,7 +1232,7 @@ function renderAccountUi() {
           : ["/", "/select", "/login", "/register"].includes(location.pathname)
             ? "home"
             : "";
-  document.querySelectorAll(".site-nav-links [data-site-nav], .home-inline-nav [data-site-nav]").forEach((link) => {
+  document.querySelectorAll(".site-nav-links [data-site-nav], .home-inline-nav [data-site-nav], .site-release-actions [data-site-nav]").forEach((link) => {
     const active = link.dataset.siteNav === activeNavigation;
     link.classList.toggle("active", active);
     if (active) link.setAttribute("aria-current", "page");
@@ -1325,8 +1326,13 @@ function dashboardGoal(language) {
 function setDashboardService(id, label, status) { dashboardView?.setService(id, label, status); }
 
 function changelogEntries() {
-  return mergeChangelogEntries(cloudChangelogEntries || [], staticChangelogEntries(window));
+  // Reviewed static content wins if a stale API copy has the same build ID;
+  // remote-only history is still merged and sorted by release date/version.
+  return mergeChangelogEntries(staticChangelogEntries(window), cloudChangelogEntries || []);
 }
+
+const changelogSelection = createChangelogSelection();
+const changelogArticleId = (build) => `changelog-${encodeURIComponent(build)}`;
 
 function refreshCloudChangelog() {
   if (cloudChangelogPromise) return cloudChangelogPromise;
@@ -1354,8 +1360,8 @@ function renderChangelog() {
   const list = $("changelogList");
   const entries = changelogEntries();
   if (!list) return;
-  list.innerHTML = entries.map((entry) => `<article>
-    <header class="changelog-entry-header"><time datetime="${escapeHtml(entry.date)}">${escapeHtml(String(entry.date || "").replaceAll("-", "/"))}</time><span>v${escapeHtml(entry.version)}</span></header>
+  list.innerHTML = entries.map((entry) => `<article id="${escapeHtml(changelogArticleId(entry.build))}">
+    <header class="changelog-entry-header"><time datetime="${escapeHtml(entry.date)}">${escapeHtml(String(entry.date || "").replaceAll("-", "/"))}</time><a href="#${encodeURIComponent(changelogArticleId(entry.build))}" data-changelog-select="${escapeHtml(entry.build)}">v${escapeHtml(entry.version)}</a></header>
     <div class="changelog-entry-content"><h2>${escapeHtml(entry.title)}</h2><div class="changelog-sections">
       ${changelogSectionMarkup("新功能", entry.features)}
       ${changelogSectionMarkup("优化", entry.improvements)}
@@ -1363,6 +1369,12 @@ function renderChangelog() {
       ${changelogSectionMarkup("安全更新", entry.security)}
     </div></div>
   </article>`).join("") || '<p class="dashboard-empty">暂无更新记录。</p>';
+  list.querySelectorAll("[data-changelog-select]").forEach((link) => link.addEventListener("click", (event) => {
+    event.preventDefault();
+    if (!changelogSelection.choose(link.dataset.changelogSelect, changelogEntries())) return;
+    history.replaceState(history.state, "", `/changelog#${encodeURIComponent(changelogArticleId(link.dataset.changelogSelect))}`);
+    resetChangelogScroll();
+  }));
   const latest = latestChangelog();
   if ($("changelogCurrentVersion")) $("changelogCurrentVersion").textContent = latest ? `v${latest.version}` : APP_VERSION;
   if ($("siteVersionLabel")) $("siteVersionLabel").textContent = latest ? `v${latest.version}` : APP_VERSION;
@@ -2491,12 +2503,17 @@ function markAdminUserSearchPending() {
 
 function renderAdminRecharge(requests) {
   const list = $("adminRechargeList");
-  list.innerHTML = (requests || []).map((request) => `<article class="admin-user-card" data-request-id="${escapeHtml(request.id)}">
+  list.innerHTML = (requests || []).map((request) => {
+    const statusTone = ["activated", "approved"].includes(request.status) ? "success"
+      : ["pending", "pending_payment", "user_paid", "processing"].includes(request.status) ? "pending"
+      : request.status === "rejected" ? "error" : "neutral";
+    return `<article class="admin-user-card admin-recharge-card" data-request-id="${escapeHtml(request.id)}">
     <div class="admin-user-identity"><h3>${escapeHtml(request.username)}</h3><p class="admin-user-id">${escapeHtml(request.order_number || request.id)}</p><p class="admin-last-login">申请：${escapeHtml(formatLocalDateTime(request.requested_at, "未知"))}</p></div>
     <div class="admin-user-facts"><p><span>套餐</span><strong>${escapeHtml(request.plan_name || membershipLabel(request.plan_code || request.plan))}</strong></p><p><span>支付方式</span><strong>${escapeHtml(paymentMethodLabel(request.payment_method))}</strong></p><p><span>金额</span><strong>${escapeHtml(`${(Number(request.amount_cents || 0) / 100).toFixed(2)} ${request.currency || "CNY"}`)}</strong></p><p><span>付款备注</span><strong>${escapeHtml(request.payment_note || "-")}</strong></p></div>
-    <div class="admin-request-status"><span>状态</span><strong>${escapeHtml(rechargeStatusLabel(request.status))}</strong>${request.user_confirmed_at ? `<small>用户确认：${escapeHtml(formatLocalDateTime(request.user_confirmed_at))}</small>` : ""}</div>
+    <div class="admin-request-status"><div class="admin-request-status-heading"><span>状态</span><strong class="admin-request-badge" data-tone="${statusTone}">${escapeHtml(rechargeStatusLabel(request.status))}</strong></div>${request.user_confirmed_at ? `<div class="admin-request-confirmed"><span>用户确认时间</span><time datetime="${escapeHtml(request.user_confirmed_at)}">${escapeHtml(formatLocalDateTime(request.user_confirmed_at))}</time></div>` : ""}</div>
     <div class="action-row compact admin-user-actions">${request.status === "user_paid" ? '<button data-recharge-approve type="button">确认付款并开通</button><button data-recharge-reject type="button">拒绝</button>' : ""}</div>
-  </article>`).join("") || "<p>暂无充值申请</p>";
+  </article>`;
+  }).join("") || "<p>暂无充值申请</p>";
   list.querySelectorAll("[data-recharge-approve], [data-recharge-reject]").forEach((button) => button.addEventListener("click", () => {
     const requestId = button.closest("[data-request-id]").dataset.requestId;
     const action = button.hasAttribute("data-recharge-approve") ? "approve" : "reject";
@@ -3640,9 +3657,11 @@ function showPublicHome(pushHistory = true) {
 function resetChangelogScroll() {
   const goToLatest = () => {
     if (currentRoutePath() !== "/changelog" || $("changelogPage")?.classList.contains("hidden")) return;
-    // Route switching in this SPA otherwise preserves scrollY from the last
-    // page, so opening the changelog can land in months-old entries.
-    window.scrollTo({ left: 0, top: 0, behavior: "instant" });
+    const selected = changelogSelection.current(changelogEntries());
+    const article = selected ? document.getElementById(changelogArticleId(selected)) : null;
+    const headerHeight = $("accountBar")?.getBoundingClientRect().height || 0;
+    const top = article ? Math.max(0, window.scrollY + article.getBoundingClientRect().top - headerHeight - 16) : 0;
+    window.scrollTo({ left: 0, top, behavior: "instant" });
   };
   goToLatest();
   window.requestAnimationFrame(() => window.requestAnimationFrame(goToLatest));
@@ -3659,6 +3678,9 @@ function showChangelog(pushHistory = true) {
   document.body.classList.remove("project-picker-active");
   renderChangelog();
   if (pushHistory) pushRoute("/changelog");
+  if (!changelogSelection.current(changelogEntries()) && location.hash) {
+    history.replaceState(history.state, "", location.pathname + location.search);
+  }
   renderAccountUi();
   resetChangelogScroll();
 }
@@ -4618,14 +4640,14 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
 });
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?v=20261009-task25-release49", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?v=20261009-task25-release49", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?v=20261009-aeris-release-b-preview4", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?v=20261009-aeris-release-b-preview4", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?v=20261009-task25-release49", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?v=20261009-task25-release49", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?v=20261009-task25-release49", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?v=20261009-aeris-release-b-preview4", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?v=20261009-aeris-release-b-preview4", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?v=20261009-aeris-release-b-preview4", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render"],
@@ -6801,6 +6823,13 @@ async function boot() {
   $("showRegisterBtn").addEventListener("click", () => showAuthMode("register", true));
   $("navLoginBtn").addEventListener("click", () => showAuth("", { mode: "login", path: "/login" }));
   $("navRegisterBtn").addEventListener("click", () => showAuth("", { mode: "register", path: "/register" }));
+  const nav = $("accountBar");
+  const updateNavHeight = () => {
+    document.documentElement.style.setProperty("--site-nav-height", `${Math.ceil(nav.getBoundingClientRect().height)}px`);
+  };
+  if (typeof ResizeObserver === "function") new ResizeObserver(updateNavHeight).observe(nav);
+  else window.addEventListener("resize", updateNavHeight, { passive: true });
+  updateNavHeight();
   const siteNavigationDestinations = new Set(["home", "changelog", "download", "language", "trial", "tools", "finance", "transfer"]);
   document.querySelectorAll("[data-site-nav]").forEach((link) => link.addEventListener("click", async (event) => {
     const destination = link.dataset.siteNav;
@@ -6821,7 +6850,6 @@ async function boot() {
   $("publicPlanRetryBtn")?.addEventListener("click", () => {
     void loadMembershipPlans(true).then(plans=>renderPublicPlanCatalog(document,plans)).catch(error=>renderPublicPlanCatalog(document,[],error.message));
   });
-  $("publicChangelogBtn")?.addEventListener("click", () => showChangelog(true));
   $("changelogTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
   $("dashboardChangelogBtn")?.addEventListener("click", () => showChangelog(true));
   // #7: the learning-sync actions talk to the cloud; the control shows the
@@ -6834,7 +6862,7 @@ async function boot() {
   $("learningSyncFileInput")?.addEventListener("change", (event) =>
     withInteractionFeedback($("learningSyncImportBtn") || event.currentTarget, "learning-sync-import", () => importLearningSyncBackup(event)));
   $("dismissVersionNoticeBtn")?.addEventListener("click", dismissVersionNotice);
-  $("viewVersionDetailsBtn")?.addEventListener("click", () => { dismissVersionNotice(); showChangelog(true); });
+  $("viewVersionDetailsBtn")?.addEventListener("click", () => { dismissVersionNotice(); changelogSelection.clear(); showChangelog(true); });
   $("trialHomeBtn")?.addEventListener("click", () => state.session && state.account ? showModulePicker(true) : showPublicHome(true));
   ["trialRegisterBtn", "trialQuizRegisterBtn"].forEach((id) => $(id)?.addEventListener("click", () => showAuth("注册后可保存词表、错题和学习记录", { mode: "register", path: "/register" })));
   document.querySelectorAll("[data-trial-tool]").forEach((button) => button.addEventListener("click", () => setTrialTool(button.dataset.trialTool)));

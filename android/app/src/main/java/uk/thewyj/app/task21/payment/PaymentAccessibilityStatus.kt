@@ -1,6 +1,8 @@
 package uk.thewyj.app.task21.payment
 
 import android.util.Log
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Auditable state of the payment AccessibilityService.
@@ -12,6 +14,8 @@ import android.util.Log
  */
 object PaymentAccessibilityStatus {
     const val TAG = "ThewyjAccessibility"
+    private val mutableConnection = MutableStateFlow(false)
+    val connection = mutableConnection.asStateFlow()
 
     @Volatile var connected: Boolean = false
         private set
@@ -35,11 +39,13 @@ object PaymentAccessibilityStatus {
 
     fun onConnected() {
         connected = true
+        mutableConnection.value = true
         emit("accessibility-connected")
     }
 
     fun onDisconnected() {
         connected = false
+        mutableConnection.value = false
         emit("accessibility-disconnected")
     }
 

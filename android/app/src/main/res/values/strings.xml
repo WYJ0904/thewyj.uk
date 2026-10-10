@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Aeris</string>
     <string name="notification_listener_label">Aeris 通知保存</string>
-    <string name="thewyj_accessibility_description">在收到疑似支付通知后，您主动打开对应支付或银行 App 时，协助核实该笔交易的金额与方向。仅读取当前交易页面的最少信息，不截图、不记录密码或验证码。</string>
+    <string name="thewyj_accessibility_description">仅在您主动核实交易期间，读取对应支付或银行 App 当前交易页的最少信息，必要时在本机截屏并通过 OCR 补全金额与方向。不会自动点击，也不会上传页面图像或原文。</string>
     <string name="payment_accessibility_label">Aeris 支付金额核实</string>
 </resources>

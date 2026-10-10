@@ -321,6 +321,8 @@
   public long getAmountMinor();
   public java.lang.String getDirection();
   public java.lang.String getRecognitionId();
+  public java.lang.String getSyncState();
+  public java.lang.String getTransactionId();
 }
 -keep class uk.thewyj.app.task21.payment.PaymentAccessibilityStatus {
   public boolean getConnected();

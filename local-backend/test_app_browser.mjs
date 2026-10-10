@@ -669,7 +669,16 @@ async function main() {
       await send("Emulation.setDeviceMetricsOverride",{width:390,height:900,deviceScaleFactor:1,mobile:true});
       await click("#siteNavToggle");
       assert.equal(await evaluate("document.querySelector('#siteNavToggle').getAttribute('aria-expanded')"), "true");
-      assert.equal(await evaluate("document.querySelectorAll('#siteNavPanel a').length"), 8);
+      assert.equal(await evaluate("document.querySelectorAll('#siteNavPanel a').length"), 6);
+      const primaryReleaseLinks = await evaluate(`Array.from(document.querySelectorAll('.site-release-actions > a')).map(link => ({
+        destination: link.dataset.siteNav, href: link.getAttribute('href'),
+        outsidePanel: !link.closest('details, #siteNavPanel'),
+        visible: link.getBoundingClientRect().width > 0 && link.getBoundingClientRect().height > 0,
+      }))`);
+      assert.deepEqual(primaryReleaseLinks, [
+        { destination: "download", href: "/download", outsidePanel: true, visible: true },
+        { destination: "changelog", href: "/changelog", outsidePanel: true, visible: true },
+      ]);
       assert.equal(await evaluate("document.querySelector('[data-site-nav=download]').getAttribute('href')"), "/download");
       assert.equal(await evaluate("document.querySelector('[data-site-nav=trial]').getAttribute('href')"), "/trial");
       await click("[data-site-nav=trial]");
@@ -720,13 +729,13 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=20261009-task25-release49');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=20261009-task25-release49');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261009-task25-release49');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261009-task25-release49');
-        const cachedChangelog = await caches.match('/changelog.js?v=20261009-task25-release49');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261009-task25-release49');
-        const cachedWorkflows = await caches.match('/workflows.js?v=20261009-task25-release49');
+        const cachedProductStyles = await caches.match('/product-ui.css?v=20261009-aeris-release-b-preview4');
+        const cachedDesignStyles = await caches.match('/design-system.css?v=20261009-aeris-release-b-preview4');
+        const cachedPublicStyles = await caches.match('/public-experience.css?v=20261009-aeris-release-b-preview4');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=20261009-aeris-release-b-preview4');
+        const cachedChangelog = await caches.match('/changelog.js?v=20261009-aeris-release-b-preview4');
+        const cachedLearningSync = await caches.match('/learning-sync.js?v=20261009-aeris-release-b-preview4');
+        const cachedWorkflows = await caches.match('/workflows.js?v=20261009-aeris-release-b-preview4');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -2075,7 +2084,7 @@ async function main() {
       await setFields({ "#financeCategoryName": "餐饮", "#financeCategoryAppliesTo": "expense" });
       await click("#financeCategoryForm button[type=submit]");
       await waitFor("document.querySelector('#financeCategoryManagerList')?.textContent.includes('餐饮')", 4_000, "finance category");
-      const categoryId = await evaluate("document.querySelector('#financeCategoryManagerList [data-finance-category-edit]')?.dataset.financeCategoryEdit");
+      const categoryId = await evaluate("[...document.querySelectorAll('#financeCategoryManagerList .finance-manager-row')].find(row => row.querySelector('strong')?.textContent === '餐饮')?.querySelector('[data-finance-category-edit]')?.dataset.financeCategoryEdit");
       assert.ok(categoryId);
       await click('[data-finance-close="financeCategoryModal"]');
 
@@ -2188,6 +2197,8 @@ async function main() {
       await click("#financeBudgetForm button[type=submit]");
       await waitFor("document.querySelector('#financeBudgetManagerList')?.textContent.includes('20.00')", 4_000, "finance budget");
       await click('[data-finance-close="financeBudgetModal"]');
+      await waitFor("document.querySelector('#financeBudgetSummary')?.getAttribute('aria-busy') === 'false' && document.querySelector('#financeCategoryStats')?.getAttribute('aria-busy') === 'false'", 4_000,
+        "finance insights rendered after budget and transaction updates");
       assert.ok((await evaluate("document.querySelector('#financeBudgetSummary').textContent")).includes("剩余"));
       assert.ok((await evaluate("document.querySelector('#financeCategoryStats').textContent")).includes("餐饮"));
 

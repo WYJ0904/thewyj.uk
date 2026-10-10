@@ -1,4 +1,8 @@
-# Current final-release continuation — 2026-10-09
+# Release A / Task25 formally completed — 2026-10-09
+
+PR96 is merged. Final Production/main and freshly rebuilt original-signed source is `f9baa86d85702cca74811b13508cd8067de31132`, CI37909888712 actual8/8 SUCCESS. Original-signed `uk.thewyj.app` 1.3.36/49 is published through the moving download pointer; Production and Preview immutable object readbacks match the exact installed Samsung APK. All24 required Samsung observations passed, the original session/98-booking digest survived, and owned fixtures were cleaned. Production deployment is `1e67f1e0-43d2-402d-b819-484efa4979ee`. [Final Chinese Closure and34 non-sensitive evidence files](https://github.com/WYJ0904/thewyj.uk/tree/35cd1d588561d22b50cb9fbb5b2b4950c7866a11/docs/task25/acceptance/2026-10-09) and [PR96 final comment](https://github.com/WYJ0904/thewyj.uk/pull/96#issuecomment-6080069194) supersede earlier blocked handoffs below. The original historical recording remains local. Release B is now separate and not published; its payment baseline must explicitly include the user-reported WeChat clone. Task26 remains closed until Release B is accepted and published.
+
+# Historical final-release continuation — 2026-10-09
 
 The current continuation is [TASK25_LOCAL_CHROME_HANDOFF.md](TASK25_LOCAL_CHROME_HANDOFF.md), with exact final source/CI/Preview/artifact identifiers in the newest PR96 Closure. The latest main-before-Production order is supported while final original signing/Samsung/Stable protection remains. Local Chrome/USB is not connected to this cloud executor; TinyFish use stopped at the user's instruction. Current required release gates remain BLOCKED. Task26 has not started. The preceding reports below remain historical evidence.
 

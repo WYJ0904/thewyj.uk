@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?v=20261009-task25-release49";
+import { fetchWithTimeout } from "./api.js?v=20261009-aeris-release-b-preview4";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 
@@ -48,11 +48,28 @@ export function mergeChangelogEntries(...collections) {
   )));
 }
 
+/** Only an explicit choice in this document may override the latest default. */
+export function createChangelogSelection() {
+  let selected = null;
+  return Object.freeze({
+    clear() { selected = null; },
+    choose(build, entries) {
+      if (!entries.some((entry) => entry.build === build)) return false;
+      selected = build;
+      return true;
+    },
+    current(entries) {
+      if (!entries.some((entry) => entry.build === selected)) selected = null;
+      return selected;
+    },
+  });
+}
+
 export async function loadCloudChangelog(options = {}) {
   const fetcher = options.fetcher || fetchWithTimeout;
   const response = await fetcher("/api/changelog", {
     method: "GET",
-    cache: "default",
+    cache: "no-store",
     credentials: "same-origin",
   }, options.timeoutMs || CHANGELOG_TIMEOUT_MS);
   if (!response.ok) throw new Error(`changelog unavailable (${response.status})`);
