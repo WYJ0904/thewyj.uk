@@ -90,6 +90,7 @@ class FormalReleaseDeviceTest {
         val expectedMinor = args.getString("expectedMinor")?.toLong() ?: 1L
         val expectedDirection = args.getString("expectedDirection") ?: "EXPENSE"
         val cases = args.getString("liveCases")?.toInt() ?: 10
+        val sourceActivity = args.getString("sourceActivity") ?: "RemittanceDetailUI"
         require(expectedMinor > 0 && cases in 1..20 && expectedDirection in setOf("EXPENSE", "INCOME"))
         val sourceText = when (expectedDirection) {
             "INCOME" -> "你收到一笔转账"
@@ -161,7 +162,7 @@ class FormalReleaseDeviceTest {
                 }
             }
             foregroundWechat()
-            assertTrue(device.executeShellCommand("dumpsys activity activities").lineSequence().any { it.contains("topResumedActivity") && it.contains("RemittanceDetailUI") })
+            assertTrue("The declared actual payment-detail activity must be foreground", device.executeShellCommand("dumpsys activity activities").lineSequence().any { it.contains("topResumedActivity") && it.contains(sourceActivity) })
             val coordinator = PaymentRecognitionCoordinator(store, notifier = AndroidPaymentStatusNotifier(context))
             val manager = context.getSystemService(NotificationManager::class.java)
             val baseline = store.localBookings(fixture.account.id).size
