@@ -205,7 +205,39 @@ class FormalReleaseDeviceTest {
                 assertEquals("Replay must not repost the same success notification", firstNotice!!.postTime, recorded!!.postTime)
                 assertTrue(recorded.notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("¥$expectedMoney"))
                 proof("formalPaymentCase", "case=${index+1} expectedMinor=$expectedMinor actualMinor=${booking.amountMinor} direction=${booking.direction} fixtureRows=${store.localBookings(fixture.account.id).size} duplicateRows=0 ordinaryGateway=true ownSystemNotificationObserved=true replayPostTimeUnchanged=true")
+                if (index == 0 && args.getString("captureProof") == "true") {
+                    assertTrue(device.openNotification()); SystemClock.sleep(700)
+                    val image = java.io.File(instrumentation.context.getExternalFilesDir(null), "release-b-transfer-notification.png")
+                    assertTrue("Real system notification screenshot must be saved", device.takeScreenshot(image))
+                    proof("formalScreenshot", "realSystemNotification=true file=release-b-transfer-notification.png privateEvidence=true")
+                    device.pressBack(); foregroundWechat()
+                }
                 manager.cancel(notificationId)
+            }
+            if (args.getString("verifyCloud") == "true") {
+                val pipeline = uk.thewyj.app.task21.NotificationCapturePipeline.create(context, NotificationSessionProvider(context))
+                LocalPaymentLedger.recover(context, fixture.account.id, fixtureDevice)
+                pipeline.flushDetailed()
+                val syncDeadline = SystemClock.uptimeMillis() + 30_000
+                while (store.localBookings(fixture.account.id).any { it.syncState != "synced" } && SystemClock.uptimeMillis() < syncDeadline) SystemClock.sleep(100)
+                val local = store.localBookings(fixture.account.id)
+                assertTrue("Every local booking must receive a real server receipt", local.all { it.syncState == "synced" })
+                val remote = request("/api/finance/transactions?limit=100", fixture.accessToken).getJSONArray("transactions")
+                assertEquals("Exactly one remote row per verified test event", cases, remote.length())
+                val remoteIds = mutableListOf<String>()
+                for (i in 0 until remote.length()) {
+                    val row = remote.getJSONObject(i)
+                    assertEquals(expectedMinor, row.getLong("amount_minor"))
+                    assertEquals(expectedDirection, row.getString("direction").uppercase(java.util.Locale.ROOT))
+                    remoteIds.add(row.getString("id"))
+                }
+                assertEquals(local.map { it.transactionId }.sorted(), remoteIds.sorted())
+                repeat(2) { LocalPaymentLedger.recover(context, fixture.account.id, fixtureDevice); pipeline.flushDetailed() }
+                val replayRows = request("/api/finance/transactions?limit=100", fixture.accessToken).getJSONArray("transactions")
+                assertEquals(cases, replayRows.length())
+                val replayIds = (0 until replayRows.length()).map { replayRows.getJSONObject(it).getString("id") }
+                assertEquals(remoteIds.sorted(), replayIds.sorted())
+                proof("formalCloud", "normalProductionApi=true syncedLocalRows=${local.size} remoteRows=${remote.length()} exactAmountsAndDirection=true idsMatch=true repeatedOutboxFlushes=2 duplicateRemoteRows=0")
             }
             assertTrue("Original Finance rows must remain identical", originalBookings == store.localBookings(original.account.id))
             proof("formalFinanceProtection", "originalBookingsBefore=${originalBookings.size} originalBookingsAfter=${store.localBookings(original.account.id).size} originalRowsIdentical=true syntheticAccountOnly=true")

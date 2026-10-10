@@ -96,8 +96,12 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
             .map(PaymentText::normalizeMoneyText)
             .filter { it.isNotEmpty() && it.length <= 120 }
             .map { normalizeNumericTokens(it) }
+            // Observed Samsung OCR: the receipt label 時間 became 時閒.
+            // Correct only this complete label, never prose, dates or money.
+            .map { transferTimeLabel.replace(it) { match -> "${match.groupValues[1]}時間" } }
             .distinct()
 
+        private val transferTimeLabel = Regex("^(轉帳|轉賬)時閒$")
         private val numberPattern = Regex("""[0-9OoIlSsZzBbGg]{1,12}([.,][0-9OoIlSsZzBbGg]{1,2})?""")
 
         private fun normalizeNumericTokens(line: String): String =
@@ -163,8 +167,9 @@ class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
             ?: return@withContext emptyList()
         val recognized = result.textBlocks.flatMap { it.lines }
         val lines = recognized.map { it.text }
+        val regionLines = lines.map { PaymentScreenshotVerifier.normalizeOcrLines(listOf(it)).singleOrNull().orEmpty() }
         val recoveredIndex = PaymentOcrTransferAmount.missingCurrencyIndex(
-            lines.map { PaymentScreenshotVerifier.normalizeOcrLines(listOf(it)).singleOrNull().orEmpty() },
+            regionLines,
             recognized.map { line -> line.boundingBox?.let { bounds ->
                 OcrAmountBounds(bounds.left, bounds.top, bounds.right, bounds.bottom)
             } }, bitmap.width, bitmap.height,

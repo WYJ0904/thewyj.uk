@@ -16,6 +16,15 @@ class PaymentOcrTransferAmountTest {
         assertNull("ordinary page semantics still cannot guess the bare amount", PaymentPageSemantics.extract(PaymentPageSnapshot("com.tencent.mm", receipt, 1))?.amountMinor)
     }
 
+    @Test fun observedTraditionalTimeGlyphErrorIsCorrectedOnlyInTheCompleteLabel() {
+        val observed = receipt.toMutableList().apply { this[2] = "轉帳時閒" }
+        assertNull(recover(observed))
+        val normalized = PaymentScreenshotVerifier.normalizeOcrLines(observed)
+        assertEquals("轉帳時間", normalized[2])
+        assertEquals(0, recover(normalized))
+        assertEquals(listOf("今天空閒", "轉帳時閒提醒"), PaymentScreenshotVerifier.normalizeOcrLines(listOf("今天空閒", "轉帳時閒提醒")))
+    }
+
     @Test fun oneCentAndFiveHundredRemainExactMinorUnits() {
         listOf("0.01" to 1L, "0.10" to 10L, "500.00" to 50000L).forEach { (amount, minor) ->
             val lines = receipt.toMutableList().apply { this[0] = amount }
