@@ -1,0 +1,25 @@
+{
+  "source_head": "678d646c9a279ad69de0e09dbb39f13271833992",
+  "ci_run": 38053754900,
+  "artifact_id": 11669898142,
+  "evidence": {
+    "credential_presence": {
+      "CLOUDFLARE_API_TOKEN": false,
+      "CLOUDFLARE_ACCOUNT_ID": false,
+      "THEWYJ_ANDROID_KEYSTORE_B64": false,
+      "THEWYJ_ANDROID_KEYSTORE_PASSWORD": false,
+      "THEWYJ_ANDROID_KEY_ALIAS": false,
+      "THEWYJ_ANDROID_KEY_PASSWORD": false,
+      "WYJ_TASK25_ADMIN_SESSION": false
+    },
+    "cloud_credentials_configured": false,
+    "signing_credentials_configured": false,
+    "admin_session_configured": false,
+    "remote_d1_administration": "BLOCKED_MISSING_CREDENTIALS",
+    "remote_r2_administration": "BLOCKED_MISSING_CREDENTIALS",
+    "pages_git_integration": "INDEPENDENT_HTTP_CHECK_REQUIRED",
+    "production_migration": "NOT_EXECUTED",
+    "production_deployment": "NOT_EXECUTED",
+    "stable_pointer_changed": false
+  }
+}
