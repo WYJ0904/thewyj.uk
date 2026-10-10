@@ -1,0 +1,11 @@
+{
+  "scope": "Local cross-layer contract using actual Kotlin UA/version and actual Web session controller; not device acceptance",
+  "before_source": "672e610ce4887d5efc315988140b619b9107b5b5",
+  "before": {"status": "FAIL", "observed_native_transport": true, "expected_native_transport": false},
+  "after": {"status": "PASS", "native_transport": false, "normal_web_session_persists_and_restores": true, "normal_session_header": true, "production_native_deep_links_requested": false, "original_native_transport_positive_control": true},
+  "preview_ua_marker": "Task26Preview/0.0.1-task26-preview",
+  "web_session_controller_changed": false,
+  "production_app_source_changed": false,
+  "new_regression_groups": 1,
+  "samsung_actual_login": "NOT TESTED / USER DEVICE DEFERRED"
+}

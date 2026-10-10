@@ -71,7 +71,8 @@ class PreviewLearningActivity : Activity() {
                 displayZoomControls = false
                 mediaPlaybackRequiresUserGesture = false
                 safeBrowsingEnabled = true
-                userAgentString = "$userAgentString thewyj-android/${BuildConfig.VERSION_NAME} Task26Preview"
+                // This shell has no production native-cookie/session bridge; use normal Web auth.
+                userAgentString = "$userAgentString Task26Preview/${BuildConfig.VERSION_NAME}"
             }
             CookieManager.getInstance().setAcceptCookie(true)
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)

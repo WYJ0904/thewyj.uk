@@ -1,6 +1,6 @@
 # Task 26 — Cloud implementation closure / Draft handoff
 
-> **这是历史 Cloud implementation closure，不是 Production RELEASE CLOSURE。** 最新 Windows 门禁在 [TASK26_WINDOWS_ACCEPTANCE.md](TASK26_WINDOWS_ACCEPTANCE.md)：用户已经解除 USER HOLD，Preview 0025、真实 Admin/API/页面和清理已执行；Task26 软件源码41b7e49的CI8/8通过。手机暂不提供，真机与完整 Hosted 网络门禁保留，Production/正式 Closure 仍未执行。以下历史限制不能作为当前凭据状态或重复迁移依据。
+> **这是历史 Cloud implementation closure，不是 Production RELEASE CLOSURE。** 最新 Windows 门禁在 [TASK26_WINDOWS_ACCEPTANCE.md](TASK26_WINDOWS_ACCEPTANCE.md)：用户已经解除 USER HOLD，Preview 0025、真实 Admin/API/页面和清理已执行；Web/API基线41b7e49的CI8/8通过，独立 Preview 登录 transport 另有后续修正及跨层回归。手机暂不提供，真机与完整 Hosted 网络门禁保留，Production/正式 Closure 仍未执行。以下历史限制不能作为当前凭据状态或重复迁移依据。
 
 2026-10-10，沿用 `codex/task26-adaptive-learning-mastery`。本轮交付 API、D1 迁移代码、Web UI、自动化验证及 Draft PR；**不是正式 Production release Closure**。最新用户明确禁止合并或部署 Production，Task 27 未启动。
 

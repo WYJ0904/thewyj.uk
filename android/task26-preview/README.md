@@ -5,6 +5,7 @@ This debug-only Android module opens the controlled Task 26 hosted Preview for a
 - Application ID: `uk.thewyj.app.preview`; label: `Aeris Task26 Preview`.
 - Fixed origin: `https://codex-task26-adaptive-learni.thewyj-uk.pages.dev`.
 - Separate Android sandbox, WebView cookies, DOM storage and cache. No dependency on `:app`, no production account/session bridge and no shared user ID.
+- The distinct `Task26Preview/…` user agent keeps normal Web login/session persistence inside that sandbox. It does not advertise the production `thewyj-android/…` transport, which requires the original native session bridge. This contract is tested against the actual Web session controller; production App 50 authentication still needs its own later device acceptance.
 - No notification, accessibility, SMS, finance, Room, background worker, FileProvider, APK installer or update component. Library providers and receivers are removed from the merged manifest.
 - HTTPS only; external origins, native deep links, finance/payment/notification/update APIs, downloads, file/content access and ambiguous paths are blocked. Service Worker requests follow the same policy.
 - The visible network-test control blocks network loads only inside this app's WebView and Service Worker. It does not change the phone's Wi-Fi, mobile network or the production app. Record this as targeted network-failure injection, not a physical radio disconnect.

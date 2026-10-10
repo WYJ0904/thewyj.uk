@@ -5,7 +5,7 @@
 ## 当前恢复点
 
 - 复用 `codex/task26-adaptive-learning-mastery` / [Draft PR #105](https://github.com/WYJ0904/thewyj.uk/pull/105)。main 为 `550bc41bbaa01751d75c109f3246b9e174e4460d`，未合并。
-- 本轮最终软件源码 `41b7e49475a2ed7e060c54cea33fc8db0649f440`；[精确源码 CI 38076109679](https://github.com/WYJ0904/thewyj.uk/actions/runs/38076109679) 的八项 Actions 及 Pages 均 SUCCESS。新增六组 feature refresh 回归使 Task26 自动化为 81 组；另有 Preview Android 四项 unit checks。
+- 已真实 Hosted 验收的 Web/API 源码基线 `41b7e49475a2ed7e060c54cea33fc8db0649f440`；[该精确源码 CI 38076109679](https://github.com/WYJ0904/thewyj.uk/actions/runs/38076109679) 的八项 Actions 及 Pages 均 SUCCESS。新增六组 feature refresh 回归使其自动化为 81 组。随后电脑端复核修正独立 Preview 壳的登录 transport，并新增一组跨层回归，当前共 82 组；另有 Preview Android 四项 unit checks，最终 HEAD/CI 以 PR 最新检查及本地报告为准。
 - 该源码 Preview deployment `e4a0df82-cc00-41cc-ad53-2ad0dfe7431d`；[受控分支入口](https://codex-task26-adaptive-learni.thewyj-uk.pages.dev)。app.js、sw.js、config.js、mastery.js 与 Git blob 一致，统一缓存版本 `20261011-aeris-task26-r4`。
 - 本文及脱敏证据会形成后续文档提交。最后交付 HEAD 的 CI 与部署须读取 PR 最新检查；不能把源码 CI 移称为另一个 HEAD 的 CI。本地最终报告单独保存该精确结果，避免为自引用反复提交。
 - Hosted API 验收发生在同一 Task26 分支；`598769c..41b7e49` 的 `functions/` 和 migration SQL 无差异。新增修复只涉及浏览器 feature snapshot 生命周期与独立测试壳；最新源码重新完成实际 Hosted 页面验收。
@@ -59,7 +59,9 @@ Hosted 页面首次选题请求被 feature refresh 取消：旧刷新在尚未�
 
 模块 `android/task26-preview`，独立包 `uk.thewyj.app.preview` / `Aeris Task26 Preview` / `0.0.1-task26-preview` (1)，固定本 PR Preview origin。原 `:app` 代码、manifest、签名和版本元数据未改。
 
-APK 6,638,157 bytes；SHA256 `9441e04562649768a75d5056673e0dbebd8416d246f370868ae02f9dd2084742`；本地 debug signer SHA256 `9ea45db6e2c398de90ce61affd145e432d63d0d1724dd6447ba4ba24193f4fac`，明确不是原生产签名。四项 unit tests、lint（0 errors，warnings 保留）、assembly 均通过；final APK manifest services/receivers/providers/deep links=0、无 shared UID；只有 Internet/network-state 和包自身 receiver signature permission。
+最终 APK 6,656,889 bytes；SHA256 `3712b3b75779f11a1ce27738702d6a5224c86e9ca5a9f28bcc6eb09722ba8d98`；本地 debug signer SHA256 `9ea45db6e2c398de90ce61affd145e432d63d0d1724dd6447ba4ba24193f4fac`，明确不是原生产签名。四项 unit tests、lint（0 errors，warnings 保留）、assembly 均通过；final APK manifest services/receivers/providers/deep links=0、无 shared UID；只有 Internet/network-state 和包自身 receiver signature permission。先前包的 `9441e045…` 仅为历史静态候选，已被该最终测试包取代，没有安装过。
+
+电脑端复核发现初版壳使用 `thewyj-android/…` 标识，使实际 `session.js` 误选原生 Cookie transport、跳过 Web session 持久化，并请求壳不支持的正式 native deep link。跨层回归读取壳的实际 UA/版本并调用真实 Web session controller，在旧壳上实测失败（native=true，期望 false）。改为专用 `Task26Preview/…` 后，普通 Web session 保存/恢复及 header、拒绝 native refresh/logout 均通过；正式 App 原 native 正向识别仍通过，原 `session.js` 未修改。重新构建与 package/signature/manifest 校验通过。这是电脑端登录契约验证，仍不冒充真机实际登录或原 App50 Cookie 验收。
 
 独立 Android sandbox/Cookie/cache/account store，不依赖 `:app`、Room、通知/无障碍/财务/支付/更新器或 JS native session bridge。WebView 与 ServiceWorker 均限制 HTTPS 受控 origin/API，拒绝正式业务/external/file/content/download。Release variants 禁用。可见网络按钮只阻断本壳 WebView/SW，必须称定向故障注入，不能称手机无线网络断开。未上传 R2/Stable。
 
