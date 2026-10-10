@@ -1,0 +1,28 @@
+{
+  "environment": "isolated_local_miniflare_d1",
+  "production": false,
+  "hosted_preview": false,
+  "source_head": "27cdb57f13b5b5f8d5e26c59890bc17b1f2c1a5c",
+  "engine": {
+    "groups": 29,
+    "result": "PASS",
+    "source_checkpoint": "b286cec"
+  },
+  "d1_api": {
+    "groups": 26,
+    "result": "PASS",
+    "recovery": {
+      "events": 120,
+      "prepared_queries": 4,
+      "effective_attempts": 1,
+      "receipts_restored": 120
+    }
+  },
+  "client": {
+    "groups": 17,
+    "result": "PASS"
+  },
+  "migration_sha256": "4664bbc91a8d1b6158ee58532186b38c870cb677c17c289e072e1cb4afd4adef",
+  "remote_user_data_writes": 0,
+  "raw_answers_stored": false
+}

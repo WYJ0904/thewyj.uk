@@ -58,7 +58,8 @@
     "LEGACY_API_FALLBACK_ENABLED": "false",
     "TASK11_IMPORT_ENABLED": "false",
     "TASK11_PRODUCTION_IMPORT_ENABLED": "false",
-    "TASK25_FEATURE_FLAGS_ENABLED": "true"
+    "TASK25_FEATURE_FLAGS_ENABLED": "true",
+    "TASK26_ADAPTIVE_LEARNING_ENABLED": "false"
   },
   "env": {
     "preview": {
@@ -116,7 +117,8 @@
         "LEGACY_API_FALLBACK_ENABLED": "false",
         "TASK11_IMPORT_ENABLED": "true",
         "TASK11_PRODUCTION_IMPORT_ENABLED": "false",
-        "TASK25_FEATURE_FLAGS_ENABLED": "true"
+        "TASK25_FEATURE_FLAGS_ENABLED": "true",
+        "TASK26_ADAPTIVE_LEARNING_ENABLED": "true"
       },
       "d1_databases": [
         {
@@ -192,7 +194,8 @@
         "LEGACY_API_FALLBACK_ENABLED": "false",
         "TASK11_IMPORT_ENABLED": "false",
         "TASK11_PRODUCTION_IMPORT_ENABLED": "false",
-        "TASK25_FEATURE_FLAGS_ENABLED": "true"
+        "TASK25_FEATURE_FLAGS_ENABLED": "true",
+        "TASK26_ADAPTIVE_LEARNING_ENABLED": "false"
       },
       "d1_databases": [
         {

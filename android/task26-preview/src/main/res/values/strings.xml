@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Aeris Task26 Preview</string>
+    <string name="preview_notice">Task 26 Preview · 独立学习测试包</string>
+    <string name="network_online">断网测试</string>
+    <string name="network_offline">恢复网络</string>
+    <string name="scope_blocked">此测试包仅允许受控 Preview 的学习与账户页面</string>
+</resources>

@@ -27,7 +27,9 @@ const check = label => { completed++; console.log(`PASS ${completed}: ${label}`)
 
 try {
   const db = await mf.getD1Database('WYJ_DB');
-  for (const file of (await readdir(path.join(ROOT, 'cloudflare/migrations'))).filter(f => /^\d{4}_.+\.sql$/.test(f)).sort()) {
+  // This historical contract fixture deliberately ends at Task25. Task26's
+  // forward-migration suite separately verifies all later seeds and compatibility.
+  for (const file of (await readdir(path.join(ROOT, 'cloudflare/migrations'))).filter(f => /^\d{4}_.+\.sql$/.test(f) && f < '0025_').sort()) {
     await db.exec((await readFile(path.join(ROOT, 'cloudflare/migrations', file), 'utf8')).replace(/\r?\n/g, ' '));
   }
   const now = new Date().toISOString();

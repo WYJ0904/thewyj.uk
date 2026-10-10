@@ -1,0 +1,75 @@
+{
+  "origin": "https://thewyj.uk",
+  "checked_at_utc": "2026-10-10T09:26:06.923446+00:00",
+  "acceptance": "PASS",
+  "scope": "public health and unauthenticated permission boundaries, not privileged business-data verification",
+  "observations": [
+    {
+      "route": "/api/features",
+      "status": 401,
+      "expected": 401,
+      "pass": true
+    },
+    {
+      "route": "/api/release-channel",
+      "status": 401,
+      "expected": 401,
+      "pass": true
+    },
+    {
+      "route": "/api/admin/feature-flags",
+      "status": 401,
+      "expected": 401,
+      "pass": true
+    },
+    {
+      "route": "/api/me",
+      "status": 401,
+      "expected": 401,
+      "pass": true
+    },
+    {
+      "route": "/api/finance/bootstrap",
+      "status": 401,
+      "expected": 401,
+      "pass": true
+    },
+    {
+      "route": "/api/notification/events",
+      "status": 401,
+      "expected": 401,
+      "pass": true
+    },
+    {
+      "route": "/api/tools/access",
+      "status": 401,
+      "expected": 401,
+      "pass": true
+    },
+    {
+      "route": "/api/membership/plans",
+      "status": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "route": "/api/temporary/capabilities",
+      "status": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "route": "/api/transfer/capabilities",
+      "status": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "route": "/api/changelog",
+      "status": 200,
+      "expected": 200,
+      "pass": true
+    }
+  ],
+  "records_modified": false
+}

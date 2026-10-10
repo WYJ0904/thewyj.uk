@@ -1,0 +1,22 @@
+{
+  "source_head": "47b1b3315647d9c148903a2a55d8a44320eda164",
+  "run_id": 38055936636,
+  "job_id": 114224449429,
+  "job_attempt": 1,
+  "passed_groups": 75,
+  "suites": {
+    "engine": 29,
+    "d1_api": 26,
+    "client": 17,
+    "multi_window": 2,
+    "account_deletion": 1
+  },
+  "summaries": [
+    "Task26 engine: 29 acceptance groups passed",
+    "Task26 D1/API: 26 acceptance groups passed",
+    "Task26 client: 17 acceptance groups passed",
+    "Task26 multi-window: 2 acceptance groups passed",
+    "Task26 account deletion: 1 acceptance group passed; own outbox removed, other accounts retained"
+  ],
+  "rerun_note": "These seven successful jobs were reused in attempt 2; only the failed cloud browser job was retried."
+}

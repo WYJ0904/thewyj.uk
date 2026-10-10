@@ -1,0 +1,33 @@
+{
+  "checked_at_utc": "2026-10-10T09:23:44.899125+00:00",
+  "origin": "https://d4c5f96c.thewyj-uk.pages.dev",
+  "deployment": "PASS_EXISTING_CLOUDFLARE_GIT_INTEGRATION",
+  "environment": "preview",
+  "d1_binding": true,
+  "r2_binding": true,
+  "service_master_enabled": true,
+  "synthetic_username": "t25cloud_d86c6743a2",
+  "synthetic_account_id": "c2e3ea9c-14e0-411a-bae3-28f59a8070d3",
+  "real_user_data_modified": false,
+  "registration_http": 201,
+  "browser_login_http": 200,
+  "native_login_http": 200,
+  "anonymous_features_http": 401,
+  "ordinary_user_admin_http": 403,
+  "browser_features_http": 200,
+  "native_features_http": 200,
+  "webview_cookie_features_http": 200,
+  "features_error_code": null,
+  "channel_checks": [
+    "beta",
+    "experimental",
+    "stable"
+  ],
+  "task25_remote_acceptance": "USER_CHANNEL_AND_IDENTITY_PASS; ADMIN_ROLLOUT_NOT_EXECUTED",
+  "stable_version_code": 50,
+  "stable_apk_sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a",
+  "synthetic_account_soft_deleted": true,
+  "cleanup_pass": true,
+  "failure_class": null,
+  "probe_execution": "PASS"
+}

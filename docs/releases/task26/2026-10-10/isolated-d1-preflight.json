@@ -1,0 +1,879 @@
+[
+  {
+    "results": [
+      {
+        "name": "0001_foundation.sql",
+        "applied_at": "2026-10-10 12:22:42"
+      },
+      {
+        "name": "0002_low_risk_cloud_services.sql",
+        "applied_at": "2026-10-10 12:22:43"
+      },
+      {
+        "name": "0003_accounts_sessions.sql",
+        "applied_at": "2026-10-10 12:22:43"
+      },
+      {
+        "name": "0004_session_limit_trigger.sql",
+        "applied_at": "2026-10-10 12:22:44"
+      },
+      {
+        "name": "0005_session_limit_ordering.sql",
+        "applied_at": "2026-10-10 12:22:44"
+      },
+      {
+        "name": "0006_memberships_payments.sql",
+        "applied_at": "2026-10-10 12:22:44"
+      },
+      {
+        "name": "0007_temporary_sharing.sql",
+        "applied_at": "2026-10-10 12:22:45"
+      },
+      {
+        "name": "0008_task14_user_storage_trigger.sql",
+        "applied_at": "2026-10-10 12:22:45"
+      },
+      {
+        "name": "0009_task14_global_storage_trigger.sql",
+        "applied_at": "2026-10-10 12:22:45"
+      },
+      {
+        "name": "0010_task15_cloud_only.sql",
+        "applied_at": "2026-10-10 12:22:46"
+      },
+      {
+        "name": "0011_task15_import_trigger_order.sql",
+        "applied_at": "2026-10-10 12:22:46"
+      },
+      {
+        "name": "0012_finance_core.sql",
+        "applied_at": "2026-10-10 12:22:47"
+      },
+      {
+        "name": "0013_finance_web_membership.sql",
+        "applied_at": "2026-10-10 12:22:47"
+      },
+      {
+        "name": "0014_admin_roles_messages.sql",
+        "applied_at": "2026-10-10 12:22:47"
+      },
+      {
+        "name": "0015_android_device_sessions.sql",
+        "applied_at": "2026-10-10 12:22:48"
+      },
+      {
+        "name": "0016_notification_archive_payment.sql",
+        "applied_at": "2026-10-10 12:22:48"
+      },
+      {
+        "name": "0017_notification_archive.sql",
+        "applied_at": "2026-10-10 12:22:48"
+      },
+      {
+        "name": "0018_file_transfer_2.sql",
+        "applied_at": "2026-10-10 12:22:49"
+      },
+      {
+        "name": "0019_transfer_single_object.sql",
+        "applied_at": "2026-10-10 12:22:49"
+      },
+      {
+        "name": "0020_notification_event_identity.sql",
+        "applied_at": "2026-10-10 12:22:49"
+      },
+      {
+        "name": "0021_notification_pending_hints.sql",
+        "applied_at": "2026-10-10 12:22:50"
+      },
+      {
+        "name": "0022_notification_review_aliases.sql",
+        "applied_at": "2026-10-10 12:22:50"
+      },
+      {
+        "name": "0023_transfer_session_cleanup.sql",
+        "applied_at": "2026-10-10 12:22:51"
+      },
+      {
+        "name": "0024_feature_flags_release_channels.sql",
+        "applied_at": "2026-10-10 12:22:51"
+      },
+      {
+        "name": "0025_adaptive_learning_mastery.sql",
+        "applied_at": "2026-10-10 12:22:52"
+      }
+    ],
+    "success": true,
+    "meta": {
+      "duration": 5
+    }
+  },
+  {
+    "results": [
+      {
+        "name": "idx_task26_events_point",
+        "type": "index",
+        "sql": "CREATE INDEX idx_task26_events_point ON task26_learning_events(user_id,language,knowledge_id,seq)"
+      },
+      {
+        "name": "idx_task26_events_user",
+        "type": "index",
+        "sql": "CREATE INDEX idx_task26_events_user ON task26_learning_events(user_id,kind,seq)"
+      },
+      {
+        "name": "idx_task26_review",
+        "type": "index",
+        "sql": "CREATE INDEX idx_task26_review ON task26_mastery_states(user_id,language,next_review_at)"
+      },
+      {
+        "name": "idx_task26_tickets_user",
+        "type": "index",
+        "sql": "CREATE INDEX idx_task26_tickets_user ON task26_question_tickets(user_id,language,issued_at,id)"
+      },
+      {
+        "name": "task26_learning_events",
+        "type": "table",
+        "sql": "CREATE TABLE task26_learning_events(\n seq INTEGER PRIMARY KEY AUTOINCREMENT,\n user_id TEXT NOT NULL REFERENCES task12_users(id),\n event_id TEXT NOT NULL CHECK(length(event_id) BETWEEN 8 AND 128),\n ticket_id TEXT NOT NULL REFERENCES task26_question_tickets(id),\n language TEXT NOT NULL CHECK(language IN ('english','japanese')),\n knowledge_id TEXT NOT NULL,\n question_id TEXT NOT NULL,\n family TEXT NOT NULL,\n kind TEXT NOT NULL CHECK(kind IN ('question_shown','answer_submitted','answer_correct','answer_incorrect','answer_changed','retry','review_started','review_completed','skipped','timeout','explanation_opened')),\n correct INTEGER CHECK(correct IS NULL OR correct IN (0,1)),\n response_ms INTEGER NOT NULL DEFAULT 0 CHECK(response_ms BETWEEN 0 AND 600000),\n timing_verified INTEGER NOT NULL DEFAULT 0 CHECK(timing_verified IN (0,1)),\n difficulty INTEGER NOT NULL CHECK(difficulty BETWEEN 1 AND 5),\n accepted_at TEXT NOT NULL,\n algorithm_version TEXT NOT NULL,\n source TEXT NOT NULL CHECK(source IN ('adaptive','weak','review')),\n platform TEXT NOT NULL CHECK(platform IN ('browser','native','webview')),\n channel TEXT NOT NULL CHECK(channel IN ('stable','beta','experimental')),\n input_digest TEXT NOT NULL CHECK(length(input_digest)=64),\n answer_digest TEXT NOT NULL DEFAULT '',\n mistake_code TEXT NOT NULL DEFAULT '',\n UNIQUE(user_id,event_id)\n)"
+      },
+      {
+        "name": "task26_mastery_states",
+        "type": "table",
+        "sql": "CREATE TABLE task26_mastery_states(\n user_id TEXT NOT NULL REFERENCES task12_users(id),\n language TEXT NOT NULL CHECK(language IN ('english','japanese')),\n knowledge_id TEXT NOT NULL,\n score REAL NOT NULL CHECK(score BETWEEN 0 AND 100),\n confidence REAL NOT NULL CHECK(confidence BETWEEN 0 AND 1),\n next_review_at TEXT,\n algorithm_version TEXT NOT NULL,\n state_version INTEGER NOT NULL,\n last_event_seq INTEGER NOT NULL CHECK(last_event_seq>=0),\n state_json TEXT NOT NULL CHECK(json_valid(state_json)),\n updated_at TEXT NOT NULL,\n PRIMARY KEY(user_id,language,knowledge_id)\n)"
+      },
+      {
+        "name": "task26_metadata",
+        "type": "table",
+        "sql": "CREATE TABLE task26_metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL)"
+      },
+      {
+        "name": "task26_question_tickets",
+        "type": "table",
+        "sql": "CREATE TABLE task26_question_tickets(\n id TEXT PRIMARY KEY,\n user_id TEXT NOT NULL REFERENCES task12_users(id),\n language TEXT NOT NULL CHECK(language IN ('english','japanese')),\n knowledge_id TEXT NOT NULL,\n question_id TEXT NOT NULL,\n question_json TEXT NOT NULL CHECK(json_valid(question_json)),\n point_json TEXT NOT NULL CHECK(json_valid(point_json)),\n course_version TEXT NOT NULL,\n algorithm_version TEXT NOT NULL,\n mode TEXT NOT NULL CHECK(mode IN ('adaptive','weak','review')),\n issued_at TEXT NOT NULL,\n expires_at TEXT NOT NULL,\n outcome_event_id TEXT,\n receipt_json TEXT CHECK(receipt_json IS NULL OR json_valid(receipt_json))\n)"
+      },
+      {
+        "name": "task26_events_immutable",
+        "type": "trigger",
+        "sql": "CREATE TRIGGER task26_events_immutable\n BEFORE UPDATE ON task26_learning_events BEGIN SELECT RAISE(ABORT,'task26_events_immutable'); END"
+      }
+    ],
+    "success": true,
+    "meta": {
+      "duration": 1
+    }
+  },
+  {
+    "results": [
+      {
+        "key": "schema_version",
+        "value": "1"
+      }
+    ],
+    "success": true,
+    "meta": {
+      "duration": 0
+    }
+  },
+  {
+    "results": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "username",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "username_normalized",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 3,
+        "name": "password_hash",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "''",
+        "pk": 0
+      },
+      {
+        "cid": 4,
+        "name": "password_scheme",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "'pbkdf2_sha256'",
+        "pk": 0
+      },
+      {
+        "cid": 5,
+        "name": "password_iterations",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 6,
+        "name": "role",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "'user'",
+        "pk": 0
+      },
+      {
+        "cid": 7,
+        "name": "banned",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 8,
+        "name": "permanent_ban",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 9,
+        "name": "ban_reason",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "''",
+        "pk": 0
+      },
+      {
+        "cid": 10,
+        "name": "deleted",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 11,
+        "name": "session_version",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": "1",
+        "pk": 0
+      },
+      {
+        "cid": 12,
+        "name": "registered_at",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 13,
+        "name": "last_login_at",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "''",
+        "pk": 0
+      },
+      {
+        "cid": 14,
+        "name": "created_at",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 15,
+        "name": "updated_at",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 16,
+        "name": "source_updated_at",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "''",
+        "pk": 0
+      }
+    ],
+    "success": true,
+    "meta": {
+      "duration": 0
+    }
+  },
+  {
+    "results": [
+      {
+        "cid": 0,
+        "name": "flag_key",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "description",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "''",
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "enabled",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 3,
+        "name": "kill_switch",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 4,
+        "name": "channels_json",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "'[\"experimental\"]'",
+        "pk": 0
+      },
+      {
+        "cid": 5,
+        "name": "rollout_basis_points",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": "10000",
+        "pk": 0
+      },
+      {
+        "cid": 6,
+        "name": "revision",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": "1",
+        "pk": 0
+      },
+      {
+        "cid": 7,
+        "name": "updated_at",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 8,
+        "name": "updated_by",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 9,
+        "name": "mutation_id",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "''",
+        "pk": 0
+      },
+      {
+        "cid": 10,
+        "name": "request_id",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "''",
+        "pk": 0
+      }
+    ],
+    "success": true,
+    "meta": {
+      "duration": 0
+    }
+  },
+  {
+    "results": [
+      {
+        "cid": 0,
+        "name": "key",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "value",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      }
+    ],
+    "success": true,
+    "meta": {
+      "duration": 0
+    }
+  },
+  {
+    "results": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "user_id",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "language",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 3,
+        "name": "knowledge_id",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 4,
+        "name": "question_id",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 5,
+        "name": "question_json",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 6,
+        "name": "point_json",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 7,
+        "name": "course_version",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 8,
+        "name": "algorithm_version",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 9,
+        "name": "mode",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 10,
+        "name": "issued_at",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 11,
+        "name": "expires_at",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 12,
+        "name": "outcome_event_id",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 13,
+        "name": "receipt_json",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      }
+    ],
+    "success": true,
+    "meta": {
+      "duration": 0
+    }
+  },
+  {
+    "results": [
+      {
+        "cid": 0,
+        "name": "seq",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "user_id",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "event_id",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 3,
+        "name": "ticket_id",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 4,
+        "name": "language",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 5,
+        "name": "knowledge_id",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 6,
+        "name": "question_id",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 7,
+        "name": "family",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 8,
+        "name": "kind",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 9,
+        "name": "correct",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 10,
+        "name": "response_ms",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 11,
+        "name": "timing_verified",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 12,
+        "name": "difficulty",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 13,
+        "name": "accepted_at",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 14,
+        "name": "algorithm_version",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 15,
+        "name": "source",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 16,
+        "name": "platform",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 17,
+        "name": "channel",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 18,
+        "name": "input_digest",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 19,
+        "name": "answer_digest",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "''",
+        "pk": 0
+      },
+      {
+        "cid": 20,
+        "name": "mistake_code",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "''",
+        "pk": 0
+      }
+    ],
+    "success": true,
+    "meta": {
+      "duration": 3
+    }
+  },
+  {
+    "results": [
+      {
+        "cid": 0,
+        "name": "user_id",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "language",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 2
+      },
+      {
+        "cid": 2,
+        "name": "knowledge_id",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 3
+      },
+      {
+        "cid": 3,
+        "name": "score",
+        "type": "REAL",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 4,
+        "name": "confidence",
+        "type": "REAL",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 5,
+        "name": "next_review_at",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 6,
+        "name": "algorithm_version",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 7,
+        "name": "state_version",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 8,
+        "name": "last_event_seq",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 9,
+        "name": "state_json",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 10,
+        "name": "updated_at",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": null,
+        "pk": 0
+      }
+    ],
+    "success": true,
+    "meta": {
+      "duration": 0
+    }
+  },
+  {
+    "results": [
+      {
+        "flag_key": "adaptive_learning",
+        "enabled": 1,
+        "kill_switch": 0,
+        "channels_json": "[\"experimental\"]",
+        "rollout_basis_points": 10000,
+        "revision": 26
+      },
+      {
+        "flag_key": "adaptive_review",
+        "enabled": 1,
+        "kill_switch": 0,
+        "channels_json": "[\"experimental\"]",
+        "rollout_basis_points": 10000,
+        "revision": 13
+      },
+      {
+        "flag_key": "ai_error_explanation",
+        "enabled": 1,
+        "kill_switch": 0,
+        "channels_json": "[\"experimental\"]",
+        "rollout_basis_points": 10000,
+        "revision": 13
+      },
+      {
+        "flag_key": "mastery_score",
+        "enabled": 1,
+        "kill_switch": 0,
+        "channels_json": "[\"experimental\"]",
+        "rollout_basis_points": 10000,
+        "revision": 13
+      },
+      {
+        "flag_key": "similar_word_explanation",
+        "enabled": 1,
+        "kill_switch": 0,
+        "channels_json": "[\"experimental\"]",
+        "rollout_basis_points": 10000,
+        "revision": 13
+      }
+    ],
+    "success": true,
+    "meta": {
+      "duration": 0
+    }
+  }
+]

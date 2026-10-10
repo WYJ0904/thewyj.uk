@@ -1,0 +1,54 @@
+{
+  "origin": "https://1d51eae4.thewyj-uk.pages.dev",
+  "checked_at_utc": "2026-10-10T09:29:58.609Z",
+  "browser": "Cloud Chromium, not Samsung",
+  "acceptance": "PASS",
+  "actual_browser_download": true,
+  "checks": [
+    {
+      "width": 320,
+      "theme": "default",
+      "latest": "v2026.10.10.1",
+      "no_overflow": true,
+      "download_ui": true,
+      "reload_latest": true,
+      "runtime_errors": []
+    },
+    {
+      "width": 390,
+      "theme": "default",
+      "latest": "v2026.10.10.1",
+      "no_overflow": true,
+      "download_ui": true,
+      "reload_latest": true,
+      "runtime_errors": []
+    },
+    {
+      "width": 768,
+      "theme": "default",
+      "latest": "v2026.10.10.1",
+      "no_overflow": true,
+      "download_ui": true,
+      "reload_latest": true,
+      "runtime_errors": []
+    },
+    {
+      "width": 1366,
+      "theme": "default",
+      "latest": "v2026.10.10.1",
+      "no_overflow": true,
+      "download_ui": true,
+      "reload_latest": true,
+      "runtime_errors": []
+    },
+    {
+      "width": 1920,
+      "theme": "default",
+      "latest": "v2026.10.10.1",
+      "no_overflow": true,
+      "download_ui": true,
+      "reload_latest": true,
+      "runtime_errors": []
+    }
+  ]
+}

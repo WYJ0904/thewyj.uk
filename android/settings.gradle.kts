@@ -26,3 +26,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "thewyj"
 include(":app")
+include(":task26-preview")
