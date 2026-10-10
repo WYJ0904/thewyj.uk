@@ -32,8 +32,8 @@ android {
         minSdk = 30
         targetSdk = 36
         // P4 workspace presentation; preserve package, data and signing identity.
-        versionCode = 49
-        versionName = "1.3.36"
+        versionCode = 50
+        versionName = "1.3.37"
         // Candidate overrides do not advance committed Stable metadata or pointers.
         val candidateCode = providers.gradleProperty("THEWYJ_CANDIDATE_VERSION_CODE").orNull
         val candidateName = providers.gradleProperty("THEWYJ_CANDIDATE_VERSION_NAME").orNull
