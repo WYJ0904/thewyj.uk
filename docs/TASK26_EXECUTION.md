@@ -7,3 +7,7 @@
 - Existing English/Japanese custom quiz, wrong-book/rejudge, Task11 history/sync and language entitlements will be retained. Server-issued adaptive tickets/events become the mastery authority; client historical correctness is not silently promoted into authoritative score.
 - Actual missing resources:Wrangler not authenticated; Actions Cloudflare/signing/Admin inputs all false; secret/variable listing403. Pages Git deploy and GitHub repository operations work. Hosted D1 migration, privileged Preview acceptance and any required new original signing remain separately gated.
 - See TASK26_DESIGN.md for algorithm/data/API/UI/test matrix and release boundaries. Implementation/tests/Preview/Production statuses remain IN_PROGRESS/NOT_EXECUTED until actual evidence.
+
+## Engine checkpoint
+
+Pure mastery-v1 reducer and deterministic adaptive selector implemented;29 acceptance groups PASS. Reviewed English/Japanese catalog currently62 knowledge points/124 question variants, reusing existing rubrics/canonical Japanese forms plus explicit vocabulary/grammar/examples/confusion sets. Correctness uses course-owned deterministic answers, not AI. Repeat cooldown survives arbitrarily many duplicate attempts, effective evidence is capped per point/day, and mastery requires spaced diverse evidence. Current source is a verified implementation checkpoint, not full API/UI/Preview/Production acceptance.
