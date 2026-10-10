@@ -1,0 +1,31 @@
+{
+  "application_id": "uk.thewyj.app.preview",
+  "label": "Aeris Task26 Preview",
+  "version_name": "0.0.1-task26-preview",
+  "version_code": 1,
+  "sha256": "9441e04562649768a75d5056673e0dbebd8416d246f370868ae02f9dd2084742",
+  "size_bytes": 6638157,
+  "certificate_sha256": "9ea45db6e2c398de90ce61affd145e432d63d0d1724dd6447ba4ba24193f4fac",
+  "signer": "local Android Debug test signer",
+  "production_signer": false,
+  "permissions": [
+    "android.permission.INTERNET",
+    "android.permission.ACCESS_NETWORK_STATE",
+    "uk.thewyj.app.preview.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+  ],
+  "services": 0,
+  "receivers": 0,
+  "providers": 0,
+  "deep_links": 0,
+  "shared_user_id": false,
+  "unit_tests": {
+    "passed": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  "lint": "PASS (0 errors; compatibility/deprecation warnings retained)",
+  "release_variant": "disabled",
+  "samsung_installation": "NOT EXECUTED / USER DEVICE DEFERRED",
+  "samsung_runtime": "NOT TESTED",
+  "status": "STATIC PACKAGE ISOLATION PASS"
+}

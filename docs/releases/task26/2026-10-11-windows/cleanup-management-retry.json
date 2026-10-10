@@ -1,0 +1,10 @@
+{
+  "first_query_error_code": 7403,
+  "first_query_label": "cleanup-query-8a6c096e",
+  "failed_stage": "Read-only exact owned account lookup after definitions/overrides were restored",
+  "normal_wrangler_whoami": "Expected account and d1(write) OAuth scope confirmed",
+  "subsequent_readonly_select": "SELECT 1 returned 1, rows_written=0",
+  "cleanup_resumed_from_saved_stage": true,
+  "credential_or_pepper_overwrite": false,
+  "root_cause": "Transient management authentication failure; exact backend cause not established"
+}

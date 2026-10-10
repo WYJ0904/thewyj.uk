@@ -1,0 +1,253 @@
+{
+  "database": "wyj-cloud-preview",
+  "database_id": "a3e6253b-689f-49f3-998b-7c5828ea255a",
+  "observed_at": "2026-10-10T19:02:24.107Z",
+  "baseline": "Actual post-0025, pre-fixture 88-table snapshot",
+  "business_count_comparisons": [
+    {
+      "table": "task12_users",
+      "before": 64,
+      "after_excluding_owned_fixtures": 64,
+      "match": true
+    },
+    {
+      "table": "task11_learning_sync_records",
+      "before": 138,
+      "after_excluding_owned_fixtures": 138,
+      "match": true
+    },
+    {
+      "table": "task13_user_memberships",
+      "before": 8,
+      "after_excluding_owned_fixtures": 8,
+      "match": true
+    },
+    {
+      "table": "task16_finance_transactions",
+      "before": 4,
+      "after_excluding_owned_fixtures": 4,
+      "match": true
+    },
+    {
+      "table": "task21_notification_events",
+      "before": 10,
+      "after_excluding_owned_fixtures": 10,
+      "match": true
+    },
+    {
+      "table": "task13_membership_plans",
+      "before": 11,
+      "after_excluding_owned_fixtures": 11,
+      "match": true
+    },
+    {
+      "table": "task13_membership_entitlements",
+      "before": 39,
+      "after_excluding_owned_fixtures": 39,
+      "match": true
+    },
+    {
+      "table": "task22_upload_files",
+      "before": 62,
+      "after_excluding_owned_fixtures": 62,
+      "match": true
+    },
+    {
+      "table": "task22_upload_sessions",
+      "before": 49,
+      "after_excluding_owned_fixtures": 49,
+      "match": true
+    },
+    {
+      "table": "task22_shares",
+      "before": 1,
+      "after_excluding_owned_fixtures": 1,
+      "match": true
+    }
+  ],
+  "original_configuration_comparisons": [
+    {
+      "table": "task13_membership_plans",
+      "rows_before": 11,
+      "rows_after": 11,
+      "sha256_before": "d64847a346a182eafeab8b97a5aba838370e63ab62fd0d99da33bdc631ee8213",
+      "sha256_after": "d64847a346a182eafeab8b97a5aba838370e63ab62fd0d99da33bdc631ee8213",
+      "match": true,
+      "owned_fixture_rows_excluded": false
+    },
+    {
+      "table": "task13_membership_entitlements",
+      "rows_before": 39,
+      "rows_after": 39,
+      "sha256_before": "b7e08b8a4ea80155de9a38346ea71df86cf335c212cf2bb11e62f6add65e435f",
+      "sha256_after": "b7e08b8a4ea80155de9a38346ea71df86cf335c212cf2bb11e62f6add65e435f",
+      "match": true,
+      "owned_fixture_rows_excluded": false
+    },
+    {
+      "table": "task25_feature_flags",
+      "rows_before": 6,
+      "rows_after": 6,
+      "sha256_before": "f0c1571f0074ddc7043da8868c518cc5d575988fd06e8be95c4efa00370baa1c",
+      "sha256_after": "f0c1571f0074ddc7043da8868c518cc5d575988fd06e8be95c4efa00370baa1c",
+      "match": true,
+      "owned_fixture_rows_excluded": false
+    },
+    {
+      "table": "task25_metadata",
+      "rows_before": 1,
+      "rows_after": 1,
+      "sha256_before": "cb0a6d6e240f463103580e524247bba06fb30d355821a8176d9a51edcf39f90b",
+      "sha256_after": "cb0a6d6e240f463103580e524247bba06fb30d355821a8176d9a51edcf39f90b",
+      "match": true,
+      "owned_fixture_rows_excluded": false
+    },
+    {
+      "table": "task25_user_flag_overrides",
+      "rows_before": 4,
+      "rows_after": 4,
+      "sha256_before": "ae9de66f57dc55f8653fda0930e975cf5c9bf8eb5203c1dc5b84f6be94583a30",
+      "sha256_after": "ae9de66f57dc55f8653fda0930e975cf5c9bf8eb5203c1dc5b84f6be94583a30",
+      "match": true,
+      "owned_fixture_rows_excluded": true
+    },
+    {
+      "table": "task25_release_preferences",
+      "rows_before": 17,
+      "rows_after": 17,
+      "sha256_before": "c528e195a90268a2811d7b884c22d9d6d9d6556ebe29b62f56912a78b3eb7106",
+      "sha256_after": "c528e195a90268a2811d7b884c22d9d6d9d6556ebe29b62f56912a78b3eb7106",
+      "match": true,
+      "owned_fixture_rows_excluded": true
+    }
+  ],
+  "unchanged_table_counts": 70,
+  "total_old_tables": 88,
+  "changed_table_counts": [
+    {
+      "table": "cloud_rate_limit_windows",
+      "before": 181,
+      "after": 356,
+      "delta": 175
+    },
+    {
+      "table": "task11_learning_sync_changes",
+      "before": 290,
+      "after": 305,
+      "delta": 15
+    },
+    {
+      "table": "task11_learning_sync_heads",
+      "before": 36,
+      "after": 39,
+      "delta": 3
+    },
+    {
+      "table": "task11_learning_sync_records",
+      "before": 138,
+      "after": 153,
+      "delta": 15
+    },
+    {
+      "table": "task12_account_audit_logs",
+      "before": 25,
+      "after": 34,
+      "delta": 9
+    },
+    {
+      "table": "task12_auth_failure_windows",
+      "before": 1,
+      "after": 0,
+      "delta": -1
+    },
+    {
+      "table": "task12_login_audit_logs",
+      "before": 247,
+      "after": 259,
+      "delta": 12
+    },
+    {
+      "table": "task12_users",
+      "before": 64,
+      "after": 69,
+      "delta": 5
+    },
+    {
+      "table": "task13_admin_audit_logs",
+      "before": 3,
+      "after": 7,
+      "delta": 4
+    },
+    {
+      "table": "task13_user_memberships",
+      "before": 8,
+      "after": 10,
+      "delta": 2
+    },
+    {
+      "table": "task15_ai_cache",
+      "before": 2,
+      "after": 3,
+      "delta": 1
+    },
+    {
+      "table": "task15_ai_usage_daily",
+      "before": 11,
+      "after": 14,
+      "delta": 3
+    },
+    {
+      "table": "task15_quiz_sessions",
+      "before": 4,
+      "after": 3,
+      "delta": -1
+    },
+    {
+      "table": "task18_admin_action_audit",
+      "before": 10,
+      "after": 16,
+      "delta": 6
+    },
+    {
+      "table": "task18_admin_role_audit",
+      "before": 4,
+      "after": 6,
+      "delta": 2
+    },
+    {
+      "table": "task25_flag_audit",
+      "before": 52,
+      "after": 134,
+      "delta": 82
+    },
+    {
+      "table": "task25_release_preferences",
+      "before": 17,
+      "after": 20,
+      "delta": 3
+    },
+    {
+      "table": "task25_user_flag_overrides",
+      "before": 4,
+      "after": 19,
+      "delta": 15
+    }
+  ],
+  "migration_0025": [
+    {
+      "name": "0025_adaptive_learning_mastery.sql",
+      "applied_at": "2026-10-10 15:10:43"
+    }
+  ],
+  "task26_scope": {
+    "events": 47,
+    "original_user_events": 0,
+    "states": 6,
+    "original_user_states": 0,
+    "pending_receipts": 0
+  },
+  "protection_evidence_scope": "Aggregate counts, six exact original configuration comparisons and audited exact fixture mutations; does not claim byte-for-byte inspection of every user record",
+  "fixture_learning_audit_retained": true,
+  "production_mutations": 0,
+  "status": "PASS"
+}

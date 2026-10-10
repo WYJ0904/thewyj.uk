@@ -1,0 +1,1784 @@
+{
+  "origin": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev",
+  "database": "wyj-cloud-preview",
+  "database_id": "a3e6253b-689f-49f3-998b-7c5828ea255a",
+  "source_head": "41b7e49475a2ed7e060c54cea33fc8db0649f440",
+  "backend_source_identical_to": "598769c15b00d06210855e0ef540f3f86b8efbaa",
+  "observed_at": "2026-10-10T19:04:30.933Z",
+  "api": {
+    "checks": [
+      {
+        "name": "anonymous authentication boundary",
+        "status": "PASS"
+      },
+      {
+        "name": "ordinary account cannot access admin diagnostics",
+        "status": "PASS"
+      },
+      {
+        "name": "temporary admin cannot acquire owner import authority",
+        "status": "PASS"
+      },
+      {
+        "name": "free account language entitlement boundary",
+        "status": "PASS"
+      },
+      {
+        "name": "english opaque server ticket",
+        "status": "PASS"
+      },
+      {
+        "name": "english deterministic correct outcome",
+        "status": "PASS",
+        "score": 12.54,
+        "confidence": 0.2
+      },
+      {
+        "name": "english bounded mastery",
+        "status": "PASS"
+      },
+      {
+        "name": "english same event ID returns original receipt",
+        "status": "PASS"
+      },
+      {
+        "name": "english conflicting event reuse rejected",
+        "status": "PASS"
+      },
+      {
+        "name": "english cross-account ticket isolation",
+        "status": "PASS"
+      },
+      {
+        "name": "english cross-account explanation isolation",
+        "status": "PASS"
+      },
+      {
+        "name": "english opaque server ticket",
+        "status": "PASS"
+      },
+      {
+        "name": "english deterministic incorrect outcome",
+        "status": "PASS",
+        "score": 7.04,
+        "confidence": 0.275
+      },
+      {
+        "name": "english bounded mastery",
+        "status": "PASS"
+      },
+      {
+        "name": "english incorrect result cannot improve same-point mastery",
+        "status": "PASS"
+      },
+      {
+        "name": "english AI or safe course fallback",
+        "status": "PASS",
+        "ai_status": "generated",
+        "fallback_code": "",
+        "workers_ai_source": "workers_ai"
+      },
+      {
+        "name": "english AI OFF retains deterministic course explanation",
+        "status": "PASS"
+      },
+      {
+        "name": "english authoritative persistence across fresh request",
+        "status": "PASS"
+      },
+      {
+        "name": "english weak practice ticket",
+        "status": "PASS"
+      },
+      {
+        "name": "english actual due-review queue",
+        "status": "PASS",
+        "review_count": 0,
+        "next_review_at": "2026-10-10T18:00:51.288Z"
+      },
+      {
+        "name": "english client-supplied score rejected",
+        "status": "PASS"
+      },
+      {
+        "name": "japanese opaque server ticket",
+        "status": "PASS"
+      },
+      {
+        "name": "japanese deterministic correct outcome",
+        "status": "PASS",
+        "score": 12.54,
+        "confidence": 0.2
+      },
+      {
+        "name": "japanese bounded mastery",
+        "status": "PASS"
+      },
+      {
+        "name": "japanese same event ID returns original receipt",
+        "status": "PASS"
+      },
+      {
+        "name": "japanese conflicting event reuse rejected",
+        "status": "PASS"
+      },
+      {
+        "name": "japanese cross-account ticket isolation",
+        "status": "PASS"
+      },
+      {
+        "name": "japanese cross-account explanation isolation",
+        "status": "PASS"
+      },
+      {
+        "name": "japanese opaque server ticket",
+        "status": "PASS"
+      },
+      {
+        "name": "japanese deterministic incorrect outcome",
+        "status": "PASS",
+        "score": 7.04,
+        "confidence": 0.275
+      },
+      {
+        "name": "japanese bounded mastery",
+        "status": "PASS"
+      },
+      {
+        "name": "japanese incorrect result cannot improve same-point mastery",
+        "status": "PASS"
+      },
+      {
+        "name": "japanese AI or safe course fallback",
+        "status": "PASS",
+        "ai_status": "generated",
+        "fallback_code": "",
+        "workers_ai_source": "workers_ai"
+      },
+      {
+        "name": "japanese AI OFF retains deterministic course explanation",
+        "status": "PASS"
+      },
+      {
+        "name": "japanese authoritative persistence across fresh request",
+        "status": "PASS"
+      },
+      {
+        "name": "japanese weak practice ticket",
+        "status": "PASS"
+      },
+      {
+        "name": "japanese actual due-review queue",
+        "status": "PASS",
+        "review_count": 0,
+        "next_review_at": "2026-10-10T18:01:43.350Z"
+      },
+      {
+        "name": "japanese client-supplied score rejected",
+        "status": "PASS"
+      },
+      {
+        "name": "Stable channel restriction overrides targeted ON",
+        "status": "PASS"
+      },
+      {
+        "name": "Beta channel restriction overrides targeted ON",
+        "status": "PASS"
+      },
+      {
+        "name": "real kill switch rejects server ticket issuance",
+        "status": "PASS"
+      },
+      {
+        "name": "normal recovery after kill switch",
+        "status": "PASS"
+      },
+      {
+        "name": "remote D1 persisted two isolated language states",
+        "status": "PASS"
+      },
+      {
+        "name": "remote D1 confirms exactly one event per accepted event ID",
+        "status": "PASS"
+      }
+    ],
+    "completed_at": "2026-10-10T17:52:36.846Z",
+    "status": "PASS"
+  },
+  "natural_review": {
+    "checks": [
+      {
+        "name": "english actual elapsed review lifecycle",
+        "status": "PASS",
+        "initial_due_count": 1,
+        "after_due_count": 0,
+        "review_count": 1,
+        "last_reviewed_at": "2026-10-10T18:12:07.834Z",
+        "event_id": "e3f15460-d76a-4d3d-b91b-9f6569ba82f8"
+      },
+      {
+        "name": "japanese actual elapsed review lifecycle",
+        "status": "PASS",
+        "initial_due_count": 1,
+        "after_due_count": 0,
+        "review_count": 1,
+        "last_reviewed_at": "2026-10-10T18:12:18.935Z",
+        "event_id": "7d78805e-f8ce-454c-a47c-045bfe10e705"
+      },
+      {
+        "name": "client correctness, identity and channel claims rejected",
+        "status": "PASS"
+      },
+      {
+        "name": "explicit reconcile retains authoritative projection",
+        "status": "PASS"
+      },
+      {
+        "name": "real admin diagnostics have zero pending projections",
+        "status": "PASS",
+        "metrics": {
+          "ok": true,
+          "algorithm_version": "mastery-v1",
+          "event_counts": [
+            {
+              "kind": "answer_correct",
+              "count": 4
+            },
+            {
+              "kind": "answer_incorrect",
+              "count": 2
+            },
+            {
+              "kind": "answer_submitted",
+              "count": 6
+            },
+            {
+              "kind": "question_shown",
+              "count": 10
+            },
+            {
+              "kind": "review_completed",
+              "count": 2
+            },
+            {
+              "kind": "review_started",
+              "count": 2
+            }
+          ],
+          "score_distribution": [
+            {
+              "score_band": 0,
+              "count": 2
+            }
+          ],
+          "pending_projections": 0,
+          "request_id": "68c8c166-c1d4-4c1f-824d-339e6fccd5f1"
+        }
+      },
+      {
+        "name": "language membership excludes finance and notification rights",
+        "status": "PASS"
+      }
+    ],
+    "no_database_time_or_state_injection": true,
+    "completed_at": "2026-10-10T18:12:39.273Z",
+    "status": "PASS"
+  },
+  "legacy": {
+    "checks": [
+      {
+        "name": "member_b ordinary quiz remains available",
+        "status": "PASS",
+        "word_count": 2,
+        "request_id": "95f7fc43-751a-41a5-bfbf-781266415044"
+      },
+      {
+        "name": "free ordinary quiz remains available",
+        "status": "PASS",
+        "word_count": 2,
+        "request_id": "fe8fab3e-4fee-4ccf-aadf-af49f1a68bc4"
+      },
+      {
+        "name": "old wrong-book and history persist through existing sync API",
+        "status": "PASS",
+        "request_ids": [
+          "4e4ce25c-d0d7-4202-afef-3c20545cea3b",
+          "eedee52e-11b0-4f26-b27f-8fc0633260b6"
+        ]
+      },
+      {
+        "name": "old learning records remain account scoped",
+        "status": "PASS"
+      },
+      {
+        "name": "client historical score cannot promote verified mastery",
+        "status": "PASS"
+      }
+    ],
+    "only_new_owned_accounts": true,
+    "status": "PASS"
+  },
+  "browser": {
+    "english": {
+      "ai": "AI 辅助解析：猫的意思是猫，cat是猫的英文名称 常用名词 The cat is sleeping. cat",
+      "controls": 10,
+      "delta": "掌握度 0 → 0（+0）",
+      "overflow": false,
+      "overview": "已学习 2 个知识点 · 平均掌握度 4/100",
+      "result": "还需要练习",
+      "sync": "服务端已同步 · 10月11日 02:34"
+    },
+    "japanese": {
+      "counts": "已掌握 0 · 学习中 1 · 待复习 0 · 尚未学习 34",
+      "overflow": false,
+      "overview": "已学习 1 个知识点 · 平均掌握度 13/100",
+      "prompt": "友達",
+      "result": "回答正确",
+      "sync": "服务端已同步 · 10月11日 02:39"
+    },
+    "reload": {
+      "answerDisabled": true,
+      "overview": "已学习 2 个知识点 · 平均掌握度 4/100",
+      "prompt": "猫",
+      "result": "还需要练习"
+    },
+    "two-windows": {
+      "secondRestore": {
+        "disabled": true,
+        "prompt": "猫",
+        "result": "还需要练习"
+      },
+      "nextPrompt": "light",
+      "firstHydration": {
+        "prompt": "light",
+        "resultHidden": true,
+        "value": ""
+      },
+      "acknowledgement": {
+        "delta": "掌握度 0 → 11（+11.4）",
+        "disabled": true,
+        "prompt": "light",
+        "result": "回答正确"
+      },
+      "status": "PASS"
+    },
+    "kill": {
+      "observed_at": "2026-10-10T18:46:13.913Z",
+      "documentVisible": true,
+      "oldQuizVisible": true,
+      "sectionHidden": true,
+      "status": "自适应学习暂时关闭，待同步答题已保留。"
+    },
+    "old-quiz": {
+      "started_and_first_answer_submitted_during_kill": true,
+      "current_after_kill_restoration": {
+        "oldQuizVisible": true,
+        "progress": "2/2",
+        "result": "\n              正确\n              标准释义：苹果\n              \n            ",
+        "word": "\n                book\n                \n              "
+      }
+    },
+    "old-quiz-complete": {
+      "observed_at": "2026-10-10T18:55:48.901Z",
+      "summary": "练习结果\n\n本轮满分\n\n英语 · 释义\n\n2\n总题数\n2\n正确\n0\n错误\n0\n跳过\n3分40秒\n用时\n\n正确率 100%\n\n再练一轮\n查看错题\n返回词表",
+      "title": "本轮满分"
+    },
+    "review": {
+      "mode": "到期复习\n\ncat\n\n写出中文含义\n\n你的答案\n提交答案\n跳过\n下一题\n回答正确\n\n掌握度 0 → 11（+10.5）\n\n课程答案：猫 / 猫咪\n\n下次复习：10月11日 03:56\n\n本题的课程答案是猫 / 猫咪。 常用名词\n\nThe cat is sleeping. 猫正在睡觉。\n\n本轮 1 题 · 正确 1 · 掌握度累计变化 10.5",
+      "observed_at": "2026-10-10T18:56:32.864Z",
+      "pending": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n已学习 3 个知识点 · 平均掌握度 10/100\n\n已掌握 0 · 学习中 3 · 待复习 0 · 尚未学习 24\n\n服务端已同步 · 10月11日 02:56\n\n开始自适应学习\n练习弱项\n开始到期复习\n\n到期复习\n\ncat\n\n写出中文含义\n\n你的答案\n提交答案\n跳过\n下一题\n回答正确\n\n掌握度 0 → 11（+10.5）\n\n课程答案：猫 / 猫咪\n\n下次复习：10月11日 03:56\n\n本题的课程答案是猫 / 猫咪。 常用名词\n\nThe cat is sleeping. 猫正在睡觉。\n\n本轮 1 题 · 正确 1 · 掌握度累计变化 10.5\n\nfriend\n学习中 · 9/100\nlight\n学习中 · 11/100\ncat\n学习中 · 11/100\n\n目前没有到期复习。"
+    },
+    "account-switch": {
+      "account": "Aeris\nv2026.10.10.1\n首页\n学习\n工具箱\n账本\n文件\n下载 Android\n更新日志\n系统\nt26-member_b-cc7bc48127 · 双语言双项永久会员",
+      "mastery": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n已学习 1 个知识点 · 平均掌握度 13/100\n\n已掌握 0 · 学习中 0 · 待复习 1 · 尚未学习 26\n\n服务端已同步 · 10月11日 02:57\n\n开始自适应学习\n练习弱项\n开始到期复习\nstudent\n待复习 · 13/100\nstudent\n待复习 · 13/100",
+      "observed_at": "2026-10-10T18:58:23.615Z",
+      "oldWords": ""
+    },
+    "flags-restored": {
+      "masteryHidden": true,
+      "observed_at": "2026-10-10T18:59:47.276Z",
+      "oldQuizVisible": true,
+      "visibleText": "词表\n答题\n错题\n成就\n统计\n使用者\n判卷\n普通\n严格\n宽松\n练习\n释义\n听写\n分级智能选词\n英语\n快速搜索\n学习等级\n小学三年级\n小学四年级\n小学五年级\n小学六年级\n初中一年级\n初中二年级\n初中三年级\n高中一年级\n高中二年级\n高中三年级\n大学英语四级\n大学英语六级\n词汇数量\n写入方式\n替换词表\n追加词表\n生成词表\n\n当前语言不限单次测试数量\n\n开始\n打乱词表\n清空词表\n导入词表\n导出词表\n0\n词\n0\n本轮错题\n0\n得分"
+    },
+    "cleanup-login": {
+      "observed_at": "2026-10-10T19:03:10.343Z",
+      "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/login",
+      "guestLoginVisible": true,
+      "deletedTestSessionClearedByNormalRecovery": true
+    }
+  },
+  "headless_real_hosted_outbox": {
+    "scope": "real Hosted Preview API and D1 with headless client state helpers; controlled transport/response-loss injection",
+    "browser_offline_test": false,
+    "physical_device_test": false,
+    "local_clock_or_server_state_injected": false,
+    "event_id": "dd42de39-2b23-42f3-aa5f-87b149884478",
+    "ticket_id": "a7d46462-bc69-49c9-82f6-421a7010e824",
+    "queued_before_network": 1,
+    "queued_after_dropped_response": 1,
+    "remote_events_before_retry": 1,
+    "remote_events_after_retry": 1,
+    "queue_after_original_receipt": 0,
+    "event_seq": 43,
+    "request_ids": [
+      "1a6a183f-780b-4441-9bd3-ea4fd547b372",
+      "caa572a9-0f99-46cc-9599-604e63c6e53b"
+    ],
+    "status": "PASS",
+    "observations": [
+      {
+        "role": "anonymous",
+        "method": "POST",
+        "route": "/api/register",
+        "status": 201,
+        "code": "",
+        "request_id": "b4a025d2-d2f1-4848-b219-5eb810ebfb05",
+        "duration_ms": 1728
+      },
+      {
+        "role": "anonymous",
+        "method": "POST",
+        "route": "/api/login",
+        "status": 200,
+        "code": "",
+        "request_id": "35a18edc-3920-4b56-954e-eb49dc6c3cbb",
+        "duration_ms": 2315
+      },
+      {
+        "role": "anonymous",
+        "method": "POST",
+        "route": "/api/register",
+        "status": 201,
+        "code": "",
+        "request_id": "b5efdbeb-1ecd-4821-a859-a4764977bfcd",
+        "duration_ms": 1192
+      },
+      {
+        "role": "anonymous",
+        "method": "POST",
+        "route": "/api/login",
+        "status": 200,
+        "code": "",
+        "request_id": "e3c9d63b-b85d-4711-bd23-5dc4a4fd5e3b",
+        "duration_ms": 2009
+      },
+      {
+        "role": "anonymous",
+        "method": "POST",
+        "route": "/api/register",
+        "status": 201,
+        "code": "",
+        "request_id": "18916da7-9e33-47dc-b31d-4f0443df1724",
+        "duration_ms": 1377
+      },
+      {
+        "role": "anonymous",
+        "method": "POST",
+        "route": "/api/login",
+        "status": 200,
+        "code": "",
+        "request_id": "da04d44b-cd76-4d51-abb5-8bd2dc11dc31",
+        "duration_ms": 2018
+      },
+      {
+        "role": "anonymous",
+        "method": "POST",
+        "route": "/api/register",
+        "status": 201,
+        "code": "",
+        "request_id": "4d9e40be-8405-4153-9e52-95e48921f2a0",
+        "duration_ms": 1415
+      },
+      {
+        "role": "anonymous",
+        "method": "POST",
+        "route": "/api/login",
+        "status": 200,
+        "code": "",
+        "request_id": "08cdd6fa-472f-4244-82c9-affe37b511fb",
+        "duration_ms": 2008
+      },
+      {
+        "role": "anonymous",
+        "method": "POST",
+        "route": "/api/login",
+        "status": 200,
+        "code": "",
+        "request_id": "290596e7-5d3c-4b61-a1ad-e5ba23c31fee",
+        "duration_ms": 3055
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "1756add0-ac85-439f-81bd-39917652b7cb",
+        "duration_ms": 1024
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/learning/metrics",
+        "status": 200,
+        "code": "",
+        "request_id": "4e1ebdd2-c977-4733-a0d5-24a75c26215c",
+        "duration_ms": 2056
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/account/secret",
+        "status": 200,
+        "code": "",
+        "request_id": "7b317651-f463-4a56-aff4-cc812d957c29",
+        "duration_ms": 2218
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/me",
+        "status": 401,
+        "code": "session_revoked",
+        "request_id": "883abf24-ca18-40b8-a552-1a9c09184a89",
+        "duration_ms": 846
+      },
+      {
+        "role": "anonymous",
+        "method": "POST",
+        "route": "/api/login",
+        "status": 200,
+        "code": "",
+        "request_id": "0c022c5e-3f4e-42ec-986e-c1157f7b5f97",
+        "duration_ms": 2454
+      },
+      {
+        "role": "member_a",
+        "method": "POST",
+        "route": "/api/account/secret",
+        "status": 200,
+        "code": "",
+        "request_id": "b00ccb21-de86-4a8f-b312-fee145b725dd",
+        "duration_ms": 1817
+      },
+      {
+        "role": "member_a",
+        "method": "GET",
+        "route": "/api/me",
+        "status": 401,
+        "code": "session_revoked",
+        "request_id": "525dae25-79dd-4fb9-bfa3-10ca494ab253",
+        "duration_ms": 828
+      },
+      {
+        "role": "anonymous",
+        "method": "POST",
+        "route": "/api/login",
+        "status": 200,
+        "code": "",
+        "request_id": "78d99b7e-18cc-4bbf-93e8-7db6f2b73321",
+        "duration_ms": 2058
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/account/secret",
+        "status": 200,
+        "code": "",
+        "request_id": "040e3a96-294b-4d78-a22a-4443773a6852",
+        "duration_ms": 2009
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/me",
+        "status": 401,
+        "code": "session_revoked",
+        "request_id": "552491e5-5e80-4ed9-9620-25669a6c90b6",
+        "duration_ms": 843
+      },
+      {
+        "role": "anonymous",
+        "method": "POST",
+        "route": "/api/login",
+        "status": 200,
+        "code": "",
+        "request_id": "f592f241-6087-4508-a634-01f60122e53c",
+        "duration_ms": 2199
+      },
+      {
+        "role": "free",
+        "method": "POST",
+        "route": "/api/account/secret",
+        "status": 200,
+        "code": "",
+        "request_id": "a36fa5ad-9832-4e91-bad3-e222cb449b55",
+        "duration_ms": 2052
+      },
+      {
+        "role": "free",
+        "method": "GET",
+        "route": "/api/me",
+        "status": 401,
+        "code": "session_revoked",
+        "request_id": "ea870dc7-bf3e-43e4-9bed-8b7509b30e5a",
+        "duration_ms": 841
+      },
+      {
+        "role": "anonymous",
+        "method": "POST",
+        "route": "/api/login",
+        "status": 200,
+        "code": "",
+        "request_id": "55999099-feea-4c96-984e-b023307277e3",
+        "duration_ms": 2260
+      },
+      {
+        "role": "member_a",
+        "method": "GET",
+        "route": "/api/me",
+        "status": 200,
+        "code": "",
+        "request_id": "4593f237-62bb-412b-a3e7-ce45f1e926fb",
+        "duration_ms": 1559
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/membership/manage",
+        "status": 200,
+        "code": "",
+        "request_id": "d838281e-8f36-410d-abc6-8cb7aa8b289b",
+        "duration_ms": 3158
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/me",
+        "status": 200,
+        "code": "",
+        "request_id": "d0593c0f-5c9c-4207-b313-45587f65b67d",
+        "duration_ms": 1513
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/membership/manage",
+        "status": 200,
+        "code": "",
+        "request_id": "638621d8-4604-4d28-bc11-fef5962c615f",
+        "duration_ms": 2958
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "08d27902-3056-4186-bf4b-685df47be7cb",
+        "duration_ms": 1152
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "43fd1477-f309-476b-980e-23f250656bcb",
+        "duration_ms": 1151
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "564ac972-aee2-4c3c-b282-59e5144b3099",
+        "duration_ms": 1304
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "bb6e7879-ce33-465f-b764-6dfbbf0d20c6",
+        "duration_ms": 1763
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "ddd7a859-1db3-4ec7-a9e1-970d55ce2192",
+        "duration_ms": 1154
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "0b6d1ce2-b06f-4153-ac3c-2cc6f9b1e98c",
+        "duration_ms": 1346
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "12c5e462-d022-4648-87bd-bdc9214172d5",
+        "duration_ms": 1365
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "18abfd42-8fd5-46d4-b56d-7b7c9cbdadb6",
+        "duration_ms": 1335
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "a32d6375-6c02-4ed0-92fe-02fae650624c",
+        "duration_ms": 1323
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "7d08e8eb-d818-426b-bdd1-0fde25e2d9d7",
+        "duration_ms": 1138
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "a5548c37-b48b-4a6e-9796-c11f1af9da8b",
+        "duration_ms": 1128
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "f1475036-285e-4820-96d8-c093f12b8e5e",
+        "duration_ms": 1411
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "6416fc61-712c-40a1-aec6-b4380a193c43",
+        "duration_ms": 1148
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "d4d8cc69-6f2c-4d24-9a5a-05b211cafde7",
+        "duration_ms": 1516
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "7f8027ba-da8f-47df-8b63-de293aa22a0a",
+        "duration_ms": 1143
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "75fbb919-9878-4ce8-b298-808dd1f9b1cc",
+        "duration_ms": 1334
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "a6ba3957-5528-450f-8cd7-aeb2ea591b56",
+        "duration_ms": 1327
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "0066512a-5e4e-4ef8-bf5b-37ecf932b902",
+        "duration_ms": 1172
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "87ccc4b6-e808-4764-8734-14bf4c538950",
+        "duration_ms": 1323
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "2b3e5a4f-16b0-44e0-9e80-31af5a48b212",
+        "duration_ms": 1333
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "d322ade5-036e-4771-8ef9-532ed322bfdf",
+        "duration_ms": 1156
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "582a3360-2252-423c-b013-33fca17638f8",
+        "duration_ms": 1330
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "e937fda6-a3b0-4345-95f1-47315e05cdbd",
+        "duration_ms": 1160
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "3ad1ecaa-a8f8-4735-a851-7c02742e071a",
+        "duration_ms": 1580
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "3862d514-ca88-4e80-81ee-1039583b8fe2",
+        "duration_ms": 1346
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "764b0dab-e21d-463b-b068-17570a002522",
+        "duration_ms": 1143
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "03099859-138f-4c8f-b505-358fda602fdf",
+        "duration_ms": 1339
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "1cf3b6ff-a6a8-4286-95a6-6f65db7de053",
+        "duration_ms": 1321
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "f8655531-9091-416f-9975-944c7b32b57d",
+        "duration_ms": 1129
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "d1d4905e-5802-43fd-9afb-180f073deda3",
+        "duration_ms": 1310
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "365443e8-f096-4186-9c52-bc9397062edf",
+        "duration_ms": 1371
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "f938d68e-f852-4c1b-b400-0a0c44ceac33",
+        "duration_ms": 1303
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "43bbcf88-527a-466b-b0ef-26e7a7d26463",
+        "duration_ms": 1340
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "872c3895-27d7-43d8-a76a-b30e98c0088d",
+        "duration_ms": 1143
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "041d6104-2247-4542-abd9-1f0b95c89282",
+        "duration_ms": 1129
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "dedb2ce4-2716-485f-9bae-4492ab12a0d1",
+        "duration_ms": 1353
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "1dcbcb8c-b0e7-4f5b-a0cb-18d9137d1fd8",
+        "duration_ms": 1510
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "8a894d6d-fdf6-4153-b441-90e75c3750ab",
+        "duration_ms": 1331
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "fa1a2ad6-27a8-4bc9-add9-de122001cdc7",
+        "duration_ms": 1310
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "e0b0593a-14f4-489f-b05c-67df66d8dd79",
+        "duration_ms": 1522
+      },
+      {
+        "role": "member_a",
+        "method": "GET",
+        "route": "/api/features",
+        "status": 200,
+        "code": "",
+        "request_id": "a981939e-254e-4fc9-94ab-eef5446a6515",
+        "duration_ms": 1105
+      },
+      {
+        "role": "member_a",
+        "method": "POST",
+        "route": "/api/release-channel",
+        "status": 200,
+        "code": "",
+        "request_id": "9acd6873-7bec-4a02-80da-69770d6c1296",
+        "duration_ms": 1336
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/features",
+        "status": 200,
+        "code": "",
+        "request_id": "3e8a2db7-62b5-4004-ab85-a4d8ada4346b",
+        "duration_ms": 1248
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/release-channel",
+        "status": 200,
+        "code": "",
+        "request_id": "ed8f3cf7-eb2e-4bab-8b0c-6cb95a2fc140",
+        "duration_ms": 1331
+      },
+      {
+        "role": "free",
+        "method": "GET",
+        "route": "/api/features",
+        "status": 200,
+        "code": "",
+        "request_id": "1dfc8e18-3d49-40ac-a4c7-d082889df637",
+        "duration_ms": 1323
+      },
+      {
+        "role": "free",
+        "method": "POST",
+        "route": "/api/release-channel",
+        "status": 200,
+        "code": "",
+        "request_id": "7edf546a-a08a-4162-8c2a-c62b2acd427c",
+        "duration_ms": 1308
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/delete-user",
+        "status": 200,
+        "code": "",
+        "request_id": "e99e9439-f13d-4c7b-8c58-6cdc3d937fa2",
+        "duration_ms": 2462
+      },
+      {
+        "role": "anonymous",
+        "method": "GET",
+        "route": "/api/learning/mastery/summary?language=english",
+        "status": 401,
+        "code": "authentication_required",
+        "request_id": "514d01b9-4653-44b0-9bda-6a96191ef2c3",
+        "duration_ms": 563
+      },
+      {
+        "role": "member_a",
+        "method": "GET",
+        "route": "/api/admin/learning/metrics",
+        "status": 403,
+        "code": "forbidden",
+        "request_id": "d14f94af-0f59-41e8-b3e2-11eb82aafcc2",
+        "duration_ms": 1145
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/task12/import/status",
+        "status": 403,
+        "code": "forbidden",
+        "request_id": "9c24e139-c0b2-455f-a5bc-0ed95fa95d97",
+        "duration_ms": 752
+      },
+      {
+        "role": "free",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 403,
+        "code": "learning_entitlement_required",
+        "request_id": "81f45d0c-ecd6-48cf-9447-93ae1ecad247",
+        "duration_ms": 2170
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/learning/mastery/summary?language=english",
+        "status": 200,
+        "code": "",
+        "request_id": "337834fa-9ffe-48a6-ab56-846a46467d0a",
+        "duration_ms": 2657
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 200,
+        "code": "",
+        "request_id": "61908929-e89f-4ab9-806d-41e721d47224",
+        "duration_ms": 3075
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 200,
+        "code": "",
+        "request_id": "688c4554-d382-40f6-8d1c-28227c4c5b94",
+        "duration_ms": 4023
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 200,
+        "code": "",
+        "request_id": "abd066bf-c6ff-4ac1-8a82-472a3aed24ba",
+        "duration_ms": 3391
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 409,
+        "code": "learning_idempotency_conflict",
+        "request_id": "e8c5bbf9-c473-4de7-83db-2d88d69faf43",
+        "duration_ms": 2680
+      },
+      {
+        "role": "member_a",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 404,
+        "code": "learning_ticket_not_found",
+        "request_id": "419cb0f9-4ede-4f8c-b0ca-323ce2420901",
+        "duration_ms": 2463
+      },
+      {
+        "role": "member_a",
+        "method": "POST",
+        "route": "/api/learning/explanation",
+        "status": 404,
+        "code": "learning_event_not_found",
+        "request_id": "0d345a3f-a4f4-4dee-81db-dfd51d9721d8",
+        "duration_ms": 2372
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 200,
+        "code": "",
+        "request_id": "e7fa287b-fc24-4c4c-a2ac-cc3a1c9a3088",
+        "duration_ms": 3089
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 200,
+        "code": "",
+        "request_id": "99164cc1-fb98-43de-8774-a7b41b8e8a85",
+        "duration_ms": 4032
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/explanation",
+        "status": 200,
+        "code": "",
+        "request_id": "60b69c25-f54d-4e9b-827e-ec714950f93e",
+        "duration_ms": 5690
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "21d3bb4f-4b77-4c53-9441-d714a5c9a582",
+        "duration_ms": 1432
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "f48c487d-21b4-4bff-a197-1294fb6118fb",
+        "duration_ms": 1302
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/explanation",
+        "status": 200,
+        "code": "",
+        "request_id": "d183ded3-e269-4dda-9383-d71b976a888c",
+        "duration_ms": 2516
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "323b78b3-0429-4d3d-8df7-7f04c3a3e123",
+        "duration_ms": 1139
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "cdad4548-63fd-4130-943a-7790aa2e1f2c",
+        "duration_ms": 1318
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/learning/mastery/summary?language=english",
+        "status": 200,
+        "code": "",
+        "request_id": "88b094b2-c120-44fd-958d-9bc1bed83d55",
+        "duration_ms": 2672
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 200,
+        "code": "",
+        "request_id": "de942c1c-939b-4aa3-993e-0b13de0cce27",
+        "duration_ms": 3073
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/learning/review?language=english",
+        "status": 200,
+        "code": "",
+        "request_id": "37fb841c-c048-4caf-b671-127cb2b3ea63",
+        "duration_ms": 2706
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 400,
+        "code": "learning_invalid_input",
+        "request_id": "66e72185-f701-4c6a-87a5-b96516e6e78d",
+        "duration_ms": 2135
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/learning/mastery/summary?language=japanese",
+        "status": 200,
+        "code": "",
+        "request_id": "f57b0ace-de7d-4bd6-aa8a-4a4e2dd8d2d4",
+        "duration_ms": 2904
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 200,
+        "code": "",
+        "request_id": "904890eb-5072-4432-8167-c986adc5f163",
+        "duration_ms": 3069
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 200,
+        "code": "",
+        "request_id": "ee90866e-2190-47a2-a0bc-3ed149f12616",
+        "duration_ms": 4189
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 200,
+        "code": "",
+        "request_id": "366fecfb-9e8f-457d-88e8-5a85a0af9545",
+        "duration_ms": 3439
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 409,
+        "code": "learning_idempotency_conflict",
+        "request_id": "a2efde90-7d21-4e7c-8f81-43a377fdeaa0",
+        "duration_ms": 2742
+      },
+      {
+        "role": "member_a",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 404,
+        "code": "learning_ticket_not_found",
+        "request_id": "70d86b3b-130a-4c57-952b-0e20d124bd70",
+        "duration_ms": 2346
+      },
+      {
+        "role": "member_a",
+        "method": "POST",
+        "route": "/api/learning/explanation",
+        "status": 404,
+        "code": "learning_event_not_found",
+        "request_id": "fe9e11c6-d1bc-44af-b95e-84430cd64a81",
+        "duration_ms": 2322
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 200,
+        "code": "",
+        "request_id": "9f7654c5-b026-403d-8a97-ddfd5c102b09",
+        "duration_ms": 3049
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 200,
+        "code": "",
+        "request_id": "8be7a7ed-4162-418a-bec6-8bfa2a6ba049",
+        "duration_ms": 3980
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/explanation",
+        "status": 200,
+        "code": "",
+        "request_id": "c1726353-0a54-49d1-80e0-63211831b3d0",
+        "duration_ms": 5136
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "b69373bb-fe4c-48e4-a57d-4ce06d13b771",
+        "duration_ms": 1161
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "e4c6d3ee-426b-44d0-9980-48e733d9f04b",
+        "duration_ms": 1447
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/explanation",
+        "status": 200,
+        "code": "",
+        "request_id": "0dec6971-5bac-4f09-8084-0e5011462b42",
+        "duration_ms": 2503
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "628d882b-c43a-40f6-b621-3ab055763340",
+        "duration_ms": 1125
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags/override",
+        "status": 200,
+        "code": "",
+        "request_id": "c1a6e776-65f7-4f44-b3b1-d481736c966b",
+        "duration_ms": 1309
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/learning/mastery/summary?language=japanese",
+        "status": 200,
+        "code": "",
+        "request_id": "356edbea-44d7-4fe1-9f7a-2308a6261e9d",
+        "duration_ms": 2673
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 200,
+        "code": "",
+        "request_id": "6367304b-caaf-43a1-9ebb-1f47f7edb3fe",
+        "duration_ms": 3083
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/learning/review?language=japanese",
+        "status": 200,
+        "code": "",
+        "request_id": "df78785d-ae28-41a5-990d-f35909ac18c0",
+        "duration_ms": 2666
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 400,
+        "code": "learning_invalid_input",
+        "request_id": "3af5b034-ba89-4567-8e80-ab82ce89b8f0",
+        "duration_ms": 2142
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/features",
+        "status": 200,
+        "code": "",
+        "request_id": "c52143dd-123d-4541-88df-a9b4fe6abf6b",
+        "duration_ms": 1252
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/release-channel",
+        "status": 200,
+        "code": "",
+        "request_id": "dfed0ef3-6501-4713-a754-317bc29da895",
+        "duration_ms": 1296
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 403,
+        "code": "learning_feature_disabled",
+        "request_id": "ffb35f6b-4717-400f-bcee-7fc5fe9b82b2",
+        "duration_ms": 1948
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/features",
+        "status": 200,
+        "code": "",
+        "request_id": "51bb7138-aab8-4aed-b3ba-fdb065193648",
+        "duration_ms": 1108
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/release-channel",
+        "status": 200,
+        "code": "",
+        "request_id": "eec1973c-bde2-4c7f-8701-ef04f065e354",
+        "duration_ms": 1304
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 403,
+        "code": "learning_feature_disabled",
+        "request_id": "a55da027-866b-4047-8333-5790e5c1e170",
+        "duration_ms": 1936
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/features",
+        "status": 200,
+        "code": "",
+        "request_id": "8eacd1ad-68f1-4577-863d-58ed246775a8",
+        "duration_ms": 1113
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/release-channel",
+        "status": 200,
+        "code": "",
+        "request_id": "f92fcbfd-e327-4539-a506-36bedef3db1f",
+        "duration_ms": 1286
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "17c73d00-dafd-4d7e-af6b-5921aeb84097",
+        "duration_ms": 1136
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "3f00463a-6780-41ab-980c-4ccd8aa1ede4",
+        "duration_ms": 1314
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 403,
+        "code": "learning_feature_disabled",
+        "request_id": "5cab45b2-c3a4-495c-bf90-fe55b9e8cf3d",
+        "duration_ms": 1935
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "d547f6be-b31e-46b2-b1f4-c6ae74575352",
+        "duration_ms": 1133
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "258716e4-030b-4438-91e0-307cd09ba663",
+        "duration_ms": 1241
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 200,
+        "code": "",
+        "request_id": "788ba9ea-1018-4a5f-8487-cd64c85094f1",
+        "duration_ms": 3080
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/learning/review?language=english",
+        "status": 200,
+        "code": "",
+        "request_id": "e2f7a71e-861e-4671-8565-cfec07395af3",
+        "duration_ms": 2914
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 200,
+        "code": "",
+        "request_id": "f1eacfeb-1862-4b77-b4a3-904b2f27d592",
+        "duration_ms": 2663
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 200,
+        "code": "",
+        "request_id": "1722c7a0-c05c-41e0-b281-6d0a89a72f05",
+        "duration_ms": 3478
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/learning/review?language=english",
+        "status": 200,
+        "code": "",
+        "request_id": "968f492e-eb40-469b-8e59-b41f9838f46c",
+        "duration_ms": 2324
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/learning/review?language=japanese",
+        "status": 200,
+        "code": "",
+        "request_id": "2f1ab54b-691a-42d3-8fb3-c2460487c784",
+        "duration_ms": 2311
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 200,
+        "code": "",
+        "request_id": "aa202627-4c91-4456-be1d-29fb8c63e7cc",
+        "duration_ms": 2672
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 200,
+        "code": "",
+        "request_id": "cb3112ad-c5fd-4753-8e7d-6432e3681bed",
+        "duration_ms": 3812
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/learning/review?language=japanese",
+        "status": 200,
+        "code": "",
+        "request_id": "aa85220b-2c03-43cb-a048-99c21a5912ba",
+        "duration_ms": 2332
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 200,
+        "code": "",
+        "request_id": "8939829e-da48-4fe3-a789-304f93cbafc4",
+        "duration_ms": 2953
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 400,
+        "code": "learning_invalid_input",
+        "request_id": "7996ea11-cd2b-4f58-a98f-49fe60f8f173",
+        "duration_ms": 1864
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 400,
+        "code": "learning_invalid_input",
+        "request_id": "bb622773-7d71-4b4d-8f4b-23e0b7ca5469",
+        "duration_ms": 2443
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 400,
+        "code": "learning_invalid_input",
+        "request_id": "8419aa4f-292a-428a-98a7-9790bccd70df",
+        "duration_ms": 1884
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/learning/mastery/summary?language=english",
+        "status": 200,
+        "code": "",
+        "request_id": "c811b4e0-ce10-4145-bfc1-6c656e49ad0c",
+        "duration_ms": 2724
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/mastery/reconcile",
+        "status": 200,
+        "code": "",
+        "request_id": "9b9c8a0e-8c73-43a4-af93-9f2046822f27",
+        "duration_ms": 2467
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "route": "/api/admin/learning/metrics",
+        "status": 200,
+        "code": "",
+        "request_id": "68c8c166-c1d4-4c1f-824d-339e6fccd5f1",
+        "duration_ms": 2050
+      },
+      {
+        "role": "member_b",
+        "method": "GET",
+        "route": "/api/me",
+        "status": 200,
+        "code": "",
+        "request_id": "c44a722c-3287-4460-b435-ee7799a82a57",
+        "duration_ms": 1323
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/adaptive/next",
+        "status": 200,
+        "code": "",
+        "request_id": "0a36c91c-98af-4313-97ec-f40635a82186",
+        "duration_ms": 3282
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 200,
+        "code": "",
+        "request_id": "1a6a183f-780b-4441-9bd3-ea4fd547b372",
+        "duration_ms": 3571
+      },
+      {
+        "role": "member_b",
+        "method": "POST",
+        "route": "/api/learning/events",
+        "status": 200,
+        "code": "",
+        "request_id": "caa572a9-0f99-46cc-9599-604e63c6e53b",
+        "duration_ms": 3269
+      }
+    ]
+  },
+  "narrow_after_flags_off": {
+    "horizontalOverflow": false,
+    "masteryVisible": false,
+    "observed_at": "2026-10-10T18:59:10.960Z",
+    "scrollWidth": 375,
+    "visibleControls": [],
+    "width": 390,
+    "status": "Ordinary page no overflow; Mastery already OFF, so this is not a Mastery visibility/control-size PASS"
+  },
+  "hosted_browser_network_disconnect": "NOT EXECUTED: supported Chrome control advertises viewport but no network capability; local/CI offline checks and headless live-server response-loss probe are separate evidence",
+  "samsung_preview_runtime": "USER DEVICE DEFERRED / NOT TESTED",
+  "production_release": "NOT EXECUTED"
+}
