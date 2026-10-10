@@ -96,10 +96,11 @@ const grammar=[
   ['japanese','place-de','动作场所で',2,'で标记动作发生的场所；存在的位置通常用に。',
     [['図書館___勉強します。','填入标记动作发生场所的助词。',['で']],['家___ご飯を食べます。','填入标记动作发生场所的助词。',['で']]]],
 ];
+const grammarTranslations={'present-third-person':'她每天学习英语。','past-simple':'我昨天读了一本书。','present-continuous':'她现在正在读书。','topic-wa':'我是学生。','object-wo':'读书。','place-de':'在图书馆学习。'};
 for(const [language,key,label,difficulty,notes,questions] of grammar){
  const id=`${language}:grammar:${key}`;
  items.push({id,language,kind:'grammar',label,word:label,gloss:label,reading:'',difficulty,level:language==='japanese'?'n5':'middle_1',notes,
-   example:questions[0][0].replace('___',questions[0][2][0]).replace(/ \([a-z]+\)/g,''),example_translation:questions[0][1],
+   example:questions[0][0].replace('___',questions[0][2][0]).replace(/ \([a-z]+\)/g,''),example_translation:grammarTranslations[key],
    confusion:key==='place-de'?{terms:['で','に'],text:'で用于动作发生场所；に用于存在地点等。本题描述的是动作。'}:null,
    questions:questions.map(([prompt,translation,answers],i)=>({id:`${id}:cloze${i}`,family:`cloze${i}`,kind:'cloze',prompt,instruction:`填入空缺：${translation}`,answers}))});
 }

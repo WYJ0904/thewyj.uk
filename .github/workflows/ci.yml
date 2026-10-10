@@ -21,7 +21,7 @@ defaults:
 jobs:
   task25-cloud-readiness:
     name: Task 25 cloud credential discovery
-    if: github.ref == 'refs/heads/main' || ((startsWith(github.head_ref, 'codex/task25-') || github.head_ref == 'codex/aeris-unified-repair-release-b') && github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.ref == 'refs/heads/main' || ((startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b') && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -456,6 +456,11 @@ jobs:
           npm run test:task25 2>&1 | tee artifacts/task25-contracts.log
           npm run test:task25-release 2>&1 | tee artifacts/task25-release-validation.log
 
+      - name: Task 26 deterministic engine, event recovery and client isolation
+        run: |
+          set -euo pipefail
+          npm run test:task26 2>&1 | tee artifacts/task26-contracts.log
+
       - name: Upload JavaScript and static reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -575,7 +580,7 @@ jobs:
 
   task25-android-instrumentation:
     name: Task 25 Android runtime contract
-    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-') || github.head_ref == 'codex/aeris-unified-repair-release-b'
+    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -930,6 +935,7 @@ jobs:
             --binding TASK22_TRANSFER_READS_ENABLED=true \
             --binding TASK22_TRANSFER_WRITES_ENABLED=true \
             --binding TASK25_FEATURE_FLAGS_ENABLED=true \
+            --binding TASK26_ADAPTIVE_LEARNING_ENABLED=true \
             --binding WORKERS_AI_ENABLED=false \
             --binding LEGACY_API_FALLBACK_ENABLED=false \
             --binding WYJ_TASK12_PASSWORD_PEPPER="$WYJ_TASK12_PASSWORD_PEPPER" \
@@ -1004,6 +1010,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_task18_browser.mjs 2>&1 | tee artifacts/task18-browser.log
+
+      - name: Task 26 adaptive learning and mastery browser acceptance
+        run: |
+          set -euo pipefail
+          node qa/task26/learning-browser.mjs 2>&1 | tee artifacts/task26-browser.log
 
       - name: Task 25 feature administration and release channel browser acceptance
         run: |

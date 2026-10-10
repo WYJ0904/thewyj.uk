@@ -23,7 +23,7 @@ export function snapshotFeatureEnabled(snapshot, key, accountId, now = Date.now(
     Object.hasOwn(snapshot.flags, key) && snapshot.flags[key].enabled === true);
 }
 
-export function createFeatureController({ getAccount, apiGet, api, document = globalThis.document, onAvailable = () => {} }) {
+export function createFeatureController({ getAccount, apiGet, api, document = globalThis.document, onAvailable = () => {}, onChange = () => {} }) {
   let available = false, accountId = '', snapshot = null, sequence = 0, timer = null, busy = false, status = '';
   const node = id => document.getElementById(id);
   const currentId = () => String(getAccount()?.id || '');
@@ -35,6 +35,7 @@ export function createFeatureController({ getAccount, apiGet, api, document = gl
     if (snapshot && node('releaseChannelSelect')) node('releaseChannelSelect').value = snapshot.channel;
     if (node('releaseChannelStatus')) node('releaseChannelStatus').textContent = status || (snapshot ? `当前通道：${RELEASE_CHANNEL_LABELS[snapshot.channel]}` : '正在读取体验设置…');
     node('experimentalFeatureBadge')?.classList.toggle('hidden', !snapshotFeatureEnabled(snapshot, 'aeris_experimental_badge', accountId));
+    onChange();
   }
   function clear(message = '') { snapshot = null; clearTimeout(timer); timer = null; render(message); }
   function scheduleExpiry() {

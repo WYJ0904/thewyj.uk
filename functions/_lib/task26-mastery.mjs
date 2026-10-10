@@ -37,7 +37,7 @@ export function updateMastery(previous,event){
   const recent=s.recent.slice(-8),accuracy=recent.length?recent.filter(r=>r.correct).length/recent.length:0.5;
   const historic=s.correct_count/s.attempt_count;
   if(event.correct){
-   const speed=event.response_ms<=12000?1.1:event.response_ms>45000?.75:1;
+   const speed=event.timing_verified===false?1:event.response_ms<=12000?1.1:event.response_ms>45000?.75:1;
    const recall=Number.isFinite(last)&&now-last>=DAY?1.2:1;
    s.score=bounded(s.score+weight*(12*(1-s.score/120)*speed*recall*(1+(difficulty-1)*.08)*(0.85+accuracy*.1+historic*.05)),0,100);
   }else s.score=bounded(s.score-weight*Math.min(12,4+s.consecutive_incorrect*1.5)*(1+(difficulty-1)*.04),0,100);

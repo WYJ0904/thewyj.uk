@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict';
+import { emptyLearningStore, parseLearningStore, parseIssuedQuestion, parseMasterySummary, parseAnswerReceipt, enqueueAnswer, acknowledgeAnswer, acceptSummaryCache, masteryStorageKey, MAX_PENDING_ANSWERS } from '../js/language/mastery-state.js';
+import { initialMastery, updateMastery, masteryView } from '../functions/_lib/task26-mastery.mjs';
+import { createMasteryController } from '../js/language/mastery.js';
+const owner='one',language='english',qid=crypto.randomUUID(),eid=crypto.randomUUID();
+const input={event_id:eid,ticket_id:qid,kind:'answer_submitted',answer:'water',response_ms:1200};
+const entry={language,input};const question={ticket_id:qid,language,kind:'spelling',prompt:'水',instruction:'写出对应英语单词',knowledge_label:'英语词汇',reason:'new',expires_at:new Date(Date.now()+86400000).toISOString()};
+const state=masteryView(updateMastery(initialMastery(),{seq:1,correct:true,question_id:'word:spelling',family:'spelling',accepted_at:new Date().toISOString(),response_ms:1200,difficulty:1}));
+const point={knowledge_id:'english:vocabulary:water',label:'water',...state};
+const summary={account_id:owner,language,algorithm_version:'mastery-v1',state_version:1,observed_at:new Date().toISOString(),projection_pending:false,
+ summary:{average_mastery:state.score,studied_count:1,catalog_total:30,new_count:29,mastered_count:0,due_count:0,learning_count:1},points:[point],recent_mistakes:[]};
+const receipt={event_id:eid,account_id:owner,language,acknowledged:true,algorithm_version:'mastery-v1',event_seq:1,correct:true,score_before:0,score_after:state.score,score_delta:state.score,mastery:state,correct_answer:'water',knowledge:{label:'water'},explanation:{why:'课程答案water'}};
+let passed=0;const test=(label,fn)=>{fn();passed++;console.log(`PASS ${passed}: ${label}`);};
+test('account-scoped v1 storage preserves every existing key family',()=>assert.notEqual(masteryStorageKey('one'),masteryStorageKey('two')));
+test('unknown storage version is preserved, never silently reset',()=>assert.throws(()=>parseLearningStore({...emptyLearningStore(owner),schema_version:2},owner)));
+test('another account store cannot be loaded',()=>assert.throws(()=>parseLearningStore(emptyLearningStore('two'),owner)));
+test('opaque issued question validation ignores any extra answer fields',()=>{assert.deepEqual(parseIssuedQuestion({...question,answers:['water']},language),question);assert.equal(parseIssuedQuestion(question,'japanese'),null);});
+test('invalid expiry/kind/ID rejects question',()=>{for(const patch of [{expires_at:'invalid'},{kind:'html'},{ticket_id:'plain-answer'}])assert.equal(parseIssuedQuestion({...question,...patch},language),null);});
+test('authoritative summary accepts correct account/version/language only',()=>{assert.ok(parseMasterySummary(summary,owner,language));for(const patch of [{account_id:'two'},{algorithm_version:'v2'},{language:'japanese'}])assert.equal(parseMasterySummary({...summary,...patch},owner,language),null);});
+test('malformed/out-of-bounds state cannot enter authoritative cache',()=>{assert.equal(parseMasterySummary({...summary,points:[{...point,score:101}]},owner,language),null);assert.equal(parseMasterySummary({...summary,summary:{...summary.summary,due_count:-1}},owner,language),null);});
+test('stable event is retained across reload and never assigned a new ID',()=>{const queued=enqueueAnswer(emptyLearningStore(owner),entry);assert.deepEqual(parseLearningStore(JSON.parse(JSON.stringify(queued)),owner).outbox[0],entry);});
+test('same ticket cannot be enqueued twice even with another event ID',()=>assert.throws(()=>enqueueAnswer(enqueueAnswer(emptyLearningStore(owner),entry),{...entry,input:{...input,event_id:crypto.randomUUID()}})));
+test('bounded outbox never drops older answers to make space',()=>{let s=emptyLearningStore(owner);for(let i=0;i<MAX_PENDING_ANSWERS;i++)s=enqueueAnswer(s,{...entry,input:{...input,event_id:crypto.randomUUID(),ticket_id:crypto.randomUUID()}});assert.throws(()=>enqueueAnswer(s,entry));assert.equal(s.outbox.length,MAX_PENDING_ANSWERS);});
+test('malformed response does not acknowledge a durable queued answer',()=>{assert.equal(parseAnswerReceipt({...receipt,event_id:crypto.randomUUID()},input,owner,language),null);assert.equal(parseAnswerReceipt({...receipt,score_delta:100},input,owner,language),null);assert.equal(parseAnswerReceipt({...receipt,mastery:{...state,last_event_seq:0}},input,owner,language),null);});
+test('validated acknowledgment removes only its own event',()=>{let s=enqueueAnswer(emptyLearningStore(owner),entry);const second={...entry,input:{...input,event_id:crypto.randomUUID(),ticket_id:crypto.randomUUID()}};s=enqueueAnswer(s,second);s=acknowledgeAnswer(s,entry,parseAnswerReceipt(receipt,input,owner,language));assert.deepEqual(s.outbox,[second]);assert.equal(s.results.english.receipt.event_id,eid);});
+test('older server projection cannot overwrite a newer confirmed cache',()=>{const s=acceptSummaryCache(emptyLearningStore(owner),summary);const older={...summary,points:[{...point,last_event_seq:0,score:0}]};assert.equal(acceptSummaryCache(s,older),s);});
+test('invalid cached summary is discarded without losing durable outbox',()=>{const s=enqueueAnswer(emptyLearningStore(owner),entry);s.cache.english={...summary,account_id:'two'};const restored=parseLearningStore(s,owner);assert.equal(restored.cache.english,undefined);assert.equal(restored.outbox[0].input.event_id,eid);});
+test('no local correctness or mastery engine is present in client state updates',()=>{const s=enqueueAnswer(emptyLearningStore(owner),entry);assert.equal(Object.keys(s.cache).length,0);assert.equal(s.results.english,undefined);});
+
+const values=new Map(),storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)};
+storage.setItem(masteryStorageKey(owner),JSON.stringify(enqueueAnswer(emptyLearningStore(owner),entry)));
+let actor={id:owner},enabled=true,submitted=0,released,seen=[];
+const document={hidden:false,getElementById:()=>null,addEventListener:()=>{}};
+const locks={request:async(key,fn)=>fn()};
+const responsePending=new Promise(resolve=>{released=resolve;});
+const controller=createMasteryController({getAccount:()=>actor,getLanguage:()=>language,features:{enabled:()=>enabled,channel:()=> 'stable'},storage,locks,document,
+ api:async(route,body)=>{seen.push(body.event_id);submitted++;return responsePending;},apiGet:async()=>summary});
+controller.update();await new Promise(r=>setTimeout(r,10));assert.equal(submitted,1);
+actor={id:'two'};controller.update();released(receipt);await new Promise(r=>setTimeout(r,20));
+assert.equal(JSON.parse(storage.getItem(masteryStorageKey(owner))).outbox.length,1);assert.equal(seen[0],eid);
+console.log(`PASS ${++passed}: account switch rejects a delayed response and retains original account's outbox`);
+enabled=false;actor={id:owner};controller.update();await new Promise(r=>setTimeout(r,10));assert.equal(submitted,1);
+console.log(`PASS ${++passed}: OFF or unavailable flags do not submit queued learning events`);
+console.log(`Task26 client: ${passed} acceptance groups passed`);
