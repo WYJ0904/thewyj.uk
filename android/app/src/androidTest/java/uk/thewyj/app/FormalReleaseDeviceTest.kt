@@ -193,7 +193,7 @@ class FormalReleaseDeviceTest {
                 assertNotNull("Own final accounting notification must exist", firstNotice)
                 repeat(3) { coordinator.onSourceEvent(fixture.account.id, "com.tencent.mm", PaymentSourceType.NOTIFICATION, sourceId, "微信支付", sourceText) }
                 val replay = AndroidPaymentRecognitionHook.get(context).onAccessibilityEnrichment(fixture.account.id,
-                    PaymentEnrichment("com.tencent.mm", expectedMinor, "CNY", uk.thewyj.app.task21.FinanceDirection.valueOf(expectedDirection), null, null, null, System.currentTimeMillis(), 900), outcome.ticketId)
+                    PaymentEnrichment("com.tencent.mm", expectedMinor, "CNY", if (expectedDirection == "INCOME") uk.thewyj.app.task21.FinanceDirection.INCOME else uk.thewyj.app.task21.FinanceDirection.EXPENSE, null, null, null, System.currentTimeMillis(), 900), outcome.ticketId)
                 assertTrue(replay is EnrichmentOutcome.Rejected)
                 assertEquals(baseline + index + 1, store.localBookings(fixture.account.id).size)
                 val recorded = manager.activeNotifications.singleOrNull { it.id == notificationId }
