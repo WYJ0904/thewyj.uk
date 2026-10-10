@@ -207,7 +207,8 @@ class FormalReleaseDeviceTest {
                 proof("formalPaymentCase", "case=${index+1} expectedMinor=$expectedMinor actualMinor=${booking.amountMinor} direction=${booking.direction} fixtureRows=${store.localBookings(fixture.account.id).size} duplicateRows=0 ordinaryGateway=true ownSystemNotificationObserved=true replayPostTimeUnchanged=true")
                 if (index == 0 && args.getString("captureProof") == "true") {
                     assertTrue(device.openNotification()); SystemClock.sleep(700)
-                    val image = java.io.File(instrumentation.context.getExternalFilesDir(null), "release-b-transfer-notification.png")
+                    val image = java.io.File(context.getExternalFilesDir(null), "release-b-transfer-notification.png")
+                    assertTrue(image.parentFile!!.isDirectory || image.parentFile!!.mkdirs())
                     assertTrue("Real system notification screenshot must be saved", device.takeScreenshot(image))
                     proof("formalScreenshot", "realSystemNotification=true file=release-b-transfer-notification.png privateEvidence=true")
                     device.pressBack(); foregroundWechat()
