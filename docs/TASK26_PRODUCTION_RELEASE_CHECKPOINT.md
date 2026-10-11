@@ -20,6 +20,8 @@ All three exact unintended QA sessions were subsequently aborted through the nor
 
 The corrective change restricts clipboard uploads to the active transfer route, leaves editable inputs and already handled paste events alone, and rechecks route and owner before deferred text callbacks create files. The new browser regression runs only on localhost, checks editable/inactive screens and deferred navigation, and preserves intentional text/file clipboard uploads. Full corrective CI and actual hosted acceptance remain required before resuming rollout.
 
+The correction is tracked separately in [PR #106](https://github.com/WYJ0904/thewyj.uk/pull/106), using the existing Task26 branch. Its first Preview deployment succeeded; that deployment signal is not hosted clipboard acceptance. Initial discovery found no Core CI run for the opened draft PR, so a normal branch synchronization is required and all eight checks must be verified before merging. The learning controller, journal, state model, backend and environment configuration were compared against the accepted main source and are unchanged apart from frontend cache revision strings. Prior learning-specific evidence remains scoped to those unchanged behaviors.
+
 ## Protected Android state and remaining gates
 
 `ORIGINAL_APP50_ISOLATED_WRITE_ACCEPTANCE = WAIVED_BY_OWNER`
