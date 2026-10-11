@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?v=20261011-aeris-task26-r6";
+import { fetchWithTimeout } from "./api.js?v=20261012-aeris-task26-r7";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 

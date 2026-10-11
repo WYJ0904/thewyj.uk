@@ -1,10 +1,10 @@
-import { randomId } from "../core/capabilities.js?v=20261011-aeris-task26-r6";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261011-aeris-task26-r6";
-import { getSafeStorage } from "../core/storage.js?v=20261011-aeris-task26-r6";
-import { withInteractionFeedback } from "../core/perf.js?v=20261011-aeris-task26-r6";
-import { createTransferUpdateScheduler } from "./updates.js?v=20261011-aeris-task26-r6";
-import { putPartWithRecovery } from "./upload-part.js?v=20261011-aeris-task26-r6";
-import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261011-aeris-task26-r6";
+import { randomId } from "../core/capabilities.js?v=20261012-aeris-task26-r7";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?v=20261012-aeris-task26-r7";
+import { getSafeStorage } from "../core/storage.js?v=20261012-aeris-task26-r7";
+import { withInteractionFeedback } from "../core/perf.js?v=20261012-aeris-task26-r7";
+import { createTransferUpdateScheduler } from "./updates.js?v=20261012-aeris-task26-r7";
+import { putPartWithRecovery } from "./upload-part.js?v=20261012-aeris-task26-r7";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261012-aeris-task26-r7";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -1444,6 +1444,13 @@ export function createTransferController({
   }
 
   function handlePaste(event) {
+    // This listener survives SPA navigation. A paste into another screen or
+    // an editable control belongs to that control, never to the upload queue.
+    if (!visible || location.pathname !== "/transfer" || recipientShareId() !== null || event.defaultPrevented) return;
+    const targets = typeof event.composedPath === "function" ? event.composedPath() : [event.target];
+    if (targets.some((target) => target?.isContentEditable
+      || target?.matches?.('input, textarea, select, [role="textbox"], [role="searchbox"]'))) return;
+    const pasteOwner = ownerGeneration;
     const items = event.clipboardData?.items || [];
     const files = [];
     const textParts = [];
@@ -1464,7 +1471,8 @@ export function createTransferController({
       textParts.forEach((item) => item.getAsString((value) => {
         values.push(value);
         pending -= 1;
-        if (pending === 0 && values.join("\n").trim()) {
+        if (pending === 0 && values.join("\n").trim() && pasteOwner === ownerGeneration
+          && visible && location.pathname === "/transfer" && recipientShareId() === null) {
           addFiles([new File([values.join("\n")], `粘贴文本-${Date.now()}.txt`, { type: "text/plain" })]);
         }
       }));

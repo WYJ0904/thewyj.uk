@@ -1,7 +1,7 @@
-import { $, escapeHtml } from "./ui.js?v=20261011-aeris-task26-r6";
-import { reconcileKeyedRows } from "./keyed-list.js?v=20261011-aeris-task26-r6";
-import { createHomeWidgets } from "./home-widgets.js?v=20261011-aeris-task26-r6";
-import { projectHomeWidgets } from "./home-widget-data.js?v=20261011-aeris-task26-r6";
+import { $, escapeHtml } from "./ui.js?v=20261012-aeris-task26-r7";
+import { reconcileKeyedRows } from "./keyed-list.js?v=20261012-aeris-task26-r7";
+import { createHomeWidgets } from "./home-widgets.js?v=20261012-aeris-task26-r7";
+import { projectHomeWidgets } from "./home-widget-data.js?v=20261012-aeris-task26-r7";
 const bound = new WeakSet();
 const setText = (node,value) => { if(node && node.textContent!==String(value))node.textContent=String(value); };
 
