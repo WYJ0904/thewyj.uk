@@ -1,6 +1,6 @@
 // Presentation only: preserve unaffected rows, focus and scroll position.
 // Durable entities, ordering and lifecycle decisions remain with each caller.
-import { rowRenderRoot } from "./parked-rows.js?v=20261011-aeris-task26-r4";
+import { rowRenderRoot } from "./parked-rows.js?v=20261011-aeris-task26-r5";
 
 const lists = new WeakMap();
 const focusable = 'button,input,select,textarea,a[href],[tabindex]';
