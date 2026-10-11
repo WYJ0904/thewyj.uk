@@ -28,6 +28,7 @@
     { "family": "tool-workflows", "storage": "localStorage", "source": "workflows.js", "fragment": "wyjToolWorkflows:v${SCHEMA_VERSION}" },
     { "family": "tool-workflow-access", "storage": "localStorage", "source": "workflows.js", "fragment": "wyjWorkflowAccess:v1" },
     { "family": "learning-sync-records", "storage": "localStorage", "source": "learning-sync.js", "fragment": "wyjLearningSync:v1:" },
+    { "family": "mastery-authoritative-cache-and-outbox", "storage": "localStorage", "source": "js/language/mastery-state.js", "fragment": "aerisMastery:v1:" },
     { "family": "learning-sync-client", "storage": "localStorage", "source": "learning-sync.js", "fragment": "wyjLearningSyncClient:v1" }
   ]
 }

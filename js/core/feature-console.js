@@ -42,6 +42,7 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
       generation++; loading = false; flags = []; available = next; accountId = nextId;
       node('featureFlagSelect')?.replaceChildren(); node('featureFlagAudit')?.replaceChildren();
       node('featureEvaluationResult')?.replaceChildren(); edit(); message('');
+      node('learningMetrics')?.replaceChildren();
       for (const id of ['featureOverrideUser', 'featureEvaluateUser']) node(id).value = '';
     }
     node('adminFeatureFlagsTab')?.classList.toggle('hidden', !available);
@@ -59,6 +60,19 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
   node('featureFlagSelect')?.addEventListener('change', () => edit(current()));
   node('newFeatureFlagBtn')?.addEventListener('click', () => edit());
   node('refreshFeatureFlagsBtn')?.addEventListener('click', () => void load());
+  node('refreshLearningMetricsBtn')?.addEventListener('click', async () => {
+    if (!available || !isAdmin()) return;
+    const ticket = generation, owner = ownerId(), button = node('refreshLearningMetricsBtn'); button.disabled = true;
+    node('learningMetrics').textContent = '正在读取…';
+    try {
+      const value = await apiGet('/api/admin/learning/metrics');
+      if (ticket !== generation || owner !== ownerId() || !isAdmin()) return;
+      node('learningMetrics').textContent = `算法 ${value.algorithm_version}\n待恢复进度 ${value.pending_projections}\n` +
+        (value.event_counts || []).map(row => `${row.kind}: ${row.count}`).join('\n') + '\n' +
+        (value.score_distribution || []).map(row => `掌握度 ${row.score_band}–${Math.min(100, row.score_band + 19)}: ${row.count}`).join('\n');
+    } catch (error) { if (ticket === generation && owner === ownerId()) node('learningMetrics').textContent = error.message; }
+    finally { button.disabled = false; }
+  });
   node('featureFlagForm')?.addEventListener('submit', event => {
     event.preventDefault(); if (loading) return;
     void mutate('/api/admin/feature-flags', {

@@ -1,0 +1,40 @@
+{
+  "real_failures_preserved": [
+    {
+      "failure": "Preview0.0.1 startup /api/status blocked403",
+      "fixed_by": "fe5141c / Preview0.0.2",
+      "evidence": "scope-status-before-fix.json"
+    },
+    {
+      "failure": "Force-stop lost synchronous localStorage outbox event48d7bd06-5d2e-4ce1-bca6-5158f444a51a; D1zero",
+      "fixed_by": "8ba88cb strict IndexedDB; real original-ID recovery regression passed with8db3f406-99a5-4117-a489-8b7fd27c5fc6",
+      "evidence": "Active checkpoint and preserved exact failed-event D1 read; no lost event was reconstructed"
+    },
+    {
+      "failure": "Japanese actual generated explanation invented a family/relatives meaning",
+      "fixed_by": "72661e6 grounded namespace/schema/validation; unsafe output returned course fallback, subsequent actual generated output validated",
+      "evidence": "actual-japanese-learning.json + actual-grounded-ai-and-fallback.json"
+    },
+    {
+      "failure": "Corrected Japanese first model result rejected ai_schema_invalid",
+      "recovery": "Same actual wrong question retried normally; generated valid course-anchored output; first fallback retained",
+      "evidence": "actual-grounded-ai-attempt.json"
+    }
+  ],
+  "test_harness_failures": [
+    {
+      "issue": "Phone password save prompt/touch timing; awaited UI before backend/visibility hydration",
+      "resolution": "Normal credentials; rendered controls/native taps and readiness corrected; no injected auth/receipts"
+    },
+    {
+      "issue": "D1 query used nonexistent event_seq column",
+      "resolution": "Read-only query corrected to seq, original pending event replayed unchanged; D1count1"
+    },
+    {
+      "issue": "Admin generic details selector selected modification audit",
+      "resolution": "Explicit summary containing refreshLearningMetricsBtn; normal UI and actual read-only API completed"
+    }
+  ],
+  "original_test_credential_incident": "Earlier desktop cycle only; rotated, revoked and deleted; prior sanitized audit retained",
+  "source": "72661e69a4f97c779935e00a1824f613e9ba0bae"
+}

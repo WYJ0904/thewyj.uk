@@ -1,0 +1,77 @@
+{
+  "environment": "hosted_preview",
+  "deployment_id": "7c49f313-0721-4e79-9d6f-ac90c28b4f5e",
+  "source_head": "678d646c9a279ad69de0e09dbb39f13271833992",
+  "origin": "https://7c49f313.thewyj-uk.pages.dev",
+  "read_only": true,
+  "authenticated_task26_flow": "NOT_EXECUTED",
+  "results": [
+    {
+      "path": "/app.js",
+      "status": 200,
+      "sha256": "056195a3b9d92f8cba2bde043094b643c53c7eb8f4873cc315dbc6c6da1e0f97",
+      "source_matches": true
+    },
+    {
+      "path": "/sw.js",
+      "status": 200,
+      "sha256": "76b2bf8c811d340fe549a07b22b00ee33b0990f4b50c68cf6015c7b497d52903",
+      "source_matches": true
+    },
+    {
+      "path": "/js/core/config.js",
+      "status": 200,
+      "sha256": "dbfc5a22c3f36831bae830d1bab6c7c030d712a7104c438908ee8db0e29997ea",
+      "source_matches": true
+    },
+    {
+      "path": "/api/app/config",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "app": {
+          "name": "Aeris",
+          "application_id": "uk.thewyj.app",
+          "latest_version_code": 50,
+          "latest_version_name": "1.3.37",
+          "minimum_version_code": 1,
+          "download_url": "https://7c49f313.thewyj-uk.pages.dev/api/app/download",
+          "release_date": "2026-10-10",
+          "apk_file_name": "thewyj-android-1.3.37.apk",
+          "apk_sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a",
+          "apk_size_bytes": 48124983,
+          "release_notes_build": "2026-10-10-aeris-release-b-1.3.37",
+          "release_notes": "- 修复微信分身转账详情的本地OCR金额核实。\n- 金额与收支方向完整时按既有策略立即本地记账，恢复网络后幂等同步。\n- 修复无障碍授权/连接状态刷新、体验通道长文字及底部和键盘遮挡。\n- 原签名覆盖安装保留登录、历史账目和本机数据。"
+        },
+        "request_id": "1b4718ce-d559-498a-bd08-c1c1a534451a"
+      }
+    },
+    {
+      "path": "/api/learning/mastery/summary?language=english",
+      "status": 401,
+      "body": {
+        "ok": false,
+        "error": "请使用有效账户登录",
+        "code": "authentication_required",
+        "retryable": false,
+        "request_id": "23cc09de-77c0-48bd-b95c-ed3a3ae755d9"
+      }
+    },
+    {
+      "path": "/api/features",
+      "status": 401,
+      "body": {
+        "ok": false,
+        "error": "请使用有效账户登录",
+        "code": "authentication_required",
+        "retryable": false,
+        "request_id": "3c5c281a-4409-44f7-bbb5-7716940c8493"
+      }
+    }
+  ],
+  "initial_noncontract_route_probe": {
+    "path": "/api/feature-flags",
+    "status": 404,
+    "note": "Not a project endpoint; corrected to canonical /api/features, not a product failure."
+  }
+}

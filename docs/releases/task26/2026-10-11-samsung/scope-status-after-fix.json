@@ -1,0 +1,60 @@
+{
+  "observed_at": "2026-10-11T08:03:07.075Z",
+  "status": "PASS",
+  "requests": [
+    {
+      "path": "/api/changelog",
+      "status": 200
+    },
+    {
+      "path": "/api/learning/sync",
+      "status": 200
+    },
+    {
+      "path": "/api/status",
+      "status": 200
+    },
+    {
+      "path": "/api/features",
+      "status": 200
+    },
+    {
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "path": "/api/messages/pending",
+      "status": 403
+    },
+    {
+      "path": "/api/learning/sync",
+      "status": 200
+    },
+    {
+      "path": "/api/learning/mastery/summary",
+      "status": 200
+    }
+  ],
+  "state": {
+    "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+    "title": "Aeris — 学习、工具、账本与文件",
+    "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+    "online": true,
+    "visibility": "visible",
+    "loginVisible": false,
+    "registerVisible": false,
+    "loginError": "",
+    "masteryVisible": true,
+    "mastery": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n已学习 0 个知识点 · 平均掌握度 0/100\n\n已掌握 0 · 学习中 0 · 待复习 0 · 尚未学习 27\n\n服务端已同步 · 10月11日 16:03\n\n开始自适应学习\n练习弱项\n开始到期复习\n薄弱知识点\n\n开始练习后，这里会显示你的知识点。\n\n今日待复习\n\n目前没有到期复习。",
+    "account": "Aeris\n下载 Android\n更新日志\nt26-member_a-6452b40de8 · 双语言双项永久会员",
+    "ordinaryQuizVisible": true,
+    "viewport": {
+      "width": 384,
+      "height": 735,
+      "scrollWidth": 384
+    }
+  },
+  "version_name": "0.0.2-task26-preview",
+  "version_code": 2,
+  "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-preview-login-and-mastery.png"
+}

@@ -1,0 +1,139 @@
+{
+  "headRevision": "41b7e49475a2ed7e060c54cea33fc8db0649f440",
+  "checks": [
+    {
+      "id": 114283910990,
+      "name": "Cloud-only browser, canonical session and toolbox",
+      "head_sha": "41b7e49475a2ed7e060c54cea33fc8db0649f440",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/38076109679/job/114283910990",
+      "output": {
+        "title": null,
+        "summary": null,
+        "text": null,
+        "annotations_count": 1
+      }
+    },
+    {
+      "id": 114283910804,
+      "name": "Browser flow (application)",
+      "head_sha": "41b7e49475a2ed7e060c54cea33fc8db0649f440",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/38076109679/job/114283910804",
+      "output": {
+        "title": null,
+        "summary": null,
+        "text": null,
+        "annotations_count": 1
+      }
+    },
+    {
+      "id": 114283356000,
+      "name": "Cloudflare Pages",
+      "head_sha": "41b7e49475a2ed7e060c54cea33fc8db0649f440",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://dash.cloudflare.com/?to=/97c274a981e8dd6703aa6388e11c4614/pages/view/thewyj-uk/e4a0df82-cc00-41cc-ad53-2ad0dfe7431d",
+      "output": {
+        "title": "Deployed successfully",
+        "summary": "<table><tr><td><strong>Latest commit:</strong> </td><td>\n<code>41b7e49</code>\n</td></tr>\n<tr><td><strong>Status:</strong></td><td>&nbsp;✅&nbsp; Deploy successful!</td></tr>\n<tr><td><strong>Preview URL:</strong></td><td>\n<a href='https://e4a0df82.thewyj-uk.pages.dev'>https://e4a0df82.thewyj-uk.pages.dev</a>\n</td></tr>\n<tr><td><strong>Branch Preview URL:</strong></td><td>\n<a href='https://codex-task26-adaptive-learni.thewyj-uk.pages.dev'>https://codex-task26-adaptive-learni.thewyj-uk.pages.dev</a>\n</td></tr>\n</table>\n\n[View logs](https://dash.cloudflare.com/?to=/97c274a981e8dd6703aa6388e11c4614/pages/view/thewyj-uk/e4a0df82-cc00-41cc-ad53-2ad0dfe7431d)\n",
+        "text": null,
+        "annotations_count": 0
+      }
+    },
+    {
+      "id": 114283327616,
+      "name": "Task 25 cloud credential discovery",
+      "head_sha": "41b7e49475a2ed7e060c54cea33fc8db0649f440",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/38076109679/job/114283327616",
+      "output": {
+        "title": null,
+        "summary": null,
+        "text": null,
+        "annotations_count": 1
+      }
+    },
+    {
+      "id": 114283327603,
+      "name": "JavaScript and static site checks",
+      "head_sha": "41b7e49475a2ed7e060c54cea33fc8db0649f440",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/38076109679/job/114283327603",
+      "output": {
+        "title": null,
+        "summary": null,
+        "text": null,
+        "annotations_count": 1
+      }
+    },
+    {
+      "id": 114283327553,
+      "name": "Task 25 Android runtime contract",
+      "head_sha": "41b7e49475a2ed7e060c54cea33fc8db0649f440",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/38076109679/job/114283327553",
+      "output": {
+        "title": null,
+        "summary": null,
+        "text": null,
+        "annotations_count": 1
+      }
+    },
+    {
+      "id": 114283327536,
+      "name": "Android unit, lint and APK",
+      "head_sha": "41b7e49475a2ed7e060c54cea33fc8db0649f440",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/38076109679/job/114283327536",
+      "output": {
+        "title": null,
+        "summary": null,
+        "text": null,
+        "annotations_count": 1
+      }
+    },
+    {
+      "id": 114283327526,
+      "name": "Python syntax and unittest",
+      "head_sha": "41b7e49475a2ed7e060c54cea33fc8db0649f440",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/38076109679/job/114283327526",
+      "output": {
+        "title": null,
+        "summary": null,
+        "text": null,
+        "annotations_count": 1
+      }
+    },
+    {
+      "id": 114283327403,
+      "name": "Sensitive files and static naming",
+      "head_sha": "41b7e49475a2ed7e060c54cea33fc8db0649f440",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/38076109679/job/114283327403",
+      "output": {
+        "title": null,
+        "summary": null,
+        "text": null,
+        "annotations_count": 1
+      }
+    }
+  ],
+  "statuses": [],
+  "annotations": [],
+  "hasMore": false,
+  "job": null,
+  "jobs": [],
+  "log": null,
+  "logTruncated": false,
+  "providerGuidance": "GitHub guidance for this response only: use checkRunId for output and annotations, runId from a GitHub Actions /runs/<id> link to list jobs, or jobId from a /jobs/<id> link for logs. page paginates checks, jobs or annotations. Keep the supplied account and returned headRevision on follow-up reads. Third-party CI exposes only the output reported to GitHub."
+}

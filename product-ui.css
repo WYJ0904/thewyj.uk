@@ -4875,3 +4875,22 @@ progress {
     margin-top: var(--ds-space-1);
   }
 }
+
+/* Optional language practice shares the existing Aeris surfaces and controls. */
+.mastery-section { margin-block: var(--ds-space-4); min-width: 0; overflow-wrap: anywhere; }
+.mastery-heading, .mastery-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-3); }
+.mastery-heading { justify-content: space-between; }
+.mastery-heading h3, .mastery-heading p { margin: 0; }
+.mastery-actions { margin-block: var(--ds-space-3); }
+.mastery-actions button, .mastery-heading button { min-height: 44px; white-space: normal; height: auto; padding-block: var(--ds-space-2); }
+.mastery-quiz, .mastery-detail { border: 1px solid var(--color-border); border-radius: var(--ds-radius-lg); padding: var(--ds-space-4); margin-block: var(--ds-space-4); min-width: 0; }
+.mastery-quiz h4 { font-size: clamp(1.4rem, 4vw, 2rem); line-height: 1.4; margin-block: var(--ds-space-2); }
+.mastery-result { background: var(--color-surface-raised, var(--panel)); border-radius: var(--ds-radius-md); padding: var(--ds-space-3); }
+.mastery-result h4 { font-size: 1.1rem; }
+.mastery-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-space-3); }
+.mastery-point-list { display: grid; gap: var(--ds-space-2); margin-block: var(--ds-space-2); }
+.mastery-point { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--ds-space-2); width: 100%; min-height: 44px; height: auto; text-align: start; white-space: normal; }
+.mastery-point small { color: var(--muted); font-weight: 400; }
+.mastery-section input { width: 100%; max-width: 100%; }
+.mastery-section .muted { color: var(--muted); font-size: .9rem; }
+@media (max-width: 600px) { .mastery-columns { grid-template-columns: minmax(0, 1fr); } .mastery-actions button { flex: 1 1 120px; } }

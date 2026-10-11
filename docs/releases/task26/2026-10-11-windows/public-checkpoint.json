@@ -1,0 +1,116 @@
+{
+  "observed_at": "2026-10-10T19:02:48.875797+00:00",
+  "scope": "public read-only transport and assets; not authenticated business acceptance",
+  "observations": [
+    {
+      "origin": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev",
+      "path": "/api/app/config",
+      "status": 200,
+      "sha256": "88a9c2cf4f54e5d336d47daf0486cda8cb63e09152a0719c4054891411726c49"
+    },
+    {
+      "origin": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev",
+      "path": "/api/features",
+      "status": 401,
+      "sha256": "b19d09c18c4c0c2a483978e05d5d08b4950910483a32088403cfe320ea642a48"
+    },
+    {
+      "origin": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev",
+      "path": "/api/learning/mastery/summary?language=english",
+      "status": 401,
+      "sha256": "0bbd27db258e30bbc2504d3693535e4ae1f0614a2e5e1b1954ac60515472b61e"
+    },
+    {
+      "origin": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev",
+      "path": "/app.js",
+      "status": 200,
+      "sha256": "2610c4b2c8352a93e907ee38b3b66c7fd4828b8ce2c8d1a0e8cf5247ce4223d5",
+      "matches_source": false,
+      "matches_git_blob": true,
+      "matches_working_tree_after_crlf_normalization": true
+    },
+    {
+      "origin": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev",
+      "path": "/sw.js",
+      "status": 200,
+      "sha256": "47c54d72580c652234181b87650859ce431c0bf1491744d36bdb96dd6c0a92da",
+      "matches_source": false,
+      "matches_git_blob": true,
+      "matches_working_tree_after_crlf_normalization": true
+    },
+    {
+      "origin": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev",
+      "path": "/js/core/config.js",
+      "status": 200,
+      "sha256": "2704db8d87c98d7c20282fecd4da820381521225bc6f52253662caee138f4b31",
+      "matches_source": false,
+      "matches_git_blob": true,
+      "matches_working_tree_after_crlf_normalization": true
+    },
+    {
+      "origin": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev",
+      "path": "/js/language/mastery.js",
+      "status": 200,
+      "sha256": "ce835bba15dc28c16d4ac5e276b3cac92f61ab9016ea7a7a4948966dc2e9a59e",
+      "matches_source": false,
+      "matches_git_blob": true,
+      "matches_working_tree_after_crlf_normalization": true
+    },
+    {
+      "origin": "https://thewyj.uk",
+      "path": "/api/app/config",
+      "status": 200,
+      "sha256": "76688da41ab1a5f9cceade8eb118461988c0894913e70866f59ad3cbe2bc880e"
+    },
+    {
+      "origin": "https://thewyj.uk",
+      "path": "/api/features",
+      "status": 401,
+      "sha256": "e663a66646d7e632588438d0d7081cea501a26332125460112cbd5e958de9704"
+    },
+    {
+      "origin": "https://thewyj.uk",
+      "path": "/api/learning/mastery/summary?language=english",
+      "status": 404,
+      "sha256": "a18e4440455a36763a2ff70a128fe5a8188617e9543e68fa16862724863a1fab"
+    }
+  ],
+  "pages": [
+    {
+      "Id": "e4a0df82-cc00-41cc-ad53-2ad0dfe7431d",
+      "Environment": "Preview",
+      "Branch": "codex/task26-adaptive-learning-mastery",
+      "Source": "41b7e49",
+      "Deployment": "https://e4a0df82.thewyj-uk.pages.dev",
+      "Status": "31 minutes ago",
+      "Build": "https://dash.cloudflare.com/97c274a981e8dd6703aa6388e11c4614/pages/view/thewyj-uk/e4a0df82-cc00-41cc-ad53-2ad0dfe7431d"
+    },
+    {
+      "Id": "575097ca-d940-4100-af6f-cb689518c7b4",
+      "Environment": "Production",
+      "Branch": "main",
+      "Source": "550bc41",
+      "Deployment": "https://575097ca.thewyj-uk.pages.dev",
+      "Status": "9 hours ago",
+      "Build": "https://dash.cloudflare.com/97c274a981e8dd6703aa6388e11c4614/pages/view/thewyj-uk/575097ca-d940-4100-af6f-cb689518c7b4"
+    }
+  ],
+  "production_config": {
+    "ok": true,
+    "app": {
+      "name": "Aeris",
+      "application_id": "uk.thewyj.app",
+      "latest_version_code": 50,
+      "latest_version_name": "1.3.37",
+      "minimum_version_code": 1,
+      "download_url": "https://thewyj.uk/api/app/download",
+      "release_date": "2026-10-10",
+      "apk_file_name": "thewyj-android-1.3.37.apk",
+      "apk_sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a",
+      "apk_size_bytes": 48124983,
+      "release_notes_build": "2026-10-10-aeris-release-b-1.3.37",
+      "release_notes": "- 修复微信分身转账详情的本地OCR金额核实。\n- 金额与收支方向完整时按既有策略立即本地记账，恢复网络后幂等同步。\n- 修复无障碍授权/连接状态刷新、体验通道长文字及底部和键盘遮挡。\n- 原签名覆盖安装保留登录、历史账目和本机数据。"
+    },
+    "request_id": "4c67390f-4d4d-4c65-8312-c62e009b73f2"
+  }
+}

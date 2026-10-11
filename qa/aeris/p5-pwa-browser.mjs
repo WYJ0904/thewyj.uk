@@ -1,3 +1,4 @@
+import {ASSET_RELEASE} from '../asset-release.mjs';
 import assert from 'node:assert/strict';import fs from 'node:fs';
 import {openPage,delay} from '../../local-backend/browser_harness.mjs';
 const baseUrl=process.env.WYJ_TEST_BASE||'http://127.0.0.1:8938';assert.equal(new URL(baseUrl).hostname,'127.0.0.1');
@@ -6,7 +7,7 @@ try {
  await p.navigate('/');await p.waitFor('!document.getElementById("entryScreen")');
  const registration=await p.evaluate("navigator.serviceWorker.register('/sw.js').then(()=>navigator.serviceWorker.ready).then(r=>({scope:r.scope,state:r.active.state}))");
  await p.waitFor("navigator.serviceWorker.controller!==null",25000);
- await p.evaluate("(async()=>{await Promise.all(['/js/core/lazy-controller.js?v=20261010-aeris-release-b50-r1','/js/core/dashboard.js?v=20261010-aeris-release-b50-r1','/js/finance/format.js?v=20261010-aeris-release-b50-r1','/js/tools/digest-worker.js?v=20261010-aeris-release-b50-r1'].map(u=>fetch(u)));return true})()");await delay(500);
+ await p.evaluate(`(async()=>{await Promise.all(['/js/core/lazy-controller.js?v=${ASSET_RELEASE}','/js/core/dashboard.js?v=${ASSET_RELEASE}','/js/finance/format.js?v=${ASSET_RELEASE}','/js/tools/digest-worker.js?v=${ASSET_RELEASE}'].map(u=>fetch(u)));return true})()`);await delay(500);
  const cache=await p.evaluate("(async()=>{const keys=await caches.keys(),items=await Promise.all(keys.map(k=>caches.open(k).then(c=>c.keys())));return {keys,paths:items.flat().map(r=>new URL(r.url).pathname),sensitive:items.flat().some(r=>new URL(r.url).pathname.startsWith('/api/'))};})()");assert.equal(cache.sensitive,false);const expectedCacheName=fs.readFileSync('sw.js','utf8').match(/^const CACHE = "([^"]+)";/m)?.[1];assert.ok(expectedCacheName?.startsWith('wyj-shell-'),'Service Worker must name its immutable cache');assert.ok(cache.keys.length>0&&cache.keys.every(k=>k===expectedCacheName),'Only the current Service Worker cache should remain');
  await p.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
  await p.send('Page.reload',{ignoreCache:false});await p.waitFor("document.querySelector('#appShell')&&!document.querySelector('#appShell').classList.contains('app-shell-pending')",35000);

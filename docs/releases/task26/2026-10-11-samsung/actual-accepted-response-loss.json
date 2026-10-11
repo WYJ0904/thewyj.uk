@@ -1,0 +1,132 @@
+{
+  "status": "PASS",
+  "observed_at": "2026-10-11T10:29:49.971Z",
+  "actual_server_response_discarded": true,
+  "event_id": "e5fa6bf6-a0f9-412d-a26e-c7101602fca4",
+  "event_seq": 103,
+  "attempts": [
+    {
+      "event_id": "e5fa6bf6-a0f9-412d-a26e-c7101602fca4",
+      "ticket_id": "eb4a3853-0c53-4ed9-a5dd-53885f624a52"
+    },
+    {
+      "event_id": "e5fa6bf6-a0f9-412d-a26e-c7101602fca4",
+      "ticket_id": "eb4a3853-0c53-4ed9-a5dd-53885f624a52"
+    }
+  ],
+  "d1_before": [
+    {
+      "event_id": "e5fa6bf6-a0f9-412d-a26e-c7101602fca4",
+      "n": 1,
+      "seq": 103
+    }
+  ],
+  "receipt": {
+    "ok": true,
+    "event_id": "e5fa6bf6-a0f9-412d-a26e-c7101602fca4",
+    "correct": false,
+    "mistake_code": "meaning_mismatch",
+    "score_before": 0,
+    "score_after": 0,
+    "score_delta": 0,
+    "algorithm_version": "mastery-v1",
+    "event_seq": 103,
+    "acknowledged": true,
+    "account_id": "f3f4277f-2cb0-44ee-b4ef-e97eeae5a52b",
+    "language": "english",
+    "mastery": {
+      "algorithm_version": "mastery-v1",
+      "state_version": 1,
+      "score": 0,
+      "confidence": 0.13,
+      "attempt_count": 1,
+      "correct_count": 0,
+      "incorrect_count": 1,
+      "effective_attempt_count": 1,
+      "consecutive_correct": 0,
+      "consecutive_incorrect": 1,
+      "last_response_ms": 536,
+      "average_response_ms": 536,
+      "last_reviewed_at": null,
+      "next_review_at": "2026-10-11T10:37:42.495Z",
+      "last_update_at": "2026-10-11T10:27:42.495Z",
+      "review_count": 0,
+      "first_effective_at": "2026-10-11T10:27:42.495Z",
+      "evidence_days": [
+        "2026-10-11"
+      ],
+      "families": [
+        "spelling"
+      ],
+      "recent": [
+        {
+          "question_id": "english:vocabulary:happy:spelling",
+          "family": "spelling",
+          "at": "2026-10-11T10:27:42.495Z",
+          "correct": false,
+          "effective": true
+        }
+      ],
+      "question_stats": {
+        "english:vocabulary:happy:spelling": {
+          "attempt_count": 1,
+          "correct_count": 0,
+          "last_effective_at": "2026-10-11T10:27:42.495Z"
+        }
+      },
+      "effective_day": "2026-10-11",
+      "daily_effective_count": 1,
+      "last_event_seq": 103,
+      "overdue": false,
+      "state": "learning",
+      "review_priority": 43.7
+    },
+    "knowledge": {
+      "id": "english:vocabulary:happy",
+      "label": "happy",
+      "kind": "vocabulary",
+      "reading": "",
+      "gloss": "高兴的"
+    },
+    "correct_answer": "happy",
+    "explanation": {
+      "source": "course",
+      "rule": "happy：高兴的",
+      "why": "本题的课程答案是happy。",
+      "example": "She is happy.",
+      "translation": "她很高兴。",
+      "reading": "",
+      "confusion": "",
+      "suggestion": "稍后复习happy，再尝试同一知识点的其他题型。"
+    },
+    "request_id": "14f347c0-7a31-4f9c-a132-a8ae170d6cbd"
+  },
+  "ui": {
+    "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+    "title": "Aeris — 学习、工具、账本与文件",
+    "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+    "online": true,
+    "visibility": "visible",
+    "loginVisible": false,
+    "registerVisible": false,
+    "loginError": "",
+    "masteryVisible": true,
+    "mastery": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n已学习 0 个知识点 · 平均掌握度 0/100\n\n已掌握 0 · 学习中 0 · 待复习 0 · 尚未学习 27\n\n服务端已同步 · 10月11日 18:27\n\n正在读取掌握度…\n\n开始自适应学习\n练习弱项\n开始到期复习\n\n新知识\n\n高兴的\n\n写出对应的英语单词\n\n你的答案\n提交答案\n跳过\n下一题\n还需要练习\n\n掌握度 0 → 0（+0）\n\n课程答案：happy\n\n下次复习：10月11日 18:37\n\n本题的课程答案是happy。 happy：高兴的\n\nShe is happy. 她很高兴。\n\n查看错因解析\n\n本轮 1 题 · 正确 0 · 掌握度累计变化 0.0\n\n薄弱知识点\n\n开始练习后，这里会显示你的知识点。\n\n今日待复习\n\n目前没有到期复习。",
+    "account": "Aeris\n下载 Android\n更新日志\nt26-member_b-7d3296cfe7 · 双语言双项永久会员",
+    "ordinaryQuizVisible": true,
+    "viewport": {
+      "width": 384,
+      "height": 735,
+      "scrollWidth": 384
+    }
+  },
+  "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-accepted-response-loss-recovered.png",
+  "initial_d1_probe_failure": "Harness query incorrectly used event_seq instead of ledger column seq (Cloudflare7500); corrected read-only SELECT. Separate Wrangler Windows UV_HANDLE_CLOSING error retained. Original queued event resumed unchanged.",
+  "d1_after": [
+    {
+      "event_id": "e5fa6bf6-a0f9-412d-a26e-c7101602fca4",
+      "n": 1,
+      "seq": 103
+    }
+  ]
+}

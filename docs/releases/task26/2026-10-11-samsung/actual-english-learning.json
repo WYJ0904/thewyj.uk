@@ -1,0 +1,84 @@
+{
+  "observed_at": "2026-10-11T08:38:30.221Z",
+  "status": "PASS",
+  "language": "english",
+  "account_id": "dff88654-0358-458f-b382-0a52e71b07ad",
+  "actual_phone_outcomes": [
+    {
+      "event_id": "46c42af9-4c24-410b-b62c-a5de83481ded",
+      "correct": true,
+      "mistake_code": "",
+      "score_before": 0,
+      "score_after": 12.54,
+      "score_delta": 12.54,
+      "algorithm_version": "mastery-v1",
+      "event_seq": 52
+    },
+    {
+      "event_id": "bd0f9665-0648-4eed-87b7-97f30c650876",
+      "correct": true,
+      "mistake_code": "",
+      "score_before": 0,
+      "score_after": 12.54,
+      "score_delta": 12.54,
+      "algorithm_version": "mastery-v1",
+      "event_seq": 59
+    },
+    {
+      "event_id": "e7748821-d3ab-4794-a5e8-7f89bf5e7635",
+      "correct": false,
+      "mistake_code": "meaning_mismatch",
+      "score_before": 0,
+      "score_after": 0,
+      "score_delta": 0,
+      "algorithm_version": "mastery-v1",
+      "event_seq": 62
+    }
+  ],
+  "explanation": {
+    "ok": true,
+    "event_id": "e7748821-d3ab-4794-a5e8-7f89bf5e7635",
+    "correct": false,
+    "explanation": {
+      "source": "course",
+      "rule": "常用名词",
+      "why": "本题的课程答案是school。",
+      "example": "I go to school.",
+      "translation": "我去学校。",
+      "reading": "",
+      "confusion": "",
+      "suggestion": "稍后复习school，再尝试同一知识点的其他题型。"
+    },
+    "ai": {
+      "source": "workers_ai",
+      "contrast": "学校的意思是学校，而不是指去学校的动作",
+      "example": "I go to school. (我去学校)",
+      "rule": "常用名词",
+      "why": "因为"
+    },
+    "ai_status": "cached",
+    "request_id": "6b970dbe-c9be-41de-9148-bbdbc1a8c8fe"
+  },
+  "current_phone_ui": {
+    "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+    "title": "Aeris — 学习、工具、账本与文件",
+    "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+    "online": true,
+    "visibility": "visible",
+    "loginVisible": false,
+    "registerVisible": false,
+    "loginError": "",
+    "masteryVisible": true,
+    "mastery": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n已学习 3 个知识点 · 平均掌握度 8/100\n\n已掌握 0 · 学习中 2 · 待复习 1 · 尚未学习 24\n\n服务端已同步 · 10月11日 16:38\n\n开始自适应学习\n练习弱项\n开始到期复习\n\n新知识\n\n学校\n\n写出对应的英语单词\n\n你的答案\n提交答案\n跳过\n下一题\n还需要练习\n\n掌握度 0 → 0（+0）\n\n课程答案：school\n\n下次复习：10月11日 16:33\n\n本题的课程答案是school。 常用名词\n\nI go to school. 我去学校。\n\n查看错因解析\n\nAI 辅助解析：因为 常用名词 I go to school. (我去学校) 学校的意思是学校，而不是指去学校的动作\n\n薄弱知识点\nschool\n待复习 · 0/100\ngreen\n学习中 · 13/100\nhappy\n学习中 · 13/100\n今日待复习\nschool\n待复习 · 0/100",
+    "account": "Aeris\n下载 Android\n更新日志\nt26-member_a-6452b40de8 · 双语言双项永久会员",
+    "ordinaryQuizVisible": true,
+    "viewport": {
+      "width": 384,
+      "height": 735,
+      "scrollWidth": 384
+    }
+  },
+  "correct_and_incorrect_not_resubmitted": true,
+  "previous_observation_failure": "Harness expected body.receipt but the authoritative API receipt is the root body; actual outcomes preserved and verified from D1",
+  "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-english-real-learning.png"
+}

@@ -1,0 +1,19 @@
+{
+  "observed_at": "2026-10-11T07:53:56.546Z",
+  "phone": [
+    {
+      "status": 403,
+      "code": "task26_preview_scope_blocked"
+    },
+    {
+      "status": 403,
+      "code": "task26_preview_scope_blocked"
+    },
+    {
+      "status": 403,
+      "code": "task26_preview_scope_blocked"
+    }
+  ],
+  "windows_public_status": 200,
+  "known_preview_scope_path_missing": true
+}

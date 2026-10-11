@@ -1,0 +1,9 @@
+{
+  "checked_at_utc": "2026-10-10T09:43:39.918385+00:00",
+  "business_features_unchanged": true,
+  "bindings_unchanged": true,
+  "membership_catalog_unchanged": true,
+  "d1_migration_executed": false,
+  "real_user_data_deleted": false,
+  "scope": "Public non-destructive Production comparison; no privileged user-data query or write"
+}

@@ -295,6 +295,10 @@ async function main() {
       // feedback budget is what the assertion actually measures.
       const stub = await page.intercept([
         {
+          match: "/api/recharge/mine",
+          respond: () => ({ status: 200, delayMs: 6000, body: { ok: true, requests: [] } }),
+        },
+        {
           match: "/api/membership/plans",
           respond: () => ({ status: 200, delayMs: 420, body: CONTROLLED_PLANS }),
         },
@@ -400,6 +404,10 @@ async function main() {
         /订单已生成/,
         `the accepted order must be reported back to the user: ${successMessage}`,
       );
+      // The late initial empty snapshot must not replace an accepted order's feedback.
+      await delay(6500);
+      const afterInitialSnapshot = await page.evaluate("({message:document.querySelector('#rechargeMessage')?.textContent||'',status:document.querySelector('#paymentOrderStatus')?.textContent||''})");
+      assert.match(afterInitialSnapshot.message, /订单已生成/, `late initial snapshot replaced accepted order: ${JSON.stringify(afterInitialSnapshot)}`);
 
       // Error path in its own fresh tab/context: after a successful order the
       // submit control is intentionally locked, so the failed attempt gets a

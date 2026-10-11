@@ -1,0 +1,37 @@
+{
+  "environment": "isolated_local_pages_d1",
+  "hosted_preview": false,
+  "production": false,
+  "physical_device": false,
+  "rate_budget": {
+    "observed_429": 0,
+    "cooldown_ms": 0,
+    "server_limits_changed": false
+  },
+  "results": [
+    {
+      "width": 390,
+      "checks": [
+        "guest_boundary",
+        "correct_answer_mastery",
+        "wrong_answer_course_ai_fallback",
+        "point_details",
+        "reload_persistence",
+        "five_width_light_dark_large_text",
+        "japanese_language_isolation",
+        "real_offline_pending_same_id_reconnect",
+        "accepted_response_loss_retry",
+        "malformed_response_cache_preserved",
+        "kill_switch_hides_optional_mode_base_quiz_retained",
+        "admin_aggregated_diagnostics"
+      ],
+      "passed": true,
+      "runtime_errors": []
+    }
+  ],
+  "runtime_source_head": "47b1b3315647d9c148903a2a55d8a44320eda164",
+  "qa_harness_sha256": "d4d5e449efb801bda856cb8a7c32a54a7c74736db85beca28daa59218d83a2ff",
+  "checked_at_utc": "2026-10-10",
+  "scope": "Affected 390px visibility acceptance only; five-width required delivery CI is recorded in Draft PR105",
+  "original_ci_screenshots": "Not UI visibility evidence: captured during startup overlay"
+}

@@ -1,0 +1,450 @@
+{
+  "origin": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev",
+  "database": "wyj-cloud-preview",
+  "database_id": "a3e6253b-689f-49f3-998b-7c5828ea255a",
+  "started_at": "2026-10-10T18:58:50.413Z",
+  "completed_at": "2026-10-10T19:01:17.940Z",
+  "operation_scope": "Only four exact dedicated accounts plus previously soft-deleted owned registration orphan; no original account touched",
+  "fixtures": [
+    {
+      "id": "01509fdf-ac22-4f85-8efc-f2683bff68f5",
+      "username": "t26-admin-538b0c2a74",
+      "role": "user",
+      "deleted": 1,
+      "banned": 0,
+      "password_scheme": "invalid",
+      "password_iterations": 0
+    },
+    {
+      "id": "4f8f8d17-6fa0-4635-922c-42ffcade8354",
+      "username": "t26-member_a-4043f93798",
+      "role": "user",
+      "deleted": 1,
+      "banned": 0,
+      "password_scheme": "invalid",
+      "password_iterations": 0
+    },
+    {
+      "id": "cc2ee718-60b6-4630-ab9b-54a0d2e4241f",
+      "username": "t26-member_b-cc7bc48127",
+      "role": "user",
+      "deleted": 1,
+      "banned": 0,
+      "password_scheme": "invalid",
+      "password_iterations": 0
+    },
+    {
+      "id": "d8556b84-6fd0-4840-a507-98158683dcc5",
+      "username": "t26-admin-7de219d5b6",
+      "role": "user",
+      "deleted": 1,
+      "banned": 0,
+      "password_scheme": "invalid",
+      "password_iterations": 0
+    },
+    {
+      "id": "dc38fab6-65df-4fa2-bd69-6e7a06ad774a",
+      "username": "t26-free-e111a9ec20",
+      "role": "user",
+      "deleted": 1,
+      "banned": 0,
+      "password_scheme": "invalid",
+      "password_iterations": 0
+    }
+  ],
+  "authority": {
+    "owned_admin_roles": 0,
+    "owned_active_sessions": 0,
+    "owned_active_memberships": 0,
+    "owned_active_overrides": 0,
+    "owners": 1,
+    "unchanged_owner_reset_required": 1
+  },
+  "learning_invariants": {
+    "invalid_mastery": 0,
+    "pending_receipts": 0,
+    "migration_0025_rows": 1
+  },
+  "restored_flags": [
+    {
+      "flag_key": "adaptive_learning",
+      "description": "自适应语言练习",
+      "enabled": false,
+      "kill_switch": false,
+      "channels": [
+        "experimental"
+      ],
+      "rollout_percentage": 0,
+      "revision": 13,
+      "updated_at": "2026-10-10T18:59:01.904Z"
+    },
+    {
+      "flag_key": "adaptive_review",
+      "description": "智能间隔复习",
+      "enabled": false,
+      "kill_switch": false,
+      "channels": [
+        "experimental"
+      ],
+      "rollout_percentage": 0,
+      "revision": 9,
+      "updated_at": "2026-10-10T18:59:23.986Z"
+    },
+    {
+      "flag_key": "ai_error_explanation",
+      "description": "答题后可选AI错因补充",
+      "enabled": false,
+      "kill_switch": false,
+      "channels": [
+        "experimental"
+      ],
+      "rollout_percentage": 0,
+      "revision": 13,
+      "updated_at": "2026-10-10T18:59:34.894Z"
+    },
+    {
+      "flag_key": "mastery_score",
+      "description": "知识点掌握度",
+      "enabled": false,
+      "kill_switch": false,
+      "channels": [
+        "experimental"
+      ],
+      "rollout_percentage": 0,
+      "revision": 9,
+      "updated_at": "2026-10-10T18:59:12.905Z"
+    },
+    {
+      "flag_key": "similar_word_explanation",
+      "description": "答题后易混词与语法辨析",
+      "enabled": false,
+      "kill_switch": false,
+      "channels": [
+        "experimental"
+      ],
+      "rollout_percentage": 0,
+      "revision": 9,
+      "updated_at": "2026-10-10T18:59:45.810Z"
+    }
+  ],
+  "override_clear_semantics": "Audited inert NULL tombstones retained by normal Task25 API",
+  "role_revoke_audit": {
+    "id": "7070e547-43d9-4912-b9d2-a862880c23a3",
+    "request_id": "task26-preview-cf-cleanup-fd2c0c7d-bf42-4b3c-8eb8-fd2a14c3bcc1",
+    "created_at": "2026-10-10T19:01:03Z"
+  },
+  "operations": [
+    {
+      "operation": "restore adaptive_learning",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags",
+      "status": 200,
+      "code": "",
+      "request_id": "607faa59-2030-468a-99cf-c8636b7279a7",
+      "duration_ms": 1092
+    },
+    {
+      "operation": "clear adaptive_learning member_a",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "d4ad5d58-6732-47f4-9cee-77cbd2e7534b",
+      "duration_ms": 1255
+    },
+    {
+      "operation": "clear adaptive_learning member_b",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "c000c7a2-0314-4da5-bcb1-f3c4c19a4aeb",
+      "duration_ms": 1242
+    },
+    {
+      "operation": "clear adaptive_learning free",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "a9705684-c42b-4e02-9064-ce51a67ecde7",
+      "duration_ms": 1257
+    },
+    {
+      "operation": "restore mastery_score",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags",
+      "status": 200,
+      "code": "",
+      "request_id": "e2891cab-a8d5-4e3b-9091-a76a22e01cf2",
+      "duration_ms": 1230
+    },
+    {
+      "operation": "clear mastery_score member_a",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "e790cda9-1ceb-49cf-b98d-3b6b33b1c4a2",
+      "duration_ms": 1248
+    },
+    {
+      "operation": "clear mastery_score member_b",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "ab13a92e-377f-4580-89a4-ac9d5007cb83",
+      "duration_ms": 1251
+    },
+    {
+      "operation": "clear mastery_score free",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "2c24359d-2380-4467-9d11-d4cb11f5b132",
+      "duration_ms": 1219
+    },
+    {
+      "operation": "restore adaptive_review",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags",
+      "status": 200,
+      "code": "",
+      "request_id": "e8b9feec-9968-473e-bbd3-6f5ee6e2eda9",
+      "duration_ms": 1075
+    },
+    {
+      "operation": "clear adaptive_review member_a",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "a7c5f9d8-a1fb-4728-a0e6-e036a3fcde3e",
+      "duration_ms": 1236
+    },
+    {
+      "operation": "clear adaptive_review member_b",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "b76819b7-1953-4b86-a6f0-7ae58747799d",
+      "duration_ms": 1211
+    },
+    {
+      "operation": "clear adaptive_review free",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "c88d0ec4-a4f6-4e5f-97c1-f1847ff13000",
+      "duration_ms": 1439
+    },
+    {
+      "operation": "restore ai_error_explanation",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags",
+      "status": 200,
+      "code": "",
+      "request_id": "f193b6ed-4a17-4846-ae68-d4b22cddfbdd",
+      "duration_ms": 1053
+    },
+    {
+      "operation": "clear ai_error_explanation member_a",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "6ae79575-1314-456f-b8bc-02090a48ae0e",
+      "duration_ms": 1366
+    },
+    {
+      "operation": "clear ai_error_explanation member_b",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "08eee722-d79b-45c1-ad96-bb12033b9d10",
+      "duration_ms": 1229
+    },
+    {
+      "operation": "clear ai_error_explanation free",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "5ea2fe1d-b1b5-4812-b4d2-dbe21d2694c2",
+      "duration_ms": 1226
+    },
+    {
+      "operation": "restore similar_word_explanation",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags",
+      "status": 200,
+      "code": "",
+      "request_id": "9ad1733c-c46c-446a-8466-5905de5624f6",
+      "duration_ms": 1061
+    },
+    {
+      "operation": "clear similar_word_explanation member_a",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "042be6cd-cf5e-4501-8910-f259c80a8ca8",
+      "duration_ms": 1225
+    },
+    {
+      "operation": "clear similar_word_explanation member_b",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "9e983f1f-e4d0-4020-91d5-b104864fc866",
+      "duration_ms": 1217
+    },
+    {
+      "operation": "clear similar_word_explanation free",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/feature-flags/override",
+      "status": 200,
+      "code": "",
+      "request_id": "3af22a3d-25cd-4730-b69e-87830f74afbd",
+      "duration_ms": 1230
+    },
+    {
+      "operation": "cancel membership member_a",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/membership/manage",
+      "status": 200,
+      "code": "",
+      "request_id": "5ed786c2-5eda-4e45-b134-01d61f6cab70",
+      "duration_ms": 3342
+    },
+    {
+      "operation": "self delete member_a",
+      "role": "member_a",
+      "method": "POST",
+      "route": "/api/account/delete",
+      "status": 200,
+      "code": "",
+      "request_id": "e48126c5-5e1f-4cd4-a92f-8822c83142c8",
+      "duration_ms": 2006
+    },
+    {
+      "operation": "deleted session rejected member_a",
+      "role": "member_a",
+      "method": "GET",
+      "route": "/api/me",
+      "status": 403,
+      "code": "account_deleted",
+      "request_id": "b3db0bde-3c2c-48f1-b8d9-5ad43a927a9d",
+      "duration_ms": 940
+    },
+    {
+      "operation": "cancel membership member_b",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/admin/membership/manage",
+      "status": 200,
+      "code": "",
+      "request_id": "3d043e8d-0a27-4b37-aa37-82e97e07fb99",
+      "duration_ms": 2598
+    },
+    {
+      "operation": "self delete member_b",
+      "role": "member_b",
+      "method": "POST",
+      "route": "/api/account/delete",
+      "status": 200,
+      "code": "",
+      "request_id": "bb5f0e19-c7d1-444e-9771-cfa8546bf64b",
+      "duration_ms": 2038
+    },
+    {
+      "operation": "deleted session rejected member_b",
+      "role": "member_b",
+      "method": "GET",
+      "route": "/api/me",
+      "status": 403,
+      "code": "account_deleted",
+      "request_id": "1926a441-045a-43fd-a7fd-49c91a4f26f0",
+      "duration_ms": 929
+    },
+    {
+      "operation": "self delete free",
+      "role": "free",
+      "method": "POST",
+      "route": "/api/account/delete",
+      "status": 200,
+      "code": "",
+      "request_id": "6f90ef51-c557-49ec-b7b1-227a31ad2cda",
+      "duration_ms": 1994
+    },
+    {
+      "operation": "deleted session rejected free",
+      "role": "free",
+      "method": "GET",
+      "route": "/api/me",
+      "status": 403,
+      "code": "account_deleted",
+      "request_id": "8d141743-c2a5-455b-b9a4-20298c8be27f",
+      "duration_ms": 937
+    },
+    {
+      "operation": "revoked admin denied",
+      "role": "admin",
+      "method": "GET",
+      "route": "/api/admin/feature-flags",
+      "status": 403,
+      "code": "forbidden",
+      "request_id": "dca464c7-f8f5-40fb-8743-43c2913661eb",
+      "duration_ms": 1090
+    },
+    {
+      "operation": "self delete demoted admin",
+      "role": "admin",
+      "method": "POST",
+      "route": "/api/account/delete",
+      "status": 200,
+      "code": "",
+      "request_id": "68bd7e81-aa57-4a9a-9602-2f9dda125083",
+      "duration_ms": 1904
+    },
+    {
+      "operation": "deleted admin session rejected",
+      "role": "admin",
+      "method": "GET",
+      "route": "/api/me",
+      "status": 403,
+      "code": "account_deleted",
+      "request_id": "a12fdb90-a20d-478e-b89d-54296c932772",
+      "duration_ms": 833
+    }
+  ],
+  "immutable_learning_events_and_audits_preserved": true,
+  "production_mutations": 0
+}

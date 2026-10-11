@@ -1,0 +1,429 @@
+{
+  "status": "PASS",
+  "observed_at": "2026-10-11T09:58:18.690Z",
+  "records": [
+    {
+      "language": "english",
+      "question": {
+        "prompt": "green",
+        "instruction": "写出中文含义"
+      },
+      "actual_ui": {
+        "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+        "title": "Aeris — 学习、工具、账本与文件",
+        "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+        "online": true,
+        "visibility": "visible",
+        "loginVisible": false,
+        "registerVisible": false,
+        "loginError": "",
+        "masteryVisible": true,
+        "mastery": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n已学习 3 个知识点 · 平均掌握度 16/100\n\n已掌握 0 · 学习中 2 · 待复习 1 · 尚未学习 24\n\n服务端已同步 · 10月11日 17:57\n\n开始自适应学习\n练习弱项\n开始到期复习\n\n到期复习\n\ngreen\n\n写出中文含义\n\n你的答案\n提交答案\n跳过\n下一题\n回答正确\n\n掌握度 13 → 24（+11.8）\n\n课程答案：绿色 / 绿\n\n下次复习：10月12日 01:57\n\n本题的课程答案是绿色 / 绿。 颜色\n\nThe bag is green. 这个包是绿色的。\n\n本轮 1 题 · 正确 1 · 掌握度累计变化 11.8\n\n薄弱知识点\nhappy\n待复习 · 13/100\nschool\n学习中 · 11/100\ngreen\n学习中 · 24/100\n今日待复习\nhappy\n待复习 · 13/100",
+        "account": "Aeris\n下载 Android\n更新日志\nt26-member_a-6452b40de8 · 双语言双项永久会员",
+        "ordinaryQuizVisible": true,
+        "viewport": {
+          "width": 384,
+          "height": 735,
+          "scrollWidth": 384
+        }
+      }
+    },
+    {
+      "language": "english",
+      "question": {
+        "prompt": "happy",
+        "instruction": "写出中文含义"
+      },
+      "actual_ui": {
+        "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+        "title": "Aeris — 学习、工具、账本与文件",
+        "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+        "online": true,
+        "visibility": "visible",
+        "loginVisible": false,
+        "registerVisible": false,
+        "loginError": "",
+        "masteryVisible": true,
+        "mastery": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n已学习 3 个知识点 · 平均掌握度 20/100\n\n已掌握 0 · 学习中 3 · 待复习 0 · 尚未学习 24\n\n服务端已同步 · 10月11日 17:57\n\n开始自适应学习\n练习弱项\n开始到期复习\n\n到期复习\n\nhappy\n\n写出中文含义\n\n你的答案\n提交答案\n跳过\n下一题\n回答正确\n\n掌握度 13 → 24（+11.8）\n\n课程答案：高兴的\n\n下次复习：10月12日 01:57\n\n本题的课程答案是高兴的。 happy：高兴的\n\nShe is happy. 她很高兴。\n\n本轮 1 题 · 正确 1 · 掌握度累计变化 11.8\n\n薄弱知识点\nschool\n学习中 · 11/100\ngreen\n学习中 · 24/100\nhappy\n学习中 · 24/100\n今日待复习\n\n目前没有到期复习。",
+        "account": "Aeris\n下载 Android\n更新日志\nt26-member_a-6452b40de8 · 双语言双项永久会员",
+        "ordinaryQuizVisible": true,
+        "viewport": {
+          "width": 384,
+          "height": 735,
+          "scrollWidth": 384
+        }
+      }
+    },
+    {
+      "language": "english",
+      "due_before": 2,
+      "due_after": 0,
+      "persisted": [
+        {
+          "knowledge_id": "english:vocabulary:school",
+          "state": {
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 10.5,
+            "confidence": 0.275,
+            "attempt_count": 2,
+            "correct_count": 1,
+            "incorrect_count": 1,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 5685,
+            "average_response_ms": 3045.5,
+            "last_reviewed_at": "2026-10-11T09:49:26.715Z",
+            "next_review_at": "2026-10-11T10:49:26.715Z",
+            "last_update_at": "2026-10-11T09:49:26.715Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:23:29.065Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:school:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:23:29.065Z",
+                "correct": false,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:school:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:49:26.715Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:school:spelling": {
+                "attempt_count": 1,
+                "correct_count": 0,
+                "last_effective_at": "2026-10-11T08:23:29.065Z"
+              },
+              "english:vocabulary:school:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:49:26.715Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 73
+          }
+        },
+        {
+          "knowledge_id": "english:vocabulary:green",
+          "state": {
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 24.361,
+            "confidence": 0.333,
+            "attempt_count": 2,
+            "correct_count": 2,
+            "incorrect_count": 0,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 2,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 405,
+            "average_response_ms": 251.5,
+            "last_reviewed_at": "2026-10-11T09:57:13.511Z",
+            "next_review_at": "2026-10-11T17:57:13.511Z",
+            "last_update_at": "2026-10-11T09:57:13.511Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:07:15.421Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:green:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:07:15.421Z",
+                "correct": true,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:green:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:57:13.511Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:green:spelling": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:07:15.421Z"
+              },
+              "english:vocabulary:green:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:57:13.511Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 77
+          }
+        },
+        {
+          "knowledge_id": "english:vocabulary:happy",
+          "state": {
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 24.361,
+            "confidence": 0.333,
+            "attempt_count": 2,
+            "correct_count": 2,
+            "incorrect_count": 0,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 2,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 393,
+            "average_response_ms": 466.5,
+            "last_reviewed_at": "2026-10-11T09:57:28.056Z",
+            "next_review_at": "2026-10-11T17:57:28.056Z",
+            "last_update_at": "2026-10-11T09:57:28.056Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:23:19.528Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:happy:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:23:19.528Z",
+                "correct": true,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:happy:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:57:28.056Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:happy:spelling": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:23:19.528Z"
+              },
+              "english:vocabulary:happy:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:57:28.056Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 82
+          }
+        }
+      ],
+      "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-english-review-complete.png"
+    },
+    {
+      "language": "japanese",
+      "question": {
+        "prompt": "雪",
+        "instruction": "写出中文含义"
+      },
+      "actual_ui": {
+        "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/japanese",
+        "title": "Aeris — 学习、工具、账本与文件",
+        "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+        "online": true,
+        "visibility": "visible",
+        "loginVisible": false,
+        "registerVisible": false,
+        "loginError": "",
+        "masteryVisible": true,
+        "mastery": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n已学习 2 个知识点 · 平均掌握度 10/100\n\n已掌握 0 · 学习中 1 · 待复习 1 · 尚未学习 33\n\n服务端已同步 · 10月11日 17:57\n\n开始自适应学习\n练习弱项\n开始到期复习\n\n到期复习\n\n雪\n\n写出中文含义\n\n你的答案\n提交答案\n跳过\n下一题\n回答正确\n\n掌握度 9 → 21（+12.3）\n\n课程答案：雪\n\n下次复习：10月12日 01:57\n\n本题的课程答案是雪。 雪：雪\n\n雪が降っています。 正在下雪。\n\n本轮 1 题 · 正确 1 · 掌握度累计变化 12.3\n\n薄弱知识点\n私\n待复习 · 0/100\n雪\n学习中 · 21/100\n今日待复习\n私\n待复习 · 0/100",
+        "account": "Aeris\n下载 Android\n更新日志\nt26-member_a-6452b40de8 · 双语言双项永久会员",
+        "ordinaryQuizVisible": true,
+        "viewport": {
+          "width": 384,
+          "height": 735,
+          "scrollWidth": 384
+        }
+      }
+    },
+    {
+      "language": "japanese",
+      "question": {
+        "prompt": "私",
+        "instruction": "写出假名读音"
+      },
+      "actual_ui": {
+        "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/japanese",
+        "title": "Aeris — 学习、工具、账本与文件",
+        "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+        "online": true,
+        "visibility": "visible",
+        "loginVisible": false,
+        "registerVisible": false,
+        "loginError": "",
+        "masteryVisible": true,
+        "mastery": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n已学习 2 个知识点 · 平均掌握度 16/100\n\n已掌握 0 · 学习中 2 · 待复习 0 · 尚未学习 33\n\n服务端已同步 · 10月11日 17:58\n\n开始自适应学习\n练习弱项\n开始到期复习\n\n到期复习\n\n私\n\n写出假名读音\n\n你的答案\n提交答案\n跳过\n下一题\n回答正确\n\n掌握度 0 → 12（+11.6）\n\n课程答案：わたし\n\n下次复习：10月11日 18:58\n\n本题考查私的读音：わたし。 私：我\n\n私は日本語を勉強します。 我学习日语。\n\n本轮 1 题 · 正确 1 · 掌握度累计变化 11.6\n\n薄弱知识点\n私\n学习中 · 12/100\n雪\n学习中 · 21/100\n今日待复习\n\n目前没有到期复习。",
+        "account": "Aeris\n下载 Android\n更新日志\nt26-member_a-6452b40de8 · 双语言双项永久会员",
+        "ordinaryQuizVisible": true,
+        "viewport": {
+          "width": 384,
+          "height": 735,
+          "scrollWidth": 384
+        }
+      }
+    },
+    {
+      "language": "japanese",
+      "due_before": 2,
+      "due_after": 0,
+      "persisted": [
+        {
+          "knowledge_id": "japanese:vocabulary:私",
+          "state": {
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 11.55,
+            "confidence": 0.275,
+            "attempt_count": 2,
+            "correct_count": 1,
+            "incorrect_count": 1,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 483,
+            "average_response_ms": 409.5,
+            "last_reviewed_at": "2026-10-11T09:58:09.623Z",
+            "next_review_at": "2026-10-11T10:58:09.623Z",
+            "last_update_at": "2026-10-11T09:58:09.623Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:29:30.740Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "meaning",
+              "reading"
+            ],
+            "recent": [
+              {
+                "question_id": "japanese:vocabulary:私:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T08:29:30.740Z",
+                "correct": false,
+                "effective": true
+              },
+              {
+                "question_id": "japanese:vocabulary:私:reading",
+                "family": "reading",
+                "at": "2026-10-11T09:58:09.623Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "japanese:vocabulary:私:meaning": {
+                "attempt_count": 1,
+                "correct_count": 0,
+                "last_effective_at": "2026-10-11T08:29:30.740Z"
+              },
+              "japanese:vocabulary:私:reading": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:58:09.623Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 92
+          }
+        },
+        {
+          "knowledge_id": "japanese:vocabulary:雪",
+          "state": {
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 20.81,
+            "confidence": 0.333,
+            "attempt_count": 2,
+            "correct_count": 2,
+            "incorrect_count": 0,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 2,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 311,
+            "average_response_ms": 207534.5,
+            "last_reviewed_at": "2026-10-11T09:57:55.207Z",
+            "next_review_at": "2026-10-11T17:57:55.207Z",
+            "last_update_at": "2026-10-11T09:57:55.207Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:19:23.278Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "reading",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "japanese:vocabulary:雪:reading",
+                "family": "reading",
+                "at": "2026-10-11T08:19:23.278Z",
+                "correct": true,
+                "effective": true
+              },
+              {
+                "question_id": "japanese:vocabulary:雪:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:57:55.207Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "japanese:vocabulary:雪:reading": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:19:23.278Z"
+              },
+              "japanese:vocabulary:雪:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:57:55.207Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 87
+          }
+        }
+      ],
+      "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-japanese-review-complete.png"
+    }
+  ],
+  "real_elapsed_time": true,
+  "clock_or_database_injection": false,
+  "earlier_expectation_failure": "Other previously correct points naturally also became due during the long acceptance run; completed their actual reviews without backdating or dropping records."
+}

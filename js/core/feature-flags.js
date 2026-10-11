@@ -23,8 +23,8 @@ export function snapshotFeatureEnabled(snapshot, key, accountId, now = Date.now(
     Object.hasOwn(snapshot.flags, key) && snapshot.flags[key].enabled === true);
 }
 
-export function createFeatureController({ getAccount, apiGet, api, document = globalThis.document, onAvailable = () => {} }) {
-  let available = false, accountId = '', snapshot = null, sequence = 0, timer = null, busy = false, status = '';
+export function createFeatureController({ getAccount, apiGet, api, document = globalThis.document, onAvailable = () => {}, onChange = () => {} }) {
+  let available = false, accountId = '', snapshot = null, sequence = 0, timer = null, renewalTimer = null, busy = false, status = '';
   const node = id => document.getElementById(id);
   const currentId = () => String(getAccount()?.id || '');
   function render(message) {
@@ -35,15 +35,28 @@ export function createFeatureController({ getAccount, apiGet, api, document = gl
     if (snapshot && node('releaseChannelSelect')) node('releaseChannelSelect').value = snapshot.channel;
     if (node('releaseChannelStatus')) node('releaseChannelStatus').textContent = status || (snapshot ? `当前通道：${RELEASE_CHANNEL_LABELS[snapshot.channel]}` : '正在读取体验设置…');
     node('experimentalFeatureBadge')?.classList.toggle('hidden', !snapshotFeatureEnabled(snapshot, 'aeris_experimental_badge', accountId));
+    onChange();
   }
-  function clear(message = '') { snapshot = null; clearTimeout(timer); timer = null; render(message); }
+  function clear(message = '') {
+    snapshot = null; clearTimeout(timer); clearTimeout(renewalTimer);
+    timer = null; renewalTimer = null; render(message);
+  }
   function scheduleExpiry() {
-    timer = setTimeout(() => { clear(); void refresh(); }, Math.max(0, snapshot.expiresAt - Date.now()));
+    clearTimeout(timer); clearTimeout(renewalTimer);
+    const remaining = Math.max(0, snapshot.expiresAt - Date.now());
+    // Renew before expiry without inventing authority beyond the server's TTL.
+    // The separate expiry fence still closes features if renewal is late.
+    renewalTimer = setTimeout(() => { renewalTimer = null; void refresh(); },
+      Math.max(0, remaining - Math.min(10000, remaining / 2)));
+    timer = setTimeout(() => { clear(); void refresh(); }, remaining);
   }
   async function refresh() {
     if (!available || !accountId || document.hidden || globalThis.navigator?.onLine === false) { clear(); return; }
     const ticket = ++sequence, owner = accountId;
-    busy = false; clear();
+    busy = false;
+    // Clearing a still-valid decision aborts active Task26 requests through
+    // onChange. Retain it only while a legitimate visible-page renewal runs.
+    if (!snapshot || snapshot.accountId !== owner || snapshot.expiresAt <= Date.now()) clear();
     try {
       const response = await apiGet('/api/features');
       if (ticket !== sequence || owner !== currentId()) return;

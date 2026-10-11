@@ -1,0 +1,78 @@
+{
+  "environment": "isolated_local_pages_d1",
+  "hosted_preview": false,
+  "production": false,
+  "physical_device": false,
+  "results": [
+    {
+      "width": 390,
+      "checks": [
+        "guest_boundary",
+        "correct_answer_mastery",
+        "wrong_answer_course_ai_fallback",
+        "point_details",
+        "reload_persistence",
+        "five_width_light_dark_large_text",
+        "japanese_language_isolation",
+        "real_offline_pending_same_id_reconnect",
+        "accepted_response_loss_retry",
+        "malformed_response_cache_preserved",
+        "kill_switch_hides_optional_mode_base_quiz_retained",
+        "admin_aggregated_diagnostics"
+      ],
+      "passed": true,
+      "runtime_errors": []
+    },
+    {
+      "width": 768,
+      "checks": [
+        "guest_boundary",
+        "correct_answer_mastery",
+        "wrong_answer_course_ai_fallback",
+        "point_details",
+        "reload_persistence",
+        "five_width_light_dark_large_text",
+        "japanese_language_isolation",
+        "kill_switch_hides_optional_mode_base_quiz_retained",
+        "admin_aggregated_diagnostics"
+      ],
+      "passed": true,
+      "runtime_errors": []
+    },
+    {
+      "width": 1366,
+      "checks": [
+        "guest_boundary",
+        "correct_answer_mastery",
+        "wrong_answer_course_ai_fallback",
+        "point_details",
+        "reload_persistence",
+        "five_width_light_dark_large_text",
+        "japanese_language_isolation",
+        "kill_switch_hides_optional_mode_base_quiz_retained",
+        "admin_aggregated_diagnostics"
+      ],
+      "passed": true,
+      "runtime_errors": []
+    },
+    {
+      "width": 1920,
+      "checks": [
+        "guest_boundary",
+        "correct_answer_mastery",
+        "wrong_answer_course_ai_fallback",
+        "point_details",
+        "reload_persistence",
+        "five_width_light_dark_large_text",
+        "japanese_language_isolation",
+        "kill_switch_hides_optional_mode_base_quiz_retained",
+        "admin_aggregated_diagnostics"
+      ],
+      "passed": true,
+      "runtime_errors": []
+    }
+  ],
+  "source_head": "27cdb57f13b5b5f8d5e26c59890bc17b1f2c1a5c",
+  "width_scope": "390,768,1366,1920; resumed remaining cases, not all-five same-head acceptance",
+  "note": "320 prior checkpoint7ee41f2 passed; full final-source matrix is a separate CI gate"
+}

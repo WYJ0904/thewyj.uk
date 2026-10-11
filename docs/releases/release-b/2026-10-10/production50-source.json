@@ -1,0 +1,27 @@
+{
+  "source": "550bc41bbaa01751d75c109f3246b9e174e4460d",
+  "deployment": "575097ca-d940-4100-af6f-cb689518c7b4",
+  "checked_at_utc": "2026-10-10T09:43:36.458654+00:00",
+  "observations": [
+    {
+      "file": "app.js",
+      "sha256": "62efa222f7f38969fddea39ef7e2f5997af946c6b05eebfdae631adc7455ce80",
+      "matches_source": true
+    },
+    {
+      "file": "index.html",
+      "sha256": "8d3a8e54ed00eec29ebac6eb5ea2354d17009c81af65a4b3e670329ace43b0d0",
+      "matches_source": true
+    },
+    {
+      "file": "product-ui.css",
+      "sha256": "bbff0442a14d1dd785546f5282507c1a70a9d3b63e82a496889ac23b861d0969",
+      "matches_source": true
+    },
+    {
+      "file": "sw.js",
+      "sha256": "5e7cc6ee3517d991e7422526be1268dafdc227717637d60bf7b773e4b23f15fc",
+      "matches_source": true
+    }
+  ]
+}

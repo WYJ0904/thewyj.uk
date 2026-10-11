@@ -64,6 +64,7 @@ export function featureFlags(env = {}) {
     task22TransferReads: booleanValue(env.TASK22_TRANSFER_READS_ENABLED, false),
     task22TransferWrites: booleanValue(env.TASK22_TRANSFER_WRITES_ENABLED, false),
     task25FeatureFlags: booleanValue(env.TASK25_FEATURE_FLAGS_ENABLED, false),
+    task26AdaptiveLearning: booleanValue(env.TASK26_ADAPTIVE_LEARNING_ENABLED, false),
     legacyFallback: booleanValue(env.LEGACY_API_FALLBACK_ENABLED, false),
     workersAi: booleanValue(env.WORKERS_AI_ENABLED, false),
     d1RateLimit: booleanValue(env.D1_RATE_LIMIT_ENABLED, true),

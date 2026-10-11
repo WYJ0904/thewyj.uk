@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "observed_at": "2026-10-11T10:43:44.447Z",
+  "scope": "Storage component integration on real Preview WebView, synthetic local owner IDs and entries; this is not a hosted learning event or end-to-end account deletion",
+  "result": {
+    "component_only": true,
+    "actual_indexeddb": true,
+    "cloud_calls": 0,
+    "committed": {
+      "a": 1,
+      "b": 1
+    },
+    "cleared": {
+      "a": 0,
+      "b": 1,
+      "b_event": "9d25a55a-8767-43d3-b74b-b902513f579e"
+    },
+    "expected_b_event": "9d25a55a-8767-43d3-b74b-b902513f579e",
+    "after_remove": 0,
+    "current_real_fixture_before": 0,
+    "current_real_fixture_after": 0
+  }
+}

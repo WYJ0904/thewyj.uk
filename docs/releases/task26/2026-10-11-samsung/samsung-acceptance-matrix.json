@@ -1,0 +1,121 @@
+{
+  "observed_at": "2026-10-11T11:00:55.713Z",
+  "tested_runtime_head": "72661e69a4f97c779935e00a1824f613e9ba0bae",
+  "preview_deployment": "8548bed6-5d55-443b-97c6-c4a6574d52e6",
+  "device": "Samsung SM-S9360 / Android16 / SDK36 / WebView154.0.8037.106",
+  "preview_build": "uk.thewyj.app.preview / 0.0.2-task26-preview (2)",
+  "preview_apk_sha256": "02fcd4d3d010b952953afa6964080e2e6bf72f9f039f07aa4d4759ee656a86cc",
+  "ci_url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/38128462250",
+  "cases": [
+    {
+      "gate": "启动与普通 Web 登录",
+      "status": "PASS",
+      "evidence": "scope-status-after-fix.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    },
+    {
+      "gate": "英语正误 / Mastery",
+      "status": "PASS",
+      "evidence": "actual-english-learning.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    },
+    {
+      "gate": "日语正误 / Mastery",
+      "status": "PASS",
+      "evidence": "actual-japanese-learning.json",
+      "scope": "Grading/invocation only; bad old AI content superseded by grounded retest"
+    },
+    {
+      "gate": "真实断网、force stop、原 ID 恢复",
+      "status": "PASS",
+      "evidence": "real-offline-final.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    },
+    {
+      "gate": "内置 WebView/SW 定向阻断",
+      "status": "PASS",
+      "evidence": "targeted-block-final.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    },
+    {
+      "gate": "接受后丢回执、同 ID 重试去重",
+      "status": "PASS",
+      "evidence": "actual-accepted-response-loss.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    },
+    {
+      "gate": "自然到期的英日复习",
+      "status": "PASS",
+      "evidence": "actual-natural-review.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    },
+    {
+      "gate": "注册 / 登录 / 退出 / A-B / 会员 / 前后台",
+      "status": "PASS",
+      "evidence": "actual-auth-account-isolation.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    },
+    {
+      "gate": "修正后真实 Workers AI 与 OFF 课程回退",
+      "status": "PASS",
+      "evidence": "actual-grounded-ai-and-fallback.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    },
+    {
+      "gate": "三通道 / kill 与恢复",
+      "status": "PASS",
+      "evidence": "actual-channels-and-kill.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    },
+    {
+      "gate": "普通 Quiz / 历史上云 / 受限业务拒绝",
+      "status": "PASS",
+      "evidence": "actual-ordinary-quiz-history-scope.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    },
+    {
+      "gate": "真实手机 Admin / Flags / 只读聚合",
+      "status": "PASS",
+      "evidence": "actual-phone-admin-diagnostics.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    },
+    {
+      "gate": "存储组件：strict IndexedDB 按 owner 清理",
+      "status": "PASS",
+      "evidence": "actual-indexeddb-component-isolation.json",
+      "scope": "Synthetic storage component test, no cloud learning event or end-to-end deletion"
+    },
+    {
+      "gate": "精确云端账户 / 权限 / Flags 清理",
+      "status": "PASS",
+      "evidence": "owned-fixture-cleanup.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    },
+    {
+      "gate": "原业务聚合与六组配置保护",
+      "status": "PASS",
+      "evidence": "post-cleanup-original-data-protection.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    },
+    {
+      "gate": "独立 Preview 本地清理",
+      "status": "PASS",
+      "evidence": "preview-only-local-fixture-cleanup.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    },
+    {
+      "gate": "原 App50 包 / 签名 / 系统权限保护",
+      "status": "PASS",
+      "evidence": "device-original-after-preview-tests.json",
+      "scope": "Actual owned Preview/Samsung or exact remote audit"
+    }
+  ],
+  "preview_gates": "PASS",
+  "cleanup": "PASS",
+  "production_task26": "NOT EXECUTED",
+  "production_original_app50_task26": "NOT EXECUTED",
+  "pr105": "Draft, unmerged at evidence generation",
+  "task26_release_closure": "NOT COMPLETE",
+  "android_hotfix": "NOT STARTED",
+  "finance_ai": "NOT STARTED"
+}

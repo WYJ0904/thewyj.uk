@@ -1,0 +1,135 @@
+{
+  "checked_at_utc": "2026-10-10T09:23:11.933488+00:00",
+  "origin": "https://d4c5f96c.thewyj-uk.pages.dev",
+  "environment": "preview",
+  "acceptance": "PASS",
+  "observations": [
+    {
+      "label": "status",
+      "method": "GET",
+      "http_status": 200,
+      "transport_exit": 0,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "2059",
+        "cache-control": "no-store"
+      },
+      "size_bytes": 2059,
+      "sha256": "f2000f73a727c0755aac227aea80523554e3f488660e0e2bdfadb99828be2586"
+    },
+    {
+      "label": "config",
+      "method": "GET",
+      "http_status": 200,
+      "transport_exit": 0,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "850",
+        "cache-control": "no-store"
+      },
+      "size_bytes": 850,
+      "sha256": "2035483f45c040aa75874edbf67ea335f064cb872ac42865e2d61732d95b672b"
+    },
+    {
+      "label": "download-head",
+      "method": "HEAD",
+      "http_status": 200,
+      "transport_exit": 0,
+      "headers": {
+        "content-type": "application/vnd.android.package-archive",
+        "content-length": "48124983",
+        "cache-control": "private, no-store",
+        "etag": "\"d3ea7a7b8c6882c3b1d7db019066a882\"",
+        "x-apk-sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a"
+      }
+    },
+    {
+      "label": "browser",
+      "method": "GET",
+      "http_status": 200,
+      "transport_exit": 0,
+      "headers": {
+        "content-type": "application/vnd.android.package-archive",
+        "content-length": "48124983",
+        "cache-control": "private, no-store",
+        "etag": "\"d3ea7a7b8c6882c3b1d7db019066a882\"",
+        "x-apk-sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a"
+      },
+      "size_bytes": 48124983,
+      "sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a",
+      "byte_integrity_pass": true
+    },
+    {
+      "label": "native",
+      "method": "GET",
+      "http_status": 200,
+      "transport_exit": 0,
+      "headers": {
+        "content-type": "application/vnd.android.package-archive",
+        "content-length": "48124983",
+        "cache-control": "private, no-store",
+        "etag": "\"d3ea7a7b8c6882c3b1d7db019066a882\"",
+        "x-apk-sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a"
+      },
+      "size_bytes": 48124983,
+      "sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a",
+      "byte_integrity_pass": true
+    },
+    {
+      "label": "webview",
+      "method": "GET",
+      "http_status": 200,
+      "transport_exit": 0,
+      "headers": {
+        "content-type": "application/vnd.android.package-archive",
+        "content-length": "48124983",
+        "cache-control": "private, no-store",
+        "etag": "\"d3ea7a7b8c6882c3b1d7db019066a882\"",
+        "x-apk-sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a"
+      },
+      "size_bytes": 48124983,
+      "sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a",
+      "byte_integrity_pass": true
+    },
+    {
+      "label": "cache-miss",
+      "method": "GET",
+      "http_status": 200,
+      "transport_exit": 0,
+      "headers": {
+        "content-type": "application/vnd.android.package-archive",
+        "content-length": "48124983",
+        "cache-control": "private, no-store",
+        "etag": "\"d3ea7a7b8c6882c3b1d7db019066a882\"",
+        "x-apk-sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a"
+      },
+      "size_bytes": 48124983,
+      "sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a",
+      "byte_integrity_pass": true
+    },
+    {
+      "label": "stale-validator",
+      "method": "GET",
+      "http_status": 200,
+      "transport_exit": 0,
+      "headers": {
+        "content-type": "application/vnd.android.package-archive",
+        "content-length": "48124983",
+        "cache-control": "private, no-store",
+        "etag": "\"d3ea7a7b8c6882c3b1d7db019066a882\"",
+        "x-apk-sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a"
+      },
+      "size_bytes": 48124983,
+      "sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a",
+      "byte_integrity_pass": true
+    }
+  ],
+  "version_name": "1.3.37",
+  "version_code": 50,
+  "apk_sha256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a",
+  "apk_size_bytes": 48124983,
+  "r2_object_inventory_verified": false,
+  "physical_device_acceptance": "NOT_EXECUTED",
+  "records_modified": false,
+  "stable_pointer_modified": false
+}
