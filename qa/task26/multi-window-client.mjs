@@ -19,8 +19,8 @@ const originalListener=globalThis.addEventListener;let requests=0;
 globalThis.addEventListener=(kind,callback)=>handlers.set(kind,callback);
 try{
  const controller=createMasteryController({getAccount:()=>({id:accountId}),getLanguage:()=>language,features:{enabled:()=>true,channel:()=> 'experimental'},storage,locks:{request:async(_key,fn)=>fn()},document,
-  api:async()=>{throw new Error('Storage notifications must not submit another answer');},apiGet:()=>{requests++;return new Promise(()=>{});}});
- controller.update();assert.equal(nodes.masterySubmitBtn.disabled,false);nodes.masteryAnswerInput.value='unfinished draft';
+  journal:{put:async()=>{},list:async()=>[],remove:async()=>{}},api:async()=>{throw new Error('Storage notifications must not submit another answer');},apiGet:()=>{requests++;return new Promise(()=>{});}});
+ controller.update();await new Promise(resolve=>setTimeout(resolve,0));assert.equal(requests,1,'Initial journal recovery must finish before storage notifications');assert.equal(nodes.masterySubmitBtn.disabled,false);nodes.masteryAnswerInput.value='unfinished draft';
  const acknowledged=structuredClone(initial);acknowledged.results.english={ticket_id:question.ticket_id,input,receipt};
  storage.setItem(masteryStorageKey(accountId),JSON.stringify(acknowledged));handlers.get('storage')({key:masteryStorageKey(accountId)});
  assert.equal(nodes.masteryResult.classList.contains('hidden'),false,'Another window acknowledgement must hydrate the receipt');

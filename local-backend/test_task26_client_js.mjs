@@ -33,7 +33,7 @@ let actor={id:owner},enabled=true,submitted=0,released,seen=[];
 const document={hidden:false,getElementById:()=>null,addEventListener:()=>{}};
 const locks={request:async(key,fn)=>fn()};
 const responsePending=new Promise(resolve=>{released=resolve;});
-const controller=createMasteryController({getAccount:()=>actor,getLanguage:()=>language,features:{enabled:()=>enabled,channel:()=> 'stable'},storage,locks,document,
+const controller=createMasteryController({getAccount:()=>actor,getLanguage:()=>language,features:{enabled:()=>enabled,channel:()=> 'stable'},storage,locks,document,journal:{put:async()=>{},list:async()=>[],remove:async()=>{}},
  api:async(route,body)=>{seen.push(body.event_id);submitted++;return responsePending;},apiGet:async()=>summary});
 controller.update();await new Promise(r=>setTimeout(r,10));assert.equal(submitted,1);
 actor={id:'two'};controller.update();released(receipt);await new Promise(r=>setTimeout(r,20));

@@ -1,12 +1,13 @@
-import { getSafeStorage, safeStorageSet } from '../core/storage.js?v=20261011-aeris-task26-r5';
-import { emptyLearningStore, parseLearningStore, masteryStorageKey, parseIssuedQuestion, parseMasterySummary, parseAnswerReceipt, enqueueAnswer, acknowledgeAnswer, acceptSummaryCache } from './mastery-state.js?v=20261011-aeris-task26-r5';
+import { getSafeStorage, safeStorageSet } from '../core/storage.js?v=20261011-aeris-task26-r6';
+import { emptyLearningStore, parseLearningStore, masteryStorageKey, parseIssuedQuestion, parseMasterySummary, parseAnswerReceipt, enqueueAnswer, acknowledgeAnswer, acceptSummaryCache } from './mastery-state.js?v=20261011-aeris-task26-r6';
+import {createMasteryJournal} from './mastery-journal.js?v=20261011-aeris-task26-r6';
 
 const LABELS={new:'尚未学习',learning:'学习中',familiar:'较熟悉',mastered:'已掌握',needs_review:'待复习'};
 const REASONS={new:'新知识',weak:'巩固弱项',due:'到期复习',learning:'继续学习',spot:'掌握抽查'};
 const time=value=>value?new Date(value).toLocaleString('zh-CN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'尚无安排';
-export function createMasteryController({getAccount,getLanguage,features,api,apiGet,document=globalThis.document,storage=getSafeStorage(),locks=globalThis.navigator?.locks}){
+export function createMasteryController({getAccount,getLanguage,features,api,apiGet,document=globalThis.document,storage=getSafeStorage(),locks=globalThis.navigator?.locks,journal=createMasteryJournal()}){
  const node=id=>document.getElementById(id),text=(id,value)=>{if(node(id))node(id).textContent=value;};
- let owner='',lang='',signature='',generation=0,identityGeneration=0,store=null,question=null,receipt=null,summary=null,mode='adaptive',busy=false,syncing=false,message='',cached=false,controller=null,round=[];
+ let owner='',lang='',signature='',generation=0,identityGeneration=0,store=null,question=null,receipt=null,summary=null,mode='adaptive',busy=false,syncing=false,recovering=false,message='',cached=false,controller=null,round=[];
  const currentOwner=()=>String(getAccount()?.id||''),currentLang=()=>['english','japanese'].includes(getLanguage())?getLanguage():'english';
  const live=ticket=>ticket===generation&&owner===currentOwner()&&lang===currentLang();
  const allowed=()=>features.enabled('mastery_score')&&features.enabled('adaptive_learning');
@@ -56,8 +57,8 @@ export function createMasteryController({getAccount,getLanguage,features,api,api
   text('masteryOverview',summary?`已学习 ${summary.summary.studied_count} 个知识点 · 平均掌握度 ${Math.round(summary.summary.average_mastery)}/100`:'从第一道题开始积累掌握度');
   text('masteryCounts',summary?`已掌握 ${summary.summary.mastered_count} · 学习中 ${summary.summary.learning_count} · 待复习 ${summary.summary.due_count} · 尚未学习 ${summary.summary.new_count}`:'既有测验、错题和历史保留；新的掌握度从有效答题开始。');
   node('masteryReviewArea')?.classList.toggle('hidden',!features.enabled('adaptive_review'));
-  for(const id of ['masteryStartBtn','masteryWeakBtn','masteryReviewBtn'])node(id)?.toggleAttribute('disabled',busy||syncing||!online||!allowed()||pending.length>0);
-  node('masteryReviewBtn')?.toggleAttribute('disabled',busy||syncing||!online||!allowed()||!features.enabled('adaptive_review')||pending.length>0);
+  for(const id of ['masteryStartBtn','masteryWeakBtn','masteryReviewBtn'])node(id)?.toggleAttribute('disabled',busy||syncing||recovering||!online||!allowed()||pending.length>0);
+  node('masteryReviewBtn')?.toggleAttribute('disabled',busy||syncing||recovering||!online||!allowed()||!features.enabled('adaptive_review')||pending.length>0);
   node('masteryRetryBtn')?.toggleAttribute('disabled',busy||syncing||!online||!allowed());
   node('masteryQuiz')?.classList.toggle('hidden',!question);
   if(question){
@@ -97,9 +98,11 @@ export function createMasteryController({getAccount,getLanguage,features,api,api
    store=load(accountId);
    for(const entry of [...store.outbox]){
     if(!live(ticket)||!allowed())return;
+    await journal.put(accountId,entry,store.questions[entry.language]?.question);if(!live(ticket))return;
     const response=await api('/api/learning/events',entry.input,{controller});if(!live(ticket))return;
     const parsed=parseAnswerReceipt(response,entry.input,accountId,entry.language);if(!parsed)throw new Error('答题响应不完整，事件仍保留为待同步，请重试。');
     await persist(s=>acknowledgeAnswer(s,entry,parsed));if(!live(ticket))return;
+    await journal.remove(accountId,entry.input.event_id);if(!live(ticket))return;
     if(entry.language===lang&&entry.input.ticket_id===question?.ticket_id){receipt=parsed;if(!round.some(r=>r.event_id===parsed.event_id))round.push(parsed);}
    }
    message='答题已同步';await refresh();
@@ -107,7 +110,7 @@ export function createMasteryController({getAccount,getLanguage,features,api,api
   finally{if(live(ticket)){syncing=false;busy=false;render();}}
  }
  async function start(nextMode='adaptive',knowledgeId){
-  if(busy||syncing||!owner||!allowed()||globalThis.navigator?.onLine===false||store?.outbox.some(e=>e.language===lang))return;
+  if(busy||syncing||recovering||!owner||!allowed()||globalThis.navigator?.onLine===false||store?.outbox.some(e=>e.language===lang))return;
   const ticket=generation;busy=true;mode=nextMode;message='正在选择下一题…';render();
   try{
    const response=await api('/api/learning/adaptive/next',{language:lang,mode,...(knowledgeId?{knowledge_id:knowledgeId}:{})},{controller});if(!live(ticket))return;
@@ -121,11 +124,12 @@ export function createMasteryController({getAccount,getLanguage,features,api,api
   finally{if(live(ticket)){busy=false;render();if(question&&!receipt)node('masteryAnswerInput')?.focus({preventScroll:true});}}
  }
  async function submit(event){
-  event?.preventDefault();if(busy||receipt||!question||!owner||!store)return;
+  event?.preventDefault();if(busy||recovering||receipt||!question||!owner||!store)return;
   const answer=node('masteryAnswerInput')?.value.trim();if(!answer){message='请先填写答案。';render();return;}
   const ticket=generation;busy=true;
   try{
    const started=store.questions[lang]?.started_at||Date.now(),entry={language:lang,input:{event_id:crypto.randomUUID(),ticket_id:question.ticket_id,kind:'answer_submitted',answer,response_ms:Math.min(600000,Math.max(0,Math.round(Date.now()-started)))}};
+   await journal.put(owner,entry,question);if(!live(ticket))return;
    await persist(s=>enqueueAnswer(s,entry));if(!live(ticket))return;message='答题已保存，等待服务端判断。';busy=false;render();await sync();
   }catch(error){if(live(ticket))message=error.message;}
   finally{if(live(ticket)){busy=false;render();}}
@@ -157,9 +161,26 @@ export function createMasteryController({getAccount,getLanguage,features,api,api
   if(switched){identityGeneration++;round=[];question=null;receipt=null;summary=null;node('masteryDetail')?.classList.add('hidden');text('masteryAiExplanation','');if(node('masteryAnswerInput'))node('masteryAnswerInput').value='';}
   message='';store=null;
   if(owner){try{store=load(owner);question=store.questions[lang]?.question||null;mode=store.questions[lang]?.mode||'adaptive';
-   const saved=store.results[lang];receipt=saved?.ticket_id===question?.ticket_id?parseAnswerReceipt(saved.receipt,saved.input,owner,lang):null;
+   const saved=store.results[lang];receipt=saved&&question&&saved.ticket_id===question.ticket_id?parseAnswerReceipt(saved.receipt,saved.input,owner,lang):null;
    summary=store.cache[lang]||null;cached=Boolean(summary);}catch(error){message=error.message;}}
-  render();if(owner&&allowed()&&store){if(store.outbox.length)void sync();else void refresh();}
+  recovering=Boolean(owner&&store);render();if(recovering)void recoverJournal(generation);
+ }
+ async function recoverJournal(ticket){
+  const accountId=owner;
+  try{
+   const pending=await journal.list(accountId);if(!live(ticket))return;
+   if(pending.length)await persist(s=>{for(const row of pending){
+    if(s.results[row.entry.language]?.receipt?.event_id===row.event_id)continue;
+    if(!s.outbox.some(e=>e.input.event_id===row.event_id))s=enqueueAnswer(s,row.entry);
+    if(s.questions[row.entry.language]?.question.ticket_id!==row.entry.input.ticket_id)s.questions[row.entry.language]={question:row.question,started_at:Date.now(),mode:'adaptive'};
+   }return s;});
+   if(!live(ticket))return;question=store.questions[lang]?.question||null;
+   const saved=store.results[lang];receipt=saved&&question&&saved.ticket_id===question.ticket_id?parseAnswerReceipt(saved.receipt,saved.input,owner,lang):null;
+   const queued=store.outbox.find(e=>e.language===lang&&e.input.ticket_id===question?.ticket_id);
+   if(queued&&node('masteryAnswerInput'))node('masteryAnswerInput').value=queued.input.answer;
+   recovering=false;if(allowed()){if(store.outbox.length)await sync();else await refresh();}
+  }catch(error){if(live(ticket))message=error.message;}
+  if(live(ticket)){recovering=false;render();}
  }
  node('masteryStartBtn')?.addEventListener('click',()=>void start());node('masteryWeakBtn')?.addEventListener('click',()=>void start('weak'));
  node('masteryReviewBtn')?.addEventListener('click',()=>void start('review'));node('masteryNextBtn')?.addEventListener('click',()=>void start(mode));
@@ -170,7 +191,7 @@ export function createMasteryController({getAccount,getLanguage,features,api,api
   if(!owner||event.key!==masteryStorageKey(owner))return;
   try{
    const incoming=load(owner),nextQuestion=incoming.questions[lang]?.question||null,saved=incoming.results[lang];
-   const nextReceipt=saved?.ticket_id===nextQuestion?.ticket_id?parseAnswerReceipt(saved.receipt,saved.input,owner,lang):null;
+   const nextReceipt=saved&&nextQuestion&&saved.ticket_id===nextQuestion.ticket_id?parseAnswerReceipt(saved.receipt,saved.input,owner,lang):null;
    const ticketChanged=question?.ticket_id!==nextQuestion?.ticket_id;
    if(ticketChanged||receipt?.event_id!==nextReceipt?.event_id){
     generation++;controller?.abort();controller=new AbortController();busy=false;syncing=false;
