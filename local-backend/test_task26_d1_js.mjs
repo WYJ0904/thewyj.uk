@@ -162,13 +162,13 @@ try{
  let explanation=await expect(200,'/api/learning/explanation',{method:'POST',body:{event_id:wrongId}});assert.equal(explanation.ai,null);assert.equal(explanation.explanation.source,'course');
  await flag('ai_error_explanation');explanation=await expect(200,'/api/learning/explanation',{method:'POST',body:{event_id:wrongId}});assert.equal(explanation.ai_status,'fallback');
  check('AI is post-answer and account scoped; unavailable AI returns deterministic course explanation');
- let calls=0;const aiEnv={WORKERS_AI_ENABLED:'true',AI:{run:async()=>{calls++;return {response:{why:'这是课程规则对应的错误。',rule:'保留已确定的规则。',example:'A reviewed example.',contrast:'区分题目类型。'}};}}};
+ let calls=0;const aiEnv={WORKERS_AI_ENABLED:'true',AI:{run:async(_model,options)=>{calls++;const facts=JSON.parse(options.messages.at(-1).content);return {response:{why:`本题应填写${facts.answer}。`,rule:facts.rule,example:facts.example,contrast:facts.contrast}};}}};
  const beforeAi=(await summary()).points;
  explanation=await expect(200,'/api/learning/explanation',{method:'POST',body:{event_id:wrongId},environment:aiEnv});assert.equal(explanation.ai_status,'generated');
  explanation=await expect(200,'/api/learning/explanation',{method:'POST',body:{event_id:wrongId},environment:aiEnv});assert.equal(explanation.ai_status,'cached');assert.equal(calls,1);
  assert.deepEqual((await summary()).points,beforeAi);check('existing Workers AI cache/quota integration never changes correctness or mastery');
  await db.exec("DELETE FROM task15_ai_cache");
- for(const response of [{response:''},{response:{why:'wrong',rule:'rule',example:'',contrast:'',score:100}},{response:null}]){
+ for(const response of [{response:''},{response:{why:'wrong',rule:'rule',example:'',contrast:'',score:100}},{response:{why:'私可以指家人或亲属。',rule:'私：我或家人',example:'私には家族がいます。',contrast:''}},{response:null}]){
   explanation=await expect(200,'/api/learning/explanation',{method:'POST',body:{event_id:wrongId},environment:{WORKERS_AI_ENABLED:'true',AI:{run:async()=>response}}});assert.equal(explanation.ai_status,'fallback');
  }
  check('empty/malformed/authority-changing AI output fails to a safe course explanation');

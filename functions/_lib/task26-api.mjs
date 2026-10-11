@@ -46,16 +46,18 @@ async function explanation(context,actor,input,snapshot){
  if(event.correct===1||!snapshot.flags.ai_error_explanation?.enabled)return result;
  try{
   const keys=['why','rule','example','contrast'];
+  const contrast=snapshot.flags.similar_word_explanation?.enabled?local.confusion||'':'';
   const validate=value=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===keys.length
-   &&keys.every(k=>typeof value[k]==='string'&&value[k].length<=800)&&value.why.trim().length>0&&value.rule.trim().length>0;
-  const normalizedInput={task:'task26_error_explanation_v1',course_version:COURSE_VERSION,knowledge_id:point.id,question_id:question.id,mistake:event.mistake_code,
-   prompt:question.prompt,answer:question.answers.join(' / '),rule:local.rule,example:local.example,
-   confusion:snapshot.flags.similar_word_explanation?.enabled?point.confusion:null};
+   &&keys.every(k=>typeof value[k]==='string'&&value[k].length<=800)&&value.why.trim().length>0
+   &&value.rule===local.rule&&value.example===local.example&&value.contrast===contrast
+   &&question.answers.some(answer=>value.why.includes(answer));
+  const normalizedInput={task:'task26_grounded_explanation_v2',course_version:COURSE_VERSION,knowledge_id:point.id,question_id:question.id,question_kind:question.kind,instruction:question.instruction,mistake:event.mistake_code,
+   prompt:question.prompt,answer:question.answers.join(' / '),rule:local.rule,example:local.example,contrast};
   // The existing cache has a fixed category CHECK. Use its rubric category with
   // an explicit Task26 key namespace; no legacy table rebuild or cache mutation.
   const ai=await runStructuredAi(context,{account:actor,taskType:'rubric',normalizedInput,validate,timeoutMs:3000,maxTokens:700,
-   schema:{type:'object',additionalProperties:false,required:keys,properties:Object.fromEntries(keys.map(k=>[k,{type:'string',maxLength:800}]))},
-   messages:[{role:'system',content:'你是英语/日语学习辅导。课程答案和规则已经确定，不得重判或输出分数。用简洁中文解释已确定的错误，提供对比和例句。只输出指定 JSON 字段，不输出 HTML。不得声称知道未提供的用户原始答案。'},
+   schema:{type:'object',additionalProperties:false,required:keys,properties:{why:{type:'string',maxLength:800},rule:{type:'string',enum:[local.rule]},example:{type:'string',enum:[local.example]},contrast:{type:'string',enum:[contrast]}}},
+   messages:[{role:'system',content:'你是英语/日语学习辅导。answer、rule、example、contrast 是已审核的课程事实。rule、example、contrast 必须逐字原样返回；为空也必须为空。why 只针对 question_kind 和 instruction 解释为何应写出给定 answer，必须包含至少一个给定答案。不增加词义、读音、语法或事实，不猜测用户原始答案，不重判，不输出分数。特别注意 reading 是读音题、spelling 是拼写题，不能误当词义题。只输出指定 JSON，不输出 HTML。不确定时不要编造。'},
     {role:'user',content:JSON.stringify(normalizedInput)}]});
   result.ai={source:'workers_ai',...ai.result};result.ai_status=ai.cacheHit?'cached':'generated';
  }catch(error){result.ai_status='fallback';result.fallback_code=String(error?.code||'ai_unavailable').slice(0,80);}
