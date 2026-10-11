@@ -1,0 +1,13 @@
+{
+  "scope": "Authorized Task26 Production release eligibility after actual Preview/Samsung/cleanup PASS",
+  "only_changes": [
+    "vars.TASK26_ADAPTIVE_LEARNING_ENABLED false->true",
+    "env.production.vars.TASK26_ADAPTIVE_LEARNING_ENABLED false->true"
+  ],
+  "preview_unchanged": true,
+  "all_other_config_and_bindings_equal": true,
+  "android_metadata_equal": true,
+  "seeded_five_flags": "OFF/0%/Experimental unchanged",
+  "remote_runtime_changed": false,
+  "production_git_publication_held": true
+}
