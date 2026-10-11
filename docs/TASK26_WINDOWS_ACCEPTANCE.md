@@ -1,3 +1,5 @@
+> Current continuation: [2026-10-11 Samsung Preview acceptance](TASK26_SAMSUNG_ACCEPTANCE.md) supersedes historical device-deferred/Preview-not-run statuses below. Runtime72661e6 passed actual Preview/Samsung gates and cleanup; Production release and final Release Closure are still pending. Historical failures and earlier delivery evidence are retained.
+
 # Task 26 — Windows 电脑端验收与待真机交接
 
 2026-10-11，香港时间。**电脑端可执行验收与清理已完成；Task 26 NOT RELEASED，不能作为 FINAL RELEASE CLOSURE。** 用户现已授权正式发布，旧 USER HOLD 已解除；最新指令暂不提供手机，保留真实设备与完整网络恢复门禁。Task 26 完整发布及 Closure 后才依次开始 Android Hotfix、财务 AI，两项均未启动。

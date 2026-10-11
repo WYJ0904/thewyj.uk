@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "observed_at": "2026-10-11T10:52:39.427Z",
+  "account_id": "75910d63-30ec-4d0d-9ebb-4a98b66f7679",
+  "role": "admin",
+  "super_admin": false,
+  "diagnostics": {
+    "metrics": "算法 mastery-v1\n待恢复进度 0\nanswer_correct: 18\nanswer_incorrect: 8\nanswer_submitted: 26\nexplanation_opened: 7\nquestion_shown: 35\nreview_completed: 7\nreview_started: 7\n掌握度 0–19: 12\n掌握度 20–39: 3",
+    "owner_role_controls_visible": false,
+    "flag_count": 11
+  },
+  "ordinary_status": 403,
+  "owner_only_status": 403,
+  "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-preview-admin-metrics.png",
+  "arbitrary_score_edit": false
+}

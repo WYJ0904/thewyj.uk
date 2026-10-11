@@ -1,0 +1,14 @@
+{
+  "observed_at": "2026-10-11T12:59:15.487Z",
+  "cloudflare_account_id": "97c274a981e8dd6703aa6388e11c4614",
+  "pages_project": "thewyj-uk",
+  "production_branch": "main",
+  "before_automatic_production_builds": true,
+  "after_automatic_production_builds": false,
+  "preview_branch_control": "All non-production branches retained",
+  "method": "Normal authenticated Cloudflare dashboard branch-control form; no secret or binding change",
+  "purpose": "Hold Production Git publication until merged main exact CI and D1 preflight/bookmark/0025 verification; preserve old serving deployment",
+  "runtime_deployment_before": "575097ca-d940-4100-af6f-cb689518c7b4",
+  "production_user_data_mutations": 0,
+  "restore_requirement": "Restore Production automatic builds after controlled deployment/smoke and acceptance; do not leave a permanent release hold"
+}

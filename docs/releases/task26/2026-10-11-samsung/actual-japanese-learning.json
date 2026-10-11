@@ -1,0 +1,738 @@
+{
+  "observed_at": "2026-10-11T08:29:39.554Z",
+  "device": "SM-S9360 / Android16",
+  "preview_build": "0.0.2-task26-preview",
+  "status": "PASS",
+  "language": "japanese",
+  "account_id": "dff88654-0358-458f-b382-0a52e71b07ad",
+  "correct": {
+    "preserved_actual_phone_receipt": {
+      "ok": true,
+      "event_id": "5bb6a58d-950e-403f-9404-06ef3cdc7602",
+      "correct": true,
+      "mistake_code": "",
+      "score_before": 0,
+      "score_after": 8.55,
+      "score_delta": 8.55,
+      "algorithm_version": "mastery-v1",
+      "event_seq": 56,
+      "acknowledged": true,
+      "account_id": "dff88654-0358-458f-b382-0a52e71b07ad",
+      "language": "japanese",
+      "mastery": {
+        "algorithm_version": "mastery-v1",
+        "state_version": 1,
+        "score": 8.55,
+        "confidence": 0.2,
+        "attempt_count": 1,
+        "correct_count": 1,
+        "incorrect_count": 0,
+        "effective_attempt_count": 1,
+        "consecutive_correct": 1,
+        "consecutive_incorrect": 0,
+        "last_response_ms": 414758,
+        "average_response_ms": 414758,
+        "last_reviewed_at": null,
+        "next_review_at": "2026-10-11T09:19:23.278Z",
+        "last_update_at": "2026-10-11T08:19:23.278Z",
+        "review_count": 0,
+        "first_effective_at": "2026-10-11T08:19:23.278Z",
+        "evidence_days": [
+          "2026-10-11"
+        ],
+        "families": [
+          "reading"
+        ],
+        "recent": [
+          {
+            "question_id": "japanese:vocabulary:雪:reading",
+            "family": "reading",
+            "at": "2026-10-11T08:19:23.278Z",
+            "correct": true,
+            "effective": true
+          }
+        ],
+        "question_stats": {
+          "japanese:vocabulary:雪:reading": {
+            "attempt_count": 1,
+            "correct_count": 1,
+            "last_effective_at": "2026-10-11T08:19:23.278Z"
+          }
+        },
+        "effective_day": "2026-10-11",
+        "daily_effective_count": 1,
+        "last_event_seq": 56,
+        "overdue": false,
+        "state": "learning",
+        "review_priority": 35.435
+      },
+      "knowledge": {
+        "id": "japanese:vocabulary:雪",
+        "label": "雪",
+        "kind": "vocabulary",
+        "reading": "ゆき",
+        "gloss": "雪"
+      },
+      "correct_answer": "ゆき",
+      "explanation": {
+        "source": "course",
+        "rule": "雪：雪",
+        "why": "本题考查雪的读音：ゆき。",
+        "example": "雪が降っています。",
+        "translation": "正在下雪。",
+        "reading": "ゆき",
+        "confusion": "",
+        "suggestion": "稍后复习雪，再尝试同一知识点的其他题型。"
+      },
+      "request_id": "8260ff8c-7ef3-4de2-9456-46bcc24480dc"
+    },
+    "not_resubmitted": true
+  },
+  "incorrect": {
+    "question": {
+      "prompt": "私",
+      "instruction": "写出中文含义"
+    },
+    "expected_correct": false,
+    "result": {
+      "title": "还需要练习",
+      "delta": "掌握度 0 → 0（+0）",
+      "review_at": "下次复习：10月11日 16:39",
+      "overview": "已学习 2 个知识点 · 平均掌握度 4/100",
+      "sync": "服务端已同步 · 10月11日 16:29"
+    }
+  },
+  "ai_text": "AI 辅助解析：因为私可以指代家人或亲属，不能仅仅理解为‘我’。 私：我或家人 私には家族がいます。 私通常指的是‘我’或‘自己’，但也可以指‘家人’或‘亲属’，具体取决于上下文。",
+  "explanation": {
+    "ok": true,
+    "event_id": "816231f2-5aa1-41ca-9c4b-925469c12978",
+    "correct": false,
+    "explanation": {
+      "source": "course",
+      "rule": "私：我",
+      "why": "本题的课程答案是我。",
+      "example": "私は日本語を勉強します。",
+      "translation": "我学习日语。",
+      "reading": "わたし",
+      "confusion": "",
+      "suggestion": "稍后复习私，再尝试同一知识点的其他题型。"
+    },
+    "ai": {
+      "source": "workers_ai",
+      "contrast": "私通常指的是‘我’或‘自己’，但也可以指‘家人’或‘亲属’，具体取决于上下文。",
+      "example": "私には家族がいます。",
+      "rule": "私：我或家人",
+      "why": "因为私可以指代家人或亲属，不能仅仅理解为‘我’。"
+    },
+    "ai_status": "generated",
+    "request_id": "f889adaa-7570-448d-b35d-3c58539904f9"
+  },
+  "receipts": [
+    {
+      "ok": true,
+      "event_id": "816231f2-5aa1-41ca-9c4b-925469c12978",
+      "correct": false,
+      "mistake_code": "meaning_mismatch",
+      "score_before": 0,
+      "score_after": 0,
+      "score_delta": 0,
+      "algorithm_version": "mastery-v1",
+      "event_seq": 66,
+      "acknowledged": true,
+      "account_id": "dff88654-0358-458f-b382-0a52e71b07ad",
+      "language": "japanese",
+      "mastery": {
+        "algorithm_version": "mastery-v1",
+        "state_version": 1,
+        "score": 0,
+        "confidence": 0.13,
+        "attempt_count": 1,
+        "correct_count": 0,
+        "incorrect_count": 1,
+        "effective_attempt_count": 1,
+        "consecutive_correct": 0,
+        "consecutive_incorrect": 1,
+        "last_response_ms": 336,
+        "average_response_ms": 336,
+        "last_reviewed_at": null,
+        "next_review_at": "2026-10-11T08:39:30.740Z",
+        "last_update_at": "2026-10-11T08:29:30.740Z",
+        "review_count": 0,
+        "first_effective_at": "2026-10-11T08:29:30.740Z",
+        "evidence_days": [
+          "2026-10-11"
+        ],
+        "families": [
+          "meaning"
+        ],
+        "recent": [
+          {
+            "question_id": "japanese:vocabulary:私:meaning",
+            "family": "meaning",
+            "at": "2026-10-11T08:29:30.740Z",
+            "correct": false,
+            "effective": true
+          }
+        ],
+        "question_stats": {
+          "japanese:vocabulary:私:meaning": {
+            "attempt_count": 1,
+            "correct_count": 0,
+            "last_effective_at": "2026-10-11T08:29:30.740Z"
+          }
+        },
+        "effective_day": "2026-10-11",
+        "daily_effective_count": 1,
+        "last_event_seq": 66,
+        "overdue": false,
+        "state": "learning",
+        "review_priority": 43.7
+      },
+      "knowledge": {
+        "id": "japanese:vocabulary:私",
+        "label": "私",
+        "kind": "vocabulary",
+        "reading": "わたし",
+        "gloss": "我"
+      },
+      "correct_answer": "我",
+      "explanation": {
+        "source": "course",
+        "rule": "私：我",
+        "why": "本题的课程答案是我。",
+        "example": "私は日本語を勉強します。",
+        "translation": "我学习日语。",
+        "reading": "わたし",
+        "confusion": "",
+        "suggestion": "稍后复习私，再尝试同一知识点的其他题型。"
+      },
+      "request_id": "97b0d26d-f4d6-4dff-850c-921d0fcd84b9"
+    }
+  ],
+  "server_network_records": [
+    {
+      "route": "/api/learning/sync",
+      "body": {
+        "ok": true,
+        "schema_version": 1,
+        "server_version": 3,
+        "next_since_version": 3,
+        "has_more": false,
+        "reset_required": false,
+        "accepted_count": 0,
+        "merged_count": 0,
+        "results": [],
+        "changes": [],
+        "request_id": "fddad1d6-ec54-451e-83c6-fb608b2bb5bc"
+      }
+    },
+    {
+      "route": "/api/learning/sync",
+      "body": {
+        "ok": true,
+        "schema_version": 1,
+        "server_version": 3,
+        "next_since_version": 3,
+        "has_more": false,
+        "reset_required": false,
+        "accepted_count": 0,
+        "merged_count": 0,
+        "results": [],
+        "changes": [],
+        "request_id": "d7533bed-793a-46d9-84be-9bf4f11b12e9"
+      }
+    },
+    {
+      "route": "/api/learning/mastery/summary",
+      "body": {
+        "ok": true,
+        "account_id": "dff88654-0358-458f-b382-0a52e71b07ad",
+        "language": "japanese",
+        "algorithm_version": "mastery-v1",
+        "state_version": 1,
+        "observed_at": "2026-10-11T08:29:22.362Z",
+        "projection_pending": false,
+        "summary": {
+          "studied_count": 1,
+          "catalog_total": 35,
+          "new_count": 34,
+          "average_mastery": 8.6,
+          "mastered_count": 0,
+          "due_count": 0,
+          "learning_count": 1
+        },
+        "points": [
+          {
+            "knowledge_id": "japanese:vocabulary:雪",
+            "label": "雪",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 8.55,
+            "confidence": 0.2,
+            "attempt_count": 1,
+            "correct_count": 1,
+            "incorrect_count": 0,
+            "effective_attempt_count": 1,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 414758,
+            "average_response_ms": 414758,
+            "last_reviewed_at": null,
+            "next_review_at": "2026-10-11T09:19:23.278Z",
+            "last_update_at": "2026-10-11T08:19:23.278Z",
+            "review_count": 0,
+            "first_effective_at": "2026-10-11T08:19:23.278Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "reading"
+            ],
+            "recent": [
+              {
+                "question_id": "japanese:vocabulary:雪:reading",
+                "family": "reading",
+                "at": "2026-10-11T08:19:23.278Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "japanese:vocabulary:雪:reading": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:19:23.278Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 1,
+            "last_event_seq": 56,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 35.435
+          }
+        ],
+        "weak_points": [
+          {
+            "knowledge_id": "japanese:vocabulary:雪",
+            "label": "雪",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 8.55,
+            "confidence": 0.2,
+            "attempt_count": 1,
+            "correct_count": 1,
+            "incorrect_count": 0,
+            "effective_attempt_count": 1,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 414758,
+            "average_response_ms": 414758,
+            "last_reviewed_at": null,
+            "next_review_at": "2026-10-11T09:19:23.278Z",
+            "last_update_at": "2026-10-11T08:19:23.278Z",
+            "review_count": 0,
+            "first_effective_at": "2026-10-11T08:19:23.278Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "reading"
+            ],
+            "recent": [
+              {
+                "question_id": "japanese:vocabulary:雪:reading",
+                "family": "reading",
+                "at": "2026-10-11T08:19:23.278Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "japanese:vocabulary:雪:reading": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:19:23.278Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 1,
+            "last_event_seq": 56,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 35.435
+          }
+        ],
+        "recent_mistakes": [],
+        "request_id": "9deb805c-8445-4b76-8dd4-0533a08859cb"
+      }
+    },
+    {
+      "route": "/api/learning/adaptive/next",
+      "body": {
+        "ok": true,
+        "question": {
+          "ticket_id": "96302795-b3f9-4aac-b646-6bf042a2a0ae",
+          "language": "japanese",
+          "kind": "meaning",
+          "prompt": "私",
+          "instruction": "写出中文含义",
+          "knowledge_label": "私",
+          "reason": "new",
+          "expires_at": "2026-10-18T08:29:27.563Z"
+        },
+        "algorithm_version": "mastery-v1",
+        "request_id": "f5e1bdda-6866-4093-880b-c8a8cf918772"
+      }
+    },
+    {
+      "route": "/api/learning/events",
+      "body": {
+        "ok": true,
+        "event_id": "816231f2-5aa1-41ca-9c4b-925469c12978",
+        "correct": false,
+        "mistake_code": "meaning_mismatch",
+        "score_before": 0,
+        "score_after": 0,
+        "score_delta": 0,
+        "algorithm_version": "mastery-v1",
+        "event_seq": 66,
+        "acknowledged": true,
+        "account_id": "dff88654-0358-458f-b382-0a52e71b07ad",
+        "language": "japanese",
+        "mastery": {
+          "algorithm_version": "mastery-v1",
+          "state_version": 1,
+          "score": 0,
+          "confidence": 0.13,
+          "attempt_count": 1,
+          "correct_count": 0,
+          "incorrect_count": 1,
+          "effective_attempt_count": 1,
+          "consecutive_correct": 0,
+          "consecutive_incorrect": 1,
+          "last_response_ms": 336,
+          "average_response_ms": 336,
+          "last_reviewed_at": null,
+          "next_review_at": "2026-10-11T08:39:30.740Z",
+          "last_update_at": "2026-10-11T08:29:30.740Z",
+          "review_count": 0,
+          "first_effective_at": "2026-10-11T08:29:30.740Z",
+          "evidence_days": [
+            "2026-10-11"
+          ],
+          "families": [
+            "meaning"
+          ],
+          "recent": [
+            {
+              "question_id": "japanese:vocabulary:私:meaning",
+              "family": "meaning",
+              "at": "2026-10-11T08:29:30.740Z",
+              "correct": false,
+              "effective": true
+            }
+          ],
+          "question_stats": {
+            "japanese:vocabulary:私:meaning": {
+              "attempt_count": 1,
+              "correct_count": 0,
+              "last_effective_at": "2026-10-11T08:29:30.740Z"
+            }
+          },
+          "effective_day": "2026-10-11",
+          "daily_effective_count": 1,
+          "last_event_seq": 66,
+          "overdue": false,
+          "state": "learning",
+          "review_priority": 43.7
+        },
+        "knowledge": {
+          "id": "japanese:vocabulary:私",
+          "label": "私",
+          "kind": "vocabulary",
+          "reading": "わたし",
+          "gloss": "我"
+        },
+        "correct_answer": "我",
+        "explanation": {
+          "source": "course",
+          "rule": "私：我",
+          "why": "本题的课程答案是我。",
+          "example": "私は日本語を勉強します。",
+          "translation": "我学习日语。",
+          "reading": "わたし",
+          "confusion": "",
+          "suggestion": "稍后复习私，再尝试同一知识点的其他题型。"
+        },
+        "request_id": "97b0d26d-f4d6-4dff-850c-921d0fcd84b9"
+      }
+    },
+    {
+      "route": "/api/learning/mastery/summary",
+      "body": {
+        "ok": true,
+        "account_id": "dff88654-0358-458f-b382-0a52e71b07ad",
+        "language": "japanese",
+        "algorithm_version": "mastery-v1",
+        "state_version": 1,
+        "observed_at": "2026-10-11T08:29:33.993Z",
+        "projection_pending": false,
+        "summary": {
+          "studied_count": 2,
+          "catalog_total": 35,
+          "new_count": 33,
+          "average_mastery": 4.3,
+          "mastered_count": 0,
+          "due_count": 0,
+          "learning_count": 2
+        },
+        "points": [
+          {
+            "knowledge_id": "japanese:vocabulary:私",
+            "label": "私",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 0,
+            "confidence": 0.13,
+            "attempt_count": 1,
+            "correct_count": 0,
+            "incorrect_count": 1,
+            "effective_attempt_count": 1,
+            "consecutive_correct": 0,
+            "consecutive_incorrect": 1,
+            "last_response_ms": 336,
+            "average_response_ms": 336,
+            "last_reviewed_at": null,
+            "next_review_at": "2026-10-11T08:39:30.740Z",
+            "last_update_at": "2026-10-11T08:29:30.740Z",
+            "review_count": 0,
+            "first_effective_at": "2026-10-11T08:29:30.740Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "japanese:vocabulary:私:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T08:29:30.740Z",
+                "correct": false,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "japanese:vocabulary:私:meaning": {
+                "attempt_count": 1,
+                "correct_count": 0,
+                "last_effective_at": "2026-10-11T08:29:30.740Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 1,
+            "last_event_seq": 66,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 43.7
+          },
+          {
+            "knowledge_id": "japanese:vocabulary:雪",
+            "label": "雪",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 8.55,
+            "confidence": 0.2,
+            "attempt_count": 1,
+            "correct_count": 1,
+            "incorrect_count": 0,
+            "effective_attempt_count": 1,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 414758,
+            "average_response_ms": 414758,
+            "last_reviewed_at": null,
+            "next_review_at": "2026-10-11T09:19:23.278Z",
+            "last_update_at": "2026-10-11T08:19:23.278Z",
+            "review_count": 0,
+            "first_effective_at": "2026-10-11T08:19:23.278Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "reading"
+            ],
+            "recent": [
+              {
+                "question_id": "japanese:vocabulary:雪:reading",
+                "family": "reading",
+                "at": "2026-10-11T08:19:23.278Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "japanese:vocabulary:雪:reading": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:19:23.278Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 1,
+            "last_event_seq": 56,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 35.435
+          }
+        ],
+        "weak_points": [
+          {
+            "knowledge_id": "japanese:vocabulary:私",
+            "label": "私",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 0,
+            "confidence": 0.13,
+            "attempt_count": 1,
+            "correct_count": 0,
+            "incorrect_count": 1,
+            "effective_attempt_count": 1,
+            "consecutive_correct": 0,
+            "consecutive_incorrect": 1,
+            "last_response_ms": 336,
+            "average_response_ms": 336,
+            "last_reviewed_at": null,
+            "next_review_at": "2026-10-11T08:39:30.740Z",
+            "last_update_at": "2026-10-11T08:29:30.740Z",
+            "review_count": 0,
+            "first_effective_at": "2026-10-11T08:29:30.740Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "japanese:vocabulary:私:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T08:29:30.740Z",
+                "correct": false,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "japanese:vocabulary:私:meaning": {
+                "attempt_count": 1,
+                "correct_count": 0,
+                "last_effective_at": "2026-10-11T08:29:30.740Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 1,
+            "last_event_seq": 66,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 43.7
+          },
+          {
+            "knowledge_id": "japanese:vocabulary:雪",
+            "label": "雪",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 8.55,
+            "confidence": 0.2,
+            "attempt_count": 1,
+            "correct_count": 1,
+            "incorrect_count": 0,
+            "effective_attempt_count": 1,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 414758,
+            "average_response_ms": 414758,
+            "last_reviewed_at": null,
+            "next_review_at": "2026-10-11T09:19:23.278Z",
+            "last_update_at": "2026-10-11T08:19:23.278Z",
+            "review_count": 0,
+            "first_effective_at": "2026-10-11T08:19:23.278Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "reading"
+            ],
+            "recent": [
+              {
+                "question_id": "japanese:vocabulary:雪:reading",
+                "family": "reading",
+                "at": "2026-10-11T08:19:23.278Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "japanese:vocabulary:雪:reading": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:19:23.278Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 1,
+            "last_event_seq": 56,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 35.435
+          }
+        ],
+        "recent_mistakes": [
+          {
+            "event_id": "816231f2-5aa1-41ca-9c4b-925469c12978",
+            "knowledge_id": "japanese:vocabulary:私",
+            "question_id": "japanese:vocabulary:私:meaning",
+            "mistake_code": "meaning_mismatch",
+            "accepted_at": "2026-10-11T08:29:30.740Z"
+          }
+        ],
+        "request_id": "84fd7137-0dc7-4e2a-8a06-adb6b38ccff5"
+      }
+    },
+    {
+      "route": "/api/learning/explanation",
+      "body": {
+        "ok": true,
+        "event_id": "816231f2-5aa1-41ca-9c4b-925469c12978",
+        "correct": false,
+        "explanation": {
+          "source": "course",
+          "rule": "私：我",
+          "why": "本题的课程答案是我。",
+          "example": "私は日本語を勉強します。",
+          "translation": "我学习日语。",
+          "reading": "わたし",
+          "confusion": "",
+          "suggestion": "稍后复习私，再尝试同一知识点的其他题型。"
+        },
+        "ai": {
+          "source": "workers_ai",
+          "contrast": "私通常指的是‘我’或‘自己’，但也可以指‘家人’或‘亲属’，具体取决于上下文。",
+          "example": "私には家族がいます。",
+          "rule": "私：我或家人",
+          "why": "因为私可以指代家人或亲属，不能仅仅理解为‘我’。"
+        },
+        "ai_status": "generated",
+        "request_id": "f889adaa-7570-448d-b35d-3c58539904f9"
+      }
+    }
+  ],
+  "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-japanese-real-learning.png",
+  "local_or_server_state_injection": false
+}

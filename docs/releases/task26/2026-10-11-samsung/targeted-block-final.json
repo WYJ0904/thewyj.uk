@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "observed_at": "2026-10-11T10:03:26.660Z",
+  "actual_native_header_control": true,
+  "device_radios_changed": false,
+  "event_id": "00c324da-800b-4c36-b24a-e5d8e01cd3e4",
+  "exact_d1_events": 1,
+  "physical_network_test": false,
+  "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-built-in-block-recovered.png"
+}

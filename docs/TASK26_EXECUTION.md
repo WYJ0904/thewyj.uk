@@ -1,3 +1,5 @@
+> Current continuation: [2026-10-11 Samsung Preview acceptance](TASK26_SAMSUNG_ACCEPTANCE.md) supersedes historical device-deferred/Preview-not-run statuses below. Runtime72661e6 passed actual Preview/Samsung gates and cleanup; Production release and final Release Closure are still pending. Historical failures and earlier delivery evidence are retained.
+
 # Task26 execution record
 
 - Released base main:550bc41bbaa01751d75c109f3246b9e174e4460d; Stable1.3.37/50.

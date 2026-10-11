@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "observed_at": "2026-10-11T10:56:59.503Z",
+  "package": "uk.thewyj.app.preview",
+  "preview_uid": 10422,
+  "original_uid": 10406,
+  "method": "pm clear --user0 on exact independent test application only; original application not targeted",
+  "ui": {
+    "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+    "title": "Aeris — 学习、工具、账本与文件",
+    "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+    "online": true,
+    "visibility": "visible",
+    "loginVisible": true,
+    "registerVisible": false,
+    "loginError": "",
+    "masteryVisible": false,
+    "mastery": "\n            按你的进度学习掌握度与智能复习刷新 / 重试同步\n            从第一道题开始积累掌握度\n            既有测验、错题和历史保留；新的掌握度从有效答题开始。\n            尚未读取学习进度\n            自适应学习暂时关闭，待同步答题已保留。\n            开始自适应学习练习弱项开始到期复习\n            \n              \n              你的答案提交答案跳过下一题\n              查看错因解析\n              \n            \n            薄弱知识点开始练习后，这里会显示你的知识点。今日待复习目前没有到期复习。\n            \n          ",
+    "account": "Aeris\n下载 Android\n更新日志\n登录\n注册",
+    "ordinaryQuizVisible": false,
+    "viewport": {
+      "width": 384,
+      "height": 735,
+      "scrollWidth": 384
+    }
+  },
+  "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-preview-cleaned-guest.png"
+}

@@ -1,0 +1,145 @@
+{
+  "status": "PASS",
+  "observed_at": "2026-10-11T10:35:32.143Z",
+  "records": [
+    {
+      "test": "actual_user_channel_stable",
+      "status": "PASS",
+      "ui": {
+        "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+        "title": "Aeris — 学习、工具、账本与文件",
+        "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+        "online": true,
+        "visibility": "visible",
+        "loginVisible": false,
+        "registerVisible": false,
+        "loginError": "",
+        "masteryVisible": false,
+        "mastery": "\n            按你的进度学习掌握度与智能复习刷新 / 重试同步\n            已学习 1 个知识点 · 平均掌握度 0/100\n            已掌握 0 · 学习中 1 · 待复习 0 · 尚未学习 26\n            上次同步缓存 · 10月11日 18:34\n            自适应学习暂时关闭，待同步答题已保留。\n            开始自适应学习练习弱项开始到期复习\n            \n              新知识高兴的写出对应的英语单词\n              你的答案提交答案跳过下一题\n              还需要练习掌握度 0 → 0（+0）课程答案：happy下次复习：10月11日 18:37本题的课程答案是happy。 happy：高兴的She is happy. 她很高兴。查看错因解析\n              \n            \n            薄弱知识点happy学习中 · 0/100今日待复习目前没有到期复习。\n            \n          ",
+        "account": "Aeris\n下载 Android\n更新日志\nt26-member_b-7d3296cfe7 · 双语言双项永久会员",
+        "ordinaryQuizVisible": true,
+        "viewport": {
+          "width": 384,
+          "height": 735,
+          "scrollWidth": 384
+        }
+      },
+      "http": 403,
+      "code": "learning_feature_disabled",
+      "real_native_select_and_save": true
+    },
+    {
+      "test": "actual_user_channel_beta",
+      "status": "PASS",
+      "ui": {
+        "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+        "title": "Aeris — 学习、工具、账本与文件",
+        "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+        "online": true,
+        "visibility": "visible",
+        "loginVisible": false,
+        "registerVisible": false,
+        "loginError": "",
+        "masteryVisible": false,
+        "mastery": "\n            按你的进度学习掌握度与智能复习刷新 / 重试同步\n            已学习 1 个知识点 · 平均掌握度 0/100\n            已掌握 0 · 学习中 1 · 待复习 0 · 尚未学习 26\n            上次同步缓存 · 10月11日 18:34\n            自适应学习暂时关闭，待同步答题已保留。\n            开始自适应学习练习弱项开始到期复习\n            \n              新知识高兴的写出对应的英语单词\n              你的答案提交答案跳过下一题\n              还需要练习掌握度 0 → 0（+0）课程答案：happy下次复习：10月11日 18:37本题的课程答案是happy。 happy：高兴的She is happy. 她很高兴。查看错因解析\n              \n            \n            薄弱知识点happy学习中 · 0/100今日待复习目前没有到期复习。\n            \n          ",
+        "account": "Aeris\n下载 Android\n更新日志\nt26-member_b-7d3296cfe7 · 双语言双项永久会员",
+        "ordinaryQuizVisible": true,
+        "viewport": {
+          "width": 384,
+          "height": 735,
+          "scrollWidth": 384
+        }
+      },
+      "http": 403,
+      "code": "learning_feature_disabled",
+      "real_native_select_and_save": true
+    },
+    {
+      "test": "actual_user_channel_experimental",
+      "status": "PASS",
+      "ui": {
+        "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+        "title": "Aeris — 学习、工具、账本与文件",
+        "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+        "online": true,
+        "visibility": "visible",
+        "loginVisible": false,
+        "registerVisible": false,
+        "loginError": "",
+        "masteryVisible": true,
+        "mastery": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n已学习 1 个知识点 · 平均掌握度 0/100\n\n已掌握 0 · 学习中 1 · 待复习 0 · 尚未学习 26\n\n上次同步缓存 · 10月11日 18:34\n\n正在读取掌握度…\n\n开始自适应学习\n练习弱项\n开始到期复习\n\n新知识\n\n高兴的\n\n写出对应的英语单词\n\n你的答案\n提交答案\n跳过\n下一题\n还需要练习\n\n掌握度 0 → 0（+0）\n\n课程答案：happy\n\n下次复习：10月11日 18:37\n\n本题的课程答案是happy。 happy：高兴的\n\nShe is happy. 她很高兴。\n\n查看错因解析\n\n薄弱知识点\nhappy\n学习中 · 0/100\n今日待复习\n\n目前没有到期复习。",
+        "account": "Aeris\n下载 Android\n更新日志\nt26-member_b-7d3296cfe7 · 双语言双项永久会员",
+        "ordinaryQuizVisible": true,
+        "viewport": {
+          "width": 384,
+          "height": 735,
+          "scrollWidth": 384
+        }
+      },
+      "http": 200,
+      "code": "",
+      "real_native_select_and_save": true
+    },
+    {
+      "test": "actual_kill_switch",
+      "status": "PASS",
+      "definition_change": {
+        "role": "admin",
+        "method": "POST",
+        "route": "/api/admin/feature-flags",
+        "status": 200,
+        "code": "",
+        "request_id": "333d2860-5861-4354-8f47-eecb4444c59f",
+        "duration_ms": 1038
+      },
+      "first_observed_closed_ms": 17410,
+      "foreground": true,
+      "ui": {
+        "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+        "title": "Aeris — 学习、工具、账本与文件",
+        "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+        "online": true,
+        "visibility": "visible",
+        "loginVisible": false,
+        "registerVisible": false,
+        "loginError": "",
+        "masteryVisible": false,
+        "mastery": "\n            按你的进度学习掌握度与智能复习刷新 / 重试同步\n            已学习 1 个知识点 · 平均掌握度 0/100\n            已掌握 0 · 学习中 1 · 待复习 0 · 尚未学习 26\n            上次同步缓存 · 10月11日 18:34\n            自适应学习暂时关闭，待同步答题已保留。\n            开始自适应学习练习弱项开始到期复习\n            \n              新知识高兴的写出对应的英语单词\n              你的答案提交答案跳过下一题\n              还需要练习掌握度 0 → 0（+0）课程答案：happy下次复习：10月11日 18:37本题的课程答案是happy。 happy：高兴的She is happy. 她很高兴。查看错因解析\n              \n            \n            薄弱知识点happy学习中 · 0/100今日待复习目前没有到期复习。\n            \n          ",
+        "account": "Aeris\n下载 Android\n更新日志\nt26-member_b-7d3296cfe7 · 双语言双项永久会员",
+        "ordinaryQuizVisible": true,
+        "viewport": {
+          "width": 384,
+          "height": 735,
+          "scrollWidth": 384
+        }
+      },
+      "server_code": "learning_feature_disabled",
+      "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-kill-switch.png"
+    },
+    {
+      "test": "actual_kill_recovery",
+      "status": "PASS",
+      "ui": {
+        "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+        "title": "Aeris — 学习、工具、账本与文件",
+        "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+        "online": true,
+        "visibility": "visible",
+        "loginVisible": false,
+        "registerVisible": false,
+        "loginError": "",
+        "masteryVisible": true,
+        "mastery": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n已学习 1 个知识点 · 平均掌握度 0/100\n\n已掌握 0 · 学习中 1 · 待复习 0 · 尚未学习 26\n\n服务端已同步 · 10月11日 18:35\n\n开始自适应学习\n练习弱项\n开始到期复习\n\n新知识\n\n高兴的\n\n写出对应的英语单词\n\n你的答案\n提交答案\n跳过\n下一题\n还需要练习\n\n掌握度 0 → 0（+0）\n\n课程答案：happy\n\n下次复习：10月11日 18:37\n\n本题的课程答案是happy。 happy：高兴的\n\nShe is happy. 她很高兴。\n\n查看错因解析\n\n薄弱知识点\nhappy\n学习中 · 0/100\n今日待复习\n\n目前没有到期复习。",
+        "account": "Aeris\n下载 Android\n更新日志\nt26-member_b-7d3296cfe7 · 双语言双项永久会员",
+        "ordinaryQuizVisible": true,
+        "viewport": {
+          "width": 384,
+          "height": 735,
+          "scrollWidth": 384
+        }
+      }
+    }
+  ],
+  "general_rollout_percentage": 0,
+  "only_new_owned_fixtures_targeted": true
+}

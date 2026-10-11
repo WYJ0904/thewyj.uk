@@ -1,3 +1,5 @@
+> Current continuation: [2026-10-11 Samsung Preview acceptance](TASK26_SAMSUNG_ACCEPTANCE.md) supersedes historical device-deferred/Preview-not-run statuses below. Runtime72661e6 passed actual Preview/Samsung gates and cleanup; Production release and final Release Closure are still pending. Historical failures and earlier delivery evidence are retained.
+
 # Task 26 — Draft PR 与本地接续交接
 
 > **2026-10-11 Windows 接续已推进，优先读取 [TASK26_WINDOWS_ACCEPTANCE.md](TASK26_WINDOWS_ACCEPTANCE.md)。** 以下是云端历史交接：其中 USER HOLD、无 Cloudflare 权限、Preview 未迁移/未登录等已被新证据取代。发布授权现在有效；Hosted API/Admin/实际页面、Preview 0025 和 fixture 清理已完成，独立 Preview APK 静态通过。用户暂不提供手机；实际设备与 Hosted 网络恢复门禁仍未完成，PR 继续 Draft、Production 未发布。不得重迁移 Preview 0025 或重用已注销的测试账户。

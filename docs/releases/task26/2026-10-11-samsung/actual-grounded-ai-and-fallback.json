@@ -1,0 +1,95 @@
+{
+  "status": "PASS",
+  "head": "72661e69a4f97c779935e00a1824f613e9ba0bae",
+  "observed_at": "2026-10-11T10:33:49.010Z",
+  "records": [
+    {
+      "language": "english",
+      "status": "PASS",
+      "course_answer": "happy",
+      "actual_workers_ai": {
+        "ok": true,
+        "event_id": "e5fa6bf6-a0f9-412d-a26e-c7101602fca4",
+        "correct": false,
+        "explanation": {
+          "source": "course",
+          "rule": "happy：高兴的",
+          "why": "本题的课程答案是happy。",
+          "example": "She is happy.",
+          "translation": "她很高兴。",
+          "reading": "",
+          "confusion": "",
+          "suggestion": "稍后复习happy，再尝试同一知识点的其他题型。"
+        },
+        "ai": {
+          "source": "workers_ai",
+          "why": "因为instruction指示写出对应的英语单词，且answer为happy，rule中happy对应的意思是高兴的，例句She is happy.也表明happy的意思是高兴的，所以应写出happy。",
+          "rule": "happy：高兴的",
+          "example": "She is happy.",
+          "contrast": ""
+        },
+        "ai_status": "cached",
+        "request_id": "9cac7a11-2e15-4cd6-8d9d-489d8ea6047e"
+      },
+      "ui_text": "AI 辅助解析：因为instruction指示写出对应的英语单词，且answer为happy，rule中happy对应的意思是高兴的，例句She is happy.也表明happy的意思是高兴的，所以应写出happy。 happy：高兴的 She is happy.",
+      "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-english-grounded-ai.png"
+    },
+    {
+      "language": "japanese",
+      "status": "PASS",
+      "course_answer": "小的",
+      "actual_workers_ai": {
+        "ok": true,
+        "event_id": "6770782f-abdf-41b1-b14f-bc8025cd7391",
+        "correct": false,
+        "explanation": {
+          "source": "course",
+          "rule": "小さい：小的",
+          "why": "本题的课程答案是小的。",
+          "example": "小さい猫です。",
+          "translation": "是小猫。",
+          "reading": "ちいさい",
+          "confusion": "",
+          "suggestion": "稍后复习小さい，再尝试同一知识点的其他题型。"
+        },
+        "ai": {
+          "source": "workers_ai",
+          "contrast": "",
+          "example": "小さい猫です。",
+          "rule": "小さい：小的",
+          "why": "因为小さい的中文含义是小的，符合instruction的要求"
+        },
+        "ai_status": "generated",
+        "request_id": "17365002-b16f-4b35-963e-009a69470c69"
+      },
+      "ui_text": "AI 辅助解析：因为小さい的中文含义是小的，符合instruction的要求 小さい：小的 小さい猫です。",
+      "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-japanese-grounded-ai.png"
+    },
+    {
+      "test": "AI_OFF_course_fallback_no_mastery_authority",
+      "status": "PASS",
+      "fallback": {
+        "ok": true,
+        "event_id": "6770782f-abdf-41b1-b14f-bc8025cd7391",
+        "correct": false,
+        "explanation": {
+          "source": "course",
+          "rule": "小さい：小的",
+          "why": "本题的课程答案是小的。",
+          "example": "小さい猫です。",
+          "translation": "是小猫。",
+          "reading": "ちいさい",
+          "confusion": "",
+          "suggestion": "稍后复习小さい，再尝试同一知识点的其他题型。"
+        },
+        "ai": null,
+        "ai_status": "not_requested",
+        "request_id": "70abdb6a-5b6d-4e30-8879-ac3d70be4152"
+      },
+      "ui_text": "课程解析：本题的课程答案是小的。 AI 暂不可用时仍可继续学习。",
+      "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-ai-off-course-fallback.png"
+    }
+  ],
+  "old_bad_generated_output_retained": "actual-japanese-learning.json",
+  "raw_user_text_uploaded": false
+}

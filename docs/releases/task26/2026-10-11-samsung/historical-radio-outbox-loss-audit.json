@@ -1,0 +1,9 @@
+{
+  "status": "FAIL, later resolved by strict journal",
+  "event_id": "48d7bd06-5d2e-4ce1-bca6-5158f444a51a",
+  "account": "Owned Samsung-cycle member A",
+  "source": "Original active checkpoint/actual force-stop tool observations and preserved exact failed-event D1 SELECT; no old event reconstruction",
+  "observed_counts": [],
+  "after_strict_journal_success": "real-offline-final.json with new actual8db3f406-99a5-4117-a489-8b7fd27c5fc6",
+  "old_harness_snapshot_filenames_later_reused": true
+}

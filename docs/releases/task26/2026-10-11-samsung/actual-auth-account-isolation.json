@@ -1,0 +1,1418 @@
+{
+  "status": "PASS",
+  "observed_at": "2026-10-11T10:25:36.395Z",
+  "records": [
+    {
+      "test": "account_A_before_switch",
+      "status": "PASS",
+      "role": "member_a",
+      "ui": {
+        "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+        "title": "Aeris — 学习、工具、账本与文件",
+        "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+        "online": true,
+        "visibility": "visible",
+        "loginVisible": false,
+        "registerVisible": false,
+        "loginError": "",
+        "masteryVisible": true,
+        "mastery": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n已学习 5 个知识点 · 平均掌握度 17/100\n\n已掌握 0 · 学习中 5 · 待复习 0 · 尚未学习 22\n\n服务端已同步 · 10月11日 18:19\n\n开始自适应学习\n练习弱项\n开始到期复习\n\n新知识\n\n记住\n\n写出对应的英语单词\n\n你的答案\n提交答案\n跳过\n下一题\n回答正确\n\n掌握度 0 → 11（+11.4）\n\n课程答案：remember\n\n下次复习：10月11日 19:03\n\n本题的课程答案是remember。 remember：记住\n\nI remember your name. 我记得你的名字。\n\nremember是记住，remind表示提醒某人；不要混淆动作主体。\n\n薄弱知识点\nremember\n学习中 · 11/100\n现在进行时\n学习中 · 12/100\nschool\n学习中 · 11/100\ngreen\n学习中 · 24/100\nhappy\n学习中 · 24/100\n今日待复习\n\n目前没有到期复习。",
+        "account": "Aeris\n下载 Android\n更新日志\nt26-member_a-6452b40de8 · 双语言双项永久会员",
+        "ordinaryQuizVisible": true,
+        "viewport": {
+          "width": 384,
+          "height": 735,
+          "scrollWidth": 384
+        }
+      },
+      "summary_status": 200,
+      "summary": {
+        "ok": true,
+        "account_id": "dff88654-0358-458f-b382-0a52e71b07ad",
+        "language": "english",
+        "algorithm_version": "mastery-v1",
+        "state_version": 1,
+        "observed_at": "2026-10-11T10:19:59.280Z",
+        "projection_pending": false,
+        "summary": {
+          "studied_count": 5,
+          "catalog_total": 27,
+          "new_count": 22,
+          "average_mastery": 16.6,
+          "mastered_count": 0,
+          "due_count": 0,
+          "learning_count": 5
+        },
+        "points": [
+          {
+            "knowledge_id": "english:grammar:present-continuous",
+            "label": "现在进行时",
+            "kind": "grammar",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 12.312,
+            "confidence": 0.2,
+            "attempt_count": 1,
+            "correct_count": 1,
+            "incorrect_count": 0,
+            "effective_attempt_count": 1,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 784,
+            "average_response_ms": 784,
+            "last_reviewed_at": null,
+            "next_review_at": "2026-10-11T11:01:24.144Z",
+            "last_update_at": "2026-10-11T10:01:24.144Z",
+            "review_count": 0,
+            "first_effective_at": "2026-10-11T10:01:24.144Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "cloze1"
+            ],
+            "recent": [
+              {
+                "question_id": "english:grammar:present-continuous:cloze1",
+                "family": "cloze1",
+                "at": "2026-10-11T10:01:24.144Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:grammar:present-continuous:cloze1": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T10:01:24.144Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 1,
+            "last_event_seq": 96,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 34.306
+          },
+          {
+            "knowledge_id": "english:vocabulary:green",
+            "label": "green",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 24.361,
+            "confidence": 0.333,
+            "attempt_count": 2,
+            "correct_count": 2,
+            "incorrect_count": 0,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 2,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 405,
+            "average_response_ms": 251.5,
+            "last_reviewed_at": "2026-10-11T09:57:13.511Z",
+            "next_review_at": "2026-10-11T17:57:13.511Z",
+            "last_update_at": "2026-10-11T09:57:13.511Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:07:15.421Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:green:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:07:15.421Z",
+                "correct": true,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:green:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:57:13.511Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:green:spelling": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:07:15.421Z"
+              },
+              "english:vocabulary:green:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:57:13.511Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 77,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 29.362
+          },
+          {
+            "knowledge_id": "english:vocabulary:happy",
+            "label": "happy",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 24.361,
+            "confidence": 0.333,
+            "attempt_count": 2,
+            "correct_count": 2,
+            "incorrect_count": 0,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 2,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 393,
+            "average_response_ms": 466.5,
+            "last_reviewed_at": "2026-10-11T09:57:28.056Z",
+            "next_review_at": "2026-10-11T17:57:28.056Z",
+            "last_update_at": "2026-10-11T09:57:28.056Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:23:19.528Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:happy:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:23:19.528Z",
+                "correct": true,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:happy:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:57:28.056Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:happy:spelling": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:23:19.528Z"
+              },
+              "english:vocabulary:happy:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:57:28.056Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 82,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 29.362
+          },
+          {
+            "knowledge_id": "english:vocabulary:remember",
+            "label": "remember",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 11.4,
+            "confidence": 0.2,
+            "attempt_count": 1,
+            "correct_count": 1,
+            "incorrect_count": 0,
+            "effective_attempt_count": 1,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 795,
+            "average_response_ms": 795,
+            "last_reviewed_at": null,
+            "next_review_at": "2026-10-11T11:03:22.549Z",
+            "last_update_at": "2026-10-11T10:03:22.549Z",
+            "review_count": 0,
+            "first_effective_at": "2026-10-11T10:03:22.549Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:remember:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T10:03:22.549Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:remember:spelling": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T10:03:22.549Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 1,
+            "last_event_seq": 99,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 34.58
+          },
+          {
+            "knowledge_id": "english:vocabulary:school",
+            "label": "school",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 10.5,
+            "confidence": 0.275,
+            "attempt_count": 2,
+            "correct_count": 1,
+            "incorrect_count": 1,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 5685,
+            "average_response_ms": 3045.5,
+            "last_reviewed_at": "2026-10-11T09:49:26.715Z",
+            "next_review_at": "2026-10-11T10:49:26.715Z",
+            "last_update_at": "2026-10-11T09:49:26.715Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:23:29.065Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:school:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:23:29.065Z",
+                "correct": false,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:school:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:49:26.715Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:school:spelling": {
+                "attempt_count": 1,
+                "correct_count": 0,
+                "last_effective_at": "2026-10-11T08:23:29.065Z"
+              },
+              "english:vocabulary:school:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:49:26.715Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 73,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 34.1
+          }
+        ],
+        "weak_points": [
+          {
+            "knowledge_id": "english:vocabulary:remember",
+            "label": "remember",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 11.4,
+            "confidence": 0.2,
+            "attempt_count": 1,
+            "correct_count": 1,
+            "incorrect_count": 0,
+            "effective_attempt_count": 1,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 795,
+            "average_response_ms": 795,
+            "last_reviewed_at": null,
+            "next_review_at": "2026-10-11T11:03:22.549Z",
+            "last_update_at": "2026-10-11T10:03:22.549Z",
+            "review_count": 0,
+            "first_effective_at": "2026-10-11T10:03:22.549Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:remember:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T10:03:22.549Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:remember:spelling": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T10:03:22.549Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 1,
+            "last_event_seq": 99,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 34.58
+          },
+          {
+            "knowledge_id": "english:grammar:present-continuous",
+            "label": "现在进行时",
+            "kind": "grammar",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 12.312,
+            "confidence": 0.2,
+            "attempt_count": 1,
+            "correct_count": 1,
+            "incorrect_count": 0,
+            "effective_attempt_count": 1,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 784,
+            "average_response_ms": 784,
+            "last_reviewed_at": null,
+            "next_review_at": "2026-10-11T11:01:24.144Z",
+            "last_update_at": "2026-10-11T10:01:24.144Z",
+            "review_count": 0,
+            "first_effective_at": "2026-10-11T10:01:24.144Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "cloze1"
+            ],
+            "recent": [
+              {
+                "question_id": "english:grammar:present-continuous:cloze1",
+                "family": "cloze1",
+                "at": "2026-10-11T10:01:24.144Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:grammar:present-continuous:cloze1": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T10:01:24.144Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 1,
+            "last_event_seq": 96,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 34.306
+          },
+          {
+            "knowledge_id": "english:vocabulary:school",
+            "label": "school",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 10.5,
+            "confidence": 0.275,
+            "attempt_count": 2,
+            "correct_count": 1,
+            "incorrect_count": 1,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 5685,
+            "average_response_ms": 3045.5,
+            "last_reviewed_at": "2026-10-11T09:49:26.715Z",
+            "next_review_at": "2026-10-11T10:49:26.715Z",
+            "last_update_at": "2026-10-11T09:49:26.715Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:23:29.065Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:school:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:23:29.065Z",
+                "correct": false,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:school:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:49:26.715Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:school:spelling": {
+                "attempt_count": 1,
+                "correct_count": 0,
+                "last_effective_at": "2026-10-11T08:23:29.065Z"
+              },
+              "english:vocabulary:school:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:49:26.715Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 73,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 34.1
+          },
+          {
+            "knowledge_id": "english:vocabulary:green",
+            "label": "green",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 24.361,
+            "confidence": 0.333,
+            "attempt_count": 2,
+            "correct_count": 2,
+            "incorrect_count": 0,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 2,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 405,
+            "average_response_ms": 251.5,
+            "last_reviewed_at": "2026-10-11T09:57:13.511Z",
+            "next_review_at": "2026-10-11T17:57:13.511Z",
+            "last_update_at": "2026-10-11T09:57:13.511Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:07:15.421Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:green:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:07:15.421Z",
+                "correct": true,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:green:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:57:13.511Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:green:spelling": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:07:15.421Z"
+              },
+              "english:vocabulary:green:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:57:13.511Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 77,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 29.362
+          },
+          {
+            "knowledge_id": "english:vocabulary:happy",
+            "label": "happy",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 24.361,
+            "confidence": 0.333,
+            "attempt_count": 2,
+            "correct_count": 2,
+            "incorrect_count": 0,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 2,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 393,
+            "average_response_ms": 466.5,
+            "last_reviewed_at": "2026-10-11T09:57:28.056Z",
+            "next_review_at": "2026-10-11T17:57:28.056Z",
+            "last_update_at": "2026-10-11T09:57:28.056Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:23:19.528Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:happy:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:23:19.528Z",
+                "correct": true,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:happy:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:57:28.056Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:happy:spelling": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:23:19.528Z"
+              },
+              "english:vocabulary:happy:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:57:28.056Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 82,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 29.362
+          }
+        ],
+        "recent_mistakes": [
+          {
+            "event_id": "e7748821-d3ab-4794-a5e8-7f89bf5e7635",
+            "knowledge_id": "english:vocabulary:school",
+            "question_id": "english:vocabulary:school:spelling",
+            "mistake_code": "meaning_mismatch",
+            "accepted_at": "2026-10-11T08:23:29.065Z"
+          }
+        ],
+        "request_id": "36359c17-9151-4a8e-8ff0-a93c2832df47"
+      },
+      "store": {
+        "account_id": "dff88654-0358-458f-b382-0a52e71b07ad",
+        "outbox": 0,
+        "last_event_id": "00c324da-800b-4c36-b24a-e5d8e01cd3e4"
+      },
+      "journal": {
+        "owner": "dff88654-0358-458f-b382-0a52e71b07ad",
+        "pending": 0,
+        "owners": []
+      }
+    },
+    {
+      "test": "account_B_no_A_data",
+      "status": "PASS",
+      "role": "member_b",
+      "ui": {
+        "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+        "title": "Aeris — 学习、工具、账本与文件",
+        "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+        "online": true,
+        "visibility": "visible",
+        "loginVisible": false,
+        "registerVisible": false,
+        "loginError": "",
+        "masteryVisible": true,
+        "mastery": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n已学习 0 个知识点 · 平均掌握度 0/100\n\n已掌握 0 · 学习中 0 · 待复习 0 · 尚未学习 27\n\n服务端已同步 · 10月11日 18:20\n\n开始自适应学习\n练习弱项\n开始到期复习\n薄弱知识点\n\n开始练习后，这里会显示你的知识点。\n\n今日待复习\n\n目前没有到期复习。",
+        "account": "Aeris\n下载 Android\n更新日志\nt26-member_b-7d3296cfe7 · 双语言双项永久会员",
+        "ordinaryQuizVisible": true,
+        "viewport": {
+          "width": 384,
+          "height": 735,
+          "scrollWidth": 384
+        }
+      },
+      "summary_status": 200,
+      "summary": {
+        "ok": true,
+        "account_id": "f3f4277f-2cb0-44ee-b4ef-e97eeae5a52b",
+        "language": "english",
+        "algorithm_version": "mastery-v1",
+        "state_version": 1,
+        "observed_at": "2026-10-11T10:20:21.496Z",
+        "projection_pending": false,
+        "summary": {
+          "studied_count": 0,
+          "catalog_total": 27,
+          "new_count": 27,
+          "average_mastery": 0,
+          "mastered_count": 0,
+          "due_count": 0,
+          "learning_count": 0
+        },
+        "points": [],
+        "weak_points": [],
+        "recent_mistakes": [],
+        "request_id": "8f734db4-fc3a-4579-98a6-122c3c53e283"
+      },
+      "store": {
+        "account_id": "f3f4277f-2cb0-44ee-b4ef-e97eeae5a52b",
+        "outbox": 0
+      },
+      "journal": {
+        "owner": "f3f4277f-2cb0-44ee-b4ef-e97eeae5a52b",
+        "pending": 0,
+        "owners": []
+      }
+    },
+    {
+      "test": "background_and_foreground_restore",
+      "status": "PASS",
+      "ui": {
+        "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+        "title": "Aeris — 学习、工具、账本与文件",
+        "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+        "online": true,
+        "visibility": "visible",
+        "loginVisible": false,
+        "registerVisible": false,
+        "loginError": "",
+        "masteryVisible": false,
+        "mastery": "\n            按你的进度学习掌握度与智能复习刷新 / 重试同步\n            已学习 0 个知识点 · 平均掌握度 0/100\n            已掌握 0 · 学习中 0 · 待复习 0 · 尚未学习 27\n            上次同步缓存 · 10月11日 18:20\n            自适应学习暂时关闭，待同步答题已保留。\n            开始自适应学习练习弱项开始到期复习\n            \n              \n              你的答案提交答案跳过下一题\n              查看错因解析\n              \n            \n            薄弱知识点开始练习后，这里会显示你的知识点。今日待复习目前没有到期复习。\n            \n          ",
+        "account": "Aeris\n下载 Android\n更新日志\nt26-member_b-7d3296cfe7 · 双语言双项永久会员",
+        "ordinaryQuizVisible": true,
+        "viewport": {
+          "width": 384,
+          "height": 735,
+          "scrollWidth": 384
+        }
+      }
+    },
+    {
+      "test": "free_membership_boundary",
+      "status": "PASS",
+      "role": "free",
+      "ui": {
+        "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+        "title": "Aeris — 学习、工具、账本与文件",
+        "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+        "online": true,
+        "visibility": "visible",
+        "loginVisible": false,
+        "registerVisible": false,
+        "loginError": "",
+        "masteryVisible": true,
+        "mastery": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n从第一道题开始积累掌握度\n\n既有测验、错题和历史保留；新的掌握度从有效答题开始。\n\n尚未读取学习进度\n\n当前账户没有该语言的会员权益，普通测验仍可使用\n\n开始自适应学习\n练习弱项\n开始到期复习\n薄弱知识点\n\n开始练习后，这里会显示你的知识点。\n\n今日待复习\n\n目前没有到期复习。",
+        "account": "Aeris\n下载 Android\n更新日志\nt26-free-e6d7de596f · 普通注册用户",
+        "ordinaryQuizVisible": true,
+        "viewport": {
+          "width": 384,
+          "height": 735,
+          "scrollWidth": 384
+        }
+      },
+      "http_status": 403,
+      "summary": {
+        "ok": false,
+        "error": "当前账户没有该语言的会员权益，普通测验仍可使用",
+        "code": "learning_entitlement_required",
+        "retryable": false,
+        "request_id": "bb199669-2275-43ef-adc8-e711f6f1a40d"
+      },
+      "own": null,
+      "actual_start_rejected": true,
+      "events": 0,
+      "ui_panel": "visible with explicit entitlement denial, ordinary Quiz available; hidden-panel expectation was a harness assumption, not an authority result"
+    },
+    {
+      "test": "A_cache_and_progress_restore",
+      "status": "PASS",
+      "role": "member_a",
+      "ui": {
+        "url": "https://codex-task26-adaptive-learni.thewyj-uk.pages.dev/language/english",
+        "title": "Aeris — 学习、工具、账本与文件",
+        "ua": "Mozilla/5.0 (Linux; Android 16; SM-S9360 Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.106 Mobile Safari/537.36 Task26Preview/0.0.2-task26-preview",
+        "online": true,
+        "visibility": "visible",
+        "loginVisible": false,
+        "registerVisible": false,
+        "loginError": "",
+        "masteryVisible": true,
+        "mastery": "按你的进度学习\n\n掌握度与智能复习\n刷新 / 重试同步\n\n已学习 5 个知识点 · 平均掌握度 17/100\n\n已掌握 0 · 学习中 5 · 待复习 0 · 尚未学习 22\n\n服务端已同步 · 10月11日 18:25\n\n开始自适应学习\n练习弱项\n开始到期复习\n\n新知识\n\n记住\n\n写出对应的英语单词\n\n你的答案\n提交答案\n跳过\n下一题\n回答正确\n\n掌握度 0 → 11（+11.4）\n\n课程答案：remember\n\n下次复习：10月11日 19:03\n\n本题的课程答案是remember。 remember：记住\n\nI remember your name. 我记得你的名字。\n\nremember是记住，remind表示提醒某人；不要混淆动作主体。\n\n薄弱知识点\nremember\n学习中 · 11/100\n现在进行时\n学习中 · 12/100\nschool\n学习中 · 11/100\ngreen\n学习中 · 24/100\nhappy\n学习中 · 24/100\n今日待复习\n\n目前没有到期复习。",
+        "account": "Aeris\n下载 Android\n更新日志\nt26-member_a-6452b40de8 · 双语言双项永久会员",
+        "ordinaryQuizVisible": true,
+        "viewport": {
+          "width": 384,
+          "height": 735,
+          "scrollWidth": 384
+        }
+      },
+      "http_status": 200,
+      "summary": {
+        "ok": true,
+        "account_id": "dff88654-0358-458f-b382-0a52e71b07ad",
+        "language": "english",
+        "algorithm_version": "mastery-v1",
+        "state_version": 1,
+        "observed_at": "2026-10-11T10:25:36.164Z",
+        "projection_pending": false,
+        "summary": {
+          "studied_count": 5,
+          "catalog_total": 27,
+          "new_count": 22,
+          "average_mastery": 16.6,
+          "mastered_count": 0,
+          "due_count": 0,
+          "learning_count": 5
+        },
+        "points": [
+          {
+            "knowledge_id": "english:grammar:present-continuous",
+            "label": "现在进行时",
+            "kind": "grammar",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 12.312,
+            "confidence": 0.2,
+            "attempt_count": 1,
+            "correct_count": 1,
+            "incorrect_count": 0,
+            "effective_attempt_count": 1,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 784,
+            "average_response_ms": 784,
+            "last_reviewed_at": null,
+            "next_review_at": "2026-10-11T11:01:24.144Z",
+            "last_update_at": "2026-10-11T10:01:24.144Z",
+            "review_count": 0,
+            "first_effective_at": "2026-10-11T10:01:24.144Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "cloze1"
+            ],
+            "recent": [
+              {
+                "question_id": "english:grammar:present-continuous:cloze1",
+                "family": "cloze1",
+                "at": "2026-10-11T10:01:24.144Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:grammar:present-continuous:cloze1": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T10:01:24.144Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 1,
+            "last_event_seq": 96,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 34.306
+          },
+          {
+            "knowledge_id": "english:vocabulary:green",
+            "label": "green",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 24.361,
+            "confidence": 0.333,
+            "attempt_count": 2,
+            "correct_count": 2,
+            "incorrect_count": 0,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 2,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 405,
+            "average_response_ms": 251.5,
+            "last_reviewed_at": "2026-10-11T09:57:13.511Z",
+            "next_review_at": "2026-10-11T17:57:13.511Z",
+            "last_update_at": "2026-10-11T09:57:13.511Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:07:15.421Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:green:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:07:15.421Z",
+                "correct": true,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:green:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:57:13.511Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:green:spelling": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:07:15.421Z"
+              },
+              "english:vocabulary:green:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:57:13.511Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 77,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 29.362
+          },
+          {
+            "knowledge_id": "english:vocabulary:happy",
+            "label": "happy",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 24.361,
+            "confidence": 0.333,
+            "attempt_count": 2,
+            "correct_count": 2,
+            "incorrect_count": 0,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 2,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 393,
+            "average_response_ms": 466.5,
+            "last_reviewed_at": "2026-10-11T09:57:28.056Z",
+            "next_review_at": "2026-10-11T17:57:28.056Z",
+            "last_update_at": "2026-10-11T09:57:28.056Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:23:19.528Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:happy:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:23:19.528Z",
+                "correct": true,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:happy:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:57:28.056Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:happy:spelling": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:23:19.528Z"
+              },
+              "english:vocabulary:happy:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:57:28.056Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 82,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 29.362
+          },
+          {
+            "knowledge_id": "english:vocabulary:remember",
+            "label": "remember",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 11.4,
+            "confidence": 0.2,
+            "attempt_count": 1,
+            "correct_count": 1,
+            "incorrect_count": 0,
+            "effective_attempt_count": 1,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 795,
+            "average_response_ms": 795,
+            "last_reviewed_at": null,
+            "next_review_at": "2026-10-11T11:03:22.549Z",
+            "last_update_at": "2026-10-11T10:03:22.549Z",
+            "review_count": 0,
+            "first_effective_at": "2026-10-11T10:03:22.549Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:remember:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T10:03:22.549Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:remember:spelling": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T10:03:22.549Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 1,
+            "last_event_seq": 99,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 34.58
+          },
+          {
+            "knowledge_id": "english:vocabulary:school",
+            "label": "school",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 10.5,
+            "confidence": 0.275,
+            "attempt_count": 2,
+            "correct_count": 1,
+            "incorrect_count": 1,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 5685,
+            "average_response_ms": 3045.5,
+            "last_reviewed_at": "2026-10-11T09:49:26.715Z",
+            "next_review_at": "2026-10-11T10:49:26.715Z",
+            "last_update_at": "2026-10-11T09:49:26.715Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:23:29.065Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:school:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:23:29.065Z",
+                "correct": false,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:school:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:49:26.715Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:school:spelling": {
+                "attempt_count": 1,
+                "correct_count": 0,
+                "last_effective_at": "2026-10-11T08:23:29.065Z"
+              },
+              "english:vocabulary:school:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:49:26.715Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 73,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 34.1
+          }
+        ],
+        "weak_points": [
+          {
+            "knowledge_id": "english:vocabulary:remember",
+            "label": "remember",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 11.4,
+            "confidence": 0.2,
+            "attempt_count": 1,
+            "correct_count": 1,
+            "incorrect_count": 0,
+            "effective_attempt_count": 1,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 795,
+            "average_response_ms": 795,
+            "last_reviewed_at": null,
+            "next_review_at": "2026-10-11T11:03:22.549Z",
+            "last_update_at": "2026-10-11T10:03:22.549Z",
+            "review_count": 0,
+            "first_effective_at": "2026-10-11T10:03:22.549Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:remember:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T10:03:22.549Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:remember:spelling": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T10:03:22.549Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 1,
+            "last_event_seq": 99,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 34.58
+          },
+          {
+            "knowledge_id": "english:grammar:present-continuous",
+            "label": "现在进行时",
+            "kind": "grammar",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 12.312,
+            "confidence": 0.2,
+            "attempt_count": 1,
+            "correct_count": 1,
+            "incorrect_count": 0,
+            "effective_attempt_count": 1,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 784,
+            "average_response_ms": 784,
+            "last_reviewed_at": null,
+            "next_review_at": "2026-10-11T11:01:24.144Z",
+            "last_update_at": "2026-10-11T10:01:24.144Z",
+            "review_count": 0,
+            "first_effective_at": "2026-10-11T10:01:24.144Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "cloze1"
+            ],
+            "recent": [
+              {
+                "question_id": "english:grammar:present-continuous:cloze1",
+                "family": "cloze1",
+                "at": "2026-10-11T10:01:24.144Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:grammar:present-continuous:cloze1": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T10:01:24.144Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 1,
+            "last_event_seq": 96,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 34.306
+          },
+          {
+            "knowledge_id": "english:vocabulary:school",
+            "label": "school",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 10.5,
+            "confidence": 0.275,
+            "attempt_count": 2,
+            "correct_count": 1,
+            "incorrect_count": 1,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 1,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 5685,
+            "average_response_ms": 3045.5,
+            "last_reviewed_at": "2026-10-11T09:49:26.715Z",
+            "next_review_at": "2026-10-11T10:49:26.715Z",
+            "last_update_at": "2026-10-11T09:49:26.715Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:23:29.065Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:school:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:23:29.065Z",
+                "correct": false,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:school:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:49:26.715Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:school:spelling": {
+                "attempt_count": 1,
+                "correct_count": 0,
+                "last_effective_at": "2026-10-11T08:23:29.065Z"
+              },
+              "english:vocabulary:school:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:49:26.715Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 73,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 34.1
+          },
+          {
+            "knowledge_id": "english:vocabulary:green",
+            "label": "green",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 24.361,
+            "confidence": 0.333,
+            "attempt_count": 2,
+            "correct_count": 2,
+            "incorrect_count": 0,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 2,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 405,
+            "average_response_ms": 251.5,
+            "last_reviewed_at": "2026-10-11T09:57:13.511Z",
+            "next_review_at": "2026-10-11T17:57:13.511Z",
+            "last_update_at": "2026-10-11T09:57:13.511Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:07:15.421Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:green:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:07:15.421Z",
+                "correct": true,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:green:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:57:13.511Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:green:spelling": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:07:15.421Z"
+              },
+              "english:vocabulary:green:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:57:13.511Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 77,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 29.362
+          },
+          {
+            "knowledge_id": "english:vocabulary:happy",
+            "label": "happy",
+            "kind": "vocabulary",
+            "algorithm_version": "mastery-v1",
+            "state_version": 1,
+            "score": 24.361,
+            "confidence": 0.333,
+            "attempt_count": 2,
+            "correct_count": 2,
+            "incorrect_count": 0,
+            "effective_attempt_count": 2,
+            "consecutive_correct": 2,
+            "consecutive_incorrect": 0,
+            "last_response_ms": 393,
+            "average_response_ms": 466.5,
+            "last_reviewed_at": "2026-10-11T09:57:28.056Z",
+            "next_review_at": "2026-10-11T17:57:28.056Z",
+            "last_update_at": "2026-10-11T09:57:28.056Z",
+            "review_count": 1,
+            "first_effective_at": "2026-10-11T08:23:19.528Z",
+            "evidence_days": [
+              "2026-10-11"
+            ],
+            "families": [
+              "spelling",
+              "meaning"
+            ],
+            "recent": [
+              {
+                "question_id": "english:vocabulary:happy:spelling",
+                "family": "spelling",
+                "at": "2026-10-11T08:23:19.528Z",
+                "correct": true,
+                "effective": true
+              },
+              {
+                "question_id": "english:vocabulary:happy:meaning",
+                "family": "meaning",
+                "at": "2026-10-11T09:57:28.056Z",
+                "correct": true,
+                "effective": true
+              }
+            ],
+            "question_stats": {
+              "english:vocabulary:happy:spelling": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T08:23:19.528Z"
+              },
+              "english:vocabulary:happy:meaning": {
+                "attempt_count": 1,
+                "correct_count": 1,
+                "last_effective_at": "2026-10-11T09:57:28.056Z"
+              }
+            },
+            "effective_day": "2026-10-11",
+            "daily_effective_count": 2,
+            "last_event_seq": 82,
+            "overdue": false,
+            "state": "learning",
+            "review_priority": 29.362
+          }
+        ],
+        "recent_mistakes": [
+          {
+            "event_id": "e7748821-d3ab-4794-a5e8-7f89bf5e7635",
+            "knowledge_id": "english:vocabulary:school",
+            "question_id": "english:vocabulary:school:spelling",
+            "mistake_code": "meaning_mismatch",
+            "accepted_at": "2026-10-11T08:23:29.065Z"
+          }
+        ],
+        "request_id": "7fde548a-1d9c-4131-a65a-287e084b66c1"
+      },
+      "own": {
+        "account_id": "dff88654-0358-458f-b382-0a52e71b07ad",
+        "pending": 0,
+        "last_event_id": "00c324da-800b-4c36-b24a-e5d8e01cd3e4"
+      }
+    },
+    {
+      "test": "real_registration_and_login",
+      "status": "PASS",
+      "account": {
+        "id": "169455d4-1f39-4a05-ad89-97210bc4b584",
+        "username": "t26-ui-08062b7d1b"
+      },
+      "evidence": "Initial actual phone register/login tool observation and preserved phone-ui-registration-exact-account.json; the attempt filename was later reused, registration itself was not repeated",
+      "already_completed_not_repeated": true
+    }
+  ],
+  "ui_method": "normal fields/account menu/touch; retry only while no login request/UI status started, native overlays can consume first touch",
+  "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-account-isolation.png"
+}

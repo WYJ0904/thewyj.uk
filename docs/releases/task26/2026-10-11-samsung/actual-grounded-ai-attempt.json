@@ -1,0 +1,83 @@
+{
+  "status": "FAIL",
+  "reason": "Corrected actual model output not available: japanese fallback ai_schema_invalid",
+  "observed_at": "2026-10-11T10:31:41.036Z",
+  "responses": [
+    {
+      "ok": true,
+      "event_id": "e5fa6bf6-a0f9-412d-a26e-c7101602fca4",
+      "correct": false,
+      "explanation": {
+        "source": "course",
+        "rule": "happy：高兴的",
+        "why": "本题的课程答案是happy。",
+        "example": "She is happy.",
+        "translation": "她很高兴。",
+        "reading": "",
+        "confusion": "",
+        "suggestion": "稍后复习happy，再尝试同一知识点的其他题型。"
+      },
+      "ai": {
+        "source": "workers_ai",
+        "why": "因为instruction指示写出对应的英语单词，且answer为happy，rule中happy对应的意思是高兴的，例句She is happy.也表明happy的意思是高兴的，所以应写出happy。",
+        "rule": "happy：高兴的",
+        "example": "She is happy.",
+        "contrast": ""
+      },
+      "ai_status": "cached",
+      "request_id": "9cac7a11-2e15-4cd6-8d9d-489d8ea6047e"
+    },
+    {
+      "ok": true,
+      "event_id": "6770782f-abdf-41b1-b14f-bc8025cd7391",
+      "correct": false,
+      "explanation": {
+        "source": "course",
+        "rule": "小さい：小的",
+        "why": "本题的课程答案是小的。",
+        "example": "小さい猫です。",
+        "translation": "是小猫。",
+        "reading": "ちいさい",
+        "confusion": "",
+        "suggestion": "稍后复习小さい，再尝试同一知识点的其他题型。"
+      },
+      "ai": null,
+      "ai_status": "fallback",
+      "fallback_code": "ai_schema_invalid",
+      "request_id": "4368d1f7-3763-495e-8d35-af51e6a293ec"
+    }
+  ],
+  "records": [
+    {
+      "language": "english",
+      "status": "PASS",
+      "course_answer": "happy",
+      "actual_workers_ai": {
+        "ok": true,
+        "event_id": "e5fa6bf6-a0f9-412d-a26e-c7101602fca4",
+        "correct": false,
+        "explanation": {
+          "source": "course",
+          "rule": "happy：高兴的",
+          "why": "本题的课程答案是happy。",
+          "example": "She is happy.",
+          "translation": "她很高兴。",
+          "reading": "",
+          "confusion": "",
+          "suggestion": "稍后复习happy，再尝试同一知识点的其他题型。"
+        },
+        "ai": {
+          "source": "workers_ai",
+          "why": "因为instruction指示写出对应的英语单词，且answer为happy，rule中happy对应的意思是高兴的，例句She is happy.也表明happy的意思是高兴的，所以应写出happy。",
+          "rule": "happy：高兴的",
+          "example": "She is happy.",
+          "contrast": ""
+        },
+        "ai_status": "cached",
+        "request_id": "9cac7a11-2e15-4cd6-8d9d-489d8ea6047e"
+      },
+      "ui_text": "AI 辅助解析：因为instruction指示写出对应的英语单词，且answer为happy，rule中happy对应的意思是高兴的，例句She is happy.也表明happy的意思是高兴的，所以应写出happy。 happy：高兴的 She is happy.",
+      "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-english-grounded-ai.png"
+    }
+  ]
+}

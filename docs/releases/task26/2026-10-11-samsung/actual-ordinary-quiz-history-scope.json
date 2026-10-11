@@ -1,0 +1,88 @@
+{
+  "status": "PASS",
+  "observed_at": "2026-10-11T10:42:10.815Z",
+  "records": [
+    {
+      "word": "dog",
+      "grade": "正确"
+    },
+    {
+      "word": "cat",
+      "grade": "错误"
+    },
+    {
+      "test": "ordinary_history_wrong_book",
+      "status": "PASS",
+      "ui": "本轮\n历史\n\n我 · 历史错题 · 1 个\n\n搜索错题\n复习本轮\n复习历史\n导出本轮 PDF\n导出历史 PDF\n导出错题数据\n导入错题数据\n清空本轮\n清空历史\ncat\n\n你答：三星故意错答 · 标准：猫咪\n\n可重新作答；答错不会增加错误次数\n1次\n重新判定\n移除",
+      "screenshot": "C:\\Users\\78252\\Documents\\Codex\\2026-10-10\\li\\outputs\\task26-samsung-ordinary-quiz-history.png"
+    },
+    {
+      "test": "actual_refresh_history_restored",
+      "status": "PASS"
+    }
+  ],
+  "summary": {
+    "total": "2",
+    "correct": "1",
+    "wrong": "1",
+    "accuracy": "正确率 50%"
+  },
+  "cloud_saved": [
+    {
+      "data_type": "test_history",
+      "record_id": "v1|history|5oiR|OWM2NzYyNzItMWMxNS00OTQzLTg5YjQtYTJkODI2YmQ1ZGY2"
+    },
+    {
+      "data_type": "wrong_book",
+      "record_id": "v1|wrong|5oiR|Y3VycmVudA|Y2F0"
+    },
+    {
+      "data_type": "wrong_book",
+      "record_id": "v1|wrong|5oiR|aGlzdG9yeQ|Y2F0"
+    }
+  ],
+  "mastery_unchanged": true,
+  "blocked_native_requests": [
+    {
+      "route": "/api/finance/transactions",
+      "status": 403,
+      "body": {
+        "ok": false,
+        "code": "task26_preview_scope_blocked"
+      }
+    },
+    {
+      "route": "/api/recharge/request",
+      "status": 403,
+      "body": {
+        "ok": false,
+        "code": "task26_preview_scope_blocked"
+      }
+    },
+    {
+      "route": "/api/notifications",
+      "status": 403,
+      "body": {
+        "ok": false,
+        "code": "task26_preview_scope_blocked"
+      }
+    },
+    {
+      "route": "/api/app/download",
+      "status": 403,
+      "body": {
+        "ok": false,
+        "code": "task26_preview_scope_blocked"
+      }
+    },
+    {
+      "route": "/api/account/secret",
+      "status": 403,
+      "body": {
+        "ok": false,
+        "code": "task26_preview_scope_blocked"
+      }
+    }
+  ],
+  "no_original_app_data_or_money_actions": true
+}
