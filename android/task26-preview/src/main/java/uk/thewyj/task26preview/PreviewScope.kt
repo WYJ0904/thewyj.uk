@@ -11,7 +11,7 @@ object PreviewScope {
         "/language/english", "/language/japanese", "/account", "/admin", "/changelog")
     private val apiPaths = setOf("/api/login", "/api/register", "/api/logout", "/api/me",
         "/api/features", "/api/release-channel", "/api/membership/plans", "/api/health",
-        "/api/config", "/api/changelog", "/api/telemetry", "/api/rubric", "/api/judge",
+        "/api/config", "/api/status", "/api/changelog", "/api/telemetry", "/api/rubric", "/api/judge",
         "/api/quiz/start", "/api/vocabulary/suggest", "/api/japanese/readings",
         "/api/tools/access", "/api/tools/preferences", "/api/admin/feature-flags",
         "/api/admin/feature-flags/override", "/api/admin/feature-flags/evaluate",

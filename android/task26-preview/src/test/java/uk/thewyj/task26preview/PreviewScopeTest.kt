@@ -5,6 +5,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PreviewScopeTest {
+    @Test fun publicStartupStatusDoesNotGrantPrivilegedStatusOrFinanceAccess() {
+        // The real Web login calls this public endpoint before submitting credentials.
+        assertTrue(PreviewScope.allowsRequest(PreviewScope.ORIGIN + "/api/status"))
+        assertFalse(PreviewScope.allowsRequest(PreviewScope.ORIGIN + "/api/admin/task18/status"))
+        assertFalse(PreviewScope.allowsRequest(PreviewScope.ORIGIN + "/api/finance/bootstrap"))
+    }
     @Test fun acceptedLearningRequestsStayOnControlledPreview() {
         assertTrue(PreviewScope.allowsNavigation(PreviewScope.ORIGIN + "/language/english"))
         assertTrue(PreviewScope.allowsNavigation(PreviewScope.ORIGIN + "/language/japanese"))

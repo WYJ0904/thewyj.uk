@@ -9,8 +9,8 @@ android {
         applicationId = "uk.thewyj.app.preview"
         minSdk = 30
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.0.1-task26-preview"
+        versionCode = 2
+        versionName = "0.0.2-task26-preview"
     }
     buildFeatures { buildConfig = true }
     compileOptions {
