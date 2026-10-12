@@ -23,6 +23,7 @@ export function updateMastery(previous,event){
  const difficulty=bounded(Number(event.difficulty)||1,1,5),today=event.accepted_at.slice(0,10);
  const question=s.question_stats[event.question_id]||{attempt_count:0,correct_count:0,last_effective_at:null};
  const repeated=question.last_effective_at&&now-Date.parse(question.last_effective_at)<20*60000;
+ const dueReview=Boolean(s.next_review_at&&Date.parse(s.next_review_at)<=now);
  if(s.effective_day!==today){s.effective_day=today;s.daily_effective_count=0;}
  const weight=repeated||s.daily_effective_count>=6?0:1;
  question.attempt_count++;question.correct_count+=Number(event.correct);s.question_stats[event.question_id]=question;
@@ -44,10 +45,17 @@ export function updateMastery(previous,event){
   const minimumEvidence=s.effective_attempt_count>=6&&s.families.length>=2&&s.evidence_days.length>=2&&now-Date.parse(s.first_effective_at)>=DAY;
   if(!minimumEvidence)s.score=Math.min(79,s.score);
   s.score=round(s.score);s.confidence=round(bounded(s.effective_attempt_count/(s.effective_attempt_count+4)*(0.65+historic*.35),0,1));
-  if(s.next_review_at&&Date.parse(s.next_review_at)<=now){s.review_count++;s.last_reviewed_at=event.accepted_at;}
   const intervals=[3600000,8*3600000,DAY,3*DAY,7*DAY,14*DAY,30*DAY];
   const interval=event.correct?intervals[Math.min(6,Math.floor(s.score/15))]:10*60000;
   s.next_review_at=new Date(now+interval).toISOString();
+ }
+ // Completion is a fact about an accepted due answer, not extra mastery
+ // evidence. A ten-minute retry can still be inside the twenty-minute score
+ // cooldown or daily cap; record it without rewarding another score/confidence
+ // sample, and leave a fresh interval instead of an already overdue queue.
+ if(dueReview){
+  s.review_count++;s.last_reviewed_at=event.accepted_at;
+  if(weight===0&&event.correct)s.next_review_at=new Date(now+10*60000).toISOString();
  }
  // Repeated errors still promote review urgency, without unlimited repeat scoring.
  if(!event.correct && weight===0)s.next_review_at=new Date(now+10*60000).toISOString();
