@@ -44,10 +44,14 @@ try{
  await page.waitFor("location.pathname==='/transfer'&&document.querySelector('#transferPage').getClientRects().length>0");
  const beforeDeferred=writes.length;
  assert.equal(await page.evaluate(`(() => {
-  const data=new DataTransfer();data.setData('text/plain','delayed-clipboard-marker');
-  Object.defineProperty(data.items[0],'getAsString',{value:callback=>{window.__deferredClipboard=callback;}});
-  const event=new ClipboardEvent('paste',{bubbles:true,composed:true,cancelable:true,clipboardData:data});document.body.dispatchEvent(event);return event.defaultPrevented;
+  // Native DataTransfer wrappers clone item methods when ClipboardEvent is
+  // constructed. Control only this callback's timing with an explicit test
+  // provider; the other paste cases use real browser DataTransfer objects.
+  const data={items:[{kind:'string',getAsString(callback){window.__deferredClipboard=callback;}}]};
+  const event=new Event('paste',{bubbles:true,composed:true,cancelable:true});
+  Object.defineProperty(event,'clipboardData',{value:data});document.body.dispatchEvent(event);return event.defaultPrevented;
  })()`),true);
+ assert.equal(await page.evaluate("typeof window.__deferredClipboard"),'function','deferred fault-injection provider must capture the actual handler callback');
  await page.evaluate("window.WYJAndroidNavigation.navigate('/language/english')");
  await page.waitFor("location.pathname==='/language/english'");
  await page.evaluate("window.__deferredClipboard('delayed-clipboard-marker');true");
