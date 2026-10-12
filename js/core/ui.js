@@ -1,4 +1,4 @@
-import { BUSINESS_TIME_ZONE } from "./config.js?v=20261011-aeris-task26-r6";
+import { BUSINESS_TIME_ZONE } from "./config.js?v=20261012-aeris-task26-r7";
 
 export const $ = (id) => document.getElementById(id);
 

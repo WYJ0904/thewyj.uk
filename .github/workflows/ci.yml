@@ -979,6 +979,11 @@ jobs:
           set -euo pipefail
           node local-backend/test_interaction_feedback_browser.mjs 2>&1 | tee artifacts/interaction-feedback-browser.log
 
+      - name: Transfer clipboard input and inactive-screen privacy regression
+        run: |
+          set -euo pipefail
+          node qa/aeris/transfer-clipboard-browser.mjs 2>&1 | tee artifacts/transfer-clipboard-browser.log
+
       - name: Aeris P1 route coalescing and inactive rendering contract
         run: |
           set -euo pipefail
