@@ -1229,6 +1229,10 @@ async function main() {
       await click('[data-close-modal="membershipModal"]');
       await waitFor("paymentQrObjectUrl === '' && !document.querySelector('#paymentQrImage').getAttribute('src')", 3_000, "payment QR object URL revoked");
       await evaluate("HTMLImageElement.prototype.decode = window.__wyjOriginalImageDecode; delete window.__wyjOriginalImageDecode; true");
+      // closeModal hides the dialog after its exit animation. Await that state
+      // so the old '/' document cannot satisfy the direct-route guard below
+      // while location.href is still starting a new document/navigation.
+      await waitFor("document.querySelector('#membershipModal').classList.contains('hidden')", 3_000, "membership modal fully closed before document navigation");
       await evaluate("location.href = '/tools'; true");
       await waitFor("location.pathname === '/' && !document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, "direct tools guard");
       await waitFor("!document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, "open payment order restored");

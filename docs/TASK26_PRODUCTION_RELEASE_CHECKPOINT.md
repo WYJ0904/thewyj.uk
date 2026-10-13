@@ -1,6 +1,16 @@
 # Task 26 Production release checkpoint
 
-## Current continuation — 2026-10-12 Asia/Hong_Kong
+## Current continuation — 2026-10-13 Asia/Hong_Kong
+
+PR107 merged as `9b8bae8bb569aae32d2b0660a8dab88aad9b5a4b`; its exact main CI38350699857 attempt1 passed all eight jobs. Source f77 passed real Hosted English and real Samsung independent Preview Japanese early reviews after natural ten-minute intervals and inside the scoring cooldown: count1, queue0, no extra score/confidence/effective evidence, original-ID retry and remote D1 one accepted event. Actual English/Japanese AI, Samsung learner wording and background/foreground session passed; four fresh Preview fixtures were normally deleted, temporary admin revoked/audited, authority/sessions/memberships/active overrides0 and five flags restored OFF/0%/Experimental. Existing unchanged core evidence remains separately scoped. Original App50 package/current permissions/users were preserved; isolated writes remain WAIVED_BY_OWNER, never PASS.
+
+Production still serves cbc/e5b4cdac with all five globals OFF. Git automatic Production deployment was normally held before the exact-head merge; Preview settings and serving deployment were verified unchanged. Fresh read-only preflight confirmed0025 ledger1/schema, original configuration hashes and no nonfixture Task26 records. Overnight finance166/notifications187 contain exactly2/3 new existing-business records; old164/184 rows were retained with no updated timestamps. No amount, merchant, note, counterparty or raw notification was read. This growth predates the undeployed correction and is retained as live-business evidence, not reverted or called unchanged.
+
+**Additional legacy gate:** after naturally expiring, the owned Production language membership could not be reopened through the normal owner UI. Its stable `admin:dual_language_monthly` source key remains unique, while the service searched only active records and attempted another insert. An isolated D1/API regression reproduced the same503. The minimal correction selects only an inactive administrator record for the same user/plan/source key, retains the unique constraint and audit/authentication rules, and excludes payment/imported records and another trial language. Seventeen membership/payment D1/R2 groups passed, including expired/cancelled regrant, ordinary-user denial, row uniqueness, extension and exact preservation of paid history. New corrective review/CI and real Preview verification are pending. No Production code or migration was changed for this fix; no additional role or entitlement bypass was used to manufacture acceptance. Do not deploy through this unresolved gate.
+
+`TASK26_RELEASE_CLOSURE = INCOMPLETE`. Experimental correction/rollout, Beta/Stable observations and final closure remain pending. Android Hotfix and financial AI have not started.
+
+## Historical continuation — 2026-10-12 Asia/Hong_Kong
 
 PR105 and PR106 are merged. Exact main `cbc308398b34ad6d7d12dfc322261a1f9062c491` passed all eight jobs in [CI38238782642](https://github.com/WYJ0904/thewyj.uk/actions/runs/38238782642). Actual Production `e5b4cdac-6992-4562-ad74-1a2fb5d9495e` serves cbc/r7; default-OFF live smoke and exact assets passed, and Production Git auto-deployment was restored to ENABLED. Canonical0025 remains applied once with the original SHA256/bookmark and verified schema; never repeat it.
 

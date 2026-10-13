@@ -512,6 +512,18 @@ async function matchingActiveMemberships(db, userId, planCode, trialLanguage = "
   return rows.filter((row) => membershipMetadata(row).language === trialLanguage);
 }
 
+async function inactiveAdministrativeMembership(db, userId, planCode, trialLanguage = "") {
+  // The unique administrator source key survives expiry/cancellation. An
+  // explicitly authorized regrant reuses that record instead of colliding with
+  // it. Paid/imported records and another trial language are never selected.
+  const row = await first(db, `SELECT * FROM task13_user_memberships
+    WHERE user_id = ?1 AND plan_code = ?2 AND source = 'admin'
+      AND source_ref = ?3 AND status IN ('expired', 'cancelled')`,
+    [userId, planCode, `admin:${planCode}`]);
+  if (planCode === "trial_single_language" && row && membershipMetadata(row).language !== trialLanguage) return null;
+  return row;
+}
+
 function auditSnapshotFromAccount(account) {
   return {
     id: String(account?.id || ""), username: String(account?.username || ""),
@@ -685,7 +697,8 @@ export async function adminManageMembership(db, actor, input) {
     if (["grant", "extend"].includes(action)) {
       const language = validateTrialLanguage(plan.code, input.trial_language);
       const existingRows = await matchingActiveMemberships(db, target.id, plan.code, language);
-      const existing = existingRows[0] || null;
+      const existing = existingRows[0]
+        || await inactiveAdministrativeMembership(db, target.id, plan.code, language);
       const rawStart = String(input.membership_start || "").trim();
       const rawExpires = String(input.membership_expires || "").trim();
       let startsAt = rawStart ? cleanTime(rawStart, "会员开始日期", { code: "membership_start_invalid" }) : now;
