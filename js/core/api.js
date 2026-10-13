@@ -4,8 +4,8 @@ import {
   BACKEND_NETWORK_MESSAGE,
   GET_RETRYABLE_STATUS,
   STATUS_RETRY_BASE_DELAYS_MS,
-} from "./config.js?v=20261012-aeris-task26-r7";
-import { accountSessionHeaders } from "./session.js?v=20261012-aeris-task26-r7";
+} from "./config.js?v=20261013-aeris-task26-r8";
+import { accountSessionHeaders } from "./session.js?v=20261013-aeris-task26-r8";
 
 export const CANONICAL_SESSION_ERROR_CODES = new Set([
   "authentication_required",
