@@ -28,6 +28,8 @@ const USERS = Object.freeze({
   two: { id: "task13-user-two", username: "task13-user-two", role: "user", token: "task13-user-two-token" },
   three: { id: "task13-user-three", username: "task13-user-three", role: "user", token: "task13-user-three-token" },
   four: { id: "task13-user-four", username: "task13-user-four", role: "user", token: "task13-user-four-token" },
+  renewal: { id: "task13-renewal", username: "task13-renewal", role: "user", token: "task13-renewal-token" },
+  paymentHistory: { id: "task13-payment-history", username: "task13-payment-history", role: "user", token: "task13-payment-history-token" },
 });
 const PLAN_PRICES = Object.freeze({
   trial_single_language: 800,
@@ -147,6 +149,66 @@ try {
     await db.exec(sql.replace(/\r?\n/g, " "));
   }
   for (const user of Object.values(USERS)) await insertAccountAndSession(db, user);
+  // Isolated regression for the real Production acceptance failure: the
+  // administrator's stable source key survives expiry and cancellation.
+  const renewalId = "task13-expired-admin-grant";
+  await db.prepare(`INSERT INTO task13_user_memberships
+    (id,user_id,plan_code,starts_at,expires_at,status,source,source_ref,created_at,updated_at)
+    VALUES(?1,?2,'dual_language_monthly','2000-01-01T00:00:00Z','2000-02-01T00:00:00Z',
+      'expired','admin','admin:dual_language_monthly','2000-01-01T00:00:00Z','2000-02-01T00:00:00Z')`)
+    .bind(renewalId, USERS.renewal.id).run();
+  const renewalBody = { user_id: USERS.renewal.id, action: "grant", plan_code: "dual_language_monthly" };
+  const deniedRenewal = await requestTask13(db, storage, "/api/admin/membership/manage", {
+    method: "POST", token: USERS.renewal.token, body: renewalBody,
+  });
+  assert.equal(deniedRenewal.response.status, 403);
+  for (const previous of ["expired", "cancelled"]) {
+    const renewed = await requestTask13(db, storage, "/api/admin/membership/manage", {
+      method: "POST", token: USERS.admin.token, body: renewalBody,
+    });
+    assert.equal(renewed.response.status, 200, JSON.stringify(renewed.payload));
+    const row = await db.prepare("SELECT * FROM task13_user_memberships WHERE id=?1").bind(renewalId).first();
+    assert.equal(row.status, "active");
+    assert.equal(row.source_ref, "admin:dual_language_monthly");
+    assert.equal(row.created_at, "2000-01-01T00:00:00Z");
+    assert.ok(Date.parse(row.expires_at) > Date.now());
+    assert.equal(await tableCount(db, "task13_user_memberships", "WHERE user_id=?1", [USERS.renewal.id]), 1);
+    assert.deepEqual(new Set((await membershipState(db, USERS.renewal)).entitlements),
+      new Set(["language_all_access", "language_english_access", "language_japanese_access"]));
+    if (previous === "expired") {
+      const cancelled = await requestTask13(db, storage, "/api/admin/membership/manage", {
+        method: "POST", token: USERS.admin.token, body: { user_id: USERS.renewal.id, action: "cancel_all" },
+      });
+      assert.equal(cancelled.response.status, 200);
+      assert.equal((await membershipState(db, USERS.renewal)).entitlements.length, 0);
+    }
+  }
+  assert.equal(await tableCount(db, "task13_admin_audit_logs", "WHERE target_user_id=?1", [USERS.renewal.id]), 3);
+  completed += 1;
+  await db.prepare(`INSERT INTO task13_user_memberships
+    (id,user_id,plan_code,starts_at,expires_at,status,source,source_ref,created_at,updated_at)
+    VALUES('task13-expired-paid-history',?1,'dual_language_monthly','2000-01-01T00:00:00Z',
+      '2000-02-01T00:00:00Z','expired','payment','paid-history-reference',
+      '2000-01-01T00:00:00Z','2000-02-01T00:00:00Z')`).bind(USERS.paymentHistory.id).run();
+  const paidBefore = await db.prepare("SELECT * FROM task13_user_memberships WHERE id='task13-expired-paid-history'").first();
+  const managedBody = { user_id: USERS.paymentHistory.id, action: "grant", plan_code: "dual_language_monthly" };
+  const managed = await requestTask13(db, storage, "/api/admin/membership/manage", {
+    method: "POST", token: USERS.admin.token, body: managedBody,
+  });
+  assert.equal(managed.response.status, 200, JSON.stringify(managed.payload));
+  const managedRow = await db.prepare("SELECT * FROM task13_user_memberships WHERE user_id=?1 AND source='admin'").bind(USERS.paymentHistory.id).first();
+  await db.prepare("UPDATE task13_user_memberships SET status='expired',expires_at='2000-02-01T00:00:00Z' WHERE id=?1").bind(managedRow.id).run();
+  const extended = await requestTask13(db, storage, "/api/admin/membership/manage", {
+    method: "POST", token: USERS.admin.token, body: { ...managedBody, action: "extend" },
+  });
+  assert.equal(extended.response.status, 200, JSON.stringify(extended.payload));
+  const managedAfter = await db.prepare("SELECT * FROM task13_user_memberships WHERE id=?1").bind(managedRow.id).first();
+  assert.equal(managedAfter.status, "active");
+  assert.equal(managedAfter.starts_at, managedRow.starts_at);
+  assert.ok(Date.parse(managedAfter.expires_at) > Date.now());
+  assert.equal(await tableCount(db, "task13_user_memberships", "WHERE user_id=?1", [USERS.paymentHistory.id]), 2);
+  assert.deepEqual(await db.prepare("SELECT * FROM task13_user_memberships WHERE id='task13-expired-paid-history'").first(), paidBefore);
+  completed += 1;
   for (const method of ["wechat", "alipay"]) {
     for (const plan of Object.keys(PLAN_PRICES)) {
       await storage.put(`payments/qrcodes/v1/${method}_${plan}.png`, PNG_FIXTURE, {
