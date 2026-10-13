@@ -13,7 +13,7 @@ import { catalog, COURSE_VERSION } from '../functions/_lib/task26-catalog.mjs';
 
 const root=path.resolve(import.meta.dirname,'..'),runtime=await mkdtemp(path.join(os.tmpdir(),'task26-'));
 const mf=new Miniflare({modules:true,script:'export default{fetch(){return new Response("isolated task26 fixture")}}',compatibilityDate:'2026-08-06',d1Databases:['WYJ_DB'],d1Persist:runtime});
-const users={owner:{id:'t26-owner',role:'super_admin'},one:{id:'t26-one',role:'user'},two:{id:'t26-two',role:'user'},free:{id:'t26-free',role:'user'},english:{id:'t26-english',role:'user'},backlog:{id:'t26-backlog',role:'user'}};
+const users={owner:{id:'t26-owner',role:'super_admin'},one:{id:'t26-one',role:'user'},two:{id:'t26-two',role:'user'},free:{id:'t26-free',role:'user'},english:{id:'t26-english',role:'user'},backlog:{id:'t26-backlog',role:'user'},review:{id:'t26-review',role:'user'}};
 const env={CLOUD_FOUNDATION_ENABLED:'true',TASK12_CLOUD_ACCOUNTS_ENABLED:'true',TASK20_ANDROID_APP_ENABLED:'true',TASK13_CLOUD_READS_ENABLED:'true',
  TASK11_CLOUD_READS_ENABLED:'true',TASK11_CLOUD_WRITES_ENABLED:'true',TASK25_FEATURE_FLAGS_ENABLED:'true',TASK26_ADAPTIVE_LEARNING_ENABLED:'true',D1_RATE_LIMIT_ENABLED:'false',WYJ_ENVIRONMENT:'preview'};
 const semantic=({request_id,...rest})=>rest;
@@ -29,7 +29,7 @@ try{
   await db.prepare(`INSERT INTO task12_sessions(token_digest,user_id,session_version,created_at,last_seen_at,expires_at,client_kind) VALUES(?1,?2,1,?3,?3,?4,'browser')`)
    .bind(await sessionStorageKey(u.token),u.id,now,new Date(Date.now()+86400000).toISOString()).run();
  }
- for(const u of [users.one,users.two,users.english])await db.prepare(`INSERT INTO task13_user_memberships(id,user_id,plan_code,starts_at,is_lifetime,source,source_ref,metadata_json,created_at,updated_at)
+ for(const u of [users.one,users.two,users.english,users.review])await db.prepare(`INSERT INTO task13_user_memberships(id,user_id,plan_code,starts_at,is_lifetime,source,source_ref,metadata_json,created_at,updated_at)
   VALUES(?1,?2,?3,?4,1,'test',?1,?5,?4,?4)`).bind(`${u.id}-membership`,u.id,u===users.english?'trial_single_language':'dual_language_lifetime',now,u===users.english?'{"language":"english"}':'{}').run();
  for(const type of ['wrong_book','test_history'])await db.prepare(`INSERT INTO task11_learning_sync_records(user_id,data_type,record_id,payload_json,updated_at,client_id,client_version,created_at,server_updated_at)
   VALUES(?1,?2,?2,'{"language":"english","word":"apple","historical_correct":true}',?3,'legacy-fixture-client','1',?3,?3)`).bind(users.one.id,type,now).run();
@@ -135,6 +135,27 @@ try{
  await expect(400,'/api/learning/adaptive/next',{method:'POST',body:{language:'japanese',knowledge_id:target}});
  const review=await expect(200,'/api/learning/review?language=english');assert.equal(review.review_count,0);assert.equal((await next({mode:'review'})).question,null);
  check('language isolation, invalid target denial and empty review completion');
+ // Isolated API/D1 regression with an explicit test clock. Hosted and phone
+ // acceptance must instead wait for the actual ten-minute interval.
+ const RealDate=globalThis.Date;let clock=RealDate.now();
+ class FixtureDate extends RealDate{constructor(...args){super(...(args.length?args:[clock]));}static now(){return clock;}}
+ globalThis.Date=FixtureDate;
+ try{for(const lang of ['english','japanese']){
+  const point=catalog(lang).find(p=>p.kind==='vocabulary');const seen=new Set();let before;
+  for(let n=0;n<point.questions.length;n++){
+   clock+=1000;const issued=await expect(200,'/api/learning/adaptive/next',{user:users.review,method:'POST',body:{language:lang,knowledge_id:point.id}}),ticket=await ticketFor(issued.question),question=JSON.parse(ticket.question_json);seen.add(question.id);
+   before=await expect(200,'/api/learning/events',{user:users.review,method:'POST',body:event(issued.question,'owned-isolated-review-wrong')});assert.equal(before.correct,false);
+  }
+  assert.equal(seen.size,point.questions.length);clock+=10*60000+1000;
+  assert.equal((await expect(200,'/api/learning/review?language='+lang,{user:users.review})).review_count,1);
+  const issued=await expect(200,'/api/learning/adaptive/next',{user:users.review,method:'POST',body:{language:lang,mode:'review',knowledge_id:point.id}}),ticket=await ticketFor(issued.question),question=JSON.parse(ticket.question_json),payload=event(issued.question,question.answers[0]);
+  const done=await expect(200,'/api/learning/events',{user:users.review,method:'POST',body:payload});assert.equal(done.correct,true);assert.equal(done.mastery.review_count,1);assert.equal(done.mastery.last_reviewed_at,new RealDate(clock).toISOString());
+  assert.equal(done.mastery.score,before.mastery.score);assert.equal(done.mastery.confidence,before.mastery.confidence);assert.equal(done.mastery.effective_attempt_count,before.mastery.effective_attempt_count);
+  assert.equal((await expect(200,'/api/learning/review?language='+lang,{user:users.review})).review_count,0);
+  assert.deepEqual(semantic(await expect(200,'/api/learning/events',{user:users.review,method:'POST',body:payload})),semantic(done));
+  const projection=await db.prepare('SELECT state_json FROM task26_mastery_states WHERE user_id=?1 AND language=?2 AND knowledge_id=?3').bind(users.review.id,lang,point.id).first();assert.equal(JSON.parse(projection.state_json).review_count,1);
+  check(lang+' early due review persists and clears its queue without scoring again');
+ }}finally{globalThis.Date=RealDate;}
  const cookie=await expect(200,'/api/learning/mastery/summary?language=english',{headers:{Cookie:`__Host-wyj_app_access=${users.one.token}`}});
  const native=await expect(200,'/api/learning/mastery/summary?language=english',{headers:{'User-Agent':'Thewyj-Android/1.3.37'}});
  assert.deepEqual(cookie.points,en.points);assert.deepEqual(native.points,en.points);assert.equal(cookie.account_id,native.account_id);
@@ -168,6 +189,9 @@ try{
  explanation=await expect(200,'/api/learning/explanation',{method:'POST',body:{event_id:wrongId},environment:aiEnv});assert.equal(explanation.ai_status,'cached');assert.equal(calls,1);
  assert.deepEqual((await summary()).points,beforeAi);check('existing Workers AI cache/quota integration never changes correctness or mastery');
  await db.exec("DELETE FROM task15_ai_cache");
+ explanation=await expect(200,'/api/learning/explanation',{method:'POST',body:{event_id:wrongId},environment:{WORKERS_AI_ENABLED:'true',AI:{run:async(_model,options)=>{const facts=JSON.parse(options.messages.at(-1).content);return {response:{why:`因为 question_kind 对应的答案是${facts.answer}。`,rule:facts.rule,example:facts.example,contrast:facts.contrast}};}}}});
+ assert.equal(explanation.ai_status,'fallback');assert.equal(explanation.ai,null);assert.equal(explanation.explanation.source,'course');assert.deepEqual((await summary()).points,beforeAi);
+ check('AI explanation leaking implementation identifiers falls back without changing mastery');
  for(const response of [{response:''},{response:{why:'wrong',rule:'rule',example:'',contrast:'',score:100}},{response:{why:'私可以指家人或亲属。',rule:'私：我或家人',example:'私には家族がいます。',contrast:''}},{response:null}]){
   explanation=await expect(200,'/api/learning/explanation',{method:'POST',body:{event_id:wrongId},environment:{WORKERS_AI_ENABLED:'true',AI:{run:async()=>response}}});assert.equal(explanation.ai_status,'fallback');
  }

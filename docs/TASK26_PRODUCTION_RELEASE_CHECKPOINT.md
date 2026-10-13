@@ -1,5 +1,21 @@
 # Task 26 Production release checkpoint
 
+## Current continuation — 2026-10-12 Asia/Hong_Kong
+
+PR105 and PR106 are merged. Exact main `cbc308398b34ad6d7d12dfc322261a1f9062c491` passed all eight jobs in [CI38238782642](https://github.com/WYJ0904/thewyj.uk/actions/runs/38238782642). Actual Production `e5b4cdac-6992-4562-ad74-1a2fb5d9495e` serves cbc/r7; default-OFF live smoke and exact assets passed, and Production Git auto-deployment was restored to ENABLED. Canonical0025 remains applied once with the original SHA256/bookmark and verified schema; never repeat it.
+
+Actual hosted clipboard negatives and intentional34-byte upload passed; exact guest cleanup completed with zero parts/no share. Actual Samsung independent Preview0.0.2 passed native editable and same-document paste guards; its transfer APIs remain blocked, so no phone cloud-upload claim is made. Original-signed App50 showed the new2026.10.12.1 website and English/Japanese setup while retaining `wyj`; no answer, account switch or data clear was performed. Original package/signature/update metadata and current permission lists were preserved. The historical accessibility whole-list hash difference remains documented. Isolated App50 writes remain `WAIVED_BY_OWNER`, never PASS, and no new Android profile is allowed.
+
+Production dedicated accounts passed English/Japanese grading, idempotence, conflicts, isolation, entitlement denial and D1 persistence. Actual Workers AI generated valid results in both languages; two earlier schema-invalid responses are retained as safe course fallbacks, not erased or masked by cache hits. Actual AI OFF and Kill Switch passed; server issuance stopped, the client hid the optional panel, and existing member/free Quiz remained available.
+
+**Current blocker:** an accepted Japanese due-review event has mode/source`review`, correct1 and a durable completion event, but review_count0/last_reviewed_atNULL. Its17-minute gap is inside the twenty-minute scoring cooldown, although incorrect answers become due after ten minutes. The correction records completion separately from score evidence and gives zero-credit correct reviews a fresh interval. It preserves score/confidence, scoring cooldown, daily cap, idempotency, schema/version guards and existing events. Production Task26 records were verified to belong only to the dedicated fixtures; no original user's projection is rewritten. Learner AI wording also excludes internal identifiers and uses a fresh cache namespace, while course anchors remain strict.
+
+New local checks passed32engine and29D1/API groups, including both languages' early-review serialization, queue clearing and same-ID retry. Existing client, multi-window, deletion, flag refresh, Preview transport, durable journal and Functions compilation passed. These are isolated/local evidence; exact corrective-head CI, actual Hosted Preview early-review/AI and applicable device gates remain required before another merge/deployment.
+
+Five Production flags are now OFF/0%/Experimental-only. When Chrome became unavailable, legitimate owner-authorized Cloudflare management access closed only these definitions and added explicit `operator_disable` audits, with no app-session impersonation. Beta/Stable have not started. `TASK26_RELEASE_CLOSURE = INCOMPLETE`; Android Hotfix and financial AI have not started.
+
+## Historical first deployment / clipboard discovery snapshot
+
 Observed 2026-10-12 Asia/Hong_Kong (2026-10-11 UTC). This is an intermediate checkpoint, not a completed Release Closure.
 
 - PR #105 merged at `851bc52caafcfb014e1e69cbb8d764488cb6d1fe`. Exact main CI run `38150678650`, attempt 2, completed successfully with all eight jobs. The initial multipart-upload timeout is retained; retrying the same assertions succeeded.

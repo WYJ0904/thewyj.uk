@@ -21,6 +21,21 @@ test('fast correct receives more evidence than slow correct',()=>assert.ok(updat
 test('difficulty affects bounded update',()=>assert.ok(updateMastery(null,event(1,true,0,{difficulty:3})).score>updateMastery(null,event(1)).score));
 test('long gap reduces confidence but retains history and score',()=>{const s=updateMastery(null,event(1));const later=masteryView(s,t+90*DAY);assert.ok(later.confidence<s.confidence);assert.equal(later.score,s.score);assert.equal(later.correct_count,1);assert.equal(later.state,'needs_review');});
 test('correct review extends interval; wrong shortens it',()=>{const s=updateMastery(null,event(1));const next=updateMastery(s,event(2,true,DAY));assert.equal(next.review_count,1);assert.ok(Date.parse(next.next_review_at)>t+DAY);const wrong=updateMastery(next,event(3,false,2*DAY));assert.equal(Date.parse(wrong.next_review_at),t+2*DAY+600000);});
+test('ten-minute due review completes inside the score cooldown without extra evidence',()=>{
+ const wrong=updateMastery(null,event(1,false));const review=event(2,true,10*60000+1000,{source:'review'}),done=updateMastery(wrong,review);
+ assert.equal(done.score,wrong.score);assert.equal(done.confidence,wrong.confidence);assert.equal(done.effective_attempt_count,wrong.effective_attempt_count);
+ assert.equal(done.review_count,1);assert.equal(done.last_reviewed_at,review.accepted_at);assert.ok(Date.parse(done.next_review_at)>Date.parse(review.accepted_at));
+ assert.equal(masteryView(done,Date.parse(review.accepted_at)).overdue,false);assert.deepEqual(updateMastery(done,review),done);
+});
+test('daily evidence cap preserves completed due review without promoting mastery',()=>{
+ const sameDay=t-12*3600000;let capped=null;for(let n=1;n<=6;n++)capped=updateMastery(capped,event(n,false,0,{accepted_at:new Date(sameDay+n*1000).toISOString(),question_id:'q'+n,family:'f'+n}));
+ const review=event(7,true,0,{accepted_at:new Date(sameDay+25*60000).toISOString(),question_id:'q1',family:'f1',source:'review'}),done=updateMastery(capped,review);
+ assert.equal(done.review_count,1);assert.equal(done.last_reviewed_at,review.accepted_at);assert.equal(done.effective_attempt_count,6);assert.equal(done.score,capped.score);assert.equal(done.confidence,capped.confidence);assert.equal(masteryView(done,Date.parse(review.accepted_at)).overdue,false);
+});
+test('early repeated answer cannot manufacture completed due reviews',()=>{
+ const wrong=updateMastery(null,event(1,false)),early=updateMastery(wrong,event(2,true,9*60000,{source:'review'}));
+ assert.equal(early.review_count,0);assert.equal(early.last_reviewed_at,null);assert.equal(early.next_review_at,wrong.next_review_at);assert.equal(early.score,wrong.score);
+});
 test('day boundary uses UTC, no local timezone parsing',()=>{const a=updateMastery(null,event(1));const b=updateMastery(a,event(2,true,2*60000,{question_id:'different',family:'spelling'}));assert.equal(b.evidence_days.length,2);assert.equal(b.daily_effective_count,1);assert.ok(b.score<80);});
 test('daily evidence limit cannot be bypassed by new prompts',()=>{let s=null;for(let n=1;n<=20;n++)s=updateMastery(s,event(n,true,n*1000,{question_id:'q'+n,family:'f'+n}));assert.equal(s.effective_attempt_count,6);assert.equal(s.correct_count,20);assert.ok(s.score<=79);});
 test('clock regression and invalid duration are explicit errors',()=>{const s=updateMastery(null,event(1));assert.throws(()=>updateMastery(s,event(2,true,-1000)),/顺序/);assert.throws(()=>updateMastery(null,event(1,true,0,{response_ms:Infinity})),/无效/);});
