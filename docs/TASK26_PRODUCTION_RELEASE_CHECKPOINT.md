@@ -1,3 +1,21 @@
+# Task 26 Owner-authorized Production release — 2026-10-14 Asia/Hong_Kong
+
+Runtime status: **RELEASED_WITH_OWNER_WAIVER**. Actual Stable100 release and real English/Japanese browser health passed at 2026-10-14T12:00:18.692Z. Core Production commit remains c1f32485028c9ce9114d21cab4af3bb46961359c; serving deployment74c90a72-5b91-472d-97b2-08588256ee9c. This source change publishes website notes and a cache revision only; it does not change learning/backend/native logic.
+
+Owner explicitly waived the designated ordinary member separate trial consent and dedicated1%/5%/10% Stable stages/observation window. Both are **WAIVED_BY_OWNER**, never PASS. Original gate was BLOCKED with zero effective percentage samples. Data safety, privacy, entitlement isolation, CI and actual release health remain required.
+
+Final runtime configuration: adaptive_learning ON100% Stable-only; mastery_score ON100% Stable-only; adaptive_review, ai_error_explanation, similar_word_explanation remain OFF0% Experimental-only. Active temporary targeting is0. Eligibility still requires existing language membership; flags create no entitlement. Ordinary hosted C1 acceptance is retained, with focused local100/100 security checks separately identified. The real new Stable smoke uses an effective-admin test identity and is not ordinary-user evidence.
+
+Real new Production browser smoke: two English/Japanese answers, same-ID replay, authoritative Mastery, reload recovery, course fallback with AI OFF, preserved role/membership, stable decisions and zero invalid states/missing receipts. Seven intentional immutable test learning events are retained. The first zero-answer browser attempt clicked during a hidden-workspace initialization race; it was actually rolled back M then A with latest revision/CAS and logged out. The visible-workspace repeat passed without a Production code change.
+
+0025 remains applied once with its original hash/schema. Original App50 remains1.3.37/50; no signature, Room, Cookie, profile, financial data, APK or R2 Stable pointer changes. **ORIGINAL_APP50_ISOLATED_WRITE_ACCEPTANCE = WAIVED_BY_OWNER**, not PASS.
+
+This document records the verified runtime release at note preparation. Final Closure still awaits this exact note candidate CI/review/controlled publication, post-publication health and confirmed Git auto deployment restoration. The local authoritative Release Closure report records final receipts after those operations. No claim is made that all original gates PASS: Owner waivers remain distinct.
+
+Historical checkpoints below are preserved verbatim and superseded for current configuration/status by this dated section.
+
+---
+
 # Task 26 Production release checkpoint
 
 ## Current verified Production checkpoint — 2026-10-13 16:12 Asia/Hong_Kong

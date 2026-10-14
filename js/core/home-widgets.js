@@ -1,5 +1,5 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?v=20261013-aeris-task26-r8";
-import { HOME_WIDGET_VERSION, WIDGET_IDS, WIDGET_MODES, defaultHomeWidgets, sanitizeHomeWidgets, homeWidgetStorageKey, legacyHomeWidgetStorageKey, isHomeWidgetDesktop, rotatedWidgetBox, layoutHomeWidgets, layoutMobileWidgets, widgetGeometry, widgetProfile, clampWidgetValue } from "./home-widget-layout.js?v=20261013-aeris-task26-r8";
+import { getSafeStorage, safeStorageSet } from "./storage.js?v=20261014-aeris-task26-r9";
+import { HOME_WIDGET_VERSION, WIDGET_IDS, WIDGET_MODES, defaultHomeWidgets, sanitizeHomeWidgets, homeWidgetStorageKey, legacyHomeWidgetStorageKey, isHomeWidgetDesktop, rotatedWidgetBox, layoutHomeWidgets, layoutMobileWidgets, widgetGeometry, widgetProfile, clampWidgetValue } from "./home-widget-layout.js?v=20261014-aeris-task26-r9";
 export { HOME_WIDGET_VERSION, WIDGET_IDS, WIDGET_MODES, defaultHomeWidgets, sanitizeHomeWidgets, homeWidgetStorageKey, legacyHomeWidgetStorageKey, isHomeWidgetDesktop, rotatedWidgetBox, layoutHomeWidgets, layoutMobileWidgets, widgetGeometry, widgetProfile };
 const clamp=clampWidgetValue;
 export const homeWidgetDragMoved = (x,y) => Math.hypot(x,y) >= 6;
