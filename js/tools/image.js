@@ -1,4 +1,4 @@
-import { joinBytes } from "./file.js?v=20261012-aeris-task26-r7";
+import { joinBytes } from "./file.js?v=20261014-aeris-task26-r9";
 
 function colorRgb(hex) {
   const normalized = String(hex || "").trim().replace(/^#/, "");

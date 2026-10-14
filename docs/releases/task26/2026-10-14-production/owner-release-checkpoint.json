@@ -1,0 +1,88 @@
+{
+  "observed_at": "2026-10-14T12:00:20.464Z",
+  "kind": "Actual Owner-authorized Stable100 runtime release; website note candidate publication is separate",
+  "production_commit": "c1f32485028c9ce9114d21cab4af3bb46961359c",
+  "production_deployment_id": "74c90a72-5b91-472d-97b2-08588256ee9c",
+  "runtime_status": "RELEASED_WITH_OWNER_WAIVER",
+  "release_time": "2026-10-14T11:59:11.196Z",
+  "health": "PASS",
+  "waivers": {
+    "designated_ordinary_member_separate_trial_consent": "WAIVED_BY_OWNER",
+    "dedicated_1_5_10_percent_stable_observation_window": "WAIVED_BY_OWNER"
+  },
+  "prior_percentage_gate": {
+    "status": "BLOCKED_THEN_WAIVED_BY_OWNER",
+    "valid_small_percentage_samples": 0,
+    "never_relabelled_PASS": true
+  },
+  "original_app50_isolated_write": "WAIVED_BY_OWNER",
+  "flags": [
+    {
+      "key": "adaptive_learning",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "stable"
+      ],
+      "percentage": 100,
+      "revision": 36
+    },
+    {
+      "key": "adaptive_review",
+      "enabled": false,
+      "kill_switch": false,
+      "channels": [
+        "experimental"
+      ],
+      "percentage": 0,
+      "revision": 26
+    },
+    {
+      "key": "ai_error_explanation",
+      "enabled": false,
+      "kill_switch": false,
+      "channels": [
+        "experimental"
+      ],
+      "percentage": 0,
+      "revision": 11
+    },
+    {
+      "key": "mastery_score",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "stable"
+      ],
+      "percentage": 100,
+      "revision": 31
+    },
+    {
+      "key": "similar_word_explanation",
+      "enabled": false,
+      "kill_switch": false,
+      "channels": [
+        "experimental"
+      ],
+      "percentage": 0,
+      "revision": 9
+    }
+  ],
+  "live_smoke": {
+    "scope": "Owner-designated pre-existing effective-admin test account, not ordinary user",
+    "english_and_japanese_UI_answers": 2,
+    "immutable_event_delta": 7,
+    "checks": 16,
+    "normal_logout": "PASS"
+  },
+  "ordinary_member_evidence": "Previously accepted real ordinary C1 canary plus 11 focused local100/100 security groups/66 requests; no admin-as-ordinary claim",
+  "rollback": {
+    "actual_first_failure": "M then A closed with fresh CAS; data retained; first zero-answer failure preserved",
+    "repeat": "Fresh isolated browser waited for visible workspace; runtime source unchanged",
+    "ready": true
+  },
+  "public_notes_version": "2026.10.14.1",
+  "publication_status": "PENDING_EXACT_HEAD_CI_AND_CONTROLLED_PUBLISH",
+  "final_closure": "PENDING_PUBLICATION_HEALTH_AND_GIT_AUTODEPLOY_RESTORE",
+  "native_APK_signing_and_Stable_pointer_changed": false
+}
