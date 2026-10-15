@@ -21,7 +21,7 @@ defaults:
 jobs:
   task25-cloud-readiness:
     name: Task 25 cloud credential discovery
-    if: github.ref == 'refs/heads/main' || ((startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b') && github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.ref == 'refs/heads/main' || ((startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b' || github.head_ref == 'codex/android-accessibility-accounting-hotfix') && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -580,7 +580,7 @@ jobs:
 
   task25-android-instrumentation:
     name: Task 25 Android runtime contract
-    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b'
+    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b' || github.head_ref == 'codex/android-accessibility-accounting-hotfix'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
