@@ -105,7 +105,8 @@ export function replayWrongReview(value) {
 export function wrongReviewView(info, now = Date.now(), confirmed = null) {
   const state = confirmed || replayWrongReview(sanitizeWrongReview(info?.review).events);
   const due = !state.mastered && (!state.next_review_at || Date.parse(state.next_review_at) <= now);
-  const errors = Math.max(0, (Number(info?.wrong_count) || 0) - state.corrected);
+  const legacyCorrection=info?.rejudge_result==='correct'&&state.corrected===0?1:0;
+  const errors = Math.max(0, (Number(info?.wrong_count) || 0) - state.corrected-legacyCorrection);
   const age = state.last_review_at ? Math.max(0, now - Date.parse(state.last_review_at)) / REVIEW_DAY : 30;
   const recentFailure = state.last_failure_at && now - Date.parse(state.last_failure_at) < REVIEW_DAY;
   const priority = (due ? 100 : 0) + Math.min(20,errors) * 3 + (100-state.score) * .3

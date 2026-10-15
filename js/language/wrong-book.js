@@ -44,7 +44,7 @@ export function sanitizeWrongBook(value) {
       cleaned[key] = {
         word: term,
         review_id: wrongReviewId(term,language,questionType,limitText(info.review_id,320)),
-        review: sanitizeWrongReview({...info.review,base_wrong_count:info.review?.base_wrong_count??Math.max(0,(Number.isFinite(count)?count:0)-(info.review?.events||[]).filter(event=>event?.correct===false&&event.kind!=='correction').length)}),
+        review: sanitizeWrongReview({...info.review,base_wrong_count:info.review?.base_wrong_count??Math.max(0,(Number.isFinite(count)?count:0)-(Array.isArray(info.review?.events)?info.review.events:[]).filter(event=>event?.correct===false&&event.kind!=='correction').length)}),
         wrong_count: Number.isFinite(count) ? Math.max(0, Math.min(9999, count)) : 0,
         last_answer: limitText(info.last_answer),
         original_answer: limitText(info.original_answer || info.last_answer),

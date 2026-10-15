@@ -73,8 +73,11 @@ export async function submitWrongReview(db,actor,input,{confirmCorrection=null}=
     let grading=info;
     if(await wrongReviewDigest(info)!==input.source_digest){
       grading=null;
-      const history=(await db.prepare("SELECT payload_json FROM task11_learning_sync_changes WHERE user_id=?1 AND data_type='wrong_book' AND record_id=?2 AND deleted=0 ORDER BY user_version DESC LIMIT 200").bind(actor.id,input.record_id).all()).results;
-      for(const row of history){const candidate=JSON.parse(row.payload_json);if(candidate.review_id===input.review_id&&await wrongReviewDigest(candidate)===input.source_digest){grading=candidate;break;}}
+      for(let offset=0;offset<200&&!grading;offset+=16){
+        const history=(await db.prepare("SELECT payload_json FROM task11_learning_sync_changes WHERE user_id=?1 AND data_type='wrong_book' AND record_id=?2 AND deleted=0 ORDER BY user_version DESC LIMIT 16 OFFSET ?3").bind(actor.id,input.record_id,offset).all()).results;
+        for(const row of history){const candidate=JSON.parse(row.payload_json);if(candidate.review_id===input.review_id&&await wrongReviewDigest(candidate)===input.source_digest){grading=candidate;break;}}
+        if(history.length<16)break;
+      }
       if(!grading)fail('原判卷版本尚未得到服务端确认，已保留本地答案及判卷设置',409,'wrong_review_rubric_pending');
     }
     let correct=input.kind==='mistake' && input.answer==='（跳过）' ? false : grading.question_type==='dictation'

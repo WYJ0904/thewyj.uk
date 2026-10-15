@@ -6181,12 +6181,18 @@ function adjustStudyRecordAfterRejudge(info) {
 
 function adjustActiveRoundAfterRejudge(word, info, result) {
   if (!state.roundActive || !info?.round_id || info.round_id !== state.roundId) return false;
+  const questionIndex=state.words.findIndex((candidate,index)=>candidate===word&&(!state.reviewKeys.length
+    ||state.reviewKeys[index]===wrongEntryKey(word,info.language,info.question_type)));
+  if(questionIndex<0)return false;
   if (info.skipped) {
     if (state.roundSkipped <= 0) return false;
     state.roundSkipped -= 1;
   }
   state.score = Math.min(state.words.length, state.score + 1);
-  if (state.pendingAdvance?.roundId === state.roundId && state.pendingAdvance.questionIndex === state.index) {
+  const correctedFeedback=sanitizeQuestionFeedback({type:'answer',correct:true,gloss:result.gloss||info.correct_answer,
+    accepted:result.accepted||info.accepted,kind:info.question_type==='dictation'?'dictation':'meaning'});
+  if(state.reviewAnswers[questionIndex])state.reviewAnswers[questionIndex].feedback=correctedFeedback;
+  if (state.pendingAdvance?.roundId === state.roundId && state.pendingAdvance.questionIndex === questionIndex) {
     state.pendingAdvance.feedback = sanitizeQuestionFeedback({
       type: "answer",
       correct: true,
@@ -6391,7 +6397,7 @@ function renderWrongBook(options = {}) {
     node.querySelector("p").textContent = info.skipped
       ? `已跳过 · 标准：${info.correct_answer || "（未给出）"}`
       : `你答：${info.last_answer || ""} · 标准：${info.correct_answer || ""}`;
-    node.querySelector("strong").textContent = `${info.wrong_count || 0}次`;
+    node.querySelector("strong").textContent = `历史 ${info.wrong_count || 0}次`;
     const rejudgeStatus = node.querySelector(".wrong-rejudge-status");
     const review=wrongReviewView(info,Date.now(),wrongReviewController?.confirmed(entryKey,info));
     const persistedStatus = `${info.question_type==='dictation'?'听写':'释义'} · ${wrongReviewController?.confirmed(entryKey,info)?'已确认':'本地'} · ${review.mastered?'已掌握':review.due?'待复习':`下次 ${formatLocalDateTime(review.next_review_at)}`}${info.rejudge_result==='correct'?' · 原错误已纠正':''}；可重新判定`;
@@ -6590,6 +6596,8 @@ async function importWrongData(event) {
     if (imported.language && imported.language !== state.quizLanguage) {
       throw new Error(`该文件属于${quizLanguageLabel(imported.language)}项目，请返回项目选择页后再导入`);
     }
+    const importedAt=new Date().toISOString();
+    for(const book of [imported.current,imported.history])for(const info of Object.values(book))info.review_updated_at=importedAt;
     state.currentWrongBook = mergeWrongBooks(state.currentWrongBook, imported.current);
     state.historyWrongBook = mergeWrongBooks(state.historyWrongBook, imported.history);
     if (!state.quizLanguage && imported.language) state.quizLanguage = imported.language;

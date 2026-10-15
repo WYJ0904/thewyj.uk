@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {sanitizeWrongBook,updateWrongEntry,wrongEntryKey,filterWrongBookByLanguage,mergeWrongBooks} from '../../js/language/wrong-book.js';
 import {WRONG_REVIEW_ALGORITHM, REVIEW_DAY, REVIEW_INTERVALS, replayWrongReview,reduceWrongReview,initialWrongReview,orderWrongReview,mergeWrongReview,wrongReviewView} from '../../js/language/wrong-review.js';
-import {evaluateLocalMeaning,evaluateDictation} from '../../js/language/quiz.js';
+import {evaluateLocalMeaning,evaluateDictation,sanitizeQuestionFeedback} from '../../js/language/quiz.js';
 import {mergeLearningRecord} from '../../functions/_lib/task11-model.mjs';
 
 let groups=0;
@@ -64,4 +64,17 @@ assert.ok(!html.includes('id="masterySection"'));assert.ok(!html.includes('id="m
 for(const id of ['reviewBtn','reviewHistoryBtn','answerForm'])assert.ok(html.includes(`id="${id}"`));
 assert.ok(!app.slice(app.indexOf('async function removeReviewedWord'),app.indexOf('function questionFeedbackFromResult')).includes('delete '));
 check('single original answer form and both review entrances survive; correct-answer deletion is retired');
+const malformed=sanitizeWrongBook({apple:{wrong_count:7,language:'english',review:{events:'legacy-unknown'}}}).apple;
+assert.equal(malformed.wrong_count,7);assert.deepEqual(malformed.review.events,[]);
+const fixedNow=Date.now(),singleLegacy={...legacy,wrong_count:1};assert.ok(wrongReviewView({...singleLegacy,rejudge_result:'correct'},fixedNow).priority<wrongReviewView(singleLegacy,fixedNow).priority);
+check('unknown review metadata retains original wrong records and corrected legacy errors do not remain full-priority mistakes');
+const start=app.indexOf('function adjustActiveRoundAfterRejudge('),end=app.indexOf('async function evaluateWrongRejudgeAnswer(',start);
+const active={roundActive:true,roundId:'active-round',words:['apple','banana'],reviewKeys:[],reviewAnswers:{0:{event:{id:'original',correct:false},feedback:{correct:false}}},index:1,roundSkipped:0,score:0,
+  pendingAdvance:{roundId:'active-round',questionIndex:1,feedback:{correct:false}}};
+const isolated=vm.createContext({state:active,sanitizeQuestionFeedback,wrongEntryKey,updateStats(){},saveProjectRuntime(){}});
+vm.runInContext(app.slice(start,end),isolated);
+assert.equal(vm.runInContext("adjustActiveRoundAfterRejudge('apple',{round_id:'active-round',question_type:'meaning',language:'english',correct_answer:'苹果'},{gloss:'苹果',accepted:[]})",isolated),true);
+assert.equal(active.score,1);assert.equal(active.pendingAdvance.feedback.correct,false);assert.equal(active.reviewAnswers[0].feedback.correct,true);assert.equal(active.reviewAnswers[0].event.correct,false);
+assert.equal(vm.runInContext("adjustActiveRoundAfterRejudge('apple',{round_id:'other-profile-round'},{})",isolated),false);
+check('rejudging a preceding word corrects its saved feedback without changing the current word or rewriting the original event');
 console.log(`Wrong-review engine: ${groups} groups passed`);

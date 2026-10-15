@@ -247,7 +247,7 @@
     merged.wrong_count = Math.max(Number(left.wrong_count) || 0, Number(right.wrong_count) || 0);
     if (left.review_id && left.review_id === right.review_id) {
       const events = new Map();
-      for (const event of [...(left.review?.events || []), ...(right.review?.events || [])]) {
+      for (const event of [...(Array.isArray(left.review?.events)?left.review.events:[]), ...(Array.isArray(right.review?.events)?right.review.events:[])]) {
         if (!event || typeof event.id !== 'string' || typeof event.at !== 'string') continue;
         const previous = events.get(event.id);
         if (!previous || stableStringify(event) < stableStringify(previous)) events.set(event.id,event);
