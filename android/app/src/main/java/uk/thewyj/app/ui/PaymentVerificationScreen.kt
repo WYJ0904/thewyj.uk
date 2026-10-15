@@ -56,7 +56,7 @@ fun PaymentVerificationScreen(
     state: PaymentVerificationState,
     onBack: () -> Unit,
     onOpenFinance: () -> Unit,
-    onOpenApp: (String) -> Boolean,
+    onOpenApp: suspend (PaymentVerificationCenter.Item) -> Boolean,
 ) {
     val scope = rememberCoroutineScope()
     var tick by remember { mutableStateOf(0) }
@@ -272,13 +272,13 @@ fun PaymentVerificationScreen(
                                 }
                                 if (item.ticketActive) {
                                     TextButton(
-                                        onClick = {
-                                            if (onOpenApp(item.sourcePackage)) {
+                                        onClick = { scope.launch {
+                                            if (onOpenApp(item)) {
                                                 state.reportOpenAppStarted()
                                             } else {
                                                 state.reportOpenAppFailure(item.appLabel)
                                             }
-                                        },
+                                        } },
                                     ) { Text("打开应用") }
                                 }
                             }

@@ -18,6 +18,9 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
     private val refreshScheduled = AtomicBoolean(false)
     private val readScheduled = AtomicBoolean(false)
     private val screenshotInFlight = AtomicBoolean(false)
+    private val scanBudgets = PaymentPageRetryPool()
+    private var trailingRead: Pair<String, Int?>? = null
+    @Volatile private var closed = false
     @Volatile private var active: Scan? = null
     @Volatile private var generation = 0L
     private var pageClass = ""
@@ -26,24 +29,34 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
     private var ocrVerifier: PaymentScreenshotVerifier? = null
     private val androidGateway by lazy { AndroidPaymentAccessibilityGateway(this) }
     private fun gateway() = PaymentAccessibilityDeviceTest.gateway() ?: androidGateway
-    private class Scan(val accountId: String, val ticket: PaymentTicket, val windowId: Int?, val generation: Long, val budget: PaymentPageRetry, val gateway: PaymentAccessibilityGateway) {
+    private class Scan(val accountId: String, val ticket: PaymentTicket, val windowId: Int?, val generation: Long, val budget: PaymentPageRetry, val gateway: PaymentAccessibilityGateway, val windowKey: String) {
         val applying = AtomicBoolean(false)
     }
     private data class PageRead(val lines: List<String>, val groups: List<List<String>>, val nodes: Int)
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        closed = false
+        trailingRead = null
+        readScheduled.set(false)
+        scanBudgets.clear()
         PaymentAccessibilityStatus.onConnected()
         PaymentTicketPackageSignal.clear()
         cancelScan("service_connected")
         refreshPackages(force = true)
     }
     override fun onUnbind(intent: android.content.Intent?): Boolean {
+        closed = true
+        trailingRead = null
+        scanBudgets.clear()
         cancelScan("service_unbound")
         PaymentAccessibilityStatus.onDisconnected()
         return super.onUnbind(intent)
     }
     override fun onDestroy() {
+        closed = true
+        trailingRead = null
+        scanBudgets.clear()
         cancelScan("service_destroyed")
         PaymentAccessibilityStatus.onDisconnected()
         mainHandler.removeCallbacksAndMessages(null)
@@ -53,6 +66,7 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
     override fun onInterrupt() { cancelScan("service_interrupted") }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        if (closed) return
         val e = event ?: return
         val foreground = rootInActiveWindow?.packageName?.toString().orEmpty()
         val pkg = e.packageName?.toString().orEmpty().ifBlank { foreground }
@@ -79,7 +93,12 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
 
     /** Room/account lookup is always off the accessibility thread. */
     private fun queueRead(pkg: String, eventWindow: Int?) {
-        if (!readScheduled.compareAndSet(false, true)) { PaymentDiagnostics.emit("debounce", "reason=read_pending"); return }
+        if (closed) return
+        if (!readScheduled.compareAndSet(false, true)) {
+            trailingRead = pkg to eventWindow
+            PaymentDiagnostics.emit("debounce", "reason=read_pending_latest_retained")
+            return
+        }
         val requestedGeneration = generation
         PaymentAccessibilityStatus.onParserResult("read_queued")
         execute {
@@ -95,13 +114,18 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
                     val id = window?.id ?: root?.windowId ?: eventWindow
                     val key = "${ticket.ticketId}|$pkg|$id|$pageClass"
                     val previous = active
-                    val scan = if (previous?.budget?.key == key && !previous.budget.cancelled) previous else {
+                    val scan = if (previous?.windowKey == key && !previous.budget.cancelled) previous else {
                         cancelScan("new_ticket_or_window")
-                        Scan(account, ticket, id, generation, PaymentPageRetry(key, SystemClock.uptimeMillis()), gateway).also { active = it }
+                        Scan(account, ticket, id, generation, scanBudgets.budget(account, ticket.ticketId, SystemClock.uptimeMillis()), gateway, key).also { active = it }
                     }
                     readPage(scan)
                 }
-            } finally { readScheduled.set(false) }
+            } finally {
+                readScheduled.set(false)
+                mainHandler.post {
+                    if (!closed) trailingRead?.also { trailingRead = null; queueRead(it.first, it.second) }
+                }
+            }
         }
     }
 
@@ -220,7 +244,8 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         PaymentDiagnostics.emit("retry", "reason=$reason attempt=${scan.budget.attempts} delay=$delay remaining=$remaining")
     }
     private fun cancelScan(reason: String) {
-        active?.budget?.cancel()
+        // Generation/window checks discard old callbacks; the finite ticket
+        // budget survives page changes so events cannot reset the read cap.
         active = null; generation++
         retryCallback?.let(mainHandler::removeCallbacks); retryCallback = null
         PaymentDiagnostics.emit("cancel", "reason=$reason")

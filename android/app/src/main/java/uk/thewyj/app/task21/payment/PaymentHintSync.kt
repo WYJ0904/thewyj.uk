@@ -164,12 +164,13 @@ class PaymentHintSync(
         val candidate = runCatching {
             store.candidateForRecognition(accountId, recognitionId)
         }.getOrNull() ?: return false
-        val amountMinor = candidate.effectiveAmountMinor ?: recognition.amountMinor
-        val direction = candidate.effectiveDirection
+        val amountMinor = candidate.amountMinor ?: recognition.amountMinor
+        val direction = candidate.direction
             .takeIf { it.isNotBlank() && it != "UNKNOWN" }
             ?: recognition.direction
         val hasAmount = amountMinor != null && amountMinor > 0L
         val hasDirection = direction.isNotBlank() && direction != "UNKNOWN"
+        val settled = hasAmount && hasDirection && recognition.completionConfirmed && !candidate.hasEdits
         // Amount and direction are independently useful enrichment. In
         // particular, WeChat can expose a verified amount while leaving the
         // direction unknown. Publish that amount into the existing hint now;
@@ -185,12 +186,12 @@ class PaymentHintSync(
             appLabel = PaymentAppLabels.resolve(app, recognition.sourcePackage),
             amountMinor = amountMinor?.takeIf { it > 0L },
             direction = direction.takeIf { hasDirection }.orEmpty(),
-            merchant = candidate.effectiveMerchant.ifBlank { recognition.merchant },
+            merchant = candidate.merchant.ifBlank { recognition.merchant },
             currency = recognition.currency.ifBlank { "CNY" },
             confidence = candidate.confidence.coerceIn(0, 1000),
-            recognitionStatus = if (hasAmount && hasDirection) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY",
-            reasons = listOf(if (hasAmount && hasDirection) "accessibility_verified_payment" else "accessibility_partial_enrichment"),
-            parserVersion = "verified-on-device",
+            recognitionStatus = if (settled) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY",
+            reasons = listOf(if (settled) "accessibility_verified_payment" else "accessibility_pending_evidence"),
+            parserVersion = if (settled) "payment-settled-4" else "payment-evidence-4",
             providerReference = recognition.providerReference,
             paymentChannel = recognition.paymentChannel,
             occurredAtMs = recognition.createdAtMs,
@@ -813,8 +814,8 @@ class PaymentHintSync(
                         appLabel = row.optString("app_label"), amountMinor = amount,
                         direction = direction, merchant = row.optString("merchant"), currency = "CNY",
                         confidence = row.optInt("confidence"),
-                        recognitionStatus = if (amount != null && direction in setOf("income", "expense", "refund"))
-                            "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY",
+                        // Historical amount/direction are not settlement proof.
+                        recognitionStatus = "PAYMENT_LIKELY",
                         reasons = listOf("archive_lifecycle_reconciliation"), parserVersion = "archive-link-v1",
                         paymentChannel = channel, lifecycleIdentity = lifecycleIdentity,
                         providerReference = references.singleOrNull().orEmpty(),

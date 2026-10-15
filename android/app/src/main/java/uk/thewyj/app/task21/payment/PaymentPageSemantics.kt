@@ -41,7 +41,7 @@ object PaymentPageSemantics {
         // A generic "交易成功" proves completion, not whether money entered or
         // left the account. Only page wording that identifies the direction may
         // complete the booking; ambiguous pages keep the same identity pending.
-        val direction = if (PaymentPageContext.pendingOutgoing(lines)) uk.thewyj.app.task21.FinanceDirection.EXPENSE else PaymentText.direction(joined)
+        val direction = PaymentPageContext.pendingDirection(lines) ?: PaymentText.direction(joined)
         val detailPage = listOf("交易详情", "交易詳情", "账单详情", "賬單詳情", "转账详情", "轉賬詳情")
             .any(joined::contains)
         if (amount == null && !(detailPage && PaymentText.hasCompletion(joined) && direction != null)) return null
@@ -62,6 +62,7 @@ object PaymentPageSemantics {
             providerReference = reference,
             occurredAtMs = snapshot.capturedAtMs,
             confidence = confidence,
+            completionConfirmed = PaymentText.hasCompletion(joined),
         )
     }
 }

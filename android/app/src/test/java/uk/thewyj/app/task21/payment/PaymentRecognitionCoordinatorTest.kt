@@ -549,6 +549,7 @@ class PaymentRecognitionCoordinatorTest {
                 providerReference = null,
                 occurredAtMs = clock.value,
                 confidence = 880,
+                completionConfirmed = true,
             ),
         )
         assertTrue(outcome is EnrichmentOutcome.Applied)

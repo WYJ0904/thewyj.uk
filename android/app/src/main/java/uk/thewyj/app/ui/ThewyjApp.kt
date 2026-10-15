@@ -402,8 +402,8 @@ private fun AuthenticatedShell(
                             onWebError("这笔交易无法在本机核实；请在收到通知的设备上操作，或刷新待处理状态")
                         } else {
                             overlays = overlays.copy(paymentVerification = true)
-                            if (!SourceAppLauncher.launch(context, ticket.sourcePackage)) {
-                                onWebError("无法打开来源应用，请在 90 秒内手动打开交易详情")
+                            if (!SourceAppLauncher.launch(context, ticket)) {
+                                onWebError("无法自动打开确切的来源应用或分身，请在 90 秒内手动打开同一笔交易详情")
                             }
                         }
                     }
@@ -473,8 +473,11 @@ private fun AuthenticatedShell(
                         onClosePaymentVerification()
                         onOpenRoute("/finance")
                     },
-                    onOpenApp = { sourcePackage ->
-                        SourceAppLauncher.launch(context, sourcePackage)
+                    onOpenApp = { item ->
+                        val ticket = withContext(Dispatchers.IO) {
+                            PaymentVerificationCenter(context).verificationTarget(item.recognitionId)
+                        }
+                        ticket != null && SourceAppLauncher.launch(context, ticket)
                     },
                 )
             }

@@ -263,6 +263,13 @@ internal object PaymentText {
      * labels are removed before the weaker keyword scan.
      */
     fun direction(normalized: String): FinanceDirection? {
+        val incomingPending = Regex("待(?:你|您|本人)收款").containsMatchIn(normalized)
+        val outgoingPending = Regex("待(?!(?:你|您|本人)收款)[^，。,:：]{1,30}收款").containsMatchIn(normalized)
+        if (incomingPending || outgoingPending) return when {
+            incomingPending && !outgoingPending -> FinanceDirection.INCOME
+            outgoingPending && !incomingPending -> FinanceDirection.EXPENSE
+            else -> null
+        }
         if (refundTerms.any { normalized.contains(it) }) return FinanceDirection.REFUND
         if (outgoingDestinationTerms.any { normalized.contains(it) } ||
             outgoingDestinationPatterns.any { it.containsMatchIn(normalized) }
@@ -315,7 +322,16 @@ internal object PaymentText {
             "退款金额", "退款金額", "消费金额", "消費金額", "金额", "金額")
             .any { marker -> normalized.contains(marker, ignoreCase = true) }
 
-    fun hasCompletion(normalized: String): Boolean = completionTerms.any { normalized.contains(it) }
+    private val incompleteStatus = Regex(
+        "待.{0,24}(?:收款|领取|領取|支付|付款|扣款|入[账帳賬])|等待.{0,16}(?:处理|處理|到账|到賬)|" +
+            "(?:支付|付款|收款|交易|退款|转账|轉賬|转帐|轉帳).{0,6}(?:处理中|處理中|申请中|申請中|待确认|待確認|失败|失敗|取消|撤回|过期|過期|关闭|關閉)|" +
+            "(?:预计|預計).{0,16}(?:到账|到賬)|(?:尚未|还未|還未|未|没有|沒有).{0,8}(?:收款|到账|到賬|入账|入賬|支付|付款|完成)",
+    )
+    fun hasIncompleteStatus(normalized: String): Boolean = incompleteStatus.containsMatchIn(normalized)
+
+    /** Pending/failed wording cannot become settlement merely by mentioning 到账. */
+    fun hasCompletion(normalized: String): Boolean =
+        !hasIncompleteStatus(normalized) && completionTerms.any { normalized.contains(it) }
 
     /** Card or account tail such as 尾号1234 / 尾號1234 / ****1234. */
     fun accountTail(normalized: String): String? {

@@ -10,9 +10,14 @@ import uk.thewyj.app.task21.store.*
 object LocalPaymentLedger {
     fun recover(context: Context, accountId: String, deviceId: String) {
         val database = NotificationDatabase.get(context)
+        val coordinator = AndroidPaymentRecognitionHook.get(context).coordinator()
+        recover(context, accountId, deviceId, database, coordinator)
+    }
+
+    internal fun recover(context: Context, accountId: String, deviceId: String,
+        database: NotificationDatabase, coordinator: PaymentRecognitionCoordinator) {
         val store = RoomPaymentRecognitionStore(database)
         val archive = RoomNotificationStore(database)
-        val coordinator = AndroidPaymentRecognitionHook.get(context).coordinator()
         var changed = false
         val ignored = CanonicalPendingCache(context, accountId).read()?.records.orEmpty()
             .filter { it.state in setOf("ignored", "rejected", "superseded", "expired") }.flatMap { it.eventIds }.toSet()
@@ -61,13 +66,31 @@ object LocalPaymentLedger {
                 sourcePackage = booking.sourcePackage, appLabel = PaymentAppLabels.resolve(context, booking.sourcePackage),
                 amountMinor = booking.amountMinor, direction = booking.direction, merchant = booking.merchant,
                 currency = booking.currency, confidence = store.candidateForRecognition(accountId, booking.recognitionId)?.confidence ?: 0,
-                recognitionStatus = "CONFIRMED_PAYMENT", reasons = listOf("exact_archive_identity_recovery"),
-                parserVersion = "local-autobook-v1", providerReference = booking.providerReference,
+                recognitionStatus = if (recognition.completionConfirmed) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY",
+                reasons = listOf("exact_archive_identity_recovery"),
+                parserVersion = if (recognition.completionConfirmed) "payment-settled-4" else "payment-evidence-4",
+                providerReference = booking.providerReference,
                 paymentChannel = booking.paymentChannel, lifecycleIdentity = proofs.single(), occurredAtMs = booking.occurredAtMs,
             ))
         }
         val queued = queue.peekRequests().map { it.operationId }.toSet()
         for (booking in store.localBookings(accountId).filter { it.syncState == "pending" }) {
+            val recognition = store.recognition(accountId, booking.recognitionId)
+            val proven = recognition?.completionConfirmed == true
+            if (proven) {
+                // A former candidate may already own this event's ingest receipt.
+                // Persist the later settlement independently; retries must survive
+                // process death and close that same canonical event, not fork it.
+                queue.enqueueHint("hint:${booking.eventId}", StructuredEventJson.hintPayload(
+                    deviceId = deviceId, sourceEventId = booking.eventId, sourceType = "notification",
+                    sourcePackage = booking.sourcePackage, appLabel = PaymentAppLabels.resolve(context, booking.sourcePackage),
+                    amountMinor = booking.amountMinor, direction = booking.direction, merchant = booking.merchant,
+                    currency = booking.currency, confidence = store.candidateForRecognition(accountId, booking.recognitionId)?.confidence ?: 0,
+                    recognitionStatus = "CONFIRMED_PAYMENT", reasons = listOf("durable_settlement_recovery"),
+                    parserVersion = "payment-settled-4", providerReference = booking.providerReference,
+                    paymentChannel = booking.paymentChannel, occurredAtMs = booking.occurredAtMs,
+                ))
+            }
             if (booking.eventId in queued) continue
             val event = StructuredNotificationEvent(
                 eventId = booking.eventId,
@@ -75,7 +98,8 @@ object LocalPaymentLedger {
                     booking.direction, booking.amountMinor.toString(), booking.merchant),
                 sourcePackage = booking.sourcePackage,
                 eventType = if (booking.direction == "REFUND") NotificationEventType.REFUND else NotificationEventType.TRANSACTION,
-                parserVersion = "local-autobook-v1", parseStatus = ParseStatus.PARSED,
+                parserVersion = if (proven) "local-autobook-v2" else "local-autobook-legacy-review",
+                parseStatus = if (proven) ParseStatus.PARSED else ParseStatus.CANDIDATE,
                 direction = FinanceDirection.valueOf(booking.direction), amountMinor = booking.amountMinor,
                 currency = booking.currency, merchant = booking.merchant, counterparty = booking.merchant,
                 paymentChannel = booking.paymentChannel, providerReference = booking.providerReference,
@@ -111,7 +135,7 @@ object LocalPaymentLedger {
             val candidate = store.candidateForRecognition(account.accountId, record.recognitionId)
             val amount = candidate?.effectiveAmountMinor ?: record.amountMinor
             val direction = candidate?.effectiveDirection?.takeIf(String::isNotBlank) ?: record.direction
-            if (PaymentAutoBook.eligible(amount, direction)) continue
+            if (store.localBooking(account.accountId, PaymentAutoBook.eventId(record)) != null) continue
             val id = PaymentAutoBook.eventId(record)
             reviews.put(JSONObject().put("id", id).put("event_id", id).put("event_ids", JSONArray().put(id))
                 .put("state", "pending").put("kind", "hint").put("amount_minor", amount ?: JSONObject.NULL)

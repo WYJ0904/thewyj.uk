@@ -114,7 +114,19 @@ class PaymentVerificationCenter(
     fun startVerification(recognitionId: String): PaymentTicket? {
         val account = sessions.currentAccount() ?: return null
         if (!account.financeEntitled) return null
-        return runCatching { hook.coordinator().restartVerification(account.accountId, recognitionId) }.getOrNull()
+        return runCatching {
+            val record = store.recognition(account.accountId, recognitionId) ?: return@runCatching null
+            hook.coordinator().restartVerification(account.accountId, recognitionId)?.copy(sourceUid = record.sourceUid)
+        }.getOrNull()
+    }
+
+    /** Resolve only this account's current ticket; opening never extends its expiry. */
+    fun verificationTarget(recognitionId: String): PaymentTicket? {
+        val account = sessions.currentAccount()?.takeIf { it.financeEntitled } ?: return null
+        val record = store.recognition(account.accountId, recognitionId) ?: return null
+        return store.activeTicketForPackage(account.accountId, record.sourcePackage)?.takeIf {
+            it.recognitionId == recognitionId && tickets.isActive(it)
+        }?.copy(sourceUid = record.sourceUid)
     }
 
     /** Finance deep link: only an exact pending server event may reopen a ticket. */
@@ -196,7 +208,7 @@ class PaymentVerificationCenter(
                     archive.structuredEventIdsForRecognition(accountId, recognition.sourceEventId)
                 val bookingId = bookingEventId(recognition)
                 val candidate = store.candidateForRecognition(accountId, recognition.recognitionId)
-                val incompleteMoney = !PaymentAutoBook.eligible(candidate?.effectiveAmountMinor ?: recognition.amountMinor,
+                val incompleteMoney = !PaymentAutoBook.hasCompleteMoney(candidate?.effectiveAmountMinor ?: recognition.amountMinor,
                     candidate?.effectiveDirection?.takeIf(String::isNotBlank) ?: recognition.direction)
                 val unsent = identities.any { it in queue || "hint:$it" in queue } || bookingId in queue ||
                     incompleteMoney ||
@@ -256,7 +268,11 @@ class PaymentVerificationCenter(
                     observation,
                 ),
                 authority = authorityOf(recognition),
-                notice = rejections[queuedOperation].orEmpty(),
+                notice = rejections[queuedOperation] ?: when (candidate?.reason) {
+                    "source_instance_unverified" -> "无法自动核对来源应用或分身；请确认是同一笔交易后再记账"
+                    "payment_completion_unproven" -> "金额已识别，但尚未证明资金已完成收付；请核实状态后确认"
+                    else -> ""
+                },
                 recoveryOnly = recoveryOnly,
                 eventIds = eventIds.filter(String::isNotBlank).toSet(),
             )
@@ -532,7 +548,7 @@ class PaymentVerificationCenter(
     companion object {
         fun requiresManualOcrReview(candidate: PaymentCandidate): Boolean =
             candidate.reason == "ocr_amount_suggestion" && candidate.editedAmountMinor == null &&
-                !PaymentAutoBook.eligible(candidate.effectiveAmountMinor, candidate.effectiveDirection)
+                !PaymentAutoBook.hasCompleteMoney(candidate.effectiveAmountMinor, candidate.effectiveDirection)
 
         val ATTENTION_STATES = listOf(
             PaymentRecognitionState.DETECTED_AMOUNT_UNKNOWN.name,

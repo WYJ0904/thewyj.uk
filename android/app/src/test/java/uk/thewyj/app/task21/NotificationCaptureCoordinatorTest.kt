@@ -286,6 +286,17 @@ class NotificationCaptureCoordinatorTest {
     }
 
     @Test fun completePaymentIsUploaded() {
+        // A complete monetary shape without settlement must keep candidate status.
+        val pendingDir = File.createTempFile("wyj-pending", ".tmp").let { it.delete(); it.mkdirs(); it }
+        try {
+            val pending = paymentCoordinator(pendingDir, FakeTransport(),
+                parsedOutcome(12000, FinanceDirection.INCOME, confirmed = false))
+            pending.onNotification("com.tencent.mm", "微信支付", "转账 ¥120.00，待你收款", "", "", 1L)
+            val payload = org.json.JSONObject(pending.queuedRequests().single().body)
+                .getJSONArray("operations").getJSONObject(0).getJSONObject("payload")
+            assertEquals("candidate", payload.getString("parse_status"))
+            assertEquals(12000, payload.getLong("amount_minor"))
+        } finally { pendingDir.deleteRecursively() }
         val dir = File.createTempFile("wyj", ".tmp").let { it.delete(); it.mkdirs(); it }
         try {
             val transport = FakeTransport()
