@@ -165,7 +165,7 @@ function transactionEvent(overrides = {}) {
     source_package: "com.tencent.mm",
     source_type: "notification",
     event_type: "transaction",
-    parser_version: "wechat-v1",
+    parser_version: "wechat-4",
     parse_status: "parsed",
     direction: "expense",
     amount_minor: 1280,
@@ -404,7 +404,7 @@ try {
   assert.equal(replaySameEvent.response.status, 200);
   assert.equal(replaySameEvent.payload.operation_results[0].duplicate, true);
 
-  // 8. Complete low-confidence evidence books immediately and exactly once.
+  // 8. Complete money without settled status stays reviewable and idempotent.
   const lowAuto = await request(db, "/api/notification/ingest", {
     method: "POST", token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-low-auto", transactionEvent({
@@ -413,8 +413,8 @@ try {
     })),
   });
   assert.equal(lowAuto.response.status, 200, JSON.stringify(lowAuto.payload));
-  assert.match(lowAuto.payload.operation_results[0].transaction_id, /^txn:/);
-  assert.equal(lowAuto.payload.operation_results[0].candidate_id, "");
+  assert.equal(lowAuto.payload.operation_results[0].transaction_id, "");
+  assert.match(lowAuto.payload.operation_results[0].candidate_id, /^cand:/);
   const lowAutoReplay = await request(db, "/api/notification/ingest", {
     method: "POST", token: USERS.subscriber.token,
     body: ingestBody("device-task21-000001", "op-low-auto-replay", transactionEvent({
@@ -426,7 +426,9 @@ try {
     lowAuto.payload.operation_results[0].transaction_id);
   const lowAutoTransactions = await db.prepare(`SELECT COUNT(*) AS count FROM task16_finance_raw_events
     WHERE user_id = ?1 AND source_event_id = ?2`).bind(USERS.subscriber.id, "evt-task21-low-auto").first();
-  assert.equal(Number(lowAutoTransactions.count), 1);
+  assert.equal(Number(lowAutoTransactions.count), 0, "candidate monetary fields cannot auto-book");
+  assert.equal(lowAutoReplay.payload.operation_results[0].candidate_id,
+    lowAuto.payload.operation_results[0].candidate_id, "replay keeps one pending identity");
 
   const referencedFirst = await request(db, "/api/notification/ingest", {
     method: "POST", token: USERS.subscriber.token,
@@ -494,9 +496,10 @@ try {
   assert.equal(low.response.status, 200, JSON.stringify(low.payload));
   assert.match(low.payload.operation_results[0].candidate_id, /^cand:/);
   const candidate = await db.prepare(
-    "SELECT * FROM task21_notification_candidates WHERE user_id = ?1 AND status = 'pending'",
-  ).bind(USERS.subscriber.id).first();
+    "SELECT * FROM task21_notification_candidates WHERE user_id = ?1 AND event_id = ?2 AND status = 'pending'",
+  ).bind(USERS.subscriber.id, "evt-task21-00000003").first();
   assert.ok(candidate, "legacy candidate remains confirmable");
+  assert.equal(candidate.event_id, "evt-task21-00000003");
 
   const confirmSideHint = await request(db, "/api/notification/hints", {
     method: "POST", token: USERS.subscriber.token,
@@ -650,7 +653,7 @@ try {
       ...transactionEvent(),
       event_id: "evt-task21-paid-100",
       fingerprint: fingerprint("e101"),
-      parser_version: "payment-wechat",
+      parser_version: "wechat-4",
       amount_minor: 10_000,
       confidence: 940,
     }),
@@ -672,7 +675,7 @@ try {
       ...transactionEvent(),
       event_id: "evt-task21-amount-hint",
       fingerprint: fingerprint("f460"),
-      parser_version: "payment-wechat",
+      parser_version: "wechat-4",
       parse_status: "candidate",
       direction: "expense",
       amount_minor: 5000,
@@ -718,7 +721,7 @@ try {
       ...transactionEvent(),
       event_id: "evt-task21-hint-amount",
       fingerprint: fingerprint("f461"),
-      parser_version: "payment-wechat",
+      parser_version: "wechat-4",
       parse_status: "candidate",
       direction: "expense",
       amount_minor: 0,
@@ -763,7 +766,8 @@ try {
   assert.equal(candidates.response.status, 200);
   // Two candidates confirmed above: the low-confidence one and the
   // amount-unknown hint the user completed with an explicit edit.
-  assert.equal(candidates.payload.candidates.length, 2);
+  assert.equal(candidates.payload.candidates.length, 2,
+    JSON.stringify(candidates.payload.candidates.map(row => ({ id: row.id, event: row.event_id, status: row.status }))));
   const invalidCandidateFilter = await request(db, "/api/notification/candidates?status=unknown", {
     token: USERS.subscriber.token,
   });
@@ -1297,7 +1301,7 @@ try {
   assert.equal(Number(raceHintRow.amount_minor), 450, "the hint must mirror the booked amount");
   assert.equal(raceHintRow.direction, "expense", "the hint must mirror the booked direction");
 
-  // Refresh repairs a complete candidate left by the former confidence gate.
+  // Complete legacy money is not settlement proof. Reads must keep it pending.
   const legacyEventId = "evt-task21-legacy-complete";
   const legacy = await legacyCandidateIngest(db, "/api/notification/ingest", {
     method: "POST", token: USERS.subscriber.token,
@@ -1315,21 +1319,67 @@ try {
     token: USERS.subscriber.token,
   });
   assert.equal(settledSummary.response.status, 200, JSON.stringify(settledSummary.payload));
-  assert.ok(!settledSummary.payload.records.some((row) => row.id === legacy.payload.operation_results[0].candidate_id && row.state === "pending"));
+  assert.ok(settledSummary.payload.records.some((row) =>
+    row.event_ids.includes(legacyEventId) && row.state === "pending"));
   const legacySettled = await db.prepare("SELECT status, finance_transaction_id FROM task21_notification_candidates WHERE id = ?1")
     .bind(legacy.payload.operation_results[0].candidate_id).first();
-  assert.equal(legacySettled.status, "confirmed");
-  assert.match(legacySettled.finance_transaction_id, /^txn:/);
+  assert.equal(legacySettled.status, "pending");
+  assert.equal(legacySettled.finance_transaction_id, "");
   const legacyCount = await db.prepare(`SELECT COUNT(*) AS count FROM task16_finance_raw_events
     WHERE user_id = ?1 AND source_event_id = ?2`).bind(USERS.subscriber.id, legacyEventId).first();
-  assert.equal(Number(legacyCount.count), 1);
+  assert.equal(Number(legacyCount.count), 0, "refresh must never invent a settlement");
   const legacyHintRow = await db.prepare("SELECT state FROM task21_notification_pending_hints WHERE source_event_id = ?1")
     .bind(legacyEventId).first();
-  assert.equal(legacyHintRow.state, "confirmed");
+  assert.equal(legacyHintRow.state, "pending");
+  const manualLegacy = await request(db, "/api/notification/candidates/confirm", {
+    method: "POST", token: USERS.subscriber.token, body: {
+      candidate_id: legacy.payload.operation_results[0].candidate_id, device_id: "device-task21-000001",
+    },
+  });
+  assert.equal(manualLegacy.response.status, 200, JSON.stringify(manualLegacy.payload));
+  assert.match(manualLegacy.payload.transaction_id, /^txn:/);
+  // Simulate an old partial pending projection beside that real receipt.
+  await db.prepare("UPDATE task21_notification_candidates SET status = 'pending', finance_transaction_id = '' WHERE id = ?1")
+    .bind(legacy.payload.operation_results[0].candidate_id).run();
+  await db.prepare("UPDATE task21_notification_pending_hints SET state = 'pending', finance_entry_id = '' WHERE source_event_id = ?1")
+    .bind(legacyEventId).run();
   await request(db, "/api/notification/pending-summary", { token: USERS.subscriber.token });
+  const repairedLegacy = await db.prepare("SELECT status, finance_transaction_id FROM task21_notification_candidates WHERE id = ?1")
+    .bind(legacy.payload.operation_results[0].candidate_id).first();
+  assert.equal(repairedLegacy.status, "confirmed");
+  assert.equal(repairedLegacy.finance_transaction_id, manualLegacy.payload.transaction_id);
   const legacyReplayCount = await db.prepare(`SELECT COUNT(*) AS count FROM task16_finance_raw_events
     WHERE user_id = ?1 AND source_event_id = ?2`).bind(USERS.subscriber.id, legacyEventId).first();
   assert.equal(Number(legacyReplayCount.count), 1);
+
+  // App50's old parser could label a pending transfer as parsed. Its money
+  // remains visible for explicit review; only an existing receipt can settle it.
+  const oldParsedBody = ingestBody("device-task21-000001", "op-old-parsed-pending", transactionEvent({
+      event_id: "evt-old-parsed-pending", fingerprint: fingerprint("f474"),
+      parser_version: "wechat-3", parse_status: "parsed", amount_minor: 12000, direction: "income",
+    }));
+  const oldParsed = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token, body: oldParsedBody,
+  });
+  assert.equal(oldParsed.response.status, 200, JSON.stringify(oldParsed.payload));
+  assert.equal(oldParsed.payload.operation_results[0].transaction_id, "");
+  assert.ok(oldParsed.payload.operation_results[0].candidate_id);
+  await request(db, "/api/notification/pending-summary", { token: USERS.subscriber.token });
+  const oldParsedCount = await db.prepare("SELECT COUNT(*) AS count FROM task16_finance_raw_events WHERE user_id = ?1 AND source_event_id = ?2")
+    .bind(USERS.subscriber.id, "evt-old-parsed-pending").first();
+  assert.equal(Number(oldParsedCount.count), 0);
+  const oldManual = await request(db, "/api/notification/candidates/confirm", {
+    method: "POST", token: USERS.subscriber.token, body: {
+      candidate_id: oldParsed.payload.operation_results[0].candidate_id, device_id: "device-task21-000001",
+    },
+  });
+  assert.equal(oldManual.response.status, 200, JSON.stringify(oldManual.payload));
+  const oldReplay = await request(db, "/api/notification/ingest", {
+    method: "POST", token: USERS.subscriber.token, body: oldParsedBody,
+  });
+  assert.equal(oldReplay.response.status, 200);
+  assert.equal(oldReplay.payload.operation_results[0].transaction_id, oldManual.payload.transaction_id);
+  assert.equal(oldReplay.payload.operation_results[0].receipt_reconciled, true);
 
   console.log("Task 21 notification checks passed (privacy boundary, entitlement lifecycle, idempotent ingest, dedupe, finance integration, candidate state machine, feature flags, device-booking hint convergence).");
 } finally {

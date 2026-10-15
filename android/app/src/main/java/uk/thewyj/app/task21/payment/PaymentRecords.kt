@@ -19,6 +19,9 @@ data class PaymentRecognitionRecord(
     val providerReference: String,
     val createdAtMs: Long,
     val updatedAtMs: Long,
+    /** Unknown legacy recognitions remain unproven; never infer from money. */
+    val completionConfirmed: Boolean = false,
+    val sourceUid: Int? = null,
 )
 
 /**

@@ -144,7 +144,7 @@ class PaymentParserTest {
             assertEquals(10_000L, result.amountMinor)
             assertNull("generic app title must not fabricate an expense direction", result.direction)
             assertTrue(result.missingFields.contains("direction"))
-            assertFalse(PaymentAutoBook.eligible(result.amountMinor, result.direction?.name.orEmpty()))
+            assertFalse(PaymentAutoBook.eligible(result.amountMinor, result.direction?.name.orEmpty(), false))
         }
     }
 
@@ -222,8 +222,8 @@ class PaymentParserTest {
         assertEquals(PaymentRecognitionStatus.CONFIRMED_PAYMENT, real.status)
         assertEquals(10_000L, real.amountMinor)
         val realTransfer = wechat("微信支付", "转账100元")
-        // A payment-channel notification with 转账 + amount auto-books.
-        assertEquals(PaymentRecognitionStatus.CONFIRMED_PAYMENT, realTransfer.status)
+        // A payment-channel title identifies a candidate, not settlement.
+        assertEquals(PaymentRecognitionStatus.PAYMENT_LIKELY, realTransfer.status)
         assertEquals(10_000L, realTransfer.amountMinor)
     }
 
@@ -233,7 +233,7 @@ class PaymentParserTest {
      */
     @Test fun paymentChannelAndChatShareTheSameWordingButNotTheSameOutcome() {
         val payment = wechat("微信支付", "转账199元")
-        assertEquals(PaymentRecognitionStatus.CONFIRMED_PAYMENT, payment.status)
+        assertEquals(PaymentRecognitionStatus.PAYMENT_LIKELY, payment.status)
         assertEquals(19_900L, payment.amountMinor)
         assertEquals(FinanceDirection.EXPENSE, payment.direction)
 
