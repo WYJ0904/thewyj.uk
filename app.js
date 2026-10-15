@@ -9,27 +9,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20261014-aeris-task26-r9";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261014-aeris-task26-r9";
+} from "./js/core/config.js?v=20261015-aeris-wrong-review-v1";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261015-aeris-wrong-review-v1";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?v=20261014-aeris-task26-r9";
+} from "./js/core/capabilities.js?v=20261015-aeris-wrong-review-v1";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20261014-aeris-task26-r9";
+} from "./js/core/api.js?v=20261015-aeris-wrong-review-v1";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20261014-aeris-task26-r9";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261014-aeris-task26-r9";
+} from "./js/core/changelog.js?v=20261015-aeris-wrong-review-v1";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261015-aeris-wrong-review-v1";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -40,26 +40,29 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20261014-aeris-task26-r9";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261014-aeris-task26-r9";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261014-aeris-task26-r9";
-import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261014-aeris-task26-r9";
-import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?v=20261014-aeris-task26-r9";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261014-aeris-task26-r9";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20261014-aeris-task26-r9";
-import { createFeatureController } from "./js/core/feature-flags.js?v=20261014-aeris-task26-r9";
-import { createFeatureConsole } from "./js/core/feature-console.js?v=20261014-aeris-task26-r9";
-import { createMasteryController } from "./js/language/mastery.js?v=20261014-aeris-task26-r9";
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?v=20261014-aeris-task26-r9";
-import { masteryStorageKey } from "./js/language/mastery-state.js?v=20261014-aeris-task26-r9";
-import { speakText, stopSpeech } from "./js/language/speech.js?v=20261014-aeris-task26-r9";
+} from "./js/core/session.js?v=20261015-aeris-wrong-review-v1";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261015-aeris-wrong-review-v1";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261015-aeris-wrong-review-v1";
+import { initDesignSystem, setExperienceMode } from "./js/core/design-system.js?v=20261015-aeris-wrong-review-v1";
+import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?v=20261015-aeris-wrong-review-v1";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261015-aeris-wrong-review-v1";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20261015-aeris-wrong-review-v1";
+import { createFeatureController } from "./js/core/feature-flags.js?v=20261015-aeris-wrong-review-v1";
+import { createFeatureConsole } from "./js/core/feature-console.js?v=20261015-aeris-wrong-review-v1";
+import { createMasteryController } from "./js/language/mastery.js?v=20261015-aeris-wrong-review-v1";
+import { createWrongReviewController } from './js/language/wrong-review-sync.js?v=20261015-aeris-wrong-review-v1';
+import { wrongEntryWord, wrongEntryKey } from './js/language/wrong-book.js?v=20261015-aeris-wrong-review-v1';
+import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource } from './js/language/wrong-review.js?v=20261015-aeris-wrong-review-v1';
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?v=20261015-aeris-wrong-review-v1";
+import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?v=20261015-aeris-wrong-review-v1";
+import { speakText, stopSpeech } from "./js/language/speech.js?v=20261015-aeris-wrong-review-v1";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?v=20261014-aeris-task26-r9";
-import { formatFinanceMoney } from "./js/finance/format.js?v=20261014-aeris-task26-r9";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?v=20261014-aeris-task26-r9";
-import { createDashboardView } from "./js/core/dashboard.js?v=20261014-aeris-task26-r9";
+} from "./js/language/speech-rate.js?v=20261015-aeris-wrong-review-v1";
+import { formatFinanceMoney } from "./js/finance/format.js?v=20261015-aeris-wrong-review-v1";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?v=20261015-aeris-wrong-review-v1";
+import { createDashboardView } from "./js/core/dashboard.js?v=20261015-aeris-wrong-review-v1";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -67,15 +70,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?v=20261014-aeris-task26-r9";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261014-aeris-task26-r9";
+} from "./js/core/perf.js?v=20261015-aeris-wrong-review-v1";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261015-aeris-wrong-review-v1";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20261014-aeris-task26-r9";
+} from "./js/language/history.js?v=20261015-aeris-wrong-review-v1";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -112,16 +115,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20261014-aeris-task26-r9";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261014-aeris-task26-r9";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20261014-aeris-task26-r9";
+} from "./js/language/quiz.js?v=20261015-aeris-wrong-review-v1";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261015-aeris-wrong-review-v1";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20261015-aeris-wrong-review-v1";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20261014-aeris-task26-r9";
+} from "./js/language/wrong-book.js?v=20261015-aeris-wrong-review-v1";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -130,7 +133,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20261014-aeris-task26-r9";
+} from "./js/membership/account.js?v=20261015-aeris-wrong-review-v1";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -138,19 +141,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20261014-aeris-task26-r9";
+} from "./js/membership/plans.js?v=20261015-aeris-wrong-review-v1";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20261014-aeris-task26-r9";
+} from "./js/membership/recharge.js?v=20261015-aeris-wrong-review-v1";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20261014-aeris-task26-r9";
+} from "./js/admin/formatters.js?v=20261015-aeris-wrong-review-v1";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -274,6 +277,7 @@ let transferController = null;
 let dashboardView = null;
 let featureController = null;
 let masteryController = null;
+let wrongReviewController = null;
 let featureConsole = null;
 let featureInfrastructureAvailable = false;
 let routeRender = Promise.resolve();
@@ -390,6 +394,10 @@ const state = {
   roundActive: false,
   roundStartedAt: 0,
   roundId: "",
+  reviewKeys: [],
+  reviewAnswers: {},
+  reviewFeedback: '',
+  legacyQuestion: null,
   wrongScope: "current",
   rubricCache: loadJson("rubricCache", {}),
   japaneseReadings: sanitizeJapaneseReadings(loadJson(JAPANESE_READING_CACHE_KEY, {})),
@@ -421,7 +429,7 @@ function achievementKey(account = state.account, profile = state.profile) {
 }
 
 function projectRuntimeKey(language, account = state.account) {
-  return `vocabRuntime:v1:${accountStorageId(account)}:${language}`;
+  return `vocabRuntime:v2:${accountStorageId(account)}:${language}:${profileStorageName(state.profile)}`;
 }
 
 function studyHistoryKey(account = state.account, profile = state.profile) {
@@ -509,7 +517,7 @@ function collectLegacyLearningSyncRecords(account = state.account) {
           "wrong",
           [profile, scope, word],
           info,
-          info.last_time,
+          info.review_updated_at || info.rejudged_at || info.last_time,
         ));
       });
       return;
@@ -739,7 +747,7 @@ function queueWrongBooksForSync() {
       "wrong",
       [state.profile, scope, word],
       info,
-      info.last_time,
+      info.review_updated_at || info.rejudged_at || info.last_time,
     ));
     learningSyncManager.replaceGroup(
       "wrong_book",
@@ -804,6 +812,7 @@ function queueActiveProfileForSync() {
 async function syncLearningDataNow() {
   if (!learningSyncManager?.state) return;
   await learningSyncManager.syncNow();
+  await Promise.all([wrongReviewController?.sync(),masteryController?.sync()]);
 }
 
 function exportLearningSyncBackup() {
@@ -1211,6 +1220,7 @@ function accountWordLimit(language = state.quizLanguage) {
 function renderAccountUi() {
   featureController?.updateAccount();
   masteryController?.update();
+  void wrongReviewController?.update();
   featureConsole?.setAvailable(featureInfrastructureAvailable);
   const account = state.session && state.account ? state.account : null;
   const badge = $("accountBadge");
@@ -2257,6 +2267,7 @@ async function deleteOwnAccount(event) {
     const deletedAccount = state.account;
     await api("/api/account/delete", { secret: $("deleteSecretInput").value });
     await clearMasteryJournalAccount(deletedAccount?.id);
+    await wrongReviewController?.clearAccount(String(deletedAccount?.id||''));
     closeModal("deleteAccountModal", true);
     closeModal("accountModal", true);
     clearAccountLocalData(deletedAccount);
@@ -3223,7 +3234,13 @@ function loadCurrentWordDraft() {
 function saveProjectRuntime() {
   if (!currentProject || !state.account?.id) return;
   const runtime = {
+    account_id: String(state.account.id),
     language: currentProject,
+    profile: state.profile,
+    reviewKeys: [...state.reviewKeys],
+    reviewAnswers: state.reviewAnswers,
+    reviewFeedback: state.reviewFeedback,
+    legacyQuestion: state.legacyQuestion,
     words: [...state.words],
     index: state.index,
     score: state.score,
@@ -3244,7 +3261,7 @@ function saveProjectRuntime() {
 }
 
 function loadProjectRuntime(language) {
-  if (projectRuntime[language]) return projectRuntime[language];
+  if (projectRuntime[language]?.profile===state.profile&&projectRuntime[language]?.account_id===String(state.account?.id||'')) return projectRuntime[language];
   const key = projectRuntimeKey(language);
   let runtime = null;
   try {
@@ -3254,6 +3271,8 @@ function loadProjectRuntime(language) {
   }
   const valid = runtime
     && runtime.language === language
+    && runtime.profile === state.profile
+    && runtime.account_id === String(state.account?.id||'')
     && Array.isArray(runtime.words)
     && Number.isFinite(Number(runtime.savedAt))
     && Date.now() - Number(runtime.savedAt) <= PROJECT_RUNTIME_MAX_AGE_MS;
@@ -3261,7 +3280,9 @@ function loadProjectRuntime(language) {
     sessionStorage.removeItem(key);
     return null;
   }
-  runtime.words = filterWordsByLanguage(runtime.words.map((word) => limitText(word, 240)), language).slice(0, 500);
+  runtime.legacyQuestion = parseIssuedQuestion(runtime.legacyQuestion,language);
+  runtime.words = runtime.legacyQuestion ? [runtime.legacyQuestion.prompt]
+    : filterWordsByLanguage(runtime.words.map((word) => limitText(word, 240)), language).slice(0, 500);
   runtime.index = Math.max(0, Math.min(Number.parseInt(runtime.index, 10) || 0, Math.max(0, runtime.words.length - 1)));
   runtime.score = Math.max(0, Math.min(Number.parseInt(runtime.score, 10) || 0, runtime.words.length));
   runtime.roundSkipped = Math.max(0, Math.min(Number.parseInt(runtime.roundSkipped, 10) || 0, runtime.words.length));
@@ -3273,12 +3294,24 @@ function loadProjectRuntime(language) {
     ? Math.min(Date.now(), Math.max(0, Number(runtime.roundStartedAt)))
     : 0;
   runtime.roundId = limitText(runtime.roundId, 100) || (runtime.roundActive ? `${runtime.savedAt}-${language}` : "");
+  runtime.reviewKeys = Array.isArray(runtime.reviewKeys) && runtime.reviewKeys.length === runtime.words.length
+    ? runtime.reviewKeys.map(key => limitText(key,320)) : [];
+  runtime.reviewAnswers = runtime.reviewAnswers && typeof runtime.reviewAnswers === 'object' ? runtime.reviewAnswers : {};
   runtime.pendingAdvance = runtime.roundActive ? sanitizePendingAdvance(runtime.pendingAdvance, runtime) : null;
   // Old runtimes only stored answerLocked and cannot prove which question was consumed.
   // Keeping the current question is safer than silently skipping it.
   runtime.answerLocked = Boolean(runtime.pendingAdvance);
   projectRuntime[language] = runtime;
   return runtime;
+}
+
+function unassignedLegacyRuntime(language=state.quizLanguage){
+  if(!state.account?.id||!LANGUAGE_LABELS[language])return null;
+  try{
+    const value=JSON.parse(sessionStorage.getItem(`vocabRuntime:v1:${accountStorageId()}:${language}`)||'null');
+    return value&&value.roundActive&&!value.profile&&Array.isArray(value.words)
+      &&Date.now()-Number(value.savedAt)<=PROJECT_RUNTIME_MAX_AGE_MS?value:null;
+  }catch{return null;}
 }
 
 function removeProjectRuntime(language = currentProject) {
@@ -3319,6 +3352,10 @@ function restoreProjectRuntime() {
   state.pendingAdvance = runtime.pendingAdvance;
   state.roundStartedAt = runtime.roundStartedAt;
   state.roundId = runtime.roundId;
+  state.reviewKeys = runtime.reviewKeys;
+  state.reviewAnswers = runtime.reviewAnswers;
+  state.reviewFeedback = ['none_due','all_mastered'].includes(runtime.reviewFeedback)?runtime.reviewFeedback:'';
+  state.legacyQuestion = runtime.legacyQuestion?.language === currentProject ? runtime.legacyQuestion : null;
   state.mode = runtime.mode;
   const view = runtime.view === "quizView" && !state.roundActive ? "setupView" : runtime.view;
   if (state.roundActive) {
@@ -4223,6 +4260,7 @@ async function renderCurrentRoute(path, generation = routeGeneration) {
 }
 
 function updateLanguageUi() {
+  void wrongReviewController?.update();
   const language = state.quizLanguage;
   const select = $("languageSelect");
   if (select) select.value = language;
@@ -4478,6 +4516,7 @@ function saveStudyGoal() {
 function recordStudyRound(summary) {
   if (!state.account?.id || !summary?.total || !normalizeQuizLanguage(summary.language)) return;
   const finishedAt = new Date().toISOString();
+  state.studyRecords=state.studyRecords.filter(record=>record.id!==summary.roundId);
   state.studyRecords.push({
     id: limitText(summary.roundId, 100) || `${Date.now()}-${summary.language}-${state.studyRecords.length}`,
     finishedAt,
@@ -4500,6 +4539,7 @@ function renderStudyDashboard() {
   const history = $("studyHistory");
   const chart = $("studyWeekChart");
   if (!history || !chart) return;
+  renderWrongReviewStatus();
   const records = currentStudyRecords();
   const days = studyDaySeries(7);
   const dayByKey = new Map(days.map((day) => [day.key, day]));
@@ -4512,6 +4552,7 @@ function renderStudyDashboard() {
   });
 
   const totalWords = records.reduce((sum, record) => sum + record.total, 0);
+  const answeredWords = records.reduce((sum,record)=>sum+record.total-record.skipped,0);
   const weekWords = days.reduce((sum, day) => sum + day.total, 0);
   const weekCorrect = days.reduce((sum, day) => sum + day.correct, 0);
   const today = days[days.length - 1];
@@ -4525,7 +4566,8 @@ function renderStudyDashboard() {
   $("studyGoalBar").textContent = `${today.total} / ${goal}`;
   $("studyGoalBar").setAttribute("aria-valuetext", `${today.total} / ${goal} 题`);
   $("studyTotalRounds").textContent = records.length;
-  $("studyTotalWords").textContent = totalWords;
+  $("studyTotalWords").textContent = answeredWords;
+  $("studyTotalWords").title = `完成轮次共 ${totalWords} 题，其中跳过 ${totalWords-answeredWords} 题；实际作答 ${answeredWords} 题。`;
   $("studyWeekAccuracy").textContent = weekWords ? `${Math.round((weekCorrect / weekWords) * 100)}%` : "--";
   $("studyStreak").textContent = calculateStudyStreak(records);
   $("studyWeekTotal").textContent = `${weekWords} 题`;
@@ -4652,14 +4694,14 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
 });
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?v=20261014-aeris-task26-r9", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?v=20261014-aeris-task26-r9", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?v=20261015-aeris-wrong-review-v1", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?v=20261015-aeris-wrong-review-v1", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?v=20261014-aeris-task26-r9", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?v=20261014-aeris-task26-r9", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?v=20261014-aeris-task26-r9", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?v=20261015-aeris-wrong-review-v1", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?v=20261015-aeris-wrong-review-v1", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?v=20261015-aeris-wrong-review-v1", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render"],
@@ -4726,12 +4768,18 @@ featureConsole = createFeatureConsole({ api, apiGet,
 featureController = createFeatureController({ api, apiGet,
   getAccount: () => state.session ? state.account : null,
   onAvailable: () => featureConsole?.setAvailable(featureInfrastructureAvailable),
-  onChange: () => masteryController?.update(),
+  onChange: () => {void masteryController?.update();void wrongReviewController?.update();},
 });
 window.AerisFeatures = Object.freeze({ enabled: key => featureController.enabled(key), channel: () => featureController.channel() });
 masteryController = createMasteryController({ api, apiGet, features: featureController,
   getAccount: () => state.session ? state.account : null,
   getLanguage: () => state.quizLanguage,
+  onChange: () => renderWrongReviewStatus(),
+});
+wrongReviewController = createWrongReviewController({api,apiGet,features:featureController,
+  getContext:()=>({account_id:state.session?String(state.account?.id||''):'',profile:state.profile,language:state.quizLanguage,scope:state.wrongScope,entitlements:state.account?.entitlements||[]}),
+  beforeSync:async()=>{if(learningSyncManager?.state)await learningSyncManager.syncNow();},
+  onChange:()=>renderWrongReviewStatus(),
 });
 
 dashboardView = createDashboardView({
@@ -4999,7 +5047,9 @@ function resumeQuestionTransition() {
 }
 
 function isDictationMode() {
-  return state.mode === "normal" && state.practiceMode === "dictation";
+  if(state.legacyQuestion)return state.legacyQuestion.kind==='spelling';
+  if(state.mode.startsWith('review-'))return reviewEntryForWord(state.words[state.index])?.question_type==='dictation';
+  return state.practiceMode === "dictation";
 }
 
 function speechLang() {
@@ -5150,8 +5200,12 @@ function dictationEvaluation(word, answer, language = state.quizLanguage) {
 }
 
 function reviewEntryForWord(word) {
-  if (state.mode === "review-current") return state.currentWrongBook[word];
-  if (state.mode === "review-history") return state.historyWrongBook[word];
+  const book=state.mode==='review-current'?state.currentWrongBook:state.mode==='review-history'?state.historyWrongBook:null;
+  if(book){
+    const key=state.reviewKeys[state.index]||word;
+    const info=book[key];
+    return info&&wrongEntryWord(key,info)===word&&info.language===state.quizLanguage?info:null;
+  }
   return null;
 }
 
@@ -5438,7 +5492,7 @@ async function startQuiz(words, mode = "normal", options = {}) {
 
   if (state.roundActive && !options.replaceActive) {
     askConfirmation("当前测试尚未完成，确认放弃当前进度并开始新一轮？", () => (
-      startQuiz(words, mode, { replaceActive: true })
+      startQuiz(words, mode, { ...options, replaceActive: true })
     ));
     return;
   }
@@ -5453,13 +5507,13 @@ async function startQuiz(words, mode = "normal", options = {}) {
   }
 
   const analysis = analyzeWordList(words, language);
-  const quizWords = analysis.valid;
+  const quizWords = options.legacyQuestion ? words : options.reviewEntries ? options.reviewEntries.map(entry=>wrongEntryWord(entry.key,entry.info)) : analysis.valid;
   const excludedCount = analysis.invalid.length;
   if (!quizWords.length) {
     alert(`当前选择的是${quizLanguageLabel(language)}，词表里没有可测试的${quizLanguageLabel(language)}词。`);
     return;
   }
-  if (excludedCount > 0 || analysis.duplicates > 0) {
+  if (!options.reviewEntries && !options.legacyQuestion && (excludedCount > 0 || analysis.duplicates > 0)) {
     const ignored = [];
     if (excludedCount) ignored.push(`${excludedCount} 个其他语言或无效词`);
     if (analysis.duplicates) ignored.push(`${analysis.duplicates} 个重复词`);
@@ -5467,7 +5521,7 @@ async function startQuiz(words, mode = "normal", options = {}) {
   }
 
   state.quizSession = "";
-  if (backendAvailable && state.session) {
+  if (mode === 'normal' && backendAvailable && state.session) {
     setBusy(true);
     try {
       const authorization = await api("/api/quiz/start", { language, words: quizWords });
@@ -5499,7 +5553,11 @@ async function startQuiz(words, mode = "normal", options = {}) {
     saveWrongBooks();
   }
 
-  state.words = shuffle(quizWords);
+  state.words = mode==='normal'?shuffle(quizWords):[...quizWords];
+  state.reviewKeys = options.reviewEntries?.map(entry=>entry.key)||[];
+  state.reviewAnswers = {};
+  state.reviewFeedback = options.reviewFeedback||'';
+  state.legacyQuestion = options.legacyQuestion||null;
   state.index = 0;
   state.score = 0;
   state.roundSkipped = 0;
@@ -5520,11 +5578,13 @@ function showWord(options = {}) {
   if (!state.roundActive) return;
   const preserveTransition = Boolean(options.preserveTransition && state.pendingAdvance);
   const word = state.words[state.index] || "-";
+  const reviewInfo=reviewEntryForWord(word);
+  if(reviewInfo?.rubric?.reading)rememberJapaneseReadings({[word]:reviewInfo.rubric.reading});
   const dictation = isDictationMode();
   const reading = !dictation && state.quizLanguage === "japanese" && hasJapaneseKanji(word)
     ? japaneseReadingFor(word)
     : "";
-  $("wordText").textContent = dictation ? "听写" : word;
+  $("wordText").textContent = state.legacyQuestion?state.legacyQuestion.prompt:dictation ? "听写" : word;
   $("wordReading").textContent = reading;
   $("wordReading").classList.toggle("hidden", !reading);
   $("wordReading").setAttribute("aria-hidden", String(!reading));
@@ -5539,9 +5599,12 @@ function showWord(options = {}) {
   $("progressLabel").setAttribute("aria-valuenow", String(state.index + 1));
   $("scoreLabel").textContent = `得分 ${state.score}`;
   $("quizLanguageLabel").textContent = quizLanguageLabel(state.quizLanguage);
-  $("practiceModeLabel").textContent = state.mode.startsWith("review-") ? "错题复习" : practiceModeLabel(state.practiceMode);
+  $("practiceModeLabel").textContent = state.mode.startsWith("review-")
+    ? state.reviewFeedback==='all_mastered'?'错题复习 · 已掌握，主动巩固':state.reviewFeedback==='none_due'?'错题复习 · 暂无到期，主动巩固':'错题复习'
+    : practiceModeLabel(state.practiceMode);
   $("answerInput").value = "";
-  $("answerInput").placeholder = dictation
+  if(state.reviewAnswers[state.index])$('answerInput').value=state.reviewAnswers[state.index].answer;
+  $("answerInput").placeholder = state.legacyQuestion?state.legacyQuestion.instruction:dictation
     ? state.quizLanguage === "japanese"
       ? japaneseDictationRequiresBoth(word)
         ? "输入汉字和假名，例如 学校 / がっこう"
@@ -5574,26 +5637,97 @@ function updateWrongEntry(book, word, answer, gloss, accepted, context = {}) {
   });
 }
 
-function markWrong(word, answer, gloss, accepted, rubric = null) {
+function prepareReviewAttempt(answer, correct, kind='answer',feedback=null,rubric=null) {
+  let attempt=state.reviewAnswers[state.index];
+  if(!attempt){
+    attempt={event:{id:crypto.randomUUID(),at:new Date().toISOString(),correct,kind},answer,attempt_id:`${state.roundId}:${state.index}`,
+      feedback:feedback?sanitizeQuestionFeedback(feedback):null,rubric};
+    state.reviewAnswers[state.index]=attempt;
+    // Save the stable event/attempt IDs before yielding to durable storage.
+    saveProjectRuntime();
+  }
+  return attempt;
+}
+
+async function saveReviewEvent(scope,key,info,attempt) {
+  const accountId=String(state.account?.id||''),profile=state.profile,roundId=state.roundId;
+  if(!accountId)throw new Error('请恢复原账户后继续复习');
+  attempt.source_info ||= structuredClone(info);
+  attempt.reviewId=attempt.source_info.review_id;
+  if(state.roundActive)saveProjectRuntime();
+  const source=attempt.source_info;
+  await wrongReviewController.enqueue({event_id:attempt.event.id,attempt_id:attempt.attempt_id,
+    profile,scope,language:source.language,record_id:learningSyncRecordId('wrong',profile,scope,key),review_id:source.review_id,
+    source_digest:await wrongReviewDigest(source),kind:attempt.event.kind,answer:attempt.answer,...(attempt.event.corrects?{corrects:attempt.event.corrects}:{})},accountId,wrongReviewSource(source));
+  if(String(state.account?.id||'')!==accountId||state.profile!==profile||state.roundId!==roundId)throw new Error('账户或档案已切换；答题仍保存在原账户中。');
+}
+
+async function markWrong(word, answer, gloss, accepted, rubric = null) {
+  const kind=isDictationMode()?'dictation':'meaning';
+  const key=wrongEntryKey(word,state.quizLanguage,kind);
+  const scope=state.mode==='review-history'?'history':'current';
+  const selected=scope==='history'?state.historyWrongBook:state.currentWrongBook;
+  if(state.mode.startsWith('review-')&&!selected[key])throw new Error('错题已删除，未重新加入复习队列。');
+  const previous=selected[key]||state.historyWrongBook[key];
+  const attempt=prepareReviewAttempt(answer,false,state.mode==='normal'?'mistake':'answer',
+    {type:answer===SKIPPED_ANSWER?'skipped':'answer',correct:false,gloss,accepted,kind},rubric);
+  if(attempt.reviewId&&previous&&attempt.reviewId!==previous.review_id)throw new Error('原错题已删除或替换；保存的答题不会恢复旧词条。');
   const context = {
-    questionType: isDictationMode() ? "dictation" : "meaning",
+    questionType: kind,
     language: state.quizLanguage,
-    gradingMode: state.gradingMode,
+    gradingMode: reviewEntryForWord(word)?.grading_mode||state.gradingMode,
     roundId: state.roundId,
-    rubric,
+    rubric: {...(rubric||{}),reading:rubric?.reading||japaneseReadingFor(word)},
+    reviewId:attempt.reviewId||previous?.review_id||crypto.randomUUID(),
+    event:attempt.event,
   };
-  updateWrongEntry(state.currentWrongBook, word, answer, gloss, accepted, context);
-  updateWrongEntry(state.historyWrongBook, word, answer, gloss, accepted, context);
+  const prepared={...selected};
+  const info=updateWrongEntry(prepared,word,answer,gloss,accepted,context);
+  await saveReviewEvent(scope,key,info,attempt);
+  const liveSelected=scope==='history'?state.historyWrongBook:state.currentWrongBook;
+  if(previous&&!liveSelected[key]&&state.mode!=='normal')throw new Error('错题已由其他设备删除，原答题保留为待确认。');
+  const targets=state.mode==='normal'?[state.currentWrongBook,state.historyWrongBook]:[liveSelected];
+  const other=scope==='history'?state.currentWrongBook:state.historyWrongBook;
+  if(state.mode!=='normal'&&other[key]?.review_id===info.review_id)targets.push(other);
+  for(const book of targets)updateWrongEntry(book,word,answer,gloss,accepted,context);
+  attempt.applied=true;
   saveState();
+  void wrongReviewController.sync();
   updateStats();
   if (answer === SKIPPED_ANSWER) unlockAchievement("skipSaved");
   if (Object.keys(state.historyWrongBook).length >= 10) unlockAchievement("wrongTen");
 }
 
-function removeReviewedWord(word) {
-  if (state.mode === "review-current") delete state.currentWrongBook[word];
-  if (state.mode === "review-history") delete state.historyWrongBook[word];
+async function removeReviewedWord(word,answer,feedback=null) {
+  if(!state.mode.startsWith('review-'))return;
+  const info=reviewEntryForWord(word);
+  if(!info)throw new Error('错题已删除，未重新加入复习队列。');
+  const scope=state.mode==='review-history'?'history':'current';
+  const key=state.reviewKeys[state.index]||wrongEntryKey(word,info.language,info.question_type);
+  const attempt=prepareReviewAttempt(answer,true,'answer',feedback);
+  if(attempt.reviewId&&attempt.reviewId!==info.review_id)throw new Error('原错题已删除或替换，答题仍保存在原记录中。');
+  await saveReviewEvent(scope,key,info,attempt);
+  for(const book of [state.currentWrongBook,state.historyWrongBook]){
+    if(book[key]?.review_id!==info.review_id)continue;
+    book[key].review=mergeWrongReview(book[key].review,{version:1,algorithm:'wrong-review-v1',events:[attempt.event]});
+    book[key].review_updated_at=attempt.event.at;
+  }
+  attempt.applied=true;
   saveState();
+  void wrongReviewController.sync();
+}
+
+async function resumeSavedAnswer(word,attempt){
+  setBusy(true);
+  try{
+    if(!attempt.applied){
+      if(attempt.event.correct){await removeReviewedWord(word,attempt.answer,attempt.feedback);state.score+=1;}
+      else await markWrong(word,attempt.answer,attempt.feedback.gloss,attempt.feedback.accepted,attempt.rubric);
+      saveState();updateStats();
+    }
+    beginQuestionTransition(attempt.feedback);
+  }catch(error){showAnswerValidation(error.message);}
+  finally{setBusy(false);if(state.pendingAdvance)setNextNowEnabled(true);}
 }
 
 function questionFeedbackFromResult(result) {
@@ -5709,18 +5843,23 @@ function finishRound() {
     practiceMode: state.practiceMode,
     durationSec,
     roundId: state.roundId,
+    reviewKeys: [...state.reviewKeys],
   };
   state.lastRound = summary;
   state.roundActive = false;
   state.answerLocked = false;
   state.pendingAdvance = null;
-  if (state.score === state.words.length) unlockAchievement("perfectRound");
-  if (state.words.length >= 20) unlockAchievement("longRound");
-  if (state.mode === "normal") {
-    unlockAchievement("firstQuiz");
-    if (state.practiceMode === "dictation") unlockAchievement("firstDictation");
+  if(!state.legacyQuestion){
+    if (state.score === state.words.length) unlockAchievement("perfectRound");
+    if (state.words.length >= 20) unlockAchievement("longRound");
+    if (state.mode === "normal") {
+      unlockAchievement("firstQuiz");
+      if (state.practiceMode === "dictation") unlockAchievement("firstDictation");
+    }
   }
-  recordStudyRound(summary);
+  if(!state.legacyQuestion)recordStudyRound(summary);
+  else void masteryController.complete(state.legacyQuestion).catch(error=>showWrongActionMessage(error.message,true));
+  state.legacyQuestion=null;
   state.roundStartedAt = 0;
   state.roundId = "";
   state.quizSession = "";
@@ -5747,7 +5886,12 @@ async function retryLastRound() {
   const summary = state.lastRound;
   if (!summary?.words?.length) return;
   closeModal("roundSummaryModal", true);
-  await startQuiz(summary.words, summary.mode);
+  if(summary.mode.startsWith('review-')){
+    const scope=summary.mode==='review-current'?'current':'history',book=activeWrongBook(scope);
+    const entries=(summary.reviewKeys||[]).filter(key=>book[key]).map(key=>({key,info:book[key]}));
+    if(entries.length)await startQuiz(entries.map(entry=>wrongEntryWord(entry.key,entry.info)),summary.mode,{reviewEntries:entries});
+    else await startWrongReview(scope);
+  }else await startQuiz(summary.words, summary.mode);
 }
 
 async function resolveCurrentQuestionRubric(word) {
@@ -5757,6 +5901,10 @@ async function resolveCurrentQuestionRubric(word) {
   const reviewInfo = reviewEntryForWord(word);
   if (hasUsableMeaning(reviewInfo)) {
     return sanitizeStoredRubric(reviewInfo.rubric, reviewInfo.correct_answer, reviewInfo.accepted);
+  }
+  if(backendAvailable&&state.session&&!state.quizSession&&state.mode.startsWith('review-')){
+    const authorization=await api('/api/quiz/start',{language:state.quizLanguage,words:[word]});
+    state.quizSession=authorization.quiz_session;
   }
   if (!backendAvailable || !state.session || !state.quizSession) {
     throw new Error("暂时无法取得这道题的标准释义，请恢复网络后重试");
@@ -5782,10 +5930,17 @@ async function requestMeaningJudgement({ word, answer, quizSession, rubric, grad
 
 async function skipWord() {
   if (state.busy || state.answerLocked || !state.roundActive) return;
+  if(state.legacyQuestion){showAnswerValidation('这是一道待恢复的旧题；原记录会保留，请作答后联网确认。');return;}
 
   const word = state.words[state.index];
   if (!word) return;
   clearAnswerValidation();
+
+  const savedAttempt=state.reviewAnswers[state.index];
+  if(savedAttempt?.feedback){
+    await resumeSavedAnswer(word,savedAttempt);
+    return;
+  }
   const snapshot = { roundId: state.roundId, index: state.index, word, language: currentProject };
   setBusy(true);
   try {
@@ -5798,7 +5953,7 @@ async function skipWord() {
       && !state.pendingAdvance;
     if (!unchanged) return;
     state.roundSkipped += 1;
-    markWrong(word, SKIPPED_ANSWER, rubric.gloss, rubric.accepted, rubric);
+    await markWrong(word, SKIPPED_ANSWER, rubric.gloss, rubric.accepted, rubric);
     updateStats();
     beginQuestionTransition({
       type: "skipped",
@@ -5820,23 +5975,43 @@ async function submitAnswer(event) {
   const word = state.words[state.index];
   const answer = $("answerInput").value.trim();
   if (!word) return;
+  const answerContext={account:String(state.account?.id||''),profile:state.profile,language:state.quizLanguage,roundId:state.roundId,index:state.index};
+  const answerIsCurrent=()=>answerContext.account===String(state.account?.id||'')&&answerContext.profile===state.profile
+    &&answerContext.language===state.quizLanguage&&answerContext.roundId===state.roundId&&answerContext.index===state.index;
   if (!answer) {
     showAnswerValidation();
     return;
   }
+  if(state.reviewAnswers[state.index]&&state.reviewAnswers[state.index].answer!==answer){showAnswerValidation('这道题已有保存的答案，请先确认原答案；原记录不会被覆盖。');return;}
   clearAnswerValidation();
+  if(state.reviewAnswers[state.index]?.feedback){await resumeSavedAnswer(word,state.reviewAnswers[state.index]);return;}
+
+  if(state.legacyQuestion){
+    setBusy(true);
+    try{
+      const question=state.legacyQuestion;
+      const receipt=await masteryController.submit(question,answer);
+      if(state.legacyQuestion?.ticket_id!==question.ticket_id)return;
+      state.score=Number(receipt.correct);
+      beginQuestionTransition(questionFeedbackFromResult({correct:receipt.correct,gloss:receipt.correct_answer,accepted:[],kind:'meaning'}));
+    }catch(error){showAnswerValidation(error.message);}
+    finally{setBusy(false);if(state.pendingAdvance)setNextNowEnabled(true);}
+    return;
+  }
 
   if (isDictationMode()) {
+    setBusy(true);
+    try {
     clearNextTimer();
     hideResultPanel();
     setNextNowEnabled(false);
     const evaluation = dictationEvaluation(word, answer);
     if (evaluation.correct) {
+      await removeReviewedWord(word,answer,{correct:true,gloss:evaluation.expected,accepted:evaluation.guidance?[evaluation.guidance]:[],kind:'dictation'});
       state.score += 1;
-      removeReviewedWord(word);
       unlockAchievement("firstCorrect");
     } else {
-      markWrong(word, answer, evaluation.expected, [evaluation.expected], {
+      await markWrong(word, answer, evaluation.expected, [evaluation.expected], {
         language: quizLanguageLabel(state.quizLanguage),
         gloss: evaluation.expected,
         accepted: [evaluation.expected],
@@ -5852,6 +6027,8 @@ async function submitAnswer(event) {
     };
     updateStats();
     beginQuestionTransition(questionFeedbackFromResult(result));
+    } catch(error){showAnswerValidation(error.message);}
+    finally{setBusy(false);if(state.pendingAdvance)setNextNowEnabled(true);}
     return;
   }
 
@@ -5870,10 +6047,11 @@ async function submitAnswer(event) {
         $("resultTitle").className = "result-title";
         $("resultTitle").textContent = "首次准备释义";
         $("resultGloss").textContent = "正在获取标准释义，保存后可继续离线复习";
-        const data = await api("/api/rubric", { word, quiz_session: state.quizSession }, { timeoutMs: AI_TIMEOUT_MS });
-        const rubric = data.rubric || {};
+        const rubric = await resolveCurrentQuestionRubric(word);
+        if(!answerIsCurrent())return;
         info.correct_answer = limitText(rubric.gloss) || info.correct_answer;
         info.accepted = sanitizeAccepted(rubric.accepted);
+        info.rubric = sanitizeStoredRubric(rubric);
         cacheRubric(word, rubric);
         saveState();
       }
@@ -5883,13 +6061,13 @@ async function submitAnswer(event) {
         throw new Error("这条旧错题没有保存标准释义；请联网获取一次后再复习。");
       }
 
-      const result = localReviewResult(word, answer, info);
+      const result = localReviewResult(word, answer, info,{gradingMode:info.grading_mode});
       if (result.correct) {
+        await removeReviewedWord(word,answer,result);
         state.score += 1;
-        removeReviewedWord(word);
         unlockAchievement("firstCorrect");
       } else {
-        markWrong(word, answer, result.gloss, result.accepted, result.rubric);
+        await markWrong(word, answer, result.gloss, result.accepted, result.rubric);
       }
       saveState();
       updateStats();
@@ -5930,14 +6108,15 @@ async function submitAnswer(event) {
       language: state.quizLanguage,
       controller: judgeController,
     });
+    if(!answerIsCurrent())return;
     if (result.rubric) cacheRubric(word, result.rubric);
 
     if (result.correct) {
       state.score += 1;
-      removeReviewedWord(word);
+      await removeReviewedWord(word,answer);
       unlockAchievement("firstCorrect");
     } else {
-      markWrong(word, answer, result.gloss, result.accepted, result.rubric);
+      await markWrong(word, answer, result.gloss, result.accepted, result.rubric);
     }
 
     saveState();
@@ -6074,12 +6253,13 @@ async function evaluateWrongRejudgeAnswer(word, answer, info) {
   };
 }
 
-async function rejudgeWrongAnswer(word, scope, answer, controls) {
-  const key = `${scope}:${word}`;
+async function rejudgeWrongAnswer(entryKey, scope, answer, controls) {
+  const key = `${scope}:${entryKey}`;
   if (rejudgeInFlight.has(key)) return;
   const source = scope === "history" ? state.historyWrongBook : state.currentWrongBook;
-  const info = source[word];
+  const info = source[entryKey];
   if (!info) return;
+  const word=wrongEntryWord(entryKey,info),owner=String(state.account?.id||''),profile=state.profile;
   const cleanAnswer = limitText(answer, 240);
   if (!cleanAnswer) {
     controls.input.setAttribute("aria-invalid", "true");
@@ -6096,6 +6276,7 @@ async function rejudgeWrongAnswer(word, scope, answer, controls) {
   controls.status.textContent = "正在按正式答题规则判定新答案…";
   try {
     const result = await evaluateWrongRejudgeAnswer(word, cleanAnswer, info);
+    if(String(state.account?.id||'')!==owner||state.profile!==profile||source[entryKey]?.review_id!==info.review_id)return;
     const checkedAt = new Date().toISOString();
     appendWrongRejudgeLog({
       word,
@@ -6111,25 +6292,33 @@ async function rejudgeWrongAnswer(word, scope, answer, controls) {
       checked_at: checkedAt,
     });
     if (result.correct) {
-      delete state.currentWrongBook[word];
-      delete state.historyWrongBook[word];
-      const adjusted = adjustActiveRoundAfterRejudge(word, info, result) || adjustStudyRecordAfterRejudge(info);
+      const corrected=new Set((info.review?.events||[]).filter(event=>event.kind==='correction').map(event=>event.corrects));
+      const original=(info.review?.events||[]).findLast(event=>event.kind!=='correction'&&!event.correct&&!corrected.has(event.id));
+      const event={id:crypto.randomUUID(),at:checkedAt,correct:true,kind:'correction',corrects:original?.id};
+      if(original)await saveReviewEvent(scope,entryKey,info,{event,answer:cleanAnswer,attempt_id:`correction:${event.id}`});
+      for(const book of [state.currentWrongBook,state.historyWrongBook]){
+        if(book[entryKey]?.review_id!==info.review_id)continue;
+        book[entryKey]={...book[entryKey],review_updated_at:checkedAt,rejudged_at:checkedAt,rejudge_result:'correct',rejudge_reason:result.reason,
+          review:original?mergeWrongReview(book[entryKey].review,{version:1,algorithm:'wrong-review-v1',events:[event]}):book[entryKey].review};
+      }
+      const adjusted = info.rejudge_result!=='correct'&&(adjustActiveRoundAfterRejudge(word, info, result) || adjustStudyRecordAfterRejudge(info));
       saveWrongBooks();
+      void wrongReviewController.sync();
       renderWrongBook({ force: true });
       showRejudgeResultModal(
         "重新判定正确",
-        `“${word}”重新作答正确，已从错题本移除${adjusted ? "并校正对应测试统计" : ""}。`,
+        `“${word}”重新判定正确，已纠正原错误${adjusted ? "并校正对应测试统计" : ""}；历史保留，尚不代表已掌握。`,
         "success",
       );
     } else {
       [state.currentWrongBook, state.historyWrongBook].forEach((book) => {
-        if (!book[word]) return;
-        book[word] = sanitizeWrongBook({ [word]: {
-          ...book[word],
+        if (book[entryKey]?.review_id!==info.review_id) return;
+        book[entryKey] = sanitizeWrongBook({ [entryKey]: {
+          ...book[entryKey],
           rejudged_at: checkedAt,
           rejudge_result: "incorrect",
           rejudge_reason: result.reason,
-        } })[word];
+        } })[entryKey];
       });
       saveWrongBooks();
       renderWrongBook({ force: true });
@@ -6194,7 +6383,8 @@ function renderWrongBook(options = {}) {
   }
 
   const template = $("wrongItemTemplate");
-  entries.forEach(([word, info], entryIndex) => {
+  entries.forEach(([entryKey, info], entryIndex) => {
+    const word=wrongEntryWord(entryKey,info);
     const node = template.content.cloneNode(true);
     node.querySelector(".wrong-item").dataset.word = word;
     node.querySelector("h3").textContent = word;
@@ -6203,7 +6393,8 @@ function renderWrongBook(options = {}) {
       : `你答：${info.last_answer || ""} · 标准：${info.correct_answer || ""}`;
     node.querySelector("strong").textContent = `${info.wrong_count || 0}次`;
     const rejudgeStatus = node.querySelector(".wrong-rejudge-status");
-    const persistedStatus = "可重新作答；答错不会增加错误次数";
+    const review=wrongReviewView(info,Date.now(),wrongReviewController?.confirmed(entryKey,info));
+    const persistedStatus = `${info.question_type==='dictation'?'听写':'释义'} · ${wrongReviewController?.confirmed(entryKey,info)?'已确认':'本地'} · ${review.mastered?'已掌握':review.due?'待复习':`下次 ${formatLocalDateTime(review.next_review_at)}`}${info.rejudge_result==='correct'?' · 原错误已纠正':''}；可重新判定`;
     rejudgeStatus.textContent = persistedStatus;
     const openButton = node.querySelector(".wrong-rejudge-button");
     const form = node.querySelector(".wrong-rejudge-form");
@@ -6211,7 +6402,7 @@ function renderWrongBook(options = {}) {
     const submit = node.querySelector(".wrong-rejudge-submit");
     const cancel = node.querySelector(".wrong-rejudge-cancel");
     const formId = `wrongRejudgeForm-${scope}-${entryIndex}`;
-    const interactionKey = `${scope}:${word}`;
+    const interactionKey = `${scope}:${entryKey}`;
     let openingGuardTimer = null;
     form.id = formId;
     openButton.setAttribute("aria-controls", formId);
@@ -6252,12 +6443,12 @@ function renderWrongBook(options = {}) {
     });
     form.addEventListener("submit", (event) => {
       event.preventDefault();
-      rejudgeWrongAnswer(word, scope, input.value, { input, submit, cancel, status: rejudgeStatus });
+      rejudgeWrongAnswer(entryKey, scope, input.value, { input, submit, cancel, status: rejudgeStatus });
     });
     node.querySelector(".wrong-remove-button").addEventListener("click", () => {
       askConfirmation(`确认从${scope === "history" ? "历史" : "本轮"}错题中移除“${word}”？`, () => {
         const target = scope === "history" ? state.historyWrongBook : state.currentWrongBook;
-        delete target[word];
+        delete target[entryKey];
         saveState();
         renderWrongBook({ force: true });
       });
@@ -6265,16 +6456,36 @@ function renderWrongBook(options = {}) {
     list.appendChild(node);
   });
   updateStats();
+  renderWrongReviewStatus();
   return true;
 }
 
-function startWrongReview(scope) {
-  const words = Object.keys(activeWrongBook(scope));
-  if (!words.length) {
+function renderWrongReviewStatus(){
+  const status=$('wrongReviewStatus');
+  if(status)status.textContent=[wrongReviewController?.status(),masteryController?.status()].filter(Boolean).join(' ');
+  const recovery=$('legacyRecoveryBtn');
+  if(recovery)recovery.classList.toggle('hidden',!masteryController?.pendingQuestion()&&!unassignedLegacyRuntime());
+  const summary=$('studyWrongReviewSummary');
+  if(summary){
+    const entries=Object.entries(activeWrongBook('history'));
+    const views=entries.map(([key,info])=>wrongReviewView(info,Date.now(),wrongReviewController?.confirmed(key,info)));
+    summary.textContent=`历史错题 ${entries.length} 个 · 待复习 ${views.filter(view=>view.due).length} 个 · 已掌握 ${views.filter(view=>view.mastered).length} 个（复习状态，不叠加答题总数）`;
+  }
+}
+
+async function startWrongReview(scope) {
+  const book=activeWrongBook(scope);
+  const recent=Object.entries(book).filter(([,info])=>info.review.events.length).sort((a,b)=>Date.parse(a[1].review.events.at(-1).at)-Date.parse(b[1].review.events.at(-1).at)).slice(-5).map(([key])=>key);
+  const ordered=wrongReviewController.allowed()?orderWrongReview(book,{scope,recent,confirmed:wrongReviewController.confirmed}):{entries:shuffle(Object.entries(book).map(([key,info])=>({key,info}))),feedback:'fallback'};
+  if (!ordered.entries.length) {
     renderWrongBook({ force: true });
     return;
   }
-  startQuiz(words, scope === "history" ? "review-history" : "review-current");
+  if(ordered.feedback==='none_due'||ordered.feedback==='all_mastered'){
+    showWrongActionMessage(ordered.feedback==='all_mastered'?'已有错题均已掌握；本轮为你主动选择的巩固复习。':'暂无到期错题；本轮复习已有错题，不加入新词。');
+  }
+  state.wrongScope=scope;
+  await startQuiz(ordered.entries.map(entry=>wrongEntryWord(entry.key,entry.info)),scope==='history'?'review-history':'review-current',{reviewEntries:ordered.entries,reviewFeedback:ordered.feedback});
 }
 
 async function exportWrongBook(scope = "current") {
@@ -6373,7 +6584,7 @@ async function importWrongData(event) {
   if (!file) return;
 
   try {
-    if (file.size > 1024 * 1024) throw new Error("错题数据文件不能超过 1 MB");
+    if (file.size > 16 * 1024 * 1024) throw new Error("错题数据文件不能超过 16 MB");
     const payload = JSON.parse(await file.text());
     const imported = importedWrongBooks(payload);
     if (imported.language && imported.language !== state.quizLanguage) {
@@ -6514,6 +6725,7 @@ function changeProfile(value, options = {}) {
   saveStudyRecords();
   if (options.abandonActive) discardActiveRound();
   state.profile = nextProfile;
+  void wrongReviewController?.update();
   $("profileInput").value = state.profile;
   loadWrongBooks();
   loadAchievements();
@@ -7100,6 +7312,19 @@ async function boot() {
   $("backBtn").addEventListener("click", () => setView("setupView"));
   $("reviewBtn").addEventListener("click", () => startWrongReview("current"));
   $("reviewHistoryBtn").addEventListener("click", () => startWrongReview("history"));
+  $('legacyRecoveryBtn')?.addEventListener('click',()=>{
+    const question=masteryController.pendingQuestion();
+    if(question)void startQuiz([question.prompt],'review-history',{legacyQuestion:question});
+    else{
+      const legacy=unassignedLegacyRuntime();
+      if(legacy)askConfirmation(`旧版未完成测试未记录使用者档案。确认将其恢复到当前“${state.profile}”档案？原记录将保留。`,()=>{
+        if(state.roundActive)return;
+        const runtime={...legacy,account_id:String(state.account.id),profile:state.profile,reviewKeys:[],reviewAnswers:{},legacyQuestion:null};
+        safeStorageSet(sessionStorage,projectRuntimeKey(state.quizLanguage),JSON.stringify(runtime));
+        projectRuntime[state.quizLanguage]=null;projectRuntimeNeedsRestore=true;restoreProjectRuntime();
+      });
+    }
+  });
   $("exportBtn").addEventListener("click", () => exportWrongBook("current"));
   $("exportHistoryBtn").addEventListener("click", () => exportWrongBook("history"));
   $("exportWrongDataBtn").addEventListener("click", exportWrongData);

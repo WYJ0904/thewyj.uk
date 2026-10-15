@@ -14,10 +14,10 @@ function fixture(journal,{withQuestion=true,api=async()=>new Promise(()=>{})}={}
 let submitted=0,released;
 const commit=new Promise(r=>{released=r;});
 const a=fixture({list:async()=>[],put:()=>commit,remove:async()=>{}},{api:()=>{submitted++;return new Promise(()=>{});}});await pause();
-a.nodes.get('masteryAnswerInput').value='water';a.handlers.get('masteryAnswerForm:submit')({preventDefault(){}});await pause();assert.equal(submitted,0);assert.equal(JSON.parse(a.values.get(masteryStorageKey(account))).outbox.length,0,'UI cache must not claim durable save before commit');released();await pause();assert.equal(submitted,1);
+void a.controller.submit(question,'water');await pause();assert.equal(submitted,0);assert.equal(JSON.parse(a.values.get(masteryStorageKey(account))).outbox.length,0,'UI cache must not claim durable save before commit');released();await pause();assert.equal(submitted,1);
 console.log('PASS: durable commit precedes cached queue and any server submission');
 let deniedCalls=0;
-const b=fixture({list:async()=>[],put:async()=>{throw new Error('durable commit denied');},remove:async()=>{}},{api:()=>{deniedCalls++;}});await pause();b.nodes.get('masteryAnswerInput').value='water';b.handlers.get('masteryAnswerForm:submit')({preventDefault(){}});await pause();assert.equal(deniedCalls,0);assert.equal(JSON.parse(b.values.get(masteryStorageKey(account))).outbox.length,0);assert.equal(b.nodes.get('masteryAnswerInput').value,'water');assert.match(b.nodes.get('masteryStatus').textContent,/durable commit denied/);
+const b=fixture({list:async()=>[],put:async()=>{throw new Error('durable commit denied');},remove:async()=>{}},{api:()=>{deniedCalls++;}});await pause();await assert.rejects(()=>b.controller.submit(question,'water'),/durable commit denied/);assert.equal(deniedCalls,0);assert.equal(JSON.parse(b.values.get(masteryStorageKey(account))).outbox.length,0);assert.equal(b.controller.pendingQuestion().ticket_id,question.ticket_id);
 console.log('PASS: journal failure keeps the input and prevents false saved status or writes');
 let recoveredInput;
 const c=fixture({list:async()=>[{account_id:account,event_id:entry.input.event_id,entry,question}],put:async()=>{},remove:async()=>{}},{withQuestion:false,api:async(_route,input)=>{recoveredInput=input;return new Promise(()=>{});}});await pause();assert.equal(recoveredInput.event_id,entry.input.event_id);assert.equal(recoveredInput.ticket_id,question.ticket_id);assert.equal(JSON.parse(c.values.get(masteryStorageKey(account))).outbox[0].input.event_id,entry.input.event_id);

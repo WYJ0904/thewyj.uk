@@ -362,9 +362,27 @@ function mergeTextList(current, incoming, maximum) {
   return values.slice(0, maximum);
 }
 
+export function mergeReviewEvidence(left, right) {
+  if (!left || !right || left.review_id !== right.review_id) return null;
+  const events = new Map();
+  for (const event of [...(left.review?.events || []), ...(right.review?.events || [])]) {
+    if (!event || typeof event.id !== 'string' || typeof event.at !== 'string') continue;
+    const previous = events.get(event.id);
+    if (!previous || stableStringify(event) < stableStringify(previous)) events.set(event.id,event);
+  }
+  return {version:1,algorithm:'wrong-review-v1',base_wrong_count:Math.max(Number(left.review?.base_wrong_count)||0,Number(right.review?.base_wrong_count)||0),
+    truncated:Boolean(left.review?.truncated||right.review?.truncated||events.size>128),events:[...events.values()]
+    .sort((a,b)=>a.at.localeCompare(b.at)||a.id.localeCompare(b.id)).slice(-128)};
+}
+
 function mergeWrongPayload(current, incoming, incomingNewer) {
   const merged = incomingNewer ? { ...current, ...incoming } : { ...incoming, ...current };
   merged.wrong_count = Math.max(Number(current.wrong_count || 0), Number(incoming.wrong_count || 0));
+  const evidence = mergeReviewEvidence(current,incoming);
+  if (evidence) {
+    merged.review = evidence;
+    if(!evidence.truncated)merged.wrong_count=Math.min(9999,Math.max(merged.wrong_count,evidence.base_wrong_count+evidence.events.filter(event=>event.correct===false&&event.kind!=='correction').length));
+  }
   const accepted = mergeTextList(current.accepted, incoming.accepted, 50);
   if (accepted.length) merged.accepted = accepted;
   const currentRubric = safeJsonObject(current.rubric);
