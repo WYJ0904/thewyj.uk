@@ -107,6 +107,8 @@ data class NotificationCaptureInput(
      */
     val coalesceWithPrevious: Boolean = false,
     val archiveKind: String = "message",
+    /** OS-issued origin UID. Local only; never part of the cloud payload. */
+    val sourceUid: Int? = null,
 )
 
 /**

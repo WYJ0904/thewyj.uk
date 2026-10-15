@@ -32,7 +32,7 @@ abstract class NotificationDatabase : RoomDatabase() {
     abstract fun paymentDao(): PaymentDao
 
     companion object {
-        const val SCHEMA_VERSION = 9
+        const val SCHEMA_VERSION = 10
         const val DATABASE_NAME = "wyj-notifications.db"
 
         @Volatile
@@ -47,7 +47,7 @@ abstract class NotificationDatabase : RoomDatabase() {
                 )
                     // The local archive is user data: never drop it on upgrade.
                     .addMigrations(
-                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                     )
                     .build()
                     .also { instance = it }
@@ -171,6 +171,14 @@ abstract class NotificationDatabase : RoomDatabase() {
                     `currency` TEXT NOT NULL, `merchant` TEXT NOT NULL, `occurredAtMs` INTEGER NOT NULL,
                     `sourcePackage` TEXT NOT NULL, `paymentChannel` TEXT NOT NULL, `providerReference` TEXT NOT NULL,
                     `syncState` TEXT NOT NULL, `createdAtMs` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `eventId`))""")
+            }
+        }
+
+        /** Add evidence only; old notifications, candidates and bookings stay intact. */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE payment_recognitions ADD COLUMN completionConfirmed INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE payment_recognitions ADD COLUMN sourceUid INTEGER NOT NULL DEFAULT -1")
             }
         }
 

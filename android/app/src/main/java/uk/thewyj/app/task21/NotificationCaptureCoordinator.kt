@@ -140,7 +140,7 @@ class NotificationCaptureCoordinator(
         val paymentInput = if (payment != null) input.copy(paymentEventId = eventId) else input
         val structured = if (payment != null) {
             val refund = payment.direction == FinanceDirection.REFUND
-            val parsedPayment = payment.amountMinor > 0 &&
+            val parsedPayment = payment.confirmed && payment.amountMinor > 0 &&
                 payment.direction != FinanceDirection.UNKNOWN
             StructuredNotificationEvent(
                 eventId = eventId,

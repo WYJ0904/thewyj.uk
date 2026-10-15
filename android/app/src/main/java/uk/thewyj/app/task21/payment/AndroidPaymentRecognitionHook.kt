@@ -75,6 +75,7 @@ class AndroidPaymentRecognitionHook private constructor(
             sourceAppLabel = label,
             uploadEventId = uploadEventId,
             occurredAtMs = if (input.postTime > 0) input.postTime else input.receivedAtMs,
+            sourceUid = input.sourceUid,
         )
         if (outcome.recognitionId.isNotBlank() && outcome.state != null) PaymentReviewSignals.publish()
     }
@@ -120,7 +121,9 @@ class AndroidPaymentRecognitionHook private constructor(
         ) {
             return null
         }
-        val confirmed = PaymentAutoBook.eligible(parsed.amountMinor, parsed.direction?.name.orEmpty())
+        val confirmed = PaymentAutoBook.eligible(parsed.amountMinor, parsed.direction?.name.orEmpty(),
+            parsed.status == PaymentRecognitionStatus.CONFIRMED_PAYMENT &&
+                !PaymentText.hasIncompleteStatus(listOf(input.title, parseText, input.bigText, input.subText).joinToString(" ")))
         return PaymentIngestOutcome(
             confirmed = confirmed,
             amountMinor = parsed.amountMinor ?: 0,

@@ -4,7 +4,7 @@ import uk.thewyj.app.task21.FinanceDirection
 
 /** WeChat payment messages. "昵称 + 转账" is a hint, never a transaction. */
 object WeChatPaymentParser : PaymentMessageParser {
-    override val version = "wechat-3"
+    override val version = "wechat-4"
     override val channel = "wechat"
 
     override fun matches(sourcePackage: String, sourceType: PaymentSourceType): Boolean =
@@ -34,9 +34,8 @@ object WeChatPaymentParser : PaymentMessageParser {
         val directionText = if (title.trim() in setOf("微信支付", "微信", "支付宝"))
             NotificationCashEvidence.cashText(PaymentText.normalize("", text, bigText, subText)).orEmpty() else normalized
         val direction = PaymentText.direction(directionText)
-        // A payment-channel notification ("微信支付 / 转账199元") is a real
-        // settlement even without the "转账成功" wording; ordinary chat with a
-        // sender prefix or chat wording stays out of the finance pipeline.
+        // A channel title identifies the source, not transaction settlement.
+        // Pending transfers must not become completed payments from title+money.
         val paymentTitle = PaymentText.isPaymentChannelTitle(title)
         // "张三：已支付100" is a chat bubble: the sender prefix wins over any
         // verb inside the message, so a friend cannot fake a ledger entry.
@@ -47,7 +46,7 @@ object WeChatPaymentParser : PaymentMessageParser {
             )
         }
         val explicitCompletion = PaymentText.hasCompletion(normalized)
-        val completion = explicitCompletion || (paymentTitle && amount != null && direction != null)
+        val completion = explicitCompletion
         val hint = PaymentText.hasPaymentHint(normalized)
         val merchant = PaymentText.merchant(sourceText)
         val reference = PaymentText.providerReference(sourceText)
@@ -124,7 +123,7 @@ object WeChatPaymentParser : PaymentMessageParser {
 }
 
 object AlipayPaymentParser : PaymentMessageParser {
-    override val version = "alipay-3"
+    override val version = "alipay-4"
     override val channel = "alipay"
 
     override fun matches(sourcePackage: String, sourceType: PaymentSourceType): Boolean =
@@ -161,7 +160,7 @@ object AlipayPaymentParser : PaymentMessageParser {
             )
         }
         val explicitCompletion = PaymentText.hasCompletion(normalized)
-        val completion = explicitCompletion || (paymentTitle && amount != null && direction != null)
+        val completion = explicitCompletion
         val hint = PaymentText.hasPaymentHint(normalized)
         if (!hint && amount == null) {
             return ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("alipay_not_payment"))
@@ -236,7 +235,7 @@ object AlipayPaymentParser : PaymentMessageParser {
 
 /** Bank app notifications: strong evidence once an amount is visible. */
 object BankNotificationParser : PaymentMessageParser {
-    override val version = "bank-notification-3"
+    override val version = "bank-notification-4"
     /**
      * Canonical channel shared with the server allow-list. The previous
      * `"bank"` spelling was rejected by `/api/notification/ingest` with
@@ -338,7 +337,7 @@ object BankNotificationParser : PaymentMessageParser {
  * rejected before any amount is considered a transaction.
  */
 object BankSmsParser : PaymentMessageParser {
-    override val version = "bank-sms-3"
+    override val version = "bank-sms-4"
     /** Canonical channel: see BankNotificationParser for why this is not "bank_sms". */
     override val channel = "bank_card"
 

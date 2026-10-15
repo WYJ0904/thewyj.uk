@@ -21,10 +21,14 @@ internal object PaymentOcrTransferAmount {
         if (lines.size != bounds.size || width <= 0 || height <= 0) return null
         val joined = lines.joinToString(" ")
         if (sensitive.any(joined::contains) || !PaymentPageContext.isDetail(lines)) return null
-        if (!lines.any { it in detail } || !lines.any { line -> transferTime.any(line::contains) }) return null
+        if (!lines.any { line -> transferTime.any(line::contains) }) return null
+        // A pending status plus transfer time identifies the receipt when the
+        // optional title node is absent. Unique decimal, geometry, owner/ticket
+        // binding and second-scale confirmation remain mandatory.
+        if (!lines.any { it in detail } && !PaymentPageContext.pendingTransfer(lines)) return null
         // The label "transfer time" identifies the layout, never money direction.
         val status = lines.filterNot { line -> transferTime.any(line::contains) }.joinToString(" ")
-        if (!PaymentPageContext.pendingOutgoing(lines) &&
+        if (!PaymentPageContext.pendingTransfer(lines) &&
             (!PaymentText.hasCompletion(status) || PaymentText.direction(status) == null)) return null
         if (PaymentPageAmountSelection.select(lines).reason != "no_amount") return null
         val index = lines.indices.filter { decimal.matches(lines[it]) }.singleOrNull() ?: return null

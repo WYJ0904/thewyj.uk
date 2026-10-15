@@ -6,6 +6,7 @@ import androidx.room.Room
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -52,7 +53,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10,
             )
             .allowMainThreadQueries()
             .build()
@@ -118,7 +119,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10,
             )
             .allowMainThreadQueries()
             .build()
@@ -154,7 +155,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10,
             )
             .allowMainThreadQueries()
             .build()
@@ -194,7 +195,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10,
             )
             .allowMainThreadQueries()
             .build()
@@ -221,7 +222,7 @@ class NotificationDatabaseMigrationTest {
         insertV7MediaRow()
 
         database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
-            .addMigrations(NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9)
+            .addMigrations(NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10)
             .allowMainThreadQueries()
             .build()
         val store = RoomNotificationStore(database!!)
@@ -243,7 +244,7 @@ class NotificationDatabaseMigrationTest {
         createDatabaseFromSchema(schema, version = 7)
         insertV7StatusLifecycle()
         database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
-            .addMigrations(NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9)
+            .addMigrations(NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10)
             .allowMainThreadQueries()
             .build()
         val store = RoomNotificationStore(database!!)
@@ -358,6 +359,24 @@ class NotificationDatabaseMigrationTest {
                 "'', '', '', '', '', 'hash-3', 1000, 'PARSED', 'EXPENSE', 2800, 'CNY', '', 900)",
         )
         sqlite.close()
+    }
+
+    @Test fun migrationFromV9KeepsExistingLedgerAndLeavesOldCompletionUnproven() {
+        createDatabaseFromSchema(loadSchema(9), version = 9)
+        val old = SQLiteDatabase.openDatabase(databaseFile.absolutePath, null, SQLiteDatabase.OPEN_READWRITE)
+        old.execSQL("INSERT INTO payment_recognitions (recognitionId,accountId,state,notificationId,sourcePackage,sourceType,sourceEventId,uploadEventId,paymentChannel,amountMinor,hasAmount,currency,direction,merchant,providerReference,createdAtMs,updatedAtMs) VALUES ('legacy-rec','account-a','FINANCE_RECORDED',1,'com.tencent.mm','NOTIFICATION','notification#event#legacy-event','legacy-event','wechat',50000,1,'CNY','INCOME','','',1000,1000)")
+        old.execSQL("INSERT INTO local_payment_bookings (accountId,eventId,recognitionId,transactionId,amountMinor,direction,currency,merchant,occurredAtMs,sourcePackage,paymentChannel,providerReference,syncState,createdAtMs) VALUES ('account-a','legacy-event','legacy-rec','txn:existing',50000,'INCOME','CNY','',1000,'com.tencent.mm','wechat','','synced',1000)")
+        old.close()
+        database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
+            .addMigrations(NotificationDatabase.MIGRATION_9_10).allowMainThreadQueries().build()
+        val store = RoomPaymentRecognitionStore(database!!)
+        assertEquals(false, store.recognition("account-a", "legacy-rec")!!.completionConfirmed)
+        assertNull(store.recognition("account-a", "legacy-rec")!!.sourceUid)
+        assertEquals("txn:existing", store.localBooking("account-a", "legacy-event")!!.transactionId)
+        assertEquals(50000L, store.localBooking("account-a", "legacy-event")!!.amountMinor)
+        val replay = uk.thewyj.app.task21.payment.PaymentRecognitionCoordinator(store).autoBook("account-a", "legacy-rec")
+        assertEquals("txn:existing", replay!!.transactionId)
+        assertEquals(1, store.localBookings("account-a").size)
     }
 
     private fun loadSchema(version: Int): JSONObject {

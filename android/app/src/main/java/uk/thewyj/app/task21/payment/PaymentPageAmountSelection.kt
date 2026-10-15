@@ -69,11 +69,29 @@ object PaymentPageContext {
     fun blockedWechatActivity(name: String): Boolean = name.endsWith(".LauncherUI") || name.contains("ChattingUI")
     private val detail = listOf("交易详情", "交易詳情", "账单详情", "賬單詳情", "帳單詳情", "转账详情", "轉賬詳情", "轉帳詳情")
     private val success = listOf("支付成功", "付款成功", "已支付", "已付款", "转账成功", "轉賬成功", "到賬成功", "收款成功", "已收款", "退款成功", "交易成功")
-    fun pendingOutgoing(lines: List<String>): Boolean = lines.any { Regex("^待.{1,30}收款$").matches(it.trim()) } &&
-        lines.any { it.contains("轉帳時間") || it.contains("轉賬時間") || it.contains("转账时间") }
+    private fun hasTransferTime(lines: List<String>): Boolean =
+        lines.any { Regex("(?:转账|转帐|轉帳|轉賬)(?:时间|時間)").containsMatchIn(it) }
+    fun pendingTransfer(lines: List<String>): Boolean =
+        lines.any { Regex("^待.{1,30}收款$").matches(it.trim()) } && hasTransferTime(lines)
+    fun pendingDirection(lines: List<String>): uk.thewyj.app.task21.FinanceDirection? {
+        val incoming = lines.any { it.trim() in setOf("待你收款", "待您收款", "待本人收款") }
+        // Named recipients retain the sender-side interpretation. The special
+        // second-person label is the receiver side and must be excluded.
+        val outgoing = lines.any {
+            Regex("^待.{1,30}收款$").matches(it.trim()) &&
+                it.trim() !in setOf("待你收款", "待您收款", "待本人收款")
+        }
+        return when {
+            incoming && !outgoing -> uk.thewyj.app.task21.FinanceDirection.INCOME
+            outgoing && !incoming -> uk.thewyj.app.task21.FinanceDirection.EXPENSE
+            else -> null
+        }
+    }
+    fun pendingOutgoing(lines: List<String>): Boolean =
+        pendingTransfer(lines) && pendingDirection(lines) == uk.thewyj.app.task21.FinanceDirection.EXPENSE
     fun isDetail(lines: List<String>): Boolean {
         if (lines.any { it.trim() in setOf("WeChat", "Weixin Pay", "微信", "我的账单", "我的帳單", "支付服务", "支付服務") }) return false
-        return pendingOutgoing(lines) || lines.any { line -> detail.any { line.trim() == it } } ||
+        return pendingTransfer(lines) || lines.any { line -> detail.any { line.trim() == it } } ||
             lines.any { line -> success.any { line.trim() == it } } ||
             (lines.any { it.contains("轉賬金額") || it.contains("转账金额") || it.contains("实付") } && lines.any { PaymentText.hasCompletion(it) })
     }
