@@ -13,6 +13,13 @@ const runId=crypto.randomUUID().slice(0,8);
 for(const width of widths){
   const page=await openPage({cdpUrl:process.env.WYJ_CDP_URL||'http://127.0.0.1:9225',baseUrl,width,height:1000,mobile:width<768});
   const checks=[];
+  let intentionallyOffline=false;
+  const expectedOfflineErrors=new Set();
+  page.client.listeners.add(message=>{
+    const entry=message.params?.entry;
+    if(intentionallyOffline&&message.method==='Log.entryAdded'&&entry?.source==='network'
+      &&entry.text==='Failed to load resource: net::ERR_INTERNET_DISCONNECTED')expectedOfflineErrors.add(page.runtimeErrors.length-1);
+  });
   async function call(route,body){return page.evaluate(`(async()=>{const response=await fetch(${JSON.stringify(route)},{method:${JSON.stringify(body===undefined?'GET':'POST')},headers:{'X-Session-Token':localStorage.getItem('wyjAccountSession'),'Content-Type':'application/json'},${body===undefined?'':`body:JSON.stringify(${JSON.stringify(body)}),`}cache:'no-store'});return {status:response.status,body:await response.json()};})()`);}
   async function flags(enabled){
     for(const key of ['adaptive_learning','mastery_score','adaptive_review']){
@@ -87,9 +94,12 @@ for(const width of widths){
     assert.equal(await page.evaluate("document.getElementById('wordText').textContent"),'听写');await answer();await finish();checks.push('flags_off_base_dictation_works');
     await flags(true);await seed('japanese','dictation');await page.click('#reviewHistoryBtn');await page.waitFor('state.roundActive');await answer();await finish();checks.push('japanese_dictation_original_form');
     await seed('japanese');await page.click('#reviewBtn');await page.waitFor('state.roundActive');
+    intentionallyOffline=true;
     await page.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await answer();
     assert.ok(await page.evaluate("document.getElementById('wrongReviewStatus').textContent.includes('本机')||document.getElementById('wrongReviewStatus').textContent.includes('本地')"));
-    await page.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await finish();checks.push('offline_answer_durable_local_not_synced');
+    await page.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+    await page.evaluate('new Promise(resolve=>setTimeout(resolve,100))');intentionallyOffline=false;
+    await finish();checks.push('offline_answer_durable_local_not_synced');
     if(width===390){
       // Recover one actually issued legacy ticket through the original form.
       // It is deliberately queued before reload with the old storage formats.
@@ -131,8 +141,8 @@ for(const width of widths){
       checks.push('real_json_export_delete_clear_sync_reload_explicit_import_restore');
       await flags(true);
     }
-    assert.deepEqual(page.runtimeErrors,[]);
-    results.push({width,checks,passed:true,physical_device:false});console.log(`PASS ${width}: ${checks.join(', ')}`);
+    assert.deepEqual(page.runtimeErrors.filter((_error,index)=>!expectedOfflineErrors.has(index)),[]);
+    results.push({width,checks,passed:true,physical_device:false,expected_offline_network_errors:expectedOfflineErrors.size});console.log(`PASS ${width}: ${checks.join(', ')}`);
   }catch(error){
     const diagnostic=await page.evaluate("({profile:state?.profile,language:state?.quizLanguage,current:Object.entries(state?.currentWrongBook||{}).map(([key,info])=>({key,language:info.language})),history:Object.entries(state?.historyWrongBook||{}).map(([key,info])=>({key,language:info.language})),storage:Object.keys(localStorage).filter(key=>key.startsWith('wrongBook:')).map(key=>({key,entries:Object.keys(JSON.parse(localStorage.getItem(key)||'{}'))}))})").catch(()=>null);
     fs.writeFileSync(path.join(root,`failure-${width}.json`),JSON.stringify({diagnostic,dialogs:page.dialogs,runtimeErrors:page.runtimeErrors},null,2));

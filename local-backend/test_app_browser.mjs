@@ -1658,7 +1658,7 @@ async function main() {
       assert.equal(await evaluate("state.pendingAdvance === null && state.answerLocked === false"), true);
 
       // C: skipping uses the standard rubric, displays it, and supports a new correct answer.
-      await startMeaningRound(["garden", "harbor", "island"]);
+      const skippedRoundWords = await startMeaningRound(["garden", "harbor", "island"]);
       await tap("#skipBtn");
       await waitFor("document.querySelector('#resultTitle')?.textContent === '已跳过' && state.pendingAdvance && !state.busy", 15_000, "scenario C skip feedback");
       const skippedFeedback = await evaluate("document.querySelector('#resultGloss').textContent");
@@ -1670,7 +1670,7 @@ async function main() {
       await tap(".wrong-rejudge-button");
       await setFields({ ".wrong-rejudge-input": "测试释义" });
       await tap(".wrong-rejudge-submit");
-      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 1 && state.currentWrongBook.garden?.rejudge_result === 'correct' && !document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定正确'", 12_000, "scenario C skipped verdict corrected with history retained");
+      await waitFor(`document.querySelectorAll('#wrongList .wrong-item').length === 1 && state.currentWrongBook[${JSON.stringify(skippedRoundWords[0])}]?.rejudge_result === 'correct' && !document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定正确'`, 12_000, "scenario C skipped verdict corrected with history retained");
       assert.ok((await evaluate("document.querySelector('#rejudgeResultMessage').textContent")).includes("历史保留"));
       await tap("#rejudgeResultConfirmBtn");
       assert.equal(await evaluate("state.roundSkipped"), 0);

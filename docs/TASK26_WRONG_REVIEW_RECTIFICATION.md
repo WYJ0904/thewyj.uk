@@ -60,13 +60,14 @@ runtime 按账户/语言保存，未隔离档案。
 
 ## 数据、同步与兼容
 
-wrong-book 保留原账户/档案键，条目增加 word、review_id、review_updated_at 和
-版本化 review。听写使用题型专用键，释义兼容原词条键。review_id 包含语言、
+wrong-book 保留原账户/档案键与既有条目的同步键，条目增加 word、review_id、review_updated_at 和
+版本化 review。新建同名题型使用专用键，已有听写键不搬迁，保护原 tombstone。review_id 包含语言、
 题型、完整词条及生命周期ID；服务器另以账户/档案隔离。current/history 列表
 各自独立，同一生命周期题目的掌握证据共享，避免两个范围重复奖励。
 
 sanitize、合并、导入JSON、导出JSON/PDF、Task11客户端/服务端合并均配套。
-有界本地事件集合按ID合并；压缩后错误次数保守取max，避免旧副本反复抬高
+有界本地事件集合按ID合并，同一 attempt 的不同窗口UUID不重复奖励；纠正按
+原 attempt 排除所有别名，先到的纠正也有效。压缩后错误次数保守取max，避免旧副本反复抬高
 计数。服务端保留完整不可变事件，增量CAS投影；纠正时按原ledger重建。
 新答案先保存稳定 attempt/event ID、原反馈与判卷快照，再完成 IndexedDB
 持久保存，之后同步原错题，最后提交事件。刷新和失败重试复用原ID/原判卷，
@@ -84,7 +85,12 @@ mastery.js 已退役为恢复适配器。保留 aerisMastery:v1 和原 IndexedDB
 旧题/待确认事件可在 Flag关闭、原票据过期后，按已存在且属于该账户的签发
 题目恢复，重放原事件ID。仅在有旧题时显示一次恢复操作，并复用原答题界面；
 恢复不会重复计入完成轮次或轮次成就。没有档案字段的旧普通测验runtime保留，
-需用户明确选定当前档案才迁入v2，不自动串到其他档案。
+需用户明确选定当前档案才迁入v2，不自动串到其他档案。另一窗口已完成的旧题
+或重复草稿归档到恢复备份，保留原输入并可导出，不阻塞之后的有效记录。
+
+未开放智能功能的普通复习也先持久保存答案，但只进入 local_only 本地归档，
+不会积压成日后未经授权的可信事件。已开放时开始的回合保留其资格，在断网、
+临时关闭开关或会员状态变化时保留待确认队列，不伪造成功确认。
 
 | 既有 Flag | 新流程含义 |
 | --- | --- |
@@ -102,18 +108,46 @@ mastery.js 已退役为恢复适配器。保留 aerisMastery:v1 和原 IndexedDB
 | 项目 | 状态 |
 | --- | --- |
 | 本地Core JS脚本 | 62/62，早期完整检查；最终受影响套件另行运行 |
-| Python全量 | 185 tests，0 failures；最终static 31 tests另过 |
+| Python全量 | 185 tests，0 failures；构建目录断言更新后最终static 31 tests另过 |
 | Android基线回归 | 78 suites / 545 tests，0 failures/errors/skips；Lint / Debug构建PASS；native差异0 |
-| Chromium本地矩阵 | 320/390/768/1366/1920，深浅色；原入口/首次正确/刷新/范围/听写/离线/Flag关闭共40组已过；新增兼容用例继续验证 |
-| 新D1套件 | 已过10组，含原判卷版本、并发/幂等/纠错/删除/重建；迁移保护新增断言继续验证 |
+| Chromium本地矩阵 | 320/390/768/1366/1920，深浅色；42组通过，包含原入口/首次正确/刷新/两范围/听写/离线/Flag关闭，以及真实导出、删除、清空、同步后导入、旧题恢复 |
+| 新算法/客户端/D1 | 最终分别12/6/13组通过；另旧题持久队列4组；完整 npm run test:task26 通过 |
 | Preview D1 | 实际只读确认待迁移0026后，仅对Preview a3e6253b-689f-49f3-998b-7c5828ea255a应用0026成功 |
-| PR / 远端Core CI / Hosted UI | 待补充精确Commit和链接 |
+| PR | Draft [#111](https://github.com/WYJ0904/thewyj.uk/pull/111)，独立分支；最新实现3f2190aa86f2ea66fa5b64aac0c54cc8e4ec0c3d |
+| 远端Core CI | 3f2190a的基础六项PASS；Cloud-only通过原P0/Task18/Task25/完整工具箱，最后Task26将刻意断网的浏览器网络日志误判为JS异常；应用流一处断言写死刷新前的随机首词。保留失败并修复测试；最终结果见[本PR Checks](https://github.com/WYJ0904/thewyj.uk/pull/111/checks)，全绿前不算PASS |
+| Hosted源码与资源排除 | [004b5a40](https://004b5a40.thewyj-uk.pages.dev)，10份JS逐字节匹配3f2190a，开发配置/文档/迁移/Android源码等5项未暴露，未登录智能接口401；实际登录/UI验收继续进行 |
 | Production | 实际Pages仍为566292b3-3c7f-4ef5-93b5-6977e606c14a / main74eadf5；本次未迁移或部署Production |
 | Samsung真机 | UNVALIDATED / DEFERRED_BY_OWNER；不以Chromium、Debug构建或HTTP代替 |
 
 完整本地日志进入忽略的 artifacts/task26-rectification/；保留失败日志。
 浏览器矩阵的TTS供应商故障由明确503 fixture覆盖，发音provider另由既有TTS
 单元测试覆盖；不声称矩阵验证了真实外部音频或手机扬声器。
+
+## 验证中发现并修复的问题
+
+1. 原来Git集成的Pages build command是 exit 0、输出为仓库根目录；本次早期
+   Preview确实能读到package.json。改为既有allowlist staging，build执行
+   pages:stage和输出检查，wrangler输出固定为.wrangler/pages-output。
+   Pages项目的未来build_config同样更新；已核对deployment_configs（运行时绑定、
+   Secret配置）和当前canonical Production deployment完全未变。
+   这项项目级构建设置也约束之后的Production构建；旧暂停分支将来发布前须先
+   合入安全构建入口，不能直接以缺少build脚本的旧分支发布。没有修改Hotfix WIP。
+2. Core CI 69394d9的Cloud-only browser在P6登录前因本地Wrangler代理报告
+   Network connection lost后退出；原失败日志保留。对固定4.118.0的本地CI
+   controller加严格限定补丁，只把该精确传输断开保留为请求失败、让dev server继续。
+   其他错误仍fatal，不重放POST、不跳过测试、不更改HTTP成功条件、不改变部署代码。
+   两个controller的VM回归、自身重复执行和上游源码不匹配拒绝检查通过。
+   [上游同类问题](https://github.com/cloudflare/workers-sdk/issues/15451)。
+3. 最终浏览器兼容用例的日语听写fixture误存中文释义，改为真实写法/读音；
+   导入用例在页面初始化完成前选文件，增加账户/语言/档案就绪等待。
+   原失败日志保留，实际完整42组重新通过，没有降低业务断言。CI另将原随机
+   首词断言改为实际回合首词；刻意离线期间仅单列精确的network源
+   ERR_INTERNET_DISCONNECTED日志，其他JS异常和在线网络异常仍使测试失败。
+4. 新D1查询改用精确GLOB前缀，避免base64中的下划线被LIKE当作通配符；
+   保留原同步键避免旧听写tombstone失联；同一attempt的多UUID和乱序人工纠正
+   通过真实D1回归。没有借此重建旧业务数据。
+
+受保护固定工作区25个文件SHA-256、分支及HEAD已再次比对一致；Hotfix仍暂停。
 
 ## 发布与回滚
 
@@ -126,3 +160,10 @@ mastery.js 已退役为恢复适配器。保留 aerisMastery:v1 和原 IndexedDB
 事件留在本机/服务端。若需回退Pages，在管理CLI中列出同项目production部署，
 选择本报告记录的旧deployment执行原Pages rollback流程。不得回滚SQL删表、
 删除ledger或旧Task26历史；0026保留不会影响旧服务。下一次启用时按原事件恢复。
+
+已核对的Pages回退API为
+`POST /accounts/{account_id}/pages/projects/thewyj-uk/deployments/566292b3-3c7f-4ef5-93b5-6977e606c14a/rollback`。
+仅在未来已批准的发布/回退窗口执行；当前没有执行，也不把文档当作新的生产授权。
+使用正常安全令牌注入，不把令牌写入源码；回退后重新只读核对canonical deployment、
+公开资源hash、登录、原错题本以及接口健康。保留新的allowlist构建设置，避免下次
+构建重新发布仓库根目录。[Cloudflare官方API](https://developers.cloudflare.com/api/resources/pages/subresources/projects/subresources/deployments/methods/rollback/)。
