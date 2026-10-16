@@ -1,6 +1,7 @@
 # Task 26 错题复习整改
 
-状态：IMPLEMENTED / VERIFYING；不改变既有 Task26 CLOSED_WITH_OWNER_WAIVER 历史结论。
+状态：IMPLEMENTED / PREVIEW_VALIDATED / RELEASE_HELD；最终CI结果在本PR Checks持续记录。
+真机尚未执行，整体不标记COMPLETE；不改变既有 Task26 CLOSED_WITH_OWNER_WAIVER 历史结论。
 
 ## 执行前审计
 
@@ -113,15 +114,29 @@ mastery.js 已退役为恢复适配器。保留 aerisMastery:v1 和原 IndexedDB
 | Chromium本地矩阵 | 320/390/768/1366/1920，深浅色；42组通过，包含原入口/首次正确/刷新/两范围/听写/离线/Flag关闭，以及真实导出、删除、清空、同步后导入、旧题恢复 |
 | 新算法/客户端/D1 | 最终分别12/6/13组通过；另旧题持久队列4组；完整 npm run test:task26 通过 |
 | Preview D1 | 实际只读确认待迁移0026后，仅对Preview a3e6253b-689f-49f3-998b-7c5828ea255a应用0026成功 |
-| PR | Draft [#111](https://github.com/WYJ0904/thewyj.uk/pull/111)，独立分支；最新实现3f2190aa86f2ea66fa5b64aac0c54cc8e4ec0c3d |
+| PR | Draft [#111](https://github.com/WYJ0904/thewyj.uk/pull/111)，独立分支；Hosted功能源码3f2190aa86f2ea66fa5b64aac0c54cc8e4ec0c3d；后续为QA和本文更新 |
 | 远端Core CI | 3f2190a的基础六项PASS；Cloud-only通过原P0/Task18/Task25/完整工具箱，最后Task26将刻意断网的浏览器网络日志误判为JS异常；应用流一处断言写死刷新前的随机首词。保留失败并修复测试；最终结果见[本PR Checks](https://github.com/WYJ0904/thewyj.uk/pull/111/checks)，全绿前不算PASS |
-| Hosted源码与资源排除 | [004b5a40](https://004b5a40.thewyj-uk.pages.dev)，10份JS逐字节匹配3f2190a，开发配置/文档/迁移/Android源码等5项未暴露，未登录智能接口401；实际登录/UI验收继续进行 |
+| Hosted源码与资源排除 | [e6f9b1b4](https://e6f9b1b4.thewyj-uk.pages.dev)，10份JS逐字节匹配6e16435，开发配置/文档/迁移/Android源码等5项未暴露，未登录智能接口401 |
+| Hosted真实API/UI | [004b5a40](https://004b5a40.thewyj-uk.pages.dev) / 3f2190a，8组全部通过；390/1366真实Chrome、深浅色；专用账户已删除，三个开关恢复原OFF/0%配置，其他活跃账户正向override仍0 |
 | Production | 实际Pages仍为566292b3-3c7f-4ef5-93b5-6977e606c14a / main74eadf5；本次未迁移或部署Production |
 | Samsung真机 | UNVALIDATED / DEFERRED_BY_OWNER；不以Chromium、Debug构建或HTTP代替 |
 
 完整本地日志进入忽略的 artifacts/task26-rectification/；保留失败日志。
 浏览器矩阵的TTS供应商故障由明确503 fixture覆盖，发音provider另由既有TTS
 单元测试覆盖；不声称矩阵验证了真实外部音频或手机扬声器。
+
+Hosted的8组包括：普通付费用户与无会员管理员权限差异；真实Task11错题源、
+英语/日语确定性判卷、同ID/同attempt异UUID幂等、冲突与人工纠正；真实Kill
+Switch；断网答题在IndexedDB保存、重连取得真实服务器receipt；390/1366原
+按钮/单表单/刷新恢复/首次正确保留/深浅主题；关闭Flag后的旧签发题恢复；
+关闭Flag后的原错题基础复习。没有改用固定catalog词条。清理前8条原错题保留，
+7条新复习事件已确认；不把模拟时间的本地跨天用例冒充线上多日观察。
+
+第一次Hosted探针错误地使用仅loopback开放的测试state变量，API部分通过但
+UI探针失败；原日志保留、两个fixture正常删除。改为正式DOM/原持久存储和
+真实登录后重新完整执行，最终8组通过。两次均恢复原开关配置，仅保留正常
+审计/账户软删除记录；未清理他人历史数据。早期两个暴露开发文件的本分支
+Preview bf6b6dd1/c9a17fd5已在保存失败证据后删除，既有发布部署保留。
 
 ## 验证中发现并修复的问题
 
@@ -148,6 +163,22 @@ mastery.js 已退役为恢复适配器。保留 aerisMastery:v1 和原 IndexedDB
    通过真实D1回归。没有借此重建旧业务数据。
 
 受保护固定工作区25个文件SHA-256、分支及HEAD已再次比对一致；Hotfix仍暂停。
+2026-10-16T02:54:36Z再次只读确认Production仍为74eadf5 / 566292b3，未发布本次整改。
+
+## 修改文件范围
+
+- app.js、index.html、product-ui.css：删除重复面板，两个原入口接原表单，
+  保留首次正确的错题、复判/反馈/恢复与统计口径。
+- js/language/wrong-book.js、wrong-review.js、wrong-review-sync.js：条目标识、
+  可复现算法、持久队列和确认；mastery.js只恢复旧题。
+- functions/_lib/task26-api.mjs、task26-wrong-review.mjs、task26-service.mjs：
+  真实错题授权、确定性判卷、CAS/幂等、旧签发票据兼容。
+- learning-sync.js、functions/_lib/task11-model.mjs、0026_wrong_book_review.sql：
+  增量元数据合并、删除优先和新增两张表，不覆盖旧迁移。
+- sw.js及前端模块引用：同一资源版本与离线缓存队列，防止新旧界面混用。
+- qa/task26、原浏览器测试、package.json、wrangler.jsonc、scripts和Core CI：
+  完整回归、安全staging检查与仅本地CI的固定依赖断开处理。
+- android/源码、签名、版本号、正式安装包及Stable指针：差异0。
 
 ## 发布与回滚
 
