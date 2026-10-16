@@ -3,6 +3,7 @@ package uk.thewyj.app.task21.payment
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Auditable state of the payment AccessibilityService.
@@ -15,6 +16,11 @@ import kotlinx.coroutines.flow.asStateFlow
 object PaymentAccessibilityStatus {
     const val TAG = "ThewyjAccessibility"
     private val mutableConnection = MutableStateFlow(false)
+    private val pageReads = AtomicLong()
+    private val screenshotAttempts = AtomicLong()
+    val pageReadCount: Long get() = pageReads.get()
+    val screenshotCount: Long get() = screenshotAttempts.get()
+    fun onScreenshotAttempt() { screenshotAttempts.incrementAndGet() }
     val connection = mutableConnection.asStateFlow()
 
     @Volatile var connected: Boolean = false
@@ -61,6 +67,7 @@ object PaymentAccessibilityStatus {
     }
 
     fun onPageRead(textLineCount: Int) {
+        pageReads.incrementAndGet()
         lastTextLineCount = textLineCount
     }
 

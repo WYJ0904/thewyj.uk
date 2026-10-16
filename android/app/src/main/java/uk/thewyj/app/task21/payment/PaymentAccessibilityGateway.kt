@@ -53,9 +53,14 @@ internal object PaymentSourceIdentity {
 /** No exported component. Injection is compiled off in ordinary signed builds. */
 object PaymentAccessibilityDeviceTest {
     @Volatile private var value: PaymentAccessibilityGateway? = null
-    fun install(gateway: PaymentAccessibilityGateway?) {
+    @Volatile private var preventContentReads = false
+    fun install(gateway: PaymentAccessibilityGateway?, blockContentReadsForAudit: Boolean = false) {
         check(BuildConfig.DEBUG || BuildConfig.PAYMENT_DEVICE_TEST) { "Device tests require an explicitly built test candidate" }
+        preventContentReads = gateway != null && blockContentReadsForAudit
         value = gateway
     }
+    /** A negative device test must fail on a read attempt without exposing chat prose. */
+    fun contentReadBlockedForAudit(): Boolean =
+        (BuildConfig.DEBUG || BuildConfig.PAYMENT_DEVICE_TEST) && value != null && preventContentReads
     fun gateway(): PaymentAccessibilityGateway? = if (BuildConfig.DEBUG || BuildConfig.PAYMENT_DEVICE_TEST) value else null
 }

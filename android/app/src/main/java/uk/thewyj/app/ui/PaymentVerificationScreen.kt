@@ -185,21 +185,21 @@ fun PaymentVerificationScreen(
                         }
                         if (item.ocrSuggested) {
                             Text(
-                                "OCR 金额仅供参考，请对照支付详情核实后手动确认；不会自动记账。",
+                                "OCR 金额仅供参考，请对照这笔付款或收款页面核实后手动确认；不会自动记账。",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                             )
                         }
                         if (item.ticketActive) {
                             Text(
-                                "核实中：请现在打开「${item.appLabel}」并停留在这笔交易的详情页（剩余 ${(item.remainingMs / 1000).coerceAtLeast(0)} 秒）",
+                                "核实中：请打开「${item.appLabel}」中这笔转账、付款或收款页面并停留（剩余 ${(item.remainingMs / 1000).coerceAtLeast(0)} 秒）",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
                             )
                         }
                         if (item.authority == PaymentVerificationCenter.Authority.NEEDS_AMOUNT && !item.ticketActive) {
                             Text(
-                                "将先读取页面文字；文字不可用时使用设备端截图识别，请停留在这笔交易的正确详情页。",
+                                "请停留在这笔交易的付款或收款页面；聊天中有多笔收款时不会选择其中一笔记账。",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

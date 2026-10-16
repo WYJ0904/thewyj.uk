@@ -403,7 +403,7 @@ private fun AuthenticatedShell(
                         } else {
                             overlays = overlays.copy(paymentVerification = true)
                             if (!SourceAppLauncher.launch(context, ticket)) {
-                                onWebError("无法自动打开确切的来源应用或分身，请在 90 秒内手动打开同一笔交易详情")
+                                onWebError("无法自动打开确切的来源应用或分身，请在 90 秒内手动打开同一笔交易的付款或收款页面")
                             }
                         }
                     }

@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "thewyj-uk-pages",
   "private": true,
   "version": "0.0.0",
@@ -32,3 +32,4 @@
     "wrangler": "4.118.0"
   }
 }
+

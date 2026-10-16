@@ -29,6 +29,24 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
 class PaymentAccessibilityServiceGateTest {
+    @Test fun chatWindowObservedBeforeATicketStillBlocksLaterContent() {
+        val controller = Robolectric.buildService(ThewyjPaymentAccessibilityService::class.java).create()
+        PaymentTicketPackageSignal.clear()
+        try {
+            controller.get().onAccessibilityEvent(AccessibilityEvent.obtain(AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED).apply {
+                packageName = "com.tencent.mm"
+                className = "com.tencent.mm.ui.chatting.ChattingUI"
+            })
+            PaymentTicketPackageSignal.publish("com.tencent.mm")
+            controller.get().onAccessibilityEvent(AccessibilityEvent.obtain(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED).apply {
+                packageName = "com.tencent.mm"
+                className = "android.widget.FrameLayout"
+            })
+            assertEquals("not_payment_detail", PaymentAccessibilityStatus.lastParserResult)
+            assertEquals(0, PaymentAccessibilityStatus.lastTextLineCount)
+        } finally { PaymentTicketPackageSignal.clear(); controller.destroy() }
+    }
+
     @Test fun noiseEventIsSkippedBeforeAnyPageRead() {
         val service = Robolectric.buildService(ThewyjPaymentAccessibilityService::class.java).create().get()
         val before = PaymentAccessibilityStatus.lastParserResult
