@@ -29,7 +29,7 @@ for(const width of widths){
     await page.evaluate(`(async()=>{const {sanitizeWrongBook}=await import('/js/language/wrong-book.js?v=${ASSET_RELEASE}');
       const language=${JSON.stringify(language)},kind=${JSON.stringify(kind)},profile=${JSON.stringify(profile)};
       const terms=language==='english'?['apple','banana']:['学校','電話'];
-      const payload=Object.fromEntries(terms.map((word,index)=>[word,{word,language,question_type:kind,grading_mode:'strict',wrong_count:index+2,correct_answer:language==='english'?(index?'香蕉':'苹果'):(index?'电话':'学校'),accepted:[],rubric:{reading:index?'でんわ':'がっこう'}}]));
+      const payload=Object.fromEntries(terms.map((word,index)=>[word,{word,language,question_type:kind,grading_mode:'strict',wrong_count:index+2,correct_answer:kind==='dictation'?(language==='japanese'?word+' / '+(index?'でんわ':'がっこう'):word):language==='english'?(index?'香蕉':'苹果'):(index?'电话':'学校'),accepted:[],rubric:{reading:index?'でんわ':'がっこう'}}]));
       for(const scope of ['current','history'])localStorage.setItem('wrongBook:v2:'+encodeURIComponent(state.account.id)+':'+scope+':'+encodeURIComponent(profile),JSON.stringify(sanitizeWrongBook(payload)));
       state.currentWrongBook=sanitizeWrongBook(payload);state.historyWrongBook=sanitizeWrongBook(payload);
       document.getElementById('profileInput').dispatchEvent(new Event('change',{bubbles:true}));
@@ -122,7 +122,9 @@ for(const width of widths){
       await page.waitFor("Boolean(document.querySelector('#wrongList .wrong-remove-button'))");
       await page.click('#wrongList .wrong-remove-button');await page.click('#acceptConfirmBtn');assert.equal(await page.evaluate('Object.keys(state.currentWrongBook).length'),1);
       await page.click('#clearHistoryBtn');await page.click('#acceptConfirmBtn');assert.equal(await page.evaluate('Object.keys(state.historyWrongBook).length'),0);
-      await page.evaluate('learningSyncManager.syncNow()');await page.navigate('/language/english');await page.click('[data-view="wrongView"]');
+      await page.evaluate('learningSyncManager.syncNow()');await page.navigate('/language/english');
+      await page.waitFor(`state.account&&state.quizLanguage==='english'&&state.profile===${JSON.stringify(`wr-${runId}-${width}-e-m`)}`);
+      await page.click('[data-view="wrongView"]');
       assert.equal(await page.evaluate('Object.keys(state.currentWrongBook).length'),1);assert.equal(await page.evaluate('Object.keys(state.historyWrongBook).length'),0);
       const backupPath=path.join(root,`wrong-review-backup-${runId}.json`);fs.writeFileSync(backupPath,JSON.stringify(backup));
       await page.setFile('#wrongDataFileInput',[backupPath]);await page.waitFor('Object.keys(state.currentWrongBook).length===2&&Object.keys(state.historyWrongBook).length===2');
@@ -133,7 +135,7 @@ for(const width of widths){
     results.push({width,checks,passed:true,physical_device:false});console.log(`PASS ${width}: ${checks.join(', ')}`);
   }catch(error){
     const diagnostic=await page.evaluate("({profile:state?.profile,language:state?.quizLanguage,current:Object.entries(state?.currentWrongBook||{}).map(([key,info])=>({key,language:info.language})),history:Object.entries(state?.historyWrongBook||{}).map(([key,info])=>({key,language:info.language})),storage:Object.keys(localStorage).filter(key=>key.startsWith('wrongBook:')).map(key=>({key,entries:Object.keys(JSON.parse(localStorage.getItem(key)||'{}'))}))})").catch(()=>null);
-    fs.writeFileSync(path.join(root,`failure-${width}.json`),JSON.stringify(diagnostic,null,2));
+    fs.writeFileSync(path.join(root,`failure-${width}.json`),JSON.stringify({diagnostic,dialogs:page.dialogs,runtimeErrors:page.runtimeErrors},null,2));
     const screenshot=await page.send('Page.captureScreenshot',{format:'png'}).catch(()=>null);if(screenshot)fs.writeFileSync(path.join(root,`failure-${width}.png`),Buffer.from(screenshot.data,'base64'));
     throw error;
   }finally{await page.close();}
