@@ -44,6 +44,7 @@ export function parseWrongReviewState(state){
 
 export function parseWrongReviewReceipt(value,input,owner){
   if(!value||!input)return null;
+  if(value.canonical_event_id!==undefined&&!/^[0-9a-f-]{36}$/i.test(value.canonical_event_id))return null;
   if(value?.account_id!==owner||value.event_id!==input.event_id||value.attempt_id!==input.attempt_id
     ||value.source_digest!==input.source_digest
     ||value.review_id!==input.review_id||value.profile!==input.profile||value.language!==input.language
@@ -87,7 +88,7 @@ export function createWrongReviewController({api,apiGet,getContext,features,befo
         if(!state||typeof item.review_id!=='string'||!Number.isSafeInteger(item.last_event_seq))throw new Error('复习进度响应无效');
         if((cache.get(item.review_id)?.last_event_seq||0)<=item.last_event_seq)cache.set(item.review_id,{state,last_event_seq:item.last_event_seq});
       }
-      onlineConfirmed=true;message='';
+      onlineConfirmed=true;if(!pending)message='';
     }catch(error){if(live(ticket,owner)){onlineConfirmed=false;message='服务端暂不可用，使用已保存错题本地复习；本地进度尚未确认。';}}
     if(live(ticket,owner))changed();
   }
@@ -99,11 +100,16 @@ export function createWrongReviewController({api,apiGet,getContext,features,befo
       // Cross-device record/tombstone synchronization precedes event acceptance.
       await beforeSync();if(!live(ticket,owner))return;
       const work=async()=>{
-        const rows=(await journal.list(owner)).filter(row=>!parseWrongReviewReceipt(row.receipt,row.input,owner)&&!row.cancelled).sort((a,b)=>a.created_at-b.created_at||a.event_id.localeCompare(b.event_id));
-        pending=rows.length;pendingIds=new Set(rows.map(row=>row.event_id));changed();
+        const rows=(await journal.list(owner)).filter(row=>!row.local_only&&!parseWrongReviewReceipt(row.receipt,row.input,owner)&&!row.cancelled).sort((a,b)=>a.created_at-b.created_at||a.event_id.localeCompare(b.event_id));
+        pending=rows.length;pendingIds=new Set(rows.map(row=>row.event_id));message='';changed();
         for(const row of rows){
           if(!live(ticket,owner)||!allowed()||!online())return;
           try{
+            if(row.input.kind==='correction'){
+              const original=(await journal.list(owner)).find(item=>item.event_id===row.input.corrects);
+              const canonical=original&&parseWrongReviewReceipt(original.receipt,original.input,owner)?.canonical_event_id;
+              if(canonical&&canonical!==row.input.corrects){row.original_input ||= structuredClone(row.input);row.input.corrects=canonical;await journal.put(row);}
+            }
             const response=await api('/api/learning/wrong-review',row.input,{controller});if(!live(ticket,owner))return;
             const parsed=parseWrongReviewReceipt(response,row.input,owner);
             if(!parsed)throw new Error('复习确认响应无效，原记录已保留');
@@ -119,30 +125,33 @@ export function createWrongReviewController({api,apiGet,getContext,features,befo
               // Keep an audit copy. Never recreate a deleted or replaced item.
               await journal.put({...row,cancelled:true});pending--;pendingIds.delete(row.event_id);continue;
             }
+            if(error.code==='wrong_review_idempotency_conflict'){
+              message='有答题与另一窗口提交的答案冲突，原答案已保留；其他复习记录继续同步。';onlineConfirmed=false;continue;
+            }
             message=`${error.message||'复习同步失败'}；待确认记录已保存，本地复习可继续。`;onlineConfirmed=false;break;
           }
         }
       };
       if(locks?.request)await locks.request(`aeris-wrong-review:${owner}`,work);else await work();
     }catch(error){if(live(ticket,owner)){message=`${error.message||'同步失败'}；本地复习可继续。`;onlineConfirmed=false;}}
-    finally{if(live(ticket,owner)){syncing=false;changed();}}
+    finally{if(live(ticket,owner)){syncing=false;if(!pending)message='';changed();}}
   }
-  async function enqueue(input,accountId,source=null){
+  async function enqueue(input,accountId,source=null,{localOnly=false}={}){
     const existing=(await journal.list(accountId)).find(row=>row.event_id===input.event_id);
-    if(!existing)await journal.put({account_id:accountId,event_id:input.event_id,created_at:Date.now(),input:structuredClone(input),source:structuredClone(source)});
-    if(String(context().account_id||'')===accountId){pending++;pendingIds.add(input.event_id);onlineConfirmed=false;changed();}
+    if(!existing)await journal.put({account_id:accountId,event_id:input.event_id,created_at:Date.now(),input:structuredClone(input),source:structuredClone(source),local_only:localOnly});
+    if(String(context().account_id||'')===accountId){if(!localOnly){pending++;pendingIds.add(input.event_id);}onlineConfirmed=false;changed();}
   }
   async function update(){
     const current=context(),owner=String(current.account_id||'');
-    const next=`${owner}:${current.profile}:${current.language}:${allowed()}`;
+    const next=JSON.stringify([owner,current.profile,current.language,allowed()]);
     if(signature===next)return;
     signature=next;generation++;controller?.abort();controller=new AbortController();cache=new Map();pendingIds=new Set();pending=0;message='';syncing=false;onlineConfirmed=false;
     if(!owner){changed();return;}
     const ticket=generation;
     try{
       const rows=await journal.list(owner);if(!live(ticket,owner))return;
-      pending=rows.filter(row=>!parseWrongReviewReceipt(row.receipt,row.input,owner)&&!row.cancelled).length;
-      pendingIds=new Set(rows.filter(row=>!parseWrongReviewReceipt(row.receipt,row.input,owner)&&!row.cancelled).map(row=>row.event_id));
+      pending=rows.filter(row=>!row.local_only&&!parseWrongReviewReceipt(row.receipt,row.input,owner)&&!row.cancelled).length;
+      pendingIds=new Set(rows.filter(row=>!row.local_only&&!parseWrongReviewReceipt(row.receipt,row.input,owner)&&!row.cancelled).map(row=>row.event_id));
       for(const row of rows.filter(row=>row.receipt&&row.input.profile===current.profile&&row.input.language===current.language)){
         const state=parseWrongReviewReceipt(row.receipt,row.input,owner)?.state;
         if(state&&(cache.get(row.input.review_id)?.last_event_seq||0)<=row.receipt.last_event_seq)cache.set(row.input.review_id,{state,last_event_seq:row.receipt.last_event_seq});
@@ -154,5 +163,7 @@ export function createWrongReviewController({api,apiGet,getContext,features,befo
   globalThis.addEventListener?.('online',()=>{void sync();void refresh();});
   globalThis.addEventListener?.('offline',()=>{onlineConfirmed=false;changed();});
   return Object.freeze({update,enqueue,sync,refresh,confirmed,status,allowed,
+    isSyncCandidate:async eventId=>(await journal.list(String(context().account_id||''))).some(row=>row.event_id===eventId&&!row.local_only),
+    isLocalEvent:async eventId=>(await journal.list(String(context().account_id||''))).some(row=>row.event_id===eventId&&row.local_only),
     clearAccount:account=>journal.clear(account),initial:initialWrongReview});
 }

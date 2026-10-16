@@ -51,8 +51,8 @@ import { createFeatureController } from "./js/core/feature-flags.js?v=20261015-a
 import { createFeatureConsole } from "./js/core/feature-console.js?v=20261015-aeris-wrong-review-v1";
 import { createMasteryController } from "./js/language/mastery.js?v=20261015-aeris-wrong-review-v1";
 import { createWrongReviewController } from './js/language/wrong-review-sync.js?v=20261015-aeris-wrong-review-v1';
-import { wrongEntryWord, wrongEntryKey } from './js/language/wrong-book.js?v=20261015-aeris-wrong-review-v1';
-import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource } from './js/language/wrong-review.js?v=20261015-aeris-wrong-review-v1';
+import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?v=20261015-aeris-wrong-review-v1';
+import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?v=20261015-aeris-wrong-review-v1';
 import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?v=20261015-aeris-wrong-review-v1";
 import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?v=20261015-aeris-wrong-review-v1";
 import { speakText, stopSpeech } from "./js/language/speech.js?v=20261015-aeris-wrong-review-v1";
@@ -397,6 +397,7 @@ const state = {
   reviewKeys: [],
   reviewAnswers: {},
   reviewFeedback: '',
+  reviewSmartEnabled: false,
   legacyQuestion: null,
   wrongScope: "current",
   rubricCache: loadJson("rubricCache", {}),
@@ -3240,6 +3241,7 @@ function saveProjectRuntime() {
     reviewKeys: [...state.reviewKeys],
     reviewAnswers: state.reviewAnswers,
     reviewFeedback: state.reviewFeedback,
+    reviewSmartEnabled: state.reviewSmartEnabled,
     legacyQuestion: state.legacyQuestion,
     words: [...state.words],
     index: state.index,
@@ -3355,6 +3357,7 @@ function restoreProjectRuntime() {
   state.reviewKeys = runtime.reviewKeys;
   state.reviewAnswers = runtime.reviewAnswers;
   state.reviewFeedback = ['none_due','all_mastered'].includes(runtime.reviewFeedback)?runtime.reviewFeedback:'';
+  state.reviewSmartEnabled = runtime.reviewSmartEnabled===true;
   state.legacyQuestion = runtime.legacyQuestion?.language === currentProject ? runtime.legacyQuestion : null;
   state.mode = runtime.mode;
   const view = runtime.view === "quizView" && !state.roundActive ? "setupView" : runtime.view;
@@ -4260,6 +4263,7 @@ async function renderCurrentRoute(path, generation = routeGeneration) {
 }
 
 function updateLanguageUi() {
+  void masteryController?.update();
   void wrongReviewController?.update();
   const language = state.quizLanguage;
   const select = $("languageSelect");
@@ -5047,7 +5051,7 @@ function resumeQuestionTransition() {
 }
 
 function isDictationMode() {
-  if(state.legacyQuestion)return state.legacyQuestion.kind==='spelling';
+  if(state.legacyQuestion)return false;
   if(state.mode.startsWith('review-'))return reviewEntryForWord(state.words[state.index])?.question_type==='dictation';
   return state.practiceMode === "dictation";
 }
@@ -5557,6 +5561,7 @@ async function startQuiz(words, mode = "normal", options = {}) {
   state.reviewKeys = options.reviewEntries?.map(entry=>entry.key)||[];
   state.reviewAnswers = {};
   state.reviewFeedback = options.reviewFeedback||'';
+  state.reviewSmartEnabled = wrongReviewController.allowed();
   state.legacyQuestion = options.legacyQuestion||null;
   state.index = 0;
   state.score = 0;
@@ -5580,6 +5585,9 @@ function showWord(options = {}) {
   const word = state.words[state.index] || "-";
   const reviewInfo=reviewEntryForWord(word);
   if(reviewInfo?.rubric?.reading)rememberJapaneseReadings({[word]:reviewInfo.rubric.reading});
+  if(reviewInfo?.question_type==='dictation'&&reviewInfo.language==='japanese'){
+    const context=reviewDictationOptions(word,reviewInfo);rememberJapaneseVocabularyData(context.readings,context.writtenForms);
+  }
   const dictation = isDictationMode();
   const reading = !dictation && state.quizLanguage === "japanese" && hasJapaneseKanji(word)
     ? japaneseReadingFor(word)
@@ -5640,7 +5648,7 @@ function updateWrongEntry(book, word, answer, gloss, accepted, context = {}) {
 function prepareReviewAttempt(answer, correct, kind='answer',feedback=null,rubric=null) {
   let attempt=state.reviewAnswers[state.index];
   if(!attempt){
-    attempt={event:{id:crypto.randomUUID(),at:new Date().toISOString(),correct,kind},answer,attempt_id:`${state.roundId}:${state.index}`,
+    attempt={event:{id:crypto.randomUUID(),attempt_id:`${state.roundId}:${state.index}`,at:new Date().toISOString(),correct,kind},answer,attempt_id:`${state.roundId}:${state.index}`,
       feedback:feedback?sanitizeQuestionFeedback(feedback):null,rubric};
     state.reviewAnswers[state.index]=attempt;
     // Save the stable event/attempt IDs before yielding to durable storage.
@@ -5658,17 +5666,17 @@ async function saveReviewEvent(scope,key,info,attempt) {
   const source=attempt.source_info;
   await wrongReviewController.enqueue({event_id:attempt.event.id,attempt_id:attempt.attempt_id,
     profile,scope,language:source.language,record_id:learningSyncRecordId('wrong',profile,scope,key),review_id:source.review_id,
-    source_digest:await wrongReviewDigest(source),kind:attempt.event.kind,answer:attempt.answer,...(attempt.event.corrects?{corrects:attempt.event.corrects}:{})},accountId,wrongReviewSource(source));
+    source_digest:await wrongReviewDigest(source),kind:attempt.event.kind,answer:attempt.answer,...(attempt.event.corrects?{corrects:attempt.event.corrects,...(attempt.event.corrects_attempt_id?{corrects_attempt_id:attempt.event.corrects_attempt_id}:{})}:{})},accountId,wrongReviewSource(source),{localOnly:attempt.localOnly===true||(!(attempt.event.kind==='correction'?wrongReviewController.allowed():state.reviewSmartEnabled)&&!attempt.forceQueue)});
   if(String(state.account?.id||'')!==accountId||state.profile!==profile||state.roundId!==roundId)throw new Error('账户或档案已切换；答题仍保存在原账户中。');
 }
 
 async function markWrong(word, answer, gloss, accepted, rubric = null) {
   const kind=isDictationMode()?'dictation':'meaning';
-  const key=wrongEntryKey(word,state.quizLanguage,kind);
   const scope=state.mode==='review-history'?'history':'current';
   const selected=scope==='history'?state.historyWrongBook:state.currentWrongBook;
+  const key=wrongEntryKey(word,state.quizLanguage,kind,selected);
   if(state.mode.startsWith('review-')&&!selected[key])throw new Error('错题已删除，未重新加入复习队列。');
-  const previous=selected[key]||state.historyWrongBook[key];
+  const previous=selected[key]||findWrongEntry(state.historyWrongBook,word,state.quizLanguage,kind)?.info;
   const attempt=prepareReviewAttempt(answer,false,state.mode==='normal'?'mistake':'answer',
     {type:answer===SKIPPED_ANSWER?'skipped':'answer',correct:false,gloss,accepted,kind},rubric);
   if(attempt.reviewId&&previous&&attempt.reviewId!==previous.review_id)throw new Error('原错题已删除或替换；保存的答题不会恢复旧词条。');
@@ -5688,7 +5696,7 @@ async function markWrong(word, answer, gloss, accepted, rubric = null) {
   if(previous&&!liveSelected[key]&&state.mode!=='normal')throw new Error('错题已由其他设备删除，原答题保留为待确认。');
   const targets=state.mode==='normal'?[state.currentWrongBook,state.historyWrongBook]:[liveSelected];
   const other=scope==='history'?state.currentWrongBook:state.historyWrongBook;
-  if(state.mode!=='normal'&&other[key]?.review_id===info.review_id)targets.push(other);
+  if(state.mode!=='normal'&&findWrongEntry(other,word,state.quizLanguage,kind)?.info.review_id===info.review_id)targets.push(other);
   for(const book of targets)updateWrongEntry(book,word,answer,gloss,accepted,context);
   attempt.applied=true;
   saveState();
@@ -5708,9 +5716,10 @@ async function removeReviewedWord(word,answer,feedback=null) {
   if(attempt.reviewId&&attempt.reviewId!==info.review_id)throw new Error('原错题已删除或替换，答题仍保存在原记录中。');
   await saveReviewEvent(scope,key,info,attempt);
   for(const book of [state.currentWrongBook,state.historyWrongBook]){
-    if(book[key]?.review_id!==info.review_id)continue;
-    book[key].review=mergeWrongReview(book[key].review,{version:1,algorithm:'wrong-review-v1',events:[attempt.event]});
-    book[key].review_updated_at=attempt.event.at;
+    const target=findWrongEntry(book,word,info.language,info.question_type);
+    if(target?.info.review_id!==info.review_id)continue;
+    target.info.review=mergeWrongReview(target.info.review,{version:1,algorithm:'wrong-review-v1',events:[attempt.event]});
+    target.info.review_updated_at=attempt.event.at;
   }
   attempt.applied=true;
   saveState();
@@ -5738,6 +5747,7 @@ function questionFeedbackFromResult(result) {
     accepted: result.accepted,
     kind: result.kind,
     ai_review: result.ai_review,
+    recovery_notice: result.recovery_notice,
   });
 }
 
@@ -5751,8 +5761,8 @@ function renderQuestionFeedback(feedback) {
   $("resultPanel").classList.remove("hidden", "grading", "ai-review");
   void $("resultPanel").offsetWidth;
   $("resultPanel").classList.toggle("ai-review", Boolean(result.ai_review));
-  $("resultTitle").className = `result-title ${result.correct ? "ok" : "bad"}`;
-  $("resultTitle").textContent = result.type === "skipped" ? "已跳过" : result.correct ? "正确" : "错误";
+  $("resultTitle").className = result.recovery_notice?'result-title':`result-title ${result.correct ? "ok" : "bad"}`;
+  $("resultTitle").textContent = result.recovery_notice?'旧题恢复记录':result.type === "skipped" ? "已跳过" : result.correct ? "正确" : "错误";
   const label = result.kind === "dictation" ? "正确答案" : "标准释义";
   $("resultGloss").textContent = result.type === "skipped"
     ? `${label}：${result.gloss}\n已加入错题本`
@@ -5993,7 +6003,7 @@ async function submitAnswer(event) {
       const receipt=await masteryController.submit(question,answer);
       if(state.legacyQuestion?.ticket_id!==question.ticket_id)return;
       state.score=Number(receipt.correct);
-      beginQuestionTransition(questionFeedbackFromResult({correct:receipt.correct,gloss:receipt.correct_answer,accepted:[],kind:'meaning'}));
+      beginQuestionTransition(questionFeedbackFromResult({correct:receipt.correct,gloss:receipt.recovery_notice||receipt.correct_answer,accepted:[],kind:'meaning',recovery_notice:receipt.recovery_notice}));
     }catch(error){showAnswerValidation(error.message);}
     finally{setBusy(false);if(state.pendingAdvance)setNextNowEnabled(true);}
     return;
@@ -6002,10 +6012,16 @@ async function submitAnswer(event) {
   if (isDictationMode()) {
     setBusy(true);
     try {
+    const stored=reviewEntryForWord(word);
+    if(stored&&state.quizLanguage==='japanese'){
+      const reading=stored.rubric?.reading||japaneseReadingFor(word);
+      if(!reading)throw new Error('这条旧听写题没有保存读音，请从原词表补充读音后重试；本题尚未判错。');
+      stored.rubric={...stored.rubric,reading};
+    }
     clearNextTimer();
     hideResultPanel();
     setNextNowEnabled(false);
-    const evaluation = dictationEvaluation(word, answer);
+    const evaluation = stored?evaluateDictation(word,answer,reviewDictationOptions(word,stored)):dictationEvaluation(word, answer);
     if (evaluation.correct) {
       await removeReviewedWord(word,answer,{correct:true,gloss:evaluation.expected,accepted:evaluation.guidance?[evaluation.guidance]:[],kind:'dictation'});
       state.score += 1;
@@ -6182,7 +6198,7 @@ function adjustStudyRecordAfterRejudge(info) {
 function adjustActiveRoundAfterRejudge(word, info, result) {
   if (!state.roundActive || !info?.round_id || info.round_id !== state.roundId) return false;
   const questionIndex=state.words.findIndex((candidate,index)=>candidate===word&&(!state.reviewKeys.length
-    ||state.reviewKeys[index]===wrongEntryKey(word,info.language,info.question_type)));
+    ||state.reviewAnswers[index]?.reviewId===info.review_id||state.reviewKeys[index]===wrongEntryKey(word,info.language,info.question_type)));
   if(questionIndex<0)return false;
   if (info.skipped) {
     if (state.roundSkipped <= 0) return false;
@@ -6210,7 +6226,10 @@ async function evaluateWrongRejudgeAnswer(word, answer, info) {
   const language = normalizeQuizLanguage(info.language) || (wordMatchesLanguage(word, "english") ? "english" : "japanese");
   const gradingMode = ["strict", "normal", "lenient"].includes(info.grading_mode) ? info.grading_mode : "normal";
   if (info.question_type === "dictation") {
-    const evaluation = dictationEvaluation(word, answer, language);
+    const reading=info.rubric?.reading||state.japaneseReadings[word];
+    if(language==='japanese'&&!reading&&!/^[\p{Script=Hiragana}\p{Script=Katakana}ー]+$/u.test(word))throw new Error('这条旧听写题没有保存读音，请先补充原词表读音；原错题未改变');
+    if(reading)info.rubric={...info.rubric,reading};
+    const evaluation = evaluateDictation(word,answer,reviewDictationOptions(word,info));
     return {
       correct: evaluation.correct,
       gloss: evaluation.expected,
@@ -6300,12 +6319,13 @@ async function rejudgeWrongAnswer(entryKey, scope, answer, controls) {
     if (result.correct) {
       const corrected=new Set((info.review?.events||[]).filter(event=>event.kind==='correction').map(event=>event.corrects));
       const original=(info.review?.events||[]).findLast(event=>event.kind!=='correction'&&!event.correct&&!corrected.has(event.id));
-      const event={id:crypto.randomUUID(),at:checkedAt,correct:true,kind:'correction',corrects:original?.id};
-      if(original)await saveReviewEvent(scope,entryKey,info,{event,answer:cleanAnswer,attempt_id:`correction:${event.id}`});
+      const event={id:crypto.randomUUID(),at:checkedAt,correct:true,kind:'correction',corrects:original?.id,...(original?.attempt_id?{corrects_attempt_id:original.attempt_id}:{})};
+      if(original)await saveReviewEvent(scope,entryKey,info,{event,answer:cleanAnswer,attempt_id:`correction:${event.id}`,forceQueue:await wrongReviewController.isSyncCandidate(original.id),localOnly:await wrongReviewController.isLocalEvent(original.id)});
       for(const book of [state.currentWrongBook,state.historyWrongBook]){
-        if(book[entryKey]?.review_id!==info.review_id)continue;
-        book[entryKey]={...book[entryKey],review_updated_at:checkedAt,rejudged_at:checkedAt,rejudge_result:'correct',rejudge_reason:result.reason,
-          review:original?mergeWrongReview(book[entryKey].review,{version:1,algorithm:'wrong-review-v1',events:[event]}):book[entryKey].review};
+        const target=findWrongEntry(book,word,info.language,info.question_type);
+        if(target?.info.review_id!==info.review_id)continue;
+        book[target.key]={...target.info,review_updated_at:checkedAt,rejudged_at:checkedAt,rejudge_result:'correct',rejudge_reason:result.reason,
+          review:original?mergeWrongReview(target.info.review,{version:1,algorithm:'wrong-review-v1',events:[event]}):target.info.review};
       }
       const adjusted = info.rejudge_result!=='correct'&&(adjustActiveRoundAfterRejudge(word, info, result) || adjustStudyRecordAfterRejudge(info));
       saveWrongBooks();
@@ -6318,13 +6338,15 @@ async function rejudgeWrongAnswer(entryKey, scope, answer, controls) {
       );
     } else {
       [state.currentWrongBook, state.historyWrongBook].forEach((book) => {
-        if (book[entryKey]?.review_id!==info.review_id) return;
-        book[entryKey] = sanitizeWrongBook({ [entryKey]: {
-          ...book[entryKey],
+        const target=findWrongEntry(book,word,info.language,info.question_type);
+        if (target?.info.review_id!==info.review_id) return;
+        book[target.key] = sanitizeWrongBook({ [target.key]: {
+          ...target.info,
           rejudged_at: checkedAt,
+          review_updated_at: checkedAt,
           rejudge_result: "incorrect",
           rejudge_reason: result.reason,
-        } })[entryKey];
+        } })[target.key];
       });
       saveWrongBooks();
       renderWrongBook({ force: true });
@@ -6400,7 +6422,8 @@ function renderWrongBook(options = {}) {
     node.querySelector("strong").textContent = `历史 ${info.wrong_count || 0}次`;
     const rejudgeStatus = node.querySelector(".wrong-rejudge-status");
     const review=wrongReviewView(info,Date.now(),wrongReviewController?.confirmed(entryKey,info));
-    const persistedStatus = `${info.question_type==='dictation'?'听写':'释义'} · ${wrongReviewController?.confirmed(entryKey,info)?'已确认':'本地'} · ${review.mastered?'已掌握':review.due?'待复习':`下次 ${formatLocalDateTime(review.next_review_at)}`}${info.rejudge_result==='correct'?' · 原错误已纠正':''}；可重新判定`;
+    const progress=wrongReviewController?.allowed()?` · ${wrongReviewController.confirmed(entryKey,info)?'已确认':'本地'} · ${review.mastered?'已掌握':review.due?'待复习':`下次 ${formatLocalDateTime(review.next_review_at)}`}`:'';
+    const persistedStatus = `${info.question_type==='dictation'?'听写':'释义'}${progress}${info.rejudge_result==='correct'?' · 原错误已纠正':''}；可重新判定`;
     rejudgeStatus.textContent = persistedStatus;
     const openButton = node.querySelector(".wrong-rejudge-button");
     const form = node.querySelector(".wrong-rejudge-form");
@@ -6474,6 +6497,7 @@ function renderWrongReviewStatus(){
   const summary=$('studyWrongReviewSummary');
   if(summary){
     const entries=Object.entries(activeWrongBook('history'));
+    if(!wrongReviewController?.allowed()){summary.textContent=`历史错题 ${entries.length} 个 · 智能复习统计暂未开放`;return;}
     const views=entries.map(([key,info])=>wrongReviewView(info,Date.now(),wrongReviewController?.confirmed(key,info)));
     summary.textContent=`历史错题 ${entries.length} 个 · 待复习 ${views.filter(view=>view.due).length} 个 · 已掌握 ${views.filter(view=>view.mastered).length} 个（复习状态，不叠加答题总数）`;
   }
@@ -6553,6 +6577,7 @@ function exportWrongData() {
     language: state.quizLanguage,
     currentWrongBook: sanitizeWrongBook(activeWrongBook("current")),
     historyWrongBook: sanitizeWrongBook(activeWrongBook("history")),
+    legacyTask26Recovery: masteryController?.backup(),
   };
   const safeProfile = state.profile.replace(/[\\/:*?"<>|]+/g, "-") || "default";
   downloadText(`wrong-book-${safeProfile}-${Date.now()}.json`, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");

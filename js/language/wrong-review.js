@@ -22,6 +22,13 @@ export async function wrongReviewDigest(info){
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(wrongReviewSource(info))));
   return [...new Uint8Array(digest)].map(value=>value.toString(16).padStart(2,'0')).join('');
 }
+export function reviewDictationOptions(word,info){
+  const language=info.language,parts=String(info.correct_answer||'').split(/\s*[\/|｜]\s*/).filter(Boolean);
+  const kana=value=>/^[\p{Script=Hiragana}\p{Script=Katakana}ー]+$/u.test(value);
+  const reading=info.rubric?.reading||parts.find(kana)||(kana(word)?word:'');
+  const written=language==='japanese'?(parts.find(value=>/\p{Script=Han}/u.test(value))||word):word;
+  return {language,readings:reading?{[word]:reading}:{},writtenForms:{[word]:written}};
+}
 
 export function cleanReviewEvents(value) {
   if (!Array.isArray(value)) return [];
@@ -31,7 +38,8 @@ export function cleanReviewEvents(value) {
       || !['answer', 'mistake', 'correction'].includes(item.kind)) continue;
     if (item.kind === 'correction' && !validId(item.corrects)) continue;
     const event = {id:item.id, at:iso(item.at), correct:item.correct, kind:item.kind,
-      ...(item.kind === 'correction' ? {corrects:item.corrects} : {})};
+      ...(validId(item.attempt_id)?{attempt_id:item.attempt_id}:{}),
+      ...(item.kind === 'correction' ? {corrects:item.corrects,...(validId(item.corrects_attempt_id)?{corrects_attempt_id:item.corrects_attempt_id}:{})} : {})};
     // Deterministic conflict resolution; an ID never becomes two samples.
     const previous = events.get(event.id);
     if (!previous || JSON.stringify(event) < JSON.stringify(previous)) events.set(event.id, event);
@@ -96,8 +104,13 @@ export function reduceWrongReview(previous, event) {
 }
 
 export function replayWrongReview(value) {
-  const events = cleanReviewEvents(value), corrected = new Set(events.filter(e => e.kind === 'correction').map(e => e.corrects));
-  const state = events.filter(e => e.kind !== 'correction' && !corrected.has(e.id)).reduce(reduceWrongReview, initialWrongReview());
+  const events = cleanReviewEvents(value),byId=new Map(events.map(event=>[event.id,event]));
+  const target=event=>event.corrects_attempt_id||byId.get(event.corrects)?.attempt_id||event.corrects;
+  const corrected = new Set(events.filter(e => e.kind === 'correction').map(target));
+  const attempts=new Map();
+  for(const event of events){if(event.kind==='correction'||corrected.has(event.id)||corrected.has(event.attempt_id))continue;
+    const key=event.attempt_id||event.id,previous=attempts.get(key);if(!previous||previous.correct&&!event.correct)attempts.set(key,event);}
+  const state = [...attempts.values()].sort((a,b)=>a.at.localeCompare(b.at)||a.id.localeCompare(b.id)).reduce(reduceWrongReview, initialWrongReview());
   state.corrected = corrected.size;
   return state;
 }
@@ -106,7 +119,9 @@ export function wrongReviewView(info, now = Date.now(), confirmed = null) {
   const state = confirmed || replayWrongReview(sanitizeWrongReview(info?.review).events);
   const due = !state.mastered && (!state.next_review_at || Date.parse(state.next_review_at) <= now);
   const legacyCorrection=info?.rejudge_result==='correct'&&state.corrected===0?1:0;
-  const errors = Math.max(0, (Number(info?.wrong_count) || 0) - state.corrected-legacyCorrection);
+  const local=sanitizeWrongReview(info?.review);
+  const errors = confirmed||!local.truncated ? Math.max(0,local.base_wrong_count-legacyCorrection)+state.incorrect
+    : Math.max(0,(Number(info?.wrong_count)||0)-state.corrected-legacyCorrection);
   const age = state.last_review_at ? Math.max(0, now - Date.parse(state.last_review_at)) / REVIEW_DAY : 30;
   const recentFailure = state.last_failure_at && now - Date.parse(state.last_failure_at) < REVIEW_DAY;
   const priority = (due ? 100 : 0) + Math.min(20,errors) * 3 + (100-state.score) * .3

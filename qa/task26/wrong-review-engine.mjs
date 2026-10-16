@@ -66,7 +66,7 @@ assert.ok(!app.slice(app.indexOf('async function removeReviewedWord'),app.indexO
 check('single original answer form and both review entrances survive; correct-answer deletion is retired');
 const malformed=sanitizeWrongBook({apple:{wrong_count:7,language:'english',review:{events:'legacy-unknown'}}}).apple;
 assert.equal(malformed.wrong_count,7);assert.deepEqual(malformed.review.events,[]);
-const fixedNow=Date.now(),singleLegacy={...legacy,wrong_count:1};assert.ok(wrongReviewView({...singleLegacy,rejudge_result:'correct'},fixedNow).priority<wrongReviewView(singleLegacy,fixedNow).priority);
+const fixedNow=Date.now(),singleLegacy=info([],1);assert.ok(wrongReviewView({...singleLegacy,rejudge_result:'correct'},fixedNow).priority<wrongReviewView(singleLegacy,fixedNow).priority);
 check('unknown review metadata retains original wrong records and corrected legacy errors do not remain full-priority mistakes');
 const start=app.indexOf('function adjustActiveRoundAfterRejudge('),end=app.indexOf('async function evaluateWrongRejudgeAnswer(',start);
 const active={roundActive:true,roundId:'active-round',words:['apple','banana'],reviewKeys:[],reviewAnswers:{0:{event:{id:'original',correct:false},feedback:{correct:false}}},index:1,roundSkipped:0,score:0,
@@ -77,4 +77,17 @@ assert.equal(vm.runInContext("adjustActiveRoundAfterRejudge('apple',{round_id:'a
 assert.equal(active.score,1);assert.equal(active.pendingAdvance.feedback.correct,false);assert.equal(active.reviewAnswers[0].feedback.correct,true);assert.equal(active.reviewAnswers[0].event.correct,false);
 assert.equal(vm.runInContext("adjustActiveRoundAfterRejudge('apple',{round_id:'other-profile-round'},{})",isolated),false);
 check('rejudging a preceding word corrects its saved feedback without changing the current word or rewriting the original event');
+const legacyDictation=sanitizeWrongBook({apple:{language:'english',question_type:'dictation',wrong_count:2,correct_answer:'apple'}});
+assert.ok(legacyDictation.apple,'Existing dictation storage and Task11 keys must not move');
+updateWrongEntry(legacyDictation,'apple','wrong','苹果',[],{language:'english',questionType:'meaning'});
+assert.equal(Object.keys(legacyDictation).length,2);assert.equal(legacyDictation.apple.question_type,'dictation');
+assert.equal(Object.values(legacyDictation).find(item=>item.question_type==='meaning').correct_answer,'苹果');
+const importedVariants=mergeWrongBooks({apple:{language:'english',question_type:'dictation',wrong_count:2,correct_answer:'apple'}},{apple:{language:'english',question_type:'meaning',wrong_count:1,correct_answer:'苹果'}});
+assert.equal(Object.keys(importedVariants).length,2);
+const oldJapanese=sanitizeWrongBook({学校:{language:'japanese',question_type:'dictation',wrong_count:2,correct_answer:'学校 / がっこう'}});
+assert.ok(oldJapanese.学校);assert.equal(oldJapanese.学校.rubric.reading,'がっこう');assert.equal(oldJapanese.学校.review.events.length,0);
+check('legacy sync IDs survive; typed variants coexist and saved Japanese dictation readings migrate without fabricated events');
+const originalAttempt={...event(0,false),attempt_id:'same-logical-question'},alias={...originalAttempt,id:crypto.randomUUID()},fix={...event(1,true,'correction'),corrects:alias.id,corrects_attempt_id:originalAttempt.attempt_id};
+assert.equal(replayWrongReview([originalAttempt,alias]).attempts,1);assert.equal(replayWrongReview([fix,alias,originalAttempt]).incorrect,0);
+check('duplicate-window IDs count one logical attempt; a correction excludes all aliases regardless of delivery order');
 console.log(`Wrong-review engine: ${groups} groups passed`);

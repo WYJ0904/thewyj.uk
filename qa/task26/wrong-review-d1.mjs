@@ -75,7 +75,8 @@ try{
   await save(source);
   check('offline answers bind to the original Task11 rubric and never silently use later device edits');
   assert.equal((await request({...first,answer:'不同答案'})).status,409);
-  assert.equal((await request({...first,event_id:crypto.randomUUID()})).status,409);
+  const cloned=await request({...first,event_id:crypto.randomUUID()});assert.equal(cloned.status,200);assert.equal(cloned.body.canonical_event_id,first.event_id);assert.equal(cloned.body.event_seq,result.body.event_seq);
+  assert.equal((await request({...first,attempt_id:crypto.randomUUID()})).status,409);
   const same=await Promise.all([request(input(source)),request(input(source))]);assert.ok(same.every(row=>row.status===200));assert.ok(same.every(row=>row.body.state.score===20));
   const another=input(source);const simultaneous=await Promise.all([request(another),request(another)]);assert.ok(simultaneous.every(row=>row.status===200));assert.equal(simultaneous[0].body.event_seq,simultaneous[1].body.event_seq);
   check('stable attempt/event IDs, concurrent retries and daily cooling prevent duplicate mastery');
@@ -85,6 +86,12 @@ try{
   assert.equal((await request(input(source,'苹果',{scope:'current'}))).status,400);
   for(const field of ['score','correct','accepted_at','state'])assert.equal((await request({...input(source),[field]:100})).status,400);
   check('account, profile, language and scope stay separate; clients cannot submit authoritative scores or dates');
+  const scoped=record('secretword','english','meaning','丿'),neighbor=record('secretword','english','meaning','一');
+  await save(scoped);await save(neighbor);assert.equal((await request(input(scoped))).status,200);
+  const exact=await request({profile:'丿',language:'english',scope:'history'},{method:'GET'});
+  assert.equal(exact.status,200);assert.equal(exact.body.states.length,1);assert.equal(exact.body.states[0].record_id,scoped.id);
+  assert.equal((await request({profile:'一',language:'english',scope:'history'},{method:'GET'})).body.states.length,0);
+  check('base64 underscore and case-sensitive profile boundaries never behave as SQL pattern wildcards');
   const failed=await request(input(source,'错误'));assert.equal(failed.body.state.incorrect,1);assert.equal(failed.body.state.mastered,false);
   const correction=input(source,'苹果',{kind:'correction',corrects:failed.body.event_id});result=await request(correction);assert.equal(result.status,200,JSON.stringify(result.body));assert.equal(result.body.state.incorrect,0);assert.equal(result.body.state.effective,1);
   const corrected=await request(correction);assert.equal(corrected.body.state.corrected,1);assert.equal(corrected.body.state.attempts,result.body.state.attempts);
@@ -95,6 +102,14 @@ try{
     const result=await request(input(source,answer));assert.equal(result.status,200,JSON.stringify(result.body));assert.equal(result.body.correct,true);
   }
   check('English and Japanese meaning/dictation share the original deterministic grading rules');
+  const late=input(source,'wrong-before-correction');
+  const draft={id:late.event_id,attempt_id:late.attempt_id,at:now,correct:false,kind:'answer'};
+  const withDraft={...source,info:{...source.info,review:{...source.info.review,events:[draft]}}};await save(withDraft);
+  const earlyFix=input(withDraft,'苹果',{kind:'correction',corrects:late.event_id,corrects_attempt_id:late.attempt_id});
+  const fixedFirst=await request(earlyFix);assert.equal(fixedFirst.status,200,JSON.stringify(fixedFirst.body));assert.equal(fixedFirst.body.state.incorrect,0);
+  const acceptedLater=await request(late);assert.equal(acceptedLater.status,200,JSON.stringify(acceptedLater.body));assert.equal(acceptedLater.body.state.incorrect,0,'An older pending mistake arriving later must remain corrected');
+  const aliasLater=await request({...late,event_id:crypto.randomUUID()});assert.equal(aliasLater.status,200);assert.equal(aliasLater.body.canonical_event_id,late.event_id);assert.equal(aliasLater.body.state.incorrect,0);
+  check('out-of-order correction and duplicate-window delivery preserve the corrected result without extra mastery');
   await db.prepare("UPDATE task11_learning_sync_records SET deleted=1,payload_json='{}' WHERE user_id=?1 AND record_id=?2").bind(users.one.id,source.id).run();
   assert.equal((await request(input(source))).status,410);assert.equal((await request(range,{method:'GET'})).body.states.some(row=>row.record_id===source.id),false);
   assert.equal((await request(first)).status,200,'An acknowledged event remains idempotent after deletion but never restores the item');
@@ -107,7 +122,7 @@ try{
   const rebuilt=await reconcileWrongReview(db,users.one.id,'我','english',source.info.review_id);assert.deepEqual(projected,rebuilt);
   check('ledger reconstruction is deterministic and preserves corrected history');
   await db.prepare("UPDATE task25_feature_flags SET kill_switch=1 WHERE flag_key='adaptive_review'").run();assert.equal((await request(input(replacement))).status,403);
-  assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM task11_learning_sync_records WHERE user_id=?1 AND deleted=0").bind(users.one.id).first()).n,4);
+  assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM task11_learning_sync_records WHERE user_id=?1 AND deleted=0").bind(users.one.id).first()).n,6);
   check('kill switch fails closed for smart evidence and retains all original wrong-book data');
   console.log(`Wrong-review D1: ${groups} groups passed`);
 }finally{

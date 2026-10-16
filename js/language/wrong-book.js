@@ -12,17 +12,18 @@ export const MAX_WRONG_BOOK_ITEMS = 250;
 export function wrongEntryWord(key, info = {}) {
   return limitText(info.word || (key.startsWith('@wr1:') ? key.split(':').slice(3).join(':') : key), 240);
 }
-export function wrongEntryKey(word, language, questionType = 'meaning') {
-  return questionType === 'dictation' ? `@wr1:${language}:dictation:${word}` : word;
+export function wrongEntryKey(word, language, questionType = 'meaning',book=null) {
+  const existing=book&&findWrongEntry(book,word,language,questionType);
+  if(existing)return existing.key;
+  return questionType === 'dictation'||book&&Object.hasOwn(book,word) ? `@wr1:${language}:${questionType}:${word}` : word;
 }
 export function wrongReviewId(word,language,questionType,id='') {
   const prefix=`v1:${language}:${questionType}:${word.length}:${word}:`;
   return id.startsWith(prefix)?id.slice(0,320):prefix+(/^[0-9a-f-]{36}$/i.test(id)?id:'legacy');
 }
 export function findWrongEntry(book, word, language, questionType = 'meaning') {
-  const key = wrongEntryKey(word,language,questionType);
-  const info = book?.[key];
-  return info && info.language === language && info.question_type === questionType ? {key,info} : null;
+  const entry=Object.entries(book||{}).find(([key,info])=>info&&wrongEntryWord(key,info)===word&&info.language===language&&info.question_type===questionType);
+  return entry?{key:entry[0],info:entry[1]}:null;
 }
 
 export function sanitizeWrongBook(value) {
@@ -37,10 +38,17 @@ export function sanitizeWrongBook(value) {
       const count = Number.parseInt(info.wrong_count, 10);
       const language = normalizeQuizLanguage(info.language) || (wordMatchesLanguage(term, "english") ? "english" : "japanese");
       const questionType = info.question_type === "dictation" ? "dictation" : "meaning";
-      const key = wrongEntryKey(term,language,questionType);
+      // Preserve existing storage/sync IDs; only new colliding variants need a
+      // typed key. Moving a legacy dictation key would break its tombstone.
+      const key = limitText(word,300);
       const gradingMode = ["strict", "normal", "lenient"].includes(info.grading_mode) ? info.grading_mode : "normal";
       const correctAnswer = limitText(info.correct_answer);
       const accepted = sanitizeAccepted(info.accepted);
+      const rubric=sanitizeStoredRubric(info.rubric,correctAnswer,accepted);
+      if(questionType==='dictation'&&language==='japanese'&&!rubric.reading){
+        const pieces=correctAnswer.split(/\s*[\/|｜]\s*/);
+        if(pieces.includes(term))rubric.reading=pieces.find(piece=>/^[\p{Script=Hiragana}\p{Script=Katakana}ー]+$/u.test(piece))||'';
+      }
       cleaned[key] = {
         word: term,
         review_id: wrongReviewId(term,language,questionType,limitText(info.review_id,320)),
@@ -57,7 +65,7 @@ export function sanitizeWrongBook(value) {
         language,
         grading_mode: gradingMode,
         round_id: limitText(info.round_id, 100),
-        rubric: sanitizeStoredRubric(info.rubric, correctAnswer, accepted),
+        rubric,
         rejudged_at: limitText(info.rejudged_at, 80),
         rejudge_result: ["correct", "incorrect"].includes(info.rejudge_result) ? info.rejudge_result : "",
         rejudge_reason: limitText(info.rejudge_reason),
@@ -68,7 +76,9 @@ export function sanitizeWrongBook(value) {
 
 export function mergeWrongBooks(current, incoming) {
   const merged = { ...sanitizeWrongBook(current) };
-  Object.entries(sanitizeWrongBook(incoming)).forEach(([word, info]) => {
+  Object.entries(sanitizeWrongBook(incoming)).forEach(([incomingKey, info]) => {
+    const existing=findWrongEntry(merged,info.word,info.language,info.question_type);
+    const word=existing?.key||(Object.hasOwn(merged,incomingKey)?wrongEntryKey(info.word,info.language,info.question_type,merged):incomingKey);
     const previous = merged[word] || {};
     delete merged[word];
     merged[word] = {
@@ -95,7 +105,7 @@ export function removeLanguageFromWrongBook(book, language) {
 export function updateWrongEntry(book, word, answer, gloss, accepted, context = {}) {
   const language = normalizeQuizLanguage(context.language);
   const questionType = context.questionType === 'dictation' ? 'dictation' : 'meaning';
-  const key = wrongEntryKey(word,language,questionType);
+  const key = wrongEntryKey(word,language,questionType,book);
   const current = book[key] || { wrong_count: 0 };
   if (context.event && current.review?.events?.some(e => e.id === context.event.id)) return current;
   delete book[key];

@@ -24,4 +24,19 @@ const old=other.update();await new Promise(resolve=>setTimeout(resolve,10));cont
 assert.equal(rows.get('one:'+off.event_id).receipt,undefined);assert.equal(other.confirmed('',{review_id:input.review_id}),null);
 console.log('PASS account/profile switch rejects delayed acknowledgement and retains the original outbox');
 await journal.clear('two');assert.equal(rows.size,2,'Clearing another account must preserve the original events');
-console.log('Wrong-review client: 4 groups passed');
+enabled=true;await controller.update();
+const basic={...input,event_id:crypto.randomUUID(),attempt_id:crypto.randomUUID(),profile:context.profile};
+const beforeBasic=requests.length;await controller.enqueue(basic,'two',null,{localOnly:true});await controller.sync();
+assert.equal(requests.length,beforeBasic);assert.equal(rows.get('two:'+basic.event_id).local_only,true);
+console.log('PASS basic reviews remain durably local and never become an unauthorized smart-sync backlog');
+const conflict={...basic,event_id:crypto.randomUUID(),attempt_id:crypto.randomUUID()},good={...basic,event_id:crypto.randomUUID(),attempt_id:crypto.randomUUID(),review_id:'another-review'};
+await journal.put({account_id:'two',event_id:conflict.event_id,input:conflict,created_at:1});await journal.put({account_id:'two',event_id:good.event_id,input:good,created_at:2});
+const attempts=[];
+const resilient=createWrongReviewController({getContext:()=>context,features:{enabled:()=>true},journal,
+  apiGet:async()=>({account_id:'two',profile:context.profile,language:'english',scope:'history',algorithm:'wrong-review-v1',states:[]}),
+  api:async(_route,body)=>{attempts.push(body.event_id);if(body.event_id===conflict.event_id)throw Object.assign(new Error('conflict'),{code:'wrong_review_idempotency_conflict'});
+    return {...receipt,account_id:'two',event_id:good.event_id,attempt_id:good.attempt_id,profile:good.profile,review_id:good.review_id};}});
+await resilient.update();assert.deepEqual(attempts,[conflict.event_id,good.event_id]);assert.equal(rows.get('two:'+conflict.event_id).receipt,undefined);assert.ok(rows.get('two:'+good.event_id).receipt);
+assert.match(resilient.status(),/冲突/);
+console.log('PASS conflicting drafts are preserved while later independent answers still synchronize');
+console.log('Wrong-review client: 6 groups passed');
