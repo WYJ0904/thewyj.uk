@@ -260,6 +260,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/check_storage_contract.mjs 2>&1 | tee artifacts/frontend-storage-contract.log
+          node qa/task26/local-proxy-workaround.mjs
 
       - name: Test transfer progress and persistence coalescing
         run: node local-backend/test_transfer_updates_js.mjs
@@ -901,7 +902,8 @@ jobs:
             exit 1
           fi
 
-          node scripts/stage_pages_deploy.mjs
+          node scripts/prepare_ci_local_proxy.mjs --apply-ci-local
+          npm run build
           npx wrangler pages dev .wrangler/pages-output \
             --ip 127.0.0.1 \
             --port 8894 \

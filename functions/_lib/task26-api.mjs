@@ -7,8 +7,12 @@ import { readFeatureSnapshot, ensureTask25Schema } from './task25-service.mjs';
 import { LearningError } from './task26-mastery.mjs';
 import { POINTS_BY_ID, basicExplanation, COURSE_VERSION } from './task26-catalog.mjs';
 import { ensureLearningSchema, issueQuestion, submitLearningEvent, readMastery, reconcileLearning, explanationContext, learningMetrics } from './task26-service.mjs';
+import { ensureWrongReviewSchema, submitWrongReview, readWrongReviews } from './task26-wrong-review.mjs';
+import { judgeAnswer } from './task15-service.mjs';
 
 const ROUTES=new Map([
+ ['POST /api/learning/wrong-review','wrong_review'],['GET /api/learning/wrong-review','wrong_review'],
+ ['POST /api/learning/legacy/events','legacy_recovery'],
  ['POST /api/learning/adaptive/next','adaptive_learning'],['POST /api/learning/events','adaptive_learning'],
  ['GET /api/learning/mastery/summary','mastery_score'],['GET /api/learning/mastery','mastery_score'],
  ['POST /api/learning/mastery/reconcile','mastery_score'],['GET /api/learning/review','adaptive_review'],
@@ -25,7 +29,13 @@ function language(value){if(!['english','japanese'].includes(value))reject('请�
 async function body(request){
  if(!/^application\/json(?:\s*;|$)/i.test(request.headers.get('Content-Type')||''))reject('请使用 JSON 请求',415,'learning_content_type');
  if(Number(request.headers.get('Content-Length')||0)>8192)reject('学习请求过大',413,'learning_request_too_large');
- const bytes=await request.arrayBuffer();if(bytes.byteLength>8192)reject('学习请求过大',413,'learning_request_too_large');
+ if(!request.body)reject('请求 JSON 无效');
+ const reader=request.body.getReader(),chunks=[];let length=0;
+ try{
+  while(true){const {value,done}=await reader.read();if(done)break;length+=value.byteLength;
+   if(length>8192){await reader.cancel();reject('学习请求过大',413,'learning_request_too_large');}chunks.push(value);}
+ }finally{reader.releaseLock();}
+ const bytes=new Uint8Array(length);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
  try{return JSON.parse(new TextDecoder().decode(bytes));}catch{reject('请求 JSON 无效');}
 }
 function query(url,allowed){
@@ -70,24 +80,32 @@ export async function handleTask26Request(context){
  if(!route){const allowed=[...ROUTES.keys()].filter(k=>k.endsWith(` ${url.pathname}`)).map(k=>k.split(' ')[0]);
   return allowed.length?apiError('method_not_allowed','此接口不支持当前方法',405,id,{headers:{Allow:allowed.join(', ')}}):null;}
  const flags=featureFlags(context.env);
- if(!flags.task26AdaptiveLearning)return apiError('task26_disabled','自适应学习尚未启用，普通测验仍可使用',503,id,{retryable:true});
+ if(!flags.task26AdaptiveLearning&&route!=='legacy_recovery')return apiError('task26_disabled','自适应学习尚未启用，普通测验仍可使用',503,id,{retryable:true});
  try{
-  if(!flags.task12CloudAccounts||!flags.task25FeatureFlags||!flags.task11CloudReads||(method==='POST'&&!flags.task11CloudWrites))reject('学习依赖服务暂不可用',503,'learning_dependency_unavailable');
+  if(!flags.task12CloudAccounts||(route!=='legacy_recovery'&&!flags.task25FeatureFlags)||!flags.task11CloudReads||(method==='POST'&&!flags.task11CloudWrites))reject('学习依赖服务暂不可用',503,'learning_dependency_unavailable');
   const auth=await resolveTask12Account(context,{touch:false});
   if(!auth.authenticated)return apiError(auth.code,'请使用有效账户登录',auth.status,id);
   const db=context.env.WYJ_DB,actor=await enrichAccountWithTask13(db,auth.account);
   if(route==='admin'&&!actor.is_admin)reject('无管理员权限',403,'forbidden');
   if(!await ensureTask25Schema(db)||!await ensureLearningSchema(db))reject('自适应学习数据尚未就绪，普通测验仍可使用',503,'learning_schema_not_ready');
   const snapshot=await readFeatureSnapshot(db,actor.id);
-  if(route!=='admin'){requireFeature(snapshot,route);if(route==='adaptive_learning')requireFeature(snapshot,'mastery_score');}
+  if(route==='wrong_review'){
+   for(const key of ['adaptive_learning','mastery_score','adaptive_review'])requireFeature(snapshot,key);
+   if(!await ensureWrongReviewSchema(db))reject('智能复习尚未就绪，已有错题仍可本地复习',503,'wrong_review_schema_not_ready');
+  }else if(!['admin','legacy_recovery'].includes(route)){requireFeature(snapshot,route);if(route==='adaptive_learning')requireFeature(snapshot,'mastery_score');}
   const rate=await enforceD1RateLimit(context,{enabled:flags.d1RateLimit,limit:method==='GET'?120:url.pathname.endsWith('/explanation')?20:60,
    windowSeconds:60,scope:`task26:${method}:${url.pathname}`,subject:actor.id});
   if(!rate.allowed)return apiError('learning_rate_limited','学习操作过于频繁，请稍后重试',429,id,{retryable:true,headers:{'Retry-After':String(rate.retryAfter||60)}});
-  const input=method==='POST'?await body(context.request):query(url,route==='admin'?[]:['language','knowledge_id']);
+  const input=method==='POST'?await body(context.request):query(url,route==='admin'?[]:route==='wrong_review'?['language','profile','scope']:['language','knowledge_id']);
   if(method==='POST'&&url.search)reject();
   let result;
   if(route==='admin')result=await learningMetrics(db);
-  else if(url.pathname==='/api/learning/events'){
+  else if(route==='wrong_review'){
+   const lang=language(input.language),effective=new Set(actor.entitlements||[]);
+   if(!['all_features_access','language_all_access',`language_${lang}_access`].some(key=>effective.has(key)))reject('当前账户没有该语言的有效权益，已有错题仍可本地复习',403,'learning_entitlement_required');
+   result=method==='POST'?await submitWrongReview(db,actor,input,{confirmCorrection:candidate=>judgeAnswer(context,actor,candidate)}):await readWrongReviews(db,actor,input);
+  }
+  else if(url.pathname==='/api/learning/events'||route==='legacy_recovery'){
    fields(input,['event_id','ticket_id','kind','answer','response_ms']);
    if(!UUID.test(input.event_id||'')||!UUID.test(input.ticket_id||'')||!CLIENT_EVENTS.has(input.kind))reject();
    if(input.kind==='answer_submitted'&&(typeof input.answer!=='string'||!input.answer.trim()||input.answer.length>240))reject();
@@ -95,9 +113,11 @@ export async function handleTask26Request(context){
    if(input.response_ms!==undefined&&(!Number.isSafeInteger(input.response_ms)||input.response_ms<0||input.response_ms>600000))reject();
    const ticket=await db.prepare('SELECT language,mode FROM task26_question_tickets WHERE id=?1 AND user_id=?2').bind(input.ticket_id,actor.id).first();
    if(!ticket)reject('题目不存在或不属于当前账户',404,'learning_ticket_not_found');
-   requireLanguage(actor,ticket.language);
-   if(ticket.mode==='review')requireFeature(snapshot,'adaptive_review');
-   result=await submitLearningEvent(db,actor,input,snapshot,context.request);
+   if(route!=='legacy_recovery'){
+    requireLanguage(actor,ticket.language);
+    if(ticket.mode==='review')requireFeature(snapshot,'adaptive_review');
+   }
+   result=await submitLearningEvent(db,actor,input,snapshot,context.request,{recover:route==='legacy_recovery'});
    if(result.explanation&&!snapshot.flags.similar_word_explanation?.enabled)result.explanation.confusion='';
   }else if(url.pathname==='/api/learning/explanation'){
    fields(input,['event_id']);if(!UUID.test(input.event_id||''))reject();result=await explanation(context,actor,input,snapshot);
