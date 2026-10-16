@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {openPage} from '../../local-backend/browser_harness.mjs';
 import {ASSET_RELEASE} from '../asset-release.mjs';
+import {featureWriteWithBudget} from './feature-write-budget.mjs';
 const baseUrl=process.env.WYJ_TEST_BASE||'http://127.0.0.1:8894',secret=process.env.WYJ_TEST_ADMIN_SECRET;
 assert.equal(new URL(baseUrl).hostname,'127.0.0.1','Synthetic tests must never alter remote learning records or flags');
 assert.ok(secret,'Isolated local owner secret required');
@@ -20,12 +21,12 @@ for(const width of widths){
     if(intentionallyOffline&&message.method==='Log.entryAdded'&&entry?.source==='network'
       &&entry.text==='Failed to load resource: net::ERR_INTERNET_DISCONNECTED')expectedOfflineErrors.add(page.runtimeErrors.length-1);
   });
-  async function call(route,body){return page.evaluate(`(async()=>{const response=await fetch(${JSON.stringify(route)},{method:${JSON.stringify(body===undefined?'GET':'POST')},headers:{'X-Session-Token':localStorage.getItem('wyjAccountSession'),'Content-Type':'application/json'},${body===undefined?'':`body:JSON.stringify(${JSON.stringify(body)}),`}cache:'no-store'});return {status:response.status,body:await response.json()};})()`);}
+  async function call(route,body){return page.evaluate(`(async()=>{const response=await fetch(${JSON.stringify(route)},{method:${JSON.stringify(body===undefined?'GET':'POST')},headers:{'X-Session-Token':localStorage.getItem('wyjAccountSession'),'Content-Type':'application/json'},${body===undefined?'':`body:JSON.stringify(${JSON.stringify(body)}),`}cache:'no-store'});return {status:response.status,retry_after:response.headers.get('Retry-After'),body:await response.json()};})()`);}
   async function flags(enabled){
     for(const key of ['adaptive_learning','mastery_score','adaptive_review']){
       const list=await call('/api/admin/feature-flags'),flag=list.body.flags.find(row=>row.flag_key===key);
       if(flag.enabled===enabled&&!flag.kill_switch&&flag.rollout_percentage===100)continue;
-      const result=await call('/api/admin/feature-flags',{flag_key:key,expected_revision:flag.revision,enabled,kill_switch:false,channels:['stable','beta','experimental'],rollout_percentage:100});assert.equal(result.status,200,JSON.stringify(result));
+      const result=await featureWriteWithBudget(()=>call('/api/admin/feature-flags',{flag_key:key,expected_revision:flag.revision,enabled,kill_switch:false,channels:['stable','beta','experimental'],rollout_percentage:100}),{onWait:({seconds})=>console.log(`Task25 management quota rejected this write; respecting Retry-After ${seconds}s.`)});assert.equal(result.status,200,JSON.stringify(result));
     }
   }
   async function seed(language,kind='meaning'){
