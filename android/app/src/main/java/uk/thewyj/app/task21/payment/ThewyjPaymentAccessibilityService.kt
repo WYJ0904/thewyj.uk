@@ -73,18 +73,28 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         PaymentAccessibilityStatus.onEvent(pkg, e.eventType)
         if (active != null && foreground.isNotBlank() && foreground != active?.ticket?.sourcePackage) cancelScan("page_left:$foreground")
         if (pkg.isBlank() || pkg == packageName || e.eventType !in EVENT_TYPES) return
+        // Retain only window metadata even before a ticket exists. Otherwise a
+        // ticket created while chat is already open can reuse a stale receipt
+        // class and start reading multiple chat cards as one payment page.
+        val eventClass = e.className?.toString().orEmpty().take(160)
+        if (pkg == "com.tencent.mm" && e.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+            eventClass.isNotBlank() && eventClass != pageClass) {
+            cancelScan("wechat_window_metadata_changed")
+            pageClass = eventClass
+        }
         if (ticketPackages.needsRefresh()) refreshPackages(force = false)
         if (!ticketPackages.contains(pkg) && !PaymentTicketPackageSignal.recentlySignalled(pkg)) {
             PaymentAccessibilityStatus.onSkipped(pkg, "no_active_ticket")
             return
         }
-        val eventClass = e.className?.toString().orEmpty().take(160)
         if (e.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && eventClass != pageClass) {
             cancelScan("window_state_changed")
             pageClass = eventClass
         }
         PaymentDiagnostics.emit("event", "pkg=$pkg class=$eventClass type=${PaymentAccessibilityStatus.eventTypeName(e.eventType)} window=${e.windowId}")
         if (pkg == "com.tencent.mm" && PaymentPageContext.blockedWechatActivity(pageClass)) {
+            cancelScan("wechat_chat_activity")
+            PaymentAccessibilityStatus.onSkipped(pkg, "wechat_chat_activity")
             PaymentAccessibilityStatus.onParserResult("not_payment_detail")
             return
         }
@@ -93,6 +103,14 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
 
     /** Room/account lookup is always off the accessibility thread. */
     private fun queueRead(pkg: String, eventWindow: Int?) {
+        // Package refresh can request a read without an accessibility event.
+        // Apply the same chat boundary before any worker/root/OCR work.
+        if (pkg == "com.tencent.mm" && PaymentPageContext.blockedWechatActivity(pageClass)) {
+            cancelScan("wechat_chat_activity")
+            PaymentAccessibilityStatus.onSkipped(pkg, "wechat_chat_activity")
+            PaymentAccessibilityStatus.onParserResult("not_payment_detail")
+            return
+        }
         if (closed) return
         if (!readScheduled.compareAndSet(false, true)) {
             trailingRead = pkg to eventWindow
@@ -143,6 +161,12 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
 
     private fun readPage(scan: Scan) {
         if (!current(scan) || !scan.budget.beginAttempt(SystemClock.uptimeMillis(), retryCallback != null)) return
+        if (PaymentAccessibilityDeviceTest.contentReadBlockedForAudit()) {
+            PaymentAccessibilityStatus.onPageRead(0)
+            PaymentAccessibilityStatus.onParserResult("audit_read_attempt_blocked")
+            cancelScan("audit_read_attempt_blocked")
+            return
+        }
         val root = rootInActiveWindow
         if (root != null && root.packageName?.toString() != scan.ticket.sourcePackage) { cancelScan("root_package_mismatch"); return }
         val target = root ?: paymentWindow(scan.ticket.sourcePackage)?.root
@@ -197,6 +221,7 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         if (delay > 0) { scheduleRetry(scan, "ocr_cooldown", delay); return }
         if (!screenshotInFlight.compareAndSet(false, true)) { scheduleRetry(scan, "ocr_in_flight"); return }
         lastScreenshotAtMs = SystemClock.uptimeMillis()
+        PaymentAccessibilityStatus.onScreenshotAttempt()
         fun callback(windowCapture: Boolean): TakeScreenshotCallback = object : TakeScreenshotCallback {
             override fun onSuccess(result: ScreenshotResult) {
                 screenshotInFlight.set(false)

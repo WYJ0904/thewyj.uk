@@ -135,7 +135,7 @@ class PaymentVerificationState(
         message = if (ticket == null) {
             "无法开始核实，请确认账户权益与登录状态后重试"
         } else {
-            "已在 90 秒内监听「${item.appLabel}」，请现在打开它并进入这笔交易的详情页"
+            "已在 90 秒内监听「${item.appLabel}」，请打开这笔转账、付款或收款页面并停留"
         }
         refresh()
     }

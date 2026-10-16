@@ -895,6 +895,8 @@ jobs:
       - name: Start Pages Functions and headless Chrome without legacy services
         run: |
           set -euo pipefail
+          node qa/ci/test-wrangler-local-disconnect.mjs
+          node qa/ci/wrangler-local-disconnect.mjs
           chrome_bin="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           if [[ -z "$chrome_bin" ]]; then
             echo "No Chrome or Chromium executable is available on this runner." >&2
