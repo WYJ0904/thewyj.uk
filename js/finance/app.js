@@ -333,7 +333,10 @@ export function createFinanceController({
   let store = null;
   let currentAccountId = "";
   let syncPromise = null;
-  let syncAgainRequested = false;
+  let invalidationGeneration = 0;
+  let observedGeneration = 0;
+  let ownerEpoch = 0;
+  let suspended = false;
   let syncController = null;
   let conflictPending = false;
   let undoTransactionId = "";
@@ -369,10 +372,40 @@ export function createFinanceController({
       if (mergeLocalNotificationLedger(store.transactions, globalThis.window?.WYJLocalPaymentLedger, nextAccountId)) persist();
       return store;
     }
+    if (currentAccountId !== nextAccountId) cancelSync();
     currentAccountId = nextAccountId;
     store = normalizeStore(safeJson(storage.getItem(storageKey(nextAccountId)), {}), nextAccountId, deviceId());
     if (mergeLocalNotificationLedger(store.transactions, globalThis.window?.WYJLocalPaymentLedger, nextAccountId)) persist();
     return store;
+  }
+
+  function cancelSync() {
+    ownerEpoch += 1;
+    syncController?.abort();
+    syncController = null;
+    syncPromise = null;
+    // Keep invalidation outstanding. Reentry/online/manual retry owns recovery.
+    invalidationGeneration += 1;
+  }
+
+  function readOwner(controller = new AbortController()) {
+    return { epoch: ownerEpoch, accountId: currentAccountId, store, controller };
+  }
+
+  function ownerCurrent(owner) {
+    return !suspended && owner.epoch === ownerEpoch && owner.store === store &&
+      owner.accountId === String(account()?.id || "") && !owner.controller.signal.aborted;
+  }
+
+  function requireOwner(owner) {
+    if (!ownerCurrent(owner)) throw Object.assign(new Error("财务页面已切换"), { name: "AbortError" });
+  }
+
+  async function readForOwner(path, owner) {
+    requireOwner(owner);
+    const result = await apiGet(path, { controller: owner.controller });
+    requireOwner(owner);
+    return result;
   }
 
   function persist() {
@@ -651,7 +684,7 @@ export function createFinanceController({
     store.server_version = Math.max(store.server_version, Number(payload?.server_version || payload?.next_since || 0));
   }
 
-  async function fetchAllTransactions(includeDeleted = true) {
+  async function fetchAllTransactions(includeDeleted = true, owner = readOwner()) {
     const result = {};
     let before = "";
     let beforeId = "";
@@ -659,7 +692,7 @@ export function createFinanceController({
       const query = new URLSearchParams({ limit: String(CLIENT_PAGE_SIZE), include_deleted: String(includeDeleted) });
       if (before) query.set("before", before);
       if (beforeId) query.set("before_id", beforeId);
-      const data = await apiGet(`/api/finance/transactions?${query}`);
+      const data = await readForOwner(`/api/finance/transactions?${query}`, owner);
       for (const item of data.transactions || []) {
         const clean = normalizeTransaction(item);
         if (clean) result[clean.id] = clean;
@@ -681,15 +714,16 @@ export function createFinanceController({
     if (!hasPending && (!current || clean.revision >= current.revision)) collection[clean.id] = clean;
   }
 
-  async function hydrate() {
-    const bootstrap = await apiGet("/api/finance/bootstrap");
+  async function hydrate(owner) {
+    const bootstrap = await readForOwner("/api/finance/bootstrap", owner);
     for (const category of bootstrap.categories || []) mergeServerEntity("category", category);
     for (const budget of bootstrap.budgets || []) mergeServerEntity("budget", budget);
     // A count mismatch means something never reached this client through the
     // change feed; re-read the server pages instead of trusting the cursor.
     const localActive = Object.values(store.transactions).filter((item) => item.status === "active").length;
     if (!store.hydrated || !store.notification_identity_hydrated || Number(bootstrap.transaction_count || 0) > localActive) {
-      const serverTransactions = await fetchAllTransactions(true);
+      const serverTransactions = await fetchAllTransactions(true, owner);
+      requireOwner(owner);
       for (const item of Object.values(serverTransactions)) mergeServerEntity("transaction", item);
       store.hydrated = true;
       store.notification_identity_hydrated = true;
@@ -699,18 +733,18 @@ export function createFinanceController({
     }
   }
 
-  async function pullChanges() {
+  async function pullChanges(owner) {
     let since = store.server_version;
     for (let page = 0; page < 20; page += 1) {
-      const data = await apiGet(`/api/finance/changes?since=${encodeURIComponent(since)}&limit=250`);
+      const data = await readForOwner(`/api/finance/changes?since=${encodeURIComponent(since)}&limit=250`, owner);
       applyChangesPayload(data);
       since = Number(data.next_since || data.server_version || since);
       if (!data.has_more) break;
     }
   }
 
-  async function performSync() {
-    ensureStore();
+  async function performSync(owner) {
+    requireOwner(owner);
     conflictPending = false;
     store.last_error = "";
     renderAll();
@@ -720,8 +754,10 @@ export function createFinanceController({
     // to be published as a raw_event change): when the server reports more
     // active transactions than this client holds, hydrate() re-pages the full
     // transaction list and merges it.
-    await hydrate();
-    await pullChanges();
+    await hydrate(owner);
+    requireOwner(owner);
+    await pullChanges(owner);
+    requireOwner(owner);
     while (store.pending.length) {
       const batch = store.pending.slice(0, SYNC_BATCH_SIZE);
       const payloadOperations = batch.map(({ queued_at_ms: _queuedAt, ...operation }) => operation);
@@ -733,14 +769,16 @@ export function createFinanceController({
         client_version: appVersion,
         since_version: store.server_version,
         operations: payloadOperations,
-      }, { controller: syncController, timeoutMs: 30000 });
+      }, { controller: owner.controller, timeoutMs: 30000 });
+      requireOwner(owner);
       const completed = new Set(batch.map((item) => item.operation_id));
       store.pending = store.pending.filter((item) => !completed.has(item.operation_id));
       for (const result of data.operation_results || []) applyOperationResult(result);
       applyChangesPayload(data);
       persist();
     }
-    await pullChanges();
+    await pullChanges(owner);
+    requireOwner(owner);
     store.last_sync_at = timestamp();
     store.last_error = "";
     persist();
@@ -748,15 +786,26 @@ export function createFinanceController({
 
   async function syncNow() {
     ensureStore();
-    if (!hasAccess()) return false;
-    if (syncPromise) {
-      syncAgainRequested = true;
-      return syncPromise;
-    }
+    if (!hasAccess() || suspended) return false;
+    invalidationGeneration += 1;
+    if (syncPromise) return syncPromise;
     // navigator.onLine is only a hint. A real request is the authoritative
     // connectivity check, especially immediately after a network handoff.
     syncController = new AbortController();
-    syncPromise = performSync().catch((error) => {
+    const owner = readOwner(syncController);
+    // One drain owns every joined caller. Signals during a pull advance the
+    // target; finite bursts coalesce into a fresh observation, even pending=0.
+    // A failure exits without acknowledging its target (no retry spin).
+    const run = Promise.resolve().then(async () => {
+      do {
+        const target = invalidationGeneration;
+        await performSync(owner);
+        requireOwner(owner);
+        observedGeneration = target;
+      } while (observedGeneration < invalidationGeneration);
+      return true;
+    }).catch((error) => {
+      if (!ownerCurrent(owner)) return false;
       if (error?.name === "AbortError") return false;
       if (error?.code === "finance_membership_required") {
         serverDeniedAccess = true;
@@ -776,15 +825,12 @@ export function createFinanceController({
       persist();
       return false;
     }).finally(() => {
-      const shouldSyncAgain = syncAgainRequested
-        && hasAccess()
-        && store?.pending?.length > 0;
-      syncAgainRequested = false;
+      if (syncPromise !== run) return;
       syncPromise = null;
       syncController = null;
       renderAll();
-      if (shouldSyncAgain) queueMicrotask(() => syncNow());
     });
+    syncPromise = run;
     renderAll();
     return syncPromise;
   }
@@ -797,27 +843,31 @@ export function createFinanceController({
    */
   async function verifyTransaction(transactionId) {
     ensureStore();
+    const owner = readOwner();
     await syncNow();
+    if (!ownerCurrent(owner)) return false;
     if (!transactionId) return true;
     if (store.transactions[transactionId]) {
       renderAll();
       return true;
     }
     try {
-      const remote = await fetchAllTransactions(true);
+      const remote = await fetchAllTransactions(true, owner);
+      requireOwner(owner);
       for (const item of Object.values(remote)) mergeServerEntity("transaction", item);
       persist();
       renderAll();
     } catch (_) {
       // Fall through: the caller reports the honest result.
     }
-    return Boolean(store.transactions[transactionId]);
+    return ownerCurrent(owner) && Boolean(store.transactions[transactionId]);
   }
 
   async function resolveConflict() {
     ensureStore();
-    const remoteTransactions = await fetchAllTransactions(true);
-    const bootstrap = await apiGet("/api/finance/bootstrap");
+    const owner = readOwner();
+    const remoteTransactions = await fetchAllTransactions(true, owner);
+    const bootstrap = await readForOwner("/api/finance/bootstrap", owner);
     const remote = {
       transaction: remoteTransactions,
       category: Object.fromEntries((bootstrap.categories || []).map((item) => [item.id, item])),
@@ -1139,6 +1189,7 @@ export function createFinanceController({
   }
 
   async function show() {
+    suspended = false;
     ledgerRows.resume();
     initialize();
     ensureStore();
@@ -1156,6 +1207,8 @@ export function createFinanceController({
   }
 
   function hide() {
+    suspended = true;
+    cancelSync();
     ledgerRows.park();
     cancelDeferredRendering();
     for (const id of ["financeTransactionModal", "financeCategoryModal", "financeBudgetModal"]) closeLayer(id);
@@ -1174,9 +1227,7 @@ export function createFinanceController({
     ledgerFilter = "";
     ledgerLimit = CLIENT_PAGE_SIZE;
     ledgerAllMonths = false;
-    syncController?.abort();
-    syncPromise = null;
-    syncAgainRequested = false;
+    cancelSync();
     store = null;
     currentAccountId = "";
     conflictPending = false;

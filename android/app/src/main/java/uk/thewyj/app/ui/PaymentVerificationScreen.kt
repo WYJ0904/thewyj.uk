@@ -22,7 +22,6 @@ import uk.thewyj.app.core.design.ThewyjTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -60,23 +59,25 @@ fun PaymentVerificationScreen(
 ) {
     val scope = rememberCoroutineScope()
     var tick by remember { mutableStateOf(0) }
-    var resumeEpoch by remember { mutableIntStateOf(0) }
-    LifecycleResumeEffect(Unit) {
-        resumeEpoch += 1
-        onPauseOrDispose { }
+    var resumed by remember { mutableStateOf(false) }
+    LifecycleResumeEffect(state) {
+        state.activate()
+        resumed = true
+        onPauseOrDispose { resumed = false; state.deactivate() }
     }
-    LaunchedEffect(resumeEpoch) {
-        scope.launch { state.refresh(); state.reconcile() }
+    LaunchedEffect(state, resumed) {
+        // StateFlow emits the latest invalidation on every resume, including
+        // changes that happened with no subscriber or while a pull was slow.
+        if (resumed) PaymentReviewSignals.changes.collect { state.refresh(); state.reconcile() }
     }
-    LaunchedEffect(state.accountId) { PaymentReviewSignals.changes.collect { state.refresh(); state.reconcile() } }
     // #4: bounded catch-up for records the server still owns (Web confirm → this
     // screen). It restarts when the set of pending records changes and stops by
     // itself after PendingReconciliationPolicy.windowMs.
     val pendingKey = "${state.canonicalObserved}:${state.canonicalCurrent}:" + state.items.joinToString("|") { "${it.canonicalIdentity.ifBlank { it.recognitionId }}:${it.syncState}" }
-    LaunchedEffect(pendingKey) { state.catchUpReconciliation() }
+    LaunchedEffect(pendingKey, resumed) { if (resumed) state.catchUpReconciliation() }
     // Countdown display only; no background polling of Room or the network.
-    LaunchedEffect(tick, state.items.size) {
-        if (state.items.any { it.ticketActive }) {
+    LaunchedEffect(tick, state.items, resumed) {
+        if (resumed && state.items.any { it.ticketActive && state.remainingMs(it) > 0 }) {
             kotlinx.coroutines.delay(1_000)
             tick += 1
         }
@@ -121,6 +122,10 @@ fun PaymentVerificationScreen(
                     Text(state.error, Modifier.padding(ThewyjSpacing.Md), style = MaterialTheme.typography.bodyMedium)
                 }
             }
+            if (!state.canonicalCurrent && state.observationAtMs > 0) {
+                Text("显示上次云端核对结果（${java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.CHINA).format(java.util.Date(state.observationAtMs))}）；本机证据另行标注。",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
                 TextButton(onClick = { scope.launch { state.refresh(); state.reconcile() } }) { Text("刷新") }
                 TextButton(onClick = { scope.launch { state.flush() } }) { Text("同步记账") }
@@ -149,6 +154,8 @@ fun PaymentVerificationScreen(
                     fontWeight = FontWeight.SemiBold)
             }
             state.items.forEachIndexed { index, item ->
+                val remainingMs = state.remainingMs(item)
+                val ticketActive = item.ticketActive && remainingMs > 0
                 if (item.recoveryOnly && (index == 0 || !state.items[index - 1].recoveryOnly)) {
                     Text(
                         "本机恢复 / 未同步（不计入云端待确认）",
@@ -190,14 +197,22 @@ fun PaymentVerificationScreen(
                                 color = MaterialTheme.colorScheme.error,
                             )
                         }
-                        if (item.ticketActive) {
+                        if (item.evidenceConflict) {
+                            Text("本机与云端金额或方向不一致，请核对后编辑确认。" +
+                                (item.localAmountMinor?.let { " 本机金额 ¥${PaymentVerificationState.formatMinor(it)}" } ?: ""),
+                                color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                        } else if (item.localEvidencePending) {
+                            Text("本机已识别，等待同步；云端尚未确认。", style = MaterialTheme.typography.bodySmall)
+                        }
+                        if (ticketActive) {
                             Text(
-                                "核实中：请打开「${item.appLabel}」中这笔转账、付款或收款页面并停留（剩余 ${(item.remainingMs / 1000).coerceAtLeast(0)} 秒）",
+                                "核实中：请打开「${item.appLabel}」中这笔转账、付款或收款页面并停留（剩余 ${(remainingMs / 1000).coerceAtLeast(0)} 秒）",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
                             )
                         }
-                        if (item.authority == PaymentVerificationCenter.Authority.NEEDS_AMOUNT && !item.ticketActive) {
+                        if (item.ticketActive && !ticketActive) Text("核实窗口已到期，可重新开始核实。", style = MaterialTheme.typography.bodySmall)
+                        if (item.authority == PaymentVerificationCenter.Authority.NEEDS_AMOUNT && !ticketActive) {
                             Text(
                                 "请停留在这笔交易的付款或收款页面；聊天中有多笔收款时不会选择其中一笔记账。",
                                 style = MaterialTheme.typography.bodySmall,
@@ -246,14 +261,14 @@ fun PaymentVerificationScreen(
                             }
                         } else {
                             Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
-                                if (item.ocrSuggested) {
+                                if (item.ocrSuggested || item.evidenceConflict) {
                                     ThewyjPrimaryButton(
                                         text = { Text("核对金额并确认") },
                                         onClick = { state.beginEdit(item) },
                                     )
                                 } else if (item.needsVerification) {
                                     ThewyjPrimaryButton(
-                                        text = { Text(if (item.ticketActive) "重新核实" else "核实交易") },
+                                        text = { Text(if (ticketActive) "重新核实" else "核实交易") },
                                         onClick = { scope.launch { state.startVerification(item) } },
                                     )
                                 } else if (item.deviceBooks) {
@@ -270,7 +285,7 @@ fun PaymentVerificationScreen(
                                 TextButton(onClick = { state.beginEdit(item) }) {
                                     Text(if (item.needsAmount) "填写金额" else "修改")
                                 }
-                                if (item.ticketActive) {
+                                if (ticketActive) {
                                     TextButton(
                                         onClick = { scope.launch {
                                             if (onOpenApp(item)) {
@@ -308,6 +323,8 @@ private fun DirectionChoice(label: String, selected: Boolean, onClick: () -> Uni
 }
 
 private fun stateLabel(item: PaymentVerificationCenter.Item): String = when {
+    item.evidenceConflict -> "金额或方向待核对"
+    item.localEvidencePending -> "本机已识别 · 待同步"
     item.canonicalIdentity.isNotBlank() && item.needsAmount -> "金额待核实"
     item.canonicalIdentity.isNotBlank() && item.direction == uk.thewyj.app.task21.FinanceDirection.UNKNOWN -> "方向待核实"
     item.canonicalIdentity.isNotBlank() -> "云端待确认"
@@ -325,9 +342,9 @@ private fun stateLabel(item: PaymentVerificationCenter.Item): String = when {
 }
 
 private fun amountLine(item: PaymentVerificationCenter.Item): String {
-    val amount = item.amountMinor
+    val amount = item.displayAmountMinor
     if (amount == null || amount <= 0) return "暂未识别到金额"
-    val direction = when (item.direction.name) {
+    val direction = when (item.displayDirection.name) {
         "INCOME" -> "收入"
         "REFUND" -> "退款"
         "EXPENSE" -> "支出"
