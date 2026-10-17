@@ -6,11 +6,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import uk.thewyj.app.task21.payment.PaymentVerificationCenter
 import uk.thewyj.app.task21.payment.PaymentHintSync
 import uk.thewyj.app.task21.payment.PendingReconciliationPolicy
+import uk.thewyj.app.task21.payment.PaymentCountdown
 
 /**
  * Screen state for "待核实 / 待确认交易". All work happens off the main thread:
@@ -22,10 +24,15 @@ class PaymentVerificationState(
     private val center: PaymentVerificationCenter = PaymentVerificationCenter(context.applicationContext),
     private val reconcileOverride: (suspend (String) -> PaymentHintSync.Result?)? = null,
 ) {
-    private val reconciliationInFlight = AtomicBoolean(false)
+    private val reconciliationMutex = Mutex()
     @Volatile private var reconciliationRequested = false
     private var lastCompleteObservation: PaymentHintSync.Result? = null
     private var canonicalMutation = 0L
+    private var displayGeneration = 0L
+    private var lifecycleGeneration = 0L
+    private var active = true
+    private val countdown = PaymentCountdown()
+    var observationAtMs by mutableStateOf(0L)
     var canonicalObserved by mutableStateOf(false)
     var canonicalCurrent by mutableStateOf(false)
     var reconciling by mutableStateOf(false)
@@ -42,90 +49,102 @@ class PaymentVerificationState(
     var busyAction by mutableStateOf("")
     private var refreshGeneration = 0
 
+    fun activate() { active = true; lifecycleGeneration += 1 }
+    fun deactivate() { active = false; lifecycleGeneration += 1; displayGeneration += 1 }
+    fun remainingMs(item: PaymentVerificationCenter.Item, wallMs: Long = System.currentTimeMillis(),
+        elapsedMs: Long = android.os.SystemClock.elapsedRealtime()): Long =
+        countdown.remainingMs(item.ticketId, item.ticketExpiresAtMs, wallMs, elapsedMs)
+
+    private fun current(lifecycle: Long, observation: PaymentHintSync.Result? = null): Boolean =
+        active && lifecycle == lifecycleGeneration && (observation == null || center.observationIsCurrent(accountId, observation))
+
     suspend fun refresh() {
+        if (!active) return
         val generation = ++refreshGeneration
+        val lifecycle = lifecycleGeneration
+        val display = displayGeneration
         loading = items.isEmpty()
         error = ""
         try {
             val cached = withContext(Dispatchers.IO) { center.cachedObservation(accountId) }
             val snapshot = cached ?: lastCompleteObservation
             val refreshed = withContext(Dispatchers.IO) {
-                if (snapshot != null && cached != null) {
-                    val display = center.reconciledItems(accountId, snapshot)
-                    val retained = display.filter { it.recoveryOnly }.map { it.recognitionId }.toSet()
-                    val local = center.localItems(accountId).filter { item ->
-                        item.recoveryOnly && item.recognitionId !in retained && display.any { cloud ->
-                            !cloud.recoveryOnly && cloud.eventIds.any { it in item.eventIds } &&
-                                ((item.amountMinor != null && item.amountMinor != cloud.amountMinor) ||
-                                    (item.direction != uk.thewyj.app.task21.FinanceDirection.UNKNOWN && item.direction != cloud.direction))
-                        }
-                    }
-                    display + local
-                }
-                else if (snapshot != null) center.reconciledItems(accountId, snapshot).filter { it.recoveryOnly }
+                if (snapshot != null) center.reconciledItems(accountId, snapshot)
                 else center.localItems(accountId)
             }
-            if (generation == refreshGeneration) {
+            if (generation == refreshGeneration && display == displayGeneration && current(lifecycle, snapshot)) {
                 // A local signal must not repaint a stale server snapshot over
                 // a card that this UI just terminalized. The cloud set changes
                 // only when a fresh summary arrives through reconcile().
-                items = if (cached != null) refreshed else if (snapshot != null)
-                    items.filterNot { it.recoveryOnly } + refreshed else refreshed
-                if (snapshot != null) { lastCompleteObservation = snapshot; canonicalObserved = true }
+                val retained = items.filterNot { it.recoveryOnly }.map { it.canonicalIdentity }.toSet()
+                items = if (cached != null || snapshot == null) refreshed else
+                    refreshed.filter { it.recoveryOnly || it.canonicalIdentity in retained }
+                if (snapshot != null) {
+                    lastCompleteObservation = snapshot; canonicalObserved = true
+                    observationAtMs = snapshot.observedAtMs
+                    if (snapshot.fromCache) canonicalCurrent = false
+                }
             }
         } catch (cancellation: CancellationException) {
             // Leaving this Compose surface (for example opening WeChat) is a
             // normal lifecycle cancellation, never a user-facing error.
             throw cancellation
         } catch (failure: Throwable) {
-            if (generation == refreshGeneration) error = failure.message ?: "读取待确认交易失败"
+            if (generation == refreshGeneration && current(lifecycle)) error = failure.message ?: "读取待确认交易失败"
         } finally {
-            if (generation == refreshGeneration) loading = false
+            if (generation == refreshGeneration && current(lifecycle)) loading = false
         }
     }
 
     /** Cloud work starts only after the local list has been returned to Compose. */
     suspend fun reconcile() {
-        if (!reconciliationInFlight.compareAndSet(false, true)) {
-            reconciliationRequested = true
-            return
-        }
-        try {
-            reconciling = true
-            var attempt = 0
-            do {
-                reconciliationRequested = false
-                val generation = canonicalMutation
-                val observation = withContext(Dispatchers.IO) {
-                    if (reconcileOverride != null) reconcileOverride.invoke(accountId) else center.reconcile(accountId)
-                }
-                if (generation != canonicalMutation) {
-                    reconciliationRequested = true
-                } else if (observation?.completeObservation == true) {
-                    val refreshed = withContext(Dispatchers.IO) { center.reconciledItems(accountId, observation) }
-                    if (generation == canonicalMutation) {
-                        lastCompleteObservation = observation
-                        items = refreshed
-                        canonicalObserved = true
-                        canonicalCurrent = !observation.fromCache
-                        error = ""
-                    } else reconciliationRequested = true
-                } else {
+        if (!active) return
+        val lifecycle = lifecycleGeneration
+        reconciliationRequested = true
+        reconciliationMutex.withLock {
+            if (!current(lifecycle) || !reconciliationRequested) return
+            try {
+                reconciling = true
+                var attempt = 0
+                do {
+                    reconciliationRequested = false
+                    val generation = canonicalMutation
+                    val observation = withContext(Dispatchers.IO) {
+                        if (reconcileOverride != null) reconcileOverride.invoke(accountId) else center.reconcile(accountId)
+                    }
+                    if (!current(lifecycle)) return
+                    if (generation != canonicalMutation || (observation != null && !current(lifecycle, observation))) {
+                        reconciliationRequested = true
+                    } else if (observation?.completeObservation == true) {
+                        val display = ++displayGeneration
+                        val refreshed = withContext(Dispatchers.IO) { center.reconciledItems(accountId, observation) }
+                        if (generation == canonicalMutation && display == displayGeneration && current(lifecycle, observation)) {
+                            lastCompleteObservation = observation
+                            items = refreshed
+                            displayGeneration += 1
+                            canonicalObserved = true
+                            canonicalCurrent = !observation.fromCache
+                            observationAtMs = observation.observedAtMs
+                            error = ""
+                        } else reconciliationRequested = true
+                    } else {
+                        canonicalCurrent = false
+                        error = "暂未取得完整云端待处理列表，请刷新重试"
+                    }
+                    attempt += 1
+                } while (reconciliationRequested && attempt < 2)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Throwable) {
+                if (current(lifecycle)) {
                     canonicalCurrent = false
-                    error = "暂未取得完整云端待处理列表，请刷新重试"
+                    error = "云端待处理状态暂时无法核对，请刷新重试"
                 }
-                attempt += 1
-            } while (reconciliationRequested && attempt < 2)
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (_: Throwable) {
-            canonicalCurrent = false
-            error = "云端待处理状态暂时无法核对，请刷新重试"
-            // Keep the already rendered local Room result when cloud is slow,
-            // unauthorized or unavailable. The next explicit/bounded pull retries.
-        } finally {
-            reconciliationInFlight.set(false)
-            reconciling = false
+                // Keep the already rendered local Room result when cloud is slow,
+                // unauthorized or unavailable. The next explicit/bounded pull retries.
+            } finally {
+                reconciling = false
+            }
         }
     }
 
@@ -193,11 +212,15 @@ class PaymentVerificationState(
             refresh()
             return
         }
-        confirm(item)
+        // A successful explicit edit is the user's conflict resolution. The
+        // display annotation alone must never authorize one-click booking.
+        confirm(item.copy(evidenceConflict = false))
     }
 
     suspend fun confirm(item: PaymentVerificationCenter.Item) {
+        if (item.evidenceConflict) { message = "本机与云端证据不一致，请核对并编辑后确认"; return }
         canonicalMutation += 1
+        displayGeneration += 1
         val result = withContext(Dispatchers.IO) { center.confirmAndBook(accountId, item.recognitionId) }
         message = result.message
         if (result.ok && result.syncState == PaymentVerificationCenter.SyncState.SYNCED)
@@ -210,6 +233,7 @@ class PaymentVerificationState(
         if (busyRecognitionId.isNotBlank()) return
         busyRecognitionId = item.recognitionId
         canonicalMutation += 1
+        displayGeneration += 1
         busyAction = "ignore"
         error = ""
         message = "正在同步忽略状态…"

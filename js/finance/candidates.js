@@ -39,25 +39,31 @@ const REASON_LABELS = Object.freeze({
 export function candidateNeedsEditor(candidate) {
   const amountMissing = !Number(candidate?.amount_minor);
   const directionMissing = !VALID_DIRECTIONS.has(String(candidate?.direction || "").trim().toLowerCase());
-  return amountMissing || directionMissing;
+  return amountMissing || directionMissing || candidate?.local_evidence?.conflict === true;
 }
 
 export function candidatePresentation(candidate) {
-  const amountUnknown = !Number(candidate?.amount_minor);
+  const evidenceConflict = candidate?.local_evidence?.conflict === true;
+  const localEvidencePending = candidate?.local_evidence?.pending_sync === true;
+  const amountMinor = Number(candidate?.amount_minor) || (!evidenceConflict ? Number(candidate?.local_evidence?.amount_minor) : 0) || 0;
+  const amountUnknown = !amountMinor;
   const rawDirection = String(candidate?.direction || "").trim().toLowerCase();
   const direction = VALID_DIRECTIONS.has(rawDirection) ? rawDirection : "unknown";
   const merchant = String(candidate?.merchant || candidate?.counterparty || "").trim();
   const missing = [];
-  if (amountUnknown) missing.push("金额");
+  if (!Number(candidate?.amount_minor)) missing.push("金额");
   if (direction === "unknown") missing.push("收支方向");
   return Object.freeze({
     amountUnknown,
+    amountMinor,
+    evidenceConflict,
+    localEvidencePending,
     direction,
     directionLabel: DIRECTION_LABELS[direction],
     merchant,
     merchantLabel: merchant || "商户未知（可选）",
     missing,
-    primaryAction: missing.length ? "补全并确认" : "确认记账",
+    primaryAction: evidenceConflict ? "核对并确认" : missing.length ? "补全并确认" : "确认记账",
   });
 }
 
@@ -79,6 +85,7 @@ export function canonicalPendingCandidates(summary) {
       evidence: [{ source_type: "notification", source_package: String(row.source_package || ""), app_label: String(row.app_label || "") }],
       evidence_count: 1,
       recognition_reasons: Array.isArray(row.recognition_reasons) ? row.recognition_reasons : [], status: "pending",
+      local_evidence: row.local_evidence,
     };
   }).filter((item) => item.id);
 }
@@ -144,6 +151,8 @@ export function createFinanceCandidatesController({
   let renderedForAccount = "";
   let hasCanonicalObservation = false;
   let bound = false;
+  let active = false;
+  let lifecycleVersion = 0;
   // Task 24 reopen #7: one *automatic* refresh at a time, and only the newest
   // list may paint. A manual refresh must never be answered by a load that
   // started before the user's click (legacy Task 21 gate: the second candidate
@@ -237,12 +246,13 @@ export function createFinanceCandidatesController({
       const evidenceCount = Math.max(evidence.length, Number(candidate.evidence_count) || 1);
       const editedCount = Number(candidate.correction_count) || 0;
       const missingLabel = presentation.missing.length ? `需补：${presentation.missing.join("、")}` : "信息完整，可直接确认";
-      const amountValue = presentation.amountUnknown ? "" : (Number(candidate.amount_minor) / 100).toFixed(2);
+      const amountValue = !Number(candidate.amount_minor) ? "" : (Number(candidate.amount_minor) / 100).toFixed(2);
       const evidenceReason = evidenceExplanation(candidate, presentation);
       return `<article class="finance-candidate" data-finance-candidate="${escapeHtml(id)}" data-canonical-identity="${escapeHtml(candidate.canonical_id || "")}">
         <div class="finance-candidate-main">
           <span class="finance-direction is-${escapeHtml(direction)}">${presentation.directionLabel}</span>
-          <div class="finance-candidate-copy"><strong>${presentation.amountUnknown ? "金额待补" : escapeHtml(formatMinor(candidate.amount_minor, candidate.currency))}</strong>
+          <div class="finance-candidate-copy"><strong>${presentation.amountUnknown ? "金额待补" : escapeHtml(formatMinor(presentation.amountMinor, candidate.currency))}</strong>
+          ${presentation.evidenceConflict ? `<small role="status">本机与云端金额或方向不一致，请核对后编辑确认${candidate.local_evidence?.amount_minor ? `（本机金额 ${escapeHtml(formatMinor(candidate.local_evidence.amount_minor, candidate.currency))}）` : ""}。</small>` : presentation.localEvidencePending ? '<small role="status">本机已识别，等待同步；云端尚未确认。</small>' : ""}
           <small>${escapeHtml(sources)} · ${escapeHtml(occurred)}</small>
           <small><span class="finance-candidate-merchant" title="${escapeHtml(presentation.merchantLabel)}">${escapeHtml(presentation.merchantLabel)}</span><span>${escapeHtml(missingLabel)}</span></small>
           <details class="finance-candidate-evidence"><summary>查看识别依据</summary><p>${escapeHtml(evidenceReason)}</p><p>结构化证据 ${evidenceCount} 条 · 置信度 ${confidence}/1000${editedCount ? ` · 用户已修改 ${editedCount} 次` : ""}</p><p>核实标识：${escapeHtml(candidate.canonical_id || "")}</p><p>事件标识：${escapeHtml(candidate.event_id || id)}</p></details></div>
@@ -332,6 +342,7 @@ export function createFinanceCandidatesController({
       // must observe server state at tap time or later, never earlier.
       await refreshInFlight.catch(() => {});
     }
+    if (!active) return;
     if (!force && refreshInFlight) return refreshInFlight;
     const started = refreshOnce("finance-candidates", () => loadCandidates());
     refreshInFlight = started;
@@ -344,6 +355,7 @@ export function createFinanceCandidatesController({
 
   async function loadCandidates() {
     const version = listVersion.begin();
+    const lifecycle = lifecycleVersion;
     const section = element("financeCandidatesSection");
     const list = element("financeCandidateList");
     if (!section) return;
@@ -376,14 +388,14 @@ export function createFinanceCandidatesController({
       }
       // A slow earlier refresh must never repaint over a newer list (for example
       // the row the user just confirmed).
-      if (!listVersion.isCurrent(version)) return;
+      if (!active || lifecycle !== lifecycleVersion || String(account()?.id || "") !== currentAccountId || !listVersion.isCurrent(version)) return;
       hasCanonicalObservation = true;
       canonicalRecords = summary.records;
       render(canonicalPendingCandidates({ ...summary, records: mergeLocalNotificationReviews(
         summary.records, globalThis.window?.WYJLocalPaymentLedger, currentAccountId) }));
       section.setAttribute("aria-busy", "false");
     } catch (error) {
-      if (!listVersion.isCurrent(version)) return;
+      if (!active || lifecycle !== lifecycleVersion || String(account()?.id || "") !== currentAccountId || !listVersion.isCurrent(version)) return;
       if (error?.code === "task21_notification_not_enabled") {
         render(currentCandidates, "通知归档功能尚未启用。");
       } else if (["authentication_required", "notification_membership_required", "canonical_session_invalid"].includes(error?.code)) {
@@ -398,6 +410,8 @@ export function createFinanceCandidatesController({
 
   async function decide(id, confirm, edits = null, trigger = null) {
     if (!id || busyIds.has(id)) return;
+    const lifecycle = lifecycleVersion, owner = String(account()?.id || "");
+    const current = () => active && lifecycle === lifecycleVersion && owner === String(account()?.id || "");
     // Feedback first: the pending state is painted before the first await, so a
     // slow or hanging request can never look like a dead button (#7).
     const trace = beginInteraction(confirm ? "finance-candidate-confirm" : "finance-candidate-reject", { id });
@@ -427,6 +441,7 @@ export function createFinanceCandidatesController({
         : `/api/notification/candidates/${confirm ? "confirm" : "reject"}`;
       trace.mark(INTERACTION_STAGES.REQUEST_START, path);
       const response = await api(path, body);
+      if (!current()) return;
       trace.mark(INTERACTION_STAGES.RESPONSE, String(response?.transaction_id || ""));
       // The server accepted the decision, so the row leaves the pending list
       // immediately (optimistic terminal state). The follow-up refresh below
@@ -441,20 +456,21 @@ export function createFinanceCandidatesController({
       succeeded = true;
       onCandidateChanged(confirm ? String(response?.transaction_id || "") : "");
     } catch (error) {
+      if (!current()) return;
       render(currentCandidates, `操作失败：${error?.message || "请稍后重试"}`);
       trace.mark(INTERACTION_STAGES.STATE_APPLY, "failed");
       trace.mark(INTERACTION_STAGES.RENDER_END, "error");
     } finally {
-      busyIds = new Set([...busyIds].filter((item) => item !== id));
       release();
-      // Reconcile in the background: the user already sees the result, and the
-      // Force a new read after any pre-decision request settles. Joining that
-      // old request would leave the visible list stale until another refresh.
-      if (succeeded) {
-        trace.finish(confirm ? "booked" : "ignored");
-        void reload({ force: true });
+      if (current()) {
+        busyIds = new Set([...busyIds].filter((item) => item !== id));
+        // Read after any pre-decision request settles; an older response must
+        // not restore a row that this decision has already terminalized.
+        if (succeeded) {
+          trace.finish(confirm ? "booked" : "ignored");
+          void reload({ force: true });
+        } else reloadListState();
       }
-      else reloadListState();
     }
   }
 
@@ -537,7 +553,7 @@ export function createFinanceCandidatesController({
         const presentation = candidatePresentation(candidate);
         // Render first, then reveal the freshly rendered form: render()
         // rebuilds the list HTML, so revealing the old node had no effect.
-        render(currentCandidates, `这笔交易需要补全${presentation.missing.join("和")}后才能确认。`);
+        render(currentCandidates, presentation.evidenceConflict ? "本机与云端证据不一致，请核对并编辑后确认。" : `这笔交易需要补全${presentation.missing.join("和")}后才能确认。`);
         const form = document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`);
         if (form) {
           form.classList.remove("hidden");
@@ -564,6 +580,7 @@ export function createFinanceCandidatesController({
   }
 
   function show() {
+    active = true;
     reviewRows.resume();
     recoveryRows.resume();
     if (!bound) {
@@ -574,18 +591,22 @@ export function createFinanceCandidatesController({
       element("financeCandidatesSection")?.addEventListener("click", handleClick);
       element("financeCandidatesSection")?.addEventListener("submit", handleSubmit);
       document.addEventListener("thewyj:payment-updated", () => {
+        if (!active) return;
         const snapshot = globalThis.window?.WYJLocalPaymentLedger;
         render(canonicalPendingCandidates({ records: mergeLocalNotificationReviews(canonicalRecords, snapshot, String(account()?.id || "")) }));
         void reload({ force: true });
       });
       document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible" && hasAccess()) void reload({ force: true });
+        if (active && document.visibilityState === "visible" && hasAccess()) void reload({ force: true });
       });
     }
-    return reload();
+    return reload({ force: true });
   }
 
   function hide() {
+    active = false;
+    lifecycleVersion += 1;
+    busyIds = new Set();
     reviewRows.park();
     recoveryRows.park();
     // Invalidate any request started for the page being left. Its late response
@@ -609,7 +630,7 @@ export function createFinanceCandidatesController({
       canonicalRecords = [];
       hasCanonicalObservation = false;
     }
-    if (!element("financePage")?.classList.contains("hidden")) reload();
+    if (!element("financePage")?.classList.contains("hidden")) { active = true; void reload({ force: true }); }
   }
 
   const dashboardSummary = () => ({ known: hasCanonicalObservation && renderedForAccount === String(account()?.id || ""), count: currentCandidates.length });

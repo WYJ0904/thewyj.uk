@@ -126,6 +126,7 @@ object LocalPaymentLedger {
             .put("event_id", booking.eventId).put("sync_state", booking.syncState)
             .put("local_id", PaymentAutoBook.transactionId(booking.accountId, booking.eventId))
             .put("id", booking.transactionId).put("amount_minor", booking.amountMinor)
+            .put("source_package", booking.sourcePackage).put("payment_channel", booking.paymentChannel)
             .put("direction", booking.direction.lowercase()).put("currency", booking.currency)
             .put("merchant", booking.merchant).put("occurred_at_ms", booking.occurredAtMs)
             .put("source_kind", "automatic").put("status", "active").put("reconciliation_state", "automatic"))
@@ -137,7 +138,9 @@ object LocalPaymentLedger {
             val direction = candidate?.effectiveDirection?.takeIf(String::isNotBlank) ?: record.direction
             if (store.localBooking(account.accountId, PaymentAutoBook.eventId(record)) != null) continue
             val id = PaymentAutoBook.eventId(record)
-            reviews.put(JSONObject().put("id", id).put("event_id", id).put("event_ids", JSONArray().put(id))
+            val aliases = (archive.structuredEventIdsForRecognition(account.accountId, record.sourceEventId) + id)
+                .filter(String::isNotBlank).distinct()
+            reviews.put(JSONObject().put("id", id).put("event_id", id).put("event_ids", JSONArray(aliases))
                 .put("state", "pending").put("kind", "hint").put("amount_minor", amount ?: JSONObject.NULL)
                 .put("direction", direction.lowercase()).put("merchant", candidate?.effectiveMerchant ?: record.merchant)
                 .put("source_package", record.sourcePackage).put("app_label", PaymentAppLabels.resolve(context, record.sourcePackage))
