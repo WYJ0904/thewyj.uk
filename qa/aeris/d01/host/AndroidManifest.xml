@@ -1,0 +1,15 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+  <uses-feature android:name="android.hardware.telephony" android:required="false"/>
+  <uses-permission android:name="android.permission.RECEIVE_SMS" tools:node="remove"/>
+  <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove"/>
+  <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" tools:node="remove"/>
+  <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove"/>
+  <application android:name="uk.thewyj.app.qa.AcceptanceApplication" android:label="Aeris isolated state QA"
+      android:networkSecurityConfig="@xml/aeris_qa_network_security" tools:replace="android:name,android:label,android:networkSecurityConfig">
+    <activity android:name="uk.thewyj.app.MainActivity" tools:node="remove"/>
+    <service android:name="uk.thewyj.app.task21.ThewyjNotificationListenerService" tools:node="remove"/>
+    <service android:name="uk.thewyj.app.task21.payment.ThewyjPaymentAccessibilityService" tools:node="remove"/>
+    <receiver android:name="uk.thewyj.app.task21.payment.BankSmsReceiver" tools:node="remove"/>
+    <activity android:name="uk.thewyj.app.qa.StateAcceptanceActivity" android:exported="true"/>
+  </application>
+</manifest>
