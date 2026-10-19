@@ -133,7 +133,12 @@ export async function ensureTask16Schema(db) {
   if (!db?.prepare) return false;
   try {
     const row = await first(db, "SELECT value FROM task16_metadata WHERE key = ?1", ["schema_version"]);
-    return String(row?.value || "") === TASK16_SCHEMA_VERSION;
+    const version=String(row?.value||'');
+    if(version==='2')return true;
+    // Older standalone schemas remain usable before reconciliation exists.
+    if(version!==TASK16_SCHEMA_VERSION)return false;
+    const upgraded=await first(db,"SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='task21_payment_effective_events'");
+    return Number(upgraded?.n||0)===0;
   } catch (_) {
     return false;
   }
@@ -448,6 +453,15 @@ async function selectReconciliationCandidate(db, account, event) {
 async function ingestRawEvent(db, account, deviceId, operation, digest, observedServerVersion) {
   requireAllowedFields(operation, new Set(["operation_id", "type", "payload"]));
   const event = normalizeRawEvent(operation.payload);
+  const reconciliationReady=await first(db,"SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='task21_payment_effective_events'");
+  if(Number(reconciliationReady?.n||0)>0) {
+    const scope=financeReferenceScope(event);
+    const unknownBankScope=new Set(['bank','bank_card','bank_sms','sms','notification','other','']).has(scope);
+    const corrected=await first(db,`SELECT event_id FROM task21_payment_effective_events WHERE user_id=?1 AND
+      (event_id=?2 OR (?3!='' AND (reference_namespace=?4 OR ?5=1) AND provider_reference=?3)) LIMIT 1`,
+      [account.id,event.source_event_id,event.provider_reference,scope,unknownBankScope?1:0]);
+    if(corrected)throw new Task16Error('更正后的交易须使用权威关联合同，原请求保留待核实',409,'reconciliation_requires_authority');
+  }
   const duplicate = await findRawDuplicate(db, account, deviceId, event);
   if (duplicate) {
     return await rawDuplicateResult(db, account, deviceId, operation, digest, event, duplicate);

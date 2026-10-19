@@ -3,9 +3,9 @@ export const RECOVERABLE_LIFECYCLE_REASONS = new Set(['lifecycle_capture_missing
   'lifecycle_refund_exceeds_capture','lifecycle_release_exceeds_remaining','lifecycle_completion_unproven']);
 
 export async function lifecycleRows(db,userId,namespace,family) {
-  return (await db.prepare(`SELECT e.*,COALESCE(g.passed,0) AS control_accepted FROM task21_notification_events e
+  return (await db.prepare(`SELECT e.*,COALESCE(g.passed,0) AS control_accepted FROM task21_payment_effective_view e
     LEFT JOIN task21_payment_lifecycle_guards g ON g.user_id=e.user_id AND g.event_id=e.event_id
-    WHERE e.user_id=?1 AND e.reference_namespace=?2 AND e.lifecycle_reference=?3`)
+    WHERE e.excluded=0 AND e.user_id=?1 AND e.reference_namespace=?2 AND e.lifecycle_reference=?3`)
     .bind(userId,namespace,family).all()).results;
 }
 
@@ -68,30 +68,30 @@ export function lifecycleReason(event,rows) {
  * Read-and-check in JavaScript alone cannot protect concurrent refund requests. */
 export function lifecycleGuardStatement(db,userId,event) {
   if(!event.financial_phase||!event.lifecycle_reference||!event.reference_namespace)return null;
-  const family=`user_id=?1 AND reference_namespace=?2 AND lifecycle_reference=?3`;
-  const captures=`COALESCE((SELECT SUM(m) FROM (SELECT MAX(amount_minor) m FROM task21_notification_events
+  const family=`user_id=?1 AND reference_namespace=?2 AND lifecycle_reference=?3 AND excluded=0`;
+  const captures=`COALESCE((SELECT SUM(m) FROM (SELECT MAX(amount_minor) m FROM task21_payment_effective_view
     WHERE ${family} AND financial_phase='SETTLED' AND finance_transaction_id!='' GROUP BY finance_transaction_id)),0)`;
-  const refunds=`COALESCE((SELECT SUM(m) FROM (SELECT MAX(amount_minor) m FROM task21_notification_events
+  const refunds=`COALESCE((SELECT SUM(m) FROM (SELECT MAX(amount_minor) m FROM task21_payment_effective_view
     WHERE ${family} AND financial_phase='REFUNDED' AND finance_transaction_id!='' GROUP BY finance_transaction_id)),0)`;
   const accepted=`EXISTS(SELECT 1 FROM task21_payment_lifecycle_guards g WHERE g.user_id=e.user_id AND g.event_id=e.event_id)`;
-  const controlReplay=`EXISTS(SELECT 1 FROM task21_notification_events e WHERE e.${family.replaceAll(' AND ',' AND e.')}
+  const controlReplay=`EXISTS(SELECT 1 FROM task21_payment_effective_view e WHERE e.${family.replaceAll(' AND ',' AND e.')}
     AND e.financial_phase=?7 AND e.provider_reference=?8 AND e.amount_minor=?6 AND ${accepted})`;
-  const currency=`NOT EXISTS(SELECT 1 FROM task21_notification_events e WHERE e.${family.replaceAll(' AND ',' AND e.')}
+  const currency=`NOT EXISTS(SELECT 1 FROM task21_payment_effective_view e WHERE e.${family.replaceAll(' AND ',' AND e.')}
     AND (e.finance_transaction_id!='' OR ${accepted}) AND e.currency!=?5)`;
-  let valid=currency+` AND ?6>=0 AND NOT EXISTS(SELECT 1 FROM task21_notification_events e WHERE e.${family.replaceAll(' AND ',' AND e.')}
+  let valid=currency+` AND ?6>=0 AND NOT EXISTS(SELECT 1 FROM task21_payment_effective_view e WHERE e.${family.replaceAll(' AND ',' AND e.')}
     AND e.financial_phase=?7 AND e.provider_reference=?8 AND e.amount_minor!=?6 AND ${accepted})`;
-  if(event.financial_phase==='AUTHORIZED')valid+=` AND NOT EXISTS(SELECT 1 FROM task21_notification_events e WHERE e.${family.replaceAll(' AND ',' AND e.')}
+  if(event.financial_phase==='AUTHORIZED')valid+=` AND NOT EXISTS(SELECT 1 FROM task21_payment_effective_view e WHERE e.${family.replaceAll(' AND ',' AND e.')}
     AND e.financial_phase='AUTHORIZED' AND e.amount_minor!=?6 AND (${accepted} OR e.lifecycle_operation=''))`;
   if(event.financial_phase==='REFUNDED')valid+=` AND (${captures}>=${refunds}+?6)`;
   if(event.financial_phase==='SETTLED')valid+=` AND (${captures}+?6<=9007199254740991)`;
   if(event.lifecycle_operation==='RELEASE') {
-    const authorization=`(SELECT MAX(amount_minor) FROM task21_notification_events e WHERE e.${family.replaceAll(' AND ',' AND e.')}
+    const authorization=`(SELECT MAX(amount_minor) FROM task21_payment_effective_view e WHERE e.${family.replaceAll(' AND ',' AND e.')}
       AND financial_phase='AUTHORIZED' AND identity_review_reason='' AND lifecycle_review_reason='')`;
-    const released=`COALESCE((SELECT SUM(m) FROM (SELECT MAX(e.amount_minor) m FROM task21_notification_events e
+    const released=`COALESCE((SELECT SUM(m) FROM (SELECT MAX(e.amount_minor) m FROM task21_payment_effective_view e
       JOIN task21_payment_lifecycle_guards g ON g.user_id=e.user_id AND g.event_id=e.event_id
       WHERE e.${family.replaceAll(' AND ',' AND e.')} AND lifecycle_operation='RELEASE' GROUP BY e.provider_reference)),0)`;
     valid+=` AND (${controlReplay} OR (${authorization} IS NOT NULL AND ${authorization}>=${captures}+${released}+?6
-      AND NOT EXISTS(SELECT 1 FROM task21_notification_events e WHERE e.${family.replaceAll(' AND ',' AND e.')}
+      AND NOT EXISTS(SELECT 1 FROM task21_payment_effective_view e WHERE e.${family.replaceAll(' AND ',' AND e.')}
         AND (financial_phase='EXPIRED' OR (financial_phase='RELEASED' AND lifecycle_operation!='RELEASE')) AND ${accepted})))`;
   }
   return db.prepare(`INSERT OR REPLACE INTO task21_payment_lifecycle_guards(user_id,event_id,passed)

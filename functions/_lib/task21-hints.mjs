@@ -6,7 +6,8 @@ import {
   nonNegativeInteger,
   requireAllowedFields,
 } from "./task21-model.mjs";
-import { createAutomaticFinanceTransaction, reconcileLegacyCompleteCandidates, requireFinanceRecognitionAccess } from "./task21-service.mjs";
+import { createAutomaticFinanceTransaction, correctedPaymentHintReceipt, reconcileLegacyCompleteCandidates, requireFinanceRecognitionAccess } from "./task21-service.mjs";
+import {recordPaymentUserDecision} from './task21-reconciliation.mjs';
 import {referenceNamespaceForSource} from "./task21-event-safety.mjs";
 
 function hintFinanceIdentity(row) {
@@ -464,6 +465,13 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
     const confidence = Math.min(1000, nonNegativeInteger(raw.confidence || 0, "置信度", 1000));
     const evidence = cleanEvidence(raw.evidence);
 
+    const corrected=await correctedPaymentHintReceipt(db,account,{event_id:sourceEventId,source_package:sourcePackage,
+      payment_channel:paymentChannel,provider_reference:providerReference,direction:direction||''});
+    if(corrected) {
+      if(hints.length!==1)throw new Task21Error('更正事件须以原单事件请求重放',409,'reconciliation_single_hint_required');
+      return {hints:[],operation_results:[corrected]};
+    }
+
     const exact = await exactHintForEvent(db, account.id, sourceEventId);
     const strong = await matchingHintByStrongEvidence(db, account.id, sourcePackage, paymentChannel,
       providerReference, lifecycleIdentity, amountMinor, direction);
@@ -826,6 +834,7 @@ export async function confirmNotificationHint(db, account, input) {
   if (!amountMinor) throw new Task21Error("请先填写金额后再确认", 400, "hint_amount_required");
   if (!direction) throw new Task21Error("请先选择收支方向后再确认", 400, "hint_direction_required");
   const merchant = cleanText(edits.merchant ?? row.merchant, 160, "商户");
+  await recordPaymentUserDecision(db,account,row.source_event_id,"hint_confirm");
   const storedEvidence = JSON.parse(String(row.evidence_summary || "{}"));
   const occurredAtMs = cleanAmount(edits.occurred_at_ms) ||
     cleanAmount(storedEvidence.occurred_at_ms) || Date.parse(row.created_at) || Date.now();

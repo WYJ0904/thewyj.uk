@@ -24,6 +24,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PaymentCandidateEntity::class,
         LocalPaymentBookingEntity::class,
         PaymentEventAliasEntity::class,
+        PaymentReconciliationEntity::class,
+        PaymentEffectiveRecognitionEntity::class,
+        PaymentUserDecisionEntity::class,
+        PaymentReconciliationAliasEntity::class,
     ],
     version = NotificationDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -31,9 +35,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 abstract class NotificationDatabase : RoomDatabase() {
     abstract fun notificationDao(): NotificationDao
     abstract fun paymentDao(): PaymentDao
+    abstract fun reconciliationDao(): PaymentReconciliationDao
 
     companion object {
-        const val SCHEMA_VERSION = 12
+        const val SCHEMA_VERSION = 13
         const val DATABASE_NAME = "wyj-notifications.db"
 
         @Volatile
@@ -48,11 +53,20 @@ abstract class NotificationDatabase : RoomDatabase() {
                 )
                     // The local archive is user data: never drop it on upgrade.
                     .addMigrations(
-                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
+                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
                     )
                     .build()
                     .also { instance = it }
             }
+
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `payment_reconciliations` (`accountId` TEXT NOT NULL, `operationId` TEXT NOT NULL, `payloadDigest` TEXT NOT NULL, `payloadJson` TEXT NOT NULL, `state` TEXT NOT NULL, `reason` TEXT NOT NULL, `beforeJson` TEXT NOT NULL, `resultJson` TEXT NOT NULL, `createdAtMs` INTEGER NOT NULL, `updatedAtMs` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `operationId`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `payment_effective_recognitions` (`accountId` TEXT NOT NULL, `recognitionId` TEXT NOT NULL, `canonicalRecognitionId` TEXT NOT NULL, `amountMinor` INTEGER NOT NULL, `financialPhase` TEXT NOT NULL, `lifecycleOperation` TEXT NOT NULL, `lifecycleRevision` INTEGER NOT NULL, `lifecycleReference` TEXT NOT NULL, `providerReference` TEXT NOT NULL, `referenceNamespace` TEXT NOT NULL, `operationId` TEXT NOT NULL, `excluded` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `recognitionId`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `payment_user_decisions` (`accountId` TEXT NOT NULL, `recognitionId` TEXT NOT NULL, `decision` TEXT NOT NULL, `createdAtMs` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `recognitionId`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `payment_reconciliation_aliases` (`accountId` TEXT NOT NULL, `sourceEventId` TEXT NOT NULL, `canonicalRecognitionId` TEXT NOT NULL, `excluded` INTEGER NOT NULL, `operationId` TEXT NOT NULL, PRIMARY KEY(`accountId`, `sourceEventId`))")
+            }
+        }
 
         val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {

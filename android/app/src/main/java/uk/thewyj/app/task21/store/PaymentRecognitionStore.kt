@@ -12,6 +12,9 @@ import uk.thewyj.app.task21.FinanceDirection
  * in-memory fake so the whole pipeline is unit testable without a device.
  */
 interface PaymentRecognitionStoreContract {
+    fun eventBelongsToRecognition(accountId: String, recognitionId: String, eventId: String): Boolean = true
+    fun applyReconciliationReceipt(accountId: String, operationId: String, body: String): Boolean = false
+    fun recordUserDecision(accountId: String, recognitionId: String, decision: String) {}
     fun <T> transaction(block: () -> T): T = block()
     fun saveEventAlias(accountId: String, sourceEventId: String, recognitionId: String) {}
     fun recognitionsByReference(accountId: String, reference: String): List<PaymentRecognitionRecord> = emptyList()
@@ -71,13 +74,48 @@ interface PaymentRecognitionStoreContract {
 }
 
 class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : PaymentRecognitionStoreContract {
+    override fun eventBelongsToRecognition(accountId: String, recognitionId: String, eventId: String): Boolean {
+        val mapping=database.reconciliationDao().alias(accountId,eventId.removePrefix("notification#event#")) ?: return true
+        return mapping.canonicalRecognitionId==recognitionId
+    }
+    override fun applyReconciliationReceipt(accountId: String, operationId: String, body: String) =
+        uk.thewyj.app.task21.payment.PaymentReconciliation(database).applyReceipt(accountId, operationId, org.json.JSONObject(body))
     private val dao get() = database.paymentDao()
+    private fun alias(accountId: String, eventId: String): PaymentRecognitionEntity? =
+        (database.reconciliationDao().alias(accountId, eventId) ?: database.reconciliationDao().alias(accountId, eventId.removePrefix("notification#event#")))
+            ?.let { dao.recognition(accountId, it.canonicalRecognitionId) }
+    override fun recordUserDecision(accountId: String, recognitionId: String, decision: String) {
+        database.reconciliationDao().decide(PaymentUserDecisionEntity(accountId, recognitionId, decision, System.currentTimeMillis()))
+    }
+    private fun effective(row: PaymentRecognitionEntity): PaymentRecognitionRecord {
+        val link = database.reconciliationDao().effective(row.accountId, row.recognitionId) ?: return row.toModel()
+        if (link.excluded == 1) return row.toModel().copy(state = "FINANCE_PENDING_CONFIRMATION", identityReviewReason = "reconciliation_detached")
+        val canonical = dao.recognition(row.accountId, link.canonicalRecognitionId) ?: return row.toModel().copy(identityReviewReason = "reconciliation_canonical_missing")
+        // Every historic delivery reads the primary recognition's latest
+        // accepted facts. Its own old overlay remains association audit only.
+        val o = database.reconciliationDao().effective(row.accountId, canonical.recognitionId) ?: link
+        return canonical.toModel().copy(amountMinor = o.amountMinor, financialPhase = o.financialPhase,
+            lifecycleOperation = o.lifecycleOperation, lifecycleRevision = o.lifecycleRevision,
+            lifecycleReference = o.lifecycleReference, providerReference = o.providerReference,
+            referenceNamespace = o.referenceNamespace, identityReviewReason = "", completionConfirmed = true,
+            state = "FINANCE_RECORDED")
+    }
     override fun <T> transaction(block: () -> T): T = database.runInTransaction(java.util.concurrent.Callable { block() })
     override fun saveEventAlias(accountId: String, sourceEventId: String, recognitionId: String) =
         dao.insertEventAlias(PaymentEventAliasEntity(accountId, sourceEventId, recognitionId))
-    override fun recognitionsByReference(accountId: String, reference: String) = dao.recognitionsByReference(accountId, reference).map { it.toModel() }
+    override fun recognitionsByReference(accountId: String, reference: String): List<PaymentRecognitionRecord> {
+        val base = dao.recognitionsByReference(accountId, reference)
+        val effectiveIds = mutableListOf<String>()
+        database.openHelper.readableDatabase.query("SELECT recognitionId FROM payment_effective_recognitions WHERE accountId=? AND (providerReference=? OR lifecycleReference=?) AND excluded=0", arrayOf(accountId, reference, reference)).use { c -> while(c.moveToNext()) effectiveIds += c.getString(0) }
+        return (base + effectiveIds.mapNotNull { dao.recognition(accountId, it) }).map(::effective)
+            .filter { it.providerReference == reference || it.lifecycleReference == reference }.distinctBy { it.recognitionId }
+    }
     override fun recognitionsByMessageProof(accountId: String, proof: String) = dao.recognitionsByMessageProof(accountId, "proof:$proof:").map { it.toModel() }
-    override fun eventAliases(accountId: String, recognitionId: String) = dao.eventAliases(accountId, recognitionId)
+    override fun eventAliases(accountId: String, recognitionId: String): List<String> = (dao.eventAliases(accountId, recognitionId) +
+        database.reconciliationDao().members(accountId, recognitionId).flatMap { m -> dao.recognition(accountId, m.recognitionId)?.let { listOf(it.sourceEventId, it.uploadEventId) }.orEmpty() }).filter(String::isNotBlank).distinct().filter {
+            val o=database.reconciliationDao().alias(accountId,it.removePrefix("notification#event#"))
+            o==null || (o.excluded==0 && o.canonicalRecognitionId==recognitionId)
+        }
     override fun localBooking(accountId: String, eventId: String) = dao.localBooking(accountId, eventId)?.toModel()
     override fun localBookings(accountId: String) = dao.localBookings(accountId).map { it.toModel() }
     override fun bookLocally(booking: uk.thewyj.app.task21.payment.LocalPaymentBooking, recognition: PaymentRecognitionRecord, candidate: PaymentCandidate) {
@@ -105,17 +143,24 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
         }
     }
 
-    override fun saveRecognition(record: PaymentRecognitionRecord) = dao.upsertRecognition(record.toEntity())
+    override fun saveRecognition(record: PaymentRecognitionRecord) {
+        val original = dao.recognition(record.accountId, record.recognitionId)
+        if (original != null && database.reconciliationDao().effective(record.accountId, record.recognitionId) != null) {
+            // Completion facts are read through the overlay. A routine lifecycle
+            // callback must never overwrite the original source evidence.
+            dao.upsertRecognition(original.copy(state = record.state, updatedAtMs = record.updatedAtMs))
+        } else dao.upsertRecognition(record.toEntity())
+    }
 
     override fun recognition(accountId: String, recognitionId: String): PaymentRecognitionRecord? =
-        dao.recognition(accountId, recognitionId)?.toModel()
+        dao.recognition(accountId, recognitionId)?.let(::effective)
 
     override fun recognitionBySourceEvent(accountId: String, sourceEventId: String): PaymentRecognitionRecord? =
-        (dao.recognitionBySourceEvent(accountId, sourceEventId) ?: dao.recognitionByAlias(accountId, sourceEventId))?.toModel()
+        (alias(accountId, sourceEventId) ?: dao.recognitionBySourceEvent(accountId, sourceEventId) ?: dao.recognitionByAlias(accountId, sourceEventId))?.let(::effective)
 
     override fun recognitionByUploadEvent(accountId: String, uploadEventId: String): PaymentRecognitionRecord? =
-        (dao.recognitionByUploadEvent(accountId, uploadEventId) ?: dao.recognitionByAlias(accountId, "notification#event#$uploadEventId")
-            ?: dao.recognitionByAlias(accountId, uploadEventId))?.toModel()
+        (alias(accountId, uploadEventId) ?: dao.recognitionByUploadEvent(accountId, uploadEventId) ?: dao.recognitionByAlias(accountId, "notification#event#$uploadEventId")
+            ?: dao.recognitionByAlias(accountId, uploadEventId))?.let(::effective)
 
     override fun legacyRecognitionForHint(
         accountId: String,

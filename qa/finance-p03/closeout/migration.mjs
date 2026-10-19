@@ -54,7 +54,7 @@ async function check(id,fn){let actual,error;try{actual=await fn()}catch(e){erro
 const rows=(connection)=>connection.prepare('SELECT id,amount_minor,currency FROM task16_finance_transactions ORDER BY id').all().then(r=>r.results);
 const event=(id)=>({event_id:id,fingerprint:'e'.repeat(64),payment_channel:'wechat',source_package:'com.tencent.mm',provider_reference:'',direction:'expense',amount_minor:3400,currency:'CNY',merchant:'synthetic',counterparty:'',occurred_at_ms:1792368000000,received_at_ms:1792368000000,confidence:950,parser_version:'wechat-4'});
 try {
-  for(const name of (await fs.readdir(path.join(root,'cloudflare/migrations'))).filter(n=>/^\d{4}.*\.sql$/.test(n)&&!n.startsWith('0028_')).sort())
+  for(const name of (await fs.readdir(path.join(root,'cloudflare/migrations'))).filter(n=>/^\d{4}.*\.sql$/.test(n)&&Number(n.slice(0,4))<28).sort())
     await db.exec((await fs.readFile(path.join(root,'cloudflare/migrations',name),'utf8')).replace(/\r?\n/g,' '));
   await db.prepare(`INSERT INTO task12_users (id,username,username_normalized,password_hash,password_scheme,password_iterations,role,registered_at,created_at,updated_at,source_updated_at)
     VALUES(?1,?1,?1,'','reset_required',0,'user',?2,?2,?2,?2)`).bind(account.id,now).run();
@@ -76,14 +76,14 @@ try {
     assert.ok(!columns.includes('lifecycle_operation'));assert.equal(await old.ensureTask21Schema(db),true);return {failure,rows:priorRows,metadata:'3'};
   });
   await check('DM02-RETRY-ADDITIVE-UPGRADE',async()=>{
-    await db.batch(statements.map(s=>db.prepare(s)));assert.equal(await ensureTask21Schema(db),true);assert.equal(await old.ensureTask21Schema(db),false);
+    await db.batch(statements.map(s=>db.prepare(s)));await db.batch(sql(await fs.readFile(path.join(root,'cloudflare/migrations/0029_payment_reconciliation.sql'),'utf8')).map(s=>db.prepare(s)));assert.equal(await ensureTask21Schema(db),true);assert.equal(await old.ensureTask21Schema(db),false);
     assert.deepEqual(await rows(db),priorRows);
     const receipt=await db.prepare("SELECT result_json FROM task21_notification_sync_operations WHERE operation_id='synthetic-original-operation'").first();
-    assert.equal(JSON.parse(receipt.result_json).transaction_id,original.transaction_id);return {rows:priorRows,receipt,metadata:'4'};
+    assert.equal(JSON.parse(receipt.result_json).transaction_id,original.transaction_id);return {rows:priorRows,receipt,metadata:'5'};
   });
   await check('DM03-REPEATED-DDL-FAILS-CLOSED',async()=>{
     await assert.rejects(()=>db.batch(statements.map(s=>db.prepare(s))),/duplicate column/);assert.deepEqual(await rows(db),priorRows);
-    assert.equal(await ensureTask21Schema(db),true);return {rows:await rows(db),metadata:'4',raw_ddl_replay:'REFUSED_NOT_A_DESTRUCTIVE_RETRY'};
+    assert.equal(await ensureTask21Schema(db),true);return {rows:await rows(db),metadata:'5',raw_ddl_replay:'REFUSED_NOT_A_DESTRUCTIVE_RETRY'};
   });
   await check('DM04-ACTUAL-OLD-API-FAILS-READINESS',async()=>{
     const response=await oldApi.handleTask21Request({request:new Request('https://synthetic.invalid/api/notification/ingest',{method:'POST',body:'{}'}),env:{WYJ_DB:db,
@@ -97,12 +97,12 @@ try {
   await mf.dispose();mf=null;
   await check('DM05-CLOSED-SNAPSHOT-RESTORE-V3-AND-V4',async()=>{
     const snapshots=[];
-    for(const [version,expected,data] of [['3',priorRows,snapshotV3],['4',newRows,snapshotV4]]) {
+    for(const [version,expected,data] of [['3',priorRows,snapshotV3],['5',newRows,snapshotV4]]) {
       const serialized=JSON.stringify(data);const digest=createHash('sha256').update(serialized).digest('hex');
       const restored=await restore(JSON.parse(serialized));
       try {
         assert.deepEqual(await rows(restored.connection),expected);
-        assert.equal(await old.ensureTask21Schema(restored.connection),version==='3');assert.equal(await ensureTask21Schema(restored.connection),version==='4');
+        assert.equal(await old.ensureTask21Schema(restored.connection),version==='3');assert.equal(await ensureTask21Schema(restored.connection),version==='5');
         const after=await snapshot(restored.connection);assert.deepEqual(after.tables,data.tables);assert.deepEqual(after.sequences,data.sequences);
         snapshots.push({version,rows:expected,sha256:digest,tables:data.tables.length,sequences:data.sequences,mode:'LOGICAL_SQL_SCHEMA_AND_ROWS_RESTORE_IN_NEW_D1_RUNTIME'});
       } finally {await restored.runtime.dispose()}

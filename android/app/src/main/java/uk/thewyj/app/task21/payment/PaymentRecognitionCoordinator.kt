@@ -667,6 +667,7 @@ class PaymentRecognitionCoordinator(
             ) ?: return null
         }
         val confirmed = candidate.copy(status = "confirmed", updatedAtMs = now())
+        store.recordUserDecision(accountId, candidate.recognitionId, "candidate_confirm")
         store.saveCandidate(confirmed)
         val recognition = store.recognition(accountId, confirmed.recognitionId)
         if (recognition != null) {

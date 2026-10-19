@@ -50,6 +50,7 @@ object LocalPaymentLedger {
         }
         if (changed) PaymentReviewSignals.publish()
         val queue = NotificationOfflineQueue.inDirectory(context.filesDir, accountId)
+        PaymentReconciliation(database).recover(accountId, queue)
         for (booking in store.localBookings(accountId).filter { it.syncState == "identity_pending" }) {
             val recognition = store.recognition(accountId, booking.recognitionId) ?: continue
             val aliases = archive.structuredEventIdsForRecognition(accountId, recognition.sourceEventId).distinct()
@@ -126,8 +127,9 @@ object LocalPaymentLedger {
                 archive.structuredEventIdsForRecognition(account.accountId, it.sourceEventId)
             }.orEmpty() + store.eventAliases(account.accountId, booking.recognitionId).filterNot {
                 it.startsWith("proof:") || it.startsWith("observation:") }.map { it.removePrefix("notification#event#") } + booking.eventId
+            val ownedAliases=aliases.filter { store.eventBelongsToRecognition(account.accountId,booking.recognitionId,it) }
             transactions.put(JSONObject()
-            .put("event_ids", JSONArray(aliases.distinct()))
+            .put("event_ids", JSONArray(ownedAliases.distinct()))
             .put("event_id", booking.eventId).put("sync_state", booking.syncState)
             .put("local_id", PaymentAutoBook.transactionId(booking.accountId, booking.eventId))
             .put("id", booking.transactionId).put("amount_minor", booking.amountMinor)
@@ -146,7 +148,7 @@ object LocalPaymentLedger {
             val aliases = (archive.structuredEventIdsForRecognition(account.accountId, record.sourceEventId) +
                 store.eventAliases(account.accountId, record.recognitionId).filterNot { it.startsWith("proof:") || it.startsWith("observation:") }
                     .map { it.removePrefix("notification#event#") } + id)
-                .filter(String::isNotBlank).distinct()
+                .filter(String::isNotBlank).distinct().filter { store.eventBelongsToRecognition(account.accountId,record.recognitionId,it) }
             reviews.put(JSONObject().put("id", id).put("event_id", id).put("event_ids", JSONArray(aliases))
                 .put("state", "pending").put("kind", "hint").put("amount_minor", amount ?: JSONObject.NULL)
                 .put("direction", direction.lowercase()).put("merchant", candidate?.effectiveMerchant ?: record.merchant)

@@ -452,6 +452,20 @@ class NotificationCaptureCoordinator(
                     // device log ends with the real transaction id.
                     runCatching {
                         val json = org.json.JSONObject(response.body)
+                        if (uk.thewyj.app.task21.payment.PaymentReconciliation.isRequest(request.body)) {
+                            if (paymentHook?.onReconciliationReceipt(current.accountId, request.operationId, response.body) == true) {
+                                ingestQueue.remove(request.operationId)
+                                uploaded += 1
+                            } else {
+                                val pending = json.optJSONArray("operation_results")?.optJSONObject(0)
+                                if (pending?.optString("reconciliation_status") == "pending")
+                                    ingestQueue.markRejected(request.operationId, pending.optString("reason", "reconciliation_pending"))
+                                else if(pending?.optString("reconciliation_status")=="applied")
+                                    ingestQueue.markRejected(request.operationId,"local_reconciliation_receipt_conflict")
+                                retryableFailures += 1
+                            }
+                            return@runCatching
+                        }
                         val result = json.optJSONArray("operation_results")?.optJSONObject(0)
                         val transactionId = result?.optString("transaction_id").orEmpty()
                         val candidateId = result?.optString("candidate_id").orEmpty()

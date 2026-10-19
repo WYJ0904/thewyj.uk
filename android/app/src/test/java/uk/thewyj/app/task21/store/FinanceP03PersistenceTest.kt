@@ -47,7 +47,7 @@ class FinanceP03PersistenceTest {
         val queue = NotificationOfflineQueue.inDirectory(queueDir, "synthetic-p03-old-owner")
         repeat(3) { queue.enqueueRequest("synthetic-p03-old-event", "/api/notification/ingest", "{\"synthetic\":true}") }
         val db = Room.databaseBuilder(context, NotificationDatabase::class.java, file.absolutePath)
-            .addMigrations(NotificationDatabase.MIGRATION_10_11, NotificationDatabase.MIGRATION_11_12).allowMainThreadQueries().build()
+            .addMigrations(NotificationDatabase.MIGRATION_10_11, NotificationDatabase.MIGRATION_11_12, NotificationDatabase.MIGRATION_12_13).allowMainThreadQueries().build()
         try {
             val store = RoomPaymentRecognitionStore(db)
             val old = store.recognition("synthetic-p03-old-owner", "synthetic-p03-old-rec")!!
@@ -74,7 +74,7 @@ class FinanceP03PersistenceTest {
             }
         }
         val db = Room.databaseBuilder(context, NotificationDatabase::class.java, file.absolutePath)
-            .addMigrations(failing, NotificationDatabase.MIGRATION_11_12).allowMainThreadQueries().build()
+            .addMigrations(failing, NotificationDatabase.MIGRATION_11_12, NotificationDatabase.MIGRATION_12_13).allowMainThreadQueries().build()
         try {
             try { db.openHelper.writableDatabase; fail("migration must fail") } catch (e: IllegalStateException) {
                 assertTrue(e.message.orEmpty().contains("SYNTHETIC_MIGRATION_FAILURE")) }

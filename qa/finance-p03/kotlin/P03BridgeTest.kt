@@ -20,7 +20,7 @@ internal class Bridge(private val transport: NotificationIngestTransport, privat
     val output = File(System.getProperty("finance.p03.output")).apply { mkdirs() }
     val context: Application = RuntimeEnvironment.getApplication()
     val db = Room.databaseBuilder(context, NotificationDatabase::class.java, File(output, "bridge.db").absolutePath)
-        .addMigrations(NotificationDatabase.MIGRATION_10_11, NotificationDatabase.MIGRATION_11_12).allowMainThreadQueries().build()
+        .addMigrations(NotificationDatabase.MIGRATION_10_11, NotificationDatabase.MIGRATION_11_12, NotificationDatabase.MIGRATION_12_13).allowMainThreadQueries().build()
     val store = RoomPaymentRecognitionStore(db)
     val queue = NotificationOfflineQueue.inDirectory(File(output, "queue"), OWNER)
     private val sink = object : NotificationArchiveSink {

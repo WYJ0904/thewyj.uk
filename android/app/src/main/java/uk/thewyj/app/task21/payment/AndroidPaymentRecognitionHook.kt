@@ -272,6 +272,12 @@ class AndroidPaymentRecognitionHook private constructor(
         PaymentReviewSignals.publish()
     }
 
+    override fun onReconciliationReceipt(accountId: String, operationId: String, body: String): Boolean {
+        val applied=store.applyReconciliationReceipt(accountId, operationId, body)
+        if(applied) PaymentReviewSignals.publish()
+        return applied
+    }
+
     override fun appLabelFor(input: NotificationCaptureInput): String =
         PaymentAppLabels.resolve(appContext, input.sourcePackage)
 

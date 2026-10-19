@@ -32,12 +32,14 @@ try{
   await db.batch(statements.map(s=>db.prepare(s)));
   const next=(await fs.readFile(path.join(root,'cloudflare/migrations/0028_payment_lifecycle_accounting.sql'),'utf8')).replace(/\/\*[\s\S]*?\*\//g,'').split(';').map(s=>s.trim()).filter(Boolean);
   await db.batch(next.map(s=>db.prepare(s)));
-  assert.equal((await db.prepare("SELECT value FROM task21_metadata WHERE key='schema_version'").first()).value,'4');
+  const reconcile=(await fs.readFile(path.join(root,'cloudflare/migrations/0029_payment_reconciliation.sql'),'utf8')).replace(/\/\*[\s\S]*?\*\//g,'').split(';').map(s=>s.trim()).filter(Boolean);
+  await db.batch(reconcile.map(s=>db.prepare(s)));
+  assert.equal((await db.prepare("SELECT value FROM task21_metadata WHERE key='schema_version'").first()).value,'5');
   assert.equal(await ensureTask21Schema(db),true);
   assert.deepEqual(await db.prepare('SELECT id,amount_minor,currency FROM task16_finance_transactions WHERE id=?1').bind(old.transaction_id).first(),original);
   const receipt=await db.prepare("SELECT result_json FROM task21_notification_sync_operations WHERE user_id=?1 AND operation_id='synthetic-old-operation'").bind(account.id).first();
   assert.equal(JSON.parse(receipt.result_json).transaction_id,old.transaction_id);
-  records.push({case_id:'M02-D1-ADDITIVE-UPGRADE',status:'PASS',actual:{original,receipt,metadata:'4',old_server_readiness_v2:false},coverage:'REAL_PRE_P03_SCHEMA_UPGRADE_AND_OLD_RECEIPT_RETENTION'});
+  records.push({case_id:'M02-D1-ADDITIVE-UPGRADE',status:'PASS',actual:{original,receipt,metadata:'5',old_server_readiness_v2:false},coverage:'REAL_PRE_P03_SCHEMA_UPGRADE_AND_OLD_RECEIPT_RETENTION'});
 }catch(e){records.push({case_id:'M-HARNESS-FAIL',status:'FAIL',error:e.stack});process.exitCode=1}
 finally{await fs.writeFile(file,JSON.stringify(records,null,2));await mf.dispose()}
 console.log(JSON.stringify(records.map(r=>({case_id:r.case_id,status:r.status})),null,2));

@@ -373,7 +373,7 @@ async function bindingHealth(env, flags) {
         "SELECT value FROM task16_metadata WHERE key = ?1",
       ).bind("schema_version").first();
       task16.schema_version = String(row?.value || "");
-      task16.schema_ready = task16.schema_version === "1";
+      task16.schema_ready = ["1", "2"].includes(task16.schema_version);
       if (!task16.schema_ready && (flags.task16CloudReads || flags.task16CloudWrites)) {
         degraded.push("task16_schema_not_ready");
       }

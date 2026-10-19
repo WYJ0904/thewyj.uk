@@ -213,6 +213,7 @@ data class PaymentIngestOutcome(
 )
 
 interface PaymentRecognitionHook {
+    fun onReconciliationReceipt(accountId: String, operationId: String, body: String): Boolean = false
     fun localFinanceTransactionId(accountId: String, eventId: String): String = ""
     fun prepareLocalBookings(accountId: String, deviceId: String) {}
     /**

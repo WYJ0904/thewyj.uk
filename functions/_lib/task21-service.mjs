@@ -1,3 +1,4 @@
+import {applyPaymentReconciliation,reconciledIngestReceipt,recordPaymentUserDecision} from './task21-reconciliation.mjs';
 import { sha256Hex } from "./cloudflare-foundation.mjs";
 import { publicTransaction } from "./task16-model.mjs";
 import {lifecycleRows,lifecycleBalance,lifecycleReason,lifecycleGuardStatement,RECOVERABLE_LIFECYCLE_REASONS} from './task21-lifecycle.mjs';
@@ -21,7 +22,7 @@ import {
 } from "./task21-model.mjs";
 
 const MAX_CLOCK_MS = 4_102_444_800_000;
-const OPERATION_TYPES = new Set(["event.ingest"]);
+const OPERATION_TYPES = new Set(["event.ingest", "payment.reconcile"]);
 
 function requireDatabase(db) {
   if (!db?.prepare) throw new Task21Error("通知归档数据库暂时不可用", 503, "notification_database_unavailable", true);
@@ -84,7 +85,9 @@ export async function ensureTask21Schema(db) {
   if (!db?.prepare) return false;
   try {
     const row = await first(db, "SELECT value FROM task21_metadata WHERE key = ?1", ["schema_version"]);
-    return String(row?.value || "") === TASK21_DB_SCHEMA_VERSION;
+    if(String(row?.value||'')!==TASK21_DB_SCHEMA_VERSION)return false;
+    const finance=await first(db,"SELECT value FROM task16_metadata WHERE key='schema_version'");
+    return String(finance?.value||'')==='2';
   } catch (_) {
     return false;
   }
@@ -161,7 +164,41 @@ async function financeTransactionIdForRaw(db, rawId) {
   return String(row?.transaction_id || "");
 }
 
+/** Shared with every automatic finance creator, including legacy hint paths.
+ * Old wire-v1 callers may omit the new lifecycle fields; that must not make an
+ * already corrected operation look like an independent fresh expense. */
+async function correctedPaymentIdentity(db,account,event) {
+  const ready=await first(db,"SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='task21_payment_effective_events'");
+  if(!Number(ready?.n))return null;
+  const own=await first(db,'SELECT event_id FROM task21_payment_effective_events WHERE user_id=?1 AND event_id=?2',[account.id,event.event_id]);
+  if(own)return own;
+  if(!event.provider_reference)return null;
+  const namespace=event.reference_namespace||referenceNamespaceForSource(event);
+  const unknownBank=/^bank/.test(event.payment_channel||'')&&['','bank','sms','notification'].includes(event.source_package||'');
+  return first(db,`SELECT o.event_id FROM task21_payment_effective_events o JOIN task21_notification_events e
+    ON e.user_id=o.user_id AND e.event_id=o.event_id WHERE o.user_id=?1 AND
+    (o.reference_namespace=?2 OR (?6=1 AND o.reference_namespace LIKE 'bank_card:%')) AND o.provider_reference=?3
+    AND (?4='' OR o.financial_phase=?4) AND (?5='' OR e.direction=?5) LIMIT 1`,
+    [account.id,namespace,event.provider_reference,event.financial_phase||'',event.direction||'',unknownBank?1:0]);
+}
+
+/** A corrected event already has a durable source/ledger owner. Legacy hint
+ * retries acknowledge that real receipt rather than invent a new hint or run
+ * old reference matching against superseded associations. */
+export async function correctedPaymentHintReceipt(db,account,event) {
+  if(!await correctedPaymentIdentity(db,account,event))return null;
+  const receipt=await reconciledIngestReceipt(db,account,event.event_id,{});
+  if(receipt.reconciliation_status==='applied'&&receipt.transaction?.status==='active')return {
+    ...receipt,event:{event_id:event.event_id},receipt_reconciled:true};
+  throw new Task21Error('该核实请求的更正关联仍需权威证据，原请求保留',409,'reconciliation_requires_authority');
+}
+
 export async function createAutomaticFinanceTransaction(db, account, deviceId, event) {
+  if(await correctedPaymentIdentity(db,account,event)) {
+    const receipt=await reconciledIngestReceipt(db,account,event.event_id,{});
+    if(receipt.reconciliation_status==='applied'&&receipt.transaction_id)return {transaction_id:receipt.transaction_id,duplicate:true};
+    throw new Task21Error('更正后的身份需要精确权威关联，已保留原始证据',409,'reconciliation_requires_authority');
+  }
   const providerReference = String(event.provider_reference || "");
   const rawSourceProvider = financeReferenceProvider(event);
   const replayReference=financeReplayReference(event);
@@ -466,6 +503,21 @@ async function canonicalHintForEvent(db, account, event, now) {
 }
 
 async function attachEventOutcome(db, account, event, deviceId, now) {
+  // Once a reference has an attested correction, a previously unseen alias
+  // must prove its relation to that operation. Do not let the old raw amount
+  // create a second expense or silently reattach an explicitly detached alias.
+  {
+    const corrected=await correctedPaymentIdentity(db,account,event);
+    if(corrected) {
+      const own=await reconciledIngestReceipt(db,account,event.event_id,{});
+      if(own.reconciliation_status)return {transactionId:own.transaction_id,candidateId:''};
+      const reason='reconciliation_alias_requires_authority';
+      await run(db,'UPDATE task21_notification_events SET lifecycle_review_reason=?3 WHERE user_id=?1 AND event_id=?2',[account.id,event.event_id,reason]);
+      const candidate=await candidateForEvent(db,account,event,now);
+      await run(db,'UPDATE task21_notification_events SET candidate_id=?3 WHERE user_id=?1 AND event_id=?2',[account.id,event.event_id,candidate.id]);
+      return {transactionId:'',candidateId:candidate.id};
+    }
+  }
   if (event.financial_phase && event.lifecycle_reference && event.reference_namespace) {
     financeReferenceProvider(event); // Controls require the same issuer proof as charges.
     const rows=await lifecycleRows(db,account.id,event.reference_namespace,event.lifecycle_reference);
@@ -629,6 +681,8 @@ async function processIngest(db, account, deviceId, operation) {
         String(existingEvent.lifecycle_reference||'')!==event.lifecycle_reference || String(existingEvent.reference_namespace||'')!==event.reference_namespace ||
         (existingEvent.provider_reference && event.provider_reference && existingEvent.provider_reference!==event.provider_reference))
       throw new Task21Error('事件身份对应冲突的财务证据',409,'event_identity_conflict');
+    const correction=await reconciledIngestReceipt(db,account,event.event_id,{});
+    if(correction.reconciliation_status) return {...correction,event:publicNotificationEvent(existingEvent),duplicate:true};
     if (existingEvent.finance_transaction_id) {
       if((event.provider_reference || event.lifecycle_identity) && !paymentReviewReason(event))
         await createAutomaticFinanceTransaction(db,account,deviceId,event);
@@ -668,7 +722,17 @@ async function processIngest(db, account, deviceId, operation) {
   };
 }
 
-async function processOperation(db, account, deviceId, operation) {
+async function processOperation(db, account, deviceId, operation, authority) {
+  if (operation?.type==='payment.reconcile') {
+    const result=await applyPaymentReconciliation(db,account,deviceId,operation,authority);
+    if(result.reconciliation_status==='applied') {
+      const effective=result.effective;
+      const related=await lifecycleRows(db,account.id,effective.reference_namespace,effective.lifecycle_reference);
+      for(const pending of related.filter(r=>RECOVERABLE_LIFECYCLE_REASONS.has(r.lifecycle_review_reason)))
+        await attachEventOutcome(db,account,eventFromStoredRow(pending),pending.device_id,isoNow());
+    }
+    return result;
+  }
   requireAllowedFields(operation,new Set(['operation_id','type','payload']));
   if (operation.type==='event.ingest') normalizeNotificationEvent(operation.payload);
   const digest = await operationDigest(operation);
@@ -682,12 +746,12 @@ async function processOperation(db, account, deviceId, operation) {
     if (!replay.transaction_id && eventId) {
       const row = await first(db, `SELECT * FROM task21_notification_events
         WHERE user_id = ?1 AND event_id = ?2`, [account.id, eventId]);
-      if (row?.finance_transaction_id) return {
+      if (row?.finance_transaction_id) return reconciledIngestReceipt(db,account,eventId,{
         ...replay, event: publicNotificationEvent(row), transaction_id: row.finance_transaction_id,
         receipt_reconciled: true,
-      };
+      });
     }
-    return replay;
+    return eventId ? reconciledIngestReceipt(db,account,eventId,replay) : replay;
   }
   const type = String(operation?.type || "").trim();
   if (!OPERATION_TYPES.has(type)) throw new Task21Error("同步操作类型无效", 400, "operation_type_invalid");
@@ -714,7 +778,7 @@ async function recordOperation(db, account, deviceId, operation, digest, result)
   }
 }
 
-export async function ingestNotificationEvents(db, account, input) {
+export async function ingestNotificationEvents(db, account, input, authority) {
   requireFinanceRecognitionAccess(account);
   requireAllowedFields(input, new Set(["schema_version", "device_id", "operations"]));
   if (Number(input.schema_version) !== Number(TASK21_SCHEMA_VERSION)) {
@@ -725,7 +789,7 @@ export async function ingestNotificationEvents(db, account, input) {
   if (operations.length > MAX_INGEST_OPERATIONS) throw new Task21Error("一次采集的事件过多", 413, "too_many_operations");
   const results = [];
   for (const operation of operations) {
-    results.push(await processOperation(db, account, deviceId, operation));
+    results.push(await processOperation(db, account, deviceId, operation, authority));
   }
   return { schema_version: Number(TASK21_SCHEMA_VERSION), operation_results: results, device_id: deviceId };
 }
@@ -736,7 +800,7 @@ export async function listNotificationEvents(db, account, input = {}) {
   const beforeId = input.before_id ? cleanId(input.before_id, "游标事件标识") : "~~~~~~~~";
   const limit = Math.min(MAX_EVENT_PAGE, Math.max(1, Number.parseInt(String(input.limit || 50), 10) || 50));
   const includeDeleted = String(input.include_deleted || "").toLowerCase() === "true";
-  const rows = await all(db, `SELECT * FROM task21_notification_events
+  const rows = await all(db, `SELECT * FROM task21_payment_effective_view
     WHERE user_id = ?1
       AND (received_at_ms < ?2 OR (received_at_ms = ?2 AND event_id < ?3))
       ${includeDeleted ? "" : "AND status = 'active'"}
@@ -803,6 +867,8 @@ export async function confirmNotificationCandidate(db, account, input) {
   if (row.status !== "pending") throw new Task21Error("该候选不能确认", 409, "candidate_status_invalid");
   validateDeviceId(input.device_id);
   const event = await eventById(db, account, row.event_id);
+  const mapped=await first(db,'SELECT excluded FROM task21_payment_effective_events WHERE user_id=?1 AND event_id=?2',[account.id,event.event_id]);
+  if(mapped)throw new Task21Error('更正或解除关联的证据须按权威合同核实',409,'reconciliation_requires_authority');
   if (event.financial_phase && !['SETTLED','REFUNDED'].includes(event.financial_phase))
     throw new Task21Error('预授权或未完成清算不能记入正式支出',409,'payment_lifecycle_not_settled');
   if (event.financial_phase && (!event.lifecycle_reference || !event.provider_reference))
@@ -825,6 +891,7 @@ export async function confirmNotificationCandidate(db, account, input) {
   }
   // Edit-before-confirm: the user's corrections win and are recorded next to
   // the untouched machine evidence in the same candidate row.
+  await recordPaymentUserDecision(db,account,event.event_id,"candidate_confirm");
   const bookingEvent = {
     event_id: event.event_id,
     fingerprint: event.fingerprint,
