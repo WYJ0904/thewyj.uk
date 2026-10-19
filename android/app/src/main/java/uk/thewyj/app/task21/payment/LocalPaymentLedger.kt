@@ -26,8 +26,8 @@ object LocalPaymentLedger {
             // Never guess between multiple archived events. Existing upload identity
             // wins only if the archive does not prove a different unique identity.
             if (exact.size > 1 && record.uploadEventId !in exact) {
-                // Money completeness still books locally. Identity ambiguity
-                // blocks only an unsafe cloud replay, never asks for confirmation.
+                // A paid amount is not a transaction identity. Existing durable
+                // bookings remain, but new ambiguous rows wait for exact proof.
                 if (coordinator.autoBook(accountId, record.recognitionId, syncState = "identity_pending") != null) changed = true
                 continue
             }
@@ -77,7 +77,7 @@ object LocalPaymentLedger {
         for (booking in store.localBookings(accountId).filter { it.syncState == "pending" }) {
             val recognition = store.recognition(accountId, booking.recognitionId)
             val proven = recognition?.completionConfirmed == true
-            if (proven) {
+            if (proven && recognition?.financialPhase.isNullOrBlank()) {
                 // A former candidate may already own this event's ingest receipt.
                 // Persist the later settlement independently; retries must survive
                 // process death and close that same canonical event, not fork it.
@@ -102,6 +102,9 @@ object LocalPaymentLedger {
                 parseStatus = if (proven) ParseStatus.PARSED else ParseStatus.CANDIDATE,
                 direction = FinanceDirection.valueOf(booking.direction), amountMinor = booking.amountMinor,
                 currency = booking.currency, merchant = booking.merchant, counterparty = booking.merchant,
+                financialPhase = recognition?.financialPhase.orEmpty(), lifecycleReference = recognition?.lifecycleReference.orEmpty(),
+                referenceNamespace = recognition?.referenceNamespace.orEmpty(), currencyEvidence = recognition?.currencyEvidence.orEmpty(),
+                identityReviewReason = recognition?.identityReviewReason.orEmpty(),
                 paymentChannel = booking.paymentChannel, providerReference = booking.providerReference,
                 confidence = store.candidateForRecognition(accountId, booking.recognitionId)?.confidence?.coerceIn(0, 1000) ?: 0,
                 occurredAtMs = booking.occurredAtMs, receivedAtMs = booking.occurredAtMs,
@@ -120,7 +123,8 @@ object LocalPaymentLedger {
         for (booking in store.localBookings(account.accountId)) {
             val aliases = store.recognition(account.accountId, booking.recognitionId)?.let {
                 archive.structuredEventIdsForRecognition(account.accountId, it.sourceEventId)
-            }.orEmpty() + booking.eventId
+            }.orEmpty() + store.eventAliases(account.accountId, booking.recognitionId).filterNot {
+                it.startsWith("proof:") || it.startsWith("observation:") }.map { it.removePrefix("notification#event#") } + booking.eventId
             transactions.put(JSONObject()
             .put("event_ids", JSONArray(aliases.distinct()))
             .put("event_id", booking.eventId).put("sync_state", booking.syncState)
@@ -138,7 +142,9 @@ object LocalPaymentLedger {
             val direction = candidate?.effectiveDirection?.takeIf(String::isNotBlank) ?: record.direction
             if (store.localBooking(account.accountId, PaymentAutoBook.eventId(record)) != null) continue
             val id = PaymentAutoBook.eventId(record)
-            val aliases = (archive.structuredEventIdsForRecognition(account.accountId, record.sourceEventId) + id)
+            val aliases = (archive.structuredEventIdsForRecognition(account.accountId, record.sourceEventId) +
+                store.eventAliases(account.accountId, record.recognitionId).filterNot { it.startsWith("proof:") || it.startsWith("observation:") }
+                    .map { it.removePrefix("notification#event#") } + id)
                 .filter(String::isNotBlank).distinct()
             reviews.put(JSONObject().put("id", id).put("event_id", id).put("event_ids", JSONArray(aliases))
                 .put("state", "pending").put("kind", "hint").put("amount_minor", amount ?: JSONObject.NULL)

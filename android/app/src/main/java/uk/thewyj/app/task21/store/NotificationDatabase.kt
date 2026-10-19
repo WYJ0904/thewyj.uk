@@ -23,6 +23,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PaymentTicketEntity::class,
         PaymentCandidateEntity::class,
         LocalPaymentBookingEntity::class,
+        PaymentEventAliasEntity::class,
     ],
     version = NotificationDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -32,7 +33,7 @@ abstract class NotificationDatabase : RoomDatabase() {
     abstract fun paymentDao(): PaymentDao
 
     companion object {
-        const val SCHEMA_VERSION = 10
+        const val SCHEMA_VERSION = 11
         const val DATABASE_NAME = "wyj-notifications.db"
 
         @Volatile
@@ -47,11 +48,21 @@ abstract class NotificationDatabase : RoomDatabase() {
                 )
                     // The local archive is user data: never drop it on upgrade.
                     .addMigrations(
-                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
+                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                     )
                     .build()
                     .also { instance = it }
             }
+
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                for (name in listOf("identityReviewReason", "financialPhase", "lifecycleReference", "referenceNamespace", "currencyEvidence")) {
+                    db.execSQL("ALTER TABLE `payment_recognitions` ADD COLUMN `$name` TEXT NOT NULL DEFAULT ''")
+                }
+                db.execSQL("CREATE TABLE IF NOT EXISTS `payment_event_aliases` (`accountId` TEXT NOT NULL, `sourceEventId` TEXT NOT NULL, `recognitionId` TEXT NOT NULL, PRIMARY KEY(`accountId`, `sourceEventId`))")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_payment_event_aliases_recognitionId` ON `payment_event_aliases` (`recognitionId`)")
+            }
+        }
 
         /**
          * v1 -> v2 adds the payment recognition tables. Existing notification

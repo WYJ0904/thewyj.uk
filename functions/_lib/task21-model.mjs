@@ -1,7 +1,7 @@
 /** Client ingest protocol version (Android payloads send this value). */
 export const TASK21_SCHEMA_VERSION = "1";
 /** Task 21 readiness baseline; migration 0022 is additive for old Pages code. */
-export const TASK21_DB_SCHEMA_VERSION = "2";
+export const TASK21_DB_SCHEMA_VERSION = "3";
 export const TASK21_BUILD = "2026-09-08-task21-notification";
 export const NOTIFICATION_ENTITLEMENT = "notification_archive_access";
 export const MAX_INGEST_OPERATIONS = 100;
@@ -51,6 +51,7 @@ const ALLOWED_EVENT_FIELDS = Object.freeze(new Set([
   "currency", "payment_channel", "provider_reference", "lifecycle_identity",
   "merchant", "counterparty", "confidence",
   "occurred_at_ms", "received_at_ms",
+  "financial_phase", "lifecycle_reference", "reference_namespace", "currency_evidence", "identity_review_reason",
 ]));
 
 export class Task21Error extends Error {
@@ -148,6 +149,23 @@ export function normalizeNotificationEvent(value = {}) {
   if (lifecycleIdentity && !LIFECYCLE_IDENTITY_PATTERN.test(lifecycleIdentity)) {
     throw new Task21Error("通知生命周期标识无效", 400, "lifecycle_identity_invalid");
   }
+  const financialPhase = String(value.financial_phase || "").trim();
+  if (!["", "AUTHORIZED", "SETTLED", "RELEASED", "EXPIRED", "REFUNDED", "REVIEW_REQUIRED"].includes(financialPhase))
+    throw new Task21Error("清算状态无效", 400, "financial_phase_invalid");
+  const lifecycleReference = String(value.lifecycle_reference || "").trim();
+  if (lifecycleReference && !PROVIDER_REFERENCE_PATTERN.test(lifecycleReference))
+    throw new Task21Error("授权关联无效", 400, "lifecycle_reference_invalid");
+  const referenceNamespace = cleanText(value.reference_namespace, 160, "来源命名空间");
+  if (referenceNamespace && !/^[A-Za-z0-9._:-]+$/.test(referenceNamespace))
+    throw new Task21Error("来源命名空间无效", 400, "reference_namespace_invalid");
+  const currencyEvidence = cleanText(value.currency_evidence, 64, "币种证据");
+  const evidenceCodes = currencyEvidence ? currencyEvidence.split(",") : [];
+  if (evidenceCodes.some((code) => !/^[A-Z]{3}$/.test(code))) throw new Task21Error("币种证据无效", 400, "currency_evidence_invalid");
+  if (evidenceCodes.length === 1 && evidenceCodes[0] !== cleanCurrency(value.currency))
+    throw new Task21Error("币种与明确证据冲突", 409, "currency_evidence_conflict");
+  const identityReviewReason = cleanText(value.identity_review_reason, 80, "核实原因");
+  if (identityReviewReason && !/^[a-z0-9_]+$/.test(identityReviewReason))
+    throw new Task21Error("核实原因无效", 400, "identity_review_reason_invalid");
   const amountMinor = nonNegativeInteger(value.amount_minor || 0, "金额", 10000000000000);
   const confidence = Math.min(1000, nonNegativeInteger(value.confidence || 0, "置信度", 1000));
 
@@ -180,6 +198,9 @@ export function normalizeNotificationEvent(value = {}) {
     payment_channel: paymentChannel,
     provider_reference: providerReference,
     lifecycle_identity: lifecycleIdentity,
+    financial_phase: financialPhase, lifecycle_reference: lifecycleReference,
+    reference_namespace: referenceNamespace, currency_evidence: currencyEvidence,
+    identity_review_reason: identityReviewReason || (evidenceCodes.length > 1 ? "currency_evidence_conflict" : ""),
     merchant,
     counterparty,
     confidence,
@@ -190,6 +211,11 @@ export function normalizeNotificationEvent(value = {}) {
 
 export function publicNotificationEvent(row) {
   return {
+    financial_phase: String(row.financial_phase || ""),
+    lifecycle_reference: String(row.lifecycle_reference || ""),
+    reference_namespace: String(row.reference_namespace || ""),
+    currency_evidence: String(row.currency_evidence || ""),
+    identity_review_reason: String(row.identity_review_reason || ""),
     event_id: String(row.event_id || ""),
     device_id: String(row.device_id || ""),
     source_package: String(row.source_package || ""),

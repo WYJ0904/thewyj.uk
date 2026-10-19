@@ -128,7 +128,8 @@ class NotificationCaptureCoordinator(
         // truth). Everything else keeps the notification parser. Complete
         // amount and direction use one event id for automatic ledger booking;
         // confidence remains diagnostic evidence.
-        val payment = if (current.financeEntitled) paymentHook?.outcomeFor(input) else null
+        var payment = if (current.financeEntitled) paymentHook?.outcomeFor(input)?.let {
+            paymentHook.prepareIdentity(current.accountId, input, it) } else null
         // Android apps may update one StatusBarNotification in place while also
         // changing postTime. Payment identity follows the notification slot
         // until onNotificationRemoved, not that mutable timestamp.
@@ -138,9 +139,9 @@ class NotificationCaptureCoordinator(
             NotificationFingerprint.stableEventId()
         }
         val paymentInput = if (payment != null) input.copy(paymentEventId = eventId) else input
-        val structured = if (payment != null) {
+        var structured = if (payment != null) {
             val refund = payment.direction == FinanceDirection.REFUND
-            val parsedPayment = payment.confirmed && payment.amountMinor > 0 &&
+            val parsedPayment = payment.confirmed && payment.identityReviewReason.isBlank() && payment.amountMinor > 0 &&
                 payment.direction != FinanceDirection.UNKNOWN
             StructuredNotificationEvent(
                 eventId = eventId,
@@ -148,10 +149,10 @@ class NotificationCaptureCoordinator(
                 sourcePackage = input.sourcePackage,
                 eventType = if (refund) NotificationEventType.REFUND else NotificationEventType.TRANSACTION,
                 parserVersion = payment.parserVersion,
-                parseStatus = if (parsedPayment) ParseStatus.PARSED else ParseStatus.CANDIDATE,
+                parseStatus = if (parsedPayment) ParseStatus.PARSED else if (payment.amountMinor > 0 && payment.direction != FinanceDirection.UNKNOWN) ParseStatus.CANDIDATE else ParseStatus.UNPARSED,
                 direction = payment.direction,
                 amountMinor = payment.amountMinor,
-                currency = "CNY",
+                currency = payment.currency,
                 paymentChannel = payment.paymentChannel,
                 merchant = payment.merchant,
                 counterparty = payment.counterparty,
@@ -159,7 +160,10 @@ class NotificationCaptureCoordinator(
                 occurredAtMs = input.receivedAtMs,
                 receivedAtMs = input.receivedAtMs,
                 providerReference = payment.providerReference,
-                lifecycleIdentity = input.messageIdentity,
+                lifecycleIdentity = paymentMessageProof(input),
+                financialPhase = payment.financialPhase, lifecycleReference = payment.lifecycleReference,
+                referenceNamespace = payment.referenceNamespace, currencyEvidence = payment.currencyEvidence,
+                identityReviewReason = payment.identityReviewReason,
             )
         } else {
             StructuredNotificationEvent(
@@ -228,6 +232,12 @@ class NotificationCaptureCoordinator(
             uploadEventId = if (payment != null) eventId else "",
         )
         if (!current.financeEntitled) return
+        if (payment != null && paymentHook != null) {
+            payment = paymentHook.prepareIdentity(current.accountId, paymentInput, payment)
+            structured = structured.copy(identityReviewReason = payment.identityReviewReason,
+                parseStatus = if (payment.confirmed && payment.identityReviewReason.isBlank() && payment.amountMinor > 0 && payment.direction != FinanceDirection.UNKNOWN)
+                    ParseStatus.PARSED else if (payment.amountMinor > 0 && payment.direction != FinanceDirection.UNKNOWN) ParseStatus.CANDIDATE else ParseStatus.UNPARSED)
+        }
         if (payment != null) {
             // One trace line per payment event so a real device log shows the
             // exact identity that later has to appear in the finance ledger.
@@ -247,7 +257,8 @@ class NotificationCaptureCoordinator(
             // direction-unknown hints stay local (90 second enrichment ticket)
             // where the user completes them, and the confirmed booking is
             // uploaded afterwards with the real direction.
-            if (payment.amountMinor <= 0 || payment.direction == FinanceDirection.UNKNOWN) {
+            if ((payment.amountMinor <= 0 || payment.direction == FinanceDirection.UNKNOWN) &&
+                payment.financialPhase.isBlank() && payment.identityReviewReason.isBlank()) {
                 // Incomplete but real: publish it as a pending hint so /finance and
                 // the app share one pending source of truth (P0-3). A hint can
                 // never create a transaction on its own.
@@ -265,7 +276,7 @@ class NotificationCaptureCoordinator(
                     amountMinor = payment.amountMinor.takeIf { it > 0 },
                     direction = payment.direction.name,
                     merchant = payment.merchant.ifBlank { payment.counterparty },
-                    currency = "CNY",
+                    currency = payment.currency,
                     confidence = structured.confidence,
                     recognitionStatus = when {
                         payment.amountMinor > 0 -> "PAYMENT_LIKELY"

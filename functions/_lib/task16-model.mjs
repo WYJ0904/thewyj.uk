@@ -1,4 +1,5 @@
 import { notificationCashText } from "./notification-cash-evidence.mjs";
+import {explicitCurrencyCodes} from "./payment-currency-evidence.mjs";
 
 export const TASK16_SCHEMA_VERSION = "1";
 export const TASK16_BUILD = "2026-08-27-task16-finance-core";
@@ -178,6 +179,11 @@ export function classifyFinanceText(value) {
   if (!text) return { classification: "rejected", reason: "text_empty", direction: "unknown", amount_minor: 0 };
 
   const direction = directionFromSemantics(text);
+  // The legacy raw-text API has no typed authorization/settlement identity.
+  // Preserve these events for review; the P03 structured pipeline owns clearing.
+  if (/预授权|預授權|(?:结算|清算)成功|pending\s+authorization|authorization\s+(?:release|expired)|posted\s+settlement/i.test(sourceText)) {
+    return {classification:"pending",reason:"legacy_lifecycle_requires_review",direction,amount_minor:amountMinorFromText(text)};
+  }
   const completed = includesAny(text, STRONG_COMPLETION_TERMS);
   if (includesAny(text, MARKETING_TERMS) && !completed) {
     return { classification: "rejected", reason: "marketing_or_credit_offer", direction: "unknown", amount_minor: 0 };
@@ -230,17 +236,24 @@ export function normalizeRawEvent(value = {}) {
   if (!text && sourceType !== "legacy_import") {
     throw new Task16Error("采集事件缺少可验证的交易文本", 400, "recognition_text_required");
   }
-  const classification = text ? classifyFinanceText(text) : {
+  let classification = text ? classifyFinanceText(text) : {
     classification: "accepted",
     reason: "structured_legacy_event",
     direction: cleanDirection(value.direction),
     amount_minor: positiveInteger(value.amount_minor, "金额", 10000000000000),
   };
+  const currencyEvidence=explicitCurrencyCodes(text);
+  let currency=cleanCurrency(value.currency);
+  const currencyReview=currencyEvidence.length>1 || (currencyEvidence.length===1 && currencyEvidence[0]!==currency);
+  if(currencyReview) {
+    currency=currencyEvidence.includes(currency)?currency:currencyEvidence[0];
+    classification={...classification,classification:"pending",reason:"currency_review_required",amount_minor:0};
+  }
   const accountLast4 = String(value.account_last4 || "").trim();
   if (accountLast4 && !LAST4_PATTERN.test(accountLast4)) {
     throw new Task16Error("账户尾号无效", 400, "account_last4_invalid");
   }
-  const metadata = safeJsonObject(value.metadata);
+  const metadata = {...safeJsonObject(value.metadata)};
   const metadataKeys = new Set([
     "source_time_precision_ms", "payment_channel", "card_network", "source_locale", "capture_version",
   ]);
@@ -258,6 +271,7 @@ export function normalizeRawEvent(value = {}) {
   if (metadataText.length > 8000) throw new Task16Error("事件元数据过大", 400, "metadata_too_large");
   const sourceProvider = cleanText(value.source_provider, 80, "来源服务");
   if (!sourceProvider) throw new Task16Error("来源服务不能为空", 400, "source_provider_required");
+  if(currencyReview) metadata.currency_evidence=currencyEvidence.join(',').slice(0,120);
   return {
     source_type: sourceType,
     source_event_id: cleanSourceEventId(value.source_event_id),
@@ -266,7 +280,7 @@ export function normalizeRawEvent(value = {}) {
     text,
     direction: classification.direction,
     amount_minor: classification.amount_minor,
-    currency: cleanCurrency(value.currency),
+    currency,
     merchant: cleanText(value.merchant, 160, "商户"),
     counterparty: cleanText(value.counterparty, 160, "对手方"),
     account_last4: accountLast4,
@@ -280,7 +294,8 @@ export function normalizeRawEvent(value = {}) {
 
 export function reconciliationScore(event, candidate, candidateEvents = []) {
   const evidence = [];
-  const references = new Set(candidateEvents.map((item) => String(item.provider_reference || "")).filter(Boolean));
+  const references = new Set(candidateEvents.filter(item=>financeReferenceScope(item)===financeReferenceScope(event))
+    .map((item) => String(item.provider_reference || "")).filter(Boolean));
   if (event.provider_reference && references.has(event.provider_reference)) {
     return { score: 1, evidence: ["provider_reference"], automatic: true };
   }
@@ -321,7 +336,16 @@ export function reconciliationScore(event, candidate, candidateEvents = []) {
     evidence.push("same_source_conservative_cap");
   }
   score = Math.min(1, Math.round(score * 1000) / 1000);
-  return { score, evidence, automatic: score >= 0.92 };
+  return { score, evidence, automatic: false };
+}
+
+/** Legacy raw callers must declare the canonical provider, not infer it from money. */
+export function financeReferenceScope(event) {
+  let metadata=event.metadata||{};
+  if(event.metadata_json) {try{metadata=JSON.parse(event.metadata_json)}catch{metadata={}}}
+  const channel=String(metadata.payment_channel||'');
+  return ['wechat','alipay'].includes(channel)||/^bank_card:[a-z0-9._-]+$/.test(channel)
+    ?channel:String(event.source_provider||'');
 }
 
 export function publicTransaction(row) {

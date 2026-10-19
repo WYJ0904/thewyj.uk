@@ -416,6 +416,9 @@ class PaymentVerificationCenter(
     fun confirmAndBook(accountId: String, recognitionId: String): BookResult {
         val recognition = store.recognition(accountId, recognitionId)
             ?: return BookResult(false, "找不到这笔交易记录")
+        if (!PaymentEventSafety.canSettle(recognition.financialPhase)) return BookResult(false, "预授权或未完成清算不能记入正式支出")
+        if (recognition.identityReviewReason.isNotBlank() && !recognition.identityReviewReason.startsWith("identity_unproven_"))
+            return BookResult(false, "币种或清算关联证据仍需核实，已保留原始候选")
         if (authorityOf(recognition) == Authority.SERVER) {
             // Captured with an amount, so the server already owns the candidate.
             // Booking again here would create a second transaction for one
@@ -470,7 +473,10 @@ class PaymentVerificationCenter(
             parseStatus = ParseStatus.PARSED,
             direction = direction,
             amountMinor = draft.amountMinor,
-            currency = "CNY",
+            currency = recognition.currency,
+            providerReference = recognition.providerReference,
+            financialPhase = recognition.financialPhase, lifecycleReference = recognition.lifecycleReference,
+            referenceNamespace = recognition.referenceNamespace, currencyEvidence = recognition.currencyEvidence,
             paymentChannel = recognition.paymentChannel,
             merchant = draft.merchant,
             counterparty = draft.merchant,

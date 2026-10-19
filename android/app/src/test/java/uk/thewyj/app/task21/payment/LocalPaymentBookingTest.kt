@@ -28,6 +28,20 @@ class LocalPaymentBookingTest {
     }
     @After fun close() { db.close() }
 
+    /** Fixture of a booking already durably committed by an older app. */
+    private fun seedExistingLegacyBooking(recognitionId: String) {
+        val r = store.recognition("account-a", recognitionId)!!
+        val event = PaymentAutoBook.eventId(r)
+        val transaction = PaymentAutoBook.transactionId(r.accountId, event)
+        val booking = LocalPaymentBooking(r.accountId, event, r.recognitionId, transaction, r.amountMinor!!,
+            r.direction, r.currency, r.merchant, r.createdAtMs, r.sourcePackage, r.paymentChannel, r.providerReference,
+            "identity_pending", r.createdAtMs)
+        val candidate = PaymentCandidate("cand-" + recognitionId, r.accountId, r.recognitionId, "confirmed", r.amountMinor,
+            r.direction, "", r.merchant, r.createdAtMs, r.paymentChannel, 900, "synthetic_existing_receipt",
+            financeTransactionId = transaction, createdAtMs = r.createdAtMs, updatedAtMs = r.updatedAtMs)
+        store.bookLocally(booking, r.copy(state = "FINANCE_RECORDED"), candidate)
+    }
+
     @Test fun pendingReceiptWithKnownMoneyDoesNotCreateALedgerEntry() {
         val outcome = coordinator.onSourceEvent("account-a", "com.tencent.mm", PaymentSourceType.NOTIFICATION,
             "notification#event#pending-ten-cents", "微信支付", "转账¥0.10，待你收款")
@@ -139,6 +153,7 @@ class LocalPaymentBookingTest {
         store.saveRecognition(PaymentRecognitionRecord("rec-ambiguous", "account-a", "FINANCE_PENDING_CONFIRMATION", 2304,
             "com.tencent.mm", "NOTIFICATION", "notification#legacy-key#1000", "", "wechat", 3400,
             "CNY", "EXPENSE", "", "", 1000, 1000, completionConfirmed = true))
+        seedExistingLegacyBooking("rec-ambiguous")
         val booking = coordinator.autoBook("account-a", "rec-ambiguous", syncState = "identity_pending")!!
         assertEquals("identity_pending", booking.syncState)
         assertEquals("FINANCE_RECORDED", store.recognition("account-a", "rec-ambiguous")?.state)
@@ -150,6 +165,7 @@ class LocalPaymentBookingTest {
         store.saveRecognition(PaymentRecognitionRecord("rec-alias", "account-a", "FINANCE_PENDING_CONFIRMATION", 2305,
             "com.tencent.mm", "NOTIFICATION", "notification#legacy-key#1000", "", "wechat", 3400,
             "CNY", "EXPENSE", "", "", 1000, 1000, completionConfirmed = true))
+        seedExistingLegacyBooking("rec-alias")
         val booking = coordinator.autoBook("account-a", "rec-alias", syncState = "identity_pending")!!
         val archive = object : NotificationArchiveSink {
             override fun store(accountId: String, input: NotificationCaptureInput, parsed: StructuredNotificationEvent?) = false
@@ -269,7 +285,7 @@ class LocalPaymentBookingTest {
         )
         try {
             val input = NotificationCaptureInput("com.tencent.mm", notificationKey = "test-autobook-${UUID.randomUUID()}",
-                notificationId = 34, title = "微信支付", text = "支付成功 ¥34.00", postTime = 1_791_024_978_000L,
+                notificationId = 34, title = "微信支付", text = "支付成功 ¥34.00 交易号 SYNTH-LOCAL-BOOK-REF", postTime = 1_791_024_978_000L,
                 receivedAtMs = 1_791_024_978_000L)
             val original = pipeline()
             original.onNotification(input)

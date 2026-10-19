@@ -63,11 +63,19 @@ class AndroidPaymentRecognitionHook private constructor(
         // The user must always see the real app name ("微信"), never the package
         // name and never the generic 「该应用」 the notifications used to show.
         val label = sourceAppLabel.ifBlank { PaymentAppLabels.resolve(appContext, input.sourcePackage) }
+        val preview = PaymentParserRegistry.parse(input.sourcePackage, sourceType, input.title,
+            (listOf(input.text) + input.textLines).filter(String::isNotBlank).joinToString(" "), input.bigText, input.subText, input.receivedAtMs)
+        val messageProof = uk.thewyj.app.task21.paymentMessageProof(input)
+        val messageRecords = if (messageProof.isBlank()) emptyList() else store.recognitionsByMessageProof(accountId, messageProof)
+            .filter { PaymentEventSafety.role(it.financialPhase) == PaymentEventSafety.role(preview.financialPhase) }
+        val review = if (preview.providerReference.isNullOrBlank() && messageRecords.size > 1) "message_identity_ambiguous" else identityReviewReason(input)
+        val declaredSourceId = sourceEventIdOf(input)
+        val previousMessage = messageRecords.singleOrNull()?.takeIf { preview.providerReference.isNullOrBlank() }
         val outcome = coordinator.onSourceEvent(
             accountId = accountId,
             sourcePackage = input.sourcePackage,
             sourceType = sourceType,
-            sourceEventId = sourceEventIdOf(input),
+            sourceEventId = previousMessage?.sourceEventId ?: declaredSourceId,
             title = input.title,
             text = (listOf(input.text) + input.textLines).filter(String::isNotBlank).joinToString(" "),
             bigText = input.bigText,
@@ -76,7 +84,17 @@ class AndroidPaymentRecognitionHook private constructor(
             uploadEventId = uploadEventId,
             occurredAtMs = if (input.postTime > 0) input.postTime else input.receivedAtMs,
             sourceUid = input.sourceUid,
+            identityReviewReason = review,
         )
+        if (outcome.recognitionId.isNotBlank()) {
+            store.saveEventAlias(accountId, declaredSourceId, outcome.recognitionId)
+            if (messageProof.isNotBlank()) store.saveEventAlias(accountId, "proof:$messageProof:${outcome.recognitionId}", outcome.recognitionId)
+            // An observation hash is evidence provenance, never a transaction ID.
+            val evidence = uk.thewyj.app.task21.NotificationFingerprint.sha256Hex(listOf(input.sourcePackage,
+                input.sourceUid.toString(), input.notificationKey, input.title, input.text, input.bigText, input.subText,
+                input.textLines.joinToString("\u001E"), input.messageIdentity).joinToString("\u001F"))
+            store.saveEventAlias(accountId, "observation:$evidence", outcome.recognitionId)
+        }
         if (outcome.recognitionId.isNotBlank() && outcome.state != null) PaymentReviewSignals.publish()
     }
 
@@ -102,13 +120,8 @@ class AndroidPaymentRecognitionHook private constructor(
         }
         val parseText = if (bodyLines.isEmpty()) input.text else bodyLines.joinToString(" ")
         val parser = PaymentParserRegistry.parserFor(input.sourcePackage, sourceType)
-        val parsed = parser?.parse(
-            input.title,
-            parseText,
-            input.bigText,
-            input.subText,
-            if (input.postTime > 0) input.postTime else input.receivedAtMs,
-        ) ?: ParsedPaymentMessage(PaymentRecognitionStatus.NOT_PAYMENT, reasons = listOf("no_parser_for_source"))
+        val parsed = PaymentParserRegistry.parse(input.sourcePackage, sourceType, input.title, parseText,
+            input.bigText, input.subText, if (input.postTime > 0) input.postTime else input.receivedAtMs)
         // Auditable evidence without ever logging the message itself.
         Log.i(
             "ThewyjPayment",
@@ -121,7 +134,9 @@ class AndroidPaymentRecognitionHook private constructor(
         ) {
             return null
         }
-        val confirmed = PaymentAutoBook.eligible(parsed.amountMinor, parsed.direction?.name.orEmpty(),
+        val review = parsed.reviewReason.ifBlank { identityReviewReason(input) }
+        // Completion evidence and identity eligibility are separate contracts.
+        val confirmed = parsed.reviewReason.isBlank() && PaymentEventSafety.canSettle(parsed.financialPhase) && PaymentAutoBook.eligible(parsed.amountMinor, parsed.direction?.name.orEmpty(),
             parsed.status == PaymentRecognitionStatus.CONFIRMED_PAYMENT &&
                 !PaymentText.hasIncompleteStatus(listOf(input.title, parseText, input.bigText, input.subText).joinToString(" ")))
         return PaymentIngestOutcome(
@@ -136,7 +151,22 @@ class AndroidPaymentRecognitionHook private constructor(
             providerReference = parsed.providerReference.orEmpty(),
             reasons = parsed.reasons,
             missingFields = parsed.missingFields,
+            currency = parsed.currency ?: "CNY", financialPhase = parsed.financialPhase,
+            lifecycleReference = parsed.lifecycleReference, referenceNamespace = parsed.referenceNamespace,
+            currencyEvidence = parsed.currencyEvidence, identityReviewReason = review,
         )
+    }
+
+    override fun prepareIdentity(accountId: String, input: NotificationCaptureInput, payment: PaymentIngestOutcome): PaymentIngestOutcome {
+        if (input.paymentEventId.isNotBlank()) {
+            val reason = store.recognitionByUploadEvent(accountId, input.paymentEventId)?.identityReviewReason.orEmpty()
+            if (reason.isNotBlank()) return payment.copy(identityReviewReason = reason)
+        }
+        val proof = uk.thewyj.app.task21.paymentMessageProof(input)
+        if (payment.providerReference.isBlank() && proof.isNotBlank() && store.recognitionsByMessageProof(accountId, proof)
+                .count { PaymentEventSafety.role(it.financialPhase) == PaymentEventSafety.role(payment.financialPhase) } > 1)
+            return payment.copy(confirmed = false, identityReviewReason = "message_identity_ambiguous")
+        return payment
     }
 
     fun onSms(accountId: String, sender: String, body: String, receivedAtMs: Long) {
@@ -149,6 +179,7 @@ class AndroidPaymentRecognitionHook private constructor(
             text = body,
             sourceAppLabel = sender,
             occurredAtMs = receivedAtMs,
+            identityReviewReason = if (PaymentText.providerReference(body).isNullOrBlank()) "identity_unproven_sms" else "",
         )
     }
 
@@ -192,6 +223,11 @@ class AndroidPaymentRecognitionHook private constructor(
      */
     override fun onFinanceOutcome(accountId: String, eventId: String, transactionId: String) {
         if (accountId.isBlank() || eventId.isBlank() || transactionId.isBlank()) return
+        val prior = runCatching {
+            val rec = store.recognitionByUploadEvent(accountId, eventId)
+            store.localBooking(accountId, rec?.let(PaymentAutoBook::eventId) ?: eventId)
+        }.getOrNull()
+        if (prior?.syncState == "synced" && prior.transactionId != transactionId) return
         store.acknowledgeLocalBooking(accountId, eventId, transactionId)
         // T24.3-03: the archive link is keyed by the structured event id and must
         // close BEFORE the local recognition/candidate lookups. A payment the
@@ -217,6 +253,8 @@ class AndroidPaymentRecognitionHook private constructor(
         val candidate = runCatching {
             store.candidateForRecognition(accountId, recognition.recognitionId)
         }.getOrNull()
+        val existingBooking = store.localBooking(accountId, PaymentAutoBook.eventId(recognition))
+        if (existingBooking?.syncState == "synced" && existingBooking.transactionId != transactionId) return
         if (candidate != null) {
             runCatching {
                 coordinator.markFinanceRecorded(accountId, candidate.candidateId, transactionId)
@@ -238,11 +276,19 @@ class AndroidPaymentRecognitionHook private constructor(
 
     fun coordinator(): PaymentRecognitionCoordinator = coordinator
 
-    override fun localFinanceTransactionId(accountId: String, eventId: String): String =
-        store.localBooking(accountId, eventId)?.transactionId.orEmpty()
+    override fun localFinanceTransactionId(accountId: String, eventId: String): String {
+        val canonical = store.recognitionByUploadEvent(accountId, eventId)?.let(PaymentAutoBook::eventId) ?: eventId
+        return store.localBooking(accountId, canonical)?.transactionId.orEmpty()
+    }
 
     override fun prepareLocalBookings(accountId: String, deviceId: String) {
         if (recognitionStore == null) LocalPaymentLedger.recover(appContext, accountId, deviceId)
+    }
+
+    private fun identityReviewReason(input: NotificationCaptureInput): String {
+        val body = listOf(input.title, input.text, input.bigText, input.subText, input.textLines.joinToString(" ")).joinToString(" ")
+        return if (input.messageIdentity.isBlank() && PaymentText.providerReference(body).isNullOrBlank())
+            "identity_unproven_notification" else ""
     }
 
     companion object {

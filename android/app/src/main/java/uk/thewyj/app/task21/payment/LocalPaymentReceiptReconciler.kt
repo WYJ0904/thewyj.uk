@@ -16,13 +16,28 @@ object LocalPaymentReceiptReconciler {
             val matches = records.filter { row -> (row.eventIds + row.eventId).any(aliases::contains) }
             val covered = matches.flatMap { it.eventIds + it.eventId }.toSet()
             val transactions = matches.map { it.transactionId }.filter(String::isNotBlank).toSet()
-            if (!covered.containsAll(aliases) || matches.any { it.state != "confirmed" } || transactions.size != 1) continue
+            if (!covered.containsAll(aliases) || matches.any { it.state != "confirmed" || it.transactionId.isBlank() } || transactions.size != 1) continue
             val transactionId = transactions.single()
             store.acknowledgeLocalBooking(accountId, booking.eventId, transactionId)
             store.candidateForRecognition(accountId, recognition.recognitionId)?.let {
                 store.saveCandidate(it.copy(status = "confirmed", financeTransactionId = transactionId))
             }
             store.saveRecognition(recognition.copy(state = "FINANCE_RECORDED"))
+            aliases.forEach { archive.markFinanceOutcome(accountId, it, "confirmed", transactionId) }
+            resolved += 1
+        }
+        // Newly quarantined legacy rows own no local ledger yet. Only a full
+        // exact alias set agreeing on one real receipt may create its projection.
+        for (recognition in store.recognitionsByState(accountId, listOf("FINANCE_PENDING_CONFIRMATION"), 5000)
+            .filter { it.identityReviewReason == "archive_identity_ambiguous" }) {
+            val aliases = archive.structuredEventIdsForRecognition(accountId, recognition.sourceEventId).toSet()
+            if (aliases.isEmpty()) continue
+            val matches = records.filter { row -> (row.eventIds + row.eventId).any(aliases::contains) }
+            val covered = matches.flatMap { it.eventIds + it.eventId }.toSet()
+            val transactions = matches.map { it.transactionId }.toSet()
+            if (!covered.containsAll(aliases) || matches.any { it.state != "confirmed" || it.transactionId.isBlank() } || transactions.size != 1) continue
+            val transactionId = transactions.single()
+            if (PaymentRecognitionCoordinator(store).autoBook(accountId, recognition.recognitionId, transactionId) == null) continue
             aliases.forEach { archive.markFinanceOutcome(accountId, it, "confirmed", transactionId) }
             resolved += 1
         }

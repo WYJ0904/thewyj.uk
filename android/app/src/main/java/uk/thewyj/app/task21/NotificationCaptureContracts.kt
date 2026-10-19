@@ -202,6 +202,12 @@ data class PaymentIngestOutcome(
     /** Structured reason codes only; never notification text. */
     val reasons: List<String> = emptyList(),
     val missingFields: Set<String> = emptySet(),
+    val currency: String = "CNY",
+    val financialPhase: String = "",
+    val lifecycleReference: String = "",
+    val referenceNamespace: String = "",
+    val currencyEvidence: String = "",
+    val identityReviewReason: String = "",
 )
 
 interface PaymentRecognitionHook {
@@ -226,6 +232,7 @@ interface PaymentRecognitionHook {
      * not a payment at all, so the notification parser stays in charge.
      */
     fun outcomeFor(input: NotificationCaptureInput): PaymentIngestOutcome? = null
+    fun prepareIdentity(accountId: String, input: NotificationCaptureInput, payment: PaymentIngestOutcome): PaymentIngestOutcome = payment
 
     /**
      * The backend confirmed the real ledger identity for an uploaded event.
@@ -257,11 +264,13 @@ class InMemoryPaymentNotificationLifecycleRegistry(
 
     override fun eventId(accountId: String, input: NotificationCaptureInput, payment: PaymentIngestOutcome?): String = synchronized(active) {
         val proof = paymentLifecycleProof(input, payment)
-        val primary = paymentNotificationSlot(input)?.let { "$accountId\u001F$it" }
+        val owner = input.sourceUid?.let { "$accountId|uid:$it" } ?: accountId
+        val review = payment?.identityReviewReason == "message_identity_ambiguous"
+        val primary = if (review) "$owner\u001Freview:${proof.messageHash}:${payment?.financialPhase}" else paymentNotificationSlot(input)?.let { "$owner\u001F$it" }
         val fallback = if (input.notificationId != 0 || input.tag.isNotBlank())
-            "$accountId\u001Fslot:${input.sourcePackage}|${input.notificationId}|${input.tag}" else null
-        val reference = proof.referenceHash.takeIf(String::isNotBlank)?.let { "$accountId\u001Fref:$it" }
-        val message = proof.messageHash.takeIf(String::isNotBlank)?.let { "$accountId\u001Fmessage:$it" }
+            "$owner\u001Fslot:${input.sourcePackage}|${input.notificationId}|${input.tag}".takeUnless { review } else null
+        val reference = proof.referenceHash.takeIf { it.isNotBlank() && !review }?.let { "$owner\u001Fref:$it" }
+        val message = proof.messageHash.takeIf { it.isNotBlank() && !review }?.let { "$owner\u001Fmessage:$it" }
         val keys = listOfNotNull(reference, message, primary, fallback).distinct()
         if (keys.isEmpty()) return@synchronized idFactory()
         val existing = keys.firstNotNullOfOrNull { key ->
@@ -299,7 +308,8 @@ class InMemoryPaymentNotificationLifecycleRegistry(
     override fun markRemoved(accountId: String, input: NotificationCaptureInput) {
         val slot = paymentNotificationSlot(input) ?: return
         synchronized(active) {
-            val eventId = active["$accountId\u001F$slot"]?.eventId ?: return@synchronized
+            val owner = input.sourceUid?.let { "$accountId|uid:$it" } ?: accountId
+            val eventId = active["$owner\u001F$slot"]?.eventId ?: return@synchronized
             active.keys.filter { active[it]?.eventId == eventId }.toList().forEach { active.remove(it) }
         }
     }
@@ -357,15 +367,21 @@ fun paymentLifecycleProof(input: NotificationCaptureInput, payment: PaymentInges
     return PaymentLifecycleProof(
         evidence = paymentNotificationEvidence(input, payment),
         amountHash = payment?.amountMinor?.takeIf { it > 0 }
-            ?.let { NotificationFingerprint.sha256Hex(it.toString()) }.orEmpty(),
+            ?.let { NotificationFingerprint.sha256Hex(it.toString() + payment.currency.takeUnless { code -> code == "CNY" }?.let { code -> "|$code" }.orEmpty()) }.orEmpty(),
         direction = payment?.direction?.takeUnless { it == FinanceDirection.UNKNOWN }?.name.orEmpty(),
         channelHash = channel.takeIf(String::isNotBlank)?.let(NotificationFingerprint::sha256Hex).orEmpty(),
         referenceHash = reference.takeIf(String::isNotBlank)?.let {
-            NotificationFingerprint.sha256Hex("${input.sourcePackage}\u001F$channel\u001F$it")
+            NotificationFingerprint.sha256Hex("${input.sourcePackage}\u001F$channel\u001F$it" +
+                payment?.financialPhase?.takeIf { phase -> phase.isNotBlank() }?.let { phase -> "\u001F$phase" }.orEmpty())
         }.orEmpty(),
-        messageHash = input.messageIdentity,
+        messageHash = paymentMessageProof(input),
     )
 }
+
+/** Profile-qualified message evidence; timestamps alone remain insufficient. */
+fun paymentMessageProof(input: NotificationCaptureInput): String = input.messageIdentity.takeIf(String::isNotBlank)?.let {
+    if (input.sourceUid == null) it else NotificationFingerprint.sha256Hex("${input.sourcePackage}\u001F${input.sourceUid}\u001F$it")
+}.orEmpty()
 
 /** Raw content is deliberately absent: only the Android notification slot is identity. */
 fun paymentNotificationSlot(input: NotificationCaptureInput): String? = when {
@@ -398,6 +414,11 @@ data class StructuredNotificationEvent(
     val receivedAtMs: Long,
     val providerReference: String = "",
     val lifecycleIdentity: String = "",
+    val financialPhase: String = "",
+    val lifecycleReference: String = "",
+    val referenceNamespace: String = "",
+    val currencyEvidence: String = "",
+    val identityReviewReason: String = "",
 )
 
 /** Local-only full notification content. Never uploaded, never logged. */

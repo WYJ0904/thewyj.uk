@@ -12,6 +12,11 @@ import uk.thewyj.app.task21.FinanceDirection
  * in-memory fake so the whole pipeline is unit testable without a device.
  */
 interface PaymentRecognitionStoreContract {
+    fun <T> transaction(block: () -> T): T = block()
+    fun saveEventAlias(accountId: String, sourceEventId: String, recognitionId: String) {}
+    fun recognitionsByReference(accountId: String, reference: String): List<PaymentRecognitionRecord> = emptyList()
+    fun recognitionsByMessageProof(accountId: String, proof: String): List<PaymentRecognitionRecord> = emptyList()
+    fun eventAliases(accountId: String, recognitionId: String): List<String> = emptyList()
     fun localBooking(accountId: String, eventId: String): uk.thewyj.app.task21.payment.LocalPaymentBooking?
     fun localBookings(accountId: String): List<uk.thewyj.app.task21.payment.LocalPaymentBooking>
     fun bookLocally(booking: uk.thewyj.app.task21.payment.LocalPaymentBooking, recognition: PaymentRecognitionRecord, candidate: PaymentCandidate)
@@ -67,6 +72,12 @@ interface PaymentRecognitionStoreContract {
 
 class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : PaymentRecognitionStoreContract {
     private val dao get() = database.paymentDao()
+    override fun <T> transaction(block: () -> T): T = database.runInTransaction(java.util.concurrent.Callable { block() })
+    override fun saveEventAlias(accountId: String, sourceEventId: String, recognitionId: String) =
+        dao.insertEventAlias(PaymentEventAliasEntity(accountId, sourceEventId, recognitionId))
+    override fun recognitionsByReference(accountId: String, reference: String) = dao.recognitionsByReference(accountId, reference).map { it.toModel() }
+    override fun recognitionsByMessageProof(accountId: String, proof: String) = dao.recognitionsByMessageProof(accountId, "proof:$proof:").map { it.toModel() }
+    override fun eventAliases(accountId: String, recognitionId: String) = dao.eventAliases(accountId, recognitionId)
     override fun localBooking(accountId: String, eventId: String) = dao.localBooking(accountId, eventId)?.toModel()
     override fun localBookings(accountId: String) = dao.localBookings(accountId).map { it.toModel() }
     override fun bookLocally(booking: uk.thewyj.app.task21.payment.LocalPaymentBooking, recognition: PaymentRecognitionRecord, candidate: PaymentCandidate) {
@@ -85,7 +96,11 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
     }
     override fun acknowledgeLocalBooking(accountId: String, eventId: String, transactionId: String) {
         database.runInTransaction {
-            dao.acknowledgeLocalBooking(accountId, eventId, transactionId)
+            val recognition = recognitionByUploadEvent(accountId, eventId)
+            val canonicalEvent = recognition?.let(uk.thewyj.app.task21.payment.PaymentAutoBook::eventId) ?: eventId
+            val before = dao.localBooking(accountId, canonicalEvent)
+            if (before?.syncState == "synced" && before.transactionId != transactionId) return@runInTransaction
+            dao.acknowledgeLocalBooking(accountId, canonicalEvent, transactionId)
             database.notificationDao().markFinanceOutcomeByEventId(accountId, eventId, "confirmed", transactionId)
         }
     }
@@ -96,10 +111,11 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
         dao.recognition(accountId, recognitionId)?.toModel()
 
     override fun recognitionBySourceEvent(accountId: String, sourceEventId: String): PaymentRecognitionRecord? =
-        dao.recognitionBySourceEvent(accountId, sourceEventId)?.toModel()
+        (dao.recognitionBySourceEvent(accountId, sourceEventId) ?: dao.recognitionByAlias(accountId, sourceEventId))?.toModel()
 
     override fun recognitionByUploadEvent(accountId: String, uploadEventId: String): PaymentRecognitionRecord? =
-        dao.recognitionByUploadEvent(accountId, uploadEventId)?.toModel()
+        (dao.recognitionByUploadEvent(accountId, uploadEventId) ?: dao.recognitionByAlias(accountId, "notification#event#$uploadEventId")
+            ?: dao.recognitionByAlias(accountId, uploadEventId))?.toModel()
 
     override fun legacyRecognitionForHint(
         accountId: String,
@@ -169,10 +185,12 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
         occurredAtMs = occurredAtMs,
         fromMs = occurredAtMs - windowMs,
         toMs = occurredAtMs + windowMs,
-    ).firstOrNull()?.toModel()
+    ).singleOrNull()?.toModel()
 }
 
 internal fun PaymentRecognitionRecord.toEntity() = PaymentRecognitionEntity(
+    identityReviewReason = identityReviewReason, financialPhase = financialPhase,
+    lifecycleReference = lifecycleReference, referenceNamespace = referenceNamespace, currencyEvidence = currencyEvidence,
     sourceUid = sourceUid ?: -1,
     completionConfirmed = if (completionConfirmed) 1 else 0,
     recognitionId = recognitionId,
@@ -195,6 +213,8 @@ internal fun PaymentRecognitionRecord.toEntity() = PaymentRecognitionEntity(
 )
 
 internal fun PaymentRecognitionEntity.toModel() = PaymentRecognitionRecord(
+    identityReviewReason = identityReviewReason, financialPhase = financialPhase,
+    lifecycleReference = lifecycleReference, referenceNamespace = referenceNamespace, currencyEvidence = currencyEvidence,
     sourceUid = sourceUid.takeIf { it >= 0 },
     completionConfirmed = completionConfirmed == 1,
     recognitionId = recognitionId,

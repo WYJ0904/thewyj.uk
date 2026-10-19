@@ -22,6 +22,11 @@ data class PaymentRecognitionRecord(
     /** Unknown legacy recognitions remain unproven; never infer from money. */
     val completionConfirmed: Boolean = false,
     val sourceUid: Int? = null,
+    val identityReviewReason: String = "",
+    val financialPhase: String = "",
+    val lifecycleReference: String = "",
+    val referenceNamespace: String = "",
+    val currencyEvidence: String = "",
 )
 
 /**

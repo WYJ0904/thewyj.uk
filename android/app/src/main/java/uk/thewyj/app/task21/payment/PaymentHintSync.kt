@@ -160,6 +160,9 @@ class PaymentHintSync(
             uk.thewyj.app.task21.NotificationCapturePipeline.create(app, sessions).flushDetailed()
         }
         val recognition = runCatching { store.recognition(accountId, recognitionId) }.getOrNull() ?: return false
+        // Money/page evidence cannot silently settle uncertain identity or a hold.
+        // Typed financial operations use their durable ingest event, not a legacy hint.
+        if (recognition.identityReviewReason.isNotBlank() || recognition.financialPhase.isNotBlank()) return false
         val archivedIds = runCatching {
             (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
                 .structuredEventIdsForRecognition(accountId, recognition.sourceEventId)

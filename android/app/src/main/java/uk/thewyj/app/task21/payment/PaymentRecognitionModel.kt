@@ -79,6 +79,11 @@ data class ParsedPaymentMessage(
     val confidence: Int = 0,
     val reasons: List<String> = emptyList(),
     val missingFields: Set<String> = emptySet(),
+    val financialPhase: String = "",
+    val lifecycleReference: String = "",
+    val referenceNamespace: String = "",
+    val currencyEvidence: String = "",
+    val reviewReason: String = "",
 ) {
     val isTransactionLike: Boolean
         get() = status == PaymentRecognitionStatus.CONFIRMED_PAYMENT ||
@@ -118,6 +123,7 @@ object PaymentParserRegistry {
                 status = PaymentRecognitionStatus.NOT_PAYMENT,
                 reasons = listOf("no_parser_for_source"),
             )
-        return parser.parse(title, text, bigText, subText, capturedAtMs)
+        return PaymentEventSafety.apply(parser.parse(title, text, bigText, subText, capturedAtMs),
+            sourcePackage, sourceType, title, text, bigText, subText)
     }
 }

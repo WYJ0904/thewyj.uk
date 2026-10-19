@@ -9,6 +9,7 @@ import {
   cleanDirection,
   cleanId,
   cleanText,
+  financeReferenceScope,
   isoNow,
   nonNegativeInteger,
   normalizeManualTransaction,
@@ -415,6 +416,19 @@ async function candidateEvents(db, transactionId) {
 
 async function selectReconciliationCandidate(db, account, event) {
   if (event.classification !== "accepted") return { candidate: null, score: 0, evidence: [] };
+  if(event.provider_reference) {
+    const rows=await all(db,`SELECT t.*,r.source_provider AS proof_provider,r.metadata_json AS proof_metadata,
+      r.amount_minor AS proof_amount,r.currency AS proof_currency,r.direction AS proof_direction
+      FROM task16_finance_raw_events r JOIN task16_finance_transaction_events l ON l.raw_event_id=r.id AND l.relation_status='active'
+      JOIN task16_finance_transactions t ON t.id=l.transaction_id AND t.user_id=r.user_id
+      WHERE r.user_id=?1 AND r.provider_reference=?2 AND r.direction=?3 LIMIT 100`,[account.id,event.provider_reference,event.direction]);
+    if(rows.length>=100) return {candidate:null,score:0,evidence:['reference_scan_incomplete'],reviewRequired:true};
+    const sameScope=rows.filter(r=>financeReferenceScope({source_provider:r.proof_provider,metadata_json:r.proof_metadata})===financeReferenceScope(event));
+    const compatible=sameScope.filter(r=>Number(r.proof_amount)===event.amount_minor && r.proof_currency===event.currency);
+    const ids=new Set(compatible.map(r=>r.id));
+    if(ids.size>1 || compatible.length!==sameScope.length) return {candidate:null,score:0,evidence:['reference_identity_ambiguous'],reviewRequired:true};
+    if(ids.size===1) return {candidate:compatible[0],score:1,evidence:['provider_reference','reference_scope'],automatic:true};
+  }
   const candidates = await all(db, `SELECT * FROM task16_finance_transactions
     WHERE user_id = ?1 AND status = 'active' AND direction = ?2 AND currency = ?3 AND amount_minor = ?4
       AND occurred_at_ms BETWEEN ?5 AND ?6
@@ -442,6 +456,7 @@ async function ingestRawEvent(db, account, deviceId, operation, digest, observed
   const rawId = `raw:${crypto.randomUUID()}`;
   const textFingerprint = event.text ? await sha256Hex(event.text) : "";
   const candidate = await selectReconciliationCandidate(db, account, event);
+  if(candidate.reviewRequired) {event.classification='pending';event.classification_reason='reference_identity_ambiguous';}
   const shouldLink = Boolean(candidate.candidate && candidate.automatic);
   const transactionId = shouldLink ? candidate.candidate.id
     : event.classification === "accepted" ? `txn:${crypto.randomUUID()}` : "";

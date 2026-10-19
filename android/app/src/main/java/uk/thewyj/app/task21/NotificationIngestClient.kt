@@ -55,6 +55,13 @@ internal object StructuredEventJson {
             append("\"payment_channel\":\"${escape(event.paymentChannel)}\",")
             append("\"provider_reference\":\"${escape(event.providerReference)}\",")
             append("\"lifecycle_identity\":\"${escape(event.lifecycleIdentity)}\",")
+            if (event.financialPhase.isNotBlank() || event.identityReviewReason.isNotBlank() || event.currencyEvidence.isNotBlank() || event.referenceNamespace.isNotBlank()) {
+                append("\"financial_phase\":\"${escape(event.financialPhase)}\",")
+                append("\"lifecycle_reference\":\"${escape(event.lifecycleReference)}\",")
+                append("\"reference_namespace\":\"${escape(event.referenceNamespace)}\",")
+                append("\"currency_evidence\":\"${escape(event.currencyEvidence)}\",")
+                append("\"identity_review_reason\":\"${escape(event.identityReviewReason)}\",")
+            }
             append("\"merchant\":\"${escape(event.merchant)}\",")
             append("\"counterparty\":\"${escape(event.counterparty)}\",")
             append("\"confidence\":${event.confidence},")

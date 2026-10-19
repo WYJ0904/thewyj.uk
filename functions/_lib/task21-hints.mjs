@@ -7,6 +7,14 @@ import {
   requireAllowedFields,
 } from "./task21-model.mjs";
 import { createAutomaticFinanceTransaction, reconcileLegacyCompleteCandidates, requireFinanceRecognitionAccess } from "./task21-service.mjs";
+import {referenceNamespaceForSource} from "./task21-event-safety.mjs";
+
+function hintFinanceIdentity(row) {
+  const channel=String(row.payment_channel||'');
+  const source=String(row.source_package||'');
+  return {source_package:source,source_type:String(row.source_type||'notification'),lifecycle_identity:String(row.lifecycle_identity||''),
+    ...(['wechat','alipay','bank_card','bank','bank_sms'].includes(channel)?{reference_namespace:referenceNamespaceForSource({source_package:source,payment_channel:channel})}:{})};
+}
 
 /**
  * Task 24.1 P0-3: unified pending hints.
@@ -205,6 +213,7 @@ async function autoBookVerifiedHint(db, account, deviceId, row) {
     : (Date.parse(String(row.created_at || "")) || Date.now());
 
   const finance = await createAutomaticFinanceTransaction(db, account, deviceId, {
+    ...hintFinanceIdentity(row),
     event_id: String(row.source_event_id),
     fingerprint: "",
     direction,
@@ -822,6 +831,7 @@ export async function confirmNotificationHint(db, account, input) {
     cleanAmount(storedEvidence.occurred_at_ms) || Date.parse(row.created_at) || Date.now();
 
   const finance = await createAutomaticFinanceTransaction(db, account, deviceId, {
+    ...hintFinanceIdentity(row),
     event_id: row.source_event_id,
     fingerprint: "",
     direction,

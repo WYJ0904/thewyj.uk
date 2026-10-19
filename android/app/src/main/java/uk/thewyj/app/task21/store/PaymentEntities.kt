@@ -39,7 +39,16 @@ data class PaymentRecognitionEntity(
     val updatedAtMs: Long,
     @ColumnInfo(defaultValue = "0") val completionConfirmed: Int = 0,
     @ColumnInfo(defaultValue = "-1") val sourceUid: Int = -1,
+    @ColumnInfo(defaultValue = "''") val identityReviewReason: String = "",
+    @ColumnInfo(defaultValue = "''") val financialPhase: String = "",
+    @ColumnInfo(defaultValue = "''") val lifecycleReference: String = "",
+    @ColumnInfo(defaultValue = "''") val referenceNamespace: String = "",
+    @ColumnInfo(defaultValue = "''") val currencyEvidence: String = "",
 )
+
+/** Additional source deliveries refer to an existing recognition; never rename its stable IDs. */
+@Entity(tableName = "payment_event_aliases", primaryKeys = ["accountId", "sourceEventId"], indices = [Index(value = ["recognitionId"])])
+data class PaymentEventAliasEntity(val accountId: String, val sourceEventId: String, val recognitionId: String)
 
 @Entity(
     tableName = "payment_tickets",
