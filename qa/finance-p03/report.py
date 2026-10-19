@@ -221,7 +221,7 @@ Worker结构化字段与明确currency_evidence冲突拒绝，无意义新CNY账
     write('TEST_RUNS.md', '# 本轮执行、环境和失败账本\n\n' + intro + f'''
 标准Android：{summary['all_normal_jvm']}；原588 JVM+13 Node+6 DOM为本轮607，非历史PASS。新增P03：{counts(p03)}（JUnit方法与方法内30次重复分开，不把动态循环伪称独立JUnit）。原夹具调整3项：离线同步补可靠引用；两个旧账保护夹具预置旧版本已有持久账目，不再把fixture setup的“创建新账”混为“保护已有账”。原账目/回执断言均保留，另增无依据新建账目必须0的强断言。7个迁移用例只加10→11链。不能说输入完全相同。
 
-环境：Windows/PowerShell，Node24.18.1、Python3.15.0、JBR21.0.10、Gradle9.4.1、SDK36，Robolectric API34。npm ci原lockfile34包，未升依赖。Workers参考类型仅下载到ignored目录5.20261018.1，不是产品升级。所有原始stdout/stderr、JUnit、NDJSON、APK及hash在ignored finance-p03。
+环境：Windows/PowerShell，Node24.18.1、Python3.15.0、JBR21.0.10、Gradle9.4.1、SDK36，Robolectric API34。npm ci原lockfile34包，未升依赖。Workers参考类型仅下载到ignored目录5.20261018.1，不是产品升级。所有原始stdout/stderr、JUnit、NDJSON、APK及hash在ignored finance-p03。Lint成功不等于无告警：归档XML为0 Error/Fatal、85 Warning、12 Hint，未通过新增suppressions掩盖。
 
 | 执行命令/范围 | 结果 | 证据目录/日志 |
 | --- | --- | --- |
@@ -238,7 +238,7 @@ Worker结构化字段与明确currency_evidence冲突拒绝，无意义新CNY账
 | 原P02 Web/DOM/D1与AI示例 | 非零红灯及F012桩不一致保留 | p02-after-web/、p02-web-exits.json |
 | protection.py前后对比 | 外部工作树/证据不变 | protected-final.comparison.json |
 
-完整可复制PowerShell与-D参数见qa/finance-p03/README.md。每次输出选新目录；Gradle串行，归档后才运行下一次。Node脚本使用FINANCE_P03_OUTPUT，仅Miniflare或随机loopback，绝不--remote。签名变量仅从本轮子进程移除，不改系统环境。
+完整可复制PowerShell与-D参数见qa/finance-p03/README.md，本轮具体输出参数、退出码、命令与log对应关系见[run-commands.json](../migration-evidence/finance-p03/run-commands.json)。每次输出选新目录；Gradle串行，归档后才运行下一次。Node脚本使用FINANCE_P03_OUTPUT，仅Miniflare或随机loopback，绝不--remote。签名变量仅从本轮子进程移除，不改系统环境。
 
 ## 保留的真实失败与纠正
 
