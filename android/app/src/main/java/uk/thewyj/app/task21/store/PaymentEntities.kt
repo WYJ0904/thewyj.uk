@@ -44,6 +44,8 @@ data class PaymentRecognitionEntity(
     @ColumnInfo(defaultValue = "''") val lifecycleReference: String = "",
     @ColumnInfo(defaultValue = "''") val referenceNamespace: String = "",
     @ColumnInfo(defaultValue = "''") val currencyEvidence: String = "",
+    @ColumnInfo(defaultValue = "''") val lifecycleOperation: String = "",
+    @ColumnInfo(defaultValue = "0") val lifecycleRevision: Long = 0,
 )
 
 /** Additional source deliveries refer to an existing recognition; never rename its stable IDs. */

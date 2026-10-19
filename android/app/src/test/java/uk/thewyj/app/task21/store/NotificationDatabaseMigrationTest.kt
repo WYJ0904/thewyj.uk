@@ -53,7 +53,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10, NotificationDatabase.MIGRATION_10_11,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10, NotificationDatabase.MIGRATION_10_11, NotificationDatabase.MIGRATION_11_12,
             )
             .allowMainThreadQueries()
             .build()
@@ -119,7 +119,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10, NotificationDatabase.MIGRATION_10_11,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10, NotificationDatabase.MIGRATION_10_11, NotificationDatabase.MIGRATION_11_12,
             )
             .allowMainThreadQueries()
             .build()
@@ -155,7 +155,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10, NotificationDatabase.MIGRATION_10_11,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10, NotificationDatabase.MIGRATION_10_11, NotificationDatabase.MIGRATION_11_12,
             )
             .allowMainThreadQueries()
             .build()
@@ -195,7 +195,7 @@ class NotificationDatabaseMigrationTest {
                 NotificationDatabase.MIGRATION_3_4,
                 NotificationDatabase.MIGRATION_4_5,
                 NotificationDatabase.MIGRATION_5_6,
-                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10, NotificationDatabase.MIGRATION_10_11,
+                NotificationDatabase.MIGRATION_6_7, NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10, NotificationDatabase.MIGRATION_10_11, NotificationDatabase.MIGRATION_11_12,
             )
             .allowMainThreadQueries()
             .build()
@@ -222,7 +222,7 @@ class NotificationDatabaseMigrationTest {
         insertV7MediaRow()
 
         database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
-            .addMigrations(NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10, NotificationDatabase.MIGRATION_10_11)
+            .addMigrations(NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10, NotificationDatabase.MIGRATION_10_11, NotificationDatabase.MIGRATION_11_12)
             .allowMainThreadQueries()
             .build()
         val store = RoomNotificationStore(database!!)
@@ -244,7 +244,7 @@ class NotificationDatabaseMigrationTest {
         createDatabaseFromSchema(schema, version = 7)
         insertV7StatusLifecycle()
         database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
-            .addMigrations(NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10, NotificationDatabase.MIGRATION_10_11)
+            .addMigrations(NotificationDatabase.MIGRATION_7_8, NotificationDatabase.MIGRATION_8_9, NotificationDatabase.MIGRATION_9_10, NotificationDatabase.MIGRATION_10_11, NotificationDatabase.MIGRATION_11_12)
             .allowMainThreadQueries()
             .build()
         val store = RoomNotificationStore(database!!)
@@ -368,7 +368,7 @@ class NotificationDatabaseMigrationTest {
         old.execSQL("INSERT INTO local_payment_bookings (accountId,eventId,recognitionId,transactionId,amountMinor,direction,currency,merchant,occurredAtMs,sourcePackage,paymentChannel,providerReference,syncState,createdAtMs) VALUES ('account-a','legacy-event','legacy-rec','txn:existing',50000,'INCOME','CNY','',1000,'com.tencent.mm','wechat','','synced',1000)")
         old.close()
         database = Room.databaseBuilder(context, NotificationDatabase::class.java, databaseFile.absolutePath)
-            .addMigrations(NotificationDatabase.MIGRATION_9_10, NotificationDatabase.MIGRATION_10_11).allowMainThreadQueries().build()
+            .addMigrations(NotificationDatabase.MIGRATION_9_10, NotificationDatabase.MIGRATION_10_11, NotificationDatabase.MIGRATION_11_12).allowMainThreadQueries().build()
         val store = RoomPaymentRecognitionStore(database!!)
         assertEquals(false, store.recognition("account-a", "legacy-rec")!!.completionConfirmed)
         assertNull(store.recognition("account-a", "legacy-rec")!!.sourceUid)

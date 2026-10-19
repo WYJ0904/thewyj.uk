@@ -56,6 +56,8 @@ internal object StructuredEventJson {
             append("\"provider_reference\":\"${escape(event.providerReference)}\",")
             append("\"lifecycle_identity\":\"${escape(event.lifecycleIdentity)}\",")
             if (event.financialPhase.isNotBlank() || event.identityReviewReason.isNotBlank() || event.currencyEvidence.isNotBlank() || event.referenceNamespace.isNotBlank()) {
+                append("\"lifecycle_operation\":\"${escape(event.lifecycleOperation)}\",")
+                append("\"lifecycle_revision\":${event.lifecycleRevision},")
                 append("\"financial_phase\":\"${escape(event.financialPhase)}\",")
                 append("\"lifecycle_reference\":\"${escape(event.lifecycleReference)}\",")
                 append("\"reference_namespace\":\"${escape(event.referenceNamespace)}\",")

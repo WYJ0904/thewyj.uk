@@ -81,7 +81,8 @@ class PaymentRecognitionCoordinator(
         val direct = store.recognitionBySourceEvent(accountId, sourceEventId)
         if (direct != null && matching.singleOrNull()?.recognitionId?.let { it != direct.recognitionId } == true)
             reviewReason = "reference_alias_conflict"
-        val existing = direct ?: matching.singleOrNull()?.takeIf { reviewReason !in setOf("reference_money_or_instance_conflict", "reference_alias_conflict") }
+        if (parsed.lifecycleRevision > 1) reviewReason = "lifecycle_revision_requires_reconciliation"
+        val existing = direct ?: matching.singleOrNull()?.takeIf { reviewReason !in setOf("reference_money_or_instance_conflict", "reference_alias_conflict", "lifecycle_revision_requires_reconciliation") }
         if (existing != null) {
             if (reviewReason.isNotBlank() && existing.identityReviewReason != reviewReason)
                 store.saveRecognition(existing.copy(identityReviewReason = reviewReason))
@@ -118,6 +119,7 @@ class PaymentRecognitionCoordinator(
                         identityReviewReason = "", financialPhase = update.financialPhase,
                         lifecycleReference = update.lifecycleReference, referenceNamespace = update.referenceNamespace,
                         currencyEvidence = update.currencyEvidence,
+                        lifecycleOperation = update.lifecycleOperation, lifecycleRevision = update.lifecycleRevision,
                         completionConfirmed = true, updatedAtMs = now(),
                     ))
                     if (candidate != null) store.saveCandidate(candidate.copy(
@@ -236,8 +238,13 @@ class PaymentRecognitionCoordinator(
                 identityReviewReason = reviewReason,
                 financialPhase = parsed.financialPhase, lifecycleReference = parsed.lifecycleReference,
                 referenceNamespace = parsed.referenceNamespace, currencyEvidence = parsed.currencyEvidence,
+                lifecycleOperation = parsed.lifecycleOperation, lifecycleRevision = parsed.lifecycleRevision,
             ),
         )
+        val initial = store.recognition(accountId, recognitionId)!!
+        val lifecycleReason = lifecycleGuard(initial)
+        if (lifecycleReason.isNotBlank() && initial.identityReviewReason.isBlank())
+            store.saveRecognition(initial.copy(identityReviewReason = lifecycleReason))
         if (autoBook(accountId, recognitionId) != null) state = PaymentRecognitionState.FINANCE_RECORDED
         reconcileAuthorizationEvidence(accountId, parsed)
         return Outcome(
@@ -357,7 +364,10 @@ class PaymentRecognitionCoordinator(
     }
 
     /** Atomic durable booking shared by normal, enrichment, recovery and retry paths. */
-    fun autoBook(accountId: String, recognitionId: String, knownTransactionId: String = "", syncState: String = "pending"): LocalPaymentBooking? {
+    fun autoBook(accountId: String, recognitionId: String, knownTransactionId: String = "", syncState: String = "pending"): LocalPaymentBooking? =
+        store.transaction { autoBookLocked(accountId, recognitionId, knownTransactionId, syncState) }
+
+    private fun autoBookLocked(accountId: String, recognitionId: String, knownTransactionId: String, syncState: String): LocalPaymentBooking? {
         val recognition = store.recognition(accountId, recognitionId) ?: return null
         if (recognition.state in setOf("IGNORED", "DUPLICATE_IGNORED", "FINANCE_CORRECTED")) return null
         val existingCandidate = store.candidateForRecognition(accountId, recognitionId)
@@ -366,6 +376,13 @@ class PaymentRecognitionCoordinator(
         val direction = existingCandidate?.effectiveDirection?.takeIf { it.isNotBlank() } ?: recognition.direction
         val eventId = PaymentAutoBook.eventId(recognition)
         val previous = store.localBooking(accountId, eventId)
+        if (previous == null) {
+            val reason = lifecycleGuard(recognition)
+            if (reason.isNotBlank()) {
+                store.saveRecognition(recognition.copy(identityReviewReason = reason, state = "FINANCE_PENDING_CONFIRMATION"))
+                return null
+            }
+        }
         // Existing durable ledger identities and actual cloud receipts must
         // survive an upgrade. They do not prove a new unbooked legacy record.
         val hasReceipt = previous != null || knownTransactionId.isNotBlank() ||
@@ -753,15 +770,33 @@ class PaymentRecognitionCoordinator(
         userEdited = candidate.hasEdits,
     )
 
+    private fun lifecycleGuard(record: PaymentRecognitionRecord): String =
+        if (record.financialPhase.isBlank() || record.lifecycleReference.isBlank()) "" else PaymentLifecycleAccounting.guard(
+            record, lifecycleRecords(record.accountId, record.referenceNamespace, record.lifecycleReference), store.localBookings(record.accountId))
+
+    private fun lifecycleRecords(accountId: String, namespace: String, family: String) =
+        store.recognitionsByReference(accountId, family).filter { it.lifecycleReference == family && it.referenceNamespace == namespace }
+
+    fun lifecycleBalance(accountId: String, namespace: String, family: String): PaymentLifecycleBalance = store.transaction {
+        PaymentLifecycleAccounting.project(lifecycleRecords(accountId, namespace, family), store.localBookings(accountId))
+    }
+
     private fun reconcileAuthorizationEvidence(accountId: String, parsed: ParsedPaymentMessage) {
         if (parsed.financialPhase.isBlank() || parsed.lifecycleReference.isBlank()) return
-        val related = store.recognitionsByReference(accountId, parsed.lifecycleReference).filter {
-            it.lifecycleReference == parsed.lifecycleReference && it.referenceNamespace == parsed.referenceNamespace }
-        val settled = related.any { it.financialPhase == "SETTLED" && store.localBooking(accountId, PaymentAutoBook.eventId(it)) != null }
-        val released = related.any { it.financialPhase in setOf("RELEASED", "EXPIRED") && it.identityReviewReason.isBlank() }
+        var related = lifecycleRecords(accountId, parsed.referenceNamespace, parsed.lifecycleReference)
+        // Only exact-family dependency failures can recover, in one bounded pass.
+        for (record in related.filter { it.identityReviewReason in PaymentLifecycleAccounting.recoverable }) {
+            val fresh = record.copy(identityReviewReason = "")
+            val reason = lifecycleGuard(fresh)
+            store.saveRecognition(fresh.copy(identityReviewReason = reason))
+            if (reason.isBlank()) autoBook(accountId, record.recognitionId)
+        }
+        related = lifecycleRecords(accountId, parsed.referenceNamespace, parsed.lifecycleReference)
+        val balance = PaymentLifecycleAccounting.project(related, store.localBookings(accountId))
+        val closed = balance.closed || balance.remainingFrozenMinor == 0L
         for (record in related) {
-            if (record.financialPhase in setOf("RELEASED", "EXPIRED") ||
-                (record.financialPhase == "AUTHORIZED" && (settled || released))) {
+            if (record.identityReviewReason.isBlank() && (record.financialPhase in setOf("RELEASED", "EXPIRED") ||
+                (record.financialPhase == "AUTHORIZED" && closed))) {
                 store.saveRecognition(record.copy(state = PaymentRecognitionState.IGNORED.name, updatedAtMs = now()))
                 store.candidateForRecognition(accountId, record.recognitionId)?.takeIf { it.status == "pending" }?.let {
                     store.saveCandidate(it.copy(status = "rejected", updatedAtMs = now())) }

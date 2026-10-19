@@ -154,6 +154,7 @@ class AndroidPaymentRecognitionHook private constructor(
             currency = parsed.currency ?: "CNY", financialPhase = parsed.financialPhase,
             lifecycleReference = parsed.lifecycleReference, referenceNamespace = parsed.referenceNamespace,
             currencyEvidence = parsed.currencyEvidence, identityReviewReason = review,
+            lifecycleOperation = parsed.lifecycleOperation, lifecycleRevision = parsed.lifecycleRevision,
         )
     }
 

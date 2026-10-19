@@ -102,6 +102,7 @@ object LocalPaymentLedger {
                 parseStatus = if (proven) ParseStatus.PARSED else ParseStatus.CANDIDATE,
                 direction = FinanceDirection.valueOf(booking.direction), amountMinor = booking.amountMinor,
                 currency = booking.currency, merchant = booking.merchant, counterparty = booking.merchant,
+                lifecycleOperation = recognition?.lifecycleOperation.orEmpty(), lifecycleRevision = recognition?.lifecycleRevision ?: 0,
                 financialPhase = recognition?.financialPhase.orEmpty(), lifecycleReference = recognition?.lifecycleReference.orEmpty(),
                 referenceNamespace = recognition?.referenceNamespace.orEmpty(), currencyEvidence = recognition?.currencyEvidence.orEmpty(),
                 identityReviewReason = recognition?.identityReviewReason.orEmpty(),

@@ -207,6 +207,8 @@ data class PaymentIngestOutcome(
     val lifecycleReference: String = "",
     val referenceNamespace: String = "",
     val currencyEvidence: String = "",
+    val lifecycleOperation: String = "",
+    val lifecycleRevision: Long = 0,
     val identityReviewReason: String = "",
 )
 
@@ -372,7 +374,8 @@ fun paymentLifecycleProof(input: NotificationCaptureInput, payment: PaymentInges
         channelHash = channel.takeIf(String::isNotBlank)?.let(NotificationFingerprint::sha256Hex).orEmpty(),
         referenceHash = reference.takeIf(String::isNotBlank)?.let {
             NotificationFingerprint.sha256Hex("${input.sourcePackage}\u001F$channel\u001F$it" +
-                payment?.financialPhase?.takeIf { phase -> phase.isNotBlank() }?.let { phase -> "\u001F$phase" }.orEmpty())
+                payment?.financialPhase?.takeIf { phase -> phase.isNotBlank() }?.let { phase -> "\u001F$phase" }.orEmpty() +
+                (payment?.lifecycleRevision ?: 0).takeIf { it > 0 }?.let { "\u001Fversion:$it" }.orEmpty())
         }.orEmpty(),
         messageHash = paymentMessageProof(input),
     )
@@ -418,6 +421,8 @@ data class StructuredNotificationEvent(
     val lifecycleReference: String = "",
     val referenceNamespace: String = "",
     val currencyEvidence: String = "",
+    val lifecycleOperation: String = "",
+    val lifecycleRevision: Long = 0,
     val identityReviewReason: String = "",
 )
 

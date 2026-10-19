@@ -1,7 +1,7 @@
 /** Client ingest protocol version (Android payloads send this value). */
 export const TASK21_SCHEMA_VERSION = "1";
 /** Task 21 readiness baseline; migration 0022 is additive for old Pages code. */
-export const TASK21_DB_SCHEMA_VERSION = "3";
+export const TASK21_DB_SCHEMA_VERSION = "4";
 export const TASK21_BUILD = "2026-09-08-task21-notification";
 export const NOTIFICATION_ENTITLEMENT = "notification_archive_access";
 export const MAX_INGEST_OPERATIONS = 100;
@@ -52,6 +52,7 @@ const ALLOWED_EVENT_FIELDS = Object.freeze(new Set([
   "merchant", "counterparty", "confidence",
   "occurred_at_ms", "received_at_ms",
   "financial_phase", "lifecycle_reference", "reference_namespace", "currency_evidence", "identity_review_reason",
+  "lifecycle_operation", "lifecycle_revision",
 ]));
 
 export class Task21Error extends Error {
@@ -152,6 +153,12 @@ export function normalizeNotificationEvent(value = {}) {
   const financialPhase = String(value.financial_phase || "").trim();
   if (!["", "AUTHORIZED", "SETTLED", "RELEASED", "EXPIRED", "REFUNDED", "REVIEW_REQUIRED"].includes(financialPhase))
     throw new Task21Error("清算状态无效", 400, "financial_phase_invalid");
+  const lifecycleOperation = String(value.lifecycle_operation || "");
+  const lifecycleRevision = nonNegativeInteger(value.lifecycle_revision || 0, "状态版本", 999999999);
+  const phasesForOperation={AUTHORIZE:['AUTHORIZED'],CAPTURE:['SETTLED','REVIEW_REQUIRED'],REFUND:['REFUNDED','REVIEW_REQUIRED'],RELEASE:['RELEASED','REVIEW_REQUIRED'],CLOSE:['RELEASED','EXPIRED']};
+  if(lifecycleOperation && !phasesForOperation[lifecycleOperation]?.includes(financialPhase))
+    throw new Task21Error("清算操作与状态不匹配",400,"lifecycle_operation_invalid");
+  if(lifecycleRevision && !financialPhase)throw new Task21Error("状态版本缺少清算状态",400,"lifecycle_revision_invalid");
   const lifecycleReference = String(value.lifecycle_reference || "").trim();
   if (lifecycleReference && !PROVIDER_REFERENCE_PATTERN.test(lifecycleReference))
     throw new Task21Error("授权关联无效", 400, "lifecycle_reference_invalid");
@@ -198,6 +205,7 @@ export function normalizeNotificationEvent(value = {}) {
     payment_channel: paymentChannel,
     provider_reference: providerReference,
     lifecycle_identity: lifecycleIdentity,
+    lifecycle_operation: lifecycleOperation, lifecycle_revision: lifecycleRevision,
     financial_phase: financialPhase, lifecycle_reference: lifecycleReference,
     reference_namespace: referenceNamespace, currency_evidence: currencyEvidence,
     identity_review_reason: identityReviewReason || (evidenceCodes.length > 1 ? "currency_evidence_conflict" : ""),
@@ -211,6 +219,8 @@ export function normalizeNotificationEvent(value = {}) {
 
 export function publicNotificationEvent(row) {
   return {
+    lifecycle_operation: String(row.lifecycle_operation || ""), lifecycle_revision: Number(row.lifecycle_revision || 0),
+    lifecycle_review_reason: String(row.lifecycle_review_reason || ""),
     financial_phase: String(row.financial_phase || ""),
     lifecycle_reference: String(row.lifecycle_reference || ""),
     reference_namespace: String(row.reference_namespace || ""),

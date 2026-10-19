@@ -161,6 +161,7 @@ class NotificationCaptureCoordinator(
                 receivedAtMs = input.receivedAtMs,
                 providerReference = payment.providerReference,
                 lifecycleIdentity = paymentMessageProof(input),
+                lifecycleOperation = payment.lifecycleOperation, lifecycleRevision = payment.lifecycleRevision,
                 financialPhase = payment.financialPhase, lifecycleReference = payment.lifecycleReference,
                 referenceNamespace = payment.referenceNamespace, currencyEvidence = payment.currencyEvidence,
                 identityReviewReason = payment.identityReviewReason,

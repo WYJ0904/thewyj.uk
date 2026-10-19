@@ -476,6 +476,7 @@ class PaymentVerificationCenter(
             currency = recognition.currency,
             providerReference = recognition.providerReference,
             financialPhase = recognition.financialPhase, lifecycleReference = recognition.lifecycleReference,
+            lifecycleOperation = recognition.lifecycleOperation, lifecycleRevision = recognition.lifecycleRevision,
             referenceNamespace = recognition.referenceNamespace, currencyEvidence = recognition.currencyEvidence,
             paymentChannel = recognition.paymentChannel,
             merchant = draft.merchant,

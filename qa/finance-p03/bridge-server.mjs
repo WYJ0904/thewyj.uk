@@ -32,7 +32,12 @@ async function stop() {
   if(stopping)return;stopping=true;
   const txs=(await db.prepare('SELECT id,amount_minor,currency,direction,status FROM task16_finance_transactions WHERE user_id=?1').bind(account.id).all()).results;
   const pending=Number((await db.prepare("SELECT COUNT(*) AS n FROM task21_notification_candidates WHERE user_id=?1 AND status='pending'").bind(account.id).first()).n);
-  const status=txs.length===3 && txs.filter(t=>t.currency==='CNY'&&t.amount_minor===64800).length===2 && txs.filter(t=>t.currency==='USD'&&t.amount_minor===17000).length===1 && pending===2 && requests>=9?'PASS':'FAIL';
+  const closeout=process.env.FINANCE_P03_BRIDGE_PROFILE==='closeout';
+  const expected=closeout ? txs.length===4 && txs.every(t=>t.currency==='USD') &&
+    txs.filter(t=>t.direction==='expense').reduce((n,t)=>n+t.amount_minor,0)===17000 &&
+    txs.filter(t=>t.direction==='refund').reduce((n,t)=>n+t.amount_minor,0)===5000 && pending===1 && requests>=10
+    : txs.length===3 && txs.filter(t=>t.currency==='CNY'&&t.amount_minor===64800).length===2 && txs.filter(t=>t.currency==='USD'&&t.amount_minor===17000).length===1 && pending===2 && requests>=9;
+  const status=expected?'PASS':'FAIL';
   await fs.writeFile(path.join(output,'server-final.json'),JSON.stringify({status,requests,txs,pending_candidates:pending,synthetic_only:true},null,2));
   server.close();await mf.dispose();if(status==='FAIL')process.exitCode=1;
 }

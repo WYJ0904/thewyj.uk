@@ -189,6 +189,7 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
 }
 
 internal fun PaymentRecognitionRecord.toEntity() = PaymentRecognitionEntity(
+    lifecycleOperation = lifecycleOperation, lifecycleRevision = lifecycleRevision,
     identityReviewReason = identityReviewReason, financialPhase = financialPhase,
     lifecycleReference = lifecycleReference, referenceNamespace = referenceNamespace, currencyEvidence = currencyEvidence,
     sourceUid = sourceUid ?: -1,
@@ -213,6 +214,7 @@ internal fun PaymentRecognitionRecord.toEntity() = PaymentRecognitionEntity(
 )
 
 internal fun PaymentRecognitionEntity.toModel() = PaymentRecognitionRecord(
+    lifecycleOperation = lifecycleOperation, lifecycleRevision = lifecycleRevision,
     identityReviewReason = identityReviewReason, financialPhase = financialPhase,
     lifecycleReference = lifecycleReference, referenceNamespace = referenceNamespace, currencyEvidence = currencyEvidence,
     sourceUid = sourceUid.takeIf { it >= 0 },

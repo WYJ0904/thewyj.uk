@@ -2,6 +2,8 @@ import {Task21Error} from './task21-model.mjs';
 
 export function paymentReviewReason(event) {
   if (event.identity_review_reason) return event.identity_review_reason;
+  if (Number(event.lifecycle_revision)>1) return "lifecycle_revision_requires_reconciliation";
+  if (event.lifecycle_review_reason) return event.lifecycle_review_reason;
   if (event.financial_phase && !['SETTLED','REFUNDED'].includes(event.financial_phase)) return 'payment_lifecycle_not_settled';
   if (event.financial_phase && (!event.lifecycle_reference || !event.provider_reference)) return 'lifecycle_reference_missing';
   const codes=String(event.currency_evidence||'').split(',').filter(Boolean);

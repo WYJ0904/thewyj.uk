@@ -1,5 +1,6 @@
 import { sha256Hex } from "./cloudflare-foundation.mjs";
 import { publicTransaction } from "./task16-model.mjs";
+import {lifecycleRows,lifecycleBalance,lifecycleReason,lifecycleGuardStatement,RECOVERABLE_LIFECYCLE_REASONS} from './task21-lifecycle.mjs';
 import {paymentReviewReason, financeReferenceProvider, financeReplayReference, referenceNamespaceForSource} from "./task21-event-safety.mjs";
 import {
   MAX_EVENT_PAGE,
@@ -214,6 +215,7 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
   // This token is a provider-issued reference, never a notification body.
   const occurredAtMs = event.occurred_at_ms || event.received_at_ms;
   const metadata = { capture_version: event.parser_version || "task21", payment_channel: event.payment_channel, source_package:event.source_package||'',
+    lifecycle_operation:event.lifecycle_operation||'',lifecycle_revision:event.lifecycle_revision||0,
     financial_phase:event.financial_phase||'',lifecycle_reference:event.lifecycle_reference||'',reference_namespace:event.reference_namespace||'',currency_evidence:event.currency_evidence||'' };
 
   const rawStatement = db.prepare(`INSERT INTO task16_finance_raw_events (
@@ -289,8 +291,15 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
         }),
       }), now);
 
+  let lifecycleGuard=null;
+  if(event.financial_phase && event.lifecycle_reference && event.reference_namespace) {
+    const rows=await lifecycleRows(db,account.id,event.reference_namespace,event.lifecycle_reference);
+    const linkedRefund=event.financial_phase!=='REFUNDED'||event.provider_reference!==event.lifecycle_reference||rows.some(r=>['AUTHORIZED','SETTLED'].includes(r.financial_phase));
+    if(linkedRefund)lifecycleGuard=lifecycleGuardStatement(db,account.id,event);
+  }
   try {
     await db.batch([
+      ...(lifecycleGuard?[lifecycleGuard]:[]),
       rawStatement,
       ...(replayReference?[db.prepare(`INSERT INTO task21_payment_reference_aliases
         (user_id,reference_provider,provider_reference,raw_event_id,created_at) VALUES (?1,?2,?3,?4,?5)`)
@@ -301,6 +310,8 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
       db.prepare(`UPDATE task16_finance_user_versions SET server_version = ?2, updated_at = ?3
         WHERE user_id = ?1 AND server_version = ?4`).bind(account.id, version, now, version - 1),
       changeStatement,
+      ...(event.financial_phase?[db.prepare(`UPDATE task21_notification_events SET finance_transaction_id=?3 WHERE user_id=?1 AND event_id=?2`)
+        .bind(account.id,event.event_id,transactionId)]:[]),
     ]);
     return { transaction_id: transactionId, duplicate: false };
   } catch (error) {
@@ -359,15 +370,15 @@ async function storeEvent(db, account, event, deviceId) {
     parser_version, parse_status, direction, amount_minor, currency, payment_channel,
     merchant, counterparty, confidence, occurred_at_ms, received_at_ms, candidate_id,
     finance_transaction_id, status, created_at, updated_at, deleted_at,
-    provider_reference, lifecycle_identity, financial_phase, lifecycle_reference, reference_namespace, currency_evidence, identity_review_reason
+    provider_reference, lifecycle_identity, financial_phase, lifecycle_reference, reference_namespace, currency_evidence, identity_review_reason, lifecycle_operation, lifecycle_revision
   ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
-    ?17, ?18, '', '', 'active', ?19, ?19, '', ?20, ?21, ?22, ?23, ?24, ?25, ?26)`, [
+    ?17, ?18, '', '', 'active', ?19, ?19, '', ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28)`, [
     event.event_id, account.id, deviceId, event.fingerprint, event.source_package, event.source_type,
     event.event_type, event.parser_version, event.parse_status, event.direction, event.amount_minor,
     event.currency, event.payment_channel, event.merchant, event.counterparty, event.confidence,
     event.occurred_at_ms, event.received_at_ms, now,
     event.provider_reference || "", event.lifecycle_identity || "",
-    event.financial_phase||'',event.lifecycle_reference||'',event.reference_namespace||'',event.currency_evidence||'',event.identity_review_reason||'',
+    event.financial_phase||'',event.lifecycle_reference||'',event.reference_namespace||'',event.currency_evidence||'',event.identity_review_reason||'',event.lifecycle_operation||'',event.lifecycle_revision||0,
   ]);
 }
 
@@ -387,6 +398,7 @@ async function candidateById(db, account, candidateId) {
 
 function eventFromStoredRow(row) {
   return {
+    lifecycle_operation:String(row.lifecycle_operation||''),lifecycle_revision:Number(row.lifecycle_revision||0),
     financial_phase:String(row.financial_phase||''),lifecycle_reference:String(row.lifecycle_reference||''),
     reference_namespace:String(row.reference_namespace||''),currency_evidence:String(row.currency_evidence||''),identity_review_reason:String(row.identity_review_reason||''),
     event_id: String(row.event_id),
@@ -454,6 +466,23 @@ async function canonicalHintForEvent(db, account, event, now) {
 }
 
 async function attachEventOutcome(db, account, event, deviceId, now) {
+  if (event.financial_phase && event.lifecycle_reference && event.reference_namespace) {
+    financeReferenceProvider(event); // Controls require the same issuer proof as charges.
+    const effective={...event,identity_review_reason:RECOVERABLE_LIFECYCLE_REASONS.has(event.identity_review_reason)?'':event.identity_review_reason};
+    const rows=await lifecycleRows(db,account.id,event.reference_namespace,event.lifecycle_reference);
+    const reason=effective.identity_review_reason || lifecycleReason(effective,rows);
+    await run(db,`UPDATE task21_notification_events SET lifecycle_review_reason=?3 WHERE user_id=?1 AND event_id=?2`,[account.id,event.event_id,reason]);
+    const provenRecovery=!reason&&RECOVERABLE_LIFECYCLE_REASONS.has(event.identity_review_reason)&&['SETTLED','REFUNDED'].includes(event.financial_phase);
+    event={...effective,lifecycle_review_reason:reason,parse_status:provenRecovery?'parsed':effective.parse_status};
+    if(!reason && ['AUTHORIZED','RELEASED','EXPIRED'].includes(event.financial_phase)) {
+      const guard=lifecycleGuardStatement(db,account.id,event);
+      try {if(guard)await db.batch([guard])} catch(error) {
+        event={...event,lifecycle_review_reason:'lifecycle_concurrent_balance_conflict'};
+        await run(db,`UPDATE task21_notification_events SET lifecycle_review_reason=?3 WHERE user_id=?1 AND event_id=?2`,[account.id,event.event_id,event.lifecycle_review_reason]);
+      }
+    }
+  }
+
   const canonicalHint = event.financial_phase || paymentReviewReason(event) ? null : await canonicalHintForEvent(db, account, event, now);
   if (["ignored", "superseded", "expired"].includes(canonicalHint?.state)) {
     return { transactionId: "", candidateId: "" };
@@ -498,7 +527,15 @@ async function attachEventOutcome(db, account, event, deviceId, now) {
   const existingRaw = await findFinanceRawBySourceEvent(db, account.id, event.event_id);
   const existingReceipt = existingRaw ? await financeTransactionIdForRaw(db, existingRaw.id) : "";
   if (autoIngest || existingReceipt) {
-    transactionId = existingReceipt || (await createAutomaticFinanceTransaction(db, account, deviceId, event)).transaction_id;
+    try {
+      transactionId = existingReceipt || (await createAutomaticFinanceTransaction(db, account, deviceId, event)).transaction_id;
+    } catch(error) {
+      if(!event.financial_phase || !/CHECK constraint failed:\s*passed\s*=\s*1/i.test(String(error?.message)))throw error;
+      await run(db,`UPDATE task21_notification_events SET lifecycle_review_reason='lifecycle_concurrent_balance_conflict' WHERE user_id=?1 AND event_id=?2`,[account.id,event.event_id]);
+      candidateId=(await candidateForEvent(db,account,event,now)).id;
+      await run(db,`UPDATE task21_notification_events SET candidate_id=?3 WHERE user_id=?1 AND event_id=?2`,[account.id,event.event_id,candidateId]);
+      return {transactionId:'',candidateId};
+    }
     await linkEvidence(db, account, event, "", true, "confirmed", now, transactionId);
     await run(db, `UPDATE task21_notification_candidates
       SET status = 'confirmed', finance_transaction_id = ?3, updated_at = ?4
@@ -520,14 +557,12 @@ async function attachEventOutcome(db, account, event, deviceId, now) {
 
 async function closeAuthorizationCandidates(db,account,event,transactionId,now) {
   if (!event.financial_phase || !event.lifecycle_reference || !event.reference_namespace) return;
-  const terminal=['RELEASED','EXPIRED'].includes(event.financial_phase) || (event.financial_phase==='SETTLED' && transactionId);
-  const prior=await first(db,`SELECT event_id FROM task21_notification_events WHERE user_id=?1 AND reference_namespace=?2
-    AND lifecycle_reference=?3 AND (financial_phase IN ('RELEASED','EXPIRED') OR (financial_phase='SETTLED' AND finance_transaction_id!='')) LIMIT 1`,
-    [account.id,event.reference_namespace,event.lifecycle_reference]);
-  if (!terminal && !prior) return;
+  const balance=lifecycleBalance(await lifecycleRows(db,account.id,event.reference_namespace,event.lifecycle_reference));
+  if(!balance.closed && balance.remaining_frozen_minor!==0)return;
   await run(db,`UPDATE task21_notification_candidates SET status='rejected',updated_at=?4 WHERE user_id=?1 AND status='pending'
     AND event_id IN (SELECT event_id FROM task21_notification_events WHERE user_id=?1 AND reference_namespace=?2
-      AND lifecycle_reference=?3 AND financial_phase IN ('AUTHORIZED','RELEASED','EXPIRED'))`,
+      AND lifecycle_reference=?3 AND financial_phase IN ('AUTHORIZED','RELEASED','EXPIRED')
+      AND identity_review_reason='' AND lifecycle_review_reason='')`,
     [account.id,event.reference_namespace,event.lifecycle_reference,now]);
 }
 
@@ -586,6 +621,8 @@ async function processIngest(db, account, deviceId, operation) {
         (existingEvent.direction && event.direction && existingEvent.direction!==event.direction) ||
         existingEvent.currency!==event.currency || existingEvent.source_package!==event.source_package ||
         String(existingEvent.financial_phase||'')!==event.financial_phase ||
+        String(existingEvent.lifecycle_operation||'')!==event.lifecycle_operation || Number(existingEvent.lifecycle_revision||0)!==event.lifecycle_revision ||
+        String(existingEvent.lifecycle_reference||'')!==event.lifecycle_reference || String(existingEvent.reference_namespace||'')!==event.reference_namespace ||
         (existingEvent.provider_reference && event.provider_reference && existingEvent.provider_reference!==event.provider_reference))
       throw new Task21Error('事件身份对应冲突的财务证据',409,'event_identity_conflict');
     if (existingEvent.finance_transaction_id) {
@@ -611,6 +648,13 @@ async function processIngest(db, account, deviceId, operation) {
   }
 
   const outcome = await attachEventOutcome(db, account, event, deviceId, now);
+  if(event.financial_phase && event.lifecycle_reference && event.reference_namespace) {
+    const related=await lifecycleRows(db,account.id,event.reference_namespace,event.lifecycle_reference);
+    // Exact family only, bounded by the existing event set; no polling loop.
+    for(const pending of related.filter(r=>RECOVERABLE_LIFECYCLE_REASONS.has(r.lifecycle_review_reason)))
+      await attachEventOutcome(db,account,eventFromStoredRow(pending),pending.device_id,now);
+  }
+
   const row = await eventById(db, account, event.event_id);
   return {
     event: publicNotificationEvent(row),
@@ -761,6 +805,8 @@ export async function confirmNotificationCandidate(db, account, input) {
     throw new Task21Error('清算关联证据不足',409,'lifecycle_reference_missing');
   if (event.identity_review_reason && !event.identity_review_reason.startsWith('identity_unproven_'))
     throw new Task21Error('请先核对币种和交易关联',409,event.identity_review_reason);
+  if(Number(event.lifecycle_revision)>1 || event.lifecycle_review_reason)
+    throw new Task21Error('清算余额或版本证据仍需核实',409,event.lifecycle_review_reason||'lifecycle_revision_requires_reconciliation');
   if (event.status !== "active") throw new Task21Error("该候选关联通知已删除", 409, "candidate_status_invalid");
   // A pending candidate may still be missing money fields (amount-unknown
   // hint). The user's edits are the only source that may fill them; an
@@ -796,6 +842,7 @@ export async function confirmNotificationCandidate(db, account, input) {
     received_at_ms: event.received_at_ms,
     confidence: row.confidence,
     parser_version: "verified-on-device",
+    lifecycle_operation:event.lifecycle_operation||'',lifecycle_revision:event.lifecycle_revision||0,
     financial_phase:event.financial_phase||'',lifecycle_reference:event.lifecycle_reference||'',
     reference_namespace:event.reference_namespace||'',currency_evidence:event.currency_evidence||'',identity_review_reason:'',
   };
