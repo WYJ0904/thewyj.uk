@@ -35,7 +35,7 @@ async function stop() {
   const closeout=process.env.FINANCE_P03_BRIDGE_PROFILE==='closeout';
   const expected=closeout ? txs.length===4 && txs.every(t=>t.currency==='USD') &&
     txs.filter(t=>t.direction==='expense').reduce((n,t)=>n+t.amount_minor,0)===17000 &&
-    txs.filter(t=>t.direction==='refund').reduce((n,t)=>n+t.amount_minor,0)===5000 && pending===1 && requests>=10
+    txs.filter(t=>t.direction==='refund').reduce((n,t)=>n+t.amount_minor,0)===5000 && pending===1 && requests>=15
     : txs.length===3 && txs.filter(t=>t.currency==='CNY'&&t.amount_minor===64800).length===2 && txs.filter(t=>t.currency==='USD'&&t.amount_minor===17000).length===1 && pending===2 && requests>=9;
   const status=expected?'PASS':'FAIL';
   await fs.writeFile(path.join(output,'server-final.json'),JSON.stringify({status,requests,txs,pending_candidates:pending,synthetic_only:true},null,2));

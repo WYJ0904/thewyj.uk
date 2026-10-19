@@ -85,6 +85,22 @@ try {
       assert.equal((await h.balance()).released_minor,null);await h.auth(100);
       const b=await h.balance();assert.equal(b.cleared_minor,8000);assert.equal(b.released_minor,2000);assert.equal(b.remaining_frozen_minor,0);return b;
     }],
+    ['N15-PROCESSING-RELEASE-REQUIRES-EXACT-COMPLETED-WITNESS',async h=>{
+      await h.auth(100);const intent=h.event('release-intent','RELEASED',10,'SYNTH-PROCESS-RELEASE',{identity_review_reason:'lifecycle_completion_unproven'});
+      let pending;for(let i=0;i<30;i++)pending=await h.ingest(intent,'synthetic-release-intent-operation');
+      assert.equal((await h.balance()).released_minor,0);assert.ok(pending.candidate_id);
+      await h.release('release-done',10,'SYNTH-PROCESS-RELEASE');
+      const b=await h.balance();assert.equal(b.released_minor,1000);assert.equal(b.remaining_frozen_minor,9000);
+      const state=await db.prepare('SELECT status FROM task21_notification_candidates WHERE id=?1').bind(pending.candidate_id).first();assert.equal(state.status,'rejected');
+      await h.ingest(intent,'synthetic-release-intent-operation');assert.equal((await h.balance()).remaining_frozen_minor,9000);assert.equal(await h.count(),0);return {b,state};
+    }],
+    ['N16-PROCESSING-CAPTURE-REQUIRES-EXACT-COMPLETED-WITNESS',async h=>{
+      await h.auth(100);const intent=h.event('capture-intent','SETTLED',80,'SYNTH-PROCESS-CAPTURE',{parse_status:'candidate',identity_review_reason:'lifecycle_completion_unproven'});
+      for(let i=0;i<30;i++)await h.ingest(intent,'synthetic-capture-intent-operation');assert.equal(await h.count(),0);
+      await h.refund('waiting',20);const done=await h.capture('capture-done',80,'SYNTH-PROCESS-CAPTURE');
+      const b=await h.balance();assert.equal(b.cleared_minor,8000);assert.equal(b.refunded_minor,2000);assert.equal(b.remaining_frozen_minor,2000);
+      const replay=await h.ingest(intent,'synthetic-capture-intent-operation');assert.equal(replay.transaction_id,done.transaction_id);assert.equal(await h.count(),2);return {done,replay,b};
+    }],
   ]) {
     const account={id:'synthetic-closeout-'+id.slice(0,3),entitlements:['finance_access']};const now=new Date().toISOString();
     await db.prepare(`INSERT INTO task12_users (id,username,username_normalized,password_hash,password_scheme,password_iterations,role,registered_at,created_at,updated_at,source_updated_at)

@@ -468,8 +468,13 @@ async function canonicalHintForEvent(db, account, event, now) {
 async function attachEventOutcome(db, account, event, deviceId, now) {
   if (event.financial_phase && event.lifecycle_reference && event.reference_namespace) {
     financeReferenceProvider(event); // Controls require the same issuer proof as charges.
-    const effective={...event,identity_review_reason:RECOVERABLE_LIFECYCLE_REASONS.has(event.identity_review_reason)?'':event.identity_review_reason};
     const rows=await lifecycleRows(db,account.id,event.reference_namespace,event.lifecycle_reference);
+    const completionWitness=rows.some(r=>r.event_id!==event.event_id&&r.financial_phase===event.financial_phase&&
+      r.provider_reference===event.provider_reference&&Number(r.amount_minor)===Number(event.amount_minor)&&r.currency===event.currency&&
+      !r.lifecycle_review_reason&&(r.finance_transaction_id||r.control_accepted));
+    const mayRecover=RECOVERABLE_LIFECYCLE_REASONS.has(event.identity_review_reason)&&
+      (event.identity_review_reason!=='lifecycle_completion_unproven'||completionWitness);
+    const effective={...event,identity_review_reason:mayRecover?'':event.identity_review_reason};
     const reason=effective.identity_review_reason || lifecycleReason(effective,rows);
     await run(db,`UPDATE task21_notification_events SET lifecycle_review_reason=?3 WHERE user_id=?1 AND event_id=?2`,[account.id,event.event_id,reason]);
     const provenRecovery=!reason&&RECOVERABLE_LIFECYCLE_REASONS.has(event.identity_review_reason)&&['SETTLED','REFUNDED'].includes(event.financial_phase);
@@ -557,13 +562,12 @@ async function attachEventOutcome(db, account, event, deviceId, now) {
 
 async function closeAuthorizationCandidates(db,account,event,transactionId,now) {
   if (!event.financial_phase || !event.lifecycle_reference || !event.reference_namespace) return;
-  const balance=lifecycleBalance(await lifecycleRows(db,account.id,event.reference_namespace,event.lifecycle_reference));
-  if(!balance.closed && balance.remaining_frozen_minor!==0)return;
-  await run(db,`UPDATE task21_notification_candidates SET status='rejected',updated_at=?4 WHERE user_id=?1 AND status='pending'
-    AND event_id IN (SELECT event_id FROM task21_notification_events WHERE user_id=?1 AND reference_namespace=?2
-      AND lifecycle_reference=?3 AND financial_phase IN ('AUTHORIZED','RELEASED','EXPIRED')
-      AND identity_review_reason='' AND lifecycle_review_reason='')`,
-    [account.id,event.reference_namespace,event.lifecycle_reference,now]);
+  const rows=await lifecycleRows(db,account.id,event.reference_namespace,event.lifecycle_reference);
+  const balance=lifecycleBalance(rows);
+  const terminal=balance.closed||balance.remaining_frozen_minor===0;
+  const completed=rows.filter(r=>!r.lifecycle_review_reason&&(!r.identity_review_reason||RECOVERABLE_LIFECYCLE_REASONS.has(r.identity_review_reason))&&
+    (r.control_accepted||!r.lifecycle_operation)&&(['RELEASED','EXPIRED'].includes(r.financial_phase)||(terminal&&r.financial_phase==='AUTHORIZED')));
+  for(const row of completed)await run(db,`UPDATE task21_notification_candidates SET status='rejected',updated_at=?3 WHERE user_id=?1 AND event_id=?2 AND status='pending'`,[account.id,row.event_id,now]);
 }
 
 /**

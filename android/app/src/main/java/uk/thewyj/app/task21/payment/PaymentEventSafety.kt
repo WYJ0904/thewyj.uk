@@ -12,6 +12,9 @@ internal object PaymentEventSafety {
     private val reference = Regex("(?:授权号|授權號|授权参考号|authorization\\s+(?:id|reference))[:：]?\\s*([A-Za-z0-9_-]{6,40})", RegexOption.IGNORE_CASE)
     private val partial = Regex("(?:预授权)?部分(?:预授权)?(?:结算|清算|扣款|解除|退款)|partial\\s+(?:settlement|release|refund)", RegexOption.IGNORE_CASE)
     private val revision = Regex("(?:状态版本|状态修订|state\\s+version)[:：]?\\s*([1-9][0-9]{0,8})(?![0-9])", RegexOption.IGNORE_CASE)
+    private val processing = Regex("(?:结算|清算|扣款|解除|退款).{0,6}(?:处理中|處理中|申请中|申請中|进行中|待确认|待確認)|(?:pending|processing)\\s+(?:settlement|capture|release|refund)", RegexOption.IGNORE_CASE)
+    private val authorizationProcessing = Regex("授权(?:处理|處理|申请|申請|进行)中|等待授权|待授权|authorization\\s+processing", RegexOption.IGNORE_CASE)
+    private val postedPartial = Regex("(?:结算|清算|扣款|退款)成功|已(?:扣款|入账|入賬|退款)|posted(?:\\s+partial)?\\s+(?:settlement|refund)", RegexOption.IGNORE_CASE)
     private val phases = listOf(
         "EXPIRED" to Regex("预授权(?:自动)?(?:过期|失效)|authorization\\s+expired", RegexOption.IGNORE_CASE),
         "RELEASED" to Regex("预授权(?:解除|撤销|取消)|authorization\\s+(?:release|released|cancelled)", RegexOption.IGNORE_CASE),
@@ -98,6 +101,11 @@ internal object PaymentEventSafety {
             financialPhase = "REVIEW_REQUIRED"
             review = "partial_clearing_requires_review"
         }
+        val unfinished = if (financialPhase == "AUTHORIZED") authorizationProcessing.containsMatchIn(all)
+            else processing.containsMatchIn(all) || PaymentText.hasIncompleteStatus(all)
+        if (financialPhase.isNotBlank() && review.isBlank() && (unfinished ||
+                (partialMatch.isNotBlank() && financialPhase in setOf("SETTLED", "REFUNDED") && !postedPartial.containsMatchIn(all))))
+            review = "lifecycle_completion_unproven"
         if (financialPhase.isNotBlank() && stateRevision > 1) review = "lifecycle_revision_requires_reconciliation"
         val direction = if (financialPhase == "REFUNDED") FinanceDirection.REFUND
             else if (financialPhase.isNotBlank()) FinanceDirection.EXPENSE else parsed.direction

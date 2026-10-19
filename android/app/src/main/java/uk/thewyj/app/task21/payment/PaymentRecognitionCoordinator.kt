@@ -84,7 +84,9 @@ class PaymentRecognitionCoordinator(
         if (parsed.lifecycleRevision > 1) reviewReason = "lifecycle_revision_requires_reconciliation"
         val existing = direct ?: matching.singleOrNull()?.takeIf { reviewReason !in setOf("reference_money_or_instance_conflict", "reference_alias_conflict", "lifecycle_revision_requires_reconciliation") }
         if (existing != null) {
-            if (reviewReason.isNotBlank() && existing.identityReviewReason != reviewReason)
+            val lateIntent = reviewReason == "lifecycle_completion_unproven" && existing.identityReviewReason.isBlank() &&
+                (existing.completionConfirmed || existing.financialPhase in setOf("AUTHORIZED", "RELEASED", "EXPIRED"))
+            if (reviewReason.isNotBlank() && existing.identityReviewReason != reviewReason && !lateIntent)
                 store.saveRecognition(existing.copy(identityReviewReason = reviewReason))
             store.saveEventAlias(accountId, sourceEventId, existing.recognitionId)
             if (uploadEventId.isNotBlank()) store.saveEventAlias(accountId, uploadEventId, existing.recognitionId)
@@ -110,10 +112,18 @@ class PaymentRecognitionCoordinator(
                     (existing.direction !in setOf("INCOME", "EXPENSE", "REFUND") || existing.direction == update.direction?.name) &&
                     (existing.providerReference.isBlank() || update.providerReference.isNullOrBlank() ||
                         existing.providerReference == update.providerReference)
+                if (existing.identityReviewReason == "lifecycle_completion_unproven" && reviewReason.isBlank() && compatible &&
+                    update.financialPhase in setOf("AUTHORIZED", "RELEASED", "EXPIRED") && candidate?.status != "rejected" && candidate?.hasEdits != true) {
+                    store.saveRecognition(existing.copy(identityReviewReason = "", state = "FINANCE_PENDING_CONFIRMATION",
+                        uploadEventId = completedUploadId(existing, uploadEventId), financialPhase = update.financialPhase,
+                        lifecycleOperation = update.lifecycleOperation, lifecycleRevision = update.lifecycleRevision, updatedAtMs = now()))
+                    upgraded = true
+                }
                 if (update.status == PaymentRecognitionStatus.CONFIRMED_PAYMENT && compatible && reviewReason.isBlank() &&
                     !PaymentText.hasIncompleteStatus(PaymentText.normalize(title, text, bigText, subText)) &&
                     candidate?.status != "rejected" && candidate?.hasEdits != true) {
                     store.saveRecognition(existing.copy(
+                        uploadEventId = completedUploadId(existing, uploadEventId),
                         amountMinor = update.amountMinor, currency = update.currency ?: existing.currency,
                         direction = update.direction?.name.orEmpty(), providerReference = update.providerReference.orEmpty(),
                         identityReviewReason = "", financialPhase = update.financialPhase,
@@ -129,8 +139,10 @@ class PaymentRecognitionCoordinator(
                 }
             }
             val booking = autoBook(accountId, existing.recognitionId)
+            reconcileAuthorizationEvidence(accountId, parsed)
             return Outcome(existing.recognitionId,
-                if (upgraded && booking != null) PaymentRecognitionState.FINANCE_RECORDED else null,
+                if (upgraded) booking?.let { PaymentRecognitionState.FINANCE_RECORDED } ?:
+                    store.recognition(accountId, existing.recognitionId)?.state?.let { PaymentRecognitionState.valueOf(it) } else null,
                 skippedReason = "duplicate_source_event")
         }
         if (parsed.status == PaymentRecognitionStatus.NOT_PAYMENT ||
@@ -769,6 +781,15 @@ class PaymentRecognitionCoordinator(
         note = candidate.editedNote,
         userEdited = candidate.hasEdits,
     )
+
+    private fun completedUploadId(record: PaymentRecognitionRecord, incoming: String): String {
+        if (record.identityReviewReason != "lifecycle_completion_unproven" || incoming.isBlank() ||
+            store.localBooking(record.accountId, PaymentAutoBook.eventId(record)) != null) return record.uploadEventId
+        // Preserve the old intent alias, but never regenerate its immutable ingest
+        // operation using a later completed payload after its receipt was acked.
+        if (record.uploadEventId.isNotBlank()) store.saveEventAlias(record.accountId, record.uploadEventId, record.recognitionId)
+        return incoming
+    }
 
     private fun lifecycleGuard(record: PaymentRecognitionRecord): String =
         if (record.financialPhase.isBlank() || record.lifecycleReference.isBlank()) "" else PaymentLifecycleAccounting.guard(

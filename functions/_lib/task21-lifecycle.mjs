@@ -1,6 +1,6 @@
 /** Source-money projection over existing events and receipts; no second ledger. */
 export const RECOVERABLE_LIFECYCLE_REASONS = new Set(['lifecycle_capture_missing','lifecycle_authorization_missing',
-  'lifecycle_refund_exceeds_capture','lifecycle_release_exceeds_remaining']);
+  'lifecycle_refund_exceeds_capture','lifecycle_release_exceeds_remaining','lifecycle_completion_unproven']);
 
 export async function lifecycleRows(db,userId,namespace,family) {
   return (await db.prepare(`SELECT e.*,COALESCE(g.passed,0) AS control_accepted FROM task21_notification_events e

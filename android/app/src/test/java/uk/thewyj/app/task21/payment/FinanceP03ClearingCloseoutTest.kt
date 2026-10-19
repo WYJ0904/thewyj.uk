@@ -163,4 +163,36 @@ class FinanceP03ClearingCloseoutTest {
         assertEquals(amount,store.localBookings(owner).single().amountMinor)
         assertNull(number("remainingFrozenMinor"))
     }
+
+    @Test fun processingPartialReleaseNeedsCompletedEvidenceAndLateIntentCannotUndoIt() {
+        auth(100)
+        val processing="预授权部分解除处理中 USD 10.00 授权号 $family 交易号 SYNTH-PROCESS-RELEASE"
+        val done="预授权部分解除 USD 10.00 授权号 $family 交易号 SYNTH-PROCESS-RELEASE"
+        val pending=event("release-intent",processing)
+        assertEquals(0L,number("releasedMinor"))
+        assertEquals("lifecycle_completion_unproven",store.recognition(owner,pending.recognitionId)?.identityReviewReason)
+        event("release-completed",done)
+        assertEquals(1000L,number("releasedMinor"));assertEquals(9000L,number("remainingFrozenMinor"))
+        repeat(30){event("release-intent",processing)}
+        assertEquals(1000L,number("releasedMinor"));assertEquals(9000L,number("remainingFrozenMinor"))
+        assertEquals(0,store.localBookings(owner).size)
+    }
+
+    @Test fun incompletePartialCaptureCannotBookAndCompletionResumesItsExactRefund() {
+        auth(100);refund("waiting",20)
+        val intent="部分结算通知 USD 80.00 授权号 $family 交易号 SYNTH-PROCESS-CAPTURE"
+        val done="部分结算成功 已扣款 USD 80.00 授权号 $family 交易号 SYNTH-PROCESS-CAPTURE"
+        val pending=event("capture-intent",intent)
+        assertEquals(0L,money("EXPENSE"));assertEquals(0L,money("REFUND"))
+        assertEquals("lifecycle_completion_unproven",store.recognition(owner,pending.recognitionId)?.identityReviewReason)
+        repeat(30){event("capture-posted-$it",done)}
+        assertEquals(8000L,money("EXPENSE"));assertEquals(2000L,money("REFUND"))
+        val canonical=store.recognitionBySourceEvent(owner,"synthetic-closeout-capture-posted-0")!!
+        assertEquals(pending.recognitionId,canonical.recognitionId)
+        assertEquals("synthetic-closeout-capture-posted-0",canonical.uploadEventId)
+        assertEquals(canonical.recognitionId,store.recognitionByUploadEvent(owner,"synthetic-closeout-capture-intent")?.recognitionId)
+        assertEquals(6000L,number("netExpenseMinor"));assertEquals(2000L,number("remainingFrozenMinor"))
+        repeat(30){event("capture-intent",intent)}
+        assertEquals(2000L,number("remainingFrozenMinor"));assertEquals(2,store.localBookings(owner).size)
+    }
 }

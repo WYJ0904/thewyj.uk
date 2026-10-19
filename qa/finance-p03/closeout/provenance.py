@@ -47,7 +47,7 @@ def scope():
     old=json.loads((BASE/'baseline-audit.json').read_text(encoding='utf-8'))
     for group in ['reports','p02_sources','p03_raw']:
         for name,digest in old[group].items(): assert sha(ROOT/name)==digest,name
-    proof=json.loads((BASE/'protected-final.comparison.json').read_text())
+    proof=json.loads((BASE/'protected-seal.comparison.json').read_text())
     assert len(proof)==13 and all(not r['added'] and not r['missing'] and not r['changed'] and
         all(v for k,v in r.items() if k.endswith('Same')) for r in proof.values())
     return changed,proof
@@ -65,7 +65,7 @@ def seal():
     else: shutil.copy2(built,artifact)
     current={'captured_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'commit':git('rev-parse','HEAD'),'tree':git('rev-parse','HEAD^{tree}'),
-        'implementation_commit':json.loads((BASE/'code-commit.json').read_text())['commit'],
+        'implementation_commit':json.loads((BASE/'code-commit-final.json').read_text())['commit'],
         'baseline_commit':BASELINE,'branch':git('branch','--show-current'),
         'debug_apk_sha256':sha(artifact),'debug_apk_bytes':artifact.stat().st_size,'not_a_release':True}
     revision.write_text(json.dumps(current,ensure_ascii=False,indent=2),encoding='utf-8')

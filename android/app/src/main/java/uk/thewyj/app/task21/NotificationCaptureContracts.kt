@@ -375,6 +375,7 @@ fun paymentLifecycleProof(input: NotificationCaptureInput, payment: PaymentInges
         referenceHash = reference.takeIf(String::isNotBlank)?.let {
             NotificationFingerprint.sha256Hex("${input.sourcePackage}\u001F$channel\u001F$it" +
                 payment?.financialPhase?.takeIf { phase -> phase.isNotBlank() }?.let { phase -> "\u001F$phase" }.orEmpty() +
+                (if (payment?.identityReviewReason == "lifecycle_completion_unproven") "\u001Fprocessing" else "") +
                 (payment?.lifecycleRevision ?: 0).takeIf { it > 0 }?.let { "\u001Fversion:$it" }.orEmpty())
         }.orEmpty(),
         messageHash = paymentMessageProof(input),
