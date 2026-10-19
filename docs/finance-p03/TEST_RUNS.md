@@ -35,6 +35,7 @@
 - server-attempt1：新SQL行注释被既有测试flatten换行吞掉导致0案例启动失败，改block注释兼容既有loader；失败栈保留。
 - bridge-final-restore：队列仍7项的断言FAIL；该服务最终0请求、0账目，恢复启动时已停止，未验证到实际服务链。六分钟watchdog及文件时间线见bridge-final/和bridge-expiry-diagnosis.json。未修改产品或放宽断言，改在全新bridge-controlled目录连续执行seed→服务→restore；原FAIL及堆栈保留，不能由后续PASS抹除。
 - integrity-attempt1：审计脚本直接比较git show的LF字节与Windows CRLF工作副本，触发QA断言；六份配置归一化后相同，改用git hash-object验证原blob。产品未因此修改；诊断和复核见integrity-attempt1.json、integrity-review.json。
+- 首次封存将尚未写完的自身stdout日志纳入摘要，独立复核发现仅该日志hash变化；保留seal-attempt1/与provenance-validation-attempt1.json。QA工具改为排除当前manifest及其stdout这两个封存外壳，复用APK时严格验证相同hash，产品和测试结果不改。
 - 中间局部/全量运行、冻结P02非零、F012 mock矛盾及所有重跑均保留。最后一次PASS不覆盖它们。Node MODULE_TYPELESS_PACKAGE_JSON告警未通过改package配置消除。
 
 ## 实际覆盖边界

@@ -66,8 +66,11 @@ def main():
     assert sha(owner_copy) == sha(owner_original), 'Owner material differs'
     artifact = BASE / 'artifacts/finance-p03-debug.apk'
     artifact.parent.mkdir(exist_ok=True)
-    assert not artifact.exists(), 'Preserve prior APK'
-    shutil.copy2(ROOT / 'android/app/build/outputs/apk/debug/app-debug.apk', artifact)
+    built_apk = ROOT / 'android/app/build/outputs/apk/debug/app-debug.apk'
+    if artifact.exists():
+        assert sha(artifact) == sha(built_apk), 'Never replace a different archived APK'
+    else:
+        shutil.copy2(built_apk, artifact)
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
     revision.write_text(json.dumps({
         'captured_at_utc': now, 'commit': git('rev-parse', 'HEAD'), 'tree': git('rev-parse', 'HEAD^{tree}'),
@@ -76,14 +79,18 @@ def main():
         'debug_apk_sha256': sha(artifact), 'debug_apk_bytes': artifact.stat().st_size,
         'not_a_release': True}, ensure_ascii=False, indent=2), encoding='utf-8')
     sources = {p: sha(ROOT / p) for p in sorted(changed)}
+    # This command's stdout remains open until after the manifest is sealed.
+    # Its own envelope cannot be an input to that same immutable manifest.
+    envelopes = {output, BASE / 'provenance-run.log'}
     evidence = {p.relative_to(ROOT).as_posix(): sha(p) for p in sorted(BASE.rglob('*'))
-                if p.is_file() and p != output and '__pycache__' not in p.parts}
+                if p.is_file() and p not in envelopes and '__pycache__' not in p.parts}
     result = {
         'captured_at_utc': now, 'final_commit': git('rev-parse', 'HEAD'),
         'git_tree': git('rev-parse', 'HEAD^{tree}'), 'baseline_commit': BASELINE,
         'inherited_history': history, 'changed_paths': sorted(changed),
         'product_files': sorted(changed & PRODUCT), 'test_files': sorted(changed & TESTS),
         'source_and_report_sha256': sources, 'raw_evidence_sha256': evidence,
+        'seal_envelopes_excluded': ['provenance.json', 'provenance-run.log'],
         'owner_material_sha256': sha(owner_copy), 'protected_comparison': proof,
         'runtime_versions': {
             'node': subprocess.check_output(['node', '--version']).decode().strip(),
