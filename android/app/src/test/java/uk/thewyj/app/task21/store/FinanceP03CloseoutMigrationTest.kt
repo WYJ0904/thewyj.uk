@@ -31,7 +31,7 @@ class FinanceP03CloseoutMigrationTest {
     }
     private fun old(file: File) = Room.databaseBuilder(context, CloseoutV11Database::class.java, file.absolutePath).allowMainThreadQueries().build()
     private fun current(file: File, migration: Migration = NotificationDatabase.MIGRATION_11_12) =
-        Room.databaseBuilder(context, NotificationDatabase::class.java, file.absolutePath).addMigrations(migration, NotificationDatabase.MIGRATION_12_13).allowMainThreadQueries().build()
+        Room.databaseBuilder(context, NotificationDatabase::class.java, file.absolutePath).addMigrations(migration, NotificationDatabase.MIGRATION_12_13, NotificationDatabase.MIGRATION_13_14).allowMainThreadQueries().build()
     private inline fun <T : androidx.room.RoomDatabase, R> T.closed(block: (T) -> R): R = try { block(this) } finally { close() }
     private fun seed(file: File) {
         old(file).closed { db ->
@@ -54,16 +54,16 @@ class FinanceP03CloseoutMigrationTest {
             assertEquals("",r.lifecycleOperation);assertEquals(0L,r.lifecycleRevision)
             assertEquals("SYNTH-OLD-REFERENCE",r.providerReference)
         }
-        inspect(file,13)
+        inspect(file,14)
     }
     @Test fun actualV11RoomOpenerFailsClosedOnV12WithoutDeletingData() {
         val file=file("downgrade");seed(file);current(file).closed { it.openHelper.writableDatabase }
         val old=old(file)
         try {
             try { old.openHelper.writableDatabase;fail("v11 must not open v12") }
-            catch(e:IllegalStateException) { assertTrue(e.message.orEmpty().contains("13")&&e.message.orEmpty().contains("11")) }
+            catch(e:IllegalStateException) { assertTrue(e.message.orEmpty().contains("14")&&e.message.orEmpty().contains("11")) }
         } finally { old.close() }
-        inspect(file,13)
+        inspect(file,14)
         current(file).closed { assertEquals(1,RoomPaymentRecognitionStore(it).localBookings(owner).size) }
     }
     @Test fun interruptedUpgradeRollsBackAndCanRetryWithTheSameOutbox() {
@@ -86,7 +86,7 @@ class FinanceP03CloseoutMigrationTest {
             raw.rawQuery("PRAGMA table_info(payment_recognitions)",null).use { while(it.moveToNext())assertNotEquals("synthetic_probe",it.getString(1)) }
         }
         current(file).closed { it.openHelper.writableDatabase }
-        inspect(file,13)
+        inspect(file,14)
         assertEquals(before,NotificationOfflineQueue.inDirectory(queueDir,owner).peekRequests())
     }
     @Test fun repeatedMigrationFailsAtomicallyAndNormalReopenNeverRerunsIt() {
@@ -98,7 +98,7 @@ class FinanceP03CloseoutMigrationTest {
                 catch(e:android.database.sqlite.SQLiteException) { assertTrue(e.message.orEmpty().contains("duplicate column")) }
             } finally { raw.endTransaction() }
         }
-        inspect(file,13)
+        inspect(file,14)
         current(file).closed { assertEquals(1,RoomPaymentRecognitionStore(it).localBookings(owner).size) }
     }
     @Test fun closedSnapshotsRestoreV11AndV12SeparatelyAndKeepNewWritesFenced() {
@@ -118,7 +118,7 @@ class FinanceP03CloseoutMigrationTest {
             val newEvent=RoomPaymentRecognitionStore(db).localBookings(owner).single{it.eventId!="synthetic-old-event"}.eventId
             queue.enqueueRequest(newEvent,"/api/notification/ingest","{\"synthetic\":true}")
         }
-        inspect(active,13,2)
+        inspect(active,14,2)
         val newBackup=file("v12-snapshot");active.copyTo(newBackup)
         val queueV12=queueDir();assertTrue(activeQueue.copyRecursively(queueV12))
         val restoredOld=file("old-restored");oldBackup.copyTo(restoredOld)
@@ -134,6 +134,6 @@ class FinanceP03CloseoutMigrationTest {
         assertEquals(queueHashes(queueV12),queueHashes(newQueueRestored))
         assertEquals(queue.peekRequests(),NotificationOfflineQueue.inDirectory(newQueueRestored,owner).peekRequests())
         assertEquals(2,NotificationOfflineQueue.inDirectory(newQueueRestored,owner).peekRequests().size)
-        inspect(restoredNew,13,2);inspect(active,13,2)
+        inspect(restoredNew,14,2);inspect(active,14,2)
     }
 }

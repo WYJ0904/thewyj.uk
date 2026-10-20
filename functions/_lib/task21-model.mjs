@@ -1,7 +1,7 @@
 /** Client ingest protocol version (Android payloads send this value). */
 export const TASK21_SCHEMA_VERSION = "1";
 /** Task 21 readiness baseline; migration 0022 is additive for old Pages code. */
-export const TASK21_DB_SCHEMA_VERSION = "5";
+export const TASK21_DB_SCHEMA_VERSION = "6";
 export const TASK21_BUILD = "2026-09-08-task21-notification";
 export const NOTIFICATION_ENTITLEMENT = "notification_archive_access";
 export const MAX_INGEST_OPERATIONS = 100;

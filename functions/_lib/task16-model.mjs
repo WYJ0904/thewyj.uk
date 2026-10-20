@@ -350,6 +350,8 @@ export function financeReferenceScope(event) {
 
 export function publicTransaction(row) {
   return {
+    ...(row.system_superseded_by ? { system_superseded_by: row.system_superseded_by,
+      system_superseded_operation: row.system_superseded_operation } : {}),
     ...(row.notification_event_ids_json ? { notification_event_ids: JSON.parse(row.notification_event_ids_json) } : {}),
     id: String(row.id || ""),
     direction: String(row.direction || ""),

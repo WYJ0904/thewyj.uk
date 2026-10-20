@@ -87,7 +87,7 @@ export async function ensureTask21Schema(db) {
     const row = await first(db, "SELECT value FROM task21_metadata WHERE key = ?1", ["schema_version"]);
     if(String(row?.value||'')!==TASK21_DB_SCHEMA_VERSION)return false;
     const finance=await first(db,"SELECT value FROM task16_metadata WHERE key='schema_version'");
-    return String(finance?.value||'')==='2';
+    return String(finance?.value||'')==='3';
   } catch (_) {
     return false;
   }
@@ -619,7 +619,11 @@ async function closeAuthorizationCandidates(db,account,event,transactionId,now) 
   const terminal=balance.closed||balance.remaining_frozen_minor===0;
   const completed=rows.filter(r=>!r.lifecycle_review_reason&&(!r.identity_review_reason||RECOVERABLE_LIFECYCLE_REASONS.has(r.identity_review_reason))&&
     (r.control_accepted||!r.lifecycle_operation)&&(['RELEASED','EXPIRED'].includes(r.financial_phase)||(terminal&&r.financial_phase==='AUTHORIZED')));
-  for(const row of completed)await run(db,`UPDATE task21_notification_candidates SET status='rejected',updated_at=?3 WHERE user_id=?1 AND event_id=?2 AND status='pending'`,[account.id,row.event_id,now]);
+  for(const row of completed)await db.batch([
+    db.prepare(`INSERT OR IGNORE INTO task21_payment_control_closures SELECT ?1,?2,'system_control_completed',?3
+      WHERE EXISTS(SELECT 1 FROM task21_notification_candidates WHERE user_id=?1 AND event_id=?2 AND status='pending')`).bind(account.id,row.event_id,now),
+    db.prepare(`UPDATE task21_notification_candidates SET status='rejected',updated_at=?3 WHERE user_id=?1 AND event_id=?2 AND status='pending'`).bind(account.id,row.event_id,now),
+  ]);
 }
 
 /**
@@ -1057,8 +1061,9 @@ export async function rejectNotificationCandidate(db, account, input) {
   requireAllowedFields(input, new Set(["candidate_id"]));
   const candidateId = cleanId(input.candidate_id, "候选标识");
   const row = await candidateById(db, account, candidateId);
+  if (!["pending","rejected"].includes(row.status)) throw new Task21Error("该候选不能拒绝", 409, "candidate_status_invalid");
+  await recordPaymentUserDecision(db,account,row.event_id,"candidate_reject");
   if (row.status === "rejected") return { candidate: publicNotificationCandidate(row), no_change: true };
-  if (row.status !== "pending") throw new Task21Error("该候选不能拒绝", 409, "candidate_status_invalid");
   const now = isoNow();
   await run(db, `UPDATE task21_notification_candidates SET status = 'rejected',
     updated_at = ?2 WHERE user_id = ?1 AND id = ?3`, [account.id, now, candidateId]);

@@ -25,3 +25,8 @@ data class PaymentUserDecisionEntity(val accountId: String, val recognitionId: S
 /** One mistaken delivery can be detached without moving its entire recognition. */
 @Entity(tableName = "payment_reconciliation_aliases", primaryKeys = ["accountId", "sourceEventId"])
 data class PaymentReconciliationAliasEntity(val accountId: String, val sourceEventId: String, val canonicalRecognitionId: String, val excluded: Int, val operationId: String)
+
+/** The old booking is retained verbatim; only its effective ownership changes. */
+@Entity(tableName = "payment_booking_supersessions", primaryKeys = ["accountId", "transactionId"])
+data class PaymentBookingSupersessionEntity(val accountId: String, val transactionId: String,
+    val canonicalTransactionId: String, val operationId: String, val originalBookingJson: String, val createdAtMs: Long)

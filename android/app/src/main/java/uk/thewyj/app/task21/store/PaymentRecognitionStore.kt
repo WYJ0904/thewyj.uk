@@ -94,11 +94,12 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
         // Every historic delivery reads the primary recognition's latest
         // accepted facts. Its own old overlay remains association audit only.
         val o = database.reconciliationDao().effective(row.accountId, canonical.recognitionId) ?: link
+        val control = o.financialPhase in setOf("AUTHORIZED", "RELEASED", "EXPIRED")
         return canonical.toModel().copy(amountMinor = o.amountMinor, financialPhase = o.financialPhase,
             lifecycleOperation = o.lifecycleOperation, lifecycleRevision = o.lifecycleRevision,
             lifecycleReference = o.lifecycleReference, providerReference = o.providerReference,
-            referenceNamespace = o.referenceNamespace, identityReviewReason = "", completionConfirmed = true,
-            state = "FINANCE_RECORDED")
+            referenceNamespace = o.referenceNamespace, identityReviewReason = "", completionConfirmed = !control,
+            state = if (control) canonical.state else "FINANCE_RECORDED")
     }
     override fun <T> transaction(block: () -> T): T = database.runInTransaction(java.util.concurrent.Callable { block() })
     override fun saveEventAlias(accountId: String, sourceEventId: String, recognitionId: String) =
@@ -116,8 +117,17 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
             val o=database.reconciliationDao().alias(accountId,it.removePrefix("notification#event#"))
             o==null || (o.excluded==0 && o.canonicalRecognitionId==recognitionId)
         }
-    override fun localBooking(accountId: String, eventId: String) = dao.localBooking(accountId, eventId)?.toModel()
-    override fun localBookings(accountId: String) = dao.localBookings(accountId).map { it.toModel() }
+    override fun localBooking(accountId: String, eventId: String): uk.thewyj.app.task21.payment.LocalPaymentBooking? {
+        var row = dao.localBooking(accountId, eventId) ?: return null
+        val visited = mutableSetOf<String>()
+        while (true) {
+            if (!visited.add(row.transactionId)) return null // Corrupt cycles fail closed.
+            val relation = database.reconciliationDao().supersession(accountId, row.transactionId) ?: return row.toModel()
+            row = dao.localBookings(accountId).singleOrNull { it.transactionId == relation.canonicalTransactionId } ?: return null
+        }
+    }
+    override fun localBookings(accountId: String) = dao.localBookings(accountId)
+        .filter { database.reconciliationDao().supersession(accountId, it.transactionId) == null }.map { it.toModel() }
     override fun bookLocally(booking: uk.thewyj.app.task21.payment.LocalPaymentBooking, recognition: PaymentRecognitionRecord, candidate: PaymentCandidate) {
         database.runInTransaction {
             dao.insertLocalBooking(booking.toEntity())

@@ -134,7 +134,7 @@ export async function ensureTask16Schema(db) {
   try {
     const row = await first(db, "SELECT value FROM task16_metadata WHERE key = ?1", ["schema_version"]);
     const version=String(row?.value||'');
-    if(version==='2')return true;
+    if(version==='3')return true;
     // Older standalone schemas remain usable before reconciliation exists.
     if(version!==TASK16_SCHEMA_VERSION)return false;
     const upgraded=await first(db,"SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='task21_payment_effective_events'");
@@ -309,6 +309,7 @@ async function upsertTransaction(db, account, deviceId, operation, digest, obser
   const baseRevision = nonNegativeInteger(operation.base_revision || 0, "基础版本", 1_000_000_000);
   const existing = await first(db, "SELECT * FROM task16_finance_transactions WHERE id = ?1", [id]);
   if (existing && existing.user_id !== account.id) throw new Task16Error("账目不存在", 404, "transaction_not_found");
+  if (existing?.system_superseded_by) throw new Task16Error("此历史账目已有明确的有效归属", 409, "transaction_superseded");
   if (!existing && baseRevision !== 0) throw new Task16Error("账目版本冲突", 409, "transaction_conflict");
   if (existing && Number(existing.revision) !== baseRevision) {
     throw new Task16Error("账目已在另一设备更新", 409, "transaction_conflict", false, {
@@ -354,6 +355,7 @@ async function changeTransactionStatus(db, account, deviceId, operation, digest,
   const existing = await first(db, `SELECT * FROM task16_finance_transactions
     WHERE id = ?1 AND user_id = ?2`, [id, account.id]);
   if (!existing) throw new Task16Error("账目不存在", 404, "transaction_not_found");
+  if (existing.system_superseded_by) throw new Task16Error("此历史账目已有明确的有效归属", 409, "transaction_superseded");
   if (Number(existing.revision) !== baseRevision) throw new Task16Error("账目已在另一设备更新", 409, "transaction_conflict");
   if (existing.status === targetStatus) {
     return await recordNoopOperation(db, account, deviceId, operation, digest, {

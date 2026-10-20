@@ -25,4 +25,7 @@ interface PaymentReconciliationDao {
     @Query("SELECT COUNT(*) FROM payment_user_decisions WHERE accountId=:accountId AND recognitionId=:recognitionId")
     fun hasDecision(accountId: String, recognitionId: String): Int
     @Update fun updateBooking(row: LocalPaymentBookingEntity)
+    @Insert(onConflict = OnConflictStrategy.ABORT) fun supersede(row: PaymentBookingSupersessionEntity)
+    @Query("SELECT * FROM payment_booking_supersessions WHERE accountId=:accountId AND transactionId=:transactionId")
+    fun supersession(accountId: String, transactionId: String): PaymentBookingSupersessionEntity?
 }

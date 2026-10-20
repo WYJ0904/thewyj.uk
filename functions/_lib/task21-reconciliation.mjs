@@ -21,8 +21,8 @@ export function normalizeReconciliation(operation) {
   cleanId(operation.operation_id,'操作标识');
   if(operation.type!=='payment.reconcile')throw error('reconciliation_type_invalid');
   const p=operation.payload;
-  requireAllowedFields(p,new Set(['kind','evidence_event_id','target_event_ids','detach_event_ids','predecessor_operation_id','predecessor_revision','expected_transaction_revision','proof_id']));
-  if(!['REPLACE','MAP','REASSIGN','REVOKE'].includes(p.kind))throw error('reconciliation_kind_invalid');
+  requireAllowedFields(p,new Set(['kind','evidence_event_id','target_event_ids','detach_event_ids','predecessor_operation_id','predecessor_revision','expected_transaction_revision','proof_id','canonical_transaction_id','expected_transaction_revisions']));
+  if(!['REPLACE','MAP','REASSIGN','REVOKE','CONSOLIDATE','CONTROL_REPLACE'].includes(p.kind))throw error('reconciliation_kind_invalid');
   for(const k of ['evidence_event_id','proof_id'])cleanId(p[k],k);
   if(p.predecessor_operation_id)cleanId(p.predecessor_operation_id,'前驱修正');
   for(const k of ['predecessor_revision','expected_transaction_revision'])if(!Number.isSafeInteger(p[k])||p[k]<0)throw error('reconciliation_revision_invalid');
@@ -31,6 +31,15 @@ export function normalizeReconciliation(operation) {
     p[k].forEach(id=>cleanId(id,'来源事件'));
   }
   if(!p.target_event_ids.length||p.target_event_ids.includes(p.evidence_event_id)||p.detach_event_ids.some(id=>p.target_event_ids.includes(id)||id===p.evidence_event_id))throw error('reconciliation_targets_invalid');
+  if(p.kind==='CONSOLIDATE') {
+    cleanId(p.canonical_transaction_id,'保留账目标识');
+    if(p.detach_event_ids.length||!p.expected_transaction_revisions||typeof p.expected_transaction_revisions!=='object'||Array.isArray(p.expected_transaction_revisions)||
+      Object.keys(p.expected_transaction_revisions).length>17)throw error('formal_resolution_invalid');
+    for(const [id,revision]of Object.entries(p.expected_transaction_revisions)) {
+      cleanId(id,'历史账目标识');
+      if(!Number.isSafeInteger(revision)||revision<1)throw error('formal_resolution_invalid');
+    }
+  } else if(p.canonical_transaction_id!==undefined||p.expected_transaction_revisions!==undefined)throw error('formal_resolution_invalid');
   return operation;
 }
 
@@ -103,6 +112,70 @@ function familyGuard(db,user,op,namespace,family) {
       GROUP BY user_id HAVING COUNT(DISTINCT currency)>1) THEN 1 ELSE 0 END)`).bind(user,op,namespace,family);
 }
 
+/** Authorization/release/expiry revisions update source facts, never the ledger.
+ * The role, family and independent control reference must remain identical. */
+async function applyControlRevision(db,account,operation,digest,snapshot,proof) {
+  const p=operation.payload,{rows,transactions,version}=snapshot;
+  const fail=reason=>pending(db,account,operation,digest,reason,snapshot);
+  const e=rows.find(r=>r.source.event_id===p.evidence_event_id).source;
+  const targets=rows.filter(r=>p.target_event_ids.includes(r.source.event_id));
+  if(transactions.length||p.expected_transaction_revision!==0||p.detach_event_ids.length||!proof.control_revision||
+    !['AUTHORIZED','RELEASED','EXPIRED'].includes(e.financial_phase)||!['AUTHORIZE','RELEASE','CLOSE'].includes(e.lifecycle_operation)||
+    targets.some(t=>t.view.financial_phase!==e.financial_phase||t.view.lifecycle_operation!==e.lifecycle_operation||
+      t.view.provider_reference!==e.provider_reference||t.view.lifecycle_reference!==e.lifecycle_reference))return fail('control_relation_conflict');
+  if(!e.lifecycle_reference||!e.provider_reference||!Number.isSafeInteger(e.amount_minor)||e.amount_minor<0||
+    proof.completed_source_digests?.[e.event_id]!==rows.find(r=>r.source.event_id===e.event_id).source_digest)return fail('completed_operation_unproven');
+  if(e.lifecycle_revision!==p.predecessor_revision+1||targets.some(t=>t.view.lifecycle_revision!==p.predecessor_revision))return fail('stale_or_missing_predecessor');
+  const scope=await sha256Hex(String(proof.provider_account_id));
+  for(const t of targets){
+    const accepted=await first(db,'SELECT passed FROM task21_payment_lifecycle_guards WHERE user_id=? AND event_id=?',account.id,t.source.event_id);
+    if(!accepted?.passed)return fail('control_predecessor_unproven');
+    if(t.effective){
+      const j=await first(db,"SELECT result_json FROM task21_payment_reconciliations WHERE user_id=? AND operation_id=? AND status='applied'",account.id,t.effective.operation_id);
+      if(t.effective.operation_id!==p.predecessor_operation_id||!j||JSON.parse(j.result_json).authority_scope!==scope)return fail('provider_account_scope_conflict');
+    }
+  }
+  const canonical=targets[0].view.canonical_event_id;
+  if(targets.some(t=>t.view.canonical_event_id!==canonical))return fail('control_relation_conflict');
+  const affected=await all(db,`SELECT * FROM task21_payment_effective_view WHERE user_id=? AND reference_namespace=? AND provider_reference=? AND financial_phase=? AND excluded=0`,account.id,e.reference_namespace,e.provider_reference,e.financial_phase);
+  if(affected.some(t=>!rows.some(r=>r.source.event_id===t.event_id)))return fail('incomplete_mapping_set');
+  const now=isoNow(),next=version+1;
+  const result={account_id:account.id,operation_id:operation.operation_id,payload_digest:digest,reconciliation_status:'applied',kind:p.kind,
+    transaction_id:'',transaction:null,canonical_event_id:canonical,evidence_event_id:e.event_id,target_event_ids:p.target_event_ids,detach_event_ids:[],authority_scope:scope,
+    effective:{amount_minor:e.amount_minor,currency:e.currency,direction:e.direction,financial_phase:e.financial_phase,lifecycle_operation:e.lifecycle_operation,
+      lifecycle_revision:e.lifecycle_revision,lifecycle_reference:e.lifecycle_reference,provider_reference:e.provider_reference,reference_namespace:e.reference_namespace},server_version:next};
+  await db.prepare('INSERT OR IGNORE INTO task16_finance_user_versions VALUES(?,0,?)').bind(account.id,now).run();
+  const statements=[db.prepare(`INSERT OR REPLACE INTO task21_payment_reconciliation_guards VALUES(?,?,CASE WHEN
+    (SELECT server_version FROM task16_finance_user_versions WHERE user_id=?)=? THEN 1 ELSE 0 END)`).bind(account.id,operation.operation_id,account.id,version)];
+  for(const r of rows){
+    statements.push(db.prepare(`INSERT OR REPLACE INTO task21_payment_reconciliation_guards VALUES(?1,?2,CASE WHEN
+      EXISTS(SELECT 1 FROM task21_notification_events WHERE user_id=?1 AND event_id=?3 AND status='active')
+      AND COALESCE((SELECT operation_id FROM task21_payment_effective_events WHERE user_id=?1 AND event_id=?3),'')=?4
+      AND NOT EXISTS(SELECT 1 FROM task21_payment_user_decisions WHERE user_id=?1 AND event_id=?3)
+      AND NOT EXISTS(SELECT 1 FROM task21_notification_candidates c WHERE c.user_id=?1 AND c.event_id=?3 AND
+        ((c.status='rejected' AND NOT EXISTS(SELECT 1 FROM task21_payment_control_closures s WHERE s.user_id=c.user_id AND s.event_id=c.event_id)) OR c.correction_count>0 OR c.edited_json!='{}'))
+      THEN 1 ELSE 0 END)`).bind(account.id,operation.operation_id,r.source.event_id,r.effective?.operation_id||''));
+    statements.push(db.prepare(`INSERT INTO task21_payment_effective_events VALUES(?,?,?,'',?,?,?,?,?,?,?,?,0)
+      ON CONFLICT(user_id,event_id) DO UPDATE SET canonical_event_id=excluded.canonical_event_id,amount_minor=excluded.amount_minor,
+      lifecycle_revision=excluded.lifecycle_revision,operation_id=excluded.operation_id`)
+      .bind(account.id,r.source.event_id,canonical,e.amount_minor,e.financial_phase,e.lifecycle_operation,e.lifecycle_revision,e.lifecycle_reference,e.provider_reference,e.reference_namespace,operation.operation_id));
+    statements.push(db.prepare('INSERT OR REPLACE INTO task21_payment_lifecycle_guards VALUES(?,?,1)').bind(account.id,r.source.event_id));
+  }
+  statements.push(familyGuard(db,account.id,operation.operation_id,e.reference_namespace,e.lifecycle_reference));
+  statements.push(db.prepare('UPDATE task16_finance_user_versions SET server_version=?,updated_at=? WHERE user_id=? AND server_version=?').bind(next,now,account.id,version));
+  statements.push(db.prepare(`INSERT INTO task16_finance_changes VALUES(?,?,'payment_control',?,'upsert',?,?,?)`)
+    .bind(account.id,next,canonical,e.lifecycle_revision,encode({payment_control:result.effective,canonical_event_id:canonical}),now));
+  statements.push(db.prepare(`INSERT INTO task21_payment_reconciliations VALUES(?,?,?,?,'applied','',?,?,?,?)
+    ON CONFLICT(user_id,operation_id) DO UPDATE SET status='applied',reason='',before_json=excluded.before_json,result_json=excluded.result_json,updated_at=excluded.updated_at
+    WHERE task21_payment_reconciliations.status='pending' AND task21_payment_reconciliations.payload_digest=excluded.payload_digest`)
+    .bind(account.id,operation.operation_id,digest,encode(operation),encode(snapshot),encode(result),now,now));
+  try{await db.batch(statements);return result}catch(ex){
+    const raced=await first(db,"SELECT * FROM task21_payment_reconciliations WHERE user_id=? AND operation_id=? AND status='applied'",account.id,operation.operation_id);
+    if(raced&&raced.payload_digest===digest)return applyPaymentReconciliation(db,account,'',operation);
+    if(/CHECK constraint|UNIQUE constraint/.test(String(ex)))return fail('reconciliation_concurrent_or_balance_conflict');throw ex;
+  }
+}
+
 export async function applyPaymentReconciliation(db,account,deviceId,input,{verifyAuthority=rejectUnverifiedPaymentAuthority}={}) {
   const operation=normalizeReconciliation(input),p=operation.payload;
   const digest=await sha256Hex(encode(operation));
@@ -110,6 +183,10 @@ export async function applyPaymentReconciliation(db,account,deviceId,input,{veri
   if(prior?.payload_digest!==undefined&&prior.payload_digest!==digest)throw error('operation_id_conflict');
   if(prior?.status==='applied') {
     const result=JSON.parse(prior.result_json);
+    if(result.kind==='CONTROL_REPLACE') {
+      const current=await first(db,'SELECT operation_id FROM task21_payment_effective_events WHERE user_id=? AND event_id=?',account.id,result.canonical_event_id);
+      return current?.operation_id===operation.operation_id?{...result,idempotent_replay:true}:{operation_id:operation.operation_id,reconciliation_status:'pending',reason:'control_changed_after_correction',transaction_id:'',idempotent_replay:true};
+    }
     const current=await first(db,'SELECT * FROM task16_finance_transactions WHERE user_id=? AND id=?',account.id,result.transaction_id);
     if(!current||current.revision!==result.transaction.revision||current.status!=='active')return {
       operation_id:operation.operation_id,reconciliation_status:'pending',reason:'user_ledger_changed_after_correction',
@@ -125,11 +202,16 @@ export async function applyPaymentReconciliation(db,account,deviceId,input,{veri
     proof.completed===true&&proof.semantics==='absolute-operation-revision-v1'&&encode(proof.source_digests)===encode(sourceDigests);
   const fail=reason=>pending(db,account,operation,digest,reason,snapshot);
   if(!proven)return fail('provider_semantics_unverified');
-  if(rows.some(r=>r.source.status!=='active'||r.decision||r.candidate?.status==='rejected'||r.candidate?.correction_count>0||
+  const systemClosed=new Set();
+  if(p.kind==='CONTROL_REPLACE')for(const r of rows){
+    if(await first(db,'SELECT event_id FROM task21_payment_control_closures WHERE user_id=? AND event_id=?',account.id,r.source.event_id))systemClosed.add(r.source.event_id);
+  }
+  if(rows.some(r=>r.source.status!=='active'||r.decision||(r.candidate?.status==='rejected'&&!systemClosed.has(r.source.event_id))||r.candidate?.correction_count>0||
     (r.candidate?.edited_json&&r.candidate.edited_json!=='{}')))return fail('user_decision_conflict');
   if(!e.reference_namespace||referenceNamespaceForSource(e)!==e.reference_namespace||rows.some(r=>referenceNamespaceForSource(r.source)!==e.reference_namespace))return fail('reference_namespace_conflict');
   const reversing=p.kind==='REVOKE';
   if(rows.some(r=>r.source.currency!==e.currency||(!reversing&&r.source.direction!==e.direction))||e.currency_evidence!==e.currency)return fail('currency_or_direction_conflict');
+  if(p.kind==='CONTROL_REPLACE')return applyControlRevision(db,account,operation,digest,snapshot,proof);
   const completionProven=proof.completed_source_digests?.[e.event_id]===sourceDigests[e.event_id];
   if(!completionProven||(e.parse_status!=='parsed'&&!(e.parse_status==='candidate'&&e.identity_review_reason==='lifecycle_revision_requires_reconciliation'))||!['SETTLED','REFUNDED'].includes(e.financial_phase)||!e.lifecycle_reference||!e.provider_reference||
     !Number.isSafeInteger(e.amount_minor)||e.amount_minor<0||e.amount_minor>MAX||
@@ -145,17 +227,31 @@ export async function applyPaymentReconciliation(db,account,deviceId,input,{veri
   if(p.kind==='REPLACE') {
     if(targets.some(r=>r.view.provider_reference!==e.provider_reference||r.view.lifecycle_reference!==e.lifecycle_reference||r.view.financial_phase!==e.financial_phase))return fail('authoritative_relation_conflict');
   }
-  if(transactions.length>1||transactions.some(t=>!t))return fail('multiple_formal_transactions');
-  const existing=transactions[0];
-  if(existing) {
+  const consolidating=p.kind==='CONSOLIDATE';
+  if(transactions.some(t=>!t)||(!consolidating&&transactions.length>1))return fail('multiple_formal_transactions');
+  if(consolidating) {
+    if(encode(proof.same_operation_source_digests)!==encode(sourceDigests))return fail('same_operation_unproven');
+    if(transactions.length<2||!transactions.some(t=>t.id===p.canonical_transaction_id)||
+      encode(Object.fromEntries(transactions.map(t=>[t.id,t.revision])))!==encode(p.expected_transaction_revisions)||
+      proof.canonical_transaction_id!==p.canonical_transaction_id||encode(proof.transaction_revisions)!==encode(p.expected_transaction_revisions))return fail('formal_resolution_revision_conflict');
+  }
+  const existing=consolidating?transactions.find(t=>t.id===p.canonical_transaction_id):transactions[0];
+  const superseded=consolidating?transactions.filter(t=>t.id!==existing.id):[];
+  for(const ledger of transactions) {
     const origins=await all(db,`SELECT r.metadata_json FROM task16_finance_raw_events r JOIN task16_finance_transaction_events l
-      ON l.raw_event_id=r.id AND l.relation_status='active' WHERE r.user_id=? AND l.transaction_id=?`,account.id,existing.id);
+      ON l.raw_event_id=r.id AND l.relation_status='active' WHERE r.user_id=? AND l.transaction_id=?`,account.id,ledger.id);
     const kinds=origins.map(r=>{try{return JSON.parse(r.metadata_json).capture_version||''}catch{return ''}});
     if(kinds.some(k=>['verified-on-device','pending-hint'].includes(k)))return fail('user_decision_conflict');
     const auto=new Set(['wechat-4','alipay-4','bank-notification-4','bank-sms-4','wechat-structured-4','alipay-structured-4','local-autobook-v2','payment-settled-4','pending-hint-auto']);
     // Reconciliation-created ledgers have their origin in the immutable journal.
-    const journalOrigin=await first(db,"SELECT operation_id FROM task21_payment_reconciliations WHERE user_id=? AND status='applied' AND json_extract(result_json,'$.transaction_id')=? LIMIT 1",account.id,existing.id);
+    const journalOrigin=await first(db,"SELECT operation_id FROM task21_payment_reconciliations WHERE user_id=? AND status='applied' AND json_extract(result_json,'$.transaction_id')=? LIMIT 1",account.id,ledger.id);
     if(!journalOrigin&&(!kinds.length||kinds.some(k=>!auto.has(k))))return fail('legacy_ledger_origin_unproven');
+    if(ledger.status!=='active'||ledger.source_kind!=='automatic'||ledger.reconciliation_state!=='automatic'||ledger.system_superseded_by)return fail('user_ledger_revision_conflict');
+    if(ledger.revision>1&&ledger.id!==existing.id) {
+      const previous=await first(db,"SELECT result_json FROM task21_payment_reconciliations WHERE user_id=? AND operation_id=? AND status='applied'",account.id,proof.predecessor_operations?.[ledger.id]||'');
+      const t=previous?JSON.parse(previous.result_json).transaction:null;
+      if(!t||t.id!==ledger.id||t.revision!==ledger.revision||t.amount_minor!==ledger.amount_minor||t.currency!==ledger.currency)return fail('user_ledger_revision_conflict');
+    }
   }
   if(reversing&&(!proof.revoked||!existing||e.financial_phase!=='REFUNDED'||e.direction!=='refund'||
     e.amount_minor!==existing.amount_minor||targets.some(r=>r.view.financial_phase!=='SETTLED'||r.view.lifecycle_reference!==e.lifecycle_reference||r.view.provider_reference===e.provider_reference)))return fail('reversal_requires_exact_completed_refund');
@@ -175,7 +271,9 @@ export async function applyPaymentReconciliation(db,account,deviceId,input,{veri
   const canonical=existing&&!reversing?canonicalOwner?.view.canonical_event_id:p.evidence_event_id;
   if(!canonical)return fail('canonical_predecessor_missing');
   const now=isoNow(),transactionId=(!reversing&&existing?.id)||`txn:notif:${(await sha256Hex(`${account.id}\n${canonical}`)).slice(0,48)}`;
-  const revision=reversing?1:(existing?.revision||0)+1,next=version+1;
+  // Task16 has one row per account/version. Allocate a contiguous range in the
+  // same batch, so old clients can consume each tombstone before the upsert.
+  const revision=reversing?1:(existing?.revision||0)+1,next=version+1+superseded.length;
   const original=reversing?null:existing;
   const transaction={...(original||{}),id:transactionId,user_id:account.id,direction:e.direction,amount_minor:e.amount_minor,currency:e.currency,
     category_id:original?.category_id||'',merchant:original?.merchant??e.merchant,counterparty:original?.counterparty??e.counterparty,note:original?.note||'',
@@ -186,6 +284,8 @@ export async function applyPaymentReconciliation(db,account,deviceId,input,{veri
     authority:{proof_id:p.proof_id,namespace:e.reference_namespace,source_digests:sourceDigests,completed_source_digests:proof.completed_source_digests,semantics:proof.semantics},
     canonical_event_id:canonical,evidence_event_id:e.event_id,target_event_ids:p.target_event_ids,detach_event_ids:p.detach_event_ids,
     transaction:publicTransaction({...transaction,notification_event_ids_json:JSON.stringify([...p.target_event_ids,e.event_id])}),
+    ...(consolidating?{superseded_transactions:superseded.map((t,index)=>publicTransaction({...t,status:'deleted',revision:t.revision+1,sync_version:version+index+1,updated_at:now,deleted_at:now,
+      system_superseded_by:transactionId,system_superseded_operation:operation.operation_id}))}:{}),
     effective:{amount_minor:e.amount_minor,currency:e.currency,direction:e.direction,financial_phase:e.financial_phase,lifecycle_operation:e.lifecycle_operation,
       lifecycle_revision:e.lifecycle_revision,lifecycle_reference:family,provider_reference:e.provider_reference,reference_namespace:namespace},server_version:next};
   await db.prepare('INSERT OR IGNORE INTO task16_finance_user_versions VALUES(?,0,?)').bind(account.id,now).run();
@@ -202,10 +302,11 @@ export async function applyPaymentReconciliation(db,account,deviceId,input,{veri
       AND NOT EXISTS(SELECT 1 FROM task21_notification_candidates WHERE user_id=?1 AND event_id=?3 AND (status='rejected' OR correction_count>0 OR edited_json!='{}'))
       THEN 1 ELSE 0 END)`).bind(account.id,operation.operation_id,r.source.event_id,r.source.status,r.source.finance_transaction_id,r.source.candidate_id,r.effective?.operation_id||''));
   }
-  if(existing)statements.push(db.prepare(`INSERT OR REPLACE INTO task21_payment_reconciliation_guards VALUES(?,?,CASE WHEN
+  for(const ledger of transactions)statements.push(db.prepare(`INSERT OR REPLACE INTO task21_payment_reconciliation_guards VALUES(?,?,CASE WHEN
     EXISTS(SELECT 1 FROM task16_finance_transactions WHERE user_id=? AND id=? AND revision=? AND status='active' AND amount_minor=? AND currency=?) THEN 1 ELSE 0 END)`)
-    .bind(account.id,operation.operation_id,account.id,existing.id,existing.revision,existing.amount_minor,existing.currency));
-  const affected=await all(db,'SELECT * FROM task21_payment_effective_view WHERE user_id=? AND finance_transaction_id=? AND excluded=0',account.id,existing?.id||transactionId);
+    .bind(account.id,operation.operation_id,account.id,ledger.id,ledger.revision,ledger.amount_minor,ledger.currency));
+  const affected=[];
+  for(const id of (transactions.length?transactions.map(t=>t.id):[transactionId]))affected.push(...await all(db,'SELECT * FROM task21_payment_effective_view WHERE user_id=? AND finance_transaction_id=? AND excluded=0',account.id,id));
   if(affected.some(r=>!rows.some(x=>x.source.event_id===r.event_id)))return fail('incomplete_mapping_set');
   for(const r of rows.filter(r=>p.detach_event_ids.includes(r.source.event_id))) {
     const original=await first(db,"SELECT id FROM task16_finance_raw_events WHERE user_id=? AND source_type='notification' AND source_event_id=?",account.id,r.source.event_id);
@@ -251,6 +352,17 @@ export async function applyPaymentReconciliation(db,account,deviceId,input,{veri
       VALUES(?,?,?,?,?,'',?,?,'',?,'automatic','automatic','active',1,?,?,'',?,?,'')`).bind(transactionId,account.id,e.direction,e.amount_minor,e.currency,e.merchant,e.counterparty,transaction.occurred_at_ms,next,deviceId,now,now));
     statements.push(db.prepare(`INSERT INTO task16_finance_transaction_events VALUES(?,?,'active',1000,?,'automatic',?,?)`).bind(transactionId,rawId,encode(['authoritative_reconciliation']),now,now));
   }
+  // Retire only the proved duplicate's effective contribution. Its ID, amount,
+  // source links and original receipts remain queryable. No refund is invented.
+  for(const [index,t] of superseded.entries()) {
+    const retiredVersion=version+index+1;
+    statements.push(db.prepare(`UPDATE task16_finance_transactions SET status='deleted',revision=revision+1,sync_version=?,updated_at=?,deleted_at=?,
+      system_superseded_by=?,system_superseded_operation=? WHERE user_id=? AND id=? AND revision=?`)
+      .bind(retiredVersion,now,now,transactionId,operation.operation_id,account.id,t.id,t.revision));
+    const retired=result.superseded_transactions.find(r=>r.id===t.id);
+    statements.push(db.prepare(`INSERT INTO task16_finance_changes(user_id,version,entity_type,entity_id,operation,revision,payload_json,created_at) VALUES(?,?,'transaction',?,'delete',?,?,?)`)
+      .bind(account.id,retiredVersion,t.id,retired.revision,encode({transaction:retired,system_supersession:true}),now));
+  }
   // Existing Task16 audit cells are capped at 12 KB. The new journal retains
   // the complete immutable before image; the old audit table gets a verifiable
   // pointer and the formal ledger's before image, without dropping evidence.
@@ -267,7 +379,12 @@ export async function applyPaymentReconciliation(db,account,deviceId,input,{veri
     .bind(account.id,operation.operation_id,digest,encode(operation),encode(snapshot),encode(result),now,now));
   try{await db.batch(statements);return result}catch(ex) {
     const raced=await first(db,"SELECT * FROM task21_payment_reconciliations WHERE user_id=? AND operation_id=? AND status='applied'",account.id,operation.operation_id);
-    if(raced){if(raced.payload_digest!==digest)throw error('operation_id_conflict');return {...JSON.parse(raced.result_json),idempotent_replay:true}}
+    if(raced){
+      if(raced.payload_digest!==digest)throw error('operation_id_conflict');
+      // Re-enter the applied-receipt branch so a user edit committed after the
+      // other writer is checked as well. Never bypass this check on a CAS race.
+      return applyPaymentReconciliation(db,account,deviceId,input,{verifyAuthority});
+    }
     if(/CHECK constraint|UNIQUE constraint/.test(String(ex)))return fail('reconciliation_concurrent_or_balance_conflict');
     throw ex;
   }

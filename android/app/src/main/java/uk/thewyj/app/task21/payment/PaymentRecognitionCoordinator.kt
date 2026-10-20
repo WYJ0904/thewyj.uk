@@ -700,6 +700,7 @@ class PaymentRecognitionCoordinator(
 
     fun rejectCandidate(accountId: String, candidateId: String): Boolean {
         val candidate = store.candidate(accountId, candidateId) ?: return false
+        store.recordUserDecision(accountId, candidate.recognitionId, "candidate_reject")
         store.saveCandidate(candidate.copy(status = "rejected", updatedAtMs = now()))
         return true
     }
@@ -821,7 +822,7 @@ class PaymentRecognitionCoordinator(
                 (record.financialPhase == "AUTHORIZED" && closed))) {
                 store.saveRecognition(record.copy(state = PaymentRecognitionState.IGNORED.name, updatedAtMs = now()))
                 store.candidateForRecognition(accountId, record.recognitionId)?.takeIf { it.status == "pending" }?.let {
-                    store.saveCandidate(it.copy(status = "rejected", updatedAtMs = now())) }
+                    store.saveCandidate(it.copy(status = "rejected", reason = "system_control_completed", updatedAtMs = now())) }
             }
         }
     }
