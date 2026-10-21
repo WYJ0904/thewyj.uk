@@ -11,6 +11,8 @@ const MAX_PENDING_OPERATIONS = 500;
 const CLIENT_PAGE_SIZE = 100;
 const SYNC_BATCH_SIZE = 80;
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
+const AUTHORIZATION_CONTROL_STATES = new Set(["pending_authorization", "authorization_release", "authorization_expired"]);
+const AUTHORIZATION_CONTROL_DIRECTIONS = new Set(["authorization_release", "authorization_expired"]);
 const VALID_ENTITY_KINDS = new Set(["transaction", "category", "budget"]);
 const ENTITY_COLLECTION_KEYS = Object.freeze({
   transaction: "transactions",
@@ -29,6 +31,13 @@ function safeJson(value, fallback) {
 
 function safeText(value, maximum = 500) {
   return String(value || "").trim().slice(0, maximum);
+}
+
+// Explicit legacy control metadata is evidence of a hold, never a posted cash
+// movement. Preserve the original row for audit; do not infer links by amount.
+function isAuthorizationControl(item) {
+  return AUTHORIZATION_CONTROL_STATES.has(safeText(item?.payment_state, 40).toLowerCase())
+    || AUTHORIZATION_CONTROL_DIRECTIONS.has(safeText(item?.direction, 24).toLowerCase());
 }
 
 function randomId(prefix) {
@@ -59,6 +68,7 @@ export function financeLedgerMonths(transactions, status = "active") {
   const counts = new Map();
   for (const item of transactions || []) {
     if (status !== "all" && item.status !== status) continue;
+    if (status !== "all" && isAuthorizationControl(item)) continue;
     const month = monthKey(item.occurred_at_ms);
     if (month) counts.set(month, (counts.get(month) || 0) + 1);
   }
@@ -95,15 +105,17 @@ export function amountTextToMinor(value) {
 function normalizeTransaction(value) {
   if (!value || typeof value !== "object") return null;
   const id = safeText(value.id, 80);
-  const direction = safeText(value.direction, 16).toLowerCase();
+  const direction = safeText(value.direction, 24).toLowerCase();
   const amountMinor = Number(value.amount_minor);
   const occurredAt = Number(value.occurred_at_ms);
-  if (!/^[A-Za-z0-9._:-]{8,80}$/.test(id) || !VALID_DIRECTIONS.has(direction)
+  if (!/^[A-Za-z0-9._:-]{8,80}$/.test(id) || (!VALID_DIRECTIONS.has(direction) && !AUTHORIZATION_CONTROL_DIRECTIONS.has(direction))
       || !Number.isSafeInteger(amountMinor) || amountMinor <= 0
       || !Number.isSafeInteger(occurredAt) || occurredAt <= 0) return null;
   return {
     id,
     direction,
+    ...(value.payment_state ? { payment_state: safeText(value.payment_state, 40).toLowerCase() } : {}),
+    ...(value.provider_reference ? { provider_reference: safeText(value.provider_reference, 160) } : {}),
     amount_minor: amountMinor,
     currency: /^[A-Z]{3}$/.test(String(value.currency || "CNY")) ? String(value.currency || "CNY") : "CNY",
     category_id: safeText(value.category_id, 80),
@@ -195,6 +207,9 @@ function normalizeOperation(value) {
     base_revision: Math.max(0, Number(value.base_revision) || 0),
     ...(type.endsWith(".upsert") ? { payload: value.payload && typeof value.payload === "object" ? value.payload : {} } : {}),
     queued_at_ms: Math.max(0, Number(value.queued_at_ms) || Date.now()),
+    ...(value.legacy_authorization_control === true ? { legacy_authorization_control: true } : {}),
+    ...(value.legacy_authorization_original_payload && typeof value.legacy_authorization_original_payload === "object"
+      ? { legacy_authorization_original_payload: value.legacy_authorization_original_payload } : {}),
   };
 }
 
@@ -232,6 +247,18 @@ function normalizeStore(value, accountId, deviceId) {
   result.pending = Array.isArray(source.pending)
     ? source.pending.map(normalizeOperation).filter(Boolean).slice(-MAX_PENDING_OPERATIONS)
     : [];
+  for (const operation of result.pending) {
+    if (operation.type.startsWith("transaction.") && (operation.legacy_authorization_control || isAuthorizationControl(operation.payload) || isAuthorizationControl(result.transactions[operation.entity_id]))) {
+      operation.legacy_authorization_control = true;
+      if (operation.type === "transaction.upsert") {
+        // Preserve the original structured payload. A marker in the queued
+        // copy also makes pre-fix clients fail the existing server allowlist,
+        // rather than dropping our local flag and uploading a hold as spend.
+        operation.legacy_authorization_original_payload ||= operation.payload;
+        operation.payload = { ...operation.payload, payment_state: operation.payload.payment_state || "pending_authorization" };
+      }
+    }
+  }
   result.last_sync_at = safeText(source.last_sync_at, 40);
   result.last_error = safeText(source.last_error, 240);
   return result;
@@ -240,7 +267,7 @@ function normalizeStore(value, accountId, deviceId) {
 export function calculateFinanceSummary(transactions, options = {}) {
   const bounds = options.month ? monthBounds(options.month) : null;
   const active = (Array.isArray(transactions) ? transactions : []).filter((item) => {
-    if (!item || item.status === "deleted") return false;
+    if (!item || item.status === "deleted" || isAuthorizationControl(item)) return false;
     if (!bounds) return true;
     return item.occurred_at_ms >= bounds.startMs && item.occurred_at_ms < bounds.endMs;
   });
@@ -262,6 +289,7 @@ export function filterFinanceTransactions(transactions, filters = {}) {
   const bounds = filters.month ? monthBounds(filters.month) : null;
   return (Array.isArray(transactions) ? transactions : []).filter((item) => {
     if (!item) return false;
+    if (status !== "all" && isAuthorizationControl(item)) return false;
     if (status !== "all" && item.status !== status) return false;
     if (direction && item.direction !== direction) return false;
     if (categoryId && item.category_id !== categoryId) return false;
@@ -537,8 +565,9 @@ export function createFinanceController({
       empty: '<div class="finance-empty"><strong>暂无符合条件的账目</strong><p>可以新增一笔，或调整月份和筛选条件。</p></div>',
       render: (item) => {
       const title = item.merchant || item.counterparty || (item.source_kind === "automatic" ? "未识别商户" : categoryName(item.category_id));
-      const sign = item.direction === "expense" ? "-" : "+";
-      const directionLabel = { income: "收入", expense: "支出", refund: "退款" }[item.direction];
+      const control = isAuthorizationControl(item);
+      const sign = control ? "" : item.direction === "expense" ? "-" : "+";
+      const directionLabel = control ? "预授权控制 · 不计收支" : { income: "收入", expense: "支出", refund: "退款" }[item.direction];
       return `<article class="finance-transaction${item.status === "deleted" ? " is-deleted" : ""}" data-finance-transaction="${escapeHtml(item.id)}">
         <div class="finance-transaction-main"><span class="finance-direction is-${escapeHtml(item.direction)}">${directionLabel}</span><div><strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong><small>${escapeHtml(categoryName(item.category_id))} · ${escapeHtml(new Date(item.occurred_at_ms).toLocaleString("zh-CN"))}${item.source_kind === "automatic" ? " · Android 自动识别" : ""}${item.native_notification_pending ? " · 等待同步" : ""}${item.status === "deleted" ? " · 已删除" : ""}</small>${item.note ? `<p title="${escapeHtml(item.note)}">${escapeHtml(item.note)}</p>` : ""}</div></div>
         <div class="finance-transaction-side"><strong class="is-${escapeHtml(item.direction)}">${sign}${escapeHtml(formatFinanceMoney(item.amount_minor, item.currency))}</strong><div class="finance-row-actions">${item.status === "deleted" ? `<button type="button" data-finance-restore="${escapeHtml(item.id)}">恢复</button>` : `<button type="button" data-finance-edit="${escapeHtml(item.id)}">编辑</button><button class="danger-text" type="button" data-finance-delete="${escapeHtml(item.id)}">删除</button>`}</div></div>
@@ -553,7 +582,7 @@ export function createFinanceController({
   function categoryExpense(categoryId, budget) {
     const start = budget.starts_on ? new Date(`${budget.starts_on}T00:00:00`).getTime() : 0;
     const end = budget.ends_on ? new Date(`${budget.ends_on}T23:59:59.999`).getTime() : Number.MAX_SAFE_INTEGER;
-    return Object.values(store.transactions).filter((item) => item.status === "active" && item.direction === "expense"
+    return Object.values(store.transactions).filter((item) => item.status === "active" && item.direction === "expense" && !isAuthorizationControl(item)
       && (!categoryId || item.category_id === categoryId) && item.occurred_at_ms >= start && item.occurred_at_ms <= end)
       .reduce((total, item) => total + item.amount_minor, 0);
   }
@@ -581,7 +610,7 @@ export function createFinanceController({
     const bounds = monthBounds(currentMonth());
     const values = new Map();
     for (const item of Object.values(store.transactions)) {
-      if (item.status !== "active" || item.direction !== "expense" || (bounds && (item.occurred_at_ms < bounds.startMs || item.occurred_at_ms >= bounds.endMs))) continue;
+      if (item.status !== "active" || item.direction !== "expense" || isAuthorizationControl(item) || (bounds && (item.occurred_at_ms < bounds.startMs || item.occurred_at_ms >= bounds.endMs))) continue;
       const key = item.category_id || "uncategorized";
       values.set(key, (values.get(key) || 0) + item.amount_minor);
     }
@@ -599,7 +628,7 @@ export function createFinanceController({
 
   function scheduleInsights() {
     const signature = JSON.stringify([currentAccountId, currentMonth(), store.categories, store.budgets,
-      Object.values(store.transactions).map(item => [item.id, item.status, item.direction, item.amount_minor, item.category_id, item.occurred_at_ms])]);
+      Object.values(store.transactions).map(item => [item.id, item.status, item.direction, item.amount_minor, item.category_id, item.occurred_at_ms, item.payment_state])]);
     if (signature === insightsSignature) return;
     window.clearTimeout(insightsTimer);
     window.cancelAnimationFrame(insightsFrame);
@@ -720,7 +749,7 @@ export function createFinanceController({
     for (const budget of bootstrap.budgets || []) mergeServerEntity("budget", budget);
     // A count mismatch means something never reached this client through the
     // change feed; re-read the server pages instead of trusting the cursor.
-    const localActive = Object.values(store.transactions).filter((item) => item.status === "active").length;
+    const localActive = Object.values(store.transactions).filter((item) => item.status === "active" && !isAuthorizationControl(item)).length;
     if (!store.hydrated || !store.notification_identity_hydrated || Number(bootstrap.transaction_count || 0) > localActive) {
       const serverTransactions = await fetchAllTransactions(true, owner);
       requireOwner(owner);
@@ -759,8 +788,11 @@ export function createFinanceController({
     await pullChanges(owner);
     requireOwner(owner);
     while (store.pending.length) {
-      const batch = store.pending.slice(0, SYNC_BATCH_SIZE);
-      const payloadOperations = batch.map(({ queued_at_ms: _queuedAt, ...operation }) => operation);
+      const batch = store.pending.filter((operation) => !operation.type.startsWith("transaction.") ||
+        !(operation.legacy_authorization_control || isAuthorizationControl(operation.payload) || isAuthorizationControl(store.transactions[operation.entity_id]))).slice(0, SYNC_BATCH_SIZE);
+      if (!batch.length) throw Object.assign(new Error("旧预授权操作已隔离，原记录和待同步操作已保留，需核实后恢复。"), { code: "legacy_authorization_requires_review" });
+      const payloadOperations = batch.map(({ queued_at_ms: _queuedAt, legacy_authorization_control: _legacyControl,
+        legacy_authorization_original_payload: _legacyOriginal, ...operation }) => operation);
       const data = await api("/api/finance/sync", {
         schema_version: SCHEMA_VERSION,
         device_id: store.device_id,

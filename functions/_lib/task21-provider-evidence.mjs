@@ -9,7 +9,13 @@ function base64(s){if(typeof s!=='string'||s.length>90000||!/^[A-Za-z0-9+/]*={0,
 const bounded=s=>typeof s==='string'&&s.length>0&&bytes(s).length<=65536;
 const ref=s=>typeof s==='string'&&/^[A-Za-z0-9_\-]{8,80}$/.test(s);
 const minor=n=>Number.isSafeInteger(n)&&n>=0&&n<=9007199254740991;
-async function scope(provider,policy){return sha256Hex(JSON.stringify([provider,policy.accountId,policy.merchantId,policy.appId,policy.payerId]))}
+async function scope(provider,policy){
+ const parts=[provider,policy.accountId,policy.merchantId,policy.appId,policy.payerId];
+ // Preserve existing user-ID/WeChat scopes; an app-scoped Alipay OpenID is a
+ // distinct namespace even when its literal value equals a legacy user ID.
+ if(provider==='alipay'&&policy.payerIdType==='open_id')parts.push('payer_open_id');
+ return sha256Hex(JSON.stringify(parts));
+}
 
 /** Official APIv3 RSA signature over exact bytes, then AES-GCM resource. Policy
  * keys and payer binding must come from a trusted server configuration, never
@@ -60,10 +66,14 @@ export async function readAlipayAuthorizationEvidence(signedContent,signature,po
  try{
   if(!bounded(signedContent)||!policy?.platformKey||!policy.accountId||!policy.merchantId||!policy.appId||!policy.payerId||
     !ref(policy.expectedAuthNo)||!ref(policy.expectedOperationId)||!ref(policy.expectedRequestNo))return reject('provider_binding_missing');
+  // The trusted account binding selects the SDK identity field. Never guess
+  // from the response, a masked login name, or a matching unrelated ID.
+  const payerIdType=policy.payerIdType||'user_id';
+  if(!['user_id','open_id'].includes(payerIdType))return reject('provider_binding_missing');
   if(!await crypto.subtle.verify('RSASSA-PKCS1-v1_5',policy.platformKey,base64(signature),bytes(signedContent)))return reject('provider_signature_invalid');
   const s=JSON.parse(signedContent);
   if(s.code!=='10000'||s.auth_no!==policy.expectedAuthNo||s.operation_id!==policy.expectedOperationId||s.out_request_no!==policy.expectedRequestNo||
-    s.payer_user_id!==policy.payerId)return reject('provider_request_or_payer_mismatch');
+    s[payerIdType==='open_id'?'payer_open_id':'payer_user_id']!==policy.payerId)return reject('provider_request_or_payer_mismatch');
   // CREDIT_AUTH is explicitly not a frozen-cash balance. The general P03 cash
   // hold projection must not silently apply to credit-authorisation products.
   if(s.pre_auth_type==='CREDIT_AUTH')return reject('provider_credit_authorization_unsupported');
@@ -72,6 +82,7 @@ export async function readAlipayAuthorizationEvidence(signedContent,signature,po
   const [whole,fraction='']=s.amount.split('.');const amount=Number(BigInt(whole)*100n+BigInt(fraction.padEnd(2,'0')));
   if(!minor(amount))return reject('provider_amount_or_state_unproven');
   return {status:'verified_fact',account_id:policy.accountId,provider:'alipay',provider_scope:await scope('alipay',policy),
+    payer_id_type:payerIdType,
     operation_reference:s.operation_id,parent_reference:s.auth_no,provider_operation_type:s.operation_type,amount_minor:amount,currency:'CNY',
     role:'AUTHORIZATION_OPERATION_REQUIRES_PRODUCT_CONTRACT',source_digest:await sha256Hex(signedContent),
     revision:null,predecessor_revision:null,can_authorize_correction:false};
