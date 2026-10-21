@@ -1,5 +1,74 @@
 # FINANCE-P03 最终统一报告
 
+## 2026-10-21 云端非手机收尾（当前结论）
+
+**P03 仍为 PARTIAL；当前可独立执行的非手机工程已完成。P04 产品开发尚未计为完成。**
+
+本轮从所有者提供的 `5d96e1ee5d2064076bd0efa59eed86edb9b1c4cc` 完整历史接续，
+分支 `codex/finance-p03-identity-preauth`，云端检出 `/workspace/thewyj.uk`。
+ZIP 的 SHA-256 与所有者给定值一致，648 项包内清单和 Git bundle 验证通过；
+确认它继承公共基线 `74eadf589b0a6ffe1e5ab7a9564115891c4ef2dc`。
+9 个未提交非手机 QA 驱动逐字节保留，622 个证据文件仅作历史导入。
+当前云端既有隔离检出使用普通分支，未创建额外工作树；原 `work` 引用保持公共基线。
+本轮没有修改 P03 产品代码、冻结输入、预期和断言。
+
+### 本轮新执行结果
+
+证据根为 `docs/migration-evidence/finance-p03/nonphone-entry/cloud-20261021/`。
+[按测试身份收集的结果](../migration-evidence/finance-p03/nonphone-entry/cloud-20261021/delivery-final/summary.json)
+不复用包内历史 PASS。Linux 启动器在 `qa/finance-p03/cloud/`。
+
+| 检查 | 本轮结果 |
+| --- | --- |
+| 原 607（588 JVM + 13 Node + 6 DOM） | 607 PASS，0 FAIL，0 SKIP |
+| 当前标准 JVM/Robolectric | 681 PASS |
+| P03 重叠集合 63 / 41 / 99 / 79 | 各自全部 PASS，不相加 |
+| 五项追踪/迁移 + 15 投影 + 10 Chromium + 8 TEST-key | 38 PASS |
+| 跨 JVM / 本地 HTTP / D1 四组桥 | PASS；分别 9 / 15 / 34 / 35 请求 |
+| 本地 Miniflare 二进制副本关闭、重开和恢复 | PASS；98 表；不等于真实 Cloudflare 备份 |
+| Android Lint | 无 Error/Fatal；75 Warning、12 Hint |
+| Debug 构建 | PASS；仅构建，未安装；基础地址 isolated-finance.invalid |
+| 冻结 608 | 538 PASS / 7 FAIL / 40 EXPECTED_RED / 23 NOT_TESTED |
+| 真机、真实提供方、Hosted、Production | NOT TESTED |
+| 原 Windows 工作区及 13 组保护 | 本机不可访问；UNAVAILABLE，未冒充重新验证 |
+
+冻结矩阵逐行核对 ID、原 fixture 和状态，没有状态变化。
+原 A 类 24 项与 C005/C007 的 26 条身份/清算缺口继续保留，不能以金额、商户、
+时间猜身份，不能给 80+90 构造 operation/revision/前驱或补造缺失引用。
+D 类货币/FX 留给 P04；OCR/AI 留给 P05/P06，没有跨阶段实施。
+[新失败账本](../migration-evidence/finance-p03/nonphone-entry/cloud-20261021/delivery-final/failure-ledger.json)
+保留所有非 PASS 行。历史 RESUMED→STOPPED 仍 UNRESOLVED / 因果 INCONCLUSIVE；
+本轮没有手机或失败瞬间栈，不猜测修复。D01/D02 历史 CLOSED 不重标为本轮 PASS。
+
+### 执行修正与隔离边界
+
+新 Linux 追踪启动器首次使用相对 init 路径，在运行测试前失败；保留该次零测试日志，
+仅修绝对路径后 5 项通过。计数器首次遇到旧驱动的编码别名问题，改为标准 UTF-8 BOM
+编码名后重新逐身份收集。Node 总启动器第一次因两组预期冻结红灯返回 1，子命令
+退出码与原始红灯均保留，未将整个批次假称绿色。
+[执行说明](../migration-evidence/finance-p03/nonphone-entry/cloud-20261021/execution-notes.json)
+区分这些驱动问题、环境安装失败和真实产品测试结果。
+
+Room 旧版本增量迁移、原 ID/人工编辑/回执、授权与正式支出分离、多次清算/退款、
+outbox 持久化、断网/丢回执重放、D1 迁移及旧协议失败关闭由上述现有套件实际验证。
+缺失的历史基线模块仅从已验证 Git 历史原样重建到忽略目录，没有修改当前产品来适配。
+原始历史报告字节另存本轮证据根的 `previous-report.md`。
+
+没有 ADB、手机、APK 安装、正式权限、真实财务数据、根访问口令、Production D1/R2、
+push、PR、merge、正式签名、部署或发布。安装说明和启动说明仅保存为环境配置草稿；
+当前运行时已验证，不声称已发布或在新任务恢复成功。运行时说明见
+[CLOUD_FINANCE_ENVIRONMENT.md](../CLOUD_FINANCE_ENVIRONMENT.md)。
+
+本轮收尾本地 SHA 和 tree 由提交后的同目录 `REVISION.json` 固定。P04 将在普通独立
+分支继承该收尾提交；P03 PARTIAL 不被改为完整成功，也不阻止非生产 P04 开发。
+
+以下保留原 `5d96e1e` 轮统一报告；其中手机次数及“本轮”等文字均属于历史，
+不计入本轮云端 PASS。
+
+---
+
+## 历史 P03 统一报告（5d96e1e）
+
 2026-10-21，Asia/Hong_Kong。**PARTIAL；尚不具备完整关闭 P03 或进入 P04 的条件。**
 
 本轮从 `1e04945d1964c0e6a9420b0aff99011001f4ab98` 继续同一个 P03，完成所有当前合法、可独立执行的调查、两处最小产品修复、新增回归、Samsung 合成链路、迁移/恢复与清理。原 28 条 P03 红灯中 2 条实质修复，26 条仍未达到原业务目标；历史一次 Activity 生命周期失败仍 UNRESOLVED。安全隔离、重复通过、TEST-key 验签不等于真实业务完成。
