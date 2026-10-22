@@ -16,6 +16,28 @@ import uk.thewyj.app.task21.store.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = Application::class)
 class CurrencyDefaultReviewTest {
+    @Test fun refusedNotificationDoesNotConsumeTheOnlyCurrencyReminder() {
+        val context=RuntimeEnvironment.getApplication()
+        val db=Room.inMemoryDatabaseBuilder(context,NotificationDatabase::class.java).allowMainThreadQueries().build()
+        try {
+            val store=RoomPaymentRecognitionStore(db);var permitted=false;var attempts=0
+            val notifier=object:PaymentStatusNotifier {
+                override fun notify(message:PaymentStatusNotificationMessage):Boolean {
+                    if(message.title.contains("币种待核实"))attempts++
+                    return permitted
+                }
+                override fun cancel(notificationId:Int)=Unit
+            }
+            val coordinator=PaymentRecognitionCoordinator(store,notifier=notifier,defaultCurrency={"USD"},currencyPolicyVersion=2,now={1000L})
+            fun capture()=coordinator.onSourceEvent("synthetic-reminder-owner","com.tencent.mm",PaymentSourceType.NOTIFICATION,"synthetic-reminder-source","微信支付","已扣款 $100.00 交易单号 SYNTHREMINDER001")
+            val first=capture()
+            assertFalse(store.recognition("synthetic-reminder-owner",first.recognitionId)!!.currencyReviewNotified)
+            permitted=true;capture()
+            assertTrue(store.recognition("synthetic-reminder-owner",first.recognitionId)!!.currencyReviewNotified)
+            repeat(5){capture()}
+            assertEquals(2,attempts);assertEquals(1,store.localBookings("synthetic-reminder-owner").size)
+        } finally {db.close()}
+    }
     @Test fun canonicalReviewDecisionSurvivesCacheAndOnlyOwnedCurrentReceiptClearsIt() {
         val context=RuntimeEnvironment.getApplication()
         val owner="synthetic-canonical-${java.util.UUID.randomUUID()}"

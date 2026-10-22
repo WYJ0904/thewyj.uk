@@ -494,13 +494,19 @@ class PaymentRecognitionCoordinator(
     }
 
     private fun remindCurrencyOnce(accountId: String, recognitionId: String) {
+        val statusNotifier = notifier ?: return
         val record = store.recognition(accountId, recognitionId) ?: return
         if (!record.currencyReviewRequired || record.currencyReviewNotified || record.state in setOf("IGNORED", "DUPLICATE_IGNORED", "FINANCE_CORRECTED")) return
         // Persist the claim with the recognition. Replays and process recovery do
         // not repeat an alert; the review marker remains until an explicit edit.
         store.saveRecognition(record.copy(currencyReviewNotified = true))
-        runCatching { notifier?.notify(PaymentStatusNotificationMessage(record.notificationId, recognitionId,
-            "Aeris · 币种待核实", "本次按默认币种 ${record.currency} 识别；请在财务记录中核对币种，可稍后更正。")) }
+        val posted = runCatching { statusNotifier.notify(PaymentStatusNotificationMessage(record.notificationId, recognitionId,
+            "Aeris · 币种待核实", "本次按默认币种 ${record.currency} 识别；请在财务记录中核对币种，可稍后更正。")) }.getOrDefault(false)
+        // A denied permission or posting error is not a delivered reminder. Keep
+        // it eligible for the next source replay; there is no background loop.
+        if (!posted) store.recognition(accountId, recognitionId)?.let {
+            store.saveRecognition(it.copy(currencyReviewNotified = false))
+        }
     }
 
     /** Lazily expires tickets and tells the user once per expired recognition. */
