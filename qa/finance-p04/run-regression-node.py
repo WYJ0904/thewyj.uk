@@ -2,6 +2,7 @@
 from datetime import datetime, timezone
 from pathlib import Path
 import json
+import hashlib
 import os
 import subprocess
 import sys
@@ -11,6 +12,12 @@ BASE = Path(os.environ.get('FINANCE_REGRESSION_OUTPUT', ROOT / 'docs/migration-e
 if not BASE.is_relative_to(ROOT / 'docs/migration-evidence'):
     raise SystemExit('Use an ignored evidence directory.')
 BASE.mkdir(parents=True, exist_ok=True)
+def source_manifest():
+    names=subprocess.check_output(['git','ls-files','-z','--cached','--others','--exclude-standard'],cwd=ROOT).decode().split('\0')
+    files={name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in sorted(set(names)) if name and (ROOT/name).is_file() and
+           ((name.startswith(('functions/','js/','cloudflare/migrations/','qa/','local-backend/')) and name.endswith(('.mjs','.js','.sql','.json'))) or name in ['package.json','package-lock.json','sw.js'])}
+    return dict(files=files,sha256=hashlib.sha256(json.dumps(files,sort_keys=True).encode()).hexdigest())
+before=source_manifest()
 manifest = BASE / 'node-commands.json'
 if manifest.exists():
     raise SystemExit('Preserve the previous execution; choose a new output directory.')
@@ -65,4 +72,6 @@ for name, script in jobs:
                         log=str(log.relative_to(ROOT))))
     manifest.write_text(json.dumps(results, indent=2) + '\n')
     print(f'{name}: exit {completed.returncode}', flush=True)
-sys.exit(int(any(row['exit_code'] for row in results if not row['expected_red'])))
+after=source_manifest()
+(BASE/'node-source-lock.json').write_text(json.dumps(dict(before=before,after=after,source_stable=before==after,head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()),indent=2)+'\n')
+sys.exit(int(before!=after or any(row['exit_code'] for row in results if not row['expected_red'])))
