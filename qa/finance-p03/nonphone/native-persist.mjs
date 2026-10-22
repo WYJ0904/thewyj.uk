@@ -5,10 +5,10 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {Miniflare} from 'miniflare';
 import {dumpD1,restoreD1} from '../phase-a/d1-snapshot.mjs';
-const base=path.resolve('docs/migration-evidence/finance-p03/nonphone-entry');
+const base=path.resolve(process.env.FINANCE_REGRESSION_OUTPUT||'docs/migration-evidence/finance-p03/nonphone-entry');
 const out=path.join(base,process.env.FINANCE_P03_PERSIST_NAME||'native-persist');await fs.mkdir(out,{recursive:false});
 const phase=async name=>{await fs.appendFile(path.join(out,'phases.ndjson'),JSON.stringify({phase:name,pid:process.pid,utc:new Date().toISOString()})+'\n');console.log(name)};
-const original=JSON.parse(await fs.readFile(path.join(base,'unified-bridge-device/d1-logical-snapshot.json'),'utf8'));
+const original=JSON.parse(await fs.readFile(process.env.FINANCE_D1_BRIDGE_INPUT||path.join(base,'unified-bridge-device/d1-logical-snapshot.json'),'utf8'));
 const make=folder=>new Miniflare({modules:true,script:'export default {fetch(){return new Response("synthetic persistent D1")}}',compatibilityDate:'2026-07-01',d1Databases:['DB'],resourcePersistencePath:folder});
 let mf;
 try{

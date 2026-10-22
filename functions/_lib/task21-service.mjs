@@ -2,7 +2,7 @@ import {sourceUnitStatement,sourceExponent,assertSourceUnit} from './finance-sou
 import {applyPaymentReconciliation,reconciledIngestReceipt,recordPaymentUserDecision} from './task21-reconciliation.mjs';
 import { sha256Hex } from "./cloudflare-foundation.mjs";
 import { publicTransaction } from "./task16-model.mjs";
-import { unitStamp } from './finance-money-units.mjs';
+import { unitStamp, currencyDecisionStamp, hasCurrencyDecisions } from './finance-money-units.mjs';
 import {lifecycleRows,lifecycleBalance,lifecycleReason,lifecycleGuardStatement,RECOVERABLE_LIFECYCLE_REASONS} from './task21-lifecycle.mjs';
 import {paymentReviewReason, financeReferenceProvider, financeReplayReference, referenceNamespaceForSource} from "./task21-event-safety.mjs";
 import {
@@ -88,7 +88,8 @@ export async function ensureTask21Schema(db) {
   try {
     const row = await first(db, "SELECT value FROM task21_metadata WHERE key = ?1", ["schema_version"]);
     const finance=await first(db,"SELECT value FROM task16_metadata WHERE key='schema_version'");
-    return (String(row?.value||'')==='8' && String(finance?.value||'')==='4')
+    return (String(row?.value||'')==='9' && String(finance?.value||'')==='5')
+      || (String(row?.value||'')==='8' && String(finance?.value||'')==='4')
       || (String(row?.value||'')==='6' && String(finance?.value||'')==='3');
   } catch (_) {
     return false;
@@ -253,11 +254,13 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
   const transactionId = `txn:notif:${(await sha256Hex(`${account.id}\n${event.event_id}`)).slice(0, 48)}`;
   await assertSourceUnit(db,account.id,event.event_id,event.currency,event.amount_exponent);
   const unitStatements = await unitStamp(db, transactionId, event.currency, event.currency === 'JPY' ? 0 : undefined);
+  const decisionStatements = await currencyDecisionStamp(db,account.id,transactionId,event);
   // This token is a provider-issued reference, never a notification body.
   const occurredAtMs = event.occurred_at_ms || event.received_at_ms;
   const metadata = { capture_version: event.parser_version || "task21", payment_channel: event.payment_channel, source_package:event.source_package||'',
     lifecycle_operation:event.lifecycle_operation||'',lifecycle_revision:event.lifecycle_revision||0,
-    financial_phase:event.financial_phase||'',lifecycle_reference:event.lifecycle_reference||'',reference_namespace:event.reference_namespace||'',currency_evidence:event.currency_evidence||'' };
+    financial_phase:event.financial_phase||'',lifecycle_reference:event.lifecycle_reference||'',reference_namespace:event.reference_namespace||'',currency_evidence:event.currency_evidence||'',
+    ...(event.currency_review_required ? { currency_review_required: true, currency_decision_source: event.currency_decision_source } : {}) };
 
   const rawStatement = db.prepare(`INSERT INTO task16_finance_raw_events (
     id, user_id, device_id, source_type, source_event_id, source_provider, provider_reference,
@@ -316,6 +319,7 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
           direction: event.direction,
           amount_minor: event.amount_minor,
           currency: event.currency,
+          ...(event.currency_review_required ? { currency_review_required: 1, currency_decision_source: event.currency_decision_source } : {}),
           ...(event.currency === 'JPY' ? { amount_exponent: 0 } : {}),
           category_id: "",
           merchant: event.merchant,
@@ -348,6 +352,7 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
         .bind(account.id,replayReference.provider,replayReference.reference,rawId,now)]:[]),
       transactionStatement,
       ...unitStatements,
+      ...decisionStatements,
       linkStatement,
       auditStatement,
       db.prepare(`UPDATE task16_finance_user_versions SET server_version = ?2, updated_at = ?3
@@ -426,7 +431,8 @@ async function storeEvent(db, account, event, deviceId) {
   const roles = event.currency_roles ? [db.prepare('INSERT INTO task16_currency_role_evidence(user_id,event_id,roles_json) VALUES(?1,?2,?3)')
     .bind(account.id, event.event_id, JSON.stringify(event.currency_roles))] : [];
   const sourceUnit = await sourceUnitStatement(db,account.id,event.event_id,event.currency,event.amount_exponent);
-  await db.batch([statement, ...roles, ...(sourceUnit ? [sourceUnit] : [])]);
+  const decision = await currencyDecisionStamp(db,account.id,event.event_id,event,'event');
+  await db.batch([statement, ...roles, ...(sourceUnit ? [sourceUnit] : []), ...decision]);
 }
 
 async function eventById(db, account, eventId) {
@@ -445,6 +451,7 @@ async function candidateById(db, account, candidateId) {
 
 function eventFromStoredRow(row) {
   return {
+    ...(Number(row.currency_review_required) === 1 ? { currency_review_required: true, currency_decision_source: row.currency_decision_source } : {}),
     lifecycle_operation:String(row.lifecycle_operation||''),lifecycle_revision:Number(row.lifecycle_revision||0),
     financial_phase:String(row.financial_phase||''),lifecycle_reference:String(row.lifecycle_reference||''),
     reference_namespace:String(row.reference_namespace||''),currency_evidence:String(row.currency_evidence||''),identity_review_reason:String(row.identity_review_reason||''),
@@ -843,7 +850,10 @@ export async function listNotificationCandidates(db, account, input = {}) {
     throw new Task21Error("通知候选状态无效", 400, "candidate_status_invalid");
   }
   const limit = Math.min(MAX_EVENT_PAGE, Math.max(1, Number.parseInt(String(input.limit || 50), 10) || 50));
-  const rows = await all(db, `SELECT * FROM task21_notification_candidates
+  const decisionProjection = await hasCurrencyDecisions(db) ? `,
+    (SELECT e.currency_review_required FROM task21_notification_events e WHERE e.user_id=?1 AND e.event_id=task21_notification_candidates.event_id) AS currency_review_required,
+    (SELECT e.currency_decision_source FROM task21_notification_events e WHERE e.user_id=?1 AND e.event_id=task21_notification_candidates.event_id) AS currency_decision_source` : '';
+  const rows = await all(db, `SELECT *${decisionProjection} FROM task21_notification_candidates
     WHERE user_id = ?1 ${status ? "AND status = ?2" : ""}
     ORDER BY created_at DESC, id DESC LIMIT ?3`, [account.id, status, limit]);
   if (!rows.length) return { candidates: [] };

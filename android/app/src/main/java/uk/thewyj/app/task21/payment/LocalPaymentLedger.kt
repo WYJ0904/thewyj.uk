@@ -123,6 +123,7 @@ object LocalPaymentLedger {
         val archive = RoomNotificationStore(NotificationDatabase.get(context))
         val transactions = JSONArray()
         for (booking in store.localBookings(account.accountId)) {
+            val decision = store.recognition(account.accountId, booking.recognitionId)
             val aliases = store.recognition(account.accountId, booking.recognitionId)?.let {
                 archive.structuredEventIdsForRecognition(account.accountId, it.sourceEventId)
             }.orEmpty() + store.eventAliases(account.accountId, booking.recognitionId).filterNot {
@@ -135,6 +136,8 @@ object LocalPaymentLedger {
             .put("id", booking.transactionId).put("amount_minor", booking.amountMinor)
             .put("source_package", booking.sourcePackage).put("payment_channel", booking.paymentChannel)
             .put("direction", booking.direction.lowercase()).put("currency", booking.currency)
+            .put("currency_review_required", decision?.currencyReviewRequired == true)
+            .put("currency_decision_source", decision?.currencyDecisionSource.orEmpty())
             .put("amount_exponent", booking.amountExponent ?: JSONObject.NULL)
             .put("money_unit_status", if (booking.amountExponent == uk.thewyj.app.finance.CurrencyMoney.digits[booking.currency]) "verified" else "review_required")
             .put("merchant", booking.merchant).put("occurred_at_ms", booking.occurredAtMs)
@@ -154,6 +157,8 @@ object LocalPaymentLedger {
             reviews.put(JSONObject().put("id", id).put("event_id", id).put("event_ids", JSONArray(aliases))
                 .put("state", "pending").put("kind", "hint").put("amount_minor", amount ?: JSONObject.NULL)
                 .put("currency", record.currency)
+                .put("currency_review_required", record.currencyReviewRequired)
+                .put("currency_decision_source", record.currencyDecisionSource)
                 .put("amount_exponent", uk.thewyj.app.finance.CurrencyRuntimePreferences.sourceExponent(context,account.accountId,record.sourceEventId,record.currency) ?: JSONObject.NULL)
                 .put("direction", direction.lowercase()).put("merchant", candidate?.effectiveMerchant ?: record.merchant)
                 .put("source_package", record.sourcePackage).put("app_label", PaymentAppLabels.resolve(context, record.sourcePackage))

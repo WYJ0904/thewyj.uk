@@ -85,6 +85,7 @@ class PaymentVerificationCenter(
         val currency: String = "CNY",
         val localCurrency: String = "CNY",
         val moneyUnitReview: Boolean = false,
+        val currencyReviewRequired: Boolean = false,
     ) {
         val displayAmountMinor: Long? get() = amountMinor?.takeIf { it > 0 }
             ?: localAmountMinor.takeUnless { evidenceConflict }
@@ -272,6 +273,7 @@ class PaymentVerificationCenter(
                 moneyUnitReview = (recognition.currency == "JPY" && uk.thewyj.app.finance.CurrencyRuntimePreferences.sourceExponent(app,accountId,recognition.sourceEventId,recognition.currency) != 0) ||
                     (recognition.identityReviewReason in setOf("currency_review_required","currency_symbol_ambiguous","currency_amount_unproven") && candidate?.editedAmountMinor == null),
                 currency = hook.effectiveCurrency(recognition),
+                currencyReviewRequired = recognition.currencyReviewRequired,
                 localCurrency = hook.effectiveCurrency(recognition),
                 direction = directionOf(candidate?.effectiveDirection ?: recognition.direction),
                 merchant = candidate?.effectiveMerchant.orEmpty().ifBlank { recognition.merchant },
@@ -330,6 +332,7 @@ class PaymentVerificationCenter(
                 appLabel = PaymentAppLabels.known(record.sourcePackage) ?: record.appLabel.ifBlank { record.sourcePackage.ifBlank { "通知" } },
                 amountMinor = record.amountMinor,
                 currency = record.currency,
+                currencyReviewRequired = record.currencyReviewRequired,
                 moneyUnitReview = record.currency == "JPY" && record.amountExponent != 0,
                 direction = directionOf(record.direction),
                 merchant = record.merchant,

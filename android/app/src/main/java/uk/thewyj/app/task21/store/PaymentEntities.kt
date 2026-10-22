@@ -44,6 +44,9 @@ data class PaymentRecognitionEntity(
     @ColumnInfo(defaultValue = "''") val lifecycleReference: String = "",
     @ColumnInfo(defaultValue = "''") val referenceNamespace: String = "",
     @ColumnInfo(defaultValue = "''") val currencyEvidence: String = "",
+    @ColumnInfo(defaultValue = "0") val currencyReviewRequired: Boolean = false,
+    @ColumnInfo(defaultValue = "''") val currencyDecisionSource: String = "",
+    @ColumnInfo(defaultValue = "0") val currencyReviewNotified: Boolean = false,
     @ColumnInfo(defaultValue = "''") val lifecycleOperation: String = "",
     @ColumnInfo(defaultValue = "0") val lifecycleRevision: Long = 0,
 )

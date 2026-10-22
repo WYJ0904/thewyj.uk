@@ -27,6 +27,9 @@ data class PaymentRecognitionRecord(
     val lifecycleReference: String = "",
     val referenceNamespace: String = "",
     val currencyEvidence: String = "",
+    val currencyReviewRequired: Boolean = false,
+    val currencyDecisionSource: String = "",
+    val currencyReviewNotified: Boolean = false,
     val lifecycleOperation: String = "",
     val lifecycleRevision: Long = 0,
 )

@@ -7,6 +7,7 @@ import {
 } from "./cloudflare-foundation.mjs";
 import { resolveTask12Account } from "./task12-auth.mjs";
 import { currencyPreferences, referenceRate, transactionReferences } from './finance-fx.mjs';
+import { moneyCapability, requireMoneyCapability } from './finance-client-capability.mjs';
 import { enrichAccountWithTask13 } from "./task13-service.mjs";
 import {
   importLegacyFinance,
@@ -61,6 +62,7 @@ function requestId(context) {
 }
 
 function response(payload, status, context, headers = {}) {
+  if (context.request.method === 'GET') requireMoneyCapability(context,payload,Task16Error);
   return jsonResponse(payload, status, requestId(context), headers);
 }
 
@@ -110,12 +112,12 @@ async function execute(context, path, account) {
     if (path === '/api/finance/references') return response({ ok: true, ...await transactionReferences(db, account.id, { transaction_ids: (url.searchParams.get('ids') || '').split(',').filter(Boolean), display_currency: url.searchParams.get('display_currency') }) }, 200, context);
     if (path === "/api/finance/bootstrap") {
       const bootstrap = await financeBootstrap(db, account);
-      if (url.searchParams.get('money_version') !== '2' && context.request.headers.get('X-Finance-Money-Version') !== '2' && bootstrap.budgets?.some(row => row.currency === 'JPY')) throw new Task16Error('请升级客户端后读取日元预算', 409, 'currency_client_upgrade_required');
+      if (moneyCapability(context) < 2 && bootstrap.budgets?.some(row => row.currency === 'JPY')) throw new Task16Error('请升级客户端后读取日元预算', 409, 'currency_client_upgrade_required');
       return response({ ok: true, ...bootstrap, build: TASK16_BUILD }, 200, context);
     }
     if (path === "/api/finance/changes") {
       const changes = await financeChanges(db, account, url.searchParams.get('since') || 0, url.searchParams.get('limit') || 0);
-      if (url.searchParams.get('money_version') !== '2' && context.request.headers.get('X-Finance-Money-Version') !== '2' && changes.changes?.some(change => change.payload?.transaction?.currency === 'JPY' || change.payload?.budget?.currency === 'JPY')) throw new Task16Error('请升级客户端后读取日元账目', 409, 'currency_client_upgrade_required');
+      if (moneyCapability(context) < 2 && changes.changes?.some(change => change.payload?.transaction?.currency === 'JPY' || change.payload?.budget?.currency === 'JPY')) throw new Task16Error('请升级客户端后读取日元账目', 409, 'currency_client_upgrade_required');
       return response({
         ok: true,
         ...changes,
@@ -127,7 +129,7 @@ async function execute(context, path, account) {
         before: url.searchParams.get('before') || '', before_id: url.searchParams.get('before_id') || '',
         limit: url.searchParams.get('limit') || '', include_deleted: url.searchParams.get('include_deleted') || '',
       });
-      if (url.searchParams.get('money_version') !== '2' && context.request.headers.get('X-Finance-Money-Version') !== '2' && transactions.transactions?.some(row => row.currency === 'JPY')) throw new Task16Error('请升级客户端后读取日元账目', 409, 'currency_client_upgrade_required');
+      if (moneyCapability(context) < 2 && transactions.transactions?.some(row => row.currency === 'JPY')) throw new Task16Error('请升级客户端后读取日元账目', 409, 'currency_client_upgrade_required');
       return response({
         ok: true,
         ...transactions,
@@ -149,6 +151,16 @@ async function execute(context, path, account) {
   const payload = await readJson(context.request, ROUTES.get(`${method} ${path}`).body);
   if (path === '/api/finance/currencies') return response({ ok: true, preferences: await currencyPreferences(db, account.id, payload) }, 200, context);
   if (path === "/api/finance/sync") {
+    requireMoneyCapability(context,await financeChanges(db,account,payload.since_version || 0),Task16Error);
+    for (const operation of Array.isArray(payload.operations) ? payload.operations : []) {
+      const receipt = typeof operation?.operation_id === 'string' ? await db.prepare('SELECT operation_id FROM task16_finance_sync_operations WHERE user_id=?1 AND operation_id=?2').bind(account.id,operation.operation_id).first() : null;
+      if (receipt) continue;
+      requireMoneyCapability(context,operation?.payload,Task16Error);
+      if (typeof operation?.entity_id === 'string' && typeof operation?.type === 'string' && operation.type.startsWith('transaction.')) {
+        const existing = await db.prepare('SELECT * FROM task16_finance_transactions WHERE user_id=?1 AND id=?2').bind(account.id,operation.entity_id).first();
+        requireMoneyCapability(context,existing,Task16Error);
+      }
+    }
     return response({ ok: true, ...await syncFinance(db, account, payload), build: TASK16_BUILD }, 200, context);
   }
   if (path === "/api/finance/reconcile/merge") {

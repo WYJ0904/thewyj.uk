@@ -210,8 +210,11 @@ export function classifyFinanceText(value) {
 
 export function normalizeManualTransaction(value = {}) {
   requireAllowedFields(value, new Set([
-    "direction", "amount_minor", "currency", "category_id", "merchant", "counterparty", "note", "occurred_at_ms", "amount_exponent",
+    "direction", "amount_minor", "currency", "category_id", "merchant", "counterparty", "note", "occurred_at_ms", "amount_exponent", "currency_review_acknowledged",
   ]));
+  if (value.currency_review_acknowledged !== undefined &&
+      (typeof value.currency_review_acknowledged !== 'boolean' || !value.currency))
+    throw new Task16Error('请明确核实币种',400,'currency_decision_invalid');
   const currency = cleanCurrency(value.currency);
   let digits;
   try { digits = currencyDigits(currency); }
@@ -359,6 +362,8 @@ export function financeReferenceScope(event) {
 
 export function publicTransaction(row) {
   return {
+    ...(row.currency_decision_source ? { currency_review_required: Number(row.currency_review_required) === 1,
+      currency_decision_source: String(row.currency_decision_source) } : {}),
     ...(row.currency_roles_json && row.currency_roles_json !== '[]' ? { currency_role_evidence: JSON.parse(row.currency_roles_json) } : {}),
     ...(row.currency === 'JPY' ? { amount_exponent: row.amount_exponent === 0 ? 0 : null,
       money_unit_status: row.amount_exponent === 0 ? 'verified' : 'review_required' } : {}),

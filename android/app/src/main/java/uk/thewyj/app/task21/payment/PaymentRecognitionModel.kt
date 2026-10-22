@@ -83,6 +83,8 @@ data class ParsedPaymentMessage(
     val lifecycleReference: String = "",
     val referenceNamespace: String = "",
     val currencyEvidence: String = "",
+    val currencyReviewRequired: Boolean = false,
+    val currencyDecisionSource: String = "",
     val lifecycleOperation: String = "",
     val lifecycleRevision: Long = 0,
     val reviewReason: String = "",

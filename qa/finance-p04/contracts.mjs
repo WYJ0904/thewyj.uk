@@ -30,10 +30,10 @@ const server = createServer(async (request, response) => {
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
-async function request(route, body, authenticated = true, capable = true) {
+async function request(route, body, authenticated = true, capable = true, moneyVersion = '3') {
   const response = await fetch(origin + route, { method: body === undefined ? 'GET' : 'POST',
     headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json', Origin: origin }), ...(authenticated ? { 'X-Session-Token': token } : {}),
-      ...(capable ? { 'X-Finance-Money-Version': '2' } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) });
+      ...(capable ? { 'X-Finance-Money-Version': moneyVersion } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) });
   return { status: response.status, ...(await response.json()) };
 }
 async function check(id, run) {
@@ -201,6 +201,36 @@ try {
     const accepted=await applyPaymentReconciliation(f.db,f.account,'synthetic-p04-device',command,{verifyAuthority});
     assert.equal(accepted.reconciliation_status,'applied',accepted.reason);assert.equal(accepted.transaction_id,receipt.transaction_id);assert.equal(accepted.transaction.amount_minor,9000);assert.equal(accepted.transaction.amount_exponent,0);
     return{synthetic_authority_only:true,blocked_without_source_unit:true,stable_transaction_id:receipt.transaction_id};
+  });
+  await check('HTTP-default-decision-books-and-preserves-review-with-current-client', async () => {
+    const payload=event('default-http','USD',{provider_reference:'SYNTHDEFAULTHTTP',currency_evidence:'',currency_review_required:true,currency_decision_source:'account_default'});
+    const result=await request('/api/notification/ingest',{schema_version:1,device_id:'synthetic-p04-http-default',operations:[{operation_id:'synthetic-http-default-operation',type:'event.ingest',payload}]});
+    assert.equal(result.status,200,JSON.stringify(result));assert.ok(result.operation_results[0].transaction_id);
+    const list=await request('/api/finance/transactions');assert.equal(list.status,200);
+    assert.equal(list.transactions.find(row=>row.id===result.operation_results[0].transaction_id).currency_review_required,true);
+  });
+  await check('HTTP-unit-only-client-must-upgrade-before-dropping-review-state',async()=>{
+    const response=await request('/api/finance/transactions',undefined,true,true,'2');
+    assert.equal(response.status,409);assert.equal(response.code,'currency_client_upgrade_required');
+  });
+  await check('HTTP-legacy-new-capture-cannot-invent-source-CNY-while-old-receipts-stay',async()=>{
+    const payload=event('legacy-new-cny','CNY');
+    const response=await request('/api/notification/ingest',{schema_version:1,device_id:'synthetic-p04-legacy',operations:[{operation_id:'synthetic-legacy-new-cny',type:'event.ingest',payload}]},true,false);
+    assert.equal(response.status,409);assert.equal(response.code,'currency_client_upgrade_required');
+    assert.equal((await f.db.prepare('SELECT COUNT(*) n FROM task21_notification_events WHERE event_id=?1').bind(payload.event_id).first()).n,0);
+    const original={schema_version:1,device_id:'synthetic-p04-legacy-receipt',operations:[{operation_id:'synthetic-p04-legacy-receipt-op',type:'event.ingest',payload:event('legacy-receipt-cny','CNY',{provider_reference:'SYNTH-LEGACY-CNY-RECEIPT'})}]};
+    const first=await request('/api/notification/ingest',original);assert.equal(first.status,200);
+    const replay=await request('/api/notification/ingest',original,true,false);assert.equal(replay.status,200,JSON.stringify(replay));
+    assert.equal(replay.operation_results[0].transaction_id,first.operation_results[0].transaction_id);
+  });
+  await check('HTTP-unit-only-confirm-cannot-bypass-a-source-default-review',async()=>{
+    const payload=event('default-confirm-review','CNY',{currency_evidence:'',currency_review_required:true,currency_decision_source:'account_default',parse_status:'candidate',identity_review_reason:'identity_unproven_notification'});
+    const ingested=await request('/api/notification/ingest',{schema_version:1,device_id:'synthetic-review-confirm-device',operations:[{operation_id:'synthetic-review-confirm-ingest',type:'event.ingest',payload}]});
+    assert.equal(ingested.status,200);const id=ingested.operation_results[0].candidate_id;assert.ok(id);
+    const body={candidate_id:id,device_id:'synthetic-review-confirm-device',operation_id:'synthetic-review-confirm-operation'};
+    const legacy=await request('/api/notification/candidates/confirm',body,true,true,'2');
+    assert.equal(legacy.status,409);assert.equal(legacy.code,'currency_client_upgrade_required');
+    const current=await request('/api/notification/candidates/confirm',body);assert.equal(current.status,200,JSON.stringify(current));
   });
 } finally {
   await new Promise(resolve=>server.close(resolve)); await f.dispose();

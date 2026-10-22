@@ -359,7 +359,8 @@ private fun amountLine(item: PaymentVerificationCenter.Item): String {
         "EXPENSE" -> "支出"
         else -> ""
     }
-    return "$direction ${uk.thewyj.app.finance.CurrencyMoney.format(amount, item.displayCurrency)}".trim()
+    return "$direction ${uk.thewyj.app.finance.CurrencyMoney.format(amount, item.displayCurrency)}".trim() +
+        if (item.currencyReviewRequired) " · 默认币种待核实" else ""
 }
 
 private fun sourceLine(item: PaymentVerificationCenter.Item): String {

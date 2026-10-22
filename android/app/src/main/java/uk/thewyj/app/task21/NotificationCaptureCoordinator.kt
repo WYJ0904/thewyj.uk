@@ -167,6 +167,7 @@ class NotificationCaptureCoordinator(
                 referenceNamespace = payment.referenceNamespace, currencyEvidence = payment.currencyEvidence,
                 identityReviewReason = payment.identityReviewReason,
                 currencyRolesJson = payment.currencyRolesJson,
+                currencyReviewRequired = payment.currencyReviewRequired, currencyDecisionSource = payment.currencyDecisionSource,
             )
         } else {
             StructuredNotificationEvent(

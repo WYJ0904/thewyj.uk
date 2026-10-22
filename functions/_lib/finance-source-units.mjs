@@ -4,7 +4,7 @@ const ready = new WeakSet();
 async function sourceUnitsReady(db) {
   if (ready.has(db)) return true;
   const row = await db.prepare("SELECT value FROM task21_metadata WHERE key='schema_version'").first();
-  if (row?.value === '8') { ready.add(db); return true; }
+  if (['8','9'].includes(row?.value)) { ready.add(db); return true; }
   return false;
 }
 export async function sourceExponent(db, owner, event, currency) {

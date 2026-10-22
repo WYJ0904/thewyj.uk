@@ -1,4 +1,5 @@
 import {sourceUnitStatement,sourceExponent} from './finance-source-units.mjs';
+import {currencyDecisionStamp,hasCurrencyDecisions} from './finance-money-units.mjs';
 import {
   Task21Error,
   cleanId,
@@ -6,6 +7,7 @@ import {
   isoNow,
   nonNegativeInteger,
   requireAllowedFields,
+  normalizeCurrencyDecision,
 } from "./task21-model.mjs";
 import { createAutomaticFinanceTransaction, correctedPaymentHintReceipt, reconcileLegacyCompleteCandidates, requireFinanceRecognitionAccess } from "./task21-service.mjs";
 import {recordPaymentUserDecision} from './task21-reconciliation.mjs';
@@ -15,6 +17,7 @@ function hintFinanceIdentity(row) {
   const channel=String(row.payment_channel||'');
   const source=String(row.source_package||'');
   return {source_package:source,source_type:String(row.source_type||'notification'),lifecycle_identity:String(row.lifecycle_identity||''),
+    ...(Number(row.currency_review_required) === 1 ? { currency_review_required: true, currency_decision_source: row.currency_decision_source } : {}),
     ...(['wechat','alipay','bank_card','bank','bank_sms'].includes(channel)?{reference_namespace:referenceNamespaceForSource({source_package:source,payment_channel:channel})}:{})};
 }
 
@@ -268,6 +271,7 @@ function publicHint(row) {
     }
   })();
   return {
+    ...(Number(row.currency_review_required) === 1 ? { currency_review_required: true, currency_decision_source: row.currency_decision_source } : {}),
     id: String(row.id || ""),
     source_event_id: String(row.source_event_id || ""),
     device_id: String(row.device_id || ""),
@@ -446,7 +450,9 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
       "amount_minor", "direction", "merchant", "currency", "amount_exponent", "confidence",
       "recognition_status", "evidence", "provider_reference", "payment_channel",
       "lifecycle_identity",
+      "currency_review_required", "currency_decision_source",
     ]));
+    const currencyDecision = normalizeCurrencyDecision(raw);
     const sourceEventId = cleanId(raw.source_event_id, "事件标识");
     const sourceType = String(raw.source_type || "notification").trim().toLowerCase();
     if (!SOURCE_TYPES.has(sourceType)) throw new Task21Error("事件来源类型无效", 400, "hint_source_type_invalid");
@@ -606,20 +612,21 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
     }
     const id = `hint:${crypto.randomUUID()}`;
     try {
-      await run(db, `INSERT INTO task21_notification_pending_hints (
+      const insert = db.prepare(`INSERT INTO task21_notification_pending_hints (
         id, user_id, source_event_id, device_id, source_type, source_package, app_label,
         evidence_summary, amount_minor, direction, merchant, currency, confidence,
         recognition_status, state, finance_entry_id, created_at, updated_at, confirmed_at, ignored_at,
         provider_reference, lifecycle_identity, payment_channel
       ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,
-        ?16, ?17, ?15, ?15, ?18, ?19, ?20, ?21, ?22)`, [
+        ?16, ?17, ?15, ?15, ?18, ?19, ?20, ?21, ?22)`).bind(
         id, account.id, sourceEventId, deviceId, sourceType, sourcePackage, appLabel,
         evidence, terminalAmountMinor, terminalDirection, terminalMerchant, currency, confidence,
         recognitionStatus, now, candidateTerminalState || "pending", candidateTransactionId,
         candidateTerminalState === "confirmed" ? now : "",
         candidateTerminalState === "ignored" ? now : "",
         providerReference, lifecycleIdentity, paymentChannel,
-      ]);
+      );
+      await db.batch([insert, ...await currencyDecisionStamp(db,account.id,id,currencyDecision,'hint')]);
       const created = await hintById(db, account, id);
       const terminal = await autoBookVerifiedHint(db, account, deviceId, created);
       results.push({ hint: publicHint(terminal), duplicate: false });
@@ -680,6 +687,10 @@ export async function listNotificationHints(db, account, input = {}) {
  */
 export async function notificationPendingSummary(db, account, input = {}) {
   requireFinanceRecognitionAccess(account);
+  const decisions = await hasCurrencyDecisions(db);
+  const hintDecision = decisions ? [`COALESCE(et.currency_review_required,bt.currency_review_required,ht.currency_review_required,h.currency_review_required)`, `COALESCE(et.currency_decision_source,bt.currency_decision_source,ht.currency_decision_source,h.currency_decision_source)`] : ['0', "''"];
+  const candidateDecision = decisions ? `COALESCE(ct.currency_review_required,et.currency_review_required,cbt.currency_review_required,ht.currency_review_required,e.currency_review_required,0), COALESCE(ct.currency_decision_source,et.currency_decision_source,cbt.currency_decision_source,ht.currency_decision_source,e.currency_decision_source,'')` : `0, ''`;
+  const bookingDecision = decisions ? `txn.currency_review_required,txn.currency_decision_source` : `0, ''`;
   // A refresh is also the bounded repair point for candidates created solely
   // by the former confidence gate. Each booking retains its source event id.
   await reconcileLegacyCompleteCandidates(db, account);
@@ -721,12 +732,15 @@ export async function notificationPendingSummary(db, account, input = {}) {
       h.merchant,
       COALESCE(NULLIF(CAST(json_extract(h.evidence_summary, '$.occurred_at_ms') AS INTEGER), 0),
         CAST(strftime('%s', h.created_at) AS INTEGER) * 1000, 0) AS occurred_at_ms,
-      h.confidence, COALESCE(json_extract(h.evidence_summary, '$.reasons'), '[]') AS recognition_reasons, h.currency
+      h.confidence, COALESCE(json_extract(h.evidence_summary, '$.reasons'), '[]') AS recognition_reasons, h.currency,
+      ${hintDecision[0]} AS currency_review_required,
+      ${hintDecision[1]} AS currency_decision_source
     FROM task21_notification_pending_hints h
     LEFT JOIN task21_notification_events e ON e.user_id = h.user_id AND e.event_id = h.source_event_id
     LEFT JOIN task16_finance_transactions et
       ON et.user_id = h.user_id AND et.id = e.finance_transaction_id AND et.status = 'active'
     LEFT JOIN booking b ON b.user_id = h.user_id AND b.source_event_id = h.source_event_id
+    LEFT JOIN task16_finance_transactions bt ON bt.user_id=h.user_id AND bt.id=b.transaction_id
     LEFT JOIN task16_finance_transactions ht
       ON ht.user_id = h.user_id AND ht.id = h.finance_entry_id AND ht.status = 'active'
     WHERE h.user_id = ?1 AND NOT EXISTS (
@@ -755,7 +769,7 @@ export async function notificationPendingSummary(db, account, input = {}) {
         WHEN 'com.eg.android.AlipayGphone' THEN '支付宝'
         ELSE COALESCE(e.source_package, '') END AS app_label,
       c.amount_minor, c.direction, c.merchant, c.occurred_at_ms, c.confidence,
-      '[]' AS recognition_reasons, c.currency
+      '[]' AS recognition_reasons, c.currency, ${candidateDecision}
     FROM task21_notification_candidates c
     LEFT JOIN task21_notification_events e ON e.user_id = c.user_id AND e.event_id = c.event_id
     LEFT JOIN task16_finance_transactions ct
@@ -763,6 +777,7 @@ export async function notificationPendingSummary(db, account, input = {}) {
     LEFT JOIN task16_finance_transactions et
       ON et.user_id = c.user_id AND et.id = e.finance_transaction_id AND et.status = 'active'
     LEFT JOIN booking cb ON cb.user_id = c.user_id AND cb.source_event_id = c.event_id
+    LEFT JOIN task16_finance_transactions cbt ON cbt.user_id=c.user_id AND cbt.id=cb.transaction_id
     LEFT JOIN task21_notification_pending_hints h ON h.user_id = c.user_id AND h.source_event_id = c.event_id
     LEFT JOIN task16_finance_transactions ht
       ON ht.user_id = c.user_id AND ht.id = h.finance_entry_id AND ht.status = 'active'
@@ -774,7 +789,7 @@ export async function notificationPendingSummary(db, account, input = {}) {
       json_array(raw.source_event_id), COALESCE(e.source_package, ''),
       CASE e.source_package WHEN 'com.tencent.mm' THEN '微信'
         WHEN 'com.eg.android.AlipayGphone' THEN '支付宝' ELSE COALESCE(e.source_package, '') END,
-      txn.amount_minor, txn.direction, txn.merchant, txn.occurred_at_ms, COALESCE(e.confidence, 950), '[]', txn.currency
+      txn.amount_minor, txn.direction, txn.merchant, txn.occurred_at_ms, COALESCE(e.confidence, 950), '[]', txn.currency, ${bookingDecision}
     FROM task16_finance_raw_events raw
     JOIN task16_finance_transaction_events link ON link.raw_event_id = raw.id AND link.relation_status = 'active'
     JOIN task16_finance_transactions txn ON txn.user_id = raw.user_id AND txn.id = link.transaction_id
@@ -796,6 +811,7 @@ export async function notificationPendingSummary(db, account, input = {}) {
   FROM visible ORDER BY updated_at DESC, id DESC`).bind(account.id, JSON.stringify(eventIds)).all();
   const rows = result?.results || [];
   const records = rows.map((row) => ({
+    ...(row.currency_decision_source ? { currency_review_required: Number(row.currency_review_required) === 1, currency_decision_source: row.currency_decision_source } : {}),
     kind: String(row.kind), id: String(row.id), event_id: String(row.event_id),
     event_ids: [...new Set([String(row.event_id), ...JSON.parse(row.event_ids || "[]")])],
     device_id: String(row.device_id), state: String(row.state),

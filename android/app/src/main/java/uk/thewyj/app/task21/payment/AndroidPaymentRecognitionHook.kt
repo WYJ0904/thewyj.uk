@@ -204,6 +204,7 @@ class AndroidPaymentRecognitionHook private constructor(
             currencyEvidence = parsed.currencyEvidence, identityReviewReason = review,
             lifecycleOperation = parsed.lifecycleOperation, lifecycleRevision = parsed.lifecycleRevision,
             currencyRolesJson = parsed.currencyRolesJson,
+            currencyReviewRequired = parsed.currencyReviewRequired, currencyDecisionSource = parsed.currencyDecisionSource,
             amountExponent = uk.thewyj.app.finance.CurrencyMoney.digits[parsed.currency],
         )
     }

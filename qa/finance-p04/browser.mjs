@@ -39,7 +39,7 @@ const html=`<!doctype html><meta charset="utf-8"><style>.hidden{display:none}bod
 import {createFinanceController} from '/js/finance/app.js';
 import {createFinanceCandidatesController} from '/js/finance/candidates.js';
 window.offline=false;window.errors=[];
-async function call(route,body,options={}){const response=await fetch(route,{method:body===undefined?'GET':'POST',headers:{'X-Session-Token':${JSON.stringify(token)},'X-Finance-Money-Version':'2',...(body===undefined?{}:{'Content-Type':'application/json'})},body:body===undefined?undefined:JSON.stringify(body),signal:options.controller?.signal});const result=await response.json();if(!response.ok)throw Object.assign(new Error(result.message||result.error||'synthetic offline'),{code:result.code});return result}
+async function call(route,body,options={}){const response=await fetch(route,{method:body===undefined?'GET':'POST',headers:{'X-Session-Token':${JSON.stringify(token)},'X-Finance-Money-Version':'3',...(body===undefined?{}:{'Content-Type':'application/json'})},body:body===undefined?undefined:JSON.stringify(body),signal:options.controller?.signal});const result=await response.json();if(!response.ok)throw Object.assign(new Error(result.message||result.error||'synthetic offline'),{code:result.code});return result}
 window.controller=createFinanceController({account:()=>({id:${JSON.stringify(f.account.id)}}),storage:localStorage,hasEntitlement:()=>true,isSuperAdmin:()=>false,appVersion:'synthetic-p04',apiGet:(p,o)=>call(p,undefined,o),api:call});
 window.store=()=>JSON.parse(localStorage.getItem('wyjFinance:v1:'+${JSON.stringify(f.account.id)}));
 window.candidates=createFinanceCandidatesController({account:()=>({id:${JSON.stringify(f.account.id)}}),storage:localStorage,hasEntitlement:()=>true,isSuperAdmin:()=>false,apiGet:(p,o)=>call(p,undefined,o),api:call});
@@ -113,14 +113,40 @@ try{
     await page.evaluate('Storage.prototype.setItem=originalSetItem');offline=false;await page.evaluate('controller.syncNow()');await page.waitFor('store().pending.length===0');
     const row=await f.db.prepare("SELECT * FROM task16_finance_transactions WHERE merchant='synthetic quota refund'").first();assert.equal(row.id,pending.entity_id);assert.equal(row.direction,'refund');assert.equal(row.currency,'EUR');assert.equal(row.amount_minor,1025);
   });
-  await check('service-worker-replaces-stale-shell-with-money-v2',async()=>{
+  await check('service-worker-replaces-stale-shell-with-money-v3-review-protocol',async()=>{
     await page.evaluate(`(async()=>{const cache=await caches.open('wyj-shell-synthetic-old');await cache.put('/js/finance/money.js',new Response('export const MONEY_VERSION=1'));await navigator.serviceWorker.register('/sw.js');await navigator.serviceWorker.ready;})()`);
     await page.waitFor('navigator.serviceWorker.controller!==null');
-    const keys=await page.evaluate('caches.keys()');assert.equal(keys.includes('wyj-shell-synthetic-old'),false);assert.ok(keys.some(key=>key.endsWith('finance-money-v2')));
+    const keys=await page.evaluate('caches.keys()');assert.equal(keys.includes('wyj-shell-synthetic-old'),false);assert.ok(keys.some(key=>key.endsWith('finance-money-v3')));
     const money=await page.evaluate("fetch('/js/finance/money.js').then(r=>r.text())");assert.match(money,/MONEY_VERSION = 2/);
     await page.evaluate('(async()=>{for(const registration of await navigator.serviceWorker.getRegistrations())await registration.unregister()})()');
   });
   await check('no-runtime-exceptions-in-real-Chromium',async()=>assert.deepEqual(page.runtimeErrors,[]));
+  let defaultId;
+  const defaultEvent={event_id:'synthetic-browser-default-usd',fingerprint:'e'.repeat(64),source_package:'cmb.pb',source_type:'notification',event_type:'transaction',parser_version:'bank-notification-4',parse_status:'parsed',direction:'expense',amount_minor:10000,currency:'USD',currency_evidence:'',currency_review_required:true,currency_decision_source:'account_default',provider_reference:'SYNTH-BROWSER-DEFAULT-001',payment_channel:'bank_card',merchant:'synthetic default USD',confidence:950,occurred_at_ms:Date.UTC(2026,9,19,12),received_at_ms:Date.UTC(2026,9,19,12)};
+  await check('account-default-books-with-visible-nonblocking-review-badge',async()=>{
+    defaultId=(await ingestNotificationEvents(f.db,f.account,{schema_version:1,device_id:'synthetic-browser-default-device',operations:[{operation_id:'synthetic-browser-default-op',type:'event.ingest',payload:defaultEvent}]})).operation_results[0].transaction_id;
+    assert.ok(defaultId);await page.evaluate('controller.syncNow()');
+    await page.waitFor(`store().transactions[${JSON.stringify(defaultId)}]?.currency_review_required===true`);
+    assert.match(await page.evaluate("document.getElementById('financeTransactionList').textContent"),/币种待核实/);
+    assert.equal((await page.evaluate(`store().transactions[${JSON.stringify(defaultId)}]`)).amount_minor,10000);
+  });
+  await check('default-review-and-original-money-survive-offline-browser-reload',async()=>{
+    offline=true;await page.navigate('/');await page.waitFor('window.ready===true');
+    const row=await page.evaluate(`store().transactions[${JSON.stringify(defaultId)}]`);
+    assert.equal(row.currency,'USD');assert.equal(row.amount_minor,10000);assert.equal(row.currency_review_required,true);
+    assert.match(await page.evaluate("document.getElementById('financeTransactionList').textContent"),/币种待核实/);offline=false;
+  });
+  await check('explicit-currency-edit-clears-review-without-renaming-source-or-ledger',async()=>{
+    const rawBefore=(await f.db.prepare('SELECT metadata_json FROM task16_finance_raw_events WHERE source_event_id=?1 AND user_id=?2').bind(defaultEvent.event_id,f.account.id).first()).metadata_json;
+    await page.evaluate(`document.querySelector('[data-finance-edit="${defaultId}"]').click()`);
+    assert.match(await page.evaluate("document.getElementById('financeTransactionModalTitle').textContent"),/核对默认币种/);
+    await page.evaluate("document.getElementById('financeTransactionCurrency').value='EUR';document.getElementById('financeTransactionForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));");
+    await page.evaluate('controller.syncNow()');await page.waitFor('store().pending.length===0');
+    const stored=await f.db.prepare('SELECT * FROM task16_finance_transactions WHERE id=?1').bind(defaultId).first();
+    assert.equal(stored.currency,'EUR');assert.equal(stored.amount_minor,10000);assert.equal(stored.currency_review_required,0);assert.equal((await f.db.prepare('SELECT metadata_json FROM task16_finance_raw_events WHERE source_event_id=?1').bind(defaultEvent.event_id).first()).metadata_json,rawBefore);
+    assert.equal((await page.evaluate(`store().transactions[${JSON.stringify(defaultId)}]`)).currency_review_required,false);
+    assert.equal((await f.db.prepare('SELECT currency FROM task21_notification_events WHERE event_id=?1').bind(defaultEvent.event_id).first()).currency,'USD');
+  });
   const screenshot=await page.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile(path.join(out,'currency-browser.png'),Buffer.from(screenshot.data,'base64'));
 }catch(error){rows.push({id:'browser-harness',status:'FAIL',error:error.stack,runtimeErrors:page?.runtimeErrors});console.error(error)}
 finally{if(page)await page.close().catch(()=>{});if(browser){await browser.send('Browser.close').catch(()=>{});browser.close()}child.kill();await new Promise(r=>server.close(r));globalThis.fetch=realFetch;await f.dispose();await writeFile(path.join(out,'browser.json'),JSON.stringify({synthetic_only:true,real_chromium:true,apiCalls,rows},null,2)+'\n')}

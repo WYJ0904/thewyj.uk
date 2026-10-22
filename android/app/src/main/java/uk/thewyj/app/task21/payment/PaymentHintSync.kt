@@ -89,6 +89,7 @@ class PaymentHintSync(
         val pendingIds = mutableSetOf<String>()
         var confirmed = 0
         var ignored = 0
+        var currencyReviewUpdated = false
         for (record in summary.records) {
             val ids = (record.eventIds + record.eventId).filter(String::isNotBlank).toSet()
             ids.forEach { states[it] = record.state }
@@ -120,8 +121,17 @@ class PaymentHintSync(
                     ignored += 1
                 }
             }
+            if (record.state == "confirmed" && record.transactionId.isNotBlank() &&
+                record.currencyDecisionSource.isNotBlank() && !record.currencyReviewRequired) {
+                val match = recognitionForCandidate(account, ids)
+                val booking = match?.let { store.localBooking(accountId, PaymentAutoBook.eventId(it)) }
+                if (match?.currencyReviewRequired == true && booking?.transactionId == record.transactionId) {
+                    store.saveRecognition(match.copy(currencyReviewRequired = false))
+                    currencyReviewUpdated = true
+                }
+            }
         }
-        if (previousPending != summary.records.filter { it.state == "pending" }.sortedBy { it.canonicalId }) PaymentReviewSignals.publish()
+        if (currencyReviewUpdated || previousPending != summary.records.filter { it.state == "pending" }.sortedBy { it.canonicalId }) PaymentReviewSignals.publish()
         return Result(
             refreshed = summary.records.size,
             confirmed = confirmed,
@@ -202,6 +212,7 @@ class PaymentHintSync(
             merchant = candidate.merchant.ifBlank { recognition.merchant },
             currency = recognition.currency.ifBlank { "XXX" },
             amountExponent = uk.thewyj.app.finance.CurrencyRuntimePreferences.sourceExponent(app,account.accountId,recognition.sourceEventId,recognition.currency),
+            currencyReviewRequired = recognition.currencyReviewRequired,
             confidence = candidate.confidence.coerceIn(0, 1000),
             recognitionStatus = if (settled) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY",
             reasons = listOf(if (settled) "accessibility_verified_payment" else "accessibility_pending_evidence"),

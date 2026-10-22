@@ -112,6 +112,7 @@ object WeChatPaymentParser : PaymentMessageParser {
             // 昵称 + 转账 without an amount: needs enrichment, never a transaction.
             else -> ParsedPaymentMessage(
                 status = PaymentRecognitionStatus.PAYMENT_LIKELY,
+                direction = direction,
                 paymentChannel = channel,
                 occurredAtMs = capturedAtMs,
                 confidence = 460,
@@ -220,6 +221,7 @@ object AlipayPaymentParser : PaymentMessageParser {
             // Payment-like copy without an amount: enrichment target only.
             else -> ParsedPaymentMessage(
                 status = PaymentRecognitionStatus.INSUFFICIENT_INFORMATION,
+                direction = direction,
                 paymentChannel = channel,
                 occurredAtMs = capturedAtMs,
                 confidence = 420,
@@ -323,6 +325,7 @@ object BankNotificationParser : PaymentMessageParser {
                 occurredAtMs = capturedAtMs,
                 confidence = 400,
                 reasons = listOf("bank_notification_without_amount"),
+                direction = direction,
                 missingFields = buildSet {
                     add("amount")
                     if (direction == null) add("direction")
@@ -403,6 +406,7 @@ object BankSmsParser : PaymentMessageParser {
                 occurredAtMs = capturedAtMs,
                 confidence = 380,
                 reasons = listOf("sms_without_amount"),
+                direction = direction,
                 missingFields = buildSet {
                     add("amount")
                     if (direction == null) add("direction")

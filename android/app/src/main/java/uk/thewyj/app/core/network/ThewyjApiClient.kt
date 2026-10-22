@@ -57,6 +57,8 @@ data class PendingReviewIdentity(
     val confidence: Int = 0,
     val currency: String = "CNY",
     val amountExponent: Int? = null,
+    val currencyReviewRequired: Boolean = false,
+    val currencyDecisionSource: String = "",
 ) {
     val canonicalId: String get() = "$kind:$id"
 
@@ -84,6 +86,8 @@ data class PendingReviewIdentity(
                 confidence = row.optInt("confidence").coerceIn(0, 1000),
                 currency = row.optString("currency", "XXX"),
                 amountExponent = if (row.isNull("amount_exponent")) null else row.optInt("amount_exponent"),
+                currencyReviewRequired = row.optBoolean("currency_review_required"),
+                currencyDecisionSource = row.optString("currency_decision_source"),
             )
         }
     }
@@ -395,7 +399,7 @@ class ThewyjApiClient(
             useCaches = false
             instanceFollowRedirects = false
             setRequestProperty("Accept", "application/json")
-            if (path.startsWith("/api/finance/") || path.startsWith("/api/notification/")) setRequestProperty("X-Finance-Money-Version", "2")
+            if (path.startsWith("/api/finance/") || path.startsWith("/api/notification/")) setRequestProperty("X-Finance-Money-Version", "3")
             setRequestProperty("User-Agent", "thewyj-android/${BuildConfig.VERSION_NAME} Android/${Build.VERSION.SDK_INT}")
             if (accessToken.isNotBlank()) setRequestProperty("X-Session-Token", accessToken)
             if (body != null) {

@@ -31,8 +31,8 @@ class FinanceP03AMigrationTest {
     private fun old(f:File)=Room.databaseBuilder(context,P03AV12Database::class.java,f.absolutePath).allowMainThreadQueries().build()
     private fun current(f:File,m:Migration=NotificationDatabase.MIGRATION_12_13)=Room.databaseBuilder(context,NotificationDatabase::class.java,f.absolutePath).addMigrations(m,NotificationDatabase.MIGRATION_13_14).allowMainThreadQueries().build()
     private inline fun<T:RoomDatabase,R>T.closed(block:(T)->R):R=try{block(this)}finally{close()}
-    private fun seed(f:File) { old(f).closed { db ->
-        db.openHelper.writableDatabase.execSQL("INSERT INTO local_payment_bookings VALUES('synthetic-account','synthetic-event','synthetic-recognition','synthetic-original-id',8000,'EXPENSE','USD','synthetic',1000,'95555','bank_sms','SYNTH-CAPTURE','pending',1000)")
+    private fun seed(f:File) { uk.thewyj.app.finance.FrozenRoomFixture.create(f,12).use { db ->
+        db.execSQL("INSERT INTO local_payment_bookings VALUES('synthetic-account','synthetic-event','synthetic-recognition','synthetic-original-id',8000,'EXPENSE','USD','synthetic',1000,'95555','bank_sms','SYNTH-CAPTURE','pending',1000)")
     } }
     private fun inspect(f:File,version:Int) { SQLiteDatabase.openDatabase(f.absolutePath,null,SQLiteDatabase.OPEN_READONLY).use { db ->
         assertEquals(version,db.version);db.rawQuery("SELECT transactionId,amountMinor,currency FROM local_payment_bookings",null).use {c->assertTrue(c.moveToFirst());assertEquals("synthetic-original-id",c.getString(0));assertEquals(8000L,c.getLong(1));assertEquals("USD",c.getString(2));assertFalse(c.moveToNext())}

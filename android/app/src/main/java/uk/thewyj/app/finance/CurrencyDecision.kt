@@ -78,11 +78,13 @@ object CurrencyDecision {
         val candidates = (if (found.isEmpty() && cues.isEmpty() && defaultCurrency != null && !Regex("-[0-9]").containsMatchIn(text)) Regex(number).findAll(text).map { it.groupValues[1] }.toList() else found)
             .mapNotNull { runCatching { CurrencyMoney.parse(it, unit) }.getOrNull() }.filter { it > 0 }.distinct()
         val amount = roles?.amount ?: candidates.singleOrNull() ?: return review("currency_amount_unproven")
+        val fromDefault = roles == null && cues.isEmpty() && defaultCurrency != null
         // A currency decision cannot invent a completed payment or undo identity/lifecycle review.
         val currencyOnlyReason = parsed.reviewReason in setOf("", "currency_evidence_conflict", "currency_amount_unproven", "currency_review_required")
         val completed = PaymentText.hasCompletion(text) && !PaymentText.hasIncompleteStatus(text)
         val reviewReason = if (currencyOnlyReason) "" else parsed.reviewReason
-        return parsed.copy(currency = unit, amountMinor = amount, currencyEvidence = unit,
+        return parsed.copy(currency = unit, amountMinor = amount, currencyEvidence = if (fromDefault) "" else unit,
+            currencyReviewRequired = fromDefault, currencyDecisionSource = if (fromDefault) "account_default" else "",
             currencyRolesJson = roles?.json().orEmpty(), reviewReason = reviewReason,
             status = if (completed && reviewReason.isBlank() && parsed.direction != null && parsed.financialPhase !in setOf("AUTHORIZED", "RELEASED", "EXPIRED")) PaymentRecognitionStatus.CONFIRMED_PAYMENT else parsed.status,
             missingFields = if (reviewReason.isBlank()) parsed.missingFields - setOf("currency", "amount", "review") else parsed.missingFields)

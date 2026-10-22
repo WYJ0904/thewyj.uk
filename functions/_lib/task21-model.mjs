@@ -2,7 +2,7 @@
 import { currencyDigits } from '../../js/finance/money.js';
 export const TASK21_SCHEMA_VERSION = "1";
 /** Task 21 readiness baseline; migration 0022 is additive for old Pages code. */
-export const TASK21_DB_SCHEMA_VERSION = "8";
+export const TASK21_DB_SCHEMA_VERSION = "9";
 export const TASK21_BUILD = "2026-09-08-task21-notification";
 export const NOTIFICATION_ENTITLEMENT = "notification_archive_access";
 export const MAX_INGEST_OPERATIONS = 100;
@@ -55,6 +55,7 @@ const ALLOWED_EVENT_FIELDS = Object.freeze(new Set([
   "financial_phase", "lifecycle_reference", "reference_namespace", "currency_evidence", "identity_review_reason",
   "lifecycle_operation", "lifecycle_revision",
   "currency_roles", "amount_exponent",
+  "currency_review_required", "currency_decision_source",
 ]));
 
 export class Task21Error extends Error {
@@ -118,6 +119,19 @@ export function requireAllowedFields(payload, allowed, code = "task21_fields_for
       throw new Task21Error("请求包含不允许的字段", 400, code);
     }
   }
+}
+
+export function normalizeCurrencyDecision(value) {
+  if (value.currency_review_required === undefined && value.currency_decision_source === undefined) return {};
+  if (typeof value.currency_review_required !== 'boolean' ||
+      (value.currency_review_required ? value.currency_decision_source !== 'account_default' : Boolean(value.currency_decision_source))) {
+    throw new Task21Error('币种决议标记无效',400,'currency_decision_invalid');
+  }
+  if (!value.currency_review_required) return {};
+  if (String(value.currency_evidence || '') || value.currency_roles !== undefined)
+    throw new Task21Error('默认币种不能冒充来源明示币种',409,'currency_decision_evidence_conflict');
+  try { currencyDigits(value.currency); } catch (_) { throw new Task21Error('默认币种无效',400,'currency_decision_invalid'); }
+  return { currency_review_required: true, currency_decision_source: 'account_default' };
 }
 
 export function normalizeNotificationEvent(value = {}, {legacyUnitless=false} = {}) {
@@ -216,6 +230,7 @@ export function normalizeNotificationEvent(value = {}, {legacyUnitless=false} = 
   }
 
   return {
+    ...normalizeCurrencyDecision(value),
     event_id: eventId,
     fingerprint,
     source_package: sourcePackage,
@@ -245,6 +260,7 @@ export function normalizeNotificationEvent(value = {}, {legacyUnitless=false} = 
 
 export function publicNotificationEvent(row) {
   return {
+    ...(Number(row.currency_review_required) === 1 ? { currency_review_required: true, currency_decision_source: String(row.currency_decision_source) } : {}),
     lifecycle_operation: String(row.lifecycle_operation || ""), lifecycle_revision: Number(row.lifecycle_revision || 0),
     lifecycle_review_reason: String(row.lifecycle_review_reason || ""),
     financial_phase: String(row.financial_phase || ""),
@@ -285,6 +301,7 @@ export function publicNotificationCandidate(row) {
     edited = {};
   }
   return {
+    ...(row.currency_decision_source ? { currency_review_required: Number(row.currency_review_required) === 1, currency_decision_source: String(row.currency_decision_source) } : {}),
     id: String(row.id || ""),
     event_id: String(row.event_id || ""),
     direction: String(row.direction || ""),

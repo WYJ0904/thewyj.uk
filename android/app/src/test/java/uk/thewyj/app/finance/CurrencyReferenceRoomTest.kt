@@ -17,7 +17,11 @@ import java.util.UUID
 @Config(sdk = [34], application = Application::class)
 class CurrencyReferenceRoomTest {
     private inline fun <T> CurrencyReferenceDatabase.use(block: (CurrencyReferenceDatabase) -> T): T = try { block(this) } finally { close() }
-    private fun open(name: String) = Room.databaseBuilder(RuntimeEnvironment.getApplication(), CurrencyReferenceDatabase::class.java, name).allowMainThreadQueries().build()
+    private fun open(name: String): CurrencyReferenceDatabase {
+        val file = RuntimeEnvironment.getApplication().getDatabasePath(name)
+        println("Synthetic currency cache path length=${file.absolutePath.length}: $file")
+        return Room.databaseBuilder(RuntimeEnvironment.getApplication(), CurrencyReferenceDatabase::class.java, name).allowMainThreadQueries().build()
+    }
     private fun snapshot(): JSONObject = JSONObject().put("base", "USD").put("quote", "CNY").put("requested_date", "2026-10-19")
         .put("rate_timestamp", "2026-10-19T00:00:00.000Z").put("rate", "7").put("source", "Frankfurter v2 daily reference")
         .put("fetched_at", "2026-10-21T12:00:00.000Z").put("expires_at", "2026-10-21T18:00:00.000Z").put("rounding", "HALF_EVEN")
@@ -37,7 +41,7 @@ class CurrencyReferenceRoomTest {
     }
     @Test fun manualCurrencyChoiceIsSeparateFromUnknownMachineEvidence() {
         val ledger=Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(),uk.thewyj.app.task21.store.NotificationDatabase::class.java).allowMainThreadQueries().build()
-        open("synthetic-choice-${UUID.randomUUID()}.db").use { cache ->
+        open("synthetic-choice-${UUID.randomUUID().toString().take(8)}.db").use { cache ->
             try {
                 val store=uk.thewyj.app.task21.store.RoomPaymentRecognitionStore(ledger)
                 val coordinator=uk.thewyj.app.task21.payment.PaymentRecognitionCoordinator(store,currencyPolicyVersion=2,
@@ -54,7 +58,7 @@ class CurrencyReferenceRoomTest {
         }
     }
     @Test fun boundedHistoryWarmUsesRealRepositoryAndExportsVerifiedOfflineProjection() {
-        open("synthetic-warm-${UUID.randomUUID()}.db").use { db ->
+        open("synthetic-warm-${UUID.randomUUID().toString().take(8)}.db").use { db ->
             db.currencies().putPreferences(CachedCurrencyPreferences("synthetic-owner","CNY","CNY",null,1))
             val rate=snapshot();val rateId=CurrencyReferenceRepository.snapshotId(rate);var calls=0
             val transport=object:NotificationIngestTransport{
@@ -73,7 +77,7 @@ class CurrencyReferenceRoomTest {
         }
     }
     @Test fun historicalReferencesSurviveCloseReopenAndOfflineWithoutChangingMoney() {
-        val name = "synthetic-p04-${UUID.randomUUID()}.db"
+        val name = "synthetic-p04-${UUID.randomUUID().toString().take(8)}.db"
         val rate = snapshot(); val id = CurrencyReferenceRepository.snapshotId(rate)
         var calls = 0
         val transport = object : NotificationIngestTransport {
@@ -99,7 +103,7 @@ class CurrencyReferenceRoomTest {
         RuntimeEnvironment.getApplication().deleteDatabase(name)
     }
     @Test fun malformedProviderDataCannotReplaceAnExistingReference() {
-        open("synthetic-p04-${UUID.randomUUID()}.db").use { db ->
+        open("synthetic-p04-${UUID.randomUUID().toString().take(8)}.db").use { db ->
             val rate = snapshot(); val id = CurrencyReferenceRepository.snapshotId(rate)
             db.currencies().putRate(CachedCurrencyRate(id, CurrencyReferenceRepository.canonicalRate(rate)))
             db.currencies().putReference(CachedCurrencyReference("synthetic-owner", "synthetic-transaction", 1, "CNY", id, "USD", 10000, 70000))
@@ -109,7 +113,7 @@ class CurrencyReferenceRoomTest {
     }
     @Test fun preferenceAndRoleCachesKeepAccountAndSourceIdentity() {
         val context = RuntimeEnvironment.getApplication()
-        val cacheAccount = "synthetic-six-currency-cache-${UUID.randomUUID()}"
+        val cacheAccount = "synthetic-six-currency-cache-${UUID.randomUUID().toString().take(8)}"
         val pending = CurrencyMoney.digits.keys.map { code -> uk.thewyj.app.core.network.PendingReviewIdentity(
             "hint", "synthetic-hint-$code", "synthetic-event-$code", "synthetic-device", amountMinor = 12345, currency = code,
             amountExponent = if(code == "JPY") 0 else null) } + uk.thewyj.app.core.network.PendingReviewIdentity(
@@ -117,7 +121,7 @@ class CurrencyReferenceRoomTest {
         assertTrue(uk.thewyj.app.task21.payment.CanonicalPendingCache(context, cacheAccount).save(
             uk.thewyj.app.core.network.PendingReviewSummary(java.time.Instant.now().toString(),7,7,0,false,pending)))
         assertEquals(pending,uk.thewyj.app.task21.payment.CanonicalPendingCache(context,cacheAccount).read()!!.records)
-        open("synthetic-p04-${UUID.randomUUID()}.db").use { db ->
+        open("synthetic-p04-${UUID.randomUUID().toString().take(8)}.db").use { db ->
             db.currencies().putPreferences(CachedCurrencyPreferences("synthetic-owner", "HKD", "JPY", "USD", 2))
             assertEquals("USD", db.currencies().preferences("synthetic-owner")!!.defaultCurrency)
             assertNull(db.currencies().preferences("other-owner"))

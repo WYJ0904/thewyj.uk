@@ -128,6 +128,7 @@ class CanonicalPendingCache(context: Context, private val accountId: String) {
             .put("state", row.state).put("transaction_id", row.transactionId)
             .put("source_package", row.sourcePackage).put("app_label", row.appLabel)
             .put("amount_minor", row.amountMinor ?: JSONObject.NULL).put("currency", row.currency).put("amount_exponent", row.amountExponent ?: JSONObject.NULL).put("direction", row.direction)
+            .put("currency_review_required", row.currencyReviewRequired).put("currency_decision_source", row.currencyDecisionSource)
             .put("merchant", row.merchant).put("occurred_at_ms", row.occurredAtMs).put("confidence", row.confidence)) }
         prefs.edit().putLong(epochKey, revision).putLong(revisionKey, revision).putLong(savedAtKey, savedAt)
             .putString(closedKey, encodeClosed(closed))

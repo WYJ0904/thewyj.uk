@@ -137,7 +137,7 @@ export async function ensureTask16Schema(db) {
   try {
     const row = await first(db, "SELECT value FROM task16_metadata WHERE key = ?1", ["schema_version"]);
     const version=String(row?.value||'');
-    if(version==='3'||version==='4')return true;
+    if(version==='3'||version==='4'||version==='5')return true;
     // Older standalone schemas remain usable before reconciliation exists.
     if(version!==TASK16_SCHEMA_VERSION)return false;
     const upgraded=await first(db,"SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='task21_payment_effective_events'");
@@ -323,8 +323,18 @@ async function upsertTransaction(db, account, deviceId, operation, digest, obser
   const unitStatements = await unitStamp(db, id, normalized.currency, normalized.amount_exponent);
   await requireOwnedCategory(db, account.id, normalized.category_id);
   const revision = existing ? baseRevision + 1 : 1;
+  const acknowledgeCurrency = operation.payload.currency_review_acknowledged === true && Number(existing?.currency_review_required) === 1;
+  const linkedReviewEvents = `SELECT raw.source_event_id FROM task16_finance_transaction_events link
+    JOIN task16_finance_raw_events raw ON raw.id=link.raw_event_id
+    WHERE link.transaction_id=?1 AND link.relation_status='active' AND raw.user_id=?2 AND raw.source_type='notification'`;
+  const reviewStatements = acknowledgeCurrency ? [
+    db.prepare("UPDATE task16_finance_transactions SET currency_review_required=0,currency_decision_source='user_confirmed' WHERE id=?1 AND user_id=?2").bind(id,account.id),
+    db.prepare(`UPDATE task21_notification_events SET currency_review_required=0,updated_at=?3 WHERE user_id=?2 AND event_id IN (${linkedReviewEvents})`).bind(id,account.id,isoNow()),
+    db.prepare(`UPDATE task21_notification_pending_hints SET currency_review_required=0,updated_at=?3 WHERE user_id=?2 AND source_event_id IN (${linkedReviewEvents})`).bind(id,account.id,isoNow()),
+  ] : [];
   const planned = existing ? {
     ...existing, ...normalized, status: "active", revision, updated_at: isoNow(), deleted_at: "",
+    ...(acknowledgeCurrency ? { currency_review_required: 0, currency_decision_source: 'user_confirmed' } : {}),
   } : transactionRowFor(account, deviceId, id, normalized);
   return await commitMutation(db, account, deviceId, operation, digest, (version, now) => [
     existing
@@ -340,6 +350,7 @@ async function upsertTransaction(db, account, deviceId, operation, digest, obser
         )
       : transactionInsertStatement(db, planned, version, now),
     ...unitStatements,
+    ...reviewStatements,
     auditStatement(db, account, deviceId, existing ? "transaction_edit" : "transaction_create", "transaction", id,
       existing ? publicTransaction(existing) : {}, { ...publicTransaction(planned), sync_version: version }, now),
   ], {

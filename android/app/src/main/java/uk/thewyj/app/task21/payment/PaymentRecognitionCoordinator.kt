@@ -62,11 +62,11 @@ class PaymentRecognitionCoordinator(
         if (accountId.isBlank() || sourcePackage.isBlank() || sourceEventId.isBlank()) {
             return Outcome("", null, skippedReason = "invalid_input")
         }
-        val parsed = PaymentParserRegistry.parse(sourcePackage, sourceType, title, text, bigText, subText, occurredAtMs,
-            defaultCurrency = defaultCurrency(accountId), currencyPolicyVersion = currencyPolicyVersion)
-        if (currencyPolicyVersion >= 2 && parsed.amountMinor != null && parsed.currency in uk.thewyj.app.finance.CurrencyMoney.digits)
-            onVerifiedCurrencyUnit(accountId,sourceEventId,parsed.currency!!,uk.thewyj.app.finance.CurrencyMoney.exponent(parsed.currency))
-        if (parsed.currencyRolesJson.isNotBlank()) onCurrencyRoles(accountId, sourceEventId, parsed.currencyRolesJson, occurredAtMs)
+        val priorSource = store.recognitionBySourceEvent(accountId, sourceEventId)
+        // A preference change applies to future events, not an already captured fact.
+        val capturedDefault = priorSource?.takeIf { it.currencyDecisionSource == "account_default" }?.currency
+        var parsed = PaymentParserRegistry.parse(sourcePackage, sourceType, title, text, bigText, subText, occurredAtMs,
+            defaultCurrency = capturedDefault ?: defaultCurrency(accountId), currencyPolicyVersion = currencyPolicyVersion)
         var reviewReason = parsed.reviewReason.ifBlank { identityReviewReason }
         val allReferences = parsed.providerReference?.takeIf(String::isNotBlank)?.let {
             store.recognitionsByReference(accountId, it) }.orEmpty()
@@ -81,6 +81,19 @@ class PaymentRecognitionCoordinator(
                     old.direction == parsed.direction?.name
             }
         }.orEmpty()
+        val capturedReference = references.singleOrNull()?.takeIf {
+            it.currencyDecisionSource == "account_default" &&
+                (it.sourcePackage != sourcePackage || it.sourceUid == null || sourceUid == null || it.sourceUid == sourceUid)
+        }
+        if (parsed.currencyReviewRequired && priorSource == null && capturedReference != null) {
+            val replaceCurrencyReason = reviewReason == parsed.reviewReason.ifBlank { identityReviewReason }
+            parsed = PaymentParserRegistry.parse(sourcePackage, sourceType, title, text, bigText, subText, occurredAtMs,
+                defaultCurrency = capturedReference.currency, currencyPolicyVersion = currencyPolicyVersion)
+            if (replaceCurrencyReason) reviewReason = parsed.reviewReason.ifBlank { identityReviewReason }
+        }
+        if (currencyPolicyVersion >= 2 && parsed.amountMinor != null && parsed.currency in uk.thewyj.app.finance.CurrencyMoney.digits)
+            onVerifiedCurrencyUnit(accountId,sourceEventId,parsed.currency!!,uk.thewyj.app.finance.CurrencyMoney.exponent(parsed.currency))
+        if (parsed.currencyRolesJson.isNotBlank()) onCurrencyRoles(accountId, sourceEventId, parsed.currencyRolesJson, occurredAtMs)
         val authorities = references.filter { old -> store.localBooking(accountId, PaymentAutoBook.eventId(old)) != null ||
             store.candidateForRecognition(accountId, old.recognitionId)?.let { it.status == "confirmed" && it.financeTransactionId.isNotBlank() } == true }
         val proofReferences = authorities.ifEmpty { references }
@@ -148,6 +161,7 @@ class PaymentRecognitionCoordinator(
                 }
             }
             val booking = autoBook(accountId, existing.recognitionId, unitVerified = currencyPolicyVersion >= 2)
+            remindCurrencyOnce(accountId, existing.recognitionId)
             reconcileAuthorizationEvidence(accountId, parsed)
             return Outcome(existing.recognitionId,
                 if (upgraded) booking?.let { PaymentRecognitionState.FINANCE_RECORDED } ?:
@@ -259,6 +273,7 @@ class PaymentRecognitionCoordinator(
                 identityReviewReason = reviewReason,
                 financialPhase = parsed.financialPhase, lifecycleReference = parsed.lifecycleReference,
                 referenceNamespace = parsed.referenceNamespace, currencyEvidence = parsed.currencyEvidence,
+                currencyReviewRequired = parsed.currencyReviewRequired, currencyDecisionSource = parsed.currencyDecisionSource,
                 lifecycleOperation = parsed.lifecycleOperation, lifecycleRevision = parsed.lifecycleRevision,
             ),
         )
@@ -267,6 +282,7 @@ class PaymentRecognitionCoordinator(
         if (lifecycleReason.isNotBlank() && initial.identityReviewReason.isBlank())
             store.saveRecognition(initial.copy(identityReviewReason = lifecycleReason))
         if (autoBook(accountId, recognitionId, unitVerified = currencyPolicyVersion >= 2) != null) state = PaymentRecognitionState.FINANCE_RECORDED
+        remindCurrencyOnce(accountId, recognitionId)
         reconcileAuthorizationEvidence(accountId, parsed)
         return Outcome(
             recognitionId = recognitionId,
@@ -475,6 +491,16 @@ class PaymentRecognitionCoordinator(
             ))
         }
         return booking
+    }
+
+    private fun remindCurrencyOnce(accountId: String, recognitionId: String) {
+        val record = store.recognition(accountId, recognitionId) ?: return
+        if (!record.currencyReviewRequired || record.currencyReviewNotified || record.state in setOf("IGNORED", "DUPLICATE_IGNORED", "FINANCE_CORRECTED")) return
+        // Persist the claim with the recognition. Replays and process recovery do
+        // not repeat an alert; the review marker remains until an explicit edit.
+        store.saveRecognition(record.copy(currencyReviewNotified = true))
+        runCatching { notifier?.notify(PaymentStatusNotificationMessage(record.notificationId, recognitionId,
+            "Aeris · 币种待核实", "本次按默认币种 ${record.currency} 识别；请在财务记录中核对币种，可稍后更正。")) }
     }
 
     /** Lazily expires tickets and tells the user once per expired recognition. */

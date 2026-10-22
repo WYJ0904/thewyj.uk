@@ -2,6 +2,7 @@
 from decimal import Decimal, localcontext, ROUND_HALF_EVEN
 from pathlib import Path
 import json
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 digits = dict(CNY=2, USD=2, EUR=2, HKD=2, GBP=2, JPY=0)
@@ -18,5 +19,9 @@ with localcontext() as context:
                                   expected=converted if abs(converted) <= 9007199254740991 else None, overflow=abs(converted) > 9007199254740991))
 target = ROOT / 'qa/finance-p04/fixtures/exact-oracle.json'
 target.parent.mkdir(parents=True, exist_ok=True)
-target.write_text(json.dumps(dict(oracle='Python Decimal precision 100; ROUND_HALF_EVEN; one destination rounding', synthetic_only=True, cases=cases), indent=2)+'\n')
+generated = json.dumps(dict(oracle='Python Decimal precision 100; ROUND_HALF_EVEN; one destination rounding', synthetic_only=True, cases=cases), indent=2)+'\n'
+if '--check' in sys.argv:
+    assert target.read_text() == generated, 'Frozen oracle differs from independent Decimal reconstruction'
+else:
+    target.write_text(generated)
 print(f'{len(cases)} deterministic exact conversion expectations')

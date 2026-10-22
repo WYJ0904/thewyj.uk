@@ -7,6 +7,38 @@ const MAX_AGE = 6 * 60 * 60 * 1000;
 const inFlight = new WeakMap();
 const readiness = new WeakMap();
 const error = (code, message, status = 503) => new Task16Error(message, status, code, status === 503);
+async function boundedProviderJson(response, signal) {
+  const limit = 65536;
+  const length = response.headers.get('Content-Length');
+  if (length && (!/^\d+$/.test(length) || Number(length) > limit)) {
+    await response.body?.cancel().catch(() => {});
+    throw error('fx_response_invalid', '汇率响应过大');
+  }
+  if (!response.body) throw error('fx_response_invalid', '汇率响应为空');
+  const reader = response.body.getReader(), decoder = new TextDecoder('utf-8', { fatal: true });
+  let bytes = 0, text = '', complete = false;
+  try {
+    while (true) {
+      const chunk = await new Promise((resolve, reject) => {
+        const abort = () => reject(error('fx_provider_unavailable', '参考汇率读取超时'));
+        if (signal.aborted) return abort();
+        signal.addEventListener('abort', abort, { once: true });
+        reader.read().then(resolve, reject).finally(() => signal.removeEventListener('abort', abort));
+      });
+      if (chunk.done) { complete = true; text += decoder.decode(); break; }
+      bytes += chunk.value.byteLength;
+      if (bytes > limit) throw error('fx_response_invalid', '汇率响应过大');
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+    return decimalJson(text);
+  } catch (cause) {
+    if (cause instanceof TypeError) throw error('fx_response_invalid', '汇率响应编码无效');
+    throw cause;
+  } finally {
+    if (!complete) await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+}
 function supported(value) {
   try { currencyDigits(value); return value; }
   catch (_) { throw error('currency_unsupported', '币种不受支持', 400); }
@@ -72,7 +104,7 @@ export async function frankfurterRate(base, quote, requestedDate, { fetcher = fe
     const response = await fetcher(url.toString(), { headers: { Accept: 'application/json' }, redirect: 'error', signal: controller.signal });
     if (!response.ok) throw error('fx_provider_unavailable', '参考汇率暂时不可用');
     if (!String(response.headers.get('Content-Type') || '').includes('application/json')) throw error('fx_response_invalid', '汇率响应类型无效');
-    const row = decimalJson(await response.text());
+    const row = await boundedProviderJson(response, controller.signal);
     if (!row || Array.isArray(row) || row.base !== base || row.quote !== quote || typeof row.rate !== 'string') throw error('fx_pair_invalid', '汇率币种对不匹配');
     dateOnly(row.date, now);
     const lag = (Date.parse(requestedDate) - Date.parse(row.date)) / 86400000;

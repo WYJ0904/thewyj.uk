@@ -87,6 +87,8 @@ export function canonicalPendingCandidates(summary) {
       source_package: String(row.source_package || ""), app_label: String(row.app_label || ""),
       direction: String(row.direction || ""), amount_minor: Number(row.amount_minor) || 0,
       currency: String(row.currency || "XXX"),
+      currency_review_required: row.currency_review_required === true,
+      currency_decision_source: String(row.currency_decision_source || ''),
       ...(row.currency === 'JPY' ? { amount_exponent: row.amount_exponent === 0 ? 0 : null } : {}), merchant: String(row.merchant || ""),
       occurred_at_ms: Number(row.occurred_at_ms) || 0, confidence: Number(row.confidence) || 0,
       evidence: [{ source_type: "notification", source_package: String(row.source_package || ""), app_label: String(row.app_label || "") }],
@@ -252,6 +254,7 @@ export function createFinanceCandidatesController({
         <div class="finance-candidate-main">
           <span class="finance-direction is-${escapeHtml(direction)}">${presentation.directionLabel}</span>
           <div class="finance-candidate-copy"><strong>${presentation.moneyUnitReview ? "原币单位待核实" : presentation.amountUnknown ? "金额待补" : escapeHtml(formatMinor(presentation.amountMinor, candidate.currency))}</strong>
+          ${candidate.currency_review_required ? `<small>币种待核实 · 按默认 ${escapeHtml(candidate.currency)} 识别</small>` : ''}
           ${presentation.evidenceConflict ? `<small role="status">本机与云端金额或方向不一致，请核对后编辑确认${candidate.local_evidence?.amount_minor ? `（本机金额 ${escapeHtml(formatMinor(candidate.local_evidence.amount_minor, candidate.local_evidence.currency || candidate.currency))}）` : ""}。</small>` : presentation.localEvidencePending ? '<small role="status">本机已识别，等待同步；云端尚未确认。</small>' : ""}
           <small>${escapeHtml(sources)} · ${escapeHtml(occurred)}</small>
           <small><span class="finance-candidate-merchant" title="${escapeHtml(presentation.merchantLabel)}">${escapeHtml(presentation.merchantLabel)}</span><span>${escapeHtml(missingLabel)}</span></small>

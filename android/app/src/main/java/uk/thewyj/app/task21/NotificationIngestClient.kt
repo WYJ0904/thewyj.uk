@@ -71,6 +71,7 @@ internal object StructuredEventJson {
             append("\"occurred_at_ms\":${event.occurredAtMs},")
             append("\"received_at_ms\":${event.receivedAtMs}")
             if (event.currencyRolesJson.isNotBlank()) append(",\"currency_roles\":" + uk.thewyj.app.finance.CurrencyDecision.validatedRolesJson(event.currencyRolesJson))
+            if (event.currencyReviewRequired) append(",\"currency_review_required\":true,\"currency_decision_source\":\"account_default\"")
             append("}")
         }
     }
@@ -103,6 +104,7 @@ internal object StructuredEventJson {
         lifecycleIdentity: String = "",
         occurredAtMs: Long = 0L,
         amountExponent: Int? = null,
+        currencyReviewRequired: Boolean = false,
     ): String {
         val directionValue = if (direction.isBlank() || direction == "UNKNOWN") "" else direction.lowercase()
         val evidence = buildString {
@@ -128,6 +130,7 @@ internal object StructuredEventJson {
             append("\"merchant\":\"${escape(merchant)}\",")
             append("\"currency\":\"${escape(currency)}\",")
             if (currency == "JPY" && amountExponent == 0) append("\"amount_exponent\":0,")
+            if (currencyReviewRequired) append("\"currency_review_required\":true,\"currency_decision_source\":\"account_default\",")
             append("\"confidence\":$confidence,")
             append("\"recognition_status\":\"${escape(recognitionStatus)}\",")
             append("\"evidence\":$evidence")
@@ -161,7 +164,7 @@ class HttpNotificationIngestTransport(
                 connection.connectTimeout = 15_000
                 connection.readTimeout = 20_000
                 connection.setRequestProperty("X-Session-Token", sessionToken)
-                connection.setRequestProperty("X-Finance-Money-Version", "2")
+                connection.setRequestProperty("X-Finance-Money-Version", "3")
                 configure(connection)
                 val status = connection.responseCode
                 val stream = if (status in 200..299) connection.inputStream else connection.errorStream

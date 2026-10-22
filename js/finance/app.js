@@ -116,6 +116,9 @@ function normalizeTransaction(value) {
     ...(value.provider_reference ? { provider_reference: safeText(value.provider_reference, 160) } : {}),
     amount_minor: amountMinor,
     currency: String(value.currency || '').trim().toUpperCase(),
+    currency_review_required: value.currency_review_required === true,
+    currency_decision_source: safeText(value.currency_decision_source, 32),
+    currency_review_acknowledged: value.currency_review_acknowledged === true,
     ...(value.currency === 'JPY' ? { amount_exponent: value.amount_exponent === 0 ? 0 : null,
       money_unit_status: value.amount_exponent === 0 ? 'verified' : 'review_required' } : {}),
     ...(!SUPPORTED_CURRENCIES.includes(value.currency) ? { money_unit_status: 'review_required' } : {}),
@@ -350,6 +353,7 @@ export function applyFinanceChange(store, change) {
 
 function transactionPayload(transaction) {
   return {
+    ...(transaction.currency_review_acknowledged ? { currency_review_acknowledged: true } : {}),
     direction: transaction.direction,
     amount_minor: transaction.amount_minor,
     currency: transaction.currency,
@@ -656,7 +660,7 @@ export function createFinanceController({
           .map(([key, title]) => `${title} ${formatFinanceMoney(roles[key].amount_minor, roles[key].currency)}`).join(' · ');
       }).join('；');
       return `<article class="finance-transaction${item.status === "deleted" ? " is-deleted" : ""}" data-finance-transaction="${escapeHtml(item.id)}">
-        <div class="finance-transaction-main"><span class="finance-direction is-${escapeHtml(item.direction)}">${directionLabel}</span><div><strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong><small>${escapeHtml(categoryName(item.category_id))} · ${escapeHtml(new Date(item.occurred_at_ms).toLocaleString("zh-CN"))}${item.source_kind === "automatic" ? " · Android 自动识别" : ""}${item.native_notification_pending ? " · 等待同步" : ""}${item.status === "deleted" ? " · 已删除" : ""}</small>${roleLabel ? `<small>${escapeHtml(roleLabel)} · 来源金额角色，不重复记账</small>` : ''}${item.note ? `<p title="${escapeHtml(item.note)}">${escapeHtml(item.note)}</p>` : ""}</div></div>
+        <div class="finance-transaction-main"><span class="finance-direction is-${escapeHtml(item.direction)}">${directionLabel}</span><div><strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong><small>${escapeHtml(categoryName(item.category_id))} · ${escapeHtml(new Date(item.occurred_at_ms).toLocaleString("zh-CN"))}${item.source_kind === "automatic" ? " · Android 自动识别" : ""}${item.native_notification_pending ? " · 等待同步" : ""}${item.status === "deleted" ? " · 已删除" : ""}</small>${item.currency_review_required ? `<small>币种待核实 · 按默认 ${escapeHtml(item.currency)} 入账，可编辑更正</small>` : ""}${roleLabel ? `<small>${escapeHtml(roleLabel)} · 来源金额角色，不重复记账</small>` : ''}${item.note ? `<p title="${escapeHtml(item.note)}">${escapeHtml(item.note)}</p>` : ""}</div></div>
         <div class="finance-transaction-side"><strong class="is-${escapeHtml(item.direction)}">${item.money_unit_status === 'review_required' ? '原币单位待核实' : sign + escapeHtml(formatFinanceMoney(item.amount_minor, item.currency))}</strong>${!control && referenceLabel ? `<small>${escapeHtml(referenceLabel)}</small>` : ''}<div class="finance-row-actions">${item.status === "deleted" ? `<button type="button" data-finance-restore="${escapeHtml(item.id)}">恢复</button>` : `<button type="button" data-finance-edit="${escapeHtml(item.id)}">编辑</button><button class="danger-text" type="button" data-finance-delete="${escapeHtml(item.id)}">删除</button>`}</div></div>
       </article>`;
       },
@@ -1103,7 +1107,7 @@ export function createFinanceController({
     const date = item ? new Date(item.occurred_at_ms) : new Date();
     const offset = date.getTimezoneOffset() * 60000;
     element("financeTransactionTime").value = new Date(date.getTime() - offset).toISOString().slice(0, 16);
-    element("financeTransactionModalTitle").textContent = item ? "编辑账目" : "新增账目";
+    element("financeTransactionModalTitle").textContent = item?.currency_review_required ? "编辑账目 · 请核对默认币种" : item ? "编辑账目" : "新增账目";
     setMessage();
     openLayer("financeTransactionModal");
   }
@@ -1131,6 +1135,9 @@ export function createFinanceController({
       note: element("financeTransactionNote").value,
       occurred_at_ms: occurredAt,
       source_kind: current?.source_kind || "manual",
+      currency_review_required: current?.currency_review_required ? false : current?.currency_review_required,
+      currency_decision_source: current?.currency_review_required ? 'user_confirmed' : current?.currency_decision_source,
+      currency_review_acknowledged: current?.currency_review_required === true,
       reconciliation_state: current?.reconciliation_state || "confirmed",
       status: "active",
       revision: current?.revision || 0,

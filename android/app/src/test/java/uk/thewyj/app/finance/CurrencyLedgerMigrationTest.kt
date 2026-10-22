@@ -50,7 +50,7 @@ class CurrencyLedgerMigrationTest {
     @Test fun upgradePreservesMoneyAndSeparatesUnprovenLegacyJpyUnits() {
         val file = seed(); val db = current(file)
         try {
-            assertEquals(15,db.openHelper.writableDatabase.version)
+            assertEquals(NotificationDatabase.SCHEMA_VERSION,db.openHelper.writableDatabase.version)
             val cny=db.paymentDao().localBooking("synthetic-owner","synthetic-cny")!!
             assertEquals(64800L,cny.amountMinor);assertEquals("synthetic-tx-synthetic-cny",cny.transactionId)
             val jpy=db.paymentDao().localBooking("synthetic-owner","synthetic-jpy")!!;assertEquals(12345L,jpy.amountMinor)
@@ -65,12 +65,12 @@ class CurrencyLedgerMigrationTest {
         val broken=object:Migration(14,15){override fun migrate(db:SupportSQLiteDatabase){NotificationDatabase.MIGRATION_14_15.migrate(db);db.execSQL("INSERT INTO synthetic_missing_table VALUES(1)")}}
         val first=current(file,broken);try{assertThrows(Exception::class.java){first.openHelper.writableDatabase}}finally{first.close()}
         val raw=SQLiteDatabase.openDatabase(file.absolutePath,null,SQLiteDatabase.OPEN_READONLY);try{assertEquals(14,raw.version);raw.rawQuery("SELECT amountMinor FROM local_payment_bookings WHERE eventId='synthetic-jpy'",null).use{assertTrue(it.moveToFirst());assertEquals(12345L,it.getLong(0))}}finally{raw.close()}
-        val retry=current(file);try{assertEquals(15,retry.openHelper.writableDatabase.version);assertEquals(2,retry.paymentDao().localBookings("synthetic-owner").size)}finally{retry.close()}
+        val retry=current(file);try{assertEquals(NotificationDatabase.SCHEMA_VERSION,retry.openHelper.writableDatabase.version);assertEquals(2,retry.paymentDao().localBookings("synthetic-owner").size)}finally{retry.close()}
     }
     @Test fun oldVersionCannotDowngradeOrClearTheNewLedger() {
         val file=seed();current(file).let{it.openHelper.writableDatabase;it.close()}
         val old=Room.databaseBuilder(context,OldCurrencyRoom14::class.java,file.absolutePath).allowMainThreadQueries().build()
-        try{val error=assertThrows(IllegalStateException::class.java){old.openHelper.writableDatabase};assertTrue(error.message.orEmpty().contains("15 to 14"))}finally{old.close()}
+        try{val error=assertThrows(IllegalStateException::class.java){old.openHelper.writableDatabase};assertTrue(error.message.orEmpty().contains("${NotificationDatabase.SCHEMA_VERSION} to 14"))}finally{old.close()}
         val reopened=current(file);try{assertEquals(2,reopened.paymentDao().localBookings("synthetic-owner").size)}finally{reopened.close()}
     }
 }

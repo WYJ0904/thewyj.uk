@@ -85,5 +85,22 @@ try {
     await assert.rejects(() => currencyPreferences(f.db, f.account.id, { display_currency: 'GBP', revision: 0 }), error => error.code === 'currency_preferences_conflict');
     await assert.rejects(() => currencyPreferences(f.db, f.account.id, { default_currency: 'AUD', revision: 1 }), error => error.code === 'currency_unsupported');
   });
+  await check('streaming provider response is bounded before JSON allocation',async()=>{
+    let cancelled=false;
+    const body=new ReadableStream({pull(controller){controller.enqueue(new Uint8Array(40000).fill(32))},cancel(){cancelled=true}});
+    await assert.rejects(()=>frankfurterRate('USD','CNY','2026-10-19',{now,fetcher:async()=>new Response(body,{headers:{'Content-Type':'application/json'}})}),e=>e.code==='fx_response_invalid');
+    assert.equal(cancelled,true);
+  });
+  await check('declared oversized provider response is rejected without reading',async()=>{
+    await assert.rejects(()=>frankfurterRate('USD','CNY','2026-10-19',{now,fetcher:async()=>new Response('{}',{headers:{'Content-Type':'application/json','Content-Length':'999999999'}})}),e=>e.code==='fx_response_invalid');
+  });
+  await check('invalid UTF-8 cannot silently change provider decimals',async()=>{
+    await assert.rejects(()=>frankfurterRate('USD','CNY','2026-10-19',{now,fetcher:async()=>new Response(new Uint8Array([123,34,255,34,125]),{headers:{'Content-Type':'application/json'}})}),e=>e.code==='fx_response_invalid');
+  });
+  await check('stalled provider body obeys the existing request watchdog',async()=>{
+    let cancelled=false;const body=new ReadableStream({start(){},cancel(){cancelled=true}});const started=Date.now();
+    await assert.rejects(()=>frankfurterRate('USD','CNY','2026-10-19',{now,timeoutMs:25,fetcher:async()=>new Response(body,{headers:{'Content-Type':'application/json'}})}),e=>e.code==='fx_provider_unavailable');
+    assert.equal(cancelled,true);assert.ok(Date.now()-started<2000);
+  });
   console.log(JSON.stringify({ suite: 'P04 D1 reference cache, provider contract and history', PASS: count, live_provider: 'NOT EXERCISED by this simulated suite; see separate live-fx evidence' }));
 } finally { await f.dispose(); }

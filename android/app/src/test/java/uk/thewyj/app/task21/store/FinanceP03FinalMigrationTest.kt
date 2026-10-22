@@ -31,9 +31,9 @@ class FinanceP03FinalMigrationTest {
     private fun file()=File(context.cacheDir,"p03final-${UUID.randomUUID()}.db")
     private fun old(f:File)=Room.databaseBuilder(context,P03FinalV13Database::class.java,f.absolutePath).allowMainThreadQueries().build()
     private fun current(f:File,m:Migration=NotificationDatabase.MIGRATION_13_14)=Room.databaseBuilder(context,NotificationDatabase::class.java,f.absolutePath).addMigrations(m).allowMainThreadQueries().build()
-    private fun seed(f:File){val db=old(f);try{
-        db.openHelper.writableDatabase.execSQL("INSERT INTO local_payment_bookings VALUES('synthetic-account','synthetic-event','synthetic-recognition','synthetic-original-id',8000,'EXPENSE','USD','synthetic',1000,'95555','bank_sms','SYNTH-CAPTURE','pending',1000)")
-        db.openHelper.writableDatabase.execSQL("INSERT INTO payment_reconciliations VALUES('synthetic-account','synthetic-operation','digest','{}','staged','','{}','{}',1000,1000)")
+    private fun seed(f:File){val db=uk.thewyj.app.finance.FrozenRoomFixture.create(f,13);try{
+        db.execSQL("INSERT INTO local_payment_bookings VALUES('synthetic-account','synthetic-event','synthetic-recognition','synthetic-original-id',8000,'EXPENSE','USD','synthetic',1000,'95555','bank_sms','SYNTH-CAPTURE','pending',1000)")
+        db.execSQL("INSERT INTO payment_reconciliations VALUES('synthetic-account','synthetic-operation','digest','{}','staged','','{}','{}',1000,1000)")
     }finally{db.close()}}
     private fun inspect(f:File,version:Int){SQLiteDatabase.openDatabase(f.absolutePath,null,SQLiteDatabase.OPEN_READONLY).use{db->
         assertEquals(version,db.version)

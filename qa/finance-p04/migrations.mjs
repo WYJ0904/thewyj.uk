@@ -8,9 +8,11 @@ import { dumpD1, restoreD1, writeSqliteSnapshot } from '../finance-p03/phase-a/d
 import { ensureTask16Schema } from '../../functions/_lib/task16-service.mjs';
 import { ensureTask21Schema } from '../../functions/_lib/task21-service.mjs';
 import { ensureFxSchema, transactionReferences } from '../../functions/_lib/finance-fx.mjs';
-import { ensureTask16Schema as oldTask16 } from '../../../.cloud-onboarding/p03-server-baseline/functions/_lib/task16-service.mjs';
-import { ensureTask21Schema as oldTask21 } from '../../../.cloud-onboarding/p03-server-baseline/functions/_lib/task21-service.mjs';
-import { ingestNotificationEvents as oldIngest } from '../../../.cloud-onboarding/p03-server-baseline/functions/_lib/task21-service.mjs';
+import path from 'node:path';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+const baseline=path.resolve(process.env.FINANCE_P04_BASELINE_ROOT || fileURLToPath(new URL('../../docs/migration-evidence/finance-p04/local/baseline-modules',import.meta.url)));
+const {ensureTask16Schema:oldTask16}=await import(pathToFileURL(path.join(baseline,'p03-server-baseline/functions/_lib/task16-service.mjs')));
+const {ensureTask21Schema:oldTask21,ingestNotificationEvents:oldIngest}=await import(pathToFileURL(path.join(baseline,'p03-server-baseline/functions/_lib/task21-service.mjs')));
 import { ingestNotificationEvents } from '../../functions/_lib/task21-service.mjs';
 import { outUrl as out } from './output.mjs';
 
@@ -35,7 +37,7 @@ try{
   const legacyDigest=createHash('sha256').update(JSON.stringify(weakOperation,Object.keys(weakOperation).sort())).digest('hex');
   await f.db.prepare('UPDATE task21_notification_sync_operations SET payload_digest=?1 WHERE user_id=?2 AND operation_id=?3').bind(legacyDigest,f.account.id,weakOperation.operation_id).run();
   const before=await dumpD1(f.db);
-  await writeSqliteSnapshot(new URL('before-p04.sqlite',out).pathname,before);
+  await writeSqliteSnapshot(fileURLToPath(new URL('before-p04.sqlite',out)),before);
   await check('pre-migration-server-and-CNY-compatible',async()=>{assert.equal(await ensureTask16Schema(f.db),true);assert.equal(await ensureTask21Schema(f.db),true);assert.equal(await oldTask16(f.db),true);assert.equal(await oldTask21(f.db),true)});
   await check('migration-transaction-failure-rolls-back-DDL-and-money',async()=>{
     await assert.rejects(()=>f.db.batch([...statements.map(sql=>f.db.prepare(sql)),f.db.prepare('INSERT INTO synthetic_deliberately_missing_table VALUES(1)')]));
@@ -77,11 +79,11 @@ try{
     assert.equal((await f.db.prepare('SELECT amount_minor FROM task21_notification_events WHERE user_id=?1 AND event_id=?2').bind(f.account.id,weakOperation.payload.event_id).first()).amount_minor,12345);
   });
   await check('untracked-repeated-DDL-rejected-without-clearing-data',async()=>{await assert.rejects(()=>f.db.batch(statements.map(sql=>f.db.prepare(sql))));assert.equal((await f.db.prepare('SELECT amount_minor FROM task16_finance_transactions WHERE id=?1').bind(cny.id).first()).amount_minor,64800)});
-  const upgraded=await dumpD1(f.db);await writeSqliteSnapshot(new URL('after-p04.sqlite',out).pathname,upgraded);
+  const upgraded=await dumpD1(f.db);await writeSqliteSnapshot(fileURLToPath(new URL('after-p04.sqlite',out)),upgraded);
   restored=new Miniflare({modules:true,script:'export default{fetch(){return new Response("synthetic restore")}}',compatibilityDate:'2026-08-06',d1Databases:['DB'],d1Persist:false});
   const restoredDb=await restored.getD1Database('DB');await restoreD1(restoredDb,upgraded);
   await check('D1-logical-backup-restore-keeps-every-table-and-new-metadata',async()=>{const actual=await dumpD1(restoredDb);assert.deepEqual(actual.tables,upgraded.tables);assert.equal(await ensureFxSchema(restoredDb),true);return{tables:Object.keys(actual.tables).length,transport:'logical D1 restore'}});
-  await check('standalone-SQLite-backup-reopens-without-data-loss',async()=>{const db=new DatabaseSync(new URL('after-p04.sqlite',out).pathname,{readOnly:true});try{assert.equal(db.prepare('PRAGMA integrity_check').get().integrity_check,'ok');assert.equal(db.prepare('SELECT amount_minor FROM task16_finance_transactions WHERE id=?').get(cny.id).amount_minor,64800);return{tables:Object.keys(upgraded.tables).length}}finally{db.close()}});
+  await check('standalone-SQLite-backup-reopens-without-data-loss',async()=>{const db=new DatabaseSync(fileURLToPath(new URL('after-p04.sqlite',out)),{readOnly:true});try{assert.equal(db.prepare('PRAGMA integrity_check').get().integrity_check,'ok');assert.equal(db.prepare('SELECT amount_minor FROM task16_finance_transactions WHERE id=?').get(cny.id).amount_minor,64800);return{tables:Object.keys(upgraded.tables).length}}finally{db.close()}});
   await check('partially-added-column-cannot-enable-JPY-before-migration-commit',async()=>{
     const partial=await fixture({before:31});try{
       await partial.db.exec('ALTER TABLE task16_finance_transactions ADD COLUMN amount_exponent INTEGER');

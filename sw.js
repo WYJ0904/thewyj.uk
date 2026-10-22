@@ -1,4 +1,4 @@
-const CACHE = "wyj-shell-20261014-aeris-task26-r9-es-modules-finance-money-v2";
+const CACHE = "wyj-shell-20261014-aeris-task26-r9-es-modules-finance-money-v3";
 const NAVIGATION_TIMEOUT_MS = 5000;
 const ASSET_TIMEOUT_MS = 10000;
 const CORE_SHELL = [

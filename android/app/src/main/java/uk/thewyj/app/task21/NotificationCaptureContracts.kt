@@ -212,6 +212,8 @@ data class PaymentIngestOutcome(
     val identityReviewReason: String = "",
     val currencyRolesJson: String = "",
     val amountExponent: Int? = null,
+    val currencyReviewRequired: Boolean = false,
+    val currencyDecisionSource: String = "",
 )
 
 interface PaymentRecognitionHook {
@@ -432,6 +434,8 @@ data class StructuredNotificationEvent(
     val identityReviewReason: String = "",
     val currencyRolesJson: String = "",
     val amountExponent: Int? = null,
+    val currencyReviewRequired: Boolean = false,
+    val currencyDecisionSource: String = "",
 )
 
 /** Local-only full notification content. Never uploaded, never logged. */
