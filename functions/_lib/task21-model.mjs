@@ -1,7 +1,8 @@
 /** Client ingest protocol version (Android payloads send this value). */
+import { currencyDigits } from '../../js/finance/money.js';
 export const TASK21_SCHEMA_VERSION = "1";
 /** Task 21 readiness baseline; migration 0022 is additive for old Pages code. */
-export const TASK21_DB_SCHEMA_VERSION = "6";
+export const TASK21_DB_SCHEMA_VERSION = "8";
 export const TASK21_BUILD = "2026-09-08-task21-notification";
 export const NOTIFICATION_ENTITLEMENT = "notification_archive_access";
 export const MAX_INGEST_OPERATIONS = 100;
@@ -53,6 +54,7 @@ const ALLOWED_EVENT_FIELDS = Object.freeze(new Set([
   "occurred_at_ms", "received_at_ms",
   "financial_phase", "lifecycle_reference", "reference_namespace", "currency_evidence", "identity_review_reason",
   "lifecycle_operation", "lifecycle_revision",
+  "currency_roles", "amount_exponent",
 ]));
 
 export class Task21Error extends Error {
@@ -118,7 +120,7 @@ export function requireAllowedFields(payload, allowed, code = "task21_fields_for
   }
 }
 
-export function normalizeNotificationEvent(value = {}) {
+export function normalizeNotificationEvent(value = {}, {legacyUnitless=false} = {}) {
   requireAllowedFields(value, ALLOWED_EVENT_FIELDS);
   const sourceType = String(value.source_type || "notification").trim().toLowerCase();
   if (!SOURCE_TYPES.includes(sourceType)) throw new Task21Error("事件来源类型无效", 400, "source_type_invalid");
@@ -174,6 +176,28 @@ export function normalizeNotificationEvent(value = {}) {
   if (identityReviewReason && !/^[a-z0-9_]+$/.test(identityReviewReason))
     throw new Task21Error("核实原因无效", 400, "identity_review_reason_invalid");
   const amountMinor = nonNegativeInteger(value.amount_minor || 0, "金额", 10000000000000);
+  if (cleanCurrency(value.currency) === 'JPY' && value.amount_exponent !== 0 && !(legacyUnitless && value.amount_exponent === undefined))
+    throw new Task21Error('日元来源单位需要明确确认',409,'currency_unit_review_required');
+  if (value.amount_exponent !== undefined) {
+    let digits;try{digits=currencyDigits(cleanCurrency(value.currency))}catch{throw new Task21Error('未知币种单位需要核实',409,'currency_unit_review_required')}
+    if(value.amount_exponent !== digits)throw new Task21Error('来源金额单位冲突',409,'currency_unit_review_required');
+  }
+  let currencyRoles;
+  if (value.currency_roles !== undefined) {
+    requireAllowedFields(value.currency_roles, new Set(['original', 'settlement', 'fee']));
+    if (!value.currency_roles.original) throw new Task21Error('缺少原币金额角色', 400, 'currency_roles_invalid');
+    currencyRoles = {};
+    for (const name of ['original', 'settlement', 'fee']) {
+      if (value.currency_roles[name] === undefined) continue;
+      const role = value.currency_roles[name];
+      requireAllowedFields(role, new Set(['currency', 'amount_minor']));
+      try { currencyDigits(role.currency); }
+      catch (_) { throw new Task21Error('金额角色币种无效', 400, 'currency_roles_invalid'); }
+      if (typeof role.amount_minor !== 'number') throw new Task21Error('角色金额必须使用整数最小单位',400,'currency_roles_invalid');
+      currencyRoles[name] = { currency: role.currency, amount_minor: name === 'fee' ? nonNegativeInteger(role.amount_minor, '角色金额', 10000000000000) : positiveInteger(role.amount_minor, '角色金额', 10000000000000) };
+    }
+    if (currencyRoles.original.currency !== cleanCurrency(value.currency) || currencyRoles.original.amount_minor !== amountMinor) throw new Task21Error('原币金额角色冲突', 409, 'currency_roles_conflict');
+  }
   const confidence = Math.min(1000, nonNegativeInteger(value.confidence || 0, "置信度", 1000));
 
   if (parseStatus !== "unparsed" && eventType !== "transaction" && eventType !== "refund") {
@@ -201,7 +225,9 @@ export function normalizeNotificationEvent(value = {}) {
     parse_status: parseStatus,
     direction,
     amount_minor: amountMinor,
+    ...(currencyRoles ? { currency_roles: currencyRoles } : {}),
     currency: cleanCurrency(value.currency),
+    ...(cleanCurrency(value.currency) === 'JPY' && value.amount_exponent === 0 ? { amount_exponent: 0 } : {}),
     payment_channel: paymentChannel,
     provider_reference: providerReference,
     lifecycle_identity: lifecycleIdentity,

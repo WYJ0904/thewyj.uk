@@ -182,7 +182,8 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
             val snapshot = PaymentPageSnapshot(scan.ticket.sourcePackage, page.lines, System.currentTimeMillis(), page.groups)
             execute {
                 if (!validTicket(scan)) return@execute
-                val enrichment = PaymentPageSemantics.extract(snapshot)
+                val enrichment = PaymentPageSemantics.extract(snapshot,
+                    uk.thewyj.app.finance.CurrencyRuntimePreferences.defaultCurrency(applicationContext, scan.accountId), 2)
                 if (enrichment == null) mainHandler.post { if (current(scan)) screenshot(scan) }
                 else mainHandler.post {
                     if (current(scan) && foregroundMatches(scan)) execute { apply(scan, enrichment) }

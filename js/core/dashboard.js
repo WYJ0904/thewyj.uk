@@ -52,7 +52,7 @@ export function createDashboardView(context) {
 
   const finance = financeController?.dashboardSummary?.() || { balance_minor: 0, pending: 0, available: false };
   const financeKnown = finance.available && Number.isFinite(finance.balance_minor) && Boolean(finance.last_sync_at || finance.pending);
-  const financeBalance = financeKnown ? formatFinanceMoney(finance.balance_minor) : "尚未读取";
+  const financeBalance = financeKnown ? formatFinanceMoney(finance.balance_minor, finance.display_currency || 'CNY') + (finance.unconverted?.length ? ' · 部分未换算' : '') : "尚未读取";
   if ($("dashboardFinanceBalance")) setText($("dashboardFinanceBalance"), financeBalance);
   document.querySelectorAll("[data-dashboard-balance-copy]").forEach((element) => { setText(element, financeBalance); });
   if ($("dashboardFinanceSync")) {

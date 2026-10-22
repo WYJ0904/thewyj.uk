@@ -1,6 +1,7 @@
 import {Task21Error} from './task21-model.mjs';
 
 export function paymentReviewReason(event) {
+  if (!['CNY','USD','EUR','HKD','GBP','JPY'].includes(event.currency)) return 'currency_review_required';
   if (event.identity_review_reason) return event.identity_review_reason;
   if (Number(event.lifecycle_revision)>1) return "lifecycle_revision_requires_reconciliation";
   if (event.lifecycle_review_reason) return event.lifecycle_review_reason;

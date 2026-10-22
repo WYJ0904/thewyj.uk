@@ -1,6 +1,8 @@
+import {sourceUnitStatement,sourceExponent,assertSourceUnit} from './finance-source-units.mjs';
 import {applyPaymentReconciliation,reconciledIngestReceipt,recordPaymentUserDecision} from './task21-reconciliation.mjs';
 import { sha256Hex } from "./cloudflare-foundation.mjs";
 import { publicTransaction } from "./task16-model.mjs";
+import { unitStamp } from './finance-money-units.mjs';
 import {lifecycleRows,lifecycleBalance,lifecycleReason,lifecycleGuardStatement,RECOVERABLE_LIFECYCLE_REASONS} from './task21-lifecycle.mjs';
 import {paymentReviewReason, financeReferenceProvider, financeReplayReference, referenceNamespaceForSource} from "./task21-event-safety.mjs";
 import {
@@ -85,9 +87,9 @@ export async function ensureTask21Schema(db) {
   if (!db?.prepare) return false;
   try {
     const row = await first(db, "SELECT value FROM task21_metadata WHERE key = ?1", ["schema_version"]);
-    if(String(row?.value||'')!==TASK21_DB_SCHEMA_VERSION)return false;
     const finance=await first(db,"SELECT value FROM task16_metadata WHERE key='schema_version'");
-    return String(finance?.value||'')==='3';
+    return (String(row?.value||'')==='8' && String(finance?.value||'')==='4')
+      || (String(row?.value||'')==='6' && String(finance?.value||'')==='3');
   } catch (_) {
     return false;
   }
@@ -111,7 +113,7 @@ async function verifiedOperationReplay(db, account, operation, row, digest) {
   // old omitted nested payload turn changed money into an accepted replay.
   const legacy=await sha256Hex(JSON.stringify(operation,Object.keys(operation).sort()));
   if (row.payload_digest!==legacy) return replayResult(row,digest);
-  const incoming=normalizeNotificationEvent(operation.payload);
+  const incoming=normalizeNotificationEvent(operation.payload,{legacyUnitless:true});
   const stored=await first(db,`SELECT * FROM task21_notification_events WHERE user_id=?1 AND event_id=?2`,[account.id,incoming.event_id]);
   if (!stored) throw new Task21Error('原操作的事件证据缺失',409,'operation_id_conflict');
   const original=eventFromStoredRow(stored);
@@ -249,6 +251,8 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
   const version = await nextFinanceVersion(db, account.id, now);
   const rawId = `raw:${crypto.randomUUID()}`;
   const transactionId = `txn:notif:${(await sha256Hex(`${account.id}\n${event.event_id}`)).slice(0, 48)}`;
+  await assertSourceUnit(db,account.id,event.event_id,event.currency,event.amount_exponent);
+  const unitStatements = await unitStamp(db, transactionId, event.currency, event.currency === 'JPY' ? 0 : undefined);
   // This token is a provider-issued reference, never a notification body.
   const occurredAtMs = event.occurred_at_ms || event.received_at_ms;
   const metadata = { capture_version: event.parser_version || "task21", payment_channel: event.payment_channel, source_package:event.source_package||'',
@@ -312,6 +316,7 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
           direction: event.direction,
           amount_minor: event.amount_minor,
           currency: event.currency,
+          ...(event.currency === 'JPY' ? { amount_exponent: 0 } : {}),
           category_id: "",
           merchant: event.merchant,
           counterparty: event.counterparty,
@@ -342,6 +347,7 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
         (user_id,reference_provider,provider_reference,raw_event_id,created_at) VALUES (?1,?2,?3,?4,?5)`)
         .bind(account.id,replayReference.provider,replayReference.reference,rawId,now)]:[]),
       transactionStatement,
+      ...unitStatements,
       linkStatement,
       auditStatement,
       db.prepare(`UPDATE task16_finance_user_versions SET server_version = ?2, updated_at = ?3
@@ -402,21 +408,25 @@ async function linkEvidence(db, account, event, candidateId, primary, reconcilia
 
 async function storeEvent(db, account, event, deviceId) {
   const now = isoNow();
-  await run(db, `INSERT INTO task21_notification_events (
+  const statement = db.prepare(`INSERT INTO task21_notification_events (
     event_id, user_id, device_id, fingerprint, source_package, source_type, event_type,
     parser_version, parse_status, direction, amount_minor, currency, payment_channel,
     merchant, counterparty, confidence, occurred_at_ms, received_at_ms, candidate_id,
     finance_transaction_id, status, created_at, updated_at, deleted_at,
     provider_reference, lifecycle_identity, financial_phase, lifecycle_reference, reference_namespace, currency_evidence, identity_review_reason, lifecycle_operation, lifecycle_revision
   ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
-    ?17, ?18, '', '', 'active', ?19, ?19, '', ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28)`, [
+    ?17, ?18, '', '', 'active', ?19, ?19, '', ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28)`).bind(
     event.event_id, account.id, deviceId, event.fingerprint, event.source_package, event.source_type,
     event.event_type, event.parser_version, event.parse_status, event.direction, event.amount_minor,
     event.currency, event.payment_channel, event.merchant, event.counterparty, event.confidence,
     event.occurred_at_ms, event.received_at_ms, now,
     event.provider_reference || "", event.lifecycle_identity || "",
     event.financial_phase||'',event.lifecycle_reference||'',event.reference_namespace||'',event.currency_evidence||'',event.identity_review_reason||'',event.lifecycle_operation||'',event.lifecycle_revision||0,
-  ]);
+  );
+  const roles = event.currency_roles ? [db.prepare('INSERT INTO task16_currency_role_evidence(user_id,event_id,roles_json) VALUES(?1,?2,?3)')
+    .bind(account.id, event.event_id, JSON.stringify(event.currency_roles))] : [];
+  const sourceUnit = await sourceUnitStatement(db,account.id,event.event_id,event.currency,event.amount_exponent);
+  await db.batch([statement, ...roles, ...(sourceUnit ? [sourceUnit] : [])]);
 }
 
 async function eventById(db, account, eventId) {
@@ -677,6 +687,14 @@ async function processIngest(db, account, deviceId, operation) {
     const existingEvent = await first(db, `SELECT * FROM task21_notification_events
       WHERE user_id = ?1 AND event_id = ?2`, [account.id, event.event_id]);
     if (!existingEvent) throw error;
+    if (event.currency_roles) {
+      const stored = await first(db, 'SELECT roles_json FROM task16_currency_role_evidence WHERE user_id=?1 AND event_id=?2', [account.id, event.event_id]);
+      const sameRoles = ['original', 'settlement', 'fee'].every(name => {
+        const old = stored ? JSON.parse(stored.roles_json)[name] : undefined, next = event.currency_roles[name];
+        return old?.currency === next?.currency && old?.amount_minor === next?.amount_minor;
+      });
+      if (!sameRoles) throw new Task21Error('事件身份对应冲突的币种角色',409,'event_identity_conflict');
+    }
     if ((Number(existingEvent.amount_minor)>0 && event.amount_minor>0 && Number(existingEvent.amount_minor)!==event.amount_minor) ||
         (existingEvent.direction && event.direction && existingEvent.direction!==event.direction) ||
         existingEvent.currency!==event.currency || existingEvent.source_package!==event.source_package ||
@@ -685,6 +703,8 @@ async function processIngest(db, account, deviceId, operation) {
         String(existingEvent.lifecycle_reference||'')!==event.lifecycle_reference || String(existingEvent.reference_namespace||'')!==event.reference_namespace ||
         (existingEvent.provider_reference && event.provider_reference && existingEvent.provider_reference!==event.provider_reference))
       throw new Task21Error('事件身份对应冲突的财务证据',409,'event_identity_conflict');
+    const sourceUnit = await sourceUnitStatement(db,account.id,event.event_id,event.currency,event.amount_exponent);
+    if (sourceUnit) await sourceUnit.run();
     const correction=await reconciledIngestReceipt(db,account,event.event_id,{});
     if(correction.reconciliation_status) return {...correction,event:publicNotificationEvent(existingEvent),duplicate:true};
     if (existingEvent.finance_transaction_id) {
@@ -738,7 +758,6 @@ async function processOperation(db, account, deviceId, operation, authority) {
     return result;
   }
   requireAllowedFields(operation,new Set(['operation_id','type','payload']));
-  if (operation.type==='event.ingest') normalizeNotificationEvent(operation.payload);
   const digest = await operationDigest(operation);
   const operationId = cleanId(operation?.operation_id, "操作标识");
   const replay = await verifiedOperationReplay(db,account,operation,await operationReceipt(db, account.id, operationId),digest);
@@ -885,6 +904,9 @@ export async function confirmNotificationCandidate(db, account, input) {
   // A pending candidate may still be missing money fields (amount-unknown
   // hint). The user's edits are the only source that may fill them; an
   // incomplete candidate can never create a zero-amount transaction.
+  if (row.currency === 'JPY' && await sourceExponent(db,account.id,row.event_id,row.currency) !== 0 &&
+      !(edits.amount_exponent === 0 && edits.amount_minor > 0))
+    throw new Task21Error('请重新输入并确认日元原币金额',409,'currency_unit_review_required');
   const amountMinor = edits.amount_minor || Number(row.amount_minor);
   const direction = edits.direction || String(row.direction || "");
   if (!(amountMinor > 0)) {
@@ -908,6 +930,7 @@ export async function confirmNotificationCandidate(db, account, input) {
     direction,
     amount_minor: amountMinor,
     currency: row.currency,
+    ...(row.currency === 'JPY' ? { amount_exponent: 0 } : {}),
     merchant: edits.merchant ?? row.merchant,
     counterparty: edits.counterparty ?? row.counterparty,
     payment_channel: row.payment_channel,
@@ -1027,11 +1050,15 @@ function candidateEdits(value) {
     throw new Task21Error("修改内容无效", 400, "candidate_edits_invalid");
   }
   try {
-    const allowed = new Set(["amount_minor", "direction", "merchant", "counterparty", "occurred_at_ms", "note"]);
+    const allowed = new Set(["amount_minor", "direction", "merchant", "counterparty", "occurred_at_ms", "note", "amount_exponent"]);
     for (const key of Object.keys(value)) {
       if (!allowed.has(key)) throw new Task21Error("修改内容无效", 400, "candidate_edits_invalid");
     }
     const edits = {};
+    if (value.amount_exponent !== undefined) {
+      if (value.amount_exponent !== 0 && value.amount_exponent !== 2) throw new Task21Error('金额单位无效',400,'candidate_edits_invalid');
+      edits.amount_exponent = value.amount_exponent;
+    }
     if (value.amount_minor !== undefined) {
       edits.amount_minor = positiveInteger(value.amount_minor, "金额", MAX_CLOCK_MS);
     }

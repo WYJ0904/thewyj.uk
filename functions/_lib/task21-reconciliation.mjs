@@ -1,3 +1,5 @@
+import {unitStamp} from './finance-money-units.mjs';
+import {sourceExponent} from './finance-source-units.mjs';
 import {sha256Hex} from './cloudflare-foundation.mjs';
 import {publicTransaction} from './task16-model.mjs';
 import {cleanId,requireAllowedFields,Task21Error,isoNow} from './task21-model.mjs';
@@ -211,6 +213,8 @@ export async function applyPaymentReconciliation(db,account,deviceId,input,{veri
   if(!e.reference_namespace||referenceNamespaceForSource(e)!==e.reference_namespace||rows.some(r=>referenceNamespaceForSource(r.source)!==e.reference_namespace))return fail('reference_namespace_conflict');
   const reversing=p.kind==='REVOKE';
   if(rows.some(r=>r.source.currency!==e.currency||(!reversing&&r.source.direction!==e.direction))||e.currency_evidence!==e.currency)return fail('currency_or_direction_conflict');
+  if(e.currency==='JPY' && await sourceExponent(db,account.id,e.event_id,'JPY')!==0)
+    return fail('currency_unit_review_required');
   if(p.kind==='CONTROL_REPLACE')return applyControlRevision(db,account,operation,digest,snapshot,proof);
   const completionProven=proof.completed_source_digests?.[e.event_id]===sourceDigests[e.event_id];
   if(!completionProven||(e.parse_status!=='parsed'&&!(e.parse_status==='candidate'&&e.identity_review_reason==='lifecycle_revision_requires_reconciliation'))||!['SETTLED','REFUNDED'].includes(e.financial_phase)||!e.lifecycle_reference||!e.provider_reference||
@@ -275,7 +279,7 @@ export async function applyPaymentReconciliation(db,account,deviceId,input,{veri
   // same batch, so old clients can consume each tombstone before the upsert.
   const revision=reversing?1:(existing?.revision||0)+1,next=version+1+superseded.length;
   const original=reversing?null:existing;
-  const transaction={...(original||{}),id:transactionId,user_id:account.id,direction:e.direction,amount_minor:e.amount_minor,currency:e.currency,
+  const transaction={...(original||{}),id:transactionId,user_id:account.id,direction:e.direction,amount_minor:e.amount_minor,currency:e.currency,...(e.currency==='JPY'?{amount_exponent:0}:{}),
     category_id:original?.category_id||'',merchant:original?.merchant??e.merchant,counterparty:original?.counterparty??e.counterparty,note:original?.note||'',
     occurred_at_ms:original?.occurred_at_ms||e.occurred_at_ms||e.received_at_ms,source_kind:'automatic',reconciliation_state:'automatic',status:'active',
     revision,sync_version:next,created_at:original?.created_at||now,updated_at:now,deleted_at:''};
@@ -352,6 +356,7 @@ export async function applyPaymentReconciliation(db,account,deviceId,input,{veri
       VALUES(?,?,?,?,?,'',?,?,'',?,'automatic','automatic','active',1,?,?,'',?,?,'')`).bind(transactionId,account.id,e.direction,e.amount_minor,e.currency,e.merchant,e.counterparty,transaction.occurred_at_ms,next,deviceId,now,now));
     statements.push(db.prepare(`INSERT INTO task16_finance_transaction_events VALUES(?,?,'active',1000,?,'automatic',?,?)`).bind(transactionId,rawId,encode(['authoritative_reconciliation']),now,now));
   }
+  statements.push(...await unitStamp(db,transactionId,e.currency,e.currency==='JPY'?0:undefined));
   // Retire only the proved duplicate's effective contribution. Its ID, amount,
   // source links and original receipts remain queryable. No refund is invented.
   for(const [index,t] of superseded.entries()) {

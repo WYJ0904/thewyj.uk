@@ -7,7 +7,9 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[3]
-BASE = ROOT / 'docs/migration-evidence/finance-p03/nonphone-entry/cloud-20261021'
+BASE = Path(os.environ.get('FINANCE_REGRESSION_OUTPUT', ROOT / 'docs/migration-evidence/finance-p03/nonphone-entry/cloud-20261021')).resolve()
+if not BASE.is_relative_to(ROOT / 'docs/migration-evidence'):
+    raise SystemExit('Use an ignored evidence directory.')
 BASE.mkdir(parents=True, exist_ok=True)
 manifest = BASE / 'node-commands.json'
 if manifest.exists():
@@ -44,7 +46,7 @@ for name, script in jobs:
     environment.pop('P03_FROZEN_OUTPUT_PREFIX', None)
     command = ['node']
     if name.startswith('p02-'):
-        command += ['--import', './qa/finance-p03/nonphone/output-redirect.mjs']
+        command += ['--import', os.environ.get('FINANCE_OUTPUT_REDIRECT', './qa/finance-p03/nonphone/output-redirect.mjs')]
     command += [script]
     started = datetime.now(timezone.utc).isoformat()
     log = BASE / f'{name}.log'

@@ -29,7 +29,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PaymentUserDecisionEntity::class,
         PaymentReconciliationAliasEntity::class,
         PaymentBookingSupersessionEntity::class,
+        uk.thewyj.app.finance.PaymentMoneyUnit::class,
     ],
+    autoMigrations = [androidx.room.AutoMigration(from = 14, to = 15, spec = CurrencyUnitMigrationSpec::class)],
     version = NotificationDatabase.SCHEMA_VERSION,
     exportSchema = true,
 )
@@ -39,7 +41,7 @@ abstract class NotificationDatabase : RoomDatabase() {
     abstract fun reconciliationDao(): PaymentReconciliationDao
 
     companion object {
-        const val SCHEMA_VERSION = 14
+        const val SCHEMA_VERSION = 15
         const val DATABASE_NAME = "wyj-notifications.db"
 
         @Volatile
@@ -59,6 +61,13 @@ abstract class NotificationDatabase : RoomDatabase() {
                     .build()
                     .also { instance = it }
             }
+
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `payment_money_units` (`accountId` TEXT NOT NULL, `eventId` TEXT NOT NULL, `amountExponent` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `eventId`))")
+                db.execSQL("INSERT OR IGNORE INTO payment_money_units(accountId,eventId,amountExponent) SELECT accountId,eventId,2 FROM local_payment_bookings WHERE currency IN ('CNY','USD','EUR','HKD','GBP')")
+            }
+        }
 
         val MIGRATION_13_14 = object : Migration(13, 14) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -267,4 +276,9 @@ abstract class NotificationDatabase : RoomDatabase() {
             "CREATE INDEX IF NOT EXISTS `index_payment_candidates_recognitionId` ON `payment_candidates` (`recognitionId`)",
         )
     }
+}
+
+/** Generated additive migration also works for callers that supply older paths. */
+class CurrencyUnitMigrationSpec : androidx.room.migration.AutoMigrationSpec {
+    override fun onPostMigrate(db: SupportSQLiteDatabase) { NotificationDatabase.MIGRATION_14_15.migrate(db) }
 }

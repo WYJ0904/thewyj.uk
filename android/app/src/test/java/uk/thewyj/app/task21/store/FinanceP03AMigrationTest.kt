@@ -38,24 +38,24 @@ class FinanceP03AMigrationTest {
         assertEquals(version,db.version);db.rawQuery("SELECT transactionId,amountMinor,currency FROM local_payment_bookings",null).use {c->assertTrue(c.moveToFirst());assertEquals("synthetic-original-id",c.getString(0));assertEquals(8000L,c.getLong(1));assertEquals("USD",c.getString(2));assertFalse(c.moveToNext())}
     } }
     @Test fun twelveToThirteenKeepsLegacyBookingAndEmptyCorrectionState() {
-        val f=file();seed(f);current(f).closed {db->assertEquals("synthetic-original-id",db.paymentDao().localBookings("synthetic-account").single().transactionId);assertTrue(db.reconciliationDao().staged("synthetic-account").isEmpty())};inspect(f,14)
+        val f=file();seed(f);current(f).closed {db->assertEquals("synthetic-original-id",db.paymentDao().localBookings("synthetic-account").single().transactionId);assertTrue(db.reconciliationDao().staged("synthetic-account").isEmpty())};inspect(f,NotificationDatabase.SCHEMA_VERSION)
     }
     @Test fun interruptedAdditiveMigrationRollsBackAndRetries() {
         val f=file();seed(f);val broken=object:Migration(12,13){override fun migrate(db:SupportSQLiteDatabase){db.execSQL("CREATE TABLE synthetic_partial(id INTEGER)");db.execSQL("INSERT INTO synthetic_missing VALUES(1)")}}
         try{current(f,broken).closed{it.openHelper.writableDatabase};fail("injected migration must fail")}catch(e:Exception){assertTrue(e.toString().contains("synthetic_missing"))}
         inspect(f,12);SQLiteDatabase.openDatabase(f.absolutePath,null,SQLiteDatabase.OPEN_READONLY).use { db->db.rawQuery("SELECT COUNT(*) FROM sqlite_master WHERE name='synthetic_partial'",null).use{assertTrue(it.moveToFirst());assertEquals(0,it.getInt(0))}}
-        current(f).closed{assertEquals(14,it.openHelper.writableDatabase.version)};inspect(f,14)
+        current(f).closed{assertEquals(NotificationDatabase.SCHEMA_VERSION,it.openHelper.writableDatabase.version)};inspect(f,NotificationDatabase.SCHEMA_VERSION)
     }
     @Test fun actualOldRoomOpenerFailsClosedAfterUpgrade() {
         val f=file();seed(f);current(f).closed{it.openHelper.writableDatabase}
-        try{old(f).closed{it.openHelper.writableDatabase};fail("no destructive downgrade")}catch(e:IllegalStateException){assertTrue(e.message.orEmpty().contains("14 to 12"))};inspect(f,14)
+        try{old(f).closed{it.openHelper.writableDatabase};fail("no destructive downgrade")}catch(e:IllegalStateException){assertTrue(e.message.orEmpty().contains("${NotificationDatabase.SCHEMA_VERSION} to 12"))};inspect(f,NotificationDatabase.SCHEMA_VERSION)
     }
     @Test fun repeatedCreateOnlyMigrationPreservesStagedJournalAndIds() {
         val f=file();seed(f);current(f).closed { db ->
             db.reconciliationDao().saveJournal(PaymentReconciliationEntity("synthetic-account","synthetic-op","a".repeat(64),"{}","staged","","{}","{}",1,1))
             NotificationDatabase.MIGRATION_12_13.migrate(db.openHelper.writableDatabase)
             assertEquals("synthetic-op",db.reconciliationDao().staged("synthetic-account").single().operationId)
-        };inspect(f,14)
+        };inspect(f,NotificationDatabase.SCHEMA_VERSION)
     }
     @Test fun closedDatabaseAndPairedDiskOutboxRestoreWithoutClearingOriginal() {
         val f=file();seed(f);val queueFile=File(context.cacheDir,"q-"+UUID.randomUUID().toString().take(8));val queue=OfflineNotificationQueue(queueFile)
@@ -63,6 +63,6 @@ class FinanceP03AMigrationTest {
         current(f).closed{db->db.reconciliationDao().saveJournal(PaymentReconciliationEntity("synthetic-account","synthetic-op","a".repeat(64),"{}","staged","","{}","{}",1,1))}
         val restored=file();f.copyTo(restored);val restoredQueue=File(context.cacheDir,"q-"+UUID.randomUUID().toString().take(8));queueFile.copyTo(restoredQueue)
         current(restored).closed{db->assertEquals("synthetic-op",db.reconciliationDao().staged("synthetic-account").single().operationId)}
-        assertEquals(queue.peekRequests(),OfflineNotificationQueue(restoredQueue).peekRequests());inspect(f,14);inspect(restored,14)
+        assertEquals(queue.peekRequests(),OfflineNotificationQueue(restoredQueue).peekRequests());inspect(f,NotificationDatabase.SCHEMA_VERSION);inspect(restored,NotificationDatabase.SCHEMA_VERSION)
     }
 }

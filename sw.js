@@ -1,4 +1,4 @@
-const CACHE = "wyj-shell-20261014-aeris-task26-r9-es-modules";
+const CACHE = "wyj-shell-20261014-aeris-task26-r9-es-modules-finance-money-v2";
 const NAVIGATION_TIMEOUT_MS = 5000;
 const ASSET_TIMEOUT_MS = 10000;
 const CORE_SHELL = [
@@ -34,6 +34,7 @@ const CORE_SHELL = [
   "/icon-192.png?v=20261014-aeris-task26-r9",
   "/icon-512.png?v=20261014-aeris-task26-r9",
   "/js/finance/app.js?v=20261014-aeris-task26-r9",
+  "/js/finance/money.js",
   "/js/finance/candidates.js?v=20261014-aeris-task26-r9",
   "/js/finance/disclosure.js?v=20261014-aeris-task26-r9",
   "/js/finance/notification-ledger.js?v=20261014-aeris-task26-r9",
@@ -82,7 +83,7 @@ async function fetchWithDeadline(input, timeoutMs) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(input, { signal: controller.signal });
+    return await fetch(input, { signal: controller.signal, cache: "no-store" });
   } finally {
     clearTimeout(timeout);
   }

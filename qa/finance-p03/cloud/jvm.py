@@ -11,7 +11,9 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[3]
-BASE = ROOT / 'docs/migration-evidence/finance-p03/nonphone-entry/cloud-20261021'
+BASE = Path(os.environ.get('FINANCE_REGRESSION_OUTPUT', ROOT / 'docs/migration-evidence/finance-p03/nonphone-entry/cloud-20261021')).resolve()
+if not BASE.is_relative_to(ROOT / 'docs/migration-evidence'):
+    raise SystemExit('Use an ignored evidence directory.')
 BASE.mkdir(parents=True, exist_ok=True)
 manifest = BASE / 'jvm-commands.json'
 trace_only = '--trace-only' in sys.argv
@@ -25,7 +27,7 @@ def gradle(name, flavor, output, tests, trace=False):
                f'-Dfinance.{flavor}.root={qa}', f'-Dfinance.{flavor}.output={BASE / output}']
     if trace:
         command += ['-I', str(ROOT / 'qa/finance-p03/finish/trace.init.gradle'),
-                    f'-Dfinance.finish.trace.root={ROOT / "qa/finance-p03/finish"}',
+                    f'-Dfinance.finish.trace.root={os.environ.get("FINANCE_TRACE_ROOT", ROOT / "qa/finance-p03/finish")}',
                     f'-Dfinance.finish.trace.output={BASE / output}']
     command += [':app:testDebugUnitTest', '--rerun']
     for test in tests:

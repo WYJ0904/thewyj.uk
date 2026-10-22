@@ -210,6 +210,8 @@ data class PaymentIngestOutcome(
     val lifecycleOperation: String = "",
     val lifecycleRevision: Long = 0,
     val identityReviewReason: String = "",
+    val currencyRolesJson: String = "",
+    val amountExponent: Int? = null,
 )
 
 interface PaymentRecognitionHook {
@@ -235,6 +237,8 @@ interface PaymentRecognitionHook {
      * not a payment at all, so the notification parser stays in charge.
      */
     fun outcomeFor(input: NotificationCaptureInput): PaymentIngestOutcome? = null
+    fun outcomeFor(accountId: String, input: NotificationCaptureInput): PaymentIngestOutcome? = outcomeFor(input)
+    fun refreshCurrencyContext(accountId: String, sessionToken: String, transport: NotificationIngestTransport) {}
     fun prepareIdentity(accountId: String, input: NotificationCaptureInput, payment: PaymentIngestOutcome): PaymentIngestOutcome = payment
 
     /**
@@ -426,6 +430,8 @@ data class StructuredNotificationEvent(
     val lifecycleOperation: String = "",
     val lifecycleRevision: Long = 0,
     val identityReviewReason: String = "",
+    val currencyRolesJson: String = "",
+    val amountExponent: Int? = null,
 )
 
 /** Local-only full notification content. Never uploaded, never logged. */

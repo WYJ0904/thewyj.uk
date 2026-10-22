@@ -122,15 +122,18 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
         val visited = mutableSetOf<String>()
         while (true) {
             if (!visited.add(row.transactionId)) return null // Corrupt cycles fail closed.
-            val relation = database.reconciliationDao().supersession(accountId, row.transactionId) ?: return row.toModel()
+            val relation = database.reconciliationDao().supersession(accountId, row.transactionId) ?: return bookingModel(row)
             row = dao.localBookings(accountId).singleOrNull { it.transactionId == relation.canonicalTransactionId } ?: return null
         }
     }
     override fun localBookings(accountId: String) = dao.localBookings(accountId)
-        .filter { database.reconciliationDao().supersession(accountId, it.transactionId) == null }.map { it.toModel() }
+        .filter { database.reconciliationDao().supersession(accountId, it.transactionId) == null }.map(::bookingModel)
+    private fun bookingModel(row: LocalPaymentBookingEntity) = row.toModel().copy(amountExponent =
+        uk.thewyj.app.finance.CurrencyLedgerUnits.read(database.openHelper.readableDatabase, row.accountId, row.eventId, row.currency))
     override fun bookLocally(booking: uk.thewyj.app.task21.payment.LocalPaymentBooking, recognition: PaymentRecognitionRecord, candidate: PaymentCandidate) {
         database.runInTransaction {
             dao.insertLocalBooking(booking.toEntity())
+            uk.thewyj.app.finance.CurrencyLedgerUnits.stamp(database.openHelper.writableDatabase, booking.accountId, booking.eventId, booking.currency, booking.amountExponent)
             val saved = dao.localBooking(booking.accountId, booking.eventId)!!
             dao.upsertCandidate(candidate.copy(financeTransactionId = saved.transactionId).toEntity())
             dao.upsertRecognition(recognition.toEntity())

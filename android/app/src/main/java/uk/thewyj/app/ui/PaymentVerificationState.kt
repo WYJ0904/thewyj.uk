@@ -44,6 +44,7 @@ class PaymentVerificationState(
     var editingRecognitionId by mutableStateOf("")
     var amountText by mutableStateOf("")
     var direction by mutableStateOf("EXPENSE")
+    var currency by mutableStateOf("")
     var merchantText by mutableStateOf("")
     var busyRecognitionId by mutableStateOf("")
     var busyAction by mutableStateOf("")
@@ -172,7 +173,8 @@ class PaymentVerificationState(
 
     fun beginEdit(item: PaymentVerificationCenter.Item) {
         editingRecognitionId = item.recognitionId
-        amountText = item.amountMinor?.let { formatMinor(it) }.orEmpty()
+        currency = item.displayCurrency.takeIf { it in uk.thewyj.app.finance.CurrencyMoney.digits }.orEmpty()
+        amountText = item.amountMinor?.takeUnless { item.moneyUnitReview }?.let { runCatching { formatMinor(it, currency) }.getOrNull() }.orEmpty()
         direction = item.direction.name.ifBlank { "EXPENSE" }
         merchantText = item.merchant
     }
@@ -183,7 +185,8 @@ class PaymentVerificationState(
 
     /** Saves the user's values and, when they are complete, books the payment. */
     suspend fun saveAndConfirm(item: PaymentVerificationCenter.Item, confirm: Boolean) {
-        val amount = parseMinor(amountText)
+        if (currency !in uk.thewyj.app.finance.CurrencyMoney.digits) { message = "请先核实并选择原币币种"; return }
+        val amount = parseMinor(amountText, currency)
         if (confirm && (amount == null || amount <= 0)) {
             message = "请输入正确的金额"
             return
@@ -200,6 +203,7 @@ class PaymentVerificationState(
                 amountMinor = amount,
                 direction = direction,
                 merchant = merchantText.trim(),
+                currency = currency,
             )
         }
         if (!saved) {
@@ -300,22 +304,9 @@ class PaymentVerificationState(
     fun syncStates(): List<String> = if (!canonicalCurrent) listOf("UNRESOLVED_REMOTE") else items.map { it.syncState.name }
 
     companion object {
-        fun formatMinor(amountMinor: Long): String {
-            val sign = if (amountMinor < 0) "-" else ""
-            val value = kotlin.math.abs(amountMinor)
-            return "$sign${value / 100}.${(value % 100).toString().padStart(2, '0')}"
-        }
-
-        fun parseMinor(text: String): Long? {
-            val trimmed = text.trim()
-            if (trimmed.isEmpty()) return null
-            val match = Regex("""^-?\d{1,9}(\.\d{1,2})?$""").find(trimmed) ?: return null
-            val negative = match.value.startsWith("-")
-            val parts = match.value.removePrefix("-").split(".")
-            val major = parts[0].toLongOrNull() ?: return null
-            val minor = if (parts.size > 1) parts[1].padEnd(2, '0').toLongOrNull() ?: 0L else 0L
-            val total = major * 100 + minor
-            return if (negative) -total else total
-        }
+        fun formatMinor(amountMinor: Long, currency: String = "CNY"): String = uk.thewyj.app.finance.CurrencyMoney.decimalText(amountMinor, currency)
+        fun parseMinor(text: String, currency: String = "CNY"): Long? = runCatching {
+            uk.thewyj.app.finance.CurrencyMoney.parse(text, currency).takeIf { it in -10_000_000_000_000L..10_000_000_000_000L }
+        }.getOrNull()
     }
 }

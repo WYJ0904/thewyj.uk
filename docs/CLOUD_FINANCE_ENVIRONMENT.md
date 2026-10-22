@@ -59,6 +59,33 @@ bash gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug \
 再执行其他测试源集；零测试、历史文件、失败和跳过都不能记为本轮 PASS。
 P03/P04 验收另有专门矩阵，以上仅证明开发运行时可用。
 
+## 2026-10-22 P04 接续后的实际状态
+
+所有者已撤销 Windows 交接暂停；同一云端线程继续，不从旧 main 重建。
+原 P03 `5d96e1ee` 与云端收口提交 `dd5fc98b` 的继承已核验，封存的 77 个 WIP
+源码及 1033 个证据在继续前全部与检查点 SHA-256 一致。当前 P04 结果见
+[统一报告](finance-p04/FINANCE_P04_FINAL_REPORT.md)，不复用旧 702 测试结论。
+
+最终源码完整 JVM/Robolectric 为 705 PASS（含 P03 681 和新增 24），Lint 为
+0 Error/Fatal、76 Warning、12 Hint，Debug 构建成功、目标 URL 仍为
+`https://isolated-finance.invalid`。所有 Gradle 串行，结果在新独立目录归档。
+Room 当前 15；仅隔离本地库应用 0031/0032，实际查询 Task16 D1=4、Task21 D1=8。
+回退到旧二进制写库被拒绝，不能用 Git checkout 当作数据库降级。
+
+本地 Task21 HTTP 财务读写由启动器启用，仅用于合成接口测试；不启用手机监听、
+系统权限或 Android 设备入口。runtime smoke 实际验证合成注册/登录/撤销、
+未授权/无权益拒绝及 Chromium 登录页，status 为 development、本地 D1/R2 ready、
+AI 关闭。只服务 allowlist staging；不复制正式凭据。
+
+Frankfurter v2 公开参考接口的早期 CONNECT 403 保留。2026-10-22 当前代理下
+真实提供方 12 项验证通过，包括六币种双向对、前营业日及真实 D1 cache/历史
+参考；它不授予支付 provider 的身份权威，不是成交价或 Production 测试。
+后续新任务仍须重新检查实际网络和本地提交，不按历史成功假设可用。
+
+环境配置的安装/启动说明和 schema 8 仅保存草稿，未发布/激活新配置；本实例
+实际工具链和本地验证已执行，但未独立验证新 VM 恢复。P03/P04 仅本地提交、
+未 push，远端 main 不包含完整成果；必须保留本地 bundle 和 ignored QA 证据。
+
 ## 所有者边界
 
 不运行 ADB、模拟器或手机，不安装 APK、不恢复正式权限、不读取真实财务数据、

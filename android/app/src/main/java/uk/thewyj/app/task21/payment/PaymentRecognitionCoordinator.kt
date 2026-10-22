@@ -15,6 +15,11 @@ class PaymentRecognitionCoordinator(
     private val statusMachine: PaymentStatusStateMachine = PaymentStatusStateMachine(),
     private val notifier: PaymentStatusNotifier? = null,
     private val now: () -> Long = System::currentTimeMillis,
+    private val defaultCurrency: (String) -> String? = { null },
+    private val currencyPolicyVersion: Int = 1,
+    private val effectiveCurrency: (PaymentRecognitionRecord) -> String = { it.currency },
+    private val onVerifiedCurrencyUnit: (String, String, String, Int) -> Unit = { _, _, _, _ -> },
+    private val onCurrencyRoles: (String, String, String, Long) -> Unit = { _, _, _, _ -> },
 ) {
     data class Outcome(
         val recognitionId: String,
@@ -57,7 +62,11 @@ class PaymentRecognitionCoordinator(
         if (accountId.isBlank() || sourcePackage.isBlank() || sourceEventId.isBlank()) {
             return Outcome("", null, skippedReason = "invalid_input")
         }
-        val parsed = PaymentParserRegistry.parse(sourcePackage, sourceType, title, text, bigText, subText, occurredAtMs)
+        val parsed = PaymentParserRegistry.parse(sourcePackage, sourceType, title, text, bigText, subText, occurredAtMs,
+            defaultCurrency = defaultCurrency(accountId), currencyPolicyVersion = currencyPolicyVersion)
+        if (currencyPolicyVersion >= 2 && parsed.amountMinor != null && parsed.currency in uk.thewyj.app.finance.CurrencyMoney.digits)
+            onVerifiedCurrencyUnit(accountId,sourceEventId,parsed.currency!!,uk.thewyj.app.finance.CurrencyMoney.exponent(parsed.currency))
+        if (parsed.currencyRolesJson.isNotBlank()) onCurrencyRoles(accountId, sourceEventId, parsed.currencyRolesJson, occurredAtMs)
         var reviewReason = parsed.reviewReason.ifBlank { identityReviewReason }
         val allReferences = parsed.providerReference?.takeIf(String::isNotBlank)?.let {
             store.recognitionsByReference(accountId, it) }.orEmpty()
@@ -138,7 +147,7 @@ class PaymentRecognitionCoordinator(
                     upgraded = true
                 }
             }
-            val booking = autoBook(accountId, existing.recognitionId)
+            val booking = autoBook(accountId, existing.recognitionId, unitVerified = currencyPolicyVersion >= 2)
             reconcileAuthorizationEvidence(accountId, parsed)
             return Outcome(existing.recognitionId,
                 if (upgraded) booking?.let { PaymentRecognitionState.FINANCE_RECORDED } ?:
@@ -161,7 +170,7 @@ class PaymentRecognitionCoordinator(
             PaymentRecognitionState.DETECTED_AMOUNT_UNKNOWN
         }
         var notificationPosted = false
-        val amountLabel = parsed.amountMinor?.let { formatAmount(it) }.orEmpty()
+        val amountLabel = parsed.amountMinor?.let { formatAmount(it, parsed.currency.orEmpty()) }.orEmpty()
         val directionLabel = parsed.direction?.let { directionLabel(it) }.orEmpty()
 
         var transition = statusMachine.transition(
@@ -239,7 +248,7 @@ class PaymentRecognitionCoordinator(
                 uploadEventId = uploadEventId,
                 paymentChannel = parsed.paymentChannel,
                 amountMinor = parsed.amountMinor,
-                currency = parsed.currency ?: "CNY",
+                currency = parsed.currency ?: if (currencyPolicyVersion >= 2) "XXX" else "CNY",
                 direction = parsed.direction?.name.orEmpty(),
                 merchant = parsed.merchant.orEmpty(),
                 providerReference = parsed.providerReference.orEmpty(),
@@ -257,7 +266,7 @@ class PaymentRecognitionCoordinator(
         val lifecycleReason = lifecycleGuard(initial)
         if (lifecycleReason.isNotBlank() && initial.identityReviewReason.isBlank())
             store.saveRecognition(initial.copy(identityReviewReason = lifecycleReason))
-        if (autoBook(accountId, recognitionId) != null) state = PaymentRecognitionState.FINANCE_RECORDED
+        if (autoBook(accountId, recognitionId, unitVerified = currencyPolicyVersion >= 2) != null) state = PaymentRecognitionState.FINANCE_RECORDED
         reconcileAuthorizationEvidence(accountId, parsed)
         return Outcome(
             recognitionId = recognitionId,
@@ -293,6 +302,13 @@ class PaymentRecognitionCoordinator(
             is EnrichmentOutcome.Applied -> {
                 val recognition = store.recognition(ticket.accountId, ticket.recognitionId)
                 if (recognition != null) {
+                    if (currencyPolicyVersion >= 2 && recognition.currency !in uk.thewyj.app.finance.CurrencyMoney.digits &&
+                        enrichment.evidenceSource == PaymentEvidenceSource.OCR)
+                        return EnrichmentOutcome.Rejected(ticket,"currency_review_required")
+                    if (currencyPolicyVersion >= 2 && enrichment.currency in uk.thewyj.app.finance.CurrencyMoney.digits) {
+                        if (recognition.currency in uk.thewyj.app.finance.CurrencyMoney.digits && recognition.currency != enrichment.currency)
+                            return EnrichmentOutcome.Rejected(ticket,"currency_evidence_conflict")
+                    }
                     if (recognition.providerReference.isNotBlank() &&
                         !enrichment.providerReference.isNullOrBlank() &&
                         recognition.providerReference != enrichment.providerReference) {
@@ -302,6 +318,8 @@ class PaymentRecognitionCoordinator(
                         enrichment.direction != null && recognition.direction != enrichment.direction.name) {
                         return EnrichmentOutcome.Rejected(ticket, "direction_conflict")
                     }
+                    if (currencyPolicyVersion >= 2 && enrichment.currency in uk.thewyj.app.finance.CurrencyMoney.digits)
+                        onVerifiedCurrencyUnit(accountId,recognition.sourceEventId,enrichment.currency!!,uk.thewyj.app.finance.CurrencyMoney.exponent(enrichment.currency))
                     store.saveTicket(outcome.ticket)
                     val transition = statusMachine.transition(
                         current = PaymentStatusRecord(
@@ -314,7 +332,7 @@ class PaymentRecognitionCoordinator(
                         next = PaymentRecognitionState.ENRICHMENT_VERIFIED,
                         recognitionId = recognition.recognitionId,
                         sourceAppLabel = "",
-                        amountLabel = outcome.ticket.amountHintMinor?.let { formatAmount(it) }.orEmpty(),
+                        amountLabel = outcome.ticket.amountHintMinor?.let { formatAmount(it, effectiveCurrency(recognition)) }.orEmpty(),
                     )
                     if (transition is PaymentStatusTransition.Updated) {
                         post(transition)
@@ -322,6 +340,8 @@ class PaymentRecognitionCoordinator(
                             recognition.copy(
                                 state = PaymentRecognitionState.ENRICHMENT_VERIFIED.name,
                                 amountMinor = outcome.ticket.amountHintMinor,
+                                currency = if (currencyPolicyVersion >= 2 && recognition.currency !in uk.thewyj.app.finance.CurrencyMoney.digits)
+                                    enrichment.currency?.takeIf { it in uk.thewyj.app.finance.CurrencyMoney.digits } ?: recognition.currency else recognition.currency,
                                 direction = enrichment.direction?.name ?: recognition.direction,
                                 completionConfirmed = enrichment.completionConfirmed && !enrichment.sourceInstanceUncertain,
                                 updatedAtMs = now(),
@@ -357,7 +377,7 @@ class PaymentRecognitionCoordinator(
                     }
                     val verifiedTicket = tickets.markCandidateCreated(outcome.ticket)
                     store.saveTicket(verifiedTicket)
-                    autoBook(accountId, recognition.recognitionId)
+                    autoBook(accountId, recognition.recognitionId, unitVerified = currencyPolicyVersion >= 2)
                 }
                 return EnrichmentOutcome.Applied(outcome.ticket)
             }
@@ -376,10 +396,10 @@ class PaymentRecognitionCoordinator(
     }
 
     /** Atomic durable booking shared by normal, enrichment, recovery and retry paths. */
-    fun autoBook(accountId: String, recognitionId: String, knownTransactionId: String = "", syncState: String = "pending"): LocalPaymentBooking? =
-        store.transaction { autoBookLocked(accountId, recognitionId, knownTransactionId, syncState) }
+    fun autoBook(accountId: String, recognitionId: String, knownTransactionId: String = "", syncState: String = "pending", unitVerified: Boolean = false): LocalPaymentBooking? =
+        store.transaction { autoBookLocked(accountId, recognitionId, knownTransactionId, syncState, unitVerified) }
 
-    private fun autoBookLocked(accountId: String, recognitionId: String, knownTransactionId: String, syncState: String): LocalPaymentBooking? {
+    private fun autoBookLocked(accountId: String, recognitionId: String, knownTransactionId: String, syncState: String, unitVerified: Boolean): LocalPaymentBooking? {
         val recognition = store.recognition(accountId, recognitionId) ?: return null
         if (recognition.state in setOf("IGNORED", "DUPLICATE_IGNORED", "FINANCE_CORRECTED")) return null
         val existingCandidate = store.candidateForRecognition(accountId, recognitionId)
@@ -433,7 +453,8 @@ class PaymentRecognitionCoordinator(
         val booking = previous ?: LocalPaymentBooking(
             accountId = accountId, eventId = eventId, recognitionId = recognitionId,
             transactionId = transactionId, amountMinor = amount!!, direction = direction.uppercase(),
-            currency = recognition.currency, merchant = candidate.effectiveMerchant,
+            currency = effectiveCurrency(recognition), merchant = candidate.effectiveMerchant,
+            amountExponent = if (unitVerified) uk.thewyj.app.finance.CurrencyMoney.exponent(effectiveCurrency(recognition)) else null,
             occurredAtMs = candidate.effectiveOccurredAtMs, sourcePackage = recognition.sourcePackage,
             paymentChannel = recognition.paymentChannel, providerReference = recognition.providerReference,
             syncState = if (knownTransactionId.isNotBlank() || existingCandidate?.financeTransactionId?.isNotBlank() == true) "synced" else syncState,
@@ -450,7 +471,7 @@ class PaymentRecognitionCoordinator(
             post(PaymentStatusTransition.Updated(
                 PaymentStatusRecord(recognitionId, PaymentRecognitionState.FINANCE_RECORDED, now(), recognition.notificationId),
                 PaymentStatusNotificationMessage(recognition.notificationId, recognitionId, "Aeris · 已记录到财务",
-                    "${formatAmount(amount!!)} 已记录到本机账本，将自动同步"),
+                    "${formatAmount(amount!!, effectiveCurrency(recognition))} 已记录到本机账本，将自动同步"),
             ))
         }
         return booking
@@ -649,8 +670,11 @@ class PaymentRecognitionCoordinator(
     ): FinanceDraft? {
         var candidate = store.candidate(accountId, candidateId) ?: return null
         val proof = store.recognition(accountId, candidate.recognitionId)
+        val currencyResolved = proof != null && candidate.hasEdits && effectiveCurrency(proof) in uk.thewyj.app.finance.CurrencyMoney.digits &&
+            proof.identityReviewReason in setOf("currency_review_required", "currency_symbol_ambiguous", "currency_amount_unproven")
         if (proof != null && (!PaymentEventSafety.canSettle(proof.financialPhase) ||
-                (proof.identityReviewReason.isNotBlank() && !proof.identityReviewReason.startsWith("identity_unproven_")))) return null
+                (proof.identityReviewReason.isNotBlank() && !proof.identityReviewReason.startsWith("identity_unproven_") && !currencyResolved))) return null
+        if (currencyPolicyVersion >= 2 && proof != null && effectiveCurrency(proof) !in uk.thewyj.app.finance.CurrencyMoney.digits) return null
         if (candidate.status == "confirmed" && candidate.financeTransactionId.isNotBlank()) {
             return draftOf(candidate)
         }
@@ -688,7 +712,7 @@ class PaymentRecognitionCoordinator(
                 next = next,
                 recognitionId = recognition.recognitionId,
                 sourceAppLabel = "",
-                amountLabel = confirmed.effectiveAmountMinor?.let { formatAmount(it) }.orEmpty(),
+                amountLabel = confirmed.effectiveAmountMinor?.let { formatAmount(it, effectiveCurrency(recognition)) }.orEmpty(),
             )
             if (transition is PaymentStatusTransition.Updated) post(transition)
             store.saveRecognition(
@@ -721,7 +745,7 @@ class PaymentRecognitionCoordinator(
             next = PaymentRecognitionState.FINANCE_RECORDED,
             recognitionId = recognition.recognitionId,
             sourceAppLabel = "",
-            amountLabel = candidate.effectiveAmountMinor?.let { formatAmount(it) }.orEmpty(),
+            amountLabel = candidate.effectiveAmountMinor?.let { formatAmount(it, effectiveCurrency(recognition)) }.orEmpty(),
         )
         if (transition is PaymentStatusTransition.Updated) post(transition)
         store.saveRecognition(recognition.copy(state = PaymentRecognitionState.FINANCE_RECORDED.name, updatedAtMs = now()))
@@ -741,7 +765,7 @@ class PaymentRecognitionCoordinator(
             next = PaymentRecognitionState.FINANCE_CORRECTED,
             recognitionId = recognition.recognitionId,
             sourceAppLabel = "",
-            amountLabel = amountMinor?.let { formatAmount(it) }.orEmpty(),
+            amountLabel = amountMinor?.let { formatAmount(it, effectiveCurrency(recognition)) }.orEmpty(),
         )
         if (transition is PaymentStatusTransition.Updated) post(transition)
         store.saveRecognition(recognition.copy(state = PaymentRecognitionState.FINANCE_CORRECTED.name, updatedAtMs = now()))
@@ -860,10 +884,7 @@ class PaymentRecognitionCoordinator(
 
         /** Failed page reads before the automatic attempt is reported as failed. */
 
-        fun formatAmount(amountMinor: Long): String {
-            val value = amountMinor / 100.0
-            return "¥" + String.format(java.util.Locale.US, "%.2f", value)
-        }
+        fun formatAmount(amountMinor: Long, currency: String = "CNY"): String = uk.thewyj.app.finance.CurrencyMoney.format(amountMinor, currency)
 
         fun directionLabel(direction: uk.thewyj.app.task21.FinanceDirection): String = when (direction) {
             uk.thewyj.app.task21.FinanceDirection.EXPENSE -> "支出"

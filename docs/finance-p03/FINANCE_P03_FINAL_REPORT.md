@@ -1,6 +1,67 @@
 # FINANCE-P03 最终统一报告
 
-## 2026-10-21 云端非手机收尾（当前结论）
+## 2026-10-22 云端接续验收（当前结论，Asia/Hong_Kong）
+
+**PARTIAL。当前可安全独立完成的非手机工程和保护回归已执行；原 26 条业务红灯及
+历史 Activity 失败继续保留。所有者已撤销 Windows 接续暂停，授权同一云端线程
+完成 P03 收尾和完整 P04；本报告中的旧“不得进入 P04”属于历史状态。**
+
+实际继承 `5d96e1ee5d2064076bd0efa59eed86edb9b1c4cc` → 本地 P03 收口提交
+`dd5fc98b3ac636830a3517e2eae11fad14031b07` → `codex/finance-p04-multicurrency`。
+继续前实际核对云端 HEAD、分支、检查点全部 77 个源码快照、1033 个证据文件、
+1118 个包内文件 SHA-256 和 ZIP CRC，全部一致。未从旧 main 重建，未修改 Windows。
+
+本轮统一证据根为 `docs/migration-evidence/finance-p04/cloud/final-20261022/`，
+时间逐命令以记录的 UTC 为准，不把 10 月 21 日历史日志改写为本轮执行。
+最终逐身份结果、冻结 608 行、原 26 条前后实值、失败账本和重叠集合见
+[统一统计](../migration-evidence/finance-p04/cloud/final-20261022/delivery-final-v2/summary.json)、
+[冻结 608](../migration-evidence/finance-p04/cloud/final-20261022/delivery-final-v2/frozen-608.json)、
+[原 26 条](../migration-evidence/finance-p04/cloud/final-20261022/delivery-final-v2/p03-original-26.json)。
+
+| 检查 | 当前 P04 源码上的 P03 保护结果 |
+| --- | --- |
+| 标准 JVM/Robolectric | 705 PASS；包含原 P03 681，另 24 个 P04 方法，不重复相加 |
+| 原 607 冻结合同 | 601 PASS / 1 FAIL / 5 NOT_RUN：588 JVM + 13 Node 通过，原 Chrome 首项失败后停止 |
+| 原六项 Chrome 的独立派生重放 | 明确补入合成 CNY 上下文后 6 PASS；不替代原六项结果 |
+| P03 重叠保护集 | 63 / 41 / 99 / 79 各自通过；互有重叠，不累计 |
+| 新 38 | 五 trace/迁移 + 15 控制 + 10 Chrome + 8 TEST-key，通过；不代表真实提供方验证 |
+| 四组跨进程桥 | 两个独立 JVM 经真实本地 HTTP/D1；请求分别 9 / 15 / 34 / 35 |
+| Room | 14→15 加法迁移、故障回滚/重试、旧二进制降级拒绝；旧金额/ID/outbox/回执不清除 |
+| D1 | 0031/0032 本地合成升级、事务失败回滚、完整逻辑恢复、SQLite 重开及二进制副本恢复 |
+| 冻结 608 | 550 PASS / 7 FAIL / 28 EXPECTED_RED / 23 NOT_TESTED；仅 P04 12 项从红转绿 |
+| Android Lint / Debug | 0 Error/Fatal、76 Warning、12 Hint；Debug 构建成功、未安装 |
+
+原 607 Chrome fixture 缺少 currency；当前产品明确显示币种待核实，原断言要求
+`1.23`，首项真实失败。未将未知币种改回 CNY，也未修改冻结驱动、输入或断言。
+补 CNY 的六项派生重放是单独证据，不能以它将原 607 宣称为 607 PASS。
+原四组保护集合与新 38 的安全断言通过，也不能将原业务红灯改成业务成功。
+
+原 26 条保持 **4 FAIL / 22 EXPECTED_RED**，A 类 24 条与 C005/C007 的输入、
+断言、状态逐行一致。C005 仍只有 8000 分已证清算，不能将无可靠 operation/
+revision/前驱的 9000 分猜成独立 Capture；C007 无可靠生命周期引用，仍为待核实
+且正式支出 0，不能捏造原期望 17000 分。历史 RESUMED→STOPPED 仍 UNRESOLVED、
+因果 INCONCLUSIVE；本轮无手机栈证据。D01/D02 历史 CLOSED 不改为本轮 PASS。
+
+P04 补齐了旧 JPY 的来源单位门槛、原序列化队列精确重放、弱摘要回执内容核对、
+权威更正在货币写入前核实单位，以及 Pending 缓存 exponent=0/null 的区分。
+这些加法兼容修复没有借金额、商户或相似文本授予新身份。P03 三个迁移测试只将
+最终预期 Room 14 更新为当前 15，原测试副本与原失败均保留；身份、钱、回执和
+outbox 断言不变。五 trace 的派生源码同样只更新终态 schema 预期。
+
+完整 P04 实现、真实公开 FX 12 项、冻结币种 18 项账本、失败/修复过程、命令及
+迁移回退结论见 [P04 统一报告](../finance-p04/FINANCE_P04_FINAL_REPORT.md)。
+不运行 ADB、模拟器、手机或 APK 安装，不触碰真实金融/聊天数据、根访问口令、
+Production、正式权限/监听、签名/部署/Stable；无 push、PR、merge、发布。
+Windows/Task25/Task26/Hotfix/P01/P02/D01/D02 的历史保护不冒充本轮重新执行。
+
+保留的历史章节有 10 个证据链接未包含在所有者上传 ZIP、也不在当前云端文件中，
+完整路径见 [历史缺失清单](../migration-evidence/finance-p04/cloud/final-20261022/historical-unavailable-evidence.json)。
+包括旧 phone-final、trace-final、product-diff 和保护/清理快照；没有按历史叙述补造。
+它们不影响本轮现有输入的非手机重放，但不能据此核实旧手机结论。若所有者日后
+需要独立复核这些历史结论，应从原封存提供对应文件及原清单；当前不请求或接触
+手机/真实数据，也不把缺失文件称为已恢复。
+
+## 2026-10-21 云端非手机收尾（前一检查点，以下均为历史）
 
 **P03 仍为 PARTIAL；当前可独立执行的非手机工程已完成。P04 产品开发尚未计为完成。**
 

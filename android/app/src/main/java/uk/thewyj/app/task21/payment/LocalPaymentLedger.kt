@@ -102,7 +102,7 @@ object LocalPaymentLedger {
                 parserVersion = if (proven) "local-autobook-v2" else "local-autobook-legacy-review",
                 parseStatus = if (proven) ParseStatus.PARSED else ParseStatus.CANDIDATE,
                 direction = FinanceDirection.valueOf(booking.direction), amountMinor = booking.amountMinor,
-                currency = booking.currency, merchant = booking.merchant, counterparty = booking.merchant,
+                currency = booking.currency, amountExponent = booking.amountExponent, merchant = booking.merchant, counterparty = booking.merchant,
                 lifecycleOperation = recognition?.lifecycleOperation.orEmpty(), lifecycleRevision = recognition?.lifecycleRevision ?: 0,
                 financialPhase = recognition?.financialPhase.orEmpty(), lifecycleReference = recognition?.lifecycleReference.orEmpty(),
                 referenceNamespace = recognition?.referenceNamespace.orEmpty(), currencyEvidence = recognition?.currencyEvidence.orEmpty(),
@@ -135,6 +135,8 @@ object LocalPaymentLedger {
             .put("id", booking.transactionId).put("amount_minor", booking.amountMinor)
             .put("source_package", booking.sourcePackage).put("payment_channel", booking.paymentChannel)
             .put("direction", booking.direction.lowercase()).put("currency", booking.currency)
+            .put("amount_exponent", booking.amountExponent ?: JSONObject.NULL)
+            .put("money_unit_status", if (booking.amountExponent == uk.thewyj.app.finance.CurrencyMoney.digits[booking.currency]) "verified" else "review_required")
             .put("merchant", booking.merchant).put("occurred_at_ms", booking.occurredAtMs)
             .put("source_kind", "automatic").put("status", "active").put("reconciliation_state", "automatic"))
         }
@@ -151,10 +153,13 @@ object LocalPaymentLedger {
                 .filter(String::isNotBlank).distinct().filter { store.eventBelongsToRecognition(account.accountId,record.recognitionId,it) }
             reviews.put(JSONObject().put("id", id).put("event_id", id).put("event_ids", JSONArray(aliases))
                 .put("state", "pending").put("kind", "hint").put("amount_minor", amount ?: JSONObject.NULL)
+                .put("currency", record.currency)
+                .put("amount_exponent", uk.thewyj.app.finance.CurrencyRuntimePreferences.sourceExponent(context,account.accountId,record.sourceEventId,record.currency) ?: JSONObject.NULL)
                 .put("direction", direction.lowercase()).put("merchant", candidate?.effectiveMerchant ?: record.merchant)
                 .put("source_package", record.sourcePackage).put("app_label", PaymentAppLabels.resolve(context, record.sourcePackage))
                 .put("occurred_at_ms", candidate?.effectiveOccurredAtMs ?: record.createdAtMs).put("local_only", true))
         }
-        return JSONObject().put("account_id", account.accountId).put("transactions", transactions).put("reviews", reviews).toString()
+        val references = uk.thewyj.app.finance.CurrencyReferenceRepository(uk.thewyj.app.finance.CurrencyReferenceDatabase.get(context)).projection(account.accountId)
+        return JSONObject().put("account_id", account.accountId).put("transactions", transactions).put("reviews", reviews).put("fx_snapshots", references).toString()
     }
 }

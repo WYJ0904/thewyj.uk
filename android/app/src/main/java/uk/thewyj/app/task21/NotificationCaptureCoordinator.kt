@@ -128,7 +128,7 @@ class NotificationCaptureCoordinator(
         // truth). Everything else keeps the notification parser. Complete
         // amount and direction use one event id for automatic ledger booking;
         // confidence remains diagnostic evidence.
-        var payment = if (current.financeEntitled) paymentHook?.outcomeFor(input)?.let {
+        var payment = if (current.financeEntitled) paymentHook?.outcomeFor(current.accountId, input)?.let {
             paymentHook.prepareIdentity(current.accountId, input, it) } else null
         // Android apps may update one StatusBarNotification in place while also
         // changing postTime. Payment identity follows the notification slot
@@ -153,6 +153,7 @@ class NotificationCaptureCoordinator(
                 direction = payment.direction,
                 amountMinor = payment.amountMinor,
                 currency = payment.currency,
+                amountExponent = payment.amountExponent,
                 paymentChannel = payment.paymentChannel,
                 merchant = payment.merchant,
                 counterparty = payment.counterparty,
@@ -165,6 +166,7 @@ class NotificationCaptureCoordinator(
                 financialPhase = payment.financialPhase, lifecycleReference = payment.lifecycleReference,
                 referenceNamespace = payment.referenceNamespace, currencyEvidence = payment.currencyEvidence,
                 identityReviewReason = payment.identityReviewReason,
+                currencyRolesJson = payment.currencyRolesJson,
             )
         } else {
             StructuredNotificationEvent(
@@ -278,6 +280,7 @@ class NotificationCaptureCoordinator(
                     direction = payment.direction.name,
                     merchant = payment.merchant.ifBlank { payment.counterparty },
                     currency = payment.currency,
+                    amountExponent = payment.amountExponent,
                     confidence = structured.confidence,
                     recognitionStatus = when {
                         payment.amountMinor > 0 -> "PAYMENT_LIKELY"
@@ -375,6 +378,7 @@ class NotificationCaptureCoordinator(
         paymentChannel: String = "",
         lifecycleIdentity: String = "",
         occurredAtMs: Long = 0L,
+        amountExponent: Int? = null,
     ): Boolean {
         if (accountId.isBlank() || sourceEventId.isBlank()) return false
         val current = account() ?: return false
@@ -397,6 +401,7 @@ class NotificationCaptureCoordinator(
             paymentChannel = paymentChannel,
             lifecycleIdentity = lifecycleIdentity,
             occurredAtMs = occurredAtMs,
+            amountExponent = amountExponent,
         )
         return runCatching {
             queueFor(current.accountId).enqueueHint("hint:$sourceEventId", payload)
@@ -425,6 +430,7 @@ class NotificationCaptureCoordinator(
         if (!current.financeEntitled) {
             return FlushResult(0, ingestQueue.pendingCount(), 0, authenticationRequired = false, retryableFailures = 0)
         }
+        paymentHook?.refreshCurrencyContext(current.accountId, current.sessionToken, transport)
         paymentHook?.prepareLocalBookings(current.accountId, current.deviceId)
         var uploaded = 0
         var discardedInvalid = 0

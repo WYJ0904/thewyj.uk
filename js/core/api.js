@@ -99,7 +99,8 @@ export function createApiClient({
           method: "GET",
           cache: "no-store",
           credentials: "same-origin",
-          headers: authenticated ? accountSessionHeaders(getSession()) : {},
+          headers: { ...(authenticated ? accountSessionHeaders(getSession()) : {}),
+            ...(authenticated && (options.financeMoneyVersion === 2 || /^\/api\/(finance|notification)\//.test(path)) ? { 'X-Finance-Money-Version': '2' } : {}) },
           controller: options.controller,
         }, options.timeoutMs || API_GET_TIMEOUT_MS);
       } catch (networkError) {
@@ -149,7 +150,8 @@ export function createApiClient({
       response = await fetchWithTimeout(path, {
         method: "POST",
         cache: "no-store",
-        headers: { "Content-Type": "application/json", ...accountSessionHeaders(getSession()) },
+        headers: { "Content-Type": "application/json", ...accountSessionHeaders(getSession()),
+          ...(/^\/api\/(finance|notification)\//.test(path) ? { 'X-Finance-Money-Version': '2' } : {}) },
         body: JSON.stringify(body),
         controller: options.controller,
         signal: options.signal,

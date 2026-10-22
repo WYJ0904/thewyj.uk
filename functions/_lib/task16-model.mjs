@@ -1,5 +1,6 @@
 import { notificationCashText } from "./notification-cash-evidence.mjs";
 import {explicitCurrencyCodes} from "./payment-currency-evidence.mjs";
+import { currencyDigits } from '../../js/finance/money.js';
 
 export const TASK16_SCHEMA_VERSION = "1";
 export const TASK16_BUILD = "2026-08-27-task16-finance-core";
@@ -209,12 +210,20 @@ export function classifyFinanceText(value) {
 
 export function normalizeManualTransaction(value = {}) {
   requireAllowedFields(value, new Set([
-    "direction", "amount_minor", "currency", "category_id", "merchant", "counterparty", "note", "occurred_at_ms",
+    "direction", "amount_minor", "currency", "category_id", "merchant", "counterparty", "note", "occurred_at_ms", "amount_exponent",
   ]));
+  const currency = cleanCurrency(value.currency);
+  let digits;
+  try { digits = currencyDigits(currency); }
+  catch (_) { throw new Task16Error('币种不受支持', 400, 'currency_unsupported'); }
+  if ((value.amount_exponent !== undefined && value.amount_exponent !== digits) || (currency === 'JPY' && value.amount_exponent !== 0)) {
+    throw new Task16Error('金额单位需由新版客户端确认', 409, 'currency_unit_capability_required');
+  }
   return {
     direction: cleanDirection(value.direction),
     amount_minor: positiveInteger(value.amount_minor, "金额", 10000000000000),
-    currency: cleanCurrency(value.currency),
+    currency,
+    ...(currency === 'JPY' ? { amount_exponent: 0 } : {}),
     category_id: value.category_id ? cleanId(value.category_id, "分类标识") : "",
     merchant: cleanText(value.merchant, 160, "商户"),
     counterparty: cleanText(value.counterparty, 160, "对手方"),
@@ -350,6 +359,9 @@ export function financeReferenceScope(event) {
 
 export function publicTransaction(row) {
   return {
+    ...(row.currency_roles_json && row.currency_roles_json !== '[]' ? { currency_role_evidence: JSON.parse(row.currency_roles_json) } : {}),
+    ...(row.currency === 'JPY' ? { amount_exponent: row.amount_exponent === 0 ? 0 : null,
+      money_unit_status: row.amount_exponent === 0 ? 'verified' : 'review_required' } : {}),
     ...(row.system_superseded_by ? { system_superseded_by: row.system_superseded_by,
       system_superseded_operation: row.system_superseded_operation } : {}),
     ...(row.notification_event_ids_json ? { notification_event_ids: JSON.parse(row.notification_event_ids_json) } : {}),

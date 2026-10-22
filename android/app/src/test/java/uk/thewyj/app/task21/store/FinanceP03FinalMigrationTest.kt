@@ -44,26 +44,26 @@ class FinanceP03FinalMigrationTest {
         assertEquals("synthetic-original-id",db.paymentDao().localBookings("synthetic-account").single().transactionId)
         assertEquals("synthetic-operation",db.reconciliationDao().staged("synthetic-account").single().operationId)
         assertNull(db.reconciliationDao().supersession("synthetic-account","synthetic-original-id"))
-    }finally{db.close()};inspect(f,14)}
+    }finally{db.close()};inspect(f,NotificationDatabase.SCHEMA_VERSION)}
     @Test fun interruptedTableCreationRollsBackAndCanRetry(){val f=file();seed(f)
         val broken=object:Migration(13,14){override fun migrate(db:SupportSQLiteDatabase){NotificationDatabase.MIGRATION_13_14.migrate(db);db.execSQL("INSERT INTO synthetic_missing_final VALUES(1)")}}
         val attempt=current(f,broken);try{try{attempt.openHelper.writableDatabase;fail("injected DDL must fail")}catch(e:Exception){assertTrue(e.toString().contains("synthetic_missing_final"))}}finally{attempt.close()}
         inspect(f,13);SQLiteDatabase.openDatabase(f.absolutePath,null,SQLiteDatabase.OPEN_READONLY).use{db->db.rawQuery("SELECT COUNT(*) FROM sqlite_master WHERE name='payment_booking_supersessions'",null).use{assertTrue(it.moveToFirst());assertEquals(0,it.getInt(0))}}
-        val retry=current(f);try{assertEquals(14,retry.openHelper.writableDatabase.version)}finally{retry.close()};inspect(f,14)
+        val retry=current(f);try{assertEquals(NotificationDatabase.SCHEMA_VERSION,retry.openHelper.writableDatabase.version)}finally{retry.close()};inspect(f,NotificationDatabase.SCHEMA_VERSION)
     }
     @Test fun oldV13RoomOpenerFailsClosedWithoutDataLoss(){val f=file();seed(f);val upgraded=current(f);upgraded.openHelper.writableDatabase;upgraded.close()
-        val previous=old(f);try{try{previous.openHelper.writableDatabase;fail("must not downgrade or clear")}catch(e:IllegalStateException){assertTrue(e.message.orEmpty().contains("14 to 13"))}}finally{previous.close()};inspect(f,14)
+        val previous=old(f);try{try{previous.openHelper.writableDatabase;fail("must not downgrade or clear")}catch(e:IllegalStateException){assertTrue(e.message.orEmpty().contains("${NotificationDatabase.SCHEMA_VERSION} to 13"))}}finally{previous.close()};inspect(f,NotificationDatabase.SCHEMA_VERSION)
     }
     @Test fun repeatedCreatePreservesSupersessionAndOriginalBooking(){val f=file();seed(f);val db=current(f);try{
         db.reconciliationDao().supersede(PaymentBookingSupersessionEntity("synthetic-account","synthetic-original-id","synthetic-canonical-id","synthetic-operation","{\"amount_minor\":8000}",2000))
         NotificationDatabase.MIGRATION_13_14.migrate(db.openHelper.writableDatabase)
         assertEquals("synthetic-canonical-id",db.reconciliationDao().supersession("synthetic-account","synthetic-original-id")!!.canonicalTransactionId)
         assertEquals(8000L,db.paymentDao().localBookings("synthetic-account").single().amountMinor)
-    }finally{db.close()};inspect(f,14)}
+    }finally{db.close()};inspect(f,NotificationDatabase.SCHEMA_VERSION)}
     @Test fun closedDatabaseBackupAndMatchingOutboxRestoreToIndependentTarget(){val original=file();seed(original);val queueFile=File(context.cacheDir,"queue-${UUID.randomUUID()}");val queue=OfflineNotificationQueue(queueFile)
         queue.enqueue("synthetic-operation","{\"synthetic\":true}");val db=current(original);db.openHelper.writableDatabase;db.close()
         val restored=file();original.copyTo(restored);val restoredQueue=File(context.cacheDir,"queue-${UUID.randomUUID()}");queueFile.copyTo(restoredQueue)
         val copy=current(restored);try{assertEquals("synthetic-operation",copy.reconciliationDao().staged("synthetic-account").single().operationId)}finally{copy.close()}
-        assertEquals(queue.peekRequests(),OfflineNotificationQueue(restoredQueue).peekRequests());assertEquals(1,queue.pendingCount());inspect(original,14);inspect(restored,14)
+        assertEquals(queue.peekRequests(),OfflineNotificationQueue(restoredQueue).peekRequests());assertEquals(1,queue.pendingCount());inspect(original,NotificationDatabase.SCHEMA_VERSION);inspect(restored,NotificationDatabase.SCHEMA_VERSION)
     }
 }

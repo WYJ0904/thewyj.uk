@@ -1,3 +1,4 @@
+import {projectSourceUnits} from './finance-source-units.mjs';
 import {
   apiError,
   classifyCloudError,
@@ -68,7 +69,16 @@ function requestId(context) {
   return context.data?.requestId || "";
 }
 
+function moneyCapable(context) {
+  return context.request.headers.get('X-Finance-Money-Version') === '2' || new URL(context.request.url).searchParams.get('money_version') === '2';
+}
+function containsJpy(value) {
+  if (!value || typeof value !== 'object') return false;
+  return value.currency === 'JPY' || Object.values(value).some(containsJpy);
+}
 function response(payload, status, context, headers = {}) {
+  if (context.request.method === 'GET' && containsJpy(payload) && !moneyCapable(context))
+    throw new Task21Error('请升级客户端后读取日元金额',409,'currency_client_upgrade_required');
   return jsonResponse(payload, status, requestId(context), headers);
 }
 
@@ -154,6 +164,17 @@ async function execute(context, path, account) {
   }
 
   const payload = await readJson(context.request, ROUTES.get(`${context.request.method.toUpperCase()} ${path}`).body);
+  if (containsJpy(payload) && !moneyCapable(context))
+    throw new Task21Error('日元采集需要新版金额协议',409,'currency_client_upgrade_required');
+  if (!moneyCapable(context) && ['/api/notification/candidates/confirm','/api/notification/hints/confirm'].includes(path)) {
+    const candidate = path.includes('/candidates/');
+    const id = candidate ? payload.candidate_id : payload.hint_id;
+    if (typeof id === 'string') {
+      const table = candidate ? 'task21_notification_candidates' : 'task21_notification_pending_hints';
+      const row = await db.prepare(`SELECT currency FROM ${table} WHERE user_id=?1 AND id=?2`).bind(account.id,id).first();
+      if (row?.currency === 'JPY') throw new Task21Error('请升级客户端后确认日元金额',409,'currency_client_upgrade_required');
+    }
+  }
   if (path === "/api/notification/ingest") {
     return response({ ok: true, ...await ingestNotificationEvents(db, account, payload), build: TASK21_BUILD }, 200, context);
   }
@@ -233,7 +254,13 @@ export async function handleTask21Request(context) {
         headers: { "Retry-After": String(rate.retryAfter || descriptor.window) },
       });
     }
-    return await execute(context, url.pathname, account);
+    const result = await execute(context, url.pathname, account);
+    if (result.status === 200) {
+      const payload = await result.json();
+      await projectSourceUnits(context.env.WYJ_DB,account.id,payload);
+      return jsonResponse(payload,200,requestId(context));
+    }
+    return result;
   } catch (error) {
     if (error instanceof Task21Error) {
       return apiError(error.code, error.message, error.status, requestId(context), {

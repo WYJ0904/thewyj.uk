@@ -11,6 +11,10 @@ import uk.thewyj.app.task21.PaymentRecognitionHook
 import uk.thewyj.app.task21.store.NotificationDatabase
 import uk.thewyj.app.task21.store.NotificationArchiveSinkFactory
 import uk.thewyj.app.task21.store.RoomPaymentRecognitionStore
+import uk.thewyj.app.finance.CurrencyReferenceDatabase
+import uk.thewyj.app.finance.CurrencyReferenceRepository
+import uk.thewyj.app.finance.CurrencyRuntimePreferences
+import uk.thewyj.app.finance.CachedCurrencyRoles
 
 /**
  * Android wiring for the payment pipeline: notification captures, SMS and
@@ -46,6 +50,16 @@ class AndroidPaymentRecognitionHook private constructor(
         PaymentRecognitionCoordinator(
             store = store,
             notifier = notifierOverride ?: AndroidPaymentStatusNotifier(appContext),
+            defaultCurrency = { account -> CurrencyRuntimePreferences.defaultCurrency(appContext, account) },
+            currencyPolicyVersion = if (recognitionStore == null) 2 else 1,
+            effectiveCurrency = { record -> effectiveCurrency(record) },
+            onVerifiedCurrencyUnit = { account, source, currency, exponent ->
+                if (recognitionStore == null) CurrencyReferenceDatabase.get(appContext).currencies().putSourceUnit(
+                    uk.thewyj.app.finance.CachedSourceCurrencyUnit(account,source,currency,exponent))
+            },
+            onCurrencyRoles = { account, source, roles, timestamp ->
+                if (recognitionStore == null) CurrencyReferenceDatabase.get(appContext).currencies().putRoles(CachedCurrencyRoles(account, source, roles, timestamp))
+            },
         )
     }
 
@@ -104,7 +118,38 @@ class AndroidPaymentRecognitionHook private constructor(
      * payment (the previous duplicate term lists caused "已支付 ¥1000" to be
      * recognised locally but only become a candidate upstream).
      */
-    override fun outcomeFor(input: NotificationCaptureInput): PaymentIngestOutcome? {
+    override fun outcomeFor(input: NotificationCaptureInput): PaymentIngestOutcome? = currencyOutcome(input, null, 1)
+
+    override fun outcomeFor(accountId: String, input: NotificationCaptureInput): PaymentIngestOutcome? =
+        currencyOutcome(input, CurrencyRuntimePreferences.defaultCurrency(appContext, accountId), if (recognitionStore == null) 2 else 1)
+
+    fun effectiveCurrency(record: PaymentRecognitionRecord): String =
+        if (record.currency in uk.thewyj.app.finance.CurrencyMoney.digits || recognitionStore != null) record.currency
+        else CurrencyReferenceDatabase.get(appContext).currencies().currencyDecision(record.accountId, record.recognitionId)?.currency ?: record.currency
+
+    fun chooseMissingCurrency(account: String, recognitionId: String, currency: String): Boolean {
+        val record = store.recognition(account, recognitionId) ?: return false
+        if (record.currency in uk.thewyj.app.finance.CurrencyMoney.digits) return record.currency == currency
+        if (currency !in uk.thewyj.app.finance.CurrencyMoney.digits || (record.uploadEventId.isNotBlank() && record.amountMinor != null)) return false
+        CurrencyReferenceDatabase.get(appContext).currencies().putCurrencyDecision(
+            uk.thewyj.app.finance.ManualCurrencyDecision(account, recognitionId, currency, System.currentTimeMillis()))
+        store.recordUserDecision(account, recognitionId, "currency_confirm:$currency")
+        return true
+    }
+
+    private val currencyRefreshAt = ConcurrentHashMap<String, Long>()
+    override fun refreshCurrencyContext(accountId: String, sessionToken: String, transport: uk.thewyj.app.task21.NotificationIngestTransport) {
+        if (recognitionStore != null) return
+        val now = System.currentTimeMillis()
+        if (now - (currencyRefreshAt[accountId] ?: 0L) < 60_000L) return
+        currencyRefreshAt[accountId] = now
+        CURRENCY_EXECUTOR.execute {
+            val repository = CurrencyReferenceRepository(CurrencyReferenceDatabase.get(appContext))
+            if (repository.refreshPreferences(accountId, sessionToken, transport, appContext)) repository.warmHistory(accountId, sessionToken, transport)
+        }
+    }
+
+    private fun currencyOutcome(input: NotificationCaptureInput, defaultCurrency: String?, policy: Int): PaymentIngestOutcome? {
         val sourceType = when {
             input.sourceType == "sms" -> PaymentSourceType.SMS
             input.sourceType == "bank" -> PaymentSourceType.BANK_NOTIFICATION
@@ -121,7 +166,8 @@ class AndroidPaymentRecognitionHook private constructor(
         val parseText = if (bodyLines.isEmpty()) input.text else bodyLines.joinToString(" ")
         val parser = PaymentParserRegistry.parserFor(input.sourcePackage, sourceType)
         val parsed = PaymentParserRegistry.parse(input.sourcePackage, sourceType, input.title, parseText,
-            input.bigText, input.subText, if (input.postTime > 0) input.postTime else input.receivedAtMs)
+            input.bigText, input.subText, if (input.postTime > 0) input.postTime else input.receivedAtMs,
+            defaultCurrency = defaultCurrency, currencyPolicyVersion = policy)
         // Auditable evidence without ever logging the message itself.
         Log.i(
             "ThewyjPayment",
@@ -151,10 +197,12 @@ class AndroidPaymentRecognitionHook private constructor(
             providerReference = parsed.providerReference.orEmpty(),
             reasons = parsed.reasons,
             missingFields = parsed.missingFields,
-            currency = parsed.currency ?: "CNY", financialPhase = parsed.financialPhase,
+            currency = parsed.currency ?: if (policy >= 2) "XXX" else "CNY", financialPhase = parsed.financialPhase,
             lifecycleReference = parsed.lifecycleReference, referenceNamespace = parsed.referenceNamespace,
             currencyEvidence = parsed.currencyEvidence, identityReviewReason = review,
             lifecycleOperation = parsed.lifecycleOperation, lifecycleRevision = parsed.lifecycleRevision,
+            currencyRolesJson = parsed.currencyRolesJson,
+            amountExponent = if (policy >= 2) uk.thewyj.app.finance.CurrencyMoney.digits[parsed.currency] else null,
         )
     }
 
@@ -300,6 +348,7 @@ class AndroidPaymentRecognitionHook private constructor(
 
     companion object {
         private val PUBLISHING = ConcurrentHashMap.newKeySet<String>()
+        private val CURRENCY_EXECUTOR = Executors.newSingleThreadExecutor { task -> Thread(task, "currency-reference-cache").apply { isDaemon = true } }
         private val ENRICHMENT_EXECUTOR = Executors.newSingleThreadExecutor { task ->
             Thread(task, "thewyj-payment-enrichment").apply { isDaemon = true }
         }

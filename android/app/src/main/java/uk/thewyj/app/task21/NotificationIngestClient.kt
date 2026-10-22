@@ -52,6 +52,7 @@ internal object StructuredEventJson {
             append("\"direction\":\"${if (event.direction == FinanceDirection.UNKNOWN) "" else event.direction.name.lowercase()}\",")
             append("\"amount_minor\":${event.amountMinor},")
             append("\"currency\":\"${escape(event.currency)}\",")
+            if (event.currency == "JPY") append("\"amount_exponent\":${event.amountExponent ?: "null"},")
             append("\"payment_channel\":\"${escape(event.paymentChannel)}\",")
             append("\"provider_reference\":\"${escape(event.providerReference)}\",")
             append("\"lifecycle_identity\":\"${escape(event.lifecycleIdentity)}\",")
@@ -69,6 +70,7 @@ internal object StructuredEventJson {
             append("\"confidence\":${event.confidence},")
             append("\"occurred_at_ms\":${event.occurredAtMs},")
             append("\"received_at_ms\":${event.receivedAtMs}")
+            if (event.currencyRolesJson.isNotBlank()) append(",\"currency_roles\":" + uk.thewyj.app.finance.CurrencyDecision.validatedRolesJson(event.currencyRolesJson))
             append("}")
         }
     }
@@ -100,6 +102,7 @@ internal object StructuredEventJson {
         paymentChannel: String = "",
         lifecycleIdentity: String = "",
         occurredAtMs: Long = 0L,
+        amountExponent: Int? = null,
     ): String {
         val directionValue = if (direction.isBlank() || direction == "UNKNOWN") "" else direction.lowercase()
         val evidence = buildString {
@@ -124,6 +127,7 @@ internal object StructuredEventJson {
             append("\"direction\":${if (directionValue.isBlank()) "null" else "\"$directionValue\""},")
             append("\"merchant\":\"${escape(merchant)}\",")
             append("\"currency\":\"${escape(currency)}\",")
+            if (currency == "JPY" && amountExponent == 0) append("\"amount_exponent\":0,")
             append("\"confidence\":$confidence,")
             append("\"recognition_status\":\"${escape(recognitionStatus)}\",")
             append("\"evidence\":$evidence")
@@ -157,6 +161,7 @@ class HttpNotificationIngestTransport(
                 connection.connectTimeout = 15_000
                 connection.readTimeout = 20_000
                 connection.setRequestProperty("X-Session-Token", sessionToken)
+                connection.setRequestProperty("X-Finance-Money-Version", "2")
                 configure(connection)
                 val status = connection.responseCode
                 val stream = if (status in 200..299) connection.inputStream else connection.errorStream

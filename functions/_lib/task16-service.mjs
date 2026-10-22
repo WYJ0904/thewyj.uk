@@ -1,4 +1,7 @@
 import { sha256Hex } from "./cloudflare-foundation.mjs";
+import { unitStamp, hasMoneyUnits } from './finance-money-units.mjs';
+import { currencyPreferences } from './finance-fx.mjs';
+import { currencyDigits } from '../../js/finance/money.js';
 import {
   FINANCE_ENTITLEMENT,
   MAX_CHANGE_PAGE,
@@ -134,7 +137,7 @@ export async function ensureTask16Schema(db) {
   try {
     const row = await first(db, "SELECT value FROM task16_metadata WHERE key = ?1", ["schema_version"]);
     const version=String(row?.value||'');
-    if(version==='3')return true;
+    if(version==='3'||version==='4')return true;
     // Older standalone schemas remain usable before reconciliation exists.
     if(version!==TASK16_SCHEMA_VERSION)return false;
     const upgraded=await first(db,"SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='task21_payment_effective_events'");
@@ -317,6 +320,7 @@ async function upsertTransaction(db, account, deviceId, operation, digest, obser
     });
   }
   const normalized = normalizeManualTransaction(operation.payload);
+  const unitStatements = await unitStamp(db, id, normalized.currency, normalized.amount_exponent);
   await requireOwnedCategory(db, account.id, normalized.category_id);
   const revision = existing ? baseRevision + 1 : 1;
   const planned = existing ? {
@@ -335,6 +339,7 @@ async function upsertTransaction(db, account, deviceId, operation, digest, obser
           revision, version, now, account.id, baseRevision,
         )
       : transactionInsertStatement(db, planned, version, now),
+    ...unitStatements,
     auditStatement(db, account, deviceId, existing ? "transaction_edit" : "transaction_create", "transaction", id,
       existing ? publicTransaction(existing) : {}, { ...publicTransaction(planned), sync_version: version }, now),
   ], {
@@ -576,7 +581,11 @@ function validCalendarDate(value) {
 }
 
 function normalizeBudget(value) {
-  requireAllowedFields(value, new Set(["category_id", "period_type", "amount_minor", "currency", "starts_on", "ends_on"]));
+  requireAllowedFields(value, new Set(["category_id", "period_type", "amount_minor", "currency", "starts_on", "ends_on", "amount_exponent"]));
+  const currency = cleanCurrency(value.currency);
+  try { currencyDigits(currency); }
+  catch (_) { throw new Task16Error('币种不受支持', 400, 'currency_unsupported'); }
+  if ((value.amount_exponent !== undefined && value.amount_exponent !== currencyDigits(currency)) || (currency === 'JPY' && value.amount_exponent !== 0)) throw new Task16Error('预算金额单位需要确认', 409, 'currency_unit_capability_required');
   const period = String(value.period_type || "").trim().toLowerCase();
   if (!["daily", "monthly", "yearly", "custom"].includes(period)) throw new Task16Error("预算周期无效", 400, "budget_period_invalid");
   const startsOn = cleanText(value.starts_on, 10, "预算开始日期");
@@ -588,7 +597,7 @@ function normalizeBudget(value) {
     category_id: value.category_id ? cleanId(value.category_id, "分类标识") : "",
     period_type: period,
     amount_minor: positiveInteger(value.amount_minor, "预算金额", 10000000000000),
-    currency: cleanCurrency(value.currency), starts_on: startsOn, ends_on: endsOn,
+    currency, ...(currency === 'JPY' ? { amount_exponent: 0 } : {}), starts_on: startsOn, ends_on: endsOn,
   };
 }
 
@@ -604,6 +613,7 @@ async function mutateSimpleEntity(db, account, deviceId, operation, digest, kind
   const removing = operation.type.endsWith(".delete");
   if (removing && !existing) throw new Task16Error("记录不存在", 404, "finance_record_not_found");
   const normalized = removing ? null : kind === "category" ? normalizeCategory(operation.payload) : normalizeBudget(operation.payload);
+  const unitStatements = kind === 'budget' && normalized ? await unitStamp(db, id, normalized.currency, normalized.amount_exponent, 'budget') : [];
   if (kind === "budget" && normalized) await requireOwnedCategory(db, account.id, normalized.category_id);
   const revision = existing ? baseRevision + 1 : 1;
   const status = removing ? "deleted" : "active";
@@ -637,7 +647,7 @@ async function mutateSimpleEntity(db, account, deviceId, operation, digest, kind
         .bind(id, account.id, planned.category_id, planned.period_type, planned.amount_minor,
           planned.currency, planned.starts_on, planned.ends_on, version, now);
     }
-    return [statement, auditStatement(db, account, deviceId, `${kind}_${removing ? "delete" : "upsert"}`, kind, id, existing || {}, planned, now)];
+    return [statement, ...unitStatements, auditStatement(db, account, deviceId, `${kind}_${removing ? "delete" : "upsert"}`, kind, id, existing || {}, planned, now)];
   }, {
     entityType: kind, entityId: id, operation: removing ? "delete" : "upsert", revision,
     result: (version) => ({ [kind]: { ...planned, sync_version: version } }),
@@ -672,12 +682,13 @@ export async function financeBootstrap(db, account) {
     first(db, "SELECT COUNT(*) AS count FROM task16_finance_raw_events WHERE user_id = ?1", [account.id]),
     all(db, `SELECT id, name, applies_to, color, status, revision, sync_version, updated_at, deleted_at
       FROM task16_finance_categories WHERE user_id = ?1 ORDER BY status, name, id`, [account.id]),
-    all(db, `SELECT id, category_id, period_type, amount_minor, currency, starts_on, ends_on,
+    all(db, `SELECT id, category_id, period_type, amount_minor, currency, starts_on, ends_on${await hasMoneyUnits(db) ? ',amount_exponent' : ''},
       status, revision, sync_version, updated_at, deleted_at
       FROM task16_finance_budgets WHERE user_id = ?1 ORDER BY status, updated_at DESC, id`, [account.id]),
   ]);
   return {
     schema_version: Number(TASK16_SCHEMA_VERSION), server_version: version,
+    ...(await hasMoneyUnits(db) ? { money_version: 2, currency_preferences: await currencyPreferences(db, account.id) } : {}),
     finance_access: true, transaction_count: Number(transactionCount?.count || 0),
     raw_event_count: Number(rawCount?.count || 0), categories, budgets,
     sync: { max_operations: MAX_SYNC_OPERATIONS, max_change_page: MAX_CHANGE_PAGE, tombstones: true },
@@ -727,11 +738,14 @@ export async function listFinanceTransactions(db, account, input = {}) {
   const beforeId = input.before_id ? cleanId(input.before_id, "游标账目标识") : "~~~~~~~~";
   const limit = Math.min(100, Math.max(1, Number.parseInt(String(input.limit || 50), 10) || 50));
   const includeDeleted = String(input.include_deleted || "").toLowerCase() === "true";
+  const roleProjection = await hasMoneyUnits(db) ? `, (SELECT json_group_array(json_object('event_id',e.event_id,'roles',json(e.roles_json)))
+    FROM task16_currency_role_evidence e JOIN task21_notification_events n ON n.event_id=e.event_id AND n.user_id=e.user_id
+    WHERE e.user_id=?1 AND n.finance_transaction_id=task16_finance_transactions.id) AS currency_roles_json` : '';
   const rows = await all(db, `SELECT *, (SELECT json_group_array(raw.source_event_id)
       FROM task16_finance_transaction_events link
       JOIN task16_finance_raw_events raw ON raw.id = link.raw_event_id
       WHERE link.transaction_id = task16_finance_transactions.id AND link.relation_status = 'active'
-        AND raw.user_id = ?1 AND raw.source_type = 'notification') AS notification_event_ids_json
+        AND raw.user_id = ?1 AND raw.source_type = 'notification') AS notification_event_ids_json${roleProjection}
     FROM task16_finance_transactions
     WHERE user_id = ?1
       AND (occurred_at_ms < ?2 OR (occurred_at_ms = ?2 AND id < ?3))

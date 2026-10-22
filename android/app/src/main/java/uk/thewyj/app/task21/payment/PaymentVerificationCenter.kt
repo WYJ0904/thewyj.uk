@@ -82,11 +82,15 @@ class PaymentVerificationCenter(
         val evidenceConflict: Boolean = false,
         val ticketId: String = "",
         val ticketExpiresAtMs: Long = 0,
+        val currency: String = "CNY",
+        val localCurrency: String = "CNY",
+        val moneyUnitReview: Boolean = false,
     ) {
         val displayAmountMinor: Long? get() = amountMinor?.takeIf { it > 0 }
             ?: localAmountMinor.takeUnless { evidenceConflict }
+        val displayCurrency: String get() = if (amountMinor != null && amountMinor > 0) currency else localCurrency
         val displayDirection: FinanceDirection get() = if (direction == FinanceDirection.UNKNOWN && !evidenceConflict) localDirection else direction
-        val needsAmount: Boolean get() = amountMinor == null || amountMinor <= 0
+        val needsAmount: Boolean get() = moneyUnitReview || amountMinor == null || amountMinor <= 0 || currency !in uk.thewyj.app.finance.CurrencyMoney.digits
         val needsVerification: Boolean get() = needsAmount || direction == FinanceDirection.UNKNOWN
         /** This device may create the canonical transaction for the item. */
         val deviceBooks: Boolean get() = authority == Authority.DEVICE
@@ -265,6 +269,10 @@ class PaymentVerificationCenter(
                 appLabel = appLabelOf(recognition.sourcePackage),
                 state = recognition.state,
                 amountMinor = candidate?.effectiveAmountMinor ?: recognition.amountMinor,
+                moneyUnitReview = (recognition.currency == "JPY" && uk.thewyj.app.finance.CurrencyRuntimePreferences.sourceExponent(app,accountId,recognition.sourceEventId,recognition.currency) != 0) ||
+                    (recognition.identityReviewReason in setOf("currency_review_required","currency_symbol_ambiguous","currency_amount_unproven") && candidate?.editedAmountMinor == null),
+                currency = hook.effectiveCurrency(recognition),
+                localCurrency = hook.effectiveCurrency(recognition),
                 direction = directionOf(candidate?.effectiveDirection ?: recognition.direction),
                 merchant = candidate?.effectiveMerchant.orEmpty().ifBlank { recognition.merchant },
                 hasEdits = candidate?.hasEdits == true,
@@ -310,7 +318,9 @@ class PaymentVerificationCenter(
             val localAmount = amounts.singleOrNull()
             val localDirection = directions.singleOrNull() ?: FinanceDirection.UNKNOWN
             val serverDirection = directionOf(record.direction)
-            val conflict = amounts.size > 1 || directions.size > 1 ||
+            val currencies = matching.map { it.currency }.distinct()
+            val conflict = amounts.size > 1 || directions.size > 1 || currencies.size > 1 ||
+                (local != null && record.currency in uk.thewyj.app.finance.CurrencyMoney.digits && local.currency in uk.thewyj.app.finance.CurrencyMoney.digits && record.currency != local.currency) ||
                 (record.amountMinor != null && localAmount != null && record.amountMinor != localAmount) ||
                 (serverDirection != FinanceDirection.UNKNOWN && localDirection != FinanceDirection.UNKNOWN && serverDirection != localDirection)
             (local ?: remotePendingItem(record)).copy(
@@ -319,6 +329,8 @@ class PaymentVerificationCenter(
                 sourcePackage = record.sourcePackage,
                 appLabel = PaymentAppLabels.known(record.sourcePackage) ?: record.appLabel.ifBlank { record.sourcePackage.ifBlank { "通知" } },
                 amountMinor = record.amountMinor,
+                currency = record.currency,
+                moneyUnitReview = record.currency == "JPY" && record.amountExponent != 0,
                 direction = directionOf(record.direction),
                 merchant = record.merchant,
                 occurredAtMs = record.occurredAtMs,
@@ -378,7 +390,9 @@ class PaymentVerificationCenter(
         amountMinor: Long?,
         direction: String,
         merchant: String,
+        currency: String? = null,
     ): Boolean {
+        if (currency != null && !hook.chooseMissingCurrency(accountId, recognitionId, currency)) return false
         return runCatching {
             if (candidateId.isNotBlank()) {
                 hook.coordinator().editCandidate(
@@ -417,8 +431,14 @@ class PaymentVerificationCenter(
         val recognition = store.recognition(accountId, recognitionId)
             ?: return BookResult(false, "找不到这笔交易记录")
         if (!PaymentEventSafety.canSettle(recognition.financialPhase)) return BookResult(false, "预授权或未完成清算不能记入正式支出")
-        if (recognition.identityReviewReason.isNotBlank() && !recognition.identityReviewReason.startsWith("identity_unproven_"))
+        val manualCandidate = store.candidateForRecognition(accountId, recognitionId)
+        val manualCurrencyResolved = manualCandidate?.editedAmountMinor != null && hook.effectiveCurrency(recognition) in uk.thewyj.app.finance.CurrencyMoney.digits &&
+            recognition.identityReviewReason in setOf("currency_review_required","currency_symbol_ambiguous","currency_amount_unproven")
+        if (recognition.identityReviewReason.isNotBlank() && !recognition.identityReviewReason.startsWith("identity_unproven_") && !manualCurrencyResolved)
             return BookResult(false, "币种或清算关联证据仍需核实，已保留原始候选")
+        if (hook.effectiveCurrency(recognition) == "JPY" &&
+            uk.thewyj.app.finance.CurrencyRuntimePreferences.sourceExponent(app,accountId,recognition.sourceEventId,recognition.currency) != 0 && manualCandidate?.editedAmountMinor == null)
+            return BookResult(false,"旧日元单位待核实，请重新填写原币金额")
         if (authorityOf(recognition) == Authority.SERVER) {
             // Captured with an amount, so the server already owns the candidate.
             // Booking again here would create a second transaction for one
@@ -473,7 +493,8 @@ class PaymentVerificationCenter(
             parseStatus = ParseStatus.PARSED,
             direction = direction,
             amountMinor = draft.amountMinor,
-            currency = recognition.currency,
+            currency = hook.effectiveCurrency(recognition),
+            amountExponent = uk.thewyj.app.finance.CurrencyMoney.digits[hook.effectiveCurrency(recognition)],
             providerReference = recognition.providerReference,
             financialPhase = recognition.financialPhase, lifecycleReference = recognition.lifecycleReference,
             lifecycleOperation = recognition.lifecycleOperation, lifecycleRevision = recognition.lifecycleRevision,
