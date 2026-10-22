@@ -51,7 +51,7 @@ class AndroidPaymentRecognitionHook private constructor(
             store = store,
             notifier = notifierOverride ?: AndroidPaymentStatusNotifier(appContext),
             defaultCurrency = { account -> CurrencyRuntimePreferences.defaultCurrency(appContext, account) },
-            currencyPolicyVersion = if (recognitionStore == null) 2 else 1,
+            currencyPolicyVersion = 2,
             effectiveCurrency = { record -> effectiveCurrency(record) },
             onVerifiedCurrencyUnit = { account, source, currency, exponent ->
                 if (recognitionStore == null) CurrencyReferenceDatabase.get(appContext).currencies().putSourceUnit(
@@ -78,7 +78,8 @@ class AndroidPaymentRecognitionHook private constructor(
         // name and never the generic 「该应用」 the notifications used to show.
         val label = sourceAppLabel.ifBlank { PaymentAppLabels.resolve(appContext, input.sourcePackage) }
         val preview = PaymentParserRegistry.parse(input.sourcePackage, sourceType, input.title,
-            (listOf(input.text) + input.textLines).filter(String::isNotBlank).joinToString(" "), input.bigText, input.subText, input.receivedAtMs)
+            (listOf(input.text) + input.textLines).filter(String::isNotBlank).joinToString(" "), input.bigText, input.subText, input.receivedAtMs,
+            defaultCurrency = CurrencyRuntimePreferences.defaultCurrency(appContext, accountId), currencyPolicyVersion = 2)
         val messageProof = uk.thewyj.app.task21.paymentMessageProof(input)
         val messageRecords = if (messageProof.isBlank()) emptyList() else store.recognitionsByMessageProof(accountId, messageProof)
             .filter { PaymentEventSafety.role(it.financialPhase) == PaymentEventSafety.role(preview.financialPhase) }
@@ -118,10 +119,11 @@ class AndroidPaymentRecognitionHook private constructor(
      * payment (the previous duplicate term lists caused "已支付 ¥1000" to be
      * recognised locally but only become a candidate upstream).
      */
-    override fun outcomeFor(input: NotificationCaptureInput): PaymentIngestOutcome? = currencyOutcome(input, null, 1)
+    // Missing account context cannot authorize a legacy default for a new capture.
+    override fun outcomeFor(input: NotificationCaptureInput): PaymentIngestOutcome? = currencyOutcome(input, null)
 
     override fun outcomeFor(accountId: String, input: NotificationCaptureInput): PaymentIngestOutcome? =
-        currencyOutcome(input, CurrencyRuntimePreferences.defaultCurrency(appContext, accountId), if (recognitionStore == null) 2 else 1)
+        currencyOutcome(input, CurrencyRuntimePreferences.defaultCurrency(appContext, accountId))
 
     fun effectiveCurrency(record: PaymentRecognitionRecord): String =
         if (record.currency in uk.thewyj.app.finance.CurrencyMoney.digits || recognitionStore != null) record.currency
@@ -149,7 +151,7 @@ class AndroidPaymentRecognitionHook private constructor(
         }
     }
 
-    private fun currencyOutcome(input: NotificationCaptureInput, defaultCurrency: String?, policy: Int): PaymentIngestOutcome? {
+    private fun currencyOutcome(input: NotificationCaptureInput, defaultCurrency: String?): PaymentIngestOutcome? {
         val sourceType = when {
             input.sourceType == "sms" -> PaymentSourceType.SMS
             input.sourceType == "bank" -> PaymentSourceType.BANK_NOTIFICATION
@@ -167,7 +169,7 @@ class AndroidPaymentRecognitionHook private constructor(
         val parser = PaymentParserRegistry.parserFor(input.sourcePackage, sourceType)
         val parsed = PaymentParserRegistry.parse(input.sourcePackage, sourceType, input.title, parseText,
             input.bigText, input.subText, if (input.postTime > 0) input.postTime else input.receivedAtMs,
-            defaultCurrency = defaultCurrency, currencyPolicyVersion = policy)
+            defaultCurrency = defaultCurrency, currencyPolicyVersion = 2)
         // Auditable evidence without ever logging the message itself.
         Log.i(
             "ThewyjPayment",
@@ -197,12 +199,12 @@ class AndroidPaymentRecognitionHook private constructor(
             providerReference = parsed.providerReference.orEmpty(),
             reasons = parsed.reasons,
             missingFields = parsed.missingFields,
-            currency = parsed.currency ?: if (policy >= 2) "XXX" else "CNY", financialPhase = parsed.financialPhase,
+            currency = parsed.currency ?: "XXX", financialPhase = parsed.financialPhase,
             lifecycleReference = parsed.lifecycleReference, referenceNamespace = parsed.referenceNamespace,
             currencyEvidence = parsed.currencyEvidence, identityReviewReason = review,
             lifecycleOperation = parsed.lifecycleOperation, lifecycleRevision = parsed.lifecycleRevision,
             currencyRolesJson = parsed.currencyRolesJson,
-            amountExponent = if (policy >= 2) uk.thewyj.app.finance.CurrencyMoney.digits[parsed.currency] else null,
+            amountExponent = uk.thewyj.app.finance.CurrencyMoney.digits[parsed.currency],
         )
     }
 
