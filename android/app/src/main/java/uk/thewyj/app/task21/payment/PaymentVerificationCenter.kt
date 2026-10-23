@@ -512,9 +512,14 @@ class PaymentVerificationCenter(
             occurredAtMs = draft.occurredAtMs,
             receivedAtMs = draft.occurredAtMs,
         )
+        val currencyDecision = event.currency != recognition.currency ||
+            recognition.identityReviewReason in setOf("currency_review_required","currency_symbol_ambiguous","currency_amount_unproven") ||
+            (recognition.currency=="JPY"&&uk.thewyj.app.finance.CurrencyRuntimePreferences.sourceExponent(app,accountId,recognition.sourceEventId,recognition.currency)!=0)
+        val operationId=if(currencyDecision)"currency-confirm:$eventId" else eventId
         val enqueued = runCatching {
-            pipeline.enqueue(eventId, StructuredEventJson.ingestPayload("1", accountDeviceId(), eventId, event))
-        }.isSuccess
+            if(currencyDecision)pipeline.enqueueCurrencyConfirmation(accountId,operationId,eventId,event.currency,draft.amountMinor,draft.direction,draft.merchant,draft.occurredAtMs)
+            else pipeline.enqueue(eventId, StructuredEventJson.ingestPayload("1", accountDeviceId(), eventId, event))
+        }.getOrDefault(false)
         if (!enqueued) return BookResult(false, "记账请求保存失败，请重试")
 
         if (recognition.uploadEventId.isBlank()) {
@@ -526,7 +531,7 @@ class PaymentVerificationCenter(
         }
 
         val flush = runCatching { pipeline.flushDetailed() }.getOrNull()
-        val outcome = flush?.outcomes?.firstOrNull { it.operationId == eventId }
+        val outcome = flush?.outcomes?.firstOrNull { it.operationId == operationId }
         if (outcome?.transactionId?.isNotBlank() == true) {
             CanonicalPendingCache(app, accountId).terminalize(setOf(eventId), "confirmed", outcome.transactionId)
             runCatching {
@@ -536,7 +541,7 @@ class PaymentVerificationCenter(
         }
         // The server refused the payload: report the real reason instead of an
         // endless "waiting to sync" that never completes.
-        val rejection = flush?.rejected?.firstOrNull { it.operationId == eventId }
+        val rejection = flush?.rejected?.firstOrNull { it.operationId == operationId }
         if (rejection != null) {
             return BookResult(
                 ok = false,
@@ -544,7 +549,7 @@ class PaymentVerificationCenter(
                 syncState = SyncState.SYNC_REJECTED,
             )
         }
-        val stillQueued = pipeline.queuedOperationIds().contains(eventId)
+        val stillQueued = pipeline.queuedOperationIds().contains(operationId)
         return if (stillQueued) {
             BookResult(
                 true,

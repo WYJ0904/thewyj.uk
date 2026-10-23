@@ -1,5 +1,5 @@
 import { sha256Hex } from "./cloudflare-foundation.mjs";
-import { unitStamp, hasMoneyUnits } from './finance-money-units.mjs';
+import { unitStamp, hasMoneyUnits, currencyDecisionStamp } from './finance-money-units.mjs';
 import { currencyPreferences } from './finance-fx.mjs';
 import { currencyDigits } from '../../js/finance/money.js';
 import {
@@ -470,7 +470,19 @@ async function selectReconciliationCandidate(db, account, event) {
 
 async function ingestRawEvent(db, account, deviceId, operation, digest, observedServerVersion) {
   requireAllowedFields(operation, new Set(["operation_id", "type", "payload"]));
-  const event = normalizeRawEvent(operation.payload);
+  const payload=operation.payload||{};
+  let defaultCurrency=null;
+  if(!payload.currency && await hasMoneyUnits(db)) {
+    defaultCurrency=(await currencyPreferences(db,account.id)).default_currency;
+    if(typeof payload.source_event_id==='string' && typeof payload.source_provider==='string' && typeof payload.source_type==='string') {
+      const previous=await first(db,'SELECT currency,metadata_json FROM task16_finance_raw_events WHERE user_id=?1 AND source_type=?2 AND source_provider=?3 AND source_event_id=?4 LIMIT 1',
+        [account.id,payload.source_type,payload.source_provider,payload.source_event_id]);
+      if(previous){let metadata;try{metadata=JSON.parse(previous.metadata_json)}catch{metadata={}}
+        if(metadata.currency_review_required===true&&metadata.currency_decision_source==='account_default')defaultCurrency=previous.currency;
+      }
+    }
+  }
+  const event = normalizeRawEvent(payload,{currencyPolicyVersion:2,defaultCurrency});
   const reconciliationReady=await first(db,"SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='task21_payment_effective_events'");
   if(Number(reconciliationReady?.n||0)>0) {
     const scope=financeReferenceScope(event);
@@ -497,6 +509,7 @@ async function ingestRawEvent(db, account, deviceId, operation, digest, observed
       direction: event.direction,
       amount_minor: event.amount_minor,
       currency: event.currency,
+      ...(event.amount_exponent!==undefined?{amount_exponent:event.amount_exponent}:{}),
       category_id: "",
       merchant: event.merchant,
       counterparty: event.counterparty,
@@ -504,6 +517,11 @@ async function ingestRawEvent(db, account, deviceId, operation, digest, observed
       occurred_at_ms: event.occurred_at_ms,
     }, "automatic") : null;
   if (transaction && !shouldLink && candidate.score >= 0.75) transaction.reconciliation_state = "review";
+  if(transaction && !shouldLink && event.currency_review_required){transaction.currency_review_required=1;transaction.currency_decision_source='account_default';}
+  const monetaryStamps=transaction&&!shouldLink ? [
+    ...await unitStamp(db,transaction.id,event.currency,event.amount_exponent),
+    ...await currencyDecisionStamp(db,account.id,transaction.id,event),
+  ]:[];
   const nextRevision = shouldLink ? Number(transaction.revision || 1) + 1 : transaction ? 1 : 0;
 
   try {
@@ -529,6 +547,7 @@ async function ingestRawEvent(db, account, deviceId, operation, digest, observed
           .bind(transaction.id, nextRevision, version, now, account.id, Number(transaction.revision)));
       } else {
         statements.push(transactionInsertStatement(db, transaction, version, now));
+        statements.push(...monetaryStamps);
       }
       statements.push(db.prepare(`INSERT INTO task16_finance_transaction_events (
         transaction_id, raw_event_id, relation_status, confidence_milli, evidence_json,

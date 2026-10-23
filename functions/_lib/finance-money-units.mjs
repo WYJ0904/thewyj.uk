@@ -20,12 +20,13 @@ export async function hasMoneyUnits(db) {
 
 /** Optional provenance is never inferred while importing an old operation. */
 export async function currencyDecisionStamp(db, accountId, id, decision, kind = 'transaction') {
-  if (decision.currency_review_required !== true) return [];
+  const manual=kind==='transaction'&&Boolean(decision.manual_currency_source);
+  if (decision.currency_review_required !== true && !manual) return [];
   if (!await hasCurrencyDecisions(db)) throw new Task16Error('币种核实状态需要增量迁移',503,'currency_decision_schema_required',true);
   const targets = { transaction: ['task16_finance_transactions','id'], event: ['task21_notification_events','event_id'], hint: ['task21_notification_pending_hints','id'] };
   const target = targets[kind];
   if (!target) throw new Error('Invalid currency provenance target');
-  return [db.prepare(`UPDATE ${target[0]} SET currency_review_required=1,currency_decision_source='account_default' WHERE ${target[1]}=?1 AND user_id=?2`).bind(id, accountId)];
+  return [db.prepare(`UPDATE ${target[0]} SET currency_review_required=?3,currency_decision_source=?4 WHERE ${target[1]}=?1 AND user_id=?2`).bind(id,accountId,manual?0:1,manual?'user_confirmed':'account_default')];
 }
 export async function unitStamp(db, transactionId, currency, exponent, kind = 'transaction') {
   let digits;

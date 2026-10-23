@@ -348,6 +348,25 @@ class NotificationCaptureCoordinator(
         return runCatching { queueFor(current.accountId).enqueue(operationId, payload) }.isSuccess
     }
 
+    /** A manual unit decision never rewrites the original immutable ingest. */
+    fun enqueueCurrencyConfirmation(accountId:String,operationId:String,eventId:String,currency:String,amountMinor:Long,
+                                    direction:String,merchant:String,occurredAtMs:Long):Boolean {
+        val current=account()?:return false
+        if(current.accountId!=accountId||!current.financeEntitled||eventId.isBlank()||operationId.isBlank()||
+            currency !in uk.thewyj.app.finance.CurrencyMoney.digits||amountMinor !in 1L..10_000_000_000_000L||
+            direction.lowercase() !in setOf("expense","income","refund"))return false
+        val body=org.json.JSONObject().put("event_id",eventId).put("device_id",current.deviceId).put("edits",org.json.JSONObject()
+            .put("currency",currency).put("amount_minor",amountMinor).put("amount_exponent",uk.thewyj.app.finance.CurrencyMoney.digits.getValue(currency))
+            .put("direction",direction.lowercase()).put("merchant",merchant).put("occurred_at_ms",occurredAtMs)).toString()
+        return runCatching {
+            val queue=queueFor(accountId)
+            val previous=queue.peekRequests().firstOrNull{it.operationId==operationId}
+            if(previous!=null&&(previous.path!=OfflineNotificationQueue.CURRENCY_CONFIRM_PATH||previous.body!=body))return@runCatching false
+            queue.enqueueRequest(operationId,OfflineNotificationQueue.CURRENCY_CONFIRM_PATH,body)
+            queue.peekRequests().any{it.operationId==operationId&&it.body==body}
+        }.getOrDefault(false)
+    }
+
     /** Operation ids still waiting for an upload for the current account. */
     fun queuedOperationIds(): Set<String> {
         val current = account() ?: return emptySet()
@@ -439,7 +458,7 @@ class NotificationCaptureCoordinator(
         var retryableFailures = 0
         val outcomes = mutableListOf<IngestOutcome>()
         val rejected = mutableListOf<RejectedIngest>()
-        for (request in ingestQueue.peekRequests()) {
+        for (request in ingestQueue.retryCurrencyProtocolUpgrades()) {
             // A payload the server already refused repeatedly would spin on
             // every flush; keep it (nothing is deleted) but stop re-uploading
             // until the app is updated or the user removes the account data.
@@ -477,6 +496,18 @@ class NotificationCaptureCoordinator(
                         val transactionId = result?.optString("transaction_id").orEmpty()
                         val candidateId = result?.optString("candidate_id").orEmpty()
                         val eventId = result?.optJSONObject("event")?.optString("event_id").orEmpty()
+                        if(request.path==OfflineNotificationQueue.CURRENCY_CONFIRM_PATH) {
+                            val intended=org.json.JSONObject(request.body)
+                            val edits=intended.getJSONObject("edits")
+                            val actual=result?.optJSONObject("transaction")
+                            if(transactionId.isBlank()||actual==null){retryableFailures+=1;return@runCatching}
+                            if(eventId!=intended.getString("event_id")||actual.optString("currency")!=edits.getString("currency")||
+                                actual.optLong("amount_minor")!=edits.getLong("amount_minor")||actual.optString("direction")!=edits.getString("direction")) {
+                                val row=ingestQueue.markRejected(request.operationId,"currency_receipt_conflict")
+                                rejected+=RejectedIngest(request.operationId,"currency_receipt_conflict",row?.attempts?:1)
+                                retryableFailures+=1;return@runCatching
+                            }
+                        }
                         if (paymentHook?.localFinanceTransactionId(current.accountId, request.operationId)?.isNotBlank() == true &&
                             transactionId.isBlank()) {
                             // An HTTP success without a ledger receipt cannot

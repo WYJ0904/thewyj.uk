@@ -1,6 +1,7 @@
 import { notificationCashText } from "./notification-cash-evidence.mjs";
 import {explicitCurrencyCodes} from "./payment-currency-evidence.mjs";
 import { currencyDigits } from '../../js/finance/money.js';
+import { rawCurrencyMoney } from './finance-raw-currency.mjs';
 
 export const TASK16_SCHEMA_VERSION = "1";
 export const TASK16_BUILD = "2026-08-27-task16-finance-core";
@@ -235,10 +236,10 @@ export function normalizeManualTransaction(value = {}) {
   };
 }
 
-export function normalizeRawEvent(value = {}) {
+export function normalizeRawEvent(value = {}, {currencyPolicyVersion=1,defaultCurrency=null} = {}) {
   requireAllowedFields(value, new Set([
     "source_type", "source_event_id", "source_provider", "provider_reference", "text", "direction", "amount_minor",
-    "currency", "merchant", "counterparty", "account_last4", "occurred_at_ms", "captured_at_ms", "metadata",
+    "currency", "merchant", "counterparty", "account_last4", "occurred_at_ms", "captured_at_ms", "metadata", "amount_exponent",
   ]));
   const sourceType = String(value.source_type || "").trim().toLowerCase();
   if (!RAW_SOURCE_TYPES.has(sourceType)) {
@@ -257,9 +258,18 @@ export function normalizeRawEvent(value = {}) {
   const currencyEvidence=explicitCurrencyCodes(text);
   let currency=cleanCurrency(value.currency);
   const currencyReview=currencyEvidence.length>1 || (currencyEvidence.length===1 && currencyEvidence[0]!==currency);
-  if(currencyReview) {
+  if(currencyReview && currencyPolicyVersion < 2) {
     currency=currencyEvidence.includes(currency)?currency:currencyEvidence[0];
     classification={...classification,classification:"pending",reason:"currency_review_required",amount_minor:0};
+  }
+  const exact = currencyPolicyVersion >= 2 ? rawCurrencyMoney({...value,source_type:sourceType},notificationCashText(text)??'',defaultCurrency) : null;
+  if (exact) {
+    currency=exact.currency;
+    const rejected = classification.classification==='rejected' && classification.reason!=='amount_missing';
+    classification={...classification,amount_minor:exact.amount_minor,
+      ...(exact.review_reason ? {classification:rejected?'rejected':'pending',reason:exact.review_reason} :
+        classification.reason==='amount_missing' ? (includesAny(text,STRONG_COMPLETION_TERMS)?
+          {classification:'accepted',reason:'transaction_completed'}:{classification:'pending',reason:'completion_unproven'}) : {})};
   }
   const accountLast4 = String(value.account_last4 || "").trim();
   if (accountLast4 && !LAST4_PATTERN.test(accountLast4)) {
@@ -284,6 +294,8 @@ export function normalizeRawEvent(value = {}) {
   const sourceProvider = cleanText(value.source_provider, 80, "来源服务");
   if (!sourceProvider) throw new Task16Error("来源服务不能为空", 400, "source_provider_required");
   if(currencyReview) metadata.currency_evidence=currencyEvidence.join(',').slice(0,120);
+  if(exact?.amount_exponent!==undefined)metadata.amount_exponent=exact.amount_exponent;
+  if(exact?.currency_review_required){metadata.currency_review_required=true;metadata.currency_decision_source='account_default';}
   return {
     source_type: sourceType,
     source_event_id: cleanSourceEventId(value.source_event_id),
@@ -293,6 +305,8 @@ export function normalizeRawEvent(value = {}) {
     direction: classification.direction,
     amount_minor: classification.amount_minor,
     currency,
+    ...(exact?.amount_exponent!==undefined?{amount_exponent:exact.amount_exponent}:{}),
+    ...(exact?.currency_review_required?{currency_review_required:true,currency_decision_source:'account_default'}:{}),
     merchant: cleanText(value.merchant, 160, "商户"),
     counterparty: cleanText(value.counterparty, 160, "对手方"),
     account_last4: accountLast4,
@@ -391,7 +405,11 @@ export function publicTransaction(row) {
 }
 
 export function publicRawEvent(row) {
+  let money=row.metadata||{};
+  if(row.metadata_json){try{money=JSON.parse(row.metadata_json)}catch{money={}}}
   return {
+    ...(money.currency_review_required===true?{currency_review_required:true,currency_decision_source:'account_default'}:{}),
+    ...(money.amount_exponent===0||money.amount_exponent===2?{amount_exponent:money.amount_exponent}:{}),
     id: String(row.id || ""),
     device_id: String(row.device_id || ""),
     source_type: String(row.source_type || ""),

@@ -227,7 +227,7 @@ try {
     const payload=event('default-confirm-review','CNY',{currency_evidence:'',currency_review_required:true,currency_decision_source:'account_default',parse_status:'candidate',identity_review_reason:'identity_unproven_notification'});
     const ingested=await request('/api/notification/ingest',{schema_version:1,device_id:'synthetic-review-confirm-device',operations:[{operation_id:'synthetic-review-confirm-ingest',type:'event.ingest',payload}]});
     assert.equal(ingested.status,200);const id=ingested.operation_results[0].candidate_id;assert.ok(id);
-    const body={candidate_id:id,device_id:'synthetic-review-confirm-device',operation_id:'synthetic-review-confirm-operation'};
+    const body={candidate_id:id,device_id:'synthetic-review-confirm-device'};
     const legacy=await request('/api/notification/candidates/confirm',body,true,true,'2');
     assert.equal(legacy.status,409);assert.equal(legacy.code,'currency_client_upgrade_required');
     const current=await request('/api/notification/candidates/confirm',body);assert.equal(current.status,200,JSON.stringify(current));

@@ -1,5 +1,5 @@
 import { formatFinanceMoney } from './format.js';
-import { moneyText, parseMoney, SUPPORTED_CURRENCIES } from './money.js';
+import { moneyText, parseMoney, currencyDigits, SUPPORTED_CURRENCIES } from './money.js';
 import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?v=20261014-aeris-task26-r9";
 import { randomId } from "../core/capabilities.js?v=20261014-aeris-task26-r9";
 import { createFinanceDisclosure } from "./disclosure.js?v=20261014-aeris-task26-r9";
@@ -268,7 +268,8 @@ export function createFinanceCandidatesController({
           <small>忽略只关闭这条候选，不会撤销实际支付。</small>
         </div>
         <form class="finance-candidate-editor hidden" data-finance-candidate-editor="${escapeHtml(id)}">
-          <label>原币金额（${escapeHtml(candidate.currency)}）<input type="text" name="amount" required inputmode="decimal" value="${escapeHtml(amountValue)}"></label>
+          <label>原币币种<select name="currency" required>${SUPPORTED_CURRENCIES.includes(candidate.currency)?'':'<option value="" selected disabled>请选择原币币种</option>'}${SUPPORTED_CURRENCIES.map(code=>`<option value="${code}"${candidate.currency===code?' selected':''}>${code}</option>`).join('')}</select></label>
+          <label>原币金额<input type="text" name="amount" required inputmode="decimal" value="${escapeHtml(amountValue)}"></label>
           <label>方向
             <select name="direction" required>
               <option value=""${direction === "unknown" ? " selected" : ""} disabled>请选择收支方向</option>
@@ -319,9 +320,11 @@ export function createFinanceCandidatesController({
   /** Only send fields the user actually changed; machine values stay evidence. */
   function buildEdits(candidate, form) {
     const edits = {};
-    const amountValue = parseMoney(form.elements.amount.value, candidate.currency);
-    if (candidate.currency === 'JPY') edits.amount_exponent = 0;
-    if (amountValue !== Number(candidate.amount_minor) || (candidate.currency === 'JPY' && candidate.amount_exponent !== 0)) {
+    const currency = form.elements.currency?.value || candidate.currency;
+    const amountValue = parseMoney(form.elements.amount.value, currency);
+    if(currency!==candidate.currency || candidate.currency_review_required){edits.currency=currency;edits.amount_minor=amountValue;edits.amount_exponent=currencyDigits(currency);}
+    if (currency === 'JPY') edits.amount_exponent = 0;
+    if (amountValue !== Number(candidate.amount_minor) || (currency === 'JPY' && candidate.amount_exponent !== 0)) {
       edits.amount_minor = amountValue;
     }
     const direction = String(form.elements.direction.value || "");
@@ -493,7 +496,7 @@ export function createFinanceCandidatesController({
     const candidate = currentCandidates.find((item) => String(item.id) === id);
     if (!candidate || !form) return;
     let amount = null;
-    try { amount = parseMoney(form.elements.amount.value, candidate.currency); } catch (_) { /* keep review */ }
+    try { amount = parseMoney(form.elements.amount.value, form.elements.currency?.value || candidate.currency); } catch (_) { /* keep review */ }
     const direction = String(form.elements.direction.value || "");
     form.elements.amount.setCustomValidity(Number.isFinite(amount) && amount > 0 ? "" : "请核实原币币种和金额精度；未知币种须先核对来源");
     form.elements.direction.setCustomValidity(VALID_DIRECTIONS.has(direction) ? "" : "请选择收支方向");
@@ -595,6 +598,11 @@ export function createFinanceCandidatesController({
       pendingDisclosure.restore();
       element("financeCandidatesSection")?.addEventListener("click", handleClick);
       element("financeCandidatesSection")?.addEventListener("submit", handleSubmit);
+      element("financeCandidatesSection")?.addEventListener("change",event=>{
+        if(event.target?.name!=='currency')return;
+        const form=event.target.closest('[data-finance-candidate-editor]');
+        if(form){form.elements.amount.value='';form.elements.amount.setCustomValidity('');}
+      });
       document.addEventListener("thewyj:payment-updated", () => {
         if (!active) return;
         const snapshot = globalThis.window?.WYJLocalPaymentLedger;

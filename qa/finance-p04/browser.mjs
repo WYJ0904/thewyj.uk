@@ -147,6 +147,29 @@ try{
     assert.equal((await page.evaluate(`store().transactions[${JSON.stringify(defaultId)}]`)).currency_review_required,false);
     assert.equal((await f.db.prepare('SELECT currency FROM task21_notification_events WHERE event_id=?1').bind(defaultEvent.event_id).first()).currency,'USD');
   });
+  const unknownEvent=JSON.parse(JSON.stringify({...defaultEvent,event_id:'synthetic-browser-unknown-currency',provider_reference:'SYNTH-BROWSER-UNKNOWN-001',currency:'XXX',currency_review_required:undefined,currency_decision_source:undefined,identity_review_reason:'currency_unverified'}));
+  let unknownId;
+  await check('unknown-currency-editor-requires-selection-and-does-not-prefill-a-scaled-amount',async()=>{
+    unknownId=(await ingestNotificationEvents(f.db,f.account,{schema_version:1,device_id:'synthetic-unknown-device',operations:[{operation_id:'synthetic-unknown-browser-op',type:'event.ingest',payload:unknownEvent}]})).operation_results[0].candidate_id;
+    assert.ok(unknownId);await page.evaluate('candidates.show()');await page.waitFor(`document.querySelector('[data-finance-candidate-edit="${unknownId}"]')!==null`);
+    await page.evaluate(`document.querySelector('[data-finance-candidate-edit="${unknownId}"]').click()`);
+    const form=`document.querySelector('[data-finance-candidate-editor="${unknownId}"]')`;
+    assert.equal(await page.evaluate(form+".elements.currency.value"),'');assert.equal(await page.evaluate(form+".elements.amount.value"),'');
+    await page.evaluate(`(()=>{const form=${form};form.elements.amount.value='37.25';form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))})()`);
+    assert.equal((await f.db.prepare('SELECT status FROM task21_notification_candidates WHERE id=?1').bind(unknownId).first()).status,'pending');
+  });
+  await check('explicit-unit-selection-and-retyped-money-confirm-in-real-Chromium',async()=>{
+    const form=`document.querySelector('[data-finance-candidate-editor="${unknownId}"]')`;
+    await page.evaluate(`(()=>{const form=${form};form.elements.currency.value='EUR';form.elements.currency.dispatchEvent(new Event('change',{bubbles:true}))})()`);
+    assert.equal(await page.evaluate(form+".elements.amount.value"),'');
+    await page.evaluate(`(()=>{const form=${form};form.elements.amount.value='37.25';form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))})()`);
+    await page.waitFor(`!document.querySelector('[data-finance-candidate="${unknownId}"]')`);
+    const candidate=await f.db.prepare('SELECT finance_transaction_id FROM task21_notification_candidates WHERE id=?1').bind(unknownId).first();
+    const transaction=await f.db.prepare('SELECT * FROM task16_finance_transactions WHERE id=?1').bind(candidate.finance_transaction_id).first();assert.equal(transaction.currency,'EUR');assert.equal(transaction.amount_minor,3725);assert.equal(transaction.currency_decision_source,'user_confirmed');
+    const source=await f.db.prepare('SELECT currency,amount_minor FROM task21_notification_events WHERE event_id=?1').bind(unknownEvent.event_id).first();assert.equal(source.currency,'XXX');assert.equal(source.amount_minor,10000);
+    await page.evaluate('controller.syncNow()');assert.match(await page.evaluate("document.getElementById('financeTransactionList').textContent"),/37\.25/);
+    assert.deepEqual(page.runtimeErrors,[]);
+  });
   const screenshot=await page.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile(path.join(out,'currency-browser.png'),Buffer.from(screenshot.data,'base64'));
 }catch(error){rows.push({id:'browser-harness',status:'FAIL',error:error.stack,runtimeErrors:page?.runtimeErrors});console.error(error)}
 finally{if(page)await page.close().catch(()=>{});if(browser){await browser.send('Browser.close').catch(()=>{});browser.close()}child.kill();await new Promise(r=>server.close(r));globalThis.fetch=realFetch;await f.dispose();await writeFile(path.join(out,'browser.json'),JSON.stringify({synthetic_only:true,real_chromium:true,apiCalls,rows},null,2)+'\n')}

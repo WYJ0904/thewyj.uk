@@ -182,18 +182,19 @@ export function normalizeNotificationEvent(value = {}, {legacyUnitless=false} = 
   if (referenceNamespace && !/^[A-Za-z0-9._:-]+$/.test(referenceNamespace))
     throw new Task21Error("来源命名空间无效", 400, "reference_namespace_invalid");
   const currencyEvidence = cleanText(value.currency_evidence, 64, "币种证据");
+  const currency = cleanCurrency(value.currency || (legacyUnitless ? 'CNY' : 'XXX'));
   const evidenceCodes = currencyEvidence ? currencyEvidence.split(",") : [];
   if (evidenceCodes.some((code) => !/^[A-Z]{3}$/.test(code))) throw new Task21Error("币种证据无效", 400, "currency_evidence_invalid");
-  if (evidenceCodes.length === 1 && evidenceCodes[0] !== cleanCurrency(value.currency))
+  if (evidenceCodes.length === 1 && evidenceCodes[0] !== currency)
     throw new Task21Error("币种与明确证据冲突", 409, "currency_evidence_conflict");
   const identityReviewReason = cleanText(value.identity_review_reason, 80, "核实原因");
   if (identityReviewReason && !/^[a-z0-9_]+$/.test(identityReviewReason))
     throw new Task21Error("核实原因无效", 400, "identity_review_reason_invalid");
   const amountMinor = nonNegativeInteger(value.amount_minor || 0, "金额", 10000000000000);
-  if (cleanCurrency(value.currency) === 'JPY' && value.amount_exponent !== 0 && !(legacyUnitless && value.amount_exponent === undefined))
+  if (currency === 'JPY' && value.amount_exponent !== 0 && !(legacyUnitless && value.amount_exponent === undefined))
     throw new Task21Error('日元来源单位需要明确确认',409,'currency_unit_review_required');
   if (value.amount_exponent !== undefined) {
-    let digits;try{digits=currencyDigits(cleanCurrency(value.currency))}catch{throw new Task21Error('未知币种单位需要核实',409,'currency_unit_review_required')}
+    let digits;try{digits=currencyDigits(currency)}catch{throw new Task21Error('未知币种单位需要核实',409,'currency_unit_review_required')}
     if(value.amount_exponent !== digits)throw new Task21Error('来源金额单位冲突',409,'currency_unit_review_required');
   }
   let currencyRoles;
@@ -241,15 +242,15 @@ export function normalizeNotificationEvent(value = {}, {legacyUnitless=false} = 
     direction,
     amount_minor: amountMinor,
     ...(currencyRoles ? { currency_roles: currencyRoles } : {}),
-    currency: cleanCurrency(value.currency),
-    ...(cleanCurrency(value.currency) === 'JPY' && value.amount_exponent === 0 ? { amount_exponent: 0 } : {}),
+    currency,
+    ...(currency === 'JPY' && value.amount_exponent === 0 ? { amount_exponent: 0 } : {}),
     payment_channel: paymentChannel,
     provider_reference: providerReference,
     lifecycle_identity: lifecycleIdentity,
     lifecycle_operation: lifecycleOperation, lifecycle_revision: lifecycleRevision,
     financial_phase: financialPhase, lifecycle_reference: lifecycleReference,
     reference_namespace: referenceNamespace, currency_evidence: currencyEvidence,
-    identity_review_reason: identityReviewReason || (evidenceCodes.length > 1 ? "currency_evidence_conflict" : ""),
+    identity_review_reason: identityReviewReason || (evidenceCodes.length > 1 ? "currency_evidence_conflict" : currency==='XXX'&&amountMinor>0 ? 'currency_unverified' : ''),
     merchant,
     counterparty,
     confidence,

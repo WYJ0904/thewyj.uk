@@ -5,6 +5,7 @@ import json
 import hashlib
 import os
 import subprocess
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -46,14 +47,15 @@ jobs = [
     ('legacy-browser-release', 'qa/finance-p03/finish/legacy-browser.mjs'),
     ('provider-identity-final', 'qa/finance-p03/finish/provider-identity.mjs'),
 ]
-jobs += [(name,'qa/finance-p04/'+name+'.mjs') for name in ['money','oracle','fx','contracts','default-currency','migrations','review-migrations','browser','live-fx']]
+jobs += [(name,'qa/finance-p04/'+name+'.mjs') for name in ['money','oracle','fx','contracts','default-currency','migrations','review-migrations','browser','live-fx','raw-transport','unit-review']]
 if '--p04-only' in sys.argv: jobs=[row for row in jobs if row[1].startswith('qa/finance-p04/') and row[0]!='aeris-dom']
 if '--only' in sys.argv:
     selected=set(sys.argv[sys.argv.index('--only')+1].split(','))
     jobs=[row for row in jobs if row[0] in selected]
     assert {row[0] for row in jobs}==selected
 results = []
-for name, script in jobs:
+def run_job(job):
+    name,script=job
     output = BASE / ('p02-web' if name.startswith('p02-') else name)
     environment = dict(os.environ, FINANCE_P03_OUTPUT=str(output), FINANCE_P04_OUTPUT=str(output))
     environment.pop('P03_FROZEN_OUTPUT_PREFIX', None)
@@ -66,12 +68,18 @@ for name, script in jobs:
     log = BASE / f'{name}.log'
     with log.open('x') as stream:
         completed = subprocess.run(command, cwd=ROOT, env=environment, stdout=stream, stderr=subprocess.STDOUT)
-    results.append(dict(name=name, command=command, output=str(output.relative_to(ROOT)),
-                        started_utc=started, finished_utc=datetime.now(timezone.utc).isoformat(),
-                        exit_code=completed.returncode, expected_red=name in {'p02-web', 'p02-dom'},
-                        log=str(log.relative_to(ROOT))))
-    manifest.write_text(json.dumps(results, indent=2) + '\n')
-    print(f'{name}: exit {completed.returncode}', flush=True)
+    return dict(name=name,command=command,output=str(output.relative_to(ROOT)),started_utc=started,
+                finished_utc=datetime.now(timezone.utc).isoformat(),exit_code=completed.returncode,
+                expected_red=name in {'p02-web','p02-dom'},log=str(log.relative_to(ROOT)))
+workers=int(os.environ.get('FINANCE_NODE_WORKERS','1'))
+assert 1<=workers<=3
+with ThreadPoolExecutor(max_workers=workers) as pool:
+    pending=[pool.submit(run_job,job) for job in jobs]
+    for future in as_completed(pending):
+        row=future.result();results.append(row)
+        manifest.write_text(json.dumps(results,indent=2)+'\n')
+        print(f"{row['name']}: exit {row['exit_code']}",flush=True)
+
 after=source_manifest()
 (BASE/'node-source-lock.json').write_text(json.dumps(dict(before=before,after=after,source_stable=before==after,head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()),indent=2)+'\n')
 sys.exit(int(before!=after or any(row['exit_code'] for row in results if not row['expected_red'])))

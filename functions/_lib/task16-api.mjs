@@ -156,6 +156,11 @@ async function execute(context, path, account) {
       const receipt = typeof operation?.operation_id === 'string' ? await db.prepare('SELECT operation_id FROM task16_finance_sync_operations WHERE user_id=?1 AND operation_id=?2').bind(account.id,operation.operation_id).first() : null;
       if (receipt) continue;
       requireMoneyCapability(context,operation?.payload,Task16Error);
+      if(operation?.type==='raw_event.ingest' && moneyCapability(context)<2)
+        throw new Task16Error('请升级客户端后提交原始交易金额和币种',409,'currency_client_upgrade_required');
+      if(moneyCapability(context)>=2 && ['transaction.upsert','budget.upsert'].includes(operation?.type) &&
+        (typeof operation?.payload?.currency!=='string'||!operation.payload.currency.trim()))
+        throw new Task16Error('请明确选择币种',400,'currency_required');
       if (typeof operation?.entity_id === 'string' && typeof operation?.type === 'string' && operation.type.startsWith('transaction.')) {
         const existing = await db.prepare('SELECT * FROM task16_finance_transactions WHERE user_id=?1 AND id=?2').bind(account.id,operation.entity_id).first();
         requireMoneyCapability(context,existing,Task16Error);

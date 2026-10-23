@@ -7,6 +7,7 @@ import java.net.URL
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.Base64
+import java.util.concurrent.ConcurrentHashMap
 import org.json.JSONObject
 
 data class IngestResponse(val ok: Boolean, val status: Int, val body: String)
@@ -18,6 +19,8 @@ data class QueuedNotificationRequest(
     val attempts: Int = 0,
     /** Server error code/reason of the last rejection, shown to the user. */
     val lastError: String = "",
+    /** Durable one-time retry after upgrading the money transport capability. */
+    val currencyCapabilityRetry: Int = 0,
 )
 
 interface NotificationIngestTransport {
@@ -180,7 +183,7 @@ class HttpNotificationIngestTransport(
 }
 
 class OfflineNotificationQueue(private val file: File) {
-    private val lock = Any()
+    private val lock = fileLocks.computeIfAbsent(file.canonicalPath) { Any() }
 
     private fun encode(value: String): String = Base64.getEncoder().encodeToString(value.toByteArray(Charsets.UTF_8))
     private fun decode(value: String): String = String(Base64.getDecoder().decode(value), Charsets.UTF_8)
@@ -297,6 +300,16 @@ class OfflineNotificationQueue(private val file: File) {
 
     fun pendingCount(): Int = synchronized(lock) { readRequestsLocked().size }
 
+    fun retryCurrencyProtocolUpgrades():List<QueuedNotificationRequest> = synchronized(lock) {
+        val entries=readRequestsLocked()
+        val updated=entries.map { current ->
+            if(current.attempts>=MAX_UPLOAD_ATTEMPTS&&current.lastError=="currency_client_upgrade_required"&&current.currencyCapabilityRetry<3)
+                current.copy(attempts=0,lastError="",currencyCapabilityRetry=3) else current
+        }
+        if(updated!=entries)writeAllLocked(updated)
+        updated
+    }
+
     fun clearForAccount(accountId: String) {
         synchronized(lock) {
             writeAllLocked(emptyList())
@@ -316,9 +329,11 @@ class OfflineNotificationQueue(private val file: File) {
                     // attempts/lastError are optional trailing columns so
                     // queues written by older builds keep loading.
                     val attempts = parts.getOrNull(3)?.let { decode(it).toIntOrNull() } ?: 0
-                    val lastError = parts.getOrNull(4)?.let { decode(it) }.orEmpty()
+                    val errorWire = parts.getOrNull(4)?.let { decode(it) }.orEmpty()
+                    val metadata=runCatching{JSONObject(errorWire)}.getOrNull()?.takeIf{it.optInt("currency_capability_retry")==3}
+                    val lastError=metadata?.optString("reason")?:errorWire
                     require(parts.size in 2..5 && path in ALLOWED_PATHS)
-                    QueuedNotificationRequest(operationId, path, body, attempts, lastError)
+                    QueuedNotificationRequest(operationId, path, body, attempts, lastError,metadata?.optInt("currency_capability_retry")?:0)
                 }.getOrNull()
             }
     }
@@ -333,7 +348,7 @@ class OfflineNotificationQueue(private val file: File) {
         val tmp = File(file.parentFile, file.name + ".tmp")
         val content = entries.joinToString("") {
             encode(it.operationId) + "\t" + encode(it.path) + "\t" + encode(it.body) + "\t" +
-                encode(it.attempts.toString()) + "\t" + encode(it.lastError) + "\n"
+                encode(it.attempts.toString()) + "\t" + encode(if(it.currencyCapabilityRetry>0)JSONObject().put("currency_capability_retry",it.currencyCapabilityRetry).put("reason",it.lastError).toString() else it.lastError) + "\n"
         }
         FileOutputStream(tmp).use { output ->
             output.write(content.toByteArray(Charsets.UTF_8))
@@ -356,6 +371,7 @@ class OfflineNotificationQueue(private val file: File) {
     }
 
     companion object {
+        private val fileLocks = ConcurrentHashMap<String, Any>()
         const val MAX_QUEUE_ENTRIES = 500
         /** Rejections before a payload is skipped instead of retried forever. */
         const val MAX_UPLOAD_ATTEMPTS = 5
@@ -363,7 +379,8 @@ class OfflineNotificationQueue(private val file: File) {
         const val DELETE_PATH = "/api/notification/events/delete"
         /** Unified pending-hint endpoint (Task 24.1 P0-3). */
         const val HINTS_PATH = "/api/notification/hints"
-        val ALLOWED_PATHS = setOf(INGEST_PATH, DELETE_PATH, HINTS_PATH)
+        const val CURRENCY_CONFIRM_PATH = "/api/notification/review/confirm"
+        val ALLOWED_PATHS = setOf(INGEST_PATH, DELETE_PATH, HINTS_PATH, CURRENCY_CONFIRM_PATH)
     }
 }
 

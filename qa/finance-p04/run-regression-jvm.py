@@ -22,7 +22,7 @@ if manifest.exists() and not trace_only:
 results = json.loads(manifest.read_text()) if trace_only and manifest.exists() else []
 
 def gradle(name, flavor, output, tests, trace=False):
-    qa = ROOT / ('qa/finance-p02' if flavor == 'p02' else 'docs/migration-evidence/finance-p03/final/compat-p03')
+    qa = ROOT/'qa/finance-p02' if flavor=='p02' else Path(os.environ.get('FINANCE_P03_COMPAT_ROOT',ROOT/'docs/migration-evidence/finance-p03/final/compat-p03'))
     launcher=['cmd.exe','/d','/c',str(ROOT/'android/gradlew.bat')] if os.name=='nt' else ['bash',str(ROOT/'android/gradlew')]
     command = launcher+['-p', 'android', '-I', str(qa / 'test.init.gradle'),
                f'-Dfinance.{flavor}.root={qa}', f'-Dfinance.{flavor}.output={BASE / output}']
@@ -60,10 +60,12 @@ def gradle(name, flavor, output, tests, trace=False):
 if trace_only:
     sys.exit(gradle('trace-five-corrected', 'p02', 'traces-corrected', ['*FinanceP03FinishTraceTest', '*FinanceP03FinishMigrationTest'], trace=True))
 
-gradle('trace-five', 'p02', 'traces', ['*FinanceP03FinishTraceTest', '*FinanceP03FinishMigrationTest'], trace=True)
-gradle('frozen-native', 'p02', 'frozen-native', ['*FinanceP02MatrixTest', '*FinanceP02TimingTest'])
-gradle('process-seed', 'p02', 'frozen-process', ['*FinanceP02SeedTest'])
-gradle('process-restore', 'p02', 'frozen-process', ['*FinanceP02RestoreTest'])
+bridge_only = sys.argv[sys.argv.index('--bridge-only')+1] if '--bridge-only' in sys.argv else None
+if not bridge_only:
+    gradle('trace-five', 'p02', 'traces', ['*FinanceP03FinishTraceTest', '*FinanceP03FinishMigrationTest'], trace=True)
+    gradle('frozen-native', 'p02', 'frozen-native', ['*FinanceP02MatrixTest', '*FinanceP02TimingTest'])
+    gradle('process-seed', 'p02', 'frozen-process', ['*FinanceP02SeedTest'])
+    gradle('process-restore', 'p02', 'frozen-process', ['*FinanceP02RestoreTest'])
 
 for name, profile, klass, server_script in [
     ('legacy-bridge', 'legacy', 'P03Bridge', 'qa/finance-p03/bridge-server.mjs'),
@@ -71,6 +73,7 @@ for name, profile, klass, server_script in [
     ('correction-bridge', 'phase-a', 'P03ABridge', 'qa/finance-p03/phase-a/bridge-server.mjs'),
     ('unified-bridge', 'phase-a', 'P03FinalBridge', 'qa/finance-p03/final/bridge-server.mjs'),
 ]:
+    if bridge_only and name!=bridge_only:continue
     if gradle(name + '-seed', 'p03', name, ['*' + klass + 'SeedTest']):
         continue
     output = BASE / name

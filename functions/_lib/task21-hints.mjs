@@ -1,5 +1,6 @@
 import {sourceUnitStatement,sourceExponent} from './finance-source-units.mjs';
 import {currencyDecisionStamp,hasCurrencyDecisions} from './finance-money-units.mjs';
+import {explicitReviewCurrency,finishReviewCurrency} from './finance-review-currency.mjs';
 import {
   Task21Error,
   cleanId,
@@ -468,7 +469,7 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
     const providerReference = cleanProviderReference(raw.provider_reference);
     const lifecycleIdentity = cleanLifecycleIdentity(raw.lifecycle_identity);
     const merchant = cleanText(raw.merchant, 160, "商户");
-    const currency = cleanText(raw.currency || "CNY", 8, "币种") || "CNY";
+    const currency = cleanText(raw.currency || "XXX", 8, "币种") || "XXX";
     const unit = await sourceUnitStatement(db,account.id,sourceEventId,currency,raw.amount_exponent);
     const confidence = Math.min(1000, nonNegativeInteger(raw.confidence || 0, "置信度", 1000));
     const evidence = cleanEvidence(raw.evidence);
@@ -847,11 +848,16 @@ export async function confirmNotificationHint(db, account, input) {
   const hintId = cleanId(input.hint_id, "待确认标识");
   const row = await hintById(db, account, hintId);
   const edits = input.edits && typeof input.edits === "object" && !Array.isArray(input.edits) ? input.edits : {};
-  requireAllowedFields(edits, new Set(["amount_minor", "direction", "merchant", "occurred_at_ms", "amount_exponent"]));
-  if (row.state === "confirmed") return { hint: publicHint(row), no_change: true, transaction_id: row.finance_entry_id };
+  requireAllowedFields(edits, new Set(["amount_minor", "direction", "merchant", "occurred_at_ms", "amount_exponent", "currency"]));
+  const currencyChoice=explicitReviewCurrency(edits);
+  if(currencyChoice&&!await hasCurrencyDecisions(db))throw new Task21Error('币种核实结构需要增量迁移',503,'currency_decision_schema_required',true);
+  if (row.state === "confirmed") {
+    if(currencyChoice)await finishReviewCurrency(db,account,input.device_id,row.finance_entry_id,currencyChoice,edits.amount_minor,edits.direction||row.direction);
+    return { hint: publicHint(row), no_change: true, transaction_id: row.finance_entry_id };
+  }
   if (row.state !== "pending") throw new Task21Error("该待确认记录不能确认", 409, "hint_state_invalid");
   const deviceId = cleanId(input.device_id, "设备标识");
-  if (row.currency === 'JPY' && await sourceExponent(db,account.id,row.source_event_id,row.currency) !== 0 &&
+  if (!currencyChoice && row.currency === 'JPY' && await sourceExponent(db,account.id,row.source_event_id,row.currency) !== 0 &&
       !(edits.amount_exponent === 0 && cleanAmount(edits.amount_minor) > 0))
     throw new Task21Error('请重新输入并确认日元原币金额',409,'currency_unit_review_required');
   const amountMinor = cleanAmount(edits.amount_minor) || cleanAmount(row.amount_minor);
@@ -870,8 +876,9 @@ export async function confirmNotificationHint(db, account, input) {
     fingerprint: "",
     direction,
     amount_minor: amountMinor,
-    currency: row.currency,
-    ...(row.currency === 'JPY' ? { amount_exponent: 0 } : {}),
+    currency: currencyChoice?.currency||row.currency,
+    ...(currencyChoice|| (row.currency==='JPY'?{amount_exponent:0}:{})),
+    ...(currencyChoice?{currency_review_required:false,manual_currency_source:{currency:row.currency,amount_minor:Number(row.amount_minor)}}:{}),
     merchant,
     counterparty: "",
     payment_channel: String(row.payment_channel || ""),
@@ -884,6 +891,7 @@ export async function confirmNotificationHint(db, account, input) {
   // A device may have booked this exact event between the page render and the
   // click. The booking is deduplicated by event identity, so the stored hint
   // must mirror the *existing* ledger entry rather than the just-typed values.
+  await finishReviewCurrency(db,account,deviceId,finance.transaction_id,currencyChoice,amountMinor,direction);
   let bookedAmountMinor = amountMinor;
   let bookedDirection = direction;
   let bookedMerchant = merchant;

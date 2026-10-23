@@ -3,6 +3,8 @@ import {applyPaymentReconciliation,reconciledIngestReceipt,recordPaymentUserDeci
 import { sha256Hex } from "./cloudflare-foundation.mjs";
 import { publicTransaction } from "./task16-model.mjs";
 import { unitStamp, currencyDecisionStamp, hasCurrencyDecisions } from './finance-money-units.mjs';
+import {SUPPORTED_CURRENCIES} from '../../js/finance/money.js';
+import {explicitReviewCurrency,finishReviewCurrency} from './finance-review-currency.mjs';
 import {lifecycleRows,lifecycleBalance,lifecycleReason,lifecycleGuardStatement,RECOVERABLE_LIFECYCLE_REASONS} from './task21-lifecycle.mjs';
 import {paymentReviewReason, financeReferenceProvider, financeReplayReference, referenceNamespaceForSource} from "./task21-event-safety.mjs";
 import {
@@ -252,7 +254,7 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
   const version = await nextFinanceVersion(db, account.id, now);
   const rawId = `raw:${crypto.randomUUID()}`;
   const transactionId = `txn:notif:${(await sha256Hex(`${account.id}\n${event.event_id}`)).slice(0, 48)}`;
-  await assertSourceUnit(db,account.id,event.event_id,event.currency,event.amount_exponent);
+  if(!event.manual_currency_source)await assertSourceUnit(db,account.id,event.event_id,event.currency,event.amount_exponent);
   const unitStatements = await unitStamp(db, transactionId, event.currency, event.currency === 'JPY' ? 0 : undefined);
   const decisionStatements = await currencyDecisionStamp(db,account.id,transactionId,event);
   // This token is a provider-issued reference, never a notification body.
@@ -260,7 +262,8 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
   const metadata = { capture_version: event.parser_version || "task21", payment_channel: event.payment_channel, source_package:event.source_package||'',
     lifecycle_operation:event.lifecycle_operation||'',lifecycle_revision:event.lifecycle_revision||0,
     financial_phase:event.financial_phase||'',lifecycle_reference:event.lifecycle_reference||'',reference_namespace:event.reference_namespace||'',currency_evidence:event.currency_evidence||'',
-    ...(event.currency_review_required ? { currency_review_required: true, currency_decision_source: event.currency_decision_source } : {}) };
+    ...(event.currency_review_required ? { currency_review_required: true, currency_decision_source: event.currency_decision_source } : {}),
+    ...(event.manual_currency_source ? {manual_currency_source:event.manual_currency_source}: {}) };
 
   const rawStatement = db.prepare(`INSERT INTO task16_finance_raw_events (
     id, user_id, device_id, source_type, source_event_id, source_provider, provider_reference,
@@ -320,6 +323,7 @@ export async function createAutomaticFinanceTransaction(db, account, deviceId, e
           amount_minor: event.amount_minor,
           currency: event.currency,
           ...(event.currency_review_required ? { currency_review_required: 1, currency_decision_source: event.currency_decision_source } : {}),
+          ...(event.manual_currency_source ? {currency_review_required:0,currency_decision_source:'user_confirmed'}:{}),
           ...(event.currency === 'JPY' ? { amount_exponent: 0 } : {}),
           category_id: "",
           merchant: event.merchant,
@@ -575,7 +579,7 @@ async function attachEventOutcome(db, account, event, deviceId, now) {
     .has(event.parser_version);
   // Parsed means the device observed completion. A complete-money candidate
   // remains reviewable; amount/direction or confidence cannot settle it.
-  const autoIngest = isTransactionLike && completionAware && !paymentReviewReason(event) && event.parse_status === "parsed" && Number(event.amount_minor) > 0
+  const autoIngest = isTransactionLike && SUPPORTED_CURRENCIES.includes(event.currency) && completionAware && !paymentReviewReason(event) && event.parse_status === "parsed" && Number(event.amount_minor) > 0
     && ["income", "expense", "refund"].includes(String(event.direction));
   const hasCanonicalReceipt = canonicalHint?.state === "confirmed" && canonicalHint.finance_entry_id;
   if (canonicalHint && (autoIngest || hasCanonicalReceipt)) {
@@ -896,7 +900,12 @@ export async function confirmNotificationCandidate(db, account, input) {
   // Validate edits before any early return so malformed input is always
   // rejected, even for an idempotent re-confirm.
   const edits = candidateEdits(input.edits);
-  if (row.status === "confirmed") return { candidate: publicNotificationCandidate(row), no_change: true };
+  const currencyChoice=explicitReviewCurrency(edits);
+  if(currencyChoice&&!await hasCurrencyDecisions(db))throw new Task21Error('币种核实结构需要增量迁移',503,'currency_decision_schema_required',true);
+  if (row.status === "confirmed") {
+    if(currencyChoice)await finishReviewCurrency(db,account,input.device_id,row.finance_transaction_id,currencyChoice,edits.amount_minor,edits.direction||row.direction);
+    return { candidate: publicNotificationCandidate(row), no_change: true };
+  }
   if (row.status !== "pending") throw new Task21Error("该候选不能确认", 409, "candidate_status_invalid");
   validateDeviceId(input.device_id);
   const event = await eventById(db, account, row.event_id);
@@ -906,7 +915,8 @@ export async function confirmNotificationCandidate(db, account, input) {
     throw new Task21Error('预授权或未完成清算不能记入正式支出',409,'payment_lifecycle_not_settled');
   if (event.financial_phase && (!event.lifecycle_reference || !event.provider_reference))
     throw new Task21Error('清算关联证据不足',409,'lifecycle_reference_missing');
-  if (event.identity_review_reason && !event.identity_review_reason.startsWith('identity_unproven_'))
+  const currencyReason=['currency_unverified','currency_review_required','currency_evidence_conflict','currency_symbol_ambiguous','currency_amount_unproven'].includes(event.identity_review_reason);
+  if (event.identity_review_reason && !event.identity_review_reason.startsWith('identity_unproven_') && !(currencyChoice&&currencyReason))
     throw new Task21Error('请先核对币种和交易关联',409,event.identity_review_reason);
   if(Number(event.lifecycle_revision)>1 || event.lifecycle_review_reason)
     throw new Task21Error('清算余额或版本证据仍需核实',409,event.lifecycle_review_reason||'lifecycle_revision_requires_reconciliation');
@@ -914,7 +924,7 @@ export async function confirmNotificationCandidate(db, account, input) {
   // A pending candidate may still be missing money fields (amount-unknown
   // hint). The user's edits are the only source that may fill them; an
   // incomplete candidate can never create a zero-amount transaction.
-  if (row.currency === 'JPY' && await sourceExponent(db,account.id,row.event_id,row.currency) !== 0 &&
+  if (!currencyChoice && row.currency === 'JPY' && await sourceExponent(db,account.id,row.event_id,row.currency) !== 0 &&
       !(edits.amount_exponent === 0 && edits.amount_minor > 0))
     throw new Task21Error('请重新输入并确认日元原币金额',409,'currency_unit_review_required');
   const amountMinor = edits.amount_minor || Number(row.amount_minor);
@@ -939,8 +949,9 @@ export async function confirmNotificationCandidate(db, account, input) {
     parse_status: "parsed",
     direction,
     amount_minor: amountMinor,
-    currency: row.currency,
-    ...(row.currency === 'JPY' ? { amount_exponent: 0 } : {}),
+    currency: currencyChoice?.currency||row.currency,
+    ...(currencyChoice|| (row.currency==='JPY'?{amount_exponent:0}:{})),
+    ...(currencyChoice?{manual_currency_source:{currency:event.currency,amount_minor:Number(event.amount_minor),currency_evidence:event.currency_evidence||'',currency_review_required:Number(event.currency_review_required)===1,currency_decision_source:event.currency_decision_source||''}}:{}),
     merchant: edits.merchant ?? row.merchant,
     counterparty: edits.counterparty ?? row.counterparty,
     payment_channel: row.payment_channel,
@@ -952,7 +963,7 @@ export async function confirmNotificationCandidate(db, account, input) {
     parser_version: "verified-on-device",
     lifecycle_operation:event.lifecycle_operation||'',lifecycle_revision:event.lifecycle_revision||0,
     financial_phase:event.financial_phase||'',lifecycle_reference:event.lifecycle_reference||'',
-    reference_namespace:event.reference_namespace||'',currency_evidence:event.currency_evidence||'',identity_review_reason:'',
+    reference_namespace:event.reference_namespace||'',currency_evidence:currencyChoice?'':event.currency_evidence||'',identity_review_reason:'',
   };
   const now = isoNow();
   const alias = await first(db, `SELECT h.finance_entry_id FROM task21_notification_review_aliases a
@@ -967,6 +978,7 @@ export async function confirmNotificationCandidate(db, account, input) {
     finance = await createAutomaticFinanceTransaction(db, account, event.device_id, bookingEvent);
   }
   const editedFields = Object.keys(edits);
+  await finishReviewCurrency(db,account,event.device_id,finance.transaction_id,currencyChoice,amountMinor,direction);
   await db.batch([
     db.prepare(`UPDATE task21_notification_candidates SET status = 'confirmed',
       finance_transaction_id = ?2, edited_json = ?3,
@@ -1060,17 +1072,18 @@ function candidateEdits(value) {
     throw new Task21Error("修改内容无效", 400, "candidate_edits_invalid");
   }
   try {
-    const allowed = new Set(["amount_minor", "direction", "merchant", "counterparty", "occurred_at_ms", "note", "amount_exponent"]);
+    const allowed = new Set(["amount_minor", "direction", "merchant", "counterparty", "occurred_at_ms", "note", "amount_exponent", "currency"]);
     for (const key of Object.keys(value)) {
       if (!allowed.has(key)) throw new Task21Error("修改内容无效", 400, "candidate_edits_invalid");
     }
     const edits = {};
+    if(value.currency!==undefined){if(!Number.isSafeInteger(value.amount_minor))throw new Task21Error('请重新输入金额',400,'candidate_edits_invalid');edits.currency=value.currency;}
     if (value.amount_exponent !== undefined) {
       if (value.amount_exponent !== 0 && value.amount_exponent !== 2) throw new Task21Error('金额单位无效',400,'candidate_edits_invalid');
       edits.amount_exponent = value.amount_exponent;
     }
     if (value.amount_minor !== undefined) {
-      edits.amount_minor = positiveInteger(value.amount_minor, "金额", MAX_CLOCK_MS);
+      edits.amount_minor = positiveInteger(value.amount_minor, "金额", 10000000000000);
     }
     if (value.direction !== undefined) {
       const direction = String(value.direction || "").trim().toLowerCase();

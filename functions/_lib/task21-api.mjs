@@ -14,7 +14,12 @@ import {
   TASK21_SCHEMA_VERSION,
   Task21Error,
   normalizeNotificationEvent,
+  requireAllowedFields,
+  cleanId,
 } from "./task21-model.mjs";
+import {hasCurrencyDecisions} from './finance-money-units.mjs';
+import {explicitReviewCurrency} from './finance-review-currency.mjs';
+import {publicTransaction} from './task16-model.mjs';
 import {
   confirmNotificationCandidate,
   deleteNotificationEvent,
@@ -39,6 +44,7 @@ const ROUTES = new Map([
   ["GET /api/notification/events", { mode: "read", body: 0, limit: 120, window: 60 }],
   ["GET /api/notification/candidates", { mode: "read", body: 0, limit: 120, window: 60 }],
   ["POST /api/notification/candidates/confirm", { mode: "write", body: 16 * 1024, limit: 30, window: 60 }],
+  ["POST /api/notification/review/confirm", { mode: "write", body: 16 * 1024, limit: 30, window: 60 }],
   ["POST /api/notification/candidates/reject", { mode: "write", body: 16 * 1024, limit: 30, window: 60 }],
   ["POST /api/notification/events/delete", { mode: "write", body: 16 * 1024, limit: 60, window: 60 }],
   ["POST /api/notification/hints", { mode: "write", body: 64 * 1024, limit: 60, window: 60 }],
@@ -53,6 +59,7 @@ const FINANCE_RECOGNITION_PATHS = new Set([
   "/api/notification/ingest",
   "/api/notification/candidates",
   "/api/notification/candidates/confirm",
+  "/api/notification/review/confirm",
   "/api/notification/candidates/reject",
   "/api/notification/hints",
   "/api/notification/hints/confirm",
@@ -196,6 +203,27 @@ async function execute(context, path, account) {
   }
   if (path === "/api/notification/ingest") {
     return response({ ok: true, ...await ingestNotificationEvents(db, account, payload), build: TASK21_BUILD }, 200, context);
+  }
+  if(path==='/api/notification/review/confirm') {
+    requireAllowedFields(payload,new Set(['event_id','device_id','edits']));
+    if(moneyCapability(context)<3)throw new Task21Error('请升级客户端后确认原币币种',409,'currency_client_upgrade_required');
+    if(!await hasCurrencyDecisions(db))throw new Task21Error('币种核实结构需要增量迁移',503,'currency_decision_schema_required',true);
+    const eventId=cleanId(payload.event_id,'事件标识'),deviceId=cleanId(payload.device_id,'设备标识');
+    const choice=explicitReviewCurrency(payload.edits||{});
+    if(!choice)throw new Task21Error('请明确选择币种并重新输入金额',409,'currency_amount_confirmation_required');
+    const summary=await notificationPendingSummary(db,account,{event_ids:eventId});
+    const rows=summary.records.filter(row=>([row.event_id,...(row.event_ids||[])]).includes(eventId));
+    if(rows.length!==1)throw new Task21Error('原事件尚未完成同步，确认请求已保留',503,'currency_review_source_not_ready',true);
+    const row=rows[0];let id=row.transaction_id;
+    if(row.state==='pending') {
+      const result=row.kind==='hint'?await confirmNotificationHint(db,account,{hint_id:row.id,device_id:deviceId,edits:payload.edits}):
+        row.kind==='candidate'?await confirmNotificationCandidate(db,account,{candidate_id:row.id,device_id:deviceId,edits:payload.edits}):null;
+      id=result?.transaction_id||result?.candidate?.finance_transaction_id||result?.hint?.finance_entry_id;
+    }else if(row.state!=='confirmed')throw new Task21Error('原事件已经终结，请核对记录',409,'currency_review_terminal');
+    const transaction=id?await db.prepare("SELECT * FROM task16_finance_transactions WHERE user_id=?1 AND id=?2 AND status='active'").bind(account.id,id).first():null;
+    if(!transaction||transaction.currency!==choice.currency||Number(transaction.amount_minor)!==payload.edits.amount_minor||
+      (payload.edits.direction&&transaction.direction!==payload.edits.direction))throw new Task21Error('已有账目与本次确认不一致，请核对记录',409,'currency_receipt_conflict');
+    return response({ok:true,operation_results:[{event:{event_id:eventId},transaction_id:id,transaction:publicTransaction(transaction),candidate_id:row.kind==='candidate'?row.id:'',duplicate:row.state==='confirmed'}]},200,context);
   }
   if (path === "/api/notification/candidates/confirm") {
     return response({
