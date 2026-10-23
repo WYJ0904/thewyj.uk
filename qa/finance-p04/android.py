@@ -13,12 +13,22 @@ import xml.etree.ElementTree as ET
 ROOT=Path(__file__).resolve().parents[2]
 parser=argparse.ArgumentParser()
 parser.add_argument('--tests', action='append', default=[])
+parser.add_argument('--qa-root')
+parser.add_argument('--qa-output')
 args=parser.parse_args()
 OUT=Path(os.environ['FINANCE_P04_OUTPUT']).resolve()
 assert OUT.is_relative_to(ROOT/'docs/migration-evidence/finance-p04')
 OUT.mkdir(parents=True,exist_ok=False)
 launcher=['cmd.exe','/d','/c',str(ROOT/'android/gradlew.bat')] if os.name=='nt' else ['bash',str(ROOT/'android/gradlew')]
-command=launcher+['-p',str(ROOT/'android'),':app:testDebugUnitTest']
+command=launcher+['-p',str(ROOT/'android')]
+qa_root=Path(args.qa_root).resolve() if args.qa_root else None
+if qa_root:
+    assert qa_root.is_relative_to(ROOT/'docs/migration-evidence/finance-p04')
+    qa_output=Path(args.qa_output).resolve() if args.qa_output else OUT
+    assert qa_output.is_relative_to(ROOT/'docs/migration-evidence/finance-p04')
+    qa_output.mkdir(parents=True,exist_ok=True)
+    command+=['-I',str(qa_root/'test.init.gradle'),f'-Dfinance.p02.root={qa_root}',f'-Dfinance.p02.output={qa_output}']
+command+=[':app:testDebugUnitTest']
 for pattern in args.tests: command+=['--tests',pattern]
 if not args.tests: command+=[':app:lintDebug',':app:assembleDebug']
 if not args.tests: command+=['--continue']
@@ -33,6 +43,8 @@ def source_manifest():
     names=subprocess.check_output(['git','ls-files','-z','--cached','--others','--exclude-standard'],cwd=ROOT).decode().split('\0')
     files={name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in sorted(set(names))
            if name and (name.startswith('android/') or name.startswith('qa/finance-p04/fixtures/')) and (ROOT/name).is_file()}
+    if qa_root:
+        files.update({p.relative_to(ROOT).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(qa_root.rglob('*')) if p.is_file()})
     return dict(files=files,sha256=hashlib.sha256(json.dumps(files,sort_keys=True).encode()).hexdigest())
 before=source_manifest()
 head_before=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()

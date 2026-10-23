@@ -1,173 +1,229 @@
 # FINANCE-P04 统一最终报告
 
-2026-10-22，Asia/Hong_Kong。**P04 = PARTIAL；已完成当前授权范围内的非生产实现、
-修复和可执行验收。** 原冻结 18 项为 12 PASS / 6 EXPECTED_RED，原 607 中的冻结
-Chrome 缺币种 fixture 仍首项失败；不以派生测试代替原合同，不将部分通过标为 COMPLETE。
-P03 仍为 PARTIAL，详见 [P03 统一报告](../finance-p03/FINANCE_P03_FINAL_REPORT.md)。
+2026-10-23，Asia/Hong_Kong。**P04 = PARTIAL；本轮授权的非手机实现、修复和验证已完成并本地交付。** 原18项业务合同已验证18 PASS；原607仍602 PASS/5 FAIL，P03原26仍4 FAIL/22 EXPECTED_RED，不能宣布整体COMPLETE。没有以合成数据替代真实交易验收。
 
-## 来源、继承和本轮边界
+## 来源和执行边界
 
-所有者明确撤销 `PAUSED_FOR_WINDOWS_HANDOFF`，要求同一云端线程继续单一 P03
-收尾及完整 P04。没有分拆审批阶段、重做旧 main 或因没有手机而停下安全工程。
-继承链为原 P03 `5d96e1ee5d2064076bd0efa59eed86edb9b1c4cc` → 云端 P03 收口
-`dd5fc98b3ac636830a3517e2eae11fad14031b07` → 普通分支
-`codex/finance-p04-multicurrency`。最终本地提交的 SHA/tree 由证据根 `REVISION.json`
-固定，避免报告自引用提交哈希。
+本地接回云端完整代码/证据后执行，云端没有继续接收开发任务。隔离工作树 `C:\Users\78252\.codex\worktrees\finance-p04-multicurrency\thewyj.uk`，分支`codex/finance-p04-multicurrency`。继承`5d96e1e → dd5fc98b → 3b710e3 → 1abeba2 → 02cc8e3 → 70ee5a3 → 1979fcb → 94ab0fc82bc5b21b4f04237ff110574d10da565c`。产品验收源码SHA为 `94ab0fc82bc5b21b4f04237ff110574d10da565c`；后续仅QA路径/报告提交由REVISION.json固定，避免文档自引用。P03仍统一于[同一份报告](../finance-p03/FINANCE_P03_FINAL_REPORT.md)。
 
-恢复前实际命令核对 HEAD/分支及检查点：77 个源码、1033 个证据、1118 个包内文件
-全部 SHA-256 一致、ZIP CRC 通过；检查点 ZIP SHA-256 为
-`8cad65e0922211dc803b20f82a7c9e1f8b88d376159b63ccc56b585dd8d5eb81`。
-Windows 所有者提供的只读核验与本机一致；Windows 没有反向产品改动需要导入。
-原检查点和全部失败日志保留；没有 reset、clean、stash 或覆盖 Windows 工作树。
+完整handoff ZIP SHA-256 `b18fad4b0d6be6582272360d1c01ad79e2fed9bcb9ff8f5f7e53450785813294`，增量bundle SHA-256 `171a0f42cecc8b1dcef1df11871da686c097116bb4f56f90f85be7dd561848bc`。已验证87源码blob与1888证据副本，CRLF差异不当作产品差异。旧Windows检查点和P01/P02历史结论不改。原始JUnit身份另从Windows受保护P03旧目录只读核对，历史PASS不计新通过。
 
-本轮只用隔离云端、本地合成账号/D1/R2、JVM/Robolectric 和 Chromium。未运行 ADB、
-模拟器、手机、APK 安装、权限/监听恢复、真实金融或聊天数据、Production D1/R2、
-正式签名/部署/Stable/push/PR/merge/发布；未读取根目录 `访问口令.txt`。
-未进入 P05/P06 或实施财务 AI/OCR；旧 OCR 的默认币种推断仅加防误解释门槛，
-测试使用合成 enrichment 对象，没有调用真实 OCR。
+本轮仅在 Windows 隔离工作树完成非手机工程；不读取正式交易/聊天/私库，不操作 ADB、手机、正式 App/权限、Production、签名、推送、PR、合并或发布。P05/P06 未开发。D-01/D-02 保持 CLOSED；P03 另一个历史 Activity 异常仍为 INCONCLUSIVE，未用新的通过结果解释其根因。
 
-## 最终行为及实现
+原 607 的实际结果为 **602 PASS / 5 FAIL**（588 JVM 中585 PASS/3 FAIL，13 Node PASS，6 Chrome 中4 PASS/2 FAIL；全部执行，无 NOT_RUN）。标准 JVM **716 PASS / 6 FAIL**，其中原681为675 PASS/6 FAIL，P04方法41 PASS（本地新增17，云端原有24，已包含在722中）。这些集合重叠，禁止相加。
 
-| 领域 | 交付行为与安全约束 |
+原冻结驱动608行 **549 PASS / 8 FAIL / 28 EXPECTED_RED / 23 NOT_TESTED**。保留这份原样重放；另以相同原 fixture/expected/oracle、正确传入原声明参数的版本化驱动复核 P04 后，合同608为 **555 PASS / 8 FAIL / 22 EXPECTED_RED / 23 NOT_TESTED**。两份不是同一个执行结果，不互相覆盖。原 P04 18 项合同 **18 PASS**；原样驱动仍是12 PASS/6 EXPECTED_RED，缺参修复和哈希证明见逐行账本。
+
+本轮完整统计及所有原始错误：[统计](../migration-evidence/finance-p04/local/final-r2/delivery-v2/summary.json)、[607逐项](../migration-evidence/finance-p04/local/final-r2/delivery-v2/original-607.json)、[原样608](../migration-evidence/finance-p04/local/final-r2/delivery-v2/frozen-608.json)、[合同复核608](../migration-evidence/finance-p04/local/final-r2/delivery-v2/contract-608.json)、[6个JVM失败](../migration-evidence/finance-p04/local/final-r2/delivery-v2/jvm-failures.json)。
+
+
+## 已实现的六币种与资金合同
+
+| 币种 | ISO小数位 | 持久化/精确计算/API/Web/Android |
+| --- | --- | --- |
+| CNY/USD/EUR/HKD/GBP | 2 | 全部已实现；各币种支出/收入/退款及清算经合成服务/D1验证 |
+| JPY | 0 | 明确零位；JPY整数不除100，过精度拒绝/保留待核实；旧未证单位不擅自重标 |
+
+每笔保留原ID、时间、来源、引用、原始金额与币种；交易/账户/展示币种及可空的识别默认币种分开。跨币种不直接累加，参考折算不改原账。JS用BigInt有理数，Kotlin用Long最小单位/BigDecimal换算；统一HALF_EVEN，只在最终目标单位舍入。输入严格精度，溢出/未知币种/缺金额/错误小数/科学计数等失败关闭，不默认为人民币。单笔业务上限沿用1e13最小单位；负值/退款/冲正的换算按精确规则，账务方向与金额绝对值分离。
+
+原币/清算/费用角色分别保存，不把授权或参考FX记成支出；多次Capture、部分清算、解除/过期、退款及剩余冻结按P03来源/版本合同处理，同币种内核算净支出与冻结。新币种/展示设置不能构造独立交易身份、清除P03待核实或绕过提供方证明。旧请求、人工修改、原账ID、关系、Outbox和回执控制保持。
+
+本地新增修复：
+
+1. Android hook的policy2不再取决于是否注入Room store；无账户结果不猜CNY。对可信已归属引用的重投冻结原币种决议，偏好变化不另生成记录；不把引用或币种当作独立Capture证明。
+2. 默认币种只是账户决议，不冒充通知中的ISO证据。持久化`currency_review_required/decision_source`，可靠支付可先入账并非阻塞提醒；通知拒绝不消耗提醒，成功后重复/重启不再提醒。人工明确编辑和精确当前回执清除标记，旧账户/旧epoch不能覆盖新状态。
+3. 仍可调用的raw_event.ingest改走精确金额/币种路径：修复缺币种猜CNY、USD多位小数截断、JPY整数不能使用的问题；有默认时记录来源，无默认时保留未知/待核实。金额恢复仍需原完成语义，不把预计收入、退款申请当实付。旧纯函数兼容默认1只用于冻结/历史调用，实际写入路径固定policy2。
+4. Web未知币种编辑器要求显式选择并重新输入金额，源事件不改；Android用独立持久化`/api/notification/review/confirm`命令确认canonical原事件，不重写旧ingest。已确认后旧命令与新人工金额冲突时409，不能覆盖或另入账；提供方语义/预授权门槛不因选币种放松。
+5. 同一文件的多个队列实例共用锁；60并发操作完整保留。旧协议拒绝到上限可持久化地仅重试一次capability3，仍拒绝则停止；五列格式、原body/ID不改。空200/错金额/错币种/错事件不能吞掉货币确认请求。
+
+## FX提供方、缓存和历史
+
+采用公开合法、无key的Frankfurter v2 daily reference适配器，接口`/v2/rate/{base}/{quote}?date=YYYY-MM-DD`；来源是市场参考，**不是银行/支付通道成交汇率**。源码保存精确十进制lexeme，验证币种对、类型、日期、正数及范围；参考日期按交易UTC日，允许此前营业日最多7日。保存base/quote/rate/source/rate_timestamp/fetched_at/expires_at/rounding与完整性hash，不重复覆盖交易事实。
+
+当前缓存6小时、同pair/date并发去重、完整性验证、安全更新、离线读取、历史引用按交易ID/revision/展示币种冻结。来源更新不修改旧引用，也不触发第二笔财务同步。同币种/正反向/交叉换算、负数/零/大小额/非法率和日期边界已有独立回归。缺失/过期且无法合法获取时明确不可用；不造1:1。Worker正文按64KiB流式限额及严格UTF-8，保留原8秒请求/7秒批次上限，未延长超时。12项公开提供方实读通过，另22项模拟缓存/错误/边界通过；合成率7等明确market_data=false，不当作真实行情或支付凭证。
+
+## Web及Android适配
+
+| 表面 | 已实施与覆盖 |
 | --- | --- |
-| 六币种和金额 | CNY/USD/EUR/HKD/GBP 保持 2 位、JPY 明确 exponent=0；严格十进制输入、整数最小单位、溢出拒绝；格式化不把 12345 JPY 除以 100 |
-| 统一舍入 | JS 用 BigInt 有理数，Android 用 BigDecimal；HALF_EVEN，正负对称，只在最终目标最小单位舍入；交叉汇率不经过中间金额二次舍入 |
-| 三类币种 | 原始交易币种、账户币种、展示币种独立；默认识别币种可为空，显式设置后按 revision 同步；未知/冲突符号进入核实，不偷偷设成 CNY |
-| 原币/清算/手续费 | 保留 original、settlement、fee 三种证据角色及零手续费；原币金额匹配来源，拒绝字符串 minor；角色不构造第二笔交易或新身份 |
-| Web 页面 | 手工交易/候选编辑、记录、首页/仪表盘、月份、分类、预算按原币或已保存参考显示；缺汇率显式分币和警告，不直接混币求和；旧 JPY 单位待核实 |
-| Web 离线 | 设置 CAS 冲突保留用户选择并要求重选；历史参考离线重开仍在；配额不足先移除可重建 FX cache，原账/退款/待同步操作和 ID 保留 |
-| Service Worker | 缓存命名空间追加 finance-money-v2、预缓存 money.js、更新壳使用 no-store；真实 Chromium 验证旧缓存被更新，无版本/Stable 发布操作 |
-| Android | 实际通知/SMS hook 使用币种 policy 2；缓存账户默认币种、原币/单位/角色和参考；Verification/Hub/Archive 按原币格式化，未知 JPY 原金额不预填成已证零位单位 |
-| 识别边界 | 币种不授予 operation 身份或完成证明；已知币种与页面冲突拒绝；未知币种不接受旧 OCR 默认 CNY；明确页面币种可补证，仍保留人工核实、不自动记账 |
-| 同步/回执 | 新客户端携带 money capability 2；旧客户端读取/确认 JPY 要升级；精确旧回执先于新单位校验核验，原 body/ID/金额保留；新 unitless JPY 操作拒绝 |
+| 财务首页/余额/收支/月份 | 统一原币或明确参考折算；不可换算部分分币保留 |
+| 历史/详情/退款与冲正 | 原币/金额/关系保留，显示参考与来源，不重写ID和原事件 |
+| 分类/预算/剩余 | 币种分组和引用一致；缺汇率不显示虚假完整剩余；默认/展示变更失效缓存 |
+| 手工新增/修改 | 六币种选择、JPY零位、严格精度；人工优先及CAS仍有效 |
+| 待核实 | 未知币种不预选CNY、不预填未证单位；显式选择后重输金额；默认决议提醒可稍后更正 |
+| 同步/离线/缓存 | 原Outbox优先保留；FX配额清理不丢财务重放；过期/缺FX有明确提示 |
+| Service Worker | shell命名空间finance-money-v3，精度模块仍money_version2，传输capability3；旧缓存更新已由真实Chrome验证 |
+| Android原生链 | Kotlin金额模型、Room、Repo、通知/手工/离线队列、原币显示、UI线程与生命周期保护回归；真实手机/UI/锁屏行为NOT_TESTED |
 
-主要代码为 `js/finance/money.js`、finance controller/candidates/format、dashboard/
-home-widget、`functions/_lib/finance-{fx,money-units,source-units}.mjs`、Task16/21
-服务和 API，以及 `android/.../finance/` 和既有识别/缓存/UI 的窄范围接入。
-依赖声明、锁文件、Gradle wrapper、正式包名/版本/签名配置不变。
+## 增量迁移、兼容与可执行恢复边界
 
-## FX：真实来源、时间和不可变历史
+Room主库14→15保留旧单位事实，旧JPY为未证；15→16仅新增3个决议/通知字段，旧行默认false/空，不把历史人民币改币或再生成账。FX/人工币种决议库为新独立v1，**含不可丢的manual decisions/source units/default preferences，不能把它当纯可删缓存**。旧实体升级、全链、事务中断回滚/重试、重复打开、原ID/金额/时间/人工修改/回执/Outbox均验证。旧v14/v15 opener对16拒绝降级，没有清库。
 
-提供方为公开 **Frankfurter v2 daily reference**，使用官方 OpenAPI 的
-`GET https://api.frankfurter.dev/v2/rate/{base}/{quote}?date=YYYY-MM-DD`，无 API key。
-官方 README/OpenAPI 原件保留在证据目录。响应保留原十进制 lexeme，不先转二进制
-浮点；校验币种对、日期/前一营业日（最多 7 天）、正数、范围和响应类型。
-每请求超时最多 8 秒、批量参考总体 7 秒；并发去重、Web 每次有限批量、Android
-history warm 最多 12 条，不阻塞通知上传或 enrichment。
+D1用0031/0032/0033增量；当前Task16元数据5、Task21为9。0033只新增决议列并重建有效视图，不删表/重算旧账。12项前迁移/回执/恢复及8项新决议迁移全部通过，涵盖部分失败、重复DDL、旧服务器拒绝新库、精确老回执、新旧协议、完整逻辑恢复和独立SQLite重开。旧客户端不能静默读取外币/丢弃待核实标记；新服务仍可重放已验证旧body，未证JPY不自动缩放。
 
-可刷新 rate cache 为 6 小时，带 requested_date、rate_timestamp、fetched_at、
-expires_at、source、rounding 和完整性摘要。第一次保存的交易参考按
-账户/交易 ID/revision/展示币种固定；后续现价或 cache 变化不会重写历史。
-原交易改 revision 后才生成对应的新参考。历史参考保留源金额与换算结果用于
-复算校验；缺失、过期未保存、异常、离线和篡改不会回退到 1:1。
-所有折算标识为“参考”，不是交易执行价或银行成交汇率，不改原金额/币种/身份。
+实际跨两JVM恢复四个合成组件：主库16、FX/人工决议库1、五列Outbox、仅币种偏好SharedPreferences。先停止写入并关闭两库、等待队列和偏好落盘，再保存**同一账户/同一时点/版本+四文件SHA清单**，恢复前拒绝缺件、错账户或校验失败。两个JVM分别PID42184/36996，冷读取恢复决议/默认币种/原始未知值/历史引用与精确队列。凭据不在这四件中，恢复后另正常登录。
 
-早期 CONNECT 403 证据完整保留；本次公网实际已可达。最新 **12 项实时验证 PASS**：
-五种外币与 CNY 的双向 10 对、周末前营业日、真实 D1 cache 命中及历史参考不变。
-测试经既有环境代理调用产品适配器，记录实际 URL、起止 UTC、HTTP 状态、原公开
-响应和 SHA-256；没有关闭 TLS 或绕开代理。模拟 FX 18 项单列，不算实时提供方结果。
-这次公开汇率成功不代表真实支付 provider 身份证明、手机或 Production 验收。
+**Git回退不是数据库回退。** 只支持完整一致备份在同/更高兼容版本恢复；升级后有新账/新队列时禁止以旧快照配旧APK“回退”，也禁止清库、丢账或重建用户数据。服务端必须先完成隔离验证的5/9迁移及capability3接口，再考虑客户端放行；Production迁移/备份/部署和真正个人备份均NOT_TESTED、没有授权。本地Miniflare物理目录恢复与Production Time Travel不是一回事。
 
-## 数据迁移、旧队列与回退
+Windows QA另有已确认路径兼容问题：同脚本SHA/同105表快照SHA，253字符SQLite路径失败，217字符短路径通过；具体journal的MAX_PATH调用机制未取得Win32栈，标PROBABLE。框架现自动避开预计journal>=260的Windows运行目录，默认命令恢复/二进制复制/重开105表通过；初始失败与强制长路径FAIL、3次短路径PASS均保存。没有提高timeout、关FK或改数据/断言，也不把它归为Android/Samsung故障。
 
-- Room **14→15**：增加 `payment_money_units`，已知两位币种仅加单位证明，旧 JPY
-  不补零位、不缩放；原实体金额、ID、时间、回执/outbox 保留。新独立
-  `CurrencyReferenceDatabase` v1 保存参考、偏好、角色、来源单位和人工币种决定。
-  Pending cache 分别持久化 JPY exponent=0 与旧 null。
-- D1 **0031**：Task16=4、Task21=7，增加单位、偏好、rate/reference/role 表；旧 JPY
-  保持 NULL。**0032**：增加独立来源单位表并置 Task21=8；没有重写原事件/回执。
-  两次迁移只在本地合成库执行。实际 CLI 查询确认 Task16=4、Task21=8。
-- 新 JPY 创建/确认明确要求零位证明；旧 pending 须重输原币金额。已存在的旧
-  unitless JPY 精确回执跨两次迁移仍可重放，弱摘要旧回执逐字段比对原事实，
-  改金额拒绝。旧序列化队列原 body 不改写，不给未证旧操作补一个 0。
-- authoritative reconciliation（含 control 更正）在货币写入前检查 JPY 来源单位；
-  无证明只进入 pending，账本前后逐字节不变；合成可信 proof 测试仍与真实 provider
-  分开，默认公网调用不授予该权限。合法后继保留原交易 ID。
-- 真实 D1 batch 故障测试覆盖 DDL/金额一起回滚、无损重试、部分 column 不能提前
-  启用 JPY、重复无账本记录的 DDL 拒绝；完整逻辑备份恢复 **105 表**，独立 SQLite
-  integrity_check 及关闭/复制/重开 Miniflare 二进制状态通过。
+## 本轮实际回归
 
-回退结论：升级后的 Room/D1 不支持直接运行旧二进制写入。测试实证旧 Room14
-拒绝 schema15、旧 P03 服务拒绝升级后 D1。保留升级前合成快照和失败尝试，数据
-恢复应基于完整备份及合适版本进行验证；不能把 Git checkout 当数据库降级，也
-不能删除 ledger/outbox/用户编辑来通过测试。未声称完成真实 Cloudflare 备份或
-Time Travel、正式手机数据库恢复。
+| 集合 | 数量与结果 | 证据 |
+| --- | --- | --- |
+| HTTP_D1 | 39 PASS | [证据](../migration-evidence/finance-p04/local/final-r2/regression/contracts/contracts.json) |
+| migration_restore | 12 PASS | [证据](../migration-evidence/finance-p04/local/final-r2/regression/migrations/migrations.json) |
+| default_review_migration | 8 PASS | [证据](../migration-evidence/finance-p04/local/final-r2/regression/review-migrations/review-migrations.json) |
+| default_review | 11 PASS | [证据](../migration-evidence/finance-p04/local/final-r2/regression/default-currency/default-currency.json) |
+| Chromium | 18 PASS | [证据](../migration-evidence/finance-p04/local/final-r2/regression/browser/browser.json) |
+| live_FX | 12 PASS | [证据](../migration-evidence/finance-p04/local/final-r2/regression/live-fx/live-fx.json) |
+| raw_transport | 36 PASS | [证据](../migration-evidence/finance-p04/local/final-r2/regression/raw-transport/raw-transport.json) |
+| unit_review | 19 PASS | [证据](../migration-evidence/finance-p04/local/final-r2/regression/unit-review/unit-review.json) |
+| exact_money | 76 PASS | [证据](../migration-evidence/finance-p04/local/final-r2/regression/money.log) |
+| simulated_FX | 22 PASS | [证据](../migration-evidence/finance-p04/local/final-r2/regression/fx.log) |
+| independent_Decimal_oracle | 219 PASS | [证据](../migration-evidence/finance-p04/local/final-r2/regression/oracle.log) |
 
-## 最终验收计数
+标准722、原607、原681及P03重叠集结果见上文与P03统一报告。219为216个Decimal向量加3个边界检查，向量也在JVM方法内执行，不与方法数相加。Node34个脚本整组退出1的原因为原aeris-dom、旧无capability的Task21、P02原web/DOM目标红；其他独立脚本继续执行。只加capability3、不改原输入/221行断言的Task21独立重放全通过，不能覆盖原旧协议FAIL。
 
-证据根：[final-20261022](../migration-evidence/finance-p04/cloud/final-20261022/)。
-逐身份收集器 `qa/finance-p04/collect.py` 校验原 ID、fixture、集合大小与状态，
-禁止把历史 XML、零测试或派生 fixture 混入原始结果。
+Lint **0 Error/Fatal、86 Warning/12 Hint**；比云端76 Warning多出的10项均为依赖/SDK新版本提示，锁定依赖未改。Debug已实际构建（全组`--continue`），applicationId `uk.thewyj.app.debug`，version 1.3.37-debug/50；未安装。APK `83068276` bytes，SHA-256 **`cc73b16ae40271b2299621c0405f15b946f48df565ec9e55f3bf2076b80a3f6f`**，见 [完整构建记录](../migration-evidence/finance-p04/local/final-r2/android-current/command.json)。npm lock SHA `75f023a2e4a47d248d3246e1b3c7e4a86ab7e5739b105b37ca8320021a1fdeb3`；Node22.23.3、JDK21.0.10、SDK36/BuildTools36、Gradle9.4.1，未升级产品依赖。
 
-| 集合 | 最终结果与证据 |
-| --- | --- |
-| 完整 Android | **705 PASS**，其中受保护 P03 681、P04 新方法 24；同一集合内计数 |
-| Android Lint / Debug | BUILD SUCCESSFUL；0 Error/Fatal、76 Warning、12 Hint；完整 JUnit/Lint/命令已归档 |
-| 精确金额/汇总 | 76 PASS |
-| 模拟 FX 契约/缓存 | 18 PASS，不包含实时网络 |
-| 独立 Python Decimal oracle | 216 原向量 + 3 缺失/过期检查 = 219 PASS；Android 使用同向量，互有重叠 |
-| 本地 HTTP / D1 产品接口 | 35 PASS；真实环回 HTTP，不是直接 mock route |
-| D1 迁移/回执/恢复 | 12 PASS |
-| 实际 Chromium | 13 PASS，包含旧 unitless JPY 编辑、离线、配额、CAS 和真实 SW 更新 |
-| 实际公开 FX | 12 PASS；保存实际响应，无 mock 提供方 |
-| 原 607 | **601 PASS / 1 FAIL / 5 NOT_RUN**；588 JVM、13 Node、原 6 Chrome 首项失败 |
-| 补币种的独立六 Chrome | 6 PASS，原断言不变；不会覆盖上一行 |
-| P03 保护集合 | 63 / 41 / 99 / 79 各自全通过，不相加 |
-| 新 38 / 四组桥 | 38 PASS；桥 HTTP 请求 9 / 15 / 34 / 35；两个 JVM PID 不同 |
-| 二进制持久化 | 105 表内容和 sqlite_sequence 关闭/复制/重开一致 |
-| 冻结 608 | **550 PASS / 7 FAIL / 28 EXPECTED_RED / 23 NOT_TESTED**；原 fixture/ID 全部一致 |
-| 原冻结 P04 18 | **12 PASS / 6 EXPECTED_RED**，见逐行账本 |
+原18逐行输入/预期/故障/当前实际与责任见 [逐行账本](CURRENCY_18_LEDGER.md)。原26 P03业务目标仍红；E004/E007/E008是P05“已被合成用户领取/无符号0.01”旧文本语义故障，不伪装成金额引擎或新P04修复；`G-REUSED-014`新增FAIL及原607五FAIL明确保留。金额引擎能表示最小单位，不代表未获完成/币种证明的页面必须自动入账。
 
-以上方法、向量、浏览器用例、桥请求、原 607 和 P03 集合均可能重叠；**没有
-“总计通过数”**。冻结 native 的 7 个矩阵聚合 JUnit 方法因原红项仍退出 1，不能
-说该命令全绿；逐行业务状态独立保存。AI/OCR 的冻结失败/NOT_TESTED 未跨阶段处理。
+## 保护、残留和剩余授权
 
-Debug APK 仅作为构建证据，基础地址为 `https://isolated-finance.invalid`。
-SHA-256：`9c025a3fe520238ae993471dad2fbfcb5cda95e76a4f726686cabb40d18f68b7`。
-最终全量命令 UTC 为 02:57:28–02:59:06（香港 10:57:28–10:59:06），只运行一条
-Gradle，没有安装。前一次 705 的全量、桥/trace 另一源集和最终 705 份 JUnit 分别
-独立归档；最后只修新测试证据输出路径，原断言和产品代码不变后再跑完整三项。
+13组保护全部无变更（最终重复核验/完整哈希随provenance）。主工作区仍e2febc6的旧Hotfix分支及原dirty状态，Task26 waiver、Hotfix、D01/D02、P02原证据/材料和正式APK文件均保持；原P03工作树仍5d96e1e，未操作其tracked内容。正式设备/生产数据本身未读取，内容“完全没变”不能冒充已验证。
 
-## 冻结账本与残余缺口
+保留所有raw、失败/控制组、SQLite/物理副本、APK、源/证据SHA、原ZIP/bundle、必要夹具。build/node_modules为可重建本地缓存；三个人工隔离Chrome测试profile还在用户Temp中：删除被自动审批审查以“blocked by policy”拒绝，未给具体理由，未尝试其他删除方式；详见 [残留清单](../migration-evidence/finance-p04/local/final-r2/profile-cleanup-blocked.json)。没有删除手机文件或恢复正式监听。
 
-[18 项逐行账本](CURRENCY_18_LEDGER.md) 保留原输入、断言、旧错误、产品变化和实际
-新结果；[608 原始逐行结果](../migration-evidence/finance-p04/cloud/final-20261022/delivery-final-v2/frozen-608.json)
-及 [非 PASS 账本](../migration-evidence/finance-p04/cloud/final-20261022/delivery-final-v2/failure-ledger.json)
-不删除任何失败。只有 D012/D024、JPY 格式 2、混币纯函数 5、历史 2、缺汇率 1
-共 12 行从原 EXPECTED_RED 转 PASS；其余 596 行状态不变。
+尚需所有者最少处置：合法真实提供方独立操作/账户/版本/前驱证明；决定旧无币种冻结验收前提与P04新安全合同的冲突；以后单独授权真实通知/无障碍、RC-6、真实云持久化/幂等、真实MainActivity/三页面/后台锁屏、微信W01–W10及个人备份验证。所有这些真实业务项 **NOT_TESTED**；本轮没有自动支付/消息/无关聊天读取或生产财务写入。P03/P04均不具备整体COMPLETE关闭条件，停止等待所有者审核，不进入P05/P06。
 
-仍为红的六项有明确边界：D004/D008/D016/D020 的冻结驱动没有传 fixture 声明的
-default_currency，且运行 compatibility policy 1，所以仍得到 CNY；新实际 hook
-使用 policy 2 和账户默认上下文，独立六条转发测试保留同输入/expected 后通过。
-DW-DOM-MIXED-budget/category 的驱动没有把 synthetic_rate 交给 controller，却只
-用 `/800/` 判定，虽然期望描述接受分币。产品明确分 CNY/USD、显示待折算；缺失
-汇率时不从fixture外层或商户文本硬编码 7。原驱动/断言保持不动，六项不冒充通过。
+## 修改文件与提交
 
-原 607 的 Chrome fixture 缺 currency，当前正确显示未知/待核实，原 `/1.23/`
-首断言真实失败，后五项未运行。另一个派生重放只给合成 fixture 明确 CNY、原
-六断言不变并通过；它不覆盖原冻结结果。P03 原 26 条缺少可信 operation ID/
-revision/前驱关系，保持 4 FAIL/22 EXPECTED_RED；历史 Activity 故障仍待真实
-失败现场证据，不推断根因。外部支付业务门槛未满足，P03/P04 均保持 PARTIAL。
+以下为相对P03原5d96e1e的继承变更及本轮QA/报告文件；产品源码固定94ab0fc，最终本地QA/报告提交见[REVISION](../migration-evidence/finance-p04/local/final-r2/REVISION.json)及[完整SHA封存](../migration-evidence/finance-p04/local/final-r2/provenance.json)。未修改主工作区/Task26，没有push、PR、merge或发布。
 
-## 失败保留、环境和可复现入口
-
-检查点两项 `CurrencyWireAndEnrichmentTest` 失败已通过真实 restartVerification
-入口修复 fixture，保留所有原金额/币种/不自动记账断言。初次修正又暴露 fixture
-同一毫秒内两个 ticket 的选择问题，推进合成时钟后 9 项 targeted 通过；最终
-705 重跑通过。不是延长票据、放松身份或修改原冻结预期。
-
-完整失败/修正过程见 [execution-notes.json](../migration-evidence/finance-p04/cloud/final-20261022/execution-notes.json)：
-旧 USERPROFILE 映射错误、旧 CDP 进程/锁、直播测试新驱动键名错误、原矩阵红灯及
-各早期 Android/Room 失败均保留，后续结果使用新目录。后两类驱动修正没有改产品
-汇率值或断言真值。较早 702 PASS 的结果与 APK 保持历史，不作最终源码证据。
-
-依赖和工具实际为 Node22.23.3、完整 JDK21.0.12.1+1、SDK36/Build Tools36、
-锁定 Gradle9.4.1、Chromium；Android 不是可选项。只服务 allowlist Pages staging，
-独立随机 `.dev.vars` 不输出/提交。本地 API 注册/登录/撤销、越权拒绝和 Chromium
-登录 UI 已验证；CLI schema 查询确认 4/8。环境草稿已保存最新 schema 和说明，
-未应用/发布环境配置，不保证新 VM 可从远端 main 还原本地未推送提交。
-
-[完整命令与日志索引](VALIDATION_COMMANDS.md)、最终 `provenance.json`、
-`command-inventory.json`、`REVISION.json` 保存在统一证据根。历史保护/只读 Windows
-核验按来源披露，不算本轮生产或真机 PASS。完成本地提交后等待所有者审核，
-不执行任何远端写入或发布。
+- `android/app/schemas/uk.thewyj.app.finance.CurrencyReferenceDatabase/1.json`
+- `android/app/schemas/uk.thewyj.app.task21.store.NotificationDatabase/15.json`
+- `android/app/schemas/uk.thewyj.app.task21.store.NotificationDatabase/16.json`
+- `android/app/src/main/java/uk/thewyj/app/core/network/ThewyjApiClient.kt`
+- `android/app/src/main/java/uk/thewyj/app/finance/CurrencyDecision.kt`
+- `android/app/src/main/java/uk/thewyj/app/finance/CurrencyLedgerUnits.kt`
+- `android/app/src/main/java/uk/thewyj/app/finance/CurrencyMoney.kt`
+- `android/app/src/main/java/uk/thewyj/app/finance/CurrencyReferenceDatabase.kt`
+- `android/app/src/main/java/uk/thewyj/app/finance/CurrencyReferenceRepository.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/NotificationCaptureContracts.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/NotificationCaptureCoordinator.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/NotificationIngestClient.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/payment/AndroidPaymentRecognitionHook.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/payment/CanonicalPendingCache.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/payment/LocalPaymentBooking.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/payment/LocalPaymentLedger.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/payment/PaymentHintSync.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/payment/PaymentPageSemantics.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/payment/PaymentRecognitionCoordinator.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/payment/PaymentRecognitionModel.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/payment/PaymentRecords.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/payment/PaymentVerificationCenter.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/payment/SourceParsers.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/payment/ThewyjPaymentAccessibilityService.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/store/NotificationDatabase.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/store/PaymentEntities.kt`
+- `android/app/src/main/java/uk/thewyj/app/task21/store/PaymentRecognitionStore.kt`
+- `android/app/src/main/java/uk/thewyj/app/ui/NotificationArchiveScreen.kt`
+- `android/app/src/main/java/uk/thewyj/app/ui/NotificationHubScreen.kt`
+- `android/app/src/main/java/uk/thewyj/app/ui/PaymentVerificationScreen.kt`
+- `android/app/src/main/java/uk/thewyj/app/ui/PaymentVerificationState.kt`
+- `android/app/src/test/java/uk/thewyj/app/finance/CurrencyDefaultReviewTest.kt`
+- `android/app/src/test/java/uk/thewyj/app/finance/CurrencyFrozenDefaultsTest.kt`
+- `android/app/src/test/java/uk/thewyj/app/finance/CurrencyLedgerMigrationTest.kt`
+- `android/app/src/test/java/uk/thewyj/app/finance/CurrencyMoneyTest.kt`
+- `android/app/src/test/java/uk/thewyj/app/finance/CurrencyReferenceRoomTest.kt`
+- `android/app/src/test/java/uk/thewyj/app/finance/CurrencyReviewMigrationTest.kt`
+- `android/app/src/test/java/uk/thewyj/app/finance/CurrencyReviewQueueTest.kt`
+- `android/app/src/test/java/uk/thewyj/app/finance/CurrencyTransportTest.kt`
+- `android/app/src/test/java/uk/thewyj/app/finance/CurrencyWireAndEnrichmentTest.kt`
+- `android/app/src/test/java/uk/thewyj/app/finance/FrozenRoomFixture.kt`
+- `android/app/src/test/java/uk/thewyj/app/task21/payment/CurrencyHookParityTest.kt`
+- `android/app/src/test/java/uk/thewyj/app/task21/store/FinanceP03AMigrationTest.kt`
+- `android/app/src/test/java/uk/thewyj/app/task21/store/FinanceP03CloseoutMigrationTest.kt`
+- `android/app/src/test/java/uk/thewyj/app/task21/store/FinanceP03FinalMigrationTest.kt`
+- `cloudflare/migrations/0031_finance_currency_fx.sql`
+- `cloudflare/migrations/0032_notification_currency_units.sql`
+- `cloudflare/migrations/0033_currency_default_review.sql`
+- `docs/CLOUD_FINANCE_ENVIRONMENT.md`
+- `docs/finance-p03/FINANCE_P03_FINAL_REPORT.md`
+- `docs/finance-p04/CURRENCY_18_LEDGER.md`
+- `docs/finance-p04/FINANCE_P04_FINAL_REPORT.md`
+- `docs/finance-p04/VALIDATION_COMMANDS.md`
+- `docs/finance-p04/WINDOWS_CONTINUATION_CHECKPOINT.md`
+- `functions/_lib/cloudflare-foundation.mjs`
+- `functions/_lib/finance-client-capability.mjs`
+- `functions/_lib/finance-fx.mjs`
+- `functions/_lib/finance-money-units.mjs`
+- `functions/_lib/finance-raw-currency.mjs`
+- `functions/_lib/finance-review-currency.mjs`
+- `functions/_lib/finance-source-units.mjs`
+- `functions/_lib/task16-api.mjs`
+- `functions/_lib/task16-model.mjs`
+- `functions/_lib/task16-service.mjs`
+- `functions/_lib/task21-api.mjs`
+- `functions/_lib/task21-event-safety.mjs`
+- `functions/_lib/task21-hints.mjs`
+- `functions/_lib/task21-model.mjs`
+- `functions/_lib/task21-reconciliation.mjs`
+- `functions/_lib/task21-service.mjs`
+- `index.html`
+- `js/core/api.js`
+- `js/core/dashboard.js`
+- `js/core/home-widget-data.js`
+- `js/finance/app.js`
+- `js/finance/candidates.js`
+- `js/finance/format.js`
+- `js/finance/money.js`
+- `js/finance/notification-ledger.js`
+- `qa/finance-p03/cloud/collect.py`
+- `qa/finance-p03/cloud/fresh-inputs.mjs`
+- `qa/finance-p03/cloud/jvm.py`
+- `qa/finance-p03/cloud/run.py`
+- `qa/finance-p03/nonphone/baseline.py`
+- `qa/finance-p03/nonphone/close.py`
+- `qa/finance-p03/nonphone/collect.py`
+- `qa/finance-p03/nonphone/native-persist.mjs`
+- `qa/finance-p03/nonphone/output-redirect.mjs`
+- `qa/finance-p03/nonphone/prepare.py`
+- `qa/finance-p03/nonphone/protect.py`
+- `qa/finance-p03/nonphone/resume.ps1`
+- `qa/finance-p03/nonphone/run.ps1`
+- `qa/finance-p04/android.py`
+- `qa/finance-p04/browser.mjs`
+- `qa/finance-p04/collect-local.py`
+- `qa/finance-p04/collect.py`
+- `qa/finance-p04/contracts.mjs`
+- `qa/finance-p04/default-currency.mjs`
+- `qa/finance-p04/extra-native.py`
+- `qa/finance-p04/fixture-check.mjs`
+- `qa/finance-p04/fixture.mjs`
+- `qa/finance-p04/fixtures/exact-oracle.json`
+- `qa/finance-p04/fresh-inputs.mjs`
+- `qa/finance-p04/fx.mjs`
+- `qa/finance-p04/legacy-browser-all.mjs`
+- `qa/finance-p04/legacy-browser-context.mjs`
+- `qa/finance-p04/live-fx.mjs`
+- `qa/finance-p04/migrations.mjs`
+- `qa/finance-p04/money.mjs`
+- `qa/finance-p04/oracle.mjs`
+- `qa/finance-p04/oracle.py`
+- `qa/finance-p04/output-redirect.mjs`
+- `qa/finance-p04/output.mjs`
+- `qa/finance-p04/prepare-backup-proof.py`
+- `qa/finance-p04/prepare-baselines.py`
+- `qa/finance-p04/prepare-contract-drivers.py`
+- `qa/finance-p04/prepare-trace.py`
+- `qa/finance-p04/raw-transport.mjs`
+- `qa/finance-p04/review-migrations.mjs`
+- `qa/finance-p04/run-regression-jvm.py`
+- `qa/finance-p04/run-regression-node.py`
+- `qa/finance-p04/seal-local-delivery.py`
+- `qa/finance-p04/unit-review.mjs`
+- `qa/finance-p04/upgraded-legacy-http.py`
+- `qa/finance-p04/write-local-reports.py`
+- `sw.js`

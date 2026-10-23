@@ -1,5 +1,120 @@
 # FINANCE-P03 最终统一报告
 
+## 2026-10-23 本地接管收尾：PARTIAL
+
+**当前授权下可安全独立完成的非手机工程已结束；P03 原合同尚未满足，不具备最终关闭条件。** 没有把 P03 再拆成独立实施/批准节点。所有者授权 P03 非手机收尾后继续完整 P04，已实际实现和回归，P03 的 PARTIAL 没有阻止 P04。
+
+来源链为 `5d96e1e` → P03 收口 `dd5fc98b` → 云端 P04 `3b710e3` → 本地验收产品源码 `94ab0fc82bc5b21b4f04237ff110574d10da565c`。完整 ZIP/本地 bundle 已恢复并验证；未从 main 套补丁、cherry-pick 或重写历史。原 P03 工作树仍在 `5d96e1e`，保留既有 untracked QA；本报告的最新统一副本随继承 P03 的 P04 分支交付。
+
+本轮仅在 Windows 隔离工作树完成非手机工程；不读取正式交易/聊天/私库，不操作 ADB、手机、正式 App/权限、Production、签名、推送、PR、合并或发布。P05/P06 未开发。D-01/D-02 保持 CLOSED；P03 另一个历史 Activity 异常仍为 INCONCLUSIVE，未用新的通过结果解释其根因。
+
+原 607 的实际结果为 **602 PASS / 5 FAIL**（588 JVM 中585 PASS/3 FAIL，13 Node PASS，6 Chrome 中4 PASS/2 FAIL；全部执行，无 NOT_RUN）。标准 JVM **716 PASS / 6 FAIL**，其中原681为675 PASS/6 FAIL，P04方法41 PASS（本地新增17，云端原有24，已包含在722中）。这些集合重叠，禁止相加。
+
+原冻结驱动608行 **549 PASS / 8 FAIL / 28 EXPECTED_RED / 23 NOT_TESTED**。保留这份原样重放；另以相同原 fixture/expected/oracle、正确传入原声明参数的版本化驱动复核 P04 后，合同608为 **555 PASS / 8 FAIL / 22 EXPECTED_RED / 23 NOT_TESTED**。两份不是同一个执行结果，不互相覆盖。原 P04 18 项合同 **18 PASS**；原样驱动仍是12 PASS/6 EXPECTED_RED，缺参修复和哈希证明见逐行账本。
+
+本轮完整统计及所有原始错误：[统计](../migration-evidence/finance-p04/local/final-r2/delivery-v2/summary.json)、[607逐项](../migration-evidence/finance-p04/local/final-r2/delivery-v2/original-607.json)、[原样608](../migration-evidence/finance-p04/local/final-r2/delivery-v2/frozen-608.json)、[合同复核608](../migration-evidence/finance-p04/local/final-r2/delivery-v2/contract-608.json)、[6个JVM失败](../migration-evidence/finance-p04/local/final-r2/delivery-v2/jvm-failures.json)。
+
+
+### 实际补完及保护
+
+- 原 P03 预授权/多次部分清算/解除/过期/退款、余额约束、权威修正、ID历史关系、人工优先级和回执控制继续保留；六币种下均补充真实本地 HTTP/D1 合成验证。
+- 修复了两个队列对象写同一文件时争抢临时文件的可复现故障：原60操作并发测试抛出 NoSuchFileException，改为同一 canonical 文件共用锁后60条完整保留。
+- 修复升级币种协议后旧队列达到拒绝上限而无法恢复：只对明确的 currency_client_upgrade_required 提供一次持久化 capability3 重试；再次失败仍停止，不无限重置。原请求ID、路径和 body 不重写。
+- 人工币种确认使用独立、持久化操作，通过原事件的服务端 canonical pending 身份确认，不把旧 ingest 改写成另一笔钱。空200或金额/币种/事件冲突回执均不能删队列；账户、人工决议、生命周期和提供方隔离继续生效。
+- 其他新增实现、迁移及六币种/FX的完整清单见 [P04统一报告](../finance-p04/FINANCE_P04_FINAL_REPORT.md)。
+
+### 原26条身份歧义目标
+
+**4 FAIL/22 EXPECTED_RED，原业务金额实值与前次一致。** A系仍缺足以决定“重投还是独立交易”的可信消息/操作证明；C005的相同授权引用下80+90，没有独立Capture ID、revision/前驱证据，不能自行选择170或更正90。原期望17000，实际8000，后续歧义保留。C007原输入无引用，期望17000，实际0；仍是原始真值，没有换成带引用的安全替代样本。旧反射探针 `lifecycle_model_implemented=false` 只是按字段名寻找 authorization 的旧驱动结果，不代表状态机不存在；没有篡改该探针制造PASS。
+
+合法恢复需要提供方/账户作用域、独立操作引用、完成语义、版本及前驱关系与来源证明；现有 TEST-key/本地沙箱只能验证隔离协议，不能产生真实提供方事实。隔离合同不等同完整业务支持。
+
+| Case | 历史状态 | 本轮原样重放 | 处置 |
+| --- | --- | --- | --- |
+| `A009` | FAIL | **FAIL** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A011` | FAIL | **FAIL** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A021` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A023` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A069` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A071` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A117` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A119` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A165` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A167` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A201` | FAIL | **FAIL** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A203` | FAIL | **FAIL** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A213` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A215` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A261` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A263` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A309` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A311` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A357` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A359` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A393` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A395` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A405` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `A407` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `C005` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+| `C007` | EXPECTED_RED | **EXPECTED_RED** | 保留原 fixture/expected；金额实值未变，仅新模型字段清单变化不作为修复。 |
+
+完整输入/期望/actual/错误见 [原26逐项](../migration-evidence/finance-p04/local/final-r2/delivery-v2/p03-original-26.json)。
+
+### 独立回归、迁移和恢复
+
+| 集合 | 本轮实际结果 | 边界 |
+| --- | --- | --- |
+| P03原63 | 58 PASS / 4 FAIL / 1 NOT_TESTED | 3个旧无默认币种的身份测试失败；原legacy桥seed失败，restore未启动 |
+| 后续41 / 99 / 79 | 各自全PASS | 与标准JVM/其他集合重叠，不累计 |
+| 已有新增38 | 38 PASS | 包含5 trace/迁移、15控制、10浏览器、8 TEST-key；不是提供方真凭证 |
+| 原legacy桥 | seed FAIL / restore NOT_TESTED | 期望3笔、缺明确CNY上下文后只有1笔；原消息/断言保留 |
+| 独立明确CNY账户的legacy桥 | 两JVM PASS，9个HTTP请求 | 原通知/金额/断言不变，但新增显式账户币种前提，不能替换原失败 |
+| clearing/correction/unified桥 | 两JVM均PASS；15/34/35请求 | 本地HTTP和真实Miniflare D1；提交成功丢回执、恢复、幂等均验证 |
+| Native四组件冷恢复 | 两独立JVM PASS | Room16、FX/人工决议库1、五列Outbox、仅币种SharedPreferences；缺件/错账户/校验失败关闭 |
+| 本地D1物理副本恢复 | 自动短运行目录PASS，105表 | 长路径FAIL原样保存，同脚本/同快照A/B定位QA路径问题；非Production备份 |
+| Lint / Debug | 0 Error/Fatal；86 Warning/12 Hint；Debug成功 | Gradle整组exit1来自保留的6个单测FAIL，`--continue`独立完成Lint/构建 |
+
+完整命令见 [Windows验证入口](../finance-p04/VALIDATION_COMMANDS.md)。四组件备份是实际合成文件格式/冷读取验证，**真实个人备份、正式App原地升级与Production恢复均NOT_TESTED**。不能用Git回退代替数据库回退；不支持把升级后主库或新Outbox喂给旧APK。只允许同/更高兼容版本恢复完整一致备份；恢复旧快照若会丢失升级后账目必须阻断。
+
+### 仍未通过的原回归
+
+以下均保留FAIL，不为了原人民币默认行为破坏P04“无可信币种不得猜CNY”的约束。旧bank提醒的缺字段数组现在多出currency，也不删断言。
+
+| 原607身份 | 状态 | 真实错误（首行） |
+| --- | --- | --- |
+| `uk.thewyj.app.task21.payment.AndroidPaymentRecognitionHookArchiveTest.incompletePaymentCarriesAuditableReasonCodesWithoutRawText` | FAIL | java.lang.AssertionError: expected:<[amount, direction]> but was:<[amount, direction, currency]> |
+| `uk.thewyj.app.task21.payment.AndroidPaymentRecognitionHookArchiveTest.messagingStyleLinesReachThePaymentParser` | FAIL | java.lang.AssertionError: expected:<10000> but was:<0> |
+| `uk.thewyj.app.task21.payment.LocalPaymentBookingTest.offlineCaptureReceiptAndReplayKeepOneLedgerAndCloseArchive` | FAIL | java.util.NoSuchElementException: List is empty. |
+| `Chrome.T01/T06: actual DOM shows local evidence, two stable identities and independent merchant text` | FAIL | AssertionError [ERR_ASSERTION]: The input did not match the regular expression /1\.23/. Input: |
+| `Chrome.T13: conflict opens deliberate editor and sends no automatic confirmation` | FAIL | AssertionError [ERR_ASSERTION]: The input did not match the regular expression /9\.99/. Input: |
+
+冻结合同8个FAIL逐项如下；E004/E007/E008属于前序已声明的P05文本语义缺口，本轮未进入P05。新增 `G-REUSED-014` 是原无CNY上下文的离线记账用例，不隐藏成旧结果。
+
+| Case | 状态 | 边界 |
+| --- | --- | --- |
+| `A009` | FAIL | 缺少独立操作/消息证明；不能根据相似内容决定独立性 |
+| `A011` | FAIL | 缺少独立操作/消息证明；不能根据相似内容决定独立性 |
+| `A201` | FAIL | 缺少独立操作/消息证明；不能根据相似内容决定独立性 |
+| `A203` | FAIL | 缺少独立操作/消息证明；不能根据相似内容决定独立性 |
+| `E004` | FAIL | P05 页面/OCR文本语义旧缺口；本轮不开发P05 |
+| `E007` | FAIL | P05 页面/OCR文本语义旧缺口；本轮不开发P05 |
+| `E008` | FAIL | P05 页面/OCR文本语义旧缺口；本轮不开发P05 |
+| `G-REUSED-014` | FAIL | 旧无币种/CNY前提与P04严格币种门槛冲突 |
+
+### 保护、剩余条件和停止
+
+13组保护（主工作区、Hotfix、Task26、D01控制/证据、D02、候选、P02等）逐文件无新增/删除/变更，HEAD/分支/状态一致；原P03树tracked干净、HEAD仍5d96e1e。没有把 Task26 waiver 标成PASS。最终核验随交付[REVISION](../migration-evidence/finance-p04/local/final-r2/REVISION.json)及[provenance](../migration-evidence/finance-p04/local/final-r2/provenance.json)记录。
+
+关闭仍需：①合法提供方的独立事件/版本/前驱事实或所有者明确接受隔离边界；②所有者解决旧无币种冻结验收与P04新约束的冲突，不能由工程师偷偷改输入/断言；③以后单独授权的真实通知/RC-6/云链/微信业务及正式备份验收。真实MainActivity、锁屏/后台、正式三页面及原Activity故障现场本轮均NOT_TESTED。D-01/D-02 CLOSED不等于整个Hotfix PASS。
+
+本轮停止，不进入P05/P06，不推送、合并、签名、发布或操作手机。
+
+---
+
+## 历史报告原文（只作历史依据，不计本轮PASS）
+
+# FINANCE-P03 最终统一报告
+
 ## 2026-10-22 云端接续验收（当前结论，Asia/Hong_Kong）
 
 **PARTIAL。当前可安全独立完成的非手机工程和保护回归已执行；原 26 条业务红灯及
