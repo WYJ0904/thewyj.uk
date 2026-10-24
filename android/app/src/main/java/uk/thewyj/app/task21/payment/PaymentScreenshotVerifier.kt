@@ -26,6 +26,9 @@ interface OcrEngine {
 /** Native OCR confirms the selected monetary region at a different pixel scale. */
 interface AmountConfirmingOcrEngine : OcrEngine {
     suspend fun confirmAmount(bitmap: Bitmap, expectedMinor: Long): Long?
+    /** A legacy CNY confirmer must never validate another currency's unit. */
+    suspend fun confirmAmount(bitmap: Bitmap, expectedMinor: Long, currency: String): Long? =
+        if (currency == "CNY") confirmAmount(bitmap, expectedMinor) else null
 }
 
 object PaymentScreenshotTarget {
@@ -46,7 +49,12 @@ object PaymentOverlayRetryPolicy {
 }
 
 class PaymentScreenshotVerifier(private val engine: OcrEngine) {
-    suspend fun verify(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long): PaymentEnrichment? {
+    /** Explicit compatibility entry for historical callers; the service uses policy2 below. */
+    suspend fun verify(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long): PaymentEnrichment? =
+        verify(bitmap, sourcePackage, capturedAtMs, null, 1)
+
+    suspend fun verify(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long,
+                       defaultCurrency: String?, currencyPolicyVersion: Int): PaymentEnrichment? {
         val lines = runCatching { engine.recognize(bitmap) }.getOrDefault(emptyList())
         val normalized = normalizeOcrLines(lines)
         if (normalized.isEmpty()) {
@@ -74,11 +82,16 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
                 textLines = normalized,
                 capturedAtMs = capturedAtMs,
             ),
+            defaultCurrency, currencyPolicyVersion,
         ) ?: return null
         val confirmingEngine = engine as? AmountConfirmingOcrEngine
         val expectedMinor = enrichment.amountMinor
         if (confirmingEngine != null && expectedMinor != null) {
-            val confirmed = runCatching { confirmingEngine.confirmAmount(bitmap, expectedMinor) }.getOrNull()
+            val confirmed = runCatching {
+                if (currencyPolicyVersion >= 2)
+                    enrichment.currency?.let { confirmingEngine.confirmAmount(bitmap, expectedMinor, it) }
+                else confirmingEngine.confirmAmount(bitmap, expectedMinor)
+            }.getOrNull()
             PaymentDiagnostics.emit("ocr_confirmation", "expectedMinor=${enrichment.amountMinor} confirmedMinor=$confirmed agreed=${confirmed == enrichment.amountMinor}")
             if (confirmed != enrichment.amountMinor) return null
         }
@@ -130,7 +143,8 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
         fun looksLikePaymentPage(lines: List<String>): Boolean {
             val joined = lines.joinToString(" ").lowercase(Locale.ROOT)
             val money = joined.contains('¥') || joined.contains('￥') || joined.contains("元") ||
-                joined.contains("cny") || joined.contains("rmb")
+                joined.contains("cny") || joined.contains("rmb") ||
+                Regex("[€£$]|(?<![a-z])(?:usd|eur|hkd|gbp|jpy)(?![a-z])").containsMatchIn(joined)
             val context = listOf(
                 "支付成功", "付款成功", "已支付", "已付款", "支付金额", "付款金额", "实付", "已扣款",
                 "转账成功", "轉賬成功", "转账金额", "收款成功", "已收款", "收款金额",
@@ -145,7 +159,7 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
 
 /** ML Kit implementation (bundled Chinese + Latin model). */
 class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
-    private data class AmountRegion(val minor: Long, val bounds: android.graphics.Rect, val score: Int)
+    private data class AmountRegion(val text: String, val legacyMinor: Long?, val bounds: android.graphics.Rect, val score: Int)
     private var amountRegions: List<AmountRegion> = emptyList()
     private val appContext = context.applicationContext
     private val recognizer = run {
@@ -161,6 +175,7 @@ class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
     override suspend fun recognize(bitmap: Bitmap): List<String> = kotlinx.coroutines.withContext(
         kotlinx.coroutines.Dispatchers.IO,
     ) {
+        amountRegions = emptyList()
         val image = com.google.mlkit.vision.common.InputImage.fromBitmap(bitmap, 0)
         val result = runCatching { com.google.android.gms.tasks.Tasks.await(recognizer.process(image)) }
             .getOrNull()
@@ -180,16 +195,20 @@ class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
         } } ?: lines
         val directRegions = recognized.mapIndexedNotNull { index, line ->
             val bounds = line.boundingBox ?: return@mapIndexedNotNull null
-            val decision = PaymentPageAmountSelection.select(PaymentScreenshotVerifier.normalizeOcrLines(listOf(recovered[index])))
-            val amount = decision.amountMinor ?: return@mapIndexedNotNull null
-            AmountRegion(amount, android.graphics.Rect(bounds), decision.candidates.maxOf { it.score })
+            val text = PaymentScreenshotVerifier.normalizeOcrLines(listOf(recovered[index])).singleOrNull()
+                ?: return@mapIndexedNotNull null
+            val decision = PaymentPageAmountSelection.select(listOf(text))
+            if (decision.amountMinor == null && !currencyMarker.containsMatchIn(text)) return@mapIndexedNotNull null
+            AmountRegion(text, decision.amountMinor, android.graphics.Rect(bounds), decision.candidates.maxOfOrNull { it.score } ?: 850)
         }
         val splitSymbolRegions = recognized.zipWithNext().mapNotNull { (symbol, amount) ->
-            if (PaymentText.normalizeMoneyText(symbol.text) != "¥") return@mapNotNull null
-            val minor = PaymentText.parseMinor(amount.text) ?: return@mapNotNull null
+            val marker = PaymentText.normalizeMoneyText(symbol.text)
+            if (!currencyMarker.matches(marker)) return@mapNotNull null
+            val number = PaymentScreenshotVerifier.normalizeOcrLines(listOf(amount.text)).singleOrNull()
+                ?.takeIf { Regex("[0-9][0-9,]*(?:\\.[0-9]+)?").matches(it) } ?: return@mapNotNull null
             val bounds = symbol.boundingBox?.let { android.graphics.Rect(it) } ?: return@mapNotNull null
             bounds.union(amount.boundingBox ?: return@mapNotNull null)
-            AmountRegion(minor, bounds, 850)
+            AmountRegion("$marker $number", PaymentPageAmountSelection.select(listOf("$marker $number")).amountMinor, bounds, 850)
         }
         amountRegions = directRegions + splitSymbolRegions
         android.util.Log.i("ThewyjAccessibility", "ocr-result blocks=${result.textBlocks.size} lines=${lines.size}")
@@ -197,8 +216,20 @@ class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
         recovered
     }
 
-    override suspend fun confirmAmount(bitmap: Bitmap, expectedMinor: Long): Long? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        val region = amountRegions.filter { it.minor == expectedMinor }.sortedWith(compareByDescending<AmountRegion> { it.score }.thenByDescending { it.bounds.height() }).firstOrNull()
+    override suspend fun confirmAmount(bitmap: Bitmap, expectedMinor: Long): Long? = confirm(bitmap, expectedMinor, null)
+
+    override suspend fun confirmAmount(bitmap: Bitmap, expectedMinor: Long, currency: String): Long? =
+        confirm(bitmap, expectedMinor, currency)
+
+    private fun currencyAmount(text: String, currency: String): Long? {
+        val parsed = uk.thewyj.app.finance.CurrencyDecision.apply(
+            ParsedPaymentMessage(PaymentRecognitionStatus.PAYMENT_LIKELY), text, currency, true)
+        return parsed.amountMinor.takeIf { parsed.currency == currency }
+    }
+
+    private suspend fun confirm(bitmap: Bitmap, expectedMinor: Long, currency: String?): Long? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val region = amountRegions.filter { (if (currency == null) it.legacyMinor else currencyAmount(it.text, currency)) == expectedMinor }
+            .sortedWith(compareByDescending<AmountRegion> { it.score }.thenByDescending { it.bounds.height() }).firstOrNull()
         amountRegions = emptyList()
         if (region == null) return@withContext null
         val padding = (region.bounds.height() / 3).coerceAtLeast(8)
@@ -213,11 +244,16 @@ class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
         try {
             val result = com.google.android.gms.tasks.Tasks.await(recognizer.process(com.google.mlkit.vision.common.InputImage.fromBitmap(scaled, 0)))
             val lines = PaymentScreenshotVerifier.normalizeOcrLines(result.textBlocks.flatMap { it.lines.map { line -> line.text } })
+            if (currency != null) return@withContext currencyAmount(lines.joinToString(" "), currency)
             val decision = PaymentPageAmountSelection.select(lines)
             decision.amountMinor ?: lines.singleOrNull()?.takeIf { Regex("[0-9]+[.,][0-9]{1,2}").matches(it) }?.let(PaymentText::parseMinor)
         } finally {
             if (scaled !== crop && scaled !== bitmap) scaled.recycle()
             if (crop !== bitmap) crop.recycle()
         }
+    }
+
+    private companion object {
+        val currencyMarker = Regex("[¥￥$€£]|CNY|RMB|USD|US\\$|EUR|HKD|HK\\$|GBP|JPY|JP[¥￥]|人民币|人民幣|元|日元|円", RegexOption.IGNORE_CASE)
     }
 }

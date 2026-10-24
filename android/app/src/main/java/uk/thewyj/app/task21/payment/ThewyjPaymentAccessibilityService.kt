@@ -234,7 +234,10 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
                     try {
                         if (!validTicket(scan)) return@execute
                         val verifier = ocrVerifier ?: PaymentScreenshotVerifier(MlKitOcrEngine(this@ThewyjPaymentAccessibilityService)).also { ocrVerifier = it }
-                        val enrichment = kotlinx.coroutines.runBlocking { verifier.verify(bitmap, scan.ticket.sourcePackage, System.currentTimeMillis()) }
+                        val enrichment = kotlinx.coroutines.runBlocking {
+                            verifier.verify(bitmap, scan.ticket.sourcePackage, System.currentTimeMillis(),
+                                uk.thewyj.app.finance.CurrencyRuntimePreferences.defaultCurrency(applicationContext, scan.accountId), 2)
+                        }
                         mainHandler.post {
                             if (!current(scan) || !foregroundMatches(scan)) { PaymentDiagnostics.emit("discard", "reason=page_changed_during_ocr"); return@post }
                             if (enrichment == null) { PaymentAccessibilityStatus.onParserResult("ocr_unparsed"); scheduleRetry(scan, "ocr_unparsed") }
