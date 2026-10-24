@@ -101,7 +101,11 @@ export async function frankfurterRate(base, quote, requestedDate, { fetcher = fe
   url.searchParams.set('date', requestedDate);
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), Math.max(1, Math.min(8000, timeoutMs)));
   try {
-    const response = await fetcher(url.toString(), { headers: { Accept: 'application/json' }, redirect: 'error', signal: controller.signal });
+    // workerd supports manual/follow, while browser/Node also support error.
+    // Both chosen modes reject redirects: manual 3xx fails the response.ok gate.
+    let redirect = 'error';
+    try { new Request(url.toString(), { redirect }); } catch (_) { redirect = 'manual'; }
+    const response = await fetcher(url.toString(), { headers: { Accept: 'application/json' }, redirect, signal: controller.signal });
     if (!response.ok) throw error('fx_provider_unavailable', '参考汇率暂时不可用');
     if (!String(response.headers.get('Content-Type') || '').includes('application/json')) throw error('fx_response_invalid', '汇率响应类型无效');
     const row = await boundedProviderJson(response, controller.signal);

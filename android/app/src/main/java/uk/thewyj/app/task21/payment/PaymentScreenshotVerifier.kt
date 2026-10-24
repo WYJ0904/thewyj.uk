@@ -234,7 +234,10 @@ class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
         if (region == null) return@withContext null
         val padding = (region.bounds.height() / 3).coerceAtLeast(8)
         val left = (region.bounds.left - padding).coerceAtLeast(0)
-        val top = (region.bounds.top - padding).coerceAtLeast(0)
+        // Isolating a short integer can make the model invert its orientation
+        // (observed ¥100 -> 00L夫). Retain real page context above the amount;
+        // the second scale must still independently return the exact unit/value.
+        val top = (region.bounds.top - maxOf(padding, region.bounds.height() * 3)).coerceAtLeast(0)
         val right = (region.bounds.right + padding).coerceAtMost(bitmap.width)
         val bottom = (region.bounds.bottom + padding).coerceAtMost(bitmap.height)
         if (right <= left || bottom <= top) return@withContext null
