@@ -1,5 +1,7 @@
 # P03/P04 Windows 当前命令与证据索引
 
+2026-10-24 最新运行的完整argv/日志见 [最终证据索引](FINAL_EVIDENCE_INDEX.md)；最终集合为closure-current/final-current/delivery-current-r2。下方2026-10-23命令保留作历史与复跑参考，不能当作本轮通过。QA云资源和测试包已清理，重跑手机/云动作前必须新建独立数据与输出，不能覆盖旧证据。
+
 2026-10-23。工作目录为隔离finance-p04-multicurrency工作树；全部D1/账户/备份为自建合成。旧cloud命令不计本轮通过。当前完整argv、UTC起止/退出码、Source-lock和JUnit分别在final-r2/android-current/command.json、regression/{node,jvm}-commands.json、extra-native-commands.json及各目录。
 
 ```powershell
