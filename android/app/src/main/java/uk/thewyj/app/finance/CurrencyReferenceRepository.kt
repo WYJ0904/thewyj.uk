@@ -14,6 +14,9 @@ import uk.thewyj.app.task21.NotificationIngestTransport
 class CurrencyReferenceRepository(private val database: CurrencyReferenceDatabase) {
     private val dao get() = database.currencies()
     fun refreshPreferences(account: String, session: String, transport: NotificationIngestTransport, context: Context? = null): Boolean = runCatching {
+        require(account.isNotBlank())
+        // A restored Room snapshot is account-scoped evidence even while offline.
+        if (context != null) recoverPreferences(account, context)
         val response = transport.get("/api/finance/currencies?money_version=2", session)
         check(response.ok)
         val json = JSONObject(response.body).getJSONObject("preferences")
@@ -21,12 +24,28 @@ class CurrencyReferenceRepository(private val database: CurrencyReferenceDatabas
         CurrencyMoney.exponent(base); CurrencyMoney.exponent(display)
         val default = json.optString("default_currency").takeUnless { it.isBlank() || it == "null" }
         default?.let(CurrencyMoney::exponent)
-        val next = CachedCurrencyPreferences(account, base, display, default, json.getLong("revision"))
+        val rawRevision = json.get("revision")
+        require(rawRevision is Int || rawRevision is Long)
+        val revision = (rawRevision as Number).toLong()
+        require(revision in 0L..9_007_199_254_740_991L)
+        val next = CachedCurrencyPreferences(account, base, display, default, revision)
         database.runInTransaction {
-            if ((dao.preferences(account)?.revision ?: -1) <= next.revision) dao.putPreferences(next)
+            val old = dao.preferences(account)
+            require(old == null || next.revision > old.revision || next == old) { "currency_preferences_conflict" }
+            if (old != next) dao.putPreferences(next)
         }
-        if (context != null) CurrencyRuntimePreferences.save(context, account, dao.preferences(account)?.defaultCurrency)
+        if (context != null) check(recoverPreferences(account, context))
         true
+    }.getOrDefault(false)
+
+    /** Publish only committed metadata. A crash between stores is repaired without a server call. */
+    fun recoverPreferences(account: String, context: Context): Boolean = runCatching {
+        require(account.isNotBlank())
+        val saved = dao.preferences(account) ?: return false
+        CurrencyMoney.exponent(saved.accountCurrency); CurrencyMoney.exponent(saved.displayCurrency)
+        saved.defaultCurrency?.let(CurrencyMoney::exponent)
+        require(saved.revision in 0L..9_007_199_254_740_991L)
+        CurrencyRuntimePreferences.publish(context, saved)
     }.getOrDefault(false)
 
     fun cached(account: String, transaction: String, revision: Long, quote: String): CachedCurrencyReference? = runCatching {
@@ -122,17 +141,36 @@ class CurrencyReferenceRepository(private val database: CurrencyReferenceDatabas
 }
 object CurrencyRuntimePreferences {
     private const val FILE = "wyj-currency-context"
-    fun defaultCurrency(context: Context, account: String): String? = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
-        .getString("$account:default", null)?.takeIf { it in CurrencyMoney.digits }
+    fun defaultCurrency(context: Context, account: String): String? = runCatching {
+        if (account.isBlank()) return null
+        val prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        if (prefs.contains("$account:revision")) require(prefs.getLong("$account:revision", -1) in 0L..9_007_199_254_740_991L)
+        prefs.getString("$account:default", null)?.takeIf { it in CurrencyMoney.digits }
+    }.getOrNull()
     fun sourceExponent(context: Context, account: String, source: String, currency: String): Int? {
         if (currency != "JPY") return CurrencyMoney.digits[currency]
         val row = CurrencyReferenceDatabase.get(context).currencies().sourceUnit(account, source)
         return row?.amountExponent?.takeIf { row.currency == currency && it == 0 }
     }
-    fun save(context: Context, account: String, currency: String?) {
+    @Synchronized fun save(context: Context, account: String, currency: String?) {
+        require(account.isNotBlank())
         require(currency == null || currency in CurrencyMoney.digits)
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().apply {
             if (currency == null) remove("$account:default") else putString("$account:default", currency)
-        }.apply()
+            remove("$account:revision") // Explicit local/legacy selection has no server revision.
+        }.commit().also { check(it) { "currency_preferences_persistence_failed" } }
+    }
+    @Synchronized internal fun publish(context: Context, saved: CachedCurrencyPreferences): Boolean {
+        require(saved.accountId.isNotBlank() && saved.revision in 0L..9_007_199_254_740_991L)
+        require(saved.defaultCurrency == null || saved.defaultCurrency in CurrencyMoney.digits)
+        val prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        val current = runCatching { prefs.getLong("${saved.accountId}:revision", -1) }.getOrDefault(-1)
+        if (current > saved.revision) return false
+        if (current == saved.revision && prefs.getString("${saved.accountId}:default", null) != saved.defaultCurrency) return false
+        return prefs.edit().apply {
+            if (saved.defaultCurrency == null) remove("${saved.accountId}:default")
+            else putString("${saved.accountId}:default", saved.defaultCurrency)
+            putLong("${saved.accountId}:revision", saved.revision)
+        }.commit()
     }
 }

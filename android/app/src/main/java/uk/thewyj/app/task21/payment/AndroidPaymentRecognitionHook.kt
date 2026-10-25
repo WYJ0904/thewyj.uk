@@ -101,6 +101,9 @@ class AndroidPaymentRecognitionHook private constructor(
             sourceUid = input.sourceUid,
             identityReviewReason = review,
         )
+        // Rejected scope/phase observations are still archived by the capture
+        // pipeline, but cannot add proof or aliases to the protected old ledger.
+        if (outcome.skippedReason.isNotBlank() && outcome.skippedReason != "duplicate_source_event") return
         if (outcome.recognitionId.isNotBlank()) {
             store.saveEventAlias(accountId, declaredSourceId, outcome.recognitionId)
             if (messageProof.isNotBlank()) store.saveEventAlias(accountId, "proof:$messageProof:${outcome.recognitionId}", outcome.recognitionId)

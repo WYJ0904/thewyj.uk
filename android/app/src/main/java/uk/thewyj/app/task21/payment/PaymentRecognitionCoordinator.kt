@@ -63,8 +63,23 @@ class PaymentRecognitionCoordinator(
             return Outcome("", null, skippedReason = "invalid_input")
         }
         val priorSource = store.recognitionBySourceEvent(accountId, sourceEventId)
+        // A reused canonical event id cannot move an existing transaction to
+        // another package/profile. Alias observations still use reference gates.
+        if (priorSource != null &&
+            ((priorSource.sourcePackage == sourcePackage && priorSource.sourceUid != sourceUid) ||
+                (priorSource.sourceEventId == sourceEventId &&
+                    (priorSource.sourcePackage != sourcePackage || !priorSource.sourceType.equals(sourceType.name, ignoreCase = true)))))
+            return Outcome(priorSource.recognitionId, null, skippedReason = "source_scope_conflict")
         // A preference change applies to future events, not an already captured fact.
-        val capturedDefault = priorSource?.takeIf { it.currencyDecisionSource == "account_default" }?.currency
+        val durableUnit = priorSource?.takeIf { it.sourceEventId == sourceEventId }?.let { record ->
+            store.localBooking(accountId, PaymentAutoBook.eventId(record))?.takeIf { booking ->
+                booking.currency == record.currency && booking.currency in uk.thewyj.app.finance.CurrencyMoney.digits &&
+                    booking.amountExponent == uk.thewyj.app.finance.CurrencyMoney.exponent(booking.currency)
+            }?.currency
+        }
+        // An exact replay may reuse its own verified ledger unit. It is never a
+        // default for another event, and explicit incoming units still take priority.
+        val capturedDefault = priorSource?.takeIf { it.currencyDecisionSource == "account_default" }?.currency ?: durableUnit
         var parsed = PaymentParserRegistry.parse(sourcePackage, sourceType, title, text, bigText, subText, occurredAtMs,
             defaultCurrency = capturedDefault ?: defaultCurrency(accountId), currencyPolicyVersion = currencyPolicyVersion)
         var reviewReason = parsed.reviewReason.ifBlank { identityReviewReason }
@@ -83,7 +98,7 @@ class PaymentRecognitionCoordinator(
         }.orEmpty()
         val capturedReference = references.singleOrNull()?.takeIf {
             it.currencyDecisionSource == "account_default" &&
-                (it.sourcePackage != sourcePackage || it.sourceUid == null || sourceUid == null || it.sourceUid == sourceUid)
+                (it.sourcePackage != sourcePackage || it.sourceUid == sourceUid)
         }
         if (parsed.currencyReviewRequired && priorSource == null && capturedReference != null) {
             val replaceCurrencyReason = reviewReason == parsed.reviewReason.ifBlank { identityReviewReason }
@@ -98,7 +113,7 @@ class PaymentRecognitionCoordinator(
             store.candidateForRecognition(accountId, old.recognitionId)?.let { it.status == "confirmed" && it.financeTransactionId.isNotBlank() } == true }
         val proofReferences = authorities.ifEmpty { references }
         val matching = proofReferences.filter { old -> old.amountMinor == parsed.amountMinor && old.currency == parsed.currency &&
-            (old.sourcePackage != sourcePackage || old.sourceUid == null || sourceUid == null || old.sourceUid == sourceUid) }
+            (old.sourcePackage != sourcePackage || old.sourceUid == sourceUid) }
         if (proofReferences.isNotEmpty() && (matching.size != 1 || matching.size != proofReferences.size)) reviewReason = "reference_money_or_instance_conflict"
         val direct = store.recognitionBySourceEvent(accountId, sourceEventId)
         if (direct != null && matching.singleOrNull()?.recognitionId?.let { it != direct.recognitionId } == true)
@@ -117,7 +132,7 @@ class PaymentRecognitionCoordinator(
             if (existing.providerReference.isBlank() && !parsed.providerReference.isNullOrBlank() &&
                 existing.amountMinor == parsed.amountMinor && existing.currency == parsed.currency &&
                 existing.direction == parsed.direction?.name && reviewReason.isBlank() &&
-                (existing.sourceUid == null || sourceUid == null || existing.sourceUid == sourceUid)) {
+                existing.sourceUid == sourceUid) {
                 store.saveRecognition(existing.copy(providerReference = parsed.providerReference,
                     referenceNamespace = parsed.referenceNamespace, currencyEvidence = parsed.currencyEvidence))
             }
@@ -125,7 +140,7 @@ class PaymentRecognitionCoordinator(
             if ((!existing.completionConfirmed || existing.identityReviewReason.isNotBlank()) &&
                 existing.state !in setOf("IGNORED", "DUPLICATE_IGNORED", "FINANCE_CORRECTED") &&
                 existing.sourcePackage == sourcePackage &&
-                (existing.sourceUid == null || existing.sourceUid == sourceUid) &&
+                existing.sourceUid == sourceUid &&
                 existing.sourceType == sourceType.name) {
                 val update = parsed
                 val candidate = store.candidateForRecognition(accountId, existing.recognitionId)
