@@ -96,7 +96,7 @@ export function createConfiguration(resources) {
   };
   const binding = { binding: 'WYJ_DB', database_name: r.database_name, database_id: r.database_id };
   return {
-    name: r.project_name, account_id: r.account_id, pages_build_output_dir: '.', compatibility_date: '2026-08-06',
+    name: r.project_name, pages_build_output_dir: '.', compatibility_date: '2026-08-06',
     send_metrics: false, vars, d1_databases: [binding], env: { preview: { vars: { ...vars }, d1_databases: [{ ...binding }] } },
   };
 }
@@ -165,7 +165,7 @@ function applyProductOverlay(files, sourceCommit, context) {
 async function settings(options) {
   const root = path.resolve(options.root || ROOT);
   const output = path.resolve(options.output || path.join(root, '.wrangler', OUTPUT_NAME));
-  assert.equal(normalized(output), normalized(path.join(root, '.wrangler', OUTPUT_NAME)), 'Output must be the exact owned Preview staging directory');
+  assert([OUTPUT_NAME, OUTPUT_NAME + '-r2'].some(name => normalized(output) === normalized(path.join(root, '.wrangler', name))), 'Output must be an exact reviewed owned Preview staging directory');
   await assertNoReparse(root);
   await assertNoReparse(output, true);
   const resourcesFile = path.resolve(options.resourcesPath || resourcePath(root));

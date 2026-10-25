@@ -5,7 +5,7 @@ import argparse,hashlib,json,os,re,subprocess,time
 ROOT=Path(__file__).resolve().parents[3]
 OUT=ROOT/'docs/migration-evidence/finance-p04/experience-channel-current'
 NODE=Path.home()/'AppData/Local/npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node.exe'
-STAGE=ROOT/'.wrangler/finance-p04-owner-preview'
+STAGE=ROOT/'.wrangler/finance-p04-owner-preview-r2'
 ACCOUNT='97c274a981e8dd6703aa6388e11c4614'
 PROJECT='thewyj-finance-p04-preview';DBNAME='finance-p04-owner-preview'
 PROTECTED={'11c288d8-c584-409f-bb1f-7e7af11793e5','a3e6253b-689f-49f3-998b-7c5828ea255a','c2eb978f-9f49-4e4c-8286-f6b398fae0de','da1711d7-f770-4e30-b305-9d812588f8b4'}
