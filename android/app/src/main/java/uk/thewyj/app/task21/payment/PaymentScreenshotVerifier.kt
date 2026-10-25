@@ -65,6 +65,15 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
             verifyInternal(bitmap, sourcePackage, capturedAtMs, defaultCurrency, currencyPolicyVersion, true, stillCurrent).takeIf { stillCurrent() }
         }
     }
+    /** Ambiguous pixels may yield a separate suggestion; existing gates stay intact. */
+    suspend fun verifyCurrentWithAssistance(bitmap:Bitmap,sourcePackage:String,capturedAtMs:Long,
+        defaultCurrency:String?,currencyPolicyVersion:Int,observer:(PaymentPageSnapshot)->Unit,stillCurrent:()->Boolean):PaymentEnrichment? {
+        if(!stillCurrent())return null
+        return pipeline.withLock {
+            if(!stillCurrent())return@withLock null
+            verifyInternal(bitmap,sourcePackage,capturedAtMs,defaultCurrency,currencyPolicyVersion,true,stillCurrent,observer).takeIf{stillCurrent()}
+        }
+    }
     /** Explicit compatibility entry for historical callers; the service uses policy2 below. */
     suspend fun verify(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long): PaymentEnrichment? =
         verify(bitmap, sourcePackage, capturedAtMs, null, 1)
@@ -74,14 +83,17 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
         pipeline.withLock {verifyInternal(bitmap,sourcePackage,capturedAtMs,defaultCurrency,currencyPolicyVersion,false)}
 
     private suspend fun verifyInternal(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long,
-                       defaultCurrency: String?, currencyPolicyVersion: Int, retainUnresolved: Boolean, stillCurrent: () -> Boolean = {true}): PaymentEnrichment? {
+                       defaultCurrency: String?, currencyPolicyVersion: Int, retainUnresolved: Boolean, stillCurrent: () -> Boolean = {true},
+                       observer:((PaymentPageSnapshot)->Unit)?=null): PaymentEnrichment? {
+        fun observe(lines:List<String>){if(observer!=null&&stillCurrent()&&!PaymentPageEvidence.blocked(lines))runCatching{observer(PaymentPageSnapshot(sourcePackage,lines,capturedAtMs))}}
         var owned: Bitmap? = null
         var working = bitmap
         try {
         var lines = runCatching { engine.recognize(working) }.getOrDefault(emptyList())
         if (!stillCurrent()) return null
         var normalized = normalizeOcrLines(lines)
-        if (PaymentPageEvidence.blocked(normalized) || financialVeto(normalized,defaultCurrency)) return null
+        if (PaymentPageEvidence.blocked(normalized)) return null
+        if (financialVeto(normalized,defaultCurrency)) {observe(normalized);return null}
         val native = engine as? ScalablePageOcrEngine
         var moneyConsensus = monetaryFingerprint(normalized, defaultCurrency)
         if (native != null && normalized.isNotEmpty() && bitmap.width >= 480) {
@@ -100,7 +112,8 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
                 val observedMoney = monetaryFingerprint(normalized,defaultCurrency)
                 if (moneyConsensus != null && observedMoney != null && moneyConsensus != observedMoney) return null
                 if (moneyConsensus == null) moneyConsensus = observedMoney
-                if (PaymentPageEvidence.blocked(normalized) || financialVeto(normalized,defaultCurrency)) return null
+                if (PaymentPageEvidence.blocked(normalized)) return null
+                if (financialVeto(normalized,defaultCurrency)) {observe(normalized);return null}
             }
         }
         if (normalized.isEmpty()) {
@@ -129,9 +142,9 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
                 capturedAtMs = capturedAtMs,
             ),
             defaultCurrency, currencyPolicyVersion,
-        ) ?: return if (retainUnresolved && defaultCurrency==null && currencyPolicyVersion>=2)
+        ) ?: run {observe(normalized);return if (retainUnresolved && defaultCurrency==null && currencyPolicyVersion>=2)
             PaymentPageSemantics.unresolvedCandidate(PaymentPageSnapshot(sourcePackage,normalized,capturedAtMs))
-                ?.copy(evidenceSource=PaymentEvidenceSource.OCR) else null
+                ?.copy(evidenceSource=PaymentEvidenceSource.OCR) else null}
         val confirmingEngine = engine as? AmountConfirmingOcrEngine
         val expectedMinor = enrichment.amountMinor
         if (confirmingEngine != null && expectedMinor != null) {

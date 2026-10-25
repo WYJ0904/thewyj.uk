@@ -20,6 +20,7 @@ import {
 import {hasCurrencyDecisions} from './finance-money-units.mjs';
 import {explicitReviewCurrency} from './finance-review-currency.mjs';
 import {publicTransaction} from './task16-model.mjs';
+import {financeAiRequest} from './finance-ai.mjs';
 import {
   confirmNotificationCandidate,
   deleteNotificationEvent,
@@ -168,6 +169,7 @@ async function execute(context, path, account) {
       return response({
         ok: true,
         ...await notificationPendingSummary(db, account, { event_ids: url.searchParams.get("event_ids") || "" }),
+        ...(context.env.FINANCE_AI_ENABLED==='true'?{ai_assistance:await financeAiRequest(context,account,'/api/finance/ai/config',{})}:{}),
         build: TASK21_BUILD,
       }, 200, context);
     }

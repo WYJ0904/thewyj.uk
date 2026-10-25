@@ -8,6 +8,7 @@ import {
 import { resolveTask12Account } from "./task12-auth.mjs";
 import { currencyPreferences, referenceRate, transactionReferences } from './finance-fx.mjs';
 import { moneyCapability, requireMoneyCapability } from './finance-client-capability.mjs';
+import { financeAiRequest } from './finance-ai.mjs';
 import { enrichAccountWithTask13 } from "./task13-service.mjs";
 import {
   importLegacyFinance,
@@ -33,6 +34,12 @@ import {
 } from "./task16-service.mjs";
 
 const ROUTES = new Map([
+  ['GET /api/finance/ai/config', { mode: 'read', body: 0, limit: 120, window: 60 }],
+  ['GET /api/finance/ai/suggestions', { mode: 'read', body: 0, limit: 120, window: 60 }],
+  // Privacy withdrawal remains available while ordinary finance writes pause.
+  ['POST /api/finance/ai/consent', { mode: 'read', body: 1024, limit: 30, window: 60 }],
+  ['POST /api/finance/ai/evidence', { mode: 'write', body: 16 * 1024, limit: 30, window: 60 }],
+  ['POST /api/finance/ai/suggest', { mode: 'write', body: 1024, limit: 30, window: 60 }],
   ['GET /api/finance/currencies', { mode: 'read', body: 0, limit: 120, window: 60 }],
   ['POST /api/finance/currencies', { mode: 'write', body: 1024, limit: 30, window: 60 }],
   ['GET /api/finance/fx', { mode: 'read', body: 0, limit: 30, window: 60 }],
@@ -106,6 +113,13 @@ async function execute(context, path, account) {
   const db = context.env.WYJ_DB;
   const url = new URL(context.request.url);
   const method = context.request.method.toUpperCase();
+  if (path.startsWith('/api/finance/ai/')) {
+    const payload = method === 'GET' ? Object.fromEntries(url.searchParams)
+      : await readJson(context.request, ROUTES.get(`${method} ${path}`).body);
+    if (path !== '/api/finance/ai/config' && moneyCapability(context) < 2)
+      throw new Task16Error('请升级客户端后使用原币AI建议', 409, 'currency_client_upgrade_required');
+    return response({ ok: true, ...await financeAiRequest(context, account, path, payload) }, 200, context);
+  }
   if (method === "GET") {
     if (path === '/api/finance/currencies') return response({ ok: true, preferences: await currencyPreferences(db, account.id) }, 200, context);
     if (path === '/api/finance/fx') return response({ ok: true, rate: await referenceRate(db, url.searchParams.get('base'), url.searchParams.get('quote'), url.searchParams.get('date')) }, 200, context);

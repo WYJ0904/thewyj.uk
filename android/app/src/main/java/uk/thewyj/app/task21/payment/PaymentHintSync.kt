@@ -409,6 +409,7 @@ class PaymentHintSync(
         }
         val candidatesOk = syncCandidateTerminals(account)
         val observation = reconcileExactReviewIdentities(account)
+        if(productionStore)uk.thewyj.app.finance.FinanceAiCoordinator.get(app).schedule(account.accountId)
         return Result(
             hints.length(), confirmed, ignored, candidatesOk,
             observation.states, observation.complete, observation.pendingEventIds, observation.pendingCount,

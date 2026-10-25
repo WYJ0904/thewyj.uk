@@ -24,6 +24,9 @@ class PaymentVerificationState(
     private val center: PaymentVerificationCenter = PaymentVerificationCenter(context.applicationContext),
     private val reconcileOverride: (suspend (String) -> PaymentHintSync.Result?)? = null,
 ) {
+    private val ai by lazy { uk.thewyj.app.finance.FinanceAiCoordinator.get(context.applicationContext) }
+    var aiRows by mutableStateOf<Map<String,uk.thewyj.app.finance.FinanceAiObservation>>(emptyMap())
+    var aiConsent by mutableStateOf(false)
     private val reconciliationMutex = Mutex()
     @Volatile private var reconciliationRequested = false
     private var lastCompleteObservation: PaymentHintSync.Result? = null
@@ -73,6 +76,9 @@ class PaymentVerificationState(
                 if (snapshot != null) center.reconciledItems(accountId, snapshot)
                 else center.localItems(accountId)
             }
+            val assistance = withContext(Dispatchers.IO) {
+                ai.observationsForUi(accountId,refreshed.map{it.recognitionId}.toSet()) to ai.accountState(accountId)
+            }
             if (generation == refreshGeneration && display == displayGeneration && current(lifecycle, snapshot)) {
                 // A local signal must not repaint a stale server snapshot over
                 // a card that this UI just terminalized. The cloud set changes
@@ -80,6 +86,8 @@ class PaymentVerificationState(
                 val retained = items.filterNot { it.recoveryOnly }.map { it.canonicalIdentity }.toSet()
                 items = if (cached != null || snapshot == null) refreshed else
                     refreshed.filter { it.recoveryOnly || it.canonicalIdentity in retained }
+                aiRows=assistance.first
+                aiConsent=assistance.second?.let{it.available&&it.consent&&!it.localRevokePending}==true
                 if (snapshot != null) {
                     lastCompleteObservation = snapshot; canonicalObserved = true
                     observationAtMs = snapshot.observedAtMs
@@ -177,6 +185,36 @@ class PaymentVerificationState(
         amountText = item.amountMinor?.takeUnless { item.moneyUnitReview }?.let { runCatching { formatMinor(it, currency) }.getOrNull() }.orEmpty()
         direction = item.direction.name.ifBlank { "EXPENSE" }
         merchantText = item.merchant
+    }
+
+    suspend fun requestAi(item:PaymentVerificationCenter.Item,enable:Boolean=false){
+        val lifecycle=lifecycleGeneration
+        if(item.hasEdits||item.recognitionId.isBlank())return
+        val result=withContext(Dispatchers.IO){
+            if(enable&&!ai.setConsent(accountId,true))false else ai.flush(accountId)
+        }
+        if(current(lifecycle)){message=if(result)"AI建议仍须核对后人工确认" else "AI暂不可用或尚未授权，原交易保留，可继续人工核实";refresh()}
+    }
+    suspend fun disableAi(){
+        val lifecycle=lifecycleGeneration
+        withContext(Dispatchers.IO){ai.setConsent(accountId,false)}
+        if(current(lifecycle)){aiConsent=false;message="已在本机停用AI建议，联网后同步撤销授权";refresh()}
+    }
+    suspend fun adoptAi(item:PaymentVerificationCenter.Item){
+        val lifecycle=lifecycleGeneration
+        if(item.hasEdits){message="保留你的人工修改，AI建议不会覆盖";return}
+        val advice=withContext(Dispatchers.IO){ai.advice(accountId,item.recognitionId)}
+        if(!current(lifecycle))return
+        if(advice==null){message="建议已失效或依据不足，请人工核实";return}
+        val id=advice.optString("selected_candidate_id")
+        val candidates=advice.optJSONArray("amount_candidates")
+        val selected=candidates?.let{list->(0 until list.length()).mapNotNull(list::optJSONObject).singleOrNull{it.optString("candidate_id")==id}}
+        if(selected==null){message="建议已失效或依据不足，请人工核实";return}
+        beginEdit(item)
+        currency=selected.getString("currency")
+        amountText=java.math.BigDecimal.valueOf(selected.getLong("amount_minor"),uk.thewyj.app.finance.CurrencyMoney.exponent(currency)).toPlainString()
+        direction=advice.getString("direction").uppercase()
+        message="已填入建议，请核对原证据后再保存并确认；尚未写账"
     }
 
     fun cancelEdit() {

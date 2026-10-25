@@ -1,5 +1,6 @@
 import { formatFinanceMoney } from './format.js';
 import { moneyText, parseMoney, currencyDigits, SUPPORTED_CURRENCIES } from './money.js';
+import {financeAiAdvice,financeAiMarkup,financeAiMessage,fillFinanceAiEditor} from './ai-assistance.js';
 import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?v=20261014-aeris-task26-r9";
 import { randomId } from "../core/capabilities.js?v=20261014-aeris-task26-r9";
 import { createFinanceDisclosure } from "./disclosure.js?v=20261014-aeris-task26-r9";
@@ -150,6 +151,7 @@ export function createFinanceCandidatesController({
   let busyIds = new Set();
   let currentCandidates = [];
   let canonicalRecords = [];
+  let aiConfig=null,aiConsentFor='',aiRows=new Map(),aiWithdrawalRunning=false,aiWithdrawalAt=0;
   let renderedForAccount = "";
   let hasCanonicalObservation = false;
   let bound = false;
@@ -232,7 +234,7 @@ export function createFinanceCandidatesController({
     if (banner) { banner.textContent = message; banner.hidden = !message; }
     reconcileKeyedRows(list, candidates, {
       key: candidate => candidate.canonical_id || candidate.id,
-      signature: candidate => JSON.stringify([candidate, busyIds.has(String(candidate.id || ""))]),
+      signature: candidate => JSON.stringify([candidate, busyIds.has(String(candidate.id || "")),aiConfig,aiRows.get(String(candidate.id||'')),aiConsentFor]),
       empty: '<div class="finance-candidate-empty"><strong>暂无待处理通知交易</strong><p>已完成核实和记账的交易会直接从待处理移除。</p></div>',
       render: (candidate) => {
       const id = String(candidate.id || "");
@@ -258,7 +260,7 @@ export function createFinanceCandidatesController({
           ${presentation.evidenceConflict ? `<small role="status">本机与云端金额或方向不一致，请核对后编辑确认${candidate.local_evidence?.amount_minor ? `（本机金额 ${escapeHtml(formatMinor(candidate.local_evidence.amount_minor, candidate.local_evidence.currency || candidate.currency))}）` : ""}。</small>` : presentation.localEvidencePending ? '<small role="status">本机已识别，等待同步；云端尚未确认。</small>' : ""}
           <small>${escapeHtml(sources)} · ${escapeHtml(occurred)}</small>
           <small><span class="finance-candidate-merchant" title="${escapeHtml(presentation.merchantLabel)}">${escapeHtml(presentation.merchantLabel)}</span><span>${escapeHtml(missingLabel)}</span></small>
-          <details class="finance-candidate-evidence"><summary>查看识别依据</summary><p>${escapeHtml(evidenceReason)}</p><p>结构化证据 ${evidenceCount} 条 · 置信度 ${confidence}/1000${editedCount ? ` · 用户已修改 ${editedCount} 次` : ""}</p><p>核实标识：${escapeHtml(candidate.canonical_id || "")}</p><p>事件标识：${escapeHtml(candidate.event_id || id)}</p></details></div>
+          <details class="finance-candidate-evidence"><summary>查看识别依据</summary><p>${escapeHtml(evidenceReason)}</p><p>结构化证据 ${evidenceCount} 条 · 置信度 ${confidence}/1000${editedCount ? ` · 用户已修改 ${editedCount} 次` : ""}</p><p>核实标识：${escapeHtml(candidate.canonical_id || "")}</p><p>事件标识：${escapeHtml(candidate.event_id || id)}</p>${candidate.hint&&editedCount===0?financeAiMarkup(id,aiConfig,aiRows.get(id),aiConsentFor===id,escapeHtml):''}</details></div>
         </div>
         <div class="finance-candidate-actions">
           ${presentation.missing.length ? `<button class="primary" type="button" data-finance-candidate-verify="${escapeHtml(id)}" ${busy ? "disabled" : ""}>核实交易</button>` : ""}
@@ -398,6 +400,11 @@ export function createFinanceCandidatesController({
       if (!active || lifecycle !== lifecycleVersion || String(account()?.id || "") !== currentAccountId || !listVersion.isCurrent(version)) return;
       hasCanonicalObservation = true;
       canonicalRecords = summary.records;
+      aiConfig=summary.ai_assistance?.available===true?summary.ai_assistance:null;
+      if(aiConfig&&aiLocallyRevoked(currentAccountId)){
+        aiConfig={...aiConfig,consent:{...aiConfig.consent,enabled:0}};
+        void syncAiWithdrawal(currentAccountId);
+      }
       render(canonicalPendingCandidates({ ...summary, records: mergeLocalNotificationReviews(
         summary.records, globalThis.window?.WYJLocalPaymentLedger, currentAccountId) }));
       section.setAttribute("aria-busy", "false");
@@ -511,7 +518,57 @@ export function createFinanceCandidatesController({
     submitEditor(form, form.querySelector("[data-finance-candidate-save]"));
   }
 
+  function aiBlockKey(owner){return `wyjFinanceAiConsentBlock:v1:${owner}`;}
+  function aiLocallyRevoked(owner){try{return storage?.getItem(aiBlockKey(owner))==='revoke_pending';}catch{return true;}}
+  async function syncAiWithdrawal(owner){
+    if(aiWithdrawalRunning||Date.now()-aiWithdrawalAt<30000)return;
+    aiWithdrawalRunning=true;aiWithdrawalAt=Date.now();
+    try{
+      const config=await apiGet('/api/finance/ai/config');
+      const result=await api('/api/finance/ai/consent',{enabled:false,expected_revision:Number(config.consent?.revision)||0});
+      if(Number(result.consent?.enabled)===0)storage?.removeItem(aiBlockKey(owner));
+    }catch{/* Local block remains authoritative until the server acknowledges withdrawal. */}
+    finally{aiWithdrawalRunning=false;}
+  }
+  async function aiAction(id,action){
+    const candidate=currentCandidates.find(c=>String(c.id)===id);
+    if(!candidate?.hint||!aiConfig?.available||busyIds.has(id))return;
+    if(action==='cancel'){aiConsentFor='';render(currentCandidates);return;}
+    if(action==='request'&&(Number(aiConfig.consent?.enabled)!==1||aiLocallyRevoked(String(account()?.id||'')))){aiConsentFor=id;render(currentCandidates);return;}
+    const owner=String(account()?.id||''),lifecycle=lifecycleVersion,source=JSON.stringify(candidate);
+    const current=()=>active&&owner===String(account()?.id||'')&&lifecycle===lifecycleVersion&&JSON.stringify(currentCandidates.find(c=>String(c.id)===id))===source;
+    if(action==='disable'){
+      try{storage?.setItem(aiBlockKey(owner),'revoke_pending');}catch{}
+      aiConfig={...aiConfig,consent:{...aiConfig.consent,enabled:0}};aiRows=new Map();render(currentCandidates,'已在本机停用AI建议，联网后同步撤销授权');
+      await syncAiWithdrawal(owner);return;
+    }
+    busyIds=new Set(busyIds).add(id);render(currentCandidates);
+    try{
+      const config=await apiGet('/api/finance/ai/config');if(!current())return;
+      if(config.available!==true)throw Error('AI尚未启用，可继续人工核实');
+      aiConfig=config;
+      if(action==='consent'){
+        const accepted=await api('/api/finance/ai/consent',{enabled:true,expected_revision:Number(config.consent?.revision)||0});if(!current())return;
+        aiConfig={...config,consent:accepted.consent};storage?.removeItem(aiBlockKey(owner));aiConsentFor='';
+      }
+      if(aiLocallyRevoked(owner)||Number(aiConfig.consent?.enabled)!==1)throw Error('请先授权发送脱敏候选字段');
+      const eventId=String(candidate.event_id||candidate.source_event_id||'');if(!eventId)throw Error('缺少稳定事件标识，请人工核实');
+      const response=action==='use'?await apiGet('/api/finance/ai/suggestions?event_id='+encodeURIComponent(eventId)):
+        await api('/api/finance/ai/suggest',{event_id:eventId});
+      if(!current())return;
+      const advice=financeAiAdvice(response,candidate);
+      const safe=['suggestion','review'].includes(response.status)&&!advice?{status:'invalid'}:response;
+      aiRows.set(id,safe);render(currentCandidates,financeAiMessage(safe.status));
+      if(action==='use'){
+        const form=document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`);
+        if(!fillFinanceAiEditor(form,advice))render(currentCandidates,'保留你的人工修改；建议已失效或无法核验时请人工核实');
+      }
+    }catch(error){if(current())render(currentCandidates,error?.message||'AI暂不可用，可继续人工核实');}
+    finally{if(owner===String(account()?.id||'')&&lifecycle===lifecycleVersion){busyIds=new Set([...busyIds].filter(value=>value!==id));reloadListState();}}
+  }
   function handleClick(event) {
+    const aiButton=event.target.closest('[data-finance-ai-action]');
+    if(aiButton){event.preventDefault();void aiAction(String(aiButton.dataset.financeAiId||''),String(aiButton.dataset.financeAiAction||''));return;}
     const verifyButton = event.target.closest("[data-finance-candidate-verify]");
     if (verifyButton) {
       const id = verifyButton.dataset.financeCandidateVerify;
@@ -641,6 +698,7 @@ export function createFinanceCandidatesController({
       renderedForAccount = "";
       currentCandidates = [];
       canonicalRecords = [];
+      aiConfig=null;aiRows=new Map();aiConsentFor='';
       hasCanonicalObservation = false;
     }
     if (!element("financePage")?.classList.contains("hidden")) { active = true; void reload({ force: true }); }

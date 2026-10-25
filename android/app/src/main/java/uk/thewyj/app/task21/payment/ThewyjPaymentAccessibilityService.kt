@@ -199,7 +199,11 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
                 val enrichment = PaymentPageSemantics.extract(snapshot,
                     uk.thewyj.app.finance.CurrencyRuntimePreferences.defaultCurrency(applicationContext, scan.accountId), 2)
                     ?: PaymentPageSemantics.unresolvedCandidate(snapshot)
-                if (enrichment == null) mainHandler.post { if (current(scan)) screenshot(scan) }
+                if (enrichment == null) {
+                    if(validTicket(scan)&&pageEvidenceEpoch.current(contentToken))
+                        uk.thewyj.app.finance.FinanceAiCoordinator.get(applicationContext).capture(scan.ticket,snapshot)
+                    mainHandler.post { if (current(scan)) screenshot(scan) }
+                }
                 else mainHandler.post {
                     if (current(scan) && foregroundMatches(scan) && pageEvidenceEpoch.current(contentToken)) execute {
                         if (pageEvidenceEpoch.current(contentToken)) apply(scan, enrichment)
@@ -259,8 +263,9 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
                         if (!validTicket(scan)) return@execute
                         val verifier = ocrVerifier ?: PaymentScreenshotVerifier(MlKitOcrEngine(this@ThewyjPaymentAccessibilityService)).also { ocrVerifier = it }
                         val enrichment = kotlinx.coroutines.runBlocking {
-                            verifier.verifyCurrent(bitmap, scan.ticket.sourcePackage, System.currentTimeMillis(),
-                                uk.thewyj.app.finance.CurrencyRuntimePreferences.defaultCurrency(applicationContext, scan.accountId), 2) {
+                            verifier.verifyCurrentWithAssistance(bitmap, scan.ticket.sourcePackage, System.currentTimeMillis(),
+                                uk.thewyj.app.finance.CurrencyRuntimePreferences.defaultCurrency(applicationContext, scan.accountId), 2,
+                                observer={snapshot->if(validTicket(scan)&&pageEvidenceEpoch.current(contentToken))uk.thewyj.app.finance.FinanceAiCoordinator.get(applicationContext).capture(scan.ticket,snapshot)}) {
                                 current(scan) && pageEvidenceEpoch.current(contentToken)
                             }
                         }

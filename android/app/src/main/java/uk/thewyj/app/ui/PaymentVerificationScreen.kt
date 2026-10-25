@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
 import uk.thewyj.app.core.design.ThewyjOutlinedButton as OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -60,6 +61,7 @@ fun PaymentVerificationScreen(
     val scope = rememberCoroutineScope()
     var tick by remember { mutableStateOf(0) }
     var resumed by remember { mutableStateOf(false) }
+    var aiConsentItem by remember(state) { mutableStateOf<PaymentVerificationCenter.Item?>(null) }
     LifecycleResumeEffect(state) {
         state.activate()
         resumed = true
@@ -84,6 +86,12 @@ fun PaymentVerificationScreen(
     }
 
     BackHandler(enabled = true) { onBack() }
+    aiConsentItem?.let { item ->
+        AlertDialog(onDismissRequest={aiConsentItem=null},title={Text("启用脱敏AI建议")},
+            text={Text("仅发送这笔交易的脱敏金额候选和角色词，不发送聊天、姓名或订单号。AI结果仅供核对，仍需你人工确认。")},
+            confirmButton={TextButton(onClick={aiConsentItem=null;scope.launch{state.requestAi(item,enable=true)}}){Text("同意并分析")}},
+            dismissButton={TextButton(onClick={aiConsentItem=null}){Text("暂不启用")}})
+    }
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(
             Modifier
@@ -221,6 +229,16 @@ fun PaymentVerificationScreen(
                         }
                         syncLine(item)?.let { line ->
                             Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if(!item.hasEdits&&!item.remoteOnly&&state.aiRows.containsKey(item.recognitionId)){
+                            val assistance=state.aiRows.getValue(item.recognitionId)
+                            val ready=state.aiConsent&&assistance.status=="suggestion"
+                            Text(when(assistance.status){"suggestion"->"AI已给出建议，仍须核对原证据";"review"->"AI仍无法确定，请人工核实";"timed_out","failed"->"AI暂不可用，原交易未改变";else->"可选AI辅助核对，不会自动写账"},style=MaterialTheme.typography.bodySmall)
+                            Row(horizontalArrangement=Arrangement.spacedBy(ThewyjSpacing.Sm)){
+                                OutlinedButton(onClick={if(state.aiConsent)scope.launch{state.requestAi(item)}else aiConsentItem=item}){Text(if(state.aiConsent)"分析候选金额" else "启用AI建议")}
+                                if(ready)OutlinedButton(onClick={scope.launch{state.adoptAi(item)}}){Text("核对建议")}
+                                if(state.aiConsent)TextButton(onClick={scope.launch{state.disableAi()}}){Text("停用")}
+                            }
                         }
                         if (item.remoteOnly) {
                             Text(
