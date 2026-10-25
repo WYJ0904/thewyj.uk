@@ -17,6 +17,11 @@ object PaymentPageEvidence {
     private val transferTitles = setOf("转账详情", "轉賬詳情", "轉帳詳情", "转帐详情")
     private val timeLabel = Regex("(?:转账|转帐|轉帳|轉賬)(?:时间|時間)")
     private val receivedByOther = Regex("^(?:已被(?!(?:你|您|本人)(?:领取|領取)).{1,30}(?:领取|領取)|(?:对方|對方)已(?:收款|领取|領取))$")
+    /** A damaged status is a veto, never a spelling-based proof of completion. */
+    fun undecodedStatus(lines: List<String>): Boolean = lines.any {
+        Regex("^(?:付|收|支|退|转|轉).{1,2}(?:成功|完成)$").matches(it.trim()) &&
+            !settledStatus.matches(it.trim()) && !labelledStatus.matches(it.trim())
+    }
     fun transferReceipt(lines: List<String>): Boolean = lines.any { it.trim() in transferTitles } && lines.any(timeLabel::containsMatchIn)
     fun transferDirection(lines: List<String>): FinanceDirection? {
         if (!transferReceipt(lines)) return null
@@ -27,10 +32,11 @@ object PaymentPageEvidence {
     }
     fun completed(lines: List<String>): Boolean {
         val text=lines.joinToString(" ")
-        return !PaymentText.hasIncompleteStatus(text) &&
+        return !undecodedStatus(lines) && !PaymentPageContext.pendingPaymentDetail(lines) && !PaymentText.hasIncompleteStatus(text) &&
             (lines.any {settledStatus.matches(it.trim()) || labelledStatus.matches(it.trim())} || transferDirection(lines) != null)
     }
     fun direction(lines:List<String>): FinanceDirection? {
+        if (undecodedStatus(lines)) return null
         PaymentPageContext.pendingDirection(lines)?.let {return it}
         val statuses=lines.filter {settledStatus.matches(it.trim()) || labelledStatus.matches(it.trim())}
         if (statuses.isNotEmpty()) {
@@ -54,7 +60,7 @@ object PaymentPageEvidence {
             heading.any { it in setOf("账户余额","账户资产","我的资产","账户總資產","总资产") } -> PaymentPageState.BALANCE
             heading.any { it in setOf("优惠活动","優惠活動","优惠券","限时优惠","商品推广") } -> PaymentPageState.PROMOTION
             Regex("(?:支付|付款|交易|转账|轉賬)(?:失败|失敗|取消|关闭|關閉|已取消|已关闭)").containsMatchIn(text) -> PaymentPageState.FAILED
-            PaymentText.hasIncompleteStatus(text) -> PaymentPageState.PENDING
+            PaymentText.hasIncompleteStatus(text) || PaymentPageContext.pendingPaymentDetail(lines) -> PaymentPageState.PENDING
             completed(lines) -> PaymentPageState.COMPLETED
             PaymentPageContext.isDetail(lines) -> PaymentPageState.DETAIL
             else -> PaymentPageState.UNKNOWN

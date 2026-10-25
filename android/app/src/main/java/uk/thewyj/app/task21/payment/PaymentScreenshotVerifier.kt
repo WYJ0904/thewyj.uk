@@ -32,6 +32,11 @@ interface AmountConfirmingOcrEngine : OcrEngine {
         if (currency == "CNY") confirmAmount(bitmap, expectedMinor) else null
 }
 
+/** Native pixel readers may retry a whole immutable page at bounded resolutions. */
+interface ScalablePageOcrEngine : AmountConfirmingOcrEngine {
+    val fullPageRetryReady: Boolean get() = true
+}
+
 object PaymentScreenshotTarget {
     fun resolve(eventWindowId: Int, packageWindowId: Int?): Int? =
         eventWindowId.takeIf { it >= 0 } ?: packageWindowId?.takeIf { it >= 0 }
@@ -70,9 +75,32 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
 
     private suspend fun verifyInternal(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long,
                        defaultCurrency: String?, currencyPolicyVersion: Int, retainUnresolved: Boolean, stillCurrent: () -> Boolean = {true}): PaymentEnrichment? {
-        val lines = runCatching { engine.recognize(bitmap) }.getOrDefault(emptyList())
+        var owned: Bitmap? = null
+        var working = bitmap
+        try {
+        var lines = runCatching { engine.recognize(working) }.getOrDefault(emptyList())
         if (!stillCurrent()) return null
-        val normalized = normalizeOcrLines(lines)
+        var normalized = normalizeOcrLines(lines)
+        val native = engine as? ScalablePageOcrEngine
+        val originalMoney = monetaryFingerprint(normalized, defaultCurrency)
+        if (native != null && normalized.isNotEmpty() && bitmap.width >= 480) {
+            // Full page only: no expected value, synthetic label, fixed crop or
+            // merged numeric nodes enter the retry. Known negative states win.
+            for (width in listOf(800, 1600).filter { it != bitmap.width }) {
+                if (!stillCurrent()) return null
+                if (!native.fullPageRetryReady || !needsFullPageRetry(normalized)) break
+                val height = (bitmap.height.toLong() * width / bitmap.width).toInt()
+                if (height <= 0 || width.toLong() * height > 8_000_000L) continue
+                val next = Bitmap.createScaledBitmap(bitmap,width,height,true)
+                val nextLines = runCatching { engine.recognize(next) }.getOrDefault(emptyList())
+                owned?.recycle(); owned = next; working = next
+                if (!stillCurrent()) return null
+                lines = nextLines; normalized = normalizeOcrLines(lines)
+                val observedMoney = monetaryFingerprint(normalized,defaultCurrency)
+                if (originalMoney != null && observedMoney != null && originalMoney != observedMoney) return null
+                if (PaymentPageEvidence.blocked(normalized)) return null
+            }
+        }
         if (normalized.isEmpty()) {
             android.util.Log.i("ThewyjAccessibility", "ocr-semantics lines=0 context=false amounts=0 decisive=false completion=false")
             return null
@@ -107,13 +135,27 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
         if (confirmingEngine != null && expectedMinor != null) {
             val confirmed = runCatching {
                 if (currencyPolicyVersion >= 2)
-                    enrichment.currency?.let { confirmingEngine.confirmAmount(bitmap, expectedMinor, it) }
-                else confirmingEngine.confirmAmount(bitmap, expectedMinor)
+                    enrichment.currency?.let { confirmingEngine.confirmAmount(working, expectedMinor, it) }
+                else confirmingEngine.confirmAmount(working, expectedMinor)
             }.getOrNull()
             PaymentDiagnostics.emit("ocr_confirmation", "expectedMinor=${enrichment.amountMinor} confirmedMinor=$confirmed agreed=${confirmed == enrichment.amountMinor}")
             if (confirmed != enrichment.amountMinor) return null
         }
         return enrichment.copy(evidenceSource = PaymentEvidenceSource.OCR)
+        } finally { owned?.recycle() }
+    }
+
+    private fun needsFullPageRetry(lines: List<String>): Boolean {
+        val state = PaymentPageEvidence.classify(lines)
+        if (PaymentPageEvidence.blocked(lines) || state in setOf(PaymentPageState.PENDING,PaymentPageState.FAILED)) return false
+        return PaymentPageEvidence.undecodedStatus(lines) || !PaymentPageContext.isDetail(lines) ||
+            state in setOf(PaymentPageState.DETAIL,PaymentPageState.UNKNOWN)
+    }
+    private fun monetaryFingerprint(lines: List<String>, defaultCurrency: String?): Pair<String,Long>? {
+        val value=uk.thewyj.app.finance.CurrencyDecision.apply(ParsedPaymentMessage(PaymentRecognitionStatus.PAYMENT_LIKELY),lines.joinToString(" "),defaultCurrency,true)
+        val unit=value.currency?.takeIf {it in uk.thewyj.app.finance.CurrencyMoney.digits} ?: return null
+        if(value.reviewReason !in setOf("","currency_amount_unproven"))return null
+        return PaymentPageSemantics.labelledCurrencyAmount(lines,emptyList(),unit)?.let {unit to it}
     }
 
     companion object {
@@ -166,20 +208,21 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
                 Regex("[€£$]|(?<![a-z])(?:usd|eur|hkd|gbp|jpy)(?![a-z])").containsMatchIn(joined)
             val context = listOf(
                 "支付成功", "付款成功", "已支付", "已付款", "支付金额", "付款金额", "实付", "已扣款",
-                "转账成功", "轉賬成功", "转账金额", "收款成功", "已收款", "收款金额",
+                "转账成功", "轉賬成功", "交易成功", "转账详情", "转账金额", "收款成功", "已收款", "收款金额",
                 "轉賬金額", "轉賬詳情", "到賬成功", "订单金额", "交易详情", "账单详情", "支付详情", "支付詳情", "付款详情", "付款詳情", "收款详情", "收款詳情", "退款详情", "退款詳情",
             ).any { joined.contains(it) }
             val directionOnlyDetail = listOf("交易详情", "交易詳情", "账单详情", "賬單詳情", "转账详情", "轉賬詳情")
                 .any(joined::contains) && PaymentText.hasCompletion(joined) && PaymentText.direction(joined) != null
-            return PaymentPageContext.isDetail(lines) && ((money && context) || directionOnlyDetail || PaymentPageContext.pendingTransfer(lines) ||
+            return PaymentPageContext.isDetail(lines) && ((money && context) || directionOnlyDetail || PaymentPageContext.pendingTransfer(lines) || PaymentPageContext.pendingPaymentDetail(lines) ||
                 (PaymentPageEvidence.transferReceipt(lines) && PaymentPageEvidence.transferDirection(lines) != null))
         }
     }
 }
 
 /** ML Kit implementation (bundled Chinese + Latin model). */
-class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
+class MlKitOcrEngine(context: Context) : ScalablePageOcrEngine {
     private val sdkBusy=java.util.concurrent.atomic.AtomicBoolean()
+    override val fullPageRetryReady: Boolean get() = !sdkBusy.get()
     private data class AmountRegion(val text: String, val legacyMinor: Long?, val bounds: android.graphics.Rect, val score: Int)
     private var amountRegions: List<AmountRegion> = emptyList()
     private val appContext = context.applicationContext
@@ -247,9 +290,7 @@ class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
         confirm(bitmap, expectedMinor, currency)
 
     private fun currencyAmount(text: String, currency: String): Long? {
-        val parsed = uk.thewyj.app.finance.CurrencyDecision.apply(
-            ParsedPaymentMessage(PaymentRecognitionStatus.PAYMENT_LIKELY), text, currency, true)
-        return parsed.amountMinor.takeIf { parsed.currency == currency }
+        return PaymentSecondaryOcrAmount.select(listOf(text), currency)
     }
 
     private suspend fun confirm(bitmap: Bitmap, expectedMinor: Long, currency: String?): Long? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
@@ -300,7 +341,8 @@ internal object PaymentSecondaryOcrAmount {
         PaymentPageSemantics.labelledCurrencyAmount(normalized,emptyList(),currency)?.let {return it}
         // A crop containing exactly one bare number can confirm the primary
         // page's established unit. Prose/metadata and conflicting fields cannot.
-        val bare=normalized.singleOrNull()?.takeIf {Regex("[0-9]+(?:\\.[0-9]+)?").matches(it)} ?: return null
+        val bare=normalized.filter {Regex("[0-9]+(?:\\.[0-9]+)?").matches(it)}.singleOrNull() ?: return null
+        if(normalized.filter {it!=bare}.any {Regex("[0-9]|原价|原價|优惠|優惠|折扣|余额|餘額|手续费|手續費|服务费|服務費|运费|運費|订单|訂單|单号|單號|编号|时间|時間|日期|电话|電話|手机|手機|original price|discount|balance|fee|freight|order|reference|time|date|phone",RegexOption.IGNORE_CASE).containsMatchIn(it)})return null
         return runCatching {uk.thewyj.app.finance.CurrencyMoney.parse(bare,currency)}.getOrNull()?.takeIf {it>0}
     }
 }

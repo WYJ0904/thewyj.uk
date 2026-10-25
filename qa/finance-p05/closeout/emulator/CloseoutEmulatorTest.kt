@@ -35,9 +35,11 @@ private fun fields(value:PaymentEnrichment?)=if(value==null)JSONObject.NULL else
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class CloseoutEmulatorTest {
-    private class Observed(val sdk:MlKitOcrEngine):AmountConfirmingOcrEngine {
+    private class Observed(val sdk:MlKitOcrEngine):ScalablePageOcrEngine {
         var lines=emptyList<String>();var confirmation:Long?=null
-        override suspend fun recognize(bitmap:Bitmap)=sdk.recognize(bitmap).also{lines=it}
+        val passes=JSONArray()
+        override val fullPageRetryReady get()=sdk.fullPageRetryReady
+        override suspend fun recognize(bitmap:Bitmap)=sdk.recognize(bitmap).also{lines=it;passes.put(JSONObject().put("width",bitmap.width).put("height",bitmap.height).put("lines",JSONArray(it)))}
         override suspend fun confirmAmount(bitmap:Bitmap,expectedMinor:Long)=sdk.confirmAmount(bitmap,expectedMinor).also{confirmation=it}
         override suspend fun confirmAmount(bitmap:Bitmap,expectedMinor:Long,currency:String)=sdk.confirmAmount(bitmap,expectedMinor,currency).also{confirmation=it}
     }
@@ -66,7 +68,7 @@ class CloseoutEmulatorTest {
             }catch(failure:Throwable){error=failure.stackTraceToString();failures+=id}
             finally{bitmap.recycle()}
             write(JSONObject().put("id",id).put("kind","SDK_PIXEL").put("status",if(error.isBlank())"PASS" else "FAIL")
-                .put("case",case).put("sdk_lines",JSONArray(observed.lines)).put("actual",fields(result))
+                .put("case",case).put("sdk_lines",JSONArray(observed.lines)).put("sdk_passes",observed.passes).put("actual",fields(result))
                 .put("secondary_minor",observed.confirmation ?: JSONObject.NULL).put("duration_ms",SystemClock.elapsedRealtime()-started)
                 .put("error",error).put("source_argument_is_synthetic",true).put("ledger_writes",0))
         }
@@ -74,7 +76,8 @@ class CloseoutEmulatorTest {
     }
     @Test fun test01_staleAccountProfileAndContentAreDiscardedWithRealSdk()=runBlocking {
         val sdk=MlKitOcrEngine(target);val ready=CompletableDeferred<Unit>();val release=CompletableDeferred<Unit>();var calls=0
-        val engine=object:AmountConfirmingOcrEngine {
+        val engine=object:ScalablePageOcrEngine {
+            override val fullPageRetryReady get()=sdk.fullPageRetryReady
             override suspend fun recognize(bitmap:Bitmap):List<String>{val lines=sdk.recognize(bitmap);if(++calls==1){ready.complete(Unit);release.await()};return lines}
             override suspend fun confirmAmount(bitmap:Bitmap,expectedMinor:Long)=sdk.confirmAmount(bitmap,expectedMinor)
             override suspend fun confirmAmount(bitmap:Bitmap,expectedMinor:Long,currency:String)=sdk.confirmAmount(bitmap,expectedMinor,currency)
