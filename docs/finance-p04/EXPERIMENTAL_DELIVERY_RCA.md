@@ -1,10 +1,10 @@
 # P03/P04 与 Experimental 体验通道的交付核查
 
-2026-10-24，Asia/Hong_Kong。本文为本轮独立核查，不覆盖 `ce7c87e` 已封存报告、原始失败或验收门禁。**P03/P04 仍为 PARTIAL；Production 变更未获授权。**
+2026-10-24 初查，2026-10-25 更新，Asia/Hong_Kong。本文为本轮独立核查，不覆盖 `ce7c87e` 已封存报告、原始失败或验收门禁。**P03/P04 仍为 PARTIAL；Production 变更未获授权。**
 
 当前已证实：上一轮截图来自专属 Cloudflare Pages Preview 的合成账户；该 Preview 随测试结束已删除。账户选择 Experimental 不会从本地分支下载新源码，也不会分发尚未发布的 Android APK。P04 多币种界面在当前实现中没有独立 Task25 Feature Flag，因此不能靠切换现有通道打开未部署的 P04 代码。
 
-本轮用户已接受独立 Preview 的空白账本；**这不等于真实 Production 账户认证已经接通，也不等于正式账目已导入或允许写入正式账本。** 新 Preview 的实际部署、登录及操作结果须在本文对应位置补充，未执行前全部标为 NOT TESTED。
+本轮用户已接受独立 Preview 的空白账本，并已实际完成隔离部署、普通账户登录、HTTP与浏览器验证，详见第6节及其后交付证据。**这不等于真实 Production 账户认证已经接通，也不等于正式账目已导入或允许写入正式账本。** P05后续修改仅在本地；该体验入口仍固定于下表P04源码。
 
 ## 1. 本地、远端和用户访问版本对照
 
@@ -12,16 +12,17 @@
 | --- | --- | --- |
 | P04 隔离工作树基线 | `codex/finance-p04-multicurrency`；`ce7c87ef3e23907577c0266bfcccc002bcebcd2c` | 本轮起始实际 HEAD；上一轮最终 QA/报告提交，未把本地提交本身当成部署 |
 | 上轮回归 / 截图所用产品源码 | `73764f77fd02ada240e41c24734e523c5dad8805` | [上一轮最终证据索引](FINAL_EVIDENCE_INDEX.md)及下述部署命令、staging manifest |
-| 固定主工作区 | `codex/android-accessibility-accounting-hotfix`；`e2febc6d9a33997bd9dc4cb042ecff216d31fde4`，保留既有未提交 Hotfix | 本轮启动只读核查；详细前后文件保护对照待补，不修改或强制重置主工作区 |
+| 固定主工作区 | `codex/android-accessibility-accounting-hotfix`；`e2febc6d9a33997bd9dc4cb042ecff216d31fde4`，保留既有未提交 Hotfix | 本轮13组前后保护核验一致，不修改或强制重置主工作区 |
 | GitHub `origin/main` | `74eadf589b0a6ffe1e5ab7a9564115891c4ef2dc` | 本轮 `git ls-remote` 实时结果，非本地 tracking ref |
 | GitHub 财务分支 | `codex/finance-p04-multicurrency` 的远端 ref **ABSENT** | 本轮远端引用清单没有该分支；本地封存不等于远端交付 |
 | 当前 Production Pages | `566292b3-3c7f-4ef5-93b5-6977e606c14a`；Branch=`main`；Source=`74eadf5`；部署 URL=`https://566292b3.thewyj-uk.pages.dev` | 本轮 Cloudflare 控制面实读。该 Source 对应 GitHub 当前 main，而非 P04；实际浏览器加载字节仍按下节另证，不依据展示版本推断完整 SHA |
 | 既有共享 Task26 Preview | `642a5f0a-03d6-4793-93c7-22c3f1d72ab4`；Branch=`codex/task26-wrong-review`；Source=`6247c41` | 本轮只读列表；不是 P04 Preview，不修改其绑定或数据 |
 | 用户实际访问页面 | **NOT TESTED：待记录精确 URL、登录身份范围、页面及资源指纹** | 用户截图显示 Experimental 偏好；该截图本身不能证明已部署 P04 |
-| 本轮新独立 Preview | **NOT TESTED：待安全构建、部署与实际访问验证** | 独立项目 / 独立 D1 / 独立账户与空白账本；不连接正式财务数据 |
+| 本轮新独立 Preview | `298d5057d7b4c7432e0625bb5c9297ba9243b6df`；Deployment=`fa42e9b0-5027-40f1-9377-b0942aaeb857`；[体验入口](https://owner-p04-preview.thewyj-finance-p04-preview.pages.dev/finance) | 实际独立D1绑定核验、11项HTTP/38请求、普通owner六币种/初始0账浏览器验证通过；5个关键资源字节一致，不连接正式财务数据 |
+| 后续本地P05产品 | `25142acb9a22c5293d5c3b8a7710c4bd418f477c`，`codex/finance-p05-page-ocr` | 后续报告/QA封存提交另见统一报告索引；P05未push或部署，不应在该P04 Preview寻找P05改动 |
 
 <!-- ROOT_CURRENT_REMOTE_AND_RUNTIME_EVIDENCE -->
-本轮实时元数据已于2026-10-24 **21:53:46–21:54:04 HKT**取得，见[远端审计原始记录](../migration-evidence/finance-p04/experience-channel-current/audit-r1/result.json)。Production 与共享 Preview 操作均为只读，记录为 `production_mutations=false` / `shared_preview_mutations=false`。待补：用户实际页面 URL、浏览器加载资源指纹及其与控制面 / 本地候选的比对；尚不能只凭 Source 字段声称完整运行字节一致。
+首次元数据于2026-10-24 **21:53:46–21:54:04 HKT**取得，见[远端审计原始记录](../migration-evidence/finance-p04/experience-channel-current/audit-r1/result.json)；2026-10-25又完成[audit-r2](../migration-evidence/finance-p04/experience-channel-current/audit-r2/result.json)只读复核。Production 与共享 Preview 操作均为只读，记录为 `production_mutations=false` / `shared_preview_mutations=false`。用户实际Production浏览器缓存与登录页面字节仍NOT TESTED，未因public 403追加被拒绝的诊断或绕过。新独立Preview有真实运行字节/登录证据；不能据此宣称用户原浏览器缓存已验证。
 
 ## 2. 上一轮 P04 截图的完整溯源
 
@@ -126,7 +127,7 @@ Production当前浏览器缓存状态 **NOT TESTED**。无Cookie静态GET /finan
 
 用户已同意独立 Preview 的空白账本。交付须同时满足：独立项目、独立 D1、独立认证与会话、明确环境标签和可验证构建身份；财务写入只进入该 Preview 的空白账本。不得导入正式财务数据、复制正式 Pepper / 会话 / 密钥、修改真实会员权限或自动合并账目。
 
-用户已接受**独立 Preview 登录与空白账本，不要求复用正式认证**。这仍不能被表述为真实 Production 账户认证已经完成，独立账户也不因用户名相同而成为同一正式账户。本轮新项目名称准备为 `thewyj-finance-p04-preview`、专属 D1 名称为 `finance-p04-owner-preview`，分支为 `owner-p04-preview`，生产分支设置 `release-held` 且只部署 Preview；这些名称只表示已准备方案，实际创建 / 绑定 / 部署结果以下节证据为准。若以后需要生产侧改动或共享认证写入，须另说明风险并取得授权。
+用户已接受**独立 Preview 登录与空白账本，不要求复用正式认证**。这仍不能被表述为真实 Production 账户认证已经完成，独立账户也不因用户名相同而成为同一正式账户。本轮已建成新项目 `thewyj-finance-p04-preview`、专属 D1 `finance-p04-owner-preview`，分支为 `owner-p04-preview`，生产分支设置 `release-held` 且只部署 Preview；实际创建 / 绑定 / 部署结果见下表。若以后需要生产侧改动或共享认证写入，须另说明风险并取得授权。
 
 <!-- ROOT_NEW_PREVIEW_DELIVERY -->
 2026-10-25实际交付：资源为新建独立项目，不是恢复原已删QA。
