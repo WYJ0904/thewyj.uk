@@ -81,8 +81,9 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
         var lines = runCatching { engine.recognize(working) }.getOrDefault(emptyList())
         if (!stillCurrent()) return null
         var normalized = normalizeOcrLines(lines)
+        if (financialVeto(normalized,defaultCurrency)) return null
         val native = engine as? ScalablePageOcrEngine
-        val originalMoney = monetaryFingerprint(normalized, defaultCurrency)
+        var moneyConsensus = monetaryFingerprint(normalized, defaultCurrency)
         if (native != null && normalized.isNotEmpty() && bitmap.width >= 480) {
             // Full page only: no expected value, synthetic label, fixed crop or
             // merged numeric nodes enter the retry. Known negative states win.
@@ -97,8 +98,9 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
                 if (!stillCurrent()) return null
                 lines = nextLines; normalized = normalizeOcrLines(lines)
                 val observedMoney = monetaryFingerprint(normalized,defaultCurrency)
-                if (originalMoney != null && observedMoney != null && originalMoney != observedMoney) return null
-                if (PaymentPageEvidence.blocked(normalized)) return null
+                if (moneyConsensus != null && observedMoney != null && moneyConsensus != observedMoney) return null
+                if (moneyConsensus == null) moneyConsensus = observedMoney
+                if (PaymentPageEvidence.blocked(normalized) || financialVeto(normalized,defaultCurrency)) return null
             }
         }
         if (normalized.isEmpty()) {
@@ -150,6 +152,11 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
         if (PaymentPageEvidence.blocked(lines) || state in setOf(PaymentPageState.PENDING,PaymentPageState.FAILED)) return false
         return PaymentPageEvidence.undecodedStatus(lines) || !PaymentPageContext.isDetail(lines) ||
             state in setOf(PaymentPageState.DETAIL,PaymentPageState.UNKNOWN)
+    }
+    private fun financialVeto(lines: List<String>, defaultCurrency: String?): Boolean {
+        if (PaymentPageAmountSelection.select(lines).reason in setOf("conflicting_primary_amounts","ambiguous_amounts","ambiguous_grouping")) return true
+        val unit = uk.thewyj.app.finance.CurrencyDecision.apply(ParsedPaymentMessage(PaymentRecognitionStatus.PAYMENT_LIKELY),lines.joinToString(" "),defaultCurrency,true)
+        return unit.reviewReason in setOf("currency_evidence_conflict","unsupported_iso_currency","currency_symbol_ambiguous")
     }
     private fun monetaryFingerprint(lines: List<String>, defaultCurrency: String?): Pair<String,Long>? {
         val value=uk.thewyj.app.finance.CurrencyDecision.apply(ParsedPaymentMessage(PaymentRecognitionStatus.PAYMENT_LIKELY),lines.joinToString(" "),defaultCurrency,true)

@@ -57,7 +57,8 @@ object PaymentPageEvidence {
             heading.any { it in setOf("加载中","加载中…","加载中...","正在加载","正在跳转","正在跳轉") } -> PaymentPageState.LOADING
             heading.any { it in setOf("交易记录","交易记录列表","账单列表","交易列表") } -> PaymentPageState.LIST
             heading.any { it in setOf("历史账单","歷史賬單","历史交易") } -> PaymentPageState.HISTORY
-            heading.any { it in setOf("账户余额","账户资产","我的资产","账户總資產","总资产") } -> PaymentPageState.BALANCE
+            heading.any { it in setOf("账户余额","账户资产","我的资产","账户總資產","总资产") ||
+                Regex("^[账賬帳][户戶][余餘][额額]+$").matches(it.trim()) } -> PaymentPageState.BALANCE
             heading.any { it in setOf("优惠活动","優惠活動","优惠券","限时优惠","商品推广") } -> PaymentPageState.PROMOTION
             Regex("(?:支付|付款|交易|转账|轉賬)(?:失败|失敗|取消|关闭|關閉|已取消|已关闭)").containsMatchIn(text) -> PaymentPageState.FAILED
             PaymentText.hasIncompleteStatus(text) || PaymentPageContext.pendingPaymentDetail(lines) -> PaymentPageState.PENDING

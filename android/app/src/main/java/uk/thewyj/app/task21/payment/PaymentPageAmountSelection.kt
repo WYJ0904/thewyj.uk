@@ -35,7 +35,8 @@ object PaymentPageAmountSelection {
                 val text=PaymentText.normalizeMoneyText(raw)
                 val canonical=if (',' !in text) text else if ('.' in text || Regex("[1-9][0-9]{0,2}(?:,[0-9]{3})+").matches(text)) text.replace(",", "") else text.replace(',', '.')
                 candidates.add(PageAmountCandidate(index, raw, canonical, value, score,
-                    when (score) { 950 -> "actual_paid"; 900 -> "payment_label"; 850 -> "isolated_currency"; 700 -> "order_total"; else -> "inline_currency" }))
+                    when { score < 900 && Regex("支付|付款|扣款|收款").containsMatchIn(line) -> "uncertain_payment_label"
+                        score == 950 -> "actual_paid"; score == 900 -> "payment_label"; score == 850 -> "isolated_currency"; score == 700 -> "order_total"; else -> "inline_currency" }))
             }
         }
         normalized.forEachIndexed { i, line ->
@@ -69,6 +70,7 @@ object PaymentPageAmountSelection {
         val bestScore = candidates.maxOfOrNull { it.score } ?: return PageAmountDecision(null, candidates, "no_amount")
         val best = candidates.filter { it.score == bestScore }.map { it.minor }.distinct()
         val decision = when {
+            candidates.any { it.reason == "uncertain_payment_label" && it.minor !in best } -> "conflicting_primary_amounts"
             candidates.filter { it.score >= 900 }.map { it.minor }.distinct().size > 1 -> "conflicting_primary_amounts"
             bestScore < 700 -> "weak_inline_amount"
             best.size != 1 -> "conflicting_primary_amounts"
