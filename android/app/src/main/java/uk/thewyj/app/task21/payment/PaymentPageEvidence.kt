@@ -53,7 +53,9 @@ object PaymentPageEvidence {
         val text=lines.joinToString(" ");val heading=lines.take(3)
         return when {
             listOf("密码","密碼","验证码","驗證碼","身份证","身份證","银行卡号","銀行卡號").any(text::contains) -> PaymentPageState.SENSITIVE
-            heading.any { it in setOf("聊天","聊天记录","聊天記錄") } -> PaymentPageState.CHAT
+            // OCR can prefix a separator or drop the last character. This is
+            // negative context only; no damaged label proves a transaction.
+            heading.any { Regex("^[\\s|｜:：>—-]*聊天(?:[记記](?:[录錄])?)?[\\s|｜:：>—-]*$").matches(it) } -> PaymentPageState.CHAT
             heading.any { it in setOf("加载中","加载中…","加载中...","正在加载","正在跳转","正在跳轉") } -> PaymentPageState.LOADING
             heading.any { it in setOf("交易记录","交易记录列表","账单列表","交易列表") } -> PaymentPageState.LIST
             heading.any { it in setOf("历史账单","歷史賬單","历史交易") } -> PaymentPageState.HISTORY

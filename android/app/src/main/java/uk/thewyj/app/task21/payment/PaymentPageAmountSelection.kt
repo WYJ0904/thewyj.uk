@@ -19,9 +19,11 @@ object PaymentPageAmountSelection {
         val candidates = mutableListOf<PageAmountCandidate>()
         fun read(line: String, index: Int, group: Boolean = false) {
             if (excludedLabel.containsMatchIn(line) && !finalLabel.containsMatchIn(line) && !paymentLabel.containsMatchIn(line)) return
+            val pendingLabel = PaymentPageContext.pendingPaymentDetail(normalized) &&
+                Regex("(?:付款|支付).{0,1}(?:金|全)[额額]").containsMatchIn(line)
             val score = when {
                 finalLabel.containsMatchIn(line) -> 950
-                paymentLabel.containsMatchIn(line) -> 900
+                paymentLabel.containsMatchIn(line) || pendingLabel -> 900
                 PaymentPageEvidence.settledAmountLine(line) -> 850
                 Regex("订单金[额額]|訂單金[额額]").containsMatchIn(line) -> 700
                 currency.matches(line.trim()) -> 850
@@ -82,9 +84,10 @@ object PaymentPageAmountSelection {
 }
 
 object PaymentPageContext {
+    fun isPendingStatus(lines: List<String>): Boolean =
+        lines.any { it.trim() in setOf("待付款","待支付","付款中","支付中","付款处理中","支付处理中") }
     fun pendingPaymentDetail(lines: List<String>): Boolean =
-        lines.any { it.trim() in setOf("待付款","待支付","付款中","支付中","付款处理中","支付处理中") } &&
-            lines.any { Regex("(?:付款|支付)(?:金|全)[额額]").containsMatchIn(it) }
+        isPendingStatus(lines) && lines.any { Regex("(?:付款|支付).{0,1}(?:金|全)[额額]").containsMatchIn(it) }
     fun blockedWechatActivity(name: String): Boolean = name.endsWith(".LauncherUI") || name.contains("ChattingUI")
     private val detail = listOf("交易详情", "交易詳情", "账单详情", "賬單詳情", "帳單詳情", "转账详情", "轉賬詳情", "轉帳詳情", "支付详情", "支付詳情", "付款详情", "付款詳情", "收款详情", "收款詳情", "退款详情", "退款詳情")
     private val success = listOf("支付成功", "付款成功", "已支付", "已付款", "转账成功", "轉賬成功", "到賬成功", "收款成功", "已收款", "退款成功", "交易成功")

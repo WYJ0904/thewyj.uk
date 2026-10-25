@@ -81,7 +81,7 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
         var lines = runCatching { engine.recognize(working) }.getOrDefault(emptyList())
         if (!stillCurrent()) return null
         var normalized = normalizeOcrLines(lines)
-        if (financialVeto(normalized,defaultCurrency)) return null
+        if (PaymentPageEvidence.blocked(normalized) || financialVeto(normalized,defaultCurrency)) return null
         val native = engine as? ScalablePageOcrEngine
         var moneyConsensus = monetaryFingerprint(normalized, defaultCurrency)
         if (native != null && normalized.isNotEmpty() && bitmap.width >= 480) {
@@ -89,7 +89,7 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
             // merged numeric nodes enter the retry. Known negative states win.
             for (width in listOf(800, 1600).filter { it != bitmap.width }) {
                 if (!stillCurrent()) return null
-                if (!native.fullPageRetryReady || !needsFullPageRetry(normalized)) break
+                if (!native.fullPageRetryReady || !needsFullPageRetry(normalized,defaultCurrency)) break
                 val height = (bitmap.height.toLong() * width / bitmap.width).toInt()
                 if (height <= 0 || width.toLong() * height > 8_000_000L) continue
                 val next = Bitmap.createScaledBitmap(bitmap,width,height,true)
@@ -147,10 +147,16 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
         } finally { owned?.recycle() }
     }
 
-    private fun needsFullPageRetry(lines: List<String>): Boolean {
+    private fun needsFullPageRetry(lines: List<String>, defaultCurrency: String?): Boolean {
         val state = PaymentPageEvidence.classify(lines)
         if (PaymentPageEvidence.blocked(lines) || state in setOf(PaymentPageState.PENDING,PaymentPageState.FAILED)) return false
-        return PaymentPageEvidence.undecodedStatus(lines) || !PaymentPageContext.isDetail(lines) ||
+        val manualCandidate = PaymentPageSemantics.unresolvedCandidate(PaymentPageSnapshot("",lines,0L))
+        // A real absence/ambiguous symbol is already an exact manual candidate.
+        // Do not erase it by replacing the page with a weaker OCR read. Split
+        // Latin glyphs only request new pixels; they never supply an ISO code.
+        val fragmentedUnit = Regex("[A-Za-z]{1,2}\\s+[A-Za-z]{1,2}\\s*[0-9]").containsMatchIn(lines.joinToString(" "))
+        if (manualCandidate != null && !fragmentedUnit) return false
+        return monetaryFingerprint(lines,defaultCurrency)==null || PaymentPageEvidence.undecodedStatus(lines) || !PaymentPageContext.isDetail(lines) ||
             state in setOf(PaymentPageState.DETAIL,PaymentPageState.UNKNOWN)
     }
     private fun financialVeto(lines: List<String>, defaultCurrency: String?): Boolean {
@@ -179,6 +185,9 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
             // Observed Samsung OCR: the receipt label 時間 became 時閒.
             // Correct only this complete label, never prose, dates or money.
             .map { transferTimeLabel.replace(it) { match -> "${match.groupValues[1]}時間" } }
+            // Exact non-monetary label variants observed on the same Samsung
+            // pixels. Completion still needs a real status and transfer title.
+            .map { when(it) { "轉脹時間", "轉賬時聞" -> "轉賬時間"; else -> it } }
             // Equal labels can belong to different monetary nodes; retain their positions.
 
         private val transferTimeLabel = Regex("^(轉帳|轉賬)時閒$")
@@ -232,6 +241,7 @@ class MlKitOcrEngine(context: Context) : ScalablePageOcrEngine {
     override val fullPageRetryReady: Boolean get() = !sdkBusy.get()
     private data class AmountRegion(val text: String, val legacyMinor: Long?, val bounds: android.graphics.Rect, val score: Int)
     private var amountRegions: List<AmountRegion> = emptyList()
+    private var pendingPage = false
     private val appContext = context.applicationContext
     private val recognizer = run {
         // MlKitInitProvider normally runs before Application.onCreate. Some
@@ -247,12 +257,14 @@ class MlKitOcrEngine(context: Context) : ScalablePageOcrEngine {
         kotlinx.coroutines.Dispatchers.IO,
     ) {
         amountRegions = emptyList()
+        pendingPage = false
         val result = PaymentOcrTaskLifetime.await(bitmap,sdkBusy,{owned ->
             recognizer.process(com.google.mlkit.vision.common.InputImage.fromBitmap(owned,0)) })
             ?: return@withContext emptyList()
         val recognized = result.textBlocks.flatMap { it.lines }
         val lines = recognized.map { it.text }
         val regionLines = lines.map { PaymentScreenshotVerifier.normalizeOcrLines(listOf(it)).singleOrNull().orEmpty() }
+        pendingPage = PaymentPageContext.isPendingStatus(regionLines)
         val recoveredIndex = PaymentOcrTransferAmount.missingCurrencyIndex(
             regionLines,
             recognized.map { line -> line.boundingBox?.let { bounds ->
@@ -296,12 +308,14 @@ class MlKitOcrEngine(context: Context) : ScalablePageOcrEngine {
     override suspend fun confirmAmount(bitmap: Bitmap, expectedMinor: Long, currency: String): Long? =
         confirm(bitmap, expectedMinor, currency)
 
-    private fun currencyAmount(text: String, currency: String): Long? {
-        return PaymentSecondaryOcrAmount.select(listOf(text), currency)
+    private fun currencyAmount(text: String, currency: String, pending: Boolean): Long? {
+        return PaymentSecondaryOcrAmount.select(listOf(text), currency, pending)
     }
 
     private suspend fun confirm(bitmap: Bitmap, expectedMinor: Long, currency: String?): Long? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        val region = amountRegions.filter { (if (currency == null) it.legacyMinor else currencyAmount(it.text, currency)) == expectedMinor }
+        val pending = pendingPage
+        pendingPage = false
+        val region = amountRegions.filter { (if (currency == null) it.legacyMinor else currencyAmount(it.text, currency, pending)) == expectedMinor }
             .sortedWith(compareByDescending<AmountRegion> { it.score }.thenByDescending { it.bounds.height() }).firstOrNull()
         amountRegions = emptyList()
         if (region == null) return@withContext null
@@ -321,7 +335,7 @@ class MlKitOcrEngine(context: Context) : ScalablePageOcrEngine {
             val result = PaymentOcrTaskLifetime.await(scaled,sdkBusy,{owned ->
                 recognizer.process(com.google.mlkit.vision.common.InputImage.fromBitmap(owned,0)) }) ?: return@withContext null
             val lines = PaymentScreenshotVerifier.normalizeOcrLines(result.textBlocks.flatMap { it.lines.map { line -> line.text } })
-            if (currency != null) return@withContext PaymentSecondaryOcrAmount.select(lines,currency)
+            if (currency != null) return@withContext PaymentSecondaryOcrAmount.select(lines,currency,pending)
             val decision = PaymentPageAmountSelection.select(lines)
             decision.amountMinor ?: lines.singleOrNull()?.takeIf { Regex("[0-9]+[.,][0-9]{1,2}").matches(it) }?.let(PaymentText::parseMinor)
         } finally {
@@ -337,8 +351,9 @@ class MlKitOcrEngine(context: Context) : ScalablePageOcrEngine {
 
 /** Independent second-scale reading; never receives the expected numeric value. */
 internal object PaymentSecondaryOcrAmount {
-    fun select(lines:List<String>,currency:String):Long? {
+    fun select(lines:List<String>,currency:String,pendingPage:Boolean=false):Long? {
         val normalized=PaymentScreenshotVerifier.normalizeOcrLines(lines)
+        if (PaymentPageEvidence.blocked(normalized)) return null
         val parsed=uk.thewyj.app.finance.CurrencyDecision.apply(
             ParsedPaymentMessage(PaymentRecognitionStatus.PAYMENT_LIKELY),normalized.joinToString(" "),currency,true)
         if(parsed.currency!=currency || parsed.reviewReason !in setOf("","currency_amount_unproven"))return null
@@ -346,6 +361,11 @@ internal object PaymentSecondaryOcrAmount {
         // The second scale can include a nearby discount or balance. Resolve its
         // own roles instead of combining amounts or matching the caller's value.
         PaymentPageSemantics.labelledCurrencyAmount(normalized,emptyList(),currency)?.let {return it}
+        // A known pending page cannot complete a payment. Retain a uniquely
+        // read exact amount despite a damaged crop label, never a competing
+        // price/fee/balance or an invented unit/value. No expected value enters.
+        if ((pendingPage || PaymentPageContext.isPendingStatus(normalized)) && parsed.amountMinor != null &&
+            normalized.none { Regex("原价|原價|优惠|優惠|折扣|余额|餘額|手续费|手續費|服务费|服務費|运费|運費|订单|訂單|单号|單號|编号|时间|時間|日期|电话|電話|手机|手機|original price|discount|balance|fee|freight|order|reference|time|date|phone",RegexOption.IGNORE_CASE).containsMatchIn(it) }) return parsed.amountMinor
         // A crop containing exactly one bare number can confirm the primary
         // page's established unit. Prose/metadata and conflicting fields cannot.
         val bare=normalized.filter {Regex("[0-9]+(?:\\.[0-9]+)?").matches(it)}.singleOrNull() ?: return null
