@@ -28,6 +28,11 @@ INPUTS=set()
 def tracked(path):
     path=Path(path).resolve(); INPUTS.add(path); return path
 def read(path):return json.loads(tracked(path).read_text(encoding='utf-8-sig'))
+
+def extra_commands():
+    result=read(BASE/'extra-commands.json')
+    for path in sorted(BASE.glob('extra-commands-resume-r*.json')):result+=read(path)
+    return result
 def rel(path):return path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else path.as_posix()
 def counts(rows):return dict(Counter(row['status'] for row in rows))
 def nd(path):return [dict(json.loads(line),evidence=rel(path)) for line in tracked(path).read_text(encoding='utf-8-sig').splitlines() if line.strip()]
@@ -92,7 +97,7 @@ def pending_inputs():
         if not list((BASE/name).glob('TEST-*.xml')):missing.append(rel(BASE/name)+' / TEST-*.xml')
     extra=BASE/'extra-commands.json'
     if extra.exists():
-        actual={row['name'] for row in read(extra)}
+        actual={row['name'] for row in extra_commands()}
         expected={'prepare-backup','declared-native','explicit-v2','backup-seed','backup-restore','declared-dom','task21-capability3','current-projection','native-persistence','explicit-currency-bridge'}
         missing += ['Incomplete command record: '+name for name in sorted(expected-actual)]
     return missing
@@ -107,6 +112,20 @@ if args.check or missing:
 
 full=junit(BASE/'android-current/junit');assert full
 android=read(BASE/'android-current/command.json');assert android['source_stable']
+previousP05=read(ROOT/'docs/migration-evidence/finance-p04/continuation-p05/final-r7/android-current/command.json')
+beforeP05=read(ROOT/'docs/migration-evidence/finance-p04/closure-current/final-current/android-current/command.json')
+previousKeys={(r['classname'],r['name']) for r in previousP05['cases']}
+beforeKeys={(r['classname'],r['name']) for r in beforeP05['cases']}
+assert len(previousKeys)==767 and len(beforeKeys)==730 and beforeKeys<=previousKeys<=full.keys()
+p05Previous37=[full[k] for k in sorted(previousKeys-beforeKeys)];assert len(p05Previous37)==37
+previousStatuses={(r['classname'],r['name']):r['status'] for r in previousP05['cases']}
+newFailures=[k for k,r in full.items() if r['status']=='FAIL' and previousStatuses.get(k)!='FAIL']
+regressionComparison=dict(previous_methods=len(previousKeys),current_methods=len(full),
+    added_methods=[full[k] for k in sorted(full.keys()-previousKeys)],
+    changed_previous_statuses=[dict(classname=k[0],name=k[1],before=previousStatuses[k],after=full[k]['status'])
+                               for k in sorted(previousKeys) if previousStatuses[k]!=full[k]['status']],
+    new_failure_identities=[dict(classname=k[0],name=k[1]) for k in sorted(newFailures)],
+    status='FAIL' if newFailures else 'PASS',scope='Current results versus historical method identities and statuses; historical PASSes are never substituted')
 protected=set(junit(OLD/'standard-full-junit'));assert len(protected)==681 and protected<=full.keys()
 def identity_register(size,prefix):
     # These sealed historical JSONs supply identities only. All statuses below
@@ -252,7 +271,7 @@ assert read(derivedRoot/'legacy-bridge/seed.json')['pid']!=read(derivedRoot/'leg
 explicitV2=list(junit(BASE/'explicit-v2-command/junit').values());assert len(explicitV2)==10
 nodeCommands=read(REG/'node-commands.json');assert len(nodeCommands)==34
 jvmCommands=read(REG/'jvm-commands.json');assert len(jvmCommands)==11
-extraCommands=read(BASE/'extra-commands.json')
+extraCommands=extra_commands()
 projectionCurrent=next(row for row in extraCommands if row['name']=='current-projection')
 assert projectionCurrent['exit_code']==0
 projectionDisposition=dict(current=projectionCurrent,classification='QA_INPUT_PATH_PREPARATION_REPAIRED',
@@ -275,6 +294,7 @@ for artifact in android['artifacts']:
 
 summary=dict(checked_at_utc=datetime.now(timezone.utc).isoformat(),tested_head=android['head'],evidence_base=rel(BASE),head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
              standard_JVM=counts(full.values()),original588=counts(full[key] for key in original),protected681=counts(full[key] for key in protected),
+             p05_previous37=counts(p05Previous37),
              new_native_methods=counts(full[key] for key in set(full)-protected),new_local_native_methods=counts(full[key] for key in set(full)-set(junit(ROOT/'docs/migration-evidence/finance-p04/cloud/final-20261022/android-current/junit'))),
              original607=dict(counts=counts(original607),JVM=counts(full[key] for key in original),Node=counts(node_rows),Chrome=counts(browser)),
              overlapping_p03_sets={str(size):counts(rows) for size,rows in zip([63,41,99,79],groups)},new38=counts(extra),frozen608=counts(matrix),frozen_changes=changes,
@@ -288,6 +308,8 @@ DEST.mkdir(exist_ok=False)
 for name,data in [('summary.json',summary),('jvm-current.json',list(full.values())),('frozen-608.json',matrix),('contract-608.json',contract),('currency-18.json',currency),('p03-original-26.json',red26),('new-38.json',extra),('original-607.json',original607),('failure-ledger.json',[row for row in matrix if row['status']!='PASS']),('jvm-failures.json',[row for row in full.values() if row['status']!='PASS'])]:
     (DEST/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 for size,rows in zip([63,41,99,79],groups):(DEST/f'suite-{size}.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+(DEST/'p05-previous-37.json').write_text(json.dumps(p05Previous37,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+(DEST/'regression-comparison.json').write_text(json.dumps(regressionComparison,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 for name,data in [
     ('explicit-v2.json',explicitV2),
     ('qa-retries.json',[projectionDisposition]),
