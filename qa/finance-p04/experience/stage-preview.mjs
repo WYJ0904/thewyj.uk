@@ -165,7 +165,7 @@ function applyProductOverlay(files, sourceCommit, context) {
 async function settings(options) {
   const root = path.resolve(options.root || ROOT);
   const output = path.resolve(options.output || path.join(root, '.wrangler', OUTPUT_NAME));
-  assert([OUTPUT_NAME, OUTPUT_NAME + '-r2'].some(name => normalized(output) === normalized(path.join(root, '.wrangler', name))), 'Output must be an exact reviewed owned Preview staging directory');
+  assert([OUTPUT_NAME, OUTPUT_NAME + '-r2'].some(name => normalized(output) === normalized(path.join(root, '.wrangler', name))), 'Output must be the exact owned Preview staging directory');
   await assertNoReparse(root);
   await assertNoReparse(output, true);
   const resourcesFile = path.resolve(options.resourcesPath || resourcePath(root));

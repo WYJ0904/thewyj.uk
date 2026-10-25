@@ -120,7 +120,7 @@ Android 更新独立读取 [`GET /api/app/config`](../../functions/_lib/task20-a
 该机制意味着缓存是需要实际核验的因素，但**目前不能把这次 P04 缺失直接归因于缓存**。旧代码尚未发布到用户访问环境时，清空缓存或改体验通道不能补出尚未部署的 P04 资源；反之，只有先证明服务器确实提供新资源，才能把客户端仍加载旧字节归因于缓存。
 
 <!-- ROOT_LIVE_CACHE_AND_ASSET_EVIDENCE -->
-浏览器当前加载资源 URL / 内容 SHA、Service Worker 版本 / 控制状态、HTTP cache 头及全新隔离浏览器对照：**NOT TESTED，待补实际结果**。不清理用户真实站点存储、Cookie 或账本缓存来制造差异。
+Production当前浏览器缓存状态 **NOT TESTED**。无Cookie静态GET /finance返回403，未读取诊断响应或绕过；Cloudflare部署身份和Git main已只读核对。新Preview五份实际资源字节比对PASS、独立origin浏览器成功，不将此冒充Production缓存验证。不清理用户真实站点存储、Cookie 或账本缓存来制造差异。
 
 ## 6. 本轮独立 Preview 体验与安全边界
 
@@ -129,18 +129,27 @@ Android 更新独立读取 [`GET /api/app/config`](../../functions/_lib/task20-a
 用户已接受**独立 Preview 登录与空白账本，不要求复用正式认证**。这仍不能被表述为真实 Production 账户认证已经完成，独立账户也不因用户名相同而成为同一正式账户。本轮新项目名称准备为 `thewyj-finance-p04-preview`、专属 D1 名称为 `finance-p04-owner-preview`，分支为 `owner-p04-preview`，生产分支设置 `release-held` 且只部署 Preview；这些名称只表示已准备方案，实际创建 / 绑定 / 部署结果以下节证据为准。若以后需要生产侧改动或共享认证写入，须另说明风险并取得授权。
 
 <!-- ROOT_NEW_PREVIEW_DELIVERY -->
-| 新 Preview 交付项 | 当前状态 |
+2026-10-25实际交付：资源为新建独立项目，不是恢复原已删QA。
+
+| 项目 | 实际证据 |
 | --- | --- |
-| 完整 URL / Pages Deployment ID | **NOT TESTED：待本轮部署** |
-| 源码 SHA / artifact manifest SHA / runtime build-info | **NOT TESTED：待构建与实际比对** |
-| 独立 D1 / 无 Production binding | **NOT TESTED：待实际部署配置读回** |
-| 空白账本及独立认证 | **NOT TESTED：待实际验证** |
-| 六币种手动操作 / FX / 持久化 / 重复提交 | **NOT TESTED：待本轮实际浏览器与 API 验证** |
-| 真实 Production 账户认证 | **NOT TESTED；不得由独立账户登录成功推定** |
-| 旧账与正式环境保护 | **NOT TESTED：待本轮前后保护对照** |
+| 入口 | https://owner-p04-preview.thewyj-finance-p04-preview.pages.dev/finance |
+| 不可变URL / 部署 | https://fa42e9b0.thewyj-finance-p04-preview.pages.dev/finance；fa42e9b0-5027-40f1-9377-b0942aaeb857 |
+| 源码SHA | 298d5057d7b4c7432e0625bb5c9297ba9243b6df，P04产品继承73764f7/ce7c87e；不含后续P05 |
+| 产物树SHA256 | 127d1c0f1b35026f2617e3c2baa6a7ddb6d078e9450442cb870364215798a928 |
+| 构建声明 | /__preview/build.json，含完整SHA、独立环境说明、156产品文件hash与两项stage-only覆盖；共160文件，旧157为156产品+config |
+| 绑定 | D1 941b465f-185d-42a3-9a11-0c959c11aea4；实际下载配置复核；无R2/AI/Production/共享绑定 |
+| 空白账户 | p04-owner为普通Preview用户，仅独立库finance_access，账本0；不是正式账户身份认证 |
+| HTTP合同 | 11 PASS，38请求，六币种读改/重复/旧请求/重新登录/另一账户隔离；验证账户有6合成账，owner账户0 |
+| 运行版本 | build.json、index.html、finance app/money、sw共5份远端资源与staging逐字节相同，见runtime-proof-r1.json |
+| 浏览器 | owner-browser-proof.json及owner-preview-blank.jpg，实际显示完整SHA横幅、六币种入口和0账；未写owner账目 |
+| Schema | 独立库Task16=5、Task21=9，FK违规0；7个初始feature flag未启用，P04界面仍可用 |
+| 登录信息 | 受限本机E/private/OWNER_PREVIEW_ACCESS.txt；不入Git/正文，不复用正式密码 |
+
+新证据位于 `docs/migration-evidence/finance-p04/experience-channel-current/`。初始staging测试19/20是156产品文件与历史含config的157计数混淆，r3为20/20；Pages配置不支持account_id导致secrets-r1失败，移除后用保留旧artifact的r2完成。r4路径拒绝断言因错误消息文字变更19/20，保留原失败，恢复明确错误文本后r5复验。未削弱拒绝Production/共享D1与非allowlist文件的保护。
 
 ## 7. 当前结论与后续填写要求
 
 上一轮“本地修复、复验和封存完成”不等于 P03/P04 全部 COMPLETE，更不等于用户已获得新版本。原截图证明的是独立合成 Preview 的界面与限定测试范围。Experimental 只在当前部署已有代码和相应 flags 中选择体验；不能代替源码发布或 APK 分发。
 
-本轮应以实际可访问的 Preview URL、准确部署身份、构建 / 运行资源比对、独立账户与空白账本、用户可以亲自操作的验证结果作为体验交付证据。旧截图或测试通过均不能单独证明用户实际访问了最新版本。远端与新 Preview 尚未实测的项目继续 NOT TESTED；P03/P04 原失败及 Production 放行门禁不因本报告改变。
+本轮应以实际可访问的 Preview URL、准确部署身份、构建 / 运行资源比对、独立账户与空白账本、用户可以亲自操作的验证结果作为体验交付证据。旧截图或测试通过均不能单独证明用户实际访问了最新版本。其余尚未实测的项目继续 NOT TESTED；P03/P04 原失败及 Production 放行门禁不因本报告改变。
