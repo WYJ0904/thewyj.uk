@@ -9,7 +9,7 @@ STAGE=ROOT/'.wrangler/finance-p04-owner-preview-r2'
 ACCOUNT='97c274a981e8dd6703aa6388e11c4614'
 PROJECT='thewyj-finance-p04-preview';DBNAME='finance-p04-owner-preview'
 PROTECTED={'11c288d8-c584-409f-bb1f-7e7af11793e5','a3e6253b-689f-49f3-998b-7c5828ea255a','c2eb978f-9f49-4e4c-8286-f6b398fae0de','da1711d7-f770-4e30-b305-9d812588f8b4'}
-parser=argparse.ArgumentParser();parser.add_argument('action',choices=['audit','create-db','create-project','schema','secrets','seed','deploy','verify-binding','verify-data','deployments']);parser.add_argument('--attempt',default='r1');args=parser.parse_args()
+parser=argparse.ArgumentParser();parser.add_argument('action',choices=['audit','create-db','create-project','schema','secrets','seed','deploy','verify-binding','verify-data','owner-state','deployments']);parser.add_argument('--attempt',default='r1');args=parser.parse_args()
 assert re.fullmatch('r[1-9][0-9]*',args.attempt)
 OUT.mkdir(exist_ok=True);(OUT/'private').mkdir(exist_ok=True)
 DEST=OUT/(args.action+'-'+args.attempt);DEST.mkdir(exist_ok=False)
@@ -88,6 +88,9 @@ try:
         for p in files:found.update(re.findall(r'database_id["\s]*[:=]\s*"([0-9a-f-]+)"',p.read_text()))
         assert found=={r['database_id']},'Actual remote binding differs; do not log in'
         record['verified_database_ids']=sorted(found)
+    elif args.action=='owner-state':
+        r=staged();sql="SELECT flag_key,enabled,kill_switch,channels_json,rollout_basis_points,revision FROM task25_feature_flags ORDER BY flag_key;SELECT channel,revision FROM task25_release_preferences WHERE user_id='isolated-p04-owner';SELECT COUNT(*) AS overrides FROM task25_user_flag_overrides WHERE user_id='isolated-p04-owner';SELECT COUNT(*) AS owner_transactions FROM task16_finance_transactions WHERE user_id='isolated-p04-owner';"
+        record['data']=run('owner-state',['d1','execute',r['database_id'],'--remote','--command',sql,'--json'],True,cwd=STAGE)
     elif args.action=='verify-data':
         r=staged();sql="SELECT COUNT(*) AS transactions FROM task16_finance_transactions;SELECT COUNT(*) AS flags FROM task25_feature_flags;SELECT key,value FROM task16_metadata WHERE key='schema_version';SELECT key,value FROM task21_metadata WHERE key='schema_version';PRAGMA foreign_key_check;"
         record['data']=run('verify-data',['d1','execute',r['database_id'],'--remote','--command',sql,'--json'],True,cwd=STAGE)

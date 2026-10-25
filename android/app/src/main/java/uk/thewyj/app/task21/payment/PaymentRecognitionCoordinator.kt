@@ -374,7 +374,7 @@ class PaymentRecognitionCoordinator(
                         direction = enrichment.direction?.name.orEmpty(),
                         category = "",
                         merchant = enrichment.merchant.orEmpty(),
-                        occurredAtMs = enrichment.occurredAtMs ?: now(),
+                        occurredAtMs = enrichment.occurredAtMs ?: existingCandidate?.occurredAtMs ?: recognition.createdAtMs,
                         channel = ticket.paymentChannel,
                         confidence = enrichment.confidence,
                         reason = when {
@@ -399,6 +399,8 @@ class PaymentRecognitionCoordinator(
             }
             is EnrichmentOutcome.Insufficient -> {
                 store.saveTicket(outcome.ticket)
+                if (outcome.ticket.enrichment?.amountDecimalCandidate != ticket.enrichment?.amountDecimalCandidate)
+                    PaymentReviewSignals.publish()
                 return outcome
             }
             is EnrichmentOutcome.Rejected -> {

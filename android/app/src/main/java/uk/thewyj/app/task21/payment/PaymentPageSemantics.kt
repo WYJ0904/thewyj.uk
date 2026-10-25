@@ -18,11 +18,43 @@ data class PaymentPageSnapshot(
 object PaymentPageSemantics {
     private val sensitiveMarkers = listOf("密码", "密碼", "验证码", "驗證碼", "身份證", "身份证", "银行卡号", "銀行卡號")
 
+    /** Resolve the ISO unit first, then reuse the same semantic amount ranking. No FX conversion. */
+    private fun labelledCurrencyAmount(lines: List<String>, groups: List<List<String>>, currency: String): Long? {
+        val marker=when(currency) {
+            "USD" -> Regex("US\\$|USD|\\$",RegexOption.IGNORE_CASE)
+            "HKD" -> Regex("HK\\$|HKD|\\$",RegexOption.IGNORE_CASE)
+            "EUR" -> Regex("EUR|€",RegexOption.IGNORE_CASE)
+            "GBP" -> Regex("GBP|£",RegexOption.IGNORE_CASE)
+            "JPY" -> Regex("JP[¥￥]|JPY|日元|円|[¥￥]",RegexOption.IGNORE_CASE)
+            else -> Regex("CNY|RMB|人民币|人民幣|[¥￥]",RegexOption.IGNORE_CASE)
+        }
+        fun canonical(text:String)=marker.replace(text,"¥")
+        val selected=PaymentPageAmountSelection.select(lines.map(::canonical),groups.map { it.map(::canonical) })
+        if (selected.amountMinor==null || !selected.reason.startsWith("selected_")) return null
+        val raw=selected.candidates.filter { it.minor==selected.amountMinor }.maxByOrNull { it.score }?.normalizedNumber ?: return null
+        return runCatching { uk.thewyj.app.finance.CurrencyMoney.parse(raw,currency) }.getOrNull()?.takeIf { it>0 }
+    }
+
+    /** Keep an exact candidate for manual unit review without relaxing extract's compatibility contract. */
+    fun unresolvedCandidate(snapshot: PaymentPageSnapshot): PaymentEnrichment? {
+        val lines=snapshot.textLines.map(PaymentText::normalizeMoneyText).filter { it.isNotEmpty() && it.length<=120 }
+        if (lines.isEmpty() || PaymentPageEvidence.blocked(lines) || !PaymentPageContext.isDetail(lines)) return null
+        val decision=PaymentPageAmountSelection.select(lines,snapshot.amountTokenGroups)
+        if (decision.amountMinor==null || !decision.reason.startsWith("selected_")) return null
+        val currency=uk.thewyj.app.finance.CurrencyDecision.apply(ParsedPaymentMessage(PaymentRecognitionStatus.PAYMENT_LIKELY),lines.joinToString(" "),null,true)
+        if (currency.reviewReason!="currency_review_required" || currency.currency!=null) return null
+        val raw=decision.candidates.filter { it.minor==decision.amountMinor }.maxByOrNull { it.score }?.normalizedNumber ?: return null
+        if (!Regex("(?:0|[1-9][0-9]{0,7})(?:\\.[0-9]{1,2})?").matches(raw)) return null
+        return PaymentEnrichment(snapshot.sourcePackage,null,null,null,null,null,null,null,820,
+            completionConfirmed=false,sourceInstanceUncertain=true,amountDecimalCandidate=raw)
+    }
+
     fun extract(snapshot: PaymentPageSnapshot, defaultCurrency: String? = null, currencyPolicyVersion: Int = 1): PaymentEnrichment? {
         val lines = snapshot.textLines
             .map(PaymentText::normalizeMoneyText)
             .filter { it.isNotEmpty() && it.length <= 120 }
         if (lines.isEmpty()) return null
+        if (PaymentPageEvidence.blocked(lines)) return null
         if (!PaymentPageContext.isDetail(lines)) return null
         val joined = lines.joinToString(" ")
         if (sensitiveMarkers.any { joined.contains(it) }) {
@@ -44,14 +76,15 @@ object PaymentPageSemantics {
         // A generic "交易成功" proves completion, not whether money entered or
         // left the account. Only page wording that identifies the direction may
         // complete the booking; ambiguous pages keep the same identity pending.
-        val direction = PaymentPageContext.pendingDirection(lines) ?: PaymentText.direction(joined)
+        val direction = PaymentPageEvidence.direction(lines)
         if (strict) {
             val monetary = uk.thewyj.app.finance.CurrencyDecision.apply(ParsedPaymentMessage(
                 PaymentRecognitionStatus.PAYMENT_LIKELY, direction = direction), joined, defaultCurrency, true)
             currency = monetary.currency ?: return null
             if (currency !in uk.thewyj.app.finance.CurrencyMoney.digits) return null
-            val explicitCny = Regex("CNY|RMB|人民币|人民幣|[0-9]\\s*元", RegexOption.IGNORE_CASE).containsMatchIn(joined)
-            amount = if (currency == "CNY" && (explicitCny || defaultCurrency == "CNY") && !explicitUnit && decision.reason.startsWith("selected_")) decision.amountMinor else monetary.amountMinor
+            if (monetary.reviewReason !in setOf("", "currency_amount_unproven")) return null
+            amount = if (monetary.currencyRolesJson.isNotBlank()) monetary.amountMinor
+                else labelledCurrencyAmount(lines,snapshot.amountTokenGroups,currency)
             if (amount == null) return null
         }
         val detailPage = listOf("交易详情", "交易詳情", "账单详情", "賬單詳情", "转账详情", "轉賬詳情")
@@ -72,9 +105,10 @@ object PaymentPageSemantics {
             merchant = merchant,
             counterparty = null,
             providerReference = reference,
-            occurredAtMs = snapshot.capturedAtMs,
+            // Capture time is an observation, never a reconstructed transaction date.
+            occurredAtMs = null,
             confidence = confidence,
-            completionConfirmed = PaymentText.hasCompletion(joined),
+            completionConfirmed = PaymentPageEvidence.classify(lines) !in setOf(PaymentPageState.PENDING,PaymentPageState.FAILED) && PaymentPageEvidence.completed(lines),
         )
     }
 }

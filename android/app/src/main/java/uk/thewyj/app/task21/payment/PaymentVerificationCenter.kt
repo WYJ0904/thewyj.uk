@@ -86,6 +86,7 @@ class PaymentVerificationCenter(
         val localCurrency: String = "CNY",
         val moneyUnitReview: Boolean = false,
         val currencyReviewRequired: Boolean = false,
+        val observedAmountDecimal: String? = null,
     ) {
         val displayAmountMinor: Long? get() = amountMinor?.takeIf { it > 0 }
             ?: localAmountMinor.takeUnless { evidenceConflict }
@@ -265,6 +266,8 @@ class PaymentVerificationCenter(
             val queuedOperation = if (queuedId in queue) queuedId else "hint:$queuedId"
             Item(
                 recognitionId = recognition.recognitionId,
+                observedAmountDecimal = store.ticketsForRecognition(recognition.accountId,recognition.recognitionId)
+                    .maxByOrNull { it.createdAtMs }?.enrichment?.amountDecimalCandidate,
                 candidateId = candidate?.candidateId.orEmpty(),
                 sourcePackage = recognition.sourcePackage,
                 appLabel = appLabelOf(recognition.sourcePackage),

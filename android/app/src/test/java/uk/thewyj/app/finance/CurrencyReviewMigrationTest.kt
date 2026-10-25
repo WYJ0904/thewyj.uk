@@ -39,18 +39,18 @@ class CurrencyReviewMigrationTest {
     }}
     @Test fun historicalFifteenUpgradesWithoutInventingReviewOrChangingReceipts(){val f=file();seed(f)
         repeat(2){val db=current(f);try{
-            assertEquals(16,db.openHelper.writableDatabase.version)
+            assertEquals(NotificationDatabase.SCHEMA_VERSION,db.openHelper.writableDatabase.version)
             assertEquals("synthetic-operation",db.reconciliationDao().staged("synthetic-owner").single().operationId)
             db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM payment_recognitions WHERE currencyReviewRequired<>0 OR currencyReviewNotified<>0 OR currencyDecisionSource<>''").use{assertTrue(it.moveToFirst());assertEquals(0,it.getInt(0))}
         }finally{db.close()}}
-        verify(f,16)
+        verify(f,NotificationDatabase.SCHEMA_VERSION)
     }
     @Test fun interruptedReviewUpgradeRollsBackAndRetriesWithOriginalRows(){val f=file();seed(f)
         val broken=object:Migration(15,16){override fun migrate(db:SupportSQLiteDatabase){NotificationDatabase.MIGRATION_15_16.migrate(db);db.execSQL("INSERT INTO synthetic_missing_review_table VALUES(1)")}}
         val first=current(f,broken);try{assertThrows(Exception::class.java){first.openHelper.writableDatabase}}finally{first.close()}
         verify(f,15)
         SQLiteDatabase.openDatabase(f.absolutePath,null,SQLiteDatabase.OPEN_READONLY).use{db->db.rawQuery("PRAGMA table_info(payment_recognitions)",null).use{c->while(c.moveToNext())assertNotEquals("currencyReviewRequired",c.getString(1))}}
-        val retry=current(f);try{retry.openHelper.writableDatabase}finally{retry.close()};verify(f,16)
+        val retry=current(f);try{retry.openHelper.writableDatabase}finally{retry.close()};verify(f,NotificationDatabase.SCHEMA_VERSION)
     }
     @Test fun closedBackupAndOutboxRestoreAndOldVersionRefusesDowngrade(){val f=file();seed(f)
         val db=current(f);try{db.openHelper.writableDatabase}finally{db.close()}
@@ -60,7 +60,7 @@ class CurrencyReviewMigrationTest {
         val reopened=current(restored);try{assertEquals("synthetic-operation",reopened.reconciliationDao().staged("synthetic-owner").single().operationId)}finally{reopened.close()}
         assertEquals(queue.peekRequests(),OfflineNotificationQueue(copied).peekRequests())
         val old=Room.databaseBuilder(context,CurrencyOldRoom15::class.java,f.absolutePath).allowMainThreadQueries().build()
-        try{val error=assertThrows(IllegalStateException::class.java){old.openHelper.writableDatabase};assertTrue(error.message.orEmpty().contains("16 to 15"))}finally{old.close()}
-        verify(f,16);verify(restored,16)
+        try{val error=assertThrows(IllegalStateException::class.java){old.openHelper.writableDatabase};assertTrue(error.message.orEmpty().contains("${NotificationDatabase.SCHEMA_VERSION} to 15"))}finally{old.close()}
+        verify(f,NotificationDatabase.SCHEMA_VERSION);verify(restored,NotificationDatabase.SCHEMA_VERSION)
     }
 }

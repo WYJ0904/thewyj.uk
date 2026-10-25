@@ -15,6 +15,7 @@ interface PaymentAccessibilityGateway {
     fun activeTicket(accountId: String, sourcePackage: String): PaymentTicket?
     fun activePackages(accountId: String, nowMs: Long): Set<String>
     fun enrich(accountId: String, ticketId: String, enrichment: PaymentEnrichment): EnrichmentOutcome
+    fun reserveScan(accountId: String, ticketId: String, nowMs: Long): Boolean = false
 }
 
 internal class AndroidPaymentAccessibilityGateway(private val context: Context) : PaymentAccessibilityGateway {
@@ -22,6 +23,8 @@ internal class AndroidPaymentAccessibilityGateway(private val context: Context) 
     override fun financeAccountId(): String? = NotificationSessionProvider(context).currentAccount()?.takeIf { it.financeEntitled }?.accountId
     override fun activeTicket(accountId: String, sourcePackage: String) = store().activeTicketForPackage(accountId, sourcePackage)
     override fun activePackages(accountId: String, nowMs: Long) = store().activeTicketPackages(accountId, nowMs)
+    override fun reserveScan(accountId: String, ticketId: String, nowMs: Long): Boolean =
+        financeAccountId()==accountId && PaymentPersistedScanBudget.reserve(store(),accountId,ticketId,nowMs)
     override fun enrich(accountId: String, ticketId: String, enrichment: PaymentEnrichment): EnrichmentOutcome {
         val store = store()
         val ticket = store.activeTicketForPackage(accountId, enrichment.sourcePackage)
@@ -36,7 +39,7 @@ internal class AndroidPaymentAccessibilityGateway(private val context: Context) 
             }
         }.getOrDefault(true)
         val uncertain = PaymentSourceIdentity.requiresManualReview(
-            currentProfile, sharedPackage, record?.providerReference.orEmpty(), enrichment.providerReference.orEmpty())
+            currentProfile, sharedPackage, record?.providerReference.orEmpty(), enrichment.providerReference.orEmpty(), enrichment.sourceInstanceUncertain)
         return AndroidPaymentRecognitionHook.get(context).onAccessibilityEnrichment(
             accountId, enrichment.copy(sourceInstanceUncertain = uncertain), ticketId)
     }
@@ -44,9 +47,9 @@ internal class AndroidPaymentAccessibilityGateway(private val context: Context) 
 
 /** Accessibility exposes a package, not a reliable clone user identity. */
 internal object PaymentSourceIdentity {
-    fun requiresManualReview(currentProfile: Boolean, sharedPackage: Boolean, sourceReference: String, pageReference: String): Boolean {
+    fun requiresManualReview(currentProfile: Boolean, sharedPackage: Boolean, sourceReference: String, pageReference: String, declaredUncertain: Boolean = false): Boolean {
         val sameReference = sourceReference.isNotBlank() && pageReference == sourceReference
-        return (!currentProfile || sharedPackage) && !sameReference
+        return declaredUncertain || ((!currentProfile || sharedPackage) && !sameReference)
     }
 }
 

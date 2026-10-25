@@ -49,12 +49,22 @@ object PaymentOverlayRetryPolicy {
 }
 
 class PaymentScreenshotVerifier(private val engine: OcrEngine) {
+    /** Recheck the captured content epoch after both asynchronous OCR passes. */
+    suspend fun verifyCurrent(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long,
+                              defaultCurrency: String?, currencyPolicyVersion: Int, stillCurrent: () -> Boolean): PaymentEnrichment? {
+        if (!stillCurrent()) return null
+        return verifyInternal(bitmap, sourcePackage, capturedAtMs, defaultCurrency, currencyPolicyVersion, true).takeIf { stillCurrent() }
+    }
     /** Explicit compatibility entry for historical callers; the service uses policy2 below. */
     suspend fun verify(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long): PaymentEnrichment? =
         verify(bitmap, sourcePackage, capturedAtMs, null, 1)
 
     suspend fun verify(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long,
-                       defaultCurrency: String?, currencyPolicyVersion: Int): PaymentEnrichment? {
+                       defaultCurrency: String?, currencyPolicyVersion: Int): PaymentEnrichment? =
+        verifyInternal(bitmap,sourcePackage,capturedAtMs,defaultCurrency,currencyPolicyVersion,false)
+
+    private suspend fun verifyInternal(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long,
+                       defaultCurrency: String?, currencyPolicyVersion: Int, retainUnresolved: Boolean): PaymentEnrichment? {
         val lines = runCatching { engine.recognize(bitmap) }.getOrDefault(emptyList())
         val normalized = normalizeOcrLines(lines)
         if (normalized.isEmpty()) {
@@ -83,7 +93,9 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
                 capturedAtMs = capturedAtMs,
             ),
             defaultCurrency, currencyPolicyVersion,
-        ) ?: return null
+        ) ?: return if (retainUnresolved && defaultCurrency==null && currencyPolicyVersion>=2)
+            PaymentPageSemantics.unresolvedCandidate(PaymentPageSnapshot(sourcePackage,normalized,capturedAtMs))
+                ?.copy(evidenceSource=PaymentEvidenceSource.OCR) else null
         val confirmingEngine = engine as? AmountConfirmingOcrEngine
         val expectedMinor = enrichment.amountMinor
         if (confirmingEngine != null && expectedMinor != null) {
@@ -141,6 +153,7 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
 
         /** True when the recognised page mentions money in a payment context. */
         fun looksLikePaymentPage(lines: List<String>): Boolean {
+            if (PaymentPageEvidence.blocked(lines)) return false
             val joined = lines.joinToString(" ").lowercase(Locale.ROOT)
             val money = joined.contains('¥') || joined.contains('￥') || joined.contains("元") ||
                 joined.contains("cny") || joined.contains("rmb") ||
@@ -152,7 +165,8 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
             ).any { joined.contains(it) }
             val directionOnlyDetail = listOf("交易详情", "交易詳情", "账单详情", "賬單詳情", "转账详情", "轉賬詳情")
                 .any(joined::contains) && PaymentText.hasCompletion(joined) && PaymentText.direction(joined) != null
-            return PaymentPageContext.isDetail(lines) && ((money && context) || directionOnlyDetail || PaymentPageContext.pendingTransfer(lines))
+            return PaymentPageContext.isDetail(lines) && ((money && context) || directionOnlyDetail || PaymentPageContext.pendingTransfer(lines) ||
+                (PaymentPageEvidence.transferReceipt(lines) && PaymentPageEvidence.transferDirection(lines) != null))
         }
     }
 }

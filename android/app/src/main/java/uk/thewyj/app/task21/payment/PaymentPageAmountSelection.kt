@@ -13,6 +13,8 @@ object PaymentPageAmountSelection {
 
     fun select(lines: List<String>, tokenGroups: List<List<String>> = emptyList()): PageAmountDecision {
         val normalized = lines.map(PaymentText::normalizeMoneyText)
+        // A Chinese clause separator between digits is not proof of thousands or decimal grouping.
+        if (normalized.any { Regex("[0-9]，[0-9]").containsMatchIn(it) }) return PageAmountDecision(null,emptyList(),"ambiguous_grouping")
         val candidates = mutableListOf<PageAmountCandidate>()
         fun read(line: String, index: Int, group: Boolean = false) {
             if (excludedLabel.containsMatchIn(line) && !finalLabel.containsMatchIn(line) && !paymentLabel.containsMatchIn(line)) return
@@ -29,11 +31,21 @@ object PaymentPageAmountSelection {
             val labelled = if (hits.isEmpty() && score >= 900) Regex(number).findAll(line).map { it.value }.toList() else emptyList()
             (hits + labelled).forEach { raw ->
                 val value = PaymentText.parseMinor(raw) ?: return@forEach
-                candidates.add(PageAmountCandidate(index, raw, PaymentText.normalizeMoneyText(raw), value, score,
+                val text=PaymentText.normalizeMoneyText(raw)
+                val canonical=if (',' !in text) text else if ('.' in text || Regex("[1-9][0-9]{0,2}(?:,[0-9]{3})+").matches(text)) text.replace(",", "") else text.replace(',', '.')
+                candidates.add(PageAmountCandidate(index, raw, canonical, value, score,
                     when (score) { 950 -> "actual_paid"; 900 -> "payment_label"; 850 -> "isolated_currency"; 700 -> "order_total"; else -> "inline_currency" }))
             }
         }
-        normalized.forEachIndexed { i, line -> read(line, i) }
+        normalized.forEachIndexed { i, line ->
+            // Separate semantic labels, never digits or decimal fragments.
+            line.split(Regex("[，、;；]|(?=原价|原價|优惠|優惠|实付|實付|余额|餘額|手续费|手續費)")).filter(String::isNotBlank).forEach { read(it, i) }
+        }
+        if (PaymentPageEvidence.transferReceipt(normalized) &&
+            (PaymentPageEvidence.transferDirection(normalized) != null || PaymentPageContext.pendingTransfer(normalized))) {
+            val standalone=normalized.withIndex().filter { Regex("(?:0|[1-9][0-9]{0,7})\\.[0-9]{1,2}").matches(it.value) }
+            if (standalone.size==1) read("转账金额 ${standalone.single().value}",standalone.single().index)
+        }
         // A separated currency symbol may prefix one complete number. Numeric
         // siblings are never concatenated just because they follow each other.
         normalized.forEachIndexed { i, line ->

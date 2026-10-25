@@ -41,6 +41,16 @@ data class CloseoutV11Recognition(
 
 
 @Database(entities=[NotificationInstanceEntity::class,NotificationRevisionEntity::class,NotificationAppPolicyEntity::class,
-    NotificationRuleEntity::class,NotificationSettingsEntity::class,CloseoutV11Recognition::class,PaymentTicketEntity::class,
+    NotificationRuleEntity::class,NotificationSettingsEntity::class,CloseoutV11Recognition::class,CloseoutV11Ticket::class,
     PaymentCandidateEntity::class,LocalPaymentBookingEntity::class,PaymentEventAliasEntity::class],version=11,exportSchema=false)
 abstract class CloseoutV11Database : RoomDatabase()
+
+/** Exact pre-v17 ticket columns; a historical opener must not reuse today's entity. */
+@Entity(tableName="payment_tickets",indices=[Index(value=["accountId","state"]),Index(value=["recognitionId"]),Index(value=["accountId","sourcePackage","state"])])
+data class CloseoutV11Ticket(
+    @PrimaryKey val ticketId:String,val accountId:String,val recognitionId:String,val sourcePackage:String,
+    val sourceEventId:String,val paymentChannel:String,val amountHintMinor:Long,val hasAmountHint:Int,
+    val missingFields:String,val state:String,val attempts:Int,val createdAtMs:Long,val expiresAtMs:Long,
+    val enrichedAmountMinor:Long,val hasEnrichedAmount:Int,val enrichedDirection:String,val enrichedMerchant:String,
+    val enrichedProviderReference:String,val enrichedAtMs:Long,
+)

@@ -23,6 +23,7 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
     @Volatile private var closed = false
     @Volatile private var active: Scan? = null
     @Volatile private var generation = 0L
+    private val pageEvidenceEpoch = PaymentPageEvidenceEpoch()
     private var pageClass = ""
     private var retryCallback: Runnable? = null
     private var lastScreenshotAtMs = 0L
@@ -73,6 +74,7 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         PaymentAccessibilityStatus.onEvent(pkg, e.eventType)
         if (active != null && foreground.isNotBlank() && foreground != active?.ticket?.sourcePackage) cancelScan("page_left:$foreground")
         if (pkg.isBlank() || pkg == packageName || e.eventType !in EVENT_TYPES) return
+        if (active?.ticket?.sourcePackage == pkg) pageEvidenceEpoch.invalidate()
         // Retain only window metadata even before a ticket exists. Otherwise a
         // ticket created while chat is already open can reuse a stale receipt
         // class and start reading multiple chat cards as one payment page.
@@ -161,6 +163,17 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
 
     private fun readPage(scan: Scan) {
         if (!current(scan) || !scan.budget.beginAttempt(SystemClock.uptimeMillis(), retryCallback != null)) return
+        execute {
+            val granted=runCatching { scan.gateway.reserveScan(scan.accountId,scan.ticket.ticketId,System.currentTimeMillis()) }.getOrDefault(false)
+            mainHandler.post {
+                if (!current(scan)) return@post
+                if (!granted) { cancelScan("durable_scan_budget_exhausted"); return@post }
+                readPermittedPage(scan)
+            }
+        }
+    }
+
+    private fun readPermittedPage(scan: Scan) {
         if (PaymentAccessibilityDeviceTest.contentReadBlockedForAudit()) {
             PaymentAccessibilityStatus.onPageRead(0)
             PaymentAccessibilityStatus.onParserResult("audit_read_attempt_blocked")
@@ -180,13 +193,17 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
             screenshot(scan)
         } else {
             val snapshot = PaymentPageSnapshot(scan.ticket.sourcePackage, page.lines, System.currentTimeMillis(), page.groups)
+            val contentToken = pageEvidenceEpoch.capture()
             execute {
                 if (!validTicket(scan)) return@execute
                 val enrichment = PaymentPageSemantics.extract(snapshot,
                     uk.thewyj.app.finance.CurrencyRuntimePreferences.defaultCurrency(applicationContext, scan.accountId), 2)
+                    ?: PaymentPageSemantics.unresolvedCandidate(snapshot)
                 if (enrichment == null) mainHandler.post { if (current(scan)) screenshot(scan) }
                 else mainHandler.post {
-                    if (current(scan) && foregroundMatches(scan)) execute { apply(scan, enrichment) }
+                    if (current(scan) && foregroundMatches(scan) && pageEvidenceEpoch.current(contentToken)) execute {
+                        if (pageEvidenceEpoch.current(contentToken)) apply(scan, enrichment)
+                    }
                 }
             }
         }
@@ -222,11 +239,12 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         if (delay > 0) { scheduleRetry(scan, "ocr_cooldown", delay); return }
         if (!screenshotInFlight.compareAndSet(false, true)) { scheduleRetry(scan, "ocr_in_flight"); return }
         lastScreenshotAtMs = SystemClock.uptimeMillis()
+        val contentToken = pageEvidenceEpoch.capture()
         PaymentAccessibilityStatus.onScreenshotAttempt()
         fun callback(windowCapture: Boolean): TakeScreenshotCallback = object : TakeScreenshotCallback {
             override fun onSuccess(result: ScreenshotResult) {
                 screenshotInFlight.set(false)
-                if (!current(scan) || !foregroundMatches(scan)) { result.hardwareBuffer.close(); PaymentDiagnostics.emit("discard", "reason=page_changed_during_capture"); return }
+                if (!current(scan) || !foregroundMatches(scan) || !pageEvidenceEpoch.current(contentToken)) { result.hardwareBuffer.close(); scheduleRetry(scan, "page_changed_during_capture"); PaymentDiagnostics.emit("discard", "reason=page_changed_during_capture"); return }
                 val bitmap = try { runCatching { android.graphics.Bitmap.wrapHardwareBuffer(result.hardwareBuffer, result.colorSpace)?.copy(android.graphics.Bitmap.Config.ARGB_8888, false) }.getOrNull() }
                     finally { result.hardwareBuffer.close() }
                 if (bitmap == null) { scheduleRetry(scan, "no_bitmap"); return }
@@ -235,13 +253,15 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
                         if (!validTicket(scan)) return@execute
                         val verifier = ocrVerifier ?: PaymentScreenshotVerifier(MlKitOcrEngine(this@ThewyjPaymentAccessibilityService)).also { ocrVerifier = it }
                         val enrichment = kotlinx.coroutines.runBlocking {
-                            verifier.verify(bitmap, scan.ticket.sourcePackage, System.currentTimeMillis(),
-                                uk.thewyj.app.finance.CurrencyRuntimePreferences.defaultCurrency(applicationContext, scan.accountId), 2)
+                            verifier.verifyCurrent(bitmap, scan.ticket.sourcePackage, System.currentTimeMillis(),
+                                uk.thewyj.app.finance.CurrencyRuntimePreferences.defaultCurrency(applicationContext, scan.accountId), 2) {
+                                current(scan) && pageEvidenceEpoch.current(contentToken)
+                            }
                         }
                         mainHandler.post {
-                            if (!current(scan) || !foregroundMatches(scan)) { PaymentDiagnostics.emit("discard", "reason=page_changed_during_ocr"); return@post }
+                            if (!current(scan) || !foregroundMatches(scan) || !pageEvidenceEpoch.current(contentToken)) { PaymentDiagnostics.emit("discard", "reason=page_changed_during_ocr"); scheduleRetry(scan, "page_changed_during_ocr"); return@post }
                             if (enrichment == null) { PaymentAccessibilityStatus.onParserResult("ocr_unparsed"); scheduleRetry(scan, "ocr_unparsed") }
-                            else execute { apply(scan, enrichment.copy(evidenceSource = PaymentEvidenceSource.OCR)) }
+                            else execute { if (pageEvidenceEpoch.current(contentToken)) apply(scan, enrichment.copy(evidenceSource = PaymentEvidenceSource.OCR)) }
                         }
                     } finally { bitmap.recycle() }
                 }

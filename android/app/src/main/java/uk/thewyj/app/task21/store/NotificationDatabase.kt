@@ -32,7 +32,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         uk.thewyj.app.finance.PaymentMoneyUnit::class,
     ],
     autoMigrations = [androidx.room.AutoMigration(from = 14, to = 15, spec = CurrencyUnitMigrationSpec::class),
-        androidx.room.AutoMigration(from = 15, to = 16)],
+        androidx.room.AutoMigration(from = 15, to = 16), androidx.room.AutoMigration(from = 16, to = 17), androidx.room.AutoMigration(from = 17, to = 18)],
     version = NotificationDatabase.SCHEMA_VERSION,
     exportSchema = true,
 )
@@ -42,7 +42,7 @@ abstract class NotificationDatabase : RoomDatabase() {
     abstract fun reconciliationDao(): PaymentReconciliationDao
 
     companion object {
-        const val SCHEMA_VERSION = 16
+        const val SCHEMA_VERSION = 18
         const val DATABASE_NAME = "wyj-notifications.db"
 
         @Volatile
@@ -57,12 +57,27 @@ abstract class NotificationDatabase : RoomDatabase() {
                 )
                     // The local archive is user data: never drop it on upgrade.
                     .addMigrations(
-                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_15_16,
+                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18,
                     )
                     .build()
                     .also { instance = it }
             }
 
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Earlier versions did not persist scan counts: never grant another automatic budget.
+                db.execSQL("ALTER TABLE payment_tickets ADD COLUMN scanAttempts INTEGER NOT NULL DEFAULT 8")
+            }
+        }
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE payment_tickets ADD COLUMN enrichedCurrency TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE payment_tickets ADD COLUMN enrichedCompletion INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE payment_tickets ADD COLUMN enrichedEvidenceSource TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE payment_tickets ADD COLUMN enrichedSourceUncertain INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE payment_tickets ADD COLUMN enrichedAmountDecimal TEXT NOT NULL DEFAULT ''")
+            }
+        }
         val MIGRATION_15_16 = object : Migration(15, 16) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE payment_recognitions ADD COLUMN currencyReviewRequired INTEGER NOT NULL DEFAULT 0")

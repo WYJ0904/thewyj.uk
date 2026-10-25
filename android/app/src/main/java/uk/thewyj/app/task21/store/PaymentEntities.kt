@@ -84,6 +84,12 @@ data class PaymentTicketEntity(
     val enrichedMerchant: String,
     val enrichedProviderReference: String,
     val enrichedAtMs: Long,
+    @ColumnInfo(defaultValue = "''") val enrichedCurrency: String = "",
+    @ColumnInfo(defaultValue = "0") val enrichedCompletion: Int = 0,
+    @ColumnInfo(defaultValue = "''") val enrichedEvidenceSource: String = "",
+    @ColumnInfo(defaultValue = "1") val enrichedSourceUncertain: Int = 1,
+    @ColumnInfo(defaultValue = "''") val enrichedAmountDecimal: String = "",
+    @ColumnInfo(defaultValue = "8") val scanAttempts: Int = 0,
 )
 
 @Entity(

@@ -319,6 +319,12 @@ internal fun PaymentTicket.toEntity() = PaymentTicketEntity(
     enrichedMerchant = enrichment?.merchant.orEmpty(),
     enrichedProviderReference = enrichment?.providerReference.orEmpty(),
     enrichedAtMs = enrichment?.occurredAtMs ?: 0L,
+    enrichedCurrency = enrichment?.currency.orEmpty(),
+    enrichedCompletion = if (enrichment?.completionConfirmed == true) 1 else 0,
+    enrichedEvidenceSource = enrichment?.evidenceSource?.name.orEmpty(),
+    enrichedSourceUncertain = if (enrichment?.sourceInstanceUncertain != false) 1 else 0,
+    enrichedAmountDecimal = enrichment?.amountDecimalCandidate.orEmpty(),
+    scanAttempts = scanAttempts,
 )
 
 internal fun PaymentTicketEntity.toModel() = PaymentTicket(
@@ -334,17 +340,22 @@ internal fun PaymentTicketEntity.toModel() = PaymentTicket(
     expiresAtMs = expiresAtMs,
     state = runCatching { PaymentTicketState.valueOf(state) }.getOrDefault(PaymentTicketState.CREATED),
     attempts = attempts,
-    enrichment = if (hasEnrichedAmount == 1) {
+    scanAttempts = scanAttempts,
+    enrichment = if (hasEnrichedAmount == 1 || enrichedAmountDecimal.isNotBlank()) {
         PaymentEnrichment(
             sourcePackage = sourcePackage,
-            amountMinor = enrichedAmountMinor,
-            currency = "CNY",
+            amountMinor = if (hasEnrichedAmount==1) enrichedAmountMinor else null,
+            currency = enrichedCurrency.ifBlank { null },
             direction = runCatching { FinanceDirection.valueOf(enrichedDirection) }.getOrNull(),
             merchant = enrichedMerchant.ifBlank { null },
             counterparty = null,
             providerReference = enrichedProviderReference.ifBlank { null },
             occurredAtMs = enrichedAtMs,
             confidence = 800,
+            completionConfirmed = enrichedCompletion == 1,
+            evidenceSource = runCatching { uk.thewyj.app.task21.payment.PaymentEvidenceSource.valueOf(enrichedEvidenceSource) }.getOrDefault(uk.thewyj.app.task21.payment.PaymentEvidenceSource.ACCESSIBILITY),
+            sourceInstanceUncertain = enrichedSourceUncertain == 1,
+            amountDecimalCandidate = enrichedAmountDecimal.ifBlank { null },
         )
     } else {
         null

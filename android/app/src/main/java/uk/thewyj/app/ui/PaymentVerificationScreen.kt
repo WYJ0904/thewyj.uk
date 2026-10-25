@@ -350,9 +350,9 @@ private fun stateLabel(item: PaymentVerificationCenter.Item): String = when {
 }
 
 private fun amountLine(item: PaymentVerificationCenter.Item): String {
-    if (item.moneyUnitReview) return "原币金额单位待核实，请重新填写"
+    if (item.moneyUnitReview) return item.observedAmountDecimal?.let { "候选金额 $it · 币种与单位待确认" } ?: "原币金额单位待核实，请重新填写"
     val amount = item.displayAmountMinor
-    if (amount == null || amount <= 0) return "暂未识别到金额"
+    if (amount == null || amount <= 0) return item.observedAmountDecimal?.let { "候选金额 $it · 币种与单位待确认" } ?: "暂未识别到金额"
     val direction = when (item.displayDirection.name) {
         "INCOME" -> "收入"
         "REFUND" -> "退款"
