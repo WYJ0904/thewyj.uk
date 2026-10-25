@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {openPage,CdpClient,delay} from '../../../local-backend/browser_harness.mjs';
+import {currencyDigits} from '../../../js/finance/money.js';
 const out=path.resolve(process.env.FINANCE_E2E_OUTPUT),config=JSON.parse(await fs.readFile(path.join(out,'private/context.json'),'utf8'));
 const {port}=JSON.parse(await fs.readFile(path.join(out,'port.json'),'utf8')),url='http://127.0.0.1:'+port;
 const native=JSON.parse(await fs.readFile(path.join(out,'native/restore.json'),'utf8'));assert.equal(native.status,'SYNTHETIC_E2E_PASS');
@@ -17,7 +18,7 @@ try{
  page=await openPage({baseUrl:url,cdpUrl,width:1200,height:1100,mobile:false});await page.navigate('/');await page.waitFor('window.ready===true');
  await check('native-cloud-web-same-id-currency-amount-direction',async()=>{
   const current=await page.evaluate('store()');assert.equal(Object.keys(current.transactions).length,native.bookings.length);
-  for(const booking of native.bookings){const row=current.transactions[booking.id];assert(row,booking.id);assert.equal(row.amount_minor,booking.amount_minor);assert.equal(row.currency,booking.currency);assert.equal(row.direction,booking.direction.toLowerCase());assert.equal(row.amount_exponent,booking.amount_exponent);}
+  for(const booking of native.bookings){const row=current.transactions[booking.id];assert(row,booking.id);assert.equal(row.amount_minor,booking.amount_minor);assert.equal(row.currency,booking.currency);assert.equal(row.direction,booking.direction.toLowerCase());assert.notEqual(row.money_unit_status,'review_required');assert.equal(currencyDigits(row.currency),booking.amount_exponent);}
   return native.bookings.map(b=>({id:b.id,currency:b.currency,amount_minor:b.amount_minor,direction:b.direction}));
  });
  await check('detail-edit-surface-preserves-original-iso-unit-without-writing',async()=>{
@@ -41,10 +42,10 @@ try{
   const response=await fetch(url+'/api/finance/transactions?money_version=2',{headers:{'X-Session-Token':'synthetic-invalid-session','X-Finance-Money-Version':'3'}});assert.equal(response.status,401);return {status:response.status};
  });
  await check('no-unhandled-browser-exceptions',async()=>assert.deepEqual(page.runtimeErrors,[]));
- const capture=await page.client.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await fs.writeFile(path.join(out,'web-finance.png'),Buffer.from(capture.data,'base64'));
+ const capture=await page.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await fs.writeFile(path.join(out,'web-finance.png'),Buffer.from(capture.data,'base64'));
  await fs.writeFile(path.join(out,'web-dom.txt'),await page.evaluate('document.body.innerText'));
 }finally{
- if(browser){await browser.send('Browser.close').catch(()=>{});browser.close();}page?.close();
+ if(page)await page.close().catch(()=>{});if(browser){await browser.send('Browser.close').catch(()=>{});browser.close();}child.kill();
  await fs.writeFile(path.join(out,'browser.json'),JSON.stringify({rows,scope:'Actual Chrome product finance HTML/modules + authenticated local API; not full site navigation or Production',synthetic_only:true},null,2));
 }
 console.log(JSON.stringify(rows));process.exitCode=rows.some(r=>r.status==='FAIL')?1:0;

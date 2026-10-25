@@ -7,6 +7,9 @@ parser=argparse.ArgumentParser();parser.add_argument('--attempt',default='r1');p
 assert args.attempt.startswith('r') and args.attempt[1:].isdigit() and args.sdk.startswith('r') and args.sdk[1:].isdigit()
 OUT=E/('e2e-'+args.attempt);OUT.mkdir(exist_ok=False);private=OUT/'private';private.mkdir()
 source=E/('emulator-'+args.sdk)/'native/results.ndjson'
+sdk_record=json.loads((source.parent.parent/'result.json').read_text());assert sdk_record['status']=='PASS'
+for name,digest in sdk_record['source_after'].items():
+    if name.startswith(('android/app/src/main/','android/app/schemas/')):assert hashlib.sha256((ROOT/name).read_bytes()).hexdigest()==digest,name
 pixels=[json.loads(s) for s in source.read_text().splitlines() if s]
 assert next(r for r in pixels if r['id']=='cny-cent')['status']=='PASS'
 (OUT/'sdk-inputs.json').write_text(json.dumps(pixels,indent=2))
@@ -28,6 +31,7 @@ def run(name,cmd,extra=None):
 def native(name,klass):return run(name,['python','qa/finance-p04/android.py','--qa-root',str(qa),'--qa-output',str(OUT/'native'),'--tests','*'+klass],{'FINANCE_P04_OUTPUT':str(OUT/(name+'-command'))})
 record={'started_utc':datetime.now(timezone.utc).isoformat(),'status':'IN_PROGRESS','head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
     'actual_sdk_source':str(source.relative_to(ROOT)),'sdk_source_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),
+    'sdk_product_source_identical':True,'sdk_tested_head':sdk_record['head'],
     'real_phone_operations':False,'production_or_preview_mutations':False,'synthetic_only':True}
 try:
     assert native('seed','CloseoutFlowSeedTest'),'Seed failed; other cases remain independently runnable'
