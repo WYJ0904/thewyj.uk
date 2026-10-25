@@ -273,7 +273,7 @@ class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
             val result = PaymentOcrTaskLifetime.await(scaled,sdkBusy,{owned ->
                 recognizer.process(com.google.mlkit.vision.common.InputImage.fromBitmap(owned,0)) }) ?: return@withContext null
             val lines = PaymentScreenshotVerifier.normalizeOcrLines(result.textBlocks.flatMap { it.lines.map { line -> line.text } })
-            if (currency != null) return@withContext currencyAmount(lines.joinToString(" "), currency)
+            if (currency != null) return@withContext PaymentSecondaryOcrAmount.select(lines,currency)
             val decision = PaymentPageAmountSelection.select(lines)
             decision.amountMinor ?: lines.singleOrNull()?.takeIf { Regex("[0-9]+[.,][0-9]{1,2}").matches(it) }?.let(PaymentText::parseMinor)
         } finally {
@@ -284,5 +284,23 @@ class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
 
     private companion object {
         val currencyMarker = Regex("[¥￥$€£]|CNY|RMB|USD|US\\$|EUR|HKD|HK\\$|GBP|JPY|JP[¥￥]|人民币|人民幣|元|日元|円", RegexOption.IGNORE_CASE)
+    }
+}
+
+/** Independent second-scale reading; never receives the expected numeric value. */
+internal object PaymentSecondaryOcrAmount {
+    fun select(lines:List<String>,currency:String):Long? {
+        val normalized=PaymentScreenshotVerifier.normalizeOcrLines(lines)
+        val parsed=uk.thewyj.app.finance.CurrencyDecision.apply(
+            ParsedPaymentMessage(PaymentRecognitionStatus.PAYMENT_LIKELY),normalized.joinToString(" "),currency,true)
+        if(parsed.currency!=currency || parsed.reviewReason !in setOf("","currency_amount_unproven"))return null
+        if(parsed.currencyRolesJson.isNotBlank())return parsed.amountMinor
+        // The second scale can include a nearby discount or balance. Resolve its
+        // own roles instead of combining amounts or matching the caller's value.
+        PaymentPageSemantics.labelledCurrencyAmount(normalized,emptyList(),currency)?.let {return it}
+        // A crop containing exactly one bare number can confirm the primary
+        // page's established unit. Prose/metadata and conflicting fields cannot.
+        val bare=normalized.singleOrNull()?.takeIf {Regex("[0-9]+(?:\\.[0-9]+)?").matches(it)} ?: return null
+        return runCatching {uk.thewyj.app.finance.CurrencyMoney.parse(bare,currency)}.getOrNull()?.takeIf {it>0}
     }
 }

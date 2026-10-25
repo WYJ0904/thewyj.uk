@@ -19,7 +19,7 @@ object PaymentPageSemantics {
     private val sensitiveMarkers = listOf("密码", "密碼", "验证码", "驗證碼", "身份證", "身份证", "银行卡号", "銀行卡號")
 
     /** Resolve the ISO unit first, then reuse the same semantic amount ranking. No FX conversion. */
-    private fun labelledCurrencyAmount(lines: List<String>, groups: List<List<String>>, currency: String): Long? {
+    internal fun labelledCurrencyAmount(lines: List<String>, groups: List<List<String>>, currency: String): Long? {
         val marker=when(currency) {
             "USD" -> Regex("US\\$|USD|\\$",RegexOption.IGNORE_CASE)
             "HKD" -> Regex("HK\\$|HKD|\\$",RegexOption.IGNORE_CASE)

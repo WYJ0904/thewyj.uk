@@ -13,6 +13,14 @@ import uk.thewyj.app.task21.FinanceDirection
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[34], application=Application::class)
 class FinanceP05PageEvidenceTest {
+    @Test fun secondScaleKeepsActualPaidRoleInsteadOfCombiningNearbyDiscount() {
+        val observed=listOf("优惠 CNY 50.00","实付 CNY 648.00")
+        assertEquals(64800L,PaymentSecondaryOcrAmount.select(observed,"CNY"))
+    }
+    @Test fun secondScaleDoesNotSelectTheExpectedValueFromConflictingPrimaryAmounts() {
+        assertNull(PaymentSecondaryOcrAmount.select(listOf("实付 CNY 648.00","实际支付 CNY 646.00"),"CNY"))
+        assertNull(PaymentSecondaryOcrAmount.select(listOf("实付 USD 648.00"),"CNY"))
+    }
     private fun extract(lines: List<String>, unit: String?="CNY", policy: Int=2) =
         PaymentPageSemantics.extract(PaymentPageSnapshot("com.tencent.mm",lines,1000L),unit,policy)
     private fun verify(lines: List<String>, unit: String?="CNY", agreed: Boolean=true): PaymentEnrichment? {
