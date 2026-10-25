@@ -10,6 +10,7 @@ object PaymentPageAmountSelection {
     private val finalLabel = Regex("实付款?|實付款?|实际支付|實際支付")
     private val paymentLabel = Regex("付款金[额額]|支付金[额額]|交易金[额額]|扣款金[额額]|收款金[额額]|(?:转账|轉賬|转帐|轉帳)\\s*金[额額]")
     private val excludedLabel = Regex("原价|原價|优惠|優惠|折扣|余额|餘額|服务费|服務費|手续费|手續費|运费|運費|积分|積分|订单号|訂單號|时间|時間|日期|电话|電話|手机|手機")
+    private val metadataLabel = Regex("^(?:转账|轉賬|转帐|轉帳|支付|付款|交易|收款|退款|下单|订单)?(?:时间|時間|日期|订单号|訂單號|单号|單號|编号|电话|電話|手机|手機|手机号码|手机号)\\s*[:：]?$")
 
     fun select(lines: List<String>, tokenGroups: List<List<String>> = emptyList()): PageAmountDecision {
         val normalized = lines.map(PaymentText::normalizeMoneyText)
@@ -44,7 +45,7 @@ object PaymentPageAmountSelection {
         if (PaymentPageEvidence.transferReceipt(normalized) &&
             (PaymentPageEvidence.transferDirection(normalized) != null || PaymentPageContext.pendingTransfer(normalized))) {
             val standalone=normalized.withIndex().filter { Regex("(?:0|[1-9][0-9]{0,7})\\.[0-9]{1,2}").matches(it.value) &&
-                !(it.index>0 && excludedLabel.containsMatchIn(normalized[it.index-1])) }
+                !(it.index>0 && metadataLabel.matches(normalized[it.index-1])) }
             if (standalone.size==1) read("转账金额 ${standalone.single().value}",standalone.single().index)
         }
         // A separated currency symbol may prefix one complete number. Numeric

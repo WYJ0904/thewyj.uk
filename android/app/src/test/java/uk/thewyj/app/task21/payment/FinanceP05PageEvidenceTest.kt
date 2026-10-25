@@ -47,6 +47,7 @@ class FinanceP05PageEvidenceTest {
         val lines=listOf("转账详情","已被合成用户领取","0.01","转账时间","18.49")
         assertEquals(setOf(2),PaymentOcrTransferAmount.semanticAmountIndices(lines))
         assertEquals(1L,PaymentPageAmountSelection.select(lines).amountMinor)
+        assertEquals(setOf(3),PaymentOcrTransferAmount.semanticAmountIndices(listOf("转账详情","已被合成用户领取","手机店","0.01","转账时间","18.49")))
         assertTrue(PaymentOcrTransferAmount.semanticAmountIndices(listOf("账单详情","余额CNY352.00")).isEmpty())
     }
     @Test fun actualPaidWinsOverOriginalDiscountBalanceAndFee() {
