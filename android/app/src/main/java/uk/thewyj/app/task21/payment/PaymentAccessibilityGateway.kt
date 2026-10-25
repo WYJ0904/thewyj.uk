@@ -38,8 +38,9 @@ internal class AndroidPaymentAccessibilityGateway(private val context: Context) 
                 user != Process.myUserHandle() && launcher.getActivityList(enrichment.sourcePackage, user).isNotEmpty()
             }
         }.getOrDefault(true)
-        val uncertain = PaymentSourceIdentity.requiresManualReview(
-            currentProfile, sharedPackage, record?.providerReference.orEmpty(), enrichment.providerReference.orEmpty(), enrichment.sourceInstanceUncertain)
+        val uncertain = PaymentSourceIdentity.requiresManualReviewForObservation(
+            currentProfile, sharedPackage, record?.providerReference.orEmpty(), enrichment.providerReference.orEmpty(), enrichment.sourceInstanceUncertain,
+            record?.direction in setOf("INCOME","EXPENSE","REFUND") && record?.direction == enrichment.direction?.name)
         return AndroidPaymentRecognitionHook.get(context).onAccessibilityEnrichment(
             accountId, enrichment.copy(sourceInstanceUncertain = uncertain), ticketId)
     }
@@ -47,6 +48,11 @@ internal class AndroidPaymentAccessibilityGateway(private val context: Context) 
 
 /** Accessibility exposes a package, not a reliable clone user identity. */
 internal object PaymentSourceIdentity {
+    /** One transfer reference can be visible to payer and recipient; it alone cannot prove the actor. */
+    fun requiresManualReviewForObservation(currentProfile:Boolean,sharedPackage:Boolean,sourceReference:String,pageReference:String,
+                                          declaredUncertain:Boolean,knownDirectionConsistent:Boolean):Boolean =
+        requiresManualReview(currentProfile,sharedPackage,sourceReference,pageReference,declaredUncertain) ||
+            ((!currentProfile || sharedPackage) && !knownDirectionConsistent)
     fun requiresManualReview(currentProfile: Boolean, sharedPackage: Boolean, sourceReference: String, pageReference: String, declaredUncertain: Boolean = false): Boolean {
         val sameReference = sourceReference.isNotBlank() && pageReference == sourceReference
         return declaredUncertain || ((!currentProfile || sharedPackage) && !sameReference)

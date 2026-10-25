@@ -3,6 +3,7 @@ package uk.thewyj.app.task21.payment
 import android.content.Context
 import android.graphics.Bitmap
 import java.util.Locale
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Task 24.1 visual verification fallback.
@@ -49,11 +50,15 @@ object PaymentOverlayRetryPolicy {
 }
 
 class PaymentScreenshotVerifier(private val engine: OcrEngine) {
+    private val pipeline=kotlinx.coroutines.sync.Mutex()
     /** Recheck the captured content epoch after both asynchronous OCR passes. */
     suspend fun verifyCurrent(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long,
                               defaultCurrency: String?, currencyPolicyVersion: Int, stillCurrent: () -> Boolean): PaymentEnrichment? {
         if (!stillCurrent()) return null
-        return verifyInternal(bitmap, sourcePackage, capturedAtMs, defaultCurrency, currencyPolicyVersion, true).takeIf { stillCurrent() }
+        return pipeline.withLock {
+            if (!stillCurrent()) return@withLock null
+            verifyInternal(bitmap, sourcePackage, capturedAtMs, defaultCurrency, currencyPolicyVersion, true, stillCurrent).takeIf { stillCurrent() }
+        }
     }
     /** Explicit compatibility entry for historical callers; the service uses policy2 below. */
     suspend fun verify(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long): PaymentEnrichment? =
@@ -61,11 +66,12 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
 
     suspend fun verify(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long,
                        defaultCurrency: String?, currencyPolicyVersion: Int): PaymentEnrichment? =
-        verifyInternal(bitmap,sourcePackage,capturedAtMs,defaultCurrency,currencyPolicyVersion,false)
+        pipeline.withLock {verifyInternal(bitmap,sourcePackage,capturedAtMs,defaultCurrency,currencyPolicyVersion,false)}
 
     private suspend fun verifyInternal(bitmap: Bitmap, sourcePackage: String, capturedAtMs: Long,
-                       defaultCurrency: String?, currencyPolicyVersion: Int, retainUnresolved: Boolean): PaymentEnrichment? {
+                       defaultCurrency: String?, currencyPolicyVersion: Int, retainUnresolved: Boolean, stillCurrent: () -> Boolean = {true}): PaymentEnrichment? {
         val lines = runCatching { engine.recognize(bitmap) }.getOrDefault(emptyList())
+        if (!stillCurrent()) return null
         val normalized = normalizeOcrLines(lines)
         if (normalized.isEmpty()) {
             android.util.Log.i("ThewyjAccessibility", "ocr-semantics lines=0 context=false amounts=0 decisive=false completion=false")
@@ -161,7 +167,7 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
             val context = listOf(
                 "支付成功", "付款成功", "已支付", "已付款", "支付金额", "付款金额", "实付", "已扣款",
                 "转账成功", "轉賬成功", "转账金额", "收款成功", "已收款", "收款金额",
-                "轉賬金額", "轉賬詳情", "到賬成功", "订单金额", "交易详情", "账单详情",
+                "轉賬金額", "轉賬詳情", "到賬成功", "订单金额", "交易详情", "账单详情", "支付详情", "支付詳情", "付款详情", "付款詳情", "收款详情", "收款詳情", "退款详情", "退款詳情",
             ).any { joined.contains(it) }
             val directionOnlyDetail = listOf("交易详情", "交易詳情", "账单详情", "賬單詳情", "转账详情", "轉賬詳情")
                 .any(joined::contains) && PaymentText.hasCompletion(joined) && PaymentText.direction(joined) != null
@@ -173,6 +179,7 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
 
 /** ML Kit implementation (bundled Chinese + Latin model). */
 class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
+    private val sdkBusy=java.util.concurrent.atomic.AtomicBoolean()
     private data class AmountRegion(val text: String, val legacyMinor: Long?, val bounds: android.graphics.Rect, val score: Int)
     private var amountRegions: List<AmountRegion> = emptyList()
     private val appContext = context.applicationContext
@@ -190,9 +197,8 @@ class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
         kotlinx.coroutines.Dispatchers.IO,
     ) {
         amountRegions = emptyList()
-        val image = com.google.mlkit.vision.common.InputImage.fromBitmap(bitmap, 0)
-        val result = runCatching { com.google.android.gms.tasks.Tasks.await(recognizer.process(image)) }
-            .getOrNull()
+        val result = PaymentOcrTaskLifetime.await(bitmap,sdkBusy,{owned ->
+            recognizer.process(com.google.mlkit.vision.common.InputImage.fromBitmap(owned,0)) })
             ?: return@withContext emptyList()
         val recognized = result.textBlocks.flatMap { it.lines }
         val lines = recognized.map { it.text }
@@ -224,7 +230,12 @@ class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
             bounds.union(amount.boundingBox ?: return@mapNotNull null)
             AmountRegion("$marker $number", PaymentPageAmountSelection.select(listOf("$marker $number")).amountMinor, bounds, 850)
         }
-        amountRegions = directRegions + splitSymbolRegions
+        val fullDecision=PaymentPageAmountSelection.select(regionLines)
+        val semanticRegions=PaymentOcrTransferAmount.semanticAmountIndices(regionLines).mapNotNull {index->
+            val bounds=recognized.getOrNull(index)?.boundingBox ?: return@mapNotNull null
+            AmountRegion(regionLines[index],fullDecision.amountMinor,android.graphics.Rect(bounds),fullDecision.candidates.maxOfOrNull {it.score} ?: 850)
+        }
+        amountRegions = directRegions + splitSymbolRegions + semanticRegions
         android.util.Log.i("ThewyjAccessibility", "ocr-result blocks=${result.textBlocks.size} lines=${lines.size}")
         if (recoveredIndex != null) android.util.Log.i("ThewyjAccessibility", "ocr-currency-recovery transfer=true prominentRegion=true secondScaleRequired=true")
         recovered
@@ -259,7 +270,8 @@ class MlKitOcrEngine(context: Context) : AmountConfirmingOcrEngine {
         val width = (crop.width * 2).coerceAtMost(1600)
         val scaled = Bitmap.createScaledBitmap(crop, width, (crop.height * width / crop.width).coerceAtLeast(1), true)
         try {
-            val result = com.google.android.gms.tasks.Tasks.await(recognizer.process(com.google.mlkit.vision.common.InputImage.fromBitmap(scaled, 0)))
+            val result = PaymentOcrTaskLifetime.await(scaled,sdkBusy,{owned ->
+                recognizer.process(com.google.mlkit.vision.common.InputImage.fromBitmap(owned,0)) }) ?: return@withContext null
             val lines = PaymentScreenshotVerifier.normalizeOcrLines(result.textBlocks.flatMap { it.lines.map { line -> line.text } })
             if (currency != null) return@withContext currencyAmount(lines.joinToString(" "), currency)
             val decision = PaymentPageAmountSelection.select(lines)

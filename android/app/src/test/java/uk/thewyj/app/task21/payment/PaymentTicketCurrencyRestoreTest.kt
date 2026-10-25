@@ -75,4 +75,27 @@ class PaymentTicketCurrencyRestoreTest {
             assertTrue(store.localBookings("owner").isEmpty())
         } finally {db.close()}
     }
+    @Test fun pendingPageCanBecomeCompletedOnSameTicketWithoutDuplicateOrLateOverwrite() {
+        val db=Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(),NotificationDatabase::class.java).allowMainThreadQueries().build()
+        try {
+            var time=1000L;val store=RoomPaymentRecognitionStore(db)
+            store.saveRecognition(PaymentRecognitionRecord("rec","owner",PaymentRecognitionState.WAITING_FOR_ENRICHMENT.name,1,
+                "com.tencent.mm","NOTIFICATION","event",paymentChannel="wechat",amountMinor=null,currency="CNY",direction="EXPENSE",merchant="",providerReference="SYNTH-STATE",createdAtMs=time,updatedAtMs=time))
+            val engine=PaymentTicketEngine(now={time});val ticket=engine.create("owner","rec","com.tencent.mm","event","wechat",missingFields=setOf("amount"));store.saveTicket(ticket)
+            val coordinator=PaymentRecognitionCoordinator(store,tickets=engine,now={time},currencyPolicyVersion=2)
+            val pending=PaymentEnrichment("com.tencent.mm",100L,"CNY",FinanceDirection.EXPENSE,null,null,"SYNTH-STATE",null,900,completionConfirmed=false)
+            coordinator.onAccessibilityEnrichment("owner",pending,ticket.ticketId)
+            assertTrue("Unsettled page must not consume its live ticket",engine.isActive(store.ticket("owner",ticket.ticketId)!!))
+            assertTrue(store.localBookings("owner").isEmpty())
+            assertTrue(coordinator.onAccessibilityEnrichment("owner",pending,ticket.ticketId) is EnrichmentOutcome.Insufficient)
+            time=2000L
+            coordinator.onAccessibilityEnrichment("owner",pending.copy(completionConfirmed=true),ticket.ticketId)
+            assertEquals(1,store.localBookings("owner").size)
+            assertEquals(100L,store.localBookings("owner").single().amountMinor)
+            val before=store.localBookings("owner").single()
+            assertTrue(coordinator.onAccessibilityEnrichment("owner",pending.copy(amountMinor=9999L),ticket.ticketId) is EnrichmentOutcome.Rejected)
+            assertEquals(before,store.localBookings("owner").single())
+            assertEquals(ticket.expiresAtMs,store.ticket("owner",ticket.ticketId)!!.expiresAtMs)
+        } finally {db.close()}
+    }
 }

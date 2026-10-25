@@ -224,8 +224,14 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         PaymentDiagnostics.emit("verification", "transaction=${PaymentDiagnostics.identity(scan.ticket.recognitionId)} ticket=${PaymentDiagnostics.identity(scan.ticket.ticketId)} minor=${enrichment.amountMinor} confidence=${enrichment.confidence} outcome=${outcome?.javaClass?.simpleName}")
         PaymentAccessibilityStatus.onParserResult("${enrichment.evidenceSource.name.lowercase()} amount=${enrichment.amountMinor} direction=${enrichment.direction} result=${outcome?.javaClass?.simpleName}")
         if (outcome is EnrichmentOutcome.Applied) {
-            mainHandler.post { if (active === scan) cancelScan("verified") }
-            refreshPackages(true)
+            val proof=outcome.ticket.enrichment
+            if (proof?.completionConfirmed==true && !proof.sourceInstanceUncertain) {
+                mainHandler.post { if (active === scan) cancelScan("verified") }
+                refreshPackages(true)
+            } else {
+                scan.applying.set(false)
+                mainHandler.post { scheduleRetry(scan,"completion_or_source_pending") }
+            }
         } else {
             scan.applying.set(false)
             mainHandler.post { scheduleRetry(scan, "insufficient") }

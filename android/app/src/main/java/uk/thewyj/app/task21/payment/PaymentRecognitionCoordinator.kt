@@ -313,6 +313,12 @@ class PaymentRecognitionCoordinator(
                 reason = "no_active_ticket",
             )
         if (expectedTicketId != null && ticket.ticketId != expectedTicketId) return EnrichmentOutcome.Rejected(ticket, "ticket_changed")
+        val previous=ticket.enrichment
+        if (tickets.isActive(ticket) && previous!=null &&
+            previous.amountMinor==enrichment.amountMinor && previous.currency==enrichment.currency &&
+            previous.direction==enrichment.direction && previous.providerReference==enrichment.providerReference &&
+            previous.completionConfirmed==enrichment.completionConfirmed && previous.sourceInstanceUncertain==enrichment.sourceInstanceUncertain &&
+            previous.amountDecimalCandidate==enrichment.amountDecimalCandidate) return EnrichmentOutcome.Insufficient(ticket)
         val outcome = tickets.enrich(ticket, enrichment)
         when (outcome) {
             is EnrichmentOutcome.Applied -> {
@@ -352,6 +358,8 @@ class PaymentRecognitionCoordinator(
                     )
                     if (transition is PaymentStatusTransition.Updated) {
                         post(transition)
+                    }
+                    if (transition is PaymentStatusTransition.Updated || recognition.state == PaymentRecognitionState.ENRICHMENT_VERIFIED.name) {
                         store.saveRecognition(
                             recognition.copy(
                                 state = PaymentRecognitionState.ENRICHMENT_VERIFIED.name,
@@ -391,9 +399,10 @@ class PaymentRecognitionCoordinator(
                     if (existingCandidate == null || !existingCandidate.hasEdits) {
                         store.saveCandidate(candidate)
                     }
-                    val verifiedTicket = tickets.markCandidateCreated(outcome.ticket)
+                    val verifiedTicket = if (enrichment.completionConfirmed && !enrichment.sourceInstanceUncertain)
+                        tickets.markCandidateCreated(outcome.ticket) else outcome.ticket
                     store.saveTicket(verifiedTicket)
-                    autoBook(accountId, recognition.recognitionId, unitVerified = currencyPolicyVersion >= 2)
+                    if (existingCandidate?.hasEdits != true) autoBook(accountId, recognition.recognitionId, unitVerified = currencyPolicyVersion >= 2)
                 }
                 return EnrichmentOutcome.Applied(outcome.ticket)
             }

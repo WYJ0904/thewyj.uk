@@ -7,9 +7,12 @@ import uk.thewyj.app.task21.FinanceDirection
 enum class PaymentPageState { DETAIL, COMPLETED, PENDING, FAILED, LIST, HISTORY, BALANCE, PROMOTION, LOADING, SENSITIVE, CHAT, UNKNOWN }
 
 object PaymentPageEvidence {
-    private val settledTerms=PaymentText.completionTerms.filterNot { it in setOf("扣款","到账","到賬","入账","入賬") }
-    private val settledStatus=Regex("^(?:"+settledTerms.joinToString("|"){Regex.escape(it)}+")(?:\\s*[:：]?\\s*(?:(?:CNY|RMB|USD|EUR|HKD|GBP|JPY|US\\$|HK\\$|JP[¥￥]|[¥￥$€£])\\s*)?[0-9][0-9,.]*(?:\\s*元)?)?$",RegexOption.IGNORE_CASE)
+    private val settledTerms=(PaymentText.completionTerms.filterNot { it in setOf("扣款","到账","到賬","入账","入賬") }+
+        listOf("到账成功","到賬成功","入账成功","入賬成功","入帳成功","轉出成功","轉入成功")).distinct()
+    private const val unit="CNY|RMB|USD|EUR|HKD|GBP|JPY|US\\$|HK\\$|JP[¥￥]|[¥￥$€£]|元"
+    private val settledStatus=Regex("^(?:"+settledTerms.joinToString("|"){Regex.escape(it)}+")(?:\\s*[:：]?\\s*(?:(?:$unit)\\s*)?[0-9][0-9,.]*(?:\\s*(?:$unit))?)?$",RegexOption.IGNORE_CASE)
     private val labelledStatus=Regex("^(?:付款|支付|交易|退款|转账|收款)状态\\s*[:：]\\s*(?:成功|完成|已完成)$")
+    fun settledAmountLine(line:String):Boolean = settledStatus.matches(line.trim())
     private val transferTitles = setOf("转账详情", "轉賬詳情", "轉帳詳情", "转帐详情")
     private val timeLabel = Regex("(?:转账|转帐|轉帳|轉賬)(?:时间|時間)")
     private val receivedByOther = Regex("^(?:已被(?!(?:你|您|本人)(?:领取|領取)).{1,30}(?:领取|領取)|(?:对方|對方)已(?:收款|领取|領取))$")

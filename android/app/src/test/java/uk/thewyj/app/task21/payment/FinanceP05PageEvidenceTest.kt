@@ -43,6 +43,12 @@ class FinanceP05PageEvidenceTest {
         assertNull(verify(page,"JPY"))
         assertEquals(1L,verify(page,"CNY")!!.amountMinor)
     }
+    @Test fun missingGlyphConfirmationRegionFollowsSemanticAmountNotScreenCoordinates() {
+        val lines=listOf("转账详情","已被合成用户领取","0.01","转账时间","18.49")
+        assertEquals(setOf(2),PaymentOcrTransferAmount.semanticAmountIndices(lines))
+        assertEquals(1L,PaymentPageAmountSelection.select(lines).amountMinor)
+        assertTrue(PaymentOcrTransferAmount.semanticAmountIndices(listOf("账单详情","余额CNY352.00")).isEmpty())
+    }
     @Test fun actualPaidWinsOverOriginalDiscountBalanceAndFee() {
         for(lines in listOf(listOf("原价698元","优惠50元","实付648元","余额352元","手续费2元"),
             listOf("原价698元，优惠50元，实付648元，余额352元，手续费2元"))) {
@@ -57,6 +63,27 @@ class FinanceP05PageEvidenceTest {
             assertNotNull(unit,result);assertEquals(unit,result!!.currency);assertEquals(648L,result.amountMinor)
         }
     }
+    @Test fun completedInlineCurrencySuffixKeepsAllSixIsoUnits() {
+        for(unit in listOf("CNY","USD","EUR","HKD","GBP","JPY")) {
+            val number=if(unit=="JPY")"100" else "1.00"
+            val result=verify(listOf("交易详情","已扣款 $number $unit"),null)!!
+            assertEquals(unit,result.currency);assertEquals(100L,result.amountMinor);assertTrue(result.completionConfirmed)
+        }
+    }
+    @Test fun oneVerifierSerializesBothOcrPassesAcrossConcurrentRequests()=runBlocking {
+        val release=CompletableDeferred<Unit>();var calls=0
+        val engine=object:AmountConfirmingOcrEngine {
+            override suspend fun recognize(bitmap:Bitmap):List<String>{val n=++calls;if(n==1)release.await();return listOf("交易详情","付款成功","CNY $n.00")}
+            override suspend fun confirmAmount(bitmap:Bitmap,expectedMinor:Long)=expectedMinor
+        }
+        val verifier=PaymentScreenshotVerifier(engine);val image=Bitmap.createBitmap(8,8,Bitmap.Config.ARGB_8888)
+        try {
+            val first=async(start=CoroutineStart.UNDISPATCHED){verifier.verifyCurrent(image,"com.tencent.mm",1000L,"CNY",2){true}}
+            val second=async(start=CoroutineStart.UNDISPATCHED){verifier.verifyCurrent(image,"com.tencent.mm",1000L,"CNY",2){true}}
+            assertEquals(1,calls);release.complete(Unit)
+            assertEquals(100L,first.await()!!.amountMinor);assertEquals(200L,second.await()!!.amountMinor)
+        } finally {image.recycle()}
+    }
     @Test fun conflictingPrimaryOrTwoUnlabelledAmountsAreNotGuessed() {
         assertNull(verify(listOf("账单详情","付款成功","实付¥648.00","实际支付¥646.00")))
         assertNull(verify(listOf("账单详情","付款成功","¥648.00","¥646.00")))
@@ -69,12 +96,17 @@ class FinanceP05PageEvidenceTest {
         }
     }
     @Test fun pendingAndFailedTransferNeverBecomeSettled() {
+        for(header in listOf("支付详情","付款详情","收款詳情")) {
+            val pending=verify(listOf(header,"待支付","付款金额 CNY 0.01"),null)
+            assertNotNull(header,pending);assertEquals(1L,pending!!.amountMinor);assertFalse(pending.completionConfirmed)
+        }
         for(status in listOf("待你收款","待对方收款","转账处理中","转账失败","转账取消","尚未收款")) {
             val e=extract(listOf("转账详情",status,"CNY 0.01","转账时间","18:49"))
             assertNotNull(status,e);assertEquals(1L,e!!.amountMinor);assertFalse(status,e.completionConfirmed)
         }
     }
     @Test fun feeOrArrivalTimeLabelsDoNotProveSettlement() {
+        for(status in listOf("到账成功","到賬成功","入账成功"))assertTrue(extract(listOf("交易详情",status,"CNY 0.01"))!!.completionConfirmed)
         for(note in listOf("扣款规则","到账时间 18:49","退款到账时间")) {
             val result=extract(listOf("账单详情",note,"CNY 0.01"))!!
             assertFalse(note,result.completionConfirmed)
@@ -93,6 +125,8 @@ class FinanceP05PageEvidenceTest {
         val result=extract(page)!!
         assertNull(result.occurredAtMs);assertNull(result.providerReference)
         assertTrue(PaymentSourceIdentity.requiresManualReview(true,false,"SYNTH-REF","SYNTH-REF",true))
+        assertTrue(PaymentSourceIdentity.requiresManualReviewForObservation(false,true,"SYNTH-REF","SYNTH-REF",false,false))
+        assertFalse(PaymentSourceIdentity.requiresManualReviewForObservation(false,true,"SYNTH-REF","SYNTH-REF",false,true))
     }
     @Test fun fullWidthAndThousandsAreExactButMissingDecimalIsNotRepaired() {
         assertEquals(123456L,verify(listOf("交易详情","付款成功","实付 ￥１,２３４．５６"))!!.amountMinor)

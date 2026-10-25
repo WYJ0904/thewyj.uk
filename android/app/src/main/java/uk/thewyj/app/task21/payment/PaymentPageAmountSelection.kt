@@ -6,7 +6,7 @@ data class PageAmountDecision(val amountMinor: Long?, val candidates: List<PageA
 /** Page amounts stay within their logical line (or a proven sibling token group). */
 object PaymentPageAmountSelection {
     private val number = "[0-9][0-9,]*(?:\\.[0-9]+)?"
-    private val currency = Regex("(?:¥|￥|人民币|人民幣|RMB|CNY)\\s*($number)(?![0-9.,])|(?<![0-9.,])($number)\\s*(?:元|圓|块|塊)", RegexOption.IGNORE_CASE)
+    private val currency = Regex("(?:¥|￥|人民币|人民幣|RMB|CNY)\\s*($number)(?![0-9.,])|(?<![0-9.,])($number)\\s*(?:元|圓|块|塊|¥|￥|人民币|人民幣|CNY|RMB)", RegexOption.IGNORE_CASE)
     private val finalLabel = Regex("实付款?|實付款?|实际支付|實際支付")
     private val paymentLabel = Regex("付款金[额額]|支付金[额額]|交易金[额額]|扣款金[额額]|收款金[额額]|(?:转账|轉賬|转帐|轉帳)\\s*金[额額]")
     private val excludedLabel = Regex("原价|原價|优惠|優惠|折扣|余额|餘額|服务费|服務費|手续费|手續費|运费|運費|积分|積分|订单号|訂單號|时间|時間|日期|电话|電話|手机|手機")
@@ -21,7 +21,7 @@ object PaymentPageAmountSelection {
             val score = when {
                 finalLabel.containsMatchIn(line) -> 950
                 paymentLabel.containsMatchIn(line) -> 900
-                Regex("^(?:已支付|已付款|已收款|收款成功|付款成功|支付成功|退款成功|转账成功|轉賬成功)\\s*[:：]?\\s*[¥￥]").containsMatchIn(line) -> 850
+                PaymentPageEvidence.settledAmountLine(line) -> 850
                 Regex("订单金[额額]|訂單金[额額]").containsMatchIn(line) -> 700
                 currency.matches(line.trim()) -> 850
                 group -> 850
@@ -43,7 +43,8 @@ object PaymentPageAmountSelection {
         }
         if (PaymentPageEvidence.transferReceipt(normalized) &&
             (PaymentPageEvidence.transferDirection(normalized) != null || PaymentPageContext.pendingTransfer(normalized))) {
-            val standalone=normalized.withIndex().filter { Regex("(?:0|[1-9][0-9]{0,7})\\.[0-9]{1,2}").matches(it.value) }
+            val standalone=normalized.withIndex().filter { Regex("(?:0|[1-9][0-9]{0,7})\\.[0-9]{1,2}").matches(it.value) &&
+                !(it.index>0 && excludedLabel.containsMatchIn(normalized[it.index-1])) }
             if (standalone.size==1) read("转账金额 ${standalone.single().value}",standalone.single().index)
         }
         // A separated currency symbol may prefix one complete number. Numeric
@@ -79,7 +80,7 @@ object PaymentPageAmountSelection {
 
 object PaymentPageContext {
     fun blockedWechatActivity(name: String): Boolean = name.endsWith(".LauncherUI") || name.contains("ChattingUI")
-    private val detail = listOf("交易详情", "交易詳情", "账单详情", "賬單詳情", "帳單詳情", "转账详情", "轉賬詳情", "轉帳詳情")
+    private val detail = listOf("交易详情", "交易詳情", "账单详情", "賬單詳情", "帳單詳情", "转账详情", "轉賬詳情", "轉帳詳情", "支付详情", "支付詳情", "付款详情", "付款詳情", "收款详情", "收款詳情", "退款详情", "退款詳情")
     private val success = listOf("支付成功", "付款成功", "已支付", "已付款", "转账成功", "轉賬成功", "到賬成功", "收款成功", "已收款", "退款成功", "交易成功")
     private fun hasTransferTime(lines: List<String>): Boolean =
         lines.any { Regex("(?:转账|转帐|轉帳|轉賬)(?:时间|時間)").containsMatchIn(it) }
