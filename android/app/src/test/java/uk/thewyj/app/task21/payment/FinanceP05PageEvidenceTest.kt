@@ -90,6 +90,9 @@ class FinanceP05PageEvidenceTest {
         assertNull(verify(listOf("账单详情","付款成功","¥648.00","¥646.00")))
         assertNull(verify(listOf("账单详情","付款成功","实付¥646.00"),agreed=false))
     }
+    @Test fun repeatedCurrencyNodesMustNotBeDeduplicatedIntoOneAmount() {
+        assertNull(verify(listOf("交易详情","付款成功","¥","34.00","参考字段","¥","648.00")))
+    }
     @Test fun allNonDetailHeadingsBlockEmbeddedCompletedAmounts() {
         for(header in listOf("交易记录","账单列表","历史账单","账户余额","账户资产","优惠活动","加载中","正在跳转","聊天")) {
             val page=listOf(header,"账单详情","付款成功","CNY 648.00")

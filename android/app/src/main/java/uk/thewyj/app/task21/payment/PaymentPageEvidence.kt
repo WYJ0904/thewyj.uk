@@ -12,6 +12,7 @@ object PaymentPageEvidence {
     private const val unit="CNY|RMB|USD|EUR|HKD|GBP|JPY|US\\$|HK\\$|JP[¥￥]|[¥￥$€£]|元"
     private val settledStatus=Regex("^(?:"+settledTerms.joinToString("|"){Regex.escape(it)}+")(?:\\s*[:：]?\\s*(?:(?:$unit)\\s*)?[0-9][0-9,.]*(?:\\s*(?:$unit))?)?$",RegexOption.IGNORE_CASE)
     private val labelledStatus=Regex("^(?:付款|支付|交易|退款|转账|收款)状态\\s*[:：]\\s*(?:成功|完成|已完成)$")
+    private val outgoingTransferType=Regex("^(?:(?:转账类型|轉賬類型|轉帳類型)\\s*[:：]?\\s*)?(?:转账|轉賬|转帐|轉帳)\\s*(?:至|到)\\s*(?:个人|個人)\\s*(?:账户|賬戶|帳戶|银行卡|銀行卡)$")
     fun settledAmountLine(line:String):Boolean = settledStatus.matches(line.trim())
     private val transferTitles = setOf("转账详情", "轉賬詳情", "轉帳詳情", "转帐详情")
     private val timeLabel = Regex("(?:转账|转帐|轉帳|轉賬)(?:时间|時間)")
@@ -36,6 +37,7 @@ object PaymentPageEvidence {
             val explicit=statuses.mapNotNull(PaymentText::direction).distinct()
             // A specific other-party acceptance resolves generic receiver wording; refund status stays refund.
             if (explicit==listOf(FinanceDirection.REFUND)) return FinanceDirection.REFUND
+            if (lines.any {outgoingTransferType.matches(it.trim())}) return FinanceDirection.EXPENSE
             transferDirection(lines)?.let {return it}
             return explicit.singleOrNull()
         }

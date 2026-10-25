@@ -130,7 +130,7 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
             // Observed Samsung OCR: the receipt label 時間 became 時閒.
             // Correct only this complete label, never prose, dates or money.
             .map { transferTimeLabel.replace(it) { match -> "${match.groupValues[1]}時間" } }
-            .distinct()
+            // Equal labels can belong to different monetary nodes; retain their positions.
 
         private val transferTimeLabel = Regex("^(轉帳|轉賬)時閒$")
         private val numberPattern = Regex("""[0-9OoIlSsZzBbGg]{1,12}([.,][0-9OoIlSsZzBbGg]{1,2})?""")

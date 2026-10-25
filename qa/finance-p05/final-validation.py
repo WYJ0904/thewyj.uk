@@ -1,10 +1,11 @@
 """One serial Android/archive owner, current Node byte binding and fresh end-to-end fixtures."""
 from pathlib import Path
 from datetime import datetime,timezone
-import hashlib,json,os,shutil,subprocess,sys,uuid
+import argparse,hashlib,json,os,re,shutil,subprocess,sys,uuid
 ROOT=Path(__file__).resolve().parents[2]
 PARENT=ROOT/'docs/migration-evidence/finance-p04/continuation-p05'
-BASE=PARENT/'final-r5';BASE.mkdir(exist_ok=False)
+parser=argparse.ArgumentParser();parser.add_argument('--label',default='final-r5');args=parser.parse_args();assert re.fullmatch('final-r[0-9]+',args.label)
+BASE=PARENT/args.label;BASE.mkdir(exist_ok=False)
 PREP=PARENT/'final-r2'
 env=dict(os.environ,**json.loads((PREP/'environment-paths.json').read_text()))
 env['PATH']=str(Path(env['FINANCE_NODE']).parent)+os.pathsep+env['PATH']
