@@ -232,9 +232,10 @@ fun PaymentVerificationScreen(
                         }
                         if(!item.hasEdits&&!item.remoteOnly&&state.aiRows.containsKey(item.recognitionId)){
                             val assistance=state.aiRows.getValue(item.recognitionId)
-                            val ready=state.aiConsent&&assistance.status=="suggestion"
+                            val summary=state.aiSummary(item)
+                            val ready=state.aiConsent&&assistance.status=="suggestion"&&summary.isNotBlank()
                             Text(when(assistance.status){"suggestion"->"AI已给出建议，仍须核对原证据";"review"->"AI仍无法确定，请人工核实";"timed_out","failed"->"AI暂不可用，原交易未改变";else->"可选AI辅助核对，不会自动写账"},style=MaterialTheme.typography.bodySmall)
-                            state.aiSummary(item).takeIf(String::isNotBlank)?.let{Text(it,style=MaterialTheme.typography.bodySmall)}
+                            summary.takeIf(String::isNotBlank)?.let{Text(it,style=MaterialTheme.typography.bodySmall)}
                             Row(horizontalArrangement=Arrangement.spacedBy(ThewyjSpacing.Sm)){
                                 OutlinedButton(enabled=item.recognitionId !in state.aiBusy,onClick={if(state.aiConsent)scope.launch{state.requestAi(item)}else aiConsentItem=item}){Text(if(item.recognitionId in state.aiBusy)"分析中…" else if(state.aiConsent)"分析候选金额" else "启用AI建议")}
                                 if(ready)OutlinedButton(onClick={scope.launch{state.adoptAi(item)}}){Text("核对建议")}

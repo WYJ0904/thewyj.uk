@@ -40,9 +40,9 @@ class FinanceAiTest {
             .put("merchant_normalized","Restaurant").put("evidence_refs",JSONArray(listOf("m0","m1","m2")))
             .put("amount_candidates",JSONArray().apply{val source=input.getJSONArray("candidates");repeat(source.length()){i->val c=source.getJSONObject(i);put(JSONObject().put("candidate_id",c.getString("id")).put("amount_minor",c.getLong("amount_minor")).put("currency",c.getString("currency")).put("role",listOf("actual_paid","original","discount")[i]).put("evidence_refs",JSONArray(listOf(c.getString("id")))))}}))
     private class Transport(val reply:(JSONObject)->JSONObject):NotificationIngestTransport {
-        var enabled=false;var revision=0L;var offline=false;var models=0;var uploaded:JSONObject?=null;var beforeReply:(()->Unit)?=null
+        var available=true;var enabled=false;var revision=0L;var offline=false;var models=0;var uploaded:JSONObject?=null;var beforeReply:(()->Unit)?=null
         var requiresSourceHint=false;var hintOffline=false;val sourceHints=mutableListOf<JSONObject>();val hintAttempts=mutableListOf<String>()
-        override fun get(path:String,sessionToken:String)=if(offline)IngestResponse(false,503,"{}")else IngestResponse(true,200,JSONObject().put("available",true).put("model_version","synthetic-1").put("consent",JSONObject().put("enabled",if(enabled)1 else 0).put("revision",revision)).toString())
+        override fun get(path:String,sessionToken:String)=if(offline)IngestResponse(false,503,"{}")else IngestResponse(true,200,JSONObject().put("available",available).put("model_version","synthetic-1").put("consent",JSONObject().put("enabled",if(enabled)1 else 0).put("revision",revision)).toString())
         override fun post(path:String,sessionToken:String,body:String):IngestResponse {
             if(offline)return IngestResponse(false,503,"{}")
             if(path=="/api/notification/hints"){hintAttempts+=body;if(hintOffline)return IngestResponse(false,503,"{}")}
@@ -168,5 +168,27 @@ class FinanceAiTest {
         state.amountText="88.00";state.adoptAi(item);assertEquals("88.00",state.amountText);assertTrue(state.message.contains("人工修改"));assertTrue(store.localBookings(owner).isEmpty());assertNull(store.recognition(owner,r.recognitionId)!!.amountMinor)
         state.cancelEdit();assertTrue(c.setConsent(owner,false));state.adoptAi(item);assertEquals("",state.editingRecognitionId)
         state.deactivate();assertTrue(c.setConsent(owner,true));state.adoptAi(item);assertEquals("",state.editingRecognitionId);assertEquals(1,t.models)
+    }
+
+    @Test fun onlineKillSwitchRefreshBlocksAlreadyCachedNativeAdvice(){
+        val t=Transport(::response);val c=coordinator(t);c.capture(ticket(),page());c.setConsent(owner,true);c.flush(owner);assertNotNull(c.advice(owner,"rec-ai"))
+        val calls=t.models;t.available=false;c.flush(owner);assertNull("Online policy must retire cached advice too",c.advice(owner,"rec-ai"));assertEquals(calls,t.models)
+    }
+    @Test fun revokingThenRegrantingDoesNotResurrectAnOldAdvice(){
+        val t=Transport(::response);val c=coordinator(t);c.capture(ticket(),page());c.setConsent(owner,true);c.flush(owner);assertNotNull(c.advice(owner,"rec-ai"))
+        c.setConsent(owner,false);assertNull(c.advice(owner,"rec-ai"));c.setConsent(owner,true);assertNull("A new consent revision cannot reuse revoked local advice",c.advice(owner,"rec-ai"));assertEquals(1,t.models)
+    }
+    @Test fun delayedRunningSnapshotCannotReplaceAFinalAdvice(){
+        val ready=java.util.concurrent.CountDownLatch(1);val release=java.util.concurrent.CountDownLatch(1);val requests=java.util.concurrent.atomic.AtomicInteger()
+        val t=Transport {p->if(requests.incrementAndGet()==1){ready.countDown();check(release.await(5,java.util.concurrent.TimeUnit.SECONDS));JSONObject().put("status","running").put("input_digest","a".repeat(64)).put("model_version","synthetic-1").put("requires_manual_confirmation",true)}else response(p)}
+        val c=coordinator(t);c.capture(ticket(),page());c.setConsent(owner,true);val pool=java.util.concurrent.Executors.newFixedThreadPool(2)
+        try{val slow=pool.submit<Boolean>{c.flush(owner)};assertTrue(ready.await(5,java.util.concurrent.TimeUnit.SECONDS));val fast=pool.submit<Boolean>{c.flush(owner)};assertTrue(fast.get(5,java.util.concurrent.TimeUnit.SECONDS));assertNotNull(c.advice(owner,"rec-ai"));release.countDown();assertTrue(slow.get(5,java.util.concurrent.TimeUnit.SECONDS));assertNotNull("A late running response cannot demote the final result",c.advice(owner,"rec-ai"));assertTrue(store.localBookings(owner).isEmpty())}finally{release.countDown();pool.shutdownNow()}
+    }
+    @Test fun publicationAtomicallyBindsConsentRevisionAndModelVersion(){
+        val d=db.assistance();d.put(FinanceAiObservation(owner,"rec-ai","event","record","input","{}",91000,updatedAtMs=1000));d.putState(FinanceAiAccountState(owner,true,true,4,1000,modelVersion="model-v2"))
+        assertEquals(0,d.publishDecision(owner,"rec-ai","record","input","suggestion","old-consent",2000,3,"model-v2"))
+        assertEquals(0,d.publishDecision(owner,"rec-ai","record","input","suggestion","old-model",2000,4,"model-v1"))
+        d.putState(d.state(owner)!!.copy(localRevokePending=true));assertEquals(0,d.publishDecision(owner,"rec-ai","record","input","suggestion","revoked",2000,4,"model-v2"))
+        assertEquals("",d.observation(owner,"rec-ai")!!.responseJson)
     }
 }

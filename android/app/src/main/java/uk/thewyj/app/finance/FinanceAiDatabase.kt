@@ -27,8 +27,12 @@ interface FinanceAiDao {
     fun pending(account:String):List<FinanceAiObservation>
     @Query("SELECT * FROM ai_observations WHERE accountId=:account ORDER BY updatedAtMs DESC LIMIT 300")
     fun observations(account:String):List<FinanceAiObservation>
-    @Query("UPDATE ai_observations SET status=:status,responseJson=:response,updatedAtMs=:at WHERE accountId=:account AND recognitionId=:recognition AND recordDigest=:recordDigest AND inputDigest=:inputDigest")
+    @Query("UPDATE ai_observations SET status=:status,responseJson=:response,updatedAtMs=:at WHERE accountId=:account AND recognitionId=:recognition AND recordDigest=:recordDigest AND inputDigest=:inputDigest AND (:status NOT IN ('running','waiting_sync') OR status NOT IN ('suggestion','review','rejected','failed','timed_out','invalidated'))")
     fun publish(account:String,recognition:String,recordDigest:String,inputDigest:String,status:String,response:String,at:Long):Int
+    @Query("UPDATE ai_observations SET status=:status,responseJson=:response,updatedAtMs=:at WHERE accountId=:account AND recognitionId=:recognition AND recordDigest=:recordDigest AND inputDigest=:inputDigest AND EXISTS(SELECT 1 FROM ai_account_state s WHERE s.accountId=:account AND s.available=1 AND s.consent=1 AND s.localRevokePending=0 AND s.consentRevision=:revision AND s.modelVersion=:version) AND (:status NOT IN ('running','waiting_sync') OR status NOT IN ('suggestion','review','rejected','failed','timed_out','invalidated'))")
+    fun publishDecision(account:String,recognition:String,recordDigest:String,inputDigest:String,status:String,response:String,at:Long,revision:Long,version:String):Int
+    @Query("UPDATE ai_observations SET status='captured',responseJson='',updatedAtMs=:at WHERE accountId=:account AND (responseJson!='' OR status='running')")
+    fun retirePolicyAdvice(account:String,at:Long):Int
     @Query("UPDATE ai_observations SET eventId=:event WHERE accountId=:account AND recognitionId=:recognition AND recordDigest=:recordDigest AND inputDigest=:inputDigest AND eventId=''")
     fun linkEvent(account:String,recognition:String,recordDigest:String,inputDigest:String,event:String):Int
     @Insert(onConflict=OnConflictStrategy.REPLACE) fun putState(state:FinanceAiAccountState)

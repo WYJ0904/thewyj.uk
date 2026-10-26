@@ -61,7 +61,20 @@ class FinanceAiCoordinator(
     private fun post(path:String,session:String,body:JSONObject):JSONObject? {
         val response=transport.post(path,session,body.toString());return if(response.ok)runCatching{JSONObject(response.body)}.getOrNull() else null
     }
-    fun refreshConfiguration(accountId:String):FinanceAiAccountState?=runCatching {
+    private fun persistPolicy(value:FinanceAiAccountState,withdrawal:Boolean=false):FinanceAiAccountState {
+        var saved=value;var changed=false
+        database.runInTransaction {
+            val old=dao.state(value.accountId)
+            if(withdrawal&&old!=null)saved=value.copy(available=old.available,modelVersion=old.modelVersion,consentRevision=maxOf(old.consentRevision,value.consentRevision))
+            else if(old!=null&&(old.consentRevision>value.consentRevision||(old.localRevokePending&&value.consent))){saved=old;return@runInTransaction}
+            changed=old==null||old.available!=saved.available||old.consent!=saved.consent||old.localRevokePending!=saved.localRevokePending||old.consentRevision!=saved.consentRevision||old.modelVersion!=saved.modelVersion
+            if(changed)dao.retirePolicyAdvice(saved.accountId,clock())
+            dao.putState(saved)
+        }
+        if(changed)PaymentReviewSignals.publish()
+        return saved
+    }
+    @Synchronized fun refreshConfiguration(accountId:String):FinanceAiAccountState?=runCatching {
         val current=account()?.takeIf{it.financeEntitled&&it.accountId==accountId}?:return null
         val response=transport.get("/api/finance/ai/config",current.sessionToken)
         if(!response.ok)return null
@@ -79,9 +92,9 @@ class FinanceAiCoordinator(
             val revoked=post("/api/finance/ai/consent",current.sessionToken,JSONObject().put("enabled",false).put("expected_revision",revision))?.optJSONObject("consent")
             if(revoked==null)return cached
             check(revoked.getInt("enabled")==0&&account()?.accountId==accountId)
-            return FinanceAiAccountState(accountId,available,false,revoked.getLong("revision"),clock(),modelVersion=modelVersion).also(dao::putState)
+            return persistPolicy(FinanceAiAccountState(accountId,available,false,revoked.getLong("revision"),clock(),modelVersion=modelVersion))
         }
-        FinanceAiAccountState(accountId,available,enabled,revision,clock(),modelVersion=modelVersion).also(dao::putState)
+        persistPolicy(FinanceAiAccountState(accountId,available,enabled,revision,clock(),modelVersion=modelVersion))
     }.getOrNull()
 
     /** Explicit opt-in/out only. Neither page recognition nor refresh grants consent. */
@@ -89,7 +102,7 @@ class FinanceAiCoordinator(
         if(!enabled){
             val current=account()?.takeIf{it.accountId==accountId&&it.financeEntitled}?:return false
             val old=dao.state(accountId)
-            dao.putState(FinanceAiAccountState(accountId,old?.available?:false,false,old?.consentRevision?:0,clock(),localRevokePending=true,modelVersion=old?.modelVersion.orEmpty()))
+            persistPolicy(FinanceAiAccountState(accountId,old?.available?:false,false,old?.consentRevision?:0,clock(),localRevokePending=true,modelVersion=old?.modelVersion.orEmpty()),withdrawal=true)
             PaymentReviewSignals.publish()
             refreshConfiguration(current.accountId)
             return true // local withdrawal is immediate, even while offline
@@ -99,7 +112,7 @@ class FinanceAiCoordinator(
         val current=account()?.takeIf{it.accountId==accountId&&it.financeEntitled}?:return false
         val response=post("/api/finance/ai/consent",current.sessionToken,JSONObject().put("enabled",enabled).put("expected_revision",state.consentRevision))?:return false
         val consent=response.getJSONObject("consent");check(account()?.accountId==accountId)
-        dao.putState(FinanceAiAccountState(accountId,true,consent.getInt("enabled")==1,consent.getLong("revision"),clock(),modelVersion=state.modelVersion))
+        persistPolicy(FinanceAiAccountState(accountId,true,consent.getInt("enabled")==1,consent.getLong("revision"),clock(),modelVersion=state.modelVersion))
         PaymentReviewSignals.publish();if(enabled&&automaticallySchedule)schedule(accountId);true
     }.getOrDefault(false)
 
@@ -128,9 +141,10 @@ class FinanceAiCoordinator(
     /** Called by ordinary successful notification sync; no timer or unbounded retry. */
     fun flush(accountId:String):Boolean=runCatching {
         val current=account()?.takeIf{it.accountId==accountId&&it.financeEntitled}?:return false
-        val pending=dao.pending(accountId);if(pending.isEmpty())return true
+        if(dao.pending(accountId).isEmpty()&&dao.observations(accountId).none{stillCurrent(it)})return true
         val configuration=refreshConfiguration(accountId)?:return false
         if(!configuration.available||!configuration.consent||configuration.localRevokePending)return false
+        val pending=dao.pending(accountId)
         for(original in pending){
             var row=original
             if(!stillCurrent(row,true)){dao.publish(accountId,row.recognitionId,row.recordDigest,row.inputDigest,"stale","",clock());continue}
@@ -156,10 +170,11 @@ class FinanceAiCoordinator(
             val status=response.optString("status").takeIf{it in setOf("suggestion","review","rejected","failed","timed_out","invalidated","running","disabled","consent_required")}?:"invalid"
             val safe=JSONObject().put("status",if(advice!=null)status else if(status in setOf("suggestion","review"))"invalid" else status)
                 .put("requires_manual_confirmation",true).put("model_version",response.optString("model_version").take(240))
+                .put("consent_revision",configuration.consentRevision)
                 .put("input_digest",response.optString("input_digest").take(64))
                 .put("error_code",response.optString("error_code").takeIf{it.matches(Regex("finance_ai_[a-z_]{1,70}"))}.orEmpty())
                 .put("suggestion",advice?:JSONObject.NULL)
-            if(dao.publish(accountId,row.recognitionId,row.recordDigest,row.inputDigest,safe.getString("status"),safe.toString(),clock())==1){
+            if(dao.publishDecision(accountId,row.recognitionId,row.recordDigest,row.inputDigest,safe.getString("status"),safe.toString(),clock(),configuration.consentRevision,configuration.modelVersion)==1){
                 dao.audit(FinanceAiAudit(FinanceAiEvidence.hash(accountId+row.recognitionId+safe.toString()),accountId,row.recognitionId,row.eventId,safe.toString(),clock()))
                 PaymentReviewSignals.publish()
             }
@@ -176,7 +191,7 @@ class FinanceAiCoordinator(
         dao.observations(accountId).filter{it.recognitionId in ids&&stillCurrent(it)}.associateBy{it.recognitionId}
     }.getOrDefault(emptyMap())
     fun advice(accountId:String,recognitionId:String):JSONObject?=observation(accountId,recognitionId)?.let {row->
-        runCatching{if(!stillCurrent(row,true))return null;val response=JSONObject(row.responseJson);if(response.optString("model_version")!=dao.state(accountId)?.modelVersion)return null;FinanceAiEvidence.validatedSuggestion(response,JSONObject(row.packetJson))}.getOrNull()
+        runCatching{if(!stillCurrent(row,true))return null;val response=JSONObject(row.responseJson);val policy=dao.state(accountId)?:return null;if(response.optString("model_version")!=policy.modelVersion||response.optLong("consent_revision",-1)!=policy.consentRevision)return null;FinanceAiEvidence.validatedSuggestion(response,JSONObject(row.packetJson))}.getOrNull()
     }
     fun accountState(accountId:String)=runCatching{dao.state(accountId)}.getOrNull()
     companion object {

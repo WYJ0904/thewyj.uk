@@ -29,6 +29,8 @@ class PaymentVerificationState(
     var aiRows by mutableStateOf<Map<String,uk.thewyj.app.finance.FinanceAiObservation>>(emptyMap())
     var aiConsent by mutableStateOf(false)
     var aiConsentGranted by mutableStateOf(false)
+    private var aiModelVersion by mutableStateOf("")
+    private var aiConsentRevision by mutableStateOf(-1L)
     var aiBusy by mutableStateOf<Set<String>>(emptySet())
     private var editBaseline:List<String>?=null
     private val reconciliationMutex = Mutex()
@@ -93,6 +95,8 @@ class PaymentVerificationState(
                 aiRows=assistance.first
                 aiConsent=assistance.second?.let{it.available&&it.consent&&!it.localRevokePending}==true
                 aiConsentGranted=assistance.second?.let{it.consent&&!it.localRevokePending}==true
+                aiModelVersion=assistance.second?.modelVersion.orEmpty()
+                aiConsentRevision=assistance.second?.consentRevision?:-1L
                 if (snapshot != null) {
                     lastCompleteObservation = snapshot; canonicalObserved = true
                     observationAtMs = snapshot.observedAtMs
@@ -206,7 +210,9 @@ class PaymentVerificationState(
         if(!aiConsent)return ""
         val row=aiRows[item.recognitionId]?:return ""
         if(System.currentTimeMillis()>=row.expiresAtMs)return ""
-        val advice=uk.thewyj.app.finance.FinanceAiEvidence.validatedSuggestion(org.json.JSONObject(row.responseJson),org.json.JSONObject(row.packetJson))?:return ""
+        val response=org.json.JSONObject(row.responseJson)
+        if(response.optString("model_version")!=aiModelVersion||response.optLong("consent_revision",-1)!=aiConsentRevision)return ""
+        val advice=uk.thewyj.app.finance.FinanceAiEvidence.validatedSuggestion(response,org.json.JSONObject(row.packetJson))?:return ""
         val id=advice.optString("selected_candidate_id");val values=advice.getJSONArray("amount_candidates")
         val selected=(0 until values.length()).map(values::getJSONObject).singleOrNull{it.getString("candidate_id")==id}?:return ""
         val category=mapOf("food" to "餐饮","transport" to "交通","shopping" to "购物","housing" to "居住","health" to "医疗","education" to "教育","entertainment" to "娱乐","income" to "收入","transfer" to "转账","refund" to "退款","other" to "其他")[advice.optString("category")]

@@ -3,7 +3,7 @@ from pathlib import Path
 from datetime import datetime,timezone
 import argparse,base64,hashlib,io,json,os,re,secrets,shutil,subprocess,tarfile,time,urllib.request
 ROOT=Path(__file__).resolve().parents[2];E=ROOT/'docs/migration-evidence/finance-p06'
-parser=argparse.ArgumentParser();parser.add_argument('--attempt',default='r1');parser.add_argument('--emulator',action='store_true');parser.add_argument('--numeric-reference',action='store_true');args=parser.parse_args();assert re.fullmatch('r[0-9]+',args.attempt)
+parser=argparse.ArgumentParser();parser.add_argument('--attempt',default='r1');parser.add_argument('--emulator',action='store_true');parser.add_argument('--numeric-reference',action='store_true');parser.add_argument('--reinstall-after-owned-cleanup',action='store_true');parser.add_argument('--receipt');args=parser.parse_args();assert re.fullmatch('r[0-9]+',args.attempt)
 sdk_attempt='r'+str(90+int(args.attempt[1:]))
 OUT=E/(('emulator-joint-' if args.emulator else 'joint-')+args.attempt);OUT.mkdir(exist_ok=False);(OUT/'private').mkdir();(OUT/'native').mkdir()
 SDK=Path.home()/'AppData/Local/Android/Sdk';ADB=SDK/'platform-tools/adb.exe';SERIAL='127.0.0.1:5589' if args.emulator else 'R5CY22MEHJN';PACKAGE='uk.thewyj.app.qa.financep06';TEST=PACKAGE+'.test'
@@ -54,7 +54,8 @@ try:
   known={a['sha256'] for p in (E/'device').glob('*/result.json') for a in json.loads(p.read_text()).get('artifacts',[]) if a['package']==PACKAGE}
   known|={a['sha256'] for pattern in ['joint-r*/progress.json','emulator-joint-r*/progress.json'] for p in E.glob(pattern) for a in json.loads(p.read_text()).get('artifacts',[]) if a['package']==PACKAGE}
   assert sha(previous) in known,'Installed package is not proven task owned'
- else:assert args.emulator,'Physical target must already have this task-owned package'
+ else:
+  assert args.emulator or (args.reinstall_after_owned_cleanup and json.loads((E/'phone-cleanup/result.json').read_text())['status']=='PASS'),'Physical fresh install requires this task owned cleanup proof'
  pixel=E/'device/slow-sdk-source'
  cmd=['cmd.exe','/d','/c',str(ROOT/'android/gradlew.bat'),'-p',str(ROOT/'android'),'-I',str(ROOT/'qa/finance-p06/device.init.gradle'),'-Dfinance.p06.root='+str(ROOT/'qa/finance-p06'),'-Dfinance.p06.pixel.root='+str(pixel),':app:assembleDebug',':app:assembleDebugAndroidTest','--no-daemon','--max-workers=2','--console=plain','--stacktrace','-PTHEWYJ_BASE_URL=https://isolated-finance.invalid']
  assert run('build',cmd)==0
@@ -73,7 +74,9 @@ try:
  config['base_url']='http://127.0.0.1:'+str(port['port']);(OUT/'private/context.json').write_text(json.dumps(config));remote='files/p06-joint-'+args.attempt
  adb('shell','run-as',PACKAGE,'mkdir','-p',remote+'/private');write_private(remote+'/private/context.json',json.dumps(config).encode())
  if not args.emulator:
-  real=E/'device/ui/wechat-primary-detail-r1/private/screen.png';assert real.is_file();row['real_page_sha256']=sha(real);write_private(remote+'/private/real-wechat-receipt.png',real.read_bytes());row['private_transfer_exact']=True
+  real=Path(args.receipt).resolve() if args.receipt else E/'device/ui/wechat-primary-detail-r1/private/screen.png';assert real.resolve().is_relative_to(E.resolve()) and real.is_file()
+  assert sha(real)==json.loads((E/'joint-r7/result.json').read_text())['real_page_sha256'],'Only the original owner-authorized receipt bytes may be replayed'
+  row['real_page_sha256']=sha(real);row['real_page_bytes_replayed_from_verified_archive']=bool(args.receipt);write_private(remote+'/private/real-wechat-receipt.png',real.read_bytes());row['private_transfer_exact']=True
  row['native_seed_pass']=instrument('native-seed','uk.thewyj.app.task21.payment.FinanceP06JointSeedTest')
  if row['native_seed_pass']:
   (OUT/'native/seed.json').write_bytes(adb('exec-out','run-as',PACKAGE,'cat',remote+'/seed.json'))
