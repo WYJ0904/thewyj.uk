@@ -19,6 +19,7 @@ class FinanceAiCoordinator(
     private val clock:()->Long=System::currentTimeMillis,
     private val eventIdResolver:((PaymentRecognitionRecord)->String)?=null,
     private val automaticallySchedule:Boolean=true,
+    private val pendingSourcePipeline:NotificationCaptureCoordinator?=null,
 ) {
     private val app=context.applicationContext
     private val dao get()=database.assistance()
@@ -106,6 +107,24 @@ class FinanceAiCoordinator(
         if(running.putIfAbsent(accountId,true)!=null)return
         executor.execute{try{flush(accountId)}finally{running.remove(accountId)}}
     }
+    /** A known-unit amount review may have only an uploaded raw event. Publish
+     * its exact pending identity through the ordinary durable pipeline, with no
+     * model amount or completion. Preserve all normal receipt/archive handlers. */
+    private fun ensurePendingSource(row:FinanceAiObservation,current:NotificationCaptureCoordinator.CaptureAccount):Boolean {
+        val record=store.recognition(row.accountId,row.recognitionId)?:return false
+        if(record.identityReviewReason!="currency_amount_unproven")return true
+        if(record.currency !in CurrencyMoney.digits||record.amountMinor?.let{it>0}==true||record.providerReference.isBlank()||
+            record.financialPhase.isNotBlank()||record.sourcePackage !in setOf("com.tencent.mm","com.eg.android.AlipayGphone")||!stillCurrent(row,true))return false
+        val pipeline=pendingSourcePipeline?:NotificationCapturePipeline.create(app,NotificationSessionProvider(app))
+        val queued=pipeline.enqueuePendingHint(current.accountId,row.eventId,record.sourceType.lowercase(),record.sourcePackage,
+            record.paymentChannel,null,record.direction,"",record.currency,0,"INSUFFICIENT_INFORMATION",listOf("source_bound_amount_review"),
+            "finance-ai-source-1",providerReference=record.providerReference,paymentChannel=record.paymentChannel,occurredAtMs=record.createdAtMs,
+            amountExponent=CurrencyMoney.exponent(record.currency))
+        if(!queued||!stillCurrent(row,true))return false
+        val result=pipeline.flushDetailed()
+        return !result.authenticationRequired&&result.rejected.none{it.operationId=="hint:${row.eventId}"}&&
+            NotificationOfflineQueue.inDirectory(app.filesDir,current.accountId).peekRequests().none{it.operationId=="hint:${row.eventId}"}&&stillCurrent(row,true)
+    }
     /** Called by ordinary successful notification sync; no timer or unbounded retry. */
     fun flush(accountId:String):Boolean=runCatching {
         val current=account()?.takeIf{it.accountId==accountId&&it.financeEntitled}?:return false
@@ -122,6 +141,7 @@ class FinanceAiCoordinator(
                 row=row.copy(eventId=linked)
             }
             val packet=JSONObject(row.packetJson)
+            if(!ensurePendingSource(row,current)){dao.publish(accountId,row.recognitionId,row.recordDigest,row.inputDigest,"waiting_sync","",clock());continue}
             val evidence=post("/api/finance/ai/evidence",current.sessionToken,JSONObject().put("event_id",row.eventId).put("evidence",packet))
             if(evidence==null){dao.publish(accountId,row.recognitionId,row.recordDigest,row.inputDigest,"waiting_sync","",clock());continue}
             if(!stillCurrent(row,true))continue

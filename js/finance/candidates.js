@@ -260,7 +260,7 @@ export function createFinanceCandidatesController({
           ${presentation.evidenceConflict ? `<small role="status">本机与云端金额或方向不一致，请核对后编辑确认${candidate.local_evidence?.amount_minor ? `（本机金额 ${escapeHtml(formatMinor(candidate.local_evidence.amount_minor, candidate.local_evidence.currency || candidate.currency))}）` : ""}。</small>` : presentation.localEvidencePending ? '<small role="status">本机已识别，等待同步；云端尚未确认。</small>' : ""}
           <small>${escapeHtml(sources)} · ${escapeHtml(occurred)}</small>
           <small><span class="finance-candidate-merchant" title="${escapeHtml(presentation.merchantLabel)}">${escapeHtml(presentation.merchantLabel)}</span><span>${escapeHtml(missingLabel)}</span></small>
-          <details class="finance-candidate-evidence"><summary>查看识别依据</summary><p>${escapeHtml(evidenceReason)}</p><p>结构化证据 ${evidenceCount} 条 · 置信度 ${confidence}/1000${editedCount ? ` · 用户已修改 ${editedCount} 次` : ""}</p><p>核实标识：${escapeHtml(candidate.canonical_id || "")}</p><p>事件标识：${escapeHtml(candidate.event_id || id)}</p>${candidate.hint&&editedCount===0?financeAiMarkup(id,aiConfig,aiRows.get(id),aiConsentFor===id,escapeHtml):''}</details></div>
+          <details class="finance-candidate-evidence"><summary>查看识别依据</summary><p>${escapeHtml(evidenceReason)}</p><p>结构化证据 ${evidenceCount} 条 · 置信度 ${confidence}/1000${editedCount ? ` · 用户已修改 ${editedCount} 次` : ""}</p><p>核实标识：${escapeHtml(candidate.canonical_id || "")}</p><p>事件标识：${escapeHtml(candidate.event_id || id)}</p>${candidate.hint&&editedCount===0?financeAiMarkup(id,aiConfig,aiRows.get(id),aiConsentFor===id,escapeHtml,candidate):''}</details></div>
         </div>
         <div class="finance-candidate-actions">
           ${presentation.missing.length ? `<button class="primary" type="button" data-finance-candidate-verify="${escapeHtml(id)}" ${busy ? "disabled" : ""}>核实交易</button>` : ""}
@@ -400,7 +400,7 @@ export function createFinanceCandidatesController({
       if (!active || lifecycle !== lifecycleVersion || String(account()?.id || "") !== currentAccountId || !listVersion.isCurrent(version)) return;
       hasCanonicalObservation = true;
       canonicalRecords = summary.records;
-      aiConfig=summary.ai_assistance?.available===true?summary.ai_assistance:null;
+      aiConfig=summary.ai_assistance&&typeof summary.ai_assistance.available==='boolean'?summary.ai_assistance:null;
       if(aiConfig&&aiLocallyRevoked(currentAccountId)){
         aiConfig={...aiConfig,consent:{...aiConfig.consent,enabled:0}};
         void syncAiWithdrawal(currentAccountId);
@@ -492,8 +492,8 @@ export function createFinanceCandidatesController({
     // Re-render without network traffic so buttons reflect their busy state.
     const list = element("financeCandidateList");
     if (!list) return;
-    list.querySelectorAll("[data-finance-candidate-confirm], [data-finance-candidate-reject]").forEach((button) => {
-      const id = button.dataset.financeCandidateConfirm || button.dataset.financeCandidateReject;
+    list.querySelectorAll("[data-finance-candidate-confirm], [data-finance-candidate-reject], [data-finance-candidate-save], [data-finance-candidate-edit], [data-finance-candidate-verify]").forEach((button) => {
+      const id = button.dataset.financeCandidateConfirm || button.dataset.financeCandidateReject || button.dataset.financeCandidateSave || button.dataset.financeCandidateEdit || button.dataset.financeCandidateVerify;
       button.disabled = busyIds.has(id);
     });
   }
@@ -532,7 +532,7 @@ export function createFinanceCandidatesController({
   }
   async function aiAction(id,action){
     const candidate=currentCandidates.find(c=>String(c.id)===id);
-    if(!candidate?.hint||!aiConfig?.available||busyIds.has(id))return;
+    if(!candidate?.hint||!aiConfig||(!aiConfig.available&&action!=='disable')||busyIds.has(id))return;
     if(action==='cancel'){aiConsentFor='';render(currentCandidates);return;}
     if(action==='request'&&(Number(aiConfig.consent?.enabled)!==1||aiLocallyRevoked(String(account()?.id||'')))){aiConsentFor=id;render(currentCandidates);return;}
     const owner=String(account()?.id||''),lifecycle=lifecycleVersion,source=JSON.stringify(candidate);

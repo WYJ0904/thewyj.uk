@@ -16,9 +16,13 @@ object FinanceAiEvidence {
     fun capture(record:PaymentRecognitionRecord,ticket:PaymentTicket,candidate:PaymentCandidate?,snapshot:PaymentPageSnapshot,clock:Long):JSONObject? {
         if(record.accountId!=ticket.accountId||record.recognitionId!=ticket.recognitionId||record.sourcePackage!=snapshot.sourcePackage||record.sourcePackage!=ticket.sourcePackage||
             !ticket.state.active||clock !in ticket.createdAtMs..ticket.expiresAtMs||record.sourceUid==null||record.sourceUid<10000||candidate?.hasEdits==true||
-            record.identityReviewReason.isNotBlank()||record.providerReference.isBlank()||record.amountMinor?.let{it>0}==true||
+            record.identityReviewReason !in setOf("","currency_amount_unproven")||record.providerReference.isBlank()||record.amountMinor?.let{it>0}==true||
             listOf("AUTHOR","RELEASE","EXPIRE","CANCEL","FAIL").any{it in record.financialPhase.uppercase()}||
             record.state !in setOf("WAITING_FOR_ENRICHMENT","DETECTED_AMOUNT_UNKNOWN","FINANCE_PENDING_CONFIRMATION"))return null
+        // P04's known-unit/missing-amount review is exactly a possible role
+        // ambiguity. Keep that core review untouched; only source-bound advice
+        // may pass here. Unknown units and actual identity conflicts still fail.
+        if(record.identityReviewReason=="currency_amount_unproven"&&record.currency !in CurrencyMoney.digits)return null
         val lines=PaymentScreenshotVerifier.normalizeOcrLines(snapshot.textLines)
         if(lines.isEmpty()||lines.size>40||injection.containsMatchIn(lines.joinToString(" "))||PaymentPageEvidence.blocked(lines)||!PaymentPageEvidence.completed(lines))return null
         val references=lines.mapNotNull(PaymentText::providerReference).distinct()
@@ -75,17 +79,22 @@ object FinanceAiEvidence {
         check(advice.getString("currency")==packet.getString("currency"))
         check(advice.getString("direction")==packet.getString("direction"))
         check((advice.get("confidence") is Int||advice.get("confidence") is Long)&&advice.getInt("confidence") in 0..1000)
+        if(response.getString("status")=="suggestion")check(advice.getString("decision")=="suggest"&&advice.getInt("confidence")>=800)
         val source=packet.getJSONArray("candidates");val known=(0 until source.length()).associate{source.getJSONObject(it).getString("id") to source.getJSONObject(it)}
         val values=advice.getJSONArray("amount_candidates");check(values.length()<=6)
-        val rootRefs=advice.getJSONArray("evidence_refs");check(rootRefs.length()<=6&&(0 until rootRefs.length()).all{rootRefs.getString(it) in known})
+        val rootRefs=advice.getJSONArray("evidence_refs");check(rootRefs.length()<=6&&(0 until rootRefs.length()).map{rootRefs.getString(it)}.let{it.distinct().size==it.size&&it.all(known::containsKey)})
         val ids=mutableSetOf<String>()
         repeat(values.length()){i->val value=values.getJSONObject(i);check(value.keys().asSequence().toSet()==setOf("candidate_id","amount_minor","currency","role","evidence_refs"));val id=value.getString("candidate_id");check(ids.add(id));val original=known[id]?:error("unknown evidence")
-            check(value.getString("role") in setOf("actual_paid","original","discount","balance","fee","refund","unknown"))
+            check(value.getString("role") in setOf("actual_paid","actual_received","original","discount","balance","fee","refund","unknown"))
             check(value.get("amount_minor") is Number&&value.getLong("amount_minor")==original.getLong("amount_minor")&&value.getDouble("amount_minor")==value.getLong("amount_minor").toDouble())
             check(value.getString("currency")==original.getString("currency"))
-            val refs=value.getJSONArray("evidence_refs");check((0 until refs.length()).all{known.containsKey(refs.getString(it))}&&(0 until refs.length()).any{refs.getString(it)==id})}
+            val words=original.getJSONArray("phrases").let{p->(0 until p.length()).map(p::getString)}
+            val knownRole=when{words.any{it=="余额"}->"balance";words.any{it in setOf("手续费","服务费")}->"fee";words.any{it in setOf("优惠","减免","折扣")}->"discount";"原价" in words->"original";else->null}
+            if(knownRole!=null)check(value.getString("role")==knownRole)
+            val refs=value.getJSONArray("evidence_refs");check(refs.length()<=6&&(0 until refs.length()).map{refs.getString(it)}.let{it.distinct().size==it.size&&it.all(known::containsKey)&&id in it})}
         val selected=advice.optString("selected_candidate_id").takeUnless{it.isBlank()||it=="null"}
         if(selected!=null)check(selected in ids)
+        if(selected!=null){val value=(0 until values.length()).map(values::getJSONObject).single{it.getString("candidate_id")==selected};check(value.getString("role")==when(advice.getString("direction")){"refund"->"refund";"income"->"actual_received";else->"actual_paid"})}
         if(advice.getString("decision")=="suggest")check(selected!=null&&advice.getString("refusal_reason")=="none"&&(0 until rootRefs.length()).any{rootRefs.getString(it)==selected})
         if(selected!=null){val words=known.getValue(selected).getJSONArray("phrases");check((0 until words.length()).none{words.getString(it) in setOf("余额","手续费","服务费","优惠","减免","折扣","原价")})}
         advice

@@ -1,6 +1,7 @@
 import {currencyDigits,moneyText,SUPPORTED_CURRENCIES} from './money.js';
+import {formatFinanceMoney} from './format.js';
 
-const ROLES=['actual_paid','original','discount','balance','fee','refund','unknown'];
+const ROLES=['actual_paid','actual_received','original','discount','balance','fee','refund','unknown'];
 const CATEGORIES=['food','transport','shopping','housing','health','education','entertainment','income','transfer','refund','other'];
 /** Browser rechecks supplied evidence. No model response is a transaction fact. */
 export function financeAiAdvice(response,candidate,clock=Date.now()){
@@ -13,6 +14,8 @@ export function financeAiAdvice(response,candidate,clock=Date.now()){
        !['suggest','review','reject'].includes(advice.decision)||!SUPPORTED_CURRENCIES.includes(advice.currency)||advice.currency!==input.currency||
        advice.direction!==input.direction||!['expense','income','refund','unknown'].includes(advice.direction)||
        !Number.isInteger(advice.confidence)||advice.confidence<0||advice.confidence>1000||![...CATEGORIES,null].includes(advice.category))return null;
+    if(response.status==='suggestion'&&(advice.decision!=='suggest'||advice.confidence<800))return null;
+    if(!['none','ambiguous','insufficient_evidence','conflict','non_transaction','unsafe_input'].includes(advice.refusal_reason))return null;
     if(candidate.currency!==input.currency||(candidate.direction&&candidate.direction!=='unknown'&&candidate.direction!==input.direction))return null;
     if(advice.merchant_normalized!==null&&!input.merchant_tokens.includes(advice.merchant_normalized))return null;
     const facts=new Map(input.candidates.map(c=>[c.id,c]));
@@ -26,11 +29,14 @@ export function financeAiAdvice(response,candidate,clock=Date.now()){
           source.amount_minor!==amount.amount_minor||source.currency!==amount.currency||source.amount_exponent!==currencyDigits(source.currency)||!ROLES.includes(amount.role)||
           !refs(amount.evidence_refs)||!amount.evidence_refs.includes(amount.candidate_id))return null;
       seen.add(amount.candidate_id);
+      const known=source.phrases.includes('余额')?'balance':source.phrases.some(p=>['手续费','服务费'].includes(p))?'fee':source.phrases.some(p=>['优惠','减免','折扣'].includes(p))?'discount':source.phrases.includes('原价')?'original':null;
+      if(known&&amount.role!==known)return null;
     }
     const selected=advice.amount_candidates.find(c=>c.candidate_id===advice.selected_candidate_id)||null;
     if(advice.selected_candidate_id!==null&&!selected)return null;
     if(advice.decision==='suggest'&&(!selected||advice.refusal_reason!=='none'||!advice.evidence_refs.includes(selected.candidate_id)))return null;
     if(selected){
+      if(selected.role!==(advice.direction==='refund'?'refund':advice.direction==='income'?'actual_received':'actual_paid'))return null;
       if(facts.get(selected.candidate_id).phrases.some(p=>['原价','优惠','减免','折扣','余额','手续费','服务费'].includes(p)))return null;
       if(Number(candidate.amount_minor)>0&&Number(candidate.amount_minor)!==selected.amount_minor)return null;
     }
@@ -42,13 +48,17 @@ export function financeAiMessage(status){
     consent_required:'需先同意发送脱敏候选字段',running:'AI正在分析，可稍后刷新',disabled:'AI尚未启用，可继续人工核实',rule_determined:'已有规则证据，继续按原流程处理',
     hard_amount_conflict:'金额证据冲突，请人工核实',timed_out:'AI请求超时，原交易未改变',invalidated:'来源或授权已变化，旧建议不再采用',failed:'AI暂不可用，可继续人工核实',invalid:'AI结果无法核验，请人工核实'})[status]||'';
 }
-export function financeAiMarkup(id,config,response,consentPending,escape){
-  if(config?.available!==true)return '';
+export function financeAiMarkup(id,config,response,consentPending,escape,candidate){
+  if(config?.available!==true)return Number(config?.consent?.enabled)===1?`<div class="finance-ai-assistance"><p>AI已暂停，可继续人工核实。</p><button type="button" data-finance-ai-action="disable" data-finance-ai-id="${escape(id)}">停用AI授权</button></div>`:'';
   const key=escape(id);const enabled=Number(config.consent?.enabled)===1;
+  const checked=candidate&&response?financeAiAdvice(response,candidate):null;
+  const category=({food:'餐饮',transport:'交通',shopping:'购物',housing:'居住',health:'医疗',education:'教育',entertainment:'娱乐',income:'收入',transfer:'转账',refund:'退款',other:'其他'})[checked?.advice.category];
+  const details=checked?.selected?`建议原币金额：${formatFinanceMoney(checked.selected.amount_minor,checked.selected.currency)}${category?' · 分类建议：'+category:''}${checked.advice.merchant_normalized?' · 商户建议：'+checked.advice.merchant_normalized:''}`:'';
   return `<div class="finance-ai-assistance"><p>可选AI仅分析脱敏金额候选，建议仍需人工确认。</p>
     ${consentPending?`<p>仅发送金额、币种和角色词，不发送聊天、姓名或订单号。</p><button type="button" data-finance-ai-action="consent" data-finance-ai-id="${key}">同意并分析</button><button type="button" data-finance-ai-action="cancel" data-finance-ai-id="${key}">取消</button>`:
       `<button type="button" data-finance-ai-action="request" data-finance-ai-id="${key}">${enabled?'分析候选金额':'启用脱敏AI建议'}</button>`}
     <p role="status">${escape(financeAiMessage(response?.status))}</p>
+    ${details?`<p>${escape(details)}</p>`:''}
     ${response?.status==='suggestion'?`<button type="button" data-finance-ai-action="use" data-finance-ai-id="${key}">核对建议</button>`:''}
     ${enabled?`<button type="button" data-finance-ai-action="disable" data-finance-ai-id="${key}">停用AI建议</button>`:''}</div>`;
 }
@@ -63,5 +73,6 @@ export function fillFinanceAiEditor(form,result){
   }
   form.classList.remove('hidden');form.elements.currency.value=result.selected.currency;
   form.elements.amount.value=moneyText(result.selected.amount_minor,result.selected.currency);form.elements.direction.value=result.advice.direction;
+  if(form.elements.merchant&&!form.elements.merchant.value&&result.advice.merchant_normalized)form.elements.merchant.value=result.advice.merchant_normalized;
   form.elements.amount.focus();return true;
 }

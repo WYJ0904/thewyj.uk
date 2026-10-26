@@ -234,11 +234,12 @@ fun PaymentVerificationScreen(
                             val assistance=state.aiRows.getValue(item.recognitionId)
                             val ready=state.aiConsent&&assistance.status=="suggestion"
                             Text(when(assistance.status){"suggestion"->"AI已给出建议，仍须核对原证据";"review"->"AI仍无法确定，请人工核实";"timed_out","failed"->"AI暂不可用，原交易未改变";else->"可选AI辅助核对，不会自动写账"},style=MaterialTheme.typography.bodySmall)
+                            state.aiSummary(item).takeIf(String::isNotBlank)?.let{Text(it,style=MaterialTheme.typography.bodySmall)}
                             Row(horizontalArrangement=Arrangement.spacedBy(ThewyjSpacing.Sm)){
-                                OutlinedButton(onClick={if(state.aiConsent)scope.launch{state.requestAi(item)}else aiConsentItem=item}){Text(if(state.aiConsent)"分析候选金额" else "启用AI建议")}
+                                OutlinedButton(enabled=item.recognitionId !in state.aiBusy,onClick={if(state.aiConsent)scope.launch{state.requestAi(item)}else aiConsentItem=item}){Text(if(item.recognitionId in state.aiBusy)"分析中…" else if(state.aiConsent)"分析候选金额" else "启用AI建议")}
                                 if(ready)OutlinedButton(onClick={scope.launch{state.adoptAi(item)}}){Text("核对建议")}
-                                if(state.aiConsent)TextButton(onClick={scope.launch{state.disableAi()}}){Text("停用")}
                             }
+                            if(state.aiConsentGranted)TextButton(onClick={scope.launch{state.disableAi()}}){Text("停用AI建议")}
                         }
                         if (item.remoteOnly) {
                             Text(
@@ -251,7 +252,7 @@ fun PaymentVerificationScreen(
                             OutlinedTextField(
                                 value = state.amountText,
                                 onValueChange = { state.amountText = it.take(12) },
-                                label = { Text("金额（元）") },
+                                label = { Text("金额（${state.currency.ifBlank { "币种待核实" }}）") },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 shape = ThewyjRadius.Medium,

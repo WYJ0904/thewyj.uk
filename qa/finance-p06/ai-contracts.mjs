@@ -28,18 +28,21 @@ for(const [id,change] of [
  ['invented-id',x=>x.selected_candidate_id='txn:invented'],['empty-evidence',x=>x.evidence_refs=[]],['extra-authority',x=>x.approved_payment=true],
  ['invented-reference',x=>x.transaction_id='SYNTH-FAKE-PROVIDER'],['bad-confidence',x=>x.confidence=1.5],['invented-merchant',x=>x.merchant_normalized='new-person'],
  ['select-discount',x=>x.selected_candidate_id='m2'],['reinterpret-original',x=>x.amount_candidates[1].role='actual_paid'],
+ ['select-as-discount',x=>x.amount_candidates[0].role='discount'],
 ])await test('output-reject-'+id,async()=>{const p=await packet();const value=suggestion(p);change(value);assert.throws(()=>validateFinanceAiOutput(value,p));});
 await test('validated-advice-never-authorizes-ledger',async()=>{const p=await packet();assert.equal(validateFinanceAiOutput(suggestion(p),p).requires_manual_confirmation,true);});
 await test('rule-hit-needs-zero-ai',async()=>{const p=await packet();p.candidates[0].phrases=['实付'];assert.equal(financeAiEligibility(p),'rule_determined');p.candidates[1].phrases=['实付'];assert.equal(financeAiEligibility(p),'hard_amount_conflict');});
 await test('duplicate-same-money-needs-zero-ai',async()=>{const p=await packet();p.candidates=[p.candidates[0],{...p.candidates[0],id:'m1'}];assert.equal(financeAiEligibility(p),'rule_determined');});
 await test('unobservable-role-does-not-waste-model-calls',async()=>{const p=await packet();p.candidates.forEach(c=>c.phrases=['未知']);assert.equal(financeAiEligibility(p),'semantic_evidence_insufficient');});
+await test('unproven-direction-remains-manual-without-model',async()=>{const p=await packet();p.direction='unknown';assert.equal(financeAiEligibility(p),'direction_unproven');});
 
 const f=await fixture();let calls=0,reply,gate;
-const env={WYJ_DB:f.db,FINANCE_AI_ENABLED:'true',FINANCE_AI_KILL_SWITCH:'false',WORKERS_AI_ENABLED:'true',FINANCE_AI_MODEL:'@cf/synthetic/schema-fixture',FINANCE_AI_MODEL_VERSION:'synthetic-1',FINANCE_AI_DAILY_CALL_LIMIT:'20',FINANCE_AI_MONTHLY_CALL_LIMIT:'100',FINANCE_AI_TIMEOUT_MS:'100',AI:{run:async(model,input)=>{calls++;assert.equal(model,'@cf/synthetic/schema-fixture');assert.equal(input.response_format.type,'json_schema');const body=JSON.parse(input.messages[1].content);assert.deepEqual(Object.keys(body).sort(),['candidates','currency','direction','merchant_tokens']);if(gate)await gate;return reply?.(body)??{response:suggestion({...body}),usage:{prompt_tokens:100,completion_tokens:80}};}}};
+const env={WYJ_DB:f.db,FINANCE_AI_ENABLED:'true',FINANCE_AI_KILL_SWITCH:'false',WORKERS_AI_ENABLED:'true',FINANCE_AI_MODEL:'@cf/synthetic/schema-fixture',FINANCE_AI_MODEL_VERSION:'synthetic-1',FINANCE_AI_DAILY_CALL_LIMIT:'20',FINANCE_AI_MONTHLY_CALL_LIMIT:'100',FINANCE_AI_TIMEOUT_MS:'100',AI:{run:async(model,input)=>{calls++;assert.equal(model,'@cf/synthetic/schema-fixture');assert.equal(input.response_format.type,'json_schema');const body=JSON.parse(input.messages[1].content);assert.deepEqual(Object.keys(body).sort(),['candidates','currency','direction','merchant_tokens','scope']);assert.deepEqual(body.scope,{source_gated:true,reported_completion:true,assistance_only:true});if(gate)await gate;return reply?.(body)??{response:suggestion({...body}),usage:{prompt_tokens:100,completion_tokens:80}};}}};
 // Logical inference deadlines are separate from actual local SQLite scheduling.
 // The production path has no injected clock and keeps its configured deadline.
 const deadlines=new Set();
 const clock={setTimeout(fn,ms){const timer={fn,ms};deadlines.add(timer);return timer;},clearTimeout(timer){deadlines.delete(timer);}};
+env.FINANCE_AI_PROVIDER_PROTOCOL='rich-1'; // Retain the original v1-provider tests and their exact assertions.
 const context={env,financeAiClock:clock,waitUntil:p=>{void p.catch(()=>{});}};const request=(route,payload)=>financeAiRequest(context,f.account,'/api/finance/ai/'+route,payload);
 async function source(id){await upsertNotificationHints(f.db,f.account,{device_id:'synthetic-p06-device',hints:[{source_event_id:id,source_type:'notification',source_package:'com.tencent.mm',app_label:'SYNTHETIC',amount_minor:null,direction:'expense',currency:'CNY',amount_exponent:2,confidence:700,recognition_status:'PAYMENT_LIKELY',provider_reference:'SYNTH-P06-'+id,payment_channel:'wechat',evidence:{source_type:'notification',reasons:['synthetic_p06'],recognised_fields:['provider_reference','direction']}}]});}
 async function evidenceFor(id){const p=await packet();p.provider_reference_hash=await sha256Hex('SYNTH-P06-'+id);return p;}

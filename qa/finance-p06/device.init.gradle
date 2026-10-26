@@ -11,6 +11,7 @@ allprojects { p ->
                 d.buildTypes.getByName('debug').versionNameSuffix = '-finance-p06-qa'
                 d.defaultConfig.testInstrumentationRunner = 'uk.thewyj.app.qa.financep06.FinanceP06Runner'
                 d.sourceSets.getByName('debug').manifest.srcFile(new File(qa, 'device/AndroidManifest.xml'))
+                d.sourceSets.getByName('debug').res.srcDir(new File(qa, 'device-res'))
                 d.sourceSets.getByName('androidTest').java.srcDirs(new File(qa, 'device'), pixels)
                 d.sourceSets.getByName('androidTest').assets.srcDir(new File(pixels, 'assets'))
             }
