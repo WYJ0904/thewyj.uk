@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 ROOT=Path(__file__).resolve().parents[2]
 HISTORY=ROOT/'docs/migration-evidence/finance-p03'
 OLD=HISTORY/'nonphone-entry/cloud-20261021'
-BASE=Path(os.environ.get('FINANCE_P06_FINAL',ROOT/'docs/migration-evidence/finance-p06/final-r1')).resolve();assert BASE.is_relative_to(ROOT/'docs/migration-evidence/finance-p06')
+BASE=Path(os.environ.get('FINANCE_P06_FINAL',ROOT/'docs/migration-evidence/finance-p04/p06-validation/final-r2')).resolve();assert BASE.is_relative_to(ROOT/'docs/migration-evidence/finance-p04/p06-validation')
 REG=BASE/'regression'
 deliveryLabel=os.environ.get('FINANCE_CLOSURE_DELIVERY','delivery-current')
 assert re.fullmatch('delivery-current(?:-r[0-9]+)?',deliveryLabel)

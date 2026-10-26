@@ -3,6 +3,10 @@
 Run from the existing finance checkout. Never point these drivers at Production,
 an existing Preview database, or a formal Android application. All result paths
 are guarded under `docs/migration-evidence/finance-p06/` and never overwrite a run.
+The inherited whole-regression drivers require the finance-p04 evidence namespace;
+their new, exclusively owned output is `finance-p04/p06-validation/`. Original
+P04 reports, raw runs and seals are unchanged. The P06 final provenance includes
+this additional evidence root explicitly.
 
 Use the existing Node 22, Android SDK 36 and Android Studio JDK 21. Set
 `FINANCE_P06_OUTPUT` to a **new** directory for each Node or Android invocation.
@@ -51,16 +55,16 @@ loops remain disabled. Separate slow phone navigation helpers require the
 owner-authorized formal accessibility privacy lease and preserve private raw
 images outside Git. Restore the exact prior formal service state afterwards.
 
-Prepare inherited regression drivers once in a fresh evidence root with
-`prepare-regression.py`. It changes output paths and forwards only previously
+Prepare inherited regression drivers once in the new owned evidence root with
+`prepare-compatible-regression.py`. It changes output paths and forwards only previously
 declared fixture arguments; frozen source/oracles are not edited. Then run:
 
 ```text
-python qa/finance-p06/full-regression.py --label final-rN
+python qa/finance-p06/full-regression.py --label final-r2
 python qa/finance-p06/collect.py
 ```
 
-Set `FINANCE_P06_FINAL` for the collector when using a label other than final-r1.
+Set `FINANCE_P06_FINAL` for the collector when using a label other than final-r2.
 Only one Gradle/archive owner may run at a time. Keep original six failures,
 all26 identity red rows and overlapping suite identities visible. Current
 results are never copied from a historical PASS.
