@@ -1,9 +1,10 @@
 """Only this task's private API36 AVD/server, never the physical ADB server."""
 from pathlib import Path
 from datetime import datetime,timezone
-import json,os,re,socket,subprocess,time
-ROOT=Path(__file__).resolve().parents[2];E=ROOT/'docs/migration-evidence/finance-p06';OUT=E/'emulator-cleanup.json';assert not OUT.exists()
-boot=json.loads((E/'avd/result.json').read_text());test=json.loads((E/'emulator-joint-r2/result.json').read_text());assert boot['status']==test['status']=='PASS' and boot['server_port']==5043
+import argparse,json,os,re,socket,subprocess,time
+parser=argparse.ArgumentParser();parser.add_argument('--label',default='r1');parser.add_argument('--test',default='emulator-joint-r2');args=parser.parse_args();assert re.fullmatch('r[0-9]+',args.label) and re.fullmatch('emulator-joint-r[0-9]+',args.test)
+ROOT=Path(__file__).resolve().parents[2];E=ROOT/'docs/migration-evidence/finance-p06';OUT=E/('emulator-cleanup.json' if args.label=='r1' else 'emulator-cleanup-'+args.label+'.json');assert not OUT.exists()
+boot=json.loads((E/'avd/result.json').read_text());test=json.loads((E/args.test/'result.json').read_text());assert boot['status']==test['status']=='PASS' and boot['server_port']==5043
 home=Path(boot['avd_home']).resolve();assert home.is_relative_to((E/'avd').resolve()) and home.name=='home'
 ADB=Path.home()/'AppData/Local/Android/Sdk/platform-tools/adb.exe';SERIAL='127.0.0.1:5589';PKG='uk.thewyj.app.qa.financep06';steps=[]
 def adb(*parts):
@@ -18,7 +19,7 @@ for package in [PKG+'.test',PKG]:
  assert adb('-s',SERIAL,'uninstall',package)=='Success'
 assert not adb('-s',SERIAL,'shell','pm','list','packages','uk.thewyj.app')
 assert not adb('-s',SERIAL,'reverse','--list')
-archive=E/'avd/archived-configuration';archive.mkdir(exist_ok=False)
+archive=E/('avd/archived-configuration' if args.label=='r1' else 'avd/archived-configuration-'+args.label);archive.mkdir(exist_ok=False)
 for source in [home/'FinanceP06Isolated.ini',home/'FinanceP06Isolated.avd/config.ini']:
  assert source.resolve().is_relative_to(home);(archive/source.name).write_bytes(source.read_bytes())
 adb('-s','emulator-5588','emu','kill');deadline=time.monotonic()+30

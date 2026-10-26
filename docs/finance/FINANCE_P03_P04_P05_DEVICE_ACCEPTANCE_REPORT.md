@@ -1,81 +1,68 @@
-# FINANCE P03/P04/P05 Samsung 联合验收
+# FINANCE P03/P04/P05 Samsung 联合验收报告
 
-2026-10-26，Asia/Hong_Kong。**PARTIAL，工作报告，联合验收继续。**
+2026-10-26，Asia/Hong_Kong。**P03/P04/P05 = PARTIAL；D-01/D-02 保持 CLOSED。**
 
-本轮从 `425776f086d5a2b9165f9b9de311826a8d218f9e` 开始，保留此前全部失败。
-工作树为 `%USERPROFILE%/.codex/worktrees/finance-p04-multicurrency/thewyj.uk`，
-新本地分支 `codex/finance-p06-ai`。本报告不授权或表示正式发布。
+本轮仅开发、隔离测试及本地提交。项目 Production D1/R2/Pages、共享 Preview、既有独立 P04 Preview 均未修改；没有 push、merge、PR、正式签名或发布。真实 Workers AI 调用仅使用脱敏合成字段，独立于项目正式财务环境。
 
-## 设备、隔离与正式 App
+起始封存 `425776f086d5a2b9165f9b9de311826a8d218f9e`。工作树 `%USERPROFILE%/.codex/worktrees/finance-p04-multicurrency/thewyj.uk`，分支 `codex/finance-p06-ai`。产品修复提交 `a57ce56e7045167389ebbf7726c49fd043c5c7a7` 与 AI 实施 `07e54f94ea633661f95a8ad3a6ab8e88028fdc07` 分开；后续源绑定修复 `56f5c4921896f540ac0c4b167c26c1a676a00889`、原生授权/并发策略修复 `878f135dfca4d5d100aca65e18c1da7c3d8b3e10` 均保留。最终文档提交由 `finance-p06/FINAL_PROVENANCE.json` 绑定，避免报告包含自身 SHA 的循环引用。
 
-- 实际 Samsung SM-S9360，Android 16/API36，序列号尾号 EHJN。
-- 构建指纹：`samsung/pa2qzcx/pa2q:16/BP4A.251205.006/S9360ZCSDCZI1_CHCDCZI1:user/release-keys`。
-- 当前用户0；存在用户0、95、150；微信主应用 UID10390，分身 UID9510390，用户150未发现微信。
-- 正式 App 1.3.37/code50，不可调试；公开安装 APK SHA256
-  `9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a`。
-- 正式证书 SHA256 `2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03`，apksigner验证通过。
-- 独立 QA 包 `uk.thewyj.app.qa.financep06` / `.test`，开始时不存在，未覆盖已有QA包或正式App。
-- QA移除SMS、相册和安装其他APK权限；本节SDK测试未开启通知/无障碍读取，未读取聊天或正式数据库。
-- 全部ADB均显式选择本机 Samsung；没有把模拟器当手机。
+## 设备与隔离
 
-证据位于 `docs/migration-evidence/finance-p06/device/`。公开APK、设备元数据与
-私人原件分开；私人文件不进入Git或普通报告。
+Samsung SM-S9360，Android16/API36，序列号仅公开尾号 EHJN。原系统指纹及完整命令保留在 `docs/migration-evidence/finance-p06/device/baseline/`。现有 user0、95、150 未变；主微信 UID10390、分身 UID9510390，用户150未发现微信。本轮未建立手机工作分区。
 
-## 本轮发现、修复与保留的失败
+正式 App 保持1.3.37/code50，APK SHA256 `9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a`，初始公开APK签名验证 PASS，证书 SHA256 `2b322029a9b84de6f2d1ef603778b5079997a3f8df21d01ca8cb30c76b4f7d03`；收尾 APK 哈希相同。正式私有数据库未读取，不能宣称取得了其字节级哈希。
 
-| 轮次 | 实际结果 | 解释 |
-| --- | --- | --- |
-| p03-p05-r1 | SDK像素28 PASS/5 FAIL；主5方法3 PASS/2 FAIL；独立进程恢复1 PASS | 错误接受聊天上下文、4项识别/保留缺陷，以及QA生命周期失败；全部原件保留 |
-| secondary-probe-r1 | 1个诊断方法完成 | 实际独立裁剪SDK读回，不计业务验收PASS；无expected金额输入OCR |
-| p03-p05-r2 | 构建成功；控制进程中断，未开始仪器化 | INTERRUPTED_NOT_TESTED，保留APK及build.log，不推断运行结果 |
-| p03-p05-r3 | SDK像素31 PASS/2 FAIL；主5方法4 PASS/1 FAIL；恢复1 PASS | 前五项修复后，新增重读丢弃两个原本正确的未知币种候选；失败保留 |
-| p03-p05-r4 | SDK33/33；主5/5；独立Android进程恢复1/1 | 最终本轮OCR修复，同输入/同断言；不是微信真实交易 |
-| p03-p05-lifecycle-r1 | 普通Activity30/30、产品MainActivity30/30；2个JUnit方法通过 | MainActivity未登录入口；不能代替登录后财务WebView全链路 |
+仅使用 `uk.thewyj.app.qa.financep06` / `.test`，未覆盖正式或旧QA包。正式无障碍服务按既有所有者授权暂时暂停一次，取证后恢复原列表；正式通知监听在本轮基线已关闭，保持关闭。QA未申请通知读取或无障碍敏感授权，SDK/流水线通过隔离组件测试运行，不能冒充真实OS通知采集。
 
-三轮实际Samsung的33张原PNG及原cases.json逐项哈希相同，见
-`device-input-integrity.json`。没有换字体、金额、原期望或删断言。
+## Samsung OCR与生命周期
 
-产品最小修复仅涉及3个文件：
+| 轮次 | 结果与边界 |
+| --- | --- |
+| p03-p05-r1 | 33像素中28 PASS/5 FAIL，另有QA lifecycle失败；原件保留 |
+| p03-p05-r2 | 构建后中断，仪器化 NOT_TESTED |
+| p03-p05-r3 | 31 PASS/2 FAIL；修复中出现的人工候选回归保留 |
+| p03-p05-r4 | 同33图及同断言全部通过；5方法与独立恢复1方法通过 |
+| p03-p05-lifecycle-r1 | 普通Activity30轮、未登录MainActivity30轮通过；该批在所有者舒适度反馈前完成 |
+| joint-r8 | 当前产品源码：33 SDK像素、3个SDK保护方法、原生种子/新进程恢复2方法、Chrome8检查全部通过；真实收款页字节另作1个诊断 |
+| emulator-joint-r3 | 与Samsung同APK哈希，独立API36虚拟设备；同合成链路及60轮生命周期对照通过 |
 
-1. `PaymentPageEvidence.kt`：聊天标题的分隔符及尾字丢失只作负向阻断。
-2. `PaymentPageAmountSelection.kt`：明确待付款/处理中时可保留损坏金额标签，不能证明完成。
-3. `PaymentScreenshotVerifier.kt`：初读负页立即拒绝；损坏单位只请求独立像素，不拼接ISO；
-   单纯缺单位的精确人工候选不被弱读回覆盖；待付款的二次裁剪保留唯一已核验单位和数值，
-   费用/余额/竞争值仍拒绝；严格整行非金额时间标签规范化不修改数字或交易日期。
+产品OCR最小修复涉及聊天损坏标题负向否决、待处理二次裁剪保留、全角单位独立读取、非金额时间标签及未知单位人工候选保留。新增7个原生回归全部通过。90秒、8次、250ms和单SDK任务10秒未改变。D-01的辅助Activity配置只修QA，不归因三星驱动，不改产品硬件加速。60轮MainActivity是未登录入口，不能证明登录后财务WebView或真实同步生命周期。
 
-保留90秒、8次、250ms、单SDK任务10秒。没有增加CNY默认，没有把OCR建议当成交易身份。
-新增7个Robolectric方法，先保留6项原失败及1项重读回归失败，再对相关70方法执行最终定向回归，70 PASS。
+所有者反馈快速开关刺眼后，真机快速矩阵被禁用。后续聊天导航每次停留10秒；joint-r8为零前台Activity切换。压力循环只在无窗口模拟器运行。
 
-生命周期失败来自本轮新QA overlay漏带D-01已确认的target-first辅助Activity配置。
-补回 `debugImplementation androidx.test:core:1.7.0` 后辅助Activity与目标同UID；
-原三轮及上述各30轮通过。仅修改QA，D-01/D-02保持CLOSED，不猜改产品生命周期，
-不关闭硬件加速或修改Samsung冻结策略。
+当前Samsung APK SHA256：`c91ec86299b519361465fb24a33431d28ded18cffcf05c6a2a51af6728b225cc`；测试APK：`bac2a1eb747fe2756d6d2eb7d2ea9c593c36af33143ca149ffb2aaaf7d941136`。精确编译源和最终源码逐文件绑定见 `finance-p06/source-binding.json`。Samsung同33张PNG与r4哈希一致；模拟器只声明同输入配方，不把不同系统字体的像素冒充相同。
 
-## APK对应关系
+## 真实微信观察及未闭合链路
 
-最终SDK复验 `p03-p05-r4/app-debug.apk` SHA256：
-`1ccd15b8695bf17256a5a6910e4e4260245fd02c651b9921211c4d37a5243048`。
-测试APK SHA256：`c2dc6ec1780cc9832cebb3e92be996ae345fa18a3b683e3a90b2e85a0c7dfd53`。
-测试在本地提交前执行，记录的HEAD仍为起始425776f；真实编译字节以每轮
-source_before/source_after为准，后续独立修复提交与这些产品字节再绑定。
+实际进入主微信相关转账聊天并观察已有收款详情，没有再次付款、转账、发送消息或领取。页面收款状态已显示，真实SDK读得小数候选0.01；未给默认币种时，产品结果为 `amount_minor=null / amount_decimal=0.01 / currency=null / completion=false`，零写账。所有者声明的CNY与页面单独的¥符号分开记录。缺少可绑定的业务引用及本轮真实历史通知，付款侧同一交易的严格关联未证明。
 
-## 所有者最新范围和舒适度限制
+因此真实通知→无障碍→Room→Outbox→Hosted D1→Web完整链路仍为 NOT_TESTED，不能以页面可见、合成流水线或单笔真实转账替代W01–W10十次独立场景。支付宝按所有者条件豁免处理；微信完整门禁尚未通过，不记作实际执行PASS，原行数保留。
 
-所有者授权从相关微信聊天寻找必要支付证据，不读取无关私人信息，不发起付款或领取转账。
-支付宝真实支付验收在微信通过后按所有者豁免处理，原测试行及数量保留，
-不冒充实际执行PASS；合成来源隔离等自动化仍照常回归。
+## 合成联合链路与保留的失败
 
-所有者报告快速切换像闪光后，已停止QA进程。该60轮批次在停止命令前已完成，
-不回写成未完成或删除原结果。之后禁用真机快速压力循环；同等断言的普通UI验证
-在操作之间加入至少5秒停留，状态等待上限保持原值。压力循环使用模拟器。
-`phone-comfort-policy.json`及`phone-pacing-preparation.json`记录指令和仅插入停留的QA派生证明。
+joint-r8实际经过SDK→原生可选缓存→普通Outbox→认证HTTP→本地D1→Web编辑器→D1冷重建及回执重放→Android新进程拉回。同一原事件始终对应一笔CNY8800（人工将建议9000改为8800）的合成记录；采用建议只填表，确认前零账目，丢回执和重放后仍只有同一ID。模型为受控Mock，真实模型API另行计量，不冒充此链路的一部分。
 
-## 尚未完成的门禁
+joint-r1的stdin阻塞、r2的二进制传输损坏及缺少前提、r3缺少普通核实票据、r4字母引用被真实OCR误读、r5缺少canonical pending hint、r6网页按钮未恢复的失败全部保留。r4误读引用时产品正确拒绝；另建数值引用正向对照，并未修复或翻绿原字母图片。未修改冻结608或C007原真值。
 
-真实微信聊天/转账取证、真实通知到达、双方最终状态/业务引用、真实来源进入
-Room/Outbox/隔离API/D1/Web、登录后的MainActivity与息屏/恢复、P06联合链路继续验证。
-此时均为NOT_TESTED，不因SDK或合成生命周期通过而关闭。
+## 当前回归与保护
 
-原六个JVM失败和26条身份/业务红项保留历史状态，本轮最终全量回归尚未执行；
-不得将上轮统计当成本轮新结果。C005/C007缺独立事实仍为EXTERNAL_EVIDENCE_REQUIRED。
-P03/P04/P05整体维持PARTIAL，P06实现与最终联合报告后续继续更新。
+| 集合 | 本轮当前结果 |
+| --- | --- |
+| 标准JVM | 821 PASS / 6 FAIL |
+| 原607 | 602 PASS / 5 FAIL |
+| 冻结608 | 552 PASS / 5 FAIL / 28 EXPECTED_RED / 23 NOT_TESTED |
+| 原26身份红项 | 4 FAIL / 22 EXPECTED_RED |
+| 新增OCR7 | 7 PASS |
+
+原六项保留：
+
+| 类 / 方法 | 最终结果 |
+| --- | --- |
+| AndroidPaymentRecognitionHookArchiveTest.messagingStyleLinesReachThePaymentParser | FAIL |
+| AndroidPaymentRecognitionHookArchiveTest.incompletePaymentCarriesAuditableReasonCodesWithoutRawText | FAIL |
+| FinanceP03IdentityLifecycleTest.laterReferenceEvidenceAttachesWithoutRenamingEarlierBooking | FAIL |
+| FinanceP03IdentityLifecycleTest.durableMessageProofSurvivesRegistryCacheReplacement | FAIL |
+| FinanceP03IdentityLifecycleTest.multipleOrdersOnOneMessageProofForceASeparateReviewSeries | FAIL |
+| LocalPaymentBookingTest.offlineCaptureReceiptAndReplayKeepOneLedgerAndCloseArchive | FAIL |
+
+MainActivity真实登录金融页、真实通知抵达、RC-6真实历史来源、真实云端与正式备份恢复仍独立 NOT_TESTED；历史财务Activity异常仍 INCONCLUSIVE。原来的一次重测PASS没有覆盖旧FAIL。13组保护结果见 `protected-final.comparison.json`，正式App/微信UID/profile及权限收尾见 `phone-cleanup-r2/result.json`。测试包已移除，私人证据以CurrentUser DPAPI加密保留并验证，明文清理另有清单。

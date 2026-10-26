@@ -1,17 +1,19 @@
-param([switch]$Execute)
+param([switch]$Execute,[string]$Label='r1')
 $ErrorActionPreference='Stop'
 $workspace=[System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $evidence=[System.IO.Path]::GetFullPath((Join-Path $workspace 'docs/migration-evidence/finance-p06'))
-$sealPath=Join-Path $evidence 'privacy-seal-r1/manifest.json'
+if($Label -notmatch '^r[0-9]+$'){throw 'Invalid seal label'}
+$sealFolder=Join-Path $evidence ('privacy-seal-'+$Label)
+$sealPath=Join-Path $sealFolder 'manifest.json'
 $seal=Get-Content -Raw -LiteralPath $sealPath|ConvertFrom-Json
 if($seal.status -ne 'PASS'){throw 'Private evidence seal is incomplete'}
-$planPath=Join-Path $evidence 'privacy-seal-r1/plaintext-cleanup-plan.json'
+$planPath=Join-Path $sealFolder 'plaintext-cleanup-plan.json'
 $rows=@();[long]$logicalBytes=0
 foreach($entry in $seal.files){
     $target=[System.IO.Path]::GetFullPath((Join-Path $workspace $entry.source))
     $cipher=[System.IO.Path]::GetFullPath((Join-Path $workspace $entry.cipher))
     if(-not $target.StartsWith($evidence+[System.IO.Path]::DirectorySeparatorChar,[System.StringComparison]::OrdinalIgnoreCase)){throw 'Plaintext target outside owned evidence'}
-    if(-not $cipher.StartsWith((Join-Path $evidence 'privacy-seal-r1/blobs')+[System.IO.Path]::DirectorySeparatorChar,[System.StringComparison]::OrdinalIgnoreCase)){throw 'Cipher outside owned seal'}
+    if(-not $cipher.StartsWith((Join-Path $sealFolder 'blobs')+[System.IO.Path]::DirectorySeparatorChar,[System.StringComparison]::OrdinalIgnoreCase)){throw 'Cipher outside owned seal'}
     $item=Get-Item -LiteralPath $target
     if($item.PSIsContainer -or ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)){throw 'Expected an ordinary owned file'}
     if($item.Length -ne $entry.source_bytes -or (Get-FileHash -Algorithm SHA256 -LiteralPath $target).Hash.ToLowerInvariant() -ne $entry.source_sha256){throw 'Plaintext changed since encryption'}
@@ -27,7 +29,7 @@ if(-not $Execute){
 }
 $plan=Get-Content -Raw -LiteralPath $planPath|ConvertFrom-Json
 if(@($plan.files).Count -ne $rows.Count){throw 'Plan count changed'}
-$resultPath=Join-Path $evidence 'privacy-seal-r1/plaintext-cleanup-result.json'
+$resultPath=Join-Path $sealFolder 'plaintext-cleanup-result.json'
 if(Test-Path -LiteralPath $resultPath){throw 'Preserve previous result'}
 foreach($row in $rows){
     $approved=@($plan.files|Where-Object {$_.target -eq $row.target -and $_.sha256 -eq $row.sha256})

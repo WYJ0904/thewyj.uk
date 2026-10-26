@@ -60,11 +60,14 @@ Prepare inherited regression drivers once in the new owned evidence root with
 declared fixture arguments; frozen source/oracles are not edited. Then run:
 
 ```text
-python qa/finance-p06/full-regression.py --label final-r2
+python qa/finance-p06/full-regression.py --label final-r3
 python qa/finance-p06/collect.py
 ```
 
-Set `FINANCE_P06_FINAL` for the collector when using a label other than final-r2.
+Set `FINANCE_P06_FINAL` for the collector when using a label other than final-r3.
+The owner-interrupted final-r3 Android attempt is archived separately. Its
+finished 34-command Node batch is source-hash verified by `resume-final.py`;
+only Android and the unfinished tail are rerun, with new command/log files.
 Only one Gradle/archive owner may run at a time. Keep original six failures,
 all26 identity red rows and overlapping suite identities visible. Current
 results are never copied from a historical PASS.
