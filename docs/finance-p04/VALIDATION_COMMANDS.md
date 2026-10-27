@@ -6,8 +6,8 @@
 
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
-$env:ANDROID_HOME='C:\Users\78252\AppData\Local\Android\Sdk'
-$env:FINANCE_NODE='C:\Users\78252\AppData\Local\npm-cache\_npx\d18f28baf1132559\node_modules\node\bin\node.exe'
+$env:ANDROID_HOME=Join-Path $env:LOCALAPPDATA 'Android\Sdk'
+$env:FINANCE_NODE=Join-Path $env:LOCALAPPDATA 'npm-cache\_npx\d18f28baf1132559\node_modules\node\bin\node.exe'
 $env:PATH=(Split-Path $env:FINANCE_NODE)+';'+$env:PATH
 $env:AERIS_TEST_CHROME='C:\Program Files\Google\Chrome\Application\chrome.exe'
 # 每次选新目录，脚本拒绝覆盖原结果；以下final-r2是本轮已执行路径。

@@ -7,7 +7,7 @@
 ## 版本、继承与实际改动
 
 - 起始及旧封存：`a065cd15d48b508c2797b9b563cfd24228b6bed9`，旧工作树`finance-p04-multicurrency/thewyj.uk`、分支`codex/finance-p06-ai`保留且干净。
-- 本轮工作树：`C:\Users\78252\.codex\worktrees\finance-p03-p06-remediation\thewyj.uk`；分支`codex/finance-p03-p06-remediation`。
+- 本轮工作树：`%USERPROFILE%\.codex\worktrees\finance-p03-p06-remediation\thewyj.uk`；分支`codex/finance-p03-p06-remediation`。
 - 产品与质量回归提交：`30f190696b31d730bc880ecb4f4158a4e54ac042`；QA驱动/诊断提交：`0bbed3f5b89e2d78cf7bab1300981a51abb6c8d5`。
 - 报告提交后的**最终HEAD、tree、干净状态和报告本身SHA**由`docs/migration-evidence/finance-p06/remediation/FINAL_PROVENANCE.json`及`FINAL_VERIFY.json`绑定，避免文档包含自身commit的循环引用。
 - 测试执行时HEAD为a065，产品差异尚在工作树；命令保存前后源字节哈希。最终提交产品文件SHA为`2f97d2d0dd36e3ee855d4d5542513c501f5898697bd062ca31a97065ca09a30d`，与受测文件一致。没有把旧HEAD的历史PASS冒充本轮结果。
@@ -219,7 +219,7 @@ Node22、原锁定依赖、Gradle9.4.1/AGP9.2.1/JDK21、SDK36；未升级依赖�
 
 14组保护（原13组加旧finance工作树）逐文件、HEAD、branch、status一致；旧a065封存2588/2588校验一致。Task25/26、固定主目录、Hotfix、D-01/D-02、P02原证据、旧APK/签名/正式数据均未修改。Task26的历史豁免仍为WAIVED，不改为PASS。本轮无push/merge/PR/发布/正式签名，无Production/共享Preview/既有P04 Preview变更。
 
-本轮QA两个包已经从自己的虚拟设备卸载，权限随包移除，反向端口清零，模拟器及专属ADB5051关闭；Samsung和正式App权限未操作。自动审批在执行进程创建前拒绝删除本轮AVD磁盘（`blocked by policy`），**没有重试或改工具绕过**。该目录保留`4142872143`逻辑字节，路径`C:\Users\78252\.codex\worktrees\finance-p03-p06-remediation\thewyj.uk\docs\migration-evidence\finance-p06\remediation\avd\home`；本轮实际回收字节0。源码、测试报告、必要APK/备份保留；本轮node_modules/Android构建缓存也保留供复核。清理状态PARTIAL，详细记录见`local-cleanup.json`。
+本轮QA两个包已经从自己的虚拟设备卸载，权限随包移除，反向端口清零，模拟器及专属ADB5051关闭；Samsung和正式App权限未操作。自动审批在执行进程创建前拒绝删除本轮AVD磁盘（`blocked by policy`），**没有重试或改工具绕过**。该目录保留`4142872143`逻辑字节，路径`%USERPROFILE%\.codex\worktrees\finance-p03-p06-remediation\thewyj.uk\docs\migration-evidence\finance-p06\remediation\avd\home`；本轮实际回收字节0。源码、测试报告、必要APK/备份保留；本轮node_modules/Android构建缓存也保留供复核。清理状态PARTIAL，详细记录见`local-cleanup.json`。
 
 需要所有者最终裁决/外部条件，而非重复普通开发授权：
 

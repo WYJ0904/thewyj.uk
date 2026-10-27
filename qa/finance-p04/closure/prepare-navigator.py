@@ -9,7 +9,7 @@ files={
  'settings.gradle':"pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\ndependencyResolutionManagement { repositories { google(); mavenCentral() } }\nrootProject.name='FinanceClosureNavigator'\ninclude ':app'\n",
  'build.gradle':"plugins { id 'com.android.application' version '9.2.1' apply false }\n",
  'gradle.properties':'android.useAndroidX=true\norg.gradle.jvmargs=-Xmx2g -Dfile.encoding=COMPAT\n',
- 'local.properties':'sdk.dir=C:/Users/78252/AppData/Local/Android/Sdk\n',
+ 'local.properties':f'sdk.dir={(Path.home()/"AppData/Local/Android/Sdk").as_posix()}\n',
  'app/build.gradle':"""plugins { id 'com.android.application' }
 android { namespace 'uk.thewyj.app.qa.financep04navigator'; compileSdk 36
  defaultConfig { applicationId 'uk.thewyj.app.qa.financep04navigator'; minSdk 30; targetSdk 36; versionCode 1; versionName 'qa1'; testInstrumentationRunner 'uk.thewyj.app.qa.financep04navigator.NavigatorRunner' }
