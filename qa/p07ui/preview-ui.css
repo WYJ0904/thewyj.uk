@@ -1,0 +1,5 @@
+.owner-preview-banner{position:sticky;top:0;z-index:2147483646;display:grid;gap:.15rem;padding:.45rem 1rem;border-bottom:2px solid #b45309;background:#fff7ed;color:#431407;font:500 12px/1.4 system-ui,sans-serif}
+.owner-preview-banner strong{font-weight:700}.owner-preview-banner small{font-size:11px;overflow-wrap:anywhere}.owner-preview-banner code{font:inherit;font-family:ui-monospace,monospace}.owner-preview-banner a{color:#7c2d12;text-decoration:underline}.owner-preview-banner summary{cursor:pointer;min-height:24px}.owner-preview-banner[data-preview-verified=false]{border-bottom-color:#b91c1c}
+.modal-layer{top:max(var(--ds-overlay-top,0px),var(--owner-preview-banner-height,0px))!important;height:calc(var(--ds-overlay-height,100dvh) - var(--owner-preview-banner-height,0px))!important}
+.modal-layer .modal-panel{max-height:calc(var(--ds-overlay-height,100dvh) - var(--owner-preview-banner-height,0px) - 32px)!important}
+.skip-link:focus{z-index:2147483647}

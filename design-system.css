@@ -66,6 +66,8 @@
   --ds-container-default: 1200px;
   --ds-container-wide: 1440px;
   --ds-touch-min: 44px;
+  --ds-skip-link-offset: var(--ds-space-3);
+  --ds-z-skip: 1000;
   --ds-icon-sm: 16px;
   --ds-icon-md: 20px;
   --ds-icon-lg: 24px;
@@ -194,6 +196,27 @@
   --ok: var(--color-success);
   --danger: var(--color-error);
 }
+
+/* Keyboard-only route entry, using the existing semantic color/shape tokens. */
+.skip-link {
+  position: fixed;
+  inset-block-start: var(--ds-skip-link-offset);
+  inset-inline-start: var(--ds-skip-link-offset);
+  z-index: var(--ds-z-skip);
+  transform: translateY(-200%);
+  padding: var(--ds-space-3) var(--ds-space-4);
+  border: 2px solid var(--ds-focus);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font: 600 var(--ds-text-md)/var(--ds-leading-body) var(--ds-font-sans);
+}
+.skip-link:focus { transform: translateY(0); }
+html:not([data-p07-ui="enabled"]) .skip-link,
+html:not([data-p07-ui="enabled"]) label[data-p07-label] { display: none; }
+body.modal-open .skip-link { visibility: hidden; }
+#pageContent { scroll-margin-top: var(--ds-space-4); }
+.finance-page :is(strong, output), .plan-grid strong { font-variant-numeric: tabular-nums; }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
