@@ -230,6 +230,9 @@ fun PaymentVerificationScreen(
                         syncLine(item)?.let { line ->
                             Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
+                        if(!item.hasEdits&&!item.remoteOnly&&!state.aiRows.containsKey(item.recognitionId)){
+                            Text("页面引用、币种或状态无法逐项核对时，请重新核实或手工确认；不会根据相似字符关联交易。",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         if(!item.hasEdits&&!item.remoteOnly&&state.aiRows.containsKey(item.recognitionId)){
                             val assistance=state.aiRows.getValue(item.recognitionId)
                             val summary=state.aiSummary(item)
