@@ -4,29 +4,30 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
-    <title>Aeris — 学习、工具、账本与文件</title>
+    <title>thewyj.uk · Aeris — 学习、工具、账本与文件</title>
     <meta name="description" content="Aeris：继续语言学习，处理文本与文件，管理账本和传输。" />
     <meta property="og:title" content="Aeris — 学习、工具、账本与文件" />
     <meta property="og:description" content="从一件小事开始，登录后接着自己的进度。" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://thewyj.uk/" />
-    <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?v=20261014-aeris-task26-r9" />
+    <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?v=20261027-aeris-p07-ui-r1" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="application-name" content="Aeris" />
-    <link rel="icon" href="/favicon.ico?v=20261014-aeris-task26-r9" sizes="any" />
-    <link rel="icon" href="/assets/brand/favicon-32.png?v=20261014-aeris-task26-r9" type="image/png" sizes="32x32" />
-    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png?v=20261014-aeris-task26-r9" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20261014-aeris-task26-r9" />
-    <link rel="stylesheet" href="/styles.css?v=20261014-aeris-task26-r9" />
-    <link rel="stylesheet" href="/product-ui.css?v=20261014-aeris-task26-r9" />
-    <link rel="stylesheet" href="/design-system.css?v=20261014-aeris-task26-r9" />
-    <link rel="stylesheet" href="/public-experience.css?v=20261014-aeris-task26-r9" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20261014-aeris-task26-r9" />
+    <link rel="icon" href="/favicon.ico?v=20261027-aeris-p07-ui-r1" sizes="any" />
+    <link rel="icon" href="/assets/brand/favicon-32.png?v=20261027-aeris-p07-ui-r1" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png?v=20261027-aeris-p07-ui-r1" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20261027-aeris-p07-ui-r1" />
+    <link rel="stylesheet" href="/styles.css?v=20261027-aeris-p07-ui-r1" />
+    <link rel="stylesheet" href="/product-ui.css?v=20261027-aeris-p07-ui-r1" />
+    <link rel="stylesheet" href="/design-system.css?v=20261027-aeris-p07-ui-r1" />
+    <link rel="stylesheet" href="/public-experience.css?v=20261027-aeris-p07-ui-r1" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20261027-aeris-p07-ui-r1" />
   </head>
   <body>
+    <a class="skip-link" id="skipToContent" href="#pageContent">跳转到主要内容</a>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 Aeris" aria-hidden="false">
       <div class="entry-content" id="splashMedia">
-        <img class="entry-logo" id="splashImage" src="/icon-192.png?v=20261014-aeris-task26-r9" width="192" height="192" alt="" />
+        <img class="entry-logo" id="splashImage" src="/icon-192.png?v=20261027-aeris-p07-ui-r1" width="192" height="192" alt="" />
         <strong>Aeris</strong>
         <span class="entry-progress" aria-hidden="true"></span>
       </div>
@@ -41,7 +42,7 @@
       <nav class="site-nav" id="accountBar" aria-label="主导航">
         <div class="site-nav-bar">
           <a class="site-brand" href="/" data-site-nav="home" aria-label="Aeris 首页">
-            <img src="/icon-192.png?v=20261014-aeris-task26-r9" width="192" height="192" alt="" />
+            <img src="/icon-192.png?v=20261027-aeris-p07-ui-r1" width="192" height="192" alt="" />
             <span class="site-brand-copy"><strong>Aeris</strong><small id="siteVersionLabel">v2026.09.12.5</small></span>
           </a>
           <div class="home-inline-nav" aria-label="主要模块">
@@ -103,10 +104,11 @@
         <button class="version-notice-close" id="dismissVersionNoticeBtn" type="button" aria-label="关闭新版本提示" title="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
       </aside>
 
+      <div id="pageContent" tabindex="-1"></div>
       <section class="public-home hidden" id="publicHome" aria-labelledby="publicHomeTitle" aria-hidden="true">
         <section class="public-intro public-hero" data-public-section="hero" aria-labelledby="publicHomeTitle">
           <div class="public-intro-copy">
-            <div class="home-brand"><img class="aeris-hero-logo" src="/icon-192.png?v=20261014-aeris-task26-r9" alt="Aeris" width="64" height="64" /><h1 id="publicHomeTitle">Aeris</h1></div>
+            <div class="home-brand"><img class="aeris-hero-logo" src="/icon-192.png?v=20261027-aeris-p07-ui-r1" alt="Aeris" width="64" height="64" /><h1 id="publicHomeTitle">Aeris</h1></div>
             <p class="home-purpose">学习 · 工具 · 账本 · 文件</p>
             <p class="home-identity" data-home-personal hidden><span id="dashboardGreeting"></span><span id="dashboardMembershipName"></span><span id="dashboardMembershipExpiry"></span></p>
             <div class="public-actions">
@@ -524,7 +526,7 @@
       </div>
       <section class="project-picker hidden" id="projectPicker" aria-labelledby="projectPickerTitle">
         <header class="project-brand">
-          <img src="/icon-192.png?v=20261014-aeris-task26-r9" width="192" height="192" alt="Aeris Logo" />
+          <img src="/icon-192.png?v=20261027-aeris-p07-ui-r1" width="192" height="192" alt="Aeris Logo" />
           <div><p class="section-kicker">语言学习</p><h1 id="projectPickerTitle">选择语言测试</h1></div>
         </header>
         <div class="project-grid" aria-label="选择项目">
@@ -543,7 +545,7 @@
       <section class="project-app hidden" id="projectApp" aria-hidden="true">
         <header class="topbar hidden" id="topbar">
           <div class="brand">
-            <img class="brand-icon" src="/icon-192.png?v=20261014-aeris-task26-r9" width="192" height="192" alt="" />
+            <img class="brand-icon" src="/icon-192.png?v=20261027-aeris-p07-ui-r1" width="192" height="192" alt="" />
             <div>
               <h1>语言学习</h1>
               <p id="modelLabel" aria-live="polite">检测中</p>
@@ -567,7 +569,7 @@
         </section>
 
         <section class="panel auth-panel hidden" id="authPanel">
-          <img class="auth-logo" src="/assets/brand/aeris-lockup.png?v=20261014-aeris-task26-r9" width="320" height="320" alt="Aeris" />
+          <img class="auth-logo" src="/assets/brand/aeris-lockup.png?v=20261027-aeris-p07-ui-r1" width="320" height="320" alt="Aeris" />
           <h2 id="authTitle">账户登录</h2>
           <div class="auth-tabs" role="tablist" aria-label="账户入口">
             <button class="active" id="showLoginBtn" type="button" role="tab" aria-controls="loginForm" aria-selected="true">登录</button>
@@ -1070,8 +1072,11 @@
         </section>
         <form id="changeSecretForm" class="stack-form">
           <h3>修改登录密钥</h3>
+          <label data-p07-label for="currentSecretInput">当前登录密钥</label>
           <div class="secret-input-row"><input id="currentSecretInput" type="password" autocomplete="current-password" maxlength="128" placeholder="当前登录密钥" required /><button id="toggleCurrentSecretBtn" type="button" aria-pressed="false">显示</button></div>
+          <label data-p07-label for="newSecretInput">新登录密钥（至少 7 个字符）</label>
           <div class="secret-input-row"><input id="newSecretInput" type="password" autocomplete="new-password" minlength="7" maxlength="128" placeholder="新登录密钥（至少 7 个字符）" required /><button id="toggleNewSecretBtn" type="button" aria-pressed="false">显示</button></div>
+          <label data-p07-label for="newSecretConfirmInput">再次输入新登录密钥</label>
           <input id="newSecretConfirmInput" type="password" autocomplete="new-password" minlength="7" maxlength="128" placeholder="再次输入新登录密钥" required />
           <div class="account-secret-actions"><button id="generateOwnSecretBtn" type="button">生成安全密钥</button><button class="primary" type="submit">保存并退出全部会话</button></div>
         </form>
@@ -1102,6 +1107,7 @@
         <h2 id="deleteAccountTitle">确认永久注销账户</h2>
         <p class="danger-note">此操作会清除账户、会员资格、剩余时间、充值申请和全部登录会话，无法恢复。</p>
         <form id="deleteAccountForm" class="stack-form">
+          <label data-p07-label for="deleteSecretInput">当前登录密钥</label>
           <input id="deleteSecretInput" type="password" autocomplete="current-password" maxlength="128" placeholder="重新输入当前登录密钥" required />
           <div class="action-row"><button data-close-modal="deleteAccountModal" type="button">取消</button><button class="danger-button" id="confirmDeleteAccountBtn" type="submit">永久注销</button></div>
         </form>
@@ -1244,8 +1250,8 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20261014-aeris-task26-r9"></script>
-    <script src="/learning-sync.js?v=20261014-aeris-task26-r9"></script>
-    <script type="module" src="/app.js?v=20261014-aeris-task26-r9"></script>
+    <script src="/changelog.js?v=20261027-aeris-p07-ui-r1"></script>
+    <script src="/learning-sync.js?v=20261027-aeris-p07-ui-r1"></script>
+    <script type="module" src="/app.js?v=20261027-aeris-p07-ui-r1"></script>
   </body>
 </html>
