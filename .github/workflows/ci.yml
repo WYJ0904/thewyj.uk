@@ -901,6 +901,13 @@ jobs:
       - name: Prepare fresh Cloudflare-only D1 state
         run: |
           set -euo pipefail
+          node qa/ci/test-failure-diagnostics.mjs
+          node qa/ci/test-wrangler-local-disconnect.mjs
+          node qa/ci/wrangler-local-disconnect.mjs
+
+      - name: Apply fresh Cloudflare-only D1 migrations
+        run: |
+          set -euo pipefail
           mkdir -p artifacts "${RUNNER_TEMP}/task15-cloud-state"
           npx wrangler d1 migrations apply WYJ_DB \
             --local \
