@@ -53,6 +53,13 @@ test('network error clears a previously valid guest decision', async () => {
   let fail = false;const f = fixture(async () => { if (fail) throw Error('synthetic network loss');return response(true); });
   await f.controller.refresh();fail = true;await f.controller.refresh();assert.equal(f.controller.enabled(), false);f.controller.dispose();
 });
+test('a retired backend missing the optional public endpoint remains OFF', async () => {
+  const f = fixture(async () => { throw Object.assign(new Error('Legacy endpoint is absent'), { status: 404 }); });
+  await f.controller.refresh();
+  assert.equal(f.controller.enabled(), false);
+  assert.equal(f.timers.size, 0);
+  f.controller.dispose();
+});
 test('login invalidates guest request and cannot be overridden by late public ON', async () => {
   let resolve;const f = fixture(() => new Promise(r => resolve = r));const pending = f.controller.refresh();
   f.setAccount({ id: 'synthetic-account' });f.controller.updateAccount();resolve(response(true));await pending;
