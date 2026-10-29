@@ -101,6 +101,10 @@ export function installMotionSystem(doc = globalThis.document) {
     const summary = event.target?.closest?.("summary");
     if (!summary || event.target?.closest?.("a,button,input") || event.defaultPrevented) return;
     const details = summary.parentElement; if (details?.tagName !== "DETAILS") return;
+    // Anchored menus have an absolutely positioned panel outside the summary's
+    // layout box. A height/overflow disclosure animation would hide that panel
+    // and temporarily intercept genuine pointer/keyboard actions.
+    if (details.classList?.contains("account-menu") || summary.getAttribute?.("aria-haspopup") === "menu") return;
     event.preventDefault(); animateDisclosure(details, summary);
   }, { capture: false });
   const disclosureObserver = new view.MutationObserver(records => {
