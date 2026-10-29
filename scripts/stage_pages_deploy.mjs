@@ -20,7 +20,7 @@ export const ROOT_FILES = Object.freeze([
   "sw.js",
   "THIRD_PARTY_NOTICES.md",
   "tools.js",
-  "workspace-experience.css",
+  "workspace-experience.css", "spatial-experience.css",
   "workflows.js",
 ]);
 export const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);

@@ -4,7 +4,7 @@ import {
   sanitizeAccepted,
   sanitizeStoredRubric,
   wordMatchesLanguage,
-} from "./quiz.js?v=20261028-aeris-p07-quality-r1";
+} from "./quiz.js?v=20261029-aeris-spatial-r1";
 
 export const MAX_WRONG_BOOK_ITEMS = 250;
 

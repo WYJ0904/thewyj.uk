@@ -9,7 +9,7 @@ const PUBLIC_ROOT_FILES = new Set([
   "_headers", "app.js", "changelog.js", "design-system.css", "favicon.ico",
   "icon-192.png", "icon-512.png", "index.html", "learning-sync.js",
   "manifest.webmanifest", "product-ui.css", "public-experience.css", "styles.css",
-  "sw.js", "THIRD_PARTY_NOTICES.md", "tools.js", "workspace-experience.css", "workflows.js",
+  "sw.js", "THIRD_PARTY_NOTICES.md", "tools.js", "workspace-experience.css", "spatial-experience.css", "workflows.js",
 ]);
 const PUBLIC_DIRECTORIES = new Set(["assets", "functions", "js", "vendor"]);
 const FORBIDDEN_COMPONENT = /^(?:\..*|private|developer|docs|qa|evidence|migration-evidence|credentials?|data|payment|local-backend|node_modules|__pycache__)$/i;

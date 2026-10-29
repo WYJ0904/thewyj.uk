@@ -35,7 +35,7 @@ try {
  assert.equal(dragHit.drag,'learning','drag handle must be visible and unobstructed');
  const before=await p.send('Performance.getMetrics');
  await p.send('Input.dispatchMouseEvent',{type:'mousePressed',...handle,button:'left',clickCount:1});
- for(let i=1;i<=12;i++){await p.send('Input.dispatchMouseEvent',{type:'mouseMoved',x:handle.x+10*i,y:handle.y+5*i,buttons:1});await delay(18);}
+ for(let i=1;i<=12;i++){await p.send('Input.dispatchMouseEvent',{type:'mouseMoved',x:handle.x+10*i,y:handle.y+5*i,button:'left',buttons:1});await delay(18);}
  assert.equal(await p.evaluate('__homeWrites'),0,'no persistent writes during drag');
  await p.send('Input.dispatchMouseEvent',{type:'mouseReleased',x:handle.x+120,y:handle.y+60,button:'left',clickCount:1});
  assert.equal(await p.evaluate('__homeWrites'),1,'one commit after drag: '+JSON.stringify(dragHit));
