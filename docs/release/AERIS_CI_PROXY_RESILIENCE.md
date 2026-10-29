@@ -1,0 +1,11 @@
+# Aeris local CI proxy fault isolation
+
+Base: main `63b8c419380a0a4daae06e8bbf97f77d92ce4939`. Its source tree is identical to the qualified PR114 head `6330ee5`; Production public-file and configuration checks passed. The subsequent main push run 40819002809 still failed its cloud-only local browser job while its other nine jobs passed. This is retained as FAIL, not hidden behind the earlier passing PR run.
+
+The same pinned Wrangler fatality was captured in P07 run 40813711904: a `ProxyController / Error inside ProxyWorker` event wraps `Network connection lost.` and terminates the entire development host. Its 738,866-byte local runtime log is preserved in the UI checkout, with archive SHA-256 `c553cffe8325e18405a0b150ef44311cac01670a92ed6db56a1403484a30faec`. This matches [workers-sdk issue 15317](https://github.com/cloudflare/workers-sdk/issues/15317), independently read on 2026-10-29. The upstream issue is now closed; that does not update this project's pinned 4.118.0 installation.
+
+The guarded workaround is applied only inside the disposable cloud-browser CI dependency installation: `CI=true`, exact HTTP loopback port 8894, exact Wrangler 4.118.0, and reviewed CLI method boundaries. It logs the transport failure and preserves that failed request. It does not add retries, restart a running suite, extend a deadline, remove a business assertion, patch a Production Worker, update a dependency lockfile, enable AI, or change bindings/data.
+
+VM controls execute both original and transformed handlers: the original transport event is fatal; the transformed narrow transport event is logged; D1, syntax, configuration, explicit Miniflare user errors, wrong source/reason and malformed causes retain fatal handling. Unknown CLI structure/version or double application stops the workaround. Locally only this read-only VM self-test was run; no local or global SDK files were patched.
+
+The helper source was copied read-only from preserved QA work. The original Hotfix WIP and PR110 remain separate. Exact-head CI remains required before merging this independent fix. Since only workflow/QA/report files change, public application source, database migrations, flags, member rights, official APK and financial behavior remain identical to the current main release.
