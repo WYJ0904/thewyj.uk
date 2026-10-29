@@ -901,6 +901,7 @@ jobs:
       - name: Prepare fresh Cloudflare-only D1 state
         run: |
           set -euo pipefail
+          node qa/ci/test-failure-diagnostics.mjs
           node qa/ci/test-wrangler-local-disconnect.mjs
           node qa/ci/wrangler-local-disconnect.mjs
 
