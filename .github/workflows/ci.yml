@@ -632,7 +632,7 @@ jobs:
 
   task25-android-instrumentation:
     name: Task 25 Android runtime contract
-    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b' || github.head_ref == 'codex/aeris-p07-quality-release' || github.head_ref == 'codex/aeris-ci-release-guards'
+    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b' || github.head_ref == 'codex/aeris-p07-quality-release' || github.head_ref == 'codex/aeris-spatial-preview' || github.head_ref == 'codex/aeris-ci-release-guards'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
