@@ -12,6 +12,21 @@ $FailureLogPath = if (-not [string]::IsNullOrWhiteSpace($env:VOCAB_BACKEND_FAILU
 $CapturedOutput = New-Object "System.Collections.Generic.Queue[string]"
 $CapturedOutputLimit = 120
 
+function Write-AtomicUtf8Text {
+    param([string]$Path, [string]$Content, [bool]$Bom = $false)
+    $temporary = $Path + ".tmp-" + [Guid]::NewGuid().ToString("N")
+    try {
+        [IO.File]::WriteAllText($temporary, $Content, (New-Object System.Text.UTF8Encoding($Bom)))
+        if ([IO.File]::Exists($Path)) {
+            [IO.File]::Replace($temporary, $Path, [NullString]::Value)
+        } else {
+            [IO.File]::Move($temporary, $Path)
+        }
+    } finally {
+        [IO.File]::Delete($temporary)
+    }
+}
+
 function Add-CapturedOutputLine {
     param($Value)
     $line = ([string]$Value -replace "`0", "").TrimEnd()
@@ -31,9 +46,7 @@ function Write-BackendFailureLog {
     )
     try {
         $directory = Split-Path -Parent $FailureLogPath
-        if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
-            New-Item -ItemType Directory -Path $directory -Force | Out-Null
-        }
+        $null = [IO.Directory]::CreateDirectory($directory)
         $content = New-Object System.Collections.Generic.List[string]
         $content.Add("WYJ 本地后端启动错误")
         $content.Add(("生成时间: " + (Get-Date -Format "yyyy-MM-dd HH:mm:ss zzz")))
@@ -42,13 +55,7 @@ function Write-BackendFailureLog {
         foreach ($line in $Lines) {
             $content.Add([string]$line)
         }
-        $temporary = $FailureLogPath + ".tmp-" + [Guid]::NewGuid().ToString("N")
-        try {
-            [IO.File]::WriteAllLines($temporary, $content, (New-Object System.Text.UTF8Encoding($true)))
-            Move-Item -LiteralPath $temporary -Destination $FailureLogPath -Force
-        } finally {
-            Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue
-        }
+        Write-AtomicUtf8Text -Path $FailureLogPath -Content (($content -join [Environment]::NewLine) + [Environment]::NewLine) -Bom $true
     } catch {
         # A secondary logging failure must not hide the original process exit.
     }
@@ -62,12 +69,10 @@ trap {
     exit 1
 }
 
-if (-not (Test-Path -LiteralPath $DataRoot)) {
-    New-Item -ItemType Directory -Path $DataRoot -Force | Out-Null
-}
+$null = [IO.Directory]::CreateDirectory($DataRoot)
 
 $settings = [pscustomobject]@{}
-if (Test-Path -LiteralPath $SettingsPath) {
+if ([IO.File]::Exists($SettingsPath)) {
     try {
         $rawSettings = Get-Content -Raw -Encoding UTF8 -LiteralPath $SettingsPath
         if ($rawSettings.Trim()) {
@@ -78,32 +83,24 @@ if (Test-Path -LiteralPath $SettingsPath) {
     }
 }
 
-if (-not $settings.PSObject.Properties["share_hmac_key"] -or -not [string]$settings.share_hmac_key) {
-    $bytes = New-Object byte[] 32
-    $generator = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-    try {
+$settingsChanged = $false
+$generator = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+try {
+    foreach ($property in @("share_hmac_key", "legacy_identity_bridge_key")) {
+        if ($settings.PSObject.Properties[$property] -and [string]$settings.$property) { continue }
+        $bytes = New-Object byte[] 32
         $generator.GetBytes($bytes)
-    } finally {
-        $generator.Dispose()
+        $key = [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+        $settings | Add-Member -NotePropertyName $property -NotePropertyValue $key -Force
+        $settingsChanged = $true
     }
-    $key = [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
-    $settings | Add-Member -NotePropertyName "share_hmac_key" -NotePropertyValue $key -Force
-    $json = $settings | ConvertTo-Json -Depth 8
-    [System.IO.File]::WriteAllText($SettingsPath, $json, (New-Object System.Text.UTF8Encoding($false)))
+} finally {
+    $generator.Dispose()
 }
-
-if (-not $settings.PSObject.Properties["legacy_identity_bridge_key"] -or -not [string]$settings.legacy_identity_bridge_key) {
-    $bytes = New-Object byte[] 32
-    $generator = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-    try {
-        $generator.GetBytes($bytes)
-    } finally {
-        $generator.Dispose()
-    }
-    $key = [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
-    $settings | Add-Member -NotePropertyName "legacy_identity_bridge_key" -NotePropertyValue $key -Force
-    $json = $settings | ConvertTo-Json -Depth 8
-    [System.IO.File]::WriteAllText($SettingsPath, $json, (New-Object System.Text.UTF8Encoding($false)))
+if ($settingsChanged) {
+    # Generate both missing keys once and commit one complete settings image.
+    # Existing values and unrelated fields are retained, including old accounts.
+    Write-AtomicUtf8Text -Path $SettingsPath -Content ($settings | ConvertTo-Json -Depth 8)
 }
 
 $env:VOCAB_SHARE_HMAC_KEY = [string]$settings.share_hmac_key
@@ -118,7 +115,7 @@ if (-not $env:VOCAB_ADMIN_SECRET -and $settings.PSObject.Properties["access_toke
 }
 
 $python = ""
-if ($env:VOCAB_PYTHON_EXE -and (Test-Path -LiteralPath $env:VOCAB_PYTHON_EXE -PathType Leaf)) {
+if ($env:VOCAB_PYTHON_EXE -and [IO.File]::Exists($env:VOCAB_PYTHON_EXE)) {
     $python = [IO.Path]::GetFullPath($env:VOCAB_PYTHON_EXE)
 }
 if (-not $python) {

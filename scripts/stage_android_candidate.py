@@ -34,7 +34,7 @@ def validate_origin(origin):
 
 
 def run_tool(command):
-    completed = subprocess.run(command, capture_output=True, text=True, env={**os.environ, 'LC_ALL': 'C'})
+    completed = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', env={**os.environ, 'LC_ALL': 'C'})
     if completed.returncode:
         raise ValueError(f'{Path(command[0]).name} rejected candidate')
     return completed.stdout + completed.stderr
@@ -91,7 +91,7 @@ def main():
     parser.add_argument('--signing-status', choices=['unsigned', 'verified'], required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
-    stable = json.loads(STABLE_PATH.read_text())
+    stable = json.loads(STABLE_PATH.read_text(encoding='utf-8'))
     if args.output.resolve() in {STABLE_PATH.resolve(), (ROOT / 'wrangler.jsonc').resolve()}:
         parser.error('Candidate output must not replace Stable metadata')
     try:
@@ -99,7 +99,7 @@ def main():
         verification = verify_artifacts(args.apk, args.aab, args.version_name, args.version_code, args.signing_status)
     except ValueError as error:
         parser.error(str(error))
-    source = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+    source = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=ROOT, capture_output=True, text=True, encoding='utf-8', check=True).stdout.strip()
     result = {
         'applicationId': 'uk.thewyj.app', 'versionName': args.version_name, 'versionCode': args.version_code,
         'status': 'unreleased', 'channel': 'candidate', 'signingStatus': args.signing_status,
@@ -109,7 +109,7 @@ def main():
         'apk': artifact(args.apk), 'aab': artifact(args.aab), **verification,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=2) + '\n')
+    args.output.write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
     print('Unreleased candidate metadata:', args.output)
 
 

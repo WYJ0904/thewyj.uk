@@ -1,4 +1,5 @@
 import base64
+import json
 import re
 import os
 import shutil
@@ -136,6 +137,37 @@ class LauncherStabilityTests(unittest.TestCase):
             report = failure_text
             self.assertIn("ModuleNotFoundError", report)
             self.assertLess(len(report.splitlines()), 130)
+
+    def test_backend_bootstrap_preserves_existing_keys_and_atomically_replaces_failure_log(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = Path(directory)
+            runner = temporary / "run.ps1"
+            shutil.copy2(ROOT / "local-backend" / "run.ps1", runner)
+            fake_python = temporary / "fake-python.cmd"
+            fake_python.write_text("@echo off\r\necho isolated-startup-error 1>&2\r\nexit /b 7\r\n", encoding="ascii")
+            data = temporary / "data"
+            data.mkdir()
+            settings_path = data / "settings.json"
+            settings_path.write_text(json.dumps({"share_hmac_key": "synthetic-retained-key", "unrelated": {"preserve": True}}), encoding="utf-8")
+            failure = temporary / "startup-error.txt"
+            failure.write_text("previous report", encoding="utf-8")
+            environment = {**os.environ, "VOCAB_PYTHON_EXE": str(fake_python), "VOCAB_BACKEND_FAILURE_LOG": str(failure)}
+            first_settings = None
+            for _ in range(2):
+                completed = subprocess.run([POWERSHELL, "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(runner)],
+                                           cwd=temporary, env=environment, capture_output=True, timeout=15, check=False)
+                self.assertEqual(completed.returncode, 7, f"stdout={completed.stdout!r}; stderr={completed.stderr!r}; report={failure.read_text(encoding='utf-8-sig') if failure.exists() else 'missing'}")
+                current = settings_path.read_bytes()
+                settings = json.loads(current)
+                self.assertEqual(settings["share_hmac_key"], "synthetic-retained-key")
+                self.assertEqual(settings["unrelated"], {"preserve": True})
+                self.assertRegex(settings["legacy_identity_bridge_key"], r"^[A-Za-z0-9_-]{43}$")
+                if first_settings is not None:
+                    self.assertEqual(current, first_settings, "Repeated failure cannot rotate or rewrite established settings")
+                first_settings = current
+                self.assertIn("isolated-startup-error", failure.read_text(encoding="utf-8-sig"))
+                self.assertNotIn("previous report", failure.read_text(encoding="utf-8-sig"))
+                self.assertEqual(list(temporary.rglob("*.tmp-*")), [])
 
     def test_tunnel_readiness_requires_consecutive_uncached_successes(self):
         launcher = ROOT / "desktop-tools" / "start-wyj.ps1"
