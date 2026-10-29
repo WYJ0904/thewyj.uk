@@ -367,6 +367,11 @@ jobs:
           set -euo pipefail
           node local-backend/test_tts_js.mjs 2>&1 | tee artifacts/cloud-tts.log
 
+      - name: Test P07 public policy and UI semantics
+        run: |
+          set -euo pipefail
+          node --test qa/aeris-release/public-ui-policy.test.mjs qa/aeris-release/ui-quality-dom.mjs 2>&1 | tee artifacts/p07-policy-ui-contracts.log
+
       - name: Test language JavaScript modules
         run: |
           set -euo pipefail
@@ -627,7 +632,7 @@ jobs:
 
   task25-android-instrumentation:
     name: Task 25 Android runtime contract
-    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b' || github.head_ref == 'codex/aeris-ci-release-guards'
+    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b' || github.head_ref == 'codex/aeris-p07-quality-release' || github.head_ref == 'codex/aeris-ci-release-guards'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -932,6 +937,14 @@ jobs:
           ) VALUES (
             'task15-ci-super-admin', 'wyj', 'wyj', ${quote(hash)}, 'pbkdf2_sha256',
             310000, 'super_admin', ${quote(now)}, ${quote(now)}, ${quote(now)}, ${quote(now)}
+          );
+          INSERT INTO task25_feature_flags (
+            flag_key, description, enabled, kill_switch, channels_json, rollout_basis_points,
+            revision, updated_at, updated_by, mutation_id, request_id
+          ) VALUES (
+            'p07_accessibility', 'Synthetic local CI UI fixture', 1, 0,
+            '["stable","beta","experimental"]', 10000, 1, ${quote(now)},
+            'task15-ci-super-admin', 'p07-ci-fixture', 'p07-ci-fixture'
           );\n`);
           JS
           npx wrangler d1 execute WYJ_DB \
@@ -1018,6 +1031,20 @@ jobs:
       # The two Task 24 gates below are independent of the legacy suites above:
       # running them first keeps an unrelated flake in the P0 flow from hiding
       # the >16 MiB round trip result.
+      - name: P07 real DOM, keyboard, responsive and accessibility regression
+        env:
+          AERIS_UI_EVIDENCE_DIR: artifacts/p07-ui-quality
+        run: |
+          set -euo pipefail
+          node qa/aeris-release/ui-quality-browser.mjs 2>&1 | tee artifacts/p07-ui-quality.log
+
+      - name: P07 authenticated roles, real policy and actual browser zoom
+        env:
+          AERIS_UI_AUTH_EVIDENCE_DIR: artifacts/p07-ui-authenticated
+        run: |
+          set -euo pipefail
+          node qa/aeris-release/ui-authenticated-browser.mjs 2>&1 | tee artifacts/p07-ui-authenticated.log
+
       - name: Browser round trip for large EXE and MP4 uploads (D1 + R2)
         run: |
           set -euo pipefail

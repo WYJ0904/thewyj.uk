@@ -1212,7 +1212,7 @@ body[data-experience="workspace"] .account-badge {
 }
 .finance-transaction-main small { line-height: 1.5; overflow-wrap: anywhere; }
 .finance-transaction-side { display: grid; justify-items: end; gap: 4px; }
-.finance-transaction-side > strong { font-variant-numeric: tabular-nums; font-size: 17px; }
+.finance-transaction-side > strong { font-variant-numeric: tabular-nums; font-size: 1.0625rem; }
 .finance-row-actions { margin-top: 0; gap: 4px; }
 .finance-row-actions button { min-width: 44px; min-height: 44px; }
 .finance-pagination { display: flex; justify-content: center; padding-top: 12px; }
@@ -1229,7 +1229,7 @@ body[data-experience="workspace"] .account-badge {
 }
 .finance-candidate:last-child { border-bottom: 0; }
 .finance-candidate-actions { gap: 6px; }
-.finance-candidate-actions > small { margin: 0; font-size: 12px; }
+.finance-candidate-actions > small { margin: 0; font-size: 0.75rem; }
 .finance-candidate-merchant {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1254,7 +1254,7 @@ body[data-experience="workspace"] .account-badge {
 .transfer-item:last-child, .transfer-share-row:last-child { border-bottom: 0; }
 .transfer-item-heading { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
 .transfer-item-heading > strong { min-width: 0; overflow-wrap: anywhere; }
-.transfer-item-heading .transfer-item-state { flex-shrink: 0; color: var(--ds-text-secondary); font-size: 12px; }
+.transfer-item-heading .transfer-item-state { flex-shrink: 0; color: var(--ds-text-secondary); font-size: 0.75rem; }
 .transfer-item-main > small { font-variant-numeric: tabular-nums; }
 .transfer-item-actions button, .transfer-share-actions button { min-height: 44px; }
 
@@ -1267,7 +1267,7 @@ body[data-experience="workspace"] .account-badge {
 }
 .tool-category-card small { display: none; }
 .tool-category-mark { width: 28px; height: 28px; }
-.tool-category-card em { font-size: 12px; }
+.tool-category-card em { font-size: 0.75rem; }
 .tool-catalog-section { margin-top: 24px; }
 .tool-catalog { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 20px; }
 .tool-card {
@@ -1311,8 +1311,8 @@ body[data-experience="workspace"] .account-badge {
   content-visibility: auto;
   contain-intrinsic-size: auto 125px;
 }
-.admin-user-identity h3 { font-size: 16px; }
-.admin-user-facts p, .admin-user-security p { font-size: 12px; line-height: 1.5; }
+.admin-user-identity h3 { font-size: 1rem; }
+.admin-user-facts p, .admin-user-security p { font-size: 0.75rem; line-height: 1.5; }
 .admin-user-security .admin-last-login { display: block; }
 .admin-user-actions button { min-height: 44px; }
 #adminUserCount { white-space: normal; }
@@ -1391,3 +1391,23 @@ body[data-experience="workspace"] .version-notice {
   #adminRechargeList .admin-request-status,
   #adminRechargeList .admin-user-actions { grid-column: 1; grid-row: auto; }
 }
+
+/* P07: rows and tab groups must reflow when browser text is enlarged. */
+html[data-p07-ui="enabled"] :is(.admin-user-card, .finance-transaction, .transfer-item, .transfer-share-row) > * { min-width: 0; }
+html[data-p07-ui="enabled"] :is(.admin-user-actions, .finance-row-actions, .transfer-item-actions) { flex-wrap: wrap; }
+html[data-p07-ui="enabled"] :is(.auth-tabs, .feedback-tabs) { flex-wrap: wrap; }
+html[data-p07-ui="enabled"] :is(.auth-tabs, .feedback-tabs) > button { flex: 1 1 auto; }
+html[data-p07-ui="enabled"][data-large-text="true"] :is(.settings-grid, .finance-summary-grid, .finance-form-grid, .admin-membership-grid, .admin-date-grid, .feedback-field-grid, .plan-grid, .payment-method-list, .tool-catalog, .admin-user-card, #adminRechargeList .admin-recharge-card) {
+  grid-template-columns: minmax(0, 1fr);
+}
+html[data-p07-ui="enabled"][data-large-text="true"] :is(.admin-user-facts, .admin-user-security, .admin-user-actions, .admin-request-status) {
+  grid-column: auto !important;
+  grid-row: auto !important;
+}
+html[data-p07-ui="enabled"][data-large-text="true"] :is(.admin-tabs, .workspace > .tabs) {
+  position: static;
+  display: flex;
+  flex-wrap: wrap;
+  overflow: visible;
+}
+html[data-p07-ui="enabled"][data-large-text="true"] :is(.admin-tabs, .workspace > .tabs) > button { flex: 1 1 auto; }

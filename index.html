@@ -4,30 +4,34 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
-    <title>thewyj.uk · Aeris — 学习、工具、账本与文件</title>
+    <title>Aeris — 学习、工具、账本与文件</title>
     <meta name="description" content="Aeris：继续语言学习，处理文本与文件，管理账本和传输。" />
     <meta property="og:title" content="Aeris — 学习、工具、账本与文件" />
     <meta property="og:description" content="从一件小事开始，登录后接着自己的进度。" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Aeris" />
     <meta property="og:url" content="https://thewyj.uk/" />
-    <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?v=20261027-aeris-p07-ui-r1" />
+    <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?v=20261028-aeris-p07-quality-r1" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Aeris — 学习、工具、账本与文件" />
+    <meta name="twitter:description" content="继续语言学习，处理文本与文件，管理账本和传输。" />
     <meta name="application-name" content="Aeris" />
-    <link rel="icon" href="/favicon.ico?v=20261027-aeris-p07-ui-r1" sizes="any" />
-    <link rel="icon" href="/assets/brand/favicon-32.png?v=20261027-aeris-p07-ui-r1" type="image/png" sizes="32x32" />
-    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png?v=20261027-aeris-p07-ui-r1" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20261027-aeris-p07-ui-r1" />
-    <link rel="stylesheet" href="/styles.css?v=20261027-aeris-p07-ui-r1" />
-    <link rel="stylesheet" href="/product-ui.css?v=20261027-aeris-p07-ui-r1" />
-    <link rel="stylesheet" href="/design-system.css?v=20261027-aeris-p07-ui-r1" />
-    <link rel="stylesheet" href="/public-experience.css?v=20261027-aeris-p07-ui-r1" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20261027-aeris-p07-ui-r1" />
+    <meta name="apple-mobile-web-app-title" content="Aeris" />
+    <link rel="icon" href="/favicon.ico?v=20261028-aeris-p07-quality-r1" sizes="any" />
+    <link rel="icon" href="/assets/brand/favicon-32.png?v=20261028-aeris-p07-quality-r1" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png?v=20261028-aeris-p07-quality-r1" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20261028-aeris-p07-quality-r1" />
+    <link rel="stylesheet" href="/styles.css?v=20261028-aeris-p07-quality-r1" />
+    <link rel="stylesheet" href="/product-ui.css?v=20261028-aeris-p07-quality-r1" />
+    <link rel="stylesheet" href="/design-system.css?v=20261028-aeris-p07-quality-r1" />
+    <link rel="stylesheet" href="/public-experience.css?v=20261028-aeris-p07-quality-r1" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20261028-aeris-p07-quality-r1" />
   </head>
   <body>
     <a class="skip-link" id="skipToContent" href="#pageContent">跳转到主要内容</a>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 Aeris" aria-hidden="false">
       <div class="entry-content" id="splashMedia">
-        <img class="entry-logo" id="splashImage" src="/icon-192.png?v=20261027-aeris-p07-ui-r1" width="192" height="192" alt="" />
+        <img class="entry-logo" id="splashImage" src="/icon-192.png?v=20261028-aeris-p07-quality-r1" width="192" height="192" alt="" />
         <strong>Aeris</strong>
         <span class="entry-progress" aria-hidden="true"></span>
       </div>
@@ -42,7 +46,7 @@
       <nav class="site-nav" id="accountBar" aria-label="主导航">
         <div class="site-nav-bar">
           <a class="site-brand" href="/" data-site-nav="home" aria-label="Aeris 首页">
-            <img src="/icon-192.png?v=20261027-aeris-p07-ui-r1" width="192" height="192" alt="" />
+            <img src="/icon-192.png?v=20261028-aeris-p07-quality-r1" width="192" height="192" alt="" />
             <span class="site-brand-copy"><strong>Aeris</strong><small id="siteVersionLabel">v2026.09.12.5</small></span>
           </a>
           <div class="home-inline-nav" aria-label="主要模块">
@@ -66,8 +70,8 @@
             <button class="primary" id="navRegisterBtn" type="button">注册</button>
           </div>
           <details class="account-menu hidden" id="accountMenu">
-            <summary aria-label="打开账户菜单"><span class="account-badge" id="accountBadge">未登录</span></summary>
-            <div class="account-menu-popover" role="menu">
+            <summary aria-label="打开账户菜单" aria-haspopup="menu" aria-controls="accountMenuPopover"><span class="account-badge" id="accountBadge">未登录</span></summary>
+            <div class="account-menu-popover" id="accountMenuPopover" role="menu" aria-label="账户">
               <button class="hidden" id="homeBtn" type="button" role="menuitem">个人首页</button>
               <button id="membershipBtn" type="button" role="menuitem">会员与充值</button>
               <button class="hidden" id="feedbackBtn" type="button" role="menuitem">反馈与功能投票</button>
@@ -108,7 +112,7 @@
       <section class="public-home hidden" id="publicHome" aria-labelledby="publicHomeTitle" aria-hidden="true">
         <section class="public-intro public-hero" data-public-section="hero" aria-labelledby="publicHomeTitle">
           <div class="public-intro-copy">
-            <div class="home-brand"><img class="aeris-hero-logo" src="/icon-192.png?v=20261027-aeris-p07-ui-r1" alt="Aeris" width="64" height="64" /><h1 id="publicHomeTitle">Aeris</h1></div>
+            <div class="home-brand"><img class="aeris-hero-logo" src="/icon-192.png?v=20261028-aeris-p07-quality-r1" alt="Aeris" width="64" height="64" /><h1 id="publicHomeTitle">Aeris</h1></div>
             <p class="home-purpose">学习 · 工具 · 账本 · 文件</p>
             <p class="home-identity" data-home-personal hidden><span id="dashboardGreeting"></span><span id="dashboardMembershipName"></span><span id="dashboardMembershipExpiry"></span></p>
             <div class="public-actions">
@@ -160,15 +164,15 @@
             </section>
             <section class="aeris-product-panel" id="capabilityToolsBody" role="tabpanel" aria-labelledby="publicToolsTab" data-capability-panel="tools" hidden>
               <div class="aeris-panel-copy"><h3 id="publicToolsTitle">文本统计</h3><p>输入后即时统计。</p></div>
-              <div class="aeris-live-sample"><label for="publicTextInput">输入一段文本</label><textarea id="publicTextInput" rows="4" maxlength="10000" placeholder="在这里输入或粘贴"></textarea><div class="aeris-live-metrics" aria-live="polite"><span><output id="publicTextCharacters">0</output> 字符</span><span><output id="publicTextLines">0</output> 行</span></div><button class="button-ghost" id="publicTextClear" type="button">清空</button><small>仅在本机统计。</small></div>
+              <div class="aeris-live-sample"><label for="publicTextInput">输入一段文本</label><textarea id="publicTextInput" rows="4" maxlength="10000" placeholder="在这里输入或粘贴"></textarea><div class="aeris-live-metrics" aria-live="polite"><span><output id="publicTextCharacters" for="publicTextInput" aria-label="字符数">0</output> 字符</span><span><output id="publicTextLines" for="publicTextInput" aria-label="行数">0</output> 行</span></div><button class="button-ghost" id="publicTextClear" type="button">清空</button><small>仅在本机统计。</small></div>
             </section>
             <section class="aeris-product-panel" id="capabilityFinanceBody" role="tabpanel" aria-labelledby="publicFinanceTab" data-capability-panel="finance" hidden>
               <div class="aeris-panel-copy"><h3>结余试算</h3><p>不会写入账本。</p></div>
-              <div class="aeris-live-sample"><p>本机估算</p><div class="aeris-budget-inputs"><label>收入（元）<input id="publicBudgetIncome" type="number" min="0" max="999999999" step="0.01" inputmode="decimal" value="0" /></label><label>支出（元）<input id="publicBudgetExpense" type="number" min="0" max="999999999" step="0.01" inputmode="decimal" value="0" /></label></div><p class="aeris-budget-result">结余 <output id="publicBudgetBalance" aria-live="polite">¥0.00</output></p><small>这里的估算不会写入账本。</small></div>
+              <div class="aeris-live-sample"><p>本机估算</p><div class="aeris-budget-inputs"><label>收入（元）<input id="publicBudgetIncome" type="number" min="0" max="999999999" step="0.01" inputmode="decimal" value="0" /></label><label>支出（元）<input id="publicBudgetExpense" type="number" min="0" max="999999999" step="0.01" inputmode="decimal" value="0" /></label></div><p class="aeris-budget-result">结余 <output id="publicBudgetBalance" for="publicBudgetIncome publicBudgetExpense" aria-label="本机估算结余（CNY）" aria-live="polite">¥0.00</output></p><small>这里的估算不会写入账本。</small></div>
             </section>
             <section class="aeris-product-panel" id="capabilityShareBody" role="tabpanel" aria-labelledby="publicFilesTab" data-capability-panel="files" hidden>
               <div class="aeris-panel-copy"><h3>文件清单</h3><p>查看文件名与大小，不上传。</p></div>
-              <div class="aeris-live-sample"><button class="button-secondary" id="publicFilesChoose" type="button">选择文件预览</button><input class="hidden" id="publicFilesInput" type="file" multiple /><ul class="aeris-file-preview" id="publicFilesPreview" aria-live="polite"><li>尚未选择文件。</li></ul><small>仅查看本机清单，上传从登录后的传输页开始。</small></div>
+              <div class="aeris-live-sample"><button class="button-secondary" id="publicFilesChoose" type="button">选择文件预览</button><input class="hidden" id="publicFilesInput" type="file" aria-labelledby="publicFilesChoose" multiple /><ul class="aeris-file-preview" id="publicFilesPreview" aria-live="polite"><li>尚未选择文件。</li></ul><small>仅查看本机清单，上传从登录后的传输页开始。</small></div>
             </section>
           </div>
         </section>
@@ -242,10 +246,10 @@
           <header class="aeris-home-section-heading"><h2 id="publicPlansTitle">套餐与权益</h2><p>当前可购买方案；开通沿用现有付款确认流程。</p></header>
           <div class="aeris-plan-grid">
             <article class="aeris-plan-card"><h3>免费体验</h3><p class="aeris-plan-note">无需注册</p><ul class="aeris-plan-features"><li>英语或日语小测，最多 10 题</li><li>文本统计与 JSON 格式化</li><li>单张图片压缩与格式转换</li></ul><p>语言、文本、JSON 与单张图片试用。</p><button class="button-secondary" id="publicTrialBtn" type="button">开始免费试用</button></article>
-            <article class="aeris-plan-card"><h3>模块权益与订阅</h3><p class="aeris-plan-note">按模块开通</p><ul class="aeris-plan-catalog" id="publicModulePlans" aria-label="当前模块订阅"><li>正在读取当前套餐目录…</li></ul><button class="button-secondary" id="publicPlansBtn" type="button">查看套餐与权益</button></article>
-            <article class="aeris-plan-card"><h3>全功能与永久权益</h3><p class="aeris-plan-note">包月与永久方案</p><ul class="aeris-plan-catalog" id="publicPermanentPlans" aria-label="当前全功能与永久方案"><li>正在读取当前套餐目录…</li></ul><p>各方案包含的功能与有效期，以账户页面当前详情为准。</p><button class="button-secondary" type="button" data-public-trigger="publicPlansBtn">查看完整方案</button></article>
+            <article class="aeris-plan-card"><h3>模块权益与订阅</h3><p class="aeris-plan-note">按模块开通</p><ul class="aeris-plan-catalog" id="publicModulePlans" aria-label="当前模块订阅" aria-busy="true"><li>正在读取当前套餐目录…</li></ul><button class="button-secondary" id="publicPlansBtn" type="button">查看套餐与权益</button></article>
+            <article class="aeris-plan-card"><h3>全功能与永久权益</h3><p class="aeris-plan-note">包月与永久方案</p><ul class="aeris-plan-catalog" id="publicPermanentPlans" aria-label="当前全功能与永久方案" aria-busy="true"><li>正在读取当前套餐目录…</li></ul><p>各方案包含的功能与有效期，以账户页面当前详情为准。</p><button class="button-secondary" type="button" data-public-trigger="publicPlansBtn">查看完整方案</button></article>
           </div>
-          <div class="aeris-catalog-status"><p id="publicPlanStatus" role="status">正在读取当前套餐目录…</p><button class="button-ghost hidden" id="publicPlanRetryBtn" type="button">重试读取套餐</button></div>
+          <div class="aeris-catalog-status"><p id="publicPlanStatus" role="status" aria-atomic="true">正在读取当前套餐目录…</p><button class="button-ghost hidden" id="publicPlanRetryBtn" type="button">重试读取套餐</button></div>
         </section>
         </details>
         <footer class="aeris-final-cta" data-public-section="final" aria-label="下载与更新"><span>Aeris</span><div class="public-actions"><a class="button-link button-secondary" href="/download" data-site-nav="download">下载 Android</a><a class="button-link button-secondary" id="publicChangelogBtn" href="/changelog" data-site-nav="changelog">更新日志</a></div></footer>
@@ -526,7 +530,7 @@
       </div>
       <section class="project-picker hidden" id="projectPicker" aria-labelledby="projectPickerTitle">
         <header class="project-brand">
-          <img src="/icon-192.png?v=20261027-aeris-p07-ui-r1" width="192" height="192" alt="Aeris Logo" />
+          <img src="/icon-192.png?v=20261028-aeris-p07-quality-r1" width="192" height="192" alt="Aeris Logo" />
           <div><p class="section-kicker">语言学习</p><h1 id="projectPickerTitle">选择语言测试</h1></div>
         </header>
         <div class="project-grid" aria-label="选择项目">
@@ -545,7 +549,7 @@
       <section class="project-app hidden" id="projectApp" aria-hidden="true">
         <header class="topbar hidden" id="topbar">
           <div class="brand">
-            <img class="brand-icon" src="/icon-192.png?v=20261027-aeris-p07-ui-r1" width="192" height="192" alt="" />
+            <img class="brand-icon" src="/icon-192.png?v=20261028-aeris-p07-quality-r1" width="192" height="192" alt="" />
             <div>
               <h1>语言学习</h1>
               <p id="modelLabel" aria-live="polite">检测中</p>
@@ -569,34 +573,34 @@
         </section>
 
         <section class="panel auth-panel hidden" id="authPanel">
-          <img class="auth-logo" src="/assets/brand/aeris-lockup.png?v=20261027-aeris-p07-ui-r1" width="320" height="320" alt="Aeris" />
+          <img class="auth-logo" src="/assets/brand/aeris-lockup.png?v=20261028-aeris-p07-quality-r1" width="320" height="320" alt="Aeris" />
           <h2 id="authTitle">账户登录</h2>
           <div class="auth-tabs" role="tablist" aria-label="账户入口">
             <button class="active" id="showLoginBtn" type="button" role="tab" aria-controls="loginForm" aria-selected="true">登录</button>
             <button id="showRegisterBtn" type="button" role="tab" aria-controls="registerForm" aria-selected="false">注册</button>
           </div>
-          <form id="loginForm" class="login-form">
+          <form id="loginForm" class="login-form" role="tabpanel" aria-labelledby="showLoginBtn" aria-describedby="loginError">
             <label class="field-label auth-field"><span>用户名</span><input id="usernameInput" autocomplete="username" maxlength="40" placeholder="请输入用户名" required /></label>
             <label class="field-label auth-field"><span>登录密钥</span><input id="secretInput" type="password" autocomplete="current-password" maxlength="128" placeholder="请输入登录密钥" required /></label>
             <button class="primary" id="loginSubmitBtn" type="submit">登录</button>
           </form>
-          <form id="registerForm" class="login-form hidden">
+          <form id="registerForm" class="login-form hidden" role="tabpanel" aria-labelledby="showRegisterBtn" aria-describedby="loginError">
             <label class="field-label auth-field"><span>用户名</span><input id="registerUsernameInput" autocomplete="username" maxlength="40" placeholder="请输入用户名" required /></label>
             <label class="field-label auth-field"><span>登录密钥</span><input id="registerSecretInput" type="password" autocomplete="new-password" minlength="7" maxlength="128" placeholder="至少 7 个字符" required /></label>
             <label class="field-label auth-field"><span>确认登录密钥</span><input id="registerConfirmInput" type="password" autocomplete="new-password" minlength="7" maxlength="128" placeholder="再次输入登录密钥" required /></label>
             <button class="primary" id="registerSubmitBtn" type="submit">创建账户</button>
           </form>
           <button class="hidden" id="offlineReviewBtn" type="button">进入本地复习</button>
-          <p class="error" id="loginError" aria-live="polite"></p>
+          <p class="error" id="loginError" role="status" aria-live="polite" aria-atomic="true"></p>
         </section>
 
         <section class="workspace hidden" id="workspace">
-          <nav class="tabs" aria-label="视图">
-            <button class="active" data-view="setupView">词表</button>
-            <button data-view="quizView" disabled title="尚未开始测试">答题</button>
-            <button data-view="wrongView">错题</button>
-            <button data-view="achievementsView">成就</button>
-            <button data-view="studyView">统计</button>
+          <nav class="tabs" role="tablist" aria-label="学习视图">
+            <button class="active" id="setupViewTab" type="button" role="tab" aria-controls="setupView" data-view="setupView">词表</button>
+            <button id="quizViewTab" type="button" role="tab" aria-controls="quizView" data-view="quizView" disabled title="尚未开始测试">答题</button>
+            <button id="wrongViewTab" type="button" role="tab" aria-controls="wrongView" data-view="wrongView">错题</button>
+            <button id="achievementsViewTab" type="button" role="tab" aria-controls="achievementsView" data-view="achievementsView">成就</button>
+            <button id="studyViewTab" type="button" role="tab" aria-controls="studyView" data-view="studyView">统计</button>
           </nav>
 
           <section class="panel mastery-section hidden" id="masterySection" aria-labelledby="masteryTitle">
@@ -616,7 +620,7 @@
             <section id="masteryDetail" class="mastery-detail hidden" aria-label="知识点学习状态"></section>
           </section>
 
-          <section class="view active" id="setupView">
+          <section class="view active" id="setupView" role="tabpanel" aria-labelledby="setupViewTab">
             <div class="panel">
               <div class="settings-grid">
                 <label class="field-label">
@@ -683,7 +687,8 @@
               </section>
               </details>
 
-              <textarea id="wordInput" maxlength="120000" placeholder="输入词表，每行一个词"></textarea>
+              <label data-p07-label for="wordInput">练习词表（每行一个词）</label>
+              <textarea id="wordInput" maxlength="120000" placeholder="输入词表，每行一个词" aria-describedby="wordLimitHint wordQualityHint"></textarea>
               <p class="meta-line" id="wordLimitHint" aria-live="polite"></p>
               <p class="meta-line word-quality-hint" id="wordQualityHint" aria-live="polite"></p>
               <div class="action-row">
@@ -708,7 +713,7 @@
             </details>
           </section>
 
-          <section class="view" id="quizView">
+          <section class="view" id="quizView" role="tabpanel" aria-labelledby="quizViewTab">
             <div class="quiz-card">
               <div class="quiz-meta">
                 <span id="progressLabel">0/0</span>
@@ -720,6 +725,7 @@
                 <span class="word-primary" id="wordText">-</span>
                 <span class="word-reading hidden" id="wordReading" aria-hidden="true"></span>
               </div>
+              <label data-p07-label for="answerInput">你的答案</label>
               <form id="answerForm" class="answer-form">
                 <input id="answerInput" autocomplete="off" maxlength="240" placeholder="中文意思" aria-describedby="answerValidation" />
                 <button class="primary" id="submitBtn" type="submit">提交</button>
@@ -745,7 +751,7 @@
             </div>
           </section>
 
-          <section class="view" id="wrongView">
+          <section class="view" id="wrongView" role="tabpanel" aria-labelledby="wrongViewTab">
             <div class="panel">
               <div class="scope-tabs">
                 <button class="active" id="currentWrongTab" type="button">本轮</button>
@@ -775,7 +781,7 @@
             </div>
           </section>
 
-          <section class="view" id="achievementsView">
+          <section class="view" id="achievementsView" role="tabpanel" aria-labelledby="achievementsViewTab">
             <div class="panel achievement-panel">
               <div class="achievement-head">
                 <div><h2>成就</h2><p class="meta-line" id="achievementSummary"></p></div>
@@ -796,7 +802,7 @@
             </div>
           </section>
 
-          <section class="view" id="studyView">
+          <section class="view" id="studyView" role="tabpanel" aria-labelledby="studyViewTab">
             <div class="panel study-panel">
               <div class="study-heading">
                 <div>
@@ -1103,13 +1109,13 @@
     </div>
 
     <div class="modal-layer hidden" id="deleteAccountModal" aria-hidden="true">
-      <section class="modal-panel confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="deleteAccountTitle">
+      <section class="modal-panel confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="deleteAccountTitle" aria-describedby="deleteAccountWarning">
         <h2 id="deleteAccountTitle">确认永久注销账户</h2>
-        <p class="danger-note">此操作会清除账户、会员资格、剩余时间、充值申请和全部登录会话，无法恢复。</p>
+        <p class="danger-note" id="deleteAccountWarning">此操作会清除账户、会员资格、剩余时间、充值申请和全部登录会话，无法恢复。</p>
         <form id="deleteAccountForm" class="stack-form">
           <label data-p07-label for="deleteSecretInput">当前登录密钥</label>
           <input id="deleteSecretInput" type="password" autocomplete="current-password" maxlength="128" placeholder="重新输入当前登录密钥" required />
-          <div class="action-row"><button data-close-modal="deleteAccountModal" type="button">取消</button><button class="danger-button" id="confirmDeleteAccountBtn" type="submit">永久注销</button></div>
+          <div class="action-row"><button data-close-modal="deleteAccountModal" data-dialog-initial-focus type="button">取消</button><button class="danger-button" id="confirmDeleteAccountBtn" type="submit">永久注销</button></div>
         </form>
       </section>
     </div>
@@ -1189,7 +1195,7 @@
     </div>
 
     <div class="modal-layer hidden" id="confirmModal" aria-hidden="true">
-      <section class="modal-panel confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <section class="modal-panel confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
         <h2 id="confirmTitle">确认操作</h2><p id="confirmMessage"></p>
         <div class="action-row"><button id="cancelConfirmBtn" type="button">取消</button><button class="danger-button" id="acceptConfirmBtn" type="button">确认</button></div>
       </section>
@@ -1201,11 +1207,11 @@
         <p class="section-kicker">帮助我们改进</p>
         <h2 id="feedbackTitle">反馈与功能投票</h2>
         <div class="feedback-tabs" role="tablist" aria-label="反馈视图">
-          <button class="active" type="button" data-feedback-view="feedbackSubmitView" role="tab" aria-selected="true">提交反馈</button>
-          <button type="button" data-feedback-view="feedbackMineView" role="tab" aria-selected="false">我的反馈</button>
-          <button type="button" data-feedback-view="feedbackVotingView" role="tab" aria-selected="false">功能投票</button>
+          <button class="active" id="feedbackSubmitTab" type="button" data-feedback-view="feedbackSubmitView" role="tab" aria-controls="feedbackSubmitView" aria-selected="true">提交反馈</button>
+          <button id="feedbackMineTab" type="button" data-feedback-view="feedbackMineView" role="tab" aria-controls="feedbackMineView" aria-selected="false">我的反馈</button>
+          <button id="feedbackVotingTab" type="button" data-feedback-view="feedbackVotingView" role="tab" aria-controls="feedbackVotingView" aria-selected="false">功能投票</button>
         </div>
-        <section class="feedback-view active" id="feedbackSubmitView" role="tabpanel">
+        <section class="feedback-view active" id="feedbackSubmitView" role="tabpanel" aria-labelledby="feedbackSubmitTab">
           <form class="stack-form feedback-form" id="feedbackForm">
             <div class="feedback-field-grid">
               <label class="field-label"><span>反馈类型</span><select id="feedbackType" required><option value="feature_suggestion">功能建议</option><option value="tool_error">工具报错</option><option value="page_issue">页面问题</option><option value="account_issue">账户问题</option><option value="new_tool">新工具建议</option><option value="other">其他反馈</option></select></label>
@@ -1219,8 +1225,8 @@
             <button class="primary" id="submitFeedbackBtn" type="submit">提交反馈</button>
           </form>
         </section>
-        <section class="feedback-view" id="feedbackMineView" role="tabpanel"><div class="feedback-view-heading"><h3>我的反馈</h3><button id="refreshMyFeedbackBtn" type="button">刷新</button></div><div class="feedback-list" id="myFeedbackList"><p class="dashboard-empty">尚未加载。</p></div></section>
-        <section class="feedback-view" id="feedbackVotingView" role="tabpanel"><div class="feedback-view-heading"><div><h3>功能投票</h3><p>这里只显示管理员已采纳的建议标题；每人每项一票，可以取消。反馈正文和提交者不会公开。</p></div><button id="refreshVotingBtn" type="button">刷新</button></div><div class="feedback-list" id="featureVotingList"><p class="dashboard-empty">尚未加载。</p></div></section>
+        <section class="feedback-view" id="feedbackMineView" role="tabpanel" aria-labelledby="feedbackMineTab"><div class="feedback-view-heading"><h3>我的反馈</h3><button id="refreshMyFeedbackBtn" type="button">刷新</button></div><div class="feedback-list" id="myFeedbackList" role="status" aria-live="polite" aria-relevant="additions text"><p class="dashboard-empty">尚未加载。</p></div></section>
+        <section class="feedback-view" id="feedbackVotingView" role="tabpanel" aria-labelledby="feedbackVotingTab"><div class="feedback-view-heading"><div><h3>功能投票</h3><p>这里只显示管理员已采纳的建议标题；每人每项一票，可以取消。反馈正文和提交者不会公开。</p></div><button id="refreshVotingBtn" type="button">刷新</button></div><div class="feedback-list" id="featureVotingList" role="status" aria-live="polite" aria-relevant="additions text"><p class="dashboard-empty">尚未加载。</p></div></section>
         <p class="meta-line" id="feedbackMessage" aria-live="polite"></p>
       </section>
     </div>
@@ -1250,8 +1256,8 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20261027-aeris-p07-ui-r1"></script>
-    <script src="/learning-sync.js?v=20261027-aeris-p07-ui-r1"></script>
-    <script type="module" src="/app.js?v=20261027-aeris-p07-ui-r1"></script>
+    <script src="/changelog.js?v=20261028-aeris-p07-quality-r1"></script>
+    <script src="/learning-sync.js?v=20261028-aeris-p07-quality-r1"></script>
+    <script type="module" src="/app.js?v=20261028-aeris-p07-quality-r1"></script>
   </body>
 </html>
