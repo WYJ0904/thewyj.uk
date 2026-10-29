@@ -204,10 +204,16 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
             // Equal labels can belong to different monetary nodes; retain their positions.
 
         private val transferTimeLabel = Regex("^(轉帳|轉賬)時閒$")
-        private val numberPattern = Regex("""[0-9OoIlSsZzBbGg]{1,12}([.,][0-9OoIlSsZzBbGg]{1,2})?""")
+        private val numberPattern = Regex("""(?<![A-Za-z0-9_-])[0-9OoIlSsZzBbGg]{1,12}([.,][0-9OoIlSsZzBbGg]{1,2})?(?![A-Za-z0-9_-])""")
+        private val referenceLabel = Regex("订单号|訂單號|交易号|交易號|流水号|流水號|凭证号|憑證號|参考号|參考號|(?:transaction|order|reference)\\s*(?:id|number|no|[:#])", RegexOption.IGNORE_CASE)
+        private val monetaryContext = Regex("[¥￥$€£]|CNY|RMB|USD|EUR|HKD|GBP|JPY|人民币|人民幣|日元|円|金额|金額|实付|實付|已付|已收|扣款|扣除|到账|到賬|退款|原价|原價|优惠|優惠|余额|餘額|手续费|手續費", RegexOption.IGNORE_CASE)
 
-        private fun normalizeNumericTokens(line: String): String =
-            numberPattern.replace(line) { match ->
+        private fun normalizeNumericTokens(line: String): String {
+            // Provider identity and merchant text are opaque evidence. Repair
+            // digit-shaped glyphs only in a monetary region, never inside IDs.
+            if (PaymentText.providerReference(line) != null || referenceLabel.containsMatchIn(line)) return line
+            if (!monetaryContext.containsMatchIn(line) && !Regex("[0-9OoIlSsZzBbGg]+[.,][0-9OoIlSsZzBbGg]{1,2}").matches(line)) return line
+            return numberPattern.replace(line) { match ->
                 val token = match.value
                 // Only rewrite when the token actually mixes digits and letters or
                 // contains a digit-like letter: pure words such as "Song" stay.
@@ -227,6 +233,7 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
                     }
                 }.joinToString("")
             }
+        }
 
         /** True when the recognised page mentions money in a payment context. */
         fun looksLikePaymentPage(lines: List<String>): Boolean {
