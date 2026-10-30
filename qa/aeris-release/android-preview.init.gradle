@@ -1,0 +1,8 @@
+// Isolated debug identity only; product source and official app are untouched.
+gradle.beforeProject { project ->
+    project.pluginManager.withPlugin('com.android.application') {
+        project.androidComponents.finalizeDsl { android ->
+            android.buildTypes.getByName('debug').applicationIdSuffix = '.v62spatialqa'
+        }
+    }
+}
