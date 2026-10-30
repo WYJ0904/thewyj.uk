@@ -1,0 +1,7 @@
+// Test-only input through Android UI Automator's ordinary accessibility action.
+gradle.beforeProject { project ->
+    project.pluginManager.withPlugin('com.android.application') {
+        project.android.sourceSets.getByName('androidTest').java.srcDir(
+            project.file('../../qa/aeris-release/android-native-input'))
+    }
+}

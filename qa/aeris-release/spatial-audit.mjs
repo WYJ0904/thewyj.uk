@@ -2,23 +2,25 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { openPage, delay } from '../../local-backend/browser_harness.mjs';
 
 const root = path.resolve(import.meta.dirname, '../..');
 const label = process.env.AERIS_SPATIAL_LABEL;
 assert(/^spatial-(before|after)-r[1-9][0-9]*$/.test(label || ''));
 const origin = new URL(process.env.WYJ_TEST_BASE).origin;
-assert.equal(origin, 'http://127.0.0.1:8898', 'Only the dedicated local fixture may receive synthetic ledger writes');
-assert.equal(process.env.WYJ_CDP_URL, 'http://127.0.0.1:9238');
+const hosted = origin === 'https://ac8cec2c.thewyj-p07-ui-rc.pages.dev' && process.env.AERIS_OWNED_PREVIEW === 'true';
+assert(hosted || origin === 'http://127.0.0.1:8898', 'Only owned fixtures may receive synthetic ledger writes');
+if (!hosted) assert.equal(process.env.WYJ_CDP_URL, 'http://127.0.0.1:9238');
 const attempt = process.env.AERIS_CI_FIXTURE_ATTEMPT;
 assert(/^r[1-9][0-9]*$/.test(attempt || ''));
-const manifest = JSON.parse(await fs.readFile(path.join(root, `docs/migration-evidence/aeris-p03-p07/ci/browser-fixture-${attempt}.json`), 'utf8'));
-assert(manifest.no_remote_bindings && manifest.workers_ai_enabled === false && manifest.synthetic_admin);
+const manifest = hosted ? null : JSON.parse(await fs.readFile(path.join(root, `docs/migration-evidence/aeris-p03-p07/ci/browser-fixture-${attempt}.json`), 'utf8'));
+if (!hosted) assert(manifest.no_remote_bindings && manifest.workers_ai_enabled === false && manifest.synthetic_admin);
 const out = path.join(root, 'docs/migration-evidence/aeris-p03-p07', label);
 await fs.mkdir(out, { recursive: false });
 const pages = [], captures = [], checks = [], source = {};
 for (const name of ['index.html', 'app.js', 'design-system.css', 'public-experience.css', 'workspace-experience.css', 'product-ui.css', 'styles.css', 'js/core/motion.js', 'js/core/home-widgets.js', 'spatial-experience.css']) {
-  try { const raw = await fs.readFile(path.join(root, manifest.output, name)); source[name] = { sha256: createHash('sha256').update(raw).digest('hex'), lines: raw.toString('utf8').split('\n').length }; }
+  try { const raw = hosted ? execFileSync('git', ['show', '80139a03b5b655b4f4d7ba4e865778c7654bb91d:'+name], {cwd:root}) : await fs.readFile(path.join(root, manifest.output, name)); source[name] = { sha256: createHash('sha256').update(raw).digest('hex'), lines: raw.toString('utf8').split('\n').length }; }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
 const ready = page => page.waitFor("!document.getElementById('entryScreen') && !document.getElementById('appShell').classList.contains('app-shell-pending') && document.getElementById('sessionRecovery').classList.contains('hidden')", 30000);
@@ -45,7 +47,7 @@ async function login(page) {
   await page.navigate('/login'); await ready(page);
   await page.waitFor("!document.getElementById('authPanel').classList.contains('hidden') && !document.getElementById('loginForm').classList.contains('hidden')", 30000);
   await page.waitFor("document.documentElement.dataset.p07Ui==='enabled'", 30000, 'chosen ON presentation has settled before geometry-based input');
-  await page.setFields({ '#usernameInput': 'wyj', '#secretInput': process.env.WYJ_TEST_ADMIN_SECRET });
+  await page.setFields({ '#usernameInput': process.env.AERIS_SPATIAL_USERNAME || 'wyj', '#secretInput': process.env.WYJ_TEST_ADMIN_SECRET });
   await click(page, '#loginSubmitBtn');
   await page.waitFor("location.pathname==='/' && !document.getElementById('accountMenu').classList.contains('hidden')", 30000);
 }
@@ -57,7 +59,7 @@ async function capture(page, name, route, width, theme, openLedger=false) {
   if (route === '/finance') await page.waitFor("!document.getElementById('financePage').classList.contains('hidden') && document.getElementById('financeTransactionList').textContent.includes('AERIS V6.2 合成')", 30000);
   if (openLedger && !await page.evaluate("document.getElementById('financeRecordedSection').open")) {
     await click(page, '#financeRecordedSection > summary');
-    await page.waitFor("document.getElementById('financeRecordedSection').open && [...document.querySelectorAll('.finance-transaction-row')].filter(n=>n.getClientRects().length).length===3",30000);
+    await page.waitFor("document.getElementById('financeRecordedSection').open && [...document.querySelectorAll('[data-finance-transaction]')].filter(n=>n.getClientRects().length).length===3",30000);
   }
   await page.evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)};true`);
   await delay(160);
@@ -92,7 +94,7 @@ try {
       await member.waitFor(`document.getElementById('financeTransactionList').textContent.includes(${JSON.stringify(merchant)})`, 30000);
     }
   }
-  checks.push({ id: 'synthetic-local-ledger-fixtures-through-real-form', status: 'PASS', currency: 'CNY', scope: 'owned local fixture synthetic super-admin only', formalDataWrites: 0, providedBusinessEvidence: false });
+  checks.push({ id: 'synthetic-local-ledger-fixtures-through-real-form', status: 'PASS', currency: 'CNY', scope: hosted ? 'owned Preview separate registered validation user' : 'owned local fixture synthetic super-admin only', formalDataWrites: 0, providedBusinessEvidence: false });
   for (const width of [320, 375, 390, 420, 768, 1024, 1366, 1440, 1920]) {
     for (const theme of ['light', 'dark']) {
       for (const [page, route, name] of [[guest, '/', 'home'], [guest, '/login', 'login'], [member, '/finance', 'finance']]) {
@@ -118,7 +120,7 @@ try {
 }
 finally {
   for (const page of pages) await page.close().catch(() => {});
-  const result = { label, origin, environment: 'ACTUAL_LOCAL_CLOUDFLARE_SYNTHETIC_FIXTURE', source, checks, captures, pass: checks.filter(r => r.status === 'PASS').length, fail: checks.filter(r => r.status === 'FAIL').length, externalAiCalls: 0, realFinancialWrites: 0, deviceClaims: false };
+  const result = { label, origin, environment: hosted ? 'HOSTED_OWNED_PREVIEW_SYNTHETIC_VALIDATION_LEDGER' : 'ACTUAL_LOCAL_CLOUDFLARE_SYNTHETIC_FIXTURE', source, checks, captures, pass: checks.filter(r => r.status === 'PASS').length, fail: checks.filter(r => r.status === 'FAIL').length, externalAiCalls: 0, realFinancialWrites: 0, deviceClaims: false };
   await fs.writeFile(path.join(out, 'result.json'), JSON.stringify(result, null, 2));
   console.log(JSON.stringify({ output: path.relative(root, out), captures: captures.length, fail: result.fail }));
   if (result.fail) process.exitCode = 1;

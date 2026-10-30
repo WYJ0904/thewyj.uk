@@ -16,7 +16,8 @@ export const zoomSources = [
 ];
 export async function openZoomedBrowser(factor, directory, origin = 'http://127.0.0.1:8898') {
   assert([1, 2, 4].includes(factor));
-  assert(['http://127.0.0.1:8898', 'http://127.0.0.1:8894'].includes(origin));
+  assert(['http://127.0.0.1:8898', 'http://127.0.0.1:8894',
+    'https://ac8cec2c.thewyj-p07-ui-rc.pages.dev'].includes(origin));
   await fs.mkdir(directory, { recursive: false });
   const profile = path.join(directory, 'private-profile');
   await fs.mkdir(path.join(profile, 'Default'), { recursive: true });
@@ -64,7 +65,7 @@ export async function openZoomedBrowser(factor, directory, origin = 'http://127.
     };
     const navigate = async route => { assert(route.startsWith('/') && !route.startsWith('//')); await send('Page.navigate', { url: origin + route }); await waitFor("document.readyState!=='loading' && document.getElementById('appShell') && !document.getElementById('appShell').classList.contains('app-shell-pending')"); };
     const setFields = fields => evaluate(String.raw`(() => {for(const [selector,value] of Object.entries(${JSON.stringify(fields)})){const node=document.querySelector(selector);if(!node)throw new Error('Missing control '+selector);node.value=String(value);node.dispatchEvent(new Event('input',{bubbles:true}));node.dispatchEvent(new Event('change',{bubbles:true}));}return true;})()`);
-    return { send, evaluate, waitFor, navigate, setFields, runtimeErrors, dialogs,
+    return { send, evaluate, waitFor, navigate, setFields, runtimeErrors, dialogs, cdpUrl: endpoint,
       zoom: { requestedFactor: factor, preference: 'partition.default_zoom_level.x', level: preferences.partition.default_zoom_level.x,
         mechanism: 'Chromium browser profile default zoom; no CSS zoom, page-scale or device-metric override', browser: version.Browser, sources: zoomSources },
       close: async () => { try { await Promise.race([browserClient.send('Browser.close'), delay(3000)]); } finally { pageClient.close(); browserClient.close(); if (child.exitCode === null && !child.killed) child.kill(); } },

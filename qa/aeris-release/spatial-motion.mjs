@@ -3,10 +3,11 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {openPage,delay} from '../../local-backend/browser_harness.mjs';
 const root=path.resolve(import.meta.dirname,'../..');
-assert.equal(process.env.WYJ_TEST_BASE,'http://127.0.0.1:8898');
+const hosted=process.env.WYJ_TEST_BASE==='https://ac8cec2c.thewyj-p07-ui-rc.pages.dev'&&process.env.AERIS_OWNED_PREVIEW==='true';
+assert(hosted||process.env.WYJ_TEST_BASE==='http://127.0.0.1:8898');
 const out=path.join(root,'docs/migration-evidence/aeris-p03-p07',`spatial-motion-${Date.now()}`);await fs.mkdir(out);
 const page=await openPage({baseUrl:process.env.WYJ_TEST_BASE,cdpUrl:process.env.WYJ_CDP_URL,width:1440,height:960});const checks=[];
-const sample=()=>page.send('Runtime.evaluate',{expression:`(()=>{const r=document.querySelector('[data-home-widget=learning]'),v=r.querySelector('.home-widget-visual'),m=new DOMMatrix(getComputedStyle(v).transform),b=r.getBoundingClientRect();return {position:getComputedStyle(r).transform,dragging:r.dataset.dragging,editing:document.querySelector('.public-hero-scene').dataset.editing,layout:document.getElementById('publicHome').dataset.widgetLayout,coarse:matchMedia('(pointer:coarse)').matches,visual:{x:m.e,y:m.f,scale:m.a},rect:{x:b.x,y:b.y,width:b.width,height:b.height},animations:v.getAnimations().map(a=>({state:a.playState,iterations:a.effect.getTiming().iterations})),path:location.pathname};})()`,returnByValue:true,userGesture:false}).then(value=>value.result.value);
+const sample=(card='learning')=>page.send('Runtime.evaluate',{expression:`(()=>{const r=document.querySelector('[data-home-widget=${card}]'),v=r.querySelector('.home-widget-visual'),m=new DOMMatrix(getComputedStyle(v).transform),b=r.getBoundingClientRect();return {position:getComputedStyle(r).transform,dragging:r.dataset.dragging,editing:document.querySelector('.public-hero-scene').dataset.editing,layout:document.getElementById('publicHome').dataset.widgetLayout,coarse:matchMedia('(pointer:coarse)').matches,visual:{x:m.e,y:m.f,scale:m.a},rect:{x:b.x,y:b.y,width:b.width,height:b.height},animations:v.getAnimations().map(a=>({state:a.playState,iterations:a.effect.getTiming().iterations})),path:location.pathname};})()`,returnByValue:true,userGesture:false}).then(value=>value.result.value);
 const move=async(x,y)=>page.send('Input.dispatchMouseEvent',{type:'mouseMoved',x,y,buttons:0});
 const click=async selector=>{const p=await page.evaluate(`(()=>{const n=document.querySelector(${JSON.stringify(selector)});n.scrollIntoView({block:'center',behavior:'instant'});const r=n.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};})()`);await page.send('Input.dispatchMouseEvent',{type:'mousePressed',...p,button:'left',buttons:1,clickCount:1});await page.send('Input.dispatchMouseEvent',{type:'mouseReleased',...p,button:'left',buttons:0,clickCount:1});};
 try{
@@ -31,13 +32,14 @@ try{
  checks.push({id:'drag-release-settles-without-navigation',status:'PASS',dragged,settled});
  const trials=[];
  for(let round=0;round<30;round++){
-  await page.evaluate("document.querySelector('[data-widget-drag=learning]').scrollIntoView({block:'nearest',behavior:'instant'});new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))");
-  const point=await page.evaluate("(()=>{const n=document.querySelector('[data-widget-drag=learning]'),r=n.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;if(!n.contains(document.elementFromPoint(x,y)))throw Error('Repeated target occluded');return{x,y};})()");
+  const card=['learning','finance','tools'][round%3];
+  await page.evaluate(`document.querySelector('[data-widget-drag=${card}]').scrollIntoView({block:'nearest',behavior:'instant'});new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))`);
+  const point=await page.evaluate(`(()=>{const n=document.querySelector('[data-widget-drag=${card}]'),r=n.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;if(!n.contains(document.elementFromPoint(x,y)))throw Error('Repeated target occluded');return{x,y};})()`);
   const sign=round%2?-1:1;await move(point.x,point.y);await page.send('Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',buttons:1,clickCount:1});
-  await page.send('Input.dispatchMouseEvent',{type:'mouseMoved',x:point.x+sign*12,y:point.y+sign*8,button:'left',buttons:1});await delay(220);const active=await sample();
-  await page.send('Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x+sign*12,y:point.y+sign*8,button:'left',buttons:0,clickCount:1});await delay(220);const final=await sample();
+  await page.send('Input.dispatchMouseEvent',{type:'mouseMoved',x:point.x+sign*12,y:point.y+sign*8,button:'left',buttons:1});await delay(220);const active=await sample(card);
+  await page.send('Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x+sign*12,y:point.y+sign*8,button:'left',buttons:0,clickCount:1});await delay(220);const final=await sample(card);
   assert.equal(active.dragging,'true');assert(active.visual.scale>1.005);assert.equal(final.path,'/');assert(Math.abs(final.visual.scale-1)<.003);
-  trials.push({round:round+1,status:'PASS',activeScale:active.visual.scale,finalScale:final.visual.scale});
+  trials.push({round:round+1,card,status:'PASS',activeScale:active.visual.scale,finalScale:final.visual.scale});
  }
  checks.push({id:'thirty-controlled-gesture-repetitions',status:'PASS',trials,uniqueScenarioCount:1});
  for(let i=0;i<10;i++){await move(i%2?settled.rect.x+60:5,i%2?settled.rect.y+60:5);await delay(18);}const interrupted=await sample();assert(interrupted.animations.length<=2);assert(interrupted.animations.every(a=>a.iterations===1));
@@ -48,4 +50,4 @@ try{
  checks.push({id:'native-reduced-motion-signal-component-contract',status:'PASS',android,physicalAndroidClaim:false});
  assert.deepEqual(page.runtimeErrors,[]);assert.deepEqual(page.dialogs,[]);
 }catch(error){checks.push({id:'motion-failure',status:'FAIL',error:error.stack,events:await page.evaluate('window.__spatialEvents').catch(()=>[])});}
-finally{await page.send('Input.dispatchMouseEvent',{type:'mouseReleased',x:1,y:1,button:'left',buttons:0,clickCount:1}).catch(()=>{});await page.close();await fs.writeFile(path.join(out,'result.json'),JSON.stringify({checks,controlledPressAnimationOverride:process.env.AERIS_STABLE_HANDLE_PRESS==='1',scope:'Actual local Chrome input; synthetic guest layout only; native preference is an explicit component control',pass:checks.filter(r=>r.status==='PASS').length,fail:checks.filter(r=>r.status==='FAIL').length},null,2));console.log(JSON.stringify({output:path.relative(root,out),checks:checks.map(r=>({id:r.id,status:r.status}))}));if(checks.some(r=>r.status==='FAIL'))process.exitCode=1;}
+finally{await page.send('Input.dispatchMouseEvent',{type:'mouseReleased',x:1,y:1,button:'left',buttons:0,clickCount:1}).catch(()=>{});await page.close();await fs.writeFile(path.join(out,'result.json'),JSON.stringify({checks,origin:process.env.WYJ_TEST_BASE,controlledPressAnimationOverride:process.env.AERIS_STABLE_HANDLE_PRESS==='1',scope:(hosted?'Hosted owned Preview':'Local fixture')+' actual Chrome input; synthetic guest layout only; native preference is an explicit component control',pass:checks.filter(r=>r.status==='PASS').length,fail:checks.filter(r=>r.status==='FAIL').length},null,2));console.log(JSON.stringify({output:path.relative(root,out),checks:checks.map(r=>({id:r.id,status:r.status}))}));if(checks.some(r=>r.status==='FAIL'))process.exitCode=1;}

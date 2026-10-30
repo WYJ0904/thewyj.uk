@@ -12,9 +12,10 @@ const origin = new URL(process.env.WYJ_BASE_URL || process.env.WYJ_TEST_BASE || 
 const cdp = process.env.WYJ_CDP_URL;
 const localFixture = origin === 'http://127.0.0.1:8898' && cdp === 'http://127.0.0.1:9238';
 const ciFixture = process.env.CI === 'true' && origin === 'http://127.0.0.1:8894' && cdp === 'http://127.0.0.1:9225';
-assert(localFixture || ciFixture, 'Only the two explicit paired loopback fixtures are allowed; CI pair additionally requires CI=true');
+const hostedFixture = origin === 'https://ac8cec2c.thewyj-p07-ui-rc.pages.dev' && process.env.AERIS_OWNED_PREVIEW === 'true' && /^http:\/\/127\.0\.0\.1:\d+$/.test(cdp);
+assert(localFixture || ciFixture || hostedFixture, 'Only explicit owned fixtures are allowed');
 const adminName = process.env.WYJ_TEST_ADMIN_USERNAME || (ciFixture ? 'wyj' : '');
-const adminId = ciFixture ? 'task15-ci-super-admin' : 'aeris-ui-qa-super-admin';
+const adminId = hostedFixture ? process.env.AERIS_PREVIEW_ADMIN_ID : ciFixture ? 'task15-ci-super-admin' : 'aeris-ui-qa-super-admin';
 assert(process.env.WYJ_TEST_ADMIN_SECRET && adminName, 'Synthetic fixture credentials required in child environment');
 const root = path.resolve(import.meta.dirname, '../..');
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -33,6 +34,7 @@ const localNoticeClosures = [];
 const zoomRuntimeErrors = [], zoomDialogs = [];
 let admin, user, guest, ordinary = null, originalFlag = null, originalOthers = null, overrideChanged = false;
 let policyRestored = false, overrideRestored = false;
+let originalAdminError = '';
 const writeProgress = async () => fs.writeFile(path.join(out, 'progress.json'), JSON.stringify({ checks, captures, mutations }, null, 2));
 const check = async (id, run) => {
   try { checks.push({ id, status: 'PASS', actual: await run() }); }
@@ -149,7 +151,7 @@ try {
     const manifest = JSON.parse(await fs.readFile(path.join(root, `docs/migration-evidence/aeris-p03-p07/ci/browser-fixture${fixtureSuffix}.json`), 'utf8'));
     assert(manifest.no_remote_bindings && manifest.synthetic_admin && manifest.workers_ai_enabled === false);
   }
-  const status = await fetch(`${origin}/api/status?source=cloud`).then(response => response.json()); assert.equal(status.environment, 'development'); assert.equal(status.ai_ready, false);
+  const status = await fetch(`${origin}/api/status?source=cloud`).then(response => response.json()); assert.equal(status.environment, hostedFixture ? 'preview' : 'development'); assert.equal(status.ai_ready, false);
   guest = await makePage(); await guest.navigate('/login'); await ready(guest);
   await check('guest-real-global-on-and-accessible-login', async () => {
     const decision = await api(guest, '/api/ui/features'); assert.equal(decision.public_ui.enabled, true); await waitPolicy(guest, true, 'real guest public decision');
@@ -217,6 +219,11 @@ try {
     const actor = (await api(admin, '/api/me')).account; assert.equal(actor.id, adminId); assert.equal(actor.is_admin, true);
     await admin.navigate('/admin'); await ready(admin);
     await admin.waitFor("document.getElementById('adminPanel').getAttribute('aria-busy')==='false' && document.querySelectorAll('#adminUserList [data-user-id]').length>0");
+    originalAdminError = await admin.evaluate("document.getElementById('adminError').textContent");
+    if (hostedFixture) {
+      assert.match(originalAdminError, /^站内消息：.*；管理员角色：.*已加载的内容会保留，请点击刷新重试。$/);
+      checks.push({id:'hosted-disabled-message-and-role-service-business-acceptance',status:'NOT_TESTED',reason:'Owned Preview TASK18 is OFF; user-list recovery is tested independently; services are not enabled to manufacture PASS'});
+    } else assert.equal(originalAdminError, '');
     await waitPolicy(admin, true, 'administrator actual Task25 decision');
     await admin.evaluate("document.getElementById('adminUsersTab').focus()"); await key(admin, 'End');
     assert.equal(await admin.evaluate('document.activeElement.id'), 'adminFeatureFlagsTab');
@@ -246,8 +253,10 @@ try {
     await admin.waitFor("document.getElementById('adminError').textContent.includes('隔离 UI 故障') && !document.getElementById('refreshAdminBtn').disabled");
     assert.equal(await admin.evaluate("document.querySelectorAll('#adminUserList [data-user-id]').length"), count);
     await capture(admin, 'admin-synthetic-http-error-retains-data');
-    mode = 'pass'; await click(admin, '#refreshAdminBtn'); await admin.waitFor("!document.getElementById('adminError').textContent && document.getElementById('adminPanel').getAttribute('aria-busy')==='false'");
-    return { realEmptySearch: true, syntheticHttp400: faults, retainedRows: count, actualServerRefreshRecovered: true, adminDataWrites: 0 };
+    mode = 'pass'; await click(admin, '#refreshAdminBtn');
+    await admin.waitFor(`document.getElementById('adminError').textContent===${JSON.stringify(originalAdminError)} && document.getElementById('adminPanel').getAttribute('aria-busy')==='false'`);
+    assert.equal(await admin.evaluate("document.querySelectorAll('#adminUserList [data-user-id]').length"),count);
+    return { realEmptySearch: true, syntheticHttp400: faults, retainedRows: count, actualServerRefreshRecovered: true, disabledServicesRemainUnchanged:hostedFixture, adminDataWrites: 0 };
   });
 
   await check('three-real-roles-two-themes-actual-browser-100-200-400-percent-zoom-and-ax', async () => {
@@ -338,7 +347,7 @@ finally {
     } catch (error) { checks.push({ id: 'local-policy-restoration', status: 'FAIL', error: scrub(error.stack) }); }
   }
   for (const page of pages) { try { await page.close(); } catch (error) { checks.push({ id: 'close-owned-browser-context', status: 'FAIL', error: scrub(error.message) }); } }
-  const report = { origin, environment: 'ACTUAL_LOCAL_CLOUDFLARE_D1_R2_SYNTHETIC_ACCOUNTS', checks, captures, mutations, localNoticeClosures,
+  const report = { origin, environment: hostedFixture ? 'HOSTED_OWNED_PREVIEW_SYNTHETIC_ACCOUNTS' : 'ACTUAL_LOCAL_CLOUDFLARE_D1_R2_SYNTHETIC_ACCOUNTS', checks, captures, mutations, localNoticeClosures,
     pass: checks.filter(row => row.status === 'PASS').length, fail: checks.filter(row => row.status === 'FAIL').length, blocked: checks.filter(row => row.status === 'BLOCKED').length,
     limits: ['AX tree and DOM checks are not a professional screen-reader acceptance', 'Browser zoom uses new owned private profiles and is verified independently of page-scale/pinch and CSS zoom', 'HTTP fault injection is synthetic and separate from real server empty responses', 'No field Core Web Vitals or physical-device claims'],
     scope: { realRegistrationAndLogin: true, freshLocalOrdinaryAccount: true, existingOwnedSyntheticAdmin: true, localPolicyRestored: policyRestored,
