@@ -32,4 +32,11 @@ class Guard(unittest.TestCase):
   c=config(fixture())['vars']
   self.assertTrue(all(v=='false' for k,v in c.items() if k.endswith('IMPORT_ENABLED')))
   self.assertEqual(c['TASK21_NOTIFICATION_WRITES_ENABLED'],'false')
+ def test_controlled_notification_phase_still_cannot_enable_ai_or_shared_data(self):
+  r=fixture();r['controlled_notification_tests']=True;c=config(r)
+  self.assertEqual(c['vars']['TASK21_NOTIFICATION_WRITES_ENABLED'],'true')
+  self.assertEqual(c['vars']['TASK13_CLOUD_WRITES_ENABLED'],'true')
+  self.assertEqual(c['vars']['FINANCE_AI_ENABLED'],'false');self.assertEqual(c['vars']['FINANCE_AI_KILL_SWITCH'],'true')
+  r['database_id']=next(iter(PROTECTED))
+  with self.assertRaises(AssertionError):config(r)
 if __name__=='__main__':unittest.main()

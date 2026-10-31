@@ -33,12 +33,15 @@ def config(r):
   'TASK16_CLOUD_WRITES_ENABLED','TASK20_ANDROID_APP_ENABLED','TASK25_FEATURE_FLAGS_ENABLED','D1_RATE_LIMIT_ENABLED','FINANCE_AI_KILL_SWITCH']})
  flags.update(WYJ_ENVIRONMENT='preview',CLOUD_STATUS_MODE='cloud',CLOUD_RATE_LIMIT_REQUESTS='120',CLOUD_RATE_LIMIT_WINDOW_SECONDS='60',
   ANDROID_LATEST_VERSION_CODE='50',ANDROID_LATEST_VERSION_NAME='1.3.37',ANDROID_MINIMUM_VERSION_CODE='1')
+ if r.get('controlled_notification_tests') is True:
+  # Deliberate second stage, only on resources created/validated above.
+  flags.update(TASK13_CLOUD_WRITES_ENABLED='true',TASK21_NOTIFICATION_READS_ENABLED='true',TASK21_NOTIFICATION_WRITES_ENABLED='true')
  binding=dict(binding='WYJ_DB',database_name=DBNAME,database_id=r['database_id'],migrations_table='wyj_d1_migrations',migrations_dir=str(ROOT/'cloudflare/migrations'))
  return dict(name=PROJECT,pages_build_output_dir='.',compatibility_date='2026-08-06',send_metrics=False,
   vars=flags,d1_databases=[binding],env=dict(preview=dict(vars=dict(flags),d1_databases=[dict(binding)])))
 
 def main():
- p=argparse.ArgumentParser();p.add_argument('action',choices=['audit','create-db','create-restore','create-project','migrate','prepare','secrets','seed','deploy','verify','export','restore'])
+ p=argparse.ArgumentParser();p.add_argument('action',choices=['audit','create-db','create-restore','create-project','migrate','enable-qa-services','prepare','secrets','seed','deploy','verify','export','restore'])
  p.add_argument('--label',required=True);a=p.parse_args();assert re.fullmatch('[a-z0-9-]+',a.label)
  dest=BASE/a.label;dest.mkdir(parents=True,exist_ok=False);private=BASE/'private';private.mkdir(exist_ok=True)
  context=CONTEXT;context.mkdir(parents=True,exist_ok=True);write(context/'package.json',dict(private=True))
@@ -99,6 +102,12 @@ def main():
    run('migrations',['d1','migrations','apply','WYJ_DB','--remote','--config',str(context/'wrangler.jsonc')])
    sql="SELECT name FROM wyj_d1_migrations ORDER BY id;SELECT key,value FROM task16_metadata;SELECT key,value FROM task21_metadata;PRAGMA foreign_key_check;"
    record['schema']=run('schema',['d1','execute','WYJ_DB','--remote','--config',str(context/'wrangler.jsonc'),'--command',sql,'--json'],parse=True)
+  elif a.action=='enable-qa-services':
+   r=resources();live_own(cloud,r);assert r.get('project_created_by_this_run')
+   accounts=json.loads((private/'accounts.json').read_text());assert accounts['synthetic_only'] is True
+   assert {u['id'] for u in accounts['users']}=={'synthetic-p0-admin','synthetic-p0-owner'}
+   r['controlled_notification_tests']=True;write(BASE/'resources.json',r)
+   record['deliberate_qa_phase']='Owned synthetic entitlement and notification API; next deployment only, no permission/Production/AI activation'
   elif a.action=='prepare':
    r=resources();live_own(cloud,r);assert not subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True).strip(),'Commit reviewed inputs before stage'
    head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()

@@ -38,6 +38,14 @@ def eligible(cfg,branch):
  assert mode=='custom'
  if any(fnmatch.fnmatchcase(branch,p)for p in cfg.get('preview_branch_excludes',[])):return False
  return any(fnmatch.fnmatchcase(branch,p)for p in cfg.get('preview_branch_includes',[]))
+
+def skipped_by_branch_without_execution(deployment):
+ if deployment.get('is_skipped') is not True or deployment.get('skip_reason')!='branch_config':return False
+ stages={s['name']:s for s in deployment.get('stages',[])}
+ for name in ['initialize','clone_repo','build','deploy']:
+  s=stages.get(name)
+  if not s or s.get('status')!='idle' or s.get('started_on') is not None or s.get('ended_on') is not None:return False
+ return True
 def plan(project):
  assert project['name']==PROJECT and project['production_branch']=='main'
  assert project['source']['type']=='github'
