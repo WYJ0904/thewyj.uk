@@ -24,6 +24,9 @@ function list(value,values,max){if(!Array.isArray(value)||value.length>max||new 
 function stable(v){return JSON.stringify(v&&typeof v==='object'?Array.isArray(v)?v.map(x=>JSON.parse(stable(x))):Object.fromEntries(Object.keys(v).sort().map(k=>[k,JSON.parse(stable(v[k]))])):v);}
 async function first(db,sql,...values){return db.prepare(sql).bind(...values).first();}
 async function run(db,sql,...values){return db.prepare(sql).bind(...values).run();}
+// Quoted tokens and SQL comments are not constraint declarations. Keep this
+// prerequisite conservative for custom restores; the shipped DDL is unquoted.
+function constraintSql(sql){return String(sql||'').replace(/'(?:''|[^'])*'|"(?:""|[^"])*"|`(?:``|[^`])*`|\[[^\]]*\]|--[^\r\n]*|\/\*[\s\S]*?\*\//g,' ');}
 function numericOption(env,key,fallback,min,max){
   const text=env[key];if(text===undefined||text==='')return fallback;
   if(typeof text!=='string'||!/^(0|[1-9][0-9]*)$/.test(text))return null;
@@ -180,13 +183,33 @@ async function reserve(db,user,hintId,inputDigest,cfg){
   const before=await first(db,'SELECT attempts FROM finance_ai_observations WHERE user_id=?1 AND hint_id=?2 AND input_digest=?3',user,hintId,inputDigest);
   if(!before||before.attempts>=2)fail('finance_ai_event_budget_exhausted',429);
   const date=now();const userScope='user:'+await sha256Hex(user);const periods=[['day:'+date.slice(0,10),'global',cfg.day],['month:'+date.slice(0,7),'global',cfg.month],['day:'+date.slice(0,10),userScope,cfg.userDay],['month:'+date.slice(0,7),userScope,cfg.month]];
-  for(const [period,scope,limit] of periods){
-    const reserved=await first(db,`INSERT INTO finance_ai_budgets(period_key,scope_key,reserved_calls,provider_calls,updated_at) SELECT ?1,?2,1,0,?3 WHERE ?4>0
-      ON CONFLICT(period_key,scope_key) DO UPDATE SET reserved_calls=reserved_calls+1,updated_at=excluded.updated_at WHERE reserved_calls<?4 RETURNING reserved_calls`,period,scope,date,Math.floor(limit));
-    if(!reserved)fail('finance_ai_budget_exhausted',429);
+  // D1 batch is transactional, but a zero-row conditional write is not an
+  // error and would not roll back earlier reservations. Fail the existing
+  // non-negative CHECK constraint on any denied bucket/stale event instead.
+  // The negative sentinel can never persist. All four limits and the event
+  // attempt commit together, without relying on cross-statement changes().
+  const statements=periods.map(([period,scope,limit])=>db.prepare(`INSERT INTO finance_ai_budgets(period_key,scope_key,reserved_calls,provider_calls,updated_at)
+    VALUES(?1,?2,CASE WHEN EXISTS(SELECT 1 FROM finance_ai_observations WHERE user_id=?5 AND hint_id=?6 AND input_digest=?7 AND attempts<2) THEN 1 ELSE -1 END,0,?3)
+    ON CONFLICT(period_key,scope_key) DO UPDATE SET reserved_calls=CASE WHEN reserved_calls<?4 AND EXISTS(
+      SELECT 1 FROM finance_ai_observations WHERE user_id=?5 AND hint_id=?6 AND input_digest=?7 AND attempts<2) THEN reserved_calls+1 ELSE -1 END,
+      updated_at=excluded.updated_at`).bind(period,scope,date,Math.floor(limit),user,hintId,inputDigest));
+  statements.push(db.prepare(`UPDATE finance_ai_observations SET attempts=CASE WHEN input_digest=?3 AND attempts<2 THEN attempts+1 ELSE -1 END
+    WHERE user_id=?1 AND hint_id=?2`).bind(user,hintId,inputDigest));
+  try{
+    const result=await db.batch(statements);
+    if(Number(result.at(-1).meta?.changes)!==1)fail('finance_ai_event_budget_exhausted',429);
+  }catch(error){
+    // Classify only current, structured quota state, never D1/provider error
+    // text that may contain request details. If no quota currently denies the
+    // request, preserve the storage failure rather than inventing a cause.
+    const event=await first(db,'SELECT attempts,input_digest FROM finance_ai_observations WHERE user_id=?1 AND hint_id=?2',user,hintId);
+    if(!event||event.input_digest!==inputDigest||event.attempts>=2)fail('finance_ai_event_budget_exhausted',429);
+    for(const [period,scope,limit]of periods){
+      const bucket=await first(db,'SELECT reserved_calls FROM finance_ai_budgets WHERE period_key=?1 AND scope_key=?2',period,scope);
+      if(Number(bucket?.reserved_calls)>=limit)fail('finance_ai_budget_exhausted',429);
+    }
+    throw error;
   }
-  const event=await first(db,`UPDATE finance_ai_observations SET attempts=attempts+1 WHERE user_id=?1 AND hint_id=?2 AND input_digest=?3 AND attempts<2 RETURNING attempts`,user,hintId,inputDigest);
-  if(!event)fail('finance_ai_event_budget_exhausted',429);
   return periods;
 }
 async function infer(context,model,input,cfg){
@@ -211,8 +234,12 @@ async function infer(context,model,input,cfg){
 export async function financeAiRequest(context,account,path,payload){
   const cfg=config(context.env);const db=context.env.WYJ_DB;const user=account.id;
   if(cfg.available){
-    const schema=await first(db,"SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND name IN ('finance_ai_consents','finance_ai_observations','finance_ai_decisions','finance_ai_budgets')").catch(()=>null);
-    if(schema?.count!==4)cfg.available=false;
+    const schema=await db.prepare("SELECT name,sql FROM sqlite_master WHERE type='table' AND name IN ('finance_ai_consents','finance_ai_observations','finance_ai_decisions','finance_ai_budgets')").all().catch(()=>null);
+    const definitions=new Map((schema?.results||[]).map(row=>[row.name,constraintSql(row.sql)]));
+    // Reservation rollback relies on the existing migration's CHECKs. A
+    // partial/custom restore without those invariants must not run inference.
+    if(definitions.size!==4||!/\bCHECK\s*\(\s*reserved_calls\s*>=\s*0\s*\)/i.test(definitions.get('finance_ai_budgets')||'')||
+      !/\bCHECK\s*\(\s*attempts\s+BETWEEN\s+0\s+AND\s+2\s*\)/i.test(definitions.get('finance_ai_observations')||''))cfg.available=false;
   }
   if(path==='/api/finance/ai/config')return {available:cfg.available,consent:await consent(db,user).catch(()=>({enabled:0,revision:0})),model_version:cfg.available?cfg.version+':'+cfg.model+':'+FINANCE_AI_PROMPT_VERSION+':'+cfg.protocol:'',requires_manual_confirmation:true};
   // Withdrawal must work even when inference is killed/unavailable.
@@ -253,9 +280,11 @@ export async function financeAiRequest(context,account,path,payload){
   let previous=await first(db,'SELECT * FROM finance_ai_decisions WHERE user_id=?1 AND hint_id=?2 AND input_digest=?3 AND model_version=?4',...bind);
   // A crashed worker cannot leave the UI permanently running. After the two
   // maximum 10s inference waits plus 10s scheduling allowance, close the old
-  // claim without retrying or reclaiming budget. Any late result is discarded.
+  // claim without retrying or reclaiming budget. Every claim renews updated_at;
+  // created_at remains the original audit time after an unbilled quota retry.
+  // Any late result is discarded.
   // This does not assert that a remote model was cancelled or was unbilled.
-  if(previous?.status==='running'&&(!Number.isFinite(Date.parse(previous.created_at))||Date.now()-Date.parse(previous.created_at)>30000)){
+  if(previous?.status==='running'&&(!Number.isFinite(Date.parse(previous.updated_at))||Date.now()-Date.parse(previous.updated_at)>30000)){
     await run(db,"UPDATE finance_ai_decisions SET status='timed_out',result_json='',error_code='finance_ai_interrupted',updated_at=?6 WHERE user_id=?1 AND hint_id=?2 AND input_digest=?3 AND model_version=?4 AND lease_token=?5 AND status='running'",...bind,previous.lease_token,now());
     previous=await first(db,'SELECT * FROM finance_ai_decisions WHERE user_id=?1 AND hint_id=?2 AND input_digest=?3 AND model_version=?4',...bind);
   }
