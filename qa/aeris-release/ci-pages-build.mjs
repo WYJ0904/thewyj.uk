@@ -40,8 +40,8 @@ export async function verifyPagesBuild() {
   const config = JSON.parse(await readFile(path.join(root, "wrangler.jsonc"), "utf8"));
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   assert.equal(config.pages_build_output_dir, ".wrangler/pages-output");
-  assert.equal(pkg.scripts.build, "node scripts/stage_pages_deploy.mjs");
-  assert.equal(pkg.scripts["pages:stage"], pkg.scripts.build);
+  assert.equal(pkg.scripts["pages:stage"], "node scripts/stage_pages_deploy.mjs");
+  assert.equal(pkg.scripts.build, "npm run pages:stage && node scripts/check_pages_output.mjs");
   const output = path.join(root, ".wrangler", "pages-output");
   assert.equal(await realpath(output), output);
   const files = await entries(output);
