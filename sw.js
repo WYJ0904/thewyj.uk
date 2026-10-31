@@ -1,4 +1,5 @@
-const CACHE = "wyj-shell-20261031-aeris-p0-finance-r1-es-modules";
+// Asset release and financial representation are independent cache fences.
+const CACHE = "wyj-shell-20261031-aeris-p0-finance-r1-es-modules" + "-finance-money-v3";
 const NAVIGATION_TIMEOUT_MS = 5000;
 const ASSET_TIMEOUT_MS = 10000;
 const CORE_SHELL = [

@@ -17,7 +17,7 @@ for p in files:
    return m[1]+m[2]+'?v='+NEW+m[3]
   text=static.sub(version,text)
  if p.name=='sw.js':
-  text,n=re.subn(r'^const CACHE = "[^"]+";',f'const CACHE = "wyj-shell-{NEW}-es-modules";',text,count=1,flags=re.M);assert n==1
+  text,n=re.subn(r'^const CACHE = [^\r\n]+;',f'const CACHE = "wyj-shell-{NEW}-es-modules" + "-finance-money-v3";',text,count=1,flags=re.M);assert n==1
   text=re.sub(r'"(/js/[^"?]+\.js)"',lambda m:'"'+m[1]+'?v='+NEW+'"',text)
  if text!=before:p.write_text(text,encoding='utf8',newline='\n');changes.append(p.relative_to(ROOT).as_posix())
 sw=ROOT/'sw.js';text=sw.read_text(encoding='utf8');missing=sorted(url for url in targets if '"'+url+'"'not in text)

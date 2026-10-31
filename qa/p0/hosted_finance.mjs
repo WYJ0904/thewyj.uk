@@ -7,6 +7,7 @@ import {spawnSync} from 'node:child_process';
 import {currencyDigits,moneyText,convertMinor} from '../../js/finance/money.js';
 const root=path.resolve(import.meta.dirname,'../..'),base=path.join(root,'docs/migration-evidence/aeris-p0-closeout/cloud');
 const label=process.argv[2];assert.match(label||'',/^[a-z0-9-]+$/);
+const driverHash=createHash('sha256').update(await fs.readFile(new URL(import.meta.url))).digest('hex');
 const out=path.join(base,label);await fs.mkdir(out);
 const d=JSON.parse(await fs.readFile(path.join(base,'deployment.json'),'utf8'));
 const s=JSON.parse(await fs.readFile(path.join(base,'stage.json'),'utf8'));
@@ -24,7 +25,8 @@ async function request(route,body,capability='3'){
  return {status:response.status,...await response.json()};
 }
 async function check(id,fn){try{rows.push({id,status:'PASS',actual:await fn()});}catch(error){rows.push({id,status:'FAIL',error:error.stack});}
- await fs.writeFile(path.join(out,'result.json'),JSON.stringify({origin,source_commit:d.source_commit,deployment_id:d.id,checked_utc:new Date().toISOString(),rows,requests,external_model_calls:0,formal_data_accessed:false},null,2));}
+ const currentDriverHash=createHash('sha256').update(await fs.readFile(new URL(import.meta.url))).digest('hex');
+ await fs.writeFile(path.join(out,'result.json'),JSON.stringify({origin,source_commit:d.source_commit,deployment_id:d.id,checked_utc:new Date().toISOString(),driver_sha256_before:driverHash,driver_sha256_after:currentDriverHash,source_stable:driverHash===currentDriverHash,rows,requests,external_model_calls:0,formal_data_accessed:false},null,2));}
 async function login(i){token='';const r=await request('/api/login',{username:users[i].username,secret:users[i].secret});assert.equal(r.status,200,r.code);assert.equal(r.account.id,users[i].id);assert.ok(r.session);token=r.session;userId=r.account.id;return {account_id:userId};}
 const sync=op=>request('/api/finance/sync',{schema_version:1,device_id:'synthetic-p0-browser',platform:'web',since_version:0,operations:[op]});
 await check('immutable-source-metadata',async()=>{const r=await fetch(origin+'/__preview/build.json',{redirect:'error'});assert.equal(r.status,200);assert.deepEqual(await r.json(),s.metadata);return {commit:d.source_commit,tree:s.metadata.source_tree_sha256};});
@@ -32,7 +34,7 @@ await check('public-static-exact-bytes',async()=>{const output=path.join(out,'st
  await fs.writeFile(path.join(out,'static-proof.log'),(r.stdout||'')+(r.stderr||''),{flag:'wx'});assert.equal(r.status,0,'Read-only Python HTTPS proof failed; inspect retained per-file evidence');
  const proof=JSON.parse(await fs.readFile(path.join(output,'result.json'),'utf8'));assert.equal(proof.source_commit,d.source_commit);assert.equal(proof.deployment_id,d.id);
  assert.equal(proof.rows.length,Object.keys(s.files).filter(name=>!name.startsWith('functions/')).length);
- for(const row of proof.rows){assert.equal(row.status,'PASS',row.path);assert.equal(row.actual_sha256,s.files[row.path]);}return {checked:proof.rows.length,transport:'Python HTTPS with default verified TLS/proxy; original Node failures retained'};});
+ for(const row of proof.rows){assert.equal(row.status,'PASS',row.path);if(row.evidence_kind==='PAGES_INTERNAL_CONFIG'){assert.equal(row.path,'_headers');assert.equal(row.actual_sha256,s.files['index.html']);assert.notEqual(row.actual_sha256,s.files[row.path]);}else assert.equal(row.actual_sha256,s.files[row.path]);}return {public_files:proof.rows.filter(r=>!r.evidence_kind).length,internal_config_non_disclosure:1,transport:'Python HTTPS with verified TLS/proxy and declared application User-Agent; original failures retained'};});
 await check('normal-qa-admin-authentication',()=>login(0));
 if(token){
  await check('owned-user-finance-entitlement-only',async()=>{const r=await request('/api/admin/entitlement',{user_id:users[1].id,entitlement:'finance_access',allowed:true,note:'Synthetic owned P0 QA only; no formal membership changed'});assert.equal(r.status,200,r.code);return {target:users[1].id};});
