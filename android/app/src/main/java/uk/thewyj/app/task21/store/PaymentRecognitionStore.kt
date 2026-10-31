@@ -111,7 +111,10 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
         return (base + effectiveIds.mapNotNull { dao.recognition(accountId, it) }).map(::effective)
             .filter { it.providerReference == reference || it.lifecycleReference == reference }.distinctBy { it.recognitionId }
     }
-    override fun recognitionsByMessageProof(accountId: String, proof: String) = dao.recognitionsByMessageProof(accountId, "proof:$proof:").map { it.toModel() }
+    // Message evidence must read the same accepted association/revision as
+    // reference and source-event lookup. Raw rows remain unchanged audit facts.
+    override fun recognitionsByMessageProof(accountId: String, proof: String) =
+        dao.recognitionsByMessageProof(accountId, "proof:$proof:").map(::effective).distinctBy { it.recognitionId }
     override fun eventAliases(accountId: String, recognitionId: String): List<String> = (dao.eventAliases(accountId, recognitionId) +
         database.reconciliationDao().members(accountId, recognitionId).flatMap { m -> dao.recognition(accountId, m.recognitionId)?.let { listOf(it.sourceEventId, it.uploadEventId) }.orEmpty() }).filter(String::isNotBlank).distinct().filter {
             val o=database.reconciliationDao().alias(accountId,it.removePrefix("notification#event#"))

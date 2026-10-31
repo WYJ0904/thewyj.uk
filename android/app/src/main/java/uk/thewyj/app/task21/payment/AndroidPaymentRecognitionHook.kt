@@ -83,9 +83,10 @@ class AndroidPaymentRecognitionHook private constructor(
         val messageProof = uk.thewyj.app.task21.paymentMessageProof(input)
         val messageRecords = if (messageProof.isBlank()) emptyList() else store.recognitionsByMessageProof(accountId, messageProof)
             .filter { PaymentEventSafety.role(it.financialPhase) == PaymentEventSafety.role(preview.financialPhase) }
-        val review = if (preview.providerReference.isNullOrBlank() && messageRecords.size > 1) "message_identity_ambiguous" else identityReviewReason(input)
+        val unresolvedMessage = messageProofNeedsReview(messageRecords)
+        val review = if (preview.providerReference.isNullOrBlank() && unresolvedMessage) "message_identity_ambiguous" else identityReviewReason(input)
         val declaredSourceId = sourceEventIdOf(input)
-        val previousMessage = messageRecords.singleOrNull()?.takeIf { preview.providerReference.isNullOrBlank() }
+        val previousMessage = messageRecords.singleOrNull()?.takeIf { preview.providerReference.isNullOrBlank() && !unresolvedMessage }
         val outcome = coordinator.onSourceEvent(
             accountId = accountId,
             sourcePackage = input.sourcePackage,
@@ -218,11 +219,15 @@ class AndroidPaymentRecognitionHook private constructor(
             if (reason.isNotBlank()) return payment.copy(identityReviewReason = reason)
         }
         val proof = uk.thewyj.app.task21.paymentMessageProof(input)
-        if (payment.providerReference.isBlank() && proof.isNotBlank() && store.recognitionsByMessageProof(accountId, proof)
-                .count { PaymentEventSafety.role(it.financialPhase) == PaymentEventSafety.role(payment.financialPhase) } > 1)
+        val messageRecords = if (proof.isBlank()) emptyList() else store.recognitionsByMessageProof(accountId, proof)
+            .filter { PaymentEventSafety.role(it.financialPhase) == PaymentEventSafety.role(payment.financialPhase) }
+        if (payment.providerReference.isBlank() && messageProofNeedsReview(messageRecords))
             return payment.copy(confirmed = false, identityReviewReason = "message_identity_ambiguous")
         return payment
     }
+
+    private fun messageProofNeedsReview(records: List<PaymentRecognitionRecord>): Boolean =
+        records.size > 1 || records.any { it.identityReviewReason in setOf("reconciliation_detached", "reconciliation_canonical_missing") }
 
     fun onSms(accountId: String, sender: String, body: String, receivedAtMs: Long) {
         coordinator.onSourceEvent(
