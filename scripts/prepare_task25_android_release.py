@@ -165,22 +165,22 @@ def main():
     try:
         datetime.date.fromisoformat(args.release_date)
         if not re.fullmatch(r'[a-zA-Z0-9._-]{1,80}', args.release_build): raise ValueError('Invalid release build')
-        notes = args.release_notes_file.read_text().strip()
+        notes = args.release_notes_file.read_text(encoding='utf-8').strip()
         if not notes or len(notes) > 400: raise ValueError('Release notes must fit the API contract')
-        candidate = json.loads(args.candidate_metadata.read_text())
-        validate_receipt(json.loads(args.acceptance.read_text()), candidate, artifact(args.r2_readback))
+        candidate = json.loads(args.candidate_metadata.read_text(encoding='utf-8'))
+        validate_receipt(json.loads(args.acceptance.read_text(encoding='utf-8')), candidate, artifact(args.r2_readback))
         for field in ['apk', 'aab']:
             actual = artifact(getattr(args, field))
             if any(actual[key] != candidate[field][key] for key in ['sha256', 'sizeBytes']):
                 raise ValueError('Artifact differs from candidate metadata')
         verify_artifacts(args.apk, args.aab, candidate['versionName'], candidate['versionCode'], 'verified')
-        stable = json.loads(STABLE_PATH.read_text())
+        stable = json.loads(STABLE_PATH.read_text(encoding='utf-8'))
         if stable['versionName'] != '1.3.33' or stable['versionCode'] != 46:
             raise ValueError('Stable baseline drift; reconcile before preparing release')
-        metadata, config = proposed_configuration(stable, json.loads((ROOT / 'wrangler.jsonc').read_text()), candidate,
+        metadata, config = proposed_configuration(stable, json.loads((ROOT / 'wrangler.jsonc').read_text(encoding='utf-8')), candidate,
             args.release_date, args.release_build, notes)
-        changelog = proposed_changelog((ROOT / 'changelog.js').read_text(), metadata)
-        gradle, code_count = re.subn(r'versionCode\s*=\s*46\b', f"versionCode = {candidate['versionCode']}", (ROOT / 'android/app/build.gradle.kts').read_text(), count=1)
+        changelog = proposed_changelog((ROOT / 'changelog.js').read_text(encoding='utf-8'), metadata)
+        gradle, code_count = re.subn(r'versionCode\s*=\s*46\b', f"versionCode = {candidate['versionCode']}", (ROOT / 'android/app/build.gradle.kts').read_text(encoding='utf-8'), count=1)
         gradle, name_count = re.subn(r'versionName\s*=\s*"1\.3\.33"', f'versionName = "{candidate["versionName"]}"', gradle, count=1)
         if code_count != 1 or name_count != 1: raise ValueError('Gradle Stable baseline drift')
     except (ValueError, KeyError, OSError) as error:
@@ -189,10 +189,10 @@ def main():
     with tempfile.TemporaryDirectory(prefix='task25-proposal-', dir=destination.parent) as directory:
         staging = Path(directory) / 'proposal'
         (staging / 'android/app').mkdir(parents=True)
-        (staging / 'android/release-metadata.json').write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + '\n')
-        (staging / 'wrangler.jsonc').write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n')
-        (staging / 'android/app/build.gradle.kts').write_text(gradle)
-        (staging / 'changelog.js').write_text(changelog)
+        (staging / 'android/release-metadata.json').write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        (staging / 'wrangler.jsonc').write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        (staging / 'android/app/build.gradle.kts').write_text(gradle, encoding='utf-8')
+        (staging / 'changelog.js').write_text(changelog, encoding='utf-8')
         staging.rename(destination)
     print('Reviewable release proposal only:', destination)
     print('No R2 upload/deployment/Stable pointer change performed. Preview requires independent bucket readback before applying its proposal.')

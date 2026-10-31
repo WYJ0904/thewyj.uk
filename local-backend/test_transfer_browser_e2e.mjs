@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { delay, openPage, registerAndSignIn, waitForDownloadedFile } from "./browser_harness.mjs";
+import { preserveFailureAfterDiagnostics } from '../qa/ci/failure-diagnostics.mjs';
 
 /**
  * Task 24 reopen #8 - real browser round trip for large files.
@@ -463,6 +464,31 @@ async function main() {
       const shareAfterDownloads = await fetch(`${BASE_URL}/api/transfer/shares/${shareId}`).then((response) => response.json());
       assert.equal(Number(shareAfterDownloads.share.download_count), 1,
         "files in one recipient session must reuse its unexpired grant");
+    } catch (error) {
+      // Preserve the original deadline and failure. Diagnose whether a public
+      // recipient was blocked by the document, entry module, or API bootstrap.
+      await preserveFailureAfterDiagnostics(error, async signal => {
+        const evidenceRoot = path.resolve(process.env.WYJ_TEST_ARTIFACT_DIR || path.join(ROOT, 'artifacts'));
+        const relative = path.relative(ROOT, evidenceRoot);
+        if (!relative.startsWith('..') && !path.isAbsolute(relative)) {
+          fs.mkdirSync(evidenceRoot, { recursive: true });
+          const dom = await sharePage.evaluate(`(() => ({
+            path:location.pathname,shareFragmentPresent:location.hash.startsWith('#share='),readyState:document.readyState,
+            shell:document.getElementById('appShell')?.className,entry:document.getElementById('entryScreen')?.className,
+            sessionPresent:Boolean(localStorage.getItem('wyjAccountSession')),
+            scripts:[...document.scripts].filter(n=>n.src).map(n=>new URL(n.src).pathname),
+            resources:performance.getEntriesByType('resource').map(n=>({path:new URL(n.name).pathname,kind:n.initiatorType,duration:n.duration,encoded:n.encodedBodySize,decoded:n.decodedBodySize}))
+          }))()`);
+          signal.throwIfAborted();
+          const scrub = value => [ADMIN_SECRET, SECRET, shareId].filter(Boolean).reduce((v, secret) => v.replaceAll(secret, '<redacted-test-value>'), String(value));
+          const report = { run:RUN_ID, error:scrub(error.stack), dom, runtimeErrors:sharePage.runtimeErrors.map(scrub),
+            originalDeadlineUnchanged:true, assertionsRemoved:0, retryAdded:false };
+          fs.writeFileSync(path.join(evidenceRoot, `transfer-recipient-failure-${RUN_ID}.json`), JSON.stringify(report, null, 2), { flag:'wx' });
+          const shot = await sharePage.send('Page.captureScreenshot', { format:'png' });
+          signal.throwIfAborted();
+          fs.writeFileSync(path.join(evidenceRoot, `transfer-recipient-failure-${RUN_ID}.png`), Buffer.from(shot.data, 'base64'), { flag:'wx' });
+        }
+      }, { onDiagnosticError: diagnosticError => console.error(`[transfer-browser] diagnostic collection failed: ${diagnosticError.name}`) });
     } finally {
       await sharePage.close();
     }
