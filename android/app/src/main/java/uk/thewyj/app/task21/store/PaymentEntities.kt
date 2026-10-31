@@ -1,6 +1,7 @@
 package uk.thewyj.app.task21.store
 
 import androidx.room.Entity
+import androidx.room.ColumnInfo
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
@@ -36,7 +37,23 @@ data class PaymentRecognitionEntity(
     val providerReference: String,
     val createdAtMs: Long,
     val updatedAtMs: Long,
+    @ColumnInfo(defaultValue = "0") val completionConfirmed: Int = 0,
+    @ColumnInfo(defaultValue = "-1") val sourceUid: Int = -1,
+    @ColumnInfo(defaultValue = "''") val identityReviewReason: String = "",
+    @ColumnInfo(defaultValue = "''") val financialPhase: String = "",
+    @ColumnInfo(defaultValue = "''") val lifecycleReference: String = "",
+    @ColumnInfo(defaultValue = "''") val referenceNamespace: String = "",
+    @ColumnInfo(defaultValue = "''") val currencyEvidence: String = "",
+    @ColumnInfo(defaultValue = "0") val currencyReviewRequired: Boolean = false,
+    @ColumnInfo(defaultValue = "''") val currencyDecisionSource: String = "",
+    @ColumnInfo(defaultValue = "0") val currencyReviewNotified: Boolean = false,
+    @ColumnInfo(defaultValue = "''") val lifecycleOperation: String = "",
+    @ColumnInfo(defaultValue = "0") val lifecycleRevision: Long = 0,
 )
+
+/** Additional source deliveries refer to an existing recognition; never rename its stable IDs. */
+@Entity(tableName = "payment_event_aliases", primaryKeys = ["accountId", "sourceEventId"], indices = [Index(value = ["recognitionId"])])
+data class PaymentEventAliasEntity(val accountId: String, val sourceEventId: String, val recognitionId: String)
 
 @Entity(
     tableName = "payment_tickets",
@@ -67,6 +84,12 @@ data class PaymentTicketEntity(
     val enrichedMerchant: String,
     val enrichedProviderReference: String,
     val enrichedAtMs: Long,
+    @ColumnInfo(defaultValue = "''") val enrichedCurrency: String = "",
+    @ColumnInfo(defaultValue = "0") val enrichedCompletion: Int = 0,
+    @ColumnInfo(defaultValue = "''") val enrichedEvidenceSource: String = "",
+    @ColumnInfo(defaultValue = "1") val enrichedSourceUncertain: Int = 1,
+    @ColumnInfo(defaultValue = "''") val enrichedAmountDecimal: String = "",
+    @ColumnInfo(defaultValue = "8") val scanAttempts: Int = 0,
 )
 
 @Entity(

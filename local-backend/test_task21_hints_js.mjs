@@ -105,6 +105,11 @@ function hintBody(sourceEventId, overrides = {}) {
       recognition_status: "PAYMENT_LIKELY",
       evidence: { source_type: "notification", confidence: 460, reasons: ["wechat_payment_hint_without_amount"] },
       ...overrides,
+      // Positive fixtures use the new settlement-aware evidence contract.
+      evidence: { parser_version: overrides.recognition_status === "CONFIRMED_PAYMENT"
+        ? "payment-settled-4" : "payment-evidence-4",
+        ...(overrides.evidence || { source_type: "notification", confidence: 460,
+          reasons: ["wechat_payment_hint_without_amount"] }) },
     }],
   };
 }
@@ -601,7 +606,21 @@ try {
   });
   assert.equal(completedAmount.response.status, 200, JSON.stringify(completedAmount.payload));
   assert.equal(completedAmount.payload.hints[0].id, partialInitial.payload.hints[0].id);
-  assert.equal(completedAmount.payload.hints[0].state, "confirmed");
+  assert.equal(completedAmount.payload.hints[0].state, "pending",
+    "Amount plus direction still do not prove settlement");
+  assert.equal(await linkedTransactionCount(), 0);
+  const settledAmount = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token,
+    body: hintBody(partialEventId, {
+      amount_minor: 1, direction: "expense", confidence: 820,
+      recognition_status: "CONFIRMED_PAYMENT",
+      evidence: { source_type: "accessibility", confidence: 820,
+        reasons: ["observed_completed_payment"], recognised_fields: ["amount", "direction"] },
+    }),
+  });
+  assert.equal(settledAmount.response.status, 200);
+  assert.equal(settledAmount.payload.hints[0].id, partialInitial.payload.hints[0].id);
+  assert.equal(settledAmount.payload.hints[0].state, "confirmed");
   assert.equal(await linkedTransactionCount(), 1);
   const completedReplay = await request(db, "/api/notification/hints", {
     method: "POST", token: USER.token,
@@ -612,7 +631,7 @@ try {
   });
   assert.equal(completedReplay.response.status, 200);
   assert.equal(completedReplay.payload.hints[0].finance_entry_id,
-    completedAmount.payload.hints[0].finance_entry_id);
+    settledAmount.payload.hints[0].finance_entry_id);
   assert.equal(await linkedTransactionCount(), 1, "completed enrichment is exactly once");
 
   // One WeChat message can be reposted under several notification keys. Its
@@ -660,7 +679,7 @@ try {
       operation_id: "op-life-enrichment", type: "event.ingest", payload: {
         event_id: lifeEvents[2], fingerprint: "cd".repeat(32),
         source_package: "com.tencent.mm", source_type: "notification",
-        event_type: "transaction", parser_version: "wechat-2", parse_status: "parsed",
+        event_type: "transaction", parser_version: "wechat-4", parse_status: "parsed",
         direction: "expense", amount_minor: 1, currency: "CNY", payment_channel: "wechat",
         lifecycle_identity: life, merchant: "", counterparty: "", confidence: 720,
         occurred_at_ms: 1_789_000_000_000, received_at_ms: 1_789_000_002_000,
@@ -686,7 +705,7 @@ try {
       operation_id: "op-life-event-first", type: "event.ingest", payload: {
         event_id: eventFirstId, fingerprint: "de".repeat(32),
         source_package: "com.tencent.mm", source_type: "notification",
-        event_type: "transaction", parser_version: "wechat-2", parse_status: "parsed",
+        event_type: "transaction", parser_version: "wechat-4", parse_status: "parsed",
         direction: "expense", amount_minor: 567, currency: "CNY", payment_channel: "wechat",
         lifecycle_identity: "d".repeat(64), merchant: "", counterparty: "", confidence: 650,
         occurred_at_ms: 1_789_000_100_000, received_at_ms: 1_789_000_100_100,
@@ -887,6 +906,33 @@ try {
     "/api/notification/pending-summary?event_ids=evt-final-income-cent", { token: USER.token });
   assert.equal(incomeSummary.payload.total_count, 0);
   assert.equal(incomeSummary.payload.records[0].state, "confirmed");
+
+  // Legacy CONFIRMED meant complete money, not necessarily settlement. A new
+  // pending report must not accidentally borrow that old high-ranked status.
+  const legacyComplete = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token, body: hintBody("evt-legacy-complete-pending", {
+      amount_minor: 12000, direction: "income", confidence: 950, recognition_status: "CONFIRMED_PAYMENT",
+      evidence: { parser_version: "verified-on-device", confidence: 950 },
+    }),
+  });
+  assert.equal(legacyComplete.response.status, 200, JSON.stringify(legacyComplete.payload));
+  assert.equal(legacyComplete.payload.hints[0].state, "pending");
+  const legacyPending = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token, body: hintBody("evt-legacy-complete-pending", {
+      amount_minor: 12000, direction: "income", confidence: 960, recognition_status: "PAYMENT_LIKELY",
+      evidence: { parser_version: "payment-evidence-4", confidence: 960 },
+    }),
+  });
+  assert.equal(legacyPending.payload.hints[0].state, "pending");
+  const realSettlement = await request(db, "/api/notification/hints", {
+    method: "POST", token: USER.token, body: hintBody("evt-legacy-complete-pending", {
+      amount_minor: 12000, direction: "income", confidence: 820, recognition_status: "CONFIRMED_PAYMENT",
+      evidence: { parser_version: "payment-settled-4", confidence: 820 },
+    }),
+  });
+  assert.equal(realSettlement.response.status, 200, JSON.stringify(realSettlement.payload));
+  assert.equal(realSettlement.payload.hints[0].state, "confirmed");
+  assert.equal(realSettlement.payload.hints[0].id, legacyComplete.payload.hints[0].id);
 
   console.log("Task 21 pending-hint checks passed (single pending source, no invented money, idempotent confirm/ignore).");
 } finally {

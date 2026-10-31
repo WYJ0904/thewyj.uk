@@ -1,0 +1,208 @@
+package uk.thewyj.app.qa
+
+import android.os.Build
+import android.os.Bundle
+import android.os.PowerManager
+import android.app.KeyguardManager
+import android.os.SystemClock
+import androidx.test.core.app.ActivityScenario
+import androidx.lifecycle.Lifecycle
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiScrollable
+import androidx.test.uiautomator.UiSelector
+import kotlinx.coroutines.*
+import org.json.JSONArray
+import org.json.JSONObject
+import org.junit.*
+import org.junit.Assert.*
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
+import org.junit.runners.MethodSorters
+import java.io.File
+import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import uk.thewyj.app.core.network.PendingReviewIdentity
+import uk.thewyj.app.core.network.PendingReviewSummary
+import uk.thewyj.app.task21.payment.*
+import uk.thewyj.app.task21.store.*
+import uk.thewyj.app.ui.PaymentVerificationState
+
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+class StateDeviceAcceptanceTest {
+    private var metrics=JSONObject()
+    private var started=0L
+    @get:Rule(order=0) val outcomes=object:TestWatcher(){
+        override fun starting(d:Description){started=SystemClock.elapsedRealtime();metrics=JSONObject();D01Probe.stage(d.methodName)}
+        override fun succeeded(d:Description){record(d,"PASS","")}
+        override fun failed(e:Throwable,d:Description){record(d,"FAIL",e.javaClass.simpleName+":"+(e.message?:"").take(160))}
+        override fun skipped(e:org.junit.AssumptionViolatedException,d:Description){record(d,"BLOCKED",e.javaClass.simpleName)}
+    }
+    private lateinit var scenario:ActivityScenario<StateAcceptanceActivity>
+    private lateinit var a:StateAcceptanceActivity
+    private val device get()=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+    private fun owner(id:String)="qa3-"+id.lowercase()+"-"+UUID.randomUUID().toString().take(8)
+    private fun record(d:Description,status:String,error:String){
+        val context=InstrumentationRegistry.getInstrumentation().targetContext
+        val dir=File(context.getExternalFilesDir(null),"qa3-evidence").apply{mkdirs()}
+        val out=File(dir,"results.json");val rows=if(out.exists())JSONArray(out.readText())else JSONArray()
+        rows.put(JSONObject().put("caseId",d.methodName.substring(0,3)).put("method",d.methodName).put("status",status)
+            .put("sdk",Build.VERSION.SDK_INT).put("model",Build.MODEL).put("elapsedMs",SystemClock.elapsedRealtime()-started)
+            .put("synthetic",true).put("productionBackend",false).put("metrics",metrics).put("error",error))
+        out.writeText(rows.toString(2))
+    }
+    @Before fun baseline(){assertEquals(36,Build.VERSION.SDK_INT);assertEquals("SM-S9360",Build.MODEL)
+        scenario=ActivityScenario.launch(StateAcceptanceActivity::class.java);scenario.onActivity{a=it}}
+    @After fun close(){if(::scenario.isInitialized)scenario.close()}
+    private fun await(timeout:Long=15_000,condition:()->Boolean){val end=SystemClock.elapsedRealtime()+timeout;while(SystemClock.elapsedRealtime()<end){if(condition())return;SystemClock.sleep(80)};error("QA_NATIVE_CONDITION_TIMEOUT")}
+    private fun row(id:String="qa3-event-a",amount:Long?=null,pkg:String="com.tencent.mm",label:String="微信")=a.remoteRow(id,amount,pkg,label)
+    private fun wire(r:PendingReviewIdentity)=JSONObject().put("kind",r.kind).put("id",r.id).put("event_id",r.eventId)
+        .put("event_ids",JSONArray(r.eventIds.toList())).put("state",r.state).put("source_package",r.sourcePackage)
+        .put("app_label",r.appLabel).put("amount_minor",r.amountMinor?:JSONObject.NULL).put("direction",r.direction).put("occurred_at_ms",System.currentTimeMillis())
+    private fun control(id:String,action:String,body:JSONObject=JSONObject())=a.control(body.put("caseId",id).put("action",action))
+    private fun setup(id:String,rows:List<PendingReviewIdentity>,locals:(String)->List<PaymentRecognitionRecord> = {emptyList()}):String {
+        val own=owner(id);runBlocking{a.configure(own,rows,locals(own))}
+        control(id,"setup",JSONObject().put("owner",own).put("records",JSONArray(rows.map(::wire))))
+        await{a.state?.canonicalObserved==true}
+        return own
+    }
+    private fun text(value:String)=device.hasObject(By.pkg("uk.thewyj.app.qa.stateacceptance").textContains(value))
+    private fun waitText(value:String){await{ text(value) || runCatching{check(device.currentPackageName=="uk.thewyj.app.qa.stateacceptance");UiScrollable(UiSelector().packageName("uk.thewyj.app.qa.stateacceptance").scrollable(true)).scrollIntoView(UiSelector().textContains(value));text(value)}.getOrDefault(false)}}
+    private fun clickText(value:String){waitText(value);check(device.currentPackageName=="uk.thewyj.app.qa.stateacceptance");checkNotNull(device.findObject(By.pkg("uk.thewyj.app.qa.stateacceptance").text(value))).click()}
+    private fun web(id:String){runBlocking{a.web(id)};a.awaitJs("window.QA?.ready===true && window.QA.activeRequests===0 && window.WYJLocalPaymentLedger?.account_id===window.QA.owner");SystemClock.sleep(250)}
+    private fun jsJson(code:String)=JSONObject(a.eval("JSON.stringify($code)").let{JSONArray("[$it]").getString(0)})
+    private fun result():JSONObject{a.awaitJs("window.QA?.result?.done===true",30_000);val r=jsJson("window.QA.result");assertTrue(r.optString("error"),r.optBoolean("ok"));return r.getJSONObject("metrics")}
+    private fun hold(id:String,key:String){val end=SystemClock.elapsedRealtime()+15_000;while(SystemClock.elapsedRealtime()<end){if(control(id,"status").getJSONArray("holds").toString().contains(key))return;SystemClock.sleep(60)};error("QA_HOLD_TIMEOUT")}
+    private fun screenshot(id:String){
+        val device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        if(device.currentPackageName!="uk.thewyj.app.qa.stateacceptance")return
+        val file=File(a.getExternalFilesDir(null),"qa3-evidence/$id.png");file.parentFile?.mkdirs();device.takeScreenshot(file)
+    }
+    private fun receipt(own:String,r:JSONObject){
+        val event=r.getString("eventId");val t=r.getJSONObject("transaction");val rec=a.recognition(own,event,123,direction="INCOME",complete=true)
+        val now=System.currentTimeMillis()
+        runBlocking(Dispatchers.IO){a.store.saveRecognition(rec);val candidate=PaymentCandidate("cand-$event",own,rec.recognitionId,"confirmed",123,"INCOME","","",now,"wechat",900,"qa3-fixture",financeTransactionId=t.getString("id"),createdAtMs=now,updatedAtMs=now)
+            a.store.bookLocally(LocalPaymentBooking(own,event,rec.recognitionId,t.getString("id"),123,"INCOME","CNY","",now,"com.tencent.mm","wechat","",syncState="synced",createdAtMs=now),rec.copy(state="FINANCE_RECORDED"),candidate)}
+        PaymentReviewSignals.publish()
+    }
+
+    @Test fun T01_localEvidenceNativeAndWebNotCloudConfirmed(){
+        setup("T01",listOf(row()),{own->listOf(a.recognition(own))});waitText("1.23");waitText("本机已识别")
+        assertNull(a.state!!.items.single().amountMinor);screenshot("T01-native");web("T01")
+        a.awaitJs("document.querySelector('#financeCandidateList').textContent.includes('本机已识别')")
+        val v=jsJson("QA.view()");assertEquals("1",v.getString("count"));assertTrue(v.getJSONArray("cards").getJSONObject(0).getString("text").contains("云端尚未确认"));screenshot("T01-web")
+        metrics.put("nativeAndWebLocalEvidence",true).put("canonicalCount",1).put("cloudConfirmed",false)
+    }
+    @Test fun T02_zeroPendingRealBridgeTriggersRequiredPull(){
+        val own=setup("T02",emptyList());web("T02");control("T02","arm");a.eval("QA.launch('race')");hold("T02","changes2")
+        val added=control("T02","add");receipt(own,added);a.awaitJs("window.WYJLocalPaymentLedger?.transactions?.some(t=>t.id==='${added.getJSONObject("transaction").getString("id")}')");control("T02","release",JSONObject().put("key","changes2"))
+        val r=result();assertEquals(1,r.getInt("newRows"));assertEquals(0,r.getInt("pending"));assertTrue(control("T02","status").getJSONObject("counts").getInt("bootstrap")>=2)
+        metrics.put("realRoomBridgeNetworkPull",true).put("manualRefresh",false)
+    }
+    @Test fun T03_burstAndSecondInvalidationDuringFollowUp(){
+        val own=setup("T03",emptyList());web("T03");control("T03","arm",JSONObject().put("holdAt",JSONArray(listOf(2,4))))
+        a.eval("QA.launch('race')");hold("T03","changes2");val first=control("T03","add");receipt(own,first);repeat(100){PaymentReviewSignals.publish()}
+        a.awaitJs("window.WYJLocalPaymentLedger?.transactions?.some(t=>t.id==='${first.getJSONObject("transaction").getString("id")}')");control("T03","release",JSONObject().put("key","changes2"));hold("T03","changes4")
+        val second=control("T03","add");receipt(own,second);a.awaitJs("window.WYJLocalPaymentLedger?.transactions?.some(t=>t.id==='${second.getJSONObject("transaction").getString("id")}')");control("T03","release",JSONObject().put("key","changes4"))
+        assertEquals(2,result().getInt("newRows"));val counts=control("T03","status").getJSONObject("counts");assertTrue(counts.getInt("bootstrap") in 3..5);assertEquals(0,counts.getInt("posts"));metrics.put("signalBurst",100).put("finalUpdateObserved",true).put("counts",counts)
+    }
+    @Test fun T04_actualHttpsResponsesOutOfOrderCannotRegressCache(){
+        val own=setup("T04",listOf(row()));val cache=CanonicalPendingCache(a,own);val oldToken=cache.beginObservation()
+        runBlocking{
+            val old=async(Dispatchers.IO){control("T04","observe",JSONObject().put("request","A"));cache.save(PendingReviewSummary("old",1,1,0,false,listOf(row())),oldToken)}
+            hold("T04","observeA");val newer=cache.beginObservation();control("T04","observe",JSONObject().put("request","B"));assertTrue(cache.save(PendingReviewSummary("new",1,1,0,false,listOf(row(amount=456))),newer));control("T04","release",JSONObject().put("key","observeA"));assertFalse(old.await())
+            a.remote.set(a.observation(own,listOf(row(amount=456))));withContext(Dispatchers.Main){a.state!!.refresh()}
+        }
+        waitText("4.56");assertEquals(456L,cache.read()!!.records.single().amountMinor);metrics.put("BReturnedBeforeA",true).put("olderRejected",true)
+    }
+    @Test fun T05_roomRefreshCompletingAfterReconcileCannotRepaintOld(){
+        val own=setup("T05",listOf(row()));val cache=CanonicalPendingCache(a,own);cache.save(PendingReviewSummary("old",1,1,0,false,listOf(row())))
+        val entered=CompletableDeferred<Unit>();val release=CountDownLatch(1);val armed=AtomicBoolean(true)
+        val gated=object:PaymentRecognitionStoreContract by a.store{
+            override fun recognitionsByState(accountId:String,states:List<String>,limit:Int):List<PaymentRecognitionRecord>{val r=a.store.recognitionsByState(accountId,states,limit);if(armed.compareAndSet(true,false)){entered.complete(Unit);check(release.await(10,TimeUnit.SECONDS))};return r}}
+        val center=PaymentVerificationCenter(a,hintedStore=gated,hintedArchive=RoomNotificationStore(a.database),hintedQueuedRequests={emptyList()})
+        val state=PaymentVerificationState(a,own,center,reconcileOverride={a.observation(own,listOf(row(amount=456)))})
+        runBlocking{val old=async(Dispatchers.Main){state.refresh()};try{withTimeout(5000){entered.await()};withContext(Dispatchers.Main){state.reconcile()}}finally{release.countDown()};old.await();withContext(Dispatchers.Main){a.state=state}}
+        waitText("4.56");assertEquals(456L,state.items.single().amountMinor);metrics.put("realRoomConcurrentIo",true).put("freshRetained",true)
+    }
+    @Test fun T06_equalMoneyChannelAndMerchantStayIndependent(){
+        val rows=listOf(row(label="支付宝"),row("qa3-event-b",pkg="com.eg.android.AlipayGphone",label="微信"))
+        setup("T06",rows,{own->listOf(a.recognition(own),a.recognition(own,"qa3-event-b",pkg="com.eg.android.AlipayGphone"))});waitText("微信");waitText("支付宝")
+        assertEquals(listOf("微信","支付宝"),a.state!!.items.map{it.appLabel});web("T06");a.awaitJs("QA.view().cards.length===2");val cards=jsJson("QA.view()").getJSONArray("cards")
+        assertTrue(cards.getJSONObject(0).getString("text").contains("微信"));assertFalse(cards.getJSONObject(0).getString("text").contains("支付宝"));assertTrue(cards.getJSONObject(1).getString("text").contains("支付宝"));screenshot("T06-web");metrics.put("sourceIdentitySeparated",true).put("realWechatOrAlipay",false)
+    }
+    @Test fun T07_independentEventsAndReplayBookOnceInQaRoom(){
+        val own=setup("T07",emptyList());runBlocking(Dispatchers.IO){val c=PaymentRecognitionCoordinator(a.store)
+            val x=a.recognition(own,"qa3-independent-a",123,direction="INCOME",complete=true);val y=a.recognition(own,"qa3-independent-b",123,pkg="com.eg.android.AlipayGphone",direction="INCOME",complete=true)
+            a.store.saveRecognition(x);a.store.saveRecognition(y);assertNotNull(c.autoBook(own,x.recognitionId));c.autoBook(own,x.recognitionId);assertNotNull(c.autoBook(own,y.recognitionId));assertEquals(2,a.store.localBookings(own).size);assertEquals(2,a.store.localBookings(own).map{it.transactionId}.toSet().size)}
+        metrics.put("independentEvents",2).put("ledgerRows",2).put("replayDuplicates",0)
+    }
+    @Test fun T08_oldAccountResponseNeverPollutesNewOwner(){
+        val own=setup("T08",listOf(row(amount=123)));web("T08")
+        val b=wire(row("qa3-owner-b",456)).put("id","qa3-owner-b");control("T08","holdSummary",JSONObject().put("altOwner",own+"-b").put("altRecords",JSONArray().put(b)))
+        a.eval("void QA.candidates.reload({force:true})");hold("T08","summary");a.eval("QA.launch('switchOwner')");control("T08","release",JSONObject().put("key","summary"));val r=result();assertTrue(r.getBoolean("onlyB"));assertTrue(r.getBoolean("ledgerOnlyB"));assertEquals("1",jsJson("QA.view()").getString("count"));metrics.put("lateOldOwnerDropped",true).put("ledgerOwnerIsolated",true)
+    }
+    @Test fun T09_acknowledgedTerminalSurvivesStalePendingAndAliases(){
+        val own=setup("T09",listOf(row()));val cache=CanonicalPendingCache(a,own)
+        cache.save(PendingReviewSummary("old",1,1,0,false,listOf(row())));val before=cache.beginObservation();assertTrue(cache.terminalize(setOf("qa3-event-a"),"ignored"));assertFalse(cache.save(PendingReviewSummary("old",1,1,0,false,listOf(row())),before))
+        val alias=row("qa3-alias").copy(eventIds=setOf("qa3-event-a","qa3-alias"));assertTrue(cache.save(PendingReviewSummary("stale",1,1,0,false,listOf(alias)),cache.beginObservation()));assertEquals(0,cache.read()!!.totalCount);assertEquals(alias.id,cache.read()!!.records.single().id)
+        val obs=cache.observation()!!;runBlocking(Dispatchers.Main){a.remote.set(obs);a.state!!.refresh();a.state!!.reconcile()};await(10000){a.state!!.items.isEmpty()};metrics.put("terminalNotRevived",true).put("canonicalAliasRetained",true)
+    }
+    @Test fun T10_transportResetRetainsOutboxAndRecovers(){
+        setup("T10",emptyList());web("T10");control("T10","failPost",JSONObject().put("enabled",true));a.eval("QA.launch('networkFailure')");val failed=result();assertTrue(failed.getBoolean("failed"));assertTrue(failed.getBoolean("preserved"))
+        control("T10","failPost",JSONObject().put("enabled",false));a.eval("QA.launch('networkRetry')");assertEquals(0,result().getInt("pending"));val status=control("T10","status");assertEquals(1,status.getInt("applied"));metrics.put("realTlsConnectionReset",true).put("queueIdentityRetained",true).put("osNetworkToggled",false)
+    }
+    @Test fun T11_activityBackgroundResumeReadsFreshState(){
+        val own=setup("T11",listOf(row()),{o->listOf(a.recognition(o))});waitText("1.23");val host=a;val fresh=host.observation(own,listOf(row(amount=456)));scenario.moveToState(Lifecycle.State.CREATED)
+        host.remote.set(fresh);PaymentReviewSignals.publish();scenario.moveToState(Lifecycle.State.RESUMED);waitText("4.56");metrics.put("actualActivityPauseResume",true).put("physicalScreenOff",false)
+    }
+    @Test fun T11z_physicalScreenOffWakeAndResume(){
+        val own=setup("T11",listOf(row()),{o->listOf(a.recognition(o))});waitText("1.23")
+        val power=a.getSystemService(PowerManager::class.java);val keyguard=a.getSystemService(KeyguardManager::class.java)
+        check(device.currentPackageName=="uk.thewyj.app.qa.stateacceptance");assertTrue(power.isInteractive);assertFalse(keyguard.isKeyguardLocked)
+        device.sleep();await(5000){!power.isInteractive};metrics.put("screenOffObserved",true)
+        a.remote.set(a.observation(own,listOf(row(amount=456))));PaymentReviewSignals.publish();SystemClock.sleep(500)
+        device.wakeUp();await(5000){power.isInteractive};metrics.put("screenOnObserved",true)
+        val locked=keyguard.isKeyguardLocked;metrics.put("manualUnlockRequired",locked)
+        if(locked){InstrumentationRegistry.getInstrumentation().sendStatus(2,Bundle().apply{putString("qa_stage","OWNER_UNLOCK_REQUIRED")})
+            val until=SystemClock.elapsedRealtime()+90_000;while(keyguard.isKeyguardLocked&&SystemClock.elapsedRealtime()<until)SystemClock.sleep(250)}
+        Assume.assumeFalse("OWNER_UNLOCK_REQUIRED; no lock-screen bypass attempted",keyguard.isKeyguardLocked)
+        await{a.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)};waitText("4.56");screenshot("T11-screen-resumed")
+        metrics.put("physicalScreenOff",true).put("freshAfterRealWake",true)
+    }
+    @Test fun T12_realNinetySecondUiCountdownDoesNotRenewOnRefresh(){
+        val own=owner("T12");val rec=a.recognition(own,amount=null);val now=System.currentTimeMillis();val start=SystemClock.elapsedRealtime()
+        val ticket=PaymentTicket("qa3-ticket-"+UUID.randomUUID(),own,rec.recognitionId,"com.tencent.mm",rec.sourceEventId,"wechat",null,setOf("amount","direction"),now,now+90_000,PaymentTicketState.WAITING_FOR_ACCESSIBILITY)
+        runBlocking{a.configure(own,listOf(row()),listOf(rec),listOf(ticket))};waitText("剩余")
+        while(SystemClock.elapsedRealtime()-start<25_000)SystemClock.sleep(200)
+        clickText("刷新")
+        runBlocking(Dispatchers.IO){assertEquals(ticket.expiresAtMs,a.store.ticketsForRecognition(own,rec.recognitionId).single().expiresAtMs)}
+        while(SystemClock.elapsedRealtime()-start<30_000)SystemClock.sleep(200)
+        val pullsAfterRefresh=a.reconcileCalls.get()
+        val end=start+94_000;while(SystemClock.elapsedRealtime()<end){if(text("核实窗口已到期"))break;SystemClock.sleep(250)}
+        assertTrue(text("核实窗口已到期"));assertEquals(pullsAfterRefresh,a.reconcileCalls.get());screenshot("T12-expired");metrics.put("realElapsedMs",SystemClock.elapsedRealtime()-start).put("expiryUnchanged",true).put("pullsAfter30Seconds",pullsAfterRefresh).put("pullsAtExpiry",a.reconcileCalls.get())
+    }
+    @Test fun T13_conflictRequiresVisibleEditorAndNoAutomaticBooking(){
+        val own=setup("T13",listOf(row(amount=999)),{o->listOf(a.recognition(o))});waitText("不一致");screenshot("T13-conflict")
+        clickText("核对金额并确认");waitText("保存并记账");runBlocking(Dispatchers.IO){assertTrue(a.store.localBookings(own).isEmpty())};metrics.put("editorRequired",true).put("automaticBookings",0)
+    }
+    @Test fun T14_realWebViewReloadReadsNewRoomSnapshot(){
+        val own=setup("T14",listOf(row()),{o->listOf(a.recognition(o))});web("T14");a.awaitJs("QA.view().cards[0]?.text.includes('1.23')")
+        runBlocking(Dispatchers.IO){val r=a.store.recognition(own,"rec-$own-qa3-event-a")!!;a.store.saveRecognition(r.copy(amountMinor=456,updatedAtMs=System.currentTimeMillis()))}
+        a.runOnUiThread{a.webView()!!.reload()};a.awaitJs("window.QA?.ready===true && QA.view().cards[0]?.text.includes('4.56')",25_000);screenshot("T14-web");metrics.put("realWebViewReload",true).put("freshRoomEvidence",true)
+    }
+    @Test fun T15_amountOnlyChangeWhileNoSubscriberIsObservedOnReturn(){
+        val own=setup("T15",listOf(row()),{o->listOf(a.recognition(o))});waitText("1.23");val host=a;scenario.moveToState(Lifecycle.State.CREATED)
+        runBlocking(Dispatchers.IO){val r=host.store.recognition(own,"rec-$own-qa3-event-a")!!;host.store.saveRecognition(r.copy(amountMinor=456,updatedAtMs=System.currentTimeMillis()))};repeat(100){PaymentReviewSignals.publish()}
+        scenario.moveToState(Lifecycle.State.RESUMED);waitText("4.56");assertEquals(1,a.state!!.items.count{!it.recoveryOnly});metrics.put("samePendingCount",true).put("latestAmountRecovered",true)
+    }
+    @Test fun T16_historicalReceiptDoesNotInsertDeletedRow(){
+        val own=setup("T16",emptyList());val deleted=JSONObject().put("id","txn:qa3-deleted").put("amount_minor",123).put("direction","income").put("occurred_at_ms",System.currentTimeMillis()).put("status","deleted").put("revision",2).put("sync_version",2)
+        control("T16","setup",JSONObject().put("owner",own).put("transactions",JSONArray().put(deleted)))
+        receipt(own,JSONObject().put("eventId","qa3-deleted").put("transaction",deleted));web("T16");a.eval("QA.launch('receipt')");val r=result();assertFalse(r.getBoolean("changed"));assertEquals(0,r.getInt("count"));assertEquals(0,r.getInt("activeLedgerRows"));screenshot("T16-web");metrics.put("deletedRowResurrected",false).put("actualLedgerComponent",true)
+        File(a.getExternalFilesDir(null),"qa3-evidence/T16-assertions-before-teardown.json").writeText(JSONObject().put("assertionsCompleted",true).put("metrics",metrics).toString(2))
+    }
+}

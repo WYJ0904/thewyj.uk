@@ -28,6 +28,87 @@ class LocalPaymentBookingTest {
     }
     @After fun close() { db.close() }
 
+    /** Fixture of a booking already durably committed by an older app. */
+    private fun seedExistingLegacyBooking(recognitionId: String) {
+        val r = store.recognition("account-a", recognitionId)!!
+        val event = PaymentAutoBook.eventId(r)
+        val transaction = PaymentAutoBook.transactionId(r.accountId, event)
+        val booking = LocalPaymentBooking(r.accountId, event, r.recognitionId, transaction, r.amountMinor!!,
+            r.direction, r.currency, r.merchant, r.createdAtMs, r.sourcePackage, r.paymentChannel, r.providerReference,
+            "identity_pending", r.createdAtMs)
+        val candidate = PaymentCandidate("cand-" + recognitionId, r.accountId, r.recognitionId, "confirmed", r.amountMinor,
+            r.direction, "", r.merchant, r.createdAtMs, r.paymentChannel, 900, "synthetic_existing_receipt",
+            financeTransactionId = transaction, createdAtMs = r.createdAtMs, updatedAtMs = r.updatedAtMs)
+        store.bookLocally(booking, r.copy(state = "FINANCE_RECORDED"), candidate)
+    }
+
+    @Test fun pendingReceiptWithKnownMoneyDoesNotCreateALedgerEntry() {
+        val outcome = coordinator.onSourceEvent("account-a", "com.tencent.mm", PaymentSourceType.NOTIFICATION,
+            "notification#event#pending-ten-cents", "微信支付", "转账¥0.10，待你收款")
+        assertNotEquals(PaymentRecognitionState.FINANCE_RECORDED, outcome.state)
+        assertTrue(store.localBookings("account-a").isEmpty())
+        assertFalse(store.recognition("account-a", outcome.recognitionId)!!.completionConfirmed)
+        assertNull(coordinator.autoBook("account-a", outcome.recognitionId))
+    }
+
+    @Test fun unverifiedClonePageCannotSettleTheSourceNotification() {
+        val first = coordinator.onSourceEvent("account-a", "com.tencent.mm", PaymentSourceType.NOTIFICATION,
+            "notification#event#clone-pending", "微信支付", "转账¥0.10，待你收款", sourceUid = 9_510_123)
+        val record = store.recognition("account-a", first.recognitionId)!!
+        assertEquals(9_510_123, record.sourceUid)
+        val result = coordinator.onAccessibilityEnrichment("account-a", PaymentEnrichment(
+            "com.tencent.mm", 10, "CNY", FinanceDirection.INCOME, null, null, null, 1000, 900,
+            completionConfirmed = true, sourceInstanceUncertain = true), first.ticketId)
+        assertTrue(result is EnrichmentOutcome.Applied)
+        assertFalse(store.recognition("account-a", first.recognitionId)!!.completionConfirmed)
+        assertEquals("source_instance_unverified", store.candidateForRecognition("account-a", first.recognitionId)!!.reason)
+        assertTrue(store.localBookings("account-a").isEmpty())
+    }
+
+    @Test fun unprovenLegacyMoneyDoesNotBecomeACompletedPaymentOnReplay() {
+        store.saveRecognition(PaymentRecognitionRecord("legacy-unproven", "account-a", "FINANCE_PENDING_CONFIRMATION", 2345,
+            "com.tencent.mm", "NOTIFICATION", "notification#event#legacy-unproven", "", "wechat", 50000,
+            "CNY", "INCOME", "", "", 1000, 1000))
+        assertNull(coordinator.autoBook("account-a", "legacy-unproven"))
+        assertTrue(store.localBookings("account-a").isEmpty())
+    }
+
+    @Test fun laterSettlementOfSameSourceUpdatesProofWithoutDuplicatingIdentity() {
+        val first = coordinator.onSourceEvent("account-a", "com.tencent.mm", PaymentSourceType.NOTIFICATION,
+            "notification#event#same-transfer", "微信支付", "转账¥0.10，待你收款")
+        val second = coordinator.onSourceEvent("account-a", "com.tencent.mm", PaymentSourceType.NOTIFICATION,
+            "notification#event#same-transfer", "微信支付", "已收款¥0.10，资金已到账")
+        assertEquals(first.recognitionId, second.recognitionId)
+        assertEquals(PaymentRecognitionState.FINANCE_RECORDED, second.state)
+        assertEquals(1, store.localBookings("account-a").size)
+        assertTrue(store.recognition("account-a", first.recognitionId)!!.completionConfirmed)
+    }
+
+    @Test fun laterSettlementPersistsASeparateProofAcrossOutboxRestart() {
+        val context = RuntimeEnvironment.getApplication()
+        val account = "settlement-${UUID.randomUUID()}"
+        val eventId = "event-late-settlement"
+        coordinator.onSourceEvent(account, "com.tencent.mm", PaymentSourceType.NOTIFICATION,
+            "notification#event#$eventId", "微信支付", "转账¥0.10，待你收款", uploadEventId = eventId)
+        val queue = NotificationOfflineQueue.inDirectory(context.filesDir, account)
+        val pending = StructuredNotificationEvent(eventId, "f".repeat(64), "com.tencent.mm",
+            NotificationEventType.TRANSACTION, "wechat-4", ParseStatus.CANDIDATE,
+            FinanceDirection.INCOME, 10, "CNY", "wechat", "", "", 820, 1000, 1000)
+        queue.enqueue(eventId, StructuredEventJson.ingestPayload("1", "device-late-settlement", eventId, pending))
+        coordinator.onSourceEvent(account, "com.tencent.mm", PaymentSourceType.NOTIFICATION,
+            "notification#event#$eventId", "微信支付", "已收款¥0.10，资金已到账", uploadEventId = eventId)
+        LocalPaymentLedger.recover(context, account, "device-late-settlement", db, coordinator)
+        LocalPaymentLedger.recover(context, account, "device-late-settlement", db, coordinator)
+        val restored = NotificationOfflineQueue.inDirectory(context.filesDir, account).peekRequests()
+        assertEquals(2, restored.size)
+        assertEquals(setOf(eventId, "hint:$eventId"), restored.map { it.operationId }.toSet())
+        val proof = org.json.JSONObject(restored.single { it.operationId == "hint:$eventId" }.body)
+            .getJSONArray("hints").getJSONObject(0)
+        assertEquals("CONFIRMED_PAYMENT", proof.getString("recognition_status"))
+        assertEquals("payment-settled-4", proof.getJSONObject("evidence").getString("parser_version"))
+        assertEquals(1, store.localBookings(account).size)
+    }
+
     @Test fun completeWeChatAlipayAndIncomeBookWithoutMerchantOrNetwork() {
         val fixtures = listOf(
             Triple("com.tencent.mm", "微信支付", "支付成功 ¥34.00"),
@@ -68,10 +149,11 @@ class LocalPaymentBookingTest {
         assertEquals(0, store.pendingCandidateCount("account-a"))
     }
 
-    @Test fun ambiguousOldUploadIdentityDoesNotMakeCompleteMoneyAReview() {
+    @Test fun ambiguousUploadIdentityWithProvenCompletionKeepsLocalBooking() {
         store.saveRecognition(PaymentRecognitionRecord("rec-ambiguous", "account-a", "FINANCE_PENDING_CONFIRMATION", 2304,
             "com.tencent.mm", "NOTIFICATION", "notification#legacy-key#1000", "", "wechat", 3400,
-            "CNY", "EXPENSE", "", "", 1000, 1000))
+            "CNY", "EXPENSE", "", "", 1000, 1000, completionConfirmed = true))
+        seedExistingLegacyBooking("rec-ambiguous")
         val booking = coordinator.autoBook("account-a", "rec-ambiguous", syncState = "identity_pending")!!
         assertEquals("identity_pending", booking.syncState)
         assertEquals("FINANCE_RECORDED", store.recognition("account-a", "rec-ambiguous")?.state)
@@ -82,7 +164,8 @@ class LocalPaymentBookingTest {
     @Test fun ambiguousIdentityRequiresOneProvedCanonicalTransactionWithoutRebooking() {
         store.saveRecognition(PaymentRecognitionRecord("rec-alias", "account-a", "FINANCE_PENDING_CONFIRMATION", 2305,
             "com.tencent.mm", "NOTIFICATION", "notification#legacy-key#1000", "", "wechat", 3400,
-            "CNY", "EXPENSE", "", "", 1000, 1000))
+            "CNY", "EXPENSE", "", "", 1000, 1000, completionConfirmed = true))
+        seedExistingLegacyBooking("rec-alias")
         val booking = coordinator.autoBook("account-a", "rec-alias", syncState = "identity_pending")!!
         val archive = object : NotificationArchiveSink {
             override fun store(accountId: String, input: NotificationCaptureInput, parsed: StructuredNotificationEvent?) = false
@@ -112,9 +195,10 @@ class LocalPaymentBookingTest {
         assertTrue(projected.records.all { it.transactionId.isEmpty() })
     }
 
-    @Test fun oldLocalRecoveryCompleteMoneyBooksOnceAndReceiptSurvivesRestart() {
+    @Test fun provenLocalRecoveryBooksOnceAndReceiptSurvivesRestart() {
         val recognition = PaymentRecognitionRecord("rec-old-34", "account-a", "FINANCE_PENDING_CONFIRMATION", 2301,
-            "com.tencent.mm", "NOTIFICATION", "notification#legacy#1", "", "wechat", 3400, "CNY", "EXPENSE", "", "", 1000, 1000)
+            "com.tencent.mm", "NOTIFICATION", "notification#legacy#1", "", "wechat", 3400, "CNY", "EXPENSE", "", "", 1000, 1000,
+            completionConfirmed = true)
         store.saveRecognition(recognition)
         val booking = coordinator.autoBook("account-a", recognition.recognitionId)!!
         assertEquals("pay-verify:rec-old-34", booking.eventId)
@@ -136,6 +220,7 @@ class LocalPaymentBookingTest {
             sourcePackage = "com.tencent.mm", amountMinor = 3400, direction = FinanceDirection.EXPENSE,
             merchant = null, occurredAtMs = 1_791_024_978_000L, confidence = 800,
             evidenceSource = PaymentEvidenceSource.OCR, currency = "CNY", counterparty = null, providerReference = null,
+            completionConfirmed = true,
         ))
         assertTrue(result is EnrichmentOutcome.Applied)
         assertEquals("FINANCE_RECORDED", store.recognition("account-a", outcome.recognitionId)?.state)
@@ -146,7 +231,7 @@ class LocalPaymentBookingTest {
     @Test fun concurrentRecoveryCannotCreateTwoTransactions() {
         val recognition = PaymentRecognitionRecord("rec-race", "account-a", "ENRICHMENT_VERIFIED", 2302,
             "com.tencent.mm", "NOTIFICATION", "notification#event#evt-race-34", "evt-race-34", "wechat", 3400,
-            "CNY", "EXPENSE", "", "", 1000, 1000)
+            "CNY", "EXPENSE", "", "", 1000, 1000, completionConfirmed = true)
         store.saveRecognition(recognition)
         val pool = Executors.newFixedThreadPool(4)
         try {
@@ -200,7 +285,7 @@ class LocalPaymentBookingTest {
         )
         try {
             val input = NotificationCaptureInput("com.tencent.mm", notificationKey = "test-autobook-${UUID.randomUUID()}",
-                notificationId = 34, title = "微信支付", text = "支付成功 ¥34.00", postTime = 1_791_024_978_000L,
+                notificationId = 34, title = "微信支付", text = "支付成功 ¥34.00 交易号 SYNTH-LOCAL-BOOK-REF", postTime = 1_791_024_978_000L,
                 receivedAtMs = 1_791_024_978_000L)
             val original = pipeline()
             original.onNotification(input)

@@ -52,6 +52,11 @@ work/
 outputs/
 artifacts/
 
+# Fixed Windows workspace: local tooling and evidence are never deploy inputs.
+/_wyj-tools/
+/访问口令.txt
+/docs/migration-evidence/
+
 # Android local/build state
 android/local.properties
 android/.gradle/

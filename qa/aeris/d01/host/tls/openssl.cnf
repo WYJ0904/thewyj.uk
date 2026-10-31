@@ -1,0 +1,12 @@
+[req]
+distinguished_name=dn
+x509_extensions=ext
+prompt=no
+[dn]
+CN=Aeris isolated QA loopback
+O=Aeris synthetic device acceptance
+[ext]
+subjectAltName=IP:127.0.0.1,DNS:localhost
+basicConstraints=critical,CA:TRUE
+keyUsage=critical,digitalSignature,keyEncipherment,keyCertSign
+extendedKeyUsage=serverAuth

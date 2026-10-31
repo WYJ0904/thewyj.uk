@@ -128,7 +128,8 @@ class NotificationCaptureCoordinator(
         // truth). Everything else keeps the notification parser. Complete
         // amount and direction use one event id for automatic ledger booking;
         // confidence remains diagnostic evidence.
-        val payment = if (current.financeEntitled) paymentHook?.outcomeFor(input) else null
+        var payment = if (current.financeEntitled) paymentHook?.outcomeFor(current.accountId, input)?.let {
+            paymentHook.prepareIdentity(current.accountId, input, it) } else null
         // Android apps may update one StatusBarNotification in place while also
         // changing postTime. Payment identity follows the notification slot
         // until onNotificationRemoved, not that mutable timestamp.
@@ -138,9 +139,9 @@ class NotificationCaptureCoordinator(
             NotificationFingerprint.stableEventId()
         }
         val paymentInput = if (payment != null) input.copy(paymentEventId = eventId) else input
-        val structured = if (payment != null) {
+        var structured = if (payment != null) {
             val refund = payment.direction == FinanceDirection.REFUND
-            val parsedPayment = payment.amountMinor > 0 &&
+            val parsedPayment = payment.confirmed && payment.identityReviewReason.isBlank() && payment.amountMinor > 0 &&
                 payment.direction != FinanceDirection.UNKNOWN
             StructuredNotificationEvent(
                 eventId = eventId,
@@ -148,10 +149,11 @@ class NotificationCaptureCoordinator(
                 sourcePackage = input.sourcePackage,
                 eventType = if (refund) NotificationEventType.REFUND else NotificationEventType.TRANSACTION,
                 parserVersion = payment.parserVersion,
-                parseStatus = if (parsedPayment) ParseStatus.PARSED else ParseStatus.CANDIDATE,
+                parseStatus = if (parsedPayment) ParseStatus.PARSED else if (payment.amountMinor > 0 && payment.direction != FinanceDirection.UNKNOWN) ParseStatus.CANDIDATE else ParseStatus.UNPARSED,
                 direction = payment.direction,
                 amountMinor = payment.amountMinor,
-                currency = "CNY",
+                currency = payment.currency,
+                amountExponent = payment.amountExponent,
                 paymentChannel = payment.paymentChannel,
                 merchant = payment.merchant,
                 counterparty = payment.counterparty,
@@ -159,7 +161,13 @@ class NotificationCaptureCoordinator(
                 occurredAtMs = input.receivedAtMs,
                 receivedAtMs = input.receivedAtMs,
                 providerReference = payment.providerReference,
-                lifecycleIdentity = input.messageIdentity,
+                lifecycleIdentity = paymentMessageProof(input),
+                lifecycleOperation = payment.lifecycleOperation, lifecycleRevision = payment.lifecycleRevision,
+                financialPhase = payment.financialPhase, lifecycleReference = payment.lifecycleReference,
+                referenceNamespace = payment.referenceNamespace, currencyEvidence = payment.currencyEvidence,
+                identityReviewReason = payment.identityReviewReason,
+                currencyRolesJson = payment.currencyRolesJson,
+                currencyReviewRequired = payment.currencyReviewRequired, currencyDecisionSource = payment.currencyDecisionSource,
             )
         } else {
             StructuredNotificationEvent(
@@ -228,6 +236,12 @@ class NotificationCaptureCoordinator(
             uploadEventId = if (payment != null) eventId else "",
         )
         if (!current.financeEntitled) return
+        if (payment != null && paymentHook != null) {
+            payment = paymentHook.prepareIdentity(current.accountId, paymentInput, payment)
+            structured = structured.copy(identityReviewReason = payment.identityReviewReason,
+                parseStatus = if (payment.confirmed && payment.identityReviewReason.isBlank() && payment.amountMinor > 0 && payment.direction != FinanceDirection.UNKNOWN)
+                    ParseStatus.PARSED else if (payment.amountMinor > 0 && payment.direction != FinanceDirection.UNKNOWN) ParseStatus.CANDIDATE else ParseStatus.UNPARSED)
+        }
         if (payment != null) {
             // One trace line per payment event so a real device log shows the
             // exact identity that later has to appear in the finance ledger.
@@ -247,7 +261,8 @@ class NotificationCaptureCoordinator(
             // direction-unknown hints stay local (90 second enrichment ticket)
             // where the user completes them, and the confirmed booking is
             // uploaded afterwards with the real direction.
-            if (payment.amountMinor <= 0 || payment.direction == FinanceDirection.UNKNOWN) {
+            if ((payment.amountMinor <= 0 || payment.direction == FinanceDirection.UNKNOWN) &&
+                payment.financialPhase.isBlank() && payment.identityReviewReason.isBlank()) {
                 // Incomplete but real: publish it as a pending hint so /finance and
                 // the app share one pending source of truth (P0-3). A hint can
                 // never create a transaction on its own.
@@ -265,7 +280,8 @@ class NotificationCaptureCoordinator(
                     amountMinor = payment.amountMinor.takeIf { it > 0 },
                     direction = payment.direction.name,
                     merchant = payment.merchant.ifBlank { payment.counterparty },
-                    currency = "CNY",
+                    currency = payment.currency,
+                    amountExponent = payment.amountExponent,
                     confidence = structured.confidence,
                     recognitionStatus = when {
                         payment.amountMinor > 0 -> "PAYMENT_LIKELY"
@@ -332,6 +348,25 @@ class NotificationCaptureCoordinator(
         return runCatching { queueFor(current.accountId).enqueue(operationId, payload) }.isSuccess
     }
 
+    /** A manual unit decision never rewrites the original immutable ingest. */
+    fun enqueueCurrencyConfirmation(accountId:String,operationId:String,eventId:String,currency:String,amountMinor:Long,
+                                    direction:String,merchant:String,occurredAtMs:Long):Boolean {
+        val current=account()?:return false
+        if(current.accountId!=accountId||!current.financeEntitled||eventId.isBlank()||operationId.isBlank()||
+            currency !in uk.thewyj.app.finance.CurrencyMoney.digits||amountMinor !in 1L..10_000_000_000_000L||
+            direction.lowercase() !in setOf("expense","income","refund"))return false
+        val body=org.json.JSONObject().put("event_id",eventId).put("device_id",current.deviceId).put("edits",org.json.JSONObject()
+            .put("currency",currency).put("amount_minor",amountMinor).put("amount_exponent",uk.thewyj.app.finance.CurrencyMoney.digits.getValue(currency))
+            .put("direction",direction.lowercase()).put("merchant",merchant).put("occurred_at_ms",occurredAtMs)).toString()
+        return runCatching {
+            val queue=queueFor(accountId)
+            val previous=queue.peekRequests().firstOrNull{it.operationId==operationId}
+            if(previous!=null&&(previous.path!=OfflineNotificationQueue.CURRENCY_CONFIRM_PATH||previous.body!=body))return@runCatching false
+            queue.enqueueRequest(operationId,OfflineNotificationQueue.CURRENCY_CONFIRM_PATH,body)
+            queue.peekRequests().any{it.operationId==operationId&&it.body==body}
+        }.getOrDefault(false)
+    }
+
     /** Operation ids still waiting for an upload for the current account. */
     fun queuedOperationIds(): Set<String> {
         val current = account() ?: return emptySet()
@@ -363,6 +398,7 @@ class NotificationCaptureCoordinator(
         paymentChannel: String = "",
         lifecycleIdentity: String = "",
         occurredAtMs: Long = 0L,
+        amountExponent: Int? = null,
     ): Boolean {
         if (accountId.isBlank() || sourceEventId.isBlank()) return false
         val current = account() ?: return false
@@ -385,6 +421,7 @@ class NotificationCaptureCoordinator(
             paymentChannel = paymentChannel,
             lifecycleIdentity = lifecycleIdentity,
             occurredAtMs = occurredAtMs,
+            amountExponent = amountExponent,
         )
         return runCatching {
             queueFor(current.accountId).enqueueHint("hint:$sourceEventId", payload)
@@ -413,6 +450,7 @@ class NotificationCaptureCoordinator(
         if (!current.financeEntitled) {
             return FlushResult(0, ingestQueue.pendingCount(), 0, authenticationRequired = false, retryableFailures = 0)
         }
+        paymentHook?.refreshCurrencyContext(current.accountId, current.sessionToken, transport)
         paymentHook?.prepareLocalBookings(current.accountId, current.deviceId)
         var uploaded = 0
         var discardedInvalid = 0
@@ -420,7 +458,7 @@ class NotificationCaptureCoordinator(
         var retryableFailures = 0
         val outcomes = mutableListOf<IngestOutcome>()
         val rejected = mutableListOf<RejectedIngest>()
-        for (request in ingestQueue.peekRequests()) {
+        for (request in ingestQueue.retryCurrencyProtocolUpgrades()) {
             // A payload the server already refused repeatedly would spin on
             // every flush; keep it (nothing is deleted) but stop re-uploading
             // until the app is updated or the user removes the account data.
@@ -440,10 +478,36 @@ class NotificationCaptureCoordinator(
                     // device log ends with the real transaction id.
                     runCatching {
                         val json = org.json.JSONObject(response.body)
+                        if (uk.thewyj.app.task21.payment.PaymentReconciliation.isRequest(request.body)) {
+                            if (paymentHook?.onReconciliationReceipt(current.accountId, request.operationId, response.body) == true) {
+                                ingestQueue.remove(request.operationId)
+                                uploaded += 1
+                            } else {
+                                val pending = json.optJSONArray("operation_results")?.optJSONObject(0)
+                                if (pending?.optString("reconciliation_status") == "pending")
+                                    ingestQueue.markRejected(request.operationId, pending.optString("reason", "reconciliation_pending"))
+                                else if(pending?.optString("reconciliation_status")=="applied")
+                                    ingestQueue.markRejected(request.operationId,"local_reconciliation_receipt_conflict")
+                                retryableFailures += 1
+                            }
+                            return@runCatching
+                        }
                         val result = json.optJSONArray("operation_results")?.optJSONObject(0)
                         val transactionId = result?.optString("transaction_id").orEmpty()
                         val candidateId = result?.optString("candidate_id").orEmpty()
                         val eventId = result?.optJSONObject("event")?.optString("event_id").orEmpty()
+                        if(request.path==OfflineNotificationQueue.CURRENCY_CONFIRM_PATH) {
+                            val intended=org.json.JSONObject(request.body)
+                            val edits=intended.getJSONObject("edits")
+                            val actual=result?.optJSONObject("transaction")
+                            if(transactionId.isBlank()||actual==null){retryableFailures+=1;return@runCatching}
+                            if(eventId!=intended.getString("event_id")||actual.optString("currency")!=edits.getString("currency")||
+                                actual.optLong("amount_minor")!=edits.getLong("amount_minor")||actual.optString("direction")!=edits.getString("direction")) {
+                                val row=ingestQueue.markRejected(request.operationId,"currency_receipt_conflict")
+                                rejected+=RejectedIngest(request.operationId,"currency_receipt_conflict",row?.attempts?:1)
+                                retryableFailures+=1;return@runCatching
+                            }
+                        }
                         if (paymentHook?.localFinanceTransactionId(current.accountId, request.operationId)?.isNotBlank() == true &&
                             transactionId.isBlank()) {
                             // An HTTP success without a ledger receipt cannot

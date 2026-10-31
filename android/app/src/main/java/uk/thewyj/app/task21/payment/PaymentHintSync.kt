@@ -52,6 +52,9 @@ class PaymentHintSync(
         val pendingCount: Int = 0,
         val pendingRecords: List<PendingReviewIdentity> = emptyList(),
         val fromCache: Boolean = false,
+        val accountId: String = "",
+        val observationVersion: Long = -1,
+        val observedAtMs: Long = 0,
     )
     private data class Observation(
         val states: Map<String, String> = emptyMap(),
@@ -59,6 +62,8 @@ class PaymentHintSync(
         val pendingEventIds: Set<String> = emptySet(),
         val pendingCount: Int = 0,
         val pendingRecords: List<PendingReviewIdentity> = emptyList(),
+        val observationVersion: Long = -1,
+        val observedAtMs: Long = 0,
     )
     data class RemoteDismissResult(
         val ok: Boolean,
@@ -71,16 +76,20 @@ class PaymentHintSync(
         val account = (accountOverride?.invoke()
             ?: runCatching { sessions.currentAccount() }.getOrNull()) ?: return Result(0, 0, 0, false)
         if (!account.financeEntitled || account.accountId != accountId) return Result(0, 0, 0, false)
-        val summary = LocalPaymentReviewProjection.apply(remoteSummary, bookedEventIds(accountId))
+        var summary = LocalPaymentReviewProjection.apply(remoteSummary, bookedEventIds(accountId))
         val cache = CanonicalPendingCache(app, accountId)
         val previousPending = cache.read()?.records?.filter { it.state == "pending" }?.sortedBy { it.canonicalId }
         if (!cache.save(summary, pullEpoch ?: cache.epoch())) return Result(0, 0, 0, false)
+        val accepted = cache.snapshot() ?: return Result(0, 0, 0, false)
+        summary = accepted.first
+        val acceptedObservation = accepted.second
         if (LocalPaymentReceiptReconciler.apply(accountId, store,
                 archiveSink ?: NotificationArchiveSinkFactory.forContext(app), summary.records) > 0) PaymentReviewSignals.publish()
         val states = mutableMapOf<String, String>()
         val pendingIds = mutableSetOf<String>()
         var confirmed = 0
         var ignored = 0
+        var currencyReviewUpdated = false
         for (record in summary.records) {
             val ids = (record.eventIds + record.eventId).filter(String::isNotBlank).toSet()
             ids.forEach { states[it] = record.state }
@@ -112,18 +121,29 @@ class PaymentHintSync(
                     ignored += 1
                 }
             }
+            if (record.state == "confirmed" && record.transactionId.isNotBlank() &&
+                record.currencyDecisionSource.isNotBlank() && !record.currencyReviewRequired) {
+                val match = recognitionForCandidate(account, ids)
+                val booking = match?.let { store.localBooking(accountId, PaymentAutoBook.eventId(it)) }
+                if (match?.currencyReviewRequired == true && booking?.transactionId == record.transactionId) {
+                    store.saveRecognition(match.copy(currencyReviewRequired = false))
+                    currencyReviewUpdated = true
+                }
+            }
         }
-        if (previousPending != summary.records.filter { it.state == "pending" }.sortedBy { it.canonicalId }) PaymentReviewSignals.publish()
+        if (currencyReviewUpdated || previousPending != summary.records.filter { it.state == "pending" }.sortedBy { it.canonicalId }) PaymentReviewSignals.publish()
         return Result(
             refreshed = summary.records.size,
             confirmed = confirmed,
             ignored = ignored,
             ok = true,
-            observedStates = states,
+            observedStates = acceptedObservation.observedStates,
             completeObservation = !summary.truncated && summary.records.count { it.state == "pending" } == summary.totalCount,
             pendingEventIds = pendingIds,
             pendingCount = summary.totalCount,
             pendingRecords = summary.records.filter { it.state == "pending" },
+            accountId = accountId, observationVersion = acceptedObservation.observationVersion,
+            observedAtMs = acceptedObservation.observedAtMs,
         )
     }
 
@@ -150,6 +170,9 @@ class PaymentHintSync(
             uk.thewyj.app.task21.NotificationCapturePipeline.create(app, sessions).flushDetailed()
         }
         val recognition = runCatching { store.recognition(accountId, recognitionId) }.getOrNull() ?: return false
+        // Money/page evidence cannot silently settle uncertain identity or a hold.
+        // Typed financial operations use their durable ingest event, not a legacy hint.
+        if (recognition.identityReviewReason.isNotBlank() || recognition.financialPhase.isNotBlank()) return false
         val archivedIds = runCatching {
             (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
                 .structuredEventIdsForRecognition(accountId, recognition.sourceEventId)
@@ -164,12 +187,13 @@ class PaymentHintSync(
         val candidate = runCatching {
             store.candidateForRecognition(accountId, recognitionId)
         }.getOrNull() ?: return false
-        val amountMinor = candidate.effectiveAmountMinor ?: recognition.amountMinor
-        val direction = candidate.effectiveDirection
+        val amountMinor = candidate.amountMinor ?: recognition.amountMinor
+        val direction = candidate.direction
             .takeIf { it.isNotBlank() && it != "UNKNOWN" }
             ?: recognition.direction
         val hasAmount = amountMinor != null && amountMinor > 0L
         val hasDirection = direction.isNotBlank() && direction != "UNKNOWN"
+        val settled = hasAmount && hasDirection && recognition.completionConfirmed && !candidate.hasEdits
         // Amount and direction are independently useful enrichment. In
         // particular, WeChat can expose a verified amount while leaving the
         // direction unknown. Publish that amount into the existing hint now;
@@ -185,12 +209,14 @@ class PaymentHintSync(
             appLabel = PaymentAppLabels.resolve(app, recognition.sourcePackage),
             amountMinor = amountMinor?.takeIf { it > 0L },
             direction = direction.takeIf { hasDirection }.orEmpty(),
-            merchant = candidate.effectiveMerchant.ifBlank { recognition.merchant },
-            currency = recognition.currency.ifBlank { "CNY" },
+            merchant = candidate.merchant.ifBlank { recognition.merchant },
+            currency = recognition.currency.ifBlank { "XXX" },
+            amountExponent = uk.thewyj.app.finance.CurrencyRuntimePreferences.sourceExponent(app,account.accountId,recognition.sourceEventId,recognition.currency),
+            currencyReviewRequired = recognition.currencyReviewRequired,
             confidence = candidate.confidence.coerceIn(0, 1000),
-            recognitionStatus = if (hasAmount && hasDirection) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY",
-            reasons = listOf(if (hasAmount && hasDirection) "accessibility_verified_payment" else "accessibility_partial_enrichment"),
-            parserVersion = "verified-on-device",
+            recognitionStatus = if (settled) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY",
+            reasons = listOf(if (settled) "accessibility_verified_payment" else "accessibility_pending_evidence"),
+            parserVersion = if (settled) "payment-settled-4" else "payment-evidence-4",
             providerReference = recognition.providerReference,
             paymentChannel = recognition.paymentChannel,
             occurredAtMs = recognition.createdAtMs,
@@ -303,6 +329,7 @@ class PaymentHintSync(
                 .put("id", hint.optString("id"))
                 .put("event_id", hint.optString("source_event_id"))
                 .put("event_ids", JSONArray().put(hint.optString("source_event_id")))
+                .put("currency", hint.optString("currency", "XXX"))
                 .put("state", hint.optString("state")))
         }
         for (status in listOf("pending", "confirmed", "rejected")) {
@@ -326,6 +353,7 @@ class PaymentHintSync(
                     .put("id", candidate.optString("id"))
                     .put("event_id", candidate.optString("event_id"))
                     .put("event_ids", aliases)
+                    .put("currency", candidate.optString("currency", "XXX"))
                     .put("state", status))
             }
         }
@@ -381,10 +409,12 @@ class PaymentHintSync(
         }
         val candidatesOk = syncCandidateTerminals(account)
         val observation = reconcileExactReviewIdentities(account)
+        if(productionStore)uk.thewyj.app.finance.FinanceAiCoordinator.get(app).schedule(account.accountId)
         return Result(
             hints.length(), confirmed, ignored, candidatesOk,
             observation.states, observation.complete, observation.pendingEventIds, observation.pendingCount,
             observation.pendingRecords,
+            accountId = account.accountId, observationVersion = observation.observationVersion, observedAtMs = observation.observedAtMs,
         )
     }
 
@@ -414,11 +444,13 @@ class PaymentHintSync(
             java.net.URLEncoder.encode(it, Charsets.UTF_8.name())
         }
         val cache = CanonicalPendingCache(app, account.accountId)
-        val pullEpoch = cache.epoch()
+        val pullEpoch = cache.beginObservation()
         val response = runCatching {
             transport.get("/api/notification/pending-summary" + if (query.isBlank()) "" else "?event_ids=$query", account.sessionToken)
         }.getOrNull() ?: return Observation()
         if (!response.ok) return Observation()
+        val stillActive = accountOverride?.invoke() ?: runCatching { sessions.currentAccount() }.getOrNull()
+        if (stillActive?.accountId != account.accountId) return Observation()
         val payload = runCatching { JSONObject(response.body) }.getOrNull()
             ?: return Observation()
         val receivedRecords = payload.optJSONArray("records") ?: return Observation()
@@ -442,10 +474,20 @@ class PaymentHintSync(
             payload.optInt("hint_count"), payload.optInt("candidate_count"), payload.optBoolean("truncated"), parsed), pullEpoch)) {
             return Observation()
         }
+        val acceptedSnapshot = cache.snapshot() ?: return Observation()
+        val acceptedSummary = acceptedSnapshot.first
+        val acceptedObservation = acceptedSnapshot.second
+        // Use the accepted terminal projection for side effects too, never a
+        // raw pending response that the cache has already rejected as stale.
+        for (index in 0 until records.length()) {
+            val row = records.optJSONObject(index) ?: continue
+            val accepted = acceptedSummary.records.firstOrNull { it.canonicalId == "${row.optString("kind")}:${row.optString("id")}" } ?: continue
+            row.put("state", accepted.state).put("transaction_id", accepted.transactionId)
+        }
         val states = mutableMapOf<String, String>()
         val pendingIds = mutableSetOf<String>()
         val pendingRecords = mutableListOf<PendingReviewIdentity>()
-        if (LocalPaymentReceiptReconciler.apply(account.accountId, store, archive, parsed) > 0) PaymentReviewSignals.publish()
+        if (LocalPaymentReceiptReconciler.apply(account.accountId, store, archive, acceptedSummary.records) > 0) PaymentReviewSignals.publish()
         for (index in 0 until records.length()) {
             val row = records.optJSONObject(index) ?: continue
             val eventIds = buildSet {
@@ -491,14 +533,15 @@ class PaymentHintSync(
                 }
             }
         }
-        if (previousPending != parsed.filter { it.state == "pending" }.sortedBy { it.canonicalId }) PaymentReviewSignals.publish()
+        if (previousPending != acceptedSummary.records.filter { it.state == "pending" }.sortedBy { it.canonicalId }) PaymentReviewSignals.publish()
         return Observation(
-            states = states,
-            complete = !payload.optBoolean("truncated", false) &&
-                pendingRecords.size == payload.optInt("total_count", pendingIds.size),
-            pendingEventIds = pendingIds,
-            pendingCount = payload.optInt("total_count", pendingIds.size),
-            pendingRecords = pendingRecords,
+            states = acceptedObservation.observedStates,
+            complete = acceptedObservation.completeObservation,
+            pendingEventIds = acceptedObservation.pendingEventIds,
+            pendingCount = acceptedObservation.pendingCount,
+            pendingRecords = acceptedObservation.pendingRecords,
+            observationVersion = acceptedObservation.observationVersion,
+            observedAtMs = acceptedObservation.observedAtMs,
         )
     }
 
@@ -779,6 +822,9 @@ class PaymentHintSync(
             }.filterKeys(String::isNotBlank).values.filter { it.size > 1 }
             var posted = 0
             for (group in grouped.take(4)) {
+                fun currencyOf(row: JSONObject): String = row.optString("currency").takeIf { it.isNotBlank() && it != "XXX" }
+                    ?: store.recognitionByUploadEvent(account.accountId,row.optString("event_id"))?.currency ?: "XXX"
+                val currencies = group.map(::currencyOf).distinct()
                 val amounts = group.map { it.optLong("amount_minor") }.filter { it > 0L }.distinct()
                 val directions = group.map { it.optString("direction") }
                     .filter { it in setOf("income", "expense", "refund") }.distinct()
@@ -790,7 +836,7 @@ class PaymentHintSync(
                 // The archived notification instance proves continuity even
                 // when both revisions lack an amount. Never use a nearby time
                 // or matching money shape to join different instances.
-                if (amounts.size > 1 || group.none { it.optLong("amount_minor") <= 0L } ||
+                if (currencies.size != 1 || amounts.size > 1 || group.none { it.optLong("amount_minor") <= 0L } ||
                     directions.size > 1 || references.size > 1 ||
                     group.map { it.optString("source_package") }.distinct().size != 1 ||
                     times.any { it <= 0L } ||
@@ -811,10 +857,10 @@ class PaymentHintSync(
                         deviceId = account.deviceId, sourceEventId = row.optString("event_id"),
                         sourceType = "notification", sourcePackage = packageName,
                         appLabel = row.optString("app_label"), amountMinor = amount,
-                        direction = direction, merchant = row.optString("merchant"), currency = "CNY",
+                        direction = direction, merchant = row.optString("merchant"), currency = currencyOf(row),
                         confidence = row.optInt("confidence"),
-                        recognitionStatus = if (amount != null && direction in setOf("income", "expense", "refund"))
-                            "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY",
+                        // Historical amount/direction are not settlement proof.
+                        recognitionStatus = "PAYMENT_LIKELY",
                         reasons = listOf("archive_lifecycle_reconciliation"), parserVersion = "archive-link-v1",
                         paymentChannel = channel, lifecycleIdentity = lifecycleIdentity,
                         providerReference = references.singleOrNull().orEmpty(),

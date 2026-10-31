@@ -1,0 +1,26 @@
+def qa = new File(System.getProperty('finance.p06.root'))
+def pixels = new File(System.getProperty('finance.p06.pixel.root'))
+allprojects { p ->
+    if (p.path == ':app') {
+        p.plugins.withId('com.android.application') {
+            // D-01's confirmed target-first helper Activity contract. Test Core
+            // in the test APK alone lets Freecess freeze the target process.
+            p.dependencies.add('debugImplementation', 'androidx.test:core:1.7.0')
+            p.androidComponents.finalizeDsl { d ->
+                d.buildTypes.getByName('debug').applicationIdSuffix = '.qa.financep06'
+                d.buildTypes.getByName('debug').versionNameSuffix = '-finance-p06-qa'
+                d.defaultConfig.testInstrumentationRunner = 'uk.thewyj.app.qa.financep06.FinanceP06Runner'
+                d.sourceSets.getByName('debug').manifest.srcFile(new File(qa, 'device/AndroidManifest.xml'))
+                d.sourceSets.getByName('debug').res.srcDir(new File(qa, 'device-res'))
+                d.sourceSets.getByName('androidTest').java.srcDirs(new File(qa, 'device'), pixels)
+                d.sourceSets.getByName('androidTest').assets.srcDir(new File(pixels, 'assets'))
+            }
+        }
+        p.tasks.configureEach { task ->
+            if (task.name == 'compileDebugAndroidTestKotlin') {
+                task.source(p.fileTree(new File(qa,'device')) { include '**/*.kt' })
+                task.source(p.fileTree(pixels) { include '**/*.kt' })
+            }
+        }
+    }
+}

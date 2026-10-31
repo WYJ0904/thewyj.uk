@@ -4,8 +4,8 @@ import {
   BACKEND_NETWORK_MESSAGE,
   GET_RETRYABLE_STATUS,
   STATUS_RETRY_BASE_DELAYS_MS,
-} from "./config.js?v=20261027-aeris-p07-ui-r1";
-import { accountSessionHeaders } from "./session.js?v=20261027-aeris-p07-ui-r1";
+} from "./config.js?v=20261031-aeris-p0-finance-r1";
+import { accountSessionHeaders } from "./session.js?v=20261031-aeris-p0-finance-r1";
 
 export const CANONICAL_SESSION_ERROR_CODES = new Set([
   "authentication_required",
@@ -99,7 +99,8 @@ export function createApiClient({
           method: "GET",
           cache: "no-store",
           credentials: "same-origin",
-          headers: authenticated ? accountSessionHeaders(getSession()) : {},
+          headers: { ...(authenticated ? accountSessionHeaders(getSession()) : {}),
+            ...(authenticated && (options.financeMoneyVersion === 2 || /^\/api\/(finance|notification)\//.test(path)) ? { 'X-Finance-Money-Version': '3' } : {}) },
           controller: options.controller,
         }, options.timeoutMs || API_GET_TIMEOUT_MS);
       } catch (networkError) {
@@ -149,7 +150,8 @@ export function createApiClient({
       response = await fetchWithTimeout(path, {
         method: "POST",
         cache: "no-store",
-        headers: { "Content-Type": "application/json", ...accountSessionHeaders(getSession()) },
+        headers: { "Content-Type": "application/json", ...accountSessionHeaders(getSession()),
+          ...(/^\/api\/(finance|notification)\//.test(path) ? { 'X-Finance-Money-Version': '3' } : {}) },
         body: JSON.stringify(body),
         controller: options.controller,
         signal: options.signal,

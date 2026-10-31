@@ -1,0 +1,14 @@
+def qa = new File(System.getProperty('finance.closeout.emulator.source'))
+allprojects { p ->
+    if (p.path == ':app') {
+        p.plugins.withId('com.android.application') {
+            p.androidComponents.finalizeDsl { d ->
+                d.sourceSets.getByName('androidTest').java.srcDir(qa)
+                d.sourceSets.getByName('androidTest').assets.srcDir(new File(qa, 'assets'))
+            }
+        }
+        p.tasks.configureEach { task ->
+            if (task.name == 'compileDebugAndroidTestKotlin') task.source(p.fileTree(qa) { include '**/*.kt' })
+        }
+    }
+}

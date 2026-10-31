@@ -3,11 +3,14 @@ package uk.thewyj.app.task21.payment
 import java.security.MessageDigest
 import uk.thewyj.app.task21.FinanceDirection
 
-/** Money completeness is the only auto-book gate, shared by every local path. */
+/** Independent settlement evidence is required on every new automatic booking. */
 object PaymentAutoBook {
-    fun eligible(amountMinor: Long?, direction: String): Boolean =
+    fun hasCompleteMoney(amountMinor: Long?, direction: String): Boolean =
         amountMinor != null && amountMinor in 1..10_000_000_000_000L &&
             direction.uppercase() in setOf("INCOME", "EXPENSE", "REFUND")
+
+    fun eligible(amountMinor: Long?, direction: String, completionConfirmed: Boolean): Boolean =
+        completionConfirmed && hasCompleteMoney(amountMinor, direction)
 
     fun eventId(record: PaymentRecognitionRecord): String = record.uploadEventId.ifBlank {
         if (record.sourceEventId.startsWith("notification#event#"))
@@ -37,4 +40,5 @@ data class LocalPaymentBooking(
     val providerReference: String,
     val syncState: String = "pending",
     val createdAtMs: Long,
+    val amountExponent: Int? = null,
 )

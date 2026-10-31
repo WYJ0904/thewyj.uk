@@ -15,6 +15,11 @@ class PaymentRecognitionCoordinator(
     private val statusMachine: PaymentStatusStateMachine = PaymentStatusStateMachine(),
     private val notifier: PaymentStatusNotifier? = null,
     private val now: () -> Long = System::currentTimeMillis,
+    private val defaultCurrency: (String) -> String? = { null },
+    private val currencyPolicyVersion: Int = 1,
+    private val effectiveCurrency: (PaymentRecognitionRecord) -> String = { it.currency },
+    private val onVerifiedCurrencyUnit: (String, String, String, Int) -> Unit = { _, _, _, _ -> },
+    private val onCurrencyRoles: (String, String, String, Long) -> Unit = { _, _, _, _ -> },
 ) {
     data class Outcome(
         val recognitionId: String,
@@ -42,24 +47,142 @@ class PaymentRecognitionCoordinator(
         sourceAppLabel: String = "",
         uploadEventId: String = "",
         occurredAtMs: Long = now(),
+        sourceUid: Int? = null,
+        identityReviewReason: String = "",
+    ): Outcome = store.transaction {
+        onSourceEventLocked(accountId, sourcePackage, sourceType, sourceEventId, title, text, bigText, subText,
+            sourceAppLabel, uploadEventId, occurredAtMs, sourceUid, identityReviewReason)
+    }
+
+    private fun onSourceEventLocked(
+        accountId: String, sourcePackage: String, sourceType: PaymentSourceType, sourceEventId: String,
+        title: String, text: String, bigText: String, subText: String, sourceAppLabel: String,
+        uploadEventId: String, occurredAtMs: Long, sourceUid: Int?, identityReviewReason: String,
     ): Outcome {
         if (accountId.isBlank() || sourcePackage.isBlank() || sourceEventId.isBlank()) {
             return Outcome("", null, skippedReason = "invalid_input")
         }
-        val existing = store.recognitionBySourceEvent(accountId, sourceEventId)
-        if (existing != null) {
-            autoBook(accountId, existing.recognitionId)
-            return Outcome(existing.recognitionId, null, skippedReason = "duplicate_source_event")
+        val priorSource = store.recognitionBySourceEvent(accountId, sourceEventId)
+        // A reused canonical event id cannot move an existing transaction to
+        // another package/profile. Alias observations still use reference gates.
+        if (priorSource != null &&
+            ((priorSource.sourcePackage == sourcePackage && priorSource.sourceUid != sourceUid) ||
+                (priorSource.sourceEventId == sourceEventId &&
+                    (priorSource.sourcePackage != sourcePackage || !priorSource.sourceType.equals(sourceType.name, ignoreCase = true)))))
+            return Outcome(priorSource.recognitionId, null, skippedReason = "source_scope_conflict")
+        // A preference change applies to future events, not an already captured fact.
+        val durableUnit = priorSource?.takeIf { it.sourceEventId == sourceEventId }?.let { record ->
+            store.localBooking(accountId, PaymentAutoBook.eventId(record))?.takeIf { booking ->
+                booking.currency == record.currency && booking.currency in uk.thewyj.app.finance.CurrencyMoney.digits &&
+                    booking.amountExponent == uk.thewyj.app.finance.CurrencyMoney.exponent(booking.currency)
+            }?.currency
         }
-        val parsed = PaymentParserRegistry.parse(
-            sourcePackage = sourcePackage,
-            sourceType = sourceType,
-            title = title,
-            text = text,
-            bigText = bigText,
-            subText = subText,
-            capturedAtMs = occurredAtMs,
-        )
+        // An exact replay may reuse its own verified ledger unit. It is never a
+        // default for another event, and explicit incoming units still take priority.
+        val capturedDefault = priorSource?.takeIf { it.currencyDecisionSource == "account_default" }?.currency ?: durableUnit
+        var parsed = PaymentParserRegistry.parse(sourcePackage, sourceType, title, text, bigText, subText, occurredAtMs,
+            defaultCurrency = capturedDefault ?: defaultCurrency(accountId), currencyPolicyVersion = currencyPolicyVersion)
+        var reviewReason = parsed.reviewReason.ifBlank { identityReviewReason }
+        val allReferences = parsed.providerReference?.takeIf(String::isNotBlank)?.let {
+            store.recognitionsByReference(accountId, it) }.orEmpty()
+        if (allReferences.any { it.referenceNamespace.isBlank() && it.paymentChannel in setOf("bank", "bank_card", "bank_sms") &&
+                it.sourcePackage in setOf("sms", "bank", "notification") && it.sourcePackage != sourcePackage })
+            reviewReason = "legacy_reference_scope_unknown"
+        val references = parsed.providerReference?.takeIf(String::isNotBlank)?.let {
+            allReferences.filter { old ->
+                old.providerReference == it &&
+                    old.referenceNamespace.ifBlank { PaymentEventSafety.namespace(old.sourcePackage, old.paymentChannel) } == parsed.referenceNamespace &&
+                    PaymentEventSafety.role(old.financialPhase) == PaymentEventSafety.role(parsed.financialPhase) &&
+                    old.direction == parsed.direction?.name
+            }
+        }.orEmpty()
+        val capturedReference = references.singleOrNull()?.takeIf {
+            it.currencyDecisionSource == "account_default" &&
+                (it.sourcePackage != sourcePackage || it.sourceUid == sourceUid)
+        }
+        if (parsed.currencyReviewRequired && priorSource == null && capturedReference != null) {
+            val replaceCurrencyReason = reviewReason == parsed.reviewReason.ifBlank { identityReviewReason }
+            parsed = PaymentParserRegistry.parse(sourcePackage, sourceType, title, text, bigText, subText, occurredAtMs,
+                defaultCurrency = capturedReference.currency, currencyPolicyVersion = currencyPolicyVersion)
+            if (replaceCurrencyReason) reviewReason = parsed.reviewReason.ifBlank { identityReviewReason }
+        }
+        if (currencyPolicyVersion >= 2 && parsed.amountMinor != null && parsed.currency in uk.thewyj.app.finance.CurrencyMoney.digits)
+            onVerifiedCurrencyUnit(accountId,sourceEventId,parsed.currency!!,uk.thewyj.app.finance.CurrencyMoney.exponent(parsed.currency))
+        if (parsed.currencyRolesJson.isNotBlank()) onCurrencyRoles(accountId, sourceEventId, parsed.currencyRolesJson, occurredAtMs)
+        val authorities = references.filter { old -> store.localBooking(accountId, PaymentAutoBook.eventId(old)) != null ||
+            store.candidateForRecognition(accountId, old.recognitionId)?.let { it.status == "confirmed" && it.financeTransactionId.isNotBlank() } == true }
+        val proofReferences = authorities.ifEmpty { references }
+        val matching = proofReferences.filter { old -> old.amountMinor == parsed.amountMinor && old.currency == parsed.currency &&
+            (old.sourcePackage != sourcePackage || old.sourceUid == sourceUid) }
+        if (proofReferences.isNotEmpty() && (matching.size != 1 || matching.size != proofReferences.size)) reviewReason = "reference_money_or_instance_conflict"
+        val direct = store.recognitionBySourceEvent(accountId, sourceEventId)
+        if (direct != null && matching.singleOrNull()?.recognitionId?.let { it != direct.recognitionId } == true)
+            reviewReason = "reference_alias_conflict"
+        if (parsed.lifecycleRevision > 1) reviewReason = "lifecycle_revision_requires_reconciliation"
+        val existing = direct ?: matching.singleOrNull()?.takeIf { reviewReason !in setOf("reference_money_or_instance_conflict", "reference_alias_conflict", "lifecycle_revision_requires_reconciliation") }
+        if (existing != null) {
+            val lateIntent = reviewReason == "lifecycle_completion_unproven" && existing.identityReviewReason.isBlank() &&
+                (existing.completionConfirmed || existing.financialPhase in setOf("AUTHORIZED", "RELEASED", "EXPIRED"))
+            if (reviewReason.isNotBlank() && existing.identityReviewReason != reviewReason && !lateIntent)
+                store.saveRecognition(existing.copy(identityReviewReason = reviewReason))
+            store.saveEventAlias(accountId, sourceEventId, existing.recognitionId)
+            if (uploadEventId.isNotBlank()) store.saveEventAlias(accountId, uploadEventId, existing.recognitionId)
+            if (PaymentEventSafety.role(existing.financialPhase) != PaymentEventSafety.role(parsed.financialPhase))
+                return Outcome(existing.recognitionId, null, skippedReason = "operation_phase_conflict")
+            if (existing.providerReference.isBlank() && !parsed.providerReference.isNullOrBlank() &&
+                existing.amountMinor == parsed.amountMinor && existing.currency == parsed.currency &&
+                existing.direction == parsed.direction?.name && reviewReason.isBlank() &&
+                existing.sourceUid == sourceUid) {
+                store.saveRecognition(existing.copy(providerReference = parsed.providerReference,
+                    referenceNamespace = parsed.referenceNamespace, currencyEvidence = parsed.currencyEvidence))
+            }
+            var upgraded = false
+            if ((!existing.completionConfirmed || existing.identityReviewReason.isNotBlank()) &&
+                existing.state !in setOf("IGNORED", "DUPLICATE_IGNORED", "FINANCE_CORRECTED") &&
+                existing.sourcePackage == sourcePackage &&
+                existing.sourceUid == sourceUid &&
+                existing.sourceType == sourceType.name) {
+                val update = parsed
+                val candidate = store.candidateForRecognition(accountId, existing.recognitionId)
+                val compatible = (existing.amountMinor == null || existing.amountMinor == update.amountMinor) &&
+                    (existing.amountMinor == null || update.currency == null || existing.currency == update.currency) &&
+                    (existing.direction !in setOf("INCOME", "EXPENSE", "REFUND") || existing.direction == update.direction?.name) &&
+                    (existing.providerReference.isBlank() || update.providerReference.isNullOrBlank() ||
+                        existing.providerReference == update.providerReference)
+                if (existing.identityReviewReason == "lifecycle_completion_unproven" && reviewReason.isBlank() && compatible &&
+                    update.financialPhase in setOf("AUTHORIZED", "RELEASED", "EXPIRED") && candidate?.status != "rejected" && candidate?.hasEdits != true) {
+                    store.saveRecognition(existing.copy(identityReviewReason = "", state = "FINANCE_PENDING_CONFIRMATION",
+                        uploadEventId = completedUploadId(existing, uploadEventId), financialPhase = update.financialPhase,
+                        lifecycleOperation = update.lifecycleOperation, lifecycleRevision = update.lifecycleRevision, updatedAtMs = now()))
+                    upgraded = true
+                }
+                if (update.status == PaymentRecognitionStatus.CONFIRMED_PAYMENT && compatible && reviewReason.isBlank() &&
+                    !PaymentText.hasIncompleteStatus(PaymentText.normalize(title, text, bigText, subText)) &&
+                    candidate?.status != "rejected" && candidate?.hasEdits != true) {
+                    store.saveRecognition(existing.copy(
+                        uploadEventId = completedUploadId(existing, uploadEventId),
+                        amountMinor = update.amountMinor, currency = update.currency ?: existing.currency,
+                        direction = update.direction?.name.orEmpty(), providerReference = update.providerReference.orEmpty(),
+                        identityReviewReason = "", financialPhase = update.financialPhase,
+                        lifecycleReference = update.lifecycleReference, referenceNamespace = update.referenceNamespace,
+                        currencyEvidence = update.currencyEvidence,
+                        lifecycleOperation = update.lifecycleOperation, lifecycleRevision = update.lifecycleRevision,
+                        completionConfirmed = true, updatedAtMs = now(),
+                    ))
+                    if (candidate != null) store.saveCandidate(candidate.copy(
+                        amountMinor = update.amountMinor, direction = update.direction?.name.orEmpty(), updatedAtMs = now(),
+                    ))
+                    upgraded = true
+                }
+            }
+            val booking = autoBook(accountId, existing.recognitionId, unitVerified = currencyPolicyVersion >= 2)
+            remindCurrencyOnce(accountId, existing.recognitionId)
+            reconcileAuthorizationEvidence(accountId, parsed)
+            return Outcome(existing.recognitionId,
+                if (upgraded) booking?.let { PaymentRecognitionState.FINANCE_RECORDED } ?:
+                    store.recognition(accountId, existing.recognitionId)?.state?.let { PaymentRecognitionState.valueOf(it) } else null,
+                skippedReason = "duplicate_source_event")
+        }
         if (parsed.status == PaymentRecognitionStatus.NOT_PAYMENT ||
             parsed.status == PaymentRecognitionStatus.PARSE_ERROR
         ) {
@@ -68,13 +191,15 @@ class PaymentRecognitionCoordinator(
 
         val recognitionId = "rec-" + UUID.randomUUID()
         val amountKnown = parsed.amountMinor != null
+        val completionConfirmed = parsed.status == PaymentRecognitionStatus.CONFIRMED_PAYMENT &&
+            !PaymentText.hasIncompleteStatus(PaymentText.normalize(title, text, bigText, subText))
         var state = if (amountKnown) {
             PaymentRecognitionState.DETECTED_AMOUNT_KNOWN
         } else {
             PaymentRecognitionState.DETECTED_AMOUNT_UNKNOWN
         }
         var notificationPosted = false
-        val amountLabel = parsed.amountMinor?.let { formatAmount(it) }.orEmpty()
+        val amountLabel = parsed.amountMinor?.let { formatAmount(it, parsed.currency.orEmpty()) }.orEmpty()
         val directionLabel = parsed.direction?.let { directionLabel(it) }.orEmpty()
 
         var transition = statusMachine.transition(
@@ -91,7 +216,13 @@ class PaymentRecognitionCoordinator(
 
         var ticketId = ""
         var candidateId = ""
-        if (!PaymentAutoBook.eligible(parsed.amountMinor, parsed.direction?.name.orEmpty())) {
+        if (reviewReason.isNotBlank() || parsed.financialPhase.isNotBlank()) {
+            val candidate = candidateFor(accountId, recognitionId, parsed, occurredAtMs).copy(
+                reason = reviewReason.ifBlank { "financial_phase_" + parsed.financialPhase.lowercase() })
+            store.saveCandidate(candidate)
+            candidateId = candidate.candidateId
+            state = PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION
+        } else if (!PaymentAutoBook.eligible(parsed.amountMinor, parsed.direction?.name.orEmpty(), completionConfirmed)) {
             val ticket = tickets.create(
                 accountId = accountId,
                 recognitionId = recognitionId,
@@ -146,15 +277,28 @@ class PaymentRecognitionCoordinator(
                 uploadEventId = uploadEventId,
                 paymentChannel = parsed.paymentChannel,
                 amountMinor = parsed.amountMinor,
-                currency = parsed.currency ?: "CNY",
+                currency = parsed.currency ?: if (currencyPolicyVersion >= 2) "XXX" else "CNY",
                 direction = parsed.direction?.name.orEmpty(),
                 merchant = parsed.merchant.orEmpty(),
                 providerReference = parsed.providerReference.orEmpty(),
                 createdAtMs = now(),
                 updatedAtMs = now(),
+                completionConfirmed = completionConfirmed,
+                sourceUid = sourceUid,
+                identityReviewReason = reviewReason,
+                financialPhase = parsed.financialPhase, lifecycleReference = parsed.lifecycleReference,
+                referenceNamespace = parsed.referenceNamespace, currencyEvidence = parsed.currencyEvidence,
+                currencyReviewRequired = parsed.currencyReviewRequired, currencyDecisionSource = parsed.currencyDecisionSource,
+                lifecycleOperation = parsed.lifecycleOperation, lifecycleRevision = parsed.lifecycleRevision,
             ),
         )
-        if (autoBook(accountId, recognitionId) != null) state = PaymentRecognitionState.FINANCE_RECORDED
+        val initial = store.recognition(accountId, recognitionId)!!
+        val lifecycleReason = lifecycleGuard(initial)
+        if (lifecycleReason.isNotBlank() && initial.identityReviewReason.isBlank())
+            store.saveRecognition(initial.copy(identityReviewReason = lifecycleReason))
+        if (autoBook(accountId, recognitionId, unitVerified = currencyPolicyVersion >= 2) != null) state = PaymentRecognitionState.FINANCE_RECORDED
+        remindCurrencyOnce(accountId, recognitionId)
+        reconcileAuthorizationEvidence(accountId, parsed)
         return Outcome(
             recognitionId = recognitionId,
             state = state,
@@ -184,12 +328,36 @@ class PaymentRecognitionCoordinator(
                 reason = "no_active_ticket",
             )
         if (expectedTicketId != null && ticket.ticketId != expectedTicketId) return EnrichmentOutcome.Rejected(ticket, "ticket_changed")
+        val previous=ticket.enrichment
+        if (tickets.isActive(ticket) && previous!=null &&
+            previous.amountMinor==enrichment.amountMinor && previous.currency==enrichment.currency &&
+            previous.direction==enrichment.direction && previous.providerReference==enrichment.providerReference &&
+            previous.completionConfirmed==enrichment.completionConfirmed && previous.sourceInstanceUncertain==enrichment.sourceInstanceUncertain &&
+            previous.amountDecimalCandidate==enrichment.amountDecimalCandidate) return EnrichmentOutcome.Insufficient(ticket)
         val outcome = tickets.enrich(ticket, enrichment)
         when (outcome) {
             is EnrichmentOutcome.Applied -> {
-                store.saveTicket(outcome.ticket)
                 val recognition = store.recognition(ticket.accountId, ticket.recognitionId)
                 if (recognition != null) {
+                    if (currencyPolicyVersion >= 2 && recognition.currency !in uk.thewyj.app.finance.CurrencyMoney.digits &&
+                        enrichment.evidenceSource == PaymentEvidenceSource.OCR)
+                        return EnrichmentOutcome.Rejected(ticket,"currency_review_required")
+                    if (currencyPolicyVersion >= 2 && enrichment.currency in uk.thewyj.app.finance.CurrencyMoney.digits) {
+                        if (recognition.currency in uk.thewyj.app.finance.CurrencyMoney.digits && recognition.currency != enrichment.currency)
+                            return EnrichmentOutcome.Rejected(ticket,"currency_evidence_conflict")
+                    }
+                    if (recognition.providerReference.isNotBlank() &&
+                        !enrichment.providerReference.isNullOrBlank() &&
+                        recognition.providerReference != enrichment.providerReference) {
+                        return EnrichmentOutcome.Rejected(ticket, "provider_reference_conflict")
+                    }
+                    if (recognition.direction in setOf("INCOME", "EXPENSE", "REFUND") &&
+                        enrichment.direction != null && recognition.direction != enrichment.direction.name) {
+                        return EnrichmentOutcome.Rejected(ticket, "direction_conflict")
+                    }
+                    if (currencyPolicyVersion >= 2 && enrichment.currency in uk.thewyj.app.finance.CurrencyMoney.digits)
+                        onVerifiedCurrencyUnit(accountId,recognition.sourceEventId,enrichment.currency!!,uk.thewyj.app.finance.CurrencyMoney.exponent(enrichment.currency))
+                    store.saveTicket(outcome.ticket)
                     val transition = statusMachine.transition(
                         current = PaymentStatusRecord(
                             recognitionId = recognition.recognitionId,
@@ -201,14 +369,20 @@ class PaymentRecognitionCoordinator(
                         next = PaymentRecognitionState.ENRICHMENT_VERIFIED,
                         recognitionId = recognition.recognitionId,
                         sourceAppLabel = "",
-                        amountLabel = outcome.ticket.amountHintMinor?.let { formatAmount(it) }.orEmpty(),
+                        amountLabel = outcome.ticket.amountHintMinor?.let { formatAmount(it, effectiveCurrency(recognition)) }.orEmpty(),
                     )
                     if (transition is PaymentStatusTransition.Updated) {
                         post(transition)
+                    }
+                    if (transition is PaymentStatusTransition.Updated || recognition.state == PaymentRecognitionState.ENRICHMENT_VERIFIED.name) {
                         store.saveRecognition(
                             recognition.copy(
                                 state = PaymentRecognitionState.ENRICHMENT_VERIFIED.name,
                                 amountMinor = outcome.ticket.amountHintMinor,
+                                currency = if (currencyPolicyVersion >= 2 && recognition.currency !in uk.thewyj.app.finance.CurrencyMoney.digits)
+                                    enrichment.currency?.takeIf { it in uk.thewyj.app.finance.CurrencyMoney.digits } ?: recognition.currency else recognition.currency,
+                                direction = enrichment.direction?.name ?: recognition.direction,
+                                completionConfirmed = enrichment.completionConfirmed && !enrichment.sourceInstanceUncertain,
                                 updatedAtMs = now(),
                             ),
                         )
@@ -223,10 +397,14 @@ class PaymentRecognitionCoordinator(
                         direction = enrichment.direction?.name.orEmpty(),
                         category = "",
                         merchant = enrichment.merchant.orEmpty(),
-                        occurredAtMs = enrichment.occurredAtMs ?: now(),
+                        occurredAtMs = enrichment.occurredAtMs ?: existingCandidate?.occurredAtMs ?: recognition.createdAtMs,
                         channel = ticket.paymentChannel,
                         confidence = enrichment.confidence,
-                        reason = "accessibility_enrichment",
+                        reason = when {
+                            enrichment.sourceInstanceUncertain -> "source_instance_unverified"
+                            !enrichment.completionConfirmed -> "payment_completion_unproven"
+                            else -> "accessibility_enrichment"
+                        },
                         createdAtMs = existingCandidate?.createdAtMs ?: now(),
                         updatedAtMs = now(),
                     )
@@ -236,14 +414,17 @@ class PaymentRecognitionCoordinator(
                     if (existingCandidate == null || !existingCandidate.hasEdits) {
                         store.saveCandidate(candidate)
                     }
-                    val verifiedTicket = tickets.markCandidateCreated(outcome.ticket)
+                    val verifiedTicket = if (enrichment.completionConfirmed && !enrichment.sourceInstanceUncertain)
+                        tickets.markCandidateCreated(outcome.ticket) else outcome.ticket
                     store.saveTicket(verifiedTicket)
-                    autoBook(accountId, recognition.recognitionId)
+                    if (existingCandidate?.hasEdits != true) autoBook(accountId, recognition.recognitionId, unitVerified = currencyPolicyVersion >= 2)
                 }
                 return EnrichmentOutcome.Applied(outcome.ticket)
             }
             is EnrichmentOutcome.Insufficient -> {
                 store.saveTicket(outcome.ticket)
+                if (outcome.ticket.enrichment?.amountDecimalCandidate != ticket.enrichment?.amountDecimalCandidate)
+                    PaymentReviewSignals.publish()
                 return outcome
             }
             is EnrichmentOutcome.Rejected -> {
@@ -257,16 +438,49 @@ class PaymentRecognitionCoordinator(
     }
 
     /** Atomic durable booking shared by normal, enrichment, recovery and retry paths. */
-    fun autoBook(accountId: String, recognitionId: String, knownTransactionId: String = "", syncState: String = "pending"): LocalPaymentBooking? {
+    fun autoBook(accountId: String, recognitionId: String, knownTransactionId: String = "", syncState: String = "pending", unitVerified: Boolean = false): LocalPaymentBooking? =
+        store.transaction { autoBookLocked(accountId, recognitionId, knownTransactionId, syncState, unitVerified) }
+
+    private fun autoBookLocked(accountId: String, recognitionId: String, knownTransactionId: String, syncState: String, unitVerified: Boolean): LocalPaymentBooking? {
         val recognition = store.recognition(accountId, recognitionId) ?: return null
         if (recognition.state in setOf("IGNORED", "DUPLICATE_IGNORED", "FINANCE_CORRECTED")) return null
         val existingCandidate = store.candidateForRecognition(accountId, recognitionId)
         if (existingCandidate?.status == "rejected") return null
         val amount = existingCandidate?.effectiveAmountMinor ?: recognition.amountMinor
         val direction = existingCandidate?.effectiveDirection?.takeIf { it.isNotBlank() } ?: recognition.direction
-        if (!PaymentAutoBook.eligible(amount, direction)) return null
         val eventId = PaymentAutoBook.eventId(recognition)
         val previous = store.localBooking(accountId, eventId)
+        if (previous == null) {
+            val reason = lifecycleGuard(recognition)
+            if (reason.isNotBlank()) {
+                store.saveRecognition(recognition.copy(identityReviewReason = reason, state = "FINANCE_PENDING_CONFIRMATION"))
+                return null
+            }
+        }
+        // Existing durable ledger identities and actual cloud receipts must
+        // survive an upgrade. They do not prove a new unbooked legacy record.
+        val hasReceipt = previous != null || knownTransactionId.isNotBlank() ||
+            (existingCandidate?.status == "confirmed" && existingCandidate.financeTransactionId.isNotBlank())
+        if (!hasReceipt && syncState == "identity_pending" && recognition.providerReference.isBlank() &&
+            store.eventAliases(accountId, recognitionId).none { it.startsWith("proof:") }) {
+            val reason = recognition.identityReviewReason.ifBlank { "archive_identity_ambiguous" }
+            var changed = false
+            if (recognition.identityReviewReason != reason || recognition.state != "FINANCE_PENDING_CONFIRMATION") {
+                store.saveRecognition(recognition.copy(identityReviewReason = reason, state = "FINANCE_PENDING_CONFIRMATION", updatedAtMs = now()))
+                changed = true
+            }
+            if (existingCandidate == null) {
+                store.saveCandidate(PaymentCandidate("cand-" + recognitionId, accountId, recognitionId, "pending",
+                    recognition.amountMinor, recognition.direction, "", recognition.merchant, recognition.createdAtMs,
+                    recognition.paymentChannel, 0, reason, createdAtMs = recognition.createdAtMs, updatedAtMs = now()))
+                changed = true
+            }
+            if (changed) PaymentReviewSignals.publish()
+            return null
+        }
+        if (previous == null && ((recognition.identityReviewReason.isNotBlank() && !hasReceipt) || !PaymentEventSafety.canSettle(recognition.financialPhase))) return null
+        if (!PaymentAutoBook.eligible(amount, direction, recognition.completionConfirmed || hasReceipt)) return null
+        if (!hasReceipt && existingCandidate?.hasEdits == true) return null
         // A real server receipt predates this upgrade: keep that ledger identity.
         val transactionId = previous?.transactionId ?: knownTransactionId.takeIf(String::isNotBlank)
             ?: existingCandidate?.financeTransactionId?.takeIf { it.isNotBlank() }
@@ -281,14 +495,16 @@ class PaymentRecognitionCoordinator(
         val booking = previous ?: LocalPaymentBooking(
             accountId = accountId, eventId = eventId, recognitionId = recognitionId,
             transactionId = transactionId, amountMinor = amount!!, direction = direction.uppercase(),
-            currency = recognition.currency, merchant = candidate.effectiveMerchant,
+            currency = effectiveCurrency(recognition), merchant = candidate.effectiveMerchant,
+            amountExponent = if (unitVerified) uk.thewyj.app.finance.CurrencyMoney.exponent(effectiveCurrency(recognition)) else null,
             occurredAtMs = candidate.effectiveOccurredAtMs, sourcePackage = recognition.sourcePackage,
             paymentChannel = recognition.paymentChannel, providerReference = recognition.providerReference,
             syncState = if (knownTransactionId.isNotBlank() || existingCandidate?.financeTransactionId?.isNotBlank() == true) "synced" else syncState,
             createdAtMs = now(),
         )
         store.bookLocally(booking,
-            recognition.copy(state = PaymentRecognitionState.FINANCE_RECORDED.name, uploadEventId = eventId, updatedAtMs = now()),
+            recognition.copy(state = PaymentRecognitionState.FINANCE_RECORDED.name, uploadEventId = eventId,
+                identityReviewReason = if (knownTransactionId.isNotBlank() && recognition.identityReviewReason == "archive_identity_ambiguous") "" else recognition.identityReviewReason, updatedAtMs = now()),
             candidate.copy(status = "confirmed", financeTransactionId = transactionId, updatedAtMs = now()),
         )
         store.ticketsForRecognition(accountId, recognitionId).filter { !it.state.terminal }
@@ -297,10 +513,26 @@ class PaymentRecognitionCoordinator(
             post(PaymentStatusTransition.Updated(
                 PaymentStatusRecord(recognitionId, PaymentRecognitionState.FINANCE_RECORDED, now(), recognition.notificationId),
                 PaymentStatusNotificationMessage(recognition.notificationId, recognitionId, "Aeris · 已记录到财务",
-                    "${formatAmount(amount!!)} 已记录到本机账本，将自动同步"),
+                    "${formatAmount(amount!!, effectiveCurrency(recognition))} 已记录到本机账本，将自动同步"),
             ))
         }
         return booking
+    }
+
+    private fun remindCurrencyOnce(accountId: String, recognitionId: String) {
+        val statusNotifier = notifier ?: return
+        val record = store.recognition(accountId, recognitionId) ?: return
+        if (!record.currencyReviewRequired || record.currencyReviewNotified || record.state in setOf("IGNORED", "DUPLICATE_IGNORED", "FINANCE_CORRECTED")) return
+        // Persist the claim with the recognition. Replays and process recovery do
+        // not repeat an alert; the review marker remains until an explicit edit.
+        store.saveRecognition(record.copy(currencyReviewNotified = true))
+        val posted = runCatching { statusNotifier.notify(PaymentStatusNotificationMessage(record.notificationId, recognitionId,
+            "Aeris · 币种待核实", "本次按默认币种 ${record.currency} 识别；请在财务记录中核对币种，可稍后更正。")) }.getOrDefault(false)
+        // A denied permission or posting error is not a delivered reminder. Keep
+        // it eligible for the next source replay; there is no background loop.
+        if (!posted) store.recognition(accountId, recognitionId)?.let {
+            store.saveRecognition(it.copy(currencyReviewNotified = false))
+        }
     }
 
     /** Lazily expires tickets and tells the user once per expired recognition. */
@@ -495,6 +727,12 @@ class PaymentRecognitionCoordinator(
         edits: EditRequest? = null,
     ): FinanceDraft? {
         var candidate = store.candidate(accountId, candidateId) ?: return null
+        val proof = store.recognition(accountId, candidate.recognitionId)
+        val currencyResolved = proof != null && candidate.hasEdits && effectiveCurrency(proof) in uk.thewyj.app.finance.CurrencyMoney.digits &&
+            proof.identityReviewReason in setOf("currency_review_required", "currency_symbol_ambiguous", "currency_amount_unproven")
+        if (proof != null && (!PaymentEventSafety.canSettle(proof.financialPhase) ||
+                (proof.identityReviewReason.isNotBlank() && !proof.identityReviewReason.startsWith("identity_unproven_") && !currencyResolved))) return null
+        if (currencyPolicyVersion >= 2 && proof != null && effectiveCurrency(proof) !in uk.thewyj.app.finance.CurrencyMoney.digits) return null
         if (candidate.status == "confirmed" && candidate.financeTransactionId.isNotBlank()) {
             return draftOf(candidate)
         }
@@ -511,6 +749,7 @@ class PaymentRecognitionCoordinator(
             ) ?: return null
         }
         val confirmed = candidate.copy(status = "confirmed", updatedAtMs = now())
+        store.recordUserDecision(accountId, candidate.recognitionId, "candidate_confirm")
         store.saveCandidate(confirmed)
         val recognition = store.recognition(accountId, confirmed.recognitionId)
         if (recognition != null) {
@@ -531,7 +770,7 @@ class PaymentRecognitionCoordinator(
                 next = next,
                 recognitionId = recognition.recognitionId,
                 sourceAppLabel = "",
-                amountLabel = confirmed.effectiveAmountMinor?.let { formatAmount(it) }.orEmpty(),
+                amountLabel = confirmed.effectiveAmountMinor?.let { formatAmount(it, effectiveCurrency(recognition)) }.orEmpty(),
             )
             if (transition is PaymentStatusTransition.Updated) post(transition)
             store.saveRecognition(
@@ -543,6 +782,7 @@ class PaymentRecognitionCoordinator(
 
     fun rejectCandidate(accountId: String, candidateId: String): Boolean {
         val candidate = store.candidate(accountId, candidateId) ?: return false
+        store.recordUserDecision(accountId, candidate.recognitionId, "candidate_reject")
         store.saveCandidate(candidate.copy(status = "rejected", updatedAtMs = now()))
         return true
     }
@@ -563,7 +803,7 @@ class PaymentRecognitionCoordinator(
             next = PaymentRecognitionState.FINANCE_RECORDED,
             recognitionId = recognition.recognitionId,
             sourceAppLabel = "",
-            amountLabel = candidate.effectiveAmountMinor?.let { formatAmount(it) }.orEmpty(),
+            amountLabel = candidate.effectiveAmountMinor?.let { formatAmount(it, effectiveCurrency(recognition)) }.orEmpty(),
         )
         if (transition is PaymentStatusTransition.Updated) post(transition)
         store.saveRecognition(recognition.copy(state = PaymentRecognitionState.FINANCE_RECORDED.name, updatedAtMs = now()))
@@ -583,17 +823,15 @@ class PaymentRecognitionCoordinator(
             next = PaymentRecognitionState.FINANCE_CORRECTED,
             recognitionId = recognition.recognitionId,
             sourceAppLabel = "",
-            amountLabel = amountMinor?.let { formatAmount(it) }.orEmpty(),
+            amountLabel = amountMinor?.let { formatAmount(it, effectiveCurrency(recognition)) }.orEmpty(),
         )
         if (transition is PaymentStatusTransition.Updated) post(transition)
         store.saveRecognition(recognition.copy(state = PaymentRecognitionState.FINANCE_CORRECTED.name, updatedAtMs = now()))
     }
 
     /**
-     * Reconciliation: a second source describing the same amount inside a short
-     * window becomes evidence for the existing candidate instead of a duplicate.
-     * Amount alone is never enough - the window and a pending/confirmed
-     * candidate for the same account are both required.
+     * Legacy diagnostic lookup only; no production booking caller. Even a unique
+     * amount/time hit is a suggestion, never evidence of transaction identity.
      */
     fun reconcile(
         accountId: String,
@@ -628,6 +866,49 @@ class PaymentRecognitionCoordinator(
         userEdited = candidate.hasEdits,
     )
 
+    private fun completedUploadId(record: PaymentRecognitionRecord, incoming: String): String {
+        if (record.identityReviewReason != "lifecycle_completion_unproven" || incoming.isBlank() ||
+            store.localBooking(record.accountId, PaymentAutoBook.eventId(record)) != null) return record.uploadEventId
+        // Preserve the old intent alias, but never regenerate its immutable ingest
+        // operation using a later completed payload after its receipt was acked.
+        if (record.uploadEventId.isNotBlank()) store.saveEventAlias(record.accountId, record.uploadEventId, record.recognitionId)
+        return incoming
+    }
+
+    private fun lifecycleGuard(record: PaymentRecognitionRecord): String =
+        if (record.financialPhase.isBlank() || record.lifecycleReference.isBlank()) "" else PaymentLifecycleAccounting.guard(
+            record, lifecycleRecords(record.accountId, record.referenceNamespace, record.lifecycleReference), store.localBookings(record.accountId))
+
+    private fun lifecycleRecords(accountId: String, namespace: String, family: String) =
+        store.recognitionsByReference(accountId, family).filter { it.lifecycleReference == family && it.referenceNamespace == namespace }
+
+    fun lifecycleBalance(accountId: String, namespace: String, family: String): PaymentLifecycleBalance = store.transaction {
+        PaymentLifecycleAccounting.project(lifecycleRecords(accountId, namespace, family), store.localBookings(accountId))
+    }
+
+    private fun reconcileAuthorizationEvidence(accountId: String, parsed: ParsedPaymentMessage) {
+        if (parsed.financialPhase.isBlank() || parsed.lifecycleReference.isBlank()) return
+        var related = lifecycleRecords(accountId, parsed.referenceNamespace, parsed.lifecycleReference)
+        // Only exact-family dependency failures can recover, in one bounded pass.
+        for (record in related.filter { it.identityReviewReason in PaymentLifecycleAccounting.recoverable }) {
+            val fresh = record.copy(identityReviewReason = "")
+            val reason = lifecycleGuard(fresh)
+            store.saveRecognition(fresh.copy(identityReviewReason = reason))
+            if (reason.isBlank()) autoBook(accountId, record.recognitionId)
+        }
+        related = lifecycleRecords(accountId, parsed.referenceNamespace, parsed.lifecycleReference)
+        val balance = PaymentLifecycleAccounting.project(related, store.localBookings(accountId))
+        val closed = balance.closed || balance.remainingFrozenMinor == 0L
+        for (record in related) {
+            if (record.identityReviewReason.isBlank() && (record.financialPhase in setOf("RELEASED", "EXPIRED") ||
+                (record.financialPhase == "AUTHORIZED" && closed))) {
+                store.saveRecognition(record.copy(state = PaymentRecognitionState.IGNORED.name, updatedAtMs = now()))
+                store.candidateForRecognition(accountId, record.recognitionId)?.takeIf { it.status == "pending" }?.let {
+                    store.saveCandidate(it.copy(status = "rejected", reason = "system_control_completed", updatedAtMs = now())) }
+            }
+        }
+    }
+
     private fun candidateFor(
         accountId: String,
         recognitionId: String,
@@ -661,10 +942,7 @@ class PaymentRecognitionCoordinator(
 
         /** Failed page reads before the automatic attempt is reported as failed. */
 
-        fun formatAmount(amountMinor: Long): String {
-            val value = amountMinor / 100.0
-            return "¥" + String.format(java.util.Locale.US, "%.2f", value)
-        }
+        fun formatAmount(amountMinor: Long, currency: String = "CNY"): String = uk.thewyj.app.finance.CurrencyMoney.format(amountMinor, currency)
 
         fun directionLabel(direction: uk.thewyj.app.task21.FinanceDirection): String = when (direction) {
             uk.thewyj.app.task21.FinanceDirection.EXPENSE -> "支出"

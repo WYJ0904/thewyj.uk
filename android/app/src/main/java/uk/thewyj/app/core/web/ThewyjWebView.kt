@@ -75,6 +75,7 @@ fun ThewyjWebView(
     val currentActive = rememberUpdatedState(effectiveActive)
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
+    val paymentPublications = remember { PaymentPublicationGate() }
     val policy = remember { WebRoutePolicy(BuildConfig.THEWYJ_BASE_URL) }
     val loads = remember { WebLoadPolicy(sessionEpoch) }
     val initialBackRequest = remember { backNavigationRequest }
@@ -122,9 +123,10 @@ fun ThewyjWebView(
             onThemeChanged = { dark -> themeCallback.value(dark) },
             onVerifyPayment = { eventId -> verifyPaymentCallback.value(eventId) },
             onPageReady = { view ->
+                paymentPublications.invalidate()
                 view.evaluateJavascript(webReducedMotionScript(currentReducedMotion.value), null)
                 view.syncPageActivity(currentActive.value)
-                scope.launch { if (currentActive.value) view.publishPaymentLedger(context, policy) }
+                scope.launch { if (currentActive.value) view.publishPaymentLedger(context, policy, paymentPublications) }
             },
             onChooseFiles = { callback, params ->
                 pendingFileSelection.value?.onReceiveValue(null)
@@ -148,12 +150,12 @@ fun ThewyjWebView(
     LaunchedEffect(effectiveActive) {
         if (effectiveActive) webView.onResume()
         webView.syncPageActivity(effectiveActive)
-        if (!effectiveActive) webView.onPause()
-        if (effectiveActive) webView.publishPaymentLedger(context, policy)
+        if (!effectiveActive) { paymentPublications.invalidate(); webView.onPause() }
+        if (effectiveActive) webView.publishPaymentLedger(context, policy, paymentPublications)
     }
     LaunchedEffect(Unit) {
         PaymentReviewSignals.changes.collectLatest {
-            if (currentActive.value) webView.publishPaymentLedger(context, policy)
+            if (currentActive.value) webView.publishPaymentLedger(context, policy, paymentPublications)
         }
     }
 
@@ -180,6 +182,7 @@ fun ThewyjWebView(
     }
     DisposableEffect(Unit) {
         onDispose {
+            paymentPublications.invalidate()
             pendingFileSelection.value?.onReceiveValue(null)
             pendingFileSelection.value = null
             webView.stopLoading()
@@ -190,14 +193,19 @@ fun ThewyjWebView(
     }
 }
 
-private suspend fun WebView.publishPaymentLedger(context: Context, policy: WebRoutePolicy) {
+private suspend fun WebView.publishPaymentLedger(context: Context, policy: WebRoutePolicy, publications: PaymentPublicationGate) {
+    val request = publications.begin()
+    val requestedAccount = withContext(Dispatchers.IO) {
+        uk.thewyj.app.task21.NotificationSessionProvider(context).currentAccount()?.accountId
+    }
     val snapshot = withContext(Dispatchers.IO) {
         uk.thewyj.app.task21.payment.LocalPaymentLedger.snapshot(context.applicationContext)
     }
     val activeAccount = withContext(Dispatchers.IO) {
         uk.thewyj.app.task21.NotificationSessionProvider(context).currentAccount()?.accountId
     }
-    if (visibility != View.VISIBLE || policy.decide(url.orEmpty()) != NavigationDecision.Internal) return
+    if (!publications.isCurrent(request) || requestedAccount != activeAccount ||
+        visibility != View.VISIBLE || policy.decide(url.orEmpty()) != NavigationDecision.Internal) return
     if (snapshot != "null" && JSONObject(snapshot).optString("account_id") != activeAccount) return
     evaluateJavascript("""
         (() => {

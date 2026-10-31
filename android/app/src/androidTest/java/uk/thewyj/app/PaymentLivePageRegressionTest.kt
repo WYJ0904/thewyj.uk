@@ -53,6 +53,7 @@ class PaymentLivePageRegressionTest {
         }
         val coordinator = PaymentRecognitionCoordinator(store, notifier = notifier)
         val gateway = object : PaymentAccessibilityGateway {
+            override fun reserveScan(accountId: String, ticketId: String, nowMs: Long) = uk.thewyj.app.task21.payment.PaymentPersistedScanBudget.reserve(store,accountId,ticketId,nowMs)
             override fun financeAccountId() = account
             override fun activeTicket(accountId: String, sourcePackage: String) = store.activeTicketForPackage(accountId, sourcePackage)
             override fun activePackages(accountId: String, nowMs: Long) = store.activeTicketPackages(accountId, nowMs)

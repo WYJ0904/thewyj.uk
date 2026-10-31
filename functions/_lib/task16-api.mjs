@@ -6,6 +6,9 @@ import {
   jsonResponse,
 } from "./cloudflare-foundation.mjs";
 import { resolveTask12Account } from "./task12-auth.mjs";
+import { currencyPreferences, referenceRate, transactionReferences } from './finance-fx.mjs';
+import { moneyCapability, requireMoneyCapability } from './finance-client-capability.mjs';
+import { financeAiRequest } from './finance-ai.mjs';
 import { enrichAccountWithTask13 } from "./task13-service.mjs";
 import {
   importLegacyFinance,
@@ -31,6 +34,16 @@ import {
 } from "./task16-service.mjs";
 
 const ROUTES = new Map([
+  ['GET /api/finance/ai/config', { mode: 'read', body: 0, limit: 120, window: 60 }],
+  ['GET /api/finance/ai/suggestions', { mode: 'read', body: 0, limit: 120, window: 60 }],
+  // Privacy withdrawal remains available while ordinary finance writes pause.
+  ['POST /api/finance/ai/consent', { mode: 'read', body: 1024, limit: 30, window: 60 }],
+  ['POST /api/finance/ai/evidence', { mode: 'write', body: 16 * 1024, limit: 30, window: 60 }],
+  ['POST /api/finance/ai/suggest', { mode: 'write', body: 1024, limit: 30, window: 60 }],
+  ['GET /api/finance/currencies', { mode: 'read', body: 0, limit: 120, window: 60 }],
+  ['POST /api/finance/currencies', { mode: 'write', body: 1024, limit: 30, window: 60 }],
+  ['GET /api/finance/fx', { mode: 'read', body: 0, limit: 30, window: 60 }],
+  ['GET /api/finance/references', { mode: 'read', body: 0, limit: 120, window: 60 }],
   ["GET /api/finance/bootstrap", { mode: "read", body: 0, limit: 120, window: 60 }],
   ["GET /api/finance/changes", { mode: "read", body: 0, limit: 180, window: 60 }],
   ["GET /api/finance/transactions", { mode: "read", body: 0, limit: 120, window: 60 }],
@@ -56,6 +69,7 @@ function requestId(context) {
 }
 
 function response(payload, status, context, headers = {}) {
+  if (context.request.method === 'GET') requireMoneyCapability(context,payload,Task16Error);
   return jsonResponse(payload, status, requestId(context), headers);
 }
 
@@ -99,26 +113,40 @@ async function execute(context, path, account) {
   const db = context.env.WYJ_DB;
   const url = new URL(context.request.url);
   const method = context.request.method.toUpperCase();
+  if (path.startsWith('/api/finance/ai/')) {
+    const payload = method === 'GET' ? Object.fromEntries(url.searchParams)
+      : await readJson(context.request, ROUTES.get(`${method} ${path}`).body);
+    if (path !== '/api/finance/ai/config' && moneyCapability(context) < 2)
+      throw new Task16Error('请升级客户端后使用原币AI建议', 409, 'currency_client_upgrade_required');
+    return response({ ok: true, ...await financeAiRequest(context, account, path, payload) }, 200, context);
+  }
   if (method === "GET") {
+    if (path === '/api/finance/currencies') return response({ ok: true, preferences: await currencyPreferences(db, account.id) }, 200, context);
+    if (path === '/api/finance/fx') return response({ ok: true, rate: await referenceRate(db, url.searchParams.get('base'), url.searchParams.get('quote'), url.searchParams.get('date')) }, 200, context);
+    if (path === '/api/finance/references') return response({ ok: true, ...await transactionReferences(db, account.id, { transaction_ids: (url.searchParams.get('ids') || '').split(',').filter(Boolean), display_currency: url.searchParams.get('display_currency') }) }, 200, context);
     if (path === "/api/finance/bootstrap") {
-      return response({ ok: true, ...await financeBootstrap(db, account), build: TASK16_BUILD }, 200, context);
+      const bootstrap = await financeBootstrap(db, account);
+      if (moneyCapability(context) < 2 && bootstrap.budgets?.some(row => row.currency === 'JPY')) throw new Task16Error('请升级客户端后读取日元预算', 409, 'currency_client_upgrade_required');
+      return response({ ok: true, ...bootstrap, build: TASK16_BUILD }, 200, context);
     }
     if (path === "/api/finance/changes") {
+      const changes = await financeChanges(db, account, url.searchParams.get('since') || 0, url.searchParams.get('limit') || 0);
+      if (moneyCapability(context) < 2 && changes.changes?.some(change => change.payload?.transaction?.currency === 'JPY' || change.payload?.budget?.currency === 'JPY')) throw new Task16Error('请升级客户端后读取日元账目', 409, 'currency_client_upgrade_required');
       return response({
         ok: true,
-        ...await financeChanges(db, account, url.searchParams.get("since") || 0, url.searchParams.get("limit") || 0),
+        ...changes,
         build: TASK16_BUILD,
       }, 200, context);
     }
     if (path === "/api/finance/transactions") {
+      const transactions = await listFinanceTransactions(db, account, {
+        before: url.searchParams.get('before') || '', before_id: url.searchParams.get('before_id') || '',
+        limit: url.searchParams.get('limit') || '', include_deleted: url.searchParams.get('include_deleted') || '',
+      });
+      if (moneyCapability(context) < 2 && transactions.transactions?.some(row => row.currency === 'JPY')) throw new Task16Error('请升级客户端后读取日元账目', 409, 'currency_client_upgrade_required');
       return response({
         ok: true,
-        ...await listFinanceTransactions(db, account, {
-          before: url.searchParams.get("before") || "",
-          before_id: url.searchParams.get("before_id") || "",
-          limit: url.searchParams.get("limit") || "",
-          include_deleted: url.searchParams.get("include_deleted") || "",
-        }),
+        ...transactions,
         build: TASK16_BUILD,
       }, 200, context);
     }
@@ -135,7 +163,23 @@ async function execute(context, path, account) {
   }
 
   const payload = await readJson(context.request, ROUTES.get(`${method} ${path}`).body);
+  if (path === '/api/finance/currencies') return response({ ok: true, preferences: await currencyPreferences(db, account.id, payload) }, 200, context);
   if (path === "/api/finance/sync") {
+    requireMoneyCapability(context,await financeChanges(db,account,payload.since_version || 0),Task16Error);
+    for (const operation of Array.isArray(payload.operations) ? payload.operations : []) {
+      const receipt = typeof operation?.operation_id === 'string' ? await db.prepare('SELECT operation_id FROM task16_finance_sync_operations WHERE user_id=?1 AND operation_id=?2').bind(account.id,operation.operation_id).first() : null;
+      if (receipt) continue;
+      requireMoneyCapability(context,operation?.payload,Task16Error);
+      if(operation?.type==='raw_event.ingest' && moneyCapability(context)<2)
+        throw new Task16Error('请升级客户端后提交原始交易金额和币种',409,'currency_client_upgrade_required');
+      if(moneyCapability(context)>=2 && ['transaction.upsert','budget.upsert'].includes(operation?.type) &&
+        (typeof operation?.payload?.currency!=='string'||!operation.payload.currency.trim()))
+        throw new Task16Error('请明确选择币种',400,'currency_required');
+      if (typeof operation?.entity_id === 'string' && typeof operation?.type === 'string' && operation.type.startsWith('transaction.')) {
+        const existing = await db.prepare('SELECT * FROM task16_finance_transactions WHERE user_id=?1 AND id=?2').bind(account.id,operation.entity_id).first();
+        requireMoneyCapability(context,existing,Task16Error);
+      }
+    }
     return response({ ok: true, ...await syncFinance(db, account, payload), build: TASK16_BUILD }, 200, context);
   }
   if (path === "/api/finance/reconcile/merge") {

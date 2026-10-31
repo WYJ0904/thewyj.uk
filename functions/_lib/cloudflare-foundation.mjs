@@ -373,7 +373,8 @@ async function bindingHealth(env, flags) {
         "SELECT value FROM task16_metadata WHERE key = ?1",
       ).bind("schema_version").first();
       task16.schema_version = String(row?.value || "");
-      task16.schema_ready = task16.schema_version === "1";
+      task16.schema_ready = ['3', '4', '5'].includes(task16.schema_version) || (task16.schema_version === "1" &&
+        Number((await env.WYJ_DB.prepare("SELECT COUNT(*) n FROM sqlite_master WHERE type='table' AND name='task21_payment_effective_events'").first())?.n || 0) === 0);
       if (!task16.schema_ready && (flags.task16CloudReads || flags.task16CloudWrites)) {
         degraded.push("task16_schema_not_ready");
       }

@@ -1,0 +1,21 @@
+def qa = new File(System.getProperty('aeris.finance.quality.root'))
+allprojects { p ->
+    if (p.path == ':app') {
+        p.plugins.withId('com.android.application') {
+            // Diagnostic model comparison only; this init script is never a release input.
+            p.dependencies.add('debugImplementation', 'com.google.mlkit:text-recognition:16.0.1')
+            p.androidComponents.finalizeDsl { d ->
+                d.buildTypes.getByName('debug').applicationIdSuffix = '.qa.aerisfinancequality'
+                d.buildTypes.getByName('debug').versionNameSuffix = '-aeris-finance-quality'
+                d.defaultConfig.testInstrumentationRunner = 'androidx.test.runner.AndroidJUnitRunner'
+                d.sourceSets.getByName('androidTest').java.setSrcDirs([new File(qa,'sdk')])
+                d.sourceSets.getByName('androidTest').assets.setSrcDirs([new File(qa,'sdk/assets')])
+            }
+        }
+        p.tasks.configureEach { task ->
+            if (task.name == 'compileDebugAndroidTestKotlin') {
+                task.source(p.fileTree(new File(qa,'sdk')) { include '**/*.kt' })
+            }
+        }
+    }
+}

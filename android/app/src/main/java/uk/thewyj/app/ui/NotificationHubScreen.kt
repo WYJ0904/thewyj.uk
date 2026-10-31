@@ -440,8 +440,7 @@ private fun DetailField(label: String, value: String) {
 }
 
 private fun formatMinor(amountMinor: Long, currency: String): String {
-    val symbol = if (currency.equals("CNY", ignoreCase = true)) "¥" else "$currency "
-    return "$symbol${"%.2f".format(amountMinor / 100.0)}"
+    return uk.thewyj.app.finance.CurrencyMoney.format(amountMinor, currency)
 }
 
 @Composable

@@ -1,3 +1,6 @@
+import {sourceUnitStatement,sourceExponent} from './finance-source-units.mjs';
+import {currencyDecisionStamp,hasCurrencyDecisions} from './finance-money-units.mjs';
+import {explicitReviewCurrency,finishReviewCurrency} from './finance-review-currency.mjs';
 import {
   Task21Error,
   cleanId,
@@ -5,8 +8,19 @@ import {
   isoNow,
   nonNegativeInteger,
   requireAllowedFields,
+  normalizeCurrencyDecision,
 } from "./task21-model.mjs";
-import { createAutomaticFinanceTransaction, reconcileLegacyCompleteCandidates, requireFinanceRecognitionAccess } from "./task21-service.mjs";
+import { createAutomaticFinanceTransaction, correctedPaymentHintReceipt, reconcileLegacyCompleteCandidates, requireFinanceRecognitionAccess } from "./task21-service.mjs";
+import {recordPaymentUserDecision} from './task21-reconciliation.mjs';
+import {referenceNamespaceForSource} from "./task21-event-safety.mjs";
+
+function hintFinanceIdentity(row) {
+  const channel=String(row.payment_channel||'');
+  const source=String(row.source_package||'');
+  return {source_package:source,source_type:String(row.source_type||'notification'),lifecycle_identity:String(row.lifecycle_identity||''),
+    ...(Number(row.currency_review_required) === 1 ? { currency_review_required: true, currency_decision_source: row.currency_decision_source } : {}),
+    ...(['wechat','alipay','bank_card','bank','bank_sms'].includes(channel)?{reference_namespace:referenceNamespaceForSource({source_package:source,payment_channel:channel})}:{})};
+}
 
 /**
  * Task 24.1 P0-3: unified pending hints.
@@ -69,8 +83,8 @@ function cleanLifecycleIdentity(value) {
   return identity;
 }
 
-function moneyCompatible(row, amountMinor, direction) {
-  return (row.amount_minor === null || amountMinor === null || Number(row.amount_minor) === amountMinor) &&
+function moneyCompatible(row, amountMinor, direction, currency) {
+  return row.currency === currency && (row.amount_minor === null || amountMinor === null || Number(row.amount_minor) === amountMinor) &&
     (!row.direction || !direction || row.direction === direction || row.direction === "unknown");
 }
 
@@ -86,7 +100,7 @@ async function exactHintForEvent(db, userId, eventId) {
 async function supersedeExactHint(db, account, duplicate, canonical, now) {
   if (duplicate.id === canonical.id) return canonical;
   if (duplicate.state !== "pending" || !moneyCompatible(canonical, cleanAmount(duplicate.amount_minor),
-    cleanDirection(duplicate.direction))) {
+    cleanDirection(duplicate.direction), duplicate.currency)) {
     throw new Task21Error("旧核实记录含冲突状态或金额", 409, "review_alias_conflict");
   }
   await db.batch([
@@ -106,7 +120,7 @@ async function supersedeExactHint(db, account, duplicate, canonical, now) {
 }
 
 async function matchingHintByStrongEvidence(db, userId, sourcePackage, paymentChannel,
-  providerReference, lifecycleIdentity, amountMinor, direction) {
+  providerReference, lifecycleIdentity, amountMinor, direction, currency) {
   if (!providerReference && !lifecycleIdentity) return null;
   for (const [column, value] of [["provider_reference", providerReference], ["lifecycle_identity", lifecycleIdentity]]) {
     if (!value) continue;
@@ -114,7 +128,7 @@ async function matchingHintByStrongEvidence(db, userId, sourcePackage, paymentCh
       WHERE user_id = ?1 AND source_package = ?2 AND payment_channel = ?3
         AND ${column} = ?4 AND state != 'superseded' LIMIT 10`)
       .bind(userId, sourcePackage, paymentChannel, value).all()).results || [];
-    const matches = rows.filter((row) => moneyCompatible(row, amountMinor, direction));
+    const matches = rows.filter((row) => moneyCompatible(row, amountMinor, direction, currency));
     if (matches.length > 1) {
       throw new Task21Error("已有多条相同强证据的核实记录，需要先收敛", 409, "review_alias_ambiguous");
     }
@@ -181,6 +195,12 @@ function cleanEvidence(value) {
 
 async function autoBookVerifiedHint(db, account, deviceId, row) {
   if (!row || String(row.state || "") !== "pending") return row;
+  // Amount/direction describe a transfer; they do not prove it settled.
+  // Manual confirmation and attachment of an existing ledger receipt remain
+  // separate paths, so pending transfers keep the same review identity.
+  if (String(row.recognition_status || "") !== "CONFIRMED_PAYMENT") return row;
+  // Older APKs used this status for complete-money fields. Only the new
+  // evidence contract separates actual settlement from pending receipt state.
   const amountMinor = cleanAmount(row.amount_minor);
   const direction = cleanDirection(row.direction);
   if (!amountMinor || !direction) return row;
@@ -193,11 +213,13 @@ async function autoBookVerifiedHint(db, account, deviceId, row) {
       return {};
     }
   })();
+  if (evidence.parser_version !== "payment-settled-4") return row;
   const occurredAtMs = Number(evidence.occurred_at_ms) > 0
     ? Number(evidence.occurred_at_ms)
     : (Date.parse(String(row.created_at || "")) || Date.now());
 
   const finance = await createAutomaticFinanceTransaction(db, account, deviceId, {
+    ...hintFinanceIdentity(row),
     event_id: String(row.source_event_id),
     fingerprint: "",
     direction,
@@ -250,6 +272,7 @@ function publicHint(row) {
     }
   })();
   return {
+    ...(Number(row.currency_review_required) === 1 ? { currency_review_required: true, currency_decision_source: row.currency_decision_source } : {}),
     id: String(row.id || ""),
     source_event_id: String(row.source_event_id || ""),
     device_id: String(row.device_id || ""),
@@ -323,7 +346,7 @@ async function ledgerBookingForHint(db, account, row) {
 }
 
 async function ledgerBookingByStrongEvidence(db, account, sourcePackage, paymentChannel,
-  providerReference, lifecycleIdentity, amountMinor, direction) {
+  providerReference, lifecycleIdentity, amountMinor, direction, currency) {
   for (const [column, value] of [["provider_reference", providerReference],
     ["lifecycle_identity", lifecycleIdentity]]) {
     if (!value) continue;
@@ -425,10 +448,12 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
   for (const raw of hints) {
     requireAllowedFields(raw, new Set([
       "source_event_id", "source_type", "source_package", "app_label",
-      "amount_minor", "direction", "merchant", "currency", "confidence",
+      "amount_minor", "direction", "merchant", "currency", "amount_exponent", "confidence",
       "recognition_status", "evidence", "provider_reference", "payment_channel",
       "lifecycle_identity",
+      "currency_review_required", "currency_decision_source",
     ]));
+    const currencyDecision = normalizeCurrencyDecision(raw);
     const sourceEventId = cleanId(raw.source_event_id, "事件标识");
     const sourceType = String(raw.source_type || "notification").trim().toLowerCase();
     if (!SOURCE_TYPES.has(sourceType)) throw new Task21Error("事件来源类型无效", 400, "hint_source_type_invalid");
@@ -444,13 +469,22 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
     const providerReference = cleanProviderReference(raw.provider_reference);
     const lifecycleIdentity = cleanLifecycleIdentity(raw.lifecycle_identity);
     const merchant = cleanText(raw.merchant, 160, "商户");
-    const currency = cleanText(raw.currency || "CNY", 8, "币种") || "CNY";
+    const currency = cleanText(raw.currency || "XXX", 8, "币种") || "XXX";
+    const unit = await sourceUnitStatement(db,account.id,sourceEventId,currency,raw.amount_exponent);
     const confidence = Math.min(1000, nonNegativeInteger(raw.confidence || 0, "置信度", 1000));
     const evidence = cleanEvidence(raw.evidence);
 
+    const corrected=await correctedPaymentHintReceipt(db,account,{event_id:sourceEventId,source_package:sourcePackage,
+      payment_channel:paymentChannel,provider_reference:providerReference,direction:direction||''});
+    if(corrected) {
+      if(hints.length!==1)throw new Task21Error('更正事件须以原单事件请求重放',409,'reconciliation_single_hint_required');
+      return {hints:[],operation_results:[corrected]};
+    }
+
     const exact = await exactHintForEvent(db, account.id, sourceEventId);
+    if (exact && exact.currency !== currency) throw new Task21Error('原核实事件币种冲突，保留原始证据',409,'currency_evidence_conflict');
     const strong = await matchingHintByStrongEvidence(db, account.id, sourcePackage, paymentChannel,
-      providerReference, lifecycleIdentity, amountMinor, direction);
+      providerReference, lifecycleIdentity, amountMinor, direction, currency);
     let existing = exact || strong;
     if (exact && strong && exact.id !== strong.id) {
       if ((exact.provider_reference && providerReference && exact.provider_reference !== providerReference) ||
@@ -470,6 +504,8 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
       }
     }
 
+    if (unit) await unit.run();
+
     // A late device upload must inherit an exact structured candidate's
     // terminal outcome. It cannot reopen a payment the user already rejected
     // or ask for review after that event was booked.
@@ -481,7 +517,7 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
       WHERE c.user_id = ?1 AND c.event_id = ?2`, [account.id, sourceEventId]);
     const booked = await ledgerBookingForEvent(db, account.id, sourceEventId) ||
       await ledgerBookingByStrongEvidence(db, account, sourcePackage, paymentChannel,
-        providerReference, lifecycleIdentity, amountMinor, direction);
+        providerReference, lifecycleIdentity, amountMinor, direction, currency);
     const candidateTerminalState = booked ? "confirmed"
       : candidate && candidate.status !== "pending"
         ? (candidate.active_transaction_id ? "confirmed" : "ignored") : "";
@@ -534,7 +570,11 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
           (RECOGNITION_STATUS_RANK[previousStatus] ?? 0)
           ? recognitionStatus
           : previousStatus;
+        const proofImproved = recognitionStatus === "CONFIRMED_PAYMENT" &&
+          incomingEvidence.parser_version === "payment-settled-4" &&
+          previousEvidence.parser_version !== "payment-settled-4";
         const improved =
+          proofImproved ||
           (existing.amount_minor === null && amountMinor !== null) ||
           (existing.direction === null && direction !== null) ||
           (!String(existing.merchant || "") && Boolean(merchant)) ||
@@ -552,7 +592,7 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
                 merchant = CASE WHEN merchant = '' AND ?5 != '' THEN ?5 ELSE merchant END,
                 confidence = MAX(confidence, ?6),
                  recognition_status = ?7,
-                 evidence_summary = CASE WHEN ?6 >= confidence THEN ?8 ELSE evidence_summary END,
+                 evidence_summary = CASE WHEN ?6 >= confidence OR ?14 = 1 THEN ?8 ELSE evidence_summary END,
                  provider_reference = CASE WHEN provider_reference = '' THEN ?10 ELSE provider_reference END,
                  lifecycle_identity = CASE WHEN lifecycle_identity = '' THEN ?11 ELSE lifecycle_identity END,
                  payment_channel = CASE WHEN payment_channel = '' THEN ?12 ELSE payment_channel END,
@@ -560,7 +600,7 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
                  updated_at = ?9
             WHERE user_id = ?1 AND id = ?2 AND state = 'pending'`, [
             account.id, existing.id, amountMinor, direction, merchant, confidence,
-             mergedStatus, mergedEvidence, now, providerReference, lifecycleIdentity, paymentChannel, appLabel,
+             mergedStatus, mergedEvidence, now, providerReference, lifecycleIdentity, paymentChannel, appLabel, proofImproved ? 1 : 0,
           ]);
         }
         const updated = await hintById(db, account, existing.id);
@@ -573,20 +613,21 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
     }
     const id = `hint:${crypto.randomUUID()}`;
     try {
-      await run(db, `INSERT INTO task21_notification_pending_hints (
+      const insert = db.prepare(`INSERT INTO task21_notification_pending_hints (
         id, user_id, source_event_id, device_id, source_type, source_package, app_label,
         evidence_summary, amount_minor, direction, merchant, currency, confidence,
         recognition_status, state, finance_entry_id, created_at, updated_at, confirmed_at, ignored_at,
         provider_reference, lifecycle_identity, payment_channel
       ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,
-        ?16, ?17, ?15, ?15, ?18, ?19, ?20, ?21, ?22)`, [
+        ?16, ?17, ?15, ?15, ?18, ?19, ?20, ?21, ?22)`).bind(
         id, account.id, sourceEventId, deviceId, sourceType, sourcePackage, appLabel,
         evidence, terminalAmountMinor, terminalDirection, terminalMerchant, currency, confidence,
         recognitionStatus, now, candidateTerminalState || "pending", candidateTransactionId,
         candidateTerminalState === "confirmed" ? now : "",
         candidateTerminalState === "ignored" ? now : "",
         providerReference, lifecycleIdentity, paymentChannel,
-      ]);
+      );
+      await db.batch([insert, ...await currencyDecisionStamp(db,account.id,id,currencyDecision,'hint')]);
       const created = await hintById(db, account, id);
       const terminal = await autoBookVerifiedHint(db, account, deviceId, created);
       results.push({ hint: publicHint(terminal), duplicate: false });
@@ -647,6 +688,10 @@ export async function listNotificationHints(db, account, input = {}) {
  */
 export async function notificationPendingSummary(db, account, input = {}) {
   requireFinanceRecognitionAccess(account);
+  const decisions = await hasCurrencyDecisions(db);
+  const hintDecision = decisions ? [`COALESCE(et.currency_review_required,bt.currency_review_required,ht.currency_review_required,h.currency_review_required)`, `COALESCE(et.currency_decision_source,bt.currency_decision_source,ht.currency_decision_source,h.currency_decision_source)`] : ['0', "''"];
+  const candidateDecision = decisions ? `COALESCE(ct.currency_review_required,et.currency_review_required,cbt.currency_review_required,ht.currency_review_required,e.currency_review_required,0), COALESCE(ct.currency_decision_source,et.currency_decision_source,cbt.currency_decision_source,ht.currency_decision_source,e.currency_decision_source,'')` : `0, ''`;
+  const bookingDecision = decisions ? `txn.currency_review_required,txn.currency_decision_source` : `0, ''`;
   // A refresh is also the bounded repair point for candidates created solely
   // by the former confidence gate. Each booking retains its source event id.
   await reconcileLegacyCompleteCandidates(db, account);
@@ -688,12 +733,15 @@ export async function notificationPendingSummary(db, account, input = {}) {
       h.merchant,
       COALESCE(NULLIF(CAST(json_extract(h.evidence_summary, '$.occurred_at_ms') AS INTEGER), 0),
         CAST(strftime('%s', h.created_at) AS INTEGER) * 1000, 0) AS occurred_at_ms,
-      h.confidence, COALESCE(json_extract(h.evidence_summary, '$.reasons'), '[]') AS recognition_reasons
+      h.confidence, COALESCE(json_extract(h.evidence_summary, '$.reasons'), '[]') AS recognition_reasons, h.currency,
+      ${hintDecision[0]} AS currency_review_required,
+      ${hintDecision[1]} AS currency_decision_source
     FROM task21_notification_pending_hints h
     LEFT JOIN task21_notification_events e ON e.user_id = h.user_id AND e.event_id = h.source_event_id
     LEFT JOIN task16_finance_transactions et
       ON et.user_id = h.user_id AND et.id = e.finance_transaction_id AND et.status = 'active'
     LEFT JOIN booking b ON b.user_id = h.user_id AND b.source_event_id = h.source_event_id
+    LEFT JOIN task16_finance_transactions bt ON bt.user_id=h.user_id AND bt.id=b.transaction_id
     LEFT JOIN task16_finance_transactions ht
       ON ht.user_id = h.user_id AND ht.id = h.finance_entry_id AND ht.status = 'active'
     WHERE h.user_id = ?1 AND NOT EXISTS (
@@ -722,7 +770,7 @@ export async function notificationPendingSummary(db, account, input = {}) {
         WHEN 'com.eg.android.AlipayGphone' THEN '支付宝'
         ELSE COALESCE(e.source_package, '') END AS app_label,
       c.amount_minor, c.direction, c.merchant, c.occurred_at_ms, c.confidence,
-      '[]' AS recognition_reasons
+      '[]' AS recognition_reasons, c.currency, ${candidateDecision}
     FROM task21_notification_candidates c
     LEFT JOIN task21_notification_events e ON e.user_id = c.user_id AND e.event_id = c.event_id
     LEFT JOIN task16_finance_transactions ct
@@ -730,6 +778,7 @@ export async function notificationPendingSummary(db, account, input = {}) {
     LEFT JOIN task16_finance_transactions et
       ON et.user_id = c.user_id AND et.id = e.finance_transaction_id AND et.status = 'active'
     LEFT JOIN booking cb ON cb.user_id = c.user_id AND cb.source_event_id = c.event_id
+    LEFT JOIN task16_finance_transactions cbt ON cbt.user_id=c.user_id AND cbt.id=cb.transaction_id
     LEFT JOIN task21_notification_pending_hints h ON h.user_id = c.user_id AND h.source_event_id = c.event_id
     LEFT JOIN task16_finance_transactions ht
       ON ht.user_id = c.user_id AND ht.id = h.finance_entry_id AND ht.status = 'active'
@@ -741,7 +790,7 @@ export async function notificationPendingSummary(db, account, input = {}) {
       json_array(raw.source_event_id), COALESCE(e.source_package, ''),
       CASE e.source_package WHEN 'com.tencent.mm' THEN '微信'
         WHEN 'com.eg.android.AlipayGphone' THEN '支付宝' ELSE COALESCE(e.source_package, '') END,
-      txn.amount_minor, txn.direction, txn.merchant, txn.occurred_at_ms, COALESCE(e.confidence, 950), '[]'
+      txn.amount_minor, txn.direction, txn.merchant, txn.occurred_at_ms, COALESCE(e.confidence, 950), '[]', txn.currency, ${bookingDecision}
     FROM task16_finance_raw_events raw
     JOIN task16_finance_transaction_events link ON link.raw_event_id = raw.id AND link.relation_status = 'active'
     JOIN task16_finance_transactions txn ON txn.user_id = raw.user_id AND txn.id = link.transaction_id
@@ -763,6 +812,7 @@ export async function notificationPendingSummary(db, account, input = {}) {
   FROM visible ORDER BY updated_at DESC, id DESC`).bind(account.id, JSON.stringify(eventIds)).all();
   const rows = result?.results || [];
   const records = rows.map((row) => ({
+    ...(row.currency_decision_source ? { currency_review_required: Number(row.currency_review_required) === 1, currency_decision_source: row.currency_decision_source } : {}),
     kind: String(row.kind), id: String(row.id), event_id: String(row.event_id),
     event_ids: [...new Set([String(row.event_id), ...JSON.parse(row.event_ids || "[]")])],
     device_id: String(row.device_id), state: String(row.state),
@@ -774,6 +824,7 @@ export async function notificationPendingSummary(db, account, input = {}) {
     occurred_at_ms: Number(row.occurred_at_ms || 0),
     confidence: Number(row.confidence || 0),
     recognition_reasons: JSON.parse(String(row.recognition_reasons || "[]")),
+    currency: String(row.currency || "XXX"),
   }));
   const hintCount = Number(rows[0]?.hint_count || 0);
   const candidateCount = Number(rows[0]?.candidate_count || 0);
@@ -797,25 +848,37 @@ export async function confirmNotificationHint(db, account, input) {
   const hintId = cleanId(input.hint_id, "待确认标识");
   const row = await hintById(db, account, hintId);
   const edits = input.edits && typeof input.edits === "object" && !Array.isArray(input.edits) ? input.edits : {};
-  requireAllowedFields(edits, new Set(["amount_minor", "direction", "merchant", "occurred_at_ms"]));
-  if (row.state === "confirmed") return { hint: publicHint(row), no_change: true, transaction_id: row.finance_entry_id };
+  requireAllowedFields(edits, new Set(["amount_minor", "direction", "merchant", "occurred_at_ms", "amount_exponent", "currency"]));
+  const currencyChoice=explicitReviewCurrency(edits);
+  if(currencyChoice&&!await hasCurrencyDecisions(db))throw new Task21Error('币种核实结构需要增量迁移',503,'currency_decision_schema_required',true);
+  if (row.state === "confirmed") {
+    if(currencyChoice)await finishReviewCurrency(db,account,input.device_id,row.finance_entry_id,currencyChoice,edits.amount_minor,edits.direction||row.direction);
+    return { hint: publicHint(row), no_change: true, transaction_id: row.finance_entry_id };
+  }
   if (row.state !== "pending") throw new Task21Error("该待确认记录不能确认", 409, "hint_state_invalid");
   const deviceId = cleanId(input.device_id, "设备标识");
+  if (!currencyChoice && row.currency === 'JPY' && await sourceExponent(db,account.id,row.source_event_id,row.currency) !== 0 &&
+      !(edits.amount_exponent === 0 && cleanAmount(edits.amount_minor) > 0))
+    throw new Task21Error('请重新输入并确认日元原币金额',409,'currency_unit_review_required');
   const amountMinor = cleanAmount(edits.amount_minor) || cleanAmount(row.amount_minor);
   const direction = cleanDirection(edits.direction) || cleanDirection(row.direction);
   if (!amountMinor) throw new Task21Error("请先填写金额后再确认", 400, "hint_amount_required");
   if (!direction) throw new Task21Error("请先选择收支方向后再确认", 400, "hint_direction_required");
   const merchant = cleanText(edits.merchant ?? row.merchant, 160, "商户");
+  await recordPaymentUserDecision(db,account,row.source_event_id,"hint_confirm");
   const storedEvidence = JSON.parse(String(row.evidence_summary || "{}"));
   const occurredAtMs = cleanAmount(edits.occurred_at_ms) ||
     cleanAmount(storedEvidence.occurred_at_ms) || Date.parse(row.created_at) || Date.now();
 
   const finance = await createAutomaticFinanceTransaction(db, account, deviceId, {
+    ...hintFinanceIdentity(row),
     event_id: row.source_event_id,
     fingerprint: "",
     direction,
     amount_minor: amountMinor,
-    currency: row.currency,
+    currency: currencyChoice?.currency||row.currency,
+    ...(currencyChoice|| (row.currency==='JPY'?{amount_exponent:0}:{})),
+    ...(currencyChoice?{currency_review_required:false,manual_currency_source:{currency:row.currency,amount_minor:Number(row.amount_minor)}}:{}),
     merchant,
     counterparty: "",
     payment_channel: String(row.payment_channel || ""),
@@ -828,6 +891,7 @@ export async function confirmNotificationHint(db, account, input) {
   // A device may have booked this exact event between the page render and the
   // click. The booking is deduplicated by event identity, so the stored hint
   // must mirror the *existing* ledger entry rather than the just-typed values.
+  await finishReviewCurrency(db,account,deviceId,finance.transaction_id,currencyChoice,amountMinor,direction);
   let bookedAmountMinor = amountMinor;
   let bookedDirection = direction;
   let bookedMerchant = merchant;

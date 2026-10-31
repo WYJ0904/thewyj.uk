@@ -21,7 +21,7 @@ defaults:
 jobs:
   task25-cloud-readiness:
     name: Task 25 cloud credential discovery
-    if: github.ref == 'refs/heads/main' || ((startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b') && github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.ref == 'refs/heads/main' || ((startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b' || github.head_ref == 'codex/android-accessibility-accounting-hotfix') && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -627,7 +627,7 @@ jobs:
 
   task25-android-instrumentation:
     name: Task 25 Android runtime contract
-    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b' || github.head_ref == 'codex/aeris-ci-release-guards'
+    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b' || github.head_ref == 'codex/aeris-ci-release-guards' || github.head_ref == 'codex/android-accessibility-accounting-hotfix' || github.head_ref == 'codex/finance-release-convergence' || startsWith(github.head_ref, 'codex/aeris-p0-')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -951,6 +951,8 @@ jobs:
       - name: Start Pages Functions and headless Chrome without legacy services
         run: |
           set -euo pipefail
+          node qa/ci/test-wrangler-local-disconnect.mjs
+          node qa/ci/wrangler-local-disconnect.mjs
           chrome_bin="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           if [[ -z "$chrome_bin" ]]; then
             echo "No Chrome or Chromium executable is available on this runner." >&2

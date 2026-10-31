@@ -18,32 +18,46 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
     private val refreshScheduled = AtomicBoolean(false)
     private val readScheduled = AtomicBoolean(false)
     private val screenshotInFlight = AtomicBoolean(false)
+    private val scanBudgets = PaymentPageRetryPool()
+    private var trailingRead: Pair<String, Int?>? = null
+    @Volatile private var closed = false
     @Volatile private var active: Scan? = null
     @Volatile private var generation = 0L
+    private val pageEvidenceEpoch = PaymentPageEvidenceEpoch()
     private var pageClass = ""
     private var retryCallback: Runnable? = null
     private var lastScreenshotAtMs = 0L
     private var ocrVerifier: PaymentScreenshotVerifier? = null
     private val androidGateway by lazy { AndroidPaymentAccessibilityGateway(this) }
     private fun gateway() = PaymentAccessibilityDeviceTest.gateway() ?: androidGateway
-    private class Scan(val accountId: String, val ticket: PaymentTicket, val windowId: Int?, val generation: Long, val budget: PaymentPageRetry, val gateway: PaymentAccessibilityGateway) {
+    private class Scan(val accountId: String, val ticket: PaymentTicket, val windowId: Int?, val generation: Long, val budget: PaymentPageRetry, val gateway: PaymentAccessibilityGateway, val windowKey: String) {
         val applying = AtomicBoolean(false)
     }
     private data class PageRead(val lines: List<String>, val groups: List<List<String>>, val nodes: Int)
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        closed = false
+        trailingRead = null
+        readScheduled.set(false)
+        scanBudgets.clear()
         PaymentAccessibilityStatus.onConnected()
         PaymentTicketPackageSignal.clear()
         cancelScan("service_connected")
         refreshPackages(force = true)
     }
     override fun onUnbind(intent: android.content.Intent?): Boolean {
+        closed = true
+        trailingRead = null
+        scanBudgets.clear()
         cancelScan("service_unbound")
         PaymentAccessibilityStatus.onDisconnected()
         return super.onUnbind(intent)
     }
     override fun onDestroy() {
+        closed = true
+        trailingRead = null
+        scanBudgets.clear()
         cancelScan("service_destroyed")
         PaymentAccessibilityStatus.onDisconnected()
         mainHandler.removeCallbacksAndMessages(null)
@@ -53,24 +67,36 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
     override fun onInterrupt() { cancelScan("service_interrupted") }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        if (closed) return
         val e = event ?: return
         val foreground = rootInActiveWindow?.packageName?.toString().orEmpty()
         val pkg = e.packageName?.toString().orEmpty().ifBlank { foreground }
         PaymentAccessibilityStatus.onEvent(pkg, e.eventType)
         if (active != null && foreground.isNotBlank() && foreground != active?.ticket?.sourcePackage) cancelScan("page_left:$foreground")
         if (pkg.isBlank() || pkg == packageName || e.eventType !in EVENT_TYPES) return
+        if (active?.ticket?.sourcePackage == pkg) pageEvidenceEpoch.invalidate()
+        // Retain only window metadata even before a ticket exists. Otherwise a
+        // ticket created while chat is already open can reuse a stale receipt
+        // class and start reading multiple chat cards as one payment page.
+        val eventClass = e.className?.toString().orEmpty().take(160)
+        if (pkg == "com.tencent.mm" && e.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+            eventClass.isNotBlank() && eventClass != pageClass) {
+            cancelScan("wechat_window_metadata_changed")
+            pageClass = eventClass
+        }
         if (ticketPackages.needsRefresh()) refreshPackages(force = false)
         if (!ticketPackages.contains(pkg) && !PaymentTicketPackageSignal.recentlySignalled(pkg)) {
             PaymentAccessibilityStatus.onSkipped(pkg, "no_active_ticket")
             return
         }
-        val eventClass = e.className?.toString().orEmpty().take(160)
         if (e.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && eventClass != pageClass) {
             cancelScan("window_state_changed")
             pageClass = eventClass
         }
         PaymentDiagnostics.emit("event", "pkg=$pkg class=$eventClass type=${PaymentAccessibilityStatus.eventTypeName(e.eventType)} window=${e.windowId}")
         if (pkg == "com.tencent.mm" && PaymentPageContext.blockedWechatActivity(pageClass)) {
+            cancelScan("wechat_chat_activity")
+            PaymentAccessibilityStatus.onSkipped(pkg, "wechat_chat_activity")
             PaymentAccessibilityStatus.onParserResult("not_payment_detail")
             return
         }
@@ -79,7 +105,20 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
 
     /** Room/account lookup is always off the accessibility thread. */
     private fun queueRead(pkg: String, eventWindow: Int?) {
-        if (!readScheduled.compareAndSet(false, true)) { PaymentDiagnostics.emit("debounce", "reason=read_pending"); return }
+        // Package refresh can request a read without an accessibility event.
+        // Apply the same chat boundary before any worker/root/OCR work.
+        if (pkg == "com.tencent.mm" && PaymentPageContext.blockedWechatActivity(pageClass)) {
+            cancelScan("wechat_chat_activity")
+            PaymentAccessibilityStatus.onSkipped(pkg, "wechat_chat_activity")
+            PaymentAccessibilityStatus.onParserResult("not_payment_detail")
+            return
+        }
+        if (closed) return
+        if (!readScheduled.compareAndSet(false, true)) {
+            trailingRead = pkg to eventWindow
+            PaymentDiagnostics.emit("debounce", "reason=read_pending_latest_retained")
+            return
+        }
         val requestedGeneration = generation
         PaymentAccessibilityStatus.onParserResult("read_queued")
         execute {
@@ -95,13 +134,18 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
                     val id = window?.id ?: root?.windowId ?: eventWindow
                     val key = "${ticket.ticketId}|$pkg|$id|$pageClass"
                     val previous = active
-                    val scan = if (previous?.budget?.key == key && !previous.budget.cancelled) previous else {
+                    val scan = if (previous?.windowKey == key && !previous.budget.cancelled) previous else {
                         cancelScan("new_ticket_or_window")
-                        Scan(account, ticket, id, generation, PaymentPageRetry(key, SystemClock.uptimeMillis()), gateway).also { active = it }
+                        Scan(account, ticket, id, generation, scanBudgets.budget(account, ticket.ticketId, SystemClock.uptimeMillis()), gateway, key).also { active = it }
                     }
                     readPage(scan)
                 }
-            } finally { readScheduled.set(false) }
+            } finally {
+                readScheduled.set(false)
+                mainHandler.post {
+                    if (!closed) trailingRead?.also { trailingRead = null; queueRead(it.first, it.second) }
+                }
+            }
         }
     }
 
@@ -119,6 +163,23 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
 
     private fun readPage(scan: Scan) {
         if (!current(scan) || !scan.budget.beginAttempt(SystemClock.uptimeMillis(), retryCallback != null)) return
+        execute {
+            val granted=runCatching { scan.gateway.reserveScan(scan.accountId,scan.ticket.ticketId,System.currentTimeMillis()) }.getOrDefault(false)
+            mainHandler.post {
+                if (!current(scan)) return@post
+                if (!granted) { cancelScan("durable_scan_budget_exhausted"); return@post }
+                readPermittedPage(scan)
+            }
+        }
+    }
+
+    private fun readPermittedPage(scan: Scan) {
+        if (PaymentAccessibilityDeviceTest.contentReadBlockedForAudit()) {
+            PaymentAccessibilityStatus.onPageRead(0)
+            PaymentAccessibilityStatus.onParserResult("audit_read_attempt_blocked")
+            cancelScan("audit_read_attempt_blocked")
+            return
+        }
         val root = rootInActiveWindow
         if (root != null && root.packageName?.toString() != scan.ticket.sourcePackage) { cancelScan("root_package_mismatch"); return }
         val target = root ?: paymentWindow(scan.ticket.sourcePackage)?.root
@@ -132,12 +193,21 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
             screenshot(scan)
         } else {
             val snapshot = PaymentPageSnapshot(scan.ticket.sourcePackage, page.lines, System.currentTimeMillis(), page.groups)
+            val contentToken = pageEvidenceEpoch.capture()
             execute {
                 if (!validTicket(scan)) return@execute
-                val enrichment = PaymentPageSemantics.extract(snapshot)
-                if (enrichment == null) mainHandler.post { if (current(scan)) screenshot(scan) }
+                val enrichment = PaymentPageSemantics.extract(snapshot,
+                    uk.thewyj.app.finance.CurrencyRuntimePreferences.defaultCurrency(applicationContext, scan.accountId), 2)
+                    ?: PaymentPageSemantics.unresolvedCandidate(snapshot)
+                if (enrichment == null) {
+                    if(validTicket(scan)&&pageEvidenceEpoch.current(contentToken))
+                        uk.thewyj.app.finance.FinanceAiCoordinator.get(applicationContext).capture(scan.ticket,snapshot)
+                    mainHandler.post { if (current(scan)) screenshot(scan) }
+                }
                 else mainHandler.post {
-                    if (current(scan) && foregroundMatches(scan)) execute { apply(scan, enrichment) }
+                    if (current(scan) && foregroundMatches(scan) && pageEvidenceEpoch.current(contentToken)) execute {
+                        if (pageEvidenceEpoch.current(contentToken)) apply(scan, enrichment)
+                    }
                 }
             }
         }
@@ -158,8 +228,14 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         PaymentDiagnostics.emit("verification", "transaction=${PaymentDiagnostics.identity(scan.ticket.recognitionId)} ticket=${PaymentDiagnostics.identity(scan.ticket.ticketId)} minor=${enrichment.amountMinor} confidence=${enrichment.confidence} outcome=${outcome?.javaClass?.simpleName}")
         PaymentAccessibilityStatus.onParserResult("${enrichment.evidenceSource.name.lowercase()} amount=${enrichment.amountMinor} direction=${enrichment.direction} result=${outcome?.javaClass?.simpleName}")
         if (outcome is EnrichmentOutcome.Applied) {
-            mainHandler.post { if (active === scan) cancelScan("verified") }
-            refreshPackages(true)
+            val proof=outcome.ticket.enrichment
+            if (proof?.completionConfirmed==true && !proof.sourceInstanceUncertain) {
+                mainHandler.post { if (active === scan) cancelScan("verified") }
+                refreshPackages(true)
+            } else {
+                scan.applying.set(false)
+                mainHandler.post { scheduleRetry(scan,"completion_or_source_pending") }
+            }
         } else {
             scan.applying.set(false)
             mainHandler.post { scheduleRetry(scan, "insufficient") }
@@ -173,10 +249,12 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         if (delay > 0) { scheduleRetry(scan, "ocr_cooldown", delay); return }
         if (!screenshotInFlight.compareAndSet(false, true)) { scheduleRetry(scan, "ocr_in_flight"); return }
         lastScreenshotAtMs = SystemClock.uptimeMillis()
+        val contentToken = pageEvidenceEpoch.capture()
+        PaymentAccessibilityStatus.onScreenshotAttempt()
         fun callback(windowCapture: Boolean): TakeScreenshotCallback = object : TakeScreenshotCallback {
             override fun onSuccess(result: ScreenshotResult) {
                 screenshotInFlight.set(false)
-                if (!current(scan) || !foregroundMatches(scan)) { result.hardwareBuffer.close(); PaymentDiagnostics.emit("discard", "reason=page_changed_during_capture"); return }
+                if (!current(scan) || !foregroundMatches(scan) || !pageEvidenceEpoch.current(contentToken)) { result.hardwareBuffer.close(); scheduleRetry(scan, "page_changed_during_capture"); PaymentDiagnostics.emit("discard", "reason=page_changed_during_capture"); return }
                 val bitmap = try { runCatching { android.graphics.Bitmap.wrapHardwareBuffer(result.hardwareBuffer, result.colorSpace)?.copy(android.graphics.Bitmap.Config.ARGB_8888, false) }.getOrNull() }
                     finally { result.hardwareBuffer.close() }
                 if (bitmap == null) { scheduleRetry(scan, "no_bitmap"); return }
@@ -184,11 +262,17 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
                     try {
                         if (!validTicket(scan)) return@execute
                         val verifier = ocrVerifier ?: PaymentScreenshotVerifier(MlKitOcrEngine(this@ThewyjPaymentAccessibilityService)).also { ocrVerifier = it }
-                        val enrichment = kotlinx.coroutines.runBlocking { verifier.verify(bitmap, scan.ticket.sourcePackage, System.currentTimeMillis()) }
+                        val enrichment = kotlinx.coroutines.runBlocking {
+                            verifier.verifyCurrentWithAssistance(bitmap, scan.ticket.sourcePackage, System.currentTimeMillis(),
+                                uk.thewyj.app.finance.CurrencyRuntimePreferences.defaultCurrency(applicationContext, scan.accountId), 2,
+                                observer={snapshot->if(validTicket(scan)&&pageEvidenceEpoch.current(contentToken))uk.thewyj.app.finance.FinanceAiCoordinator.get(applicationContext).capture(scan.ticket,snapshot)}) {
+                                current(scan) && pageEvidenceEpoch.current(contentToken)
+                            }
+                        }
                         mainHandler.post {
-                            if (!current(scan) || !foregroundMatches(scan)) { PaymentDiagnostics.emit("discard", "reason=page_changed_during_ocr"); return@post }
+                            if (!current(scan) || !foregroundMatches(scan) || !pageEvidenceEpoch.current(contentToken)) { PaymentDiagnostics.emit("discard", "reason=page_changed_during_ocr"); scheduleRetry(scan, "page_changed_during_ocr"); return@post }
                             if (enrichment == null) { PaymentAccessibilityStatus.onParserResult("ocr_unparsed"); scheduleRetry(scan, "ocr_unparsed") }
-                            else execute { apply(scan, enrichment.copy(evidenceSource = PaymentEvidenceSource.OCR)) }
+                            else execute { if (pageEvidenceEpoch.current(contentToken)) apply(scan, enrichment.copy(evidenceSource = PaymentEvidenceSource.OCR)) }
                         }
                     } finally { bitmap.recycle() }
                 }
@@ -220,7 +304,8 @@ class ThewyjPaymentAccessibilityService : AccessibilityService() {
         PaymentDiagnostics.emit("retry", "reason=$reason attempt=${scan.budget.attempts} delay=$delay remaining=$remaining")
     }
     private fun cancelScan(reason: String) {
-        active?.budget?.cancel()
+        // Generation/window checks discard old callbacks; the finite ticket
+        // budget survives page changes so events cannot reset the read cap.
         active = null; generation++
         retryCallback?.let(mainHandler::removeCallbacks); retryCallback = null
         PaymentDiagnostics.emit("cancel", "reason=$reason")

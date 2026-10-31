@@ -251,7 +251,7 @@ class PaymentStatusStateMachine(private val now: () -> Long = System::currentTim
                 notificationId = record.notificationId,
                 recognitionId = record.recognitionId,
                 title = "Aeris · 暂未找到可靠的交易金额",
-                body = "请确认已经打开对应交易详情页面后重试。",
+                body = "请打开同一笔交易的付款或收款页面后重试；聊天中的多笔金额不会自动记账。",
                 offerManualVerification = true,
             )
         }

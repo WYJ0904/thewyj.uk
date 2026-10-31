@@ -1,7 +1,8 @@
 /** Client ingest protocol version (Android payloads send this value). */
+import { currencyDigits } from '../../js/finance/money.js';
 export const TASK21_SCHEMA_VERSION = "1";
 /** Task 21 readiness baseline; migration 0022 is additive for old Pages code. */
-export const TASK21_DB_SCHEMA_VERSION = "2";
+export const TASK21_DB_SCHEMA_VERSION = "9";
 export const TASK21_BUILD = "2026-09-08-task21-notification";
 export const NOTIFICATION_ENTITLEMENT = "notification_archive_access";
 export const MAX_INGEST_OPERATIONS = 100;
@@ -51,6 +52,10 @@ const ALLOWED_EVENT_FIELDS = Object.freeze(new Set([
   "currency", "payment_channel", "provider_reference", "lifecycle_identity",
   "merchant", "counterparty", "confidence",
   "occurred_at_ms", "received_at_ms",
+  "financial_phase", "lifecycle_reference", "reference_namespace", "currency_evidence", "identity_review_reason",
+  "lifecycle_operation", "lifecycle_revision",
+  "currency_roles", "amount_exponent",
+  "currency_review_required", "currency_decision_source",
 ]));
 
 export class Task21Error extends Error {
@@ -116,7 +121,20 @@ export function requireAllowedFields(payload, allowed, code = "task21_fields_for
   }
 }
 
-export function normalizeNotificationEvent(value = {}) {
+export function normalizeCurrencyDecision(value) {
+  if (value.currency_review_required === undefined && value.currency_decision_source === undefined) return {};
+  if (typeof value.currency_review_required !== 'boolean' ||
+      (value.currency_review_required ? value.currency_decision_source !== 'account_default' : Boolean(value.currency_decision_source))) {
+    throw new Task21Error('币种决议标记无效',400,'currency_decision_invalid');
+  }
+  if (!value.currency_review_required) return {};
+  if (String(value.currency_evidence || '') || value.currency_roles !== undefined)
+    throw new Task21Error('默认币种不能冒充来源明示币种',409,'currency_decision_evidence_conflict');
+  try { currencyDigits(value.currency); } catch (_) { throw new Task21Error('默认币种无效',400,'currency_decision_invalid'); }
+  return { currency_review_required: true, currency_decision_source: 'account_default' };
+}
+
+export function normalizeNotificationEvent(value = {}, {legacyUnitless=false} = {}) {
   requireAllowedFields(value, ALLOWED_EVENT_FIELDS);
   const sourceType = String(value.source_type || "notification").trim().toLowerCase();
   if (!SOURCE_TYPES.includes(sourceType)) throw new Task21Error("事件来源类型无效", 400, "source_type_invalid");
@@ -148,7 +166,53 @@ export function normalizeNotificationEvent(value = {}) {
   if (lifecycleIdentity && !LIFECYCLE_IDENTITY_PATTERN.test(lifecycleIdentity)) {
     throw new Task21Error("通知生命周期标识无效", 400, "lifecycle_identity_invalid");
   }
+  const financialPhase = String(value.financial_phase || "").trim();
+  if (!["", "AUTHORIZED", "SETTLED", "RELEASED", "EXPIRED", "REFUNDED", "REVIEW_REQUIRED"].includes(financialPhase))
+    throw new Task21Error("清算状态无效", 400, "financial_phase_invalid");
+  const lifecycleOperation = String(value.lifecycle_operation || "");
+  const lifecycleRevision = nonNegativeInteger(value.lifecycle_revision || 0, "状态版本", 999999999);
+  const phasesForOperation={AUTHORIZE:['AUTHORIZED'],CAPTURE:['SETTLED','REVIEW_REQUIRED'],REFUND:['REFUNDED','REVIEW_REQUIRED'],RELEASE:['RELEASED','REVIEW_REQUIRED'],CLOSE:['RELEASED','EXPIRED']};
+  if(lifecycleOperation && !phasesForOperation[lifecycleOperation]?.includes(financialPhase))
+    throw new Task21Error("清算操作与状态不匹配",400,"lifecycle_operation_invalid");
+  if(lifecycleRevision && !financialPhase)throw new Task21Error("状态版本缺少清算状态",400,"lifecycle_revision_invalid");
+  const lifecycleReference = String(value.lifecycle_reference || "").trim();
+  if (lifecycleReference && !PROVIDER_REFERENCE_PATTERN.test(lifecycleReference))
+    throw new Task21Error("授权关联无效", 400, "lifecycle_reference_invalid");
+  const referenceNamespace = cleanText(value.reference_namespace, 160, "来源命名空间");
+  if (referenceNamespace && !/^[A-Za-z0-9._:-]+$/.test(referenceNamespace))
+    throw new Task21Error("来源命名空间无效", 400, "reference_namespace_invalid");
+  const currencyEvidence = cleanText(value.currency_evidence, 64, "币种证据");
+  const currency = cleanCurrency(value.currency || (legacyUnitless ? 'CNY' : 'XXX'));
+  const evidenceCodes = currencyEvidence ? currencyEvidence.split(",") : [];
+  if (evidenceCodes.some((code) => !/^[A-Z]{3}$/.test(code))) throw new Task21Error("币种证据无效", 400, "currency_evidence_invalid");
+  if (evidenceCodes.length === 1 && evidenceCodes[0] !== currency)
+    throw new Task21Error("币种与明确证据冲突", 409, "currency_evidence_conflict");
+  const identityReviewReason = cleanText(value.identity_review_reason, 80, "核实原因");
+  if (identityReviewReason && !/^[a-z0-9_]+$/.test(identityReviewReason))
+    throw new Task21Error("核实原因无效", 400, "identity_review_reason_invalid");
   const amountMinor = nonNegativeInteger(value.amount_minor || 0, "金额", 10000000000000);
+  if (currency === 'JPY' && value.amount_exponent !== 0 && !(legacyUnitless && value.amount_exponent === undefined))
+    throw new Task21Error('日元来源单位需要明确确认',409,'currency_unit_review_required');
+  if (value.amount_exponent !== undefined) {
+    let digits;try{digits=currencyDigits(currency)}catch{throw new Task21Error('未知币种单位需要核实',409,'currency_unit_review_required')}
+    if(value.amount_exponent !== digits)throw new Task21Error('来源金额单位冲突',409,'currency_unit_review_required');
+  }
+  let currencyRoles;
+  if (value.currency_roles !== undefined) {
+    requireAllowedFields(value.currency_roles, new Set(['original', 'settlement', 'fee']));
+    if (!value.currency_roles.original) throw new Task21Error('缺少原币金额角色', 400, 'currency_roles_invalid');
+    currencyRoles = {};
+    for (const name of ['original', 'settlement', 'fee']) {
+      if (value.currency_roles[name] === undefined) continue;
+      const role = value.currency_roles[name];
+      requireAllowedFields(role, new Set(['currency', 'amount_minor']));
+      try { currencyDigits(role.currency); }
+      catch (_) { throw new Task21Error('金额角色币种无效', 400, 'currency_roles_invalid'); }
+      if (typeof role.amount_minor !== 'number') throw new Task21Error('角色金额必须使用整数最小单位',400,'currency_roles_invalid');
+      currencyRoles[name] = { currency: role.currency, amount_minor: name === 'fee' ? nonNegativeInteger(role.amount_minor, '角色金额', 10000000000000) : positiveInteger(role.amount_minor, '角色金额', 10000000000000) };
+    }
+    if (currencyRoles.original.currency !== cleanCurrency(value.currency) || currencyRoles.original.amount_minor !== amountMinor) throw new Task21Error('原币金额角色冲突', 409, 'currency_roles_conflict');
+  }
   const confidence = Math.min(1000, nonNegativeInteger(value.confidence || 0, "置信度", 1000));
 
   if (parseStatus !== "unparsed" && eventType !== "transaction" && eventType !== "refund") {
@@ -167,6 +231,7 @@ export function normalizeNotificationEvent(value = {}) {
   }
 
   return {
+    ...normalizeCurrencyDecision(value),
     event_id: eventId,
     fingerprint,
     source_package: sourcePackage,
@@ -176,10 +241,16 @@ export function normalizeNotificationEvent(value = {}) {
     parse_status: parseStatus,
     direction,
     amount_minor: amountMinor,
-    currency: cleanCurrency(value.currency),
+    ...(currencyRoles ? { currency_roles: currencyRoles } : {}),
+    currency,
+    ...(currency === 'JPY' && value.amount_exponent === 0 ? { amount_exponent: 0 } : {}),
     payment_channel: paymentChannel,
     provider_reference: providerReference,
     lifecycle_identity: lifecycleIdentity,
+    lifecycle_operation: lifecycleOperation, lifecycle_revision: lifecycleRevision,
+    financial_phase: financialPhase, lifecycle_reference: lifecycleReference,
+    reference_namespace: referenceNamespace, currency_evidence: currencyEvidence,
+    identity_review_reason: identityReviewReason || (evidenceCodes.length > 1 ? "currency_evidence_conflict" : currency==='XXX'&&amountMinor>0 ? 'currency_unverified' : ''),
     merchant,
     counterparty,
     confidence,
@@ -190,6 +261,14 @@ export function normalizeNotificationEvent(value = {}) {
 
 export function publicNotificationEvent(row) {
   return {
+    ...(Number(row.currency_review_required) === 1 ? { currency_review_required: true, currency_decision_source: String(row.currency_decision_source) } : {}),
+    lifecycle_operation: String(row.lifecycle_operation || ""), lifecycle_revision: Number(row.lifecycle_revision || 0),
+    lifecycle_review_reason: String(row.lifecycle_review_reason || ""),
+    financial_phase: String(row.financial_phase || ""),
+    lifecycle_reference: String(row.lifecycle_reference || ""),
+    reference_namespace: String(row.reference_namespace || ""),
+    currency_evidence: String(row.currency_evidence || ""),
+    identity_review_reason: String(row.identity_review_reason || ""),
     event_id: String(row.event_id || ""),
     device_id: String(row.device_id || ""),
     source_package: String(row.source_package || ""),
@@ -223,6 +302,7 @@ export function publicNotificationCandidate(row) {
     edited = {};
   }
   return {
+    ...(row.currency_decision_source ? { currency_review_required: Number(row.currency_review_required) === 1, currency_decision_source: String(row.currency_decision_source) } : {}),
     id: String(row.id || ""),
     event_id: String(row.event_id || ""),
     direction: String(row.direction || ""),

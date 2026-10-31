@@ -1,0 +1,32 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Aeris QA synthetic</title>
+<style>body{font:16px sans-serif;margin:12px;color:#18212f}article{padding:14px;border:1px solid #bcc4ce;margin:10px 0}small{display:block}input,select,button{font:inherit;padding:8px}.hidden{display:none!important}strong{font-size:20px}.finance-candidate-editor{background:#eef;padding:10px}#qaLabel{background:#fff0ad;padding:8px}</style>
+<div id="appShell"><p id="qaLabel">Aeris QA · SYNTHETIC ONLY · isolated HTTPS</p>
+<main id="financePage"><section id="financeCandidatesSection"><button id="financeCandidatesRefreshBtn">刷新候选</button><span id="financePendingCount"></span><div id="financeCandidateMessage"></div><div id="financeCandidateList"></div></section>
+<section id="financeRecoverySection"><span id="financeRecoveryCount"></span><div id="financeRecoveryList"></div></section>
+<section id="financeRecordedSection"><h3>QA 流水组件</h3><div id="financeTransactionList"></div></section></main></div>
+<script>window.QA_DIAGNOSTICS=[];addEventListener('error',e=>QA_DIAGNOSTICS.push(String(e.message).slice(0,180)));addEventListener('unhandledrejection',e=>QA_DIAGNOSTICS.push(String(e.reason?.message||e.reason).slice(0,180)));</script>
+<script type="module">
+import {createFinanceController} from '/js/finance/app.js';
+import {createFinanceCandidatesController} from '/js/finance/candidates.js';
+import {mergeLocalNotificationLedger} from '/js/finance/notification-ledger.js';
+const query=new URLSearchParams(location.search),id=query.get('qaCase'),initialOwner=query.get('account');
+const QA=window.QA={owner:initialOwner,id,ready:false,activeRequests:0,result:null};
+const key=()=>`wyjFinance:v1:${QA.owner}`;
+const old={id:'txn:qa3-old',direction:'income',amount_minor:123,currency:'CNY',occurred_at_ms:Date.now(),source_kind:'automatic',merchant:'支付宝',status:'active',revision:1,sync_version:1};
+function seed(pending=[]){localStorage.setItem(key(),JSON.stringify({schema_version:1,account_id:QA.owner,device_id:'web:qa3-synthetic',hydrated:true,notification_identity_hydrated:true,server_version:1,transactions:{[old.id]:old},categories:{},budgets:{},pending}));}
+async function transport(route,body){QA.activeRequests++;try{const res=await fetch(route,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','X-QA-Case':id,'X-QA-Account':QA.owner},cache:'no-store',...(body?{body:JSON.stringify(body)}:{})});const value=await res.json();if(!res.ok)throw Error('QA_HTTP_'+res.status);return value;}finally{QA.activeRequests--;}}
+const input={account:()=>({id:QA.owner}),storage:localStorage,hasEntitlement:code=>code==='finance_access',isSuperAdmin:()=>false,apiGet:r=>transport(r),api:(r,b)=>transport(r,b),appVersion:'qa3-synthetic'};
+QA.stored=()=>JSON.parse(localStorage.getItem(key())||'{}');
+QA.view=()=>({count:document.querySelector('#financePendingCount').textContent,cards:[...document.querySelectorAll('[data-canonical-identity]')].map(x=>({id:x.dataset.canonicalIdentity,text:x.textContent})),ledger:document.querySelector('#financeTransactionList').textContent});
+QA.check=(condition,tag)=>{if(!condition)throw Error('QA_ASSERT_'+tag)};
+QA.launch=(action)=>{QA.result={done:false};(async()=>{try{const metrics=await QA[action]();QA.result={done:true,ok:true,metrics};}catch(e){QA.result={done:true,ok:false,error:String(e.message).slice(0,120)}}})();};
+QA.race=async()=>{await QA.ledger.syncNow();return {newRows:Object.keys(QA.stored().transactions).filter(k=>k.startsWith('txn:qa3-new-')).length,pending:QA.stored().pending.length};};
+QA.conflict=async()=>{await QA.candidates.reload({force:true});const row=document.querySelector('[data-finance-candidate="hint-qa3-event-a"]');QA.check(row.textContent.includes('不一致'),'CONFLICT_VISIBLE');row.querySelector('[data-finance-candidate-confirm]').click();QA.check(!row.querySelector('form').classList.contains('hidden')||!document.querySelector('[data-finance-candidate-editor="hint-qa3-event-a"]').classList.contains('hidden'),'CONFLICT_EDITOR');return {editor:true};};
+QA.switchOwner=async()=>{QA.owner=initialOwner+'-b';QA.candidates.accountUpdated();QA.ledger.resetAccount();await Promise.all([QA.ledger.show(),QA.candidates.reload({force:true})]);return {onlyB:QA.view().cards.every(c=>c.id==='hint:qa3-owner-b'),ledgerOnlyB:Object.keys(QA.stored().transactions).every(id=>id==='txn:qa3-owner-b')};};
+QA.networkFailure=async()=>{QA.ledger.resetAccount();seed([{operation_id:'op:qa3-pending',type:'transaction.upsert',entity_id:old.id,base_revision:1,payload:old}]);const ok=await QA.ledger.syncNow();return {failed:ok===false,preserved:QA.stored().pending[0]?.operation_id==='op:qa3-pending'};};
+QA.networkRetry=async()=>{const ok=await QA.ledger.syncNow();return {ok,pending:QA.stored().pending.length};};
+QA.receipt=async()=>{const rows={};const snap=window.WYJLocalPaymentLedger;QA.check(snap?.transactions?.some(t=>t.id==='txn:qa3-deleted'&&t.sync_state==='synced'),'REAL_NATIVE_RECEIPT');const changed=mergeLocalNotificationLedger(rows,snap,QA.owner);QA.check(!changed&&Object.keys(rows).length===0,'RECEIPT_NO_RESURRECTION');QA.ledger.resetAccount();const deleted={...old,id:'txn:qa3-deleted',status:'deleted',revision:2,sync_version:2};localStorage.setItem(key(),JSON.stringify({schema_version:1,account_id:QA.owner,device_id:'web:qa3-synthetic',hydrated:true,notification_identity_hydrated:true,server_version:2,transactions:{[deleted.id]:deleted},categories:{},budgets:{},pending:[]}));await QA.ledger.syncNow();const active=Object.values(QA.stored().transactions).filter(t=>t.status==='active');QA.check(active.length===0,'DELETED_LEDGER_VISIBLE');return {changed,count:Object.keys(rows).length,activeLedgerRows:active.length};};
+seed();QA.ledger=createFinanceController(input);QA.candidates=createFinanceCandidatesController(input);
+const candidateCases=['T01','T06','T08','T09','T13','T14'];
+(async()=>{await QA.ledger.show();if(candidateCases.includes(id))await QA.candidates.show();else document.querySelector('#financeCandidatesSection').classList.add('hidden');QA.ready=true;})();
+</script>

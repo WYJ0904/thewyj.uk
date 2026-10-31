@@ -1,16 +1,19 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20261027-aeris-p07-ui-r1";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261027-aeris-p07-ui-r1";
-import { mergeLocalNotificationLedger } from "./notification-ledger.js?v=20261027-aeris-p07-ui-r1";
-import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261027-aeris-p07-ui-r1";
-import { formatFinanceMoney } from "./format.js?v=20261027-aeris-p07-ui-r1";
-import { createParkedRows } from "../core/parked-rows.js?v=20261027-aeris-p07-ui-r1";
-export { formatFinanceMoney } from "./format.js?v=20261027-aeris-p07-ui-r1";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?v=20261031-aeris-p0-finance-r1";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261031-aeris-p0-finance-r1";
+import { mergeLocalNotificationLedger } from "./notification-ledger.js?v=20261031-aeris-p0-finance-r1";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261031-aeris-p0-finance-r1";
+import { formatFinanceMoney } from "./format.js?v=20261031-aeris-p0-finance-r1";
+import { createParkedRows } from "../core/parked-rows.js?v=20261031-aeris-p0-finance-r1";
+import { parseMoney, moneyText, referenceValue, SUPPORTED_CURRENCIES, currencyDigits } from './money.js?v=20261031-aeris-p0-finance-r1';
+export { formatFinanceMoney } from "./format.js?v=20261031-aeris-p0-finance-r1";
 const SCHEMA_VERSION = 1;
 const MAX_LOCAL_TRANSACTIONS = 5000;
 const MAX_PENDING_OPERATIONS = 500;
 const CLIENT_PAGE_SIZE = 100;
 const SYNC_BATCH_SIZE = 80;
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
+const AUTHORIZATION_CONTROL_STATES = new Set(["pending_authorization", "authorization_release", "authorization_expired"]);
+const AUTHORIZATION_CONTROL_DIRECTIONS = new Set(["authorization_release", "authorization_expired"]);
 const VALID_ENTITY_KINDS = new Set(["transaction", "category", "budget"]);
 const ENTITY_COLLECTION_KEYS = Object.freeze({
   transaction: "transactions",
@@ -29,6 +32,13 @@ function safeJson(value, fallback) {
 
 function safeText(value, maximum = 500) {
   return String(value || "").trim().slice(0, maximum);
+}
+
+// Explicit legacy control metadata is evidence of a hold, never a posted cash
+// movement. Preserve the original row for audit; do not infer links by amount.
+function isAuthorizationControl(item) {
+  return AUTHORIZATION_CONTROL_STATES.has(safeText(item?.payment_state, 40).toLowerCase())
+    || AUTHORIZATION_CONTROL_DIRECTIONS.has(safeText(item?.direction, 24).toLowerCase());
 }
 
 function randomId(prefix) {
@@ -59,6 +69,7 @@ export function financeLedgerMonths(transactions, status = "active") {
   const counts = new Map();
   for (const item of transactions || []) {
     if (status !== "all" && item.status !== status) continue;
+    if (status !== "all" && isAuthorizationControl(item)) continue;
     const month = monthKey(item.occurred_at_ms);
     if (month) counts.set(month, (counts.get(month) || 0) + 1);
   }
@@ -84,28 +95,36 @@ function monthBounds(value) {
   return { startMs: start.getTime(), endMs: end.getTime(), startDate: `${match[1]}-${match[2]}-01`, endDate };
 }
 
-export function amountTextToMinor(value) {
-  const text = String(value || "").trim();
-  if (!/^(?:0|[1-9]\d{0,10})(?:\.\d{1,2})?$/.test(text)) return 0;
-  const [whole, fraction = ""] = text.split(".");
-  const amount = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
-  return Number.isSafeInteger(amount) && amount > 0 && amount <= 10_000_000_000_000 ? amount : 0;
+export function amountTextToMinor(value, currency = 'CNY') {
+  try { const amount = parseMoney(value, currency); return amount > 0 && amount <= 10_000_000_000_000 ? amount : 0; }
+  catch (_) { return 0; }
 }
 
 function normalizeTransaction(value) {
   if (!value || typeof value !== "object") return null;
   const id = safeText(value.id, 80);
-  const direction = safeText(value.direction, 16).toLowerCase();
+  const direction = safeText(value.direction, 24).toLowerCase();
   const amountMinor = Number(value.amount_minor);
   const occurredAt = Number(value.occurred_at_ms);
-  if (!/^[A-Za-z0-9._:-]{8,80}$/.test(id) || !VALID_DIRECTIONS.has(direction)
+  if (!/^[A-Za-z0-9._:-]{8,80}$/.test(id) || (!VALID_DIRECTIONS.has(direction) && !AUTHORIZATION_CONTROL_DIRECTIONS.has(direction))
       || !Number.isSafeInteger(amountMinor) || amountMinor <= 0
       || !Number.isSafeInteger(occurredAt) || occurredAt <= 0) return null;
   return {
     id,
     direction,
+    ...(value.payment_state ? { payment_state: safeText(value.payment_state, 40).toLowerCase() } : {}),
+    ...(value.provider_reference ? { provider_reference: safeText(value.provider_reference, 160) } : {}),
     amount_minor: amountMinor,
-    currency: /^[A-Z]{3}$/.test(String(value.currency || "CNY")) ? String(value.currency || "CNY") : "CNY",
+    currency: String(value.currency || '').trim().toUpperCase(),
+    currency_review_required: value.currency_review_required === true,
+    currency_decision_source: safeText(value.currency_decision_source, 32),
+    currency_review_acknowledged: value.currency_review_acknowledged === true,
+    ...(value.currency === 'JPY' ? { amount_exponent: value.amount_exponent === 0 ? 0 : null,
+      money_unit_status: value.amount_exponent === 0 ? 'verified' : 'review_required' } : {}),
+    ...(!SUPPORTED_CURRENCIES.includes(value.currency) ? { money_unit_status: 'review_required' } : {}),
+    ...(value.fx_snapshot ? { fx_snapshot: value.fx_snapshot } : {}),
+    ...(value.fx_snapshots ? { fx_snapshots: value.fx_snapshots } : {}),
+    ...(value.currency_role_evidence ? { currency_role_evidence: value.currency_role_evidence } : {}),
     category_id: safeText(value.category_id, 80),
     merchant: safeText(value.merchant, 160),
     counterparty: safeText(value.counterparty, 160),
@@ -153,7 +172,8 @@ function normalizeBudget(value) {
     category_id: safeText(value.category_id, 80),
     period_type: ["daily", "monthly", "yearly", "custom"].includes(value.period_type) ? value.period_type : "monthly",
     amount_minor: amountMinor,
-    currency: /^[A-Z]{3}$/.test(String(value.currency || "CNY")) ? String(value.currency || "CNY") : "CNY",
+    currency: String(value.currency || ''),
+    ...(value.currency === 'JPY' ? { amount_exponent: value.amount_exponent === 0 ? 0 : null, money_unit_status: value.amount_exponent === 0 ? 'verified' : 'review_required' } : {}),
     starts_on: safeText(value.starts_on, 10),
     ends_on: safeText(value.ends_on, 10),
     status: value.status === "deleted" ? "deleted" : "active",
@@ -195,6 +215,9 @@ function normalizeOperation(value) {
     base_revision: Math.max(0, Number(value.base_revision) || 0),
     ...(type.endsWith(".upsert") ? { payload: value.payload && typeof value.payload === "object" ? value.payload : {} } : {}),
     queued_at_ms: Math.max(0, Number(value.queued_at_ms) || Date.now()),
+    ...(value.legacy_authorization_control === true ? { legacy_authorization_control: true } : {}),
+    ...(value.legacy_authorization_original_payload && typeof value.legacy_authorization_original_payload === "object"
+      ? { legacy_authorization_original_payload: value.legacy_authorization_original_payload } : {}),
   };
 }
 
@@ -206,6 +229,12 @@ function emptyStore(accountId, deviceId) {
     server_version: 0,
     hydrated: false,
     notification_identity_hydrated: false,
+    money_version: 0,
+    currency_preferences: { account_currency: 'CNY', display_currency: 'CNY', default_currency: null, revision: 0 },
+    currency_preferences_pending: null,
+    currency_preferences_conflict: null,
+    fx_snapshots: {},
+    currency_error: '',
     transactions: {},
     categories: {},
     budgets: {},
@@ -222,6 +251,11 @@ function normalizeStore(value, accountId, deviceId) {
   result.server_version = Math.max(0, Number(source.server_version) || 0);
   result.hydrated = Boolean(source.hydrated);
   result.notification_identity_hydrated = source.notification_identity_hydrated === true;
+  result.money_version = source.money_version === 2 ? 2 : 0;
+  if (SUPPORTED_CURRENCIES.includes(source.currency_preferences?.display_currency)) result.currency_preferences = source.currency_preferences;
+  result.currency_preferences_pending = source.currency_preferences_pending || null;
+  result.currency_preferences_conflict = source.currency_preferences_conflict || null;
+  if (source.fx_snapshots && typeof source.fx_snapshots === 'object') result.fx_snapshots = source.fx_snapshots;
   for (const [kind, normalizer] of [["transactions", normalizeTransaction], ["categories", normalizeCategory], ["budgets", normalizeBudget]]) {
     const items = source[kind] && typeof source[kind] === "object" ? Object.values(source[kind]) : [];
     for (const item of items.slice(0, kind === "transactions" ? MAX_LOCAL_TRANSACTIONS : 1000)) {
@@ -232,6 +266,18 @@ function normalizeStore(value, accountId, deviceId) {
   result.pending = Array.isArray(source.pending)
     ? source.pending.map(normalizeOperation).filter(Boolean).slice(-MAX_PENDING_OPERATIONS)
     : [];
+  for (const operation of result.pending) {
+    if (operation.type.startsWith("transaction.") && (operation.legacy_authorization_control || isAuthorizationControl(operation.payload) || isAuthorizationControl(result.transactions[operation.entity_id]))) {
+      operation.legacy_authorization_control = true;
+      if (operation.type === "transaction.upsert") {
+        // Preserve the original structured payload. A marker in the queued
+        // copy also makes pre-fix clients fail the existing server allowlist,
+        // rather than dropping our local flag and uploading a hold as spend.
+        operation.legacy_authorization_original_payload ||= operation.payload;
+        operation.payload = { ...operation.payload, payment_state: operation.payload.payment_state || "pending_authorization" };
+      }
+    }
+  }
   result.last_sync_at = safeText(source.last_sync_at, 40);
   result.last_error = safeText(source.last_error, 240);
   return result;
@@ -240,17 +286,33 @@ function normalizeStore(value, accountId, deviceId) {
 export function calculateFinanceSummary(transactions, options = {}) {
   const bounds = options.month ? monthBounds(options.month) : null;
   const active = (Array.isArray(transactions) ? transactions : []).filter((item) => {
-    if (!item || item.status === "deleted") return false;
+    if (!item || item.status === "deleted" || isAuthorizationControl(item)) return false;
     if (!bounds) return true;
     return item.occurred_at_ms >= bounds.startMs && item.occurred_at_ms < bounds.endMs;
   });
   const summary = { income_minor: 0, expense_minor: 0, refund_minor: 0, balance_minor: 0, count: active.length };
+  const currencies = [...new Set(active.map(item => item.currency || 'CNY'))];
+  const quote = options.display_currency || (currencies.length === 1 ? currencies[0] : 'CNY');
+  const unconverted = [], byCurrency = {};
+  const exact = { income_minor: 0n, expense_minor: 0n, refund_minor: 0n };
   for (const item of active) {
-    if (item.direction === "income") summary.income_minor += Number(item.amount_minor || 0);
-    if (item.direction === "expense") summary.expense_minor += Number(item.amount_minor || 0);
-    if (item.direction === "refund") summary.refund_minor += Number(item.amount_minor || 0);
+    const value = referenceValue(item, quote, options);
+    const bucket = byCurrency[item.currency] ||= { income_minor: 0n, expense_minor: 0n, refund_minor: 0n };
+    if (Object.hasOwn(bucket, item.direction + '_minor') && Number.isSafeInteger(item.amount_minor)) bucket[item.direction + '_minor'] += BigInt(item.amount_minor);
+    if (!['same_currency', 'reference'].includes(value.status)) { unconverted.push({ id: item.id, currency: item.currency, reason: value.status }); continue; }
+    if (Object.hasOwn(exact, item.direction + '_minor')) exact[item.direction + '_minor'] += BigInt(value.amount_minor);
   }
-  summary.balance_minor = summary.income_minor + summary.refund_minor - summary.expense_minor;
+  exact.balance_minor = exact.income_minor + exact.refund_minor - exact.expense_minor;
+  for (const [key, value] of Object.entries(exact)) {
+    summary[key] = value <= BigInt(Number.MAX_SAFE_INTEGER) && value >= -BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : null;
+  }
+  const overflow = Object.values(summary).some(value => value === null);
+  for (const bucket of Object.values(byCurrency)) for (const [key, value] of Object.entries(bucket)) bucket[key] = value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : value.toString();
+  if (currencies.length > 1 || unconverted.length || (currencies.length === 1 && quote !== currencies[0])) {
+    Object.assign(summary, { display_currency: quote, by_currency: byCurrency, unconverted,
+      conversion_status: unconverted.length ? unconverted[0].reason : 'reference', reference_only: true });
+  }
+  if (overflow) Object.assign(summary, { has_overflow: true, conversion_status: 'amount_overflow' });
   return summary;
 }
 
@@ -262,6 +324,7 @@ export function filterFinanceTransactions(transactions, filters = {}) {
   const bounds = filters.month ? monthBounds(filters.month) : null;
   return (Array.isArray(transactions) ? transactions : []).filter((item) => {
     if (!item) return false;
+    if (status !== "all" && isAuthorizationControl(item)) return false;
     if (status !== "all" && item.status !== status) return false;
     if (direction && item.direction !== direction) return false;
     if (categoryId && item.category_id !== categoryId) return false;
@@ -290,9 +353,11 @@ export function applyFinanceChange(store, change) {
 
 function transactionPayload(transaction) {
   return {
+    ...(transaction.currency_review_acknowledged ? { currency_review_acknowledged: true } : {}),
     direction: transaction.direction,
     amount_minor: transaction.amount_minor,
     currency: transaction.currency,
+    ...(transaction.currency === 'JPY' ? { amount_exponent: transaction.amount_exponent } : {}),
     category_id: transaction.category_id,
     merchant: transaction.merchant,
     counterparty: transaction.counterparty,
@@ -311,6 +376,7 @@ function budgetPayload(budget) {
     period_type: budget.period_type,
     amount_minor: budget.amount_minor,
     currency: budget.currency,
+    ...(budget.currency === 'JPY' ? { amount_exponent: budget.amount_exponent } : {}),
     starts_on: budget.starts_on,
     ends_on: budget.ends_on,
   };
@@ -333,7 +399,10 @@ export function createFinanceController({
   let store = null;
   let currentAccountId = "";
   let syncPromise = null;
-  let syncAgainRequested = false;
+  let invalidationGeneration = 0;
+  let observedGeneration = 0;
+  let ownerEpoch = 0;
+  let suspended = false;
   let syncController = null;
   let conflictPending = false;
   let undoTransactionId = "";
@@ -362,22 +431,80 @@ export function createFinanceController({
     return value;
   }
 
+  function mergeNativeReferences(snapshot, accountId) {
+    if (!store || snapshot?.account_id !== accountId || !snapshot.fx_snapshots) return false;
+    let changed = false;
+    for (const item of Object.values(store.transactions)) for (const quote of SUPPORTED_CURRENCIES) {
+      const key = `${item.id}:${item.revision || 0}:${quote}`;
+      const reference = snapshot.fx_snapshots[key];
+      if (!reference || store.fx_snapshots[key] || !reference.historical_reference || reference.original_minor !== item.amount_minor || reference.base !== item.currency) continue;
+      if (referenceValue(item, quote, { snapshots: { [key]: reference } }).status !== 'reference') continue;
+      store.fx_snapshots[key] = reference; changed = true;
+    }
+    return changed;
+  }
+
+  function mergeNativeSnapshot(accountId) {
+    const snapshot = globalThis.window?.WYJLocalPaymentLedger;
+    const ledgerChanged = mergeLocalNotificationLedger(store.transactions, snapshot, accountId);
+    const referencesChanged = mergeNativeReferences(snapshot, accountId);
+    if (ledgerChanged || referencesChanged) persist();
+  }
+
   function ensureStore() {
     const nextAccountId = String(account()?.id || "");
     if (!nextAccountId) return null;
     if (store && currentAccountId === nextAccountId) {
-      if (mergeLocalNotificationLedger(store.transactions, globalThis.window?.WYJLocalPaymentLedger, nextAccountId)) persist();
+      mergeNativeSnapshot(nextAccountId);
       return store;
     }
+    if (currentAccountId !== nextAccountId) cancelSync();
     currentAccountId = nextAccountId;
     store = normalizeStore(safeJson(storage.getItem(storageKey(nextAccountId)), {}), nextAccountId, deviceId());
-    if (mergeLocalNotificationLedger(store.transactions, globalThis.window?.WYJLocalPaymentLedger, nextAccountId)) persist();
+    mergeNativeSnapshot(nextAccountId);
     return store;
+  }
+
+  function cancelSync() {
+    ownerEpoch += 1;
+    syncController?.abort();
+    syncController = null;
+    syncPromise = null;
+    // Keep invalidation outstanding. Reentry/online/manual retry owns recovery.
+    invalidationGeneration += 1;
+  }
+
+  function readOwner(controller = new AbortController()) {
+    return { epoch: ownerEpoch, accountId: currentAccountId, store, controller };
+  }
+
+  function ownerCurrent(owner) {
+    return !suspended && owner.epoch === ownerEpoch && owner.store === store &&
+      owner.accountId === String(account()?.id || "") && !owner.controller.signal.aborted;
+  }
+
+  function requireOwner(owner) {
+    if (!ownerCurrent(owner)) throw Object.assign(new Error("财务页面已切换"), { name: "AbortError" });
+  }
+
+  async function readForOwner(path, owner) {
+    requireOwner(owner);
+    const result = await apiGet(path, { controller: owner.controller, financeMoneyVersion: 2 });
+    requireOwner(owner);
+    return result;
   }
 
   function persist() {
     if (!store || !currentAccountId) return;
-    storage.setItem(storageKey(currentAccountId), JSON.stringify(store));
+    try {
+      storage.setItem(storageKey(currentAccountId), JSON.stringify({ ...store, currency_cache_warning: '' }));
+      store.currency_cache_warning = '';
+    } catch (error) {
+      if (!Object.keys(store.fx_snapshots || {}).length) throw error;
+      // Cache pressure must not discard ledger data or durable operations.
+      store.currency_cache_warning = '汇率缓存空间不足；原币账本和待同步操作已保留。历史参考可联网重新读取。';
+      storage.setItem(storageKey(currentAccountId), JSON.stringify({ ...store, fx_snapshots: {} }));
+    }
     onSummaryChanged();
   }
 
@@ -462,11 +589,26 @@ export function createFinanceController({
 
   function renderSummary() {
     if (!store) return;
-    const summary = calculateFinanceSummary(Object.values(store.transactions), { month: currentMonth() });
-    if (element("financeIncomeTotal")) element("financeIncomeTotal").textContent = formatFinanceMoney(summary.income_minor);
-    if (element("financeExpenseTotal")) element("financeExpenseTotal").textContent = formatFinanceMoney(summary.expense_minor);
-    if (element("financeRefundTotal")) element("financeRefundTotal").textContent = formatFinanceMoney(summary.refund_minor);
-    if (element("financeBalanceTotal")) element("financeBalanceTotal").textContent = formatFinanceMoney(summary.balance_minor);
+    const currency = store.currency_preferences.display_currency;
+    const summary = calculateFinanceSummary(Object.values(store.transactions), { month: currentMonth(), display_currency: currency, snapshots: store.fx_snapshots });
+    if (element("financeIncomeTotal")) element("financeIncomeTotal").textContent = formatFinanceMoney(summary.income_minor, currency);
+    if (element("financeExpenseTotal")) element("financeExpenseTotal").textContent = formatFinanceMoney(summary.expense_minor, currency);
+    if (element("financeRefundTotal")) element("financeRefundTotal").textContent = formatFinanceMoney(summary.refund_minor, currency);
+    if (element("financeBalanceTotal")) element("financeBalanceTotal").textContent = formatFinanceMoney(summary.balance_minor, currency);
+    if (element('financeDisplayCurrency')) element('financeDisplayCurrency').value = currency;
+    if (element('financeAccountCurrency')) element('financeAccountCurrency').value = store.currency_preferences.account_currency;
+    if (element('financeDefaultCurrency')) element('financeDefaultCurrency').value = store.currency_preferences.default_currency || '';
+    if (element('financeCurrencyStatus')) element('financeCurrencyStatus').textContent = summary.unconverted?.length
+      ? `${summary.unconverted.length} 笔待换算或单位待核实；上方仅汇总已核实部分。原币金额保留。${store.currency_error || ''}`
+      : `展示币种 ${currency}${summary.reference_only ? ' · 市场参考折算，不是实际成交金额' : ''}${store.currency_error ? ' · ' + store.currency_error : ''}`;
+    if (store.currency_cache_warning && element('financeCurrencyStatus')) element('financeCurrencyStatus').textContent += ' · ' + store.currency_cache_warning;
+    if (store.currency_preferences_conflict && element('financeCurrencyStatus')) element('financeCurrencyStatus').textContent += ' · 其他端已更新币种设置；本机原选择已保留，请核对后重新选择。';
+    if (element('financeCurrencyGroups')) element('financeCurrencyGroups').textContent = summary.unconverted?.length
+      ? Object.entries(summary.by_currency || {}).map(([code, values]) => `${code}：收入 ${formatFinanceMoney(values.income_minor, code)}，支出 ${formatFinanceMoney(values.expense_minor, code)}，退款 ${formatFinanceMoney(values.refund_minor, code)}`).join('；') : '';
+    if (summary.has_overflow) {
+      for (const id of ['financeIncomeTotal', 'financeExpenseTotal', 'financeRefundTotal', 'financeBalanceTotal']) if (element(id)) element(id).textContent = '超出汇总范围';
+      if (element('financeCurrencyStatus')) element('financeCurrencyStatus').textContent = '合计超出可计算范围，请按原币逐笔查看；原记录未修改。';
+    }
     if (element("financeSummaryPeriod")) element("financeSummaryPeriod").textContent = `${currentMonth().replace("-", " 年 ")} 月`;
   }
 
@@ -500,15 +642,26 @@ export function createFinanceController({
     const visible = filtered.slice(0, ledgerLimit);
     reconcileKeyedRows(list, visible, {
       key: item => item.id,
-      signature: item => JSON.stringify([item, categoryName(item.category_id)]),
+      signature: item => JSON.stringify([item, categoryName(item.category_id), store.currency_preferences.display_currency,
+        store.fx_snapshots[`${item.id}:${item.revision || 0}:${store.currency_preferences.display_currency}`]]),
       empty: '<div class="finance-empty"><strong>暂无符合条件的账目</strong><p>可以新增一笔，或调整月份和筛选条件。</p></div>',
       render: (item) => {
       const title = item.merchant || item.counterparty || (item.source_kind === "automatic" ? "未识别商户" : categoryName(item.category_id));
-      const sign = item.direction === "expense" ? "-" : "+";
-      const directionLabel = { income: "收入", expense: "支出", refund: "退款" }[item.direction];
+      const control = isAuthorizationControl(item);
+      const reference = referenceValue(item, store.currency_preferences.display_currency, { snapshots: store.fx_snapshots });
+      const referenceLabel = reference.status === 'reference'
+        ? `参考折算 ${formatFinanceMoney(reference.amount_minor, reference.currency)} · ${reference.snapshot.rate_timestamp || reference.snapshot.date} · ${reference.snapshot.source || '历史快照'}`
+        : reference.status === 'same_currency' ? '' : reference.status === 'currency_unit_review_required' ? '原金额单位待核实，未纳入汇总' : '缺少可用历史汇率 · 保留原币，待换算';
+      const sign = control ? "" : item.direction === "expense" ? "-" : "+";
+      const directionLabel = control ? "预授权控制 · 不计收支" : { income: "收入", expense: "支出", refund: "退款" }[item.direction];
+      const roleLabel = (item.currency_role_evidence || []).slice(0, 3).map(evidence => {
+        const roles = evidence.roles || {};
+        return [['original', '来源原币'], ['settlement', '来源清算'], ['fee', '来源手续费']].filter(([key]) => roles[key])
+          .map(([key, title]) => `${title} ${formatFinanceMoney(roles[key].amount_minor, roles[key].currency)}`).join(' · ');
+      }).join('；');
       return `<article class="finance-transaction${item.status === "deleted" ? " is-deleted" : ""}" data-finance-transaction="${escapeHtml(item.id)}">
-        <div class="finance-transaction-main"><span class="finance-direction is-${escapeHtml(item.direction)}">${directionLabel}</span><div><strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong><small>${escapeHtml(categoryName(item.category_id))} · ${escapeHtml(new Date(item.occurred_at_ms).toLocaleString("zh-CN"))}${item.source_kind === "automatic" ? " · Android 自动识别" : ""}${item.native_notification_pending ? " · 等待同步" : ""}${item.status === "deleted" ? " · 已删除" : ""}</small>${item.note ? `<p title="${escapeHtml(item.note)}">${escapeHtml(item.note)}</p>` : ""}</div></div>
-        <div class="finance-transaction-side"><strong class="is-${escapeHtml(item.direction)}">${sign}${escapeHtml(formatFinanceMoney(item.amount_minor, item.currency))}</strong><div class="finance-row-actions">${item.status === "deleted" ? `<button type="button" data-finance-restore="${escapeHtml(item.id)}">恢复</button>` : `<button type="button" data-finance-edit="${escapeHtml(item.id)}">编辑</button><button class="danger-text" type="button" data-finance-delete="${escapeHtml(item.id)}">删除</button>`}</div></div>
+        <div class="finance-transaction-main"><span class="finance-direction is-${escapeHtml(item.direction)}">${directionLabel}</span><div><strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong><small>${escapeHtml(categoryName(item.category_id))} · ${escapeHtml(new Date(item.occurred_at_ms).toLocaleString("zh-CN"))}${item.source_kind === "automatic" ? " · Android 自动识别" : ""}${item.native_notification_pending ? " · 等待同步" : ""}${item.status === "deleted" ? " · 已删除" : ""}</small>${item.currency_review_required ? `<small>币种待核实 · 按默认 ${escapeHtml(item.currency)} 入账，可编辑更正</small>` : ""}${roleLabel ? `<small>${escapeHtml(roleLabel)} · 来源金额角色，不重复记账</small>` : ''}${item.note ? `<p title="${escapeHtml(item.note)}">${escapeHtml(item.note)}</p>` : ""}</div></div>
+        <div class="finance-transaction-side"><strong class="is-${escapeHtml(item.direction)}">${item.money_unit_status === 'review_required' ? '原币单位待核实' : sign + escapeHtml(formatFinanceMoney(item.amount_minor, item.currency))}</strong>${!control && referenceLabel ? `<small>${escapeHtml(referenceLabel)}</small>` : ''}<div class="finance-row-actions">${item.status === "deleted" ? `<button type="button" data-finance-restore="${escapeHtml(item.id)}">恢复</button>` : `<button type="button" data-finance-edit="${escapeHtml(item.id)}">编辑</button><button class="danger-text" type="button" data-finance-delete="${escapeHtml(item.id)}">删除</button>`}</div></div>
       </article>`;
       },
     });
@@ -520,9 +673,9 @@ export function createFinanceController({
   function categoryExpense(categoryId, budget) {
     const start = budget.starts_on ? new Date(`${budget.starts_on}T00:00:00`).getTime() : 0;
     const end = budget.ends_on ? new Date(`${budget.ends_on}T23:59:59.999`).getTime() : Number.MAX_SAFE_INTEGER;
-    return Object.values(store.transactions).filter((item) => item.status === "active" && item.direction === "expense"
-      && (!categoryId || item.category_id === categoryId) && item.occurred_at_ms >= start && item.occurred_at_ms <= end)
-      .reduce((total, item) => total + item.amount_minor, 0);
+    return calculateFinanceSummary(Object.values(store.transactions).filter((item) => item.status === 'active' && item.direction === 'expense'
+      && (!categoryId || item.category_id === categoryId) && item.occurred_at_ms >= start && item.occurred_at_ms <= end),
+    { display_currency: budget.currency, snapshots: store.fx_snapshots });
   }
 
   function renderBudgets() {
@@ -535,10 +688,13 @@ export function createFinanceController({
       return;
     }
     list.innerHTML = budgets.map((item) => {
-      const spent = categoryExpense(item.category_id, item);
+      if (item.money_unit_status === 'review_required') return '<article class="finance-budget-status">历史预算金额单位待核实；重新确认原币金额后启用。</article>';
+      const calculation = categoryExpense(item.category_id, item);
+      if (calculation.has_overflow) return '<article class="finance-budget-status">预算汇总超出范围，剩余待核实；原币记录保留。</article>';
+      const spent = calculation.expense_minor;
       const remaining = item.amount_minor - spent;
       const percent = Math.min(100, Math.round(spent / item.amount_minor * 100));
-      return `<article class="finance-budget-status${remaining < 0 ? " is-over" : ""}"><div><strong>${escapeHtml(item.category_id ? categoryName(item.category_id) : "月度总预算")}</strong><span>${remaining < 0 ? `超出 ${formatFinanceMoney(-remaining)}` : `剩余 ${formatFinanceMoney(remaining)}`}</span></div><progress class="finance-progress" max="100" value="${percent}" aria-label="已使用 ${percent}%"></progress><small>已用 ${formatFinanceMoney(spent)} / ${formatFinanceMoney(item.amount_minor)}</small></article>`;
+      return `<article class="finance-budget-status${remaining < 0 ? " is-over" : ""}"><div><strong>${escapeHtml(item.category_id ? categoryName(item.category_id) : "月度总预算")}</strong><span>${calculation.unconverted?.length ? '剩余待核实' : remaining < 0 ? `超出 ${formatFinanceMoney(-remaining, item.currency)}` : `剩余 ${formatFinanceMoney(remaining, item.currency)}`}</span></div><progress class="finance-progress" max="100" value="${percent}" aria-label="已使用 ${percent}%"></progress><small>已用 ${formatFinanceMoney(spent, item.currency)} / ${formatFinanceMoney(item.amount_minor, item.currency)}${calculation.unconverted?.length ? ` · ${calculation.unconverted.length} 笔未换算，不含在已用金额内` : calculation.reference_only ? ' · 含历史参考折算' : ''}</small></article>`;
     }).join("");
   }
 
@@ -548,13 +704,17 @@ export function createFinanceController({
     const bounds = monthBounds(currentMonth());
     const values = new Map();
     for (const item of Object.values(store.transactions)) {
-      if (item.status !== "active" || item.direction !== "expense" || (bounds && (item.occurred_at_ms < bounds.startMs || item.occurred_at_ms >= bounds.endMs))) continue;
+      if (item.status !== "active" || item.direction !== "expense" || isAuthorizationControl(item) || (bounds && (item.occurred_at_ms < bounds.startMs || item.occurred_at_ms >= bounds.endMs))) continue;
       const key = item.category_id || "uncategorized";
-      values.set(key, (values.get(key) || 0) + item.amount_minor);
+      const converted = referenceValue(item, store.currency_preferences.display_currency, { snapshots: store.fx_snapshots });
+      const group = ['same_currency', 'reference'].includes(converted.status) ? key : `${key}\u0000${item.currency}`;
+      const previous = values.get(group) || { amount: 0n, currency: converted.currency || item.currency, unconverted: !converted.currency, category: key, unitReview: item.money_unit_status === 'review_required' };
+      previous.amount += BigInt(converted.amount_minor ?? item.amount_minor);
+      values.set(group, previous);
     }
-    const entries = [...values.entries()].sort((a, b) => b[1] - a[1]);
-    const maximum = entries[0]?.[1] || 1;
-    list.innerHTML = entries.length ? entries.slice(0, 8).map(([id, amount]) => `<div class="finance-category-stat"><span>${escapeHtml(id === "uncategorized" ? "未分类" : categoryName(id))}</span><progress max="${maximum}" value="${amount}" aria-label="${escapeHtml(id === "uncategorized" ? "未分类" : categoryName(id))} ${escapeHtml(formatFinanceMoney(amount))}"></progress><strong>${escapeHtml(formatFinanceMoney(amount))}</strong></div>`).join("") : '<p class="finance-empty-inline">本月还没有支出分类数据。</p>';
+    const entries = [...values.values()].map(item => ({ ...item, overflow: item.amount > BigInt(Number.MAX_SAFE_INTEGER), amount: item.amount > BigInt(Number.MAX_SAFE_INTEGER) ? null : Number(item.amount) })).sort((a, b) => a.currency.localeCompare(b.currency) || (b.amount || 0) - (a.amount || 0));
+    const maximum = Math.max(1, ...entries.filter(item => !item.unconverted).map(item => item.amount));
+    list.innerHTML = entries.length ? entries.slice(0, 8).map(item => `<div class="finance-category-stat"><span>${escapeHtml(item.category === 'uncategorized' ? '未分类' : categoryName(item.category))}${item.unconverted ? ' · 原币未换算' : ''}</span>${item.unconverted ? '' : `<progress max="${maximum}" value="${item.amount}"></progress>`}<strong>${item.unitReview ? '金额单位待核实' : item.overflow ? '汇总超出范围' : escapeHtml(formatFinanceMoney(item.amount, item.currency))}</strong></div>`).join('') : '<p class="finance-empty-inline">本月还没有支出分类数据。</p>';
   }
 
   function cancelDeferredRendering() {
@@ -565,8 +725,8 @@ export function createFinanceController({
   }
 
   function scheduleInsights() {
-    const signature = JSON.stringify([currentAccountId, currentMonth(), store.categories, store.budgets,
-      Object.values(store.transactions).map(item => [item.id, item.status, item.direction, item.amount_minor, item.category_id, item.occurred_at_ms])]);
+    const signature = JSON.stringify([currentAccountId, currentMonth(), store.categories, store.budgets, store.currency_preferences, store.fx_snapshots,
+      Object.values(store.transactions).map(item => [item.id, item.status, item.direction, item.amount_minor, item.currency, item.money_unit_status, item.category_id, item.occurred_at_ms, item.payment_state, item.fx_snapshot])]);
     if (signature === insightsSignature) return;
     window.clearTimeout(insightsTimer);
     window.cancelAnimationFrame(insightsFrame);
@@ -651,7 +811,7 @@ export function createFinanceController({
     store.server_version = Math.max(store.server_version, Number(payload?.server_version || payload?.next_since || 0));
   }
 
-  async function fetchAllTransactions(includeDeleted = true) {
+  async function fetchAllTransactions(includeDeleted = true, owner = readOwner()) {
     const result = {};
     let before = "";
     let beforeId = "";
@@ -659,7 +819,7 @@ export function createFinanceController({
       const query = new URLSearchParams({ limit: String(CLIENT_PAGE_SIZE), include_deleted: String(includeDeleted) });
       if (before) query.set("before", before);
       if (beforeId) query.set("before_id", beforeId);
-      const data = await apiGet(`/api/finance/transactions?${query}`);
+      const data = await readForOwner(`/api/finance/transactions?${query}`, owner);
       for (const item of data.transactions || []) {
         const clean = normalizeTransaction(item);
         if (clean) result[clean.id] = clean;
@@ -681,15 +841,18 @@ export function createFinanceController({
     if (!hasPending && (!current || clean.revision >= current.revision)) collection[clean.id] = clean;
   }
 
-  async function hydrate() {
-    const bootstrap = await apiGet("/api/finance/bootstrap");
+  async function hydrate(owner) {
+    const bootstrap = await readForOwner("/api/finance/bootstrap", owner);
+    store.money_version = bootstrap.money_version === 2 ? 2 : 0;
+    if (!store.currency_preferences_pending && SUPPORTED_CURRENCIES.includes(bootstrap.currency_preferences?.display_currency)) store.currency_preferences = bootstrap.currency_preferences;
     for (const category of bootstrap.categories || []) mergeServerEntity("category", category);
     for (const budget of bootstrap.budgets || []) mergeServerEntity("budget", budget);
     // A count mismatch means something never reached this client through the
     // change feed; re-read the server pages instead of trusting the cursor.
-    const localActive = Object.values(store.transactions).filter((item) => item.status === "active").length;
+    const localActive = Object.values(store.transactions).filter((item) => item.status === "active" && !isAuthorizationControl(item)).length;
     if (!store.hydrated || !store.notification_identity_hydrated || Number(bootstrap.transaction_count || 0) > localActive) {
-      const serverTransactions = await fetchAllTransactions(true);
+      const serverTransactions = await fetchAllTransactions(true, owner);
+      requireOwner(owner);
       for (const item of Object.values(serverTransactions)) mergeServerEntity("transaction", item);
       store.hydrated = true;
       store.notification_identity_hydrated = true;
@@ -699,18 +862,18 @@ export function createFinanceController({
     }
   }
 
-  async function pullChanges() {
+  async function pullChanges(owner) {
     let since = store.server_version;
     for (let page = 0; page < 20; page += 1) {
-      const data = await apiGet(`/api/finance/changes?since=${encodeURIComponent(since)}&limit=250`);
+      const data = await readForOwner(`/api/finance/changes?since=${encodeURIComponent(since)}&limit=250`, owner);
       applyChangesPayload(data);
       since = Number(data.next_since || data.server_version || since);
       if (!data.has_more) break;
     }
   }
 
-  async function performSync() {
-    ensureStore();
+  async function performSync(owner) {
+    requireOwner(owner);
     conflictPending = false;
     store.last_error = "";
     renderAll();
@@ -720,11 +883,16 @@ export function createFinanceController({
     // to be published as a raw_event change): when the server reports more
     // active transactions than this client holds, hydrate() re-pages the full
     // transaction list and merges it.
-    await hydrate();
-    await pullChanges();
+    await hydrate(owner);
+    requireOwner(owner);
+    await pullChanges(owner);
+    requireOwner(owner);
     while (store.pending.length) {
-      const batch = store.pending.slice(0, SYNC_BATCH_SIZE);
-      const payloadOperations = batch.map(({ queued_at_ms: _queuedAt, ...operation }) => operation);
+      const batch = store.pending.filter((operation) => !operation.type.startsWith("transaction.") ||
+        !(operation.legacy_authorization_control || isAuthorizationControl(operation.payload) || isAuthorizationControl(store.transactions[operation.entity_id]))).slice(0, SYNC_BATCH_SIZE);
+      if (!batch.length) throw Object.assign(new Error("旧预授权操作已隔离，原记录和待同步操作已保留，需核实后恢复。"), { code: "legacy_authorization_requires_review" });
+      const payloadOperations = batch.map(({ queued_at_ms: _queuedAt, legacy_authorization_control: _legacyControl,
+        legacy_authorization_original_payload: _legacyOriginal, ...operation }) => operation);
       const data = await api("/api/finance/sync", {
         schema_version: SCHEMA_VERSION,
         device_id: store.device_id,
@@ -733,14 +901,52 @@ export function createFinanceController({
         client_version: appVersion,
         since_version: store.server_version,
         operations: payloadOperations,
-      }, { controller: syncController, timeoutMs: 30000 });
+      }, { controller: owner.controller, timeoutMs: 30000 });
+      requireOwner(owner);
       const completed = new Set(batch.map((item) => item.operation_id));
       store.pending = store.pending.filter((item) => !completed.has(item.operation_id));
       for (const result of data.operation_results || []) applyOperationResult(result);
       applyChangesPayload(data);
       persist();
     }
-    await pullChanges();
+    await pullChanges(owner);
+    requireOwner(owner);
+    if (store.money_version === 2) {
+      try {
+        if (store.currency_preferences_pending) {
+          try {
+            const preferences = await api('/api/finance/currencies', store.currency_preferences_pending, { controller: owner.controller });
+            requireOwner(owner);
+            store.currency_preferences = preferences.preferences;
+            store.currency_preferences_pending = null;
+          } catch (error) {
+            requireOwner(owner);
+            if (error.code !== 'currency_preferences_conflict') throw error;
+            const remote = await readForOwner('/api/finance/currencies', owner);
+            store.currency_preferences_conflict = { local: store.currency_preferences_pending, remote: remote.preferences };
+            store.currency_preferences = remote.preferences;
+            store.currency_preferences_pending = null;
+          }
+        }
+        let referenceBatches = 0;
+        const quotes = [...new Set([store.currency_preferences.display_currency, ...activeValues('budgets').map(item => item.currency)])];
+        for (const quote of quotes) {
+          if (!SUPPORTED_CURRENCIES.includes(quote)) continue;
+          const ids = Object.values(store.transactions).filter(item => item.status === 'active' && !isAuthorizationControl(item) && item.currency !== quote
+            && item.money_unit_status !== 'review_required' && !store.fx_snapshots[`${item.id}:${item.revision || 0}:${quote}`]).map(item => item.id);
+          for (let offset = 0; offset < ids.length && referenceBatches < 2; offset += 25) {
+            referenceBatches++;
+            const result = await readForOwner(`/api/finance/references?ids=${encodeURIComponent(ids.slice(offset, offset + 25).join(','))}&display_currency=${quote}`, owner);
+            requireOwner(owner);
+            Object.assign(store.fx_snapshots, result.references || {});
+            store.currency_error = result.unavailable?.length ? '部分参考汇率暂不可用，原币记录不受影响。' : '';
+          }
+        }
+      } catch (error) {
+        requireOwner(owner);
+        store.currency_error = error.message || '参考折算暂不可用，原币记录保留。';
+      }
+    }
     store.last_sync_at = timestamp();
     store.last_error = "";
     persist();
@@ -748,15 +954,26 @@ export function createFinanceController({
 
   async function syncNow() {
     ensureStore();
-    if (!hasAccess()) return false;
-    if (syncPromise) {
-      syncAgainRequested = true;
-      return syncPromise;
-    }
+    if (!hasAccess() || suspended) return false;
+    invalidationGeneration += 1;
+    if (syncPromise) return syncPromise;
     // navigator.onLine is only a hint. A real request is the authoritative
     // connectivity check, especially immediately after a network handoff.
     syncController = new AbortController();
-    syncPromise = performSync().catch((error) => {
+    const owner = readOwner(syncController);
+    // One drain owns every joined caller. Signals during a pull advance the
+    // target; finite bursts coalesce into a fresh observation, even pending=0.
+    // A failure exits without acknowledging its target (no retry spin).
+    const run = Promise.resolve().then(async () => {
+      do {
+        const target = invalidationGeneration;
+        await performSync(owner);
+        requireOwner(owner);
+        observedGeneration = target;
+      } while (observedGeneration < invalidationGeneration);
+      return true;
+    }).catch((error) => {
+      if (!ownerCurrent(owner)) return false;
       if (error?.name === "AbortError") return false;
       if (error?.code === "finance_membership_required") {
         serverDeniedAccess = true;
@@ -776,15 +993,12 @@ export function createFinanceController({
       persist();
       return false;
     }).finally(() => {
-      const shouldSyncAgain = syncAgainRequested
-        && hasAccess()
-        && store?.pending?.length > 0;
-      syncAgainRequested = false;
+      if (syncPromise !== run) return;
       syncPromise = null;
       syncController = null;
       renderAll();
-      if (shouldSyncAgain) queueMicrotask(() => syncNow());
     });
+    syncPromise = run;
     renderAll();
     return syncPromise;
   }
@@ -797,27 +1011,31 @@ export function createFinanceController({
    */
   async function verifyTransaction(transactionId) {
     ensureStore();
+    const owner = readOwner();
     await syncNow();
+    if (!ownerCurrent(owner)) return false;
     if (!transactionId) return true;
     if (store.transactions[transactionId]) {
       renderAll();
       return true;
     }
     try {
-      const remote = await fetchAllTransactions(true);
+      const remote = await fetchAllTransactions(true, owner);
+      requireOwner(owner);
       for (const item of Object.values(remote)) mergeServerEntity("transaction", item);
       persist();
       renderAll();
     } catch (_) {
       // Fall through: the caller reports the honest result.
     }
-    return Boolean(store.transactions[transactionId]);
+    return ownerCurrent(owner) && Boolean(store.transactions[transactionId]);
   }
 
   async function resolveConflict() {
     ensureStore();
-    const remoteTransactions = await fetchAllTransactions(true);
-    const bootstrap = await apiGet("/api/finance/bootstrap");
+    const owner = readOwner();
+    const remoteTransactions = await fetchAllTransactions(true, owner);
+    const bootstrap = await readForOwner("/api/finance/bootstrap", owner);
     const remote = {
       transaction: remoteTransactions,
       category: Object.fromEntries((bootstrap.categories || []).map((item) => [item.id, item])),
@@ -879,7 +1097,9 @@ export function createFinanceController({
     if (item?.native_notification_pending) { setMessage("已记账，正在等待云端同步；同步完成后可编辑。", "info"); return; }
     element("financeTransactionId").value = item?.id || "";
     element("financeTransactionDirection").value = item?.direction || "expense";
-    element("financeTransactionAmount").value = item ? (item.amount_minor / 100).toFixed(2) : "";
+    const currency = item?.currency || store.currency_preferences.default_currency || store.currency_preferences.account_currency;
+    if (element('financeTransactionCurrency')) element('financeTransactionCurrency').value = currency;
+    element("financeTransactionAmount").value = item && item.money_unit_status !== 'review_required' ? moneyText(item.amount_minor, currency) : '';
     element("financeTransactionCategory").value = item?.category_id || "";
     element("financeTransactionMerchant").value = item?.merchant || "";
     element("financeTransactionCounterparty").value = item?.counterparty || "";
@@ -887,7 +1107,7 @@ export function createFinanceController({
     const date = item ? new Date(item.occurred_at_ms) : new Date();
     const offset = date.getTimezoneOffset() * 60000;
     element("financeTransactionTime").value = new Date(date.getTime() - offset).toISOString().slice(0, 16);
-    element("financeTransactionModalTitle").textContent = item ? "编辑账目" : "新增账目";
+    element("financeTransactionModalTitle").textContent = item?.currency_review_required ? "编辑账目 · 请核对默认币种" : item ? "编辑账目" : "新增账目";
     setMessage();
     openLayer("financeTransactionModal");
   }
@@ -895,9 +1115,11 @@ export function createFinanceController({
   function submitTransaction(event) {
     event.preventDefault();
     ensureStore();
-    const amountMinor = amountTextToMinor(element("financeTransactionAmount").value);
+    const currency = element('financeTransactionCurrency')?.value;
+    if (!SUPPORTED_CURRENCIES.includes(currency)) return invalidField(element('financeTransactionCurrency'), '请选择原币币种');
+    const amountMinor = amountTextToMinor(element("financeTransactionAmount").value, currency);
     const occurredAt = new Date(element("financeTransactionTime").value).getTime();
-    if (!amountMinor) return invalidField(element("financeTransactionAmount"), "请输入大于 0 且最多两位小数的金额");
+    if (!amountMinor) return invalidField(element("financeTransactionAmount"), `请输入大于 0 且最多 ${currencyDigits(currency)} 位小数的 ${currency} 金额`);
     if (!Number.isSafeInteger(occurredAt) || occurredAt <= 0) return invalidField(element("financeTransactionTime"), "请选择有效的交易时间");
     const id = element("financeTransactionId").value || randomId("txn");
     const current = store.transactions[id];
@@ -905,13 +1127,17 @@ export function createFinanceController({
       id,
       direction: element("financeTransactionDirection").value,
       amount_minor: amountMinor,
-      currency: "CNY",
+      currency,
+      ...(currency === 'JPY' ? { amount_exponent: 0 } : {}),
       category_id: element("financeTransactionCategory").value,
       merchant: element("financeTransactionMerchant").value,
       counterparty: element("financeTransactionCounterparty").value,
       note: element("financeTransactionNote").value,
       occurred_at_ms: occurredAt,
       source_kind: current?.source_kind || "manual",
+      currency_review_required: current?.currency_review_required ? false : current?.currency_review_required,
+      currency_decision_source: current?.currency_review_required ? 'user_confirmed' : current?.currency_decision_source,
+      currency_review_acknowledged: current?.currency_review_required === true,
       reconciliation_state: current?.reconciliation_state || "confirmed",
       status: "active",
       revision: current?.revision || 0,
@@ -1017,7 +1243,7 @@ export function createFinanceController({
     const list = element("financeBudgetManagerList");
     if (!list) return;
     const budgets = activeValues("budgets");
-    list.innerHTML = budgets.length ? budgets.map((item) => `<div class="finance-manager-row"><span><strong>${escapeHtml(item.category_id ? categoryName(item.category_id) : "月度总预算")}</strong><small>${escapeHtml(item.starts_on)} 至 ${escapeHtml(item.ends_on)} · ${escapeHtml(formatFinanceMoney(item.amount_minor))}</small></span><span><button type="button" data-finance-budget-edit="${escapeHtml(item.id)}">编辑</button><button class="danger-text" type="button" data-finance-budget-delete="${escapeHtml(item.id)}">删除</button></span></div>`).join("") : '<p class="finance-empty-inline">还没有预算。</p>';
+    list.innerHTML = budgets.length ? budgets.map((item) => `<div class="finance-manager-row"><span><strong>${escapeHtml(item.category_id ? categoryName(item.category_id) : "月度总预算")}</strong><small>${escapeHtml(item.starts_on)} 至 ${escapeHtml(item.ends_on)} · ${item.money_unit_status === 'review_required' ? '原币单位待核实' : escapeHtml(formatFinanceMoney(item.amount_minor, item.currency))}</small></span><span><button type="button" data-finance-budget-edit="${escapeHtml(item.id)}">编辑</button><button class="danger-text" type="button" data-finance-budget-delete="${escapeHtml(item.id)}">删除</button></span></div>`).join("") : '<p class="finance-empty-inline">还没有预算。</p>';
   }
 
   function openBudgetManager() {
@@ -1025,6 +1251,7 @@ export function createFinanceController({
     element("financeBudgetAmount").value = "";
     element("financeBudgetMonth").value = monthKey();
     element("financeBudgetCategory").value = "";
+    if (element('financeBudgetCurrency')) element('financeBudgetCurrency').value = store.currency_preferences.display_currency;
     renderBudgetManager();
     openLayer("financeBudgetModal");
   }
@@ -1033,7 +1260,8 @@ export function createFinanceController({
     const item = store.budgets[id];
     if (!item) return;
     element("financeBudgetId").value = item.id;
-    element("financeBudgetAmount").value = (item.amount_minor / 100).toFixed(2);
+    if (element('financeBudgetCurrency')) element('financeBudgetCurrency').value = item.currency;
+    element("financeBudgetAmount").value = item.money_unit_status === 'review_required' ? '' : moneyText(item.amount_minor, item.currency);
     element("financeBudgetMonth").value = item.starts_on?.slice(0, 7) || monthKey();
     element("financeBudgetCategory").value = item.category_id;
     element("financeBudgetAmount").focus();
@@ -1042,7 +1270,9 @@ export function createFinanceController({
   function submitBudget(event) {
     event.preventDefault();
     const bounds = monthBounds(element("financeBudgetMonth").value);
-    const amountMinor = amountTextToMinor(element("financeBudgetAmount").value);
+    const currency = element('financeBudgetCurrency')?.value;
+    if (!SUPPORTED_CURRENCIES.includes(currency)) return invalidField(element('financeBudgetCurrency'), '请选择预算币种');
+    const amountMinor = amountTextToMinor(element("financeBudgetAmount").value, currency);
     if (!bounds) return invalidField(element("financeBudgetMonth"), "请选择有效月份");
     if (!amountMinor) return invalidField(element("financeBudgetAmount"), "请输入大于 0 且最多两位小数的预算金额");
     const categoryId = element("financeBudgetCategory").value;
@@ -1055,7 +1285,8 @@ export function createFinanceController({
       category_id: categoryId,
       period_type: "monthly",
       amount_minor: amountMinor,
-      currency: "CNY",
+      currency,
+      ...(currency === 'JPY' ? { amount_exponent: 0 } : {}),
       starts_on: bounds.startDate,
       ends_on: bounds.endDate,
       status: "active",
@@ -1114,6 +1345,15 @@ export function createFinanceController({
     element("financeTransactionForm")?.addEventListener("submit", submitTransaction);
     element("financeCategoryForm")?.addEventListener("submit", submitCategory);
     element("financeBudgetForm")?.addEventListener("submit", submitBudget);
+    for (const [id, field] of [['financeDisplayCurrency', 'display_currency'], ['financeAccountCurrency', 'account_currency'], ['financeDefaultCurrency', 'default_currency']]) element(id)?.addEventListener('change', event => {
+      ensureStore();
+      const currency = event.target.value;
+      if (!SUPPORTED_CURRENCIES.includes(currency) && !(field === 'default_currency' && currency === '')) return;
+      store.currency_preferences_conflict = null;
+      store.currency_preferences = { ...store.currency_preferences, [field]: currency || null };
+      store.currency_preferences_pending = { ...store.currency_preferences };
+      persist(); renderAll(); void syncNow();
+    });
     element("financeMonthFilter")?.addEventListener("change", () => { ledgerAllMonths = false; renderAll(); });
     element("financeHistoryMonthSelect")?.addEventListener("change", (event) => {
       if (!/^\d{4}-\d{2}$/.test(event.target.value)) return;
@@ -1139,6 +1379,7 @@ export function createFinanceController({
   }
 
   async function show() {
+    suspended = false;
     ledgerRows.resume();
     initialize();
     ensureStore();
@@ -1156,6 +1397,8 @@ export function createFinanceController({
   }
 
   function hide() {
+    suspended = true;
+    cancelSync();
     ledgerRows.park();
     cancelDeferredRendering();
     for (const id of ["financeTransactionModal", "financeCategoryModal", "financeBudgetModal"]) closeLayer(id);
@@ -1174,9 +1417,7 @@ export function createFinanceController({
     ledgerFilter = "";
     ledgerLimit = CLIENT_PAGE_SIZE;
     ledgerAllMonths = false;
-    syncController?.abort();
-    syncPromise = null;
-    syncAgainRequested = false;
+    cancelSync();
     store = null;
     currentAccountId = "";
     conflictPending = false;
@@ -1193,7 +1434,7 @@ export function createFinanceController({
     const value = account();
     if (!value?.id) return { balance_minor: 0, pending: 0, available: false };
     ensureStore();
-    const summary = calculateFinanceSummary(Object.values(store.transactions), { month: monthKey() });
+    const summary = calculateFinanceSummary(Object.values(store.transactions), { month: monthKey(), display_currency: store.currency_preferences.display_currency, snapshots: store.fx_snapshots });
     return { ...summary, pending: store.pending.length, available: hasAccess(), last_sync_at: store.last_sync_at };
   }
 

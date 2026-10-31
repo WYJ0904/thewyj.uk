@@ -1,4 +1,7 @@
 import { sha256Hex } from "./cloudflare-foundation.mjs";
+import { unitStamp, hasMoneyUnits, currencyDecisionStamp } from './finance-money-units.mjs';
+import { currencyPreferences } from './finance-fx.mjs';
+import { currencyDigits } from '../../js/finance/money.js';
 import {
   FINANCE_ENTITLEMENT,
   MAX_CHANGE_PAGE,
@@ -9,6 +12,7 @@ import {
   cleanDirection,
   cleanId,
   cleanText,
+  financeReferenceScope,
   isoNow,
   nonNegativeInteger,
   normalizeManualTransaction,
@@ -132,7 +136,12 @@ export async function ensureTask16Schema(db) {
   if (!db?.prepare) return false;
   try {
     const row = await first(db, "SELECT value FROM task16_metadata WHERE key = ?1", ["schema_version"]);
-    return String(row?.value || "") === TASK16_SCHEMA_VERSION;
+    const version=String(row?.value||'');
+    if(version==='3'||version==='4'||version==='5')return true;
+    // Older standalone schemas remain usable before reconciliation exists.
+    if(version!==TASK16_SCHEMA_VERSION)return false;
+    const upgraded=await first(db,"SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='task21_payment_effective_events'");
+    return Number(upgraded?.n||0)===0;
   } catch (_) {
     return false;
   }
@@ -303,6 +312,7 @@ async function upsertTransaction(db, account, deviceId, operation, digest, obser
   const baseRevision = nonNegativeInteger(operation.base_revision || 0, "基础版本", 1_000_000_000);
   const existing = await first(db, "SELECT * FROM task16_finance_transactions WHERE id = ?1", [id]);
   if (existing && existing.user_id !== account.id) throw new Task16Error("账目不存在", 404, "transaction_not_found");
+  if (existing?.system_superseded_by) throw new Task16Error("此历史账目已有明确的有效归属", 409, "transaction_superseded");
   if (!existing && baseRevision !== 0) throw new Task16Error("账目版本冲突", 409, "transaction_conflict");
   if (existing && Number(existing.revision) !== baseRevision) {
     throw new Task16Error("账目已在另一设备更新", 409, "transaction_conflict", false, {
@@ -310,10 +320,21 @@ async function upsertTransaction(db, account, deviceId, operation, digest, obser
     });
   }
   const normalized = normalizeManualTransaction(operation.payload);
+  const unitStatements = await unitStamp(db, id, normalized.currency, normalized.amount_exponent);
   await requireOwnedCategory(db, account.id, normalized.category_id);
   const revision = existing ? baseRevision + 1 : 1;
+  const acknowledgeCurrency = operation.payload.currency_review_acknowledged === true && Number(existing?.currency_review_required) === 1;
+  const linkedReviewEvents = `SELECT raw.source_event_id FROM task16_finance_transaction_events link
+    JOIN task16_finance_raw_events raw ON raw.id=link.raw_event_id
+    WHERE link.transaction_id=?1 AND link.relation_status='active' AND raw.user_id=?2 AND raw.source_type='notification'`;
+  const reviewStatements = acknowledgeCurrency ? [
+    db.prepare("UPDATE task16_finance_transactions SET currency_review_required=0,currency_decision_source='user_confirmed' WHERE id=?1 AND user_id=?2").bind(id,account.id),
+    db.prepare(`UPDATE task21_notification_events SET currency_review_required=0,updated_at=?3 WHERE user_id=?2 AND event_id IN (${linkedReviewEvents})`).bind(id,account.id,isoNow()),
+    db.prepare(`UPDATE task21_notification_pending_hints SET currency_review_required=0,updated_at=?3 WHERE user_id=?2 AND source_event_id IN (${linkedReviewEvents})`).bind(id,account.id,isoNow()),
+  ] : [];
   const planned = existing ? {
     ...existing, ...normalized, status: "active", revision, updated_at: isoNow(), deleted_at: "",
+    ...(acknowledgeCurrency ? { currency_review_required: 0, currency_decision_source: 'user_confirmed' } : {}),
   } : transactionRowFor(account, deviceId, id, normalized);
   return await commitMutation(db, account, deviceId, operation, digest, (version, now) => [
     existing
@@ -328,6 +349,8 @@ async function upsertTransaction(db, account, deviceId, operation, digest, obser
           revision, version, now, account.id, baseRevision,
         )
       : transactionInsertStatement(db, planned, version, now),
+    ...unitStatements,
+    ...reviewStatements,
     auditStatement(db, account, deviceId, existing ? "transaction_edit" : "transaction_create", "transaction", id,
       existing ? publicTransaction(existing) : {}, { ...publicTransaction(planned), sync_version: version }, now),
   ], {
@@ -348,6 +371,7 @@ async function changeTransactionStatus(db, account, deviceId, operation, digest,
   const existing = await first(db, `SELECT * FROM task16_finance_transactions
     WHERE id = ?1 AND user_id = ?2`, [id, account.id]);
   if (!existing) throw new Task16Error("账目不存在", 404, "transaction_not_found");
+  if (existing.system_superseded_by) throw new Task16Error("此历史账目已有明确的有效归属", 409, "transaction_superseded");
   if (Number(existing.revision) !== baseRevision) throw new Task16Error("账目已在另一设备更新", 409, "transaction_conflict");
   if (existing.status === targetStatus) {
     return await recordNoopOperation(db, account, deviceId, operation, digest, {
@@ -415,6 +439,19 @@ async function candidateEvents(db, transactionId) {
 
 async function selectReconciliationCandidate(db, account, event) {
   if (event.classification !== "accepted") return { candidate: null, score: 0, evidence: [] };
+  if(event.provider_reference) {
+    const rows=await all(db,`SELECT t.*,r.source_provider AS proof_provider,r.metadata_json AS proof_metadata,
+      r.amount_minor AS proof_amount,r.currency AS proof_currency,r.direction AS proof_direction
+      FROM task16_finance_raw_events r JOIN task16_finance_transaction_events l ON l.raw_event_id=r.id AND l.relation_status='active'
+      JOIN task16_finance_transactions t ON t.id=l.transaction_id AND t.user_id=r.user_id
+      WHERE r.user_id=?1 AND r.provider_reference=?2 AND r.direction=?3 LIMIT 100`,[account.id,event.provider_reference,event.direction]);
+    if(rows.length>=100) return {candidate:null,score:0,evidence:['reference_scan_incomplete'],reviewRequired:true};
+    const sameScope=rows.filter(r=>financeReferenceScope({source_provider:r.proof_provider,metadata_json:r.proof_metadata})===financeReferenceScope(event));
+    const compatible=sameScope.filter(r=>Number(r.proof_amount)===event.amount_minor && r.proof_currency===event.currency);
+    const ids=new Set(compatible.map(r=>r.id));
+    if(ids.size>1 || compatible.length!==sameScope.length) return {candidate:null,score:0,evidence:['reference_identity_ambiguous'],reviewRequired:true};
+    if(ids.size===1) return {candidate:compatible[0],score:1,evidence:['provider_reference','reference_scope'],automatic:true};
+  }
   const candidates = await all(db, `SELECT * FROM task16_finance_transactions
     WHERE user_id = ?1 AND status = 'active' AND direction = ?2 AND currency = ?3 AND amount_minor = ?4
       AND occurred_at_ms BETWEEN ?5 AND ?6
@@ -433,7 +470,28 @@ async function selectReconciliationCandidate(db, account, event) {
 
 async function ingestRawEvent(db, account, deviceId, operation, digest, observedServerVersion) {
   requireAllowedFields(operation, new Set(["operation_id", "type", "payload"]));
-  const event = normalizeRawEvent(operation.payload);
+  const payload=operation.payload||{};
+  let defaultCurrency=null;
+  if(!payload.currency && await hasMoneyUnits(db)) {
+    defaultCurrency=(await currencyPreferences(db,account.id)).default_currency;
+    if(typeof payload.source_event_id==='string' && typeof payload.source_provider==='string' && typeof payload.source_type==='string') {
+      const previous=await first(db,'SELECT currency,metadata_json FROM task16_finance_raw_events WHERE user_id=?1 AND source_type=?2 AND source_provider=?3 AND source_event_id=?4 LIMIT 1',
+        [account.id,payload.source_type,payload.source_provider,payload.source_event_id]);
+      if(previous){let metadata;try{metadata=JSON.parse(previous.metadata_json)}catch{metadata={}}
+        if(metadata.currency_review_required===true&&metadata.currency_decision_source==='account_default')defaultCurrency=previous.currency;
+      }
+    }
+  }
+  const event = normalizeRawEvent(payload,{currencyPolicyVersion:2,defaultCurrency});
+  const reconciliationReady=await first(db,"SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='task21_payment_effective_events'");
+  if(Number(reconciliationReady?.n||0)>0) {
+    const scope=financeReferenceScope(event);
+    const unknownBankScope=new Set(['bank','bank_card','bank_sms','sms','notification','other','']).has(scope);
+    const corrected=await first(db,`SELECT event_id FROM task21_payment_effective_events WHERE user_id=?1 AND
+      (event_id=?2 OR (?3!='' AND (reference_namespace=?4 OR ?5=1) AND provider_reference=?3)) LIMIT 1`,
+      [account.id,event.source_event_id,event.provider_reference,scope,unknownBankScope?1:0]);
+    if(corrected)throw new Task16Error('更正后的交易须使用权威关联合同，原请求保留待核实',409,'reconciliation_requires_authority');
+  }
   const duplicate = await findRawDuplicate(db, account, deviceId, event);
   if (duplicate) {
     return await rawDuplicateResult(db, account, deviceId, operation, digest, event, duplicate);
@@ -442,6 +500,7 @@ async function ingestRawEvent(db, account, deviceId, operation, digest, observed
   const rawId = `raw:${crypto.randomUUID()}`;
   const textFingerprint = event.text ? await sha256Hex(event.text) : "";
   const candidate = await selectReconciliationCandidate(db, account, event);
+  if(candidate.reviewRequired) {event.classification='pending';event.classification_reason='reference_identity_ambiguous';}
   const shouldLink = Boolean(candidate.candidate && candidate.automatic);
   const transactionId = shouldLink ? candidate.candidate.id
     : event.classification === "accepted" ? `txn:${crypto.randomUUID()}` : "";
@@ -450,6 +509,7 @@ async function ingestRawEvent(db, account, deviceId, operation, digest, observed
       direction: event.direction,
       amount_minor: event.amount_minor,
       currency: event.currency,
+      ...(event.amount_exponent!==undefined?{amount_exponent:event.amount_exponent}:{}),
       category_id: "",
       merchant: event.merchant,
       counterparty: event.counterparty,
@@ -457,6 +517,11 @@ async function ingestRawEvent(db, account, deviceId, operation, digest, observed
       occurred_at_ms: event.occurred_at_ms,
     }, "automatic") : null;
   if (transaction && !shouldLink && candidate.score >= 0.75) transaction.reconciliation_state = "review";
+  if(transaction && !shouldLink && event.currency_review_required){transaction.currency_review_required=1;transaction.currency_decision_source='account_default';}
+  const monetaryStamps=transaction&&!shouldLink ? [
+    ...await unitStamp(db,transaction.id,event.currency,event.amount_exponent),
+    ...await currencyDecisionStamp(db,account.id,transaction.id,event),
+  ]:[];
   const nextRevision = shouldLink ? Number(transaction.revision || 1) + 1 : transaction ? 1 : 0;
 
   try {
@@ -482,6 +547,7 @@ async function ingestRawEvent(db, account, deviceId, operation, digest, observed
           .bind(transaction.id, nextRevision, version, now, account.id, Number(transaction.revision)));
       } else {
         statements.push(transactionInsertStatement(db, transaction, version, now));
+        statements.push(...monetaryStamps);
       }
       statements.push(db.prepare(`INSERT INTO task16_finance_transaction_events (
         transaction_id, raw_event_id, relation_status, confidence_milli, evidence_json,
@@ -545,7 +611,11 @@ function validCalendarDate(value) {
 }
 
 function normalizeBudget(value) {
-  requireAllowedFields(value, new Set(["category_id", "period_type", "amount_minor", "currency", "starts_on", "ends_on"]));
+  requireAllowedFields(value, new Set(["category_id", "period_type", "amount_minor", "currency", "starts_on", "ends_on", "amount_exponent"]));
+  const currency = cleanCurrency(value.currency);
+  try { currencyDigits(currency); }
+  catch (_) { throw new Task16Error('币种不受支持', 400, 'currency_unsupported'); }
+  if ((value.amount_exponent !== undefined && value.amount_exponent !== currencyDigits(currency)) || (currency === 'JPY' && value.amount_exponent !== 0)) throw new Task16Error('预算金额单位需要确认', 409, 'currency_unit_capability_required');
   const period = String(value.period_type || "").trim().toLowerCase();
   if (!["daily", "monthly", "yearly", "custom"].includes(period)) throw new Task16Error("预算周期无效", 400, "budget_period_invalid");
   const startsOn = cleanText(value.starts_on, 10, "预算开始日期");
@@ -557,7 +627,7 @@ function normalizeBudget(value) {
     category_id: value.category_id ? cleanId(value.category_id, "分类标识") : "",
     period_type: period,
     amount_minor: positiveInteger(value.amount_minor, "预算金额", 10000000000000),
-    currency: cleanCurrency(value.currency), starts_on: startsOn, ends_on: endsOn,
+    currency, ...(currency === 'JPY' ? { amount_exponent: 0 } : {}), starts_on: startsOn, ends_on: endsOn,
   };
 }
 
@@ -573,6 +643,7 @@ async function mutateSimpleEntity(db, account, deviceId, operation, digest, kind
   const removing = operation.type.endsWith(".delete");
   if (removing && !existing) throw new Task16Error("记录不存在", 404, "finance_record_not_found");
   const normalized = removing ? null : kind === "category" ? normalizeCategory(operation.payload) : normalizeBudget(operation.payload);
+  const unitStatements = kind === 'budget' && normalized ? await unitStamp(db, id, normalized.currency, normalized.amount_exponent, 'budget') : [];
   if (kind === "budget" && normalized) await requireOwnedCategory(db, account.id, normalized.category_id);
   const revision = existing ? baseRevision + 1 : 1;
   const status = removing ? "deleted" : "active";
@@ -606,7 +677,7 @@ async function mutateSimpleEntity(db, account, deviceId, operation, digest, kind
         .bind(id, account.id, planned.category_id, planned.period_type, planned.amount_minor,
           planned.currency, planned.starts_on, planned.ends_on, version, now);
     }
-    return [statement, auditStatement(db, account, deviceId, `${kind}_${removing ? "delete" : "upsert"}`, kind, id, existing || {}, planned, now)];
+    return [statement, ...unitStatements, auditStatement(db, account, deviceId, `${kind}_${removing ? "delete" : "upsert"}`, kind, id, existing || {}, planned, now)];
   }, {
     entityType: kind, entityId: id, operation: removing ? "delete" : "upsert", revision,
     result: (version) => ({ [kind]: { ...planned, sync_version: version } }),
@@ -641,12 +712,13 @@ export async function financeBootstrap(db, account) {
     first(db, "SELECT COUNT(*) AS count FROM task16_finance_raw_events WHERE user_id = ?1", [account.id]),
     all(db, `SELECT id, name, applies_to, color, status, revision, sync_version, updated_at, deleted_at
       FROM task16_finance_categories WHERE user_id = ?1 ORDER BY status, name, id`, [account.id]),
-    all(db, `SELECT id, category_id, period_type, amount_minor, currency, starts_on, ends_on,
+    all(db, `SELECT id, category_id, period_type, amount_minor, currency, starts_on, ends_on${await hasMoneyUnits(db) ? ',amount_exponent' : ''},
       status, revision, sync_version, updated_at, deleted_at
       FROM task16_finance_budgets WHERE user_id = ?1 ORDER BY status, updated_at DESC, id`, [account.id]),
   ]);
   return {
     schema_version: Number(TASK16_SCHEMA_VERSION), server_version: version,
+    ...(await hasMoneyUnits(db) ? { money_version: 2, currency_preferences: await currencyPreferences(db, account.id) } : {}),
     finance_access: true, transaction_count: Number(transactionCount?.count || 0),
     raw_event_count: Number(rawCount?.count || 0), categories, budgets,
     sync: { max_operations: MAX_SYNC_OPERATIONS, max_change_page: MAX_CHANGE_PAGE, tombstones: true },
@@ -696,11 +768,14 @@ export async function listFinanceTransactions(db, account, input = {}) {
   const beforeId = input.before_id ? cleanId(input.before_id, "游标账目标识") : "~~~~~~~~";
   const limit = Math.min(100, Math.max(1, Number.parseInt(String(input.limit || 50), 10) || 50));
   const includeDeleted = String(input.include_deleted || "").toLowerCase() === "true";
+  const roleProjection = await hasMoneyUnits(db) ? `, (SELECT json_group_array(json_object('event_id',e.event_id,'roles',json(e.roles_json)))
+    FROM task16_currency_role_evidence e JOIN task21_notification_events n ON n.event_id=e.event_id AND n.user_id=e.user_id
+    WHERE e.user_id=?1 AND n.finance_transaction_id=task16_finance_transactions.id) AS currency_roles_json` : '';
   const rows = await all(db, `SELECT *, (SELECT json_group_array(raw.source_event_id)
       FROM task16_finance_transaction_events link
       JOIN task16_finance_raw_events raw ON raw.id = link.raw_event_id
       WHERE link.transaction_id = task16_finance_transactions.id AND link.relation_status = 'active'
-        AND raw.user_id = ?1 AND raw.source_type = 'notification') AS notification_event_ids_json
+        AND raw.user_id = ?1 AND raw.source_type = 'notification') AS notification_event_ids_json${roleProjection}
     FROM task16_finance_transactions
     WHERE user_id = ?1
       AND (occurred_at_ms < ?2 OR (occurred_at_ms = ?2 AND id < ?3))

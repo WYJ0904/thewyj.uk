@@ -1,0 +1,23 @@
+def qa = new File(System.getProperty('aeris.p0.ocr.root'))
+def frozen = new File(qa, '../aeris-finance-quality/sdk')
+allprojects { p ->
+    if (p.path == ':app') {
+        p.plugins.withId('com.android.application') {
+            // Pinned independent Latin model is diagnostic-only, never a release dependency.
+            p.dependencies.add('debugImplementation', 'com.google.mlkit:text-recognition:16.0.1')
+            p.androidComponents.finalizeDsl { d ->
+                d.buildTypes.getByName('debug').applicationIdSuffix = '.qa.aerisp0ocr'
+                d.buildTypes.getByName('debug').versionNameSuffix = '-aeris-p0-ocr'
+                d.defaultConfig.testInstrumentationRunner = 'androidx.test.runner.AndroidJUnitRunner'
+                d.sourceSets.getByName('androidTest').java.setSrcDirs([frozen, new File(qa,'sdk')])
+                d.sourceSets.getByName('androidTest').assets.setSrcDirs([new File(frozen,'assets')])
+            }
+        }
+        p.tasks.configureEach { task ->
+            if (task.name == 'compileDebugAndroidTestKotlin') {
+                task.source(p.fileTree(frozen) { include '**/*.kt' })
+                task.source(p.fileTree(new File(qa,'sdk')) { include '**/*.kt' })
+            }
+        }
+    }
+}

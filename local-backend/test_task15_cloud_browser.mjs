@@ -607,8 +607,16 @@ async function main() {
         confidence: 650, merchant: "", counterparty: "",
       });
       assert.equal(lowConfidenceComplete.status, 200, JSON.stringify(lowConfidenceComplete.data));
-      assert.match(lowConfidenceComplete.data.operation_results[0].transaction_id, /^txn:/);
-      assert.equal(lowConfidenceComplete.data.operation_results[0].candidate_id, "");
+      assert.equal(lowConfidenceComplete.data.operation_results[0].transaction_id, "",
+        "complete monetary fields without settlement must remain reviewable");
+      const lowCompleteId = lowConfidenceComplete.data.operation_results[0].candidate_id;
+      assert.ok(lowCompleteId);
+      const explicitLowConfirm = await request("/api/notification/candidates/confirm", {
+        candidate_id: lowCompleteId, device_id: "device-browser-task21",
+      }, originalSession);
+      assert.equal(explicitLowConfirm.status, 200, JSON.stringify(explicitLowConfirm.data));
+      assert.match(explicitLowConfirm.data.transaction_id, /^txn:/,
+        "explicit authenticated confirmation must still create the canonical receipt");
       const hintEventId = "evt-browser-" + RUN_ID + "-unknown-fields";
       const hintIngest = await request("/api/notification/hints", {
         device_id: "device-browser-task21",

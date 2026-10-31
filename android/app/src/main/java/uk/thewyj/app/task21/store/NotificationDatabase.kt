@@ -23,16 +23,26 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PaymentTicketEntity::class,
         PaymentCandidateEntity::class,
         LocalPaymentBookingEntity::class,
+        PaymentEventAliasEntity::class,
+        PaymentReconciliationEntity::class,
+        PaymentEffectiveRecognitionEntity::class,
+        PaymentUserDecisionEntity::class,
+        PaymentReconciliationAliasEntity::class,
+        PaymentBookingSupersessionEntity::class,
+        uk.thewyj.app.finance.PaymentMoneyUnit::class,
     ],
+    autoMigrations = [androidx.room.AutoMigration(from = 14, to = 15, spec = CurrencyUnitMigrationSpec::class),
+        androidx.room.AutoMigration(from = 15, to = 16), androidx.room.AutoMigration(from = 16, to = 17), androidx.room.AutoMigration(from = 17, to = 18)],
     version = NotificationDatabase.SCHEMA_VERSION,
     exportSchema = true,
 )
 abstract class NotificationDatabase : RoomDatabase() {
     abstract fun notificationDao(): NotificationDao
     abstract fun paymentDao(): PaymentDao
+    abstract fun reconciliationDao(): PaymentReconciliationDao
 
     companion object {
-        const val SCHEMA_VERSION = 9
+        const val SCHEMA_VERSION = 18
         const val DATABASE_NAME = "wyj-notifications.db"
 
         @Volatile
@@ -47,11 +57,74 @@ abstract class NotificationDatabase : RoomDatabase() {
                 )
                     // The local archive is user data: never drop it on upgrade.
                     .addMigrations(
-                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18,
                     )
                     .build()
                     .also { instance = it }
             }
+
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Earlier versions did not persist scan counts: never grant another automatic budget.
+                db.execSQL("ALTER TABLE payment_tickets ADD COLUMN scanAttempts INTEGER NOT NULL DEFAULT 8")
+            }
+        }
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE payment_tickets ADD COLUMN enrichedCurrency TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE payment_tickets ADD COLUMN enrichedCompletion INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE payment_tickets ADD COLUMN enrichedEvidenceSource TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE payment_tickets ADD COLUMN enrichedSourceUncertain INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE payment_tickets ADD COLUMN enrichedAmountDecimal TEXT NOT NULL DEFAULT ''")
+            }
+        }
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE payment_recognitions ADD COLUMN currencyReviewRequired INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE payment_recognitions ADD COLUMN currencyDecisionSource TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE payment_recognitions ADD COLUMN currencyReviewNotified INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `payment_money_units` (`accountId` TEXT NOT NULL, `eventId` TEXT NOT NULL, `amountExponent` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `eventId`))")
+                db.execSQL("INSERT OR IGNORE INTO payment_money_units(accountId,eventId,amountExponent) SELECT accountId,eventId,2 FROM local_payment_bookings WHERE currency IN ('CNY','USD','EUR','HKD','GBP')")
+            }
+        }
+
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `payment_booking_supersessions` (`accountId` TEXT NOT NULL, `transactionId` TEXT NOT NULL, `canonicalTransactionId` TEXT NOT NULL, `operationId` TEXT NOT NULL, `originalBookingJson` TEXT NOT NULL, `createdAtMs` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `transactionId`))")
+            }
+        }
+
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `payment_reconciliations` (`accountId` TEXT NOT NULL, `operationId` TEXT NOT NULL, `payloadDigest` TEXT NOT NULL, `payloadJson` TEXT NOT NULL, `state` TEXT NOT NULL, `reason` TEXT NOT NULL, `beforeJson` TEXT NOT NULL, `resultJson` TEXT NOT NULL, `createdAtMs` INTEGER NOT NULL, `updatedAtMs` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `operationId`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `payment_effective_recognitions` (`accountId` TEXT NOT NULL, `recognitionId` TEXT NOT NULL, `canonicalRecognitionId` TEXT NOT NULL, `amountMinor` INTEGER NOT NULL, `financialPhase` TEXT NOT NULL, `lifecycleOperation` TEXT NOT NULL, `lifecycleRevision` INTEGER NOT NULL, `lifecycleReference` TEXT NOT NULL, `providerReference` TEXT NOT NULL, `referenceNamespace` TEXT NOT NULL, `operationId` TEXT NOT NULL, `excluded` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `recognitionId`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `payment_user_decisions` (`accountId` TEXT NOT NULL, `recognitionId` TEXT NOT NULL, `decision` TEXT NOT NULL, `createdAtMs` INTEGER NOT NULL, PRIMARY KEY(`accountId`, `recognitionId`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `payment_reconciliation_aliases` (`accountId` TEXT NOT NULL, `sourceEventId` TEXT NOT NULL, `canonicalRecognitionId` TEXT NOT NULL, `excluded` INTEGER NOT NULL, `operationId` TEXT NOT NULL, PRIMARY KEY(`accountId`, `sourceEventId`))")
+            }
+        }
+
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // No downgrade fallback: old Room openers must fail closed.
+                db.execSQL("ALTER TABLE `payment_recognitions` ADD COLUMN `lifecycleOperation` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `payment_recognitions` ADD COLUMN `lifecycleRevision` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                for (name in listOf("identityReviewReason", "financialPhase", "lifecycleReference", "referenceNamespace", "currencyEvidence")) {
+                    db.execSQL("ALTER TABLE `payment_recognitions` ADD COLUMN `$name` TEXT NOT NULL DEFAULT ''")
+                }
+                db.execSQL("CREATE TABLE IF NOT EXISTS `payment_event_aliases` (`accountId` TEXT NOT NULL, `sourceEventId` TEXT NOT NULL, `recognitionId` TEXT NOT NULL, PRIMARY KEY(`accountId`, `sourceEventId`))")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_payment_event_aliases_recognitionId` ON `payment_event_aliases` (`recognitionId`)")
+            }
+        }
 
         /**
          * v1 -> v2 adds the payment recognition tables. Existing notification
@@ -174,6 +247,14 @@ abstract class NotificationDatabase : RoomDatabase() {
             }
         }
 
+        /** Add evidence only; old notifications, candidates and bookings stay intact. */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE payment_recognitions ADD COLUMN completionConfirmed INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE payment_recognitions ADD COLUMN sourceUid INTEGER NOT NULL DEFAULT -1")
+            }
+        }
+
         internal val PAYMENT_V2_DDL = listOf(
             """
             CREATE TABLE IF NOT EXISTS `payment_recognitions` (
@@ -219,4 +300,9 @@ abstract class NotificationDatabase : RoomDatabase() {
             "CREATE INDEX IF NOT EXISTS `index_payment_candidates_recognitionId` ON `payment_candidates` (`recognitionId`)",
         )
     }
+}
+
+/** Generated additive migration also works for callers that supply older paths. */
+class CurrencyUnitMigrationSpec : androidx.room.migration.AutoMigrationSpec {
+    override fun onPostMigrate(db: SupportSQLiteDatabase) { NotificationDatabase.MIGRATION_14_15.migrate(db) }
 }

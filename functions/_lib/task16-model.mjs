@@ -1,4 +1,7 @@
 import { notificationCashText } from "./notification-cash-evidence.mjs";
+import {explicitCurrencyCodes} from "./payment-currency-evidence.mjs";
+import { currencyDigits } from '../../js/finance/money.js';
+import { rawCurrencyMoney } from './finance-raw-currency.mjs';
 
 export const TASK16_SCHEMA_VERSION = "1";
 export const TASK16_BUILD = "2026-08-27-task16-finance-core";
@@ -178,6 +181,11 @@ export function classifyFinanceText(value) {
   if (!text) return { classification: "rejected", reason: "text_empty", direction: "unknown", amount_minor: 0 };
 
   const direction = directionFromSemantics(text);
+  // The legacy raw-text API has no typed authorization/settlement identity.
+  // Preserve these events for review; the P03 structured pipeline owns clearing.
+  if (/预授权|預授權|(?:结算|清算)成功|pending\s+authorization|authorization\s+(?:release|expired)|posted\s+settlement/i.test(sourceText)) {
+    return {classification:"pending",reason:"legacy_lifecycle_requires_review",direction,amount_minor:amountMinorFromText(text)};
+  }
   const completed = includesAny(text, STRONG_COMPLETION_TERMS);
   if (includesAny(text, MARKETING_TERMS) && !completed) {
     return { classification: "rejected", reason: "marketing_or_credit_offer", direction: "unknown", amount_minor: 0 };
@@ -203,12 +211,23 @@ export function classifyFinanceText(value) {
 
 export function normalizeManualTransaction(value = {}) {
   requireAllowedFields(value, new Set([
-    "direction", "amount_minor", "currency", "category_id", "merchant", "counterparty", "note", "occurred_at_ms",
+    "direction", "amount_minor", "currency", "category_id", "merchant", "counterparty", "note", "occurred_at_ms", "amount_exponent", "currency_review_acknowledged",
   ]));
+  if (value.currency_review_acknowledged !== undefined &&
+      (typeof value.currency_review_acknowledged !== 'boolean' || !value.currency))
+    throw new Task16Error('请明确核实币种',400,'currency_decision_invalid');
+  const currency = cleanCurrency(value.currency);
+  let digits;
+  try { digits = currencyDigits(currency); }
+  catch (_) { throw new Task16Error('币种不受支持', 400, 'currency_unsupported'); }
+  if ((value.amount_exponent !== undefined && value.amount_exponent !== digits) || (currency === 'JPY' && value.amount_exponent !== 0)) {
+    throw new Task16Error('金额单位需由新版客户端确认', 409, 'currency_unit_capability_required');
+  }
   return {
     direction: cleanDirection(value.direction),
     amount_minor: positiveInteger(value.amount_minor, "金额", 10000000000000),
-    currency: cleanCurrency(value.currency),
+    currency,
+    ...(currency === 'JPY' ? { amount_exponent: 0 } : {}),
     category_id: value.category_id ? cleanId(value.category_id, "分类标识") : "",
     merchant: cleanText(value.merchant, 160, "商户"),
     counterparty: cleanText(value.counterparty, 160, "对手方"),
@@ -217,10 +236,10 @@ export function normalizeManualTransaction(value = {}) {
   };
 }
 
-export function normalizeRawEvent(value = {}) {
+export function normalizeRawEvent(value = {}, {currencyPolicyVersion=1,defaultCurrency=null} = {}) {
   requireAllowedFields(value, new Set([
     "source_type", "source_event_id", "source_provider", "provider_reference", "text", "direction", "amount_minor",
-    "currency", "merchant", "counterparty", "account_last4", "occurred_at_ms", "captured_at_ms", "metadata",
+    "currency", "merchant", "counterparty", "account_last4", "occurred_at_ms", "captured_at_ms", "metadata", "amount_exponent",
   ]));
   const sourceType = String(value.source_type || "").trim().toLowerCase();
   if (!RAW_SOURCE_TYPES.has(sourceType)) {
@@ -230,17 +249,33 @@ export function normalizeRawEvent(value = {}) {
   if (!text && sourceType !== "legacy_import") {
     throw new Task16Error("采集事件缺少可验证的交易文本", 400, "recognition_text_required");
   }
-  const classification = text ? classifyFinanceText(text) : {
+  let classification = text ? classifyFinanceText(text) : {
     classification: "accepted",
     reason: "structured_legacy_event",
     direction: cleanDirection(value.direction),
     amount_minor: positiveInteger(value.amount_minor, "金额", 10000000000000),
   };
+  const currencyEvidence=explicitCurrencyCodes(text);
+  let currency=cleanCurrency(value.currency);
+  const currencyReview=currencyEvidence.length>1 || (currencyEvidence.length===1 && currencyEvidence[0]!==currency);
+  if(currencyReview && currencyPolicyVersion < 2) {
+    currency=currencyEvidence.includes(currency)?currency:currencyEvidence[0];
+    classification={...classification,classification:"pending",reason:"currency_review_required",amount_minor:0};
+  }
+  const exact = currencyPolicyVersion >= 2 ? rawCurrencyMoney({...value,source_type:sourceType},notificationCashText(text)??'',defaultCurrency) : null;
+  if (exact) {
+    currency=exact.currency;
+    const rejected = classification.classification==='rejected' && classification.reason!=='amount_missing';
+    classification={...classification,amount_minor:exact.amount_minor,
+      ...(exact.review_reason ? {classification:rejected?'rejected':'pending',reason:exact.review_reason} :
+        classification.reason==='amount_missing' ? (includesAny(text,STRONG_COMPLETION_TERMS)?
+          {classification:'accepted',reason:'transaction_completed'}:{classification:'pending',reason:'completion_unproven'}) : {})};
+  }
   const accountLast4 = String(value.account_last4 || "").trim();
   if (accountLast4 && !LAST4_PATTERN.test(accountLast4)) {
     throw new Task16Error("账户尾号无效", 400, "account_last4_invalid");
   }
-  const metadata = safeJsonObject(value.metadata);
+  const metadata = {...safeJsonObject(value.metadata)};
   const metadataKeys = new Set([
     "source_time_precision_ms", "payment_channel", "card_network", "source_locale", "capture_version",
   ]);
@@ -258,6 +293,9 @@ export function normalizeRawEvent(value = {}) {
   if (metadataText.length > 8000) throw new Task16Error("事件元数据过大", 400, "metadata_too_large");
   const sourceProvider = cleanText(value.source_provider, 80, "来源服务");
   if (!sourceProvider) throw new Task16Error("来源服务不能为空", 400, "source_provider_required");
+  if(currencyReview) metadata.currency_evidence=currencyEvidence.join(',').slice(0,120);
+  if(exact?.amount_exponent!==undefined)metadata.amount_exponent=exact.amount_exponent;
+  if(exact?.currency_review_required){metadata.currency_review_required=true;metadata.currency_decision_source='account_default';}
   return {
     source_type: sourceType,
     source_event_id: cleanSourceEventId(value.source_event_id),
@@ -266,7 +304,9 @@ export function normalizeRawEvent(value = {}) {
     text,
     direction: classification.direction,
     amount_minor: classification.amount_minor,
-    currency: cleanCurrency(value.currency),
+    currency,
+    ...(exact?.amount_exponent!==undefined?{amount_exponent:exact.amount_exponent}:{}),
+    ...(exact?.currency_review_required?{currency_review_required:true,currency_decision_source:'account_default'}:{}),
     merchant: cleanText(value.merchant, 160, "商户"),
     counterparty: cleanText(value.counterparty, 160, "对手方"),
     account_last4: accountLast4,
@@ -280,7 +320,8 @@ export function normalizeRawEvent(value = {}) {
 
 export function reconciliationScore(event, candidate, candidateEvents = []) {
   const evidence = [];
-  const references = new Set(candidateEvents.map((item) => String(item.provider_reference || "")).filter(Boolean));
+  const references = new Set(candidateEvents.filter(item=>financeReferenceScope(item)===financeReferenceScope(event))
+    .map((item) => String(item.provider_reference || "")).filter(Boolean));
   if (event.provider_reference && references.has(event.provider_reference)) {
     return { score: 1, evidence: ["provider_reference"], automatic: true };
   }
@@ -321,11 +362,27 @@ export function reconciliationScore(event, candidate, candidateEvents = []) {
     evidence.push("same_source_conservative_cap");
   }
   score = Math.min(1, Math.round(score * 1000) / 1000);
-  return { score, evidence, automatic: score >= 0.92 };
+  return { score, evidence, automatic: false };
+}
+
+/** Legacy raw callers must declare the canonical provider, not infer it from money. */
+export function financeReferenceScope(event) {
+  let metadata=event.metadata||{};
+  if(event.metadata_json) {try{metadata=JSON.parse(event.metadata_json)}catch{metadata={}}}
+  const channel=String(metadata.payment_channel||'');
+  return ['wechat','alipay'].includes(channel)||/^bank_card:[a-z0-9._-]+$/.test(channel)
+    ?channel:String(event.source_provider||'');
 }
 
 export function publicTransaction(row) {
   return {
+    ...(row.currency_decision_source ? { currency_review_required: Number(row.currency_review_required) === 1,
+      currency_decision_source: String(row.currency_decision_source) } : {}),
+    ...(row.currency_roles_json && row.currency_roles_json !== '[]' ? { currency_role_evidence: JSON.parse(row.currency_roles_json) } : {}),
+    ...(row.currency === 'JPY' ? { amount_exponent: row.amount_exponent === 0 ? 0 : null,
+      money_unit_status: row.amount_exponent === 0 ? 'verified' : 'review_required' } : {}),
+    ...(row.system_superseded_by ? { system_superseded_by: row.system_superseded_by,
+      system_superseded_operation: row.system_superseded_operation } : {}),
     ...(row.notification_event_ids_json ? { notification_event_ids: JSON.parse(row.notification_event_ids_json) } : {}),
     id: String(row.id || ""),
     direction: String(row.direction || ""),
@@ -348,7 +405,11 @@ export function publicTransaction(row) {
 }
 
 export function publicRawEvent(row) {
+  let money=row.metadata||{};
+  if(row.metadata_json){try{money=JSON.parse(row.metadata_json)}catch{money={}}}
   return {
+    ...(money.currency_review_required===true?{currency_review_required:true,currency_decision_source:'account_default'}:{}),
+    ...(money.amount_exponent===0||money.amount_exponent===2?{amount_exponent:money.amount_exponent}:{}),
     id: String(row.id || ""),
     device_id: String(row.device_id || ""),
     source_type: String(row.source_type || ""),

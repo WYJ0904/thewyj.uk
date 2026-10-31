@@ -1,6 +1,9 @@
 package uk.thewyj.app.task21.payment
 
 import android.content.Context
+import android.content.pm.LauncherApps
+import android.os.Process
+import android.os.UserHandle
 import uk.thewyj.app.BuildConfig
 import uk.thewyj.app.task21.NotificationSessionProvider
 import uk.thewyj.app.task21.store.NotificationDatabase
@@ -12,6 +15,7 @@ interface PaymentAccessibilityGateway {
     fun activeTicket(accountId: String, sourcePackage: String): PaymentTicket?
     fun activePackages(accountId: String, nowMs: Long): Set<String>
     fun enrich(accountId: String, ticketId: String, enrichment: PaymentEnrichment): EnrichmentOutcome
+    fun reserveScan(accountId: String, ticketId: String, nowMs: Long): Boolean = false
 }
 
 internal class AndroidPaymentAccessibilityGateway(private val context: Context) : PaymentAccessibilityGateway {
@@ -19,16 +23,53 @@ internal class AndroidPaymentAccessibilityGateway(private val context: Context) 
     override fun financeAccountId(): String? = NotificationSessionProvider(context).currentAccount()?.takeIf { it.financeEntitled }?.accountId
     override fun activeTicket(accountId: String, sourcePackage: String) = store().activeTicketForPackage(accountId, sourcePackage)
     override fun activePackages(accountId: String, nowMs: Long) = store().activeTicketPackages(accountId, nowMs)
-    override fun enrich(accountId: String, ticketId: String, enrichment: PaymentEnrichment) =
-        AndroidPaymentRecognitionHook.get(context).onAccessibilityEnrichment(accountId, enrichment, ticketId)
+    override fun reserveScan(accountId: String, ticketId: String, nowMs: Long): Boolean =
+        financeAccountId()==accountId && PaymentPersistedScanBudget.reserve(store(),accountId,ticketId,nowMs)
+    override fun enrich(accountId: String, ticketId: String, enrichment: PaymentEnrichment): EnrichmentOutcome {
+        val store = store()
+        val ticket = store.activeTicketForPackage(accountId, enrichment.sourcePackage)
+        val record = ticket?.let { store.recognition(accountId, it.recognitionId) }
+        val currentProfile = record?.sourceUid?.let {
+            UserHandle.getUserHandleForUid(it) == Process.myUserHandle()
+        } == true
+        val sharedPackage = enrichment.sourcePackage == "com.tencent.mm" || runCatching {
+            val launcher = context.getSystemService(LauncherApps::class.java)
+            launcher == null || launcher.profiles.any { user ->
+                user != Process.myUserHandle() && launcher.getActivityList(enrichment.sourcePackage, user).isNotEmpty()
+            }
+        }.getOrDefault(true)
+        val uncertain = PaymentSourceIdentity.requiresManualReviewForObservation(
+            currentProfile, sharedPackage, record?.providerReference.orEmpty(), enrichment.providerReference.orEmpty(), enrichment.sourceInstanceUncertain,
+            record?.direction in setOf("INCOME","EXPENSE","REFUND") && record?.direction == enrichment.direction?.name)
+        return AndroidPaymentRecognitionHook.get(context).onAccessibilityEnrichment(
+            accountId, enrichment.copy(sourceInstanceUncertain = uncertain), ticketId)
+    }
+}
+
+/** Accessibility exposes a package, not a reliable clone user identity. */
+internal object PaymentSourceIdentity {
+    /** One transfer reference can be visible to payer and recipient; it alone cannot prove the actor. */
+    fun requiresManualReviewForObservation(currentProfile:Boolean,sharedPackage:Boolean,sourceReference:String,pageReference:String,
+                                          declaredUncertain:Boolean,knownDirectionConsistent:Boolean):Boolean =
+        requiresManualReview(currentProfile,sharedPackage,sourceReference,pageReference,declaredUncertain) ||
+            ((!currentProfile || sharedPackage) && !knownDirectionConsistent)
+    fun requiresManualReview(currentProfile: Boolean, sharedPackage: Boolean, sourceReference: String, pageReference: String, declaredUncertain: Boolean = false): Boolean {
+        val sameReference = sourceReference.isNotBlank() && pageReference == sourceReference
+        return declaredUncertain || ((!currentProfile || sharedPackage) && !sameReference)
+    }
 }
 
 /** No exported component. Injection is compiled off in ordinary signed builds. */
 object PaymentAccessibilityDeviceTest {
     @Volatile private var value: PaymentAccessibilityGateway? = null
-    fun install(gateway: PaymentAccessibilityGateway?) {
+    @Volatile private var preventContentReads = false
+    fun install(gateway: PaymentAccessibilityGateway?, blockContentReadsForAudit: Boolean = false) {
         check(BuildConfig.DEBUG || BuildConfig.PAYMENT_DEVICE_TEST) { "Device tests require an explicitly built test candidate" }
+        preventContentReads = gateway != null && blockContentReadsForAudit
         value = gateway
     }
+    /** A negative device test must fail on a read attempt without exposing chat prose. */
+    fun contentReadBlockedForAudit(): Boolean =
+        (BuildConfig.DEBUG || BuildConfig.PAYMENT_DEVICE_TEST) && value != null && preventContentReads
     fun gateway(): PaymentAccessibilityGateway? = if (BuildConfig.DEBUG || BuildConfig.PAYMENT_DEVICE_TEST) value else null
 }

@@ -1,0 +1,9 @@
+def output = new File(System.getProperty('finance.finish.output'))
+allprojects { p ->
+    if (p.path == ':app') {
+        p.layout.buildDirectory.set(new File(output, 'build-regression/app'))
+        p.afterEvaluate {
+            p.extensions.findByName('ksp')?.arg('room.schemaLocation', new File(output, 'generated-schemas').absolutePath)
+        }
+    }
+}

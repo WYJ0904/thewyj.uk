@@ -10,24 +10,24 @@
     <meta property="og:description" content="从一件小事开始，登录后接着自己的进度。" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://thewyj.uk/" />
-    <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?v=20261027-aeris-p07-ui-r1" />
+    <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?v=20261031-aeris-p0-finance-r1" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="application-name" content="Aeris" />
-    <link rel="icon" href="/favicon.ico?v=20261027-aeris-p07-ui-r1" sizes="any" />
-    <link rel="icon" href="/assets/brand/favicon-32.png?v=20261027-aeris-p07-ui-r1" type="image/png" sizes="32x32" />
-    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png?v=20261027-aeris-p07-ui-r1" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20261027-aeris-p07-ui-r1" />
-    <link rel="stylesheet" href="/styles.css?v=20261027-aeris-p07-ui-r1" />
-    <link rel="stylesheet" href="/product-ui.css?v=20261027-aeris-p07-ui-r1" />
-    <link rel="stylesheet" href="/design-system.css?v=20261027-aeris-p07-ui-r1" />
-    <link rel="stylesheet" href="/public-experience.css?v=20261027-aeris-p07-ui-r1" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20261027-aeris-p07-ui-r1" />
+    <link rel="icon" href="/favicon.ico?v=20261031-aeris-p0-finance-r1" sizes="any" />
+    <link rel="icon" href="/assets/brand/favicon-32.png?v=20261031-aeris-p0-finance-r1" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png?v=20261031-aeris-p0-finance-r1" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20261031-aeris-p0-finance-r1" />
+    <link rel="stylesheet" href="/styles.css?v=20261031-aeris-p0-finance-r1" />
+    <link rel="stylesheet" href="/product-ui.css?v=20261031-aeris-p0-finance-r1" />
+    <link rel="stylesheet" href="/design-system.css?v=20261031-aeris-p0-finance-r1" />
+    <link rel="stylesheet" href="/public-experience.css?v=20261031-aeris-p0-finance-r1" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20261031-aeris-p0-finance-r1" />
   </head>
   <body>
     <a class="skip-link" id="skipToContent" href="#pageContent">跳转到主要内容</a>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 Aeris" aria-hidden="false">
       <div class="entry-content" id="splashMedia">
-        <img class="entry-logo" id="splashImage" src="/icon-192.png?v=20261027-aeris-p07-ui-r1" width="192" height="192" alt="" />
+        <img class="entry-logo" id="splashImage" src="/icon-192.png?v=20261031-aeris-p0-finance-r1" width="192" height="192" alt="" />
         <strong>Aeris</strong>
         <span class="entry-progress" aria-hidden="true"></span>
       </div>
@@ -42,7 +42,7 @@
       <nav class="site-nav" id="accountBar" aria-label="主导航">
         <div class="site-nav-bar">
           <a class="site-brand" href="/" data-site-nav="home" aria-label="Aeris 首页">
-            <img src="/icon-192.png?v=20261027-aeris-p07-ui-r1" width="192" height="192" alt="" />
+            <img src="/icon-192.png?v=20261031-aeris-p0-finance-r1" width="192" height="192" alt="" />
             <span class="site-brand-copy"><strong>Aeris</strong><small id="siteVersionLabel">v2026.09.12.5</small></span>
           </a>
           <div class="home-inline-nav" aria-label="主要模块">
@@ -108,7 +108,7 @@
       <section class="public-home hidden" id="publicHome" aria-labelledby="publicHomeTitle" aria-hidden="true">
         <section class="public-intro public-hero" data-public-section="hero" aria-labelledby="publicHomeTitle">
           <div class="public-intro-copy">
-            <div class="home-brand"><img class="aeris-hero-logo" src="/icon-192.png?v=20261027-aeris-p07-ui-r1" alt="Aeris" width="64" height="64" /><h1 id="publicHomeTitle">Aeris</h1></div>
+            <div class="home-brand"><img class="aeris-hero-logo" src="/icon-192.png?v=20261031-aeris-p0-finance-r1" alt="Aeris" width="64" height="64" /><h1 id="publicHomeTitle">Aeris</h1></div>
             <p class="home-purpose">学习 · 工具 · 账本 · 文件</p>
             <p class="home-identity" data-home-personal hidden><span id="dashboardGreeting"></span><span id="dashboardMembershipName"></span><span id="dashboardMembershipExpiry"></span></p>
             <div class="public-actions">
@@ -350,6 +350,7 @@
 
           <section class="finance-summary-section" aria-labelledby="financeSummaryTitle">
             <div class="finance-section-heading"><div><h2 id="financeSummaryTitle">收支概览</h2><p id="financeSummaryPeriod">本月</p></div><button class="primary" id="financeAddTransactionBtn" type="button">新增账目</button></div>
+            <div class="finance-form-grid"><label><span>展示币种</span><select id="financeDisplayCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>账户基准币种</span><select id="financeAccountCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>未标明币种时</span><select id="financeDefaultCurrency"><option value="">保持待核实</option><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label></div><p id="financeCurrencyStatus" class="muted" role="status"></p><p id="financeCurrencyGroups" class="muted"></p>
             <div class="finance-summary-grid">
               <article><span>总收入</span><strong class="is-income" id="financeIncomeTotal">¥0.00</strong></article>
               <article><span>总支出</span><strong class="is-expense" id="financeExpenseTotal">¥0.00</strong></article>
@@ -498,7 +499,7 @@
           <p class="section-kicker">财务账目</p><h2 id="financeTransactionModalTitle">新增账目</h2>
           <form class="finance-form" id="financeTransactionForm">
             <input id="financeTransactionId" type="hidden" />
-            <div class="finance-form-grid"><label><span>类型</span><select id="financeTransactionDirection" required><option value="expense">支出</option><option value="income">收入</option><option value="refund">退款</option></select></label><label><span>金额（CNY）</span><input id="financeTransactionAmount" inputmode="decimal" maxlength="14" placeholder="0.00" required /></label></div>
+            <div class="finance-form-grid"><label><span>类型</span><select id="financeTransactionDirection" required><option value="expense">支出</option><option value="income">收入</option><option value="refund">退款</option></select></label><label><span>交易币种</span><select id="financeTransactionCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>原币金额</span><input id="financeTransactionAmount" inputmode="decimal" maxlength="14" placeholder="0.00" required /></label></div>
             <div class="finance-form-grid"><label><span>时间</span><input id="financeTransactionTime" type="datetime-local" required /></label><label><span>分类</span><select id="financeTransactionCategory"><option value="">未分类</option></select></label></div>
             <div class="finance-form-grid"><label><span>商户</span><input id="financeTransactionMerchant" maxlength="160" placeholder="例如：便利店" /></label><label><span>对手方</span><input id="financeTransactionCounterparty" maxlength="160" placeholder="例如：朋友或公司" /></label></div>
             <label><span>备注</span><textarea id="financeTransactionNote" maxlength="500" placeholder="可选，不要填写密码或支付凭据"></textarea></label>
@@ -520,13 +521,13 @@
         <section class="modal-panel finance-editor-modal" role="dialog" aria-modal="true" aria-labelledby="financeBudgetTitle">
           <button class="modal-close" data-finance-close="financeBudgetModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
           <p class="section-kicker">财务设置</p><h2 id="financeBudgetTitle">月度预算</h2>
-          <form class="finance-form" id="financeBudgetForm"><input id="financeBudgetId" type="hidden" /><div class="finance-form-grid"><label><span>月份</span><input id="financeBudgetMonth" type="month" required /></label><label><span>预算金额（CNY）</span><input id="financeBudgetAmount" inputmode="decimal" maxlength="14" placeholder="0.00" required /></label></div><label><span>分类</span><select id="financeBudgetCategory"><option value="">总预算（不限定分类）</option></select></label><div class="action-row"><button class="primary" type="submit">保存预算</button></div></form>
+          <form class="finance-form" id="financeBudgetForm"><input id="financeBudgetId" type="hidden" /><div class="finance-form-grid"><label><span>月份</span><input id="financeBudgetMonth" type="month" required /></label><label><span>预算币种</span><select id="financeBudgetCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>预算原币金额</span><input id="financeBudgetAmount" inputmode="decimal" maxlength="14" placeholder="0.00" required /></label></div><label><span>分类</span><select id="financeBudgetCategory"><option value="">总预算（不限定分类）</option></select></label><div class="action-row"><button class="primary" type="submit">保存预算</button></div></form>
           <div class="finance-manager-list" id="financeBudgetManagerList"></div>
         </section>
       </div>
       <section class="project-picker hidden" id="projectPicker" aria-labelledby="projectPickerTitle">
         <header class="project-brand">
-          <img src="/icon-192.png?v=20261027-aeris-p07-ui-r1" width="192" height="192" alt="Aeris Logo" />
+          <img src="/icon-192.png?v=20261031-aeris-p0-finance-r1" width="192" height="192" alt="Aeris Logo" />
           <div><p class="section-kicker">语言学习</p><h1 id="projectPickerTitle">选择语言测试</h1></div>
         </header>
         <div class="project-grid" aria-label="选择项目">
@@ -545,7 +546,7 @@
       <section class="project-app hidden" id="projectApp" aria-hidden="true">
         <header class="topbar hidden" id="topbar">
           <div class="brand">
-            <img class="brand-icon" src="/icon-192.png?v=20261027-aeris-p07-ui-r1" width="192" height="192" alt="" />
+            <img class="brand-icon" src="/icon-192.png?v=20261031-aeris-p0-finance-r1" width="192" height="192" alt="" />
             <div>
               <h1>语言学习</h1>
               <p id="modelLabel" aria-live="polite">检测中</p>
@@ -569,7 +570,7 @@
         </section>
 
         <section class="panel auth-panel hidden" id="authPanel">
-          <img class="auth-logo" src="/assets/brand/aeris-lockup.png?v=20261027-aeris-p07-ui-r1" width="320" height="320" alt="Aeris" />
+          <img class="auth-logo" src="/assets/brand/aeris-lockup.png?v=20261031-aeris-p0-finance-r1" width="320" height="320" alt="Aeris" />
           <h2 id="authTitle">账户登录</h2>
           <div class="auth-tabs" role="tablist" aria-label="账户入口">
             <button class="active" id="showLoginBtn" type="button" role="tab" aria-controls="loginForm" aria-selected="true">登录</button>
@@ -1250,8 +1251,8 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20261027-aeris-p07-ui-r1"></script>
-    <script src="/learning-sync.js?v=20261027-aeris-p07-ui-r1"></script>
-    <script type="module" src="/app.js?v=20261027-aeris-p07-ui-r1"></script>
+    <script src="/changelog.js?v=20261031-aeris-p0-finance-r1"></script>
+    <script src="/learning-sync.js?v=20261031-aeris-p0-finance-r1"></script>
+    <script type="module" src="/app.js?v=20261031-aeris-p0-finance-r1"></script>
   </body>
 </html>

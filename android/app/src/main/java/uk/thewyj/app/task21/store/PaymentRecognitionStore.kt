@@ -12,6 +12,14 @@ import uk.thewyj.app.task21.FinanceDirection
  * in-memory fake so the whole pipeline is unit testable without a device.
  */
 interface PaymentRecognitionStoreContract {
+    fun eventBelongsToRecognition(accountId: String, recognitionId: String, eventId: String): Boolean = true
+    fun applyReconciliationReceipt(accountId: String, operationId: String, body: String): Boolean = false
+    fun recordUserDecision(accountId: String, recognitionId: String, decision: String) {}
+    fun <T> transaction(block: () -> T): T = block()
+    fun saveEventAlias(accountId: String, sourceEventId: String, recognitionId: String) {}
+    fun recognitionsByReference(accountId: String, reference: String): List<PaymentRecognitionRecord> = emptyList()
+    fun recognitionsByMessageProof(accountId: String, proof: String): List<PaymentRecognitionRecord> = emptyList()
+    fun eventAliases(accountId: String, recognitionId: String): List<String> = emptyList()
     fun localBooking(accountId: String, eventId: String): uk.thewyj.app.task21.payment.LocalPaymentBooking?
     fun localBookings(accountId: String): List<uk.thewyj.app.task21.payment.LocalPaymentBooking>
     fun bookLocally(booking: uk.thewyj.app.task21.payment.LocalPaymentBooking, recognition: PaymentRecognitionRecord, candidate: PaymentCandidate)
@@ -66,12 +74,69 @@ interface PaymentRecognitionStoreContract {
 }
 
 class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : PaymentRecognitionStoreContract {
+    override fun eventBelongsToRecognition(accountId: String, recognitionId: String, eventId: String): Boolean {
+        val mapping=database.reconciliationDao().alias(accountId,eventId.removePrefix("notification#event#")) ?: return true
+        return mapping.canonicalRecognitionId==recognitionId
+    }
+    override fun applyReconciliationReceipt(accountId: String, operationId: String, body: String) =
+        uk.thewyj.app.task21.payment.PaymentReconciliation(database).applyReceipt(accountId, operationId, org.json.JSONObject(body))
     private val dao get() = database.paymentDao()
-    override fun localBooking(accountId: String, eventId: String) = dao.localBooking(accountId, eventId)?.toModel()
-    override fun localBookings(accountId: String) = dao.localBookings(accountId).map { it.toModel() }
+    private fun alias(accountId: String, eventId: String): PaymentRecognitionEntity? =
+        (database.reconciliationDao().alias(accountId, eventId) ?: database.reconciliationDao().alias(accountId, eventId.removePrefix("notification#event#")))
+            ?.let { dao.recognition(accountId, it.canonicalRecognitionId) }
+    override fun recordUserDecision(accountId: String, recognitionId: String, decision: String) {
+        database.reconciliationDao().decide(PaymentUserDecisionEntity(accountId, recognitionId, decision, System.currentTimeMillis()))
+    }
+    private fun effective(row: PaymentRecognitionEntity): PaymentRecognitionRecord {
+        val link = database.reconciliationDao().effective(row.accountId, row.recognitionId) ?: return row.toModel()
+        if (link.excluded == 1) return row.toModel().copy(state = "FINANCE_PENDING_CONFIRMATION", identityReviewReason = "reconciliation_detached")
+        val canonical = dao.recognition(row.accountId, link.canonicalRecognitionId) ?: return row.toModel().copy(identityReviewReason = "reconciliation_canonical_missing")
+        // Every historic delivery reads the primary recognition's latest
+        // accepted facts. Its own old overlay remains association audit only.
+        val o = database.reconciliationDao().effective(row.accountId, canonical.recognitionId) ?: link
+        val control = o.financialPhase in setOf("AUTHORIZED", "RELEASED", "EXPIRED")
+        return canonical.toModel().copy(amountMinor = o.amountMinor, financialPhase = o.financialPhase,
+            lifecycleOperation = o.lifecycleOperation, lifecycleRevision = o.lifecycleRevision,
+            lifecycleReference = o.lifecycleReference, providerReference = o.providerReference,
+            referenceNamespace = o.referenceNamespace, identityReviewReason = "", completionConfirmed = !control,
+            state = if (control) canonical.state else "FINANCE_RECORDED")
+    }
+    override fun <T> transaction(block: () -> T): T = database.runInTransaction(java.util.concurrent.Callable { block() })
+    override fun saveEventAlias(accountId: String, sourceEventId: String, recognitionId: String) =
+        dao.insertEventAlias(PaymentEventAliasEntity(accountId, sourceEventId, recognitionId))
+    override fun recognitionsByReference(accountId: String, reference: String): List<PaymentRecognitionRecord> {
+        val base = dao.recognitionsByReference(accountId, reference)
+        val effectiveIds = mutableListOf<String>()
+        database.openHelper.readableDatabase.query("SELECT recognitionId FROM payment_effective_recognitions WHERE accountId=? AND (providerReference=? OR lifecycleReference=?) AND excluded=0", arrayOf(accountId, reference, reference)).use { c -> while(c.moveToNext()) effectiveIds += c.getString(0) }
+        return (base + effectiveIds.mapNotNull { dao.recognition(accountId, it) }).map(::effective)
+            .filter { it.providerReference == reference || it.lifecycleReference == reference }.distinctBy { it.recognitionId }
+    }
+    // Message evidence must read the same accepted association/revision as
+    // reference and source-event lookup. Raw rows remain unchanged audit facts.
+    override fun recognitionsByMessageProof(accountId: String, proof: String) =
+        dao.recognitionsByMessageProof(accountId, "proof:$proof:").map(::effective).distinctBy { it.recognitionId }
+    override fun eventAliases(accountId: String, recognitionId: String): List<String> = (dao.eventAliases(accountId, recognitionId) +
+        database.reconciliationDao().members(accountId, recognitionId).flatMap { m -> dao.recognition(accountId, m.recognitionId)?.let { listOf(it.sourceEventId, it.uploadEventId) }.orEmpty() }).filter(String::isNotBlank).distinct().filter {
+            val o=database.reconciliationDao().alias(accountId,it.removePrefix("notification#event#"))
+            o==null || (o.excluded==0 && o.canonicalRecognitionId==recognitionId)
+        }
+    override fun localBooking(accountId: String, eventId: String): uk.thewyj.app.task21.payment.LocalPaymentBooking? {
+        var row = dao.localBooking(accountId, eventId) ?: return null
+        val visited = mutableSetOf<String>()
+        while (true) {
+            if (!visited.add(row.transactionId)) return null // Corrupt cycles fail closed.
+            val relation = database.reconciliationDao().supersession(accountId, row.transactionId) ?: return bookingModel(row)
+            row = dao.localBookings(accountId).singleOrNull { it.transactionId == relation.canonicalTransactionId } ?: return null
+        }
+    }
+    override fun localBookings(accountId: String) = dao.localBookings(accountId)
+        .filter { database.reconciliationDao().supersession(accountId, it.transactionId) == null }.map(::bookingModel)
+    private fun bookingModel(row: LocalPaymentBookingEntity) = row.toModel().copy(amountExponent =
+        uk.thewyj.app.finance.CurrencyLedgerUnits.read(database.openHelper.readableDatabase, row.accountId, row.eventId, row.currency))
     override fun bookLocally(booking: uk.thewyj.app.task21.payment.LocalPaymentBooking, recognition: PaymentRecognitionRecord, candidate: PaymentCandidate) {
         database.runInTransaction {
             dao.insertLocalBooking(booking.toEntity())
+            uk.thewyj.app.finance.CurrencyLedgerUnits.stamp(database.openHelper.writableDatabase, booking.accountId, booking.eventId, booking.currency, booking.amountExponent)
             val saved = dao.localBooking(booking.accountId, booking.eventId)!!
             dao.upsertCandidate(candidate.copy(financeTransactionId = saved.transactionId).toEntity())
             dao.upsertRecognition(recognition.toEntity())
@@ -85,21 +150,33 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
     }
     override fun acknowledgeLocalBooking(accountId: String, eventId: String, transactionId: String) {
         database.runInTransaction {
-            dao.acknowledgeLocalBooking(accountId, eventId, transactionId)
+            val recognition = recognitionByUploadEvent(accountId, eventId)
+            val canonicalEvent = recognition?.let(uk.thewyj.app.task21.payment.PaymentAutoBook::eventId) ?: eventId
+            val before = dao.localBooking(accountId, canonicalEvent)
+            if (before?.syncState == "synced" && before.transactionId != transactionId) return@runInTransaction
+            dao.acknowledgeLocalBooking(accountId, canonicalEvent, transactionId)
             database.notificationDao().markFinanceOutcomeByEventId(accountId, eventId, "confirmed", transactionId)
         }
     }
 
-    override fun saveRecognition(record: PaymentRecognitionRecord) = dao.upsertRecognition(record.toEntity())
+    override fun saveRecognition(record: PaymentRecognitionRecord) {
+        val original = dao.recognition(record.accountId, record.recognitionId)
+        if (original != null && database.reconciliationDao().effective(record.accountId, record.recognitionId) != null) {
+            // Completion facts are read through the overlay. A routine lifecycle
+            // callback must never overwrite the original source evidence.
+            dao.upsertRecognition(original.copy(state = record.state, updatedAtMs = record.updatedAtMs))
+        } else dao.upsertRecognition(record.toEntity())
+    }
 
     override fun recognition(accountId: String, recognitionId: String): PaymentRecognitionRecord? =
-        dao.recognition(accountId, recognitionId)?.toModel()
+        dao.recognition(accountId, recognitionId)?.let(::effective)
 
     override fun recognitionBySourceEvent(accountId: String, sourceEventId: String): PaymentRecognitionRecord? =
-        dao.recognitionBySourceEvent(accountId, sourceEventId)?.toModel()
+        (alias(accountId, sourceEventId) ?: dao.recognitionBySourceEvent(accountId, sourceEventId) ?: dao.recognitionByAlias(accountId, sourceEventId))?.let(::effective)
 
     override fun recognitionByUploadEvent(accountId: String, uploadEventId: String): PaymentRecognitionRecord? =
-        dao.recognitionByUploadEvent(accountId, uploadEventId)?.toModel()
+        (alias(accountId, uploadEventId) ?: dao.recognitionByUploadEvent(accountId, uploadEventId) ?: dao.recognitionByAlias(accountId, "notification#event#$uploadEventId")
+            ?: dao.recognitionByAlias(accountId, uploadEventId))?.let(::effective)
 
     override fun legacyRecognitionForHint(
         accountId: String,
@@ -169,10 +246,17 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
         occurredAtMs = occurredAtMs,
         fromMs = occurredAtMs - windowMs,
         toMs = occurredAtMs + windowMs,
-    ).firstOrNull()?.toModel()
+    ).singleOrNull()?.toModel()
 }
 
 internal fun PaymentRecognitionRecord.toEntity() = PaymentRecognitionEntity(
+    currencyReviewRequired = currencyReviewRequired, currencyDecisionSource = currencyDecisionSource,
+    currencyReviewNotified = currencyReviewNotified,
+    lifecycleOperation = lifecycleOperation, lifecycleRevision = lifecycleRevision,
+    identityReviewReason = identityReviewReason, financialPhase = financialPhase,
+    lifecycleReference = lifecycleReference, referenceNamespace = referenceNamespace, currencyEvidence = currencyEvidence,
+    sourceUid = sourceUid ?: -1,
+    completionConfirmed = if (completionConfirmed) 1 else 0,
     recognitionId = recognitionId,
     accountId = accountId,
     state = state,
@@ -193,6 +277,13 @@ internal fun PaymentRecognitionRecord.toEntity() = PaymentRecognitionEntity(
 )
 
 internal fun PaymentRecognitionEntity.toModel() = PaymentRecognitionRecord(
+    currencyReviewRequired = currencyReviewRequired, currencyDecisionSource = currencyDecisionSource,
+    currencyReviewNotified = currencyReviewNotified,
+    lifecycleOperation = lifecycleOperation, lifecycleRevision = lifecycleRevision,
+    identityReviewReason = identityReviewReason, financialPhase = financialPhase,
+    lifecycleReference = lifecycleReference, referenceNamespace = referenceNamespace, currencyEvidence = currencyEvidence,
+    sourceUid = sourceUid.takeIf { it >= 0 },
+    completionConfirmed = completionConfirmed == 1,
     recognitionId = recognitionId,
     accountId = accountId,
     state = state,
@@ -231,6 +322,12 @@ internal fun PaymentTicket.toEntity() = PaymentTicketEntity(
     enrichedMerchant = enrichment?.merchant.orEmpty(),
     enrichedProviderReference = enrichment?.providerReference.orEmpty(),
     enrichedAtMs = enrichment?.occurredAtMs ?: 0L,
+    enrichedCurrency = enrichment?.currency.orEmpty(),
+    enrichedCompletion = if (enrichment?.completionConfirmed == true) 1 else 0,
+    enrichedEvidenceSource = enrichment?.evidenceSource?.name.orEmpty(),
+    enrichedSourceUncertain = if (enrichment?.sourceInstanceUncertain != false) 1 else 0,
+    enrichedAmountDecimal = enrichment?.amountDecimalCandidate.orEmpty(),
+    scanAttempts = scanAttempts,
 )
 
 internal fun PaymentTicketEntity.toModel() = PaymentTicket(
@@ -246,17 +343,22 @@ internal fun PaymentTicketEntity.toModel() = PaymentTicket(
     expiresAtMs = expiresAtMs,
     state = runCatching { PaymentTicketState.valueOf(state) }.getOrDefault(PaymentTicketState.CREATED),
     attempts = attempts,
-    enrichment = if (hasEnrichedAmount == 1) {
+    scanAttempts = scanAttempts,
+    enrichment = if (hasEnrichedAmount == 1 || enrichedAmountDecimal.isNotBlank()) {
         PaymentEnrichment(
             sourcePackage = sourcePackage,
-            amountMinor = enrichedAmountMinor,
-            currency = "CNY",
+            amountMinor = if (hasEnrichedAmount==1) enrichedAmountMinor else null,
+            currency = enrichedCurrency.ifBlank { null },
             direction = runCatching { FinanceDirection.valueOf(enrichedDirection) }.getOrNull(),
             merchant = enrichedMerchant.ifBlank { null },
             counterparty = null,
             providerReference = enrichedProviderReference.ifBlank { null },
             occurredAtMs = enrichedAtMs,
             confidence = 800,
+            completionConfirmed = enrichedCompletion == 1,
+            evidenceSource = runCatching { uk.thewyj.app.task21.payment.PaymentEvidenceSource.valueOf(enrichedEvidenceSource) }.getOrDefault(uk.thewyj.app.task21.payment.PaymentEvidenceSource.ACCESSIBILITY),
+            sourceInstanceUncertain = enrichedSourceUncertain == 1,
+            amountDecimalCandidate = enrichedAmountDecimal.ifBlank { null },
         )
     } else {
         null

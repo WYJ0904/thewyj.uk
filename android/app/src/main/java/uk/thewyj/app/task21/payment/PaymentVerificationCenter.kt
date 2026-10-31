@@ -64,7 +64,6 @@ class PaymentVerificationCenter(
         val ocrSuggested: Boolean,
         val uploaded: Boolean,
         val ticketActive: Boolean,
-        val remainingMs: Long,
         val occurredAtMs: Long,
         val financeTransactionId: String,
         val syncState: SyncState,
@@ -77,8 +76,23 @@ class PaymentVerificationCenter(
         val canonicalState: String = "",
         val eventIds: Set<String> = emptySet(),
         val remoteOnly: Boolean = false,
+        val localAmountMinor: Long? = null,
+        val localDirection: FinanceDirection = FinanceDirection.UNKNOWN,
+        val localEvidencePending: Boolean = false,
+        val evidenceConflict: Boolean = false,
+        val ticketId: String = "",
+        val ticketExpiresAtMs: Long = 0,
+        val currency: String = "CNY",
+        val localCurrency: String = "CNY",
+        val moneyUnitReview: Boolean = false,
+        val currencyReviewRequired: Boolean = false,
+        val observedAmountDecimal: String? = null,
     ) {
-        val needsAmount: Boolean get() = amountMinor == null || amountMinor <= 0
+        val displayAmountMinor: Long? get() = amountMinor?.takeIf { it > 0 }
+            ?: localAmountMinor.takeUnless { evidenceConflict }
+        val displayCurrency: String get() = if (amountMinor != null && amountMinor > 0) currency else localCurrency
+        val displayDirection: FinanceDirection get() = if (direction == FinanceDirection.UNKNOWN && !evidenceConflict) localDirection else direction
+        val needsAmount: Boolean get() = moneyUnitReview || amountMinor == null || amountMinor <= 0 || currency !in uk.thewyj.app.finance.CurrencyMoney.digits
         val needsVerification: Boolean get() = needsAmount || direction == FinanceDirection.UNKNOWN
         /** This device may create the canonical transaction for the item. */
         val deviceBooks: Boolean get() = authority == Authority.DEVICE
@@ -114,7 +128,19 @@ class PaymentVerificationCenter(
     fun startVerification(recognitionId: String): PaymentTicket? {
         val account = sessions.currentAccount() ?: return null
         if (!account.financeEntitled) return null
-        return runCatching { hook.coordinator().restartVerification(account.accountId, recognitionId) }.getOrNull()
+        return runCatching {
+            val record = store.recognition(account.accountId, recognitionId) ?: return@runCatching null
+            hook.coordinator().restartVerification(account.accountId, recognitionId)?.copy(sourceUid = record.sourceUid)
+        }.getOrNull()
+    }
+
+    /** Resolve only this account's current ticket; opening never extends its expiry. */
+    fun verificationTarget(recognitionId: String): PaymentTicket? {
+        val account = sessions.currentAccount()?.takeIf { it.financeEntitled } ?: return null
+        val record = store.recognition(account.accountId, recognitionId) ?: return null
+        return store.activeTicketForPackage(account.accountId, record.sourcePackage)?.takeIf {
+            it.recognitionId == recognitionId && tickets.isActive(it)
+        }?.copy(sourceUid = record.sourceUid)
     }
 
     /** Finance deep link: only an exact pending server event may reopen a ticket. */
@@ -144,6 +170,10 @@ class PaymentVerificationCenter(
 
     fun cachedObservation(accountId: String): PaymentHintSync.Result? = CanonicalPendingCache(app, accountId).observation()
 
+    fun observationIsCurrent(accountId: String, observation: PaymentHintSync.Result): Boolean =
+        (observation.accountId.isBlank() || observation.accountId == accountId) &&
+            (observation.observationVersion < 0 || CanonicalPendingCache(app, accountId).revision() == observation.observationVersion)
+
     /** Called only from a background IO coroutine after the first local paint. */
     suspend fun reconcile(accountId: String): PaymentHintSync.Result? {
         val localAccount = sessions.currentAccount()
@@ -159,7 +189,7 @@ class PaymentVerificationCenter(
             listOf(recognition.uploadEventId) + archive.structuredEventIdsForRecognition(accountId, recognition.sourceEventId)
         }.filter(String::isNotBlank).distinct()
         val cache = CanonicalPendingCache(app, accountId)
-        var pullEpoch = cache.epoch()
+        var pullEpoch = cache.beginObservation()
         var summary = if (credentials != null && credentials.accessToken.isNotBlank()) {
             api.pendingReviewSummary(credentials.accessToken, requested)
         } else null
@@ -167,7 +197,7 @@ class PaymentVerificationCenter(
             uk.thewyj.app.AppGraph.sessionRepository.refresh() == uk.thewyj.app.core.session.RefreshWorkResult.SUCCESS) {
             val refreshed = SecureCredentialStore(app).loadActive()
             if (refreshed != null && refreshed.account.id == accountId) {
-                pullEpoch = cache.epoch()
+                pullEpoch = cache.beginObservation()
                 summary = api.pendingReviewSummary(refreshed.accessToken, requested)
             }
         }
@@ -179,7 +209,8 @@ class PaymentVerificationCenter(
 
     /** Re-read Room after cloud terminal outcomes have been persisted. */
     fun reconciledItems(accountId: String, observation: PaymentHintSync.Result?): List<Item> =
-        buildItems(accountId, observation, includeAllLocal = observation?.completeObservation != true)
+        if (observation != null && observation.accountId.isNotBlank() && observation.accountId != accountId) emptyList()
+        else buildItems(accountId, observation, includeAllLocal = observation?.completeObservation != true)
 
     private fun buildItems(
         accountId: String,
@@ -194,9 +225,11 @@ class PaymentVerificationCenter(
             .mapNotNull { recognition ->
                 val identities = listOf(recognition.uploadEventId) +
                     archive.structuredEventIdsForRecognition(accountId, recognition.sourceEventId)
+                if (identities.any { observation?.observedStates?.get(it) in setOf("confirmed", "ignored", "rejected", "superseded", "expired", "deleted") })
+                    return@mapNotNull null
                 val bookingId = bookingEventId(recognition)
                 val candidate = store.candidateForRecognition(accountId, recognition.recognitionId)
-                val incompleteMoney = !PaymentAutoBook.eligible(candidate?.effectiveAmountMinor ?: recognition.amountMinor,
+                val incompleteMoney = !PaymentAutoBook.hasCompleteMoney(candidate?.effectiveAmountMinor ?: recognition.amountMinor,
                     candidate?.effectiveDirection?.takeIf(String::isNotBlank) ?: recognition.direction)
                 val unsent = identities.any { it in queue || "hint:$it" in queue } || bookingId in queue ||
                     incompleteMoney ||
@@ -233,18 +266,26 @@ class PaymentVerificationCenter(
             val queuedOperation = if (queuedId in queue) queuedId else "hint:$queuedId"
             Item(
                 recognitionId = recognition.recognitionId,
+                observedAmountDecimal = store.ticketsForRecognition(recognition.accountId,recognition.recognitionId)
+                    .maxByOrNull { it.createdAtMs }?.enrichment?.amountDecimalCandidate,
                 candidateId = candidate?.candidateId.orEmpty(),
                 sourcePackage = recognition.sourcePackage,
                 appLabel = appLabelOf(recognition.sourcePackage),
                 state = recognition.state,
                 amountMinor = candidate?.effectiveAmountMinor ?: recognition.amountMinor,
+                moneyUnitReview = (recognition.currency == "JPY" && uk.thewyj.app.finance.CurrencyRuntimePreferences.sourceExponent(app,accountId,recognition.sourceEventId,recognition.currency) != 0) ||
+                    (recognition.identityReviewReason in setOf("currency_review_required","currency_symbol_ambiguous","currency_amount_unproven") && candidate?.editedAmountMinor == null),
+                currency = hook.effectiveCurrency(recognition),
+                currencyReviewRequired = recognition.currencyReviewRequired,
+                localCurrency = hook.effectiveCurrency(recognition),
                 direction = directionOf(candidate?.effectiveDirection ?: recognition.direction),
                 merchant = candidate?.effectiveMerchant.orEmpty().ifBlank { recognition.merchant },
                 hasEdits = candidate?.hasEdits == true,
                 ocrSuggested = candidate?.let(::requiresManualOcrReview) == true,
                 uploaded = uploaded,
                 ticketActive = active,
-                remainingMs = if (active) (ticket!!.expiresAtMs - System.currentTimeMillis()).coerceAtLeast(0) else 0,
+                ticketId = ticket?.ticketId.orEmpty(),
+                ticketExpiresAtMs = ticket?.expiresAtMs ?: 0,
                 occurredAtMs = candidate?.effectiveOccurredAtMs ?: recognition.createdAtMs,
                 financeTransactionId = transactionId,
                 syncState = paymentSyncStateFor(
@@ -256,7 +297,11 @@ class PaymentVerificationCenter(
                     observation,
                 ),
                 authority = authorityOf(recognition),
-                notice = rejections[queuedOperation].orEmpty(),
+                notice = rejections[queuedOperation] ?: when (candidate?.reason) {
+                    "source_instance_unverified" -> "无法自动核对来源应用或分身；请确认是同一笔交易后再记账"
+                    "payment_completion_unproven" -> "金额已识别，但尚未证明资金已完成收付；请核实状态后确认"
+                    else -> ""
+                },
                 recoveryOnly = recoveryOnly,
                 eventIds = eventIds.filter(String::isNotBlank).toSet(),
             )
@@ -268,14 +313,30 @@ class PaymentVerificationCenter(
         val canonical = pending.map { record ->
             val aliases = record.eventIds + record.eventId
             val local = localItems.firstOrNull { item ->
-                !item.recoveryOnly && item.eventIds.any { it in aliases }
+                !item.recoveryOnly && record.sourcePackage.isNotBlank() &&
+                    item.sourcePackage == record.sourcePackage && item.eventIds.any { it in aliases }
             }
+            val matching = localItems.filter { item -> record.sourcePackage.isNotBlank() &&
+                item.sourcePackage == record.sourcePackage && item.eventIds.any { it in aliases } }
+            val amounts = matching.mapNotNull { it.amountMinor?.takeIf { amount -> amount > 0 } }.distinct()
+            val directions = matching.map { it.direction }.filter { it != FinanceDirection.UNKNOWN }.distinct()
+            val localAmount = amounts.singleOrNull()
+            val localDirection = directions.singleOrNull() ?: FinanceDirection.UNKNOWN
+            val serverDirection = directionOf(record.direction)
+            val currencies = matching.map { it.currency }.distinct()
+            val conflict = amounts.size > 1 || directions.size > 1 || currencies.size > 1 ||
+                (local != null && record.currency in uk.thewyj.app.finance.CurrencyMoney.digits && local.currency in uk.thewyj.app.finance.CurrencyMoney.digits && record.currency != local.currency) ||
+                (record.amountMinor != null && localAmount != null && record.amountMinor != localAmount) ||
+                (serverDirection != FinanceDirection.UNKNOWN && localDirection != FinanceDirection.UNKNOWN && serverDirection != localDirection)
             (local ?: remotePendingItem(record)).copy(
                 canonicalIdentity = record.canonicalId,
                 canonicalState = record.state,
                 sourcePackage = record.sourcePackage,
-                appLabel = record.appLabel.ifBlank { record.sourcePackage.ifBlank { "通知" } },
+                appLabel = PaymentAppLabels.known(record.sourcePackage) ?: record.appLabel.ifBlank { record.sourcePackage.ifBlank { "通知" } },
                 amountMinor = record.amountMinor,
+                currency = record.currency,
+                currencyReviewRequired = record.currencyReviewRequired,
+                moneyUnitReview = record.currency == "JPY" && record.amountExponent != 0,
                 direction = directionOf(record.direction),
                 merchant = record.merchant,
                 occurredAtMs = record.occurredAtMs,
@@ -283,9 +344,16 @@ class PaymentVerificationCenter(
                 ocrSuggested = false,
                 uploaded = true,
                 eventIds = aliases.filter(String::isNotBlank).toSet(),
+                localAmountMinor = localAmount,
+                localDirection = localDirection,
+                evidenceConflict = conflict,
+                localEvidencePending = (record.amountMinor == null && localAmount != null) ||
+                    (serverDirection == FinanceDirection.UNKNOWN && localDirection != FinanceDirection.UNKNOWN),
             )
         }.distinctBy { it.canonicalIdentity }
-        return canonical + localItems.filter { it.recoveryOnly }
+        return canonical + localItems.filter { local -> local.recoveryOnly && canonical.none { cloud ->
+            cloud.sourcePackage.isNotBlank() && cloud.sourcePackage == local.sourcePackage && cloud.eventIds.any { it in local.eventIds }
+        } }
     }
 
     private fun remotePendingItem(record: PendingReviewIdentity) = Item(
@@ -301,7 +369,6 @@ class PaymentVerificationCenter(
         ocrSuggested = false,
         uploaded = true,
         ticketActive = false,
-        remainingMs = 0,
         occurredAtMs = System.currentTimeMillis(),
         financeTransactionId = "",
         syncState = SyncState.PENDING_SYNC,
@@ -329,7 +396,9 @@ class PaymentVerificationCenter(
         amountMinor: Long?,
         direction: String,
         merchant: String,
+        currency: String? = null,
     ): Boolean {
+        if (currency != null && !hook.chooseMissingCurrency(accountId, recognitionId, currency)) return false
         return runCatching {
             if (candidateId.isNotBlank()) {
                 hook.coordinator().editCandidate(
@@ -367,6 +436,15 @@ class PaymentVerificationCenter(
     fun confirmAndBook(accountId: String, recognitionId: String): BookResult {
         val recognition = store.recognition(accountId, recognitionId)
             ?: return BookResult(false, "找不到这笔交易记录")
+        if (!PaymentEventSafety.canSettle(recognition.financialPhase)) return BookResult(false, "预授权或未完成清算不能记入正式支出")
+        val manualCandidate = store.candidateForRecognition(accountId, recognitionId)
+        val manualCurrencyResolved = manualCandidate?.editedAmountMinor != null && hook.effectiveCurrency(recognition) in uk.thewyj.app.finance.CurrencyMoney.digits &&
+            recognition.identityReviewReason in setOf("currency_review_required","currency_symbol_ambiguous","currency_amount_unproven")
+        if (recognition.identityReviewReason.isNotBlank() && !recognition.identityReviewReason.startsWith("identity_unproven_") && !manualCurrencyResolved)
+            return BookResult(false, "币种或清算关联证据仍需核实，已保留原始候选")
+        if (hook.effectiveCurrency(recognition) == "JPY" &&
+            uk.thewyj.app.finance.CurrencyRuntimePreferences.sourceExponent(app,accountId,recognition.sourceEventId,recognition.currency) != 0 && manualCandidate?.editedAmountMinor == null)
+            return BookResult(false,"旧日元单位待核实，请重新填写原币金额")
         if (authorityOf(recognition) == Authority.SERVER) {
             // Captured with an amount, so the server already owns the candidate.
             // Booking again here would create a second transaction for one
@@ -421,7 +499,12 @@ class PaymentVerificationCenter(
             parseStatus = ParseStatus.PARSED,
             direction = direction,
             amountMinor = draft.amountMinor,
-            currency = "CNY",
+            currency = hook.effectiveCurrency(recognition),
+            amountExponent = uk.thewyj.app.finance.CurrencyMoney.digits[hook.effectiveCurrency(recognition)],
+            providerReference = recognition.providerReference,
+            financialPhase = recognition.financialPhase, lifecycleReference = recognition.lifecycleReference,
+            lifecycleOperation = recognition.lifecycleOperation, lifecycleRevision = recognition.lifecycleRevision,
+            referenceNamespace = recognition.referenceNamespace, currencyEvidence = recognition.currencyEvidence,
             paymentChannel = recognition.paymentChannel,
             merchant = draft.merchant,
             counterparty = draft.merchant,
@@ -432,9 +515,14 @@ class PaymentVerificationCenter(
             occurredAtMs = draft.occurredAtMs,
             receivedAtMs = draft.occurredAtMs,
         )
+        val currencyDecision = event.currency != recognition.currency ||
+            recognition.identityReviewReason in setOf("currency_review_required","currency_symbol_ambiguous","currency_amount_unproven") ||
+            (recognition.currency=="JPY"&&uk.thewyj.app.finance.CurrencyRuntimePreferences.sourceExponent(app,accountId,recognition.sourceEventId,recognition.currency)!=0)
+        val operationId=if(currencyDecision)"currency-confirm:$eventId" else eventId
         val enqueued = runCatching {
-            pipeline.enqueue(eventId, StructuredEventJson.ingestPayload("1", accountDeviceId(), eventId, event))
-        }.isSuccess
+            if(currencyDecision)pipeline.enqueueCurrencyConfirmation(accountId,operationId,eventId,event.currency,draft.amountMinor,draft.direction,draft.merchant,draft.occurredAtMs)
+            else pipeline.enqueue(eventId, StructuredEventJson.ingestPayload("1", accountDeviceId(), eventId, event))
+        }.getOrDefault(false)
         if (!enqueued) return BookResult(false, "记账请求保存失败，请重试")
 
         if (recognition.uploadEventId.isBlank()) {
@@ -446,7 +534,7 @@ class PaymentVerificationCenter(
         }
 
         val flush = runCatching { pipeline.flushDetailed() }.getOrNull()
-        val outcome = flush?.outcomes?.firstOrNull { it.operationId == eventId }
+        val outcome = flush?.outcomes?.firstOrNull { it.operationId == operationId }
         if (outcome?.transactionId?.isNotBlank() == true) {
             CanonicalPendingCache(app, accountId).terminalize(setOf(eventId), "confirmed", outcome.transactionId)
             runCatching {
@@ -456,7 +544,7 @@ class PaymentVerificationCenter(
         }
         // The server refused the payload: report the real reason instead of an
         // endless "waiting to sync" that never completes.
-        val rejection = flush?.rejected?.firstOrNull { it.operationId == eventId }
+        val rejection = flush?.rejected?.firstOrNull { it.operationId == operationId }
         if (rejection != null) {
             return BookResult(
                 ok = false,
@@ -464,7 +552,7 @@ class PaymentVerificationCenter(
                 syncState = SyncState.SYNC_REJECTED,
             )
         }
-        val stillQueued = pipeline.queuedOperationIds().contains(eventId)
+        val stillQueued = pipeline.queuedOperationIds().contains(operationId)
         return if (stillQueued) {
             BookResult(
                 true,
@@ -532,7 +620,7 @@ class PaymentVerificationCenter(
     companion object {
         fun requiresManualOcrReview(candidate: PaymentCandidate): Boolean =
             candidate.reason == "ocr_amount_suggestion" && candidate.editedAmountMinor == null &&
-                !PaymentAutoBook.eligible(candidate.effectiveAmountMinor, candidate.effectiveDirection)
+                !PaymentAutoBook.hasCompleteMoney(candidate.effectiveAmountMinor, candidate.effectiveDirection)
 
         val ATTENTION_STATES = listOf(
             PaymentRecognitionState.DETECTED_AMOUNT_UNKNOWN.name,
