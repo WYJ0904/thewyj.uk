@@ -1,5 +1,6 @@
 import copy
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -244,7 +245,7 @@ class ReleaseProposalTests(unittest.TestCase):
         with self.assertRaises(ValueError): validate_receipt(self.receipt, self.candidate, {**self.readback, 'sha256': 'd' * 64})
 
     def test_metadata_all_channels_and_pointer_are_one_consistent_proposal(self):
-        stable, config = copy.deepcopy(self.baseline), json.loads((ROOT / 'wrangler.jsonc').read_text())
+        stable, config = copy.deepcopy(self.baseline), json.loads((ROOT / 'wrangler.jsonc').read_text(encoding='utf-8'))
         original_stable, original_config = copy.deepcopy(stable), copy.deepcopy(config)
         meta, proposal = proposed_configuration(stable, config, self.candidate, '2026-10-07', 'task25-release-49', 'Task 25 release')
         for values in [proposal['vars'], proposal['env']['preview']['vars'], proposal['env']['production']['vars']]:
@@ -261,9 +262,9 @@ class ReleaseProposalTests(unittest.TestCase):
 
     def test_proposal_passes_both_existing_release_guards_with_history_preserved(self):
         stable = copy.deepcopy(self.baseline)
-        meta, config = proposed_configuration(stable, json.loads((ROOT / 'wrangler.jsonc').read_text()),
+        meta, config = proposed_configuration(stable, json.loads((ROOT / 'wrangler.jsonc').read_text(encoding='utf-8')),
             self.candidate, '2026-10-07', 'task25-release-49', '- 体验通道与版本更新。')
-        original_changelog = (ROOT / 'changelog.js').read_text()
+        original_changelog = (ROOT / 'changelog.js').read_text(encoding='utf-8')
         changelog = proposed_changelog(original_changelog, meta)
         self.assertIn(stable['releaseBuild'], changelog)
         with self.assertRaises(ValueError): proposed_changelog(changelog, meta)
@@ -271,22 +272,23 @@ class ReleaseProposalTests(unittest.TestCase):
             root = Path(directory)
             (root / 'android/app').mkdir(parents=True)
             (root / 'scripts').mkdir()
-            gradle = (ROOT / 'android/app/build.gradle.kts').read_text()
+            gradle = (ROOT / 'android/app/build.gradle.kts').read_text(encoding='utf-8')
             # This is a frozen Task25 fixture, independent of later release defaults.
             gradle, codes = re.subn(r'versionCode\s*=\s*\d+\b', 'versionCode = 49', gradle, count=1)
             gradle, names = re.subn(r'versionName\s*=\s*"[0-9.]+"', 'versionName = "1.3.36"', gradle, count=1)
             self.assertEqual(codes, 1)
             self.assertEqual(names, 1)
-            (root / 'android/app/build.gradle.kts').write_text(gradle)
-            (root / 'android/release-metadata.json').write_text(json.dumps(meta))
-            (root / 'wrangler.jsonc').write_text(json.dumps(config))
-            (root / 'changelog.js').write_text(changelog)
+            (root / 'android/app/build.gradle.kts').write_text(gradle, encoding='utf-8')
+            (root / 'android/release-metadata.json').write_text(json.dumps(meta), encoding='utf-8')
+            (root / 'wrangler.jsonc').write_text(json.dumps(config), encoding='utf-8')
+            (root / 'changelog.js').write_text(changelog, encoding='utf-8')
             shutil.copyfile(ROOT / 'index.html', root / 'index.html')
             for script in ['check_android_release_consistency.py', 'check_android_release.mjs']:
                 shutil.copyfile(ROOT / 'scripts' / script, root / 'scripts' / script)
             for command in [[sys.executable, str(root / 'scripts/check_android_release_consistency.py')],
                             ['node', str(root / 'scripts/check_android_release.mjs')]]:
-                result = subprocess.run(command, cwd=root, capture_output=True, text=True)
+                result = subprocess.run(command, cwd=root, capture_output=True, text=True, encoding='utf-8',
+                    env={**os.environ, 'PYTHONIOENCODING': 'utf-8'})
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 

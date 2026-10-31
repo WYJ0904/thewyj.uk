@@ -61,9 +61,16 @@ jobs:
           retention-days: 90
 
   python-tests:
-    name: Python syntax and unittest
-    runs-on: ubuntu-latest
+    name: Python syntax and unittest (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: utf-8
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -102,6 +109,7 @@ jobs:
         run: |
           set -euo pipefail
           python scripts/check_android_release_consistency.py 2>&1 | tee artifacts/android-release-consistency.log
+          python -m unittest scripts.test_check_android_release_consistency -v 2>&1 | tee artifacts/android-release-consistency-tests.log
 
       - name: Test CI service readiness helper
         run: |
@@ -142,10 +150,48 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: python-reports-${{ github.run_attempt }}
+          name: python-reports-${{ matrix.os }}-${{ github.run_attempt }}
           path: artifacts/
           if-no-files-found: warn
           retention-days: 7
+
+  pages-build:
+    name: Pages build and publish allowlist
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install pinned build tooling
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Reject private, unreviewed and redirected staging inputs
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/aeris-release
+          node --test scripts/test_stage_pages_deploy.mjs 2>&1 | tee artifacts/aeris-release/pages-stage-tests.txt
+      - name: Build and independently verify exact publish bytes
+        run: |
+          set -euo pipefail
+          npm run build
+          node qa/aeris-release/ci-pages-build.mjs artifacts/aeris-release/pages-build-first.json
+          npm run build
+          node qa/aeris-release/ci-pages-build.mjs artifacts/aeris-release/pages-build-second.json
+          cmp artifacts/aeris-release/pages-build-first.json artifacts/aeris-release/pages-build-second.json
+      - name: Upload build audit evidence only
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pages-build-audit-${{ github.run_attempt }}
+          path: artifacts/aeris-release/
+          if-no-files-found: error
+          retention-days: 30
 
   javascript-static-tests:
     name: JavaScript and static site checks
@@ -312,6 +358,7 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_core_js.mjs 2>&1 | tee artifacts/javascript-core.log
+          node local-backend/test_capabilities_js.mjs 2>&1 | tee artifacts/javascript-capabilities.log
           node local-backend/test_home_widgets_js.mjs 2>&1 | tee artifacts/home-widgets-unit.log
           node local-backend/test_aeris_p5_js.mjs 2>&1 | tee artifacts/aeris-p5-ownership-unit.log
           node local-backend/test_aeris_public_js.mjs 2>&1 | tee artifacts/aeris-p3-public-unit.log
@@ -581,7 +628,7 @@ jobs:
 
   task25-android-instrumentation:
     name: Task 25 Android runtime contract
-    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b'
+    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b' || github.head_ref == 'codex/aeris-ci-release-guards'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -632,6 +679,7 @@ jobs:
       - python-tests
       - javascript-static-tests
       - sensitive-file-check
+      - pages-build
       - android-tests
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -803,6 +851,7 @@ jobs:
       - python-tests
       - javascript-static-tests
       - sensitive-file-check
+      - pages-build
       - android-tests
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -823,7 +872,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: "24"
+          node-version: "22"
 
       - name: Set up Python readiness helper
         uses: actions/setup-python@v7
@@ -851,6 +900,13 @@ jobs:
           sudo apt-get install -y fonts-noto-cjk
 
       - name: Prepare fresh Cloudflare-only D1 state
+        run: |
+          set -euo pipefail
+          node qa/ci/test-failure-diagnostics.mjs
+          node qa/ci/test-wrangler-local-disconnect.mjs
+          node qa/ci/wrangler-local-disconnect.mjs
+
+      - name: Apply fresh Cloudflare-only D1 migrations
         run: |
           set -euo pipefail
           mkdir -p artifacts "${RUNNER_TEMP}/task15-cloud-state"
@@ -975,6 +1031,11 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_transfer_browser_e2e.mjs 2>&1 | tee artifacts/transfer-browser-e2e.log
+
+      - name: Transfer responsive layout with isolated member data
+        run: |
+          set -euo pipefail
+          node local-backend/test_transfer_responsive.mjs 2>&1 | tee artifacts/transfer-responsive.log
 
       - name: Browser audit of instant interaction feedback across modules
         run: |

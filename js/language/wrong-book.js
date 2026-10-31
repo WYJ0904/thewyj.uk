@@ -4,8 +4,8 @@ import {
   sanitizeAccepted,
   sanitizeStoredRubric,
   wordMatchesLanguage,
-} from "./quiz.js?v=20261015-aeris-wrong-review-v1";
-import { sanitizeWrongReview, mergeWrongReview, mergeWrongCounts } from './wrong-review.js?v=20261015-aeris-wrong-review-v1';
+} from "./quiz.js?v=20261031-aeris-task26-p0";
+import { sanitizeWrongReview, mergeWrongReview, mergeWrongCounts } from './wrong-review.js?v=20261031-aeris-task26-p0';
 
 export const MAX_WRONG_BOOK_ITEMS = 250;
 

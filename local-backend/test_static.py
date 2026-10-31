@@ -136,8 +136,10 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         for asset in ("design-system.css", "public-experience.css", "workspace-experience.css"):
             self.assertIn(f'  "{asset}",', stage_script)
-        self.assertNotIn('.tool-e2e', stage_script)
-        self.assertIn('"pages:stage": "node scripts/stage_pages_deploy.mjs"', (ROOT / "package.json").read_text(encoding="utf-8"))
+        self.assertIn('".tool-e2e"', stage_script)
+        package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
+        self.assertEqual(package["scripts"]["pages:stage"], "node scripts/stage_pages_deploy.mjs")
+        self.assertEqual(package["scripts"]["build"], "npm run pages:stage && node scripts/check_pages_output.mjs")
         server = (ROOT / "local-backend" / "server.py").read_text(encoding="utf-8")
         self.assertIn('APP_BUILD = "2026-08-22-learning-sync-record-id"', server)
         self.assertIn('"/trial", "/changelog"', server)
@@ -644,7 +646,12 @@ class StaticSiteTests(unittest.TestCase):
         config_text = (ROOT / "wrangler.jsonc").read_text(encoding="utf-8")
         config = json.loads(config_text)
         self.assertEqual(config["name"], "thewyj-uk")
+        # V2 output contract: publish only audited staging assets. Publishing
+        # the repository root would expose development and evidence files.
         self.assertEqual(config["pages_build_output_dir"], ".wrangler/pages-output")
+        output = (ROOT / config["pages_build_output_dir"]).resolve()
+        self.assertTrue(output.is_relative_to((ROOT / ".wrangler").resolve()))
+        self.assertNotEqual(output, ROOT.resolve())
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
         self.assertEqual(package["scripts"]["build"], "npm run pages:stage && node scripts/check_pages_output.mjs")
         self.assertEqual(config["compatibility_date"], "2026-08-06")
