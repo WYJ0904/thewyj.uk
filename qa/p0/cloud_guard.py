@@ -22,9 +22,12 @@ class Cloud:
   try:
    with urllib.request.urlopen(req,timeout=35)as r:data=json.load(r)
   except urllib.error.HTTPError as error:
-   try:codes=[str(e.get('code'))for e in json.load(error).get('errors',[])]
-   except Exception:codes=[]
-   raise RuntimeError('Cloudflare HTTP '+str(error.code)+'; codes='+','.join(codes))from None
+   try:
+    errors=json.load(error).get('errors',[]);codes=[str(e.get('code'))for e in errors]
+    # Only static service validation messages; never headers/request bodies.
+    reason=';'.join(str(e.get('message',''))for e in errors).replace(self.token,'[redacted]')[:160]
+   except Exception:codes=[];reason=''
+   raise RuntimeError('Cloudflare HTTP '+str(error.code)+'; route='+route+'; codes='+','.join(codes)+'; '+reason)from None
   assert data.get('success')is True,'Cloudflare request did not succeed'
   return data['result']
 def eligible(cfg,branch):
