@@ -1433,7 +1433,7 @@ async function main() {
       assert.ok(rejudgeTouchResult.open, `mobile rejudge form did not open: ${JSON.stringify(rejudgeTouchResult)}`);
       await setFields({ ".wrong-rejudge-input": "你好" });
       await tap(".wrong-rejudge-submit");
-      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0", 6_000, "wrong answer rejudged and removed");
+      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 1 && state.currentWrongBook.hello?.rejudge_result === 'correct' && state.historyWrongBook.hello?.rejudge_result === 'correct'", 6_000, "wrong answer corrected with history retained");
       await waitFor("!document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定正确'", 4_000, "correct rejudge result modal");
       await evaluate(`(() => {
         document.querySelector('#rejudgeResultModal').click();
@@ -1463,7 +1463,7 @@ async function main() {
       assert.equal(rejudgeModalState.position, "fixed");
       assert.ok(rejudgeModalState.zIndex >= 9000, JSON.stringify(rejudgeModalState));
       assert.ok(rejudgeModalState.top >= 0 && rejudgeModalState.bottom <= rejudgeModalState.viewportHeight + 1, JSON.stringify(rejudgeModalState));
-      assert.ok(rejudgeModalState.message.includes("已从错题本移除"), rejudgeModalState.message);
+      assert.ok(rejudgeModalState.message.includes("历史保留") && rejudgeModalState.message.includes("尚不代表已掌握"), rejudgeModalState.message);
       assert.ok(!(await evaluate("document.querySelector('#wrongActionMessage').textContent")).includes("重新作答正确"));
       const rejudgeModalShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       fs.writeFileSync(path.join(TEST_ROOT, `rejudge-result-modal-390-${RUN_ID}.png`), Buffer.from(rejudgeModalShot.data, "base64"));
@@ -1477,6 +1477,12 @@ async function main() {
       );
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       await send("Emulation.setTouchEmulationEnabled", { enabled: false });
+      assert.equal(await evaluate('state.currentWrongBook.hello.wrong_count'),1);
+      assert.equal(await evaluate('state.historyWrongBook.hello.wrong_count'),2);
+      // The next fixture starts only after an explicit user deletion. A correct
+      // rejudge above must never perform this cleanup automatically.
+      await click('.wrong-remove-button');await click('#acceptConfirmBtn');
+      await click('#clearHistoryBtn');await click('#acceptConfirmBtn');
       await setFiles("#wrongDataFileInput", [wrongNoRubricFile]);
       await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 1", 6_000, "wrong data reimport");
       await waitFor("state.currentWrongBook.network?.correct_answer === '' && state.historyWrongBook.network?.correct_answer === ''", 4_000, "missing rubric imported durably");
@@ -1619,20 +1625,20 @@ async function main() {
       await tap(".wrong-rejudge-submit");
       await waitFor("!document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定仍不正确'", 12_000, "scenario A incorrect retry modal");
       assert.ok((await evaluate("document.querySelector('#rejudgeResultMessage').textContent")).includes("错误次数未增加"));
-      assert.equal(await evaluate("document.querySelector('.wrong-rejudge-status').textContent"), "可重新作答；答错不会增加错误次数");
+      assert.ok((await evaluate("document.querySelector('.wrong-rejudge-status').textContent")).includes("可重新判定"));
       assert.ok(!(await evaluate("document.querySelector('#wrongActionMessage').textContent")).includes("仍不正确"));
       await tap("#rejudgeResultConfirmBtn");
       assert.equal(await evaluate("Number(document.querySelector('.wrong-item-actions strong').textContent.replace(/\\D/g, ''))"), originalWrongCount);
       await tap(".wrong-rejudge-button");
       await setFields({ ".wrong-rejudge-input": "测试释义" });
       await tap(".wrong-rejudge-submit");
-      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0 && !document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定正确'", 12_000, "scenario A correct retry removal modal");
+      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 1 && state.currentWrongBook.amber?.rejudge_result === 'correct' && !document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定正确'", 12_000, "scenario A correct retry preserves the original record");
       await tap("#rejudgeResultConfirmBtn");
-      assert.equal(await evaluate("Object.keys(state.currentWrongBook).length"), 0);
-      assert.equal(await evaluate("Object.keys(state.historyWrongBook).includes('amber')"), false);
+      assert.equal(await evaluate("Object.keys(state.currentWrongBook).length"), 1);
+      assert.equal(await evaluate("state.historyWrongBook.amber.rejudge_result"), 'correct');
       await reloadEnglishWorkspace();
       await tap('[data-view="wrongView"]');
-      assert.equal(await evaluate("Object.keys(state.currentWrongBook).includes('amber') || Object.keys(state.historyWrongBook).includes('amber')"), false);
+      assert.equal(await evaluate("state.currentWrongBook.amber.rejudge_result === 'correct' && state.historyWrongBook.amber.rejudge_result === 'correct'"), true);
       await tap('[data-view="quizView"]');
       if (await evaluate("Boolean(state.pendingAdvance)")) await tap("#nextNowBtn");
       await waitFor("document.querySelector('#progressLabel')?.textContent === '2/3'", 5_000, "scenario A resumes question 2");
@@ -1652,7 +1658,7 @@ async function main() {
       assert.equal(await evaluate("state.pendingAdvance === null && state.answerLocked === false"), true);
 
       // C: skipping uses the standard rubric, displays it, and supports a new correct answer.
-      await startMeaningRound(["garden", "harbor", "island"]);
+      const skippedRoundWords = await startMeaningRound(["garden", "harbor", "island"]);
       await tap("#skipBtn");
       await waitFor("document.querySelector('#resultTitle')?.textContent === '已跳过' && state.pendingAdvance && !state.busy", 15_000, "scenario C skip feedback");
       const skippedFeedback = await evaluate("document.querySelector('#resultGloss').textContent");
@@ -1664,8 +1670,8 @@ async function main() {
       await tap(".wrong-rejudge-button");
       await setFields({ ".wrong-rejudge-input": "测试释义" });
       await tap(".wrong-rejudge-submit");
-      await waitFor("document.querySelectorAll('#wrongList .wrong-item').length === 0 && !document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定正确'", 12_000, "scenario C skipped item removed modal");
-      assert.ok((await evaluate("document.querySelector('#rejudgeResultMessage').textContent")).includes("已从错题本移除"));
+      await waitFor(`document.querySelectorAll('#wrongList .wrong-item').length === 1 && state.currentWrongBook[${JSON.stringify(skippedRoundWords[0])}]?.rejudge_result === 'correct' && !document.querySelector('#rejudgeResultModal')?.classList.contains('hidden') && document.querySelector('#rejudgeResultTitle')?.textContent === '重新判定正确'`, 12_000, "scenario C skipped verdict corrected with history retained");
+      assert.ok((await evaluate("document.querySelector('#rejudgeResultMessage').textContent")).includes("历史保留"));
       await tap("#rejudgeResultConfirmBtn");
       assert.equal(await evaluate("state.roundSkipped"), 0);
       assert.equal(await evaluate("state.score"), 1);

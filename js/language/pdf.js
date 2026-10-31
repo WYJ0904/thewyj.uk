@@ -196,7 +196,7 @@ export async function createWrongBookPdf(wrongBook, options = {}, documentRef = 
     page.context.stroke();
     page.y += 18;
     const wrongCount = Number(info.wrong_count || 0);
-    await drawText(`${index + 1}. ${safeText(word, 240)}  [${skipped ? "已跳过" : `错 ${Number.isFinite(wrongCount) ? Math.max(0, wrongCount) : 0} 次`}]`, { size: 27, lineHeight: 38, weight: 700, color: "#0f172a", after: 5 });
+    await drawText(`${index + 1}. ${safeText(info.word || word, 240)}  [${skipped ? "已跳过" : `错 ${Number.isFinite(wrongCount) ? Math.max(0, wrongCount) : 0} 次`}]`, { size: 27, lineHeight: 38, weight: 700, color: "#0f172a", after: 5 });
     await drawText(skipped ? "我的答案：已跳过" : `我的答案：${safeText(info.last_answer, 240) || "（未作答）"}`, { size: 20, lineHeight: 30, indent: 18 });
     await drawText(`正确答案：${safeText(info.correct_answer, 240) || "（未保存）"}`, { size: 20, lineHeight: 30, indent: 18, weight: 600 });
     if (accepted.length) await drawText(`可接受答案：${safeText(accepted.join("、"), 600)}`, { size: 18, lineHeight: 28, indent: 18, color: "#475569" });
