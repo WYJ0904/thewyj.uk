@@ -1,5 +1,5 @@
-import {currencyDigits,moneyText,SUPPORTED_CURRENCIES} from './money.js';
-import {formatFinanceMoney} from './format.js';
+import {currencyDigits,moneyText,SUPPORTED_CURRENCIES} from './money.js?v=20261031-aeris-p0-finance-r1';
+import {formatFinanceMoney} from './format.js?v=20261031-aeris-p0-finance-r1';
 
 const ROLES=['actual_paid','actual_received','original','discount','balance','fee','refund','unknown'];
 const CATEGORIES=['food','transport','shopping','housing','health','education','entertainment','income','transfer','refund','other'];

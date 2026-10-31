@@ -35,7 +35,7 @@ def config(r):
   ANDROID_LATEST_VERSION_CODE='50',ANDROID_LATEST_VERSION_NAME='1.3.37',ANDROID_MINIMUM_VERSION_CODE='1')
  if r.get('controlled_notification_tests') is True:
   # Deliberate second stage, only on resources created/validated above.
-  flags.update(TASK13_CLOUD_WRITES_ENABLED='true',TASK21_NOTIFICATION_READS_ENABLED='true',TASK21_NOTIFICATION_WRITES_ENABLED='true')
+  flags.update(TASK13_CLOUD_WRITES_ENABLED='true',TASK13_PAYMENT_PRIMARY_ENABLED='true',TASK21_NOTIFICATION_READS_ENABLED='true',TASK21_NOTIFICATION_WRITES_ENABLED='true')
  binding=dict(binding='WYJ_DB',database_name=DBNAME,database_id=r['database_id'],migrations_table='wyj_d1_migrations',migrations_dir=str(ROOT/'cloudflare/migrations'))
  return dict(name=PROJECT,pages_build_output_dir='.',compatibility_date='2026-08-06',send_metrics=False,
   vars=flags,d1_databases=[binding],env=dict(preview=dict(vars=dict(flags),d1_databases=[dict(binding)])))

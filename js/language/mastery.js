@@ -1,6 +1,6 @@
-import { getSafeStorage, safeStorageSet } from '../core/storage.js?v=20261027-aeris-p07-ui-r1';
-import { emptyLearningStore, parseLearningStore, masteryStorageKey, parseIssuedQuestion, parseMasterySummary, parseAnswerReceipt, enqueueAnswer, acknowledgeAnswer, acceptSummaryCache } from './mastery-state.js?v=20261027-aeris-p07-ui-r1';
-import {createMasteryJournal} from './mastery-journal.js?v=20261027-aeris-p07-ui-r1';
+import { getSafeStorage, safeStorageSet } from '../core/storage.js?v=20261031-aeris-p0-finance-r1';
+import { emptyLearningStore, parseLearningStore, masteryStorageKey, parseIssuedQuestion, parseMasterySummary, parseAnswerReceipt, enqueueAnswer, acknowledgeAnswer, acceptSummaryCache } from './mastery-state.js?v=20261031-aeris-p0-finance-r1';
+import {createMasteryJournal} from './mastery-journal.js?v=20261031-aeris-p0-finance-r1';
 
 const LABELS={new:'尚未学习',learning:'学习中',familiar:'较熟悉',mastered:'已掌握',needs_review:'待复习'};
 const REASONS={new:'新知识',weak:'巩固弱项',due:'到期复习',learning:'继续学习',spot:'掌握抽查'};

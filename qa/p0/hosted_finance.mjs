@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {randomUUID,createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
 import {currencyDigits,moneyText,convertMinor} from '../../js/finance/money.js';
 const root=path.resolve(import.meta.dirname,'../..'),base=path.join(root,'docs/migration-evidence/aeris-p0-closeout/cloud');
 const label=process.argv[2];assert.match(label||'',/^[a-z0-9-]+$/);
@@ -27,8 +28,11 @@ async function check(id,fn){try{rows.push({id,status:'PASS',actual:await fn()});
 async function login(i){token='';const r=await request('/api/login',{username:users[i].username,secret:users[i].secret});assert.equal(r.status,200,r.code);assert.equal(r.account.id,users[i].id);assert.ok(r.session);token=r.session;userId=r.account.id;return {account_id:userId};}
 const sync=op=>request('/api/finance/sync',{schema_version:1,device_id:'synthetic-p0-browser',platform:'web',since_version:0,operations:[op]});
 await check('immutable-source-metadata',async()=>{const r=await fetch(origin+'/__preview/build.json',{redirect:'error'});assert.equal(r.status,200);assert.deepEqual(await r.json(),s.metadata);return {commit:d.source_commit,tree:s.metadata.source_tree_sha256};});
-await check('public-static-exact-bytes',async()=>{const files=Object.entries(s.files).filter(([name])=>!name.startsWith('functions/'));let checked=0;
- for(const [name,expected] of files){let r;try{r=await fetch(origin+'/'+name,{redirect:'error',signal:AbortSignal.timeout(20000)});}catch(error){throw Error('Static read failed at '+name,{cause:error});}assert.equal(r.status,200,name);const hash=createHash('sha256').update(Buffer.from(await r.arrayBuffer())).digest('hex');assert.equal(hash,expected,name);checked++;}return {checked};});
+await check('public-static-exact-bytes',async()=>{const output=path.join(out,'static-proof');const r=spawnSync(process.env.P0_PYTHON||'python',[path.join(root,'qa/p0/verify_public.py'),'--out',output],{cwd:root,encoding:'utf8',windowsHide:true});
+ await fs.writeFile(path.join(out,'static-proof.log'),(r.stdout||'')+(r.stderr||''),{flag:'wx'});assert.equal(r.status,0,'Read-only Python HTTPS proof failed; inspect retained per-file evidence');
+ const proof=JSON.parse(await fs.readFile(path.join(output,'result.json'),'utf8'));assert.equal(proof.source_commit,d.source_commit);assert.equal(proof.deployment_id,d.id);
+ assert.equal(proof.rows.length,Object.keys(s.files).filter(name=>!name.startsWith('functions/')).length);
+ for(const row of proof.rows){assert.equal(row.status,'PASS',row.path);assert.equal(row.actual_sha256,s.files[row.path]);}return {checked:proof.rows.length,transport:'Python HTTPS with default verified TLS/proxy; original Node failures retained'};});
 await check('normal-qa-admin-authentication',()=>login(0));
 if(token){
  await check('owned-user-finance-entitlement-only',async()=>{const r=await request('/api/admin/entitlement',{user_id:users[1].id,entitlement:'finance_access',allowed:true,note:'Synthetic owned P0 QA only; no formal membership changed'});assert.equal(r.status,200,r.code);return {target:users[1].id};});
