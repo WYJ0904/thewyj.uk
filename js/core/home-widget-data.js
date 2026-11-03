@@ -13,7 +13,7 @@ export function projectHomeWidgets({ demo=false, records=[], wrongCount=0, strea
   const learnState=latest?'ready':learningStatus.status==='failed'?'error':learningStatus.status==='syncing'?'loading':'empty';
   const learnStatus=learningStatus.status==='failed'?'同步未完成 · 本机记录保留':learningStatus.status==='syncing'?'同步中':online?'学习记录':'离线 · 本机记录';
   const goalText=goals.map(x=>`${language(x.language)} ${x.completed} / ${x.goal} 题`).join(' · ');
-  const finState=financeKnown?'ready':online?'loading':'error',finValue=value=>financeKnown?money(value):online?'尚未读取':'暂时不可用';
+  const finState=financeKnown?'ready':online?'loading':'error',finValue=value=>financeKnown?money(value,finance.display_currency||'CNY')+(finance.unconverted?.length?' · 部分未换算':''):online?'尚未读取':'暂时不可用';
   const finStatus=financeKnown?(online?'账户账本摘要':'离线 · 缓存摘要'):(online?'打开账本读取':'联网后打开账本重试');
   const recent=tools.recent||[],favorites=tools.favorites||[],toolState=toolsReady?'empty':online?'loading':'error';
   const activity=[...sorted.slice(0,3).map(x=>({id:'learning:'+x.id,at:x.finishedAt,label:`完成了 ${x.total} 道${language(x.language)}练习题`,path:'learning'})),...recent.slice(0,3).filter(x=>Number.isFinite(Date.parse(x.used_at))).map(x=>({id:'tool:'+x.tool_id,at:x.used_at,label:`使用了${x.name||x.tool_id}`,path:'/tools/'+encodeURIComponent(x.tool_id)}))].sort((a,b)=>Date.parse(b.at)-Date.parse(a.at)).slice(0,4);

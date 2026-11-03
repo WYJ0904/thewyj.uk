@@ -1,0 +1,283 @@
+{
+  "owner_contract_version": 2,
+  "frozen_fixture_sha256": "a33d021d9919b5a7ada4ef6af6e548c88b2f2c278418df2ae6fdf9e67acc90ab",
+  "rows": [
+    {
+      "case_id": "F001",
+      "original_status": "NOT_TESTED",
+      "original_expected": {
+        "module": "NOT_IMPLEMENTED",
+        "candidate_amounts": [
+          64800,
+          69800,
+          5000,
+          35200
+        ],
+        "decision": "accept"
+      },
+      "original_scenario": "valid_candidate",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "A suggestion requires roles-2 and proven input, followed by explicit human confirmation; legacy accept is not authority to book.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": true
+    },
+    {
+      "case_id": "F002",
+      "original_status": "NOT_TESTED",
+      "original_expected": {
+        "module": "NOT_IMPLEMENTED",
+        "candidate_amounts": [
+          64800,
+          69800,
+          5000,
+          35200
+        ],
+        "decision": "review"
+      },
+      "original_scenario": "hallucinated_amount",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "Invented amounts must be rejected against exact candidate IDs/minor units.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": true
+    },
+    {
+      "case_id": "F003",
+      "original_status": "NOT_TESTED",
+      "original_expected": {
+        "module": "NOT_IMPLEMENTED",
+        "candidate_amounts": [
+          64800,
+          69800,
+          5000,
+          35200
+        ],
+        "decision": "review"
+      },
+      "original_scenario": "wrong_currency",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "Currency mismatch is rejected; no implicit currency conversion or CNY default.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": true
+    },
+    {
+      "case_id": "F004",
+      "original_status": "NOT_TESTED",
+      "original_expected": {
+        "module": "NOT_IMPLEMENTED",
+        "candidate_amounts": [
+          64800,
+          69800,
+          5000,
+          35200
+        ],
+        "decision": "review"
+      },
+      "original_scenario": "wrong_state",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "Completion/state evidence is checked before provider invocation; a model cannot settle a payment.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": true
+    },
+    {
+      "case_id": "F005",
+      "original_status": "NOT_TESTED",
+      "original_expected": {
+        "module": "NOT_IMPLEMENTED",
+        "candidate_amounts": [
+          64800,
+          69800,
+          5000,
+          35200
+        ],
+        "decision": "review"
+      },
+      "original_scenario": "invalid_json",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "The frozen invalid_json label carries a normal object, not invalid JSON bytes. Do not invent a malformed response to replace it; modern malformed-provider tests remain separate.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": true
+    },
+    {
+      "case_id": "F006",
+      "original_status": "NOT_TESTED",
+      "original_expected": {
+        "module": "NOT_IMPLEMENTED",
+        "candidate_amounts": [
+          64800,
+          69800,
+          5000,
+          35200
+        ],
+        "decision": "review"
+      },
+      "original_scenario": "timeout",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "The frozen timeout label is not an actual timeout. Modern bounded calls/retries are independently tested.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": true
+    },
+    {
+      "case_id": "F007",
+      "original_status": "NOT_TESTED",
+      "original_expected": {
+        "module": "NOT_IMPLEMENTED",
+        "candidate_amounts": [
+          64800,
+          69800,
+          5000,
+          35200
+        ],
+        "decision": "review"
+      },
+      "original_scenario": "http_error",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "The frozen http_error label is not an HTTP failure. Actual structured HTTP error tests are independent.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": true
+    },
+    {
+      "case_id": "F008",
+      "original_status": "NOT_TESTED",
+      "original_expected": {
+        "module": "NOT_IMPLEMENTED",
+        "candidate_amounts": [
+          64800,
+          69800,
+          5000,
+          35200
+        ],
+        "decision": "no_call"
+      },
+      "original_scenario": "revoked",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "Revocation stops future calls and preserves core accounting; no source provenance may be fabricated.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": true
+    },
+    {
+      "case_id": "F009",
+      "original_status": "NOT_TESTED",
+      "original_expected": {
+        "module": "NOT_IMPLEMENTED",
+        "candidate_amounts": [
+          64800,
+          69800,
+          5000,
+          35200
+        ],
+        "decision": "review"
+      },
+      "original_scenario": "offline",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "Offline review/recovery is safe; no fake model result or account session.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": true
+    },
+    {
+      "case_id": "F010",
+      "original_status": "NOT_TESTED",
+      "original_expected": {
+        "module": "NOT_IMPLEMENTED",
+        "candidate_amounts": [
+          64800,
+          69800,
+          5000,
+          35200
+        ],
+        "decision": "no_call"
+      },
+      "original_scenario": "rule_unambiguous",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "A rule-determined, independently proven event does not need AI.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": true
+    },
+    {
+      "case_id": "F011",
+      "original_status": "NOT_TESTED",
+      "original_expected": {
+        "module": "NOT_IMPLEMENTED",
+        "candidate_amounts": [
+          64800,
+          69800,
+          5000,
+          35200
+        ],
+        "decision": "no_call"
+      },
+      "original_scenario": "consent_absent",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "No consent means zero provider calls.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": true
+    },
+    {
+      "case_id": "F012",
+      "original_status": "NOT_TESTED",
+      "original_expected": {
+        "module": "NOT_IMPLEMENTED",
+        "candidate_amounts": [
+          64800,
+          69800,
+          5000,
+          35200
+        ],
+        "decision": "review"
+      },
+      "original_scenario": "sensitive_fields",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "Observable business fields equal F001 although legacy decisions differ. Sensitive/raw fields are forbidden; no fabricated distinguishing source proof.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": true
+    },
+    {
+      "case_id": "F013",
+      "original_status": "NOT_TESTED",
+      "original_expected": "retain_conflict_evidence_and_review",
+      "original_scenario": "rule_ai_conflict",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "Preserve conflicting evidence and review; suggestions cannot override trusted source facts.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": false
+    },
+    {
+      "case_id": "F014",
+      "original_status": "NOT_TESTED",
+      "original_expected": "book_credible_candidate_with_review_marker",
+      "original_scenario": "credible_candidate_uncertain_ai",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "Only an independently proven rules path may book; uncertain AI never adds booking authority.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": false
+    },
+    {
+      "case_id": "F015",
+      "original_status": "NOT_TESTED",
+      "original_expected": "discard_late_response_and_stop_further_calls",
+      "original_scenario": "consent_revoked_while_inflight",
+      "classification": "SUPERSEDED_BY_V2_PROTOCOL_ORIGINAL_STATUS_RETAINED",
+      "v2_rule": "Discard an in-flight result after consent/source/account revision changes; no further provider call.",
+      "legacy_original_pass_claimed": false,
+      "independent_evidence": "protocol-after/result.json plus current AI quality76, roles23, recovery14 and model-boundary8; scope must be read per suite",
+      "legacy_rejection_probe": false
+    }
+  ],
+  "notes": [
+    "Twelve original v1 packets were actually rejected without new proof. F013-F015 are separate frozen scenarios.",
+    "Independent safety PASS does not change frozen NOT_TESTED to PASS."
+  ]
+}

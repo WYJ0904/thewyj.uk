@@ -135,9 +135,10 @@ test("missing required source fails before changing an existing build", async (t
 
 test("reviewed transaction-evidence source remains deployable without permitting QA evidence", async (t) => {
   const root = await fixture(t);
-  await put(root, "functions/_lib/notification-cash-evidence.mjs", "export const runtimeRule = true;\n");
+  const reviewed = ["notification-cash-evidence", "payment-currency-evidence", "task21-provider-evidence"];
+  for (const name of reviewed) await put(root, `functions/_lib/${name}.mjs`, "export const runtimeRule = true;\n");
   const { output } = await stagePages({ root });
-  assert.equal(await readFile(path.join(output, "functions/_lib/notification-cash-evidence.mjs"), "utf8"), "export const runtimeRule = true;\n");
+  for (const name of reviewed) assert.equal(await readFile(path.join(output, `functions/_lib/${name}.mjs`), "utf8"), "export const runtimeRule = true;\n");
   await put(root, "functions/_lib/qa-evidence.mjs", "synthetic QA evidence");
   await assert.rejects(stagePages({ root }), /Unreviewed or private Pages asset/);
 });

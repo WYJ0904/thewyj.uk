@@ -1,0 +1,17 @@
+.owner-preview-banner {
+  position: sticky;
+  top: 0;
+  z-index: 2147483646;
+  display: grid;
+  gap: .25rem;
+  padding: .65rem 1rem;
+  border-bottom: 2px solid #b45309;
+  background: #fff7ed;
+  color: #431407;
+  font: 500 13px/1.45 system-ui, sans-serif;
+}
+.owner-preview-banner strong { font-weight: 750; }
+.owner-preview-banner small { font-size: 11px; overflow-wrap: anywhere; }
+.owner-preview-banner code { font: inherit; font-family: ui-monospace, monospace; }
+.owner-preview-banner a { color: #7c2d12; text-decoration: underline; }
+.owner-preview-banner[data-preview-verified="false"] { border-bottom-color: #b91c1c; }

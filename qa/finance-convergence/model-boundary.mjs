@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';import fs from 'node:fs/promises';import path from 'node:path';
+import {fixture,root} from '../finance-p04/fixture.mjs';import {financeAiRequest,financeAiEligibility,validateFinanceAiOutput} from '../../functions/_lib/finance-ai.mjs';
+import {normalizeFinanceAiRoles} from '../../functions/_lib/finance-ai-provider.mjs';import {sha256Hex} from '../../functions/_lib/cloudflare-foundation.mjs';import {upsertNotificationHints} from '../../functions/_lib/task21-hints.mjs';
+const out=path.resolve(process.env.FINANCE_CONVERGENCE_OUTPUT);assert(out.startsWith(path.join(root,'docs/migration-evidence/finance-p04/convergence')+path.sep));await fs.mkdir(out,{recursive:false});const rows=[];
+async function test(id,body){try{await body();rows.push({id,status:'PASS'});}catch(e){rows.push({id,status:'FAIL',error:e.stack});}}
+await test('generic-amount-labels-cannot-authorize-a-model-guess',()=>{assert.equal(financeAiEligibility({direction:'expense',candidates:[{amount_minor:900,currency:'JPY',phrases:['金额']},{amount_minor:1000,currency:'JPY',phrases:['金额']}]}),'semantic_evidence_insufficient');});
+await test('auxiliary-only-evidence-cannot-select-a-net-movement',()=>{assert.equal(financeAiEligibility({direction:'expense',candidates:[{amount_minor:900,currency:'CNY',phrases:['原价']},{amount_minor:100,currency:'CNY',phrases:['优惠']}]}),'semantic_evidence_insufficient');});
+await test('recorded-empty-merchant-remains-rejected-not-rewritten',async()=>{const raw=JSON.parse(await fs.readFile(path.join(root,'docs/migration-evidence/finance-p04/convergence/live-models/response-11.json'),'utf8'));let v=raw.response;if(typeof v==='string')v=JSON.parse(v);const input={currency:'GBP',direction:'expense',merchant_tokens:[],candidates:[9000,1000,10000].map((amount_minor,i)=>({id:'m'+i,amount_minor,currency:'GBP',phrases:[['本次','支付'],['优惠'],['原价']][i]}))};assert.equal(v.merchant_normalized,'');assert.throws(()=>validateFinanceAiOutput(normalizeFinanceAiRoles(v,input),input));});
+const f=await fixture();let calls=0;const schemas=[];const env={WYJ_DB:f.db,FINANCE_AI_ENABLED:'true',FINANCE_AI_KILL_SWITCH:'false',WORKERS_AI_ENABLED:'true',FINANCE_AI_MODEL:'@cf/synthetic/schema-context',AI:{run:async(model,wire)=>{
+ calls++;const input=JSON.parse(wire.messages[1].content);const schema=wire.response_format.json_schema;schemas.push(schema);assert.deepEqual(schema.properties.merchant_normalized.enum,[...input.merchant_tokens,null]);
+ return {response:{schema_version:2,amount_roles:input.candidates.map((c,i)=>({candidate_id:c.id,role:['actual_paid','original','discount'][i]})),selected_candidate_id:'m0',currency:'CNY',direction:'expense',confidence_per_mille:900,refusal_reason:'none',merchant_normalized:input.merchant_tokens[0]??null,category:null}};
+}}};const req=(route,p={})=>financeAiRequest({env},f.account,'/api/finance/ai/'+route,p);
+try{
+ await req('consent',{enabled:true,expected_revision:0});
+ for(const tokens of [[],['Restaurant'],['KFC']])await test('schema-bound-to-only-source-brands-'+(tokens[0]||'none'),async()=>{
+  const id='schema-context-'+(tokens[0]||'none'),reference='SYNTH-'+id;
+  await upsertNotificationHints(f.db,f.account,{device_id:'synthetic-schema',hints:[{source_event_id:id,source_package:'com.tencent.mm',source_type:'notification',app_label:'SYNTHETIC',amount_minor:null,direction:'expense',currency:'CNY',amount_exponent:2,confidence:700,recognition_status:'PAYMENT_LIKELY',provider_reference:reference,payment_channel:'wechat',evidence:{reasons:['synthetic_schema']}}]});
+  const t=Date.now();await req('evidence',{event_id:id,evidence:{schema_version:1,source_uid:10390,completion_proven:true,currency:'CNY',direction:'expense',captured_at_ms:t,expires_at_ms:t+90000,provider_reference_hash:await sha256Hex(reference),merchant_tokens:tokens,candidates:[9000,10000,1000].map((amount_minor,i)=>({id:'m'+i,amount_minor,currency:'CNY',amount_exponent:2,phrases:[['本次','扣除'],['原价'],['优惠']][i]}))}});
+  assert.equal((await req('suggest',{event_id:id})).status,'suggestion');
+ });
+ await test('request-schema-enums-never-mutate-an-earlier-context',()=>{assert.equal(schemas.length,3);assert.deepEqual(schemas[0].properties.merchant_normalized.enum,[null]);assert.deepEqual(schemas[1].properties.merchant_normalized.enum,['Restaurant',null]);});
+ await test('advice-still-has-zero-ledger-authority',async()=>assert.equal((await f.db.prepare('SELECT COUNT(*) AS n FROM task16_finance_transactions').first()).n,0));
+}finally{await f.dispose();}
+await fs.writeFile(path.join(out,'result.json'),JSON.stringify({rows,mock_calls:calls,real_provider_calls:0},null,2));console.log(JSON.stringify({PASS:rows.filter(r=>r.status==='PASS').length,FAIL:rows.filter(r=>r.status==='FAIL').length}));process.exitCode=rows.some(r=>r.status==='FAIL')?1:0;

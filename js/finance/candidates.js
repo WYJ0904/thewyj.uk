@@ -1,7 +1,10 @@
-import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?v=20261027-aeris-p07-ui-r1";
-import { randomId } from "../core/capabilities.js?v=20261027-aeris-p07-ui-r1";
-import { createFinanceDisclosure } from "./disclosure.js?v=20261027-aeris-p07-ui-r1";
-import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261027-aeris-p07-ui-r1";
+import { formatFinanceMoney } from './format.js?v=20261031-aeris-p0-finance-r2';
+import { moneyText, parseMoney, currencyDigits, SUPPORTED_CURRENCIES } from './money.js?v=20261031-aeris-p0-finance-r2';
+import {financeAiAdvice,financeAiMarkup,financeAiMessage,fillFinanceAiEditor} from './ai-assistance.js?v=20261031-aeris-p0-finance-r2';
+import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?v=20261031-aeris-p0-finance-r2";
+import { randomId } from "../core/capabilities.js?v=20261031-aeris-p0-finance-r2";
+import { createFinanceDisclosure } from "./disclosure.js?v=20261031-aeris-p0-finance-r2";
+import { reconcileKeyedRows } from "../core/keyed-list.js?v=20261031-aeris-p0-finance-r2";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -9,7 +12,13 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?v=20261027-aeris-p07-ui-r1";
+} from "../core/perf.js?v=20261031-aeris-p0-finance-r2";
+function escapeCss(val) {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+    return CSS.escape(val);
+  }
+  return String(val ?? "").replace(/["\\]/g, "\\$&");
+}
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -39,22 +48,26 @@ const REASON_LABELS = Object.freeze({
 export function candidateNeedsEditor(candidate) {
   const amountMissing = !Number(candidate?.amount_minor);
   const directionMissing = !VALID_DIRECTIONS.has(String(candidate?.direction || "").trim().toLowerCase());
-  return amountMissing || directionMissing || candidate?.local_evidence?.conflict === true;
+  return (candidate?.currency === 'JPY' && candidate.amount_exponent !== 0) || amountMissing || directionMissing || (candidate?.currency !== undefined && !SUPPORTED_CURRENCIES.includes(candidate.currency)) || candidate?.local_evidence?.conflict === true;
 }
 
 export function candidatePresentation(candidate) {
   const evidenceConflict = candidate?.local_evidence?.conflict === true;
   const localEvidencePending = candidate?.local_evidence?.pending_sync === true;
   const amountMinor = Number(candidate?.amount_minor) || (!evidenceConflict ? Number(candidate?.local_evidence?.amount_minor) : 0) || 0;
+  const moneyUnitReview = candidate?.currency === 'JPY' && candidate.amount_exponent !== 0;
   const amountUnknown = !amountMinor;
   const rawDirection = String(candidate?.direction || "").trim().toLowerCase();
   const direction = VALID_DIRECTIONS.has(rawDirection) ? rawDirection : "unknown";
   const merchant = String(candidate?.merchant || candidate?.counterparty || "").trim();
   const missing = [];
+  if (moneyUnitReview) missing.push('原币金额单位');
   if (!Number(candidate?.amount_minor)) missing.push("金额");
   if (direction === "unknown") missing.push("收支方向");
+  if (candidate.currency !== undefined && !SUPPORTED_CURRENCIES.includes(candidate.currency)) missing.push("币种");
   return Object.freeze({
     amountUnknown,
+    moneyUnitReview,
     amountMinor,
     evidenceConflict,
     localEvidencePending,
@@ -80,7 +93,10 @@ export function canonicalPendingCandidates(summary) {
       event_ids: [...new Set([String(row.event_id || ""), ...(row.event_ids || [])])].filter(Boolean),
       source_package: String(row.source_package || ""), app_label: String(row.app_label || ""),
       direction: String(row.direction || ""), amount_minor: Number(row.amount_minor) || 0,
-      currency: "CNY", merchant: String(row.merchant || ""),
+      currency: String(row.currency || "XXX"),
+      currency_review_required: row.currency_review_required === true,
+      currency_decision_source: String(row.currency_decision_source || ''),
+      ...(row.currency === 'JPY' ? { amount_exponent: row.amount_exponent === 0 ? 0 : null } : {}), merchant: String(row.merchant || ""),
       occurred_at_ms: Number(row.occurred_at_ms) || 0, confidence: Number(row.confidence) || 0,
       evidence: [{ source_type: "notification", source_package: String(row.source_package || ""), app_label: String(row.app_label || "") }],
       evidence_count: 1,
@@ -110,14 +126,7 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function formatMinor(minor, currency = "CNY") {
-  const amount = Number(minor || 0) / 100;
-  try {
-    return new Intl.NumberFormat("zh-CN", { style: "currency", currency, minimumFractionDigits: 2 }).format(amount);
-  } catch (_) {
-    return `${amount.toFixed(2)} ${currency}`;
-  }
-}
+function formatMinor(minor, currency = 'CNY') { return formatFinanceMoney(minor, currency); }
 
 function evidenceExplanation(candidate, presentation) {
   const reasons = Array.isArray(candidate?.recognition_reasons) ? candidate.recognition_reasons : [];
@@ -148,6 +157,7 @@ export function createFinanceCandidatesController({
   let busyIds = new Set();
   let currentCandidates = [];
   let canonicalRecords = [];
+  let aiConfig=null,aiConsentFor='',aiRows=new Map(),aiWithdrawalRunning=false,aiWithdrawalAt=0;
   let renderedForAccount = "";
   let hasCanonicalObservation = false;
   let bound = false;
@@ -203,13 +213,13 @@ export function createFinanceCandidatesController({
   function restoreEditorState(list, snapshots) {
     for (const snapshot of snapshots || []) {
       if (!snapshot?.id) continue;
-      const form = list.querySelector(`[data-finance-candidate-editor="${CSS.escape(snapshot.id)}"]`);
+      const form = list.querySelector(`[data-finance-candidate-editor="${escapeCss(snapshot.id)}"]`);
       if (!form) continue;
       form.classList.remove("hidden");
       for (const [name, value] of Object.entries(snapshot.values || {})) {
         if (form.elements[name]) form.elements[name].value = value;
       }
-      const editButton = list.querySelector(`[data-finance-candidate-edit="${CSS.escape(snapshot.id)}"]`);
+      const editButton = list.querySelector(`[data-finance-candidate-edit="${escapeCss(snapshot.id)}"]`);
       if (editButton) editButton.textContent = "收起编辑";
       if (snapshot.focusedName && form.elements[snapshot.focusedName]) {
         form.elements[snapshot.focusedName].focus({ preventScroll: true });
@@ -230,7 +240,7 @@ export function createFinanceCandidatesController({
     if (banner) { banner.textContent = message; banner.hidden = !message; }
     reconcileKeyedRows(list, candidates, {
       key: candidate => candidate.canonical_id || candidate.id,
-      signature: candidate => JSON.stringify([candidate, busyIds.has(String(candidate.id || ""))]),
+      signature: candidate => JSON.stringify([candidate, busyIds.has(String(candidate.id || "")),aiConfig,aiRows.get(String(candidate.id||'')),aiConsentFor]),
       empty: '<div class="finance-candidate-empty"><strong>暂无待处理通知交易</strong><p>已完成核实和记账的交易会直接从待处理移除。</p></div>',
       render: (candidate) => {
       const id = String(candidate.id || "");
@@ -246,16 +256,17 @@ export function createFinanceCandidatesController({
       const evidenceCount = Math.max(evidence.length, Number(candidate.evidence_count) || 1);
       const editedCount = Number(candidate.correction_count) || 0;
       const missingLabel = presentation.missing.length ? `需补：${presentation.missing.join("、")}` : "信息完整，可直接确认";
-      const amountValue = !Number(candidate.amount_minor) ? "" : (Number(candidate.amount_minor) / 100).toFixed(2);
+      const amountValue = presentation.moneyUnitReview || !Number(candidate.amount_minor) || !SUPPORTED_CURRENCIES.includes(candidate.currency) ? "" : moneyText(candidate.amount_minor, candidate.currency);
       const evidenceReason = evidenceExplanation(candidate, presentation);
       return `<article class="finance-candidate" data-finance-candidate="${escapeHtml(id)}" data-canonical-identity="${escapeHtml(candidate.canonical_id || "")}">
         <div class="finance-candidate-main">
           <span class="finance-direction is-${escapeHtml(direction)}">${presentation.directionLabel}</span>
-          <div class="finance-candidate-copy"><strong>${presentation.amountUnknown ? "金额待补" : escapeHtml(formatMinor(presentation.amountMinor, candidate.currency))}</strong>
-          ${presentation.evidenceConflict ? `<small role="status">本机与云端金额或方向不一致，请核对后编辑确认${candidate.local_evidence?.amount_minor ? `（本机金额 ${escapeHtml(formatMinor(candidate.local_evidence.amount_minor, candidate.currency))}）` : ""}。</small>` : presentation.localEvidencePending ? '<small role="status">本机已识别，等待同步；云端尚未确认。</small>' : ""}
+          <div class="finance-candidate-copy"><strong>${presentation.moneyUnitReview ? "原币单位待核实" : presentation.amountUnknown ? "金额待补" : escapeHtml(formatMinor(presentation.amountMinor, candidate.currency))}</strong>
+          ${candidate.currency_review_required ? `<small>币种待核实 · 按默认 ${escapeHtml(candidate.currency)} 识别</small>` : ''}
+          ${presentation.evidenceConflict ? `<small role="status">本机与云端金额或方向不一致，请核对后编辑确认${candidate.local_evidence?.amount_minor ? `（本机金额 ${escapeHtml(formatMinor(candidate.local_evidence.amount_minor, candidate.local_evidence.currency || candidate.currency))}）` : ""}。</small>` : presentation.localEvidencePending ? '<small role="status">本机已识别，等待同步；云端尚未确认。</small>' : ""}
           <small>${escapeHtml(sources)} · ${escapeHtml(occurred)}</small>
           <small><span class="finance-candidate-merchant" title="${escapeHtml(presentation.merchantLabel)}">${escapeHtml(presentation.merchantLabel)}</span><span>${escapeHtml(missingLabel)}</span></small>
-          <details class="finance-candidate-evidence"><summary>查看识别依据</summary><p>${escapeHtml(evidenceReason)}</p><p>结构化证据 ${evidenceCount} 条 · 置信度 ${confidence}/1000${editedCount ? ` · 用户已修改 ${editedCount} 次` : ""}</p><p>核实标识：${escapeHtml(candidate.canonical_id || "")}</p><p>事件标识：${escapeHtml(candidate.event_id || id)}</p></details></div>
+          <details class="finance-candidate-evidence"><summary>查看识别依据</summary><p>${escapeHtml(evidenceReason)}</p><p>结构化证据 ${evidenceCount} 条 · 置信度 ${confidence}/1000${editedCount ? ` · 用户已修改 ${editedCount} 次` : ""}</p><p>核实标识：${escapeHtml(candidate.canonical_id || "")}</p><p>事件标识：${escapeHtml(candidate.event_id || id)}</p>${candidate.hint&&editedCount===0?financeAiMarkup(id,aiConfig,aiRows.get(id),aiConsentFor===id,escapeHtml,candidate):''}</details></div>
         </div>
         <div class="finance-candidate-actions">
           ${presentation.missing.length ? `<button class="primary" type="button" data-finance-candidate-verify="${escapeHtml(id)}" ${busy ? "disabled" : ""}>核实交易</button>` : ""}
@@ -265,7 +276,8 @@ export function createFinanceCandidatesController({
           <small>忽略只关闭这条候选，不会撤销实际支付。</small>
         </div>
         <form class="finance-candidate-editor hidden" data-finance-candidate-editor="${escapeHtml(id)}">
-          <label>金额<input type="number" step="0.01" min="0.01" name="amount" required inputmode="decimal" value="${escapeHtml(amountValue)}"></label>
+          <label>原币币种<select name="currency" required>${SUPPORTED_CURRENCIES.includes(candidate.currency)?'':'<option value="" selected disabled>请选择原币币种</option>'}${SUPPORTED_CURRENCIES.map(code=>`<option value="${code}"${candidate.currency===code?' selected':''}>${code}</option>`).join('')}</select></label>
+          <label>原币金额<input type="text" name="amount" required inputmode="decimal" value="${escapeHtml(amountValue)}"></label>
           <label>方向
             <select name="direction" required>
               <option value=""${direction === "unknown" ? " selected" : ""} disabled>请选择收支方向</option>
@@ -300,7 +312,7 @@ export function createFinanceCandidatesController({
       key: row => `${row.kind}:${row.id}`, signature: row => JSON.stringify(row), empty: "",
       render: row => `<article class="finance-candidate" data-recovery-identity="${escapeHtml(`${row.kind}:${row.id}`)}">
         <strong>${escapeHtml(row.app_label || row.source_package || "本机记录")}</strong>
-        <p>${Number(row.amount_minor) > 0 ? escapeHtml(formatMinor(row.amount_minor)) : "金额待核实"} · ${escapeHtml(DIRECTION_LABELS[row.direction] || DIRECTION_LABELS.unknown)}</p>
+        <p>${Number(row.amount_minor) > 0 ? escapeHtml(formatMinor(row.amount_minor, row.currency)) : "金额待核实"} · ${escapeHtml(DIRECTION_LABELS[row.direction] || DIRECTION_LABELS.unknown)}</p>
         <small>${Number(row.occurred_at_ms) > 0 ? escapeHtml(new Date(Number(row.occurred_at_ms)).toLocaleString("zh-CN")) : "时间未知"}</small>
       </article>`,
     });
@@ -316,9 +328,12 @@ export function createFinanceCandidatesController({
   /** Only send fields the user actually changed; machine values stay evidence. */
   function buildEdits(candidate, form) {
     const edits = {};
-    const amountValue = Number(form.elements.amount.value);
-    if (Number.isFinite(amountValue) && Math.round(amountValue * 100) !== Number(candidate.amount_minor)) {
-      edits.amount_minor = Math.round(amountValue * 100);
+    const currency = form.elements.currency?.value || candidate.currency;
+    const amountValue = parseMoney(form.elements.amount.value, currency);
+    if(currency!==candidate.currency || candidate.currency_review_required){edits.currency=currency;edits.amount_minor=amountValue;edits.amount_exponent=currencyDigits(currency);}
+    if (currency === 'JPY') edits.amount_exponent = 0;
+    if (amountValue !== Number(candidate.amount_minor) || (currency === 'JPY' && candidate.amount_exponent !== 0)) {
+      edits.amount_minor = amountValue;
     }
     const direction = String(form.elements.direction.value || "");
     if (direction && direction !== String(candidate.direction || "")) edits.direction = direction;
@@ -391,6 +406,11 @@ export function createFinanceCandidatesController({
       if (!active || lifecycle !== lifecycleVersion || String(account()?.id || "") !== currentAccountId || !listVersion.isCurrent(version)) return;
       hasCanonicalObservation = true;
       canonicalRecords = summary.records;
+      aiConfig=summary.ai_assistance&&typeof summary.ai_assistance.available==='boolean'?summary.ai_assistance:null;
+      if(aiConfig&&aiLocallyRevoked(currentAccountId)){
+        aiConfig={...aiConfig,consent:{...aiConfig.consent,enabled:0}};
+        void syncAiWithdrawal(currentAccountId);
+      }
       render(canonicalPendingCandidates({ ...summary, records: mergeLocalNotificationReviews(
         summary.records, globalThis.window?.WYJLocalPaymentLedger, currentAccountId) }));
       section.setAttribute("aria-busy", "false");
@@ -478,8 +498,8 @@ export function createFinanceCandidatesController({
     // Re-render without network traffic so buttons reflect their busy state.
     const list = element("financeCandidateList");
     if (!list) return;
-    list.querySelectorAll("[data-finance-candidate-confirm], [data-finance-candidate-reject]").forEach((button) => {
-      const id = button.dataset.financeCandidateConfirm || button.dataset.financeCandidateReject;
+    list.querySelectorAll("[data-finance-candidate-confirm], [data-finance-candidate-reject], [data-finance-candidate-save], [data-finance-candidate-edit], [data-finance-candidate-verify]").forEach((button) => {
+      const id = button.dataset.financeCandidateConfirm || button.dataset.financeCandidateReject || button.dataset.financeCandidateSave || button.dataset.financeCandidateEdit || button.dataset.financeCandidateVerify;
       button.disabled = busyIds.has(id);
     });
   }
@@ -488,9 +508,10 @@ export function createFinanceCandidatesController({
     const id = String(form?.dataset.financeCandidateEditor || "");
     const candidate = currentCandidates.find((item) => String(item.id) === id);
     if (!candidate || !form) return;
-    const amount = Number(form.elements.amount.value);
+    let amount = null;
+    try { amount = parseMoney(form.elements.amount.value, form.elements.currency?.value || candidate.currency); } catch (_) { /* keep review */ }
     const direction = String(form.elements.direction.value || "");
-    form.elements.amount.setCustomValidity(Number.isFinite(amount) && amount > 0 ? "" : "请填写大于 0 的金额");
+    form.elements.amount.setCustomValidity(Number.isFinite(amount) && amount > 0 ? "" : "请核实原币币种和金额精度；未知币种须先核对来源");
     form.elements.direction.setCustomValidity(VALID_DIRECTIONS.has(direction) ? "" : "请选择收支方向");
     if (!form.reportValidity()) return;
     decide(id, true, buildEdits(candidate, form), trigger);
@@ -503,7 +524,57 @@ export function createFinanceCandidatesController({
     submitEditor(form, form.querySelector("[data-finance-candidate-save]"));
   }
 
+  function aiBlockKey(owner){return `wyjFinanceAiConsentBlock:v1:${owner}`;}
+  function aiLocallyRevoked(owner){try{return storage?.getItem(aiBlockKey(owner))==='revoke_pending';}catch{return true;}}
+  async function syncAiWithdrawal(owner){
+    if(aiWithdrawalRunning||Date.now()-aiWithdrawalAt<30000)return;
+    aiWithdrawalRunning=true;aiWithdrawalAt=Date.now();
+    try{
+      const config=await apiGet('/api/finance/ai/config');
+      const result=await api('/api/finance/ai/consent',{enabled:false,expected_revision:Number(config.consent?.revision)||0});
+      if(Number(result.consent?.enabled)===0)storage?.removeItem(aiBlockKey(owner));
+    }catch{/* Local block remains authoritative until the server acknowledges withdrawal. */}
+    finally{aiWithdrawalRunning=false;}
+  }
+  async function aiAction(id,action){
+    const candidate=currentCandidates.find(c=>String(c.id)===id);
+    if(!candidate?.hint||!aiConfig||(!aiConfig.available&&action!=='disable')||busyIds.has(id))return;
+    if(action==='cancel'){aiConsentFor='';render(currentCandidates);return;}
+    if(action==='request'&&(Number(aiConfig.consent?.enabled)!==1||aiLocallyRevoked(String(account()?.id||'')))){aiConsentFor=id;render(currentCandidates);return;}
+    const owner=String(account()?.id||''),lifecycle=lifecycleVersion,source=JSON.stringify(candidate);
+    const current=()=>active&&owner===String(account()?.id||'')&&lifecycle===lifecycleVersion&&JSON.stringify(currentCandidates.find(c=>String(c.id)===id))===source;
+    if(action==='disable'){
+      try{storage?.setItem(aiBlockKey(owner),'revoke_pending');}catch{}
+      aiConfig={...aiConfig,consent:{...aiConfig.consent,enabled:0}};aiRows=new Map();render(currentCandidates,'已在本机停用AI建议，联网后同步撤销授权');
+      await syncAiWithdrawal(owner);return;
+    }
+    busyIds=new Set(busyIds).add(id);render(currentCandidates);
+    try{
+      const config=await apiGet('/api/finance/ai/config');if(!current())return;
+      if(config.available!==true)throw Error('AI尚未启用，可继续人工核实');
+      aiConfig=config;
+      if(action==='consent'){
+        const accepted=await api('/api/finance/ai/consent',{enabled:true,expected_revision:Number(config.consent?.revision)||0});if(!current())return;
+        aiConfig={...config,consent:accepted.consent};storage?.removeItem(aiBlockKey(owner));aiConsentFor='';
+      }
+      if(aiLocallyRevoked(owner)||Number(aiConfig.consent?.enabled)!==1)throw Error('请先授权发送脱敏候选字段');
+      const eventId=String(candidate.event_id||candidate.source_event_id||'');if(!eventId)throw Error('缺少稳定事件标识，请人工核实');
+      const response=action==='use'?await apiGet('/api/finance/ai/suggestions?event_id='+encodeURIComponent(eventId)):
+        await api('/api/finance/ai/suggest',{event_id:eventId});
+      if(!current())return;
+      const advice=financeAiAdvice(response,candidate);
+      const safe=['suggestion','review'].includes(response.status)&&!advice?{status:'invalid'}:response;
+      aiRows.set(id,safe);render(currentCandidates,financeAiMessage(safe.status));
+      if(action==='use'){
+        const form = typeof document?.querySelector === "function" ? document.querySelector(`[data-finance-candidate-editor="${escapeCss(id)}"]`) : null;
+        if(!fillFinanceAiEditor(form,advice))render(currentCandidates,'保留你的人工修改；建议已失效或无法核验时请人工核实');
+      }
+    }catch(error){if(current())render(currentCandidates,error?.message||'AI暂不可用，可继续人工核实');}
+    finally{if(owner===String(account()?.id||'')&&lifecycle===lifecycleVersion){busyIds=new Set([...busyIds].filter(value=>value!==id));reloadListState();}}
+  }
   function handleClick(event) {
+    const aiButton=event.target.closest('[data-finance-ai-action]');
+    if(aiButton){event.preventDefault();void aiAction(String(aiButton.dataset.financeAiId||''),String(aiButton.dataset.financeAiAction||''));return;}
     const verifyButton = event.target.closest("[data-finance-candidate-verify]");
     if (verifyButton) {
       const id = verifyButton.dataset.financeCandidateVerify;
@@ -519,7 +590,7 @@ export function createFinanceCandidatesController({
     const editButton = event.target.closest("[data-finance-candidate-edit]");
     if (editButton) {
       const id = editButton.dataset.financeCandidateEdit;
-      const form = document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`);
+      const form = typeof document?.querySelector === "function" ? document.querySelector(`[data-finance-candidate-editor="${escapeCss(id)}"]`) : null;
       if (form) {
         form.classList.toggle("hidden");
         editButton.textContent = form.classList.contains("hidden") ? "编辑并确认" : "收起编辑";
@@ -529,8 +600,8 @@ export function createFinanceCandidatesController({
     const cancelButton = event.target.closest("[data-finance-candidate-cancel]");
     if (cancelButton) {
       const id = cancelButton.dataset.financeCandidateCancel;
-      document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`)?.classList.add("hidden");
-      const editButton = document.querySelector(`[data-finance-candidate-edit="${CSS.escape(id)}"]`);
+      document.querySelector(`[data-finance-candidate-editor="${escapeCss(id)}"]`)?.classList.add("hidden");
+      const editButton = document.querySelector(`[data-finance-candidate-edit="${escapeCss(id)}"]`);
       if (editButton) editButton.textContent = "编辑并确认";
       return;
     }
@@ -554,7 +625,7 @@ export function createFinanceCandidatesController({
         // Render first, then reveal the freshly rendered form: render()
         // rebuilds the list HTML, so revealing the old node had no effect.
         render(currentCandidates, presentation.evidenceConflict ? "本机与云端证据不一致，请核对并编辑后确认。" : `这笔交易需要补全${presentation.missing.join("和")}后才能确认。`);
-        const form = document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`);
+        const form = typeof document?.querySelector === "function" ? document.querySelector(`[data-finance-candidate-editor="${escapeCss(id)}"]`) : null;
         if (form) {
           form.classList.remove("hidden");
           if (presentation.amountUnknown) form.elements.amount?.focus();
@@ -590,6 +661,11 @@ export function createFinanceCandidatesController({
       pendingDisclosure.restore();
       element("financeCandidatesSection")?.addEventListener("click", handleClick);
       element("financeCandidatesSection")?.addEventListener("submit", handleSubmit);
+      element("financeCandidatesSection")?.addEventListener("change",event=>{
+        if(event.target?.name!=='currency')return;
+        const form=event.target.closest('[data-finance-candidate-editor]');
+        if(form){form.elements.amount.value='';form.elements.amount.setCustomValidity('');}
+      });
       document.addEventListener("thewyj:payment-updated", () => {
         if (!active) return;
         const snapshot = globalThis.window?.WYJLocalPaymentLedger;
@@ -628,6 +704,7 @@ export function createFinanceCandidatesController({
       renderedForAccount = "";
       currentCandidates = [];
       canonicalRecords = [];
+      aiConfig=null;aiRows=new Map();aiConsentFor='';
       hasCanonicalObservation = false;
     }
     if (!element("financePage")?.classList.contains("hidden")) { active = true; void reload({ force: true }); }
@@ -636,4 +713,4 @@ export function createFinanceCandidatesController({
   const dashboardSummary = () => ({ known: hasCanonicalObservation && renderedForAccount === String(account()?.id || ""), count: currentCandidates.length });
   return Object.freeze({ show, hide, reload, accountUpdated, handleClick, dashboardSummary });
 }
-import { createParkedRows, rowRenderRoot } from "../core/parked-rows.js?v=20261027-aeris-p07-ui-r1";
+import { createParkedRows, rowRenderRoot } from "../core/parked-rows.js?v=20261031-aeris-p0-finance-r2";

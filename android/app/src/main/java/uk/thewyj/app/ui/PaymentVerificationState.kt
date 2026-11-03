@@ -23,7 +23,16 @@ class PaymentVerificationState(
     val accountId: String,
     private val center: PaymentVerificationCenter = PaymentVerificationCenter(context.applicationContext),
     private val reconcileOverride: (suspend (String) -> PaymentHintSync.Result?)? = null,
+    private val aiOverride: uk.thewyj.app.finance.FinanceAiCoordinator? = null,
 ) {
+    private val ai by lazy { aiOverride ?: uk.thewyj.app.finance.FinanceAiCoordinator.get(context.applicationContext) }
+    var aiRows by mutableStateOf<Map<String,uk.thewyj.app.finance.FinanceAiObservation>>(emptyMap())
+    var aiConsent by mutableStateOf(false)
+    var aiConsentGranted by mutableStateOf(false)
+    private var aiModelVersion by mutableStateOf("")
+    private var aiConsentRevision by mutableStateOf(-1L)
+    var aiBusy by mutableStateOf<Set<String>>(emptySet())
+    private var editBaseline:List<String>?=null
     private val reconciliationMutex = Mutex()
     @Volatile private var reconciliationRequested = false
     private var lastCompleteObservation: PaymentHintSync.Result? = null
@@ -44,6 +53,7 @@ class PaymentVerificationState(
     var editingRecognitionId by mutableStateOf("")
     var amountText by mutableStateOf("")
     var direction by mutableStateOf("EXPENSE")
+    var currency by mutableStateOf("")
     var merchantText by mutableStateOf("")
     var busyRecognitionId by mutableStateOf("")
     var busyAction by mutableStateOf("")
@@ -72,6 +82,9 @@ class PaymentVerificationState(
                 if (snapshot != null) center.reconciledItems(accountId, snapshot)
                 else center.localItems(accountId)
             }
+            val assistance = withContext(Dispatchers.IO) {
+                ai.observationsForUi(accountId,refreshed.map{it.recognitionId}.toSet()) to ai.accountState(accountId)
+            }
             if (generation == refreshGeneration && display == displayGeneration && current(lifecycle, snapshot)) {
                 // A local signal must not repaint a stale server snapshot over
                 // a card that this UI just terminalized. The cloud set changes
@@ -79,6 +92,11 @@ class PaymentVerificationState(
                 val retained = items.filterNot { it.recoveryOnly }.map { it.canonicalIdentity }.toSet()
                 items = if (cached != null || snapshot == null) refreshed else
                     refreshed.filter { it.recoveryOnly || it.canonicalIdentity in retained }
+                aiRows=assistance.first
+                aiConsent=assistance.second?.let{it.available&&it.consent&&!it.localRevokePending}==true
+                aiConsentGranted=assistance.second?.let{it.consent&&!it.localRevokePending}==true
+                aiModelVersion=assistance.second?.modelVersion.orEmpty()
+                aiConsentRevision=assistance.second?.consentRevision?:-1L
                 if (snapshot != null) {
                     lastCompleteObservation = snapshot; canonicalObserved = true
                     observationAtMs = snapshot.observedAtMs
@@ -172,9 +190,59 @@ class PaymentVerificationState(
 
     fun beginEdit(item: PaymentVerificationCenter.Item) {
         editingRecognitionId = item.recognitionId
-        amountText = item.amountMinor?.let { formatMinor(it) }.orEmpty()
+        currency = item.displayCurrency.takeIf { it in uk.thewyj.app.finance.CurrencyMoney.digits }.orEmpty()
+        amountText = item.amountMinor?.takeUnless { item.moneyUnitReview }?.let { runCatching { formatMinor(it, currency) }.getOrNull() }.orEmpty()
         direction = item.direction.name.ifBlank { "EXPENSE" }
         merchantText = item.merchant
+        editBaseline=listOf(currency,amountText,direction,merchantText)
+    }
+
+    suspend fun requestAi(item:PaymentVerificationCenter.Item,enable:Boolean=false){
+        val lifecycle=lifecycleGeneration
+        if(item.hasEdits||item.recognitionId.isBlank()||item.recognitionId in aiBusy)return
+        aiBusy=aiBusy+item.recognitionId
+        try{
+            val result=withContext(Dispatchers.IO){if(enable&&!ai.setConsent(accountId,true))false else ai.flush(accountId)}
+            if(current(lifecycle)){message=if(result)"AI建议仍须核对后人工确认" else "AI暂不可用或尚未授权，原交易保留，可继续人工核实";refresh()}
+        }finally{aiBusy=aiBusy-item.recognitionId}
+    }
+    fun aiSummary(item:PaymentVerificationCenter.Item):String=runCatching {
+        if(!aiConsent)return ""
+        val row=aiRows[item.recognitionId]?:return ""
+        if(System.currentTimeMillis()>=row.expiresAtMs)return ""
+        val response=org.json.JSONObject(row.responseJson)
+        if(response.optString("model_version")!=aiModelVersion||response.optLong("consent_revision",-1)!=aiConsentRevision)return ""
+        val advice=uk.thewyj.app.finance.FinanceAiEvidence.validatedSuggestion(response,org.json.JSONObject(row.packetJson))?:return ""
+        val id=advice.optString("selected_candidate_id");val values=advice.getJSONArray("amount_candidates")
+        val selected=(0 until values.length()).map(values::getJSONObject).singleOrNull{it.getString("candidate_id")==id}?:return ""
+        val category=mapOf("food" to "餐饮","transport" to "交通","shopping" to "购物","housing" to "居住","health" to "医疗","education" to "教育","entertainment" to "娱乐","income" to "收入","transfer" to "转账","refund" to "退款","other" to "其他")[advice.optString("category")]
+        "建议原币金额："+uk.thewyj.app.finance.CurrencyMoney.format(selected.getLong("amount_minor"),selected.getString("currency"))+
+            (category?.let{" · 分类建议：$it"}?:"")+(advice.optString("merchant_normalized").takeUnless{it.isBlank()||it=="null"}?.let{" · 商户建议：$it"}?:"")
+    }.getOrDefault("")
+    suspend fun disableAi(){
+        val lifecycle=lifecycleGeneration
+        withContext(Dispatchers.IO){ai.setConsent(accountId,false)}
+        if(current(lifecycle)){aiConsent=false;message="已在本机停用AI建议，联网后同步撤销授权";refresh()}
+    }
+    suspend fun adoptAi(item:PaymentVerificationCenter.Item){
+        val lifecycle=lifecycleGeneration
+        if(item.hasEdits){message="保留你的人工修改，AI建议不会覆盖";return}
+        fun dirty()=editingRecognitionId==item.recognitionId&&editBaseline!=listOf(currency,amountText,direction,merchantText)
+        if(dirty()){message="保留尚未保存的人工修改，AI建议不会覆盖";return}
+        val advice=withContext(Dispatchers.IO){ai.advice(accountId,item.recognitionId)}
+        if(!current(lifecycle))return
+        if(dirty()){message="保留尚未保存的人工修改，AI建议不会覆盖";return}
+        if(advice==null){message="建议已失效或依据不足，请人工核实";return}
+        val id=advice.optString("selected_candidate_id")
+        val candidates=advice.optJSONArray("amount_candidates")
+        val selected=candidates?.let{list->(0 until list.length()).mapNotNull(list::optJSONObject).singleOrNull{it.optString("candidate_id")==id}}
+        if(selected==null){message="建议已失效或依据不足，请人工核实";return}
+        beginEdit(item)
+        currency=selected.getString("currency")
+        amountText=java.math.BigDecimal.valueOf(selected.getLong("amount_minor"),uk.thewyj.app.finance.CurrencyMoney.exponent(currency)).toPlainString()
+        direction=advice.getString("direction").uppercase()
+        if(merchantText.isBlank())advice.optString("merchant_normalized").takeUnless{it.isBlank()||it=="null"}?.let{merchantText=it}
+        message="已填入建议，请核对原证据后再保存并确认；尚未写账"
     }
 
     fun cancelEdit() {
@@ -183,7 +251,8 @@ class PaymentVerificationState(
 
     /** Saves the user's values and, when they are complete, books the payment. */
     suspend fun saveAndConfirm(item: PaymentVerificationCenter.Item, confirm: Boolean) {
-        val amount = parseMinor(amountText)
+        if (currency !in uk.thewyj.app.finance.CurrencyMoney.digits) { message = "请先核实并选择原币币种"; return }
+        val amount = parseMinor(amountText, currency)
         if (confirm && (amount == null || amount <= 0)) {
             message = "请输入正确的金额"
             return
@@ -200,6 +269,7 @@ class PaymentVerificationState(
                 amountMinor = amount,
                 direction = direction,
                 merchant = merchantText.trim(),
+                currency = currency,
             )
         }
         if (!saved) {
@@ -300,22 +370,9 @@ class PaymentVerificationState(
     fun syncStates(): List<String> = if (!canonicalCurrent) listOf("UNRESOLVED_REMOTE") else items.map { it.syncState.name }
 
     companion object {
-        fun formatMinor(amountMinor: Long): String {
-            val sign = if (amountMinor < 0) "-" else ""
-            val value = kotlin.math.abs(amountMinor)
-            return "$sign${value / 100}.${(value % 100).toString().padStart(2, '0')}"
-        }
-
-        fun parseMinor(text: String): Long? {
-            val trimmed = text.trim()
-            if (trimmed.isEmpty()) return null
-            val match = Regex("""^-?\d{1,9}(\.\d{1,2})?$""").find(trimmed) ?: return null
-            val negative = match.value.startsWith("-")
-            val parts = match.value.removePrefix("-").split(".")
-            val major = parts[0].toLongOrNull() ?: return null
-            val minor = if (parts.size > 1) parts[1].padEnd(2, '0').toLongOrNull() ?: 0L else 0L
-            val total = major * 100 + minor
-            return if (negative) -total else total
-        }
+        fun formatMinor(amountMinor: Long, currency: String = "CNY"): String = uk.thewyj.app.finance.CurrencyMoney.decimalText(amountMinor, currency)
+        fun parseMinor(text: String, currency: String = "CNY"): Long? = runCatching {
+            uk.thewyj.app.finance.CurrencyMoney.parse(text, currency).takeIf { it in -10_000_000_000_000L..10_000_000_000_000L }
+        }.getOrNull()
     }
 }

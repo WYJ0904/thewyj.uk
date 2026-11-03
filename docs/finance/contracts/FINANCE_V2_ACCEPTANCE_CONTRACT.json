@@ -1,0 +1,154 @@
+{
+  "version": 2,
+  "owner_decision": "Current unattended task sections 2.1 through 2.4",
+  "currencies": {
+    "CNY": 2,
+    "USD": 2,
+    "EUR": 2,
+    "HKD": 2,
+    "GBP": 2,
+    "JPY": 0
+  },
+  "missing_currency": "manual_review",
+  "implicit_yen_to_cny": false,
+  "identity_requires_verified_source_scope": true,
+  "unobservable_identity": "manual_review_no_additional_automatic_entry",
+  "ai_protocol": "roles-2",
+  "ai_ledger_authority": false,
+  "legacy_six_disposition": "SUPERSEDED_BY_V2_ORIGINAL_FAIL_RETAINED",
+  "legacy_p03_26": [
+    {
+      "case_id": "A009",
+      "original_status": "FAIL",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A011",
+      "original_status": "FAIL",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A021",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A023",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A069",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A071",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A117",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A119",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A165",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A167",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A201",
+      "original_status": "FAIL",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A203",
+      "original_status": "FAIL",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A213",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A215",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A261",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A263",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A309",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A311",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A357",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A359",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A393",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A395",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A405",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "A407",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "C005",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    },
+    {
+      "case_id": "C007",
+      "original_status": "EXPECTED_RED",
+      "current_contract": "strict_identity_manual_review_when_unproven"
+    }
+  ],
+  "F001_F015_disposition": "SUPERSEDED_BY_ROLES_2_ORIGINAL_NOT_TESTED_RETAINED",
+  "F014": "Rules may book only independently proven facts; AI uncertainty never authorizes a ledger",
+  "original_fixture_sha256": "a33d021d9919b5a7ada4ef6af6e548c88b2f2c278418df2ae6fdf9e67acc90ab"
+}

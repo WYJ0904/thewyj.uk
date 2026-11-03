@@ -139,7 +139,7 @@ const priorWindow = globalThis.window;
 try {
   const { list } = fakeFinanceDocument();
   const staleSummary = deferred();
-  const complete = { id: "candidate-one", event_id: "event-one", amount_minor: 100, direction: "expense" };
+  const complete = { id: "candidate-one", event_id: "event-one", amount_minor: 100, direction: "expense", currency: "CNY" };
   let summaryReads = 0;
   let candidateReads = 0;
   const controller = createFinanceCandidatesController({
@@ -149,7 +149,7 @@ try {
         if (summaryReads === 2) return staleSummary.promise;
         return Promise.resolve({ total_count: summaryReads === 1 ? 1 : 0, records: summaryReads === 1
           ? [{ kind: "candidate", id: complete.id, event_id: complete.event_id, state: "pending",
-            amount_minor: 100, direction: "expense" }]
+            amount_minor: 100, direction: "expense", currency: "CNY" }]
           : [] });
       }
       if (path.startsWith("/api/notification/candidates?")) {
@@ -178,7 +178,7 @@ try {
     "Successful confirm must remove the candidate immediately");
   staleSummary.resolve({ total_count: 1, records: [{
     kind: "candidate", id: complete.id, event_id: complete.event_id, state: "pending",
-    amount_minor: 100, direction: "expense",
+    amount_minor: 100, direction: "expense", currency: "CNY",
   }] });
   await oldRefresh;
   assert.doesNotMatch(list.innerHTML, /data-finance-candidate="candidate-one"/,

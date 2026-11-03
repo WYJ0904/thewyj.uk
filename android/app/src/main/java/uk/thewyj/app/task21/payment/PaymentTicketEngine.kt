@@ -43,6 +43,8 @@ data class PaymentTicket(
     val enrichment: PaymentEnrichment? = null,
     /** Filled from the local recognition for launch; not proof of the foreground profile. */
     val sourceUid: Int? = null,
+    /** Durable privacy budget; independent of successful enrichment attempts. */
+    val scanAttempts: Int = 0,
 )
 
 data class PaymentEnrichment(
@@ -59,6 +61,8 @@ data class PaymentEnrichment(
     /** Explicit settled-page evidence, independent from amount and direction. */
     val completionConfirmed: Boolean = false,
     val sourceInstanceUncertain: Boolean = false,
+    /** Structured decimal observation, never an inferred monetary unit or a ledger amount. */
+    val amountDecimalCandidate: String? = null,
 )
 
 enum class PaymentEvidenceSource { ACCESSIBILITY, OCR }
@@ -137,7 +141,12 @@ class PaymentTicketEngine(
             it > 0 && "amount" !in ticket.missingFields
         }
         if (amountMinor == null) {
-            return EnrichmentOutcome.Insufficient(ticket.copy(attempts = attempts))
+            val candidate = enrichment.amountDecimalCandidate?.takeIf {
+                Regex("(?:0|[1-9][0-9]{0,7})(?:\\.[0-9]{1,2})?").matches(it)
+            }
+            return EnrichmentOutcome.Insufficient(ticket.copy(attempts = attempts,
+                enrichment = if (candidate != null) enrichment.copy(amountMinor = null, currency = null,
+                    completionConfirmed = false, sourceInstanceUncertain = true) else ticket.enrichment))
         }
         val missing = ticket.missingFields - setOf("amount") -
             if (enrichment.direction != null) setOf("direction") else emptySet()

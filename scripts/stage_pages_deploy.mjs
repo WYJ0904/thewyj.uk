@@ -45,7 +45,11 @@ const PRIVATE_COMPONENTS = new Set([
 const PRIVATE_FILE = /(?:^|[._-])(?:credentials?|secrets?|private|developer|evidence|debug)(?:[._-]|$)/i;
 // This reviewed runtime module implements transaction evidence rules; it is
 // application source, unlike private QA evidence and diagnostic files.
-const REVIEWED_SOURCE_FILES = new Set(["functions/_lib/notification-cash-evidence.mjs"]);
+const REVIEWED_SOURCE_FILES = new Set([
+  "functions/_lib/notification-cash-evidence.mjs",
+  "functions/_lib/payment-currency-evidence.mjs",
+  "functions/_lib/task21-provider-evidence.mjs",
+]);
 const CREDENTIAL_MATERIAL = [
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
   /\bgh[pousr]_[A-Za-z0-9_]{30,}\b/,
