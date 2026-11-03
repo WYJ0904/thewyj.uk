@@ -181,9 +181,13 @@ async function execute(context, path, account) {
     for (const operation of Array.isArray(payload.operations) ? payload.operations : []) {
       const receipt = typeof operation?.operation_id === 'string' ? await db.prepare('SELECT operation_id FROM task21_notification_sync_operations WHERE user_id=?1 AND operation_id=?2').bind(account.id,operation.operation_id).first() : null;
       if (receipt) continue;
-      const event = normalizeNotificationEvent(operation?.payload,{legacyUnitless:true});
-      if (['parsed','candidate'].includes(event.parse_status))
-        throw new Task21Error('请升级客户端后提交新识别的币种信息',409,'currency_client_upgrade_required');
+      const raw = operation?.payload;
+      const isHistoricalCny = raw?.currency === 'CNY' && !raw?.currency_evidence && !raw?.currency_review_required && !raw?.identity_review_reason?.startsWith('currency_');
+      if (!isHistoricalCny) {
+        const event = normalizeNotificationEvent(raw, {legacyUnitless: true});
+        if (['parsed','candidate'].includes(event.parse_status))
+          throw new Task21Error('请升级客户端后提交新识别的币种信息',409,'currency_client_upgrade_required');
+      }
     }
   }
   if (containsJpy(payload) && !moneyCapable(context))
