@@ -9,27 +9,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20261027-aeris-p07-ui-r1";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/core/config.js?v=20261028-aeris-p07-quality-r1";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261028-aeris-p07-quality-r1";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/core/capabilities.js?v=20261028-aeris-p07-quality-r1";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/core/api.js?v=20261028-aeris-p07-quality-r1";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20261027-aeris-p07-ui-r1";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/core/changelog.js?v=20261028-aeris-p07-quality-r1";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261028-aeris-p07-quality-r1";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -40,26 +40,27 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20261027-aeris-p07-ui-r1";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261027-aeris-p07-ui-r1";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261027-aeris-p07-ui-r1";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled } from "./js/core/design-system.js?v=20261027-aeris-p07-ui-r1";
-import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?v=20261027-aeris-p07-ui-r1";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261027-aeris-p07-ui-r1";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20261027-aeris-p07-ui-r1";
-import { createFeatureController } from "./js/core/feature-flags.js?v=20261027-aeris-p07-ui-r1";
-import { createFeatureConsole } from "./js/core/feature-console.js?v=20261027-aeris-p07-ui-r1";
-import { createMasteryController } from "./js/language/mastery.js?v=20261027-aeris-p07-ui-r1";
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?v=20261027-aeris-p07-ui-r1";
-import { masteryStorageKey } from "./js/language/mastery-state.js?v=20261027-aeris-p07-ui-r1";
-import { speakText, stopSpeech } from "./js/language/speech.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/core/session.js?v=20261028-aeris-p07-quality-r1";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261028-aeris-p07-quality-r1";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261028-aeris-p07-quality-r1";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?v=20261028-aeris-p07-quality-r1";
+import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?v=20261028-aeris-p07-quality-r1";
+import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?v=20261028-aeris-p07-quality-r1";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261028-aeris-p07-quality-r1";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20261028-aeris-p07-quality-r1";
+import { createFeatureController } from "./js/core/feature-flags.js?v=20261028-aeris-p07-quality-r1";
+import { createFeatureConsole } from "./js/core/feature-console.js?v=20261028-aeris-p07-quality-r1";
+import { createMasteryController } from "./js/language/mastery.js?v=20261028-aeris-p07-quality-r1";
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?v=20261028-aeris-p07-quality-r1";
+import { masteryStorageKey } from "./js/language/mastery-state.js?v=20261028-aeris-p07-quality-r1";
+import { speakText, stopSpeech } from "./js/language/speech.js?v=20261028-aeris-p07-quality-r1";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?v=20261027-aeris-p07-ui-r1";
-import { formatFinanceMoney } from "./js/finance/format.js?v=20261027-aeris-p07-ui-r1";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?v=20261027-aeris-p07-ui-r1";
-import { createDashboardView } from "./js/core/dashboard.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/language/speech-rate.js?v=20261028-aeris-p07-quality-r1";
+import { formatFinanceMoney } from "./js/finance/format.js?v=20261028-aeris-p07-quality-r1";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?v=20261028-aeris-p07-quality-r1";
+import { createDashboardView } from "./js/core/dashboard.js?v=20261028-aeris-p07-quality-r1";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -67,15 +68,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?v=20261027-aeris-p07-ui-r1";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/core/perf.js?v=20261028-aeris-p07-quality-r1";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261028-aeris-p07-quality-r1";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/language/history.js?v=20261028-aeris-p07-quality-r1";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -112,16 +113,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20261027-aeris-p07-ui-r1";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261027-aeris-p07-ui-r1";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/language/quiz.js?v=20261028-aeris-p07-quality-r1";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261028-aeris-p07-quality-r1";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20261028-aeris-p07-quality-r1";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/language/wrong-book.js?v=20261028-aeris-p07-quality-r1";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -130,7 +131,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/membership/account.js?v=20261028-aeris-p07-quality-r1";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -138,19 +139,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/membership/plans.js?v=20261028-aeris-p07-quality-r1";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/membership/recharge.js?v=20261028-aeris-p07-quality-r1";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/admin/formatters.js?v=20261028-aeris-p07-quality-r1";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -273,6 +274,7 @@ let financeCandidatesController = null;
 let transferController = null;
 let dashboardView = null;
 let featureController = null;
+let publicUiPolicyController = null;
 let masteryController = null;
 let featureConsole = null;
 let featureInfrastructureAvailable = false;
@@ -1210,6 +1212,8 @@ function accountWordLimit(language = state.quizLanguage) {
 
 function renderAccountUi() {
   featureController?.updateAccount();
+  publicUiPolicyController?.updateAccount();
+  applyInterfacePolicy();
   masteryController?.update();
   featureConsole?.setAvailable(featureInfrastructureAvailable);
   const account = state.session && state.account ? state.account : null;
@@ -1459,6 +1463,7 @@ function showFeedbackView(viewId) {
 
 async function loadMyFeedback() {
   const sequence = ++feedbackLoadSequence;
+  $("myFeedbackList").setAttribute("aria-busy", "true");
   $("myFeedbackList").innerHTML = '<p class="dashboard-empty">正在加载你的反馈…</p>';
   try {
     const data = await apiGet("/api/feedback/mine");
@@ -1467,16 +1472,21 @@ async function loadMyFeedback() {
   } catch (error) {
     if (sequence !== feedbackLoadSequence) return;
     $("myFeedbackList").innerHTML = `<p class="dashboard-empty">${escapeHtml(error.message)}</p>`;
+  } finally {
+    if (sequence === feedbackLoadSequence) $("myFeedbackList").setAttribute("aria-busy", "false");
   }
 }
 
 async function loadFeatureVoting() {
+  $("featureVotingList").setAttribute("aria-busy", "true");
   $("featureVotingList").innerHTML = '<p class="dashboard-empty">正在加载功能建议…</p>';
   try {
     const data = await apiGet("/api/feedback/voting");
     renderFeatureVoting(data.suggestions || []);
   } catch (error) {
     $("featureVotingList").innerHTML = `<p class="dashboard-empty">${escapeHtml(error.message)}</p>`;
+  } finally {
+    $("featureVotingList").setAttribute("aria-busy", "false");
   }
 }
 
@@ -1559,7 +1569,7 @@ function openModal(id) {
   document.body.classList.add("modal-open");
   if ($("appShell")) $("appShell").inert = true;
   document.querySelectorAll(".modal-layer:not(.hidden)").forEach((layer) => { layer.inert = layer !== modal; });
-  modal.querySelector("button, input, select")?.focus({ preventScroll: true });
+  focusDialog(modal);
 }
 
 function closeModal(id, immediate = false) {
@@ -1593,7 +1603,9 @@ function closeModal(id, immediate = false) {
     }
     const returnFocus = modalReturnFocus.get(id);
     modalReturnFocus.delete(id);
-    if (returnFocus?.isConnected && !returnFocus.closest(".modal-layer.hidden")) returnFocus.focus({ preventScroll: true });
+    if (returnFocus?.isConnected && returnFocus.getClientRects().length && !returnFocus.closest("[inert], .modal-layer.hidden")) {
+      returnFocus.focus({ preventScroll: true });
+    } else if (remaining.length) focusDialog(remaining.at(-1));
     if ((id === "membershipModal" && location.pathname === "/recharge") || (id === "accountModal" && location.pathname === "/account")) {
       if (state.session && state.account) {
         showModulePicker(false);
@@ -4652,14 +4664,14 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
 });
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?v=20261027-aeris-p07-ui-r1", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?v=20261027-aeris-p07-ui-r1", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?v=20261028-aeris-p07-quality-r1", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?v=20261028-aeris-p07-quality-r1", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?v=20261027-aeris-p07-ui-r1", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?v=20261027-aeris-p07-ui-r1", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?v=20261027-aeris-p07-ui-r1", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?v=20261028-aeris-p07-quality-r1", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?v=20261028-aeris-p07-quality-r1", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?v=20261028-aeris-p07-quality-r1", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render"],
@@ -4723,13 +4735,26 @@ featureConsole = createFeatureConsole({ api, apiGet,
   getAccount: () => state.session ? state.account : null,
   refreshFeatures: () => featureController?.refresh(),
 });
+function applyInterfacePolicy() {
+  // An authenticated account's Task25 decision remains authoritative, including
+  // OFF, expired and pending decisions. Public policy applies only to guests.
+  const enabled = state.session
+    ? featureController?.enabled("p07_accessibility") === true
+    : publicUiPolicyController?.enabled() === true;
+  setInterfaceEnhancementsEnabled(enabled);
+}
 featureController = createFeatureController({ api, apiGet,
   getAccount: () => state.session ? state.account : null,
   onAvailable: () => featureConsole?.setAvailable(featureInfrastructureAvailable),
   onChange: () => {
     masteryController?.update();
-    setInterfaceEnhancementsEnabled(featureController?.enabled("p07_accessibility") === true);
+    applyInterfacePolicy();
   },
+});
+publicUiPolicyController = createPublicUiPolicyController({ apiGet,
+  getAccount: () => state.session ? state.account : null,
+  document,
+  onChange: applyInterfacePolicy,
 });
 window.AerisFeatures = Object.freeze({ enabled: key => featureController.enabled(key), channel: () => featureController.channel() });
 masteryController = createMasteryController({ api, apiGet, features: featureController,
@@ -6811,6 +6836,8 @@ function auditRuntimeCapabilities() {
 
 async function boot() {
   initDesignSystem();
+  applyInterfacePolicy();
+  void publicUiPolicyController?.refresh();
   initPublicExperience();
   installLocalTestBindings();
   auditRuntimeCapabilities();
@@ -6936,10 +6963,12 @@ async function boot() {
     if (event.key === "Tab") {
       const modal = [...document.querySelectorAll(".modal-layer:not(.hidden)")].findLast((layer) => !layer.inert);
       if (!modal) return;
-      const targets = [...modal.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')]
-        .filter((element) => !element.disabled && element.getClientRects().length);
+      const targets = dialogFocusTargets(modal);
       const first = targets[0], last = targets[targets.length - 1];
-      if (targets.length && ((!modal.contains(document.activeElement)) || (event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last))) {
+      if (!targets.length) {
+        event.preventDefault();
+        focusDialog(modal);
+      } else if ((!targets.includes(document.activeElement)) || (event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last)) {
         event.preventDefault();
         (event.shiftKey ? last : first).focus({ preventScroll: true });
       }

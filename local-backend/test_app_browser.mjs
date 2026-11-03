@@ -2551,6 +2551,10 @@ async function main() {
 
     const expectedDeniedPaths = new Set(["/api/tools/access", "/api/quiz/start"]);
     const expectedCloudOnlyPaths = new Set([
+      // The retired Python host has no Task25 public UI authority. A missing
+      // optional endpoint is a required default-OFF path, verified separately
+      // by the public-policy regressions and the real Cloudflare ON/OFF suite.
+      "/api/ui/features",
       "/api/messages/pending",
       "/api/admin/messages",
       "/api/admin/roles",

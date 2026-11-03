@@ -40,6 +40,17 @@ d.click();d.observers[0]([{target:d.details}]);await Promise.resolve();assert.eq
 d.details.open=false;await Promise.resolve();assert.equal(d.summary.attributes.get('aria-expanded'),'false');assert.equal(d.details.open,false);
 const reduced=disclosure(true);reduced.click();assert.equal(reduced.details.open,true);reduced.click();assert.equal(reduced.details.open,false);assert.equal(reduced.animations.length,0);
 const large=disclosure(false,true);large.click();assert.ok(large.animations.every(a=>a.keys.every(k=>!('height'in k))));
+// A floating account-menu panel must remain hittable from the first frame.
+// Its native toggle is authoritative; layout clipping cannot be introduced.
+for(const kind of ['account-menu','aria-menu']){
+ const popup=disclosure();
+ popup.details.classList={contains:name=>kind==='account-menu'&&name==='account-menu'};
+ popup.summary.getAttribute=name=>kind==='aria-menu'&&name==='aria-haspopup'?'menu':null;
+ const event=popup.click();
+ assert.equal(event.defaultPrevented,false,'native popover activation remains immediate');
+ assert.equal(popup.animations.length,0,'popover is never height-animated');
+ assert.equal(popup.details.style.overflow,'','popover must not be clipped during activation');
+}
 // Selection can be committed by an async owner after event dispatch. Only the
 // tablist's aria-selected mutations schedule work, and layout geometry must not
 // inherit pressed scale from getBoundingClientRect().

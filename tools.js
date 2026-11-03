@@ -7,10 +7,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?v=20261027-aeris-p07-ui-r1";
-import { randomToolResult } from "./js/tools/random.js?v=20261027-aeris-p07-ui-r1";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20261027-aeris-p07-ui-r1";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/tools/catalog.js?v=20261028-aeris-p07-quality-r1";
+import { randomToolResult } from "./js/tools/random.js?v=20261028-aeris-p07-quality-r1";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?v=20261028-aeris-p07-quality-r1";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?v=20261028-aeris-p07-quality-r1";
 import {
   csvString,
   decodeLocalText,
@@ -19,17 +19,17 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/tools/file.js?v=20261028-aeris-p07-quality-r1";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?v=20261027-aeris-p07-ui-r1";
-import { runToolRenderer } from "./js/tools/runner.js?v=20261027-aeris-p07-ui-r1";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261027-aeris-p07-ui-r1";
-import { createParkedRows } from "./js/core/parked-rows.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/tools/image.js?v=20261028-aeris-p07-quality-r1";
+import { runToolRenderer } from "./js/tools/runner.js?v=20261028-aeris-p07-quality-r1";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261028-aeris-p07-quality-r1";
+import { createParkedRows } from "./js/core/parked-rows.js?v=20261028-aeris-p07-quality-r1";
 (() => {
   "use strict";
   const boundToolRoots = new WeakSet();

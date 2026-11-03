@@ -26,9 +26,9 @@ export function renderPublicPlanCatalog(doc,plans,error='') {
   for(const [group,id]of [['modules','publicModulePlans'],['permanent','publicPermanentPlans']]){
     const list=doc.getElementById(id);if(!list)continue;
     const nodes=catalog[group].map(plan=>{const item=doc.createElement('li');item.dataset.planCode=plan.code;const name=doc.createElement('span');name.textContent=plan.name;const price=doc.createElement('strong');price.textContent=`${plan.price} · ${plan.term}`;item.append(name,price);return item;});
-    if(!nodes.length){const item=doc.createElement('li');item.textContent=error?'目录暂不可用，请在账户页面查看。':'当前没有可购买的对应方案。';nodes.push(item);}list.replaceChildren(...nodes);
+    if(!nodes.length){const item=doc.createElement('li');item.textContent=error?'目录暂不可用，请重试或在账户页面查看。':'当前没有可购买的对应方案。';nodes.push(item);}list.replaceChildren(...nodes);list.setAttribute('aria-busy','false');
   }
-  const status=doc.getElementById('publicPlanStatus');if(status)status.textContent=error?'当前套餐目录读取失败，其他入口仍可使用。':'价格与权益来自当前套餐目录，具体开通规则以账户页面为准。';
+  const status=doc.getElementById('publicPlanStatus');if(status){status.setAttribute('aria-atomic','true');status.textContent=error?'当前套餐目录读取失败，请重试读取套餐，或登录账户查看。':'价格与权益来自当前套餐目录，具体开通规则以账户页面为准。';}
   doc.getElementById('publicPlanRetryBtn')?.classList.toggle('hidden',!error);
 }
 export function initPublicExperience(doc=globalThis.document) {

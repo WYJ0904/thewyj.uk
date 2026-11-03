@@ -1,20 +1,20 @@
-/* thewyj Design System 2.0
+/* Aeris Design System 2.0
  * Canonical semantic tokens and shared component states for Web and Android parity.
  */
 :root {
   color-scheme: light;
 
   /* Typography */
-  --ds-font-sans: "Segoe UI Variable", "Microsoft YaHei UI", "PingFang SC", system-ui, -apple-system, sans-serif;
+  --ds-font-sans: "Segoe UI Variable", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", system-ui, -apple-system, sans-serif;
   --ds-font-serif: Georgia, "Times New Roman", "Songti SC", serif;
   --ds-font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
-  --ds-text-xs: 12px;
-  --ds-text-sm: 14px;
-  --ds-text-md: 16px;
-  --ds-text-lg: 18px;
-  --ds-text-xl: 22px;
-  --ds-text-2xl: 30px;
-  --ds-text-display: 56px;
+  --ds-text-xs: 0.75rem;
+  --ds-text-sm: 0.875rem;
+  --ds-text-md: 1rem;
+  --ds-text-lg: 1.125rem;
+  --ds-text-xl: 1.375rem;
+  --ds-text-2xl: 1.875rem;
+  --ds-text-display: 3.5rem;
   --ds-leading-tight: 1.18;
   --ds-leading-body: 1.6;
 
@@ -97,6 +97,7 @@
   --ds-warning: #9a5708;
   --ds-warning-soft: #fff5de;
   --ds-error: #c23333;
+  --ds-on-error: #ffffff;
   --ds-error-hover: #a92424;
   --ds-error-soft: #fff0f0;
   --ds-info: #1f5fbf;
@@ -252,6 +253,7 @@ body.modal-open .skip-link { visibility: hidden; }
   --ds-warning: var(--ds-dark-warning);
   --ds-warning-soft: var(--ds-dark-warning-soft);
   --ds-error: var(--ds-dark-error);
+  --ds-on-error: var(--ds-dark-on-brand);
   --ds-error-hover: var(--ds-dark-error-hover);
   --ds-error-soft: var(--ds-dark-error-soft);
   --ds-info: var(--ds-dark-info);
@@ -303,6 +305,7 @@ body.modal-open .skip-link { visibility: hidden; }
     --ds-warning: var(--ds-dark-warning);
     --ds-warning-soft: var(--ds-dark-warning-soft);
     --ds-error: var(--ds-dark-error);
+    --ds-on-error: var(--ds-dark-on-brand);
     --ds-error-hover: var(--ds-dark-error-hover);
     --ds-error-soft: var(--ds-dark-error-soft);
     --ds-info: var(--ds-dark-info);
@@ -321,7 +324,7 @@ body.modal-open .skip-link { visibility: hidden; }
 }
 
 html {
-  min-width: 320px;
+  min-width: 0;
   min-height: 100%;
   scroll-padding-top: calc(76px + env(safe-area-inset-top));
   background: var(--ds-workspace-canvas);
@@ -341,7 +344,7 @@ body.modal-open {
 }
 
 body {
-  min-width: 320px;
+  min-width: 0;
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0;
@@ -511,13 +514,13 @@ button.primary:active:not(:disabled),
 
 .danger-button {
   border-color: var(--ds-error);
-  color: #ffffff;
+  color: var(--ds-on-error);
   background: var(--ds-error);
 }
 
 .danger-button:hover:not(:disabled) {
   border-color: var(--ds-error-hover);
-  color: #ffffff;
+  color: var(--ds-on-error);
   background: var(--ds-error-hover);
 }
 
@@ -812,9 +815,9 @@ small {
 
 @media (max-width: 760px) {
   :root {
-    --ds-text-display: 42px;
-    --ds-text-2xl: 26px;
-    --ds-text-xl: 20px;
+    --ds-text-display: 2.625rem;
+    --ds-text-2xl: 1.625rem;
+    --ds-text-xl: 1.25rem;
   }
 
   .modal-layer {
@@ -875,4 +878,56 @@ html[data-android-reduced-motion="true"] *::after {
   animation-duration: 1ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 1ms !important;
+}
+
+/* P07 quality: keep every enhancement reversible by the existing UI policy. */
+html[data-p07-ui="enabled"] {
+  scroll-padding-block-start: calc(var(--site-nav-height, 68px) + var(--ds-space-4));
+}
+html[data-p07-ui="enabled"] :is(input, select, textarea, button, a, summary, [tabindex]) {
+  scroll-margin-block: calc(var(--site-nav-height, 68px) + var(--ds-space-4)) var(--ds-space-4);
+}
+html[data-p07-ui="enabled"] label[data-p07-label] {
+  display: block;
+  margin-block: var(--ds-space-3) var(--ds-space-2);
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-sm);
+  font-weight: 650;
+}
+html[data-p07-ui="enabled"] :is(button, .button-link, .button-primary, .button-secondary) {
+  min-width: var(--ds-touch-min);
+  min-height: var(--ds-touch-min);
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+html[data-p07-ui="enabled"] [role="tabpanel"] { min-width: 0; }
+html:not([data-p07-ui="enabled"]) #workspace > .tabs .ds-tab-indicator { display: none; }
+html[data-p07-ui="enabled"] [role="tabpanel"]:focus-visible {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 3px;
+}
+html[data-p07-ui="enabled"] .field-validation {
+  margin-block: var(--ds-space-1) var(--ds-space-3);
+  color: var(--ds-error);
+  font-size: var(--ds-text-sm);
+  line-height: var(--ds-leading-body);
+}
+html[data-p07-ui="enabled"] :is(.secret-input-row, .admin-secret-input-wrap) { min-width: 0; }
+html[data-p07-ui="enabled"] .secret-input-row > input { min-width: 0; }
+html[data-p07-ui="enabled"] .account-details :is(dd, code) { overflow-wrap: anywhere; }
+
+@media (max-height: 35rem) and (orientation: landscape) {
+  html[data-p07-ui="enabled"] { scroll-padding-block-start: var(--ds-space-3); }
+  html[data-p07-ui="enabled"] :is(input, select, textarea, button, a, summary, [tabindex]) { scroll-margin-block-start: var(--ds-space-3); }
+  html[data-p07-ui="enabled"] .site-nav { position: relative; }
+  html[data-p07-ui="enabled"] .modal-layer { align-items: flex-start; }
+  html[data-p07-ui="enabled"] .modal-panel { max-height: calc(var(--ds-overlay-height, 100dvh) - 16px); }
+}
+@media (forced-colors: active) {
+  :is(button, a, summary, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid Highlight;
+    box-shadow: none;
+  }
+  [role="tab"][aria-selected="true"] { border-bottom: 2px solid Highlight; }
 }
