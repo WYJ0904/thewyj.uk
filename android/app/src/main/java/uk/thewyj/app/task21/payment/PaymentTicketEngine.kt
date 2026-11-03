@@ -41,6 +41,8 @@ data class PaymentTicket(
     val state: PaymentTicketState,
     val attempts: Int = 0,
     val enrichment: PaymentEnrichment? = null,
+    /** Filled from the local recognition for launch; not proof of the foreground profile. */
+    val sourceUid: Int? = null,
 )
 
 data class PaymentEnrichment(
@@ -54,6 +56,9 @@ data class PaymentEnrichment(
     val occurredAtMs: Long?,
     val confidence: Int,
     val evidenceSource: PaymentEvidenceSource = PaymentEvidenceSource.ACCESSIBILITY,
+    /** Explicit settled-page evidence, independent from amount and direction. */
+    val completionConfirmed: Boolean = false,
+    val sourceInstanceUncertain: Boolean = false,
 )
 
 enum class PaymentEvidenceSource { ACCESSIBILITY, OCR }

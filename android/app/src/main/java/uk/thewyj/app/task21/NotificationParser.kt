@@ -136,8 +136,8 @@ private class StructuredParser(
             )
         }
 
-        val completed = containsAny(text, NotificationTerms.strongCompletion)
-        val settledAmount = NotificationTerms.explicitPaymentAmount.containsMatchIn(text)
+        val completed = uk.thewyj.app.task21.payment.PaymentText.hasCompletion(text)
+        val explicitAmount = NotificationTerms.explicitPaymentAmount.containsMatchIn(text)
         if (containsAny(text, NotificationTerms.marketing) && !completed) {
             return ParserOutput(
                 NotificationEventType.MARKETING, ParseStatus.UNPARSED, FinanceDirection.UNKNOWN,
@@ -151,13 +151,7 @@ private class StructuredParser(
             )
         }
 
-        val direction = when {
-            containsAny(text, NotificationTerms.refund) -> FinanceDirection.REFUND
-            containsAny(text, NotificationTerms.income) -> FinanceDirection.INCOME
-            containsAny(text, NotificationTerms.expense) ||
-                settledAmount -> FinanceDirection.EXPENSE
-            else -> FinanceDirection.UNKNOWN
-        }
+        val direction = uk.thewyj.app.task21.payment.PaymentText.direction(text) ?: FinanceDirection.UNKNOWN
         if (direction == FinanceDirection.UNKNOWN) {
             return ParserOutput(
                 NotificationEventType.OTHER, ParseStatus.UNPARSED, FinanceDirection.UNKNOWN,
@@ -172,9 +166,11 @@ private class StructuredParser(
 
         var confidence = 0
         if (direction != FinanceDirection.UNKNOWN) confidence += 250
-        // 已支付/支付成功 and 「支付100元」 both describe a settled amount; a bare
-        // payment hint without either stays a lower-confidence candidate.
-        if (completed || settledAmount) confidence += 300
+        // A directly stated amount is useful evidence, but only explicit
+        // completion can promote an event beyond candidate.
+        // Keep amount-extraction confidence independent from settlement status.
+        // A high-confidence candidate still cannot become PARSED without completion.
+        if (completed || explicitAmount) confidence += 300
         if (amountMinor > 0) confidence += 300
         if (merchant.isNotBlank()) confidence += 150
         // The parser only matches supported payment packages, so a structured
@@ -183,7 +179,7 @@ private class StructuredParser(
         confidence = confidence.coerceIn(0, 1000)
 
         val parseStatus = when {
-            direction != FinanceDirection.UNKNOWN && amountMinor > 0 && (completed || settledAmount) ->
+            direction != FinanceDirection.UNKNOWN && amountMinor > 0 && completed ->
                 ParseStatus.PARSED
             direction != FinanceDirection.UNKNOWN && amountMinor > 0 -> ParseStatus.CANDIDATE
             else -> ParseStatus.UNPARSED
@@ -197,13 +193,13 @@ private class StructuredParser(
 }
 
 object WeChatNotificationParser : NotificationParser by StructuredParser(
-    version = "wechat-v1",
+    version = "wechat-structured-4",
     paymentChannel = "wechat",
     packageNames = setOf("com.tencent.mm"),
 )
 
 object AlipayNotificationParser : NotificationParser by StructuredParser(
-    version = "alipay-v1",
+    version = "alipay-structured-4",
     paymentChannel = "alipay",
     packageNames = setOf("com.eg.android.AlipayGphone", "com.alipay.android.app"),
 )

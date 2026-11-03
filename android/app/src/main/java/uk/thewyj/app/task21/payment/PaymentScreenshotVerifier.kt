@@ -138,7 +138,7 @@ class PaymentScreenshotVerifier(private val engine: OcrEngine) {
             ).any { joined.contains(it) }
             val directionOnlyDetail = listOf("交易详情", "交易詳情", "账单详情", "賬單詳情", "转账详情", "轉賬詳情")
                 .any(joined::contains) && PaymentText.hasCompletion(joined) && PaymentText.direction(joined) != null
-            return PaymentPageContext.isDetail(lines) && ((money && context) || directionOnlyDetail || PaymentPageContext.pendingOutgoing(lines))
+            return PaymentPageContext.isDetail(lines) && ((money && context) || directionOnlyDetail || PaymentPageContext.pendingTransfer(lines))
         }
     }
 }

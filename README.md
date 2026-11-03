@@ -1,5 +1,10 @@
 # WYJ的网站
 
+Windows 固定工作区：`%USERPROFILE%\Desktop\编程\thewyj.uk`。
+本地启动与目录约定见 [Windows 工作区说明](docs/WINDOWS_WORKSPACE.md)，
+迁移核验见 [迁移报告](docs/WORKSPACE_MIGRATION_REPORT.md)，
+未完成开发状态见 [暂停交接](docs/PAUSED_DEVELOPMENT_HANDOFF.md)。
+
 [![Core CI](https://github.com/WYJ0904/thewyj.uk/actions/workflows/ci.yml/badge.svg)](https://github.com/WYJ0904/thewyj.uk/actions/workflows/ci.yml)
 
 这是部署在 Cloudflare Pages 上的语言测试与在线工具箱。前端是纯 HTML/CSS/JavaScript；正式 API 由 Pages Functions 提供，结构化数据存于 D1，私有二进制存于 R2，短文本 AI fallback 使用 Workers AI，PDF 在浏览器本地生成。Production 不依赖用户电脑、Python、SQLite、Ollama、Cloudflare Tunnel 或 `LOCAL_API_BASE`。

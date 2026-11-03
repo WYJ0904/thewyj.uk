@@ -181,6 +181,12 @@ function cleanEvidence(value) {
 
 async function autoBookVerifiedHint(db, account, deviceId, row) {
   if (!row || String(row.state || "") !== "pending") return row;
+  // Amount/direction describe a transfer; they do not prove it settled.
+  // Manual confirmation and attachment of an existing ledger receipt remain
+  // separate paths, so pending transfers keep the same review identity.
+  if (String(row.recognition_status || "") !== "CONFIRMED_PAYMENT") return row;
+  // Older APKs used this status for complete-money fields. Only the new
+  // evidence contract separates actual settlement from pending receipt state.
   const amountMinor = cleanAmount(row.amount_minor);
   const direction = cleanDirection(row.direction);
   if (!amountMinor || !direction) return row;
@@ -193,6 +199,7 @@ async function autoBookVerifiedHint(db, account, deviceId, row) {
       return {};
     }
   })();
+  if (evidence.parser_version !== "payment-settled-4") return row;
   const occurredAtMs = Number(evidence.occurred_at_ms) > 0
     ? Number(evidence.occurred_at_ms)
     : (Date.parse(String(row.created_at || "")) || Date.now());
@@ -534,7 +541,11 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
           (RECOGNITION_STATUS_RANK[previousStatus] ?? 0)
           ? recognitionStatus
           : previousStatus;
+        const proofImproved = recognitionStatus === "CONFIRMED_PAYMENT" &&
+          incomingEvidence.parser_version === "payment-settled-4" &&
+          previousEvidence.parser_version !== "payment-settled-4";
         const improved =
+          proofImproved ||
           (existing.amount_minor === null && amountMinor !== null) ||
           (existing.direction === null && direction !== null) ||
           (!String(existing.merchant || "") && Boolean(merchant)) ||
@@ -552,7 +563,7 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
                 merchant = CASE WHEN merchant = '' AND ?5 != '' THEN ?5 ELSE merchant END,
                 confidence = MAX(confidence, ?6),
                  recognition_status = ?7,
-                 evidence_summary = CASE WHEN ?6 >= confidence THEN ?8 ELSE evidence_summary END,
+                 evidence_summary = CASE WHEN ?6 >= confidence OR ?14 = 1 THEN ?8 ELSE evidence_summary END,
                  provider_reference = CASE WHEN provider_reference = '' THEN ?10 ELSE provider_reference END,
                  lifecycle_identity = CASE WHEN lifecycle_identity = '' THEN ?11 ELSE lifecycle_identity END,
                  payment_channel = CASE WHEN payment_channel = '' THEN ?12 ELSE payment_channel END,
@@ -560,7 +571,7 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
                  updated_at = ?9
             WHERE user_id = ?1 AND id = ?2 AND state = 'pending'`, [
             account.id, existing.id, amountMinor, direction, merchant, confidence,
-             mergedStatus, mergedEvidence, now, providerReference, lifecycleIdentity, paymentChannel, appLabel,
+             mergedStatus, mergedEvidence, now, providerReference, lifecycleIdentity, paymentChannel, appLabel, proofImproved ? 1 : 0,
           ]);
         }
         const updated = await hintById(db, account, existing.id);

@@ -7,7 +7,9 @@ const baseUrl=process.env.WYJ_TEST_BASE||'http://127.0.0.1:8908';
 assert.equal(new URL(baseUrl).hostname,'127.0.0.1');
 const page=await openPage({baseUrl,cdpUrl:process.env.WYJ_CDP_URL||'http://127.0.0.1:9228',width:1366,height:900,mobile:false});
 let version=1,changesRead=[];
-const row={id:'p4-cursor:fixture',merchant:'P4 cursor fixture',direction:'expense',amount_minor:1,currency:'CNY',status:'active',revision:1,occurred_at_ms:new Date(2026,9,5,12).getTime()};
+const now=new Date();
+const baseOccurredMs=new Date(now.getFullYear(),now.getMonth(),5,12).getTime();
+const row={id:'p4-cursor:fixture',merchant:'P4 cursor fixture',direction:'expense',amount_minor:1,currency:'CNY',status:'active',revision:1,occurred_at_ms:baseOccurredMs};
 try {
   await page.navigate('/login');await page.waitFor("!document.getElementById('entryScreen')");
   await page.setFields({'#usernameInput':process.env.WYJ_TEST_ADMIN_USER||'wyj','#secretInput':process.env.WYJ_TEST_ADMIN_SECRET});await page.click('#loginSubmitBtn');await page.waitFor("location.pathname==='/'");

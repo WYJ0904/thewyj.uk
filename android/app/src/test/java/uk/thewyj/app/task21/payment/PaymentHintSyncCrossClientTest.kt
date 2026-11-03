@@ -476,6 +476,7 @@ class PaymentHintSyncCrossClientTest {
                 providerReference = "",
                 createdAtMs = 2_000L,
                 updatedAtMs = 2_000L,
+                completionConfirmed = true,
             ),
         )
         paymentStore.saveCandidate(

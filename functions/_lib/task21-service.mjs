@@ -409,10 +409,17 @@ async function attachEventOutcome(db, account, event, deviceId, now) {
     if (rejected) return { transactionId: "", candidateId: "" };
   }
   const isTransactionLike = event.event_type === "transaction" || event.event_type === "refund";
-  // Confidence describes evidence; complete money fields decide booking.
-  const autoIngest = isTransactionLike && Number(event.amount_minor) > 0
+  // Earlier Android parsers marked complete-money candidates as parsed without
+  // settlement evidence. Preserve their fields for review, not new auto-booking.
+  const completionAware = new Set(["wechat-4", "alipay-4", "bank-notification-4", "bank-sms-4",
+    "wechat-structured-4", "alipay-structured-4", "local-autobook-v2", "verified-on-device"])
+    .has(event.parser_version);
+  // Parsed means the device observed completion. A complete-money candidate
+  // remains reviewable; amount/direction or confidence cannot settle it.
+  const autoIngest = isTransactionLike && completionAware && event.parse_status === "parsed" && Number(event.amount_minor) > 0
     && ["income", "expense", "refund"].includes(String(event.direction));
-  if (canonicalHint && autoIngest) {
+  const hasCanonicalReceipt = canonicalHint?.state === "confirmed" && canonicalHint.finance_entry_id;
+  if (canonicalHint && (autoIngest || hasCanonicalReceipt)) {
     const canonicalEvent = { ...event, event_id: canonicalHint.source_event_id };
     const transactionId = canonicalHint.state === "confirmed" && canonicalHint.finance_entry_id
       ? String(canonicalHint.finance_entry_id)
@@ -432,8 +439,10 @@ async function attachEventOutcome(db, account, event, deviceId, now) {
   const makeCandidate = isTransactionLike && !autoIngest && event.parse_status !== "unparsed";
   let transactionId = "";
   let candidateId = "";
-  if (autoIngest) {
-    transactionId = (await createAutomaticFinanceTransaction(db, account, deviceId, event)).transaction_id;
+  const existingRaw = await findFinanceRawBySourceEvent(db, account.id, event.event_id);
+  const existingReceipt = existingRaw ? await financeTransactionIdForRaw(db, existingRaw.id) : "";
+  if (autoIngest || existingReceipt) {
+    transactionId = existingReceipt || (await createAutomaticFinanceTransaction(db, account, deviceId, event)).transaction_id;
     await linkEvidence(db, account, event, "", true, "confirmed", now, transactionId);
     await run(db, `UPDATE task21_notification_candidates
       SET status = 'confirmed', finance_transaction_id = ?3, updated_at = ?4
@@ -537,7 +546,21 @@ async function processOperation(db, account, deviceId, operation) {
   const digest = await operationDigest(operation);
   const operationId = cleanId(operation?.operation_id, "操作标识");
   const replay = replayResult(await operationReceipt(db, account.id, operationId), digest);
-  if (replay) return replay;
+  if (replay) {
+    // A candidate may have been explicitly confirmed, or settled by later
+    // evidence, after the immutable ingest receipt was recorded. Return the
+    // actual ledger link so an offline client can acknowledge its old outbox.
+    const eventId = String(replay.event?.event_id || "");
+    if (!replay.transaction_id && eventId) {
+      const row = await first(db, `SELECT * FROM task21_notification_events
+        WHERE user_id = ?1 AND event_id = ?2`, [account.id, eventId]);
+      if (row?.finance_transaction_id) return {
+        ...replay, event: publicNotificationEvent(row), transaction_id: row.finance_transaction_id,
+        receipt_reconciled: true,
+      };
+    }
+    return replay;
+  }
   const type = String(operation?.type || "").trim();
   if (!OPERATION_TYPES.has(type)) throw new Task21Error("同步操作类型无效", 400, "operation_type_invalid");
   if (type === "event.ingest") {
@@ -672,7 +695,9 @@ export async function confirmNotificationCandidate(db, account, input) {
     source_package: event.source_package,
     source_type: event.source_type,
     event_type: event.event_type,
-    parse_status: event.parse_status,
+    // This is the explicit authenticated manual-confirm action. It is not an
+    // automatic inference from a candidate's monetary fields.
+    parse_status: "parsed",
     direction,
     amount_minor: amountMinor,
     currency: row.currency,
@@ -684,7 +709,7 @@ export async function confirmNotificationCandidate(db, account, input) {
     occurred_at_ms: edits.occurred_at_ms || Number(row.occurred_at_ms),
     received_at_ms: event.received_at_ms,
     confidence: row.confidence,
-    parser_version: event.parser_version,
+    parser_version: "verified-on-device",
   };
   const now = isoNow();
   const alias = await first(db, `SELECT h.finance_entry_id FROM task21_notification_review_aliases a
@@ -726,7 +751,7 @@ export async function confirmNotificationCandidate(db, account, input) {
   };
 }
 
-/** Retire complete candidates left by the former confidence gate. */
+/** Repair pending state only from an existing ledger receipt, never from money alone. */
 export async function reconcileLegacyCompleteCandidates(db, account) {
   requireFinanceRecognitionAccess(account);
   await run(db, `UPDATE task21_notification_candidates
@@ -736,20 +761,48 @@ export async function reconcileLegacyCompleteCandidates(db, account) {
       JOIN task21_notification_pending_hints h ON h.user_id = a.user_id AND h.id = a.hint_id
       WHERE a.user_id = ?1 AND h.state IN ('ignored', 'superseded', 'expired'))`,
   [account.id, isoNow()]);
-  const rows = await all(db, `SELECT c.id, e.device_id FROM task21_notification_candidates c
+  const rows = await all(db, `SELECT c.id, e.event_id, t.id AS transaction_id,
+      t.amount_minor, t.direction, t.merchant FROM task21_notification_candidates c
     JOIN task21_notification_events e ON e.user_id = c.user_id AND e.event_id = c.event_id
+    JOIN task16_finance_raw_events r ON r.user_id = c.user_id
+      AND r.source_type = 'notification' AND r.source_event_id = e.event_id
+    JOIN task16_finance_transaction_events l ON l.raw_event_id = r.id AND l.relation_status = 'active'
+    JOIN task16_finance_transactions t ON t.user_id = c.user_id AND t.id = l.transaction_id
+      AND t.status = 'active'
     LEFT JOIN task21_notification_pending_hints h
       ON h.user_id = c.user_id AND h.source_event_id = c.event_id
     WHERE c.user_id = ?1 AND c.status = 'pending' AND e.status = 'active'
-      AND c.amount_minor > 0 AND c.direction IN ('income', 'expense', 'refund')
       AND COALESCE(h.state, '') != 'ignored'
     ORDER BY c.created_at, c.id LIMIT 1000`, [account.id]);
   for (const row of rows) {
-    // confirmNotificationCandidate uses the source event's unique finance raw
-    // identity and closes its candidate, evidence, event and hint together.
-    await confirmNotificationCandidate(db, account, {
-      candidate_id: row.id, device_id: row.device_id,
-    });
+    const now = isoNow();
+    // A list/refresh is not a manual confirm. Reuse the exact account/event
+    // receipt without calling any transaction-creation path.
+    await db.batch([
+      db.prepare(`UPDATE task21_notification_candidates
+        SET status = 'confirmed', finance_transaction_id = ?3, updated_at = ?4
+        WHERE user_id = ?1 AND id = ?2 AND status = 'pending'`).bind(
+        account.id, row.id, row.transaction_id, now),
+      db.prepare(`UPDATE task21_notification_evidence
+        SET finance_transaction_id = ?3, reconciliation_state = 'confirmed', updated_at = ?4
+        WHERE user_id = ?1 AND candidate_id = ?2 AND EXISTS (
+          SELECT 1 FROM task21_notification_candidates c WHERE c.user_id = ?1 AND c.id = ?2
+            AND c.status = 'confirmed' AND c.finance_transaction_id = ?3)`).bind(
+        account.id, row.id, row.transaction_id, now),
+      db.prepare(`UPDATE task21_notification_events
+        SET finance_transaction_id = ?3, updated_at = ?4
+        WHERE user_id = ?1 AND event_id = ?2 AND EXISTS (
+          SELECT 1 FROM task21_notification_candidates c WHERE c.user_id = ?1 AND c.event_id = ?2
+            AND c.status = 'confirmed' AND c.finance_transaction_id = ?3)`).bind(
+        account.id, row.event_id, row.transaction_id, now),
+      db.prepare(`UPDATE task21_notification_pending_hints
+        SET state = 'confirmed', finance_entry_id = ?3, amount_minor = ?4, direction = ?5,
+          merchant = ?6, confirmed_at = ?7, updated_at = ?7
+        WHERE user_id = ?1 AND source_event_id = ?2 AND state = 'pending' AND EXISTS (
+          SELECT 1 FROM task21_notification_candidates c WHERE c.user_id = ?1 AND c.event_id = ?2
+            AND c.status = 'confirmed' AND c.finance_transaction_id = ?3)`).bind(
+        account.id, row.event_id, row.transaction_id, row.amount_minor, row.direction, row.merchant, now),
+    ]);
   }
   return rows.length;
 }

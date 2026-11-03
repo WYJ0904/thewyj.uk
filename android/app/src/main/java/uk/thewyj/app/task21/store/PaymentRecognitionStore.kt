@@ -173,6 +173,8 @@ class RoomPaymentRecognitionStore(private val database: NotificationDatabase) : 
 }
 
 internal fun PaymentRecognitionRecord.toEntity() = PaymentRecognitionEntity(
+    sourceUid = sourceUid ?: -1,
+    completionConfirmed = if (completionConfirmed) 1 else 0,
     recognitionId = recognitionId,
     accountId = accountId,
     state = state,
@@ -193,6 +195,8 @@ internal fun PaymentRecognitionRecord.toEntity() = PaymentRecognitionEntity(
 )
 
 internal fun PaymentRecognitionEntity.toModel() = PaymentRecognitionRecord(
+    sourceUid = sourceUid.takeIf { it >= 0 },
+    completionConfirmed = completionConfirmed == 1,
     recognitionId = recognitionId,
     accountId = accountId,
     state = state,

@@ -210,6 +210,7 @@ class ThewyjNotificationListenerService : NotificationListenerService() {
             .orEmpty()
         return NotificationCaptureInput(
             sourcePackage = sbn.packageName.orEmpty(),
+            sourceUid = sbn.uid,
             sourceType = "notification",
             notificationKey = sbn.key.orEmpty(),
             notificationId = sbn.id,

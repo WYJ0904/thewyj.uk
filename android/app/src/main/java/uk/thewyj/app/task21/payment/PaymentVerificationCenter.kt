@@ -64,7 +64,6 @@ class PaymentVerificationCenter(
         val ocrSuggested: Boolean,
         val uploaded: Boolean,
         val ticketActive: Boolean,
-        val remainingMs: Long,
         val occurredAtMs: Long,
         val financeTransactionId: String,
         val syncState: SyncState,
@@ -77,7 +76,16 @@ class PaymentVerificationCenter(
         val canonicalState: String = "",
         val eventIds: Set<String> = emptySet(),
         val remoteOnly: Boolean = false,
+        val localAmountMinor: Long? = null,
+        val localDirection: FinanceDirection = FinanceDirection.UNKNOWN,
+        val localEvidencePending: Boolean = false,
+        val evidenceConflict: Boolean = false,
+        val ticketId: String = "",
+        val ticketExpiresAtMs: Long = 0,
     ) {
+        val displayAmountMinor: Long? get() = amountMinor?.takeIf { it > 0 }
+            ?: localAmountMinor.takeUnless { evidenceConflict }
+        val displayDirection: FinanceDirection get() = if (direction == FinanceDirection.UNKNOWN && !evidenceConflict) localDirection else direction
         val needsAmount: Boolean get() = amountMinor == null || amountMinor <= 0
         val needsVerification: Boolean get() = needsAmount || direction == FinanceDirection.UNKNOWN
         /** This device may create the canonical transaction for the item. */
@@ -114,7 +122,19 @@ class PaymentVerificationCenter(
     fun startVerification(recognitionId: String): PaymentTicket? {
         val account = sessions.currentAccount() ?: return null
         if (!account.financeEntitled) return null
-        return runCatching { hook.coordinator().restartVerification(account.accountId, recognitionId) }.getOrNull()
+        return runCatching {
+            val record = store.recognition(account.accountId, recognitionId) ?: return@runCatching null
+            hook.coordinator().restartVerification(account.accountId, recognitionId)?.copy(sourceUid = record.sourceUid)
+        }.getOrNull()
+    }
+
+    /** Resolve only this account's current ticket; opening never extends its expiry. */
+    fun verificationTarget(recognitionId: String): PaymentTicket? {
+        val account = sessions.currentAccount()?.takeIf { it.financeEntitled } ?: return null
+        val record = store.recognition(account.accountId, recognitionId) ?: return null
+        return store.activeTicketForPackage(account.accountId, record.sourcePackage)?.takeIf {
+            it.recognitionId == recognitionId && tickets.isActive(it)
+        }?.copy(sourceUid = record.sourceUid)
     }
 
     /** Finance deep link: only an exact pending server event may reopen a ticket. */
@@ -144,6 +164,10 @@ class PaymentVerificationCenter(
 
     fun cachedObservation(accountId: String): PaymentHintSync.Result? = CanonicalPendingCache(app, accountId).observation()
 
+    fun observationIsCurrent(accountId: String, observation: PaymentHintSync.Result): Boolean =
+        (observation.accountId.isBlank() || observation.accountId == accountId) &&
+            (observation.observationVersion < 0 || CanonicalPendingCache(app, accountId).revision() == observation.observationVersion)
+
     /** Called only from a background IO coroutine after the first local paint. */
     suspend fun reconcile(accountId: String): PaymentHintSync.Result? {
         val localAccount = sessions.currentAccount()
@@ -159,7 +183,7 @@ class PaymentVerificationCenter(
             listOf(recognition.uploadEventId) + archive.structuredEventIdsForRecognition(accountId, recognition.sourceEventId)
         }.filter(String::isNotBlank).distinct()
         val cache = CanonicalPendingCache(app, accountId)
-        var pullEpoch = cache.epoch()
+        var pullEpoch = cache.beginObservation()
         var summary = if (credentials != null && credentials.accessToken.isNotBlank()) {
             api.pendingReviewSummary(credentials.accessToken, requested)
         } else null
@@ -167,7 +191,7 @@ class PaymentVerificationCenter(
             uk.thewyj.app.AppGraph.sessionRepository.refresh() == uk.thewyj.app.core.session.RefreshWorkResult.SUCCESS) {
             val refreshed = SecureCredentialStore(app).loadActive()
             if (refreshed != null && refreshed.account.id == accountId) {
-                pullEpoch = cache.epoch()
+                pullEpoch = cache.beginObservation()
                 summary = api.pendingReviewSummary(refreshed.accessToken, requested)
             }
         }
@@ -179,7 +203,8 @@ class PaymentVerificationCenter(
 
     /** Re-read Room after cloud terminal outcomes have been persisted. */
     fun reconciledItems(accountId: String, observation: PaymentHintSync.Result?): List<Item> =
-        buildItems(accountId, observation, includeAllLocal = observation?.completeObservation != true)
+        if (observation != null && observation.accountId.isNotBlank() && observation.accountId != accountId) emptyList()
+        else buildItems(accountId, observation, includeAllLocal = observation?.completeObservation != true)
 
     private fun buildItems(
         accountId: String,
@@ -194,9 +219,11 @@ class PaymentVerificationCenter(
             .mapNotNull { recognition ->
                 val identities = listOf(recognition.uploadEventId) +
                     archive.structuredEventIdsForRecognition(accountId, recognition.sourceEventId)
+                if (identities.any { observation?.observedStates?.get(it) in setOf("confirmed", "ignored", "rejected", "superseded", "expired", "deleted") })
+                    return@mapNotNull null
                 val bookingId = bookingEventId(recognition)
                 val candidate = store.candidateForRecognition(accountId, recognition.recognitionId)
-                val incompleteMoney = !PaymentAutoBook.eligible(candidate?.effectiveAmountMinor ?: recognition.amountMinor,
+                val incompleteMoney = !PaymentAutoBook.hasCompleteMoney(candidate?.effectiveAmountMinor ?: recognition.amountMinor,
                     candidate?.effectiveDirection?.takeIf(String::isNotBlank) ?: recognition.direction)
                 val unsent = identities.any { it in queue || "hint:$it" in queue } || bookingId in queue ||
                     incompleteMoney ||
@@ -244,7 +271,8 @@ class PaymentVerificationCenter(
                 ocrSuggested = candidate?.let(::requiresManualOcrReview) == true,
                 uploaded = uploaded,
                 ticketActive = active,
-                remainingMs = if (active) (ticket!!.expiresAtMs - System.currentTimeMillis()).coerceAtLeast(0) else 0,
+                ticketId = ticket?.ticketId.orEmpty(),
+                ticketExpiresAtMs = ticket?.expiresAtMs ?: 0,
                 occurredAtMs = candidate?.effectiveOccurredAtMs ?: recognition.createdAtMs,
                 financeTransactionId = transactionId,
                 syncState = paymentSyncStateFor(
@@ -256,7 +284,11 @@ class PaymentVerificationCenter(
                     observation,
                 ),
                 authority = authorityOf(recognition),
-                notice = rejections[queuedOperation].orEmpty(),
+                notice = rejections[queuedOperation] ?: when (candidate?.reason) {
+                    "source_instance_unverified" -> "无法自动核对来源应用或分身；请确认是同一笔交易后再记账"
+                    "payment_completion_unproven" -> "金额已识别，但尚未证明资金已完成收付；请核实状态后确认"
+                    else -> ""
+                },
                 recoveryOnly = recoveryOnly,
                 eventIds = eventIds.filter(String::isNotBlank).toSet(),
             )
@@ -268,13 +300,24 @@ class PaymentVerificationCenter(
         val canonical = pending.map { record ->
             val aliases = record.eventIds + record.eventId
             val local = localItems.firstOrNull { item ->
-                !item.recoveryOnly && item.eventIds.any { it in aliases }
+                !item.recoveryOnly && record.sourcePackage.isNotBlank() &&
+                    item.sourcePackage == record.sourcePackage && item.eventIds.any { it in aliases }
             }
+            val matching = localItems.filter { item -> record.sourcePackage.isNotBlank() &&
+                item.sourcePackage == record.sourcePackage && item.eventIds.any { it in aliases } }
+            val amounts = matching.mapNotNull { it.amountMinor?.takeIf { amount -> amount > 0 } }.distinct()
+            val directions = matching.map { it.direction }.filter { it != FinanceDirection.UNKNOWN }.distinct()
+            val localAmount = amounts.singleOrNull()
+            val localDirection = directions.singleOrNull() ?: FinanceDirection.UNKNOWN
+            val serverDirection = directionOf(record.direction)
+            val conflict = amounts.size > 1 || directions.size > 1 ||
+                (record.amountMinor != null && localAmount != null && record.amountMinor != localAmount) ||
+                (serverDirection != FinanceDirection.UNKNOWN && localDirection != FinanceDirection.UNKNOWN && serverDirection != localDirection)
             (local ?: remotePendingItem(record)).copy(
                 canonicalIdentity = record.canonicalId,
                 canonicalState = record.state,
                 sourcePackage = record.sourcePackage,
-                appLabel = record.appLabel.ifBlank { record.sourcePackage.ifBlank { "通知" } },
+                appLabel = PaymentAppLabels.known(record.sourcePackage) ?: record.appLabel.ifBlank { record.sourcePackage.ifBlank { "通知" } },
                 amountMinor = record.amountMinor,
                 direction = directionOf(record.direction),
                 merchant = record.merchant,
@@ -283,9 +326,16 @@ class PaymentVerificationCenter(
                 ocrSuggested = false,
                 uploaded = true,
                 eventIds = aliases.filter(String::isNotBlank).toSet(),
+                localAmountMinor = localAmount,
+                localDirection = localDirection,
+                evidenceConflict = conflict,
+                localEvidencePending = (record.amountMinor == null && localAmount != null) ||
+                    (serverDirection == FinanceDirection.UNKNOWN && localDirection != FinanceDirection.UNKNOWN),
             )
         }.distinctBy { it.canonicalIdentity }
-        return canonical + localItems.filter { it.recoveryOnly }
+        return canonical + localItems.filter { local -> local.recoveryOnly && canonical.none { cloud ->
+            cloud.sourcePackage.isNotBlank() && cloud.sourcePackage == local.sourcePackage && cloud.eventIds.any { it in local.eventIds }
+        } }
     }
 
     private fun remotePendingItem(record: PendingReviewIdentity) = Item(
@@ -301,7 +351,6 @@ class PaymentVerificationCenter(
         ocrSuggested = false,
         uploaded = true,
         ticketActive = false,
-        remainingMs = 0,
         occurredAtMs = System.currentTimeMillis(),
         financeTransactionId = "",
         syncState = SyncState.PENDING_SYNC,
@@ -532,7 +581,7 @@ class PaymentVerificationCenter(
     companion object {
         fun requiresManualOcrReview(candidate: PaymentCandidate): Boolean =
             candidate.reason == "ocr_amount_suggestion" && candidate.editedAmountMinor == null &&
-                !PaymentAutoBook.eligible(candidate.effectiveAmountMinor, candidate.effectiveDirection)
+                !PaymentAutoBook.hasCompleteMoney(candidate.effectiveAmountMinor, candidate.effectiveDirection)
 
         val ATTENTION_STATES = listOf(
             PaymentRecognitionState.DETECTED_AMOUNT_UNKNOWN.name,
