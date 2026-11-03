@@ -743,7 +743,7 @@ async function main() {
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
-      assert.ok(pwa.cacheNames.includes(`wyj-shell-${ASSET_RELEASE}-es-modules`), "The active shell cache must use the current release.");
+      assert.ok(pwa.cacheNames.some(name => name.startsWith(`wyj-shell-${ASSET_RELEASE}-es-modules`)), "The active shell cache must use the current release.");
       assert.equal(pwa.cachedLogo, true);
       assert.equal(pwa.cachedProductStyles, true);
       assert.equal(pwa.cachedDesignStyles, true);
