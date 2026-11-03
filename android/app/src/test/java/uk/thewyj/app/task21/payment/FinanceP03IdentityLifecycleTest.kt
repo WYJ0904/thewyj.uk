@@ -71,7 +71,7 @@ class FinanceP03IdentityLifecycleTest {
     }
     @Test fun durableMessageProofSurvivesRegistryCacheReplacement() {
         val h = hook()
-        val input = NotificationCaptureInput("com.tencent.mm", title = "微信支付", text = "支付成功¥648.00",
+        val input = NotificationCaptureInput("com.tencent.mm", title = "微信支付", text = "支付成功 实付 CNY 648.00",
             notificationKey = "synthetic-message-slot", notificationId = 7, receivedAtMs = 1000,
             paymentEventId = "synthetic-message-before", messageIdentity = NotificationFingerprint.sha256Hex("synthetic-durable-message"), sourceUid = 10030)
         h.onCapture(owner, input, "微信", input.paymentEventId)
@@ -83,14 +83,14 @@ class FinanceP03IdentityLifecycleTest {
     }
     @Test fun multipleOrdersOnOneMessageProofForceASeparateReviewSeries() {
         val h = hook()
-        val input = NotificationCaptureInput("com.tencent.mm", title = "微信支付", text = "支付成功¥648.00 交易号 SYNTH-MSG-ORDER-A",
+        val input = NotificationCaptureInput("com.tencent.mm", title = "微信支付", text = "支付成功 实付 CNY 648.00 交易号 SYNTH-MSG-ORDER-A",
             notificationKey = "synthetic-message-many-orders", notificationId = 7, receivedAtMs = 1000,
             messageIdentity = NotificationFingerprint.sha256Hex("synthetic-ambiguous-message"), sourceUid = 10030)
         h.onCapture(owner, input.copy(paymentEventId = "synthetic-msg-ref-a"), "微信", "synthetic-msg-ref-a")
-        val b = input.copy(text = "支付成功¥648.00 交易号 SYNTH-MSG-ORDER-B", paymentEventId = "synthetic-msg-ref-b")
+        val b = input.copy(text = "支付成功 实付 CNY 648.00 交易号 SYNTH-MSG-ORDER-B", paymentEventId = "synthetic-msg-ref-b")
         h.onCapture(owner, b, "微信", b.paymentEventId)
         assertEquals(2, store.localBookings(owner).size)
-        val unclear = input.copy(text = "支付成功¥648.00")
+        val unclear = input.copy(text = "支付成功 实付 CNY 648.00")
         val p = h.prepareIdentity(owner, unclear, h.outcomeFor(unclear)!!)
         assertEquals("message_identity_ambiguous", p.identityReviewReason)
         assertFalse(p.confirmed)
@@ -103,7 +103,7 @@ class FinanceP03IdentityLifecycleTest {
     }
     @Test fun laterReferenceEvidenceAttachesWithoutRenamingEarlierBooking() {
         val h = hook()
-        val input = NotificationCaptureInput("com.tencent.mm", title = "微信支付", text = "支付成功¥648.00",
+        val input = NotificationCaptureInput("com.tencent.mm", title = "微信支付", text = "支付成功 实付 CNY 648.00",
             notificationKey = "synthetic-promote-slot", notificationId = 7, receivedAtMs = 1000,
             paymentEventId = "synthetic-before-reference", messageIdentity = NotificationFingerprint.sha256Hex("synthetic-promote-message"))
         h.onCapture(owner, input, "微信", input.paymentEventId)
@@ -113,7 +113,24 @@ class FinanceP03IdentityLifecycleTest {
         assertEquals(listOf(original), store.localBookings(owner))
     }
 
-    @Test fun thirtySameEventDeliveriesAndThirtyReferenceAliasesStayOne() {
+    /**
+     * Dual-track safety contract: unqualified Yen symbol without explicit currency
+     * evidence or account currency context must fail closed into review without auto-booking.
+     */
+    @Test fun unqualifiedYenWithoutCurrencyEvidenceFailsClosedWithoutAutoBooking() {
+        val h = hook()
+        val input = NotificationCaptureInput("com.tencent.mm", title = "微信支付", text = "支付成功¥648.00",
+            notificationKey = "synthetic-ambiguous-slot", notificationId = 7, receivedAtMs = 1000,
+            paymentEventId = "synthetic-ambiguous-yen", messageIdentity = NotificationFingerprint.sha256Hex("synthetic-ambiguous-yen"), sourceUid = 10030)
+        h.onCapture(owner, input, "微信", input.paymentEventId)
+        assertTrue("ambiguous Yen without currency context must not create local booking", store.localBookings(owner).isEmpty())
+        val record = store.recognitionByUploadEvent(owner, input.paymentEventId)
+        assertNotNull(record)
+        assertEquals(PaymentRecognitionState.FINANCE_PENDING_CONFIRMATION.name, record!!.state)
+        assertEquals("currency_review_required", record.identityReviewReason)
+    }
+
+        @Test fun thirtySameEventDeliveriesAndThirtyReferenceAliasesStayOne() {
         repeat(30) { wechat("synthetic-p03-replay") }
         repeat(30) { wechat("synthetic-p03-alias-$it") }
         assertEquals(1, store.localBookings(owner).size)

@@ -243,7 +243,47 @@ class LocalPaymentBookingTest {
         } finally { pool.shutdownNow() }
     }
 
-    @Test fun offlineCaptureReceiptAndReplayKeepOneLedgerAndCloseArchive() {
+    /**
+     * Dual-track safety contract: offline capture with ambiguous Yen symbol and no currency context
+     * fails closed into candidate review and creates no local booking.
+     */
+    @Test fun offlineCaptureWithAmbiguousYenFailsClosedWithoutLocalBooking() {
+        val context = RuntimeEnvironment.getApplication()
+        val notificationStore = RoomNotificationStore(db)
+        val archive = object : NotificationArchiveSink {
+            override fun store(accountId: String, input: NotificationCaptureInput, parsed: StructuredNotificationEvent?) = true
+            override fun markRemoved(accountId: String, input: NotificationCaptureInput) {}
+            override fun markFinanceOutcome(accountId: String, sourceEventId: String, state: String, transactionId: String) =
+                notificationStore.markFinanceOutcome(accountId, sourceEventId, state, transactionId)
+            override fun recognitionSourceEventIds(accountId: String, sourceEventId: String) =
+                notificationStore.recognitionSourceEventIds(accountId, sourceEventId)
+        }
+        val hook = AndroidPaymentRecognitionHook(context, archive, store, testing = true,
+            notifierOverride = object : PaymentStatusNotifier {
+                override fun notify(message: PaymentStatusNotificationMessage) = true
+                override fun cancel(notificationId: Int) {}
+            })
+        val directory = File(context.cacheDir, "autobook-ambiguous-${UUID.randomUUID()}").apply { mkdirs() }
+        val queue = OfflineNotificationQueue(File(directory, "queue.jsonl"))
+        val transport = object : NotificationIngestTransport {
+            override fun post(path: String, sessionToken: String, body: String) = IngestResponse(false, 503, "{}")
+        }
+        val coordinator = NotificationCaptureCoordinator(
+            archiveFor = { LocalNotificationArchive.inDirectory(directory, it) }, queueFor = { queue },
+            transport = transport, account = { NotificationCaptureCoordinator.CaptureAccount("account-a", "device-local-book", "test-session", true, true) },
+            archiveSink = archive, paymentHook = hook, paymentLifecycleRegistry = AndroidPaymentNotificationLifecycleRegistry(context),
+        )
+        try {
+            val input = NotificationCaptureInput("com.tencent.mm", notificationKey = "test-autobook-ambiguous",
+                notificationId = 35, title = "微信支付", text = "支付成功 ¥34.00 交易号 SYNTH-LOCAL-AMBIGUOUS-REF", postTime = 1_791_024_978_000L,
+                receivedAtMs = 1_791_024_978_000L)
+            coordinator.onNotification(input)
+            assertTrue("ambiguous Yen without currency context must not create local booking", store.localBookings("account-a").isEmpty())
+            assertEquals(1, store.recognitionsByState("account-a", PaymentVerificationCenter.ATTENTION_STATES).size)
+        } finally { directory.listFiles()?.forEach { it.delete() }; directory.delete() }
+    }
+
+        @Test fun offlineCaptureReceiptAndReplayKeepOneLedgerAndCloseArchive() {
         val context = RuntimeEnvironment.getApplication()
         val notificationStore = RoomNotificationStore(db)
         val archive = object : NotificationArchiveSink {
@@ -285,7 +325,7 @@ class LocalPaymentBookingTest {
         )
         try {
             val input = NotificationCaptureInput("com.tencent.mm", notificationKey = "test-autobook-${UUID.randomUUID()}",
-                notificationId = 34, title = "微信支付", text = "支付成功 ¥34.00 交易号 SYNTH-LOCAL-BOOK-REF", postTime = 1_791_024_978_000L,
+                notificationId = 34, title = "微信支付", text = "支付成功 实付 CNY 34.00 交易号 SYNTH-LOCAL-BOOK-REF", postTime = 1_791_024_978_000L,
                 receivedAtMs = 1_791_024_978_000L)
             val original = pipeline()
             original.onNotification(input)
