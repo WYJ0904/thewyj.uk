@@ -4689,7 +4689,7 @@ financeController = createLazyController({
 
 financeCandidatesController = createLazyController({
   loadForSummary: false,
-  methods: ["reload", "handleClick"],
+  methods: ["reload", "handleClick", "show", "hide"],
   summary: () => ({ known: false, count: 0 }),
   load: async () => (await loadCandidateModule()).createFinanceCandidatesController({
   api,
