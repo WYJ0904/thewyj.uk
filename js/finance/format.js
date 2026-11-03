@@ -1,4 +1,4 @@
-import { currencyDigits, moneyText } from './money.js?v=20261031-aeris-p0-finance-r1';
+import { currencyDigits, moneyText } from './money.js?v=20261031-aeris-p0-finance-r2';
 const moneyFormatters = new Map();
 export function formatFinanceMoney(minor, currency = 'CNY') {
   try {

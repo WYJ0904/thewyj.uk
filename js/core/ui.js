@@ -1,4 +1,4 @@
-import { BUSINESS_TIME_ZONE } from "./config.js?v=20261031-aeris-p0-finance-r1";
+import { BUSINESS_TIME_ZONE } from "./config.js?v=20261031-aeris-p0-finance-r2";
 
 export const $ = (id) => document.getElementById(id);
 

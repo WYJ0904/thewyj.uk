@@ -1,9 +1,9 @@
-"""One reviewed cache release for the current finance module graph."""
+﻿"""One reviewed cache release for the current finance module graph."""
 from pathlib import Path
 import json,re
 ROOT=Path(__file__).resolve().parents[2]
-NEW='20261031-aeris-p0-finance-r1'
-old=['20261027-aeris-p07-ui-r1','20261014-aeris-task26-r9']
+NEW='20261031-aeris-p0-finance-r2'
+old=['20261031-aeris-p0-finance-r1','20261027-aeris-p07-ui-r1','20261014-aeris-task26-r9']
 files=[ROOT/name for name in ['app.js','tools.js','workflows.js','changelog.js','learning-sync.js','index.html','sw.js']]+sorted((ROOT/'js').rglob('*.js'))
 static=re.compile(r'''((?:from\s+|import\s+|import\s*\(\s*)["'])(\.{1,2}/[^"'?]+\.js)(?:\?[^"']*)?(["'])''')
 changes=[];targets=set()
@@ -27,3 +27,4 @@ if missing:
  sw.write_text(text,encoding='utf8',newline='\n')
  if 'sw.js'not in changes:changes.append('sw.js')
 print(json.dumps(dict(release=NEW,changed=changes,additional_shell_modules=missing)))
+

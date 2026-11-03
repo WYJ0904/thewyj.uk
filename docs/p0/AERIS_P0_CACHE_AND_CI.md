@@ -31,3 +31,12 @@ P04/P06 新 `money.js` 和 `ai-assistance.js` 的部分浏览器 import 没有�
 首次默认 Python HTTPS 仍被平台 BIC 拒绝，89 份静态读取保留 FAIL；对照读取同一 index：Python 默认标识 403/1010，明确的 `Aeris-P0-Verification/1.0` 应用标识 200 且 SHA 正确。[Cloudflare 最新 1010 文档](https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-1xxx-errors/error-1010/) 明确要求非浏览器客户端发送描述性应用 User-Agent。仅采用该正式客户端配置，没有伪装 Chrome、关闭 BIC、改 IP 或修改访问/登录控制。`user-agent-control-r1/` 保留该 A/B 证据；修正后输出另存，不覆盖先前 403。
 
 该文档中的本地通过不替代最终提交的 CI、Hosted、真实 Samsung 业务、备份恢复或发布门禁。所有没有执行的检查仍为 NOT_TESTED。
+
+## 窄视口账单布局修复与 r2 缓存发布
+
+2026-10-31。在 320px 窄视口下，非人民币交易因携带 Frankfurter 参考汇率说明文本（如“参考 Frankfurter v2 daily reference ...”），导致 .finance-transaction-side 溢出并将主内容列 .finance-transaction-main 宽度压缩至 0。
+
+修复方案：
+1. workspace-experience.css：为 .finance-transaction-side 增加 min-width: 0；限制其子元素 > small 的 max-inline-size: min(40vw, 22rem) 并启用 overflow-wrap: anywhere。
+2. 自动化验证：通过 qa/p0-layout/ 提供的 112 项多视口（320/384/600/1100）、明暗主题和 6 种币种布局回归测试，从修复前 42 PASS / 70 FAIL（70 失败中含 40 项原始投影断言缺陷与 30 项实际溢出）提升至修复后 112 PASS / 0 FAIL。
+3. 缓存发布升级：通过 qa/p0/update_asset_release.py 将资产版本标识从 20261031-aeris-p0-finance-r1 升级为 20261031-aeris-p0-finance-r2，同步更新 27 个 ES 模块 import query 及 sw.js 缓存键，确保客户端 Service Worker 及时获取最新的布局样式表。
