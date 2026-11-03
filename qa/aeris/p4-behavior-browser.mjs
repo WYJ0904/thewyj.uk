@@ -12,7 +12,12 @@ for(const width of [390,1366,1920]) {
     await page.navigate('/login');await page.waitFor("!document.getElementById('entryScreen')");
     await page.setFields({'#usernameInput':process.env.WYJ_TEST_ADMIN_USER||'wyj','#secretInput':process.env.WYJ_TEST_ADMIN_SECRET});await page.click('#loginSubmitBtn');
     await page.waitFor("location.pathname==='/' && document.querySelector('#publicHome').dataset.sessionMode==='authenticated'");
-    const rows=Array.from({length:250},(_,i)=>({id:`p4-behavior:${i}`,merchant:`P4 fixture ${i}`,direction:'expense',amount_minor:i+1,currency:'CNY',status:'active',revision:1,occurred_at_ms:new Date(2026,9,5,12).getTime()-i*60000}));
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    const baseOccurredMs = new Date(now.getFullYear(), now.getMonth(), 5, 12).getTime();
+    const rows=Array.from({length:250},(_,i)=>({id:`p4-behavior:${i}`,merchant:`P4 fixture ${i}`,direction:'expense',amount_minor:i+1,currency:'CNY',status:'active',revision:1,occurred_at_ms:baseOccurredMs-i*60000}));
     let changed=false,failed=false,ignore=false,slow=false,serverVersion=1,summaryReads=0;
     const users=Array.from({length:160},(_,i)=>({id:`p4-admin-user-${i}`,username:`P4 isolated member ${i}`,role:'user',is_admin:false,is_super_admin:false,banned:false,entitlements:[],memberships:[]}));
     const reviews=Array.from({length:125},(_,i)=>({id:`p4-review-${i}`,kind:'hint',event_id:`p4-review-event-${i}`,event_ids:[`p4-review-event-${i}`],state:'pending',amount_minor:1,direction:null,occurred_at_ms:rows[i].occurred_at_ms,source_package:'com.tencent.mm',app_label:'微信'}));
@@ -41,8 +46,8 @@ for(const width of [390,1366,1920]) {
     await page.setFields({'#financeSearchInput':'P4 fixture 249'});await page.waitFor("document.querySelectorAll('[data-finance-transaction]').length===1");
     await page.setFields({'#financeSearchInput':''});await page.waitFor("document.querySelectorAll('[data-finance-transaction]').length===100");
     await page.click('#financeAllMonthsBtn');assert.ok(await page.evaluate("document.querySelector('#financeFilterSummary').textContent.includes('全部月份')"));
-    await page.setFields({'#financeMonthFilter':'2026-09'});assert.equal(await page.evaluate("document.querySelector('#financeRecordedCount').textContent"),'0');
-    await page.setFields({'#financeMonthFilter':'2026-10'});assert.equal(await page.evaluate("document.querySelector('#financeRecordedCount').textContent"),'250');
+    await page.setFields({'#financeMonthFilter':prevMonthKey});assert.equal(await page.evaluate("document.querySelector('#financeRecordedCount').textContent"),'0');
+    await page.setFields({'#financeMonthFilter':currentMonthKey});assert.equal(await page.evaluate("document.querySelector('#financeRecordedCount').textContent"),'250');
     await page.click('[data-finance-candidate-edit="p4-review-1"]');
     await page.evaluate("const f=document.querySelector('[data-finance-candidate-editor=\"p4-review-1\"]');f.elements.amount.value='0.01';f.elements.direction.value='expense';f.elements.amount.focus();true");
     slow=true;await page.click('#financeCandidatesRefreshBtn');
