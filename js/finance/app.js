@@ -296,10 +296,12 @@ export function calculateFinanceSummary(transactions, options = {}) {
   const unconverted = [], byCurrency = {};
   const exact = { income_minor: 0n, expense_minor: 0n, refund_minor: 0n };
   for (const item of active) {
-    const value = referenceValue(item, quote, options);
-    const bucket = byCurrency[item.currency] ||= { income_minor: 0n, expense_minor: 0n, refund_minor: 0n };
+    const currency = item.currency || 'CNY';
+    const normalizedItem = item.currency ? item : { ...item, currency };
+    const value = referenceValue(normalizedItem, quote, options);
+    const bucket = byCurrency[currency] ||= { income_minor: 0n, expense_minor: 0n, refund_minor: 0n };
     if (Object.hasOwn(bucket, item.direction + '_minor') && Number.isSafeInteger(item.amount_minor)) bucket[item.direction + '_minor'] += BigInt(item.amount_minor);
-    if (!['same_currency', 'reference'].includes(value.status)) { unconverted.push({ id: item.id, currency: item.currency, reason: value.status }); continue; }
+    if (!['same_currency', 'reference'].includes(value.status)) { unconverted.push({ id: item.id, currency, reason: value.status }); continue; }
     if (Object.hasOwn(exact, item.direction + '_minor')) exact[item.direction + '_minor'] += BigInt(value.amount_minor);
   }
   exact.balance_minor = exact.income_minor + exact.refund_minor - exact.expense_minor;

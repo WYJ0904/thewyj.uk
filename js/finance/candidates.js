@@ -13,6 +13,12 @@ import {
   createSingleFlight,
   withInteractionFeedback,
 } from "../core/perf.js?v=20261031-aeris-p0-finance-r2";
+function escapeCss(val) {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+    return CSS.escape(val);
+  }
+  return String(val ?? "").replace(/["\\]/g, "\\$&");
+}
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -207,13 +213,13 @@ export function createFinanceCandidatesController({
   function restoreEditorState(list, snapshots) {
     for (const snapshot of snapshots || []) {
       if (!snapshot?.id) continue;
-      const form = list.querySelector(`[data-finance-candidate-editor="${CSS.escape(snapshot.id)}"]`);
+      const form = list.querySelector(`[data-finance-candidate-editor="${escapeCss(snapshot.id)}"]`);
       if (!form) continue;
       form.classList.remove("hidden");
       for (const [name, value] of Object.entries(snapshot.values || {})) {
         if (form.elements[name]) form.elements[name].value = value;
       }
-      const editButton = list.querySelector(`[data-finance-candidate-edit="${CSS.escape(snapshot.id)}"]`);
+      const editButton = list.querySelector(`[data-finance-candidate-edit="${escapeCss(snapshot.id)}"]`);
       if (editButton) editButton.textContent = "收起编辑";
       if (snapshot.focusedName && form.elements[snapshot.focusedName]) {
         form.elements[snapshot.focusedName].focus({ preventScroll: true });
@@ -560,7 +566,7 @@ export function createFinanceCandidatesController({
       const safe=['suggestion','review'].includes(response.status)&&!advice?{status:'invalid'}:response;
       aiRows.set(id,safe);render(currentCandidates,financeAiMessage(safe.status));
       if(action==='use'){
-        const form=document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`);
+        const form = typeof document?.querySelector === "function" ? document.querySelector(`[data-finance-candidate-editor="${escapeCss(id)}"]`) : null;
         if(!fillFinanceAiEditor(form,advice))render(currentCandidates,'保留你的人工修改；建议已失效或无法核验时请人工核实');
       }
     }catch(error){if(current())render(currentCandidates,error?.message||'AI暂不可用，可继续人工核实');}
@@ -584,7 +590,7 @@ export function createFinanceCandidatesController({
     const editButton = event.target.closest("[data-finance-candidate-edit]");
     if (editButton) {
       const id = editButton.dataset.financeCandidateEdit;
-      const form = document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`);
+      const form = typeof document?.querySelector === "function" ? document.querySelector(`[data-finance-candidate-editor="${escapeCss(id)}"]`) : null;
       if (form) {
         form.classList.toggle("hidden");
         editButton.textContent = form.classList.contains("hidden") ? "编辑并确认" : "收起编辑";
@@ -594,8 +600,8 @@ export function createFinanceCandidatesController({
     const cancelButton = event.target.closest("[data-finance-candidate-cancel]");
     if (cancelButton) {
       const id = cancelButton.dataset.financeCandidateCancel;
-      document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`)?.classList.add("hidden");
-      const editButton = document.querySelector(`[data-finance-candidate-edit="${CSS.escape(id)}"]`);
+      document.querySelector(`[data-finance-candidate-editor="${escapeCss(id)}"]`)?.classList.add("hidden");
+      const editButton = document.querySelector(`[data-finance-candidate-edit="${escapeCss(id)}"]`);
       if (editButton) editButton.textContent = "编辑并确认";
       return;
     }
@@ -619,7 +625,7 @@ export function createFinanceCandidatesController({
         // Render first, then reveal the freshly rendered form: render()
         // rebuilds the list HTML, so revealing the old node had no effect.
         render(currentCandidates, presentation.evidenceConflict ? "本机与云端证据不一致，请核对并编辑后确认。" : `这笔交易需要补全${presentation.missing.join("和")}后才能确认。`);
-        const form = document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`);
+        const form = typeof document?.querySelector === "function" ? document.querySelector(`[data-finance-candidate-editor="${escapeCss(id)}"]`) : null;
         if (form) {
           form.classList.remove("hidden");
           if (presentation.amountUnknown) form.elements.amount?.focus();
