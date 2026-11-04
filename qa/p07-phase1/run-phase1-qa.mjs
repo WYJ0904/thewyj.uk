@@ -374,6 +374,7 @@ try {
   const suites = [
     ["home-widgets-browser", "qa/aeris/home-widgets-browser.mjs"],
     ["phase1-browser-verify", "qa/p07-phase1/phase1-browser-verify.mjs"],
+    ["independent-browser-gaps", "qa/p07-phase1/independent-browser-gaps.mjs"],
     ...(WITH_APP_BROWSER ? [["test-app-browser", "local-backend/test_app_browser.mjs"]] : []),
   ];
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-04T06:06:22.182Z",
+  "generatedAt": "2026-11-04T06:41:18.904Z",
   "origin": "http://127.0.0.1:18898",
   "passCount": 6,
   "failCount": 0,
@@ -7,7 +7,7 @@
     {
       "id": "p07-01a-policy-brand-and-v3-tokens",
       "status": "PASS",
-      "durationMs": 2402,
+      "durationMs": 2347,
       "detail": {
         "p07Ui": "enabled",
         "themeColor": "#f4f6f9",
@@ -58,13 +58,13 @@
         "previewNoticeHidden": true,
         "demoBadgeCount": 3,
         "domNodes": 3666,
-        "fcpMs": 1588
+        "fcpMs": 1532
       }
     },
     {
       "id": "multi-viewport-and-dark-mode-screenshots",
       "status": "PASS",
-      "durationMs": 9389,
+      "durationMs": 9233,
       "detail": {
         "screenshotCount": 18,
         "captured": [
@@ -92,7 +92,7 @@
     {
       "id": "p07-01c-spatial-layer-zorder-escape-and-30-gestures",
       "status": "PASS",
-      "durationMs": 17526,
+      "durationMs": 17558,
       "detail": {
         "hoverLiftVerified": true,
         "escapeCancelVerified": true,
@@ -103,14 +103,14 @@
           "toolsZ": 1
         },
         "thirtyGestureRoundsPass": 30,
-        "thirtyGestureDurationMs": 13512,
+        "thirtyGestureDurationMs": 13496,
         "reducedMotionVerified": true
       }
     },
     {
       "id": "p07-01a-01d-accessibility-keyboard-and-text-scaling",
       "status": "PASS",
-      "durationMs": 4985,
+      "durationMs": 5065,
       "detail": {
         "ariaAudit": {
           "labels": [
@@ -164,7 +164,7 @@
     {
       "id": "unified-loading-and-error-recovery-states",
       "status": "PASS",
-      "durationMs": 2010,
+      "durationMs": 2018,
       "detail": {
         "splashCheck": {
           "screenBg": "rgb(244, 246, 249)",
@@ -190,7 +190,7 @@
     {
       "id": "authenticated-home-and-route-non-regression",
       "status": "PASS",
-      "durationMs": 10823,
+      "durationMs": 11088,
       "detail": {
         "authState": {
           "sessionMode": "authenticated",
@@ -210,13 +210,13 @@
     "product-ui.css": 101314,
     "public-experience.css": 59223,
     "workspace-experience.css": 35410,
-    "spatial-experience.css": 35911,
+    "spatial-experience.css": 37177,
     "app.js": 321147,
     "js/core/design-system.js": 15417,
     "js/core/motion.js": 9893,
-    "js/core/home-widgets.js": 17139,
+    "js/core/home-widgets.js": 17420,
     "js/core/public-ui-policy.js": 3440
   },
-  "totalAfterCssBytes": 336071,
+  "totalAfterCssBytes": 337337,
   "baselineAssetBytes": null
 }

@@ -345,7 +345,7 @@ try {
     await page.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 960, deviceScaleFactor: 1, mobile: false });
     await page.navigate("/login");
     await page.waitFor(
-      "!document.getElementById('entryScreen') && document.getElementById('authPanel').getClientRects().length > 0",
+      "!document.getElementById('entryScreen') && document.getElementById('authPanel').getClientRects().length > 0 && (!uiApi.public_ui?.enabled || document.documentElement.dataset.p07Ui === 'enabled')",
       30_000,
       "Live Hosted Preview /login ready"
     );

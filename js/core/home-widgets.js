@@ -167,6 +167,11 @@ export function createHomeWidgets({ root, accountId, navigate, storage = getSafe
     }
   };
   view.addEventListener("keydown", onEscapeDrag);
+  const onCardFocus = event => {
+    const card = event.target.closest("[data-home-widget]");
+    if (card && desktop && !interaction) syncZOrder(card.dataset.homeWidget);
+  };
+  stage.addEventListener("focusin", onCardFocus);
   stage.addEventListener("pointerdown", event => {
     const card = event.target.closest("[data-home-widget]");
     if (card && desktop && !interaction) syncZOrder(card.dataset.homeWidget);
@@ -209,5 +214,5 @@ export function createHomeWidgets({ root, accountId, navigate, storage = getSafe
   }) : null;
   policyObserver?.observe(root.ownerDocument.documentElement, { attributes: true, attributeFilter: ["data-p07-ui"] });
   setAccount();
-  return Object.freeze({render,setAccount,snapshot:()=>sanitizeHomeWidgets(config),hide:()=>{const active=Boolean(interaction);cancelGesture();if(active)apply();if(dialog.open)dialog.close();},dispose:()=>{cancelGesture();for(const timer of settleTimers.values())view.clearTimeout(timer);settleTimers.clear();observer.disconnect();policyObserver?.disconnect();view.removeEventListener("resize",resize);view.removeEventListener("keydown",onEscapeDrag);}});
+  return Object.freeze({render,setAccount,snapshot:()=>sanitizeHomeWidgets(config),hide:()=>{const active=Boolean(interaction);cancelGesture();if(active)apply();if(dialog.open)dialog.close();},dispose:()=>{cancelGesture();for(const timer of settleTimers.values())view.clearTimeout(timer);settleTimers.clear();observer.disconnect();policyObserver?.disconnect();stage.removeEventListener("focusin",onCardFocus);view.removeEventListener("resize",resize);view.removeEventListener("keydown",onEscapeDrag);}});
 }
