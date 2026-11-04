@@ -3355,6 +3355,16 @@ function restoreProjectRuntime() {
     state.roundStartedAt = 0;
     state.roundId = "";
     state.mode = "normal";
+    if ($("wordText")) $("wordText").textContent = "-";
+    if ($("wordReading")) {
+      $("wordReading").textContent = "";
+      $("wordReading").classList.add("hidden");
+    }
+    if ($("progressLabel")) $("progressLabel").textContent = "0/0";
+    if ($("scoreLabel")) $("scoreLabel").textContent = "得分 0";
+    if ($("quizLanguageLabel")) $("quizLanguageLabel").textContent = currentProject === "japanese" ? "日语" : "英语";
+    if ($("answerInput")) $("answerInput").value = "";
+    if ($("resultPanel")) $("resultPanel").classList.add("hidden");
     setView("setupView");
     updateStats();
     return;
@@ -3921,6 +3931,17 @@ function enterProject(value, pushHistory = true) {
   applyPendingScreen();
   if (pushHistory) pushRoute(`/language/${language}`);
   renderAccountUi();
+  if ($("wordText")) $("wordText").textContent = "-";
+  if ($("wordReading")) {
+    $("wordReading").textContent = "";
+    $("wordReading").classList.add("hidden");
+  }
+  if ($("progressLabel")) $("progressLabel").textContent = "0/0";
+  if ($("scoreLabel")) $("scoreLabel").textContent = "得分 0";
+  if ($("quizLanguageLabel")) $("quizLanguageLabel").textContent = language === "japanese" ? "日语" : "英语";
+  if ($("answerInput")) $("answerInput").value = "";
+  if ($("resultPanel")) $("resultPanel").classList.add("hidden");
+  masteryController?.update();
 }
 
 function showSessionRecovery(message = "正在打开你的页面…", options = {}) {
@@ -4908,6 +4929,7 @@ function setView(id) {
   if (leavingQuiz) {
     if (judgeController) judgeController.abort();
   }
+  $("workspace")?.setAttribute("data-active-view", id);
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
   document.querySelectorAll(".tabs button").forEach((tab) => tab.classList.toggle("active", tab.dataset.view === id));
   if (id === "quizView" && state.roundActive) {
@@ -5505,10 +5527,10 @@ async function ensureJapaneseQuestionForms(words) {
   if (unresolved.length) {
     const preview = unresolved.slice(0, 5).join("、");
     if (!dictation && resolution?.ai_unavailable) {
-      alert(`AI 暂时不可用，${preview}${unresolved.length > 5 ? "等" : ""}暂不显示假名标音；释义练习仍可继续。`);
+      showAchievementToast(`AI 暂时不可用，${preview}${unresolved.length > 5 ? "等" : ""}暂不显示假名标音；释义练习仍可继续。`);
       return true;
     }
-    alert(`AI 暂时未找到这些词的${dictation ? "完整写法" : "假名读音"}：${preview}${unresolved.length > 5 ? "等" : ""}。请稍后重试。`);
+    showAchievementToast(`AI 暂时未找到这些词的${dictation ? "完整写法" : "假名读音"}：${preview}${unresolved.length > 5 ? "等" : ""}。请稍后重试。`);
     return false;
   }
   return true;
@@ -6981,6 +7003,15 @@ async function boot() {
   });
   $("changelogTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
   $("dashboardChangelogBtn")?.addEventListener("click", () => showChangelog(true));
+  document.querySelectorAll(".v3-summary-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      const target = card.dataset.v3Summary;
+      if (target === "learning") navigateFromSiteNav("language");
+      else if (target === "finance") navigateFromSiteNav("finance");
+      else if (target === "transfer") navigateFromSiteNav("transfer");
+      else if (target === "tools") navigateFromSiteNav("tools");
+    });
+  });
   // #7: the learning-sync actions talk to the cloud; the control shows the
   // pending state before the first await instead of looking dead for a round trip.
   $("learningSyncNowBtn")?.addEventListener("click", (event) =>

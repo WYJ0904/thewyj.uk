@@ -501,6 +501,82 @@ export function createFinanceController({
     if (element("financeRefundTotal")) element("financeRefundTotal").textContent = formatFinanceMoney(summary.refund_minor);
     if (element("financeBalanceTotal")) element("financeBalanceTotal").textContent = formatFinanceMoney(summary.balance_minor);
     if (element("financeSummaryPeriod")) element("financeSummaryPeriod").textContent = `${currentMonth().replace("-", " 年 ")} 月`;
+    renderTrendChart();
+  }
+
+  function renderTrendChart() {
+    const wrap = element("financeTrendChartWrap");
+    if (!wrap || !store) return;
+    const allTx = Object.values(store.transactions).filter((item) => item && item.status !== "deleted");
+    if (!allTx.length) {
+      wrap.innerHTML = `
+        <div class="finance-chart-empty">
+          <svg class="finance-chart-empty-icon" viewBox="0 0 24 24" width="44" height="44" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          <p class="finance-chart-empty-title">暂无月度收支走势数据</p>
+          <p class="finance-chart-empty-hint">记录你的第一笔收支或从手机同步账本后，将在此自动生成月度收支对比与走势曲线。</p>
+        </div>`;
+      return;
+    }
+
+    const now = new Date();
+    const months = [];
+    for (let i = 5; i >= 0; i -= 1) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = `${d.getMonth() + 1}月`;
+      months.push({ key: mKey, label, income: 0, expense: 0 });
+    }
+
+    for (const tx of allTx) {
+      const txMonth = monthKey(tx.occurred_at_ms);
+      const slot = months.find((m) => m.key === txMonth);
+      if (slot) {
+        if (tx.direction === "income") slot.income += Number(tx.amount_minor || 0) / 100;
+        else if (tx.direction === "expense") slot.expense += Number(tx.amount_minor || 0) / 100;
+      }
+    }
+
+    const maxVal = Math.max(...months.map((m) => Math.max(m.income, m.expense)), 100);
+    const svgWidth = 640;
+    const svgHeight = 200;
+    const padding = { top: 24, right: 32, bottom: 32, left: 48 };
+    const chartW = svgWidth - padding.left - padding.right;
+    const chartH = svgHeight - padding.top - padding.bottom;
+
+    const pointsIncome = [];
+    const pointsExpense = [];
+    const stepX = chartW / (months.length - 1);
+
+    months.forEach((m, idx) => {
+      const x = padding.left + idx * stepX;
+      const yInc = padding.top + chartH - (m.income / maxVal) * chartH;
+      const yExp = padding.top + chartH - (m.expense / maxVal) * chartH;
+      pointsIncome.push({ x, y: yInc, val: m.income, label: m.label });
+      pointsExpense.push({ x, y: yExp, val: m.expense, label: m.label });
+    });
+
+    const pathInc = pointsIncome.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+    const pathExp = pointsExpense.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+
+    const xLabels = pointsIncome.map((p) => `<text x="${p.x.toFixed(1)}" y="${svgHeight - 10}" text-anchor="middle" font-size="11" fill="var(--ds-text-secondary)">${p.label}</text>`).join("");
+    const gridLines = [0, 0.5, 1].map((ratio) => {
+      const y = padding.top + chartH * (1 - ratio);
+      const val = (maxVal * ratio).toFixed(0);
+      return `<line x1="${padding.left}" y1="${y}" x2="${svgWidth - padding.right}" y2="${y}" stroke="var(--ds-border-subtle)" stroke-dasharray="3 3"/><text x="${padding.left - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="var(--ds-text-muted)">¥${val}</text>`;
+    }).join("");
+
+    const circlesInc = pointsIncome.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#10b981"><title>${p.label} 收入: ¥${p.val.toFixed(2)}</title></circle>`).join("");
+    const circlesExp = pointsExpense.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#ef4444"><title>${p.label} 支出: ¥${p.val.toFixed(2)}</title></circle>`).join("");
+
+    wrap.innerHTML = `
+      <svg class="finance-chart-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="xMidYMid meet">
+        ${gridLines}
+        <path d="${pathInc}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="${pathExp}" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        ${circlesInc}
+        ${circlesExp}
+        ${xLabels}
+      </svg>`;
   }
 
   function renderTransactions() {

@@ -420,6 +420,22 @@
             </div>
           </section>
 
+          <section class="finance-trend-section" id="financeTrendSection" aria-labelledby="financeTrendTitle">
+            <div class="finance-section-heading">
+              <div>
+                <h2 id="financeTrendTitle">收支走势</h2>
+                <p id="financeTrendPeriod">近 6 个月收支对比趋势</p>
+              </div>
+              <div class="finance-trend-legend" aria-hidden="true">
+                <span class="legend-income"><i class="legend-dot income-dot"></i>收入</span>
+                <span class="legend-expense"><i class="legend-dot expense-dot"></i>支出</span>
+              </div>
+            </div>
+            <div class="finance-trend-chart-wrap" id="financeTrendChartWrap" aria-label="月度收支走势图">
+              <!-- Rendered via JS -->
+            </div>
+          </section>
+
           <details class="finance-candidates-section finance-fold hidden" id="financeCandidatesSection" aria-labelledby="financeCandidatesTitle" aria-hidden="true" open>
             <summary class="finance-fold-title"><span id="financeCandidatesTitle">待核实 / 待确认（<span id="financePendingCount">待核对</span>）</span></summary>
             <div class="finance-section-heading">
@@ -1080,6 +1096,12 @@
         <button class="modal-close" data-close-modal="membershipModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         <p class="section-kicker">会员服务</p>
         <h2 id="membershipTitle">会员充值</h2>
+        <div class="membership-v3-stepper" aria-label="会员开通流程">
+          <div class="v3-step-item active"><span class="v3-step-num">1</span><span>选择功能与套餐</span></div>
+          <div class="v3-step-item"><span class="v3-step-num">2</span><span>扫码支付与备注</span></div>
+          <div class="v3-step-item"><span class="v3-step-num">3</span><span>管理员人工核对</span></div>
+          <div class="v3-step-item"><span class="v3-step-num">4</span><span>权益生效与同步</span></div>
+        </div>
         <fieldset class="membership-goal-field" id="membershipGoalField">
           <legend>1. 选择你需要的功能</legend>
           <div class="membership-goal-list" id="membershipGoalList">

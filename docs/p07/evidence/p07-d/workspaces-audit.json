@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-04T09:06:22.784Z",
+  "generatedAt": "2026-11-04T12:38:38.612Z",
   "status": "PASS",
   "workspaces": [
     {
@@ -28,6 +28,16 @@
       "status": "PASS"
     },
     {
+      "workspace": "P07-E-001",
+      "name": "Membership Workspace",
+      "status": "PASS"
+    },
+    {
+      "workspace": "P07-E-002",
+      "name": "Account Workspace",
+      "status": "PASS"
+    },
+    {
       "workspace": "P07-07",
       "name": "Candidate Verification",
       "status": "PASS"
@@ -47,5 +57,5 @@
     "dark"
   ],
   "runtimeErrorsCount": 0,
-  "dialogsCount": 1
+  "dialogsCount": 0
 }

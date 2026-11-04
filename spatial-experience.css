@@ -754,13 +754,45 @@ html[data-p07-ui="enabled"] #homeLayoutToggle[aria-pressed="true"] {
 /* ==========================================================================
  * V3 Bottom 4-Column Business Summary Grid (.home-v3-summary-grid)
  * ========================================================================== */
+/* P07-D-004: Three-card CTA and affordance collision prevention */
+html[data-p07-ui="enabled"] #publicHome [data-has-continue="true"] .home-widget-affordance {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-continue {
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: var(--ds-radius-pill);
+  border: 1px solid var(--ds-brand-soft);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-continue:hover {
+  background: var(--ds-brand);
+  color: var(--ds-on-brand);
+}
+
+/* P07-D-005 & P07-D-006: Compact V3 Summary Grid & Full Surface Clickability */
 html[data-p07-ui="enabled"] .home-v3-summary-grid {
+  position: relative;
+  z-index: 5;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  gap: 16px;
   width: 100%;
   max-width: 1380px;
-  margin: 8px auto 0;
+  margin: 10px auto 0;
   padding: 0 clamp(24px, 3vw, 44px);
 }
 
@@ -772,22 +804,25 @@ html[data-p07-ui="enabled"] .home-v3-summary-grid {
 }
 
 html[data-p07-ui="enabled"] .v3-summary-card {
-  min-height: 142px;
+  min-height: 114px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 22px 22px 20px;
+  padding: 16px 18px 14px;
   border: 1px solid var(--ds-border);
-  border-radius: 18px;
+  border-radius: 16px;
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow-card);
   text-align: left;
   cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  user-select: none;
   transition:
-    transform 180ms cubic-bezier(0.23, 1, 0.32, 1),
-    border-color 150ms cubic-bezier(0.23, 1, 0.32, 1),
-    box-shadow 180ms cubic-bezier(0.23, 1, 0.32, 1);
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 140ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -796,6 +831,10 @@ html[data-p07-ui="enabled"] .v3-summary-card {
     border-color: var(--ds-brand-border);
     box-shadow: var(--ds-shadow-raised);
   }
+}
+
+html[data-p07-ui="enabled"] .v3-summary-card:active {
+  transform: translateY(0) scale(0.985);
 }
 
 html[data-p07-ui="enabled"] .v3-summary-title {
@@ -808,11 +847,11 @@ html[data-p07-ui="enabled"] .v3-summary-title {
 
 html[data-p07-ui="enabled"] .v3-summary-meta {
   display: block;
-  margin: 8px 0 18px;
+  margin: 6px 0 12px;
   color: var(--ds-text-secondary);
-  font-size: 0.84375rem;
+  font-size: 0.8125rem;
   font-weight: 450;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 html[data-p07-ui="enabled"] .v3-summary-track {
@@ -1265,6 +1304,20 @@ html[data-p07-ui="enabled"] #publicHome .public-hero-scene[data-editing="true"] 
   pointer-events: none;
 }
 
+/* Leave the focused content clear when native zoom leaves a short viewport (Codex QA 91a06fc). */
+@media (max-height: 600px) {
+  html[data-p07-ui="enabled"] #accountBar {
+    position: relative;
+    top: auto;
+  }
+
+  html[data-p07-ui="enabled"] #versionNotice:not(.hidden) {
+    position: static;
+    width: min(380px, calc(100% - 32px));
+    margin: 12px auto;
+  }
+}
+
 
 /* ==========================================================================
  * Aeris V6.2 P07-D Business Workspaces Refactoring
@@ -1480,23 +1533,41 @@ html[data-p07-ui="enabled"] #workspace .tabs button.active {
 }
 
 html[data-p07-ui="enabled"] #workspace .tabs button:disabled {
-  opacity: 0.45;
+  opacity: 1;
   cursor: not-allowed;
 }
 
+/* P07-D-001 & P07-D-002: Enforce strict view isolation in V3 Workspace */
+html[data-p07-ui="enabled"] .view:not(.active) {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] #quizView:not(.active) {
+  display: none !important;
+}
+
 /* Immersive Quiz View 2-Column Desktop Grid */
-html[data-p07-ui="enabled"] #quizView {
-  display: grid;
+html[data-p07-ui="enabled"] #quizView.active {
+  display: grid !important;
   grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.9fr);
   gap: 24px;
   align-items: start;
 }
 
 @media (max-width: 920px) {
-  html[data-p07-ui="enabled"] #quizView {
+  html[data-p07-ui="enabled"] #quizView.active {
     grid-template-columns: 1fr;
     gap: 18px;
   }
+}
+
+/* Mastery section is only shown in wrongView to prevent stacking over setupView */
+html[data-p07-ui="enabled"] #masterySection {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] #workspace[data-active-view="wrongView"] #masterySection:not(.hidden) {
+  display: block !important;
 }
 
 html[data-p07-ui="enabled"] #quizView .quiz-card {
@@ -2356,4 +2427,293 @@ html[data-p07-ui="enabled"] .finance-candidate-card button.confirm-candidate {
   color: var(--ds-on-brand);
   font-weight: 700;
   font-size: 0.875rem;
+}
+
+
+/* ==========================================================================
+ * Aeris V6.2 P07-D-007 Finance Trend Chart & Layout
+ * ========================================================================== */
+html[data-p07-ui="enabled"] .finance-trend-section {
+  padding: 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  margin-top: 24px;
+}
+
+html[data-p07-ui="enabled"] .finance-trend-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+html[data-p07-ui="enabled"] .income-dot {
+  background: #10b981;
+}
+
+html[data-p07-ui="enabled"] .expense-dot {
+  background: #ef4444;
+}
+
+html[data-p07-ui="enabled"] .finance-trend-chart-wrap {
+  width: 100%;
+  min-height: 220px;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+html[data-p07-ui="enabled"] .finance-chart-svg {
+  width: 100%;
+  height: auto;
+  max-height: 260px;
+}
+
+html[data-p07-ui="enabled"] .finance-chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--ds-text-secondary);
+  border: 1.5px dashed var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface-subtle);
+  width: 100%;
+}
+
+html[data-p07-ui="enabled"] .finance-chart-empty-icon {
+  margin-bottom: 12px;
+  color: var(--ds-text-muted);
+}
+
+html[data-p07-ui="enabled"] .finance-chart-empty-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ds-text);
+  margin-bottom: 4px;
+}
+
+html[data-p07-ui="enabled"] .finance-chart-empty-hint {
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+  max-width: 420px;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+ * Aeris V6.2 P07-E Membership & Account V3 Workspaces
+ * ========================================================================== */
+html[data-p07-ui="enabled"] .modal-layer#membershipModal,
+html[data-p07-ui="enabled"] .modal-layer#accountModal {
+  position: fixed;
+  inset: 0;
+  top: var(--v3-topbar-height, 64px);
+  left: var(--v3-sidebar-width, 240px);
+  background: var(--ds-canvas-bg);
+  z-index: 40;
+  overflow-y: auto;
+  padding: 0;
+  display: block;
+}
+
+html[data-p07-ui="enabled"] .modal-layer#membershipModal.hidden,
+html[data-p07-ui="enabled"] .modal-layer#accountModal.hidden {
+  display: none !important;
+}
+
+@media (max-width: 980px) {
+  html[data-p07-ui="enabled"] .modal-layer#membershipModal,
+  html[data-p07-ui="enabled"] .modal-layer#accountModal {
+    left: 0;
+    top: 56px;
+  }
+}
+
+html[data-p07-ui="enabled"] #membershipModal .modal-panel.membership-panel,
+html[data-p07-ui="enabled"] #accountModal .modal-panel {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(24px, 3.5vw, 40px);
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  border-radius: 0;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .section-kicker,
+html[data-p07-ui="enabled"] #accountModal .section-kicker {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] #membershipModal h2#membershipTitle,
+html[data-p07-ui="enabled"] #accountModal h2#accountTitle {
+  font-size: clamp(1.8rem, 3.5vw, 2.25rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--ds-text);
+  margin: 4px 0 20px;
+}
+
+/* 4-Step Process Stepper (matching 06-会员与人工审核) */
+html[data-p07-ui="enabled"] .membership-v3-stepper {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] .membership-v3-stepper {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+html[data-p07-ui="enabled"] .v3-step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .v3-step-item.active {
+  border-color: var(--ds-brand);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] .v3-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ds-border);
+  color: var(--ds-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+html[data-p07-ui="enabled"] .v3-step-item.active .v3-step-num {
+  background: var(--ds-brand);
+  color: var(--ds-on-brand);
+}
+
+/* Membership Plans Grid */
+html[data-p07-ui="enabled"] #membershipModal .plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin: 18px 0 28px;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .plan-option {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px 20px;
+  border: 2px solid var(--ds-border);
+  border-radius: 18px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  text-align: left;
+  cursor: pointer;
+  min-height: 170px;
+  transition: all 0.18s ease;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .plan-option:hover {
+  transform: translateY(-2px);
+  border-color: var(--ds-brand-border);
+  box-shadow: var(--ds-shadow-raised);
+}
+
+html[data-p07-ui="enabled"] #membershipModal .plan-option.selected {
+  border-color: var(--ds-brand);
+  background: var(--ds-brand-soft);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+html[data-p07-ui="enabled"] #membershipModal .plan-option strong {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #membershipModal .plan-option span {
+  font-size: 1.4375rem;
+  font-weight: 850;
+  color: var(--ds-brand);
+  margin: 10px 0 6px;
+  letter-spacing: -0.02em;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .plan-option small {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ds-text-secondary);
+}
+
+/* Membership Payment Details Section (12-扫码支付与人工审核) */
+html[data-p07-ui="enabled"] #membershipModal .payment-details {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: var(--ds-shadow-card);
+  margin: 20px 0;
+}
+
+/* Account Workspace Cards (07-账户及现有设置) */
+html[data-p07-ui="enabled"] #accountModal .account-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  margin-bottom: 24px;
+}
+
+html[data-p07-ui="enabled"] #accountModal #changeSecretForm {
+  padding: 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  margin-bottom: 24px;
+}
+
+html[data-p07-ui="enabled"] #accountModal .danger-zone {
+  padding: 24px;
+  border: 1.5px solid rgba(239, 68, 68, 0.35);
+  border-radius: 18px;
+  background: rgba(239, 68, 68, 0.04);
 }

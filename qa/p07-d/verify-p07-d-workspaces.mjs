@@ -288,6 +288,21 @@ try {
   await page.waitFor("!document.getElementById('workspace').classList.contains('hidden')", 15_000);
   await delay(300);
 
+  // Assert P07-D-001 & P07-D-002: setupView is active, quizView is NOT displayed, no leaked words
+  const isolationCheck = await page.evaluate(`(() => {
+    const quiz = document.getElementById("quizView");
+    const setup = document.getElementById("setupView");
+    const word = document.getElementById("wordText")?.textContent?.trim();
+    const quizDisplay = window.getComputedStyle(quiz).display;
+    const setupActive = setup.classList.contains("active");
+    const quizActive = quiz.classList.contains("active");
+    return { quizDisplay, setupActive, quizActive, word };
+  })()`);
+  assert.equal(isolationCheck.setupActive, true, "setupView must be active");
+  assert.equal(isolationCheck.quizActive, false, "quizView must not be active before start");
+  assert.equal(isolationCheck.quizDisplay, "none", "quizView must be display: none when inactive");
+  assert.notEqual(isolationCheck.word, "bird", "Residual English words must not leak into Japanese");
+
   // Set sample words and start quiz
   await page.setFields({ "#wordInput": "本\n図書館\n先生\n学生\n電話" });
   await delay(100);
@@ -363,6 +378,34 @@ try {
   await setViewport(390, 844, true);
   await saveShot("p07-06-finance-ledger-390-light.png");
   auditLog.push({ workspace: "P07-06", name: "Finance Ledger Workspace", status: "PASS" });
+
+  // Audit 5b: P07-E Membership Workspace (06-会员与人工审核)
+  console.log("--> Auditing P07-E-001: Membership Workspace...");
+  await setViewport(1440, 960, false);
+  await page.navigate("/recharge");
+  await page.waitFor("!document.getElementById('membershipModal').classList.contains('hidden')", 15_000);
+  await delay(400);
+  await saveShot("p07-06-membership-workspace-1440-light.png");
+  await setTheme("dark");
+  await saveShot("p07-06-membership-workspace-1440-dark.png");
+  await setTheme("light");
+  await setViewport(390, 844, true);
+  await saveShot("p07-06-membership-workspace-390-light.png");
+  auditLog.push({ workspace: "P07-E-001", name: "Membership Workspace", status: "PASS" });
+
+  // Audit 5c: P07-E Account Workspace (07-账户及现有设置)
+  console.log("--> Auditing P07-E-002: Account Workspace...");
+  await setViewport(1440, 960, false);
+  await page.navigate("/account");
+  await page.waitFor("!document.getElementById('accountModal').classList.contains('hidden')", 15_000);
+  await delay(400);
+  await saveShot("p07-07-account-workspace-1440-light.png");
+  await setTheme("dark");
+  await saveShot("p07-07-account-workspace-1440-dark.png");
+  await setTheme("light");
+  await setViewport(390, 844, true);
+  await saveShot("p07-07-account-workspace-390-light.png");
+  auditLog.push({ workspace: "P07-E-002", name: "Account Workspace", status: "PASS" });
 
   // Audit 6: P07-07 Notification Archive & Candidate Verification
   console.log("--> Auditing P07-07: Candidate Verification...");
