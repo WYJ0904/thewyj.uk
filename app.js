@@ -5540,10 +5540,10 @@ async function ensureJapaneseQuestionForms(words) {
   if (unresolved.length) {
     const preview = unresolved.slice(0, 5).join("、");
     if (!dictation && resolution?.ai_unavailable) {
-      showAchievementToast(`AI 暂时不可用，${preview}${unresolved.length > 5 ? "等" : ""}暂不显示假名标音；释义练习仍可继续。`);
+      alert(`AI 暂时不可用，${preview}${unresolved.length > 5 ? "等" : ""}暂不显示假名标音；释义练习仍可继续。`);
       return true;
     }
-    showAchievementToast(`AI 暂时未找到这些词的${dictation ? "完整写法" : "假名读音"}：${preview}${unresolved.length > 5 ? "等" : ""}。请稍后重试。`);
+    alert(`AI 暂时未找到这些词的${dictation ? "完整写法" : "假名读音"}：${preview}${unresolved.length > 5 ? "等" : ""}。请稍后重试。`);
     return false;
   }
   return true;
