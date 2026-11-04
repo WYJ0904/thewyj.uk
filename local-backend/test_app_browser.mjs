@@ -2551,6 +2551,7 @@ async function main() {
 
     const expectedDeniedPaths = new Set(["/api/tools/access", "/api/quiz/start"]);
     const expectedCloudOnlyPaths = new Set([
+      "/api/ui/features",
       "/api/messages/pending",
       "/api/admin/messages",
       "/api/admin/roles",

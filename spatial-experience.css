@@ -499,14 +499,43 @@ html[data-p07-ui="enabled"] .home-product-details[open] {
   }
 }
 
+/* Authenticated returning users see personal identity row instead of guest marketing blurb */
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .home-intro-note {
+  display: none;
+}
+
 @media (max-width: 600px) {
   html[data-p07-ui="enabled"] #publicHome .public-hero {
     min-height: 0;
-    padding-block: var(--ds-space-6) var(--ds-space-4);
+    gap: 18px;
+    padding-block: 16px 12px;
+  }
+  html[data-p07-ui="enabled"] #publicHome .aeris-hero-logo {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+  }
+  html[data-p07-ui="enabled"] #publicHome .home-brand h1 {
+    font-size: 2.35rem;
+  }
+  html[data-p07-ui="enabled"] #publicHome .home-purpose {
+    margin-top: 12px;
+    padding: 4px 12px;
   }
   html[data-p07-ui="enabled"] .home-intro-note {
-    font-size: var(--ds-text-sm);
-    margin-top: var(--ds-space-3);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    margin-top: 8px;
+  }
+  html[data-p07-ui="enabled"] #publicHome .public-actions {
+    margin-top: 14px;
+    gap: 8px;
+  }
+  html[data-p07-ui="enabled"] #publicHome .public-actions > * {
+    min-height: 44px;
+  }
+  html[data-p07-ui="enabled"] #publicHome[data-widget-layout="mobile"] .public-hero-scene {
+    gap: 8px;
   }
   html[data-p07-ui="enabled"] .home-quick-access,
   html[data-p07-ui="enabled"] .home-recent-activity {
@@ -684,4 +713,23 @@ html[data-p07-ui="enabled"] #loginError:not(:empty) {
     border-radius: 14px;
     margin-bottom: 14px;
   }
+}
+
+/* Unified Aeris brand primary buttons across public Home & Workspace (light #2563eb / dark #6ea2ff) */
+html[data-p07-ui="enabled"] :is(#publicHome .public-actions .primary, #accountBar #navRegisterBtn) {
+  border-color: var(--ds-brand);
+  background: var(--ds-brand);
+  color: var(--ds-on-brand);
+}
+
+html[data-p07-ui="enabled"] :is(#publicHome .public-actions .primary, #accountBar #navRegisterBtn):hover:not(:disabled) {
+  border-color: var(--ds-brand-hover);
+  background: var(--ds-brand-hover);
+  color: var(--ds-on-brand);
+}
+
+/* While layout editing is active, yield top-right slot cleanly to the 44px drag handle */
+html[data-p07-ui="enabled"] #publicHome .public-hero-scene[data-editing="true"] .home-widget-demo {
+  opacity: 0;
+  pointer-events: none;
 }
