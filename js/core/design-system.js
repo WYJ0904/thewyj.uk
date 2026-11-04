@@ -193,7 +193,7 @@ function setupContentNavigation() {
     skip.addEventListener("click", (event) => {
       event.preventDefault();
       if (!interfaceEnhancementsEnabled) return;
-      const target = [...document.querySelectorAll("#appShell > section")]
+      const target = [...document.querySelectorAll("#appShell > section, #v3MainCanvas > section")]
         .find((section) => section.getClientRects().length && section.getAttribute("aria-hidden") !== "true")
         || document.getElementById("pageContent");
       target?.setAttribute("tabindex", "-1");

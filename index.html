@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="#f4f6f9" />
     <title>Aeris — 学习、工具、账本与文件</title>
     <meta name="description" content="Aeris：继续语言学习，处理文本与文件，管理账本和传输。" />
     <meta property="og:title" content="Aeris — 学习、工具、账本与文件" />
@@ -11,43 +11,50 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Aeris" />
     <meta property="og:url" content="https://thewyj.uk/" />
-    <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?v=20261104-aeris-p07-phase1-r1" />
+    <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?v=20261104-aeris-p07-phase1-r2" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Aeris — 学习、工具、账本与文件" />
     <meta name="twitter:description" content="继续语言学习，处理文本与文件，管理账本和传输。" />
     <meta name="application-name" content="Aeris" />
     <meta name="apple-mobile-web-app-title" content="Aeris" />
-    <link rel="icon" href="/favicon.ico?v=20261104-aeris-p07-phase1-r1" sizes="any" />
-    <link rel="icon" href="/assets/brand/favicon-32.png?v=20261104-aeris-p07-phase1-r1" type="image/png" sizes="32x32" />
-    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png?v=20261104-aeris-p07-phase1-r1" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20261104-aeris-p07-phase1-r1" />
-    <link rel="stylesheet" href="/styles.css?v=20261104-aeris-p07-phase1-r1" />
-    <link rel="stylesheet" href="/product-ui.css?v=20261104-aeris-p07-phase1-r1" />
-    <link rel="stylesheet" href="/design-system.css?v=20261104-aeris-p07-phase1-r1" />
-    <link rel="stylesheet" href="/public-experience.css?v=20261104-aeris-p07-phase1-r1" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20261104-aeris-p07-phase1-r1" />
-    <link rel="stylesheet" href="/spatial-experience.css?v=20261104-aeris-p07-phase1-r1" />
+    <link rel="icon" href="/favicon.ico?v=20261104-aeris-p07-phase1-r2" sizes="any" />
+    <link rel="icon" href="/assets/brand/favicon-32.png?v=20261104-aeris-p07-phase1-r2" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png?v=20261104-aeris-p07-phase1-r2" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20261104-aeris-p07-phase1-r2" />
+    <link rel="stylesheet" href="/styles.css?v=20261104-aeris-p07-phase1-r2" />
+    <link rel="stylesheet" href="/product-ui.css?v=20261104-aeris-p07-phase1-r2" />
+    <link rel="stylesheet" href="/design-system.css?v=20261104-aeris-p07-phase1-r2" />
+    <link rel="stylesheet" href="/public-experience.css?v=20261104-aeris-p07-phase1-r2" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20261104-aeris-p07-phase1-r2" />
+    <link rel="stylesheet" href="/spatial-experience.css?v=20261104-aeris-p07-phase1-r2" />
   </head>
   <body>
     <a class="skip-link" id="skipToContent" href="#pageContent">跳转到主要内容</a>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 Aeris" aria-hidden="false">
       <div class="entry-content" id="splashMedia">
-        <img class="entry-logo" id="splashImage" src="/icon-192.png?v=20261104-aeris-p07-phase1-r1" width="192" height="192" alt="" />
+        <img class="entry-logo" id="splashImage" src="/icon-192.png?v=20261104-aeris-p07-phase1-r2" width="192" height="192" alt="" />
         <strong>Aeris</strong>
         <span class="entry-progress" aria-hidden="true"></span>
       </div>
     </div>
 
     <main class="app-shell app-shell-pending" id="appShell" aria-hidden="true">
-      <section class="session-recovery hidden" id="sessionRecovery" aria-hidden="true" aria-labelledby="sessionRecoveryTitle">
-        <h1 id="sessionRecoveryTitle">Aeris</h1>
-        <p id="sessionRecoveryMessage" role="status">正在打开你的页面…</p>
-        <button id="retrySessionRecoveryBtn" type="button">重试连接</button>
+      <section class="session-recovery hidden" id="sessionRecovery" data-recovery-state="loading" aria-hidden="true" aria-labelledby="sessionRecoveryTitle">
+        <div class="session-recovery-card">
+          <img class="session-recovery-logo" src="/icon-192.png?v=20261104-aeris-p07-phase1-r2" width="192" height="192" alt="" />
+          <h1 id="sessionRecoveryTitle">Aeris</h1>
+          <span class="session-recovery-bar" aria-hidden="true"></span>
+          <p id="sessionRecoveryMessage" role="status">正在打开你的页面…</p>
+          <div class="session-recovery-actions">
+            <button class="primary" id="retrySessionRecoveryBtn" type="button">重试连接</button>
+            <button class="button-secondary" id="exitSessionRecoveryBtn" type="button">返回公开首页</button>
+          </div>
+        </div>
       </section>
       <nav class="site-nav" id="accountBar" aria-label="主导航">
         <div class="site-nav-bar">
           <a class="site-brand" href="/" data-site-nav="home" aria-label="Aeris 首页">
-            <img src="/icon-192.png?v=20261104-aeris-p07-phase1-r1" width="192" height="192" alt="" />
+            <img src="/icon-192.png?v=20261104-aeris-p07-phase1-r2" width="192" height="192" alt="" />
             <span class="site-brand-copy"><strong>Aeris</strong><small id="siteVersionLabel">v2026.09.12.5</small></span>
           </a>
           <div class="home-inline-nav" aria-label="主要模块">
@@ -57,6 +64,7 @@
             <a href="/download" data-site-nav="download" id="headerDownloadLink"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg><span>下载 Android</span></a>
             <a href="/changelog" data-site-nav="changelog" id="headerChangelogLink"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 11a9 9 0 1 1 3 8M3 4v7h7M12 7v5l3 2"/></svg><span>更新日志</span></a>
           </div>
+          <span class="v3-topbar-context" id="v3TopbarContext" aria-live="polite">公开空间 · 演示数据</span>
           <button class="home-search button-ghost" id="homeSearchBtn" type="button" aria-label="搜索工具" title="搜索工具"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
           <button class="site-nav-toggle" id="siteNavToggle" type="button" aria-expanded="false" aria-controls="siteNavPanel" aria-label="打开主导航">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
@@ -103,6 +111,25 @@
         </div>
       </nav>
 
+      <div class="v3-app-frame" id="v3AppFrame">
+        <aside class="v3-sidebar" id="v3Sidebar" aria-label="工作空间导航">
+          <nav class="v3-sidebar-nav" aria-label="空间模块">
+            <a href="/" data-v3-nav="home" aria-current="page"><span class="v3-nav-dot" aria-hidden="true"></span><span>首页</span></a>
+            <a href="/language" data-v3-nav="language"><span class="v3-nav-dot" aria-hidden="true"></span><span>学习</span></a>
+            <a href="/trial" data-v3-nav="trial"><span class="v3-nav-dot" aria-hidden="true"></span><span>免费试用</span></a>
+            <a href="/finance" data-v3-nav="finance"><span class="v3-nav-dot" aria-hidden="true"></span><span>财务</span></a>
+            <a href="/tools" data-v3-nav="tools"><span class="v3-nav-dot" aria-hidden="true"></span><span>工具箱</span></a>
+            <a href="/tools/workflows" data-v3-nav="workflows"><span class="v3-nav-dot" aria-hidden="true"></span><span>工作流</span></a>
+            <a href="/transfer" data-v3-nav="transfer"><span class="v3-nav-dot" aria-hidden="true"></span><span>文件</span></a>
+            <a href="/recharge" data-v3-nav="recharge"><span class="v3-nav-dot" aria-hidden="true"></span><span>会员</span></a>
+            <a href="/account" data-v3-nav="account"><span class="v3-nav-dot" aria-hidden="true"></span><span>账户</span></a>
+            <a href="/admin" data-v3-nav="admin" id="v3SidebarAdminLink" hidden><span class="v3-nav-dot" aria-hidden="true"></span><span>管理后台</span></a>
+          </nav>
+          <div class="v3-sidebar-footer">
+            <small id="v3SidebarVersion">v6.2 / Aeris 空间</small>
+          </div>
+        </aside>
+        <div class="v3-main-canvas" id="v3MainCanvas">
       <aside class="version-notice hidden" id="versionNotice" role="status" aria-live="polite">
         <div><strong id="versionNoticeTitle">网站已更新</strong><p id="versionNoticeMessage"></p></div>
         <button class="button-ghost" id="viewVersionDetailsBtn" type="button">查看详情</button>
@@ -114,8 +141,13 @@
       <section class="public-home hidden" id="publicHome" aria-labelledby="publicHomeTitle" aria-hidden="true">
         <section class="public-intro public-hero" data-public-section="hero" aria-labelledby="publicHomeTitle">
           <div class="public-intro-copy">
-            <div class="home-brand"><img class="aeris-hero-logo" src="/icon-192.png?v=20261104-aeris-p07-phase1-r1" alt="Aeris" width="64" height="64" /><h1 id="publicHomeTitle">Aeris</h1></div>
+            <div class="home-brand"><img class="aeris-hero-logo" src="/icon-192.png?v=20261104-aeris-p07-phase1-r2" alt="Aeris" width="64" height="64" /><h1 id="publicHomeTitle">Aeris</h1></div>
             <p class="home-purpose">学习 · 工具 · 账本 · 文件</p>
+            <div class="v3-hero-copy">
+              <p class="v3-hero-kicker">把学习、工具与生活放在同一个空间</p>
+              <p class="v3-hero-headline"><strong>不只是一个网页。</strong><span>而是为你自由排列的数字空间。</span></p>
+              <p class="v3-hero-caption">首页的三张卡片保留完整的拖拽、缩放、旋转和设置保存能力。</p>
+            </div>
             <p class="home-intro-note">延续词汇学习进度，随时处理本地文本与文件，同步管理日常收支账本。</p>
             <p class="home-identity" data-home-personal hidden><span id="dashboardGreeting"></span><span id="dashboardMembershipName"></span><span id="dashboardMembershipExpiry"></span></p>
             <div class="public-actions">
@@ -127,15 +159,15 @@
           <div class="home-widget-workspace">
             <div class="public-hero-scene" aria-label="首页卡片">
               <article class="hero-scene-card hero-scene-learning" data-public-scene="learning" data-home-widget="learning" data-size="medium"><div class="home-widget-visual">
-                <button class="home-widget-main" type="button" data-home-widget-open="learning"><span class="home-widget-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 4h7l1 2 1-2h7v15h-7l-1 2-1-2H4ZM12 6v15"/></svg></span><small id="homeSceneLearningLabel">学习记录</small><strong id="homeSceneLearningValue">日语</strong><span id="homeSceneLearningDetail">6 题 · 正确率 83%</span><i id="homeSceneLearningStatus">学习演示</i><span class="home-widget-extra" data-widget-extra></span></button></div>
+                <button class="home-widget-main" type="button" data-home-widget-open="learning"><span class="home-widget-drag-hint" aria-hidden="true">⠿ 可拖动</span><span class="home-widget-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 4h7l1 2 1-2h7v15h-7l-1 2-1-2H4ZM12 6v15"/></svg></span><small id="homeSceneLearningLabel">学习记录</small><strong id="homeSceneLearningValue">日语</strong><span id="homeSceneLearningDetail">6 题 · 正确率 83%</span><i id="homeSceneLearningStatus">学习演示</i><span class="home-widget-affordance" aria-hidden="true">移动 / 缩放 / 旋转</span><span class="home-widget-extra" data-widget-extra></span></button></div>
                 <span class="home-widget-demo" data-widget-demo>演示</span><button class="home-widget-edit" type="button" data-widget-edit="learning" aria-label="设置学习记录">···</button><button class="home-widget-drag" type="button" data-widget-drag="learning" aria-label="移动学习记录；也可通过设置调整位置">⠿</button>
               </article>
               <article class="hero-scene-card hero-scene-finance" data-public-scene="finance" data-home-widget="finance" data-size="medium"><div class="home-widget-visual">
-                <button class="home-widget-main" type="button" data-home-widget-open="finance"><span class="home-widget-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4ZM4 6V3h13v3M16 11h4v4h-4Z"/></svg></span><small id="homeSceneFinanceLabel">本月账本</small><strong id="homeSceneFinanceValue">¥ 3,284.60</strong><span id="homeSceneFinanceDetail">本月收支余额</span><i id="homeSceneFinanceStatus">账本演示</i><span class="home-widget-extra" data-widget-extra></span></button></div>
+                <button class="home-widget-main" type="button" data-home-widget-open="finance"><span class="home-widget-drag-hint" aria-hidden="true">⠿ 可拖动</span><span class="home-widget-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4ZM4 6V3h13v3M16 11h4v4h-4Z"/></svg></span><small id="homeSceneFinanceLabel">本月账本</small><strong id="homeSceneFinanceValue">¥ 3,284.60</strong><span id="homeSceneFinanceDetail">本月收支余额</span><i id="homeSceneFinanceStatus">账本演示</i><span class="home-widget-affordance" aria-hidden="true">移动 / 缩放 / 旋转</span><span class="home-widget-extra" data-widget-extra></span></button></div>
                 <span class="home-widget-demo" data-widget-demo>演示</span><button class="home-widget-edit" type="button" data-widget-edit="finance" aria-label="设置本月账本">···</button><button class="home-widget-drag" type="button" data-widget-drag="finance" aria-label="移动本月账本；也可通过设置调整位置">⠿</button>
               </article>
               <article class="hero-scene-card hero-scene-tools" data-public-scene="tools" data-home-widget="tools" data-size="medium"><div class="home-widget-visual">
-                <button class="home-widget-main" type="button" data-home-widget-open="tools"><span class="home-widget-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 17h16M8 4v6M16 14v6"/></svg></span><small id="homeSceneToolsLabel">最近工具</small><strong id="homeSceneToolsValue">JSON 格式化</strong><span id="homeSceneToolsDetail">仅在浏览器处理</span><i id="homeSceneToolsStatus">工具演示</i><span class="home-widget-extra" data-widget-extra></span></button></div>
+                <button class="home-widget-main" type="button" data-home-widget-open="tools"><span class="home-widget-drag-hint" aria-hidden="true">⠿ 可拖动</span><span class="home-widget-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 17h16M8 4v6M16 14v6"/></svg></span><small id="homeSceneToolsLabel">最近工具</small><strong id="homeSceneToolsValue">JSON 格式化</strong><span id="homeSceneToolsDetail">仅在浏览器处理</span><i id="homeSceneToolsStatus">工具演示</i><span class="home-widget-affordance" aria-hidden="true">移动 / 缩放 / 旋转</span><span class="home-widget-extra" data-widget-extra></span></button></div>
                 <span class="home-widget-demo" data-widget-demo>演示</span><button class="home-widget-edit" type="button" data-widget-edit="tools" aria-label="设置最近工具">···</button><button class="home-widget-drag" type="button" data-widget-drag="tools" aria-label="移动最近工具；也可通过设置调整位置">⠿</button><button class="home-widget-continue" type="button" data-widget-continue hidden>继续使用 →</button>
               </article>
             </div>
@@ -147,6 +179,29 @@
           <form><h2 id="homeWidgetEditorTitle">卡片设置</h2><label>显示内容<select name="contentMode"></select></label><label>卡片尺寸<select name="size"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label>旋转角度 <output>2°</output><input name="rotation" type="range" min="-6" max="6" step="0.5" /></label><button class="button-ghost" type="button" data-widget-angle-reset>恢复默认角度</button><fieldset data-widget-position-fields><legend>桌面位置</legend><label>水平位置<input name="x" type="range" min="0" max="100" step="1" /></label><label>垂直位置<input name="y" type="range" min="0" max="100" step="1" /></label></fieldset><div class="home-widget-editor-actions"><button class="button-ghost" type="button" data-widget-reset>恢复默认</button><button class="button-secondary" type="button" data-widget-cancel>取消</button><button class="primary" type="submit">保存</button></div></form>
         </dialog>
         <div class="home-account-status" data-home-personal hidden><p class="module-access-message hidden" id="moduleAccessMessage" aria-live="polite"></p><button class="button-ghost" id="dashboardNotificationsBtn" type="button">通知待核实 <strong id="dashboardNotificationPending">未读取</strong></button><span id="dashboardNotificationStatus"></span></div>
+        <section class="home-v3-summary-grid" id="homeV3SummaryGrid" aria-label="工作空间模块摘要">
+          <button class="v3-summary-card" type="button" data-v3-summary="learning">
+            <strong class="v3-summary-title">最近学习</strong>
+            <span class="v3-summary-meta" id="v3SummaryLearningText">英语与日语词表练习 · 免费试做最多 10 题</span>
+            <span class="v3-summary-track" aria-hidden="true"><b id="v3SummaryLearningBar"></b></span>
+          </button>
+          <button class="v3-summary-card" type="button" data-v3-summary="finance">
+            <strong class="v3-summary-title">本月账本</strong>
+            <span class="v3-summary-meta" id="v3SummaryFinanceText">收入与支出按照账户真实数据同步</span>
+            <span class="v3-summary-track" aria-hidden="true"><b id="v3SummaryFinanceBar"></b></span>
+          </button>
+          <button class="v3-summary-card" type="button" data-v3-summary="transfer">
+            <strong class="v3-summary-title">最近文件</strong>
+            <span class="v3-summary-meta" id="v3SummaryTransferText">仅展示当前账户的文件与受控分享</span>
+            <span class="v3-summary-track" aria-hidden="true"><b id="v3SummaryTransferBar"></b></span>
+          </button>
+          <button class="v3-summary-card" type="button" data-v3-summary="tools">
+            <strong class="v3-summary-title">快捷工具</strong>
+            <span class="v3-summary-meta" id="v3SummaryToolsText">文本、JSON、图片本机即开即用</span>
+            <span class="v3-summary-track" aria-hidden="true"><b id="v3SummaryToolsBar"></b></span>
+          </button>
+        </section>
+        <p class="v3-workspace-footnote">首页工作空间：独立三卡的拖拽、缩放、旋转与按账户保存均由真实代码驱动；未登录仅作本地预览。</p>
         <div class="home-workspace-overview">
 <section class="home-quick-access" aria-labelledby="homeQuickTitle"><h2 id="homeQuickTitle">快速访问</h2><a href="/language" data-site-nav="language"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 4h7l1 2 1-2h7v15h-7l-1 2-1-2H4ZM12 6v15"/></svg></span><span><strong>学习</strong><small>语言学习与练习</small></span><i aria-hidden="true">→</i></a><a href="/finance" data-site-nav="finance"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4ZM4 6V3h13v3M16 11h4v4h-4Z"/></svg></span><span><strong>财务</strong><small>账本与收支管理</small></span><i aria-hidden="true">→</i></a><a href="/tools" data-site-nav="tools"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 17h16M8 4v6M16 14v6"/></svg></span><span><strong>工具箱</strong><small>实用工具</small></span><i aria-hidden="true">→</i></a><a href="/transfer" data-site-nav="transfer"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 3h9l5 5v13H5ZM14 3v5h5M8 13h8M8 17h6"/></svg></span><span><strong>文件</strong><small>文件与分享</small></span><i aria-hidden="true">→</i></a></section>
           <section class="home-recent-activity" aria-labelledby="homeActivityTitle"><h2 id="homeActivityTitle">最近活动</h2><ul id="homeRecentActivity"><li>登录后显示自己的学习与工具记录。</li></ul></section>
@@ -533,7 +588,7 @@
       </div>
       <section class="project-picker hidden" id="projectPicker" aria-labelledby="projectPickerTitle">
         <header class="project-brand">
-          <img src="/icon-192.png?v=20261104-aeris-p07-phase1-r1" width="192" height="192" alt="Aeris Logo" />
+          <img src="/icon-192.png?v=20261104-aeris-p07-phase1-r2" width="192" height="192" alt="Aeris Logo" />
           <div><p class="section-kicker">语言学习</p><h1 id="projectPickerTitle">选择语言测试</h1></div>
         </header>
         <div class="project-grid" aria-label="选择项目">
@@ -552,7 +607,7 @@
       <section class="project-app hidden" id="projectApp" aria-hidden="true">
         <header class="topbar hidden" id="topbar">
           <div class="brand">
-            <img class="brand-icon" src="/icon-192.png?v=20261104-aeris-p07-phase1-r1" width="192" height="192" alt="" />
+            <img class="brand-icon" src="/icon-192.png?v=20261104-aeris-p07-phase1-r2" width="192" height="192" alt="" />
             <div>
               <h1>语言学习</h1>
               <p id="modelLabel" aria-live="polite">检测中</p>
@@ -576,7 +631,7 @@
         </section>
 
         <section class="panel auth-panel hidden" id="authPanel">
-          <img class="auth-logo" src="/assets/brand/aeris-lockup.png?v=20261104-aeris-p07-phase1-r1" width="320" height="320" alt="Aeris" />
+          <img class="auth-logo" src="/assets/brand/aeris-lockup.png?v=20261104-aeris-p07-phase1-r2" width="320" height="320" alt="Aeris" />
           <h2 id="authTitle">账户登录</h2>
           <p class="auth-subtitle" id="authSubtitle">使用 Aeris 账户同步词汇进度、账本记录与传输文件。</p>
           <div class="auth-tabs" role="tablist" aria-label="账户入口">
@@ -1014,6 +1069,8 @@
         </section>
         <p class="error" id="adminError" aria-live="polite"></p>
       </section>
+        </div>
+      </div>
     </main>
 
     <div class="achievement-toast hidden" id="achievementToast" role="status" aria-live="polite"></div>
@@ -1260,8 +1317,8 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20261104-aeris-p07-phase1-r1"></script>
-    <script src="/learning-sync.js?v=20261104-aeris-p07-phase1-r1"></script>
-    <script type="module" src="/app.js?v=20261104-aeris-p07-phase1-r1"></script>
+    <script src="/changelog.js?v=20261104-aeris-p07-phase1-r2"></script>
+    <script src="/learning-sync.js?v=20261104-aeris-p07-phase1-r2"></script>
+    <script type="module" src="/app.js?v=20261104-aeris-p07-phase1-r2"></script>
   </body>
 </html>

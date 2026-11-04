@@ -1,0 +1,80 @@
+{
+  "generatedAt": "2026-11-04T05:57:22.065Z",
+  "results": [
+    {
+      "factor": 1,
+      "percent": "100%",
+      "status": "PASS",
+      "routeChecks": [
+        {
+          "route": "/",
+          "innerWidth": 1418,
+          "innerHeight": 862,
+          "scrollWidth": 1403,
+          "dpr": 1,
+          "pageScale": 1,
+          "cssZoom": "1"
+        },
+        {
+          "route": "/login",
+          "innerWidth": 1418,
+          "innerHeight": 862,
+          "scrollWidth": 1403,
+          "dpr": 1,
+          "pageScale": 1,
+          "cssZoom": "1"
+        }
+      ]
+    },
+    {
+      "factor": 2,
+      "percent": "200%",
+      "status": "PASS",
+      "routeChecks": [
+        {
+          "route": "/",
+          "innerWidth": 709,
+          "innerHeight": 431,
+          "scrollWidth": 701,
+          "dpr": 2,
+          "pageScale": 1,
+          "cssZoom": "1"
+        },
+        {
+          "route": "/login",
+          "innerWidth": 709,
+          "innerHeight": 431,
+          "scrollWidth": 701,
+          "dpr": 2,
+          "pageScale": 1,
+          "cssZoom": "1"
+        }
+      ]
+    },
+    {
+      "factor": 4,
+      "percent": "400%",
+      "status": "PASS",
+      "routeChecks": [
+        {
+          "route": "/",
+          "innerWidth": 354,
+          "innerHeight": 215,
+          "scrollWidth": 350,
+          "dpr": 4,
+          "pageScale": 1,
+          "cssZoom": "1"
+        },
+        {
+          "route": "/login",
+          "innerWidth": 354,
+          "innerHeight": 215,
+          "scrollWidth": 350,
+          "dpr": 4,
+          "pageScale": 1,
+          "cssZoom": "1"
+        }
+      ]
+    }
+  ]
+}

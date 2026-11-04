@@ -13,9 +13,9 @@ const ROOT = path.resolve(__dirname, "../..");
 const PROJECT = "thewyj-p07-ui-rc";
 const PREVIEW_D1_ID = "ee869f78-b54a-4018-bc99-871089ecb8cd";
 const ACCOUNT_ID = "97c274a981e8dd6703aa6388e11c4614";
-const BRANCH_NAME = "v62-p07-phase1-argon";
+const BRANCH_NAME = "v62-p07-phase1-rework";
 const WRANGLER = path.join(ROOT, "node_modules", "wrangler", "bin", "wrangler.js");
-const PREVIEW_EVIDENCE_DIR = path.join(ROOT, "docs/p07/evidence/phase1-argon/preview");
+const PREVIEW_EVIDENCE_DIR = path.join(ROOT, "docs/p07/evidence/phase1-rework/preview");
 
 const commitArgIdx = process.argv.indexOf("--commit");
 const COMMIT = commitArgIdx >= 0 ? process.argv[commitArgIdx + 1] : "";
@@ -49,7 +49,7 @@ async function cfApiGet(token, route) {
 }
 
 await fsp.mkdir(PREVIEW_EVIDENCE_DIR, { recursive: true });
-const buildLabel = `phase1-argon-${COMMIT.slice(0, 10)}-${Date.now()}`;
+const buildLabel = `phase1-rework-${COMMIT.slice(0, 10)}-${Date.now()}`;
 const buildContext = path.join(ROOT, ".wrangler/owned-preview-builds", buildLabel);
 await fsp.mkdir(buildContext, { recursive: true });
 
@@ -177,7 +177,7 @@ const deployRes = spawnSync(
     "--commit-hash",
     COMMIT,
     "--commit-message",
-    "Aeris V6.2 P07 Phase 1 isolated Preview",
+    "Aeris V6.2 P07 Phase 1 Visual Rework isolated Preview",
     "--commit-dirty=false",
   ],
   {
@@ -315,7 +315,11 @@ try {
       previewBannerHidden: document.getElementById("aerisPreviewNotice")?.hidden,
       previewBannerText: document.getElementById("aerisPreviewNotice")?.textContent.trim(),
       bodyBg: getComputedStyle(document.body).backgroundColor,
-      cardBg: getComputedStyle(document.querySelector("#publicHome .home-widget-visual")).backgroundColor,
+      sidebarBg: getComputedStyle(document.getElementById("v3Sidebar")).backgroundColor,
+      learningCardBg: getComputedStyle(document.querySelector("#publicHome .hero-scene-learning .home-widget-visual")).backgroundColor,
+      financeCardBg: getComputedStyle(document.querySelector("#publicHome .hero-scene-finance .home-widget-visual")).backgroundColor,
+      toolsCardBg: getComputedStyle(document.querySelector("#publicHome .hero-scene-tools .home-widget-visual")).backgroundColor,
+      summaryCardCount: document.querySelectorAll("#homeV3SummaryGrid .v3-summary-card").length,
       demoBadges: document.querySelectorAll("#publicHome [data-widget-demo]:not([hidden])").length,
     })`);
 
@@ -323,7 +327,11 @@ try {
     if (uiApi.public_ui?.enabled) {
       assert.equal(liveHome.previewBannerHidden, false, "Hosted Preview banner must be visible on *.pages.dev");
       assert.equal(liveHome.bodyBg, "rgb(244, 246, 249)");
-      assert.equal(liveHome.cardBg, "rgb(255, 255, 255)");
+      assert.equal(liveHome.sidebarBg, "rgb(255, 255, 255)");
+      assert.equal(liveHome.learningCardBg, "rgb(239, 246, 255)");
+      assert.equal(liveHome.financeCardBg, "rgb(238, 250, 243)");
+      assert.equal(liveHome.toolsCardBg, "rgb(245, 240, 255)");
+      assert.equal(liveHome.summaryCardCount, 4);
     }
 
     const shotHome1440 = await page.send("Page.captureScreenshot", { format: "png" });
@@ -351,9 +359,9 @@ try {
       liveHome,
       runtimeErrors: page.runtimeErrors,
       screenshots: [
-        "docs/p07/evidence/phase1-argon/preview/preview-live-home-1440.png",
-        "docs/p07/evidence/phase1-argon/preview/preview-live-home-390.png",
-        "docs/p07/evidence/phase1-argon/preview/preview-live-login-1440.png",
+        "docs/p07/evidence/phase1-rework/preview/preview-live-home-1440.png",
+        "docs/p07/evidence/phase1-rework/preview/preview-live-home-390.png",
+        "docs/p07/evidence/phase1-rework/preview/preview-live-login-1440.png",
       ],
     };
   } finally {

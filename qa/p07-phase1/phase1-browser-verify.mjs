@@ -12,7 +12,7 @@ const CDP_URL = process.env.WYJ_CDP_URL || "http://127.0.0.1:19238";
 const ADMIN_USER = process.env.WYJ_TEST_ADMIN_USER || process.env.WYJ_TEST_ADMIN_USERNAME || "wyj";
 const ADMIN_SECRET = process.env.WYJ_TEST_ADMIN_SECRET || "";
 const EVIDENCE_DIR = path.resolve(
-  process.env.AERIS_PHASE1_EVIDENCE_DIR || path.join(ROOT, "docs/p07/evidence/phase1-argon")
+  process.env.AERIS_PHASE1_EVIDENCE_DIR || path.join(ROOT, "docs/p07/evidence/phase1-rework")
 );
 const AFTER_DIR = path.join(EVIDENCE_DIR, "after");
 
@@ -139,8 +139,19 @@ try {
 
     const summary = await page.evaluate(String.raw`(async () => {
       const bodyStyle = getComputedStyle(document.body);
-      const cardVisual = document.querySelector("#publicHome .home-widget-visual");
-      const cardStyle = getComputedStyle(cardVisual);
+      const learningCard = getComputedStyle(document.querySelector("#publicHome .hero-scene-learning .home-widget-visual"));
+      const financeCard = getComputedStyle(document.querySelector("#publicHome .hero-scene-finance .home-widget-visual"));
+      const toolsCard = getComputedStyle(document.querySelector("#publicHome .hero-scene-tools .home-widget-visual"));
+      const sidebar = document.getElementById("v3Sidebar");
+      const sidebarRect = sidebar?.getBoundingClientRect();
+      const sidebarStyle = sidebar ? getComputedStyle(sidebar) : null;
+      const summaryCards = [...document.querySelectorAll("#homeV3SummaryGrid .v3-summary-card")];
+      const summaryCardBg = summaryCards[0] ? getComputedStyle(summaryCards[0]).backgroundColor : "";
+      const summaryBarBg = document.getElementById("v3SummaryLearningBar") ? getComputedStyle(document.getElementById("v3SummaryLearningBar")).backgroundColor : "";
+      const widgetRects = ["learning", "finance", "tools"].map((id) => {
+        const r = document.querySelector('[data-home-widget="' + id + '"]').getBoundingClientRect();
+        return { id, x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) };
+      });
       const quickStyle = getComputedStyle(document.querySelector(".home-quick-access"));
       const recentStyle = getComputedStyle(document.querySelector(".home-recent-activity"));
       const primaryBtn = getComputedStyle(document.getElementById("publicLoginBtn"));
@@ -157,7 +168,16 @@ try {
         manifestName: manifest.name,
         bodyBg: bodyStyle.backgroundColor,
         bodyBgImage: bodyStyle.backgroundImage,
-        cardBg: cardStyle.backgroundColor,
+        sidebarWidth: Math.round(sidebarRect?.width || 0),
+        sidebarBg: sidebarStyle?.backgroundColor || "",
+        adminLinkHidden: document.getElementById("v3SidebarAdminLink")?.hidden ?? null,
+        learningCardBg: learningCard.backgroundColor,
+        financeCardBg: financeCard.backgroundColor,
+        toolsCardBg: toolsCard.backgroundColor,
+        widgetRects,
+        summaryCardCount: summaryCards.length,
+        summaryCardBg,
+        summaryBarBg,
         quickBg: quickStyle.backgroundColor,
         recentBg: recentStyle.backgroundColor,
         primaryBg: primaryBtn.backgroundColor,
@@ -173,12 +193,26 @@ try {
     })()`);
 
     assert.equal(summary.p07Ui, "enabled");
+    assert.equal(summary.themeColor, "#f4f6f9");
     assert.equal(summary.appName, "Aeris");
     assert.equal(summary.ogSiteName, "Aeris");
     assert.equal(summary.manifestName, "Aeris");
     assert.equal(summary.bodyBg, "rgb(244, 246, 249)");
     assert.equal(summary.bodyBgImage, "none");
-    assert.equal(summary.cardBg, "rgb(255, 255, 255)");
+    assert.ok(summary.sidebarWidth >= 196, `Expected V3 desktop sidebar >= 196px, got ${summary.sidebarWidth}`);
+    assert.equal(summary.sidebarBg, "rgb(255, 255, 255)");
+    assert.equal(summary.navBg, "rgb(255, 255, 255)");
+    assert.equal(summary.adminLinkHidden, true, "Admin link in V3 sidebar must be hidden for guests");
+    assert.equal(summary.learningCardBg, "rgb(239, 246, 255)");
+    assert.equal(summary.financeCardBg, "rgb(238, 250, 243)");
+    assert.equal(summary.toolsCardBg, "rgb(245, 240, 255)");
+    assert.ok(
+      summary.widgetRects[0].x < summary.widgetRects[1].x && summary.widgetRects[1].x < summary.widgetRects[2].x,
+      `Expected V3 horizontal spatial fan, got ${JSON.stringify(summary.widgetRects)}`
+    );
+    assert.equal(summary.summaryCardCount, 4);
+    assert.equal(summary.summaryCardBg, "rgb(255, 255, 255)");
+    assert.equal(summary.summaryBarBg, "rgb(37, 99, 235)");
     assert.equal(summary.quickBg, "rgb(255, 255, 255)");
     assert.equal(summary.recentBg, "rgb(255, 255, 255)");
     assert.equal(summary.primaryBg, "rgb(37, 99, 235)");
@@ -199,6 +233,7 @@ try {
     const homeViewports = [
       ["375", 375, 812, true],
       ["390", 390, 844, true],
+      ["412", 412, 915, true],
       ["420", 420, 900, true],
       ["768", 768, 1024, false],
       ["1024", 1024, 768, false],
@@ -223,21 +258,31 @@ try {
       const metrics = await page.evaluate(`(() => {
         const demos = [...document.querySelectorAll("#publicHome [data-widget-demo]:not([hidden])")];
         const demoVisible = demos.every((el) => getComputedStyle(el).display !== "none" && el.getBoundingClientRect().width > 0);
+        const sidebar = document.getElementById("v3Sidebar");
+        const sidebarWidth = sidebar ? Math.round(sidebar.getBoundingClientRect().width) : 0;
         return {
           width: innerWidth,
           scrollWidth: document.documentElement.scrollWidth,
           demoCount: demos.length,
           demoVisible,
+          sidebarWidth,
         };
       })()`);
       assert.ok(metrics.scrollWidth <= metrics.width + 1, `Home horizontal overflow at ${label}px: ${metrics.scrollWidth} > ${metrics.width}`);
       assert.equal(metrics.demoCount, 3);
       assert.equal(metrics.demoVisible, true, `Guest demo badges must remain visible at ${label}px`);
+      if (width <= 980) {
+        assert.equal(metrics.sidebarWidth, 0, `Mobile/tablet (${label}px) must collapse fixed sidebar`);
+      } else {
+        assert.ok(metrics.sidebarWidth >= 196, `Desktop (${label}px) must render V3 sidebar`);
+      }
       const file = label === "1440"
         ? "after-home-desktop-1440-light.png"
         : label === "390"
           ? "after-home-mobile-390-light.png"
-          : `after-home-${label}-light.png`;
+          : label === "412"
+            ? "after-home-mobile-412-light.png"
+            : `after-home-${label}-light.png`;
       captured.push(await saveShot(page, file));
     }
 
@@ -252,9 +297,18 @@ try {
       });
       await page.evaluate("document.documentElement.dataset.theme = 'dark'; window.dispatchEvent(new Event('resize')); true");
       await delay(220);
-      const darkColors = await page.evaluate("({ bodyBg: getComputedStyle(document.body).backgroundColor, cardBg: getComputedStyle(document.querySelector('#publicHome .home-widget-visual')).backgroundColor })");
+      const darkColors = await page.evaluate(`({
+        bodyBg: getComputedStyle(document.body).backgroundColor,
+        learningBg: getComputedStyle(document.querySelector('#publicHome .hero-scene-learning .home-widget-visual')).backgroundColor,
+        financeBg: getComputedStyle(document.querySelector('#publicHome .hero-scene-finance .home-widget-visual')).backgroundColor,
+        toolsBg: getComputedStyle(document.querySelector('#publicHome .hero-scene-tools .home-widget-visual')).backgroundColor,
+        summaryBg: getComputedStyle(document.querySelector('#homeV3SummaryGrid .v3-summary-card')).backgroundColor,
+      })`);
       assert.equal(darkColors.bodyBg, "rgb(15, 18, 23)");
-      assert.equal(darkColors.cardBg, "rgb(23, 28, 36)");
+      assert.equal(darkColors.learningBg, "rgb(21, 34, 56)");
+      assert.equal(darkColors.financeBg, "rgb(19, 40, 32)");
+      assert.equal(darkColors.toolsBg, "rgb(33, 26, 54)");
+      assert.equal(darkColors.summaryBg, "rgb(23, 28, 36)");
       captured.push(await saveShot(page, `after-home-${label}-dark.png`));
     }
 
@@ -300,11 +354,16 @@ try {
     await page.click("#showLoginBtn");
     await delay(120);
 
-    for (const [label, width, height, mobile] of [["375", 375, 812, true], ["390", 390, 844, true], ["768", 768, 1024, false]]) {
+    for (const [label, width, height, mobile] of [["375", 375, 812, true], ["390", 390, 844, true], ["412", 412, 915, true], ["768", 768, 1024, false]]) {
       await page.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile });
       await delay(180);
       assert.ok(await page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"));
-      captured.push(await saveShot(page, label === "390" ? "after-login-mobile-390-light.png" : `after-login-${label}-light.png`));
+      const loginShot = label === "390"
+        ? "after-login-mobile-390-light.png"
+        : label === "412"
+          ? "after-login-mobile-412-light.png"
+          : `after-login-${label}-light.png`;
+      captured.push(await saveShot(page, loginShot));
     }
 
     await page.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 960, deviceScaleFactor: 1, mobile: false });
@@ -369,9 +428,11 @@ try {
     assert.equal(hovered.positionTransform, idle.positionTransform, "Hover must not mutate .hero-scene-card coordinate transform");
     assert.ok(hovered.visualY < -2, `Expected hover lift on .home-widget-visual, got ${hovered.visualY}`);
 
-    // Enter layout edit mode
+    // Enter layout edit mode and capture static V3 editing state screenshot
     await page.click("#homeLayoutToggle");
     await page.waitFor("document.querySelector('.public-hero-scene').dataset.editing === 'true'");
+    await delay(180);
+    await saveShot(page, "after-home-editing-1440-light.png");
     await page.evaluate(`(() => {
       window.__spatialStorageWrites = 0;
       const orig = Storage.prototype.setItem;
@@ -609,6 +670,10 @@ try {
     assert.equal(validation.invalid, "true");
     assert.ok(validation.describedBy.includes("p07-validation-usernameInput"));
     assert.ok(validation.msg.length > 0);
+    await page.evaluate("document.getElementById('loginError').textContent = '用户名或密码不正确，请核对后重试。'; true");
+    await delay(120);
+    await saveShot(page, "after-error-login-1440.png");
+    await page.evaluate("document.getElementById('loginError').textContent = ''; true");
     await page.setFields({ "#usernameInput": "synthetic-valid" });
     assert.equal(await page.evaluate("document.getElementById('p07-validation-usernameInput')"), null);
     await page.setFields({ "#usernameInput": "" });
@@ -707,6 +772,88 @@ try {
     return { ariaAudit, contrasts, enlargedTextReflowCombinations: 5, flagOffRollbackVerified: true };
   });
 
+  // 4b. Unified Loading (#entryScreen / #sessionRecovery) & Error Recovery States
+  await runCheck("unified-loading-and-error-recovery-states", async () => {
+    await page.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 960, deviceScaleFactor: 1, mobile: false });
+    await page.navigate("/");
+    await waitHomeReady(page);
+
+    // Verify & capture unified initial HTML splash (#entryScreen) using authentic markup & CSS
+    const splashCheck = await page.evaluate(String.raw`(async () => {
+      const html = await fetch("/", { headers: { "Cache-Control": "no-cache" } }).then((r) => r.text());
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const entryNode = doc.getElementById("entryScreen");
+      if (!entryNode) throw new Error("Missing #entryScreen in index.html");
+      const clone = entryNode.cloneNode(true);
+      document.body.prepend(clone);
+      const screenStyle = getComputedStyle(clone);
+      const cardStyle = getComputedStyle(clone.querySelector(".entry-content"));
+      const barStyle = getComputedStyle(clone.querySelector(".entry-progress"));
+      return {
+        screenBg: screenStyle.backgroundColor,
+        cardBg: cardStyle.backgroundColor,
+        barBg: barStyle.backgroundColor,
+      };
+    })()`);
+    assert.equal(splashCheck.screenBg, "rgb(244, 246, 249)");
+    assert.equal(splashCheck.cardBg, "rgb(255, 255, 255)");
+    await delay(120);
+    const splashShot = await saveShot(page, "after-loading-splash-1440.png");
+    await page.evaluate("document.getElementById('entryScreen')?.remove(); true");
+
+    // Verify & capture unified #sessionRecovery loading state ("正在打开你的页面…")
+    const recoveryLoading = await page.evaluate(String.raw`(() => {
+      const panel = document.getElementById("sessionRecovery");
+      const publicHome = document.getElementById("publicHome");
+      publicHome.classList.add("hidden");
+      panel.dataset.recoveryState = "loading";
+      document.getElementById("sessionRecoveryMessage").textContent = "正在打开你的页面…";
+      document.getElementById("retrySessionRecoveryBtn").classList.add("hidden");
+      document.getElementById("exitSessionRecoveryBtn").classList.add("hidden");
+      panel.classList.remove("hidden");
+      const card = panel.querySelector(".session-recovery-card");
+      return {
+        bodyBg: getComputedStyle(document.body).backgroundColor,
+        cardBg: getComputedStyle(card).backgroundColor,
+        frameDisplay: getComputedStyle(document.querySelector(".v3-app-frame")).display,
+      };
+    })()`);
+    assert.equal(recoveryLoading.bodyBg, "rgb(244, 246, 249)");
+    assert.equal(recoveryLoading.cardBg, "rgb(255, 255, 255)");
+    assert.equal(recoveryLoading.frameDisplay, "none");
+    await delay(120);
+    const recoveryLoadingShot = await saveShot(page, "after-loading-session-recovery-1440.png");
+
+    // Verify & capture unified #sessionRecovery offline/timeout error state + recovery actions
+    const recoveryError = await page.evaluate(String.raw`(() => {
+      const panel = document.getElementById("sessionRecovery");
+      panel.dataset.recoveryState = "error";
+      document.getElementById("sessionRecoveryMessage").textContent = "网络连接暂时不可用，无法确认登录状态。你可以重试连接，或先返回公开首页浏览。";
+      document.getElementById("retrySessionRecoveryBtn").classList.remove("hidden");
+      document.getElementById("exitSessionRecoveryBtn").classList.remove("hidden");
+      return {
+        retryVisible: !document.getElementById("retrySessionRecoveryBtn").classList.contains("hidden"),
+        exitVisible: !document.getElementById("exitSessionRecoveryBtn").classList.contains("hidden"),
+      };
+    })()`);
+    assert.equal(recoveryError.retryVisible, true);
+    assert.equal(recoveryError.exitVisible, true);
+    await delay(120);
+    const recoveryErrorShot = await saveShot(page, "after-error-session-recovery-1440.png");
+
+    // Click #exitSessionRecoveryBtn and confirm clean return to public Home (/)
+    await page.click("#exitSessionRecoveryBtn");
+    await waitHomeReady(page);
+    assert.equal(await page.evaluate("document.getElementById('sessionRecovery').classList.contains('hidden')"), true);
+
+    return {
+      splashCheck,
+      recoveryLoading,
+      recoveryError,
+      shots: [splashShot, recoveryLoadingShot, recoveryErrorShot],
+    };
+  });
+
   // 5. Authenticated Home State + Route Non-Regression Smoke (only when synthetic local admin secret is provided)
   if (ADMIN_SECRET && (host === "127.0.0.1" || host === "localhost")) {
     await runCheck("authenticated-home-and-route-non-regression", async () => {
@@ -725,17 +872,20 @@ try {
         demoBadgesVisible: document.querySelectorAll("#publicHome [data-widget-demo]:not([hidden])").length,
         accountMenuVisible: !document.getElementById("accountMenu").classList.contains("hidden"),
         personalVisible: [...document.querySelectorAll("[data-home-personal]")].some((el) => !el.hidden),
+        sidebarAdminVisible: !document.getElementById("v3SidebarAdminLink").hidden,
       })`);
       assert.equal(authState.sessionMode, "authenticated");
       assert.equal(authState.demoBadgesVisible, 0, "Authenticated home must never display guest demo badges");
       assert.equal(authState.accountMenuVisible, true);
       assert.equal(authState.personalVisible, true);
+      assert.equal(authState.sidebarAdminVisible, true, "Admin link in V3 sidebar must appear for super_admin");
       await saveShot(page, "after-home-authenticated-1440.png");
 
       // Logout back to guest
       await page.evaluate("document.getElementById('accountMenu').open = true; true");
       await page.click("#logoutBtn");
       await page.waitFor("document.getElementById('publicHome').dataset.sessionMode === 'guest'", 20_000);
+      assert.equal(await page.evaluate("document.getElementById('v3SidebarAdminLink').hidden"), true, "Admin link must hide immediately on logout");
 
       // Route non-regression smoke across guest & workspace gated routes
       const visited = [];
@@ -778,9 +928,15 @@ for (const rel of trackedAssets) {
   if (fs.existsSync(full)) afterAssetBytes[rel] = fs.statSync(full).size;
 }
 let baselineSummary = null;
-const baselinePath = path.join(EVIDENCE_DIR, "baseline/baseline-summary.json");
-if (fs.existsSync(baselinePath)) {
-  baselineSummary = JSON.parse(fs.readFileSync(baselinePath, "utf8"));
+const baselineCandidates = [
+  path.join(EVIDENCE_DIR, "baseline/baseline-summary.json"),
+  path.join(ROOT, "docs/p07/evidence/phase1-argon/baseline/baseline-summary.json"),
+];
+for (const bp of baselineCandidates) {
+  if (fs.existsSync(bp)) {
+    baselineSummary = JSON.parse(fs.readFileSync(bp, "utf8"));
+    break;
+  }
 }
 
 const summary = {

@@ -11,7 +11,7 @@ import { CdpClient, delay } from "../../local-backend/browser_harness.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "../..");
-const EVIDENCE_DIR = path.join(ROOT, "docs/p07/evidence/phase1-argon");
+const EVIDENCE_DIR = path.join(ROOT, "docs/p07/evidence/phase1-rework");
 const QA_WORK_ROOT = path.join(ROOT, ".wrangler", `p07-phase1-qa-${Date.now()}`);
 const RUNTIME_DIR = path.join(QA_WORK_ROOT, "runtime");
 const STATE_DIR = path.join(QA_WORK_ROOT, "state");
