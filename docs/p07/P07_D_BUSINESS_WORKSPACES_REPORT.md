@@ -5,7 +5,9 @@
   - 基线 PR：PR #121（分支 `codex/aeris-p07-phase1-handover`，基线 Commit `337bb32f1ce349f9c5d58bd6120932fa5e61a745`）
   - 本轮分支：`gemini/p07-d-business-workspaces`
   - 独立工作树：`%USERPROFILE%\.codex\worktrees\gemini-p07-d-business-workspaces\thewyj.uk`
+  - 关联 Pull Request：Draft PR #122 (https://github.com/WYJ0904/thewyj.uk/pull/122)
   - Draft PR 目标分支：`codex/aeris-p07-phase1-handover`（严格以 PR #121 为基线，绝不直合 `main`）
+  - 关联 CI Run：`41806374287` (https://github.com/WYJ0904/thewyj.uk/actions/runs/41806374287)
 - **新隔离 Hosted Preview（本次最终交付）**：
   - 部署固定地址：https://e15974b8.thewyj-p07-ui-rc.pages.dev
   - 分支别名地址：https://v62-p07-d-workspaces.thewyj-p07-ui-rc.pages.dev
@@ -86,6 +88,7 @@
 | 公开 UI 策略门禁 | `node qa/p07-phase1/public-ui-policy.test.mjs` | **36/36 PASS** | CSS 契约、HTML 契约与回退开关全面生效 |
 | Phase 1 自动化套件 | `node qa/p07-phase1/run-phase1-qa.mjs` | **4 大套件 PASS** | 悬浮卡片拖拽、无头浏览器、视口缩放 400% 全部通过 |
 | P07-D 业务工作台专项套件 | `node qa/p07-d/verify-p07-d-workspaces.mjs` | **全部工作台 PASS** | 涵盖 6 大工作台、7 个视口、深浅主题，0 运行时报错 |
+| **GitHub Actions Core CI** | **Run 41806374287 (PR #122)** | **8/8 PASS** | Pages 构建、双系统 Python、JS 静态、Android、敏感词、云端浏览器矩阵全部通过 |
 
 ---
 
