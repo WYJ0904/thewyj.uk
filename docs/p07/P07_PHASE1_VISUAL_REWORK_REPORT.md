@@ -8,7 +8,7 @@
   - `7814a567ebd304a55e3bacb4dc9e393cd482d4a0`（集成 Codex P2 键盘重叠焦点可见性修复与测试缺口补齐）
   - `18b3314a6839473b47d0916f205c3e2847eb1332`（部署网络重试鲁棒性增强）
   - `e817bb121185fd1cb72e751a29c4ffbae5a91258`（登录等待条件作用域校准，当前部署 HEAD）
-- **关联 Pull Request**：Draft PR（创建后见 GitHub PR 记录）（Draft，未合并）
+- **关联 Pull Request**：PR #121 (https://github.com/WYJ0904/thewyj.uk/pull/121)（Draft，未合并）
 - **新隔离 Hosted Preview（本次最终交付）**：
   - 部署固定地址：https://d1d88d67.thewyj-p07-ui-rc.pages.dev
   - 分支别名地址：https://v62-p07-phase1-rework.thewyj-p07-ui-rc.pages.dev
