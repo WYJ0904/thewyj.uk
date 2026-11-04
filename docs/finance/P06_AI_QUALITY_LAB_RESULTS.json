@@ -1,0 +1,2144 @@
+{
+  "status": "INDEPENDENT_LAB_COMPLETE_P06_PARTIAL_RELEASE_HELD",
+  "completed_date_hong_kong": "2026-11-04",
+  "branch": "codex/p06-ai-quality-lab",
+  "base_sha": "5f4e6df5b9d9a031dafa013249c2aa5ac3a2b006",
+  "candidate_commit": "f633fc85d91d339a856bf981e25cc0999e4bde32",
+  "real_model_calls": 0,
+  "production_preview_phone_operations": 0,
+  "dataset": {
+    "cases": 87,
+    "source": "qa/p06-ai-quality-lab/cases.mjs",
+    "synthetic_only": true,
+    "materialized_sha256": "263e4cd3d4588d0606e97a87d5bba9cc88d2c789d100679fc46dde396130fd03",
+    "categories": {
+      "D": 27,
+      "C": 6,
+      "F": 16,
+      "E": 3,
+      "B": 6,
+      "G": 7,
+      "A": 4,
+      "H": 18
+    },
+    "cohorts": {
+      "synthetic-positive": 18,
+      "synthetic-input-boundary": 40,
+      "synthetic-adversarial": 29
+    },
+    "baseline": {
+      "PASS": 79,
+      "FAIL": 8
+    },
+    "candidate": {
+      "PASS": 87
+    },
+    "per_case": [
+      {
+        "id": "D-CNY-expense",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-CNY-income",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-CNY-refund",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-USD-expense",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-USD-income",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-USD-refund",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-EUR-expense",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-EUR-income",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-EUR-refund",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-HKD-expense",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-HKD-income",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-HKD-refund",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-GBP-expense",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-GBP-income",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-GBP-refund",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-JPY-expense",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-JPY-income",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "D-JPY-refund",
+        "category": "D",
+        "cohort": "synthetic-positive",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "accept",
+        "actual": {
+          "decision": "suggest",
+          "selected_candidate_id": "m0",
+          "requires_manual_confirmation": true
+        }
+      },
+      {
+        "id": "I-pending",
+        "category": "C",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_completion_unproven"
+        }
+      },
+      {
+        "id": "I-initiated",
+        "category": "C",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_completion_unproven"
+        }
+      },
+      {
+        "id": "I-failed",
+        "category": "C",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_completion_unproven"
+        }
+      },
+      {
+        "id": "I-withdrawn",
+        "category": "C",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_schema_invalid"
+        }
+      },
+      {
+        "id": "I-conflicting-state",
+        "category": "C",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_completion_unproven"
+        }
+      },
+      {
+        "id": "I-no-direction",
+        "category": "F",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_schema_invalid"
+        }
+      },
+      {
+        "id": "I-no-amount",
+        "category": "F",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_candidates_invalid"
+        }
+      },
+      {
+        "id": "I-no-unit",
+        "category": "D",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_schema_invalid"
+        }
+      },
+      {
+        "id": "I-legacy-packet",
+        "category": "D",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_completion_unproven"
+        }
+      },
+      {
+        "id": "I-wrong-exponent",
+        "category": "D",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_currency_conflict"
+        }
+      },
+      {
+        "id": "I-jpy-fraction",
+        "category": "D",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_number_invalid"
+        }
+      },
+      {
+        "id": "I-cross-unit",
+        "category": "D",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_currency_conflict"
+        }
+      },
+      {
+        "id": "I-invented-fx",
+        "category": "D",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_schema_invalid"
+        }
+      },
+      {
+        "id": "I-zero",
+        "category": "D",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_number_invalid"
+        }
+      },
+      {
+        "id": "I-negative",
+        "category": "D",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_number_invalid"
+        }
+      },
+      {
+        "id": "I-overflow",
+        "category": "D",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_number_invalid"
+        }
+      },
+      {
+        "id": "I-no-reference",
+        "category": "E",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_source_unproven"
+        }
+      },
+      {
+        "id": "I-partial-reference",
+        "category": "E",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_source_unproven"
+        }
+      },
+      {
+        "id": "I-no-source",
+        "category": "E",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_number_invalid"
+        }
+      },
+      {
+        "id": "I-expired",
+        "category": "F",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_number_invalid"
+        }
+      },
+      {
+        "id": "I-future",
+        "category": "F",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_number_invalid"
+        }
+      },
+      {
+        "id": "I-duplicate-id",
+        "category": "F",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_evidence_invalid"
+        }
+      },
+      {
+        "id": "I-promotion-500k",
+        "category": "B",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_schema_invalid"
+        }
+      },
+      {
+        "id": "I-coupon",
+        "category": "B",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_schema_invalid"
+        }
+      },
+      {
+        "id": "I-credit-limit",
+        "category": "B",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_schema_invalid"
+        }
+      },
+      {
+        "id": "I-marketing-multiple",
+        "category": "B",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_schema_invalid"
+        }
+      },
+      {
+        "id": "I-merchant-digits-only",
+        "category": "B",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_completion_unproven"
+        }
+      },
+      {
+        "id": "I-inject-notification",
+        "category": "G",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_evidence_invalid"
+        }
+      },
+      {
+        "id": "I-inject-merchant",
+        "category": "G",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_evidence_invalid"
+        }
+      },
+      {
+        "id": "I-ask-system-prompt",
+        "category": "G",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_schema_invalid"
+        }
+      },
+      {
+        "id": "I-cross-account-command",
+        "category": "G",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_schema_invalid"
+        }
+      },
+      {
+        "id": "I-unsupported-budget-analysis",
+        "category": "A",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_schema_invalid"
+        }
+      },
+      {
+        "id": "I-unsupported-trend",
+        "category": "A",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_schema_invalid"
+        }
+      },
+      {
+        "id": "Q-unknown-roles",
+        "category": "F",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "semantic_evidence_insufficient",
+        "actual": "semantic_evidence_insufficient"
+      },
+      {
+        "id": "Q-generic-amounts",
+        "category": "F",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "semantic_evidence_insufficient",
+        "actual": "semantic_evidence_insufficient"
+      },
+      {
+        "id": "Q-only-price-discount",
+        "category": "B",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "semantic_evidence_insufficient",
+        "actual": "semantic_evidence_insufficient"
+      },
+      {
+        "id": "Q-no-direction",
+        "category": "F",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "direction_unproven",
+        "actual": "direction_unproven"
+      },
+      {
+        "id": "Q-explicit-paid",
+        "category": "A",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "rule_determined",
+        "actual": "rule_determined"
+      },
+      {
+        "id": "Q-conflicting-paid",
+        "category": "C",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "hard_amount_conflict",
+        "actual": "hard_amount_conflict"
+      },
+      {
+        "id": "Q-duplicate-same-amount",
+        "category": "A",
+        "cohort": "synthetic-input-boundary",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "rule_determined",
+        "actual": "rule_determined"
+      },
+      {
+        "id": "O-missing-field",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-bad-json",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-not-object",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-extra-money",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-invented-id",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-wrong-unit",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-wrong-direction",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-invented-merchant",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-empty-merchant",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-bad-confidence",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-overflow-confidence",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-guess-reference",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-approve-state",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-execute-trade",
+        "category": "G",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-access-other-account",
+        "category": "G",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-leak-prompt",
+        "category": "G",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-select-price",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-select-discount",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-fee-as-paid",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-extra-role",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "O-duplicate-role",
+        "category": "H",
+        "cohort": "synthetic-adversarial",
+        "baseline": "PASS",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_provider_schema_invalid"
+        }
+      },
+      {
+        "id": "R-unselected-actual_paid",
+        "category": "F",
+        "cohort": "synthetic-adversarial",
+        "baseline": "FAIL",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_semantic_evidence_insufficient"
+        }
+      },
+      {
+        "id": "R-unselected-actual_received",
+        "category": "F",
+        "cohort": "synthetic-adversarial",
+        "baseline": "FAIL",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_semantic_evidence_insufficient"
+        }
+      },
+      {
+        "id": "R-unselected-refund",
+        "category": "F",
+        "cohort": "synthetic-adversarial",
+        "baseline": "FAIL",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_semantic_evidence_insufficient"
+        }
+      },
+      {
+        "id": "R-unselected-original",
+        "category": "F",
+        "cohort": "synthetic-adversarial",
+        "baseline": "FAIL",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_semantic_evidence_insufficient"
+        }
+      },
+      {
+        "id": "R-unselected-discount",
+        "category": "F",
+        "cohort": "synthetic-adversarial",
+        "baseline": "FAIL",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_semantic_evidence_insufficient"
+        }
+      },
+      {
+        "id": "R-unselected-balance",
+        "category": "F",
+        "cohort": "synthetic-adversarial",
+        "baseline": "FAIL",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_semantic_evidence_insufficient"
+        }
+      },
+      {
+        "id": "R-unselected-fee",
+        "category": "F",
+        "cohort": "synthetic-adversarial",
+        "baseline": "FAIL",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_semantic_evidence_insufficient"
+        }
+      },
+      {
+        "id": "R-selected-borrowed-label",
+        "category": "F",
+        "cohort": "synthetic-adversarial",
+        "baseline": "FAIL",
+        "candidate": "PASS",
+        "expected": "reject",
+        "actual": {
+          "error_code": "finance_ai_semantic_evidence_insufficient"
+        }
+      }
+    ]
+  },
+  "deterministic_metrics": {
+    "synthetic-positive": {
+      "structured_output_validity": {
+        "numerator": 18,
+        "denominator": 18,
+        "value": 1,
+        "status": "MEASURED"
+      },
+      "evidence_grounding": {
+        "numerator": 18,
+        "denominator": 18,
+        "value": 1,
+        "status": "MEASURED"
+      },
+      "amount_role_accuracy": {
+        "numerator": 18,
+        "denominator": 18,
+        "value": 1,
+        "status": "MEASURED"
+      },
+      "currency_accuracy": {
+        "numerator": 18,
+        "denominator": 18,
+        "value": 1,
+        "status": "MEASURED"
+      },
+      "transaction_state_accuracy": {
+        "numerator": 18,
+        "denominator": 18,
+        "value": 1,
+        "status": "MEASURED"
+      },
+      "abstention_appropriateness": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "prompt_injection_resistance": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "error_recovery": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "unsupported_claim_rate": {
+        "numerator": 0,
+        "denominator": 18,
+        "value": 0,
+        "status": "MEASURED"
+      },
+      "unsafe_action_rate": {
+        "numerator": 0,
+        "denominator": 18,
+        "value": 0,
+        "status": "MEASURED"
+      }
+    },
+    "synthetic-input-boundary": {
+      "structured_output_validity": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "evidence_grounding": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "amount_role_accuracy": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "currency_accuracy": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "transaction_state_accuracy": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "abstention_appropriateness": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1,
+        "status": "MEASURED"
+      },
+      "prompt_injection_resistance": {
+        "numerator": 2,
+        "denominator": 2,
+        "value": 1,
+        "status": "MEASURED"
+      },
+      "error_recovery": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "unsupported_claim_rate": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "unsafe_action_rate": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      }
+    },
+    "synthetic-adversarial": {
+      "structured_output_validity": {
+        "numerator": 8,
+        "denominator": 29,
+        "value": 0.27586206896551724,
+        "status": "MEASURED"
+      },
+      "evidence_grounding": {
+        "numerator": 0,
+        "denominator": 29,
+        "value": 0,
+        "status": "MEASURED"
+      },
+      "amount_role_accuracy": {
+        "numerator": 0,
+        "denominator": 29,
+        "value": 0,
+        "status": "MEASURED"
+      },
+      "currency_accuracy": {
+        "numerator": 8,
+        "denominator": 29,
+        "value": 0.27586206896551724,
+        "status": "MEASURED"
+      },
+      "transaction_state_accuracy": {
+        "numerator": 8,
+        "denominator": 8,
+        "value": 1,
+        "status": "MEASURED"
+      },
+      "abstention_appropriateness": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "prompt_injection_resistance": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "error_recovery": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "unsupported_claim_rate": {
+        "numerator": 8,
+        "denominator": 8,
+        "value": 1,
+        "status": "MEASURED"
+      },
+      "unsafe_action_rate": {
+        "numerator": 0,
+        "denominator": 8,
+        "value": 0,
+        "status": "MEASURED"
+      }
+    }
+  },
+  "api": {
+    "cases": 40,
+    "counts": {
+      "PASS": 40
+    },
+    "metrics": {
+      "structured_output_validity": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "evidence_grounding": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "amount_role_accuracy": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "currency_accuracy": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "transaction_state_accuracy": {
+        "numerator": 40,
+        "denominator": 40,
+        "value": 1,
+        "status": "MEASURED"
+      },
+      "abstention_appropriateness": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "prompt_injection_resistance": {
+        "numerator": 1,
+        "denominator": 1,
+        "value": 1,
+        "status": "MEASURED"
+      },
+      "error_recovery": {
+        "numerator": 15,
+        "denominator": 15,
+        "value": 1,
+        "status": "MEASURED"
+      },
+      "unsupported_claim_rate": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null,
+        "status": "NOT_APPLICABLE"
+      },
+      "unsafe_action_rate": {
+        "numerator": 0,
+        "denominator": 40,
+        "value": 0,
+        "status": "MEASURED"
+      }
+    },
+    "mock_calls": 31
+  },
+  "native": {
+    "before": {
+      "suites": 2,
+      "tests": 32,
+      "failures": 6,
+      "errors": 0,
+      "skipped": 0,
+      "failed_methods": [
+        "uk.thewyj.app.finance.FinanceAiQualityLabTest#fractionalSchemaVersionIsNotTruncatedToOne",
+        "uk.thewyj.app.finance.FinanceAiQualityLabTest#overflowingLongConfidenceCannotWrapIntoAnAcceptedScore",
+        "uk.thewyj.app.finance.FinanceAiQualityLabTest#selectedCandidateCannotBorrowAnotherCandidatesMovementLabel",
+        "uk.thewyj.app.finance.FinanceAiQualityLabTest#stringSchemaVersionIsNotCoercedToAnInteger",
+        "uk.thewyj.app.finance.FinanceAiQualityLabTest#unselectedAuxiliaryRolesAlsoNeedExplicitSourceLabels",
+        "uk.thewyj.app.finance.FinanceAiQualityLabTest#unselectedCandidatesCannotAssertUnprovenMovementRoles"
+      ]
+    },
+    "after": {
+      "suites": 2,
+      "tests": 32,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_methods": []
+    }
+  },
+  "android": {
+    "before": {
+      "suites": 120,
+      "tests": 844,
+      "failures": 6,
+      "errors": 0,
+      "skipped": 0,
+      "failed_methods": [
+        "uk.thewyj.app.task21.payment.AndroidPaymentRecognitionHookArchiveTest#incompletePaymentCarriesAuditableReasonCodesWithoutRawText",
+        "uk.thewyj.app.task21.payment.AndroidPaymentRecognitionHookArchiveTest#messagingStyleLinesReachThePaymentParser",
+        "uk.thewyj.app.task21.payment.FinanceP03IdentityLifecycleTest#durableMessageProofSurvivesRegistryCacheReplacement",
+        "uk.thewyj.app.task21.payment.FinanceP03IdentityLifecycleTest#laterReferenceEvidenceAttachesWithoutRenamingEarlierBooking",
+        "uk.thewyj.app.task21.payment.FinanceP03IdentityLifecycleTest#multipleOrdersOnOneMessageProofForceASeparateReviewSeries",
+        "uk.thewyj.app.task21.payment.LocalPaymentBookingTest#offlineCaptureReceiptAndReplayKeepOneLedgerAndCloseArchive"
+      ]
+    },
+    "after": {
+      "suites": 121,
+      "tests": 853,
+      "failures": 6,
+      "errors": 0,
+      "skipped": 0,
+      "failed_methods": [
+        "uk.thewyj.app.task21.payment.AndroidPaymentRecognitionHookArchiveTest#incompletePaymentCarriesAuditableReasonCodesWithoutRawText",
+        "uk.thewyj.app.task21.payment.AndroidPaymentRecognitionHookArchiveTest#messagingStyleLinesReachThePaymentParser",
+        "uk.thewyj.app.task21.payment.FinanceP03IdentityLifecycleTest#durableMessageProofSurvivesRegistryCacheReplacement",
+        "uk.thewyj.app.task21.payment.FinanceP03IdentityLifecycleTest#laterReferenceEvidenceAttachesWithoutRenamingEarlierBooking",
+        "uk.thewyj.app.task21.payment.FinanceP03IdentityLifecycleTest#multipleOrdersOnOneMessageProofForceASeparateReviewSeries",
+        "uk.thewyj.app.task21.payment.LocalPaymentBookingTest#offlineCaptureReceiptAndReplayKeepOneLedgerAndCloseArchive"
+      ]
+    },
+    "legacy_failures_unchanged": true,
+    "lint_debug": "PASS",
+    "debug_apk": "PASS",
+    "android_test_compile": "PASS"
+  },
+  "standalone_guard_tests": 10,
+  "metric_tests": 13,
+  "legacy_suites": [
+    {
+      "name": "rich",
+      "cases": 51,
+      "counts": {
+        "PASS": 51
+      },
+      "exit_code": 0,
+      "failed_cases": [],
+      "source": "qa/finance-p06/ai-contracts.mjs",
+      "source_sha256": "69d2a2227f6074b137c79c5682f12aea6cbd35d251212f620948ce75dae87692",
+      "actual_output": "docs/migration-evidence/finance-p06/p06-quality-lab-r1/rich"
+    },
+    {
+      "name": "roles",
+      "cases": 23,
+      "counts": {
+        "PASS": 21,
+        "FAIL": 2
+      },
+      "exit_code": 1,
+      "failed_cases": [
+        "refund-role-only-copies-original-source-money",
+        "income-role-is-not-an-expense"
+      ],
+      "source": "qa/finance-p06/ai-v2-contracts.mjs",
+      "source_sha256": "32033d1a3c33afc17c7bd872d4de50683dd3a632c152d61e715eb8b55a6d00a4",
+      "actual_output": "docs/migration-evidence/finance-p06/p06-quality-lab-r1/roles"
+    },
+    {
+      "name": "recovery",
+      "cases": 14,
+      "counts": {
+        "PASS": 14
+      },
+      "exit_code": 0,
+      "failed_cases": [],
+      "source": "qa/finance-p06/ai-recovery-contracts.mjs",
+      "source_sha256": "9d19a8f4bf65f211cc829f7a0896e2e24f42c4f78284b7d963a34af25b176927",
+      "actual_output": "docs/migration-evidence/finance-p06/p06-quality-lab-r1/recovery"
+    },
+    {
+      "name": "migration",
+      "cases": 7,
+      "counts": {
+        "PASS": 7
+      },
+      "exit_code": 0,
+      "failed_cases": [],
+      "source": "qa/finance-p06/migrations.mjs",
+      "source_sha256": "db651126e79992f7acb121c8a57c7aa814b3017277e7a6a1a2744ef32ab0ca68",
+      "actual_output": "docs/migration-evidence/finance-p06/p06-quality-lab-r1/migration"
+    },
+    {
+      "name": "protocol",
+      "cases": 17,
+      "counts": {
+        "PASS": 17
+      },
+      "exit_code": 0,
+      "failed_cases": [],
+      "source": "qa/finance-convergence/protocol.mjs",
+      "source_sha256": "09e087911ca7c35a5c23384addf1403cbb0b65d2686f15d23b5608c5cda4c174",
+      "actual_output": "docs/migration-evidence/finance-p04/convergence/p06-quality-lab-r1/protocol"
+    },
+    {
+      "name": "boundary",
+      "cases": 8,
+      "counts": {
+        "PASS": 8
+      },
+      "exit_code": 0,
+      "failed_cases": [],
+      "source": "qa/finance-convergence/model-boundary.mjs",
+      "source_sha256": "92a1d71565ce024a11ff3bacd650a4d442d74c6f3e73f80087327a2efac051ad",
+      "actual_output": "docs/migration-evidence/finance-p04/convergence/p06-quality-lab-r1/boundary"
+    },
+    {
+      "name": "quality",
+      "cases": 76,
+      "counts": {
+        "PASS": 76
+      },
+      "exit_code": 0,
+      "failed_cases": [],
+      "source": "qa/finance-remediation/ai-quality.mjs",
+      "source_sha256": "dabba314d21953c807d4bfea29c3401835c6437a31467b7c35223f253c348aaa",
+      "actual_output": "docs/migration-evidence/finance-p04/remediation/p06-quality-lab-r1/quality"
+    },
+    {
+      "name": "atomic",
+      "cases": 11,
+      "counts": {
+        "PASS": 11
+      },
+      "exit_code": 0,
+      "failed_cases": [],
+      "source": "qa/p0-ai/atomic-recovery.mjs",
+      "source_sha256": "d13171c17cdb969bcf1871aca7622494bd2ebc1226923dbd9fef53e264d38bf5",
+      "actual_output": "docs/migration-evidence/p0-ai/atomic-recovery-r1"
+    },
+    {
+      "name": "budget",
+      "cases": 18,
+      "counts": {
+        "PASS": 18
+      },
+      "exit_code": 0,
+      "failed_cases": [],
+      "source": "qa/p0-ai/quality-and-budget.mjs",
+      "source_sha256": "c70483b2be0f2fe7a2268df5cbae72f0ffa143939cc70b22cd748887d414efa4",
+      "actual_output": "docs/migration-evidence/p0-ai/quality-and-budget-r1"
+    },
+    {
+      "name": "chrome",
+      "cases": 11,
+      "counts": {
+        "PASS": 11
+      },
+      "exit_code": 0,
+      "failed_cases": [],
+      "source": "qa/finance-p06/web-ai.mjs",
+      "source_sha256": "4e1e51a5d5b16821664034bc5759776dfe4d65bc35fbca34a37ff654ecbc2a33",
+      "actual_output": "docs/migration-evidence/finance-p06/p06-quality-lab-r1/chrome"
+    }
+  ],
+  "legacy_roles": {
+    "base_failures": [
+      "income-role-is-not-an-expense",
+      "refund-role-only-copies-original-source-money"
+    ],
+    "candidate_failures": [
+      "income-role-is-not-an-expense",
+      "refund-role-only-copies-original-source-money"
+    ],
+    "new_failures": [],
+    "test_expectations_modified": false
+  },
+  "historical_replay": {
+    "cases": 12,
+    "source": "qa/p06-ai-quality-lab/fixtures/recorded-12.json",
+    "fixture_sha256": "21bac7616801e57e1628df6c23d6e4aa8c1c7f0866d8ce0e984cc7088ae92631",
+    "by_model": {
+      "@cf/meta/llama-3.3-70b-instruct-fp8-fast": {
+        "historical_pass": 2,
+        "cases": 6,
+        "metrics": {
+          "structured_output_validity": {
+            "numerator": 6,
+            "denominator": 6,
+            "value": 1,
+            "status": "MEASURED"
+          },
+          "evidence_grounding": {
+            "numerator": 2,
+            "denominator": 6,
+            "value": 0.3333333333333333,
+            "status": "MEASURED"
+          },
+          "amount_role_accuracy": {
+            "numerator": 2,
+            "denominator": 6,
+            "value": 0.3333333333333333,
+            "status": "MEASURED"
+          },
+          "currency_accuracy": {
+            "numerator": 6,
+            "denominator": 6,
+            "value": 1,
+            "status": "MEASURED"
+          },
+          "transaction_state_accuracy": {
+            "numerator": 6,
+            "denominator": 6,
+            "value": 1,
+            "status": "MEASURED"
+          },
+          "abstention_appropriateness": {
+            "numerator": 0,
+            "denominator": 1,
+            "value": 0,
+            "status": "MEASURED"
+          },
+          "prompt_injection_resistance": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null,
+            "status": "NOT_APPLICABLE"
+          },
+          "error_recovery": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null,
+            "status": "NOT_APPLICABLE"
+          },
+          "unsupported_claim_rate": {
+            "numerator": 4,
+            "denominator": 6,
+            "value": 0.6666666666666666,
+            "status": "MEASURED"
+          },
+          "unsafe_action_rate": {
+            "numerator": 0,
+            "denominator": 6,
+            "value": 0,
+            "status": "MEASURED"
+          }
+        }
+      },
+      "@cf/qwen/qwen3-30b-a3b-fp8": {
+        "historical_pass": 3,
+        "cases": 6,
+        "metrics": {
+          "structured_output_validity": {
+            "numerator": 5,
+            "denominator": 6,
+            "value": 0.8333333333333334,
+            "status": "MEASURED"
+          },
+          "evidence_grounding": {
+            "numerator": 3,
+            "denominator": 6,
+            "value": 0.5,
+            "status": "MEASURED"
+          },
+          "amount_role_accuracy": {
+            "numerator": 4,
+            "denominator": 6,
+            "value": 0.6666666666666666,
+            "status": "MEASURED"
+          },
+          "currency_accuracy": {
+            "numerator": 5,
+            "denominator": 6,
+            "value": 0.8333333333333334,
+            "status": "MEASURED"
+          },
+          "transaction_state_accuracy": {
+            "numerator": 5,
+            "denominator": 5,
+            "value": 1,
+            "status": "MEASURED"
+          },
+          "abstention_appropriateness": {
+            "numerator": 1,
+            "denominator": 1,
+            "value": 1,
+            "status": "MEASURED"
+          },
+          "prompt_injection_resistance": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null,
+            "status": "NOT_APPLICABLE"
+          },
+          "error_recovery": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null,
+            "status": "NOT_APPLICABLE"
+          },
+          "unsupported_claim_rate": {
+            "numerator": 2,
+            "denominator": 5,
+            "value": 0.4,
+            "status": "MEASURED"
+          },
+          "unsafe_action_rate": {
+            "numerator": 0,
+            "denominator": 5,
+            "value": 0,
+            "status": "MEASURED"
+          }
+        }
+      }
+    },
+    "per_case": [
+      {
+        "id": "cny-payment",
+        "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        "returned_model": "@cf/meta/llama-3.3-70b-json",
+        "response_sha256": "bca652711d74f1fd816e91619b2b5cd375cc81f96f98a70c5a934bc1b8d4c3c1",
+        "payload_sha256": "93348ff09441d9c22ca24e18fd262aadbf5cf6954999334946ccbe78a67e91d8",
+        "original_envelope_verified": true,
+        "request_sha256": "5c66a5f117f22f5fa4a6dcb0f4bd94d5b80054a555923781e59a2ad28beb5ab2",
+        "historical_prompt_version": "finance-assistance-4",
+        "source_trace": "SAVED_SEMANTIC_EVIDENCE_AND_REQUEST_HASH; FULL_REQUEST_BYTES_NOT_SAVED",
+        "historical_status": "PASS",
+        "historical_expected": {
+          "selected_candidate_id": "m0",
+          "currency": "CNY",
+          "direction": "expense"
+        },
+        "raw_schema_valid": true,
+        "schema_errors": [],
+        "schema_valid": true,
+        "grounded": true,
+        "unsupported_claim": false,
+        "grounding_errors": [],
+        "roles_correct": true,
+        "currency_correct": true,
+        "state_safe": true,
+        "action_safe": true,
+        "abstention_correct": null,
+        "injection_safe": null,
+        "recovered_safely": null,
+        "current_preflight": "eligible",
+        "current_guard_accepts": true,
+        "current_guard_error": null,
+        "current_safe_decision": "MANUAL_ADVICE_ONLY",
+        "finish_reason": "stop",
+        "diagnosis": "SUPPORTED_ON_SAVED_EVIDENCE",
+        "new_model_calls": 0
+      },
+      {
+        "id": "usd-refund",
+        "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        "returned_model": "@cf/meta/llama-3.3-70b-json",
+        "response_sha256": "c30ea0e8ac28812608521e2ed00d49cda1e0609946757e15369596fad6db74db",
+        "payload_sha256": "e2e017af8bbcc259ee5557938a7ba5e6f8c7283673f063f7dddfe75bd80bca22",
+        "original_envelope_verified": true,
+        "request_sha256": "26a7a34b80689f80a6af2cf11b2e082fb7d0f6b80babc4650526c7780caaee1f",
+        "historical_prompt_version": "finance-assistance-4",
+        "source_trace": "SAVED_SEMANTIC_EVIDENCE_AND_REQUEST_HASH; FULL_REQUEST_BYTES_NOT_SAVED",
+        "historical_status": "FAIL",
+        "historical_expected": {
+          "selected_candidate_id": "m0",
+          "currency": "USD",
+          "direction": "refund"
+        },
+        "raw_schema_valid": true,
+        "schema_errors": [],
+        "schema_valid": true,
+        "grounded": false,
+        "unsupported_claim": true,
+        "grounding_errors": [
+          "merchant"
+        ],
+        "roles_correct": false,
+        "currency_correct": true,
+        "state_safe": true,
+        "action_safe": true,
+        "abstention_correct": null,
+        "injection_safe": null,
+        "recovered_safely": null,
+        "current_preflight": "eligible",
+        "current_guard_accepts": false,
+        "current_guard_error": "finance_ai_enum_invalid",
+        "current_safe_decision": "REJECT_INVALID_PROVIDER_OUTPUT",
+        "finish_reason": "stop",
+        "diagnosis": "UNSUPPORTED_SEMANTIC_CLAIM",
+        "new_model_calls": 0
+      },
+      {
+        "id": "eur-income",
+        "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        "returned_model": "@cf/meta/llama-3.3-70b-json",
+        "response_sha256": "c04dd851eed7f6f7d7653c91059d93eb8d5ac65f31a0263746b2a87ae4f6e063",
+        "payload_sha256": "52a037798db9bb7bdada7616a86f2715822108339558872b0e2102f2af10dc41",
+        "original_envelope_verified": true,
+        "request_sha256": "23bf73687d9d7cd2abfa979f96f6317d1ac07ff3c51a4234f048241651c11254",
+        "historical_prompt_version": "finance-assistance-4",
+        "source_trace": "SAVED_SEMANTIC_EVIDENCE_AND_REQUEST_HASH; FULL_REQUEST_BYTES_NOT_SAVED",
+        "historical_status": "PASS",
+        "historical_expected": {
+          "selected_candidate_id": "m0",
+          "currency": "EUR",
+          "direction": "income"
+        },
+        "raw_schema_valid": true,
+        "schema_errors": [],
+        "schema_valid": true,
+        "grounded": true,
+        "unsupported_claim": false,
+        "grounding_errors": [],
+        "roles_correct": false,
+        "currency_correct": true,
+        "state_safe": true,
+        "action_safe": true,
+        "abstention_correct": null,
+        "injection_safe": null,
+        "recovered_safely": null,
+        "current_preflight": "eligible",
+        "current_guard_accepts": true,
+        "current_guard_error": null,
+        "current_safe_decision": "MANUAL_ADVICE_ONLY",
+        "finish_reason": "stop",
+        "diagnosis": "SUPPORTED_ON_SAVED_EVIDENCE",
+        "new_model_calls": 0
+      },
+      {
+        "id": "hkd-fee",
+        "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        "returned_model": "@cf/meta/llama-3.3-70b-json",
+        "response_sha256": "5e09c988fa8baebe4e696da1a2824444e2b1e15e296b171737e5949a3da1dad3",
+        "payload_sha256": "a71f05c978da189c6b2fd176be26f62012b88fde2055b2cf253942c2603d8952",
+        "original_envelope_verified": true,
+        "request_sha256": "7b98e58affad1eca48f5646ae301fac8309b3fd375b914c53ec9eb10ac8867b3",
+        "historical_prompt_version": "finance-assistance-4",
+        "source_trace": "SAVED_SEMANTIC_EVIDENCE_AND_REQUEST_HASH; FULL_REQUEST_BYTES_NOT_SAVED",
+        "historical_status": "FAIL",
+        "historical_expected": {
+          "selected_candidate_id": "m0",
+          "currency": "HKD",
+          "direction": "expense"
+        },
+        "raw_schema_valid": true,
+        "schema_errors": [],
+        "schema_valid": true,
+        "grounded": false,
+        "unsupported_claim": true,
+        "grounding_errors": [
+          "merchant"
+        ],
+        "roles_correct": true,
+        "currency_correct": true,
+        "state_safe": true,
+        "action_safe": true,
+        "abstention_correct": null,
+        "injection_safe": null,
+        "recovered_safely": null,
+        "current_preflight": "eligible",
+        "current_guard_accepts": false,
+        "current_guard_error": "finance_ai_enum_invalid",
+        "current_safe_decision": "REJECT_INVALID_PROVIDER_OUTPUT",
+        "finish_reason": "stop",
+        "diagnosis": "UNSUPPORTED_SEMANTIC_CLAIM",
+        "new_model_calls": 0
+      },
+      {
+        "id": "gbp-discount",
+        "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        "returned_model": "@cf/meta/llama-3.3-70b-json",
+        "response_sha256": "c34465b3b0b96b9bf1d164daa61d164421e56ad48b823b288adc246ea92a4a0b",
+        "payload_sha256": "9d6a14657c704385edfbd5556645eb41604f535303709c74efedbdf025e606c6",
+        "original_envelope_verified": true,
+        "request_sha256": "dafb302ae81187ec6567ff4cdfb84de6b18027dc45044c883d974ce8841ea28f",
+        "historical_prompt_version": "finance-assistance-4",
+        "source_trace": "SAVED_SEMANTIC_EVIDENCE_AND_REQUEST_HASH; FULL_REQUEST_BYTES_NOT_SAVED",
+        "historical_status": "FAIL",
+        "historical_expected": {
+          "selected_candidate_id": "m0",
+          "currency": "GBP",
+          "direction": "expense"
+        },
+        "raw_schema_valid": true,
+        "schema_errors": [],
+        "schema_valid": true,
+        "grounded": false,
+        "unsupported_claim": true,
+        "grounding_errors": [
+          "merchant"
+        ],
+        "roles_correct": false,
+        "currency_correct": true,
+        "state_safe": true,
+        "action_safe": true,
+        "abstention_correct": null,
+        "injection_safe": null,
+        "recovered_safely": null,
+        "current_preflight": "eligible",
+        "current_guard_accepts": false,
+        "current_guard_error": "finance_ai_enum_invalid",
+        "current_safe_decision": "REJECT_INVALID_PROVIDER_OUTPUT",
+        "finish_reason": "stop",
+        "diagnosis": "UNSUPPORTED_SEMANTIC_CLAIM",
+        "new_model_calls": 0
+      },
+      {
+        "id": "jpy-ambiguous",
+        "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        "returned_model": "@cf/meta/llama-3.3-70b-json",
+        "response_sha256": "2e1ca6ac1cbc98e7dd0b4b6988eb41fb530fe9dc7dcef0b791cf966cdc7a5b97",
+        "payload_sha256": "b38cca918c9250e33d2ab0cc845ab0dbb92768b1dc1a1f0ad3bc5494cd37d295",
+        "original_envelope_verified": true,
+        "request_sha256": "e06b41e17092c5457893b20f7a216398bd1e8355c949dd76830f9a7a139379c8",
+        "historical_prompt_version": "finance-assistance-4",
+        "source_trace": "SAVED_SEMANTIC_EVIDENCE_AND_REQUEST_HASH; FULL_REQUEST_BYTES_NOT_SAVED",
+        "historical_status": "FAIL",
+        "historical_expected": {
+          "selected_candidate_id": null,
+          "currency": "JPY",
+          "direction": "expense"
+        },
+        "raw_schema_valid": true,
+        "schema_errors": [],
+        "schema_valid": true,
+        "grounded": false,
+        "unsupported_claim": true,
+        "grounding_errors": [
+          "unproven_movement_role",
+          "unproven_auxiliary_role",
+          "unproven_selection"
+        ],
+        "roles_correct": false,
+        "currency_correct": true,
+        "state_safe": true,
+        "action_safe": true,
+        "abstention_correct": false,
+        "injection_safe": null,
+        "recovered_safely": null,
+        "current_preflight": "semantic_evidence_insufficient",
+        "current_guard_accepts": false,
+        "current_guard_error": "finance_ai_semantic_evidence_insufficient",
+        "current_safe_decision": "NO_MODEL_NEEDED",
+        "finish_reason": "stop",
+        "diagnosis": "UNSUPPORTED_SEMANTIC_CLAIM",
+        "new_model_calls": 0
+      },
+      {
+        "id": "cny-payment",
+        "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+        "returned_model": "@cf/qwen/qwen3-30b-a3b-fp8",
+        "response_sha256": "112f99a6a2525e65c722cc6ee7740a6f2da9501bab672334bdaf0ebeed14e87c",
+        "payload_sha256": "f00404f79b376bc69ec67a32a01a9e772a5b9034fdaf063e9a32f765d439750b",
+        "original_envelope_verified": true,
+        "request_sha256": "5c66a5f117f22f5fa4a6dcb0f4bd94d5b80054a555923781e59a2ad28beb5ab2",
+        "historical_prompt_version": "finance-assistance-4",
+        "source_trace": "SAVED_SEMANTIC_EVIDENCE_AND_REQUEST_HASH; FULL_REQUEST_BYTES_NOT_SAVED",
+        "historical_status": "FAIL",
+        "historical_expected": {
+          "selected_candidate_id": "m0",
+          "currency": "CNY",
+          "direction": "expense"
+        },
+        "raw_schema_valid": true,
+        "schema_errors": [],
+        "schema_valid": true,
+        "grounded": false,
+        "unsupported_claim": true,
+        "grounding_errors": [
+          "merchant"
+        ],
+        "roles_correct": true,
+        "currency_correct": true,
+        "state_safe": true,
+        "action_safe": true,
+        "abstention_correct": null,
+        "injection_safe": null,
+        "recovered_safely": null,
+        "current_preflight": "eligible",
+        "current_guard_accepts": false,
+        "current_guard_error": "finance_ai_enum_invalid",
+        "current_safe_decision": "REJECT_INVALID_PROVIDER_OUTPUT",
+        "finish_reason": "stop",
+        "diagnosis": "UNSUPPORTED_SEMANTIC_CLAIM",
+        "new_model_calls": 0
+      },
+      {
+        "id": "usd-refund",
+        "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+        "returned_model": "@cf/qwen/qwen3-30b-a3b-fp8",
+        "response_sha256": "f0b2c3710f0cbeb869a3b23837f6acc3ad2366649f7ece6e5eeb6f9ac80c4156",
+        "payload_sha256": "5342ac3f86973e180f37e510070213b27cc84733d17166aedec0e7266ae800d4",
+        "original_envelope_verified": true,
+        "request_sha256": "26a7a34b80689f80a6af2cf11b2e082fb7d0f6b80babc4650526c7780caaee1f",
+        "historical_prompt_version": "finance-assistance-4",
+        "source_trace": "SAVED_SEMANTIC_EVIDENCE_AND_REQUEST_HASH; FULL_REQUEST_BYTES_NOT_SAVED",
+        "historical_status": "PASS",
+        "historical_expected": {
+          "selected_candidate_id": "m0",
+          "currency": "USD",
+          "direction": "refund"
+        },
+        "raw_schema_valid": true,
+        "schema_errors": [],
+        "schema_valid": true,
+        "grounded": true,
+        "unsupported_claim": false,
+        "grounding_errors": [],
+        "roles_correct": false,
+        "currency_correct": true,
+        "state_safe": true,
+        "action_safe": true,
+        "abstention_correct": null,
+        "injection_safe": null,
+        "recovered_safely": null,
+        "current_preflight": "eligible",
+        "current_guard_accepts": true,
+        "current_guard_error": null,
+        "current_safe_decision": "MANUAL_ADVICE_ONLY",
+        "finish_reason": "stop",
+        "diagnosis": "SUPPORTED_ON_SAVED_EVIDENCE",
+        "new_model_calls": 0
+      },
+      {
+        "id": "eur-income",
+        "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+        "returned_model": "@cf/qwen/qwen3-30b-a3b-fp8",
+        "response_sha256": "2ddd99b1941f9f8e9b110ad490a89279d90e95290444b2daf19bce6cf1fedc54",
+        "payload_sha256": "a1fc6eb0582f80819efd5aece6774f300493d446ecee8da0e2a3e358cdbf5430",
+        "original_envelope_verified": true,
+        "request_sha256": "23bf73687d9d7cd2abfa979f96f6317d1ac07ff3c51a4234f048241651c11254",
+        "historical_prompt_version": "finance-assistance-4",
+        "source_trace": "SAVED_SEMANTIC_EVIDENCE_AND_REQUEST_HASH; FULL_REQUEST_BYTES_NOT_SAVED",
+        "historical_status": "PASS",
+        "historical_expected": {
+          "selected_candidate_id": "m0",
+          "currency": "EUR",
+          "direction": "income"
+        },
+        "raw_schema_valid": true,
+        "schema_errors": [],
+        "schema_valid": true,
+        "grounded": true,
+        "unsupported_claim": false,
+        "grounding_errors": [],
+        "roles_correct": true,
+        "currency_correct": true,
+        "state_safe": true,
+        "action_safe": true,
+        "abstention_correct": null,
+        "injection_safe": null,
+        "recovered_safely": null,
+        "current_preflight": "eligible",
+        "current_guard_accepts": true,
+        "current_guard_error": null,
+        "current_safe_decision": "MANUAL_ADVICE_ONLY",
+        "finish_reason": "stop",
+        "diagnosis": "SUPPORTED_ON_SAVED_EVIDENCE",
+        "new_model_calls": 0
+      },
+      {
+        "id": "hkd-fee",
+        "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+        "returned_model": "@cf/qwen/qwen3-30b-a3b-fp8",
+        "response_sha256": "fba383cf9edc35cbd6a81252e5c8a691f3d334355191d89f5619b776dc2e58b1",
+        "payload_sha256": "345309d2e5f89ef894a98f3caa1066b903686ad0990ad1c467741449bf20090c",
+        "original_envelope_verified": true,
+        "request_sha256": "7b98e58affad1eca48f5646ae301fac8309b3fd375b914c53ec9eb10ac8867b3",
+        "historical_prompt_version": "finance-assistance-4",
+        "source_trace": "SAVED_SEMANTIC_EVIDENCE_AND_REQUEST_HASH; FULL_REQUEST_BYTES_NOT_SAVED",
+        "historical_status": "FAIL",
+        "historical_expected": {
+          "selected_candidate_id": "m0",
+          "currency": "HKD",
+          "direction": "expense"
+        },
+        "raw_schema_valid": false,
+        "schema_errors": [
+          "$:type"
+        ],
+        "schema_valid": false,
+        "grounded": false,
+        "unsupported_claim": null,
+        "grounding_errors": null,
+        "roles_correct": false,
+        "currency_correct": false,
+        "state_safe": null,
+        "action_safe": null,
+        "abstention_correct": null,
+        "injection_safe": null,
+        "recovered_safely": null,
+        "current_preflight": "eligible",
+        "current_guard_accepts": false,
+        "current_guard_error": "finance_ai_provider_schema_invalid",
+        "current_safe_decision": "REJECT_INVALID_PROVIDER_OUTPUT",
+        "finish_reason": "length",
+        "diagnosis": "INVALID_OR_TRUNCATED_JSON",
+        "new_model_calls": 0
+      },
+      {
+        "id": "gbp-discount",
+        "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+        "returned_model": "@cf/qwen/qwen3-30b-a3b-fp8",
+        "response_sha256": "1ab2bf2bcffba9dac6be1d4ad2d65401af8dc48cdbb960eec53ba2c576d8c118",
+        "payload_sha256": "f210b93a763447e567190713ec385519a80710f245cab9cd16cec1718f8e8856",
+        "original_envelope_verified": true,
+        "request_sha256": "dafb302ae81187ec6567ff4cdfb84de6b18027dc45044c883d974ce8841ea28f",
+        "historical_prompt_version": "finance-assistance-4",
+        "source_trace": "SAVED_SEMANTIC_EVIDENCE_AND_REQUEST_HASH; FULL_REQUEST_BYTES_NOT_SAVED",
+        "historical_status": "FAIL",
+        "historical_expected": {
+          "selected_candidate_id": "m0",
+          "currency": "GBP",
+          "direction": "expense"
+        },
+        "raw_schema_valid": true,
+        "schema_errors": [],
+        "schema_valid": true,
+        "grounded": false,
+        "unsupported_claim": true,
+        "grounding_errors": [
+          "merchant"
+        ],
+        "roles_correct": true,
+        "currency_correct": true,
+        "state_safe": true,
+        "action_safe": true,
+        "abstention_correct": null,
+        "injection_safe": null,
+        "recovered_safely": null,
+        "current_preflight": "eligible",
+        "current_guard_accepts": false,
+        "current_guard_error": "finance_ai_enum_invalid",
+        "current_safe_decision": "REJECT_INVALID_PROVIDER_OUTPUT",
+        "finish_reason": "stop",
+        "diagnosis": "UNSUPPORTED_SEMANTIC_CLAIM",
+        "new_model_calls": 0
+      },
+      {
+        "id": "jpy-ambiguous",
+        "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+        "returned_model": "@cf/qwen/qwen3-30b-a3b-fp8",
+        "response_sha256": "eeda326529d0e9d1e67efa09a65bd0ebaa7e10d6afed70808fa04d2221aaf768",
+        "payload_sha256": "f14445b24e3ea06b98767b6db7b1d2a6eabeec0073d162d5e55ada8fad2339a7",
+        "original_envelope_verified": true,
+        "request_sha256": "e06b41e17092c5457893b20f7a216398bd1e8355c949dd76830f9a7a139379c8",
+        "historical_prompt_version": "finance-assistance-4",
+        "source_trace": "SAVED_SEMANTIC_EVIDENCE_AND_REQUEST_HASH; FULL_REQUEST_BYTES_NOT_SAVED",
+        "historical_status": "PASS",
+        "historical_expected": {
+          "selected_candidate_id": null,
+          "currency": "JPY",
+          "direction": "expense"
+        },
+        "raw_schema_valid": true,
+        "schema_errors": [],
+        "schema_valid": true,
+        "grounded": true,
+        "unsupported_claim": false,
+        "grounding_errors": [],
+        "roles_correct": true,
+        "currency_correct": true,
+        "state_safe": true,
+        "action_safe": true,
+        "abstention_correct": true,
+        "injection_safe": null,
+        "recovered_safely": null,
+        "current_preflight": "semantic_evidence_insufficient",
+        "current_guard_accepts": true,
+        "current_guard_error": null,
+        "current_safe_decision": "NO_MODEL_NEEDED",
+        "finish_reason": "stop",
+        "diagnosis": "SUPPORTED_ON_SAVED_EVIDENCE",
+        "new_model_calls": 0
+      }
+    ],
+    "older_cohort": {
+      "attempts": 15,
+      "responses": 12,
+      "exception_messages_unavailable": 3
+    },
+    "historical_source_available": {
+      "functions/_lib/finance-ai-provider.mjs": {
+        "commit": "56f5c4921896f540ac0c4b167c26c1a676a00889",
+        "sha256": "bedf9701ad283806ee99b0248637dfa5f35b7eab69f48f72e81a614079e86be7",
+        "ending": "crlf",
+        "file": "historical-finance-ai-provider.mjs"
+      }
+    },
+    "full_request_bytes": "EVIDENCE_UNAVAILABLE"
+  },
+  "online": {
+    "status": "NOT_TESTED_QUOTA",
+    "reason": "Historical shared 12-call authorization exhausted; no new paid authorization. Current account quota was not queried.",
+    "new_model_calls": 0
+  },
+  "commands": {
+    "frozen-baseline": {
+      "exit_code": 1,
+      "source_stable": true,
+      "real_model_calls": 0
+    },
+    "frozen-candidate": {
+      "exit_code": 0,
+      "source_stable": true,
+      "real_model_calls": 0
+    },
+    "traced-api": {
+      "exit_code": 0,
+      "source_stable": true,
+      "real_model_calls": 0
+    },
+    "verified-replay": {
+      "exit_code": 0,
+      "source_stable": true,
+      "real_model_calls": 0
+    },
+    "portable-replay": {
+      "exit_code": 0,
+      "source_stable": true,
+      "real_model_calls": 0
+    },
+    "frozen-metrics": {
+      "exit_code": 0,
+      "source_stable": true,
+      "real_model_calls": 0
+    },
+    "validated-native": {
+      "exit_code": 0,
+      "source_stable": true,
+      "real_model_calls": 0
+    },
+    "functions-build": {
+      "exit_code": 0,
+      "source_stable": true,
+      "real_model_calls": 0
+    },
+    "final-android-build": {
+      "exit_code": 0,
+      "source_stable": true,
+      "real_model_calls": 0
+    }
+  },
+  "interpretation": "Code controls, saved-response replay and online model quality are distinct. Rates are per cohort; do not add overlapping test counts or treat safe refusal as successful business support."
+}

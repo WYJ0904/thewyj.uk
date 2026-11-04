@@ -7,6 +7,8 @@ import uk.thewyj.app.task21.payment.*
 
 /** A finite vocabulary, never raw OCR, merchant names, contacts, OTPs or history. */
 object FinanceAiEvidence {
+    private val movementPhrases=mapOf("expense" to setOf("扣除","扣款","支付","付款","转账","实付","已付","消费"),
+        "income" to setOf("收款","到账","转账","已收"),"refund" to setOf("退款"))
     val phrases=listOf("本次","本笔","扣除","扣款","支付","付款","收款","到账","转账","退款","实付","实际","原价","合计","总计","金额","优惠","减免","折扣","余额","手续费","服务费","包含","另外","另列","应付","已付","已收","商户","消费","餐饮","交通","购物","医疗","教育","未知")
     private val injection=Regex("ignore.{0,30}instruction|system\\s*:|assistant\\s*:|提示词|忽略.{0,10}指令|系统指令|api.?key|验证码|密码",RegexOption.IGNORE_CASE)
     fun hash(value:String)=MessageDigest.getInstance("SHA-256").digest(value.toByteArray(Charsets.UTF_8)).joinToString(""){"%02x".format(it)}
@@ -68,7 +70,7 @@ object FinanceAiEvidence {
     fun validatedSuggestion(response:JSONObject,packet:JSONObject):JSONObject?=runCatching {
         if(response.optString("status")!in setOf("suggestion","review"))return null
         check(response.get("requires_manual_confirmation")==true)
-        val advice=response.getJSONObject("suggestion");check(advice.getInt("schema_version")==1&&advice.get("requires_manual_confirmation")==true)
+        val advice=response.getJSONObject("suggestion");check(advice.get("schema_version") is Number&&advice.getDouble("schema_version")==1.0&&advice.get("requires_manual_confirmation")==true)
         val allowed=setOf("schema_version","decision","amount_candidates","selected_candidate_id","currency","direction","evidence_refs","confidence","refusal_reason","merchant_normalized","category","requires_manual_confirmation")
         check(advice.keys().asSequence().toSet()==allowed)
         check(advice.getString("decision") in setOf("suggest","review","reject"))
@@ -78,7 +80,7 @@ object FinanceAiEvidence {
         val brands=packet.getJSONArray("merchant_tokens");check(advice.isNull("merchant_normalized")||(0 until brands.length()).any{brands.getString(it)==advice.getString("merchant_normalized")})
         check(advice.getString("currency")==packet.getString("currency"))
         check(advice.getString("direction")==packet.getString("direction"))
-        check((advice.get("confidence") is Int||advice.get("confidence") is Long)&&advice.getInt("confidence") in 0..1000)
+        check((advice.get("confidence") is Int||advice.get("confidence") is Long)&&advice.getLong("confidence") in 0L..1000L)
         if(response.getString("status")=="suggestion")check(advice.getString("decision")=="suggest"&&advice.getInt("confidence")>=800)
         val source=packet.getJSONArray("candidates");val known=(0 until source.length()).associate{source.getJSONObject(it).getString("id") to source.getJSONObject(it)}
         val values=advice.getJSONArray("amount_candidates");check(values.length()<=6)
@@ -91,6 +93,12 @@ object FinanceAiEvidence {
             val words=original.getJSONArray("phrases").let{p->(0 until p.length()).map(p::getString)}
             val knownRole=when{words.any{it=="余额"}->"balance";words.any{it in setOf("手续费","服务费")}->"fee";words.any{it in setOf("优惠","减免","折扣")}->"discount";"原价" in words->"original";else->null}
             if(knownRole!=null)check(value.getString("role")==knownRole)
+            if(value.getString("role") in setOf("original","discount","balance","fee"))check(value.getString("role")==knownRole)
+            if(value.getString("role") in setOf("actual_paid","actual_received","refund")) {
+                val direction=packet.getString("direction")
+                check(knownRole==null&&value.getString("role")==when(direction){"expense"->"actual_paid";"income"->"actual_received";"refund"->"refund";else->""}&&
+                    words.any{it in movementPhrases[direction].orEmpty()})
+            }
             val refs=value.getJSONArray("evidence_refs");check(refs.length()<=6&&(0 until refs.length()).map{refs.getString(it)}.let{it.distinct().size==it.size&&it.all(known::containsKey)&&id in it})}
         val selected=advice.optString("selected_candidate_id").takeUnless{it.isBlank()||it=="null"}
         if(selected!=null)check(selected in ids)

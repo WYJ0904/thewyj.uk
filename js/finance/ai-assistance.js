@@ -3,6 +3,7 @@ import {formatFinanceMoney} from './format.js?v=20261031-aeris-p0-finance-r2';
 
 const ROLES=['actual_paid','actual_received','original','discount','balance','fee','refund','unknown'];
 const CATEGORIES=['food','transport','shopping','housing','health','education','entertainment','income','transfer','refund','other'];
+const MOVEMENT_PHRASES={expense:['扣除','扣款','支付','付款','转账','实付','已付','消费'],income:['收款','到账','转账','已收'],refund:['退款']};
 /** Browser rechecks supplied evidence. No model response is a transaction fact. */
 export function financeAiAdvice(response,candidate,clock=Date.now()){
   try{
@@ -31,6 +32,10 @@ export function financeAiAdvice(response,candidate,clock=Date.now()){
       seen.add(amount.candidate_id);
       const known=source.phrases.includes('余额')?'balance':source.phrases.some(p=>['手续费','服务费'].includes(p))?'fee':source.phrases.some(p=>['优惠','减免','折扣'].includes(p))?'discount':source.phrases.includes('原价')?'original':null;
       if(known&&amount.role!==known)return null;
+      if(['original','discount','balance','fee'].includes(amount.role)&&amount.role!==known)return null;
+      if(['actual_paid','actual_received','refund'].includes(amount.role)&&
+         (amount.role!==({expense:'actual_paid',income:'actual_received',refund:'refund'})[input.direction]||known||
+          !source.phrases.some(p=>(MOVEMENT_PHRASES[input.direction]||[]).includes(p))))return null;
     }
     const selected=advice.amount_candidates.find(c=>c.candidate_id===advice.selected_candidate_id)||null;
     if(advice.selected_candidate_id!==null&&!selected)return null;
