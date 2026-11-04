@@ -68,12 +68,12 @@ export async function readMastery(db,actor,language){
   points,weak_points:[...points].sort((a,b)=>b.review_priority-a.review_priority).slice(0,8),recent_mistakes:mistakes};
 }
 function platform(request){return request.headers.has('Cookie')&&request.headers.get('Cookie').includes('__Host-wyj_app_access=')?'webview':/thewyj-android/i.test(request.headers.get('User-Agent')||'')?'native':'browser';}
-function eventInsert(db,ticket,actor,{eventId,kind,digest,correct=null,answerDigest='',duration=0,timing=false,mistake='',channel,request,conditional=false}){
+function eventInsert(db,ticket,actor,{eventId,kind,digest,correct=null,answerDigest='',duration=0,timing=false,mistake='',channel,request,conditional=false,recover=false}){
  const now=new Date().toISOString();
  return db.prepare(`INSERT INTO task26_learning_events(user_id,event_id,ticket_id,language,knowledge_id,question_id,family,kind,correct,response_ms,timing_verified,difficulty,accepted_at,algorithm_version,source,platform,channel,input_digest,answer_digest,mistake_code)
   SELECT ?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,
   (SELECT MAX(?13,COALESCE(MAX(accepted_at),?13)) FROM task26_learning_events WHERE user_id=?1 AND knowledge_id=?5),?14,?15,?16,?17,?18,?19,?20
-  FROM task26_question_tickets WHERE id=?3 AND user_id=?1 ${conditional?'AND outcome_event_id IS NULL AND expires_at>=?13':''}
+  FROM task26_question_tickets WHERE id=?3 AND user_id=?1 ${conditional?`AND outcome_event_id IS NULL ${recover?'':'AND expires_at>=?13'}`:''}
   ON CONFLICT(user_id,event_id) DO NOTHING`).bind(actor.id,eventId,ticket.id,ticket.language,ticket.knowledge_id,ticket.question_id,JSON.parse(ticket.question_json).family,kind,correct,duration,Number(timing),JSON.parse(ticket.point_json).difficulty,now,ALGORITHM_VERSION,ticket.mode,platform(request),channel,digest,answerDigest,mistake);
 }
 export async function issueQuestion(db,actor,input,snapshot,request){
@@ -94,7 +94,7 @@ export async function issueQuestion(db,actor,input,snapshot,request){
  return {question:{ticket_id:id,language:input.language,kind:question.kind,prompt:question.prompt,instruction:question.instruction,
   knowledge_label:question.kind==='spelling'?'英语词汇':question.kind==='cloze'?'语法练习':point.word,reason,expires_at:expires},algorithm_version:ALGORITHM_VERSION};
 }
-export async function submitLearningEvent(db,actor,input,snapshot,request){
+export async function submitLearningEvent(db,actor,input,snapshot,request,{recover=false}={}){
  const ticket=await db.prepare('SELECT * FROM task26_question_tickets WHERE id=?1 AND user_id=?2').bind(input.ticket_id,actor.id).first();
  if(!ticket)throw new LearningError('题目不存在或不属于当前账户',404,'learning_ticket_not_found');
  if(ticket.algorithm_version!==ALGORITHM_VERSION)throw new LearningError('题目算法版本已变更，请获取新题目',409,'learning_ticket_version_changed');
@@ -102,13 +102,13 @@ export async function submitLearningEvent(db,actor,input,snapshot,request){
  let existing=await db.prepare('SELECT * FROM task26_learning_events WHERE user_id=?1 AND event_id=?2').bind(actor.id,input.event_id).first();
  if(existing&&existing.input_digest!==digest)throw new LearningError('同一事件标识不能用于不同请求',409,'learning_idempotency_conflict');
  if(!existing){
-  if(Date.parse(ticket.expires_at)<Date.now())throw new LearningError('题目凭据已过期，已保存的学习记录不会删除',410,'learning_ticket_expired');
+  if(!recover&&Date.parse(ticket.expires_at)<Date.now())throw new LearningError('题目凭据已过期，已保存的学习记录不会删除',410,'learning_ticket_expired');
   const question=JSON.parse(ticket.question_json),point=JSON.parse(ticket.point_json),answer=input.answer||'';
   const correct=input.kind==='answer_submitted'?gradeQuestion(question,answer,ticket.language):null;
   const elapsed=Math.max(0,Date.now()-Date.parse(ticket.issued_at)),timing=elapsed<600000&&Math.abs(elapsed-(input.response_ms||0))<=5000;
   const mistake=correct===false?(question.kind==='reading'?'reading_mismatch':question.kind==='cloze'?'grammar_form':'meaning_mismatch'):'';
   const terminal=['answer_submitted','skipped','timeout'].includes(input.kind);
-  const insert=eventInsert(db,ticket,actor,{eventId:input.event_id,kind:input.kind,digest,correct:correct===null?null:Number(correct),answerDigest:answer?await sha256Hex(answer):'',duration:input.response_ms||0,timing,mistake,channel:snapshot.channel,request,conditional:terminal});
+  const insert=eventInsert(db,ticket,actor,{eventId:input.event_id,kind:input.kind,digest,correct:correct===null?null:Number(correct),answerDigest:answer?await sha256Hex(answer):'',duration:input.response_ms||0,timing,mistake,channel:snapshot.channel,request,conditional:terminal,recover});
   const updates=[insert];
   if(terminal)updates.push(db.prepare(`UPDATE task26_question_tickets SET outcome_event_id=?1 WHERE id=?2 AND user_id=?3 AND outcome_event_id IS NULL AND EXISTS(SELECT 1 FROM task26_learning_events WHERE user_id=?3 AND event_id=?1 AND input_digest=?4)`).bind(input.event_id,ticket.id,actor.id,digest));
   await db.batch(updates);
