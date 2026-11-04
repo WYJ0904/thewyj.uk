@@ -112,6 +112,7 @@
           <div class="public-intro-copy">
             <div class="home-brand"><img class="aeris-hero-logo" src="/icon-192.png?v=20261104-aeris-p07-phase1-r1" alt="Aeris" width="64" height="64" /><h1 id="publicHomeTitle">Aeris</h1></div>
             <p class="home-purpose">学习 · 工具 · 账本 · 文件</p>
+            <p class="home-intro-note">延续词汇学习进度，随时处理本地文本与文件，同步管理日常收支账本。</p>
             <p class="home-identity" data-home-personal hidden><span id="dashboardGreeting"></span><span id="dashboardMembershipName"></span><span id="dashboardMembershipExpiry"></span></p>
             <div class="public-actions">
               <button class="primary" id="publicLoginBtn" type="button">账户</button>
@@ -121,16 +122,16 @@
           </div>
           <div class="home-widget-workspace">
             <div class="public-hero-scene" aria-label="首页卡片">
-              <article class="hero-scene-card hero-scene-learning" data-public-scene="learning" data-home-widget="learning" data-size="medium">
-                <button class="home-widget-main" type="button" data-home-widget-open="learning"><small id="homeSceneLearningLabel">学习记录</small><strong id="homeSceneLearningValue">日语</strong><span id="homeSceneLearningDetail">6 题 · 正确率 83%</span><i id="homeSceneLearningStatus">学习演示</i><span class="home-widget-extra" data-widget-extra></span></button>
+              <article class="hero-scene-card hero-scene-learning" data-public-scene="learning" data-home-widget="learning" data-size="medium"><div class="home-widget-visual">
+                <button class="home-widget-main" type="button" data-home-widget-open="learning"><span class="home-widget-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 4h7l1 2 1-2h7v15h-7l-1 2-1-2H4ZM12 6v15"/></svg></span><small id="homeSceneLearningLabel">学习记录</small><strong id="homeSceneLearningValue">日语</strong><span id="homeSceneLearningDetail">6 题 · 正确率 83%</span><i id="homeSceneLearningStatus">学习演示</i><span class="home-widget-extra" data-widget-extra></span></button></div>
                 <span class="home-widget-demo" data-widget-demo>演示</span><button class="home-widget-edit" type="button" data-widget-edit="learning" aria-label="设置学习记录">···</button><button class="home-widget-drag" type="button" data-widget-drag="learning" aria-label="移动学习记录；也可通过设置调整位置">⠿</button>
               </article>
-              <article class="hero-scene-card hero-scene-finance" data-public-scene="finance" data-home-widget="finance" data-size="medium">
-                <button class="home-widget-main" type="button" data-home-widget-open="finance"><small id="homeSceneFinanceLabel">本月账本</small><strong id="homeSceneFinanceValue">¥ 3,284.60</strong><span id="homeSceneFinanceDetail">本月收支余额</span><i id="homeSceneFinanceStatus">账本演示</i><span class="home-widget-extra" data-widget-extra></span></button>
+              <article class="hero-scene-card hero-scene-finance" data-public-scene="finance" data-home-widget="finance" data-size="medium"><div class="home-widget-visual">
+                <button class="home-widget-main" type="button" data-home-widget-open="finance"><span class="home-widget-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4ZM4 6V3h13v3M16 11h4v4h-4Z"/></svg></span><small id="homeSceneFinanceLabel">本月账本</small><strong id="homeSceneFinanceValue">¥ 3,284.60</strong><span id="homeSceneFinanceDetail">本月收支余额</span><i id="homeSceneFinanceStatus">账本演示</i><span class="home-widget-extra" data-widget-extra></span></button></div>
                 <span class="home-widget-demo" data-widget-demo>演示</span><button class="home-widget-edit" type="button" data-widget-edit="finance" aria-label="设置本月账本">···</button><button class="home-widget-drag" type="button" data-widget-drag="finance" aria-label="移动本月账本；也可通过设置调整位置">⠿</button>
               </article>
-              <article class="hero-scene-card hero-scene-tools" data-public-scene="tools" data-home-widget="tools" data-size="medium">
-                <button class="home-widget-main" type="button" data-home-widget-open="tools"><small id="homeSceneToolsLabel">最近工具</small><strong id="homeSceneToolsValue">JSON 格式化</strong><span id="homeSceneToolsDetail">仅在浏览器处理</span><i id="homeSceneToolsStatus">工具演示</i><span class="home-widget-extra" data-widget-extra></span></button>
+              <article class="hero-scene-card hero-scene-tools" data-public-scene="tools" data-home-widget="tools" data-size="medium"><div class="home-widget-visual">
+                <button class="home-widget-main" type="button" data-home-widget-open="tools"><span class="home-widget-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 17h16M8 4v6M16 14v6"/></svg></span><small id="homeSceneToolsLabel">最近工具</small><strong id="homeSceneToolsValue">JSON 格式化</strong><span id="homeSceneToolsDetail">仅在浏览器处理</span><i id="homeSceneToolsStatus">工具演示</i><span class="home-widget-extra" data-widget-extra></span></button></div>
                 <span class="home-widget-demo" data-widget-demo>演示</span><button class="home-widget-edit" type="button" data-widget-edit="tools" aria-label="设置最近工具">···</button><button class="home-widget-drag" type="button" data-widget-drag="tools" aria-label="移动最近工具；也可通过设置调整位置">⠿</button><button class="home-widget-continue" type="button" data-widget-continue hidden>继续使用 →</button>
               </article>
             </div>
@@ -162,15 +163,15 @@
             </section>
             <section class="aeris-product-panel" id="capabilityToolsBody" role="tabpanel" aria-labelledby="publicToolsTab" data-capability-panel="tools" hidden>
               <div class="aeris-panel-copy"><h3 id="publicToolsTitle">文本统计</h3><p>输入后即时统计。</p></div>
-              <div class="aeris-live-sample"><label for="publicTextInput">输入一段文本</label><textarea id="publicTextInput" rows="4" maxlength="10000" placeholder="在这里输入或粘贴"></textarea><div class="aeris-live-metrics" aria-live="polite"><span><output id="publicTextCharacters">0</output> 字符</span><span><output id="publicTextLines">0</output> 行</span></div><button class="button-ghost" id="publicTextClear" type="button">清空</button><small>仅在本机统计。</small></div>
+              <div class="aeris-live-sample"><label for="publicTextInput">输入一段文本</label><textarea id="publicTextInput" rows="4" maxlength="10000" placeholder="在这里输入或粘贴"></textarea><div class="aeris-live-metrics" aria-live="polite"><span><output id="publicTextCharacters" for="publicTextInput" aria-label="字符数">0</output> 字符</span><span><output id="publicTextLines" for="publicTextInput" aria-label="行数">0</output> 行</span></div><button class="button-ghost" id="publicTextClear" type="button">清空</button><small>仅在本机统计。</small></div>
             </section>
             <section class="aeris-product-panel" id="capabilityFinanceBody" role="tabpanel" aria-labelledby="publicFinanceTab" data-capability-panel="finance" hidden>
               <div class="aeris-panel-copy"><h3>结余试算</h3><p>不会写入账本。</p></div>
-              <div class="aeris-live-sample"><p>本机估算</p><div class="aeris-budget-inputs"><label>收入（元）<input id="publicBudgetIncome" type="number" min="0" max="999999999" step="0.01" inputmode="decimal" value="0" /></label><label>支出（元）<input id="publicBudgetExpense" type="number" min="0" max="999999999" step="0.01" inputmode="decimal" value="0" /></label></div><p class="aeris-budget-result">结余 <output id="publicBudgetBalance" aria-live="polite">¥0.00</output></p><small>这里的估算不会写入账本。</small></div>
+              <div class="aeris-live-sample"><p>本机估算</p><div class="aeris-budget-inputs"><label>收入（元）<input id="publicBudgetIncome" type="number" min="0" max="999999999" step="0.01" inputmode="decimal" value="0" /></label><label>支出（元）<input id="publicBudgetExpense" type="number" min="0" max="999999999" step="0.01" inputmode="decimal" value="0" /></label></div><p class="aeris-budget-result">结余 <output id="publicBudgetBalance" for="publicBudgetIncome publicBudgetExpense" aria-label="本机估算结余（CNY）" aria-live="polite">¥0.00</output></p><small>这里的估算不会写入账本。</small></div>
             </section>
             <section class="aeris-product-panel" id="capabilityShareBody" role="tabpanel" aria-labelledby="publicFilesTab" data-capability-panel="files" hidden>
               <div class="aeris-panel-copy"><h3>文件清单</h3><p>查看文件名与大小，不上传。</p></div>
-              <div class="aeris-live-sample"><button class="button-secondary" id="publicFilesChoose" type="button">选择文件预览</button><input class="hidden" id="publicFilesInput" type="file" multiple /><ul class="aeris-file-preview" id="publicFilesPreview" aria-live="polite"><li>尚未选择文件。</li></ul><small>仅查看本机清单，上传从登录后的传输页开始。</small></div>
+              <div class="aeris-live-sample"><button class="button-secondary" id="publicFilesChoose" type="button">选择文件预览</button><input class="hidden" id="publicFilesInput" type="file" aria-labelledby="publicFilesChoose" multiple /><ul class="aeris-file-preview" id="publicFilesPreview" aria-live="polite"><li>尚未选择文件。</li></ul><small>仅查看本机清单，上传从登录后的传输页开始。</small></div>
             </section>
           </div>
         </section>
@@ -244,10 +245,10 @@
           <header class="aeris-home-section-heading"><h2 id="publicPlansTitle">套餐与权益</h2><p>当前可购买方案；开通沿用现有付款确认流程。</p></header>
           <div class="aeris-plan-grid">
             <article class="aeris-plan-card"><h3>免费体验</h3><p class="aeris-plan-note">无需注册</p><ul class="aeris-plan-features"><li>英语或日语小测，最多 10 题</li><li>文本统计与 JSON 格式化</li><li>单张图片压缩与格式转换</li></ul><p>语言、文本、JSON 与单张图片试用。</p><button class="button-secondary" id="publicTrialBtn" type="button">开始免费试用</button></article>
-            <article class="aeris-plan-card"><h3>模块权益与订阅</h3><p class="aeris-plan-note">按模块开通</p><ul class="aeris-plan-catalog" id="publicModulePlans" aria-label="当前模块订阅"><li>正在读取当前套餐目录…</li></ul><button class="button-secondary" id="publicPlansBtn" type="button">查看套餐与权益</button></article>
-            <article class="aeris-plan-card"><h3>全功能与永久权益</h3><p class="aeris-plan-note">包月与永久方案</p><ul class="aeris-plan-catalog" id="publicPermanentPlans" aria-label="当前全功能与永久方案"><li>正在读取当前套餐目录…</li></ul><p>各方案包含的功能与有效期，以账户页面当前详情为准。</p><button class="button-secondary" type="button" data-public-trigger="publicPlansBtn">查看完整方案</button></article>
+            <article class="aeris-plan-card"><h3>模块权益与订阅</h3><p class="aeris-plan-note">按模块开通</p><ul class="aeris-plan-catalog" id="publicModulePlans" aria-label="当前模块订阅" aria-busy="true"><li>正在读取当前套餐目录…</li></ul><button class="button-secondary" id="publicPlansBtn" type="button">查看套餐与权益</button></article>
+            <article class="aeris-plan-card"><h3>全功能与永久权益</h3><p class="aeris-plan-note">包月与永久方案</p><ul class="aeris-plan-catalog" id="publicPermanentPlans" aria-label="当前全功能与永久方案" aria-busy="true"><li>正在读取当前套餐目录…</li></ul><p>各方案包含的功能与有效期，以账户页面当前详情为准。</p><button class="button-secondary" type="button" data-public-trigger="publicPlansBtn">查看完整方案</button></article>
           </div>
-          <div class="aeris-catalog-status"><p id="publicPlanStatus" role="status">正在读取当前套餐目录…</p><button class="button-ghost hidden" id="publicPlanRetryBtn" type="button">重试读取套餐</button></div>
+          <div class="aeris-catalog-status"><p id="publicPlanStatus" role="status" aria-atomic="true">正在读取当前套餐目录…</p><button class="button-ghost hidden" id="publicPlanRetryBtn" type="button">重试读取套餐</button></div>
         </section>
         </details>
         <footer class="aeris-final-cta" data-public-section="final" aria-label="下载与更新"><span>Aeris</span><div class="public-actions"><a class="button-link button-secondary" href="/download" data-site-nav="download">下载 Android</a><a class="button-link button-secondary" id="publicChangelogBtn" href="/changelog" data-site-nav="changelog">更新日志</a></div></footer>
