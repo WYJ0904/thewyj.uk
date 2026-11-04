@@ -1,0 +1,51 @@
+{
+  "generatedAt": "2026-11-04T09:06:22.784Z",
+  "status": "PASS",
+  "workspaces": [
+    {
+      "workspace": "P07-03",
+      "name": "Personal Space (Dashboard)",
+      "status": "PASS"
+    },
+    {
+      "workspace": "P07-04",
+      "name": "Language Learning & Immersive Quiz",
+      "status": "PASS"
+    },
+    {
+      "workspace": "P07-05",
+      "name": "Mastery, Wrong Questions & Stats",
+      "status": "PASS"
+    },
+    {
+      "workspace": "P07-08",
+      "name": "Toolbox & Tool Workbench",
+      "status": "PASS"
+    },
+    {
+      "workspace": "P07-06",
+      "name": "Finance Ledger Workspace",
+      "status": "PASS"
+    },
+    {
+      "workspace": "P07-07",
+      "name": "Candidate Verification",
+      "status": "PASS"
+    }
+  ],
+  "viewportsChecked": [
+    375,
+    390,
+    412,
+    768,
+    1024,
+    1440,
+    1920
+  ],
+  "themesChecked": [
+    "light",
+    "dark"
+  ],
+  "runtimeErrorsCount": 0,
+  "dialogsCount": 1
+}

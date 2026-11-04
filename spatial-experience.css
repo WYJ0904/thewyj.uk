@@ -1264,3 +1264,1096 @@ html[data-p07-ui="enabled"] #publicHome .public-hero-scene[data-editing="true"] 
   opacity: 0;
   pointer-events: none;
 }
+
+
+/* ==========================================================================
+ * Aeris V6.2 P07-D Business Workspaces Refactoring
+ * ========================================================================== */
+/* ==========================================================================
+ * Aeris V6.2 P07-D Unified Business Workspaces (Language, Mastery, Tools, Finance)
+ * Governed strictly under html[data-p07-ui="enabled"] for zero fallback regression
+ * ========================================================================== */
+
+/* Common Workspace Container & Header System */
+html[data-p07-ui="enabled"] :is(#languagePanel, #workspace, #toolsPanel, #financePage, #transferPage) {
+  width: calc(100% - clamp(32px, 5vw, 64px));
+  max-width: 1240px;
+  margin: 24px auto 48px;
+  min-height: auto;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] :is(#languagePanel, #workspace, #toolsPanel, #financePage, #transferPage) {
+    width: calc(100% - 24px);
+    margin: 16px auto 36px;
+  }
+}
+
+html[data-p07-ui="enabled"] :is(.finance-header, .tools-header, .workflow-header, .transfer-header) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+html[data-p07-ui="enabled"] :is(.finance-header, .tools-header, .workflow-header, .transfer-header) h1,
+html[data-p07-ui="enabled"] :is(.finance-header, .tools-header, .workflow-header, .transfer-header) h2 {
+  font-size: clamp(1.5rem, 3.5vw, 1.875rem);
+  font-weight: 800;
+  color: var(--ds-text);
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.25;
+}
+
+html[data-p07-ui="enabled"] :is(.finance-header, .tools-header, .workflow-header, .transfer-header) p {
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  margin: 4px 0 0;
+}
+
+html[data-p07-ui="enabled"] .section-kicker {
+  color: var(--ds-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+/* ==========================================================================
+ * P07-03: Authenticated Personal Space (Dashboard & Identity Refinements)
+ * ========================================================================== */
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .home-identity:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 6px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+html[data-p07-ui="enabled"] #dashboardGreeting {
+  font-weight: 700;
+  color: var(--ds-text);
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"] #dashboardMembershipName:not(:empty) {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] #dashboardMembershipExpiry:not(:empty) {
+  color: var(--ds-text-muted);
+  font-size: 0.75rem;
+}
+
+html[data-p07-ui="enabled"] .home-recent-activity {
+  margin-top: 18px;
+  padding: 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .home-recent-activity h2 {
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0 0 14px;
+  letter-spacing: -0.01em;
+}
+
+html[data-p07-ui="enabled"] #homeRecentActivity {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] #homeRecentActivity li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+html[data-p07-ui="enabled"] #homeRecentActivity li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* ==========================================================================
+ * P07-04: Language Learning & Immersive Question Solving (02-语言学习-沉浸答题.png)
+ * ========================================================================== */
+/* Language Selection Picker */
+html[data-p07-ui="enabled"] #languagePanel {
+  padding: 36px 32px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] #languagePanel .language-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+html[data-p07-ui="enabled"] #languagePanel [data-language-choice] {
+  min-height: 96px;
+  padding: 22px 28px;
+  border: 1.5px solid var(--ds-border);
+  border-radius: 16px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 1.25rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+html[data-p07-ui="enabled"] #languagePanel [data-language-choice]:hover {
+  border-color: var(--ds-brand);
+  background: var(--ds-surface-subtle);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08);
+}
+
+/* Workspace Navigation Tabs */
+html[data-p07-ui="enabled"] #workspace .tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  margin-bottom: 24px;
+}
+
+html[data-p07-ui="enabled"] #workspace .tabs button {
+  min-height: 40px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ds-text-secondary);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] #workspace .tabs button:hover:not(:disabled) {
+  color: var(--ds-text);
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] #workspace .tabs button.active {
+  background: var(--ds-brand);
+  color: var(--ds-on-brand);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+html[data-p07-ui="enabled"] #workspace .tabs button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Immersive Quiz View 2-Column Desktop Grid */
+html[data-p07-ui="enabled"] #quizView {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.9fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 920px) {
+  html[data-p07-ui="enabled"] #quizView {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}
+
+html[data-p07-ui="enabled"] #quizView .quiz-card {
+  padding: clamp(24px, 4vw, 36px);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+html[data-p07-ui="enabled"] #quizView .quiz-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] #quizView .quiz-meta span {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] #quizView #progressLabel {
+  border-color: rgba(37, 99, 235, 0.25);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] #quizView .word-display {
+  padding: 36px 24px;
+  border-radius: 18px;
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border-subtle);
+  text-align: center;
+  min-height: 130px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+html[data-p07-ui="enabled"] #quizView .word-primary {
+  font-size: clamp(2.2rem, 5vw, 3rem);
+  font-weight: 800;
+  color: var(--ds-text);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+html[data-p07-ui="enabled"] #quizView .word-reading {
+  font-size: 1.1875rem;
+  color: var(--ds-text-secondary);
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+html[data-p07-ui="enabled"] #quizView .answer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+html[data-p07-ui="enabled"] #quizView #answerInput {
+  min-height: 50px;
+  padding: 0 18px;
+  border: 1.5px solid var(--ds-border-strong);
+  border-radius: 12px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 1.0625rem;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] #quizView #answerInput:focus {
+  border-color: var(--ds-brand);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+html[data-p07-ui="enabled"] #quizView #submitBtn {
+  min-height: 48px;
+  border-radius: 12px;
+  background: var(--ds-brand);
+  border-color: var(--ds-brand);
+  color: var(--ds-on-brand);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] #quizView #submitBtn:hover:not(:disabled) {
+  background: var(--ds-brand-hover);
+  border-color: var(--ds-brand-hover);
+}
+
+html[data-p07-ui="enabled"] #quizView .action-row.compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] #quizView .action-row.compact button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: 10px;
+  background: var(--ds-surface);
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] #quizView .action-row.compact button:hover:not(:disabled) {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+}
+
+/* Feedback Panel (Right Column matching 02 reference card) */
+html[data-p07-ui="enabled"] #quizView .result-panel {
+  padding: 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] #quizView .result-title {
+  font-size: 1.125rem;
+  font-weight: 750;
+  margin-bottom: 8px;
+}
+
+html[data-p07-ui="enabled"] #quizView .result-gloss {
+  color: var(--ds-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+html[data-p07-ui="enabled"] #quizView #acceptedChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+html[data-p07-ui="enabled"] #quizView #acceptedChips span {
+  display: inline-flex;
+  padding: 3px 10px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-secondary);
+  font-size: 0.8125rem;
+}
+
+/* ==========================================================================
+ * P07-05: Mastery, Wrong Questions, Stats & Achievements (03-错题与Mastery.png)
+ * ========================================================================== */
+/* Mastery Section */
+html[data-p07-ui="enabled"] .mastery-section {
+  padding: 32px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .mastery-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+html[data-p07-ui="enabled"] .mastery-heading h3 {
+  font-size: 1.375rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+html[data-p07-ui="enabled"] .mastery-heading .eyebrow {
+  color: var(--ds-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+html[data-p07-ui="enabled"] .mastery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+html[data-p07-ui="enabled"] #masteryStartBtn {
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: 12px;
+  background: var(--ds-brand);
+  border-color: var(--ds-brand);
+  color: var(--ds-on-brand);
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+html[data-p07-ui="enabled"] #masteryStartBtn:hover:not(:disabled) {
+  background: var(--ds-brand-hover);
+  border-color: var(--ds-brand-hover);
+}
+
+html[data-p07-ui="enabled"] .mastery-actions button.secondary,
+html[data-p07-ui="enabled"] #masteryRetryBtn {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"] .mastery-actions button.secondary:hover,
+html[data-p07-ui="enabled"] #masteryRetryBtn:hover {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] .mastery-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] .mastery-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-p07-ui="enabled"] .mastery-columns details {
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface-subtle);
+  padding: 16px;
+}
+
+html[data-p07-ui="enabled"] .mastery-columns summary {
+  font-weight: 700;
+  color: var(--ds-text);
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+html[data-p07-ui="enabled"] .mastery-point {
+  padding: 10px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 10px;
+  background: var(--ds-surface);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Wrong Questions View (#wrongView) */
+html[data-p07-ui="enabled"] #wrongView .panel {
+  padding: 28px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] #wrongView .scope-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface-subtle);
+  margin-bottom: 16px;
+}
+
+html[data-p07-ui="enabled"] #wrongView .scope-tabs button {
+  min-height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ds-text-secondary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+html[data-p07-ui="enabled"] #wrongView .scope-tabs button.active {
+  background: var(--ds-surface);
+  color: var(--ds-brand);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+html[data-p07-ui="enabled"] #wrongSearchInput {
+  min-height: 46px;
+  padding: 0 16px;
+  border: 1.5px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 0.9375rem;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+html[data-p07-ui="enabled"] #wrongSearchInput:focus {
+  border-color: var(--ds-brand);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+html[data-p07-ui="enabled"] #reviewBtn {
+  min-height: 44px;
+  padding: 0 24px;
+  border-radius: 12px;
+  background: var(--ds-brand);
+  border-color: var(--ds-brand);
+  color: var(--ds-on-brand);
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+html[data-p07-ui="enabled"] #reviewBtn:hover {
+  background: var(--ds-brand-hover);
+  border-color: var(--ds-brand-hover);
+}
+
+html[data-p07-ui="enabled"] .wrong-item {
+  padding: 18px 20px;
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .wrong-item:hover {
+  border-color: var(--ds-border-strong);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .wrong-item h3 {
+  font-size: 1.1875rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] .wrong-item p {
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  margin: 4px 0 0;
+}
+
+/* Achievements View (#achievementsView) */
+html[data-p07-ui="enabled"] #achievementsView .achievement-panel {
+  padding: 28px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .achievement-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+html[data-p07-ui="enabled"] .achievement-overview div {
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface-subtle);
+  text-align: center;
+}
+
+html[data-p07-ui="enabled"] .achievement-overview strong {
+  display: block;
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] .achievement-overview span {
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+}
+
+/* Study Stats View (#studyView) */
+html[data-p07-ui="enabled"] #studyView .study-panel {
+  padding: 28px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .study-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] .study-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+html[data-p07-ui="enabled"] .study-metrics div {
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface-subtle);
+  text-align: center;
+}
+
+html[data-p07-ui="enabled"] .study-metrics strong {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .study-metrics span {
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+}
+
+/* ==========================================================================
+ * P07-08: Toolbox & Real Tool Workspaces (04-工具箱-真实工具工作区.png)
+ * ========================================================================== */
+html[data-p07-ui="enabled"] #toolsPanel .tools-dashboard {
+  padding: 0;
+}
+
+html[data-p07-ui="enabled"] #toolSearchInput {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1.5px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 1rem;
+  width: 100%;
+  margin-bottom: 20px;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] #toolSearchInput:focus {
+  border-color: var(--ds-brand);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+html[data-p07-ui="enabled"] .tool-category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+html[data-p07-ui="enabled"] .tool-category-pills button {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface);
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .tool-category-pills button:hover {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .tool-category-pills button.active {
+  background: var(--ds-brand);
+  border-color: var(--ds-brand);
+  color: var(--ds-on-brand);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+html[data-p07-ui="enabled"] .tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+html[data-p07-ui="enabled"] .tool-card {
+  padding: 22px;
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+html[data-p07-ui="enabled"] .tool-card:hover {
+  border-color: var(--ds-brand);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+html[data-p07-ui="enabled"] .tool-card h3 {
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0 0 6px;
+}
+
+html[data-p07-ui="enabled"] .tool-card p {
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Tool Workbench 2-Column Structure matching 04-工具箱-真实工具工作区.png */
+html[data-p07-ui="enabled"] #toolWorkbench {
+  padding: 28px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .tool-workbench-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+html[data-p07-ui="enabled"] #toolWorkbenchTitle {
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: var(--ds-text);
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] #toolWorkbenchCategory {
+  color: var(--ds-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+html[data-p07-ui="enabled"] #toolWorkbenchDescription {
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  margin: 4px 0 0;
+}
+
+html[data-p07-ui="enabled"] #closeWorkbenchBtn {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: 10px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"] #closeWorkbenchBtn:hover {
+  background: var(--ds-surface-subtle);
+  border-color: var(--ds-border-strong);
+}
+
+/* Privacy & Local Execution Badge */
+html[data-p07-ui="enabled"] .tool-privacy-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--ds-radius-pill);
+  background: rgba(22, 163, 74, 0.08);
+  border: 1px solid rgba(22, 163, 74, 0.22);
+  color: #16a34a;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+ * P07-06: Finance Ledger Workspace (00-全站设计索引.png Page 6)
+ * ========================================================================== */
+html[data-p07-ui="enabled"] #financePage {
+  padding: 0;
+}
+
+html[data-p07-ui="enabled"] .finance-summary-section {
+  margin-bottom: 24px;
+}
+
+html[data-p07-ui="enabled"] .finance-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 16px;
+}
+
+@media (max-width: 900px) {
+  html[data-p07-ui="enabled"] .finance-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  html[data-p07-ui="enabled"] .finance-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-p07-ui="enabled"] .finance-summary-grid article {
+  padding: 22px 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .finance-summary-grid article:hover {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+html[data-p07-ui="enabled"] .finance-summary-grid span {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .finance-summary-grid strong {
+  display: block;
+  font-size: clamp(1.5rem, 3.2vw, 1.875rem);
+  font-weight: 850;
+  margin-top: 8px;
+  letter-spacing: -0.02em;
+}
+
+html[data-p07-ui="enabled"] #financeIncomeTotal {
+  color: #16a34a;
+}
+
+html[data-p07-ui="enabled"] #financeExpenseTotal {
+  color: #e11d48;
+}
+
+html[data-p07-ui="enabled"] #financeRefundTotal {
+  color: #d97706;
+}
+
+html[data-p07-ui="enabled"] #financeBalanceTotal {
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] #financeAddTransactionBtn {
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 12px;
+  background: var(--ds-brand);
+  border-color: var(--ds-brand);
+  color: var(--ds-on-brand);
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+html[data-p07-ui="enabled"] #financeAddTransactionBtn:hover {
+  background: var(--ds-brand-hover);
+  border-color: var(--ds-brand-hover);
+}
+
+/* Finance Content Grid: Main Ledger (Left) + Side Panels (Right) */
+html[data-p07-ui="enabled"] .finance-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.85fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  html[data-p07-ui="enabled"] .finance-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-p07-ui="enabled"] .finance-ledger-panel {
+  padding: 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .finance-side-panel {
+  padding: 22px;
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  margin-bottom: 20px;
+}
+
+html[data-p07-ui="enabled"] .finance-side-panel h2 {
+  font-size: 1.0625rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] .finance-transaction-item {
+  padding: 16px 18px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: 12px;
+  background: var(--ds-surface);
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .finance-transaction-item:hover {
+  border-color: var(--ds-border);
+  background: var(--ds-surface-subtle);
+}
+
+/* ==========================================================================
+ * P07-07: Notification Archive & Candidate Verification (09-通知归档与候选核实.png)
+ * ========================================================================== */
+html[data-p07-ui="enabled"] .finance-candidates-section {
+  padding: 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  margin-bottom: 24px;
+}
+
+html[data-p07-ui="enabled"] .finance-candidates-section summary {
+  font-size: 1.1875rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  cursor: pointer;
+  letter-spacing: -0.01em;
+}
+
+html[data-p07-ui="enabled"] #financePendingCount {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-card,
+html[data-p07-ui="enabled"] .finance-candidate-item {
+  padding: 18px 20px;
+  border: 1.5px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface-subtle);
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-card:hover,
+html[data-p07-ui="enabled"] .finance-candidate-item:hover {
+  border-color: var(--ds-brand);
+  background: var(--ds-surface);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+}
+
+html[data-p07-ui="enabled"] .candidate-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--ds-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] .candidate-pill-badge.transaction {
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] .candidate-pill-badge.notice {
+  background: rgba(100, 116, 139, 0.1);
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-card button.confirm-candidate {
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  background: var(--ds-brand);
+  border-color: var(--ds-brand);
+  color: var(--ds-on-brand);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
