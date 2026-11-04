@@ -1510,3 +1510,73 @@ html[data-android-reduced-motion=true] #publicHome .hero-scene-card {transition:
 #publicHome[data-widget-layout=mobile] .home-widget-edit {opacity:1;}
 #publicHome[data-widget-layout=mobile] .home-widget-main {font-weight:400;}
 #publicHome[data-widget-layout=mobile] .home-layout-controls {margin-top:6px;}
+
+/* P07: respect enlarged user text without clipping the existing widget data. */
+html[data-p07-ui="enabled"] :is(.home-layout-controls button, .site-release-actions > a) {
+  min-height: var(--ds-touch-min);
+}
+html[data-p07-ui="enabled"] .site-nav-panel {
+  transition: opacity var(--ds-duration-fast) var(--ds-ease-standard),
+    transform var(--ds-duration-expand) var(--ds-ease-emphasized),
+    visibility var(--ds-duration-expand) step-end,
+    border-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+html[data-p07-ui="enabled"] .site-nav.nav-open .site-nav-panel {
+  transition-timing-function: var(--ds-ease-standard), var(--ds-ease-emphasized), step-start, var(--ds-ease-standard);
+}
+html[data-p07-ui="enabled"] .home-widget-editor {
+  max-height: calc(var(--ds-overlay-height, 100dvh) - var(--ds-space-8));
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+html[data-p07-ui="enabled"][data-large-text="true"] #publicHome .public-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  height: auto;
+  min-height: 0;
+}
+html[data-p07-ui="enabled"][data-large-text="true"] #publicHome .public-hero-scene {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: var(--ds-space-6);
+  height: auto;
+}
+html[data-p07-ui="enabled"][data-large-text="true"] #publicHome .home-widget-slot {
+  display: block;
+  position: static;
+  width: 100%;
+  height: auto !important;
+}
+html[data-p07-ui="enabled"][data-large-text="true"] #publicHome .hero-scene-card {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: auto;
+  min-height: 12rem;
+  margin: 0;
+  transform: none;
+}
+html[data-p07-ui="enabled"][data-large-text="true"] #publicHome .home-widget-main {
+  min-height: inherit;
+  height: auto;
+  padding: var(--ds-space-8) var(--ds-space-5);
+}
+html[data-p07-ui="enabled"][data-large-text="true"] #publicHome .home-widget-main strong {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+html[data-p07-ui="enabled"][data-large-text="true"] #publicHome [data-has-continue="true"] .home-widget-main {
+  padding-bottom: 4rem;
+}
+html[data-p07-ui="enabled"][data-large-text="true"] :is(.home-widget-demo, .home-widget-drag) { display: none !important; }
+html[data-p07-ui="enabled"][data-large-text="true"] :is(.home-workspace-overview, .home-quick-access, .aeris-product-panel) {
+  grid-template-columns: minmax(0, 1fr);
+}
+html[data-p07-ui="enabled"][data-large-text="true"] .aeris-live-sample {
+  border-left: 0;
+  padding-left: 0;
+}
+html[data-p07-ui="enabled"][data-large-text="true"] .home-layout-controls { flex-wrap: wrap; }
+

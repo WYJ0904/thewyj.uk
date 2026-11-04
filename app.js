@@ -1629,6 +1629,7 @@ function showAuthMode(mode, updateRoute = false) {
   $("showLoginBtn").setAttribute("aria-selected", String(!register));
   $("showRegisterBtn").setAttribute("aria-selected", String(register));
   $("authTitle").textContent = register ? "注册账户" : "账户登录";
+  if ($("authSubtitle")) $("authSubtitle").textContent = register ? "创建你的个人账户，统一管理词汇学习、工具与账本数据。" : "使用 Aeris 账户同步词汇进度、账本记录与传输文件。";
   $("loginError").textContent = "";
   if (updateRoute) pushRoute(register ? "/register" : "/login");
 }

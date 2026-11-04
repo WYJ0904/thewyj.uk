@@ -535,3 +535,153 @@ html[data-p07-ui="enabled"][data-android-reduced-motion="true"] #publicHome .hom
 html[data-p07-ui="enabled"][data-android-reduced-motion="true"] #publicHome .hero-scene-card:is(:hover, [data-dragging="true"], [data-settling="true"]) .home-widget-visual {
   transform: none !important;
 }
+
+/* ==========================================================================
+ * Login & Register V3 Sample (#authPanel — P07-01D)
+ * Reuses the exact same V3 canvas, white card, border, shadow, typography,
+ * segmented tabs, 46px inputs, and Aeris blue primary CTA as Home (/).
+ * ========================================================================== */
+html[data-p07-ui="enabled"] .auth-panel {
+  width: min(468px, 100%);
+  margin: 40px auto 32px;
+  padding: 36px 34px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .auth-panel .auth-logo {
+  width: 80px;
+  height: 80px;
+  padding: 6px;
+  margin: 0 0 18px;
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+  object-fit: contain;
+}
+
+html[data-p07-ui="enabled"] .auth-panel h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .auth-subtitle {
+  display: block;
+  margin: 8px 0 0;
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-sm);
+  line-height: 1.6;
+}
+
+html[data-p07-ui="enabled"] .auth-tabs {
+  margin: 22px 0 20px;
+  padding: 4px;
+  gap: 4px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-muted);
+}
+
+/* Segmented pill switcher owns active state; suppress bottom underline collision */
+html[data-p07-ui="enabled"] .auth-tabs .ds-tab-indicator {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] .auth-tabs > button {
+  min-height: 44px;
+  border-radius: var(--ds-radius-sm);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .auth-tabs > button.active,
+html[data-p07-ui="enabled"] .auth-tabs > button[aria-selected="true"] {
+  border-color: var(--ds-border);
+  background: var(--ds-surface);
+  color: var(--ds-brand);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+html[data-p07-ui="enabled"] .auth-panel .login-form {
+  display: grid;
+  gap: 16px;
+}
+
+html[data-p07-ui="enabled"] .auth-field {
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] .auth-field > span {
+  color: var(--ds-text);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] .auth-panel input {
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  font-size: var(--ds-text-md);
+}
+
+html[data-p07-ui="enabled"] .auth-panel input:-webkit-autofill {
+  -webkit-text-fill-color: var(--ds-text);
+  box-shadow: 0 0 0 1000px var(--ds-surface) inset;
+}
+
+html[data-p07-ui="enabled"] .auth-panel :is(#loginSubmitBtn, #registerSubmitBtn) {
+  min-height: 46px;
+  width: 100%;
+  margin-top: 6px;
+  border-radius: var(--ds-radius-md);
+  font-size: var(--ds-text-md);
+  font-weight: 650;
+}
+
+html[data-p07-ui="enabled"] #offlineReviewBtn:not(.hidden) {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  border-radius: var(--ds-radius-md);
+}
+
+html[data-p07-ui="enabled"] #loginError:empty {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-height: 0;
+}
+
+html[data-p07-ui="enabled"] #loginError:not(:empty) {
+  margin: 16px 0 0;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--ds-error) 28%, var(--ds-border));
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-error-soft);
+  color: var(--ds-error);
+  font-size: var(--ds-text-sm);
+  line-height: 1.5;
+}
+
+@media (max-width: 560px) {
+  html[data-p07-ui="enabled"] .auth-panel {
+    margin: 20px auto 24px;
+    padding: 26px 20px;
+  }
+  html[data-p07-ui="enabled"] .auth-panel .auth-logo {
+    width: 68px;
+    height: 68px;
+    border-radius: 14px;
+    margin-bottom: 14px;
+  }
+}

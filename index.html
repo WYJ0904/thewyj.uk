@@ -9,10 +9,14 @@
     <meta property="og:title" content="Aeris — 学习、工具、账本与文件" />
     <meta property="og:description" content="从一件小事开始，登录后接着自己的进度。" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Aeris" />
     <meta property="og:url" content="https://thewyj.uk/" />
     <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?v=20261104-aeris-p07-phase1-r1" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Aeris — 学习、工具、账本与文件" />
+    <meta name="twitter:description" content="继续语言学习，处理文本与文件，管理账本和传输。" />
     <meta name="application-name" content="Aeris" />
+    <meta name="apple-mobile-web-app-title" content="Aeris" />
     <link rel="icon" href="/favicon.ico?v=20261104-aeris-p07-phase1-r1" sizes="any" />
     <link rel="icon" href="/assets/brand/favicon-32.png?v=20261104-aeris-p07-phase1-r1" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png?v=20261104-aeris-p07-phase1-r1" />
@@ -574,32 +578,33 @@
         <section class="panel auth-panel hidden" id="authPanel">
           <img class="auth-logo" src="/assets/brand/aeris-lockup.png?v=20261104-aeris-p07-phase1-r1" width="320" height="320" alt="Aeris" />
           <h2 id="authTitle">账户登录</h2>
+          <p class="auth-subtitle" id="authSubtitle">使用 Aeris 账户同步词汇进度、账本记录与传输文件。</p>
           <div class="auth-tabs" role="tablist" aria-label="账户入口">
             <button class="active" id="showLoginBtn" type="button" role="tab" aria-controls="loginForm" aria-selected="true">登录</button>
             <button id="showRegisterBtn" type="button" role="tab" aria-controls="registerForm" aria-selected="false">注册</button>
           </div>
-          <form id="loginForm" class="login-form">
+          <form id="loginForm" class="login-form" role="tabpanel" aria-labelledby="showLoginBtn" aria-describedby="loginError">
             <label class="field-label auth-field"><span>用户名</span><input id="usernameInput" autocomplete="username" maxlength="40" placeholder="请输入用户名" required /></label>
             <label class="field-label auth-field"><span>登录密钥</span><input id="secretInput" type="password" autocomplete="current-password" maxlength="128" placeholder="请输入登录密钥" required /></label>
             <button class="primary" id="loginSubmitBtn" type="submit">登录</button>
           </form>
-          <form id="registerForm" class="login-form hidden">
+          <form id="registerForm" class="login-form hidden" role="tabpanel" aria-labelledby="showRegisterBtn" aria-describedby="loginError">
             <label class="field-label auth-field"><span>用户名</span><input id="registerUsernameInput" autocomplete="username" maxlength="40" placeholder="请输入用户名" required /></label>
             <label class="field-label auth-field"><span>登录密钥</span><input id="registerSecretInput" type="password" autocomplete="new-password" minlength="7" maxlength="128" placeholder="至少 7 个字符" required /></label>
             <label class="field-label auth-field"><span>确认登录密钥</span><input id="registerConfirmInput" type="password" autocomplete="new-password" minlength="7" maxlength="128" placeholder="再次输入登录密钥" required /></label>
             <button class="primary" id="registerSubmitBtn" type="submit">创建账户</button>
           </form>
           <button class="hidden" id="offlineReviewBtn" type="button">进入本地复习</button>
-          <p class="error" id="loginError" aria-live="polite"></p>
+          <p class="error" id="loginError" role="status" aria-live="polite" aria-atomic="true"></p>
         </section>
 
         <section class="workspace hidden" id="workspace">
-          <nav class="tabs" aria-label="视图">
-            <button class="active" data-view="setupView">词表</button>
-            <button data-view="quizView" disabled title="尚未开始测试">答题</button>
-            <button data-view="wrongView">错题</button>
-            <button data-view="achievementsView">成就</button>
-            <button data-view="studyView">统计</button>
+          <nav class="tabs" role="tablist" aria-label="学习视图">
+            <button class="active" id="setupViewTab" type="button" role="tab" aria-controls="setupView" data-view="setupView">词表</button>
+            <button id="quizViewTab" type="button" role="tab" aria-controls="quizView" data-view="quizView" disabled title="尚未开始测试">答题</button>
+            <button id="wrongViewTab" type="button" role="tab" aria-controls="wrongView" data-view="wrongView">错题</button>
+            <button id="achievementsViewTab" type="button" role="tab" aria-controls="achievementsView" data-view="achievementsView">成就</button>
+            <button id="studyViewTab" type="button" role="tab" aria-controls="studyView" data-view="studyView">统计</button>
           </nav>
 
           <section class="panel mastery-section hidden" id="masterySection" aria-labelledby="masteryTitle">
@@ -619,7 +624,7 @@
             <section id="masteryDetail" class="mastery-detail hidden" aria-label="知识点学习状态"></section>
           </section>
 
-          <section class="view active" id="setupView">
+          <section class="view active" id="setupView" role="tabpanel" aria-labelledby="setupViewTab">
             <div class="panel">
               <div class="settings-grid">
                 <label class="field-label">
@@ -686,7 +691,8 @@
               </section>
               </details>
 
-              <textarea id="wordInput" maxlength="120000" placeholder="输入词表，每行一个词"></textarea>
+              <label data-p07-label for="wordInput">练习词表（每行一个词）</label>
+              <textarea id="wordInput" maxlength="120000" placeholder="输入词表，每行一个词" aria-describedby="wordLimitHint wordQualityHint"></textarea>
               <p class="meta-line" id="wordLimitHint" aria-live="polite"></p>
               <p class="meta-line word-quality-hint" id="wordQualityHint" aria-live="polite"></p>
               <div class="action-row">
@@ -711,7 +717,7 @@
             </details>
           </section>
 
-          <section class="view" id="quizView">
+          <section class="view" id="quizView" role="tabpanel" aria-labelledby="quizViewTab">
             <div class="quiz-card">
               <div class="quiz-meta">
                 <span id="progressLabel">0/0</span>
@@ -723,6 +729,7 @@
                 <span class="word-primary" id="wordText">-</span>
                 <span class="word-reading hidden" id="wordReading" aria-hidden="true"></span>
               </div>
+              <label data-p07-label for="answerInput">你的答案</label>
               <form id="answerForm" class="answer-form">
                 <input id="answerInput" autocomplete="off" maxlength="240" placeholder="中文意思" aria-describedby="answerValidation" />
                 <button class="primary" id="submitBtn" type="submit">提交</button>
@@ -748,7 +755,7 @@
             </div>
           </section>
 
-          <section class="view" id="wrongView">
+          <section class="view" id="wrongView" role="tabpanel" aria-labelledby="wrongViewTab">
             <div class="panel">
               <div class="scope-tabs">
                 <button class="active" id="currentWrongTab" type="button">本轮</button>
@@ -778,7 +785,7 @@
             </div>
           </section>
 
-          <section class="view" id="achievementsView">
+          <section class="view" id="achievementsView" role="tabpanel" aria-labelledby="achievementsViewTab">
             <div class="panel achievement-panel">
               <div class="achievement-head">
                 <div><h2>成就</h2><p class="meta-line" id="achievementSummary"></p></div>
@@ -799,7 +806,7 @@
             </div>
           </section>
 
-          <section class="view" id="studyView">
+          <section class="view" id="studyView" role="tabpanel" aria-labelledby="studyViewTab">
             <div class="panel study-panel">
               <div class="study-heading">
                 <div>
@@ -1106,13 +1113,13 @@
     </div>
 
     <div class="modal-layer hidden" id="deleteAccountModal" aria-hidden="true">
-      <section class="modal-panel confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="deleteAccountTitle">
+      <section class="modal-panel confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="deleteAccountTitle" aria-describedby="deleteAccountWarning">
         <h2 id="deleteAccountTitle">确认永久注销账户</h2>
-        <p class="danger-note">此操作会清除账户、会员资格、剩余时间、充值申请和全部登录会话，无法恢复。</p>
+        <p class="danger-note" id="deleteAccountWarning">此操作会清除账户、会员资格、剩余时间、充值申请和全部登录会话，无法恢复。</p>
         <form id="deleteAccountForm" class="stack-form">
           <label data-p07-label for="deleteSecretInput">当前登录密钥</label>
           <input id="deleteSecretInput" type="password" autocomplete="current-password" maxlength="128" placeholder="重新输入当前登录密钥" required />
-          <div class="action-row"><button data-close-modal="deleteAccountModal" type="button">取消</button><button class="danger-button" id="confirmDeleteAccountBtn" type="submit">永久注销</button></div>
+          <div class="action-row"><button data-close-modal="deleteAccountModal" data-dialog-initial-focus type="button">取消</button><button class="danger-button" id="confirmDeleteAccountBtn" type="submit">永久注销</button></div>
         </form>
       </section>
     </div>
@@ -1192,7 +1199,7 @@
     </div>
 
     <div class="modal-layer hidden" id="confirmModal" aria-hidden="true">
-      <section class="modal-panel confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <section class="modal-panel confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
         <h2 id="confirmTitle">确认操作</h2><p id="confirmMessage"></p>
         <div class="action-row"><button id="cancelConfirmBtn" type="button">取消</button><button class="danger-button" id="acceptConfirmBtn" type="button">确认</button></div>
       </section>
@@ -1204,11 +1211,11 @@
         <p class="section-kicker">帮助我们改进</p>
         <h2 id="feedbackTitle">反馈与功能投票</h2>
         <div class="feedback-tabs" role="tablist" aria-label="反馈视图">
-          <button class="active" type="button" data-feedback-view="feedbackSubmitView" role="tab" aria-selected="true">提交反馈</button>
-          <button type="button" data-feedback-view="feedbackMineView" role="tab" aria-selected="false">我的反馈</button>
-          <button type="button" data-feedback-view="feedbackVotingView" role="tab" aria-selected="false">功能投票</button>
+          <button class="active" id="feedbackSubmitTab" type="button" data-feedback-view="feedbackSubmitView" role="tab" aria-controls="feedbackSubmitView" aria-selected="true">提交反馈</button>
+          <button id="feedbackMineTab" type="button" data-feedback-view="feedbackMineView" role="tab" aria-controls="feedbackMineView" aria-selected="false">我的反馈</button>
+          <button id="feedbackVotingTab" type="button" data-feedback-view="feedbackVotingView" role="tab" aria-controls="feedbackVotingView" aria-selected="false">功能投票</button>
         </div>
-        <section class="feedback-view active" id="feedbackSubmitView" role="tabpanel">
+        <section class="feedback-view active" id="feedbackSubmitView" role="tabpanel" aria-labelledby="feedbackSubmitTab">
           <form class="stack-form feedback-form" id="feedbackForm">
             <div class="feedback-field-grid">
               <label class="field-label"><span>反馈类型</span><select id="feedbackType" required><option value="feature_suggestion">功能建议</option><option value="tool_error">工具报错</option><option value="page_issue">页面问题</option><option value="account_issue">账户问题</option><option value="new_tool">新工具建议</option><option value="other">其他反馈</option></select></label>
@@ -1222,8 +1229,8 @@
             <button class="primary" id="submitFeedbackBtn" type="submit">提交反馈</button>
           </form>
         </section>
-        <section class="feedback-view" id="feedbackMineView" role="tabpanel"><div class="feedback-view-heading"><h3>我的反馈</h3><button id="refreshMyFeedbackBtn" type="button">刷新</button></div><div class="feedback-list" id="myFeedbackList"><p class="dashboard-empty">尚未加载。</p></div></section>
-        <section class="feedback-view" id="feedbackVotingView" role="tabpanel"><div class="feedback-view-heading"><div><h3>功能投票</h3><p>这里只显示管理员已采纳的建议标题；每人每项一票，可以取消。反馈正文和提交者不会公开。</p></div><button id="refreshVotingBtn" type="button">刷新</button></div><div class="feedback-list" id="featureVotingList"><p class="dashboard-empty">尚未加载。</p></div></section>
+        <section class="feedback-view" id="feedbackMineView" role="tabpanel" aria-labelledby="feedbackMineTab"><div class="feedback-view-heading"><h3>我的反馈</h3><button id="refreshMyFeedbackBtn" type="button">刷新</button></div><div class="feedback-list" id="myFeedbackList" role="status" aria-live="polite" aria-relevant="additions text"><p class="dashboard-empty">尚未加载。</p></div></section>
+        <section class="feedback-view" id="feedbackVotingView" role="tabpanel" aria-labelledby="feedbackVotingTab"><div class="feedback-view-heading"><div><h3>功能投票</h3><p>这里只显示管理员已采纳的建议标题；每人每项一票，可以取消。反馈正文和提交者不会公开。</p></div><button id="refreshVotingBtn" type="button">刷新</button></div><div class="feedback-list" id="featureVotingList" role="status" aria-live="polite" aria-relevant="additions text"><p class="dashboard-empty">尚未加载。</p></div></section>
         <p class="meta-line" id="feedbackMessage" aria-live="polite"></p>
       </section>
     </div>
