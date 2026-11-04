@@ -1,20 +1,20 @@
-/* thewyj Design System 2.0
+/* Aeris Design System 2.0 + V3 Unified Visual Foundation
  * Canonical semantic tokens and shared component states for Web and Android parity.
  */
 :root {
   color-scheme: light;
 
   /* Typography */
-  --ds-font-sans: "Segoe UI Variable", "Microsoft YaHei UI", "PingFang SC", system-ui, -apple-system, sans-serif;
+  --ds-font-sans: "Segoe UI Variable", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", system-ui, -apple-system, sans-serif;
   --ds-font-serif: Georgia, "Times New Roman", "Songti SC", serif;
   --ds-font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
-  --ds-text-xs: 12px;
-  --ds-text-sm: 14px;
-  --ds-text-md: 16px;
-  --ds-text-lg: 18px;
-  --ds-text-xl: 22px;
-  --ds-text-2xl: 30px;
-  --ds-text-display: 56px;
+  --ds-text-xs: 0.75rem;
+  --ds-text-sm: 0.875rem;
+  --ds-text-md: 1rem;
+  --ds-text-lg: 1.125rem;
+  --ds-text-xl: 1.375rem;
+  --ds-text-2xl: 1.875rem;
+  --ds-text-display: 3.5rem;
   --ds-leading-tight: 1.18;
   --ds-leading-body: 1.6;
 
@@ -97,6 +97,7 @@
   --ds-warning: #9a5708;
   --ds-warning-soft: #fff5de;
   --ds-error: #c23333;
+  --ds-on-error: #ffffff;
   --ds-error-hover: #a92424;
   --ds-error-soft: #fff0f0;
   --ds-info: #1f5fbf;
@@ -252,6 +253,7 @@ body.modal-open .skip-link { visibility: hidden; }
   --ds-warning: var(--ds-dark-warning);
   --ds-warning-soft: var(--ds-dark-warning-soft);
   --ds-error: var(--ds-dark-error);
+  --ds-on-error: var(--ds-dark-on-brand);
   --ds-error-hover: var(--ds-dark-error-hover);
   --ds-error-soft: var(--ds-dark-error-soft);
   --ds-info: var(--ds-dark-info);
@@ -321,7 +323,7 @@ body.modal-open .skip-link { visibility: hidden; }
 }
 
 html {
-  min-width: 320px;
+  min-width: 0;
   min-height: 100%;
   scroll-padding-top: calc(76px + env(safe-area-inset-top));
   background: var(--ds-workspace-canvas);
@@ -341,7 +343,7 @@ body.modal-open {
 }
 
 body {
-  min-width: 320px;
+  min-width: 0;
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0;
@@ -460,7 +462,9 @@ summary,
 
 /* Row surfaces use tone/opacity; only their individual actions scale. */
 article[data-aeris-pressed="true"],
-.module-card[data-aeris-pressed="true"] {
+.module-card[data-aeris-pressed="true"],
+[data-widget-drag]:is(:active, [data-aeris-pressed="true"]),
+.home-widget-main:is(:active, [data-aeris-pressed="true"]) {
   scale: 1;
 }
 
@@ -511,13 +515,13 @@ button.primary:active:not(:disabled),
 
 .danger-button {
   border-color: var(--ds-error);
-  color: #ffffff;
+  color: var(--ds-on-error);
   background: var(--ds-error);
 }
 
 .danger-button:hover:not(:disabled) {
   border-color: var(--ds-error-hover);
-  color: #ffffff;
+  color: var(--ds-on-error);
   background: var(--ds-error-hover);
 }
 
@@ -812,9 +816,9 @@ small {
 
 @media (max-width: 760px) {
   :root {
-    --ds-text-display: 42px;
-    --ds-text-2xl: 26px;
-    --ds-text-xl: 20px;
+    --ds-text-display: 2.625rem;
+    --ds-text-2xl: 1.625rem;
+    --ds-text-xl: 1.25rem;
   }
 
   .modal-layer {
@@ -876,3 +880,236 @@ html[data-android-reduced-motion="true"] *::after {
   animation-iteration-count: 1 !important;
   transition-duration: 1ms !important;
 }
+
+/* ==========================================================================
+ * Aeris V3 Unified Design System Foundation (P07-01A)
+ * Governed by Task25 (p07_accessibility): Design Token -> Shared Components.
+ * Unifies light-gray canvas, pure white cards/containers, clean borders,
+ * standard Aeris blue primary actions, accessible states, and dark parity.
+ * ========================================================================== */
+html[data-p07-ui="enabled"] {
+  scroll-padding-block-start: calc(var(--site-nav-height, 68px) + var(--ds-space-4));
+
+  /* Unified V3 Cool Light-Gray Canvas & Pure White Surfaces */
+  --ds-workspace-canvas: #f4f6f9;
+  --ds-workspace-canvas-warm: #f4f6f9;
+  --ds-stage: #f4f6f9;
+  --ds-stage-surface: #ffffff;
+  --ds-stage-surface-raised: #f1f5f9;
+  --ds-stage-text: #0f172a;
+  --ds-stage-text-secondary: #475569;
+  --ds-stage-border: #e2e8f0;
+
+  --ds-surface: #ffffff;
+  --ds-surface-subtle: #f8fafc;
+  --ds-surface-muted: #f1f5f9;
+  --ds-surface-raised: #ffffff;
+  --ds-surface-disabled: #edf2f7;
+
+  /* Crisp Text & Divider Hierarchy (WCAG AA >= 4.5:1) */
+  --ds-text: #0f172a;
+  --ds-text-secondary: #475569;
+  --ds-text-muted: #526075;
+  --ds-text-disabled: #64748b;
+  --ds-border: #e2e8f0;
+  --ds-border-strong: #cbd5e1;
+  --ds-divider: #edf2f7;
+
+  /* Standard Aeris Blue Primary & Semantic Tokens */
+  --ds-brand: #2563eb;
+  --ds-brand-hover: #1d4ed8;
+  --ds-brand-pressed: #1e40af;
+  --ds-brand-soft: #eff6ff;
+  --ds-brand-border: #bfdbfe;
+  --ds-on-brand: #ffffff;
+  --ds-focus: #2563eb;
+  --ds-focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.22);
+
+  /* Unified Shape & Natural Layered Elevation */
+  --ds-radius-xs: 6px;
+  --ds-radius-sm: 8px;
+  --ds-radius-md: 10px;
+  --ds-radius-lg: 14px;
+  --ds-radius-xl: 18px;
+  --ds-shadow-card: 0 1px 3px rgba(15, 23, 42, 0.05), 0 6px 18px rgba(15, 23, 42, 0.04);
+  --ds-shadow-raised: 0 4px 12px rgba(15, 23, 42, 0.07), 0 16px 36px rgba(15, 23, 42, 0.08);
+  --ds-shadow-dialog: 0 16px 48px rgba(15, 23, 42, 0.16), 0 4px 12px rgba(15, 23, 42, 0.06);
+  --ds-hover: rgba(15, 23, 42, 0.045);
+}
+
+html[data-p07-ui="enabled"][data-theme="dark"] {
+  --ds-workspace-canvas: #0f1217;
+  --ds-workspace-canvas-warm: #0f1217;
+  --ds-stage: #0f1217;
+  --ds-stage-surface: #171c24;
+  --ds-stage-surface-raised: #1e2530;
+  --ds-stage-text: #f4f7fb;
+  --ds-stage-text-secondary: #b8c4d4;
+  --ds-stage-border: #283140;
+
+  --ds-surface: #171c24;
+  --ds-surface-subtle: #131820;
+  --ds-surface-muted: #1d2430;
+  --ds-surface-raised: #1e2530;
+  --ds-surface-disabled: #232b38;
+
+  --ds-text: #f4f7fb;
+  --ds-text-secondary: #b8c4d4;
+  --ds-text-muted: #9fb0c4;
+  --ds-text-disabled: #8899ae;
+  --ds-border: #283140;
+  --ds-border-strong: #39465b;
+  --ds-divider: #202734;
+
+  --ds-brand: #6ea2ff;
+  --ds-brand-hover: #8cb7ff;
+  --ds-brand-pressed: #518bf5;
+  --ds-brand-soft: rgba(110, 162, 255, 0.14);
+  --ds-brand-border: rgba(110, 162, 255, 0.34);
+  --ds-on-brand: #09111f;
+  --ds-focus: #8cb7ff;
+  --ds-focus-ring: 0 0 0 3px rgba(140, 183, 255, 0.28);
+
+  --ds-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.28), 0 8px 24px rgba(0, 0, 0, 0.22);
+  --ds-shadow-raised: 0 6px 18px rgba(0, 0, 0, 0.36), 0 20px 44px rgba(0, 0, 0, 0.32);
+  --ds-shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.52);
+  --ds-hover: rgba(255, 255, 255, 0.065);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-p07-ui="enabled"]:not([data-theme]) {
+    --ds-workspace-canvas: #0f1217;
+    --ds-workspace-canvas-warm: #0f1217;
+    --ds-stage: #0f1217;
+    --ds-stage-surface: #171c24;
+    --ds-stage-surface-raised: #1e2530;
+    --ds-stage-text: #f4f7fb;
+    --ds-stage-text-secondary: #b8c4d4;
+    --ds-stage-border: #283140;
+    --ds-surface: #171c24;
+    --ds-surface-subtle: #131820;
+    --ds-surface-muted: #1d2430;
+    --ds-surface-raised: #1e2530;
+    --ds-surface-disabled: #232b38;
+    --ds-text: #f4f7fb;
+    --ds-text-secondary: #b8c4d4;
+    --ds-text-muted: #9fb0c4;
+    --ds-text-disabled: #8899ae;
+    --ds-border: #283140;
+    --ds-border-strong: #39465b;
+    --ds-divider: #202734;
+    --ds-brand: #6ea2ff;
+    --ds-brand-hover: #8cb7ff;
+    --ds-brand-pressed: #518bf5;
+    --ds-brand-soft: rgba(110, 162, 255, 0.14);
+    --ds-brand-border: rgba(110, 162, 255, 0.34);
+    --ds-on-brand: #09111f;
+    --ds-focus: #8cb7ff;
+    --ds-focus-ring: 0 0 0 3px rgba(140, 183, 255, 0.28);
+  }
+}
+
+/* Remove legacy muddy top gradient bleed; enforce one clean V3 canvas */
+html[data-p07-ui="enabled"] body {
+  background-color: var(--ds-workspace-canvas);
+  background-image: none;
+}
+
+html[data-p07-ui="enabled"] :is(input, select, textarea, button, a, summary, [tabindex]) {
+  scroll-margin-block: calc(var(--site-nav-height, 68px) + var(--ds-space-4)) var(--ds-space-4);
+}
+
+html[data-p07-ui="enabled"] label[data-p07-label] {
+  display: block;
+  margin-block: var(--ds-space-3) var(--ds-space-2);
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] :is(button, .button-link, .button-primary, .button-secondary) {
+  min-width: var(--ds-touch-min);
+  min-height: var(--ds-touch-min);
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+html[data-p07-ui="enabled"] :is(button.primary, .button-primary):not(:disabled) {
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.18);
+}
+
+html[data-p07-ui="enabled"] :is(button.primary, .button-primary):hover:not(:disabled) {
+  box-shadow: 0 3px 8px rgba(29, 78, 216, 0.22);
+}
+
+html[data-p07-ui="enabled"] :is(.button-secondary, button:not(.primary):not(.button-ghost):not(.danger-button)):hover:not(:disabled) {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea):hover:not(:disabled):not(:focus) {
+  border-color: #94a3b8;
+}
+
+html[data-p07-ui="enabled"] :is(input, select, textarea)[aria-invalid="true"] {
+  border-color: var(--ds-error);
+  background: color-mix(in srgb, var(--ds-error-soft) 35%, var(--ds-surface));
+}
+
+html[data-p07-ui="enabled"] [role="tabpanel"] { min-width: 0; }
+html:not([data-p07-ui="enabled"]) #workspace > .tabs .ds-tab-indicator { display: none; }
+html[data-p07-ui="enabled"] [role="tabpanel"]:focus-visible {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 3px;
+}
+
+html[data-p07-ui="enabled"] .field-validation {
+  margin-block: var(--ds-space-1) var(--ds-space-2);
+  color: var(--ds-error);
+  font-size: var(--ds-text-xs);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+html[data-p07-ui="enabled"] :is(.secret-input-row, .admin-secret-input-wrap) { min-width: 0; }
+html[data-p07-ui="enabled"] .secret-input-row > input { min-width: 0; }
+html[data-p07-ui="enabled"] .account-details :is(dd, code) { overflow-wrap: anywhere; }
+
+/* Shared numeric alignment & loading/empty/error/modal/notice states */
+html[data-p07-ui="enabled"] :is(output, .tabular-nums, .aeris-summary-number, .aeris-live-metrics output) {
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-p07-ui="enabled"] [aria-busy="true"] {
+  opacity: 0.76;
+}
+
+html[data-p07-ui="enabled"] .modal-panel {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-dialog);
+}
+
+@media (max-height: 35rem) and (orientation: landscape) {
+  html[data-p07-ui="enabled"] { scroll-padding-block-start: var(--ds-space-3); }
+  html[data-p07-ui="enabled"] :is(input, select, textarea, button, a, summary, [tabindex]) { scroll-margin-block-start: var(--ds-space-3); }
+  html[data-p07-ui="enabled"] .site-nav { position: relative; }
+  html[data-p07-ui="enabled"] .modal-layer { align-items: flex-start; }
+  html[data-p07-ui="enabled"] .modal-panel { max-height: calc(var(--ds-overlay-height, 100dvh) - 16px); }
+}
+
+@media (forced-colors: active) {
+  :is(button, a, summary, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid Highlight;
+    box-shadow: none;
+  }
+  [role="tab"][aria-selected="true"] { border-bottom: 2px solid Highlight; }
+}
+

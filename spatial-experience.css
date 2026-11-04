@@ -1,0 +1,23 @@
+/* Aeris V6.2 P07 Phase 1 — V3 Unified Navigation, Home Spatial Cards & Login Sample.
+ * Governed by Task25 (p07_accessibility). Zero impact on widget coordinates or business contracts.
+ */
+.home-widget-visual { display: contents; }
+#publicHome .home-widget-main .home-widget-glyph { display: none; }
+.home-intro-note { display: none; }
+.auth-subtitle { display: none; }
+.aeris-preview-notice:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: baseline;
+  width: min(calc(100% - 32px), var(--ds-container-default));
+  margin: 14px auto 0;
+  padding: 10px 16px;
+  border: 1px solid var(--ds-brand-border, var(--ds-border));
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-sm);
+}
+.aeris-preview-notice strong { color: var(--ds-brand); font-weight: 650; }

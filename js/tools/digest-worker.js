@@ -1,4 +1,4 @@
-import { md5Bytes } from './file.js?v=20261027-aeris-p07-ui-r1';
+import { md5Bytes } from './file.js?v=20261104-aeris-p07-phase1-r1';
 self.onmessage = event => {
   try { self.postMessage({ hash: md5Bytes(new Uint8Array(event.data.buffer)) }); }
   catch (_) { self.postMessage({ error: '文件哈希计算失败' }); }
