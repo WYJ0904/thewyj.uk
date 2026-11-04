@@ -4,16 +4,16 @@
 - **基线与分支**：
   - 基线 PR：PR #121（分支 `codex/aeris-p07-phase1-handover`，基线 Commit `337bb32f1ce349f9c5d58bd6120932fa5e61a745`）
   - 本轮开发分支：`gemini/p07-d-business-workspaces`
-  - 核心修复提交 Commit：`287d3708b4ec9f0ce0f166395d651a8477623639`
+  - 核心修复提交 Commit：`94181ca9575782e1610078fd41e84c07aac9c213`
   - 关联 Pull Request：Draft PR #122 (https://github.com/WYJ0904/thewyj.uk/pull/122)
   - PR 目标分支：`codex/aeris-p07-phase1-handover`（严格以已认可的 PR #121 为基线，绝不直接合入 `main`）
-  - 远程 Core CI Run：`41834540661` (https://github.com/WYJ0904/thewyj.uk/actions/runs/41834540661)
+  - 远程 Core CI Run：`41837691268` (https://github.com/WYJ0904/thewyj.uk/actions/runs/41837691268)
 - **独立 Hosted Preview（当前实时验证部署）**：
-  - 部署固定地址：https://9963600f.thewyj-p07-ui-rc.pages.dev
+  - 部署固定地址：https://3e07b5fd.thewyj-p07-ui-rc.pages.dev
   - 分支别名地址：https://v62-p07-d-workspaces.thewyj-p07-ui-rc.pages.dev
   - Pages 项目：`thewyj-p07-ui-rc`
-  - 部署 Commit：`287d3708b4ec9f0ce0f166395d651a8477623639`
-  - 部署 ID：`9963600f-d315-4eed-9da6-74d1dd29333a`
+  - 部署 Commit：`94181ca9575782e1610078fd41e84c07aac9c213`
+  - 部署 ID：`3e07b5fd-2c36-4d28-8fb8-89637fc417cf`
   - 隔离 D1 数据库：`ee869f78-b54a-4018-bc99-871089ecb8cd`（0 R2 绑定，0 AI 绑定，完全隔离，Production 未触碰）
   - 静态资源校验：86 项公开静态资源 SHA-256 100% 匹配，HTTP 200，0 运行时报错
 - **测试账号信息**：
