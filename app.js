@@ -3385,6 +3385,17 @@ function restoreProjectRuntime() {
   if (state.roundActive) {
     showWord({ preserveTransition: Boolean(state.pendingAdvance), focus: false });
     if (state.pendingAdvance) renderQuestionFeedback(state.pendingAdvance.feedback);
+  } else {
+    if ($("wordText")) $("wordText").textContent = "-";
+    if ($("wordReading")) {
+      $("wordReading").textContent = "";
+      $("wordReading").classList.add("hidden");
+    }
+    if ($("progressLabel")) $("progressLabel").textContent = "0/0";
+    if ($("scoreLabel")) $("scoreLabel").textContent = "得分 0";
+    if ($("quizLanguageLabel")) $("quizLanguageLabel").textContent = currentProject === "japanese" ? "日语" : "英语";
+    if ($("answerInput")) $("answerInput").value = "";
+    if ($("resultPanel")) $("resultPanel").classList.add("hidden");
   }
   setView(view);
   if (state.roundActive) {
@@ -3931,16 +3942,18 @@ function enterProject(value, pushHistory = true) {
   applyPendingScreen();
   if (pushHistory) pushRoute(`/language/${language}`);
   renderAccountUi();
-  if ($("wordText")) $("wordText").textContent = "-";
-  if ($("wordReading")) {
-    $("wordReading").textContent = "";
-    $("wordReading").classList.add("hidden");
+  if (!state.roundActive) {
+    if ($("wordText")) $("wordText").textContent = "-";
+    if ($("wordReading")) {
+      $("wordReading").textContent = "";
+      $("wordReading").classList.add("hidden");
+    }
+    if ($("progressLabel")) $("progressLabel").textContent = "0/0";
+    if ($("scoreLabel")) $("scoreLabel").textContent = "得分 0";
+    if ($("quizLanguageLabel")) $("quizLanguageLabel").textContent = language === "japanese" ? "日语" : "英语";
+    if ($("answerInput")) $("answerInput").value = "";
+    if ($("resultPanel")) $("resultPanel").classList.add("hidden");
   }
-  if ($("progressLabel")) $("progressLabel").textContent = "0/0";
-  if ($("scoreLabel")) $("scoreLabel").textContent = "得分 0";
-  if ($("quizLanguageLabel")) $("quizLanguageLabel").textContent = language === "japanese" ? "日语" : "英语";
-  if ($("answerInput")) $("answerInput").value = "";
-  if ($("resultPanel")) $("resultPanel").classList.add("hidden");
   masteryController?.update();
 }
 
