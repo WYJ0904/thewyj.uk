@@ -1,0 +1,893 @@
+{
+  "synthetic_only": true,
+  "source": "Saved 2026-10-27 controlled Workers AI calls; NOT new calls",
+  "transformation": "Exact response field value and saved semantic evidence only. No repaired content. Omit reasoning, account/session IDs and vendor request IDs.",
+  "original_requests": "Full request bytes not saved; hashes and semantic evidence available",
+  "cases": [
+    {
+      "id": "cny-payment",
+      "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+      "returned_model": "@cf/meta/llama-3.3-70b-json",
+      "historical_status": "PASS",
+      "historical_expected": {
+        "selected_candidate_id": "m0",
+        "currency": "CNY",
+        "direction": "expense"
+      },
+      "historical_prompt_version": "finance-assistance-4",
+      "input": {
+        "currency": "CNY",
+        "direction": "expense",
+        "candidates": [
+          {
+            "id": "m0",
+            "amount_minor": 9000,
+            "currency": "CNY",
+            "amount_exponent": 2,
+            "phrases": [
+              "本次",
+              "扣除"
+            ]
+          },
+          {
+            "id": "m1",
+            "amount_minor": 10000,
+            "currency": "CNY",
+            "amount_exponent": 2,
+            "phrases": [
+              "原价"
+            ]
+          },
+          {
+            "id": "m2",
+            "amount_minor": 1000,
+            "currency": "CNY",
+            "amount_exponent": 2,
+            "phrases": [
+              "优惠"
+            ]
+          }
+        ],
+        "merchant_tokens": []
+      },
+      "request_sha256": "5c66a5f117f22f5fa4a6dcb0f4bd94d5b80054a555923781e59a2ad28beb5ab2",
+      "original_envelope_sha256": "bca652711d74f1fd816e91619b2b5cd375cc81f96f98a70c5a934bc1b8d4c3c1",
+      "payload_sha256": "93348ff09441d9c22ca24e18fd262aadbf5cf6954999334946ccbe78a67e91d8",
+      "provider_response": {
+        "schema_version": 2,
+        "amount_roles": [
+          {
+            "candidate_id": "m0",
+            "role": "actual_paid"
+          },
+          {
+            "candidate_id": "m1",
+            "role": "original"
+          },
+          {
+            "candidate_id": "m2",
+            "role": "discount"
+          }
+        ],
+        "selected_candidate_id": "m0",
+        "currency": "CNY",
+        "direction": "expense",
+        "confidence_per_mille": 800,
+        "refusal_reason": "none",
+        "merchant_normalized": null,
+        "category": null
+      },
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 395,
+        "completion_tokens": 106,
+        "total_tokens": 501,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 32.24309539794922
+      }
+    },
+    {
+      "id": "usd-refund",
+      "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+      "returned_model": "@cf/meta/llama-3.3-70b-json",
+      "historical_status": "FAIL",
+      "historical_expected": {
+        "selected_candidate_id": "m0",
+        "currency": "USD",
+        "direction": "refund"
+      },
+      "historical_prompt_version": "finance-assistance-4",
+      "input": {
+        "currency": "USD",
+        "direction": "refund",
+        "candidates": [
+          {
+            "id": "m0",
+            "amount_minor": 2500,
+            "currency": "USD",
+            "amount_exponent": 2,
+            "phrases": [
+              "本次",
+              "退款"
+            ]
+          },
+          {
+            "id": "m1",
+            "amount_minor": 5000,
+            "currency": "USD",
+            "amount_exponent": 2,
+            "phrases": [
+              "原价"
+            ]
+          }
+        ],
+        "merchant_tokens": []
+      },
+      "request_sha256": "26a7a34b80689f80a6af2cf11b2e082fb7d0f6b80babc4650526c7780caaee1f",
+      "original_envelope_sha256": "c30ea0e8ac28812608521e2ed00d49cda1e0609946757e15369596fad6db74db",
+      "payload_sha256": "e2e017af8bbcc259ee5557938a7ba5e6f8c7283673f063f7dddfe75bd80bca22",
+      "provider_response": {
+        "schema_version": 2,
+        "amount_roles": [
+          {
+            "candidate_id": "m0",
+            "role": "refund"
+          }
+        ],
+        "selected_candidate_id": "m0",
+        "currency": "USD",
+        "direction": "refund",
+        "confidence_per_mille": 1000,
+        "refusal_reason": "none",
+        "merchant_normalized": "",
+        "category": "refund"
+      },
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 363,
+        "completion_tokens": 78,
+        "total_tokens": 441,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 25.65517807006836
+      }
+    },
+    {
+      "id": "eur-income",
+      "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+      "returned_model": "@cf/meta/llama-3.3-70b-json",
+      "historical_status": "PASS",
+      "historical_expected": {
+        "selected_candidate_id": "m0",
+        "currency": "EUR",
+        "direction": "income"
+      },
+      "historical_prompt_version": "finance-assistance-4",
+      "input": {
+        "currency": "EUR",
+        "direction": "income",
+        "candidates": [
+          {
+            "id": "m0",
+            "amount_minor": 12000,
+            "currency": "EUR",
+            "amount_exponent": 2,
+            "phrases": [
+              "本次",
+              "到账"
+            ]
+          },
+          {
+            "id": "m1",
+            "amount_minor": 50000,
+            "currency": "EUR",
+            "amount_exponent": 2,
+            "phrases": [
+              "余额"
+            ]
+          }
+        ],
+        "merchant_tokens": []
+      },
+      "request_sha256": "23bf73687d9d7cd2abfa979f96f6317d1ac07ff3c51a4234f048241651c11254",
+      "original_envelope_sha256": "c04dd851eed7f6f7d7653c91059d93eb8d5ac65f31a0263746b2a87ae4f6e063",
+      "payload_sha256": "52a037798db9bb7bdada7616a86f2715822108339558872b0e2102f2af10dc41",
+      "provider_response": {
+        "schema_version": 2,
+        "amount_roles": [
+          {
+            "candidate_id": "m0",
+            "role": "actual_received"
+          }
+        ],
+        "selected_candidate_id": "m0",
+        "currency": "EUR",
+        "direction": "income",
+        "confidence_per_mille": 800,
+        "refusal_reason": "none",
+        "merchant_normalized": null,
+        "category": null
+      },
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 363,
+        "completion_tokens": 78,
+        "total_tokens": 441,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 25.65517807006836
+      }
+    },
+    {
+      "id": "hkd-fee",
+      "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+      "returned_model": "@cf/meta/llama-3.3-70b-json",
+      "historical_status": "FAIL",
+      "historical_expected": {
+        "selected_candidate_id": "m0",
+        "currency": "HKD",
+        "direction": "expense"
+      },
+      "historical_prompt_version": "finance-assistance-4",
+      "input": {
+        "currency": "HKD",
+        "direction": "expense",
+        "candidates": [
+          {
+            "id": "m0",
+            "amount_minor": 1100,
+            "currency": "HKD",
+            "amount_exponent": 2,
+            "phrases": [
+              "本次",
+              "扣款"
+            ]
+          },
+          {
+            "id": "m1",
+            "amount_minor": 1000,
+            "currency": "HKD",
+            "amount_exponent": 2,
+            "phrases": [
+              "原价"
+            ]
+          },
+          {
+            "id": "m2",
+            "amount_minor": 100,
+            "currency": "HKD",
+            "amount_exponent": 2,
+            "phrases": [
+              "手续费"
+            ]
+          }
+        ],
+        "merchant_tokens": []
+      },
+      "request_sha256": "7b98e58affad1eca48f5646ae301fac8309b3fd375b914c53ec9eb10ac8867b3",
+      "original_envelope_sha256": "5e09c988fa8baebe4e696da1a2824444e2b1e15e296b171737e5949a3da1dad3",
+      "payload_sha256": "a71f05c978da189c6b2fd176be26f62012b88fde2055b2cf253942c2603d8952",
+      "provider_response": {
+        "schema_version": 2,
+        "amount_roles": [
+          {
+            "candidate_id": "m0",
+            "role": "actual_paid"
+          },
+          {
+            "candidate_id": "m1",
+            "role": "original"
+          },
+          {
+            "candidate_id": "m2",
+            "role": "fee"
+          }
+        ],
+        "selected_candidate_id": "m0",
+        "currency": "HKD",
+        "direction": "expense",
+        "confidence_per_mille": 800,
+        "refusal_reason": "none",
+        "merchant_normalized": "null",
+        "category": "other"
+      },
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 395,
+        "completion_tokens": 109,
+        "total_tokens": 504,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 32.85750961303711
+      }
+    },
+    {
+      "id": "gbp-discount",
+      "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+      "returned_model": "@cf/meta/llama-3.3-70b-json",
+      "historical_status": "FAIL",
+      "historical_expected": {
+        "selected_candidate_id": "m0",
+        "currency": "GBP",
+        "direction": "expense"
+      },
+      "historical_prompt_version": "finance-assistance-4",
+      "input": {
+        "currency": "GBP",
+        "direction": "expense",
+        "candidates": [
+          {
+            "id": "m0",
+            "amount_minor": 9000,
+            "currency": "GBP",
+            "amount_exponent": 2,
+            "phrases": [
+              "本次",
+              "支付"
+            ]
+          },
+          {
+            "id": "m1",
+            "amount_minor": 1000,
+            "currency": "GBP",
+            "amount_exponent": 2,
+            "phrases": [
+              "优惠"
+            ]
+          },
+          {
+            "id": "m2",
+            "amount_minor": 10000,
+            "currency": "GBP",
+            "amount_exponent": 2,
+            "phrases": [
+              "原价"
+            ]
+          }
+        ],
+        "merchant_tokens": []
+      },
+      "request_sha256": "dafb302ae81187ec6567ff4cdfb84de6b18027dc45044c883d974ce8841ea28f",
+      "original_envelope_sha256": "c34465b3b0b96b9bf1d164daa61d164421e56ad48b823b288adc246ea92a4a0b",
+      "payload_sha256": "9d6a14657c704385edfbd5556645eb41604f535303709c74efedbdf025e606c6",
+      "provider_response": {
+        "schema_version": 2,
+        "amount_roles": [
+          {
+            "candidate_id": "m0",
+            "role": "actual_paid"
+          }
+        ],
+        "selected_candidate_id": "m0",
+        "currency": "GBP",
+        "direction": "expense",
+        "confidence_per_mille": 800,
+        "refusal_reason": "none",
+        "merchant_normalized": "",
+        "category": "other"
+      },
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 390,
+        "completion_tokens": 78,
+        "total_tokens": 468,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 26.375205993652344
+      }
+    },
+    {
+      "id": "jpy-ambiguous",
+      "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+      "returned_model": "@cf/meta/llama-3.3-70b-json",
+      "historical_status": "FAIL",
+      "historical_expected": {
+        "selected_candidate_id": null,
+        "currency": "JPY",
+        "direction": "expense"
+      },
+      "historical_prompt_version": "finance-assistance-4",
+      "input": {
+        "currency": "JPY",
+        "direction": "expense",
+        "candidates": [
+          {
+            "id": "m0",
+            "amount_minor": 900,
+            "currency": "JPY",
+            "amount_exponent": 0,
+            "phrases": [
+              "金额"
+            ]
+          },
+          {
+            "id": "m1",
+            "amount_minor": 1000,
+            "currency": "JPY",
+            "amount_exponent": 0,
+            "phrases": [
+              "金额"
+            ]
+          }
+        ],
+        "merchant_tokens": []
+      },
+      "request_sha256": "e06b41e17092c5457893b20f7a216398bd1e8355c949dd76830f9a7a139379c8",
+      "original_envelope_sha256": "2e1ca6ac1cbc98e7dd0b4b6988eb41fb530fe9dc7dcef0b791cf966cdc7a5b97",
+      "payload_sha256": "b38cca918c9250e33d2ab0cc845ab0dbb92768b1dc1a1f0ad3bc5494cd37d295",
+      "provider_response": {
+        "schema_version": 2,
+        "amount_roles": [
+          {
+            "candidate_id": "m0",
+            "role": "actual_paid"
+          },
+          {
+            "candidate_id": "m1",
+            "role": "original"
+          }
+        ],
+        "selected_candidate_id": "m0",
+        "currency": "JPY",
+        "direction": "expense",
+        "confidence_per_mille": 500,
+        "refusal_reason": "insufficient_evidence",
+        "merchant_normalized": null,
+        "category": null
+      },
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 360,
+        "completion_tokens": 97,
+        "total_tokens": 457,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 29.46647834777832
+      }
+    },
+    {
+      "id": "cny-payment",
+      "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "returned_model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "historical_status": "FAIL",
+      "historical_expected": {
+        "selected_candidate_id": "m0",
+        "currency": "CNY",
+        "direction": "expense"
+      },
+      "historical_prompt_version": "finance-assistance-4",
+      "input": {
+        "currency": "CNY",
+        "direction": "expense",
+        "candidates": [
+          {
+            "id": "m0",
+            "amount_minor": 9000,
+            "currency": "CNY",
+            "amount_exponent": 2,
+            "phrases": [
+              "本次",
+              "扣除"
+            ]
+          },
+          {
+            "id": "m1",
+            "amount_minor": 10000,
+            "currency": "CNY",
+            "amount_exponent": 2,
+            "phrases": [
+              "原价"
+            ]
+          },
+          {
+            "id": "m2",
+            "amount_minor": 1000,
+            "currency": "CNY",
+            "amount_exponent": 2,
+            "phrases": [
+              "优惠"
+            ]
+          }
+        ],
+        "merchant_tokens": []
+      },
+      "request_sha256": "5c66a5f117f22f5fa4a6dcb0f4bd94d5b80054a555923781e59a2ad28beb5ab2",
+      "original_envelope_sha256": "112f99a6a2525e65c722cc6ee7740a6f2da9501bab672334bdaf0ebeed14e87c",
+      "payload_sha256": "f00404f79b376bc69ec67a32a01a9e772a5b9034fdaf063e9a32f765d439750b",
+      "provider_response": {
+        "schema_version": 2,
+        "amount_roles": [
+          {
+            "candidate_id": "m0",
+            "role": "actual_paid"
+          },
+          {
+            "candidate_id": "m1",
+            "role": "original"
+          },
+          {
+            "candidate_id": "m2",
+            "role": "discount"
+          }
+        ],
+        "selected_candidate_id": "m0",
+        "currency": "CNY",
+        "direction": "expense",
+        "confidence_per_mille": 950,
+        "refusal_reason": "none",
+        "merchant_normalized": "",
+        "category": "other"
+      },
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 377,
+        "completion_tokens": 448,
+        "total_tokens": 825,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 15.396164894104004
+      }
+    },
+    {
+      "id": "usd-refund",
+      "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "returned_model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "historical_status": "PASS",
+      "historical_expected": {
+        "selected_candidate_id": "m0",
+        "currency": "USD",
+        "direction": "refund"
+      },
+      "historical_prompt_version": "finance-assistance-4",
+      "input": {
+        "currency": "USD",
+        "direction": "refund",
+        "candidates": [
+          {
+            "id": "m0",
+            "amount_minor": 2500,
+            "currency": "USD",
+            "amount_exponent": 2,
+            "phrases": [
+              "本次",
+              "退款"
+            ]
+          },
+          {
+            "id": "m1",
+            "amount_minor": 5000,
+            "currency": "USD",
+            "amount_exponent": 2,
+            "phrases": [
+              "原价"
+            ]
+          }
+        ],
+        "merchant_tokens": []
+      },
+      "request_sha256": "26a7a34b80689f80a6af2cf11b2e082fb7d0f6b80babc4650526c7780caaee1f",
+      "original_envelope_sha256": "f0b2c3710f0cbeb869a3b23837f6acc3ad2366649f7ece6e5eeb6f9ac80c4156",
+      "payload_sha256": "5342ac3f86973e180f37e510070213b27cc84733d17166aedec0e7266ae800d4",
+      "provider_response": {
+        "schema_version": 2,
+        "amount_roles": [
+          {
+            "candidate_id": "m0",
+            "role": "refund"
+          }
+        ],
+        "selected_candidate_id": "m0",
+        "currency": "USD",
+        "direction": "refund",
+        "confidence_per_mille": 950,
+        "refusal_reason": "none",
+        "merchant_normalized": null,
+        "category": "refund"
+      },
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 343,
+        "completion_tokens": 386,
+        "total_tokens": 729,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 13.349493026733398
+      }
+    },
+    {
+      "id": "eur-income",
+      "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "returned_model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "historical_status": "PASS",
+      "historical_expected": {
+        "selected_candidate_id": "m0",
+        "currency": "EUR",
+        "direction": "income"
+      },
+      "historical_prompt_version": "finance-assistance-4",
+      "input": {
+        "currency": "EUR",
+        "direction": "income",
+        "candidates": [
+          {
+            "id": "m0",
+            "amount_minor": 12000,
+            "currency": "EUR",
+            "amount_exponent": 2,
+            "phrases": [
+              "本次",
+              "到账"
+            ]
+          },
+          {
+            "id": "m1",
+            "amount_minor": 50000,
+            "currency": "EUR",
+            "amount_exponent": 2,
+            "phrases": [
+              "余额"
+            ]
+          }
+        ],
+        "merchant_tokens": []
+      },
+      "request_sha256": "23bf73687d9d7cd2abfa979f96f6317d1ac07ff3c51a4234f048241651c11254",
+      "original_envelope_sha256": "2ddd99b1941f9f8e9b110ad490a89279d90e95290444b2daf19bce6cf1fedc54",
+      "payload_sha256": "a1fc6eb0582f80819efd5aece6774f300493d446ecee8da0e2a3e358cdbf5430",
+      "provider_response": {
+        "schema_version": 2,
+        "amount_roles": [
+          {
+            "candidate_id": "m0",
+            "role": "actual_received"
+          },
+          {
+            "candidate_id": "m1",
+            "role": "balance"
+          }
+        ],
+        "selected_candidate_id": "m0",
+        "currency": "EUR",
+        "direction": "income",
+        "confidence_per_mille": 950,
+        "refusal_reason": "none",
+        "merchant_normalized": null,
+        "category": null
+      },
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 344,
+        "completion_tokens": 287,
+        "total_tokens": 631,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 10.337115287780762
+      }
+    },
+    {
+      "id": "hkd-fee",
+      "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "returned_model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "historical_status": "FAIL",
+      "historical_expected": {
+        "selected_candidate_id": "m0",
+        "currency": "HKD",
+        "direction": "expense"
+      },
+      "historical_prompt_version": "finance-assistance-4",
+      "input": {
+        "currency": "HKD",
+        "direction": "expense",
+        "candidates": [
+          {
+            "id": "m0",
+            "amount_minor": 1100,
+            "currency": "HKD",
+            "amount_exponent": 2,
+            "phrases": [
+              "本次",
+              "扣款"
+            ]
+          },
+          {
+            "id": "m1",
+            "amount_minor": 1000,
+            "currency": "HKD",
+            "amount_exponent": 2,
+            "phrases": [
+              "原价"
+            ]
+          },
+          {
+            "id": "m2",
+            "amount_minor": 100,
+            "currency": "HKD",
+            "amount_exponent": 2,
+            "phrases": [
+              "手续费"
+            ]
+          }
+        ],
+        "merchant_tokens": []
+      },
+      "request_sha256": "7b98e58affad1eca48f5646ae301fac8309b3fd375b914c53ec9eb10ac8867b3",
+      "original_envelope_sha256": "fba383cf9edc35cbd6a81252e5c8a691f3d334355191d89f5619b776dc2e58b1",
+      "payload_sha256": "345309d2e5f89ef894a98f3caa1066b903686ad0990ad1c467741449bf20090c",
+      "provider_response": "{\"schema_version\":2,\"amount_roles\":[{\"candidate_id\":\"m0\",\"role\":\"actual_paid",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 376,
+        "completion_tokens": 512,
+        "total_tokens": 888,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 17.3419246673584
+      }
+    },
+    {
+      "id": "gbp-discount",
+      "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "returned_model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "historical_status": "FAIL",
+      "historical_expected": {
+        "selected_candidate_id": "m0",
+        "currency": "GBP",
+        "direction": "expense"
+      },
+      "historical_prompt_version": "finance-assistance-4",
+      "input": {
+        "currency": "GBP",
+        "direction": "expense",
+        "candidates": [
+          {
+            "id": "m0",
+            "amount_minor": 9000,
+            "currency": "GBP",
+            "amount_exponent": 2,
+            "phrases": [
+              "本次",
+              "支付"
+            ]
+          },
+          {
+            "id": "m1",
+            "amount_minor": 1000,
+            "currency": "GBP",
+            "amount_exponent": 2,
+            "phrases": [
+              "优惠"
+            ]
+          },
+          {
+            "id": "m2",
+            "amount_minor": 10000,
+            "currency": "GBP",
+            "amount_exponent": 2,
+            "phrases": [
+              "原价"
+            ]
+          }
+        ],
+        "merchant_tokens": []
+      },
+      "request_sha256": "dafb302ae81187ec6567ff4cdfb84de6b18027dc45044c883d974ce8841ea28f",
+      "original_envelope_sha256": "1ab2bf2bcffba9dac6be1d4ad2d65401af8dc48cdbb960eec53ba2c576d8c118",
+      "payload_sha256": "f210b93a763447e567190713ec385519a80710f245cab9cd16cec1718f8e8856",
+      "provider_response": {
+        "schema_version": 2,
+        "amount_roles": [
+          {
+            "candidate_id": "m0",
+            "role": "actual_paid"
+          },
+          {
+            "candidate_id": "m1",
+            "role": "discount"
+          },
+          {
+            "candidate_id": "m2",
+            "role": "original"
+          }
+        ],
+        "selected_candidate_id": "m0",
+        "currency": "GBP",
+        "direction": "expense",
+        "confidence_per_mille": 950,
+        "refusal_reason": "none",
+        "merchant_normalized": "",
+        "category": "other"
+      },
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 373,
+        "completion_tokens": 453,
+        "total_tokens": 826,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 15.53003978729248
+      }
+    },
+    {
+      "id": "jpy-ambiguous",
+      "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "returned_model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "historical_status": "PASS",
+      "historical_expected": {
+        "selected_candidate_id": null,
+        "currency": "JPY",
+        "direction": "expense"
+      },
+      "historical_prompt_version": "finance-assistance-4",
+      "input": {
+        "currency": "JPY",
+        "direction": "expense",
+        "candidates": [
+          {
+            "id": "m0",
+            "amount_minor": 900,
+            "currency": "JPY",
+            "amount_exponent": 0,
+            "phrases": [
+              "金额"
+            ]
+          },
+          {
+            "id": "m1",
+            "amount_minor": 1000,
+            "currency": "JPY",
+            "amount_exponent": 0,
+            "phrases": [
+              "金额"
+            ]
+          }
+        ],
+        "merchant_tokens": []
+      },
+      "request_sha256": "e06b41e17092c5457893b20f7a216398bd1e8355c949dd76830f9a7a139379c8",
+      "original_envelope_sha256": "eeda326529d0e9d1e67efa09a65bd0ebaa7e10d6afed70808fa04d2221aaf768",
+      "payload_sha256": "f14445b24e3ea06b98767b6db7b1d2a6eabeec0073d162d5e55ada8fad2339a7",
+      "provider_response": {
+        "schema_version": 2,
+        "amount_roles": [
+          {
+            "candidate_id": "m0",
+            "role": "unknown"
+          },
+          {
+            "candidate_id": "m1",
+            "role": "unknown"
+          }
+        ],
+        "selected_candidate_id": null,
+        "currency": "JPY",
+        "direction": "expense",
+        "confidence_per_mille": 0,
+        "refusal_reason": "insufficient_evidence",
+        "merchant_normalized": null,
+        "category": null
+      },
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 342,
+        "completion_tokens": 471,
+        "total_tokens": 813,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 15.935223579406738
+      }
+    }
+  ]
+}
