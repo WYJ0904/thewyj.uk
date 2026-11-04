@@ -91,13 +91,37 @@
 
 ---
 
-## 六、硬件真机与生产发布门禁状态
+## 六、远程 CI 完整验证结果
+
+- **Draft PR**：[PR #120](https://github.com/WYJ0904/thewyj.uk/pull/120) (`codex/task26-integration` -> `main`)
+- **验证 HEAD**：`7da81c68bd42381b85be0d3304b2242096ea3d17`
+- **GitHub Actions Workflow**：[Core CI Run 41768441494](https://github.com/WYJ0904/thewyj.uk/actions/runs/41768441494)
+- **CI 最终状态**：**10/10 SUCCESS (100% 通过)**
+
+| Job 名称 | 耗时 | 结果 | 详情链接 |
+| :--- | :--- | :--- | :--- |
+| **Python syntax and unittest (ubuntu-latest)** | 42s | **SUCCESS** | [Job 126372238356](https://github.com/WYJ0904/thewyj.uk/actions/runs/41768441494/job/126372238356) |
+| **Python syntax and unittest (windows-latest)** | 2m50s | **SUCCESS** | [Job 126372238759](https://github.com/WYJ0904/thewyj.uk/actions/runs/41768441494/job/126372238759) |
+| **JavaScript and static site checks** | 3m57s | **SUCCESS** | [Job 126372238646](https://github.com/WYJ0904/thewyj.uk/actions/runs/41768441494/job/126372238646) |
+| **Sensitive files and static naming** | 8s | **SUCCESS** | [Job 126372238678](https://github.com/WYJ0904/thewyj.uk/actions/runs/41768441494/job/126372238678) |
+| **Pages build and publish allowlist** | 17s | **SUCCESS** | [Job 126372238695](https://github.com/WYJ0904/thewyj.uk/actions/runs/41768441494/job/126372238695) |
+| **Android unit, lint and APK** | 58s | **SUCCESS** | [Job 126372238718](https://github.com/WYJ0904/thewyj.uk/actions/runs/41768441494/job/126372238718) |
+| **Task 25 cloud credential discovery** | 4s | **SUCCESS** | [Job 126372238831](https://github.com/WYJ0904/thewyj.uk/actions/runs/41768441494/job/126372238831) |
+| **Task 25 Android runtime contract** | 3m14s | **SUCCESS** | [Job 126372238832](https://github.com/WYJ0904/thewyj.uk/actions/runs/41768441494/job/126372238832) |
+| **Browser flow (application)** | 2m17s | **SUCCESS** | [Job 126373502078](https://github.com/WYJ0904/thewyj.uk/actions/runs/41768441494/job/126373502078) |
+| **Cloud-only browser, canonical session and toolbox** | 11m5s | **SUCCESS** | [Job 126373502061](https://github.com/WYJ0904/thewyj.uk/actions/runs/41768441494/job/126373502061) |
+| *Cloudflare Pages Preview Deployment* | — | **SUCCESS** | [Deployment View](https://dash.cloudflare.com/?to=/97c274a981e8dd6703aa6388e11c4614/pages/view/thewyj-uk/cc428985-b151-4440-b9e6-f39886d97379) |
+
+---
+
+## 七、硬件真机与生产发布门禁状态
 
 | 门禁项 | 状态 | 详细说明 |
 | :--- | :--- | :--- |
 | **P0 / P1 阻断缺陷** | **PASS** | 经全量静态审计与自动化回归，无 P0/P1 缺陷 |
 | **P2 缺陷修复** | **PASS** | `T26-IQA-001` 已完整修复并合入集成分支 |
 | **本地工程集成** | **PASS** | 128 项 Task26 + 10 项迁移 + 186 项 Python 测试全绿 |
+| **远程 Core CI** | **PASS** | 10/10 自动化作业全绿，包含两套无头浏览器全流端到端验证 |
 | **Samsung 物理真机** | **NOT_TESTED** | 未执行真机测试，桌面移动视口模拟不替代物理真机 |
 | **Production D1 0026** | **PENDING_APPROVAL**| 未在生产数据库执行迁移，等待生产发布窗口 |
 | **Production 真实支付/用户** | **HELD** | 保持生产环境隔离，未写入生产数据 |
@@ -105,20 +129,20 @@
 
 ---
 
-## 七、PR #111 后续处理方案
+## 八、PR #111 后续处理方案
 
 1. **当前现状**：
    - PR #111 (`df67fd0`) 保持 Draft、未合并、未被覆盖。
    - PR #111 缺乏 P2 时间溢出修复 `c063654` 以及最新的 main 变更同步。
 2. **处理建议**：
-   - 开启本集成分支 `codex/task26-integration` 针对 `main` 的独立 Draft PR。
-   - 待远程 CI 完全验证后，由所有者将本 PR 确立为 Task 26 的最终合入 PR。
-   - 经确认后，直接关闭原 PR #111（标记为由新 PR 替代），严禁双重合并。
+   - 开启本集成分支 `codex/task26-integration` 针对 `main` 的独立 Draft PR（即 [PR #120](https://github.com/WYJ0904/thewyj.uk/pull/120)）。
+   - 远程 CI 已 100% 验证成功，由所有者将 PR #120 确立为 Task 26 的最终合入 PR。
+   - 经确认后，直接关闭原 PR #111（标记为由 PR #120 替代），严禁双重合并。
 
 ---
 
-## 八、下一步最小必要人工操作
+## 九、下一步最小必要人工操作
 
-1. 审核本集成 Draft PR 的改动文件差异与远程 CI 运行报告。
+1. 审核本集成 Draft PR #120 的改动文件差异与远程 CI 运行报告。
 2. 若需在 Android 端验证，安排在 Samsung 物理真机或受控沙箱中执行错题本真机 UI 抽检。
 3. 待正式发布窗口期，执行生产 D1 `0026_task26_wrong_review_mastery.sql` 增量迁移并分阶段开启 Feature Flag。
