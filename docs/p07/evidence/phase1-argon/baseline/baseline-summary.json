@@ -1,0 +1,137 @@
+{
+  "mainSha": "3eb268b748a6e7a1aaa7369059db474810bb59d4",
+  "screenshots": [
+    {
+      "file": "before-home-desktop-1440-light.png",
+      "route": "/",
+      "width": 1440,
+      "height": 960,
+      "theme": "light",
+      "metrics": {
+        "bodyBg": "rgb(238, 241, 245)",
+        "experience": "public",
+        "navBg": "color(srgb 0.933333 0.945098 0.960784 / 0.92)",
+        "heroBg": "linear-gradient(rgb(238, 241, 245) 0%, rgb(238, 241, 245) 78%, rgb(245, 246, 248) 100%)",
+        "authVisible": false,
+        "authLogoSrc": "/assets/brand/aeris-lockup.png?v=20261027-aeris-p07-ui-r1",
+        "heroLogoSrc": "/icon-192.png?v=20261027-aeris-p07-ui-r1",
+        "scrollWidth": 1425,
+        "innerWidth": 1440,
+        "runtimeErrors": []
+      }
+    },
+    {
+      "file": "before-home-desktop-1440-dark.png",
+      "route": "/",
+      "width": 1440,
+      "height": 960,
+      "theme": "dark",
+      "metrics": {
+        "bodyBg": "rgb(7, 9, 13)",
+        "experience": "public",
+        "navBg": "color(srgb 0.027451 0.0352941 0.0509804 / 0.92)",
+        "heroBg": "linear-gradient(rgb(7, 9, 13) 0%, rgb(7, 9, 13) 78%, rgb(17, 19, 24) 100%)",
+        "authVisible": false,
+        "authLogoSrc": "/assets/brand/aeris-lockup.png?v=20261027-aeris-p07-ui-r1",
+        "heroLogoSrc": "/icon-192.png?v=20261027-aeris-p07-ui-r1",
+        "scrollWidth": 1425,
+        "innerWidth": 1440,
+        "runtimeErrors": []
+      }
+    },
+    {
+      "file": "before-home-mobile-390-light.png",
+      "route": "/",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "metrics": {
+        "bodyBg": "rgb(238, 241, 245)",
+        "experience": "public",
+        "navBg": "color(srgb 0.933333 0.945098 0.960784 / 0.92)",
+        "heroBg": "linear-gradient(rgb(238, 241, 245) 0%, rgb(238, 241, 245) 78%, rgb(245, 246, 248) 100%)",
+        "authVisible": false,
+        "authLogoSrc": "/assets/brand/aeris-lockup.png?v=20261027-aeris-p07-ui-r1",
+        "heroLogoSrc": "/icon-192.png?v=20261027-aeris-p07-ui-r1",
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "runtimeErrors": []
+      }
+    },
+    {
+      "file": "before-login-desktop-1440-light.png",
+      "route": "/login",
+      "width": 1440,
+      "height": 960,
+      "theme": "light",
+      "metrics": {
+        "bodyBg": "rgb(243, 242, 239)",
+        "experience": "workspace",
+        "navBg": "color(srgb 0.952941 0.94902 0.937255 / 0.94)",
+        "heroBg": "linear-gradient(rgb(238, 241, 245) 0%, rgb(238, 241, 245) 78%, rgb(245, 246, 248) 100%)",
+        "authVisible": true,
+        "authLogoSrc": "/assets/brand/aeris-lockup.png?v=20261027-aeris-p07-ui-r1",
+        "heroLogoSrc": "/icon-192.png?v=20261027-aeris-p07-ui-r1",
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "runtimeErrors": []
+      }
+    },
+    {
+      "file": "before-login-desktop-1440-dark.png",
+      "route": "/login",
+      "width": 1440,
+      "height": 960,
+      "theme": "dark",
+      "metrics": {
+        "bodyBg": "rgb(22, 23, 21)",
+        "experience": "workspace",
+        "navBg": "color(srgb 0.0862745 0.0901961 0.082353 / 0.94)",
+        "heroBg": "linear-gradient(rgb(7, 9, 13) 0%, rgb(7, 9, 13) 78%, rgb(17, 19, 24) 100%)",
+        "authVisible": true,
+        "authLogoSrc": "/assets/brand/aeris-lockup.png?v=20261027-aeris-p07-ui-r1",
+        "heroLogoSrc": "/icon-192.png?v=20261027-aeris-p07-ui-r1",
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "runtimeErrors": []
+      }
+    },
+    {
+      "file": "before-login-mobile-390-light.png",
+      "route": "/login",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "metrics": {
+        "bodyBg": "rgb(243, 242, 239)",
+        "experience": "workspace",
+        "navBg": "color(srgb 0.952941 0.94902 0.937255 / 0.94)",
+        "heroBg": "linear-gradient(rgb(238, 241, 245) 0%, rgb(238, 241, 245) 78%, rgb(245, 246, 248) 100%)",
+        "authVisible": true,
+        "authLogoSrc": "/assets/brand/aeris-lockup.png?v=20261027-aeris-p07-ui-r1",
+        "heroLogoSrc": "/icon-192.png?v=20261027-aeris-p07-ui-r1",
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "runtimeErrors": []
+      }
+    }
+  ],
+  "cssAudit": {},
+  "assetSizes": {
+    "styles.css": 65135,
+    "product-ui.css": 101314,
+    "design-system.css": 25135,
+    "public-experience.css": 56133,
+    "workspace-experience.css": 34040,
+    "app.js": 315108,
+    "js/core/design-system.js": 8615,
+    "js/core/home-widgets.js": 14202,
+    "js/core/home-widget-layout.js": 5739,
+    "js/core/motion.js": 9663
+  },
+  "homeWidgetsTest": {
+    "exitCode": 0,
+    "stdout": "{\"pass\":true,\"drag\":1,\"accountIsolation\":true,\"responsive\":true,\"navigation\":true}",
+    "stderr": ""
+  }
+}

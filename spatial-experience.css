@@ -1,0 +1,735 @@
+/* Aeris V6.2 P07 Phase 1 — V3 Unified Navigation, Home Spatial Cards & Login Sample.
+ * Governed by Task25 (p07_accessibility).
+ * Strict layer separation: .hero-scene-card owns ONLY coordinates/rotation;
+ * .home-widget-visual owns ONLY surface, border, shadow, and micro-motion.
+ */
+.home-widget-visual { display: contents; }
+#publicHome .home-widget-main .home-widget-glyph { display: none; }
+.home-intro-note {
+  display: none;
+  max-width: 38ch;
+  margin: 16px 0 0;
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-md);
+  line-height: 1.75;
+}
+.auth-subtitle { display: none; }
+
+.aeris-preview-notice:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: baseline;
+  width: min(calc(100% - 32px), var(--ds-container-default));
+  margin: 14px auto 0;
+  padding: 10px 16px;
+  border: 1px solid var(--ds-brand-border, var(--ds-border));
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-sm);
+}
+.aeris-preview-notice strong { color: var(--ds-brand); font-weight: 650; }
+
+/* Fix mobile <= 760px legacy rule hiding guest demo label on floating cards */
+#publicHome .home-widget-demo:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+}
+#publicHome .public-hero-scene[data-editing="true"] .home-widget-demo {
+  display: none !important;
+}
+
+/* ==========================================================================
+ * Unified Site-Wide Navigation Bar (#accountBar) — Public & Workspace Parity
+ * ========================================================================== */
+html[data-p07-ui="enabled"] body[data-experience] .site-nav {
+  background: color-mix(in srgb, var(--ds-surface) 94%, transparent);
+  border-bottom: 1px solid var(--ds-border);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+html[data-p07-ui="enabled"] .site-brand img {
+  border: 1px solid var(--ds-border);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+html[data-p07-ui="enabled"] .home-inline-nav {
+  gap: 4px;
+}
+
+html[data-p07-ui="enabled"] .home-inline-nav a {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-text-secondary);
+  font-weight: 500;
+  transition:
+    background-color var(--ds-duration-fast) var(--ds-ease-standard),
+    color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] .home-inline-nav a:hover {
+  background: var(--ds-surface-muted);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .home-inline-nav a[aria-current="page"] {
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  font-weight: 650;
+}
+
+html[data-p07-ui="enabled"] .site-release-actions > a {
+  border-color: var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+  color: var(--ds-text-secondary);
+  font-weight: 500;
+}
+
+html[data-p07-ui="enabled"] .site-release-actions > a:hover,
+html[data-p07-ui="enabled"] .site-release-actions > a[aria-current="page"] {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .theme-toggle {
+  border-color: var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] .account-menu-popover {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-raised);
+}
+
+/* Unified clean version notice without legacy fixed dark shadow */
+html[data-p07-ui="enabled"] #versionNotice:not(.hidden) {
+  position: relative;
+  inset: auto;
+  max-width: var(--ds-container-default);
+  width: min(calc(100% - 32px), var(--ds-container-default));
+  margin: 14px auto 0;
+  padding: 12px 18px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  animation: none;
+  z-index: auto;
+}
+
+/* ==========================================================================
+ * Home V3 Layout & Hero Hierarchy (P07-01B)
+ * ========================================================================== */
+html[data-p07-ui="enabled"] #publicHome .public-hero {
+  gap: var(--ds-space-12);
+  min-height: 604px;
+  padding-block: var(--ds-space-10) var(--ds-space-8);
+  background: transparent;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-brand {
+  gap: var(--ds-space-4);
+}
+
+html[data-p07-ui="enabled"] #publicHome .aeris-hero-logo {
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid var(--ds-border);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-brand h1 {
+  font-size: clamp(2.85rem, 3.8vw, 4rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-purpose {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--ds-space-5);
+  padding: 6px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1.4;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+html[data-p07-ui="enabled"] .home-intro-note {
+  display: block;
+  max-width: 38ch;
+  text-wrap: pretty;
+}
+
+html[data-p07-ui="enabled"] #publicHome .public-actions {
+  margin-top: var(--ds-space-6);
+  gap: var(--ds-space-3);
+}
+
+html[data-p07-ui="enabled"] #publicHome .public-actions > * {
+  min-height: 46px;
+  padding-inline: 20px;
+  border-radius: var(--ds-radius-md);
+  font-size: var(--ds-text-sm);
+}
+
+html[data-p07-ui="enabled"] #publicHome .public-actions .button-secondary {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface);
+}
+
+/* ==========================================================================
+ * Three-Card Spatial Interaction (P07-01C)
+ * Layer 1 (.hero-scene-card): coordinates & rotation ONLY.
+ * Layer 2 (.home-widget-visual): pure white V3 card surface, border, shadow, motion.
+ * Layer 3 (.home-widget-main + controls): structured typography & 44px controls.
+ * ========================================================================== */
+html[data-p07-ui="enabled"] #publicHome .hero-scene-card {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: none !important;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-visual {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.05),
+    0 10px 26px rgba(15, 23, 42, 0.065);
+  transform: translateY(0) scale(1);
+  transition:
+    transform var(--ds-duration-normal) var(--ds-ease-emphasized),
+    box-shadow var(--ds-duration-normal) var(--ds-ease-emphasized),
+    border-color var(--ds-duration-fast) var(--ds-ease-standard);
+  animation: aeris-spatial-arrive 260ms var(--ds-ease-emphasized) backwards;
+}
+
+html[data-p07-ui="enabled"][data-theme="dark"] #publicHome .home-widget-visual {
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.28),
+    0 14px 34px rgba(0, 0, 0, 0.34);
+}
+
+html[data-p07-ui="enabled"] #publicHome .hero-scene-finance .home-widget-visual {
+  animation-delay: 45ms;
+}
+
+html[data-p07-ui="enabled"] #publicHome .hero-scene-tools .home-widget-visual {
+  animation-delay: 90ms;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-main {
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 20px;
+  border-radius: inherit;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-glyph {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 3px;
+  border-radius: 6px;
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  flex-shrink: 0;
+}
+
+html[data-p07-ui="enabled"] #publicHome .hero-scene-finance .home-widget-glyph {
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-glyph svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-main small {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+  padding-right: 76px;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-main strong {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-main span {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-main i {
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--ds-text-muted);
+}
+
+html[data-p07-ui="enabled"] #publicHome [data-size="small"] .home-widget-main {
+  padding: 14px 16px;
+  gap: 5px;
+}
+
+html[data-p07-ui="enabled"] #publicHome [data-size="small"] .home-widget-glyph {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] #publicHome [data-size="large"] .home-widget-main {
+  padding: 20px 22px;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-demo:not([hidden]) {
+  right: 48px;
+  top: 12px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-edit,
+html[data-p07-ui="enabled"] #publicHome .home-widget-drag {
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-edit:hover,
+html[data-p07-ui="enabled"] #publicHome .home-widget-drag:hover {
+  background: var(--ds-surface-muted);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #publicHome .public-hero-scene[data-editing="true"] .hero-scene-card {
+  outline: none;
+}
+
+html[data-p07-ui="enabled"] #publicHome .public-hero-scene[data-editing="true"] .home-widget-visual {
+  border-style: dashed;
+  border-color: var(--ds-brand-border);
+  animation: none;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-visual:focus-within {
+  border-color: var(--ds-focus);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html[data-p07-ui="enabled"] #publicHome .hero-scene-card:hover .home-widget-visual {
+    transform: translateY(-3px);
+    border-color: var(--ds-border-strong);
+    box-shadow: var(--ds-shadow-raised);
+  }
+}
+
+html[data-p07-ui="enabled"] #publicHome .hero-scene-card:not([data-dragging="true"]):has(.home-widget-main:active) .home-widget-visual {
+  transform: translateY(-1px) scale(0.992);
+  animation: none;
+}
+
+html[data-p07-ui="enabled"] #publicHome .hero-scene-card[data-dragging="true"] .home-widget-drag {
+  cursor: grabbing;
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] #publicHome .hero-scene-card[data-dragging="true"] .home-widget-visual {
+  border-style: solid;
+  border-color: var(--ds-brand);
+  transform: translateY(-5px) scale(1.016);
+  box-shadow:
+    0 8px 20px rgba(37, 99, 235, 0.14),
+    0 20px 44px rgba(15, 23, 42, 0.12);
+  animation: none;
+}
+
+html[data-p07-ui="enabled"] #publicHome .hero-scene-card[data-settling="true"] .home-widget-visual {
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html[data-p07-ui="enabled"] .home-layout-controls {
+  gap: 8px;
+  margin-top: 8px;
+}
+
+html[data-p07-ui="enabled"] .home-layout-controls button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-xs);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+html[data-p07-ui="enabled"] .home-layout-controls button:hover {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #homeLayoutToggle[aria-pressed="true"] {
+  border-color: var(--ds-brand-border);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+}
+
+/* ==========================================================================
+ * Home Lower Cards: Quick Access, Recent Activity & Product Details (V3 Cards)
+ * ========================================================================== */
+html[data-p07-ui="enabled"] .home-workspace-overview {
+  gap: var(--ds-space-6);
+  margin: var(--ds-space-4) auto var(--ds-space-6);
+  padding: 0;
+  border-top: 0;
+}
+
+html[data-p07-ui="enabled"] .home-quick-access,
+html[data-p07-ui="enabled"] .home-recent-activity {
+  padding: var(--ds-space-6);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .home-quick-access {
+  gap: 8px 16px;
+}
+
+html[data-p07-ui="enabled"] .home-quick-access > a {
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-md);
+  padding: 10px 12px;
+  transition:
+    background-color var(--ds-duration-fast) var(--ds-ease-standard),
+    border-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] .home-quick-access > a:hover {
+  border-color: var(--ds-border);
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] .home-quick-access > a > span:first-child {
+  border-color: var(--ds-brand-border);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] .home-product-details {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  padding: 0 var(--ds-space-6);
+}
+
+html[data-p07-ui="enabled"] .home-product-details > summary {
+  font-weight: 600;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .home-product-details[open] {
+  padding-bottom: var(--ds-space-6);
+}
+
+@keyframes aeris-spatial-arrive {
+  from { opacity: 0.72; transform: translateY(8px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 1023px) {
+  html[data-p07-ui="enabled"] #publicHome .public-hero {
+    gap: var(--ds-space-8);
+  }
+  html[data-p07-ui="enabled"] .home-workspace-overview {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Authenticated returning users see personal identity row instead of guest marketing blurb */
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .home-intro-note {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  html[data-p07-ui="enabled"] #publicHome .public-hero {
+    min-height: 0;
+    gap: 18px;
+    padding-block: 16px 12px;
+  }
+  html[data-p07-ui="enabled"] #publicHome .aeris-hero-logo {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+  }
+  html[data-p07-ui="enabled"] #publicHome .home-brand h1 {
+    font-size: 2.35rem;
+  }
+  html[data-p07-ui="enabled"] #publicHome .home-purpose {
+    margin-top: 12px;
+    padding: 4px 12px;
+  }
+  html[data-p07-ui="enabled"] .home-intro-note {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    margin-top: 8px;
+  }
+  html[data-p07-ui="enabled"] #publicHome .public-actions {
+    margin-top: 14px;
+    gap: 8px;
+  }
+  html[data-p07-ui="enabled"] #publicHome .public-actions > * {
+    min-height: 44px;
+  }
+  html[data-p07-ui="enabled"] #publicHome[data-widget-layout="mobile"] .public-hero-scene {
+    gap: 8px;
+  }
+  html[data-p07-ui="enabled"] .home-quick-access,
+  html[data-p07-ui="enabled"] .home-recent-activity {
+    padding: var(--ds-space-5);
+  }
+  html[data-p07-ui="enabled"] .home-product-details {
+    padding: 0 var(--ds-space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-p07-ui="enabled"] #publicHome .home-widget-visual {
+    animation: none !important;
+    transition: none !important;
+  }
+  html[data-p07-ui="enabled"] #publicHome .hero-scene-card:is(:hover, [data-dragging="true"], [data-settling="true"]) .home-widget-visual {
+    transform: none !important;
+  }
+}
+
+html[data-p07-ui="enabled"][data-android-reduced-motion="true"] #publicHome .home-widget-visual {
+  animation: none !important;
+  transition: none !important;
+}
+
+html[data-p07-ui="enabled"][data-android-reduced-motion="true"] #publicHome .hero-scene-card:is(:hover, [data-dragging="true"], [data-settling="true"]) .home-widget-visual {
+  transform: none !important;
+}
+
+/* ==========================================================================
+ * Login & Register V3 Sample (#authPanel — P07-01D)
+ * Reuses the exact same V3 canvas, white card, border, shadow, typography,
+ * segmented tabs, 46px inputs, and Aeris blue primary CTA as Home (/).
+ * ========================================================================== */
+html[data-p07-ui="enabled"] .auth-panel {
+  width: min(468px, 100%);
+  margin: 40px auto 32px;
+  padding: 36px 34px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .auth-panel .auth-logo {
+  width: 80px;
+  height: 80px;
+  padding: 6px;
+  margin: 0 0 18px;
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+  object-fit: contain;
+}
+
+html[data-p07-ui="enabled"] .auth-panel h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .auth-subtitle {
+  display: block;
+  margin: 8px 0 0;
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-sm);
+  line-height: 1.6;
+}
+
+html[data-p07-ui="enabled"] .auth-tabs {
+  margin: 22px 0 20px;
+  padding: 4px;
+  gap: 4px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-muted);
+}
+
+/* Segmented pill switcher owns active state; suppress bottom underline collision */
+html[data-p07-ui="enabled"] .auth-tabs .ds-tab-indicator {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] .auth-tabs > button {
+  min-height: 44px;
+  border-radius: var(--ds-radius-sm);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .auth-tabs > button.active,
+html[data-p07-ui="enabled"] .auth-tabs > button[aria-selected="true"] {
+  border-color: var(--ds-border);
+  background: var(--ds-surface);
+  color: var(--ds-brand);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+html[data-p07-ui="enabled"] .auth-panel .login-form {
+  display: grid;
+  gap: 16px;
+}
+
+html[data-p07-ui="enabled"] .auth-field {
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] .auth-field > span {
+  color: var(--ds-text);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] .auth-panel input {
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  font-size: var(--ds-text-md);
+}
+
+html[data-p07-ui="enabled"] .auth-panel input:-webkit-autofill {
+  -webkit-text-fill-color: var(--ds-text);
+  box-shadow: 0 0 0 1000px var(--ds-surface) inset;
+}
+
+html[data-p07-ui="enabled"] .auth-panel :is(#loginSubmitBtn, #registerSubmitBtn) {
+  min-height: 46px;
+  width: 100%;
+  margin-top: 6px;
+  border-radius: var(--ds-radius-md);
+  font-size: var(--ds-text-md);
+  font-weight: 650;
+}
+
+html[data-p07-ui="enabled"] #offlineReviewBtn:not(.hidden) {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  border-radius: var(--ds-radius-md);
+}
+
+html[data-p07-ui="enabled"] #loginError:empty {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-height: 0;
+}
+
+html[data-p07-ui="enabled"] #loginError:not(:empty) {
+  margin: 16px 0 0;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--ds-error) 28%, var(--ds-border));
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-error-soft);
+  color: var(--ds-error);
+  font-size: var(--ds-text-sm);
+  line-height: 1.5;
+}
+
+@media (max-width: 560px) {
+  html[data-p07-ui="enabled"] .auth-panel {
+    margin: 20px auto 24px;
+    padding: 26px 20px;
+  }
+  html[data-p07-ui="enabled"] .auth-panel .auth-logo {
+    width: 68px;
+    height: 68px;
+    border-radius: 14px;
+    margin-bottom: 14px;
+  }
+}
+
+/* Unified Aeris brand primary buttons across public Home & Workspace (light #2563eb / dark #6ea2ff) */
+html[data-p07-ui="enabled"] :is(#publicHome .public-actions .primary, #accountBar #navRegisterBtn) {
+  border-color: var(--ds-brand);
+  background: var(--ds-brand);
+  color: var(--ds-on-brand);
+}
+
+html[data-p07-ui="enabled"] :is(#publicHome .public-actions .primary, #accountBar #navRegisterBtn):hover:not(:disabled) {
+  border-color: var(--ds-brand-hover);
+  background: var(--ds-brand-hover);
+  color: var(--ds-on-brand);
+}
+
+/* While layout editing is active, yield top-right slot cleanly to the 44px drag handle */
+html[data-p07-ui="enabled"] #publicHome .public-hero-scene[data-editing="true"] .home-widget-demo {
+  opacity: 0;
+  pointer-events: none;
+}
