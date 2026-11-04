@@ -4,16 +4,16 @@
 - **基线与分支**：
   - 基线 PR：PR #121（分支 `codex/aeris-p07-phase1-handover`，基线 Commit `337bb32f1ce349f9c5d58bd6120932fa5e61a745`）
   - 本轮开发分支：`gemini/p07-d-business-workspaces`
-  - 核心修复提交 Commit：`d28d21a5a8b952b6440f3558500d1c43e3e208e5`
+  - 核心修复提交 Commit：`287d3708b4ec9f0ce0f166395d651a8477623639`
   - 关联 Pull Request：Draft PR #122 (https://github.com/WYJ0904/thewyj.uk/pull/122)
   - PR 目标分支：`codex/aeris-p07-phase1-handover`（严格以已认可的 PR #121 为基线，绝不直接合入 `main`）
-  - 远程 Core CI Run：`41831725422` (https://github.com/WYJ0904/thewyj.uk/actions/runs/41831725422)
+  - 远程 Core CI Run：`41834540661` (https://github.com/WYJ0904/thewyj.uk/actions/runs/41834540661)
 - **独立 Hosted Preview（当前实时验证部署）**：
-  - 部署固定地址：https://93ffacea.thewyj-p07-ui-rc.pages.dev
+  - 部署固定地址：https://9963600f.thewyj-p07-ui-rc.pages.dev
   - 分支别名地址：https://v62-p07-d-workspaces.thewyj-p07-ui-rc.pages.dev
   - Pages 项目：`thewyj-p07-ui-rc`
-  - 部署 Commit：`d28d21a5a8b952b6440f3558500d1c43e3e208e5`
-  - 部署 ID：`93ffacea-c424-4402-9e28-8d00d0d5d76e`
+  - 部署 Commit：`287d3708b4ec9f0ce0f166395d651a8477623639`
+  - 部署 ID：`9963600f-d315-4eed-9da6-74d1dd29333a`
   - 隔离 D1 数据库：`ee869f78-b54a-4018-bc99-871089ecb8cd`（0 R2 绑定，0 AI 绑定，完全隔离，Production 未触碰）
   - 静态资源校验：86 项公开静态资源 SHA-256 100% 匹配，HTTP 200，0 运行时报错
 - **测试账号信息**：
@@ -89,6 +89,12 @@
      - **注销账户危险区**：独立警示红框卡片。
   2. 左侧导航保持同步高亮，关闭后平滑返回个人首页。
 
+### 1.9 P07-D-009：学习测试状态恢复与跨语言切换健壮性（回归保障）
+- **问题现状**：在正在进行答题且有题目跃迁调度（pending advance）的情况下刷新页面或切换语言，无条件重置 DOM 会导致活跃题号与进度显示归零。
+- **工程修复与落地**：
+  1. 在 `restoreProjectRuntime()` 与 `enterProject()` 中加入 `if (!state.roundActive)` 判断卫语句：当存在活跃测试轮次时，严格保护恢复的活跃题号（如 `2/3`）与题目展示文本；仅在无活跃轮次时安全清空。
+  2. 保证移动端场景 A-H 的答题状态、重判及连续刷新流平稳通过。
+
 ---
 
 ## 二、Codex 独立 QA 成果吸收与验证
@@ -111,7 +117,7 @@
 
 ### 3.1 本地测试门禁通过记录
 - `node scripts/test_stage_pages_deploy.mjs`：28/28 测试全部通过。
-- `python scripts/repository_audit.py`：1031 项跟踪与候选文件审计 100% 通过，0 密钥泄露。
+- `python scripts/repository_audit.py`：1032 项跟踪与候选文件审计 100% 通过，0 密钥泄露。
 - `node local-backend/test_task12_d1_js.mjs`：15 项 Miniflare/D1 审计与鉴权测试全部通过。
 - `node local-backend/test_finance_js.mjs`：财务模型与收支聚合计算全部通过。
 - `node local-backend/test_task25_client_js.mjs`：19 项前后端契约向量通过。
@@ -141,11 +147,11 @@
 1. **Pull Request**：
    - PR #122：https://github.com/WYJ0904/thewyj.uk/pull/122
    - 目标分支：`codex/aeris-p07-phase1-handover`
-   - 最新 Commit：`d28d21a5a8b952b6440f3558500d1c43e3e208e5`
+   - 最新 Commit：`287d3708b4ec9f0ce0f166395d651a8477623639`
 2. **GitHub Core CI**：
-   - Run URL：https://github.com/WYJ0904/thewyj.uk/actions/runs/41831725422
+   - Run URL：https://github.com/WYJ0904/thewyj.uk/actions/runs/41834540661
 3. **独立 Hosted Preview 在线验收地址**：
-   - 固定地址：https://93ffacea.thewyj-p07-ui-rc.pages.dev
+   - 固定地址：https://9963600f.thewyj-p07-ui-rc.pages.dev
    - 分支别名：https://v62-p07-d-workspaces.thewyj-p07-ui-rc.pages.dev
 4. **全功能永久会员测试凭证（仅限独立 Preview D1）**：
    - 用户名：`qa_lifetime_member`
