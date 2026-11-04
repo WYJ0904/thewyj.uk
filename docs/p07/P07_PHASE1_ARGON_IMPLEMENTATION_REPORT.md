@@ -10,15 +10,15 @@
 
 - **起始稳定 `main` SHA**：`3eb268b748a6e7a1aaa7369059db474810bb59d4`（PR #110 合并后稳定主干）
 - **其他并行工作区保护核查**：
-  - 主工作区 `C:\Users\78252\Desktop\编程\thewyj.uk`（分支 `codex/android-accessibility-accounting-hotfix`）：只读核查，未作任何修改，未读取任何根级私密口令文件。
-  - 财务工作树 `C:\Users\78252\.codex\worktrees\finance-release-convergence\thewyj.uk`（PR #112）：保持原状，未合并、未改动。
-  - 历史 P07 参考工作树 `C:\Users\78252\.codex\worktrees\aeris-p07-quality-release\thewyj.uk`（PR #117）：仅只读对照参考，未改动。
+  - 主工作区 `%USERPROFILE%\Desktop\编程\thewyj.uk`（分支 `codex/android-accessibility-accounting-hotfix`）：只读核查，未作任何修改，未读取任何根级私密口令文件。
+  - 财务工作树 `%USERPROFILE%\.codex\worktrees\finance-release-convergence\thewyj.uk`（PR #112）：保持原状，未合并、未改动。
+  - 历史 P07 参考工作树 `%USERPROFILE%\.codex\worktrees\aeris-p07-quality-release\thewyj.uk`（PR #117）：仅只读对照参考，未改动。
 
 ---
 
 ## 2. 本阶段独立分支与 Worktree
 
-- **独立 Worktree**：`C:\Users\78252\.codex\worktrees\aeris-p07-phase1-argon\thewyj.uk`
+- **独立 Worktree**：`%USERPROFILE%\.codex\worktrees\aeris-p07-phase1-argon\thewyj.uk`
 - **独立开发分支**：`codex/aeris-p07-phase1-argon`（基于 `origin/main` `3eb268b748a6e7a1aaa7369059db474810bb59d4` 创建）
 - **里程碑提交记录**：
   1. `fa1fbcd26b626420ca9430c952bf6b1b8b6a96bf` — `feat(p07-phase1): establish V3 design system tokens and Task25 preview policy`
