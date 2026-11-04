@@ -5,7 +5,15 @@ export const WRONG_REVIEW_VERSION = 1;
 export const REVIEW_DAY = 86400000;
 export const REVIEW_COOLDOWN = 20 * 60000;
 export const REVIEW_INTERVALS = Object.freeze([1, 3, 7, 14, 30].map(days => days * REVIEW_DAY));
-const iso = value => Number.isFinite(Date.parse(value)) ? new Date(value).toISOString() : '';
+// Review day keys and chronological sorting use the four-digit UTC format.
+// Expanded years are untrusted metadata and can overflow interval scheduling.
+const iso = value => {
+  if (typeof value !== 'string') return '';
+  const time = Date.parse(value);
+  if (!Number.isFinite(time)) return '';
+  const normalized = new Date(time).toISOString();
+  return /^\d{4}-/.test(normalized) ? normalized : '';
+};
 const validId = value => typeof value === 'string' && value.length > 0 && value.length <= 160;
 
 // Bind a queued answer to the actual grading settings it used, independently
@@ -77,24 +85,24 @@ export function initialWrongReview() {
 export function reduceWrongReview(previous, event) {
   const state = structuredClone(previous || initialWrongReview());
   if (state.algorithm !== WRONG_REVIEW_ALGORITHM || state.version !== 1) throw new Error('错题复习版本不兼容');
-  const now = Date.parse(event.at);
-  if (!Number.isFinite(now) || typeof event.correct !== 'boolean') throw new Error('错题复习事件无效');
+  const at = iso(event.at), now = Date.parse(at);
+  if (!at || typeof event.correct !== 'boolean') throw new Error('错题复习事件无效');
   state.attempts += 1;
   state.correct += Number(event.correct);
   state.incorrect += Number(!event.correct);
-  state.last_review_at = event.at;
+  state.last_review_at = at;
   if (!event.correct) {
     state.streak = 0; state.score = Math.max(0, state.score - 30); state.mastered = false;
-    state.last_failure_at = event.at;
+    state.last_failure_at = at;
     state.next_review_at = new Date(now + 10 * 60000).toISOString();
   } else {
-    const day = event.at.slice(0,10);
+    const day = at.slice(0,10);
     const eligible = event.kind !== 'mistake' && !state.days.includes(day)
       && (!state.last_effective_at || now - Date.parse(state.last_effective_at) >= REVIEW_COOLDOWN)
       && (!state.next_review_at || now >= Date.parse(state.next_review_at));
     if (eligible) {
       state.effective += 1; state.streak = Math.min(5, state.streak + 1);
-      state.days = [...state.days, day].slice(-14); state.last_effective_at = event.at;
+      state.days = [...state.days, day].slice(-14); state.last_effective_at = at;
       state.score = Math.min(100, state.streak * 20);
       state.mastered = state.streak >= 5 && state.days.length >= 5;
       state.next_review_at = new Date(now + REVIEW_INTERVALS[state.streak - 1]).toISOString();

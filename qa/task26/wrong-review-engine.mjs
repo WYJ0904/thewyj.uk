@@ -90,4 +90,28 @@ check('legacy sync IDs survive; typed variants coexist and saved Japanese dictat
 const originalAttempt={...event(0,false),attempt_id:'same-logical-question'},alias={...originalAttempt,id:crypto.randomUUID()},fix={...event(1,true,'correction'),corrects:alias.id,corrects_attempt_id:originalAttempt.attempt_id};
 assert.equal(replayWrongReview([originalAttempt,alias]).attempts,1);assert.equal(replayWrongReview([fix,alias,originalAttempt]).incorrect,0);
 check('duplicate-window IDs count one logical attempt; a correction excludes all aliases regardless of delivery order');
+
+const unsafeTimes=['+275760-09-13T00:00:00.000Z','-271821-04-20T00:00:00.000Z','+010000-01-01T00:00:00.000Z',0,'not-a-date'];
+for(const at of unsafeTimes)for(const correct of [true,false]){
+  const imported=info([event(0),{id:'untrusted-time',at,correct,kind:'answer'}]);
+  assert.doesNotThrow(()=>orderWrongReview({apple:imported},{now:Date.UTC(2026,0,2)}));
+  assert.deepEqual(replayWrongReview(imported.review.events),replayWrongReview([event(0)]),'Unsupported timestamps must not supply local mastery evidence');
+}
+check('imported extreme or non-string timestamps cannot crash review ordering or add evidence');
+for(const at of unsafeTimes)assert.throws(()=>reduceWrongReview(initialWrongReview(),{at,correct:true,kind:'answer'}),/错题复习事件无效/);
+const offsetState=reduceWrongReview(initialWrongReview(),{at:'2026-01-02T00:10:00+09:00',correct:true,kind:'answer'});
+assert.equal(offsetState.last_effective_at,'2026-01-01T15:10:00.000Z');assert.deepEqual(offsetState.days,['2026-01-01']);
+check('direct reducer rejects unsafe dates explicitly and normalizes offsets to the UTC evidence day');
+const midnightEvents=[
+  {id:'midnight-first',at:'2026-01-01T23:55:00.000Z',correct:true,kind:'answer'},
+  {id:'midnight-wrong',at:'2026-01-01T23:56:00.000Z',correct:false,kind:'answer'},
+  {id:'midnight-too-soon',at:'2026-01-02T00:06:00.000Z',correct:true,kind:'answer'},
+];
+assert.equal(replayWrongReview(midnightEvents).effective,1,'Crossing midnight must retain the twenty-minute cooldown');
+midnightEvents.push({id:'midnight-eligible',at:'2026-01-02T00:15:00.000Z',correct:true,kind:'answer'});
+let midnight=replayWrongReview(midnightEvents);assert.equal(midnight.effective,2);assert.equal(midnight.streak,1);
+midnightEvents.push({id:'midnight-wrong-again',at:'2026-01-02T00:16:00.000Z',correct:false,kind:'answer'},
+  {id:'midnight-daily-cap',at:'2026-01-02T00:40:00.000Z',correct:true,kind:'answer'});
+midnight=replayWrongReview(midnightEvents);assert.equal(midnight.effective,2);assert.equal(midnight.streak,0);assert.equal(midnight.mastered,false);
+check('UTC day changes preserve cooldown and one-effective-answer-per-day after repeated errors');
 console.log(`Wrong-review engine: ${groups} groups passed`);
