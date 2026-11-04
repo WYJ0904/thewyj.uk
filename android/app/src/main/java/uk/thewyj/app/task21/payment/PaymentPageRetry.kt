@@ -25,8 +25,24 @@ class PaymentPageRetry(val key: String, val startedAtMs: Long) {
     fun cancel() { cancelled = true }
     companion object {
         const val MAX_ATTEMPTS = 8
-        const val MAX_WINDOW_MS = 12_000L
+        // A finite eight reads span the real ticket lifetime, including slow
+        // clone/detail loads. The coordinator still enforces ticket expiry.
+        const val MAX_WINDOW_MS = PaymentTicketEngine.DEFAULT_TTL_MS
         private const val MIN_ATTEMPT_INTERVAL_MS = 250L
-        private val DELAYS = longArrayOf(250, 500, 1_000, 1_500, 2_000, 2_000, 2_000)
+        private val DELAYS = longArrayOf(250, 750, 2_000, 5_000, 12_000, 25_000, 35_000)
     }
+}
+
+/** One bounded read budget per account/ticket, shared across window changes. */
+internal class PaymentPageRetryPool(private val capacity: Int = 8) {
+    private val values = linkedMapOf<String, PaymentPageRetry>()
+    fun budget(accountId: String, ticketId: String, nowMs: Long): PaymentPageRetry {
+        val key = "$accountId|$ticketId"
+        values.entries.removeAll { nowMs - it.value.startedAtMs > PaymentPageRetry.MAX_WINDOW_MS }
+        return values[key] ?: PaymentPageRetry(key, nowMs).also {
+            if (values.size >= capacity) values.remove(values.keys.first())?.cancel()
+            values[key] = it
+        }
+    }
+    fun clear() { values.values.forEach(PaymentPageRetry::cancel); values.clear() }
 }

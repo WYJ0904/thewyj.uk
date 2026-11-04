@@ -1,6 +1,7 @@
 package uk.thewyj.app.task21.store
 
 import androidx.room.Entity
+import androidx.room.ColumnInfo
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
@@ -36,6 +37,8 @@ data class PaymentRecognitionEntity(
     val providerReference: String,
     val createdAtMs: Long,
     val updatedAtMs: Long,
+    @ColumnInfo(defaultValue = "0") val completionConfirmed: Int = 0,
+    @ColumnInfo(defaultValue = "-1") val sourceUid: Int = -1,
 )
 
 @Entity(

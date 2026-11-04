@@ -5,6 +5,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NotificationParserTest {
+    @Test fun pendingMoneyKeepsItsAmountAndDirectionWithoutClaimingSettlement() {
+        val pending = parse("com.tencent.mm", "微信支付", "转账¥500.00，待你收款")
+        assertEquals(50_000L, pending.amountMinor)
+        assertEquals(FinanceDirection.INCOME, pending.direction)
+        assertEquals(ParseStatus.CANDIDATE, pending.parseStatus)
+        val paid = parse("com.tencent.mm", "微信支付", "已收款¥500.00，资金已到账")
+        assertEquals(ParseStatus.PARSED, paid.parseStatus)
+        assertEquals(pending.amountMinor, paid.amountMinor)
+    }
     @Test fun couponOnlyMessagesCannotBecomeStructuredPaymentThroughLegacyFallback() {
         for (message in uk.thewyj.app.task21.payment.CouponRecognitionFixtures.nonCashMessages) {
             for (source in listOf("com.tencent.mm", "com.eg.android.AlipayGphone")) {

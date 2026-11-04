@@ -70,7 +70,9 @@ class CanonicalPendingCacheTest {
             state.refresh()
             assertEquals(1, state.items.count { !it.recoveryOnly })
             assertNull(state.items.first { !it.recoveryOnly }.amountMinor)
-            assertEquals(1L, state.items.first { it.recoveryOnly }.amountMinor)
+            assertEquals(1L, state.items.single().displayAmountMinor)
+            assertTrue(state.items.single().localEvidencePending)
+            assertEquals(0, state.items.count { it.recoveryOnly })
         } finally { db.close() }
     }
 }

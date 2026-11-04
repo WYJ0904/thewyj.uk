@@ -270,6 +270,7 @@ class AndroidPaymentRecognitionHookArchiveTest {
 
         assertNotNull("the messaging lines must produce a payment outcome", outcome)
         assertEquals(10_000L, outcome!!.amountMinor)
+        assertTrue("explicit completion still reaches the automatic-ingest path", outcome.confirmed)
         assertEquals(uk.thewyj.app.task21.FinanceDirection.EXPENSE, outcome.direction)
     }
 
@@ -332,7 +333,7 @@ class AndroidPaymentRecognitionHookArchiveTest {
         )
 
         assertNotNull(outcome)
-        assertEquals("bank-notification-3", outcome!!.parserVersion)
+        assertEquals("bank-notification-4", outcome!!.parserVersion)
         assertEquals(listOf("bank_notification_without_amount"), outcome.reasons)
         assertEquals(setOf("amount", "direction"), outcome.missingFields)
         assertFalse(outcome.reasons.joinToString().contains("交易提醒"))

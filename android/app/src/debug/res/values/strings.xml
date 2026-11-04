@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Aeris Hotfix QA</string>
+    <string name="notification_listener_label">Aeris Hotfix QA 通知验收</string>
+    <string name="payment_accessibility_label">Aeris Hotfix QA 金额核实验收</string>
+</resources>

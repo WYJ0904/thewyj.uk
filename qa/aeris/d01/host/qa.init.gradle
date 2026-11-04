@@ -1,0 +1,36 @@
+def qa = new File(System.getProperty('aeris.qa.source'))
+def out = new File(System.getProperty('aeris.qa.build'))
+allprojects { p ->
+    if (p.path == ':app') {
+        p.layout.buildDirectory.set(new File(out, 'app'))
+        p.plugins.withId('com.android.application') {
+            // Keep ActivityScenario's helper Activities in the target QA process.
+            // A cross-UID helper can let Samsung Freecess freeze the instrumentation target.
+            if (System.getProperty('aeris.qa.sameprocess', 'true').toBoolean()) {
+                p.dependencies.add('debugImplementation', 'androidx.test:core:1.7.0')
+            }
+            p.androidComponents.finalizeDsl { dsl ->
+                dsl.buildTypes.getByName('debug').applicationIdSuffix = '.qa.stateacceptance'
+                dsl.defaultConfig.testApplicationId = 'uk.thewyj.app.qa.stateacceptance.test'
+                dsl.defaultConfig.testInstrumentationRunner = 'uk.thewyj.app.qa.StateAcceptanceRunner'
+                dsl.sourceSets.getByName('debug').java.srcDir(new File(qa, 'src'))
+                dsl.sourceSets.getByName('debug').res.srcDir(new File(qa, 'res'))
+                dsl.sourceSets.getByName('debug').manifest.srcFile(new File(qa, 'AndroidManifest.xml'))
+                dsl.sourceSets.getByName('androidTest').java.setSrcDirs([new File(qa, 'test')])
+                dsl.sourceSets.getByName('androidTest').manifest.srcFile(new File(qa, 'TestManifest.xml'))
+                dsl.sourceSets.getByName('androidTest').assets.setSrcDirs([])
+            }
+        }
+        // AGP 9's built-in Kotlin source collections are created before
+        // finalizeDsl. Explicit compiler inputs keep this overlay outside the
+        // repository's product and historical instrumentation source trees.
+        p.tasks.configureEach { task ->
+            if (task.name == 'compileDebugKotlin') {
+                task.source(p.fileTree(new File(qa, 'src')) { include '**/*.kt' })
+            }
+            if (task.name == 'compileDebugAndroidTestKotlin') {
+                task.setSource(p.fileTree(new File(qa, 'test')) { include '**/*.kt' })
+            }
+        }
+    }
+}

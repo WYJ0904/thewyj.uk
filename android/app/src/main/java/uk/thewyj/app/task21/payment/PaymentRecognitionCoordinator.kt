@@ -42,14 +42,42 @@ class PaymentRecognitionCoordinator(
         sourceAppLabel: String = "",
         uploadEventId: String = "",
         occurredAtMs: Long = now(),
+        sourceUid: Int? = null,
     ): Outcome {
         if (accountId.isBlank() || sourcePackage.isBlank() || sourceEventId.isBlank()) {
             return Outcome("", null, skippedReason = "invalid_input")
         }
         val existing = store.recognitionBySourceEvent(accountId, sourceEventId)
         if (existing != null) {
-            autoBook(accountId, existing.recognitionId)
-            return Outcome(existing.recognitionId, null, skippedReason = "duplicate_source_event")
+            var upgraded = false
+            if (!existing.completionConfirmed &&
+                existing.state !in setOf("IGNORED", "DUPLICATE_IGNORED", "FINANCE_CORRECTED") &&
+                existing.sourcePackage == sourcePackage &&
+                (existing.sourceUid == null || existing.sourceUid == sourceUid) &&
+                existing.sourceType == sourceType.name) {
+                val update = PaymentParserRegistry.parse(sourcePackage, sourceType, title, text, bigText, subText, occurredAtMs)
+                val candidate = store.candidateForRecognition(accountId, existing.recognitionId)
+                val compatible = (existing.amountMinor == null || existing.amountMinor == update.amountMinor) &&
+                    (existing.direction !in setOf("INCOME", "EXPENSE", "REFUND") || existing.direction == update.direction?.name) &&
+                    (existing.providerReference.isBlank() || update.providerReference.isNullOrBlank() ||
+                        existing.providerReference == update.providerReference)
+                if (update.status == PaymentRecognitionStatus.CONFIRMED_PAYMENT && compatible &&
+                    !PaymentText.hasIncompleteStatus(PaymentText.normalize(title, text, bigText, subText)) &&
+                    candidate?.status != "rejected" && candidate?.hasEdits != true) {
+                    store.saveRecognition(existing.copy(
+                        amountMinor = update.amountMinor, direction = update.direction?.name.orEmpty(),
+                        completionConfirmed = true, updatedAtMs = now(),
+                    ))
+                    if (candidate != null) store.saveCandidate(candidate.copy(
+                        amountMinor = update.amountMinor, direction = update.direction?.name.orEmpty(), updatedAtMs = now(),
+                    ))
+                    upgraded = true
+                }
+            }
+            val booking = autoBook(accountId, existing.recognitionId)
+            return Outcome(existing.recognitionId,
+                if (upgraded && booking != null) PaymentRecognitionState.FINANCE_RECORDED else null,
+                skippedReason = "duplicate_source_event")
         }
         val parsed = PaymentParserRegistry.parse(
             sourcePackage = sourcePackage,
@@ -68,6 +96,8 @@ class PaymentRecognitionCoordinator(
 
         val recognitionId = "rec-" + UUID.randomUUID()
         val amountKnown = parsed.amountMinor != null
+        val completionConfirmed = parsed.status == PaymentRecognitionStatus.CONFIRMED_PAYMENT &&
+            !PaymentText.hasIncompleteStatus(PaymentText.normalize(title, text, bigText, subText))
         var state = if (amountKnown) {
             PaymentRecognitionState.DETECTED_AMOUNT_KNOWN
         } else {
@@ -91,7 +121,7 @@ class PaymentRecognitionCoordinator(
 
         var ticketId = ""
         var candidateId = ""
-        if (!PaymentAutoBook.eligible(parsed.amountMinor, parsed.direction?.name.orEmpty())) {
+        if (!PaymentAutoBook.eligible(parsed.amountMinor, parsed.direction?.name.orEmpty(), completionConfirmed)) {
             val ticket = tickets.create(
                 accountId = accountId,
                 recognitionId = recognitionId,
@@ -152,6 +182,8 @@ class PaymentRecognitionCoordinator(
                 providerReference = parsed.providerReference.orEmpty(),
                 createdAtMs = now(),
                 updatedAtMs = now(),
+                completionConfirmed = completionConfirmed,
+                sourceUid = sourceUid,
             ),
         )
         if (autoBook(accountId, recognitionId) != null) state = PaymentRecognitionState.FINANCE_RECORDED
@@ -187,9 +219,18 @@ class PaymentRecognitionCoordinator(
         val outcome = tickets.enrich(ticket, enrichment)
         when (outcome) {
             is EnrichmentOutcome.Applied -> {
-                store.saveTicket(outcome.ticket)
                 val recognition = store.recognition(ticket.accountId, ticket.recognitionId)
                 if (recognition != null) {
+                    if (recognition.providerReference.isNotBlank() &&
+                        !enrichment.providerReference.isNullOrBlank() &&
+                        recognition.providerReference != enrichment.providerReference) {
+                        return EnrichmentOutcome.Rejected(ticket, "provider_reference_conflict")
+                    }
+                    if (recognition.direction in setOf("INCOME", "EXPENSE", "REFUND") &&
+                        enrichment.direction != null && recognition.direction != enrichment.direction.name) {
+                        return EnrichmentOutcome.Rejected(ticket, "direction_conflict")
+                    }
+                    store.saveTicket(outcome.ticket)
                     val transition = statusMachine.transition(
                         current = PaymentStatusRecord(
                             recognitionId = recognition.recognitionId,
@@ -209,6 +250,8 @@ class PaymentRecognitionCoordinator(
                             recognition.copy(
                                 state = PaymentRecognitionState.ENRICHMENT_VERIFIED.name,
                                 amountMinor = outcome.ticket.amountHintMinor,
+                                direction = enrichment.direction?.name ?: recognition.direction,
+                                completionConfirmed = enrichment.completionConfirmed && !enrichment.sourceInstanceUncertain,
                                 updatedAtMs = now(),
                             ),
                         )
@@ -226,7 +269,11 @@ class PaymentRecognitionCoordinator(
                         occurredAtMs = enrichment.occurredAtMs ?: now(),
                         channel = ticket.paymentChannel,
                         confidence = enrichment.confidence,
-                        reason = "accessibility_enrichment",
+                        reason = when {
+                            enrichment.sourceInstanceUncertain -> "source_instance_unverified"
+                            !enrichment.completionConfirmed -> "payment_completion_unproven"
+                            else -> "accessibility_enrichment"
+                        },
                         createdAtMs = existingCandidate?.createdAtMs ?: now(),
                         updatedAtMs = now(),
                     )
@@ -264,9 +311,14 @@ class PaymentRecognitionCoordinator(
         if (existingCandidate?.status == "rejected") return null
         val amount = existingCandidate?.effectiveAmountMinor ?: recognition.amountMinor
         val direction = existingCandidate?.effectiveDirection?.takeIf { it.isNotBlank() } ?: recognition.direction
-        if (!PaymentAutoBook.eligible(amount, direction)) return null
         val eventId = PaymentAutoBook.eventId(recognition)
         val previous = store.localBooking(accountId, eventId)
+        // Existing durable ledger identities and actual cloud receipts must
+        // survive an upgrade. They do not prove a new unbooked legacy record.
+        val hasReceipt = previous != null || knownTransactionId.isNotBlank() ||
+            (existingCandidate?.status == "confirmed" && existingCandidate.financeTransactionId.isNotBlank())
+        if (!PaymentAutoBook.eligible(amount, direction, recognition.completionConfirmed || hasReceipt)) return null
+        if (!hasReceipt && existingCandidate?.hasEdits == true) return null
         // A real server receipt predates this upgrade: keep that ledger identity.
         val transactionId = previous?.transactionId ?: knownTransactionId.takeIf(String::isNotBlank)
             ?: existingCandidate?.financeTransactionId?.takeIf { it.isNotBlank() }

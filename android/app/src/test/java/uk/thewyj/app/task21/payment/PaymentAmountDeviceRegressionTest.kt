@@ -19,10 +19,10 @@ class PaymentAmountDeviceRegressionTest {
 
     @Test fun debounceAdjustmentCannotExtendFiniteRetryWindow() {
         val retry = PaymentPageRetry("near-deadline", 1_000L)
-        assertTrue(retry.beginAttempt(12_900L))
-        assertNull(retry.nextDelayMs(12_900L, 5L))
+        assertTrue(retry.beginAttempt(90_900L))
+        assertNull(retry.nextDelayMs(90_900L, 5L))
         assertEquals(1, retry.attempts)
-        assertFalse(retry.beginAttempt(13_150L))
+        assertFalse(retry.beginAttempt(91_150L))
     }
     private fun page(vararg lines: String, groups: List<List<String>> = emptyList()) = PaymentPageSemantics.extract(
         PaymentPageSnapshot("com.tencent.mm", lines.toList(), 1_000L, groups))
@@ -98,7 +98,7 @@ class PaymentAmountDeviceRegressionTest {
         retry.cancel()
         assertFalse(retry.beginAttempt(1_500L)); assertNull(retry.nextDelayMs(1_500L))
         assertTrue(PaymentPageRetry("ticket|resume", 2_000L).beginAttempt(2_000L))
-        assertFalse(PaymentPageRetry("ticket|old", 1_000L).beginAttempt(13_001L))
+        assertFalse(PaymentPageRetry("ticket|old", 1_000L).beginAttempt(91_001L))
     }
     @Test fun lowConfidenceAndConsumedTicketCannotCompleteAnotherVerification() {
         val engine = PaymentTicketEngine(now = { 1_000L })
