@@ -1,0 +1,88 @@
+{
+  "deployedAt": "2026-11-04T06:51:09.770Z",
+  "status": "PREVIEW_DEPLOYED_AND_VERIFIED",
+  "commit": "e817bb121185fd1cb72e751a29c4ffbae5a91258",
+  "project": "thewyj-p07-ui-rc",
+  "branch": "v62-p07-phase1-rework",
+  "deploymentId": "d1d88d67-72e6-4011-af43-95276057ac6c",
+  "url": "https://d1d88d67.thewyj-p07-ui-rc.pages.dev",
+  "aliases": [
+    "https://v62-p07-phase1-rework.thewyj-p07-ui-rc.pages.dev"
+  ],
+  "isolatedPreviewD1Id": "ee869f78-b54a-4018-bc99-871089ecb8cd",
+  "r2BindingsCount": 0,
+  "aiBindingsCount": 0,
+  "safePreviewVars": {
+    "WORKERS_AI_ENABLED": "false",
+    "LEGACY_API_FALLBACK_ENABLED": "false",
+    "TASK25_FEATURE_FLAGS_ENABLED": "true",
+    "WYJ_ENVIRONMENT": "preview"
+  },
+  "productionTouched": false,
+  "productionMutations": 0,
+  "remoteMigrations": 0,
+  "aiCalls": 0,
+  "allowlistedFileCount": 147,
+  "publicStaticVerifiedCount": 87,
+  "exclusionChecks": [
+    {
+      "path": "package.json",
+      "status": 200,
+      "spaShellFallback": true,
+      "safe": true
+    },
+    {
+      "path": ".git/config",
+      "status": 200,
+      "spaShellFallback": true,
+      "safe": true
+    },
+    {
+      "path": "wrangler.jsonc",
+      "status": 200,
+      "spaShellFallback": true,
+      "safe": true
+    },
+    {
+      "path": "docs/p07/P07_IMPLEMENTATION_READINESS.md",
+      "status": 200,
+      "spaShellFallback": true,
+      "safe": true
+    }
+  ],
+  "liveBrowserProof": {
+    "uiFeaturesApi": {
+      "ok": true,
+      "public_ui": {
+        "schema_version": 1,
+        "flag_key": "p07_accessibility",
+        "enabled": true,
+        "revision": 17,
+        "reason": "public_stable",
+        "observed_at": "2026-11-04T06:51:00.093Z",
+        "expires_at": "2026-11-04T06:51:30.093Z",
+        "max_age_seconds": 30
+      },
+      "request_id": "367aec79-e016-4a36-b3b7-bfe196c18493"
+    },
+    "liveHome": {
+      "origin": "https://d1d88d67.thewyj-p07-ui-rc.pages.dev",
+      "p07Ui": "enabled",
+      "previewBannerHidden": false,
+      "previewBannerText": "Aeris 隔离 Preview当前为 P07 第一阶段视觉与交互预览环境，不会影响正式站点数据。",
+      "bodyBg": "rgb(244, 246, 249)",
+      "sidebarBg": "rgb(255, 255, 255)",
+      "learningCardBg": "rgb(239, 246, 255)",
+      "financeCardBg": "rgb(238, 250, 243)",
+      "toolsCardBg": "rgb(245, 240, 255)",
+      "summaryCardCount": 4,
+      "demoBadges": 3
+    },
+    "runtimeErrors": [],
+    "screenshots": [
+      "docs/p07/evidence/phase1-rework/preview/preview-live-home-1440.png",
+      "docs/p07/evidence/phase1-rework/preview/preview-live-home-390.png",
+      "docs/p07/evidence/phase1-rework/preview/preview-live-login-1440.png"
+    ]
+  }
+}
