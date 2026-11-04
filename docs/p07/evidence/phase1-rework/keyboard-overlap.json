@@ -1,0 +1,41 @@
+[
+  {
+    "card": "learning",
+    "hit": "learning",
+    "visible": true,
+    "focusVisible": true,
+    "z": "3",
+    "rect": {
+      "x": 912.4064331054688,
+      "y": 146.00128173828125,
+      "width": 233.99969482421875,
+      "height": 281.9996032714844
+    }
+  },
+  {
+    "card": "finance",
+    "hit": "finance",
+    "visible": true,
+    "focusVisible": true,
+    "z": "3",
+    "rect": {
+      "x": 801.40625,
+      "y": 146,
+      "width": 234,
+      "height": 282
+    }
+  },
+  {
+    "card": "tools",
+    "hit": "tools",
+    "visible": true,
+    "focusVisible": true,
+    "z": "3",
+    "rect": {
+      "x": 1023.40625,
+      "y": 146,
+      "width": 234,
+      "height": 282
+    }
+  }
+]

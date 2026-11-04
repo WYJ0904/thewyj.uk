@@ -8,7 +8,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const PUBLIC_ROOT_FILES = new Set([
   "_headers", "app.js", "changelog.js", "design-system.css", "favicon.ico",
   "icon-192.png", "icon-512.png", "index.html", "learning-sync.js",
-  "manifest.webmanifest", "product-ui.css", "public-experience.css", "styles.css",
+  "manifest.webmanifest", "product-ui.css", "public-experience.css", "spatial-experience.css", "styles.css",
   "sw.js", "THIRD_PARTY_NOTICES.md", "tools.js", "workspace-experience.css", "workflows.js",
 ]);
 const PUBLIC_DIRECTORIES = new Set(["assets", "functions", "js", "vendor"]);

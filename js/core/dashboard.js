@@ -1,7 +1,7 @@
-import { $, escapeHtml } from "./ui.js?v=20261027-aeris-p07-ui-r1";
-import { reconcileKeyedRows } from "./keyed-list.js?v=20261027-aeris-p07-ui-r1";
-import { createHomeWidgets } from "./home-widgets.js?v=20261027-aeris-p07-ui-r1";
-import { projectHomeWidgets } from "./home-widget-data.js?v=20261027-aeris-p07-ui-r1";
+import { $, escapeHtml } from "./ui.js?v=20261104-aeris-p07-phase1-r2";
+import { reconcileKeyedRows } from "./keyed-list.js?v=20261104-aeris-p07-phase1-r2";
+import { createHomeWidgets } from "./home-widgets.js?v=20261104-aeris-p07-phase1-r2";
+import { projectHomeWidgets } from "./home-widget-data.js?v=20261104-aeris-p07-phase1-r2";
 const bound = new WeakSet();
 const setText = (node,value) => { if(node && node.textContent!==String(value))node.textContent=String(value); };
 
@@ -9,12 +9,27 @@ const setText = (node,value) => { if(node && node.textContent!==String(value))no
 export function createDashboardView(context) {
  const widgets=createHomeWidgets({root:$("publicHome"),accountId:()=>context.state().account?.id,navigate:context.openHomeModule});
  const recentRoot=$("homeRecentActivity");
+ const summaryGrid=$("homeV3SummaryGrid");
  recentRoot.addEventListener('click',event=>{const button=event.target.closest('[data-home-activity]');if(button)context.openHomeModule(button.dataset.homeActivity);});
+ summaryGrid?.addEventListener('click',event=>{const card=event.target.closest('[data-v3-summary]');if(card)context.openHomeModule(card.dataset.v3Summary);});
+ function setSummaryBar(id, percent) {
+  const bar=$(id); if(bar) bar.style.setProperty("--v3-bar-scale", (Math.max(8, Math.min(100, Math.round(percent))) / 100).toFixed(2));
+ }
+ function renderGuestV3Summary() {
+  setText($("v3SummaryLearningText"), "英语与日语词表练习 · 免费试做最多 10 题");
+  setSummaryBar("v3SummaryLearningBar", 58);
+  setText($("v3SummaryFinanceText"), "收入与支出按照账户真实数据云端同步");
+  setSummaryBar("v3SummaryFinanceBar", 34);
+  setText($("v3SummaryTransferText"), "仅展示当前账户的文件与受控分享");
+  setSummaryBar("v3SummaryTransferBar", 72);
+  setText($("v3SummaryToolsText"), "文本、JSON、图片本机即开即用");
+  setSummaryBar("v3SummaryToolsBar", 48);
+ }
  function present(snapshot) {
   widgets.render(snapshot);
   reconcileKeyedRows(recentRoot,snapshot.activity,{key:x=>x.id,signature:x=>JSON.stringify(x),render:x=>`<li><button type="button" data-home-activity="${escapeHtml(x.path)}">${escapeHtml(x.label)}<small>${escapeHtml(context.formatLocalDateTime(x.at))}</small></button></li>`,empty:'<li>'+(snapshot.demo?'登录后显示自己的学习与工具记录。':'暂无最近活动。完成学习或使用工具后会显示在这里。')+'</li>'});
  }
- function prepare() {widgets.setAccount();if(!context.state().account)present(projectHomeWidgets({demo:true}));}
+ function prepare() {widgets.setAccount();if(!context.state().account){renderGuestV3Summary();present(projectHomeWidgets({demo:true}));}}
  const { accountMembershipSummary, accountEntitlements, entitlementLabel, calculateStudyStreak, dashboardGoal, formatLocalDateTime, quizLanguageLabel, practiceModeLabel, formatFinanceMoney, loadProjectRuntime, renderLatestUpdate, renderLearningSyncDashboardStatus, isSuperAdmin, hasAccountEntitlement }=context;
  function setDashboardService(id,label,status) { const node=$(id);if(!node)return;setText(node,label);const wanted="dashboard-service "+status;if(node.dataset.serviceTone===status)return;node.classList.remove("is-online","is-offline","is-warning");node.classList.add(status);node.dataset.serviceTone=status; }
  function renderDashboardToolShelf(id,items,emptyMessage) {
@@ -83,6 +98,43 @@ export function createDashboardView(context) {
   const transfer = transferController?.dashboardSummary?.() || { count: 0, paused: 0, running: false };
   if ($("dashboardTransferCount")) setText($("dashboardTransferCount"), `${transfer.count} 个任务`);
   if ($("dashboardTransferStatus")) setText($("dashboardTransferStatus"), !transfer.count ? "暂无本机传输任务。" : transfer.running ? "传输正在进行，打开查看进度。" : transfer.paused ? `${transfer.paused} 个任务已暂停。` : "打开传输页继续管理队列。");
+
+  const wrongTotal = Object.keys(state.historyWrongBook).length;
+  const totalGoalTarget = Math.max(1, englishGoal.goal + japaneseGoal.goal);
+  const totalGoalDone = englishGoal.completed + japaneseGoal.completed;
+  if (wrongTotal > 0) {
+    setText($("v3SummaryLearningText"), `错题待复习 ${wrongTotal} 题 · 今日已完成 ${totalGoalDone} 题`);
+    setSummaryBar("v3SummaryLearningBar", Math.max(24, (totalGoalDone / totalGoalTarget) * 100));
+  } else if (records.length > 0) {
+    setText($("v3SummaryLearningText"), `已完成 ${records.length} 轮练习 · 当前无待复习错题`);
+    setSummaryBar("v3SummaryLearningBar", Math.max(30, (totalGoalDone / totalGoalTarget) * 100));
+  } else {
+    setText($("v3SummaryLearningText"), "暂无错题与学习记录 · 点击开始练习");
+    setSummaryBar("v3SummaryLearningBar", 10);
+  }
+  if (financeKnown) {
+    setText($("v3SummaryFinanceText"), `本月结余 ${financeBalance} · ${finance.pending ? `${finance.pending} 项待同步` : "真实数据已同步"}`);
+    setSummaryBar("v3SummaryFinanceBar", 68);
+  } else {
+    setText($("v3SummaryFinanceText"), "尚未读取本月收支 · 打开账本同步数据");
+    setSummaryBar("v3SummaryFinanceBar", 12);
+  }
+  if (transfer.count > 0) {
+    setText($("v3SummaryTransferText"), `当前账户 ${transfer.count} 个文件传输任务${transfer.running ? " · 传输中" : ""}`);
+    setSummaryBar("v3SummaryTransferBar", 66);
+  } else {
+    setText($("v3SummaryTransferText"), "仅展示当前账户的文件 · 暂无传输任务");
+    setSummaryBar("v3SummaryTransferBar", 12);
+  }
+  const recentToolsCount = (toolSummary.recent || []).length;
+  const favToolsCount = (toolSummary.favorites || []).length;
+  if (recentToolsCount > 0 || favToolsCount > 0) {
+    setText($("v3SummaryToolsText"), `最近使用 ${recentToolsCount} 项 · 收藏 ${favToolsCount} 项 · 本地处理`);
+    setSummaryBar("v3SummaryToolsBar", Math.min(100, 24 + recentToolsCount * 15));
+  } else {
+    setText($("v3SummaryToolsText"), "文本、JSON、图片处理 · 暂无最近记录");
+    setSummaryBar("v3SummaryToolsBar", 14);
+  }
   renderLatestUpdate();
 
   setDashboardService("dashboardAccountStatus", backendAvailable ? "在线" : "离线", backendAvailable ? "is-online" : "is-offline");
