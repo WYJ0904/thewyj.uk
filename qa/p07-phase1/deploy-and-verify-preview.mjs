@@ -212,13 +212,24 @@ const previewOrigin = new URL(matched.url).origin;
 const branchAliases = matched.aliases || [];
 
 // 5. Verify HTTP 200 + SHA-256 byte integrity of committed public files on live Hosted Preview
+async function resilientFetch(url, options = {}, retries = 3) {
+  for (let i = 1; i <= retries; i++) {
+    try {
+      return await fetch(url, options);
+    } catch (err) {
+      if (i === retries) throw err;
+      await delay(500 * i);
+    }
+  }
+}
+
 const indexExpectedSha = publicCheckFiles.find((f) => f.path === "index.html")?.sha256;
 let publicPassCount = 0;
 const publicFailures = [];
 
 for (const item of publicCheckFiles) {
   const urlPath = item.path === "index.html" ? "/" : `/${item.path.split("/").map(encodeURIComponent).join("/")}`;
-  const res = await fetch(`${previewOrigin}${urlPath}`, {
+  const res = await resilientFetch(`${previewOrigin}${urlPath}`, {
     headers: { "Cache-Control": "no-cache", "Accept-Encoding": "identity" },
     signal: AbortSignal.timeout(30_000),
   });
@@ -235,7 +246,7 @@ assert.deepEqual(publicFailures, [], `Public static SHA-256 verification failed:
 // Verify non-public workspace files are NOT served
 const exclusionChecks = [];
 for (const forbidden of ["package.json", ".git/config", "wrangler.jsonc", "docs/p07/P07_IMPLEMENTATION_READINESS.md"]) {
-  const res = await fetch(`${previewOrigin}/${forbidden}`, {
+  const res = await resilientFetch(`${previewOrigin}/${forbidden}`, {
     headers: { "Cache-Control": "no-cache", "Accept-Encoding": "identity" },
     signal: AbortSignal.timeout(20_000),
   });
