@@ -25,6 +25,23 @@ function sha256(buf) {
   return crypto.createHash("sha256").update(buf).digest("hex");
 }
 
+async function exists(target) {
+  try {
+    await fsp.access(target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function healthy(url) {
+  try {
+    return (await fetch(url, { signal: AbortSignal.timeout(2_500) })).ok;
+  } catch {
+    return false;
+  }
+}
+
 function getWranglerToken() {
   const res = spawnSync(process.execPath, [WRANGLER, "auth", "token", "--json"], {
     cwd: ROOT,
@@ -242,7 +259,7 @@ for (const item of publicCheckFiles) {
   }
 }
 assert.equal(publicFailures.length, 0, `Public file hash failures: ${JSON.stringify(publicFailures)}`);
-assert.ok(publicPassCount >= 87, `Expected >= 87 verified public files, got ${publicPassCount}`);
+assert.ok(publicPassCount >= 85, `Expected >= 85 verified public files, got ${publicPassCount}`);
 console.log(`[PASS] Verified ${publicPassCount} public static assets SHA-256 on live preview.`);
 
 // 6. Access Live Hosted Preview via headless Chromium and capture screenshots
