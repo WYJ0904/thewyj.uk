@@ -5621,16 +5621,12 @@ async function ensureJapaneseQuestionForms(words) {
         validation.textContent = aiMessage;
         validation.classList.remove("hidden");
       }
-      if (typeof navigator !== "undefined" && navigator.webdriver) {
-        alert(aiMessage);
-      }
+      alert(aiMessage);
       return true;
     }
     const notFoundMessage = `AI 暂时未找到这些词的${dictation ? "完整写法" : "假名读音"}：${preview}${unresolved.length > 5 ? "等" : ""}。请稍后重试。`;
     showAchievementToast(notFoundMessage);
-    if (typeof navigator !== "undefined" && navigator.webdriver) {
-      alert(notFoundMessage);
-    }
+    alert(notFoundMessage);
     return false;
   }
   return true;
