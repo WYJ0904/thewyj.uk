@@ -1,11 +1,11 @@
 {
-  "deployedAt": "2026-11-05T10:51:35.347Z",
+  "deployedAt": "2026-11-05T10:59:10.456Z",
   "status": "P07_R4A_PREVIEW_DEPLOYED_AND_VERIFIED",
-  "commit": "9c22bf1dd9118178700e4780ccc27c8958de1e81",
+  "commit": "0f2677aaa01f3f1f20e8ba1e76be9fb2dcf204f4",
   "project": "thewyj-p07-ui-rc",
   "branch": "codex-p07-r4a-runtime",
-  "deploymentId": "ac360492-2442-4023-92e3-60ccdc384f30",
-  "url": "https://ac360492.thewyj-p07-ui-rc.pages.dev",
+  "deploymentId": "14d4c47b-cae6-4057-be61-95cab2b58f2a",
+  "url": "https://14d4c47b.thewyj-p07-ui-rc.pages.dev",
   "aliases": [
     "https://codex-p07-r4a-runtime.thewyj-p07-ui-rc.pages.dev"
   ],
@@ -25,7 +25,7 @@
   "allowlistedFileCount": 147,
   "publicStaticVerifiedCount": 86,
   "liveBrowserProof": {
-    "previewUrl": "https://ac360492.thewyj-p07-ui-rc.pages.dev",
+    "previewUrl": "https://14d4c47b.thewyj-p07-ui-rc.pages.dev",
     "runtimeErrors": [],
     "hostedPolicy": {
       "policy": "enabled",
