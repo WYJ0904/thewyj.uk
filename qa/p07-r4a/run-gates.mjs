@@ -13,6 +13,8 @@ assert.equal(git(qa,'status','--porcelain','--untracked-files=no'),'','do not al
 const sha=git(root,'rev-parse','HEAD');assert.match(sha,/^[0-9a-f]{40}$/);
 assert.equal(git(root,'status','--porcelain','--untracked-files=no'),'','commit product inputs before exact-SHA validation');
 const label=process.argv[2];assert.match(label||'',/^[a-z0-9-]+$/);
+const output=path.join(root,'docs/migration-evidence/p07-r4a',label);
+assert.equal(await fs.stat(output).then(()=>true,error=>{if(error.code==='ENOENT')return false;throw error;}),false,'Evidence labels cannot be overwritten');
 const args=process.argv.slice(3),cache=args.includes('--cache-upgrade'),warmBaseline=args.includes('--warm-baseline');
 const target=cache?path.join(process.env.USERPROFILE,`.codex/worktrees/${warmBaseline?'p07-round3-final-ci-review':'p07-round3-red-baseline'}/thewyj.uk`):root;
 const work=path.join(qa,'.wrangler','p07-r4a-driver-'+label);await fs.mkdir(work,{recursive:true});
@@ -56,7 +58,7 @@ const browser=await fs.readFile(path.join(qa,'qa/p07-round3/browser.mjs'));
 const provenance={product_sha:sha,qa_sha:git(qa,'rev-parse','HEAD'),frozen_browser_sha256:createHash('sha256').update(browser).digest('hex'),
   adapter_sha256:createHash('sha256').update(await fs.readFile(import.meta.filename)).digest('hex'),assertions_weakened:false,
   transport_changes:['per-run committed allowlist staging prevents shared pages-output races',...(cache?['candidate exact-SHA allowlist text assets, including sw.js and all release-qualified modules','optional fixed f7949f8 warm source']:['new pinned product target only'])]};
-const output=path.join(root,'docs/migration-evidence/p07-r4a',label);await fs.mkdir(path.dirname(output),{recursive:true});
+await fs.mkdir(path.dirname(output),{recursive:true});
 const run=spawnSync(process.execPath,[path.join(work,'run.mjs'),...args.filter(a=>a!=='--warm-baseline')],{cwd:qa,env:{...process.env,P07_D_TARGET_ROOT:target,P07_D_RUN:label},stdio:'inherit',windowsHide:true});
 await fs.mkdir(output,{recursive:true});await fs.writeFile(path.join(output,'r4a-driver-provenance.json'),JSON.stringify(provenance,null,2));
 process.exitCode=run.status??1;
