@@ -23,6 +23,9 @@ replace('const EVIDENCE_DIR = path.join(ROOT, "docs/migration-evidence/p07-d", L
 const relative=path.relative(qa,work).replaceAll('\\','/');
 replace('[\'cache-upgrade\',\'qa/p07-round3/cache-upgrade.mjs\']',`['cache-upgrade','${relative}/cache-upgrade.mjs']`);
 replace('const suites = ZOOM_ONLY',`const suites = process.env.P07_R4A_EXTRA_ONLY ? [['r4a-runtime','${relative}/runtime-browser.mjs']] : ZOOM_ONLY`);
+// Miniflare opens HTTP before serve.mjs finishes verifying the one-user seed.
+// Do not create browser fixture users until that existing guard has completed.
+replace('if (statusRes.ok && uiRes.ok && cdpOk) {', `if (statusRes.ok && uiRes.ok && cdpOk && (!COMPILED || (await fsp.readFile(path.join(QA_WORK_ROOT, 'pages.log'), 'utf8')).includes('READY: compiled Pages worker'))) {`);
 replace('[["p07-round3-browser","qa/p07-round3/browser.mjs"],',`[["p07-round3-browser","qa/p07-round3/browser.mjs"],...(FLAG_MODE==='on'?[['r4a-runtime','${relative}/runtime-browser.mjs']]:[]),`);
 await fs.writeFile(path.join(work,'runtime-browser.mjs'),`await import(${JSON.stringify(new URL('./runtime-browser.mjs',import.meta.url).href)});\n`);
 let upgrade=await fs.readFile(path.join(qa,'qa/p07-round3/cache-upgrade.mjs'),'utf8');
