@@ -84,12 +84,34 @@ function monthBounds(value) {
   return { startMs: start.getTime(), endMs: end.getTime(), startDate: `${match[1]}-${match[2]}-01`, endDate };
 }
 
-export function amountTextToMinor(value) {
+export function validateAmountText(value, label = "金额") {
   const text = String(value || "").trim();
-  if (!/^(?:0|[1-9]\d{0,10})(?:\.\d{1,2})?$/.test(text)) return 0;
+  if (!text) {
+    return { valid: false, message: `请输入${label}`, amountMinor: 0 };
+  }
+  if (!/^[0-9]+(?:\.[0-9]+)?$/.test(text)) {
+    return { valid: false, message: `请输入纯数字的有效${label}`, amountMinor: 0 };
+  }
   const [whole, fraction = ""] = text.split(".");
+  if (fraction.length > 2) {
+    return { valid: false, message: `${label}最多支持两位小数`, amountMinor: 0 };
+  }
+  if (whole.length > 11) {
+    return { valid: false, message: `${label}超出系统最大上限（最高支持 1000 亿元）`, amountMinor: 0 };
+  }
   const amount = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
-  return Number.isSafeInteger(amount) && amount > 0 && amount <= 10_000_000_000_000 ? amount : 0;
+  if (!Number.isSafeInteger(amount) || amount <= 0) {
+    return { valid: false, message: `请输入大于 0 的有效${label}`, amountMinor: 0 };
+  }
+  if (amount > 10_000_000_000_000) {
+    return { valid: false, message: `${label}超出系统最大上限（最高支持 1000 亿元）`, amountMinor: 0 };
+  }
+  return { valid: true, message: "", amountMinor: amount };
+}
+
+export function amountTextToMinor(value) {
+  const res = validateAmountText(value);
+  return res.valid ? res.amountMinor : 0;
 }
 
 function normalizeTransaction(value) {
@@ -539,7 +561,7 @@ export function createFinanceController({
     const maxVal = Math.max(...months.map((m) => Math.max(m.income, m.expense)), 100);
     const svgWidth = 680;
     const svgHeight = 220;
-    const padding = { top: 24, right: 32, bottom: 36, left: 88 };
+    const padding = { top: 24, right: 32, bottom: 36, left: maxVal >= 100_000_000 ? 94 : (maxVal >= 10_000 ? 84 : 76) };
     const chartW = svgWidth - padding.left - padding.right;
     const chartH = svgHeight - padding.top - padding.bottom;
 
@@ -560,8 +582,13 @@ export function createFinanceController({
 
     const xLabels = pointsIncome.map((p) => `<text x="${p.x.toFixed(1)}" y="${svgHeight - 12}" text-anchor="middle" font-size="12" font-weight="500" fill="var(--ds-text-secondary)">${p.label}</text>`).join("");
     
-    // P1-009: Formatted Y axis labels with thousands separators and 5 grid levels
-    const formatYVal = (v) => "¥" + new Intl.NumberFormat("zh-CN").format(Math.round(v));
+    // Formatted Y axis labels with thousands separators, compact big units, and 5 grid levels
+    const formatYVal = (v) => {
+      const rounded = Math.round(v);
+      if (rounded >= 100_000_000) return "¥" + (rounded / 100_000_000).toFixed(1) + "亿";
+      if (rounded >= 10_000) return "¥" + (rounded / 10_000).toFixed(1) + "万";
+      return "¥" + new Intl.NumberFormat("zh-CN").format(rounded);
+    };
     const gridLines = [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
       const y = padding.top + chartH * (1 - ratio);
       const val = formatYVal(maxVal * ratio);
@@ -570,8 +597,8 @@ export function createFinanceController({
 
     const formatMoney = (v) => "¥" + new Intl.NumberFormat("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
 
-    const circlesInc = pointsIncome.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="#10b981" tabindex="0" role="graphics-symbol" aria-label="${p.label} 收入: ${formatMoney(p.val)}"><title>${p.label} 收入: ${formatMoney(p.val)}</title></circle>`).join("");
-    const circlesExp = pointsExpense.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="#ef4444" tabindex="0" role="graphics-symbol" aria-label="${p.label} 支出: ${formatMoney(p.val)}"><title>${p.label} 支出: ${formatMoney(p.val)}</title></circle>`).join("");
+    const circlesInc = pointsIncome.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="#10b981" tabindex="0" role="graphics-symbol" aria-label="${p.label} 收入: ${formatMoney(p.val)} 支出: ${formatMoney(p.exp)} 结余: ${formatMoney(p.val - p.exp)}"><title>${p.label} 收入: ${formatMoney(p.val)} | 支出: ${formatMoney(p.exp)} | 结余: ${formatMoney(p.val - p.exp)}</title></circle>`).join("");
+    const circlesExp = pointsExpense.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="#ef4444" tabindex="0" role="graphics-symbol" aria-label="${p.label} 支出: ${formatMoney(p.val)} 收入: ${formatMoney(p.inc)} 结余: ${formatMoney(p.inc - p.val)}"><title>${p.label} 支出: ${formatMoney(p.val)} | 收入: ${formatMoney(p.inc)} | 结余: ${formatMoney(p.inc - p.val)}</title></circle>`).join("");
 
     // Monthly summary cards below chart
     const monthCards = months.map((m) => {
@@ -1042,9 +1069,10 @@ export function createFinanceController({
   function submitTransaction(event) {
     event.preventDefault();
     ensureStore();
-    const amountMinor = amountTextToMinor(element("financeTransactionAmount").value);
+    const amountValidation = validateAmountText(element("financeTransactionAmount").value, "金额");
+    if (!amountValidation.valid) return invalidField(element("financeTransactionAmount"), amountValidation.message);
+    const amountMinor = amountValidation.amountMinor;
     const occurredAt = new Date(element("financeTransactionTime").value).getTime();
-    if (!amountMinor) return invalidField(element("financeTransactionAmount"), "请输入大于 0 且最多两位小数的金额");
     if (!Number.isSafeInteger(occurredAt) || occurredAt <= 0) return invalidField(element("financeTransactionTime"), "请选择有效的交易时间");
     const id = element("financeTransactionId").value || randomId("txn");
     const current = store.transactions[id];
@@ -1189,9 +1217,10 @@ export function createFinanceController({
   function submitBudget(event) {
     event.preventDefault();
     const bounds = monthBounds(element("financeBudgetMonth").value);
-    const amountMinor = amountTextToMinor(element("financeBudgetAmount").value);
+    const amountValidation = validateAmountText(element("financeBudgetAmount").value, "预算金额");
     if (!bounds) return invalidField(element("financeBudgetMonth"), "请选择有效月份");
-    if (!amountMinor) return invalidField(element("financeBudgetAmount"), "请输入大于 0 且最多两位小数的预算金额");
+    if (!amountValidation.valid) return invalidField(element("financeBudgetAmount"), amountValidation.message);
+    const amountMinor = amountValidation.amountMinor;
     const categoryId = element("financeBudgetCategory").value;
     const matching = activeValues("budgets").find((item) => item.category_id === categoryId
       && item.starts_on === bounds.startDate && item.ends_on === bounds.endDate);
@@ -1237,6 +1266,14 @@ export function createFinanceController({
     else if (button.id === "financeManageBudgetsBtn") openBudgetManager();
     else if (button.id === "financeSyncBtn") syncNow();
     else if (button.id === "financeResolveConflictBtn") resolveConflict().catch((error) => setMessage(error.message, "error"));
+    else if (button.id === "toggleFinanceTrendBtn") {
+      const wrap = element("financeTrendChartWrap");
+      if (wrap) {
+        const isCollapsed = wrap.classList.toggle("collapsed");
+        button.textContent = isCollapsed ? "展开走势图" : "收起走势图";
+        button.setAttribute("aria-expanded", String(!isCollapsed));
+      }
+    }
     else if (button.id === "financeUpgradeBtn") openRecharge("finance");
     else if (button.id === "financeBackBtn") navigate("/select");
     else if (button.id === "financeUndoBtn" && undoTransactionId) restoreTransaction(undoTransactionId);

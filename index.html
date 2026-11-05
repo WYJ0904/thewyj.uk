@@ -426,9 +426,12 @@
                 <h2 id="financeTrendTitle">收支走势</h2>
                 <p id="financeTrendPeriod">近 6 个月收支对比趋势</p>
               </div>
-              <div class="finance-trend-legend" aria-hidden="true">
-                <span class="legend-income"><i class="legend-dot income-dot"></i>收入</span>
-                <span class="legend-expense"><i class="legend-dot expense-dot"></i>支出</span>
+              <div class="finance-trend-heading-actions">
+                <div class="finance-trend-legend" aria-hidden="true">
+                  <span class="legend-income"><i class="legend-dot income-dot"></i>收入</span>
+                  <span class="legend-expense"><i class="legend-dot expense-dot"></i>支出</span>
+                </div>
+                <button class="button-secondary finance-trend-toggle-btn" id="toggleFinanceTrendBtn" type="button" aria-expanded="true" aria-controls="financeTrendChartWrap">收起走势图</button>
               </div>
             </div>
             <div class="finance-trend-chart-wrap" id="financeTrendChartWrap" aria-label="月度收支走势图">
@@ -1088,10 +1091,10 @@
 
         <!-- V3 Membership Workspace -->
         <section class="v3-workspace membership-page hidden" id="membershipModal" aria-labelledby="membershipTitle" aria-hidden="true">
-      <section class="modal-panel membership-panel" role="dialog" aria-modal="true" aria-labelledby="membershipTitle">
+      <div class="v3-workspace-content membership-workspace-content">
         <button class="modal-close" data-close-modal="membershipModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         <p class="section-kicker">会员服务</p>
-        <h2 id="membershipTitle">会员充值</h2>
+        <h2 id="membershipTitle">会员方案 · 规则清楚，开通可追踪</h2>
         <div class="membership-v3-stepper" aria-label="会员开通流程">
           <div class="v3-step-item active"><span class="v3-step-num">1</span><span>选择功能与套餐</span></div>
           <div class="v3-step-item"><span class="v3-step-num">2</span><span>扫码支付与备注</span></div>
@@ -1127,11 +1130,25 @@
         <div class="purchase-summary" id="purchaseSummary">请先选择需要的功能</div>
         <p class="membership-warning">套餐按模块独立授权：双语言包月和 70 CNY 双语言双项永久会员包含英语、日语测试，不包含在线工具箱或财务；工具箱包月仅包含在线工具箱；财务会员仅包含财务账本；通知保存仅供 Android 使用。全功能套餐自动包含这些模块，无需重复购买。</p>
         <div class="payment-order hidden" id="paymentOrderBox">
-          <dl><dt>用户名</dt><dd id="paymentUsername">-</dd><dt>会员方案</dt><dd id="paymentPlan">-</dd><dt class="hidden" id="paymentLanguageTerm">所选语言</dt><dd class="hidden" id="paymentLanguage">-</dd><dt>支付方式</dt><dd id="paymentMethod">-</dd><dt>应付金额</dt><dd id="paymentAmount">-</dd><dt>订单编号</dt><dd><code id="paymentOrderNumber">-</code> <button id="copyOrderBtn" type="button">复制</button></dd><dt>付款备注</dt><dd><span id="paymentNote">-</span> <button id="copyPaymentNoteBtn" type="button">复制</button></dd><dt>订单状态</dt><dd id="paymentStatus">-</dd></dl>
-          <div class="payment-qr-wrap hidden" id="paymentQrWrap">
-            <p id="paymentQrLabel">请使用所选支付方式扫码付款</p>
-            <img id="paymentQrImage" alt="当前订单的私有收款二维码" />
-            <p class="meta-line" id="paymentQrMessage" aria-live="polite"></p>
+          <div class="payment-order-dual-grid">
+            <div class="payment-order-info-card">
+              <h4 class="payment-order-card-title">订单详情</h4>
+              <dl><dt>用户名</dt><dd id="paymentUsername">-</dd><dt>会员方案</dt><dd id="paymentPlan">-</dd><dt class="hidden" id="paymentLanguageTerm">所选语言</dt><dd class="hidden" id="paymentLanguage">-</dd><dt>支付方式</dt><dd id="paymentMethod">-</dd><dt>应付金额</dt><dd id="paymentAmount">-</dd><dt>订单编号</dt><dd><code id="paymentOrderNumber">-</code> <button id="copyOrderBtn" type="button">复制</button></dd><dt>付款备注</dt><dd><span id="paymentNote">-</span> <button id="copyPaymentNoteBtn" type="button">复制</button></dd><dt>订单状态</dt><dd id="paymentStatus">-</dd></dl>
+            </div>
+            <div class="payment-order-action-card">
+              <h4 class="payment-order-card-title">扫码与人工审核流程</h4>
+              <div class="payment-qr-wrap hidden" id="paymentQrWrap">
+                <p id="paymentQrLabel">请使用所选支付方式扫码付款</p>
+                <img id="paymentQrImage" alt="当前订单的私有收款二维码" />
+                <p class="meta-line" id="paymentQrMessage" aria-live="polite"></p>
+              </div>
+              <div class="payment-review-timeline" id="manualApprovalTracker">
+                <div class="approval-step-item is-done"><span class="approval-dot"></span><div><strong>步骤 1：创建订单</strong><p>核对金额并填写订单备注</p></div></div>
+                <div class="approval-step-item is-active"><span class="approval-dot"></span><div><strong>步骤 2：扫码支付并备注</strong><p>请务必在付款时附带订单备注</p></div></div>
+                <div class="approval-step-item"><span class="approval-dot"></span><div><strong>步骤 3：管理员人工核对</strong><p>24 小时内核对账目后开通</p></div></div>
+                <div class="approval-step-item"><span class="approval-dot"></span><div><strong>步骤 4：会员权益生效</strong><p>跨端同步，即刻可用</p></div></div>
+              </div>
+            </div>
           </div>
         </div>
         <p>确认套餐和支付方式后才会生成并显示对应二维码。付款时请核对金额并填写订单备注；点击“我已付款”只会通知管理员，不会自动开通。</p>
@@ -1139,15 +1156,56 @@
         <p class="danger-note">注销账户后，账户数据、当前会员资格、剩余会员时间以及永久会员资格都将被清除，且无法恢复。</p>
         <div class="action-row"><button class="primary" id="submitRechargeBtn" type="button" disabled>确认订单并显示二维码</button><button class="hidden" id="confirmPaymentBtn" type="button">我已付款</button><button class="hidden" id="cancelPaymentOrderBtn" type="button">取消并更换</button></div>
         <p class="meta-line" id="rechargeMessage" aria-live="polite"></p>
-      </section>
+      </div>
         </section>
 
         <!-- V3 Account Workspace -->
         <section class="v3-workspace account-page hidden" id="accountModal" aria-labelledby="accountTitle" aria-hidden="true">
-      <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+      <div class="v3-workspace-content account-workspace-content">
         <button class="modal-close" data-close-modal="accountModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         <p class="section-kicker">账户中心</p>
-        <h2 id="accountTitle">账户设置</h2>
+        <h2 id="accountTitle">我的账户 · 设置与偏好</h2>
+
+        <!-- Dual Summary Cards (07-账户及现有设置) -->
+        <div class="account-profile-summary-grid">
+          <div class="account-summary-card">
+            <div class="account-summary-header">
+              <div class="account-summary-avatar" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div class="account-summary-meta">
+                <div class="account-summary-title-row">
+                  <h3 class="account-profile-name" id="accountProfileUsername">-</h3>
+                  <span class="account-role-badge" id="accountProfileRoleBadge">普通账户</span>
+                </div>
+                <p class="account-profile-id" id="accountProfileIdText">用户 ID: <span id="accountProfileId">-</span></p>
+              </div>
+            </div>
+            <div class="account-summary-footer">
+              <span>注册时间：<strong id="accountProfileRegistered">-</strong></span>
+            </div>
+          </div>
+          
+          <div class="account-summary-card">
+            <div class="account-summary-header">
+              <div class="account-summary-avatar is-sync" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              </div>
+              <div class="account-summary-meta">
+                <div class="account-summary-title-row">
+                  <h3 class="account-sync-title">同步与本地状态</h3>
+                  <span class="account-sync-badge" id="accountSyncBadge">正常</span>
+                </div>
+                <p class="account-sync-desc" id="accountSyncStatus">已连接云端同步 (Cloudflare D1)</p>
+              </div>
+            </div>
+            <div class="account-summary-footer">
+              <span id="accountStorageStatus">本地数据就绪 · 自动按版本迁移</span>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="account-section-subtitle">详细信息与权益</h3>
         <dl class="account-details" id="accountDetails"></dl>
         <section class="hidden" id="releaseChannelSection">
           <h3>体验通道</h3>
@@ -1172,7 +1230,7 @@
           <button id="openDeleteAccountBtn" type="button">注销账户</button>
         </div>
         <p class="error" id="accountMessage" aria-live="polite"></p>
-      </section>
+      </div>
         </section>
         </div>
       </div>

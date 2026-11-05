@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-05T03:56:28.697Z",
+  "generatedAt": "2026-11-05T07:01:36.946Z",
   "status": "PASS",
   "workspaces": [
     {
@@ -57,5 +57,5 @@
     "dark"
   ],
   "runtimeErrorsCount": 0,
-  "dialogsCount": 1
+  "dialogsCount": 0
 }
