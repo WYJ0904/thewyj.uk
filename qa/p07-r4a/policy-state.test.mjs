@@ -35,3 +35,10 @@ test('account presentation does not become OFF on visibility or same-owner objec
   document.hidden=false;enabled=false;await c.refresh();assert.equal(c.decision('p07_accessibility').status,'disabled');
   fail=true;await c.refresh();assert.equal(c.decision('p07_accessibility').status,'error');c.setAvailable(false);
 });
+test('a known unavailable policy capability releases account presentation into the safe base mode',()=>{
+  const document=dom();let account={id:'legacy-owner'};
+  const c=createFeatureController({document,getAccount:()=>account,apiGet:async()=>{throw Error('unsupported endpoint must not be queried');}});
+  c.updateAccount();assert.equal(c.decision('p07_accessibility').status,'pending');
+  c.setAvailable(false);assert.equal(c.decision('p07_accessibility').status,'disabled');
+  account={id:'other-owner'};c.updateAccount();assert.equal(c.decision('p07_accessibility').status,'disabled');assert.equal(c.enabled('p07_accessibility'),false);
+});
