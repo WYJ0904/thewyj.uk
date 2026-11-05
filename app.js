@@ -1628,9 +1628,14 @@ function closeModal(id, immediate = false) {
     releasePaymentQr();
     modal.classList.add("hidden");
     modal.setAttribute("aria-hidden", "true");
+    if (id === "accountModal") clearOwnSecretEditor();
     if (location.pathname === "/recharge" || location.pathname === "/account") {
-      pushRoute("/", true);
-      showModulePicker(false);
+      if (id === "membershipModal" && $("financePage") && !$("financePage").classList.contains("hidden")) {
+        pushRoute("/finance", true);
+      } else {
+        pushRoute("/", true);
+        showModulePicker(false);
+      }
     }
     return;
   }
@@ -2091,8 +2096,10 @@ async function openMembershipModal(options = {}) {
   renderMembershipGoals();
   renderMembershipPlans();
   $("rechargeMessage").textContent = "正在加载套餐与订单状态…";
-  if (!options.insideWorkspace) {
-    openModal("membershipModal");
+  const page = $("membershipModal");
+  if (page) {
+    page.classList.remove("hidden", "is-closing");
+    page.setAttribute("aria-hidden", "false");
   }
   let openOrder = null;
   const loadErrors = [];
@@ -4830,7 +4837,7 @@ financeController = createLazyController({
   isSuperAdmin: (account) => isSuperAdmin(account),
   openRecharge: (goal) => {
     pushRoute("/recharge");
-    return openMembershipModal({ goal });
+    return openMembershipModal({ goal, insideWorkspace: true });
   },
   navigate: (path) => {
     if (path === "/select") showModulePicker(true);
@@ -7005,8 +7012,13 @@ function auditRuntimeCapabilities() {
 
 async function boot() {
   initDesignSystem();
+  try {
+    await Promise.race([
+      publicUiPolicyController?.refresh(),
+      new Promise((resolve) => setTimeout(resolve, 250)),
+    ]);
+  } catch (_) {}
   applyInterfacePolicy();
-  void publicUiPolicyController?.refresh();
   initPublicExperience();
   installLocalTestBindings();
   auditRuntimeCapabilities();
@@ -7182,20 +7194,25 @@ async function boot() {
     if (event.key !== "Escape") return;
     const openModals = [...document.querySelectorAll(".modal-layer:not(.hidden)")];
     const modal = openModals[openModals.length - 1];
-    if (!modal) {
-      closeAccountMenu();
+    if (modal) {
+      if (modal.hasAttribute("data-confirm-only")) {
+        modal.querySelector("button")?.focus();
+        return;
+      }
+      if (modal.id === "siteMessageModal") {
+        void dismissActiveSiteMessage();
+        return;
+      }
+      if (modal.id === "confirmModal") confirmAction = null;
+      closeModal(modal.id);
       return;
     }
-    if (modal.hasAttribute("data-confirm-only")) {
-      modal.querySelector("button")?.focus();
-      return;
+    closeAccountMenu();
+    if (location.pathname === "/account" || ($("accountModal") && !$("accountModal").classList.contains("hidden"))) {
+      closeModal("accountModal");
+    } else if (location.pathname === "/recharge" || ($("membershipModal") && !$("membershipModal").classList.contains("hidden"))) {
+      closeModal("membershipModal");
     }
-    if (modal.id === "siteMessageModal") {
-      void dismissActiveSiteMessage();
-      return;
-    }
-    if (modal.id === "confirmModal") confirmAction = null;
-    closeModal(modal.id);
   });
   document.addEventListener("click", (event) => {
     const menu = $("accountMenu");
