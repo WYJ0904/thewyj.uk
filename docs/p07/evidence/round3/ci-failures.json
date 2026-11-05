@@ -1,0 +1,42 @@
+{
+  "run_id": 41957228594,
+  "head_sha": "fb936d109d0900d02d35eb3493212e4c32c39699",
+  "ci_checkout_sha": "a6ae4fb11a5d788dedebf1b2298de820f1741104",
+  "base_sha": "337bb32f1ce349f9c5d58bd6120932fa5e61a745",
+  "run_url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/41957228594",
+  "conclusions": {
+    "success": 6,
+    "failure": 2,
+    "skipped": 2
+  },
+  "jobs": [
+    {
+      "id": 127016120446,
+      "name": "Browser flow (application)",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/41957228594/job/127016120446",
+      "error": "2026-11-05T02:49:20.5622229Z Error: timeout waiting for finance membership choices",
+      "stack": [
+        "2026-11-05T02:49:20.5631102Z     at check (file:///home/runner/work/thewyj.uk/thewyj.uk/local-backend/test_app_browser.mjs:609:13)",
+        "2026-11-05T02:49:20.5647135Z     at async main (file:///home/runner/work/thewyj.uk/thewyj.uk/local-backend/test_app_browser.mjs:1131:5)"
+      ],
+      "diagnostic": {
+        "pathname": "/recharge",
+        "rechargeMessage": "请先选择你需要的功能。",
+        "membershipModalHidden": false,
+        "financeSyncStatus": "需要财务会员"
+      }
+    },
+    {
+      "id": 127016120544,
+      "name": "Cloud-only browser, canonical session and toolbox",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/41957228594/job/127016120544",
+      "error": "2026-11-05T02:52:26.7463123Z Error: timeout waiting for document.querySelector('#accountModal').classList.contains('hidden')",
+      "stack": [
+        "2026-11-05T02:52:26.7463767Z     at Object.waitFor (file:///home/runner/work/thewyj.uk/thewyj.uk/local-backend/browser_harness.mjs:88:11)",
+        "2026-11-05T02:52:26.7464413Z     at async file:///home/runner/work/thewyj.uk/thewyj.uk/qa/aeris/p4-behavior-browser.mjs:80:5",
+        "2026-11-05T02:52:26.7464793Z Node.js v22.23.4"
+      ]
+    }
+  ]
+}
+

@@ -1,0 +1,72 @@
+{
+  "run_id": 41964942578,
+  "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/41964942578",
+  "run_head_sha": "00d5d0a135cad15d4f6e35aba85e32d0d48ca678",
+  "status": "completed",
+  "conclusion": "success",
+  "snapshot_pr_head": "f7949f8253f51ea2621c397743208971c0cec467",
+  "updated_at": "2026-11-05T04:13:47Z",
+  "jobs": [
+    {
+      "id": 127039686229,
+      "name": "Pages build and publish allowlist",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 127039686494,
+      "name": "JavaScript and static site checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 127039686497,
+      "name": "Sensitive files and static naming",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 127039686564,
+      "name": "Android unit, lint and APK",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 127039686565,
+      "name": "Python syntax and unittest (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 127039686678,
+      "name": "Python syntax and unittest (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 127039687748,
+      "name": "Task 25 cloud credential discovery",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 127039688191,
+      "name": "Task 25 Android runtime contract",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 127040814510,
+      "name": "Cloud-only browser, canonical session and toolbox",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 127040814514,
+      "name": "Browser flow (application)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}
+

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "baseline_sha": "337bb32f1ce349f9c5d58bd6120932fa5e61a745",
+  "evidence_rule": "An entry is a requirement, never an implicit PASS. Read actual run results.",
+  "widths": [375,390,412,768,1024,1440,1920],
+  "native_browser_zoom": [100,200,400],
+  "themes": ["light","dark"],
+  "pages": [
+    {"scope":"P07-03","surface":"personal space/account","baseline":"/account modal over home","reference":["07-账户及现有设置.png"],"requirements":["real account identity","session recovery","guest guard","membership expiry","logout cache boundary","no invented security centre"]},
+    {"scope":"P07-04","surface":"English/Japanese learning","baseline":"/language and /language/:language","reference":["02-语言学习-沉浸答题.png"],"requirements":["existing setup/quiz flow","feedback persists","one consumed question per answer","dictation","Japanese written and reading forms","AI_OFF failure recovery"]},
+    {"scope":"P07-05","surface":"wrong book/Mastery/statistics","baseline":"views inside /language/:language","reference":["03-错题与Mastery.png"],"requirements":["A-H state transitions","wrong retry idempotence","offline review","original wrong-book fallback when Task26 unavailable","no fake mastery chart","exports and account deletion cleanup"]},
+    {"scope":"P07-06","surface":"finance","baseline":"/finance explicit CNY contract","reference":["00-全站设计索引.png","09-通知归档与候选核实.png"],"requirements":["CRUD","budget","reconnect and reload","extreme and empty amounts","P04 absent currency compatibility","manual candidate verification","no fuzzy identity/autobook","same amount distinct transaction"]},
+    {"scope":"P07-07","surface":"notification archive","baseline":"candidate summary in finance; no standalone web archive route","reference":["09-通知归档与候选核实.png"],"requirements":["private API boundary","source evidence retained","non-payment notifications not booked","missing reference stays manual","search/filter/detail only when implemented","no invented Task34 message centre"]},
+    {"scope":"P07-08","surface":"toolbox/workbench","baseline":"/tools and /tools/:tool_id","reference":["04-工具箱-真实工具工作区.png","10-工具工作流编辑器.png"],"requirements":["local text/JSON operations","file fixture validation","download integrity","clipboard denial recovery","member/guest separation","duplicate action guards","no real private input upload"]},
+    {"scope":"P07-15","surface":"shared shell/components","baseline":"V3 sidebar and main canvas","reference":["00-全站设计索引.png","01-首页-三悬浮卡片.png","11-登录与注册.png"],"requirements":["route and aria-current","brand decoded","desktop sidebar/mobile collapse","theme","font and numeric hierarchy","no overflow","keyboard focus","modal/menu layering and focus restore","Reduced Motion","P07-IQA-001"]}
+  ],
+  "status_boundaries": {
+    "Flash_unpublished_head": "NOT_TESTED until independently checked out and actually run",
+    "Samsung": "NOT_TESTED; no formal phone operations authorized",
+    "paid_AI": "NOT_TESTED; no binding or paid model calls",
+    "Production": "NOT_TESTED; no deployment or production access",
+    "screen_reader": "NOT_TESTED until an actual screen reader is used",
+    "synthetic_semantics": "UI interaction fixture only; not linguistic or model-quality evidence"
+  }
+}

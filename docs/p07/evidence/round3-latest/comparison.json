@@ -1,0 +1,201 @@
+{
+  "status": "P07_ROUND3_QA_PARTIAL",
+  "date": "2026-11-05",
+  "timezone": "Asia/Hong_Kong",
+  "revisions": {
+    "red": "21b83316cbfdeb366c587b9e818a2c64e2199215",
+    "owner_supplied": "fb936d109d0900d02d35eb3493212e4c32c39699",
+    "additional_final_ci_candidate": "f7949f8253f51ea2621c397743208971c0cec467"
+  },
+  "counts": {
+    "red": {
+      "pass": 13,
+      "fail": 12
+    },
+    "fb936d1": {
+      "pass": 22,
+      "fail": 3
+    },
+    "f7949f8": {
+      "pass": 23,
+      "fail": 2
+    }
+  },
+  "identical_25_case_browser_driver": true,
+  "browser_driver_sha256": "227c4f69d473186fdbe307fa3a6da4a9a6d5a0c41d485ff51d19beed608fa61d",
+  "comparison": [
+    {
+      "id": "first-paint-home-and-p07-decision",
+      "red": "PASS",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "free-account-finance-guard-is-visible",
+      "red": "PASS",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "finance-upgrade-shortcut-selects-finance-plans",
+      "red": "FAIL",
+      "fb936d1": "FAIL",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "membership-is-an-independent-main-workspace",
+      "red": "FAIL",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "finance-upgrade-manual-goal-remains-usable",
+      "red": "PASS",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "membership-order-and-admin-review-boundary",
+      "red": "PASS",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "membership-route-sidebar-cross-navigation",
+      "red": "FAIL",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "account-is-a-main-workspace-not-a-modal",
+      "red": "FAIL",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "account-workspace-sidebar-remains-in-keyboard-order",
+      "red": "FAIL",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "legacy-account-escape-diagnostic-and-sidebar-exit",
+      "red": "PASS",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "main-workspace-pages-do-not-announce-aria-modal",
+      "red": "FAIL",
+      "fb936d1": "FAIL",
+      "f7949f8": "FAIL"
+    },
+    {
+      "id": "synthetic-account-secret-change-revokes-old-session",
+      "red": "PASS",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "account-to-learning-tools-home-sidebar-navigation",
+      "red": "FAIL",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "browser-back-forward-and-direct-route",
+      "red": "FAIL",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "homepage-core-card-coordinate-hit-matrix",
+      "red": "FAIL",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "standalone-english-japanese-views-and-quiz-card-geometry",
+      "red": "FAIL",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "learning-submit-next-skip-refresh-and-language-isolation",
+      "red": "PASS",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "japanese-ai-off-reading-failure-leaves-meaning-ui-usable",
+      "red": "PASS",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "english-local-rubric-and-ai-off-fail-closed",
+      "red": "PASS",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "japanese-reading-and-meaning-services-are-distinct",
+      "red": "PASS",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "finance-real-ledger-summary-and-chart",
+      "red": "FAIL",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "finance-edit-delete-chart-update-and-empty-ledger",
+      "red": "PASS",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "admin-and-member-authorization-isolation",
+      "red": "PASS",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "refresh-continuity-all-required-pages",
+      "red": "PASS",
+      "fb936d1": "PASS",
+      "f7949f8": "PASS"
+    },
+    {
+      "id": "delayed-authoritative-policy-does-not-flash-legacy-layout",
+      "red": "FAIL",
+      "fb936d1": "FAIL",
+      "f7949f8": "FAIL"
+    }
+  ],
+  "primary_surface_cases": [
+    {
+      "sha": "21b83316cbfdeb366c587b9e818a2c64e2199215",
+      "pass": 0,
+      "fail": 3
+    },
+    {
+      "sha": "fb936d109d0900d02d35eb3493212e4c32c39699",
+      "pass": 3,
+      "fail": 0
+    },
+    {
+      "sha": "f7949f8253f51ea2621c397743208971c0cec467",
+      "pass": 2,
+      "fail": 1
+    }
+  ],
+  "cache_upgrade": "FAIL",
+  "real_ai_quality": "NOT_TESTED",
+  "hosted_authenticated_workspaces": "NOT_TESTED",
+  "hosted_administrator": "NOT_TESTED",
+  "owner_existing_browser_profile": "NOT_TESTED",
+  "production": "NOT_TESTED"
+}

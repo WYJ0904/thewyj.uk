@@ -1,0 +1,541 @@
+{
+  "files": [
+    {
+      "file": "cache-upgrade.json",
+      "bytes": 24346,
+      "sha256": "80e4dec92368041c3667cbb2eb90c869e4798cffbe967b206c70b36833fe09d5"
+    },
+    {
+      "file": "candidate/card-hit-matrix.json",
+      "bytes": 20821,
+      "sha256": "2b281e4c6ef90d76bff7c073f1ce0ec99cc9c65dae0fedd2ee87321e61d03382"
+    },
+    {
+      "file": "candidate/driver-manifest.json",
+      "bytes": 940,
+      "sha256": "d6c6876a99bd0485cdb11b75ab83aaea6608da4cb09fe6aaad98cef0d0519b26"
+    },
+    {
+      "file": "candidate/flag-kill-screenshots/fb936d1-_account-hard-stable.png",
+      "bytes": 123085,
+      "sha256": "3b1e584ac0d343a5b95b7c9bfde3a6c2897d81513216a2f7f8097f147b8a29ff"
+    },
+    {
+      "file": "candidate/flag-kill-screenshots/fb936d1-_recharge-normal-stable.png",
+      "bytes": 187234,
+      "sha256": "53d3ba401715cbc71286350ca1e6172c5ac86ff3cf15b2d35f94c3c6f9ac2943"
+    },
+    {
+      "file": "candidate/flag-kill-screenshots/fb936d1-flag-kill_switch-stable.png",
+      "bytes": 101791,
+      "sha256": "796c341332b41a11b121bc649303be8cc4cf71fa6105ff76ca0ee81fca616565"
+    },
+    {
+      "file": "candidate/flag-kill-screenshots/fb936d1-kill_switch-account-fallback.png",
+      "bytes": 123889,
+      "sha256": "db2c92f33a54ec7bf8431a86bae2ba3b8bf8125991461fff9787def485791a4f"
+    },
+    {
+      "file": "candidate/flag-kill-screenshots/fb936d1-kill_switch-membership-fallback.png",
+      "bytes": 187778,
+      "sha256": "1b090c3cd117f0c934dcd76527857f2893670c62d1409e70fe2402819d9f072a"
+    },
+    {
+      "file": "candidate/flag-kill.json",
+      "bytes": 69286,
+      "sha256": "95ed3f6f55164b7765dc4e3cb9fece7b768f57e38baa54803807599154d540c5"
+    },
+    {
+      "file": "candidate/flag-off-screenshots/fb936d1-_account-hard-stable.png",
+      "bytes": 125181,
+      "sha256": "8dc381e59b9b146c4dd18df9437a95fa613cd84a54fb720de4067306edc78f02"
+    },
+    {
+      "file": "candidate/flag-off-screenshots/fb936d1-_recharge-normal-stable.png",
+      "bytes": 196510,
+      "sha256": "79cc13a4a5ee0621a5d21611d01fe1356e3482a5789d7332f6e1b4b7cf4dfb54"
+    },
+    {
+      "file": "candidate/flag-off-screenshots/fb936d1-flag-off-stable.png",
+      "bytes": 101791,
+      "sha256": "796c341332b41a11b121bc649303be8cc4cf71fa6105ff76ca0ee81fca616565"
+    },
+    {
+      "file": "candidate/flag-off-screenshots/fb936d1-off-account-fallback.png",
+      "bytes": 82370,
+      "sha256": "0d4d1a7253852a9cf8d9ee6927cd54be16fcea86f4341bac58e96316562aa4ca"
+    },
+    {
+      "file": "candidate/flag-off-screenshots/fb936d1-off-membership-fallback.png",
+      "bytes": 176059,
+      "sha256": "7f6feea97826402c3b9b07ca278ac74fb820d5b896f1e3e5e7d0556827a2f207"
+    },
+    {
+      "file": "candidate/flag-off.json",
+      "bytes": 69180,
+      "sha256": "4d32319e4ba6f39785ea8cd07db7495c0951d2b3a2fb39472017ee0508e7fa68"
+    },
+    {
+      "file": "candidate/layout-supplement.json",
+      "bytes": 4471,
+      "sha256": "6bdca24e66411914d69ade55383de71686f4bd26aeeaf9a0102ceb492a7a4229"
+    },
+    {
+      "file": "candidate/legacy-account-escape.json",
+      "bytes": 948,
+      "sha256": "9d098840d9e4a1d2a3711f0c7a39bd9dac6072f417f13c0d972a7bb9edf28e0c"
+    },
+    {
+      "file": "candidate/p4-workspace-behavior.json",
+      "bytes": 3351,
+      "sha256": "53741fd2cd671e8e5fbcf2d154e6f8951057d8f23708a330893199b71d25d496"
+    },
+    {
+      "file": "candidate/results.json",
+      "bytes": 568297,
+      "sha256": "074b1a192d94c9a4513910c44422a265c58e8c540542ba5490271503de33f5aa"
+    },
+    {
+      "file": "candidate/runtime-tier.json",
+      "bytes": 275,
+      "sha256": "7724cc16f51db4b57182366224b64f8633b98a955c2558a3545914c78701232e"
+    },
+    {
+      "file": "candidate/screenshots/english-actual-answer-feedback-1440.png",
+      "bytes": 75609,
+      "sha256": "7db5fbdf9942fede9696ac0b6cb867af404e641b69832d3b6f85f41f8d23d9fb"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-_-hard-stable.png",
+      "bytes": 232209,
+      "sha256": "c242401d0a2bde7e513f9fa7c7c9c5bde3d3db93d2ec214b4874566da75c8da0"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-_-normal-stable.png",
+      "bytes": 230026,
+      "sha256": "b4e7b6d518d8967df59b19e3af1c76cb76d7ffeac44a1f6f27cb150e7cee3b64"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-_account-hard-stable.png",
+      "bytes": 159735,
+      "sha256": "0103beb9bf2be430a0dbd58b3c65fb558748f0be3db939d82f3ac9991c2cc34f"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-_account-normal-stable.png",
+      "bytes": 160747,
+      "sha256": "24c172f1f607ce0ad4ae3272711b335244cb9ffab65634852ff938d2ed7dbf1a"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-_finance-hard-stable.png",
+      "bytes": 88727,
+      "sha256": "f06bc33bbb3d85b6277aaee12a6caf0a08aef8ece8c88eec94cee353a17deee7"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-_finance-normal-stable.png",
+      "bytes": 88727,
+      "sha256": "f06bc33bbb3d85b6277aaee12a6caf0a08aef8ece8c88eec94cee353a17deee7"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-_language_english-hard-stable.png",
+      "bytes": 92885,
+      "sha256": "7c31925f9f5a4dc8cdcbad124f649dfe1a7132be9a8070d906a83edab4375f16"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-_language_english-normal-stable.png",
+      "bytes": 93344,
+      "sha256": "a0eba7fecdd10c221f4d28fbb77efe044ce3950b121186d862e4c5d8142b7187"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-_language_japanese-hard-stable.png",
+      "bytes": 94410,
+      "sha256": "d621dab124bf40441e3714b755004a84da5d7d97b632e7a827fc9b0b1b348921"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-_language_japanese-normal-stable.png",
+      "bytes": 92795,
+      "sha256": "20e7cc894ffc67c27b1bf4d75f3ae6cb27c049289db7a44ab107c695c890eadd"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-_recharge-hard-stable.png",
+      "bytes": 248514,
+      "sha256": "31f107602d91034c049add9c792a03b475c2b47c1153fa304ba85e0e705ee156"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-_recharge-normal-stable.png",
+      "bytes": 242349,
+      "sha256": "7275b7b86caf5fa760dae1d45b8c4ccfe151b78df0d26fd0f3a58a64063ecfbe"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-account.png",
+      "bytes": 157162,
+      "sha256": "3f48a4c5c824ee97b82f1573dd98a54a65606e273551b669ee09b98a7dd6143f"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-admin-audit-mobile-390.png",
+      "bytes": 53394,
+      "sha256": "ceba6c0ba69c6e0f5e21cb27700b5cfe81c20438ee5a671e504c1539169eaa22"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-admin-desktop.png",
+      "bytes": 128351,
+      "sha256": "617837462fcb6c8a73cbf1c9d3391b2a89bac0b69a082f9d1d47a66b92eb9a0e"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-admin-mobile-390.png",
+      "bytes": 31794,
+      "sha256": "84527cb07d95cdfe3afb2f3ddc1d47b317b0ae50cd3037c92dafce6a87a73032"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-english-quiz-1440.png",
+      "bytes": 66804,
+      "sha256": "e0a2fa144e4d0509988100d199b16640a8cf2039fb2d092ebbe7952990f95d50"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-english-wrong-after-refresh.png",
+      "bytes": 83316,
+      "sha256": "0cf4691dfefeb3b1b7b03880708c0b9b02fe7f502b8ab2abff95eca0f900d4bd"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-finance-extreme-values.png",
+      "bytes": 85209,
+      "sha256": "f4cea58472882fd1026f1291b0c8a34e58dc3ad3bd111171d562b9dab8bc9487"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-home-stable.png",
+      "bytes": 217290,
+      "sha256": "f3600eff7e4a10e512b4f77fd0062699c3c13770040c6612af21de652bb24f70"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-japanese-quiz-1440.png",
+      "bytes": 73973,
+      "sha256": "08aaddee510b85be903e57b8b7d27b2f057438d5251debb7cbbb831b0721f838"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-japanese-wrong-after-refresh.png",
+      "bytes": 83170,
+      "sha256": "6b80331e18c97d1bd8884716eb9b190a390296434900cc512b8d12fe02e663e6"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-membership-from-finance.png",
+      "bytes": 122403,
+      "sha256": "e8645bfc990914d682ce075f3d78a0d02bf258683790046a45a67e2de906d903"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-policy-delayed-final-v3.png",
+      "bytes": 211465,
+      "sha256": "9651daa1ae0d99388a0fb35ab4b9efff2f0c1b8594b528a1bc67af9e0d34107d"
+    },
+    {
+      "file": "candidate/screenshots/fb936d1-policy-delayed-visible-legacy.png",
+      "bytes": 101791,
+      "sha256": "796c341332b41a11b121bc649303be8cc4cf71fa6105ff76ca0ee81fca616565"
+    },
+    {
+      "file": "candidate/screenshots/japanese-actual-answer-feedback-1440.png",
+      "bytes": 67725,
+      "sha256": "600253a41ad29f2232d38762457fa2225b78995bfa189d033b5c0005a4fcd5e9"
+    },
+    {
+      "file": "candidate/screenshots/public-feature-cards-1440.png",
+      "bytes": 83509,
+      "sha256": "7eb7359de8f1ade010a62324eafd3cb22bc2680595b0279f29be1f93b2ae9cf0"
+    },
+    {
+      "file": "candidate/source-manifest.json",
+      "bytes": 15015,
+      "sha256": "44b5a7ecc6923615ddd6149527e20ea9dcfe39696e2051a9169ab154d1d88bed"
+    },
+    {
+      "file": "ci-failures.json",
+      "bytes": 1901,
+      "sha256": "baf33a5de24dd341ce3515e79fe9021c2e3805eb52704619595ece5ceef13ad7"
+    },
+    {
+      "file": "comparison.json",
+      "bytes": 3884,
+      "sha256": "9dc8899cf905ffc2241ceb2fceb62a49815d5077d2e86ac99f0dc411b0947bba"
+    },
+    {
+      "file": "driver-development-history.json",
+      "bytes": 29968,
+      "sha256": "2c2bb4e552959f26253fdd8ac4b3ec7e6c3dbcae24da71e1308be521858e5434"
+    },
+    {
+      "file": "hosted-readonly.json",
+      "bytes": 7985,
+      "sha256": "7798d2a46134a05c41c1d0ef750ff980e7d9ad5718cabae73cfe2a099c818f6f"
+    },
+    {
+      "file": "hosted-screenshots/21b8331-hosted-guest-1440.png",
+      "bytes": 205548,
+      "sha256": "8281578314d0a1863eb58b765b104352f213f1d0ed1666faf0708105e3267030"
+    },
+    {
+      "file": "hosted-screenshots/21b8331-hosted-guest-390.png",
+      "bytes": 80997,
+      "sha256": "d00abdd6f6345879b67ddfccc9b4b083ca8f8012324a64ecfbf99c3a4ff9d581"
+    },
+    {
+      "file": "hosted-screenshots/fb936d1-hosted-guest-1440.png",
+      "bytes": 205548,
+      "sha256": "8281578314d0a1863eb58b765b104352f213f1d0ed1666faf0708105e3267030"
+    },
+    {
+      "file": "hosted-screenshots/fb936d1-hosted-guest-390.png",
+      "bytes": 81010,
+      "sha256": "5275a4643eaf5289e7d0b81fb2578069314d18f79b3d104de025a9785f61bf1d"
+    },
+    {
+      "file": "red/card-hit-matrix.json",
+      "bytes": 24539,
+      "sha256": "3d06cdddba67f2eea948fa638b541bc068db6f772fed0ff4d7d25ed3daefe8ad"
+    },
+    {
+      "file": "red/driver-manifest.json",
+      "bytes": 940,
+      "sha256": "798eeef37dc357e81d1ee1cfba48b40a52f2ef5fc8901e8951f5f7dc4d85f1dc"
+    },
+    {
+      "file": "red/flag-kill-screenshots/21b8331-_account-hard-stable.png",
+      "bytes": 193975,
+      "sha256": "2cc1923585cfc9cda7129ce52f2286386d6f5bf6181899b7fee1d1dabb70853e"
+    },
+    {
+      "file": "red/flag-kill-screenshots/21b8331-_recharge-normal-stable.png",
+      "bytes": 251023,
+      "sha256": "9918c3f12d461b96cc6ad33e24a20525d05c43aafcd3d050b6512ff87b2d82a5"
+    },
+    {
+      "file": "red/flag-kill-screenshots/21b8331-flag-kill_switch-stable.png",
+      "bytes": 101791,
+      "sha256": "796c341332b41a11b121bc649303be8cc4cf71fa6105ff76ca0ee81fca616565"
+    },
+    {
+      "file": "red/flag-kill-screenshots/21b8331-kill_switch-account-fallback.png",
+      "bytes": 151823,
+      "sha256": "e5b168bf25fe7ae87340cb132b9cea6dae6e12157b6bf7a08b1967f2f68dff7f"
+    },
+    {
+      "file": "red/flag-kill-screenshots/21b8331-kill_switch-membership-fallback.png",
+      "bytes": 133138,
+      "sha256": "ca38d9e6fe1d97a6d6306f42872f73e301f68111a8440b78a00023470f550f97"
+    },
+    {
+      "file": "red/flag-kill.json",
+      "bytes": 69244,
+      "sha256": "c7cd56950493fda0e40c5ba8abc5f296334e5747b5fb645e78c7b9c52667e5ea"
+    },
+    {
+      "file": "red/flag-off-screenshots/21b8331-_account-hard-stable.png",
+      "bytes": 205003,
+      "sha256": "4f58fa8b0127c3e4002502d99ee8ad777f7b01c70ff3fe47b23620af3d0c92ec"
+    },
+    {
+      "file": "red/flag-off-screenshots/21b8331-_recharge-normal-stable.png",
+      "bytes": 250682,
+      "sha256": "9a0541f607813cff6cb3f2ba9dba754d0b966b538c7c12f34d5c2420c35f3efd"
+    },
+    {
+      "file": "red/flag-off-screenshots/21b8331-flag-off-stable.png",
+      "bytes": 101791,
+      "sha256": "796c341332b41a11b121bc649303be8cc4cf71fa6105ff76ca0ee81fca616565"
+    },
+    {
+      "file": "red/flag-off-screenshots/21b8331-off-account-fallback.png",
+      "bytes": 148007,
+      "sha256": "bccfa78e84f2dcf41734fdade792b8d62ac510fad134db5d9771ca6e3ee27822"
+    },
+    {
+      "file": "red/flag-off-screenshots/21b8331-off-membership-fallback.png",
+      "bytes": 133064,
+      "sha256": "55490af34336d7cecd77350dba57a51d8aab5eca3020d67ca57f627c0208659b"
+    },
+    {
+      "file": "red/flag-off.json",
+      "bytes": 69169,
+      "sha256": "d193ea478ead054084f7fe92d9e95868416af79e9f8f5c3a514dd251479ecc96"
+    },
+    {
+      "file": "red/layout-supplement.json",
+      "bytes": 5712,
+      "sha256": "2197f1512b846f1213611adb86db391502bb4aac3ffd52f0a25848c29d619874"
+    },
+    {
+      "file": "red/legacy-account-escape.json",
+      "bytes": 947,
+      "sha256": "3fb00111bd9cd5dfa60147d28c1aff4960567989caa746aa8d266374071b458c"
+    },
+    {
+      "file": "red/results.json",
+      "bytes": 582104,
+      "sha256": "6a43271af8c756e2850fb8074afa0e873f51e58fc6218f7373332c84dc92883e"
+    },
+    {
+      "file": "red/runtime-tier.json",
+      "bytes": 275,
+      "sha256": "5caf603d88f9eed6826efd58a52b480268004aa4ffdf85c84e5339822bcf730d"
+    },
+    {
+      "file": "red/screenshots/21b8331-_-hard-stable.png",
+      "bytes": 225509,
+      "sha256": "249d1a3a048b7eaf737b306e788758c53eaf91f13652bf9e93e0f01dd83454b0"
+    },
+    {
+      "file": "red/screenshots/21b8331-_-normal-stable.png",
+      "bytes": 231408,
+      "sha256": "db74827cb7ba56c3068273a76258b79f178d4d4bc0a049395623c4310e0c13f6"
+    },
+    {
+      "file": "red/screenshots/21b8331-_account-hard-stable.png",
+      "bytes": 278816,
+      "sha256": "826b8d56c38a19a161698e66e9e71572b5ad2555bd972f54dea5f855b641a0da"
+    },
+    {
+      "file": "red/screenshots/21b8331-_account-normal-stable.png",
+      "bytes": 231201,
+      "sha256": "dd65e948ca781e8ef8631f69dcc90425570aa775d59db4ac19bb8866e9461fa3"
+    },
+    {
+      "file": "red/screenshots/21b8331-_finance-hard-stable.png",
+      "bytes": 90557,
+      "sha256": "e0a9c82f5519b82cbc6760a33d5a9d88b580a3351f85a98b6aa47e30087b81ab"
+    },
+    {
+      "file": "red/screenshots/21b8331-_finance-normal-stable.png",
+      "bytes": 90557,
+      "sha256": "e0a9c82f5519b82cbc6760a33d5a9d88b580a3351f85a98b6aa47e30087b81ab"
+    },
+    {
+      "file": "red/screenshots/21b8331-_language_english-hard-stable.png",
+      "bytes": 93416,
+      "sha256": "b6ab2732eb9e0038030c1e8c2889d18d5180fb4e4d15eae933131cd08c72d723"
+    },
+    {
+      "file": "red/screenshots/21b8331-_language_english-normal-stable.png",
+      "bytes": 91494,
+      "sha256": "9d03a1a86c68ae16e026de957b20cbdac4f762441643c5bad8eab636169897d8"
+    },
+    {
+      "file": "red/screenshots/21b8331-_language_japanese-hard-stable.png",
+      "bytes": 95234,
+      "sha256": "f142fd225a0eb5593f73903dce41e408aa391301790c2c6643e6d2b111697c40"
+    },
+    {
+      "file": "red/screenshots/21b8331-_language_japanese-normal-stable.png",
+      "bytes": 93496,
+      "sha256": "316654a099bd8d1f4e6bad31704013a0368b68bec49a0cb8703ff84ff55ca621"
+    },
+    {
+      "file": "red/screenshots/21b8331-_recharge-hard-stable.png",
+      "bytes": 240447,
+      "sha256": "750bad990aa4fb2c781df3eeb1532220f86f1d97c873cc2b209ad942fb76105c"
+    },
+    {
+      "file": "red/screenshots/21b8331-_recharge-normal-stable.png",
+      "bytes": 342471,
+      "sha256": "8e29927c2c97024813987993d43220c5e7f585a67ca584a1a57f8a27c68c8d4b"
+    },
+    {
+      "file": "red/screenshots/21b8331-account.png",
+      "bytes": 285074,
+      "sha256": "92adb226551d62b15549c76d904f08df9aa05811b44c8eea3f43e3b385150680"
+    },
+    {
+      "file": "red/screenshots/21b8331-admin-audit-mobile-390.png",
+      "bytes": 53125,
+      "sha256": "30c68d745e733e82eadba6a7e399db39ab3416649d73eaf1419b926645b3da94"
+    },
+    {
+      "file": "red/screenshots/21b8331-admin-desktop.png",
+      "bytes": 128292,
+      "sha256": "1547e52710145f0838f0133b05903260bcd12bde03765908c1530e492fd86995"
+    },
+    {
+      "file": "red/screenshots/21b8331-admin-mobile-390.png",
+      "bytes": 31794,
+      "sha256": "84527cb07d95cdfe3afb2f3ddc1d47b317b0ae50cd3037c92dafce6a87a73032"
+    },
+    {
+      "file": "red/screenshots/21b8331-english-quiz-1440.png",
+      "bytes": 66429,
+      "sha256": "285768f643bd49bdc9c5e7d66b5b9cd4704167aa348eb54776be6e0dacdffe97"
+    },
+    {
+      "file": "red/screenshots/21b8331-english-wrong-after-refresh.png",
+      "bytes": 83443,
+      "sha256": "88149bd0d37344aa99de40825e6b4eb0ac34f8a20af4a240d9dc8d088bc90622"
+    },
+    {
+      "file": "red/screenshots/21b8331-finance-extreme-values.png",
+      "bytes": 90589,
+      "sha256": "bdd93f23284d734dea766f787b50d38db24fb3fadf3ff8624cf96a49e2a301ef"
+    },
+    {
+      "file": "red/screenshots/21b8331-flag-off-stable.png",
+      "bytes": 101791,
+      "sha256": "796c341332b41a11b121bc649303be8cc4cf71fa6105ff76ca0ee81fca616565"
+    },
+    {
+      "file": "red/screenshots/21b8331-home-stable.png",
+      "bytes": 197368,
+      "sha256": "806def3ea175019a15a7b7035085a7a3a57c9018915f598b1b98ac991b82b5ac"
+    },
+    {
+      "file": "red/screenshots/21b8331-japanese-quiz-1440.png",
+      "bytes": 66382,
+      "sha256": "254e6755e92a2b936e05f3f949ea96385aa452423576d8a36edac8992661080c"
+    },
+    {
+      "file": "red/screenshots/21b8331-japanese-wrong-after-refresh.png",
+      "bytes": 84314,
+      "sha256": "ca835ebf533c7fece3252680a8966bc2a707e6e58a533ced4b86910e92760f20"
+    },
+    {
+      "file": "red/screenshots/21b8331-membership-from-finance.png",
+      "bytes": 159981,
+      "sha256": "1f4abd6f84b14000aaa14da5aba4c5d92e3d40f63008e6a626a3f34bafa6a0d9"
+    },
+    {
+      "file": "red/screenshots/21b8331-off-account-fallback.png",
+      "bytes": 148007,
+      "sha256": "bccfa78e84f2dcf41734fdade792b8d62ac510fad134db5d9771ca6e3ee27822"
+    },
+    {
+      "file": "red/screenshots/21b8331-off-membership-fallback.png",
+      "bytes": 133064,
+      "sha256": "55490af34336d7cecd77350dba57a51d8aab5eca3020d67ca57f627c0208659b"
+    },
+    {
+      "file": "red/screenshots/21b8331-policy-delayed-final-v3.png",
+      "bytes": 215638,
+      "sha256": "299f49e3d762ff99b2e55379d483695791fbaa43912bf4e0fc61a8ab290fa169"
+    },
+    {
+      "file": "red/screenshots/21b8331-policy-delayed-visible-legacy.png",
+      "bytes": 101791,
+      "sha256": "796c341332b41a11b121bc649303be8cc4cf71fa6105ff76ca0ee81fca616565"
+    },
+    {
+      "file": "red/screenshots/english-actual-answer-feedback-1440.png",
+      "bytes": 75181,
+      "sha256": "98b2948ef336a3fa5cc000b003e70fe31704147d2cad9208575f81f32cd82f9d"
+    },
+    {
+      "file": "red/screenshots/japanese-actual-answer-feedback-1440.png",
+      "bytes": 63613,
+      "sha256": "854a42a45791c4590813f9e1424fee760faf9dc519e497b508c0cdbdca1e2de5"
+    },
+    {
+      "file": "red/screenshots/public-feature-cards-1440.png",
+      "bytes": 83675,
+      "sha256": "cfaeeeca07665a6dd8f4dde1064e4e487af89ed596821095180b15a919791e64"
+    },
+    {
+      "file": "red/source-manifest.json",
+      "bytes": 15015,
+      "sha256": "39a6b1f4b4cb01bc3a81f774fbcde8fbdbb9bed902c27971890b3aa4ad7b0641"
+    }
+  ],
+  "total_bytes": 12979291,
+  "synthetic_only": true
+}

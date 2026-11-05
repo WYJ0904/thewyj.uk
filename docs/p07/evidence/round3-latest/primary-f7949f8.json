@@ -1,0 +1,89 @@
+{
+  "target_sha": "f7949f8253f51ea2621c397743208971c0cec467",
+  "cases": [
+    {
+      "name": "direct-account",
+      "status": "PASS",
+      "detail": {
+        "route": "/account",
+        "expected": "accountModal",
+        "surfaces": [
+          {
+            "id": "accountModal",
+            "insideMain": true,
+            "inViewport": true,
+            "rect": {
+              "x": 214.5,
+              "y": 63,
+              "width": 1200,
+              "height": 1000
+            }
+          }
+        ],
+        "shellInert": false,
+        "modalOpen": false
+      },
+      "screenshot": "direct-account.png"
+    },
+    {
+      "name": "direct-membership",
+      "status": "PASS",
+      "detail": {
+        "route": "/recharge",
+        "expected": "membershipModal",
+        "surfaces": [
+          {
+            "id": "membershipModal",
+            "insideMain": true,
+            "inViewport": true,
+            "rect": {
+              "x": 214.5,
+              "y": 63,
+              "width": 1200,
+              "height": 857.734375
+            }
+          }
+        ],
+        "shellInert": false,
+        "modalOpen": false
+      },
+      "screenshot": "direct-membership.png"
+    },
+    {
+      "name": "finance-upgrade-membership",
+      "status": "FAIL",
+      "detail": {
+        "route": "/recharge",
+        "expected": "membershipModal",
+        "surfaces": [
+          {
+            "id": "financePage",
+            "insideMain": true,
+            "inViewport": true,
+            "rect": {
+              "x": 236,
+              "y": 87,
+              "width": 1157,
+              "height": 323.0625
+            }
+          },
+          {
+            "id": "membershipModal",
+            "insideMain": true,
+            "inViewport": true,
+            "rect": {
+              "x": 214.5,
+              "y": 458.0625,
+              "width": 1200,
+              "height": 1000
+            }
+          }
+        ],
+        "shellInert": false,
+        "modalOpen": false
+      },
+      "error": "a page route must expose exactly its own primary surface\n+ actual - expected\n\n  [\n+   'financePage',\n    'membershipModal'\n  ]\n",
+      "screenshot": "finance-upgrade-membership.png"
+    }
+  ]
+}

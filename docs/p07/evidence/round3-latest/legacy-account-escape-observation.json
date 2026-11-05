@@ -1,0 +1,48 @@
+{
+  "before": {
+    "visible": true,
+    "inMainCanvas": true,
+    "insideModalLayer": false,
+    "role": null,
+    "ariaModal": null,
+    "ariaHidden": "false",
+    "bodyModalOpen": false,
+    "appShellInert": false,
+    "appShellPending": false,
+    "activeNav": [
+      "account"
+    ],
+    "modalLayers": [],
+    "rect": {
+      "x": 214.5,
+      "y": 63,
+      "width": 1200,
+      "height": 1000
+    },
+    "p07": "enabled"
+  },
+  "after": {
+    "visible": false,
+    "inMainCanvas": true,
+    "insideModalLayer": false,
+    "role": null,
+    "ariaModal": null,
+    "ariaHidden": "true",
+    "bodyModalOpen": false,
+    "appShellInert": false,
+    "appShellPending": false,
+    "activeNav": [
+      "home"
+    ],
+    "modalLayers": [],
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "p07": "enabled"
+  },
+  "pathAfterEscape": "/",
+  "originalCIHiddenAssertionWouldPass": true
+}

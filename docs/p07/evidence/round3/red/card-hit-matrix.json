@@ -1,0 +1,979 @@
+{
+  "ids": [
+    "learning",
+    "tools",
+    "finance",
+    "share",
+    "account"
+  ],
+  "rows": [
+    {
+      "id": "learning",
+      "rect": {
+        "x": 272.203125,
+        "y": 249.90625,
+        "width": 719.0625,
+        "height": 538.359375
+      },
+      "targets": [
+        {
+          "point": "title",
+          "x": 448.96875,
+          "y": 551.3984375,
+          "visible": true,
+          "disabled": false,
+          "hitMatches": true,
+          "hitElement": {
+            "id": "",
+            "tag": "BUTTON",
+            "className": "capability-trigger"
+          },
+          "rect": {
+            "x": 273.203125,
+            "y": 519.90625,
+            "width": 351.53125,
+            "height": 62.984375
+          },
+          "hit": {
+            "tag": "BUTTON",
+            "id": "",
+            "className": "capability-trigger",
+            "core": "learning",
+            "nav": null,
+            "interactive": true,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": true
+        },
+        {
+          "point": "description",
+          "x": 391.203125,
+          "y": 519.7890625,
+          "hit": {
+            "tag": "P",
+            "id": "",
+            "className": "",
+            "core": "learning",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": true
+        },
+        {
+          "point": "left-top-blank",
+          "x": 279.27375,
+          "y": 507.20625,
+          "hit": {
+            "tag": "ARTICLE",
+            "id": "",
+            "className": "capability-panel",
+            "core": "learning",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": false
+        },
+        {
+          "point": "center-blank",
+          "x": 448.96875,
+          "y": 606.26625,
+          "hit": {
+            "tag": "ARTICLE",
+            "id": "",
+            "className": "capability-panel",
+            "core": "learning",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": false
+        },
+        {
+          "point": "right-bottom-blank",
+          "x": 618.6637499999999,
+          "y": 621.50625,
+          "hit": {
+            "tag": "ARTICLE",
+            "id": "",
+            "className": "capability-panel",
+            "core": "learning",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": false
+        },
+        {
+          "point": "touch-trigger",
+          "x": 195,
+          "y": 530.5220336914062,
+          "active": true
+        },
+        {
+          "point": "keyboard-enter",
+          "active": true,
+          "nativeClick": true
+        },
+        {
+          "point": "keyboard-space",
+          "active": true,
+          "nativeClick": true
+        },
+        {
+          "point": "internal-cta",
+          "selector": "#publicLanguageTrialBtn",
+          "text": "试做最多 10 题",
+          "hit": {
+            "x": 898.6328125,
+            "y": 550.890625,
+            "visible": true,
+            "disabled": false,
+            "hitMatches": true,
+            "hitElement": {
+              "id": "publicLanguageTrialBtn",
+              "tag": "A",
+              "className": "button-link button-secondary"
+            },
+            "rect": {
+              "x": 827,
+              "y": 528.890625,
+              "width": 143.265625,
+              "height": 44
+            },
+            "hit": {
+              "tag": "A",
+              "id": "publicLanguageTrialBtn",
+              "className": "button-link button-secondary",
+              "core": "learning",
+              "nav": null,
+              "interactive": true,
+              "pointerEvents": "auto",
+              "zIndex": "auto"
+            }
+          },
+          "after": {
+            "path": "/trial",
+            "authVisible": false,
+            "loginVisible": false
+          },
+          "acted": true
+        }
+      ]
+    },
+    {
+      "id": "tools",
+      "rect": {
+        "x": 1003.265625,
+        "y": 387.90625,
+        "width": 353.53125,
+        "height": 263.171875
+      },
+      "targets": [
+        {
+          "point": "title",
+          "x": 814.5,
+          "y": 551.3984375,
+          "visible": true,
+          "disabled": false,
+          "hitMatches": true,
+          "hitElement": {
+            "id": "",
+            "tag": "BUTTON",
+            "className": "capability-trigger"
+          },
+          "rect": {
+            "x": 638.734375,
+            "y": 519.90625,
+            "width": 351.53125,
+            "height": 62.984375
+          },
+          "hit": {
+            "tag": "BUTTON",
+            "id": "",
+            "className": "capability-trigger",
+            "core": "tools",
+            "nav": null,
+            "interactive": true,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": true
+        },
+        {
+          "point": "description",
+          "x": 823.9453125,
+          "y": 519.7890625,
+          "hit": {
+            "tag": "P",
+            "id": "",
+            "className": "",
+            "core": "tools",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": true
+        },
+        {
+          "point": "left-top-blank",
+          "x": 644.805,
+          "y": 514.30625,
+          "hit": {
+            "tag": "BUTTON",
+            "id": "",
+            "className": "capability-trigger",
+            "core": "tools",
+            "nav": null,
+            "interactive": true,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": true
+        },
+        {
+          "point": "center-blank",
+          "x": 814.5,
+          "y": 557.98625,
+          "hit": {
+            "tag": "ARTICLE",
+            "id": "",
+            "className": "capability-panel",
+            "core": "tools",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": false
+        },
+        {
+          "point": "right-bottom-blank",
+          "x": 984.1949999999999,
+          "y": 564.70625,
+          "hit": {
+            "tag": "ARTICLE",
+            "id": "",
+            "className": "capability-panel",
+            "core": "tools",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": false
+        },
+        {
+          "point": "touch-trigger",
+          "x": 195,
+          "y": 530.5390625,
+          "active": true
+        },
+        {
+          "point": "keyboard-enter",
+          "active": true,
+          "nativeClick": true
+        },
+        {
+          "point": "keyboard-space",
+          "active": true,
+          "nativeClick": true
+        },
+        {
+          "point": "internal-cta",
+          "selector": "#publicToolsTrialBtn",
+          "text": "试用本地工具",
+          "hit": {
+            "x": 1270.796875,
+            "y": 550.890625,
+            "visible": true,
+            "disabled": false,
+            "hitMatches": true,
+            "hitElement": {
+              "id": "publicToolsTrialBtn",
+              "tag": "A",
+              "className": "button-link button-secondary"
+            },
+            "rect": {
+              "x": 1205.796875,
+              "y": 528.890625,
+              "width": 130,
+              "height": 44
+            },
+            "hit": {
+              "tag": "A",
+              "id": "publicToolsTrialBtn",
+              "className": "button-link button-secondary",
+              "core": "tools",
+              "nav": null,
+              "interactive": true,
+              "pointerEvents": "auto",
+              "zIndex": "auto"
+            }
+          },
+          "after": {
+            "path": "/trial",
+            "authVisible": false,
+            "loginVisible": false
+          },
+          "acted": true
+        }
+      ]
+    },
+    {
+      "id": "finance",
+      "rect": {
+        "x": 1003.265625,
+        "y": 388.078125,
+        "width": 353.53125,
+        "height": 263.1875
+      },
+      "targets": [
+        {
+          "point": "title",
+          "x": 1180.03125,
+          "y": 551.3984375,
+          "visible": true,
+          "disabled": false,
+          "hitMatches": true,
+          "hitElement": {
+            "id": "",
+            "tag": "BUTTON",
+            "className": "capability-trigger"
+          },
+          "rect": {
+            "x": 1004.265625,
+            "y": 519.90625,
+            "width": 351.53125,
+            "height": 62.984375
+          },
+          "hit": {
+            "tag": "BUTTON",
+            "id": "",
+            "className": "capability-trigger",
+            "core": "finance",
+            "nav": null,
+            "interactive": true,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": true
+        },
+        {
+          "point": "description",
+          "x": 433.203125,
+          "y": 519.7890625,
+          "hit": {
+            "tag": "P",
+            "id": "",
+            "className": "",
+            "core": "finance",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": true
+        },
+        {
+          "point": "left-top-blank",
+          "x": 1010.33625,
+          "y": 514.2192138671875,
+          "hit": {
+            "tag": "BUTTON",
+            "id": "",
+            "className": "capability-trigger",
+            "core": "finance",
+            "nav": null,
+            "interactive": true,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": true
+        },
+        {
+          "point": "center-blank",
+          "x": 1180.03125,
+          "y": 557.9682446289063,
+          "hit": {
+            "tag": "ARTICLE",
+            "id": "",
+            "className": "capability-panel",
+            "core": "finance",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": false
+        },
+        {
+          "point": "right-bottom-blank",
+          "x": 1349.72625,
+          "y": 564.70625,
+          "hit": {
+            "tag": "ARTICLE",
+            "id": "",
+            "className": "capability-panel",
+            "core": "finance",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": false
+        },
+        {
+          "point": "touch-trigger",
+          "x": 195,
+          "y": 530.5390625,
+          "active": true
+        },
+        {
+          "point": "keyboard-enter",
+          "active": true,
+          "nativeClick": true
+        },
+        {
+          "point": "keyboard-space",
+          "active": true,
+          "nativeClick": true
+        },
+        {
+          "point": "internal-cta",
+          "selector": "#publicFinanceLoginBtn",
+          "text": "登录查看账本",
+          "hit": {
+            "x": 905.265625,
+            "y": 550.890625,
+            "visible": true,
+            "disabled": false,
+            "hitMatches": true,
+            "hitElement": {
+              "id": "publicFinanceLoginBtn",
+              "tag": "A",
+              "className": "button-link button-secondary"
+            },
+            "rect": {
+              "x": 840.265625,
+              "y": 528.890625,
+              "width": 130,
+              "height": 44
+            },
+            "hit": {
+              "tag": "A",
+              "id": "publicFinanceLoginBtn",
+              "className": "button-link button-secondary",
+              "core": "finance",
+              "nav": null,
+              "interactive": true,
+              "pointerEvents": "auto",
+              "zIndex": "auto"
+            }
+          },
+          "after": {
+            "path": "/login",
+            "authVisible": true,
+            "loginVisible": false
+          },
+          "acted": true
+        }
+      ]
+    },
+    {
+      "id": "share",
+      "rect": {
+        "x": 272.203125,
+        "y": 463.265625,
+        "width": 353.53125,
+        "height": 112
+      },
+      "targets": [
+        {
+          "point": "title",
+          "x": 448.96875,
+          "y": 551.3984375,
+          "visible": true,
+          "disabled": false,
+          "hitMatches": true,
+          "hitElement": {
+            "id": "",
+            "tag": "BUTTON",
+            "className": "capability-trigger"
+          },
+          "rect": {
+            "x": 273.203125,
+            "y": 519.90625,
+            "width": 351.53125,
+            "height": 62.984375
+          },
+          "hit": {
+            "tag": "BUTTON",
+            "id": "",
+            "className": "capability-trigger",
+            "core": "share",
+            "nav": null,
+            "interactive": true,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": true
+        },
+        {
+          "point": "description",
+          "x": 433.203125,
+          "y": 519.7890625,
+          "hit": {
+            "tag": "P",
+            "id": "",
+            "className": "",
+            "core": "share",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": true
+        },
+        {
+          "point": "left-top-blank",
+          "x": 279.27375,
+          "y": 514.30625,
+          "hit": {
+            "tag": "BUTTON",
+            "id": "",
+            "className": "capability-trigger",
+            "core": "share",
+            "nav": null,
+            "interactive": true,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": true
+        },
+        {
+          "point": "center-blank",
+          "x": 448.96875,
+          "y": 557.98625,
+          "hit": {
+            "tag": "ARTICLE",
+            "id": "",
+            "className": "capability-panel",
+            "core": "share",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": false
+        },
+        {
+          "point": "right-bottom-blank",
+          "x": 618.6637499999999,
+          "y": 564.4832305908203,
+          "hit": {
+            "tag": "ARTICLE",
+            "id": "",
+            "className": "capability-panel",
+            "core": "share",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": false
+        },
+        {
+          "point": "touch-trigger",
+          "x": 195,
+          "y": 530.2857666015625,
+          "active": true
+        },
+        {
+          "point": "keyboard-enter",
+          "active": true,
+          "nativeClick": true
+        },
+        {
+          "point": "keyboard-space",
+          "active": true,
+          "nativeClick": true
+        },
+        {
+          "point": "internal-cta",
+          "selector": "#publicFilesLoginBtn",
+          "text": "文件与分享",
+          "hit": {
+            "x": 913.265625,
+            "y": 550.890625,
+            "visible": true,
+            "disabled": false,
+            "hitMatches": true,
+            "hitElement": {
+              "id": "publicFilesLoginBtn",
+              "tag": "A",
+              "className": "button-link button-secondary"
+            },
+            "rect": {
+              "x": 856.265625,
+              "y": 528.890625,
+              "width": 114,
+              "height": 44
+            },
+            "hit": {
+              "tag": "A",
+              "id": "publicFilesLoginBtn",
+              "className": "button-link button-secondary",
+              "core": "share",
+              "nav": null,
+              "interactive": true,
+              "pointerEvents": "auto",
+              "zIndex": "auto"
+            }
+          },
+          "after": {
+            "path": "/transfer",
+            "authVisible": false,
+            "loginVisible": false
+          },
+          "acted": true
+        }
+      ]
+    },
+    {
+      "id": "account",
+      "rect": {
+        "x": 637.734375,
+        "y": 463.265625,
+        "width": 353.53125,
+        "height": 112
+      },
+      "targets": [
+        {
+          "point": "title",
+          "x": 814.5,
+          "y": 550.7578125,
+          "visible": true,
+          "disabled": false,
+          "hitMatches": true,
+          "hitElement": {
+            "id": "",
+            "tag": "BUTTON",
+            "className": "capability-trigger"
+          },
+          "rect": {
+            "x": 638.734375,
+            "y": 519.265625,
+            "width": 351.53125,
+            "height": 62.984375
+          },
+          "hit": {
+            "tag": "BUTTON",
+            "id": "",
+            "className": "capability-trigger",
+            "core": "account",
+            "nav": null,
+            "interactive": true,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": true
+        },
+        {
+          "point": "description",
+          "x": 749.734375,
+          "y": 519.7890625,
+          "hit": {
+            "tag": "P",
+            "id": "",
+            "className": "",
+            "core": "account",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": true
+        },
+        {
+          "point": "left-top-blank",
+          "x": 644.805,
+          "y": 513.665625,
+          "hit": {
+            "tag": "BUTTON",
+            "id": "",
+            "className": "capability-trigger",
+            "core": "account",
+            "nav": null,
+            "interactive": true,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": true
+        },
+        {
+          "point": "center-blank",
+          "x": 814.5,
+          "y": 557.345625,
+          "hit": {
+            "tag": "ARTICLE",
+            "id": "",
+            "className": "capability-panel",
+            "core": "account",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": false
+        },
+        {
+          "point": "right-bottom-blank",
+          "x": 984.1949999999999,
+          "y": 564.0653198242187,
+          "hit": {
+            "tag": "ARTICLE",
+            "id": "",
+            "className": "capability-panel",
+            "core": "account",
+            "nav": null,
+            "interactive": false,
+            "pointerEvents": "auto",
+            "zIndex": "auto"
+          },
+          "active": false
+        },
+        {
+          "point": "touch-trigger",
+          "x": 195,
+          "y": 530.7746276855469,
+          "active": true
+        },
+        {
+          "point": "keyboard-enter",
+          "active": true,
+          "nativeClick": true
+        },
+        {
+          "point": "keyboard-space",
+          "active": true,
+          "nativeClick": true
+        },
+        {
+          "point": "internal-cta",
+          "selector": "a[data-public-capability=\"account\"]",
+          "text": "登录账户",
+          "hit": {
+            "x": 1286.796875,
+            "y": 550.890625,
+            "visible": true,
+            "disabled": false,
+            "hitMatches": true,
+            "hitElement": {
+              "id": "",
+              "tag": "A",
+              "className": "button-link button-secondary"
+            },
+            "rect": {
+              "x": 1237.796875,
+              "y": 528.890625,
+              "width": 98,
+              "height": 44
+            },
+            "hit": {
+              "tag": "A",
+              "id": "",
+              "className": "button-link button-secondary",
+              "core": "account",
+              "nav": null,
+              "interactive": true,
+              "pointerEvents": "auto",
+              "zIndex": "auto"
+            }
+          },
+          "after": {
+            "path": "/login",
+            "authVisible": true,
+            "loginVisible": false
+          },
+          "acted": true
+        }
+      ]
+    }
+  ],
+  "event_log": [],
+  "misses": [
+    {
+      "id": "learning",
+      "point": "left-top-blank",
+      "hit": {
+        "tag": "ARTICLE",
+        "id": "",
+        "className": "capability-panel",
+        "core": "learning",
+        "nav": null,
+        "interactive": false,
+        "pointerEvents": "auto",
+        "zIndex": "auto"
+      },
+      "active": false
+    },
+    {
+      "id": "learning",
+      "point": "center-blank",
+      "hit": {
+        "tag": "ARTICLE",
+        "id": "",
+        "className": "capability-panel",
+        "core": "learning",
+        "nav": null,
+        "interactive": false,
+        "pointerEvents": "auto",
+        "zIndex": "auto"
+      },
+      "active": false
+    },
+    {
+      "id": "learning",
+      "point": "right-bottom-blank",
+      "hit": {
+        "tag": "ARTICLE",
+        "id": "",
+        "className": "capability-panel",
+        "core": "learning",
+        "nav": null,
+        "interactive": false,
+        "pointerEvents": "auto",
+        "zIndex": "auto"
+      },
+      "active": false
+    },
+    {
+      "id": "tools",
+      "point": "center-blank",
+      "hit": {
+        "tag": "ARTICLE",
+        "id": "",
+        "className": "capability-panel",
+        "core": "tools",
+        "nav": null,
+        "interactive": false,
+        "pointerEvents": "auto",
+        "zIndex": "auto"
+      },
+      "active": false
+    },
+    {
+      "id": "tools",
+      "point": "right-bottom-blank",
+      "hit": {
+        "tag": "ARTICLE",
+        "id": "",
+        "className": "capability-panel",
+        "core": "tools",
+        "nav": null,
+        "interactive": false,
+        "pointerEvents": "auto",
+        "zIndex": "auto"
+      },
+      "active": false
+    },
+    {
+      "id": "finance",
+      "point": "center-blank",
+      "hit": {
+        "tag": "ARTICLE",
+        "id": "",
+        "className": "capability-panel",
+        "core": "finance",
+        "nav": null,
+        "interactive": false,
+        "pointerEvents": "auto",
+        "zIndex": "auto"
+      },
+      "active": false
+    },
+    {
+      "id": "finance",
+      "point": "right-bottom-blank",
+      "hit": {
+        "tag": "ARTICLE",
+        "id": "",
+        "className": "capability-panel",
+        "core": "finance",
+        "nav": null,
+        "interactive": false,
+        "pointerEvents": "auto",
+        "zIndex": "auto"
+      },
+      "active": false
+    },
+    {
+      "id": "share",
+      "point": "center-blank",
+      "hit": {
+        "tag": "ARTICLE",
+        "id": "",
+        "className": "capability-panel",
+        "core": "share",
+        "nav": null,
+        "interactive": false,
+        "pointerEvents": "auto",
+        "zIndex": "auto"
+      },
+      "active": false
+    },
+    {
+      "id": "share",
+      "point": "right-bottom-blank",
+      "hit": {
+        "tag": "ARTICLE",
+        "id": "",
+        "className": "capability-panel",
+        "core": "share",
+        "nav": null,
+        "interactive": false,
+        "pointerEvents": "auto",
+        "zIndex": "auto"
+      },
+      "active": false
+    },
+    {
+      "id": "account",
+      "point": "center-blank",
+      "hit": {
+        "tag": "ARTICLE",
+        "id": "",
+        "className": "capability-panel",
+        "core": "account",
+        "nav": null,
+        "interactive": false,
+        "pointerEvents": "auto",
+        "zIndex": "auto"
+      },
+      "active": false
+    },
+    {
+      "id": "account",
+      "point": "right-bottom-blank",
+      "hit": {
+        "tag": "ARTICLE",
+        "id": "",
+        "className": "capability-panel",
+        "core": "account",
+        "nav": null,
+        "interactive": false,
+        "pointerEvents": "auto",
+        "zIndex": "auto"
+      },
+      "active": false
+    }
+  ]
+}

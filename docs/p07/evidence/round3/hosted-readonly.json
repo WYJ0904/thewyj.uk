@@ -1,0 +1,238 @@
+{
+  "read_only": true,
+  "logged_in": false,
+  "real_ai_calls": 0,
+  "production_operations": 0,
+  "results": [
+    {
+      "sha": "21b83316cbfdeb366c587b9e818a2c64e2199215",
+      "origin": "https://3e07b5fd.thewyj-p07-ui-rc.pages.dev",
+      "scope": "guest, read-only Hosted Preview; protected workspaces and administrator identity NOT_TESTED",
+      "apiMutations": [],
+      "assets": [
+        {
+          "file": "index.html",
+          "status": 200,
+          "normalized_sha256": "7672a510aeabda80e687013f5b8e52629371d7a92bd7c85f7f6b4e02916cd7cb",
+          "expected_sha256": "7672a510aeabda80e687013f5b8e52629371d7a92bd7c85f7f6b4e02916cd7cb",
+          "matches": true
+        },
+        {
+          "file": "app.js",
+          "status": 200,
+          "normalized_sha256": "b61a49d7caa282929757a41655916223c813fe8bd696d70815b70c724309b94c",
+          "expected_sha256": "b61a49d7caa282929757a41655916223c813fe8bd696d70815b70c724309b94c",
+          "matches": true
+        },
+        {
+          "file": "spatial-experience.css",
+          "status": 200,
+          "normalized_sha256": "5eee9b5f00f5cb31acc49081aa19e2ea8a16408b1dffb909a0ff71842bb3faa2",
+          "expected_sha256": "5eee9b5f00f5cb31acc49081aa19e2ea8a16408b1dffb909a0ff71842bb3faa2",
+          "matches": true
+        },
+        {
+          "file": "js/core/public-experience.js",
+          "status": 200,
+          "normalized_sha256": "aceafd1df7be272096f63b72f2d9f42753aa0befea539bb9d7ae457a0b3ec787",
+          "expected_sha256": "aceafd1df7be272096f63b72f2d9f42753aa0befea539bb9d7ae457a0b3ec787",
+          "matches": true
+        },
+        {
+          "file": "js/finance/app.js",
+          "status": 200,
+          "normalized_sha256": "d8dfc7b3063aecd36047e0de58a1cbfa9cbf83fc77029b98f34d255cfe2e5045",
+          "expected_sha256": "d8dfc7b3063aecd36047e0de58a1cbfa9cbf83fc77029b98f34d255cfe2e5045",
+          "matches": true
+        }
+      ],
+      "screenshots": [
+        "21b8331-hosted-guest-1440.png",
+        "21b8331-hosted-guest-390.png"
+      ],
+      "policy": {
+        "/api/status?source=cloud": {
+          "status": 200,
+          "capabilities": null,
+          "public_ui": null,
+          "build": "2026-08-26-task15-cloud-only",
+          "service_status": "degraded",
+          "environment": "preview",
+          "ai_ready": false,
+          "model": "Cloudflare rules only",
+          "bindings": {
+            "d1": true,
+            "r2": false,
+            "workers_ai": false
+          },
+          "admin_messages_enabled": false,
+          "degraded_reasons": [
+            "r2_binding_missing"
+          ]
+        },
+        "/api/ui/features": {
+          "status": 200,
+          "capabilities": null,
+          "public_ui": {
+            "schema_version": 1,
+            "flag_key": "p07_accessibility",
+            "enabled": true,
+            "revision": 17,
+            "reason": "public_stable",
+            "observed_at": "2026-11-05T04:25:19.015Z",
+            "expires_at": "2026-11-05T04:25:49.015Z",
+            "max_age_seconds": 30
+          },
+          "build": null,
+          "service_status": null,
+          "environment": null,
+          "ai_ready": null,
+          "model": null,
+          "bindings": null,
+          "admin_messages_enabled": null,
+          "degraded_reasons": []
+        }
+      },
+      "browser": {
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+        "webdriver": false,
+        "p07": "enabled",
+        "sessionPresent": false
+      },
+      "layouts": [
+        {
+          "width": 1440,
+          "scrollWidth": 1425,
+          "p07": "enabled",
+          "modalLayers": [],
+          "homeVisible": true,
+          "shellInert": false
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "p07": "enabled",
+          "modalLayers": [],
+          "homeVisible": true,
+          "shellInert": false
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "sha": "fb936d109d0900d02d35eb3493212e4c32c39699",
+      "origin": "https://13dbeea6.thewyj-p07-ui-rc.pages.dev",
+      "scope": "guest, read-only Hosted Preview; protected workspaces and administrator identity NOT_TESTED",
+      "apiMutations": [],
+      "assets": [
+        {
+          "file": "index.html",
+          "status": 200,
+          "normalized_sha256": "a108b065d0e1da84065be85958aa21d06bf27de0a3c10c3c1592330b90ec31ab",
+          "expected_sha256": "a108b065d0e1da84065be85958aa21d06bf27de0a3c10c3c1592330b90ec31ab",
+          "matches": true
+        },
+        {
+          "file": "app.js",
+          "status": 200,
+          "normalized_sha256": "70ad406a5797d3f0bca2d86b360bda6e1767f4d77a2948a34493a9366ca922e3",
+          "expected_sha256": "70ad406a5797d3f0bca2d86b360bda6e1767f4d77a2948a34493a9366ca922e3",
+          "matches": true
+        },
+        {
+          "file": "spatial-experience.css",
+          "status": 200,
+          "normalized_sha256": "8901f948674de4fa8829fac0030c0100f68f7128511677e6e97839204fcdd22f",
+          "expected_sha256": "8901f948674de4fa8829fac0030c0100f68f7128511677e6e97839204fcdd22f",
+          "matches": true
+        },
+        {
+          "file": "js/core/public-experience.js",
+          "status": 200,
+          "normalized_sha256": "8686b8269fb80fa90438c5212193ad4e129d80a52a6680e2c52b0cd1b9aa80d8",
+          "expected_sha256": "8686b8269fb80fa90438c5212193ad4e129d80a52a6680e2c52b0cd1b9aa80d8",
+          "matches": true
+        },
+        {
+          "file": "js/finance/app.js",
+          "status": 200,
+          "normalized_sha256": "ddc222dcc9ec5bb45bc5e0baec2dc189ff3c946c93f657b707ba5fe5d83e66b9",
+          "expected_sha256": "ddc222dcc9ec5bb45bc5e0baec2dc189ff3c946c93f657b707ba5fe5d83e66b9",
+          "matches": true
+        }
+      ],
+      "screenshots": [
+        "fb936d1-hosted-guest-1440.png",
+        "fb936d1-hosted-guest-390.png"
+      ],
+      "policy": {
+        "/api/status?source=cloud": {
+          "status": 200,
+          "capabilities": null,
+          "public_ui": null,
+          "build": "2026-08-26-task15-cloud-only",
+          "service_status": "degraded",
+          "environment": "preview",
+          "ai_ready": false,
+          "model": "Cloudflare rules only",
+          "bindings": {
+            "d1": true,
+            "r2": false,
+            "workers_ai": false
+          },
+          "admin_messages_enabled": false,
+          "degraded_reasons": [
+            "r2_binding_missing"
+          ]
+        },
+        "/api/ui/features": {
+          "status": 200,
+          "capabilities": null,
+          "public_ui": {
+            "schema_version": 1,
+            "flag_key": "p07_accessibility",
+            "enabled": true,
+            "revision": 17,
+            "reason": "public_stable",
+            "observed_at": "2026-11-05T04:25:36.610Z",
+            "expires_at": "2026-11-05T04:26:06.610Z",
+            "max_age_seconds": 30
+          },
+          "build": null,
+          "service_status": null,
+          "environment": null,
+          "ai_ready": null,
+          "model": null,
+          "bindings": null,
+          "admin_messages_enabled": null,
+          "degraded_reasons": []
+        }
+      },
+      "browser": {
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+        "webdriver": false,
+        "p07": "enabled",
+        "sessionPresent": false
+      },
+      "layouts": [
+        {
+          "width": 1440,
+          "scrollWidth": 1425,
+          "p07": "enabled",
+          "modalLayers": [],
+          "homeVisible": true,
+          "shellInert": false
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "p07": "enabled",
+          "modalLayers": [],
+          "homeVisible": true,
+          "shellInert": false
+        }
+      ],
+      "status": "PASS"
+    }
+  ]
+}

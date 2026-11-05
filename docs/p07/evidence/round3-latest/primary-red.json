@@ -1,0 +1,113 @@
+{
+  "target_sha": "21b83316cbfdeb366c587b9e818a2c64e2199215",
+  "cases": [
+    {
+      "name": "direct-account",
+      "status": "FAIL",
+      "detail": {
+        "route": "/account",
+        "expected": "accountModal",
+        "surfaces": [
+          {
+            "id": "publicHome",
+            "insideMain": true,
+            "inViewport": true,
+            "rect": {
+              "x": 204,
+              "y": 63,
+              "width": 1236,
+              "height": 1092.328125
+            }
+          },
+          {
+            "id": "accountModal",
+            "insideMain": false,
+            "inViewport": true,
+            "rect": {
+              "x": 240,
+              "y": 64,
+              "width": 1200,
+              "height": 960
+            }
+          }
+        ],
+        "shellInert": true,
+        "modalOpen": true
+      },
+      "error": "a page route must expose exactly its own primary surface\n+ actual - expected\n\n  [\n+   'publicHome',\n    'accountModal'\n  ]\n",
+      "screenshot": "direct-account.png"
+    },
+    {
+      "name": "direct-membership",
+      "status": "FAIL",
+      "detail": {
+        "route": "/recharge",
+        "expected": "membershipModal",
+        "surfaces": [
+          {
+            "id": "publicHome",
+            "insideMain": true,
+            "inViewport": true,
+            "rect": {
+              "x": 204,
+              "y": 63,
+              "width": 1236,
+              "height": 1092.328125
+            }
+          },
+          {
+            "id": "membershipModal",
+            "insideMain": false,
+            "inViewport": true,
+            "rect": {
+              "x": 240,
+              "y": 64,
+              "width": 1200,
+              "height": 960
+            }
+          }
+        ],
+        "shellInert": true,
+        "modalOpen": true
+      },
+      "error": "a page route must expose exactly its own primary surface\n+ actual - expected\n\n  [\n+   'publicHome',\n    'membershipModal'\n  ]\n",
+      "screenshot": "direct-membership.png"
+    },
+    {
+      "name": "finance-upgrade-membership",
+      "status": "FAIL",
+      "detail": {
+        "route": "/recharge",
+        "expected": "membershipModal",
+        "surfaces": [
+          {
+            "id": "financePage",
+            "insideMain": true,
+            "inViewport": true,
+            "rect": {
+              "x": 236,
+              "y": 87,
+              "width": 1172,
+              "height": 323.0625
+            }
+          },
+          {
+            "id": "membershipModal",
+            "insideMain": false,
+            "inViewport": true,
+            "rect": {
+              "x": 240,
+              "y": 64,
+              "width": 1200,
+              "height": 960
+            }
+          }
+        ],
+        "shellInert": true,
+        "modalOpen": true
+      },
+      "error": "a page route must expose exactly its own primary surface\n+ actual - expected\n\n  [\n+   'financePage',\n    'membershipModal'\n  ]\n",
+      "screenshot": "finance-upgrade-membership.png"
+    }
+  ]
+}
