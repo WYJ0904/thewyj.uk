@@ -2424,6 +2424,10 @@ async function main() {
       const started = Date.now();
       await waitFor("!document.querySelector('#entryScreen')", 2_500, "reduced-motion splash");
       assert.ok(Date.now() - started < 2_000);
+      // Reduced motion removes the branded splash immediately. A pending
+      // policy is a separate state; measure the real form only once it is
+      // visible. A permanently pending decision still fails this bounded wait.
+      await waitFor("document.documentElement.dataset.interfacePolicy !== 'pending' && document.querySelector('#usernameInput').checkVisibility()", 15_000, "mobile login policy settled and form visible");
       const mobile = await evaluate(`({
         viewport: document.documentElement.clientWidth,
         scrollWidth: document.documentElement.scrollWidth,
