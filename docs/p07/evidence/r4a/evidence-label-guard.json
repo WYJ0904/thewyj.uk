@@ -1,0 +1,9 @@
+{
+  "reusedLabelRejected": true,
+  "priorEvidenceBytesUnchanged": true,
+  "hashes": {
+    "suites.json": "2e65bbe2b38319daaedd863bb66d1a6c386aebb99c7976c63f58e495ec39c019",
+    "source-manifest.json": "4c154d2e6a59c448dcb09f645e3473982215893d2aef4686851b234670d618ac",
+    "r4a-driver-provenance.json": "5bc56270b84e70e285829cc08bd650ce4d4522b0a6a30c3c426945f17efcb07c"
+  }
+}

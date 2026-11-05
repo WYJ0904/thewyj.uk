@@ -1,0 +1,69 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {randomBytes} from 'node:crypto';
+import {openPage,delay} from '../../local-backend/browser_harness.mjs';
+const base=new URL(process.env.WYJ_TEST_BASE).origin,out=path.resolve(process.env.P07_D_EVIDENCE);
+assert.equal(new URL(base).hostname,'127.0.0.1');
+const results=[],secret=randomBytes(24).toString('base64url');
+async function api(route,body=null,token=''){const r=await fetch(base+route,{method:body===null?'GET':'POST',headers:{'Content-Type':'application/json',...(token?{'X-Session-Token':token}:{})},body:body===null?undefined:JSON.stringify(body)});const data=await r.json();assert.ok(r.ok,route+': '+r.status);return data;}
+async function user(prefix){const username=prefix+randomBytes(4).toString('hex');await api('/api/register',{username,secret,confirm_secret:secret});const login=await api('/api/login',{username,secret});return{...login,username};}
+const admin=await api('/api/login',{username:'wyj',secret:process.env.WYJ_TEST_ADMIN_SECRET}),member=await user('r4amember'),free=await user('r4afree');
+await api('/api/admin/membership/manage',{user_id:member.account.id,action:'grant',plan_code:'all_access_lifetime',note:'R4A isolated runtime fixture'},admin.session);
+const p=await openPage({cdpUrl:process.env.WYJ_CDP_URL,baseUrl:base,width:1440,height:960,mobile:false});
+await p.send('Page.addScriptToEvaluateOnNewDocument',{source:`globalThis.__r4aDoc=String(performance.timeOrigin)+Math.random();globalThis.__r4aFrames=[];globalThis.__r4aChanges=[];
+new MutationObserver(()=>{if(document.documentElement)globalThis.__r4aChanges.push({t:performance.now(),p07:document.documentElement.dataset.p07Ui,policy:document.documentElement.dataset.interfacePolicy,path:location.pathname})}).observe(document,{subtree:true,attributes:true,attributeFilter:['data-p07-ui','data-interface-policy']});
+requestAnimationFrame(function sample(){const s=document.getElementById('appShell'),e=document.getElementById('entryScreen'),ids=['publicHome','projectPicker','projectApp','financePage','membershipModal','accountModal','toolsPanel'];const shown=ids.filter(id=>{const n=document.getElementById(id);return n&&n.checkVisibility({checkOpacity:true,checkVisibilityCSS:true})&&!n.closest('.hidden')});globalThis.__r4aFrames.push({t:performance.now(),p07:document.documentElement?.dataset.p07Ui,policy:document.documentElement?.dataset.interfacePolicy,shown,splash:Boolean(e&&e.checkVisibility())});if(globalThis.__r4aFrames.length<1200)requestAnimationFrame(sample)});`});
+async function documentReady(old){await p.waitFor(`globalThis.__r4aDoc&&globalThis.__r4aDoc!==${JSON.stringify(old)}&&document.readyState==='complete'&&!document.getElementById('entryScreen')`,30000,'new runtime document');}
+async function go(route){const old=await p.evaluate('globalThis.__r4aDoc||null'),url=new URL(base+route);url.searchParams.set('native-navigation','1');await p.send('Page.navigate',{url:url.href});await documentReady(old);}
+async function reload(){const old=await p.evaluate('globalThis.__r4aDoc');await p.send('Page.reload',{ignoreCache:false});await documentReady(old);}
+async function escape(){for(const type of ['keyDown','keyUp'])await p.send('Input.dispatchKeyEvent',{type,key:'Escape',code:'Escape',windowsVirtualKeyCode:27});}
+async function session(token,route){if(await p.evaluate('location.origin')!==base)await go('/login');await p.evaluate(`localStorage.clear();localStorage.setItem('wyjAccountSession',${JSON.stringify(token)});true`);await go(route);await p.waitFor("document.documentElement.dataset.interfacePolicy==='enabled'",15000,'authoritative account ON');}
+async function click(selector){await p.evaluate(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'center',behavior:'instant'})`);await p.evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');const hit=await p.evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)}),r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2,h=document.elementFromPoint(x,y);return{x,y,ok:Boolean(h&&(h===e||e.contains(h))),tag:h?.tagName,id:h?.id||null}})()`);assert.ok(hit.ok,'covered control '+selector+JSON.stringify(hit));for(const type of ['mousePressed','mouseReleased'])await p.send('Input.dispatchMouseEvent',{type,x:hit.x,y:hit.y,button:'left',clickCount:1});return hit;}
+async function sole(id,route){await p.waitFor(`location.pathname===${JSON.stringify(route)}&&document.getElementById(${JSON.stringify(id)}).checkVisibility()&&!document.getElementById(${JSON.stringify(id)}).closest('.hidden')`,15000,'actual route '+route);const s=await p.evaluate(`(()=>{const ids=['publicHome','projectPicker','projectApp','financePage','membershipModal','accountModal','toolsPanel'];return{path:location.pathname,p07:document.documentElement.dataset.p07Ui,policy:document.documentElement.dataset.interfacePolicy,shown:ids.filter(id=>{const e=document.getElementById(id);return e&&e.checkVisibility()&&!e.closest('.hidden')}),inert:document.getElementById('appShell').inert}})()`);assert.deepEqual(s.shown,[id]);assert.equal(s.p07,'enabled');assert.equal(s.inert,false);return s;}
+async function check(name,fn){try{results.push({name,status:'PASS',detail:await fn()});}catch(e){const shot=await p.send('Page.captureScreenshot',{format:'png'});await fs.writeFile(path.join(out,'FAIL-r4a-'+name+'.png'),Buffer.from(shot.data,'base64'));results.push({name,status:'FAIL',error:e.message});}await fs.writeFile(path.join(out,'r4a-runtime-results.json'),JSON.stringify({source:process.env.P07_D_TARGET_HEAD,results},null,2));}
+try{
+  await check('round-trip-navigation-keeps-authoritative-mode',async()=>{
+    await session(member.session,'/');const rows=[];
+    for(const [nav,route,id] of [['language','/language','projectPicker'],['home','/','publicHome'],['recharge','/recharge','membershipModal'],['account','/account','accountModal'],['language','/language','projectPicker'],['finance','/finance','financePage'],['language','/language','projectPicker'],['home','/','publicHome']]){const hit=await click(`[data-v3-nav="${nav}"]`);rows.push({hit,...await sole(id,route)});}
+    const changes=await p.evaluate('globalThis.__r4aChanges');assert.ok(changes.filter(x=>x.policy!=='pending').every(x=>x.p07==='enabled'),'navigation changed valid ON to a legacy mode');return rows;
+  });
+  await check('finance-return-context-and-browser-history',async()=>{
+    await session(member.session,'/finance');await sole('financePage','/finance');await p.setFields({'#financeMonthFilter':'2026-10','#financeDirectionFilter':'expense'});
+    await click('[data-v3-nav="recharge"]');await sole('membershipModal','/recharge');await escape();await sole('financePage','/finance');
+    assert.equal(await p.evaluate("document.getElementById('financeMonthFilter').value"),'2026-10');assert.equal(await p.evaluate("document.getElementById('financeDirectionFilter').value"),'expense');
+    await session(free.session,'/finance');await p.waitFor("!document.getElementById('financeLocked').classList.contains('hidden')",10000);await click('#financeUpgradeBtn');await sole('membershipModal','/recharge');
+    await p.waitFor("document.querySelectorAll('#membershipPlanList [data-plan]').length===3",10000);assert.equal(await p.evaluate("document.querySelector('[data-membership-goal=finance]').getAttribute('aria-pressed')"),'true');
+    await p.evaluate('history.back()');await sole('financePage','/finance');await p.evaluate('history.forward()');await sole('membershipModal','/recharge');
+    await reload();await sole('membershipModal','/recharge');await p.waitFor("document.querySelectorAll('#membershipPlanList [data-plan]').length===3",10000,'goal restored from safe history state');
+    await escape();await sole('financePage','/finance');
+    // The desktop test opt-in is a boot query, not a capability persisted by
+    // SPA routes. Re-enter it after the preceding ordinary refresh test.
+    await go('/finance');await sole('financePage','/finance');await click('#financeUpgradeBtn');await sole('membershipModal','/recharge');await p.waitFor('Boolean(window.WYJAndroidNavigation)',5000);assert.equal(await p.evaluate('window.WYJAndroidNavigation.back()'),true);await sole('financePage','/finance');
+    return{filtersRetained:true,goalRetainedAcrossForwardAndRefresh:true,escape:true,androidWebBridgeBack:true};
+  });
+  await check('true-confirmation-modal-lifecycle',async()=>{
+    await session(member.session,'/account');await sole('accountModal','/account');await click('#openDeleteAccountBtn');await p.waitFor("!document.getElementById('deleteAccountModal').classList.contains('hidden')",5000);assert.equal(await p.evaluate("document.getElementById('appShell').inert"),true);
+    await p.waitFor('Boolean(window.WYJAndroidNavigation)',5000);assert.equal(await p.evaluate('window.WYJAndroidNavigation.back()'),true);await p.waitFor("document.getElementById('deleteAccountModal').classList.contains('hidden')&&!document.getElementById('appShell').inert",5000);await sole('accountModal','/account');return{confirmationRemainsModal:true,backClosesDialogBeforePage:true,deletionSubmitted:false};
+  });
+  await check('valid-policy-renewal-does-not-reset-presentation',async()=>{
+    const watch=p.watchResponses('/api/features'),before=watch.count();await p.evaluate('globalThis.__r4aChanges=[];document.dispatchEvent(new Event("visibilitychange"));true');const deadline=Date.now()+10000;while(watch.count()===before&&Date.now()<deadline)await delay(80);assert.ok(watch.count()>before);await p.evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');const changes=await p.evaluate('globalThis.__r4aChanges');assert.ok(changes.every(x=>x.p07==='enabled'&&x.policy==='enabled'),JSON.stringify(changes));return{changes,actualFeatureResponseObserved:true};
+  });
+  await check('slow-authenticated-policy-has-no-legacy-frame',async()=>{
+    await p.intercept([{match:'/api/features',respond:async()=>{const r=await fetch(base+'/api/features',{headers:{'X-Session-Token':member.session}});return{status:r.status,body:await r.json(),delayMs:1200};}}]);
+    await go('/account');await sole('accountModal','/account');const frames=await p.evaluate('globalThis.__r4aFrames');const shown=frames.filter(x=>!x.splash&&x.shown.length);assert.ok(shown.length);assert.ok(shown.every(x=>x.p07==='enabled'),JSON.stringify(shown.filter(x=>x.p07!=='enabled')));return{delayMs:1200,visibleLegacyFrames:0,pendingFrames:frames.filter(x=>x.policy==='pending').length};
+  });
+  await check('policy-failure-is-finite-safe-fallback-and-retry',async()=>{
+    let fail=true;await p.intercept([{match:'/api/ui/features',respond:()=>fail?{status:503,body:{ok:false,code:'isolated_policy_failure'}}:{continue:true}}]);await p.evaluate('localStorage.clear();true');await go('/');await p.waitFor("document.documentElement.dataset.interfacePolicy==='error'&&!document.getElementById('publicHome').closest('.hidden')",15000);assert.equal(await p.evaluate('document.documentElement.dataset.p07Ui'),'disabled');assert.equal(await p.evaluate("document.getElementById('retryInterfacePolicyBtn').hidden"),false);fail=false;await click('#retryInterfacePolicyBtn');await p.waitFor("document.documentElement.dataset.interfacePolicy==='enabled'",15000);await sole('publicHome','/');return{errorIsExplicit:true,baseInterfaceUsable:true,retryAuthoritative:true};
+  });
+  await check('supported-backend-without-task25-keeps-authenticated-home-visible',async()=>{
+    await p.intercept([{match:'/api/status',respond:async()=>{const r=await fetch(base+'/api/status');const body=await r.json();if(body.features)delete body.features.task25_feature_flags;return{status:r.status,body};}},
+      {match:'/api/features',respond:()=>({status:404,body:{error:'isolated older backend has no Task25 endpoint'}})}]);
+    await p.evaluate(`localStorage.clear();localStorage.setItem('wyjAccountSession',${JSON.stringify(member.session)});true`);await go('/');
+    await p.waitFor("document.documentElement.dataset.interfacePolicy==='disabled'&&document.getElementById('publicHome').checkVisibility()&&document.getElementById('publicHome').dataset.sessionMode==='authenticated'",15000,'supported safe base home after login');
+    assert.equal(await p.evaluate('document.documentElement.dataset.p07Ui'),'disabled');
+    assert.equal(await p.evaluate("document.getElementById('interfacePolicyState').checkVisibility()"),false);
+    return{successfulStatusWithoutTask25:true,authenticatedHomeVisible:true,permanentPending:false,featureAuthorityInvented:false};
+  });
+}finally{await p.close();}
+console.log(JSON.stringify({pass:results.filter(x=>x.status==='PASS').length,fail:results.filter(x=>x.status==='FAIL').length,results},null,2));if(results.some(x=>x.status==='FAIL'))process.exitCode=1;

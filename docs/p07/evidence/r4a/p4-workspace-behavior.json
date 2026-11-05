@@ -1,0 +1,134 @@
+{
+  "scope": "Isolated real Chrome presentation contracts; synthetic intercepts are not server lifecycle or physical-device proof",
+  "results": [
+    {
+      "width": 390,
+      "pagination": true,
+      "rowPatch": true,
+      "foldRetainsRows": true,
+      "history": true,
+      "canonicalReviews": 125,
+      "draftPreserved": true,
+      "terminalRefresh": true,
+      "errorPreservesLedger": true,
+      "toolFavoriteLocalUpdate": true,
+      "toolBack": true,
+      "accountRows": 8,
+      "accountNavigation": {
+        "before": {
+          "inMain": true,
+          "modalLayer": false,
+          "shellInert": false,
+          "modalOpen": false,
+          "settingRows": 8,
+          "desktopNav": false
+        },
+        "hit": {
+          "x": 260,
+          "y": 83,
+          "hit": "homeBtn",
+          "ownsHit": true,
+          "inert": false
+        },
+        "route": "/",
+        "surface": "publicHome",
+        "actualNavigation": true
+      },
+      "adminRows": 120,
+      "adminAppendRetainsRows": true,
+      "adminSearch": true,
+      "learning": {
+        "sameDocument": true,
+        "quizExists": true,
+        "setupVisible": true
+      },
+      "summaryReads": 4
+    },
+    {
+      "width": 1366,
+      "pagination": true,
+      "rowPatch": true,
+      "foldRetainsRows": true,
+      "history": true,
+      "canonicalReviews": 125,
+      "draftPreserved": true,
+      "terminalRefresh": true,
+      "errorPreservesLedger": true,
+      "toolFavoriteLocalUpdate": true,
+      "toolBack": true,
+      "accountRows": 8,
+      "accountNavigation": {
+        "before": {
+          "inMain": true,
+          "modalLayer": false,
+          "shellInert": false,
+          "modalOpen": false,
+          "settingRows": 8,
+          "desktopNav": true
+        },
+        "hit": {
+          "x": 101.5,
+          "y": 151,
+          "hit": "A",
+          "ownsHit": true,
+          "inert": false
+        },
+        "route": "/language",
+        "surface": "projectPicker",
+        "actualNavigation": true
+      },
+      "adminRows": 120,
+      "adminAppendRetainsRows": true,
+      "adminSearch": true,
+      "learning": {
+        "sameDocument": true,
+        "quizExists": true,
+        "setupVisible": true
+      },
+      "summaryReads": 4
+    },
+    {
+      "width": 1920,
+      "pagination": true,
+      "rowPatch": true,
+      "foldRetainsRows": true,
+      "history": true,
+      "canonicalReviews": 125,
+      "draftPreserved": true,
+      "terminalRefresh": true,
+      "errorPreservesLedger": true,
+      "toolFavoriteLocalUpdate": true,
+      "toolBack": true,
+      "accountRows": 8,
+      "accountNavigation": {
+        "before": {
+          "inMain": true,
+          "modalLayer": false,
+          "shellInert": false,
+          "modalOpen": false,
+          "settingRows": 8,
+          "desktopNav": true
+        },
+        "hit": {
+          "x": 101.5,
+          "y": 151,
+          "hit": "A",
+          "ownsHit": true,
+          "inert": false
+        },
+        "route": "/language",
+        "surface": "projectPicker",
+        "actualNavigation": true
+      },
+      "adminRows": 120,
+      "adminAppendRetainsRows": true,
+      "adminSearch": true,
+      "learning": {
+        "sameDocument": true,
+        "quizExists": true,
+        "setupVisible": true
+      },
+      "summaryReads": 4
+    }
+  ]
+}
