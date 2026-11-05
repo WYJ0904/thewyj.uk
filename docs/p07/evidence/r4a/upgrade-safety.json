@@ -1,338 +1,338 @@
 {
-  "release": "20261105-aeris-p07-r4a-runtime-r2",
+  "release": "20261105-aeris-p07-r4a-runtime-r3",
   "actualNormalReloadResources": [
     {
       "path": "/styles.css",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "b99d00f942a1a3c0ef0522207f6f223774d3657200e5467937a763c5b0a31075",
       "matchesCommitted": true
     },
     {
       "path": "/product-ui.css",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "13b0b59a15435f4aedf3d84643cf2d4a49cc0459e878ec4c3aea76b1f50885cf",
       "matchesCommitted": true
     },
     {
-      "path": "/public-experience.css",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
-      "fromServiceWorker": true,
-      "sha256": "023f6ab881456bef083b968585697f2ff2ed4d8cfc9b1ed8c374fb9ffe6b4d7e",
-      "matchesCommitted": true
-    },
-    {
       "path": "/design-system.css",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "da4d482e7f969afe60ebee2d94b6896389ba827d0aed0a80c4a35acb27ab9ee1",
       "matchesCommitted": true
     },
     {
       "path": "/workspace-experience.css",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "b422f995065d9b3986cb93095a201a87e45f3968f9e7b4b467c34d95fb1972d9",
       "matchesCommitted": true
     },
     {
+      "path": "/public-experience.css",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
+      "fromServiceWorker": true,
+      "sha256": "023f6ab881456bef083b968585697f2ff2ed4d8cfc9b1ed8c374fb9ffe6b4d7e",
+      "matchesCommitted": true
+    },
+    {
       "path": "/spatial-experience.css",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "35e3aa95070a88f71130606b70bbeaa3556475f3abddaf3667f0ed7c7be6a405",
       "matchesCommitted": true
     },
     {
       "path": "/app.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
-      "sha256": "0e8f41667d1a6dc5b5752b789d975616cd743409504703e228840b43751ae669",
+      "sha256": "453b9edd0f27b1996f1535c5a54e071d7a64dc49c19bcdbb47e3fe93a572ed63",
       "matchesCommitted": true
     },
     {
       "path": "/changelog.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "2079f8793878073a740f4d2509e97b424b42c2c16c3c359319807407a3037238",
       "matchesCommitted": true
     },
     {
       "path": "/learning-sync.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "3b78445250837b43c7644f16d2f48d6c8ce7a5b9ceab36adcd2d9d8c34a52241",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/config.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
-      "sha256": "3fb278aa3262bcd5c57ac726638c89762bb15d7f3187b374674179d80d450b99",
+      "sha256": "e903c8b6f155e2bcd18f491d1a8dee19afac4426a864a10dc77f4bf9e1af0073",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/keyed-list.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
-      "sha256": "72e5d9facc15bf0ca5f61d0f0760a464fb9b48664eff67698d530b7e2be5af56",
+      "sha256": "0e9d144d90f5650e3c19fcf50b535458acb48b04f4271808239fa7b02fa799a6",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/capabilities.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "01a07b545f76a18aa05b1c98589b093f0c4a30597d4acd5a7efc5c9ec1ef2b56",
       "matchesCommitted": true
     },
     {
-      "path": "/js/core/api.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "path": "/js/core/changelog.js",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
-      "sha256": "35ee35f41cca204df77b12353fb7d714c64be65cfcfa34321c770f42d6a6d6da",
+      "sha256": "b428d180758e8240ec846b8900a1b2f9b395019bfabcbd2a3ea105a7f48419d0",
       "matchesCommitted": true
     },
     {
-      "path": "/js/core/changelog.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "path": "/js/core/api.js",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
-      "sha256": "ee6e63fe64f376a9172c0f9e6c5f33388e40db85f2cc5048f52d59f95cfae034",
+      "sha256": "43ee2e35d1ba87a0f4a65eab2d1b4f2457c6092a2addc65a62ab0dc21376edaa",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/router.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "aaa0cbe4bcbd3696be6cb4e15157e2474ccf66afd38fbf9a15a9d277a5590bc3",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/session.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
-      "sha256": "4e744ed966fd32761d38eae7ceba2c11dd34a41c573e0e33ed3489ff3e282a68",
+      "sha256": "030488f0d9fb22b61996dedea2f109436bd0a20d89d32db06c48e138cf3f5c6b",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/storage.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "6dc0175f5f17ad2dc4ff7cb73065b8840062b51f80ffaf32151df059e5cb1200",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/ui.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
-      "sha256": "02fc86ff74be2672d5da2733f2b09e2c1dbfac93e346cb786eafd6461872fce9",
+      "sha256": "6f979633dc8ee65b7749e7f8c9f2acf176b4eb384d64ed85a9792dd53d125ca0",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/design-system.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "0dc860d26fe5c4610f40b04cc9778ba6ad13a352577f574a03c6375d7779bbec",
       "matchesCommitted": true
     },
     {
-      "path": "/js/core/motion.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
-      "fromServiceWorker": true,
-      "sha256": "40d29e746c31904c9432df7a3c5df6cf58962eecf106f3f854212284b0b68293",
-      "matchesCommitted": true
-    },
-    {
       "path": "/js/core/public-ui-policy.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "c0d58ecc2671cc7a9dd82ff26ccd49f4bd1bfcb54ab17e9ac1daa8702dd93c31",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/public-experience.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "8686b8269fb80fa90438c5212193ad4e129d80a52a6680e2c52b0cd1b9aa80d8",
       "matchesCommitted": true
     },
     {
+      "path": "/js/core/motion.js",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
+      "fromServiceWorker": true,
+      "sha256": "40d29e746c31904c9432df7a3c5df6cf58962eecf106f3f854212284b0b68293",
+      "matchesCommitted": true
+    },
+    {
       "path": "/js/core/download.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "3f50c623346e9e7df3a2eb1aa1edd31aa883bc98af2f2d981932b763cea11f9e",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/feature-flags.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "3d71f054928bce7d956e8907ca92ca9bc10af48b603deb3c61d6cd02fc4a74b3",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/feature-console.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "0337378cc22e8ff8d46701c478a3018d7147cabdfd38bf7df0e83031c5838fc1",
       "matchesCommitted": true
     },
     {
       "path": "/js/language/mastery.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
-      "sha256": "da6e72215fd6b44d096b53077a746ba8a549d4bf89af733805d0c40e1b3d8cf2",
+      "sha256": "0b6976271636f187e4c07f6f43a94ca7ee7369f5d34ec2f011e71c50a35eedc2",
       "matchesCommitted": true
     },
     {
       "path": "/js/language/mastery-journal.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
-      "sha256": "1f5e9ab4c266c93759ff2e0d595db69f67c57e84b11d129a167730f6312cbbf1",
+      "sha256": "6744d840fc15a84fe3341fbd2a6ae91fb869bd24eac6f1a575555425f80fa73a",
       "matchesCommitted": true
     },
     {
       "path": "/js/language/mastery-state.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "94dc4e4c9253a9d0fa8aed57ec81b3029926dd8642eec7b3edbbc5808edca478",
       "matchesCommitted": true
     },
     {
       "path": "/js/language/speech.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "912ee8f2df2d7b0179ba43f0015d759175d1029f6414c666f41148f3b698bfe7",
       "matchesCommitted": true
     },
     {
-      "path": "/js/finance/format.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
-      "fromServiceWorker": true,
-      "sha256": "b0586c067ac5487cf51837851f5373d0990a7e72d57fbfe2381c6f1e56b76ed6",
-      "matchesCommitted": true
-    },
-    {
       "path": "/js/language/speech-rate.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "375d7100787d437854bfae0496783ecabbc65781c351cbe70f1edf272021cf48",
       "matchesCommitted": true
     },
     {
+      "path": "/js/finance/format.js",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
+      "fromServiceWorker": true,
+      "sha256": "b0586c067ac5487cf51837851f5373d0990a7e72d57fbfe2381c6f1e56b76ed6",
+      "matchesCommitted": true
+    },
+    {
       "path": "/js/core/lazy-controller.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "5baddd29157f65e032a333f4192abd20ccb4512df713d4afe948b281df387637",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/dashboard.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
-      "sha256": "f1d8f7ac678956bbb431a2b4f097fc1a3ab1d4f51882c701b5a96416d681db3b",
+      "sha256": "06aea7e9926a77a1f4dacfbe77c3b9b143596be8c063951f11da4d9e5cdf7896",
+      "matchesCommitted": true
+    },
+    {
+      "path": "/js/language/history.js",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
+      "fromServiceWorker": true,
+      "sha256": "8f5151add277c33dd7f48fa13e763d3b056043faa280acf6105aa47f767ef204",
+      "matchesCommitted": true
+    },
+    {
+      "path": "/js/language/achievements.js",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
+      "fromServiceWorker": true,
+      "sha256": "cf65905597d7797d272b18bb27c491297307ee31a0394c4ff0d198c7b12a5996",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/perf.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "add801f4828b3de5510cab3aa278b388ebbfe63ab940afeeb7de0954b4d58779",
       "matchesCommitted": true
     },
     {
-      "path": "/js/language/achievements.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
-      "fromServiceWorker": true,
-      "sha256": "6a709d55f028c91bf9ddde114c15234b1a468425e882b90f828fa1e509c69efb",
-      "matchesCommitted": true
-    },
-    {
-      "path": "/js/language/history.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
-      "fromServiceWorker": true,
-      "sha256": "ba723e2ba01007ad76b6d0c5efc75ac0ec318fb5e23a5b26d4996d98b9985901",
-      "matchesCommitted": true
-    },
-    {
       "path": "/js/language/quiz.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "a417c6fb4911e9a8ff6cd3402c6a7d5f6e1e29208a0ca032fcf492b60d0a9971",
       "matchesCommitted": true
     },
     {
       "path": "/js/language/sync-adapter.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
-      "sha256": "b5fc1757b2eb16305264b78a3dcab4352584d821b5f5d42320a2a7795f6e1985",
+      "sha256": "22a287b36b4b4e496ae4e6dec7d5eaba06c3c19a0b16d8010123dff325f9a7e9",
       "matchesCommitted": true
     },
     {
       "path": "/js/language/pdf.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "59662916aade5334b395563d903780e757d714c36bc6dd0a48a3bb24fb5a17eb",
       "matchesCommitted": true
     },
     {
       "path": "/js/language/wrong-book.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
-      "sha256": "5001bad595b6939abfc7ca55f41ad94aaeba2750cc49aa197dbde36af6470d5a",
+      "sha256": "8896cb7f99136da82930b569a07b0d4d704b9e4a9bf588d1b3121a1079b16267",
       "matchesCommitted": true
     },
     {
       "path": "/js/membership/account.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "b262fb48b08381f6e4a6849c5ad83f05748a5e8a2a3f54fc1705d53141b9b493",
       "matchesCommitted": true
     },
     {
       "path": "/js/membership/plans.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "3636e0bb273f9fb0443c97d0cac48d04d96d1252140cd174cf7661b6e2a5337a",
       "matchesCommitted": true
     },
     {
-      "path": "/js/admin/formatters.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
-      "fromServiceWorker": true,
-      "sha256": "3392d2cd95304c0a78924ebfcd4289c27e3ca3509e46230cbfcbaeadfc18044f",
-      "matchesCommitted": true
-    },
-    {
       "path": "/js/membership/recharge.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "b2e04cb1a4fdd788f3f5157a5924479389bb93ce4d382c05d525052448508c57",
       "matchesCommitted": true
     },
     {
+      "path": "/js/admin/formatters.js",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
+      "fromServiceWorker": true,
+      "sha256": "3392d2cd95304c0a78924ebfcd4289c27e3ca3509e46230cbfcbaeadfc18044f",
+      "matchesCommitted": true
+    },
+    {
       "path": "/js/core/parked-rows.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "dba6e9fe3ee28d55727cc3bb80edeb6b9ba421021efbc4aaa03995f75d3b2c10",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/home-widgets.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
-      "sha256": "8d96f4a085f6893b8b8a9bc75851505edfa537d5ead8b3d97ad788b56ebcfb61",
+      "sha256": "3b1acf55cd3e418b70a81e0b403110d660cd1ce4aba1501bda35ad36573c98e1",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/home-widget-data.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "9388cbf85e76e8739a0412725f1e05991a77395e266f3df3e4d98064ed897605",
       "matchesCommitted": true
     },
     {
       "path": "/js/core/home-widget-layout.js",
-      "release": "20261105-aeris-p07-r4a-runtime-r2",
+      "release": "20261105-aeris-p07-r4a-runtime-r3",
       "fromServiceWorker": true,
       "sha256": "9b798a44764fdcbda5b0dc5e2f0a0db7dc9ad55c8dfff60796d3af0c61e3a3ed",
       "matchesCommitted": true

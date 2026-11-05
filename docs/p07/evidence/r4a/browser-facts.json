@@ -1,10 +1,10 @@
 {
-  "target_sha": "9c22bf1dd9118178700e4780ccc27c8958de1e81",
+  "target_sha": "6417005f70c34a5fc9bc35493587bd016aae8575",
   "checks": [
     {
       "id": "first-paint-home-and-p07-decision",
       "status": "PASS",
-      "duration_ms": 301,
+      "duration_ms": 312,
       "detail": {
         "home": {
           "visible": true,
@@ -31,49 +31,49 @@
         "p07States": [
           "enabled"
         ],
-        "readyFrames": 33,
+        "readyFrames": 22,
         "policyChanges": [
           {
-            "t": 592,
+            "t": 538.9000000003725,
             "value": "disabled"
           },
           {
-            "t": 592.1999999992549,
+            "t": 538.9000000003725,
             "value": "disabled"
           },
           {
-            "t": 592.1999999992549,
+            "t": 538.9000000003725,
             "value": "disabled"
           },
           {
-            "t": 617,
+            "t": 561.5,
             "value": "enabled"
           },
           {
-            "t": 676.6999999992549,
+            "t": 614.1000000014901,
             "value": "enabled"
           },
           {
-            "t": 676.6999999992549,
+            "t": 614.1000000014901,
             "value": "enabled"
           },
           {
-            "t": 1045.0999999996275,
+            "t": 998.7000000011176,
             "value": "enabled"
           },
           {
-            "t": 1313.5,
+            "t": 1245,
             "value": "enabled"
           }
         ],
         "paintEntries": [
           {
             "name": "first-paint",
-            "startTime": 480
+            "startTime": 368
           },
           {
             "name": "first-contentful-paint",
-            "startTime": 696
+            "startTime": 632
           }
         ]
       }
@@ -81,7 +81,7 @@
     {
       "id": "free-account-finance-guard-is-visible",
       "status": "PASS",
-      "duration_ms": 5,
+      "duration_ms": 2,
       "detail": {
         "gate": {
           "visible": true,
@@ -132,7 +132,7 @@
     {
       "id": "finance-upgrade-shortcut-selects-finance-plans",
       "status": "PASS",
-      "duration_ms": 323,
+      "duration_ms": 246,
       "detail": {
         "hit": {
           "x": 430,
@@ -215,7 +215,7 @@
     {
       "id": "membership-is-an-independent-main-workspace",
       "status": "PASS",
-      "duration_ms": 43,
+      "duration_ms": 26,
       "detail": {
         "memberPage": {
           "visible": true,
@@ -269,7 +269,7 @@
     {
       "id": "membership-order-and-admin-review-boundary",
       "status": "PASS",
-      "duration_ms": 438,
+      "duration_ms": 440,
       "detail": {
         "order": {
           "plan": "财务会员",
@@ -278,7 +278,7 @@
           "status": "等待付款",
           "confirmVisible": true,
           "orderNumber": "[synthetic redacted]",
-          "qr": false
+          "qr": true
         },
         "pendingOrders": 1,
         "syntheticUserPaidNotice": true,
@@ -290,7 +290,7 @@
     {
       "id": "membership-route-sidebar-cross-navigation",
       "status": "PASS",
-      "duration_ms": 80,
+      "duration_ms": 79,
       "detail": {
         "before": {
           "visible": true,
@@ -369,7 +369,7 @@
     {
       "id": "account-is-a-main-workspace-not-a-modal",
       "status": "PASS",
-      "duration_ms": 120,
+      "duration_ms": 109,
       "detail": {
         "account": {
           "visible": true,
@@ -399,7 +399,7 @@
     {
       "id": "account-workspace-sidebar-remains-in-keyboard-order",
       "status": "PASS",
-      "duration_ms": 1079,
+      "duration_ms": 1055,
       "detail": {
         "focused": {
           "nav": "home",
@@ -423,7 +423,7 @@
     {
       "id": "legacy-account-escape-diagnostic-and-sidebar-exit",
       "status": "PASS",
-      "duration_ms": 1140,
+      "duration_ms": 1137,
       "detail": {
         "before": {
           "visible": true,
@@ -505,7 +505,7 @@
     {
       "id": "main-workspace-pages-do-not-announce-aria-modal",
       "status": "PASS",
-      "duration_ms": 1856,
+      "duration_ms": 1781,
       "detail": [
         {
           "route": "/account",
@@ -522,7 +522,7 @@
     {
       "id": "synthetic-account-secret-change-revokes-old-session",
       "status": "PASS",
-      "duration_ms": 3400,
+      "duration_ms": 3124,
       "detail": {
         "oldSessionStatus": 401,
         "oldKeyLoginStatus": 403,
@@ -534,7 +534,7 @@
     {
       "id": "account-to-learning-tools-home-sidebar-navigation",
       "status": "PASS",
-      "duration_ms": 1246,
+      "duration_ms": 1191,
       "detail": [
         {
           "nav": "language",
@@ -703,7 +703,7 @@
     {
       "id": "browser-back-forward-and-direct-route",
       "status": "PASS",
-      "duration_ms": 5182,
+      "duration_ms": 4988,
       "detail": {
         "backForward": true,
         "normalAndHardRefresh": true,
@@ -734,7 +734,7 @@
     {
       "id": "homepage-core-card-coordinate-hit-matrix",
       "status": "PASS",
-      "duration_ms": 12695,
+      "duration_ms": 10701,
       "detail": {
         "ids": [
           "learning",
@@ -850,7 +850,7 @@
               {
                 "point": "touch-trigger",
                 "x": 195,
-                "y": 530.4205932617188,
+                "y": 530.5390625,
                 "active": true
               },
               {
@@ -1010,7 +1010,7 @@
               {
                 "point": "touch-trigger",
                 "x": 195,
-                "y": 530.4965972900391,
+                "y": 530.5390625,
                 "active": true
               },
               {
@@ -1122,7 +1122,7 @@
               {
                 "point": "left-top-blank",
                 "x": 1010.33625,
-                "y": 514.1716232299805,
+                "y": 513.969352722168,
                 "hit": {
                   "tag": "BUTTON",
                   "id": "",
@@ -1138,7 +1138,7 @@
               {
                 "point": "center-blank",
                 "x": 1180.03125,
-                "y": 557.63041015625,
+                "y": 557.98625,
                 "hit": {
                   "tag": "ARTICLE",
                   "id": "",
@@ -1154,7 +1154,7 @@
               {
                 "point": "right-bottom-blank",
                 "x": 1349.72625,
-                "y": 564.4505157470703,
+                "y": 564.6499755859375,
                 "hit": {
                   "tag": "ARTICLE",
                   "id": "",
@@ -1330,7 +1330,7 @@
               {
                 "point": "touch-trigger",
                 "x": 195,
-                "y": 530.5390625,
+                "y": 530.4771881103516,
                 "active": true
               },
               {
@@ -1552,7 +1552,7 @@
     {
       "id": "standalone-english-japanese-views-and-quiz-card-geometry",
       "status": "PASS",
-      "duration_ms": 3862,
+      "duration_ms": 3042,
       "detail": {
         "languageResults": [
           {
@@ -1574,7 +1574,7 @@
                 },
                 "card": {
                   "x": 249.59375,
-                  "y": 187.42550659179688,
+                  "y": 187.3856201171875,
                   "width": 713.796875,
                   "height": 617.1875,
                   "center": 606.4921875
@@ -1591,7 +1591,7 @@
                 },
                 "card": {
                   "x": 396.5,
-                  "y": 185.730712890625,
+                  "y": 185.99468994140625,
                   "width": 836,
                   "height": 617.1875,
                   "center": 814.5
@@ -1608,7 +1608,7 @@
                 },
                 "card": {
                   "x": 636.5,
-                  "y": 183.140625,
+                  "y": 183.21701049804688,
                   "width": 836,
                   "height": 617.1875,
                   "center": 1054.5
@@ -1638,9 +1638,9 @@
                 },
                 "card": {
                   "x": 249.59375,
-                  "y": 188.2761688232422,
+                  "y": 187.9865264892578,
                   "width": 713.796875,
-                  "height": 617.1875,
+                  "height": 655.578125,
                   "center": 606.4921875
                 },
                 "centerDelta": -0.0078125,
@@ -1655,9 +1655,9 @@
                 },
                 "card": {
                   "x": 396.5,
-                  "y": 184.74598693847656,
+                  "y": 186.37631225585938,
                   "width": 836,
-                  "height": 617.1875,
+                  "height": 655.578125,
                   "center": 814.5
                 },
                 "centerDelta": 0,
@@ -1672,16 +1672,16 @@
                 },
                 "card": {
                   "x": 636.5,
-                  "y": 183.140625,
+                  "y": 182.47750854492188,
                   "width": 836,
-                  "height": 617.1875,
+                  "height": 655.578125,
                   "center": 1054.5
                 },
                 "centerDelta": 0,
                 "rightPanel": []
               }
             ],
-            "question": "先生"
+            "question": "電話"
           }
         ],
         "geometryFailures": []
@@ -1690,26 +1690,26 @@
     {
       "id": "learning-submit-next-skip-refresh-and-language-isolation",
       "status": "PASS",
-      "duration_ms": 8041,
+      "duration_ms": 6846,
       "detail": {
         "rows": [
           {
             "language": "english",
-            "first": "hello",
+            "first": "school",
             "feedback": {
               "title": "正确",
-              "gloss": "标准释义：你好",
+              "gloss": "标准释义：学校",
               "score": "得分 1"
             },
-            "skipped": "school",
+            "skipped": "world",
             "before": {
-              "word": "world",
+              "word": "hello",
               "progress": "3/3",
               "score": "得分 1",
               "wrong": "1"
             },
             "after": {
-              "word": "world",
+              "word": "hello",
               "progress": "3/3",
               "score": "得分 1",
               "wrong": "1"
@@ -1718,13 +1718,13 @@
           },
           {
             "language": "japanese",
-            "first": "電話",
+            "first": "水",
             "feedback": {
               "title": "正确",
-              "gloss": "标准释义：电话",
+              "gloss": "标准释义：水",
               "score": "得分 1"
             },
-            "skipped": "水",
+            "skipped": "電話",
             "before": {
               "word": "花",
               "progress": "3/3",
@@ -1769,7 +1769,7 @@
     {
       "id": "japanese-ai-off-reading-failure-leaves-meaning-ui-usable",
       "status": "PASS",
-      "duration_ms": 1596,
+      "duration_ms": 1168,
       "detail": {
         "ui": {
           "question": "超稀有漢字語",
@@ -1796,7 +1796,7 @@
     {
       "id": "english-local-rubric-and-ai-off-fail-closed",
       "status": "PASS",
-      "duration_ms": 392,
+      "duration_ms": 185,
       "detail": {
         "known_rubric_source": "local",
         "known_judgement": {
@@ -1815,7 +1815,7 @@
     {
       "id": "japanese-reading-and-meaning-services-are-distinct",
       "status": "PASS",
-      "duration_ms": 235,
+      "duration_ms": 172,
       "detail": {
         "reading": {
           "status": 200,
@@ -1849,7 +1849,7 @@
     {
       "id": "finance-real-ledger-summary-and-chart",
       "status": "PASS",
-      "duration_ms": 3913,
+      "duration_ms": 2004,
       "detail": {
         "initial": {
           "income": "¥0.00",
@@ -1935,15 +1935,15 @@
           "rowCount": 3,
           "rows": [
             {
-              "id": "txn:e77be1f5-3e5d-4523-ad63-cb1980b1f4a3",
+              "id": "txn:f585b3a3-26b4-43e8-9957-ea5e8a6a19a7",
               "text": ""
             },
             {
-              "id": "txn:62de4600-8f0d-4d4b-bc68-fd4c9127dde6",
+              "id": "txn:a3431354-070a-433b-b078-b40e8501c2b4",
               "text": ""
             },
             {
-              "id": "txn:48a204dd-3f82-4a27-9037-68214e159524",
+              "id": "txn:4d8adc50-5ea1-422a-88d7-0f17f6fac527",
               "text": ""
             }
           ],
@@ -2140,7 +2140,7 @@
     {
       "id": "finance-edit-delete-chart-update-and-empty-ledger",
       "status": "PASS",
-      "duration_ms": 1670,
+      "duration_ms": 1572,
       "detail": {
         "edited": {
           "income": "¥2,000,000.00",
@@ -2165,7 +2165,7 @@
     {
       "id": "admin-and-member-authorization-isolation",
       "status": "PASS",
-      "duration_ms": 3856,
+      "duration_ms": 3477,
       "detail": {
         "api": {
           "anonymous": 401,
@@ -2285,8 +2285,8 @@
     },
     {
       "id": "refresh-continuity-all-required-pages",
-      "status": "PASS",
-      "duration_ms": 17894,
+      "status": "FAIL",
+      "duration_ms": 45950,
       "detail": [
         {
           "route": "/",
@@ -2294,60 +2294,60 @@
             "path": "/",
             "kind": "normal",
             "p07": "enabled",
-            "visible_ready_frames": 11,
+            "visible_ready_frames": 5,
             "visible_policy_states": [
               "enabled"
             ],
             "policy_changes": [
               {
-                "t": 129.69999999925494,
+                "t": 121.29999999888241,
                 "value": "disabled"
               },
               {
-                "t": 129.69999999925494,
+                "t": 121.29999999888241,
                 "value": "disabled"
               },
               {
-                "t": 129.69999999925494,
+                "t": 121.29999999888241,
                 "value": "disabled"
               },
               {
-                "t": 129.69999999925494,
+                "t": 121.29999999888241,
                 "value": "disabled"
               },
               {
-                "t": 129.69999999925494,
+                "t": 121.29999999888241,
                 "value": "disabled"
               },
               {
-                "t": 195.40000000037253,
+                "t": 193.90000000037253,
                 "value": "disabled"
               },
               {
-                "t": 195.40000000037253,
+                "t": 193.90000000037253,
                 "value": "disabled"
               },
               {
-                "t": 250.2999999988824,
+                "t": 250.5,
                 "value": "enabled"
               },
               {
-                "t": 277.2999999988824,
+                "t": 274.2999999988824,
                 "value": "enabled"
               },
               {
-                "t": 473.19999999925494,
+                "t": 471.59999999962747,
                 "value": "enabled"
               },
               {
-                "t": 775.1999999992549,
+                "t": 769.1999999992549,
                 "value": "enabled"
               }
             ],
             "paint_entries": [
               {
                 "name": "first-paint",
-                "startTime": 68
+                "startTime": 72
               },
               {
                 "name": "first-contentful-paint",
@@ -2355,24 +2355,24 @@
               }
             ],
             "app_resource_versions": [
-              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/app.js?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/js/finance/app.js?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/js/transfer/app.js?v=20261105-aeris-p07-r4a-runtime-r2"
+              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/app.js?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/js/finance/app.js?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/js/transfer/app.js?v=20261105-aeris-p07-r4a-runtime-r3"
             ],
             "cache_names": [
-              "wyj-shell-20261105-aeris-p07-r4a-runtime-r2-es-modules"
+              "wyj-shell-20261105-aeris-p07-r4a-runtime-r3-es-modules"
             ],
             "service_workers": [
               {
-                "scope": "http://127.0.0.1:18954/",
-                "active": "http://127.0.0.1:18954/sw.js?v=20261105-aeris-p07-r4a-runtime-r2"
+                "scope": "http://127.0.0.1:18958/",
+                "active": "http://127.0.0.1:18958/sw.js?v=20261105-aeris-p07-r4a-runtime-r3"
               }
             ],
             "first_frames": [
               {
-                "t": 57.59999999962747,
+                "t": 59.29999999888241,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2385,20 +2385,7 @@
                 "shellInert": false
               },
               {
-                "t": 60.69999999925494,
-                "path": "/",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 63.69999999925494,
+                "t": 64.09999999962747,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2424,7 +2411,7 @@
                 "shellInert": false
               },
               {
-                "t": 73.40000000037253,
+                "t": 72.79999999888241,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2437,7 +2424,7 @@
                 "shellInert": false
               },
               {
-                "t": 79.19999999925494,
+                "t": 77.69999999925494,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2450,7 +2437,7 @@
                 "shellInert": false
               },
               {
-                "t": 85.59999999962747,
+                "t": 83.90000000037253,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2463,7 +2450,7 @@
                 "shellInert": false
               },
               {
-                "t": 91,
+                "t": 91.5,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2476,7 +2463,7 @@
                 "shellInert": false
               },
               {
-                "t": 149.5,
+                "t": 140.69999999925494,
                 "path": "/",
                 "p07": "disabled",
                 "shellPending": true,
@@ -2489,7 +2476,7 @@
                 "shellInert": false
               },
               {
-                "t": 159.5,
+                "t": 147.2999999988824,
                 "path": "/",
                 "p07": "disabled",
                 "shellPending": true,
@@ -2502,7 +2489,33 @@
                 "shellInert": false
               },
               {
-                "t": 171.59999999962747,
+                "t": 156.09999999962747,
+                "path": "/",
+                "p07": "disabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 162.09999999962747,
+                "path": "/",
+                "p07": "disabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 167.90000000037253,
                 "path": "/",
                 "p07": "disabled",
                 "shellPending": true,
@@ -2528,7 +2541,7 @@
                 "shellInert": false
               },
               {
-                "t": 179.59999999962747,
+                "t": 181.69999999925494,
                 "path": "/",
                 "p07": "disabled",
                 "shellPending": true,
@@ -2541,7 +2554,7 @@
                 "shellInert": false
               },
               {
-                "t": 185.7999999988824,
+                "t": 191.2999999988824,
                 "path": "/",
                 "p07": "disabled",
                 "shellPending": true,
@@ -2554,7 +2567,7 @@
                 "shellInert": false
               },
               {
-                "t": 192.2999999988824,
+                "t": 197.40000000037253,
                 "path": "/",
                 "p07": "disabled",
                 "shellPending": true,
@@ -2567,7 +2580,7 @@
                 "shellInert": false
               },
               {
-                "t": 199.09999999962747,
+                "t": 202.59999999962747,
                 "path": "/",
                 "p07": "disabled",
                 "shellPending": true,
@@ -2580,7 +2593,7 @@
                 "shellInert": false
               },
               {
-                "t": 202.7999999988824,
+                "t": 209.19999999925494,
                 "path": "/",
                 "p07": "disabled",
                 "shellPending": true,
@@ -2593,7 +2606,7 @@
                 "shellInert": false
               },
               {
-                "t": 208.7999999988824,
+                "t": 216.2999999988824,
                 "path": "/",
                 "p07": "disabled",
                 "shellPending": true,
@@ -2606,7 +2619,7 @@
                 "shellInert": false
               },
               {
-                "t": 214.19999999925494,
+                "t": 223.90000000037253,
                 "path": "/",
                 "p07": "disabled",
                 "shellPending": true,
@@ -2619,7 +2632,7 @@
                 "shellInert": false
               },
               {
-                "t": 219.59999999962747,
+                "t": 231.09999999962747,
                 "path": "/",
                 "p07": "disabled",
                 "shellPending": true,
@@ -2632,7 +2645,7 @@
                 "shellInert": false
               },
               {
-                "t": 225.19999999925494,
+                "t": 237.40000000037253,
                 "path": "/",
                 "p07": "disabled",
                 "shellPending": true,
@@ -2645,7 +2658,7 @@
                 "shellInert": false
               },
               {
-                "t": 231.19999999925494,
+                "t": 244.2999999988824,
                 "path": "/",
                 "p07": "disabled",
                 "shellPending": true,
@@ -2658,22 +2671,9 @@
                 "shellInert": false
               },
               {
-                "t": 237.5,
+                "t": 257.7999999988824,
                 "path": "/",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 243,
-                "path": "/",
-                "p07": "disabled",
+                "p07": "enabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -2689,85 +2689,85 @@
             "path": "/",
             "kind": "hard",
             "p07": "enabled",
-            "visible_ready_frames": 4,
+            "visible_ready_frames": 3,
             "visible_policy_states": [
               "enabled"
             ],
             "policy_changes": [
               {
-                "t": 280.5,
+                "t": 279,
                 "value": "disabled"
               },
               {
-                "t": 280.5,
+                "t": 279.09999999962747,
                 "value": "disabled"
               },
               {
-                "t": 280.5,
+                "t": 279.09999999962747,
                 "value": "disabled"
               },
               {
-                "t": 280.5,
+                "t": 279.09999999962747,
                 "value": "disabled"
               },
               {
-                "t": 280.5,
+                "t": 279.09999999962747,
                 "value": "disabled"
               },
               {
-                "t": 348,
+                "t": 339.5,
                 "value": "disabled"
               },
               {
-                "t": 348,
+                "t": 339.5,
                 "value": "disabled"
               },
               {
-                "t": 403.59999999962747,
+                "t": 387.90000000037253,
                 "value": "enabled"
               },
               {
-                "t": 424.2999999988824,
+                "t": 409,
                 "value": "enabled"
               },
               {
-                "t": 576.5999999996275,
+                "t": 587.7000000011176,
                 "value": "enabled"
               },
               {
-                "t": 920.6999999992549,
+                "t": 927.7000000011176,
                 "value": "enabled"
               }
             ],
             "paint_entries": [
               {
                 "name": "first-paint",
-                "startTime": 112
+                "startTime": 132
               },
               {
                 "name": "first-contentful-paint",
-                "startTime": 436
+                "startTime": 420
               }
             ],
             "app_resource_versions": [
-              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/app.js?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/js/finance/app.js?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/js/transfer/app.js?v=20261105-aeris-p07-r4a-runtime-r2"
+              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/app.js?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/js/finance/app.js?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/js/transfer/app.js?v=20261105-aeris-p07-r4a-runtime-r3"
             ],
             "cache_names": [
-              "wyj-shell-20261105-aeris-p07-r4a-runtime-r2-es-modules"
+              "wyj-shell-20261105-aeris-p07-r4a-runtime-r3-es-modules"
             ],
             "service_workers": [
               {
-                "scope": "http://127.0.0.1:18954/",
-                "active": "http://127.0.0.1:18954/sw.js?v=20261105-aeris-p07-r4a-runtime-r2"
+                "scope": "http://127.0.0.1:18958/",
+                "active": "http://127.0.0.1:18958/sw.js?v=20261105-aeris-p07-r4a-runtime-r3"
               }
             ],
             "first_frames": [
               {
-                "t": 101.79999999888241,
+                "t": 119.09999999962747,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2780,7 +2780,7 @@
                 "shellInert": false
               },
               {
-                "t": 106.09999999962747,
+                "t": 121.80000000074506,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2793,7 +2793,7 @@
                 "shellInert": false
               },
               {
-                "t": 112.29999999888241,
+                "t": 125.80000000074506,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2806,7 +2806,7 @@
                 "shellInert": false
               },
               {
-                "t": 118.19999999925494,
+                "t": 136.30000000074506,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2819,7 +2819,7 @@
                 "shellInert": false
               },
               {
-                "t": 122.19999999925494,
+                "t": 139.7000000011176,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2832,7 +2832,7 @@
                 "shellInert": false
               },
               {
-                "t": 127.39999999850988,
+                "t": 146.30000000074506,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2845,7 +2845,7 @@
                 "shellInert": false
               },
               {
-                "t": 132.7999999988824,
+                "t": 153.80000000074506,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2858,7 +2858,7 @@
                 "shellInert": false
               },
               {
-                "t": 138.89999999850988,
+                "t": 160.09999999962747,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2871,7 +2871,7 @@
                 "shellInert": false
               },
               {
-                "t": 144.2999999988824,
+                "t": 167.2000000011176,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2884,7 +2884,7 @@
                 "shellInert": false
               },
               {
-                "t": 149.69999999925494,
+                "t": 175.5,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2897,7 +2897,7 @@
                 "shellInert": false
               },
               {
-                "t": 156.69999999925494,
+                "t": 181.09999999962747,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2910,7 +2910,7 @@
                 "shellInert": false
               },
               {
-                "t": 160.69999999925494,
+                "t": 187.90000000037253,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2923,7 +2923,7 @@
                 "shellInert": false
               },
               {
-                "t": 166.39999999850988,
+                "t": 194.59999999962747,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2936,7 +2936,7 @@
                 "shellInert": false
               },
               {
-                "t": 172.59999999962747,
+                "t": 201.90000000037253,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2949,7 +2949,7 @@
                 "shellInert": false
               },
               {
-                "t": 178,
+                "t": 208.7000000011176,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2962,7 +2962,7 @@
                 "shellInert": false
               },
               {
-                "t": 183.69999999925494,
+                "t": 216.59999999962747,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2975,7 +2975,7 @@
                 "shellInert": false
               },
               {
-                "t": 189.19999999925494,
+                "t": 223.2000000011176,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -2988,7 +2988,7 @@
                 "shellInert": false
               },
               {
-                "t": 196.5,
+                "t": 229.7000000011176,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -3001,7 +3001,7 @@
                 "shellInert": false
               },
               {
-                "t": 200,
+                "t": 236.5,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -3014,7 +3014,7 @@
                 "shellInert": false
               },
               {
-                "t": 205.59999999962747,
+                "t": 243.7000000011176,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -3027,7 +3027,7 @@
                 "shellInert": false
               },
               {
-                "t": 210.69999999925494,
+                "t": 250.40000000037253,
                 "path": "/",
                 "p07": null,
                 "shellPending": true,
@@ -3040,9 +3040,9 @@
                 "shellInert": false
               },
               {
-                "t": 217.19999999925494,
+                "t": 297.2000000011176,
                 "path": "/",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -3053,9 +3053,9 @@
                 "shellInert": false
               },
               {
-                "t": 223.69999999925494,
+                "t": 305.7000000011176,
                 "path": "/",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -3066,9 +3066,9 @@
                 "shellInert": false
               },
               {
-                "t": 228.09999999962747,
+                "t": 311.59999999962747,
                 "path": "/",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -3109,83 +3109,83 @@
             "path": "/language/english",
             "kind": "normal",
             "p07": "enabled",
-            "visible_ready_frames": 4,
+            "visible_ready_frames": 6,
             "visible_policy_states": [
               "enabled"
             ],
             "policy_changes": [
               {
-                "t": 213.5,
+                "t": 107.5,
                 "value": "disabled"
               },
               {
-                "t": 213.5,
+                "t": 107.5,
                 "value": "disabled"
               },
               {
-                "t": 213.59999999962747,
+                "t": 107.5,
                 "value": "disabled"
               },
               {
-                "t": 213.59999999962747,
+                "t": 107.5,
                 "value": "disabled"
               },
               {
-                "t": 213.59999999962747,
+                "t": 107.5,
                 "value": "disabled"
               },
               {
-                "t": 283.90000000037253,
+                "t": 170.89999999850988,
                 "value": "disabled"
               },
               {
-                "t": 283.90000000037253,
+                "t": 170.89999999850988,
                 "value": "disabled"
               },
               {
-                "t": 336.2000000011176,
+                "t": 224.69999999925494,
                 "value": "enabled"
               },
               {
-                "t": 365.09999999962747,
+                "t": 244.7999999988824,
                 "value": "enabled"
               },
               {
-                "t": 523.3000000007451,
+                "t": 452,
                 "value": "enabled"
               },
               {
-                "t": 858.8000000007451,
+                "t": 758.5999999996275,
                 "value": "enabled"
               }
             ],
             "paint_entries": [
               {
                 "name": "first-paint",
-                "startTime": 92
+                "startTime": 60
               },
               {
                 "name": "first-contentful-paint",
-                "startTime": 376
+                "startTime": 256
               }
             ],
             "app_resource_versions": [
-              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/app.js?v=20261105-aeris-p07-r4a-runtime-r2"
+              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/app.js?v=20261105-aeris-p07-r4a-runtime-r3"
             ],
             "cache_names": [
-              "wyj-shell-20261105-aeris-p07-r4a-runtime-r2-es-modules"
+              "wyj-shell-20261105-aeris-p07-r4a-runtime-r3-es-modules"
             ],
             "service_workers": [
               {
-                "scope": "http://127.0.0.1:18954/",
-                "active": "http://127.0.0.1:18954/sw.js?v=20261105-aeris-p07-r4a-runtime-r2"
+                "scope": "http://127.0.0.1:18958/",
+                "active": "http://127.0.0.1:18958/sw.js?v=20261105-aeris-p07-r4a-runtime-r3"
               }
             ],
             "first_frames": [
               {
-                "t": 79.30000000074506,
+                "t": 51.19999999925494,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3198,7 +3198,7 @@
                 "shellInert": false
               },
               {
-                "t": 82.59999999962747,
+                "t": 53.59999999962747,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3211,7 +3211,7 @@
                 "shellInert": false
               },
               {
-                "t": 129.30000000074506,
+                "t": 59.79999999888241,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3224,7 +3224,7 @@
                 "shellInert": false
               },
               {
-                "t": 136.40000000037253,
+                "t": 66.59999999962747,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3237,7 +3237,7 @@
                 "shellInert": false
               },
               {
-                "t": 141.5,
+                "t": 74.09999999962747,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3250,7 +3250,7 @@
                 "shellInert": false
               },
               {
-                "t": 143.09999999962747,
+                "t": 79.79999999888241,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3263,98 +3263,7 @@
                 "shellInert": false
               },
               {
-                "t": 151.30000000074506,
-                "path": "/language/english",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 153,
-                "path": "/language/english",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 165.80000000074506,
-                "path": "/language/english",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 168,
-                "path": "/language/english",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 176.40000000037253,
-                "path": "/language/english",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 177.80000000074506,
-                "path": "/language/english",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 184.80000000074506,
-                "path": "/language/english",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 233.09999999962747,
+                "t": 126.59999999962747,
                 "path": "/language/english",
                 "p07": "disabled",
                 "shellPending": true,
@@ -3367,7 +3276,7 @@
                 "shellInert": false
               },
               {
-                "t": 238.7000000011176,
+                "t": 134.59999999962747,
                 "path": "/language/english",
                 "p07": "disabled",
                 "shellPending": true,
@@ -3380,7 +3289,7 @@
                 "shellInert": false
               },
               {
-                "t": 247.09999999962747,
+                "t": 140.2999999988824,
                 "path": "/language/english",
                 "p07": "disabled",
                 "shellPending": true,
@@ -3393,7 +3302,7 @@
                 "shellInert": false
               },
               {
-                "t": 257.80000000074506,
+                "t": 144.69999999925494,
                 "path": "/language/english",
                 "p07": "disabled",
                 "shellPending": true,
@@ -3406,7 +3315,7 @@
                 "shellInert": false
               },
               {
-                "t": 264.59999999962747,
+                "t": 152.19999999925494,
                 "path": "/language/english",
                 "p07": "disabled",
                 "shellPending": true,
@@ -3419,7 +3328,7 @@
                 "shellInert": false
               },
               {
-                "t": 272.30000000074506,
+                "t": 158.09999999962747,
                 "path": "/language/english",
                 "p07": "disabled",
                 "shellPending": true,
@@ -3432,7 +3341,7 @@
                 "shellInert": false
               },
               {
-                "t": 273.80000000074506,
+                "t": 164.59999999962747,
                 "path": "/language/english",
                 "p07": "disabled",
                 "shellPending": true,
@@ -3445,7 +3354,7 @@
                 "shellInert": false
               },
               {
-                "t": 281.30000000074506,
+                "t": 173,
                 "path": "/language/english",
                 "p07": "disabled",
                 "shellPending": true,
@@ -3458,7 +3367,7 @@
                 "shellInert": false
               },
               {
-                "t": 286.90000000037253,
+                "t": 178.2999999988824,
                 "path": "/language/english",
                 "p07": "disabled",
                 "shellPending": true,
@@ -3471,7 +3380,7 @@
                 "shellInert": false
               },
               {
-                "t": 289.40000000037253,
+                "t": 185.7999999988824,
                 "path": "/language/english",
                 "p07": "disabled",
                 "shellPending": true,
@@ -3484,9 +3393,100 @@
                 "shellInert": false
               },
               {
-                "t": 296,
+                "t": 195.5,
                 "path": "/language/english",
                 "p07": "disabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 199.09999999962747,
+                "path": "/language/english",
+                "p07": "disabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 208.69999999925494,
+                "path": "/language/english",
+                "p07": "disabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 212.7999999988824,
+                "path": "/language/english",
+                "p07": "disabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 220.2999999988824,
+                "path": "/language/english",
+                "p07": "disabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 235.19999999925494,
+                "path": "/language/english",
+                "p07": "enabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 247,
+                "path": "/language/english",
+                "p07": "enabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 250.39999999850988,
+                "path": "/language/english",
+                "p07": "enabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -3502,83 +3502,83 @@
             "path": "/language/english",
             "kind": "hard",
             "p07": "enabled",
-            "visible_ready_frames": 5,
+            "visible_ready_frames": 14,
             "visible_policy_states": [
               "enabled"
             ],
             "policy_changes": [
               {
-                "t": 237.40000000037253,
+                "t": 220,
                 "value": "disabled"
               },
               {
-                "t": 237.5,
+                "t": 220,
                 "value": "disabled"
               },
               {
-                "t": 237.5,
+                "t": 220,
                 "value": "disabled"
               },
               {
-                "t": 237.5,
+                "t": 220,
                 "value": "disabled"
               },
               {
-                "t": 237.5,
+                "t": 220,
                 "value": "disabled"
               },
               {
-                "t": 305.5,
+                "t": 283,
                 "value": "disabled"
               },
               {
-                "t": 305.5,
+                "t": 283.09999999962747,
                 "value": "disabled"
               },
               {
-                "t": 356.6000000014901,
+                "t": 333.2999999988824,
                 "value": "enabled"
               },
               {
-                "t": 364.80000000074506,
+                "t": 350.5,
                 "value": "enabled"
               },
               {
-                "t": 563.8000000007451,
+                "t": 575.3999999985099,
                 "value": "enabled"
               },
               {
-                "t": 880.1000000014901,
+                "t": 870.0999999996275,
                 "value": "enabled"
               }
             ],
             "paint_entries": [
               {
                 "name": "first-paint",
-                "startTime": 88
+                "startTime": 76
               },
               {
                 "name": "first-contentful-paint",
-                "startTime": 392
+                "startTime": 360
               }
             ],
             "app_resource_versions": [
-              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/app.js?v=20261105-aeris-p07-r4a-runtime-r2"
+              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/app.js?v=20261105-aeris-p07-r4a-runtime-r3"
             ],
             "cache_names": [
-              "wyj-shell-20261105-aeris-p07-r4a-runtime-r2-es-modules"
+              "wyj-shell-20261105-aeris-p07-r4a-runtime-r3-es-modules"
             ],
             "service_workers": [
               {
-                "scope": "http://127.0.0.1:18954/",
-                "active": "http://127.0.0.1:18954/sw.js?v=20261105-aeris-p07-r4a-runtime-r2"
+                "scope": "http://127.0.0.1:18958/",
+                "active": "http://127.0.0.1:18958/sw.js?v=20261105-aeris-p07-r4a-runtime-r3"
               }
             ],
             "first_frames": [
               {
-                "t": 72.80000000074506,
+                "t": 63,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3591,7 +3591,7 @@
                 "shellInert": false
               },
               {
-                "t": 75.80000000074506,
+                "t": 65.79999999888241,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3604,7 +3604,7 @@
                 "shellInert": false
               },
               {
-                "t": 82.40000000037253,
+                "t": 69.29999999888241,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3617,7 +3617,7 @@
                 "shellInert": false
               },
               {
-                "t": 88.70000000111759,
+                "t": 75.79999999888241,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3630,7 +3630,7 @@
                 "shellInert": false
               },
               {
-                "t": 94.70000000111759,
+                "t": 84.69999999925494,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3643,7 +3643,7 @@
                 "shellInert": false
               },
               {
-                "t": 99.20000000111759,
+                "t": 89.5,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3656,7 +3656,7 @@
                 "shellInert": false
               },
               {
-                "t": 105.10000000149012,
+                "t": 96.69999999925494,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3669,7 +3669,7 @@
                 "shellInert": false
               },
               {
-                "t": 110.40000000037253,
+                "t": 103.79999999888241,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3682,7 +3682,7 @@
                 "shellInert": false
               },
               {
-                "t": 116.40000000037253,
+                "t": 110.69999999925494,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3695,7 +3695,7 @@
                 "shellInert": false
               },
               {
-                "t": 122.30000000074506,
+                "t": 117.69999999925494,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3708,7 +3708,7 @@
                 "shellInert": false
               },
               {
-                "t": 128.2000000011176,
+                "t": 124.09999999962747,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3721,7 +3721,7 @@
                 "shellInert": false
               },
               {
-                "t": 134,
+                "t": 131.59999999962747,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3734,7 +3734,7 @@
                 "shellInert": false
               },
               {
-                "t": 139.5,
+                "t": 138.09999999962747,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3747,7 +3747,7 @@
                 "shellInert": false
               },
               {
-                "t": 144.90000000037253,
+                "t": 145.19999999925494,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3760,7 +3760,7 @@
                 "shellInert": false
               },
               {
-                "t": 150.2000000011176,
+                "t": 152.39999999850988,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3773,7 +3773,7 @@
                 "shellInert": false
               },
               {
-                "t": 156.2000000011176,
+                "t": 159.89999999850988,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3786,7 +3786,7 @@
                 "shellInert": false
               },
               {
-                "t": 161.10000000149012,
+                "t": 166.09999999962747,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3799,7 +3799,7 @@
                 "shellInert": false
               },
               {
-                "t": 167.2000000011176,
+                "t": 173.19999999925494,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3812,7 +3812,7 @@
                 "shellInert": false
               },
               {
-                "t": 172.80000000074506,
+                "t": 180.7999999988824,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3825,7 +3825,7 @@
                 "shellInert": false
               },
               {
-                "t": 178.5,
+                "t": 187.09999999962747,
                 "path": "/language/english",
                 "p07": null,
                 "shellPending": true,
@@ -3838,9 +3838,9 @@
                 "shellInert": false
               },
               {
-                "t": 183.30000000074506,
+                "t": 238.09999999962747,
                 "path": "/language/english",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -3851,9 +3851,9 @@
                 "shellInert": false
               },
               {
-                "t": 189.2000000011176,
+                "t": 245.39999999850988,
                 "path": "/language/english",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -3864,9 +3864,9 @@
                 "shellInert": false
               },
               {
-                "t": 194.2000000011176,
+                "t": 252.2999999988824,
                 "path": "/language/english",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -3877,9 +3877,9 @@
                 "shellInert": false
               },
               {
-                "t": 199.80000000074506,
+                "t": 257.8999999985099,
                 "path": "/language/english",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -3920,83 +3920,83 @@
             "path": "/language/japanese",
             "kind": "normal",
             "p07": "enabled",
-            "visible_ready_frames": 13,
+            "visible_ready_frames": 7,
             "visible_policy_states": [
               "enabled"
             ],
             "policy_changes": [
               {
-                "t": 121.90000000037253,
+                "t": 161.7000000011176,
                 "value": "disabled"
               },
               {
-                "t": 121.90000000037253,
+                "t": 161.7000000011176,
                 "value": "disabled"
               },
               {
-                "t": 121.90000000037253,
+                "t": 161.7000000011176,
                 "value": "disabled"
               },
               {
-                "t": 121.90000000037253,
+                "t": 161.7000000011176,
                 "value": "disabled"
               },
               {
-                "t": 121.90000000037253,
+                "t": 161.7000000011176,
                 "value": "disabled"
               },
               {
-                "t": 188.19999999925494,
+                "t": 225.5,
                 "value": "disabled"
               },
               {
-                "t": 188.19999999925494,
+                "t": 225.5,
                 "value": "disabled"
               },
               {
-                "t": 239.69999999925494,
+                "t": 276.2000000011176,
                 "value": "enabled"
               },
               {
-                "t": 262.40000000037253,
+                "t": 296.7000000011176,
                 "value": "enabled"
               },
               {
-                "t": 485.80000000074506,
+                "t": 487.5,
                 "value": "enabled"
               },
               {
-                "t": 767.1999999992549,
+                "t": 816.5999999996275,
                 "value": "enabled"
               }
             ],
             "paint_entries": [
               {
                 "name": "first-paint",
-                "startTime": 72
+                "startTime": 80
               },
               {
                 "name": "first-contentful-paint",
-                "startTime": 268
+                "startTime": 308
               }
             ],
             "app_resource_versions": [
-              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/app.js?v=20261105-aeris-p07-r4a-runtime-r2"
+              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/app.js?v=20261105-aeris-p07-r4a-runtime-r3"
             ],
             "cache_names": [
-              "wyj-shell-20261105-aeris-p07-r4a-runtime-r2-es-modules"
+              "wyj-shell-20261105-aeris-p07-r4a-runtime-r3-es-modules"
             ],
             "service_workers": [
               {
-                "scope": "http://127.0.0.1:18954/",
-                "active": "http://127.0.0.1:18954/sw.js?v=20261105-aeris-p07-r4a-runtime-r2"
+                "scope": "http://127.0.0.1:18958/",
+                "active": "http://127.0.0.1:18958/sw.js?v=20261105-aeris-p07-r4a-runtime-r3"
               }
             ],
             "first_frames": [
               {
-                "t": 56.19999999925494,
+                "t": 61.90000000037253,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4009,7 +4009,7 @@
                 "shellInert": false
               },
               {
-                "t": 60.69999999925494,
+                "t": 64.70000000111759,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4022,7 +4022,7 @@
                 "shellInert": false
               },
               {
-                "t": 65.09999999962747,
+                "t": 72.20000000111759,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4035,7 +4035,7 @@
                 "shellInert": false
               },
               {
-                "t": 70.80000000074506,
+                "t": 109.09999999962747,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4048,7 +4048,7 @@
                 "shellInert": false
               },
               {
-                "t": 75.90000000037253,
+                "t": 118,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4061,7 +4061,7 @@
                 "shellInert": false
               },
               {
-                "t": 82.30000000074506,
+                "t": 120.59999999962747,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4074,7 +4074,7 @@
                 "shellInert": false
               },
               {
-                "t": 86.80000000074506,
+                "t": 127.80000000074506,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4087,7 +4087,7 @@
                 "shellInert": false
               },
               {
-                "t": 92.19999999925494,
+                "t": 134.90000000037253,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4100,7 +4100,7 @@
                 "shellInert": false
               },
               {
-                "t": 140.59999999962747,
+                "t": 180.80000000074506,
                 "path": "/language/japanese",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4113,7 +4113,7 @@
                 "shellInert": false
               },
               {
-                "t": 147.80000000074506,
+                "t": 191.09999999962747,
                 "path": "/language/japanese",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4126,7 +4126,7 @@
                 "shellInert": false
               },
               {
-                "t": 156,
+                "t": 204.5,
                 "path": "/language/japanese",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4139,7 +4139,7 @@
                 "shellInert": false
               },
               {
-                "t": 160,
+                "t": 206.80000000074506,
                 "path": "/language/japanese",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4152,7 +4152,7 @@
                 "shellInert": false
               },
               {
-                "t": 163.5,
+                "t": 213.30000000074506,
                 "path": "/language/japanese",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4165,7 +4165,7 @@
                 "shellInert": false
               },
               {
-                "t": 169.5,
+                "t": 220.09999999962747,
                 "path": "/language/japanese",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4178,7 +4178,7 @@
                 "shellInert": false
               },
               {
-                "t": 174.40000000037253,
+                "t": 227.59999999962747,
                 "path": "/language/japanese",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4191,7 +4191,7 @@
                 "shellInert": false
               },
               {
-                "t": 180,
+                "t": 234.09999999962747,
                 "path": "/language/japanese",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4204,7 +4204,7 @@
                 "shellInert": false
               },
               {
-                "t": 185.40000000037253,
+                "t": 240.09999999962747,
                 "path": "/language/japanese",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4217,7 +4217,7 @@
                 "shellInert": false
               },
               {
-                "t": 192.19999999925494,
+                "t": 246.09999999962747,
                 "path": "/language/japanese",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4230,7 +4230,7 @@
                 "shellInert": false
               },
               {
-                "t": 196.69999999925494,
+                "t": 253,
                 "path": "/language/japanese",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4243,7 +4243,7 @@
                 "shellInert": false
               },
               {
-                "t": 201.40000000037253,
+                "t": 259.5,
                 "path": "/language/japanese",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4256,7 +4256,7 @@
                 "shellInert": false
               },
               {
-                "t": 206.90000000037253,
+                "t": 266.80000000074506,
                 "path": "/language/japanese",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4269,7 +4269,7 @@
                 "shellInert": false
               },
               {
-                "t": 212.19999999925494,
+                "t": 273.40000000037253,
                 "path": "/language/japanese",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4282,9 +4282,9 @@
                 "shellInert": false
               },
               {
-                "t": 218.09999999962747,
+                "t": 285.5,
                 "path": "/language/japanese",
-                "p07": "disabled",
+                "p07": "enabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -4295,9 +4295,9 @@
                 "shellInert": false
               },
               {
-                "t": 222.80000000074506,
+                "t": 298.2000000011176,
                 "path": "/language/japanese",
-                "p07": "disabled",
+                "p07": "enabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -4313,83 +4313,83 @@
             "path": "/language/japanese",
             "kind": "hard",
             "p07": "enabled",
-            "visible_ready_frames": 4,
+            "visible_ready_frames": 11,
             "visible_policy_states": [
               "enabled"
             ],
             "policy_changes": [
               {
-                "t": 250.19999999925494,
+                "t": 248.09999999962747,
                 "value": "disabled"
               },
               {
-                "t": 250.19999999925494,
+                "t": 248.09999999962747,
                 "value": "disabled"
               },
               {
-                "t": 250.19999999925494,
+                "t": 248.09999999962747,
                 "value": "disabled"
               },
               {
-                "t": 250.19999999925494,
+                "t": 248.09999999962747,
                 "value": "disabled"
               },
               {
-                "t": 250.19999999925494,
+                "t": 248.09999999962747,
                 "value": "disabled"
               },
               {
-                "t": 313.09999999962747,
+                "t": 308.8999999985099,
                 "value": "disabled"
               },
               {
-                "t": 313.09999999962747,
+                "t": 308.8999999985099,
                 "value": "disabled"
               },
               {
-                "t": 371.40000000037253,
+                "t": 388.69999999925494,
                 "value": "enabled"
               },
               {
-                "t": 393.09999999962747,
+                "t": 404.59999999962747,
                 "value": "enabled"
               },
               {
-                "t": 556.4000000003725,
+                "t": 586.6999999992549,
                 "value": "enabled"
               },
               {
-                "t": 896.4000000003725,
+                "t": 890.5,
                 "value": "enabled"
               }
             ],
             "paint_entries": [
               {
                 "name": "first-paint",
-                "startTime": 80
+                "startTime": 116
               },
               {
                 "name": "first-contentful-paint",
-                "startTime": 92
+                "startTime": 416
               }
             ],
             "app_resource_versions": [
-              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/app.js?v=20261105-aeris-p07-r4a-runtime-r2"
+              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/app.js?v=20261105-aeris-p07-r4a-runtime-r3"
             ],
             "cache_names": [
-              "wyj-shell-20261105-aeris-p07-r4a-runtime-r2-es-modules"
+              "wyj-shell-20261105-aeris-p07-r4a-runtime-r3-es-modules"
             ],
             "service_workers": [
               {
-                "scope": "http://127.0.0.1:18954/",
-                "active": "http://127.0.0.1:18954/sw.js?v=20261105-aeris-p07-r4a-runtime-r2"
+                "scope": "http://127.0.0.1:18958/",
+                "active": "http://127.0.0.1:18958/sw.js?v=20261105-aeris-p07-r4a-runtime-r3"
               }
             ],
             "first_frames": [
               {
-                "t": 68.19999999925494,
+                "t": 101.29999999888241,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4402,7 +4402,7 @@
                 "shellInert": false
               },
               {
-                "t": 71.40000000037253,
+                "t": 104.89999999850988,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4415,7 +4415,7 @@
                 "shellInert": false
               },
               {
-                "t": 75.59999999962747,
+                "t": 115.59999999962747,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4428,7 +4428,7 @@
                 "shellInert": false
               },
               {
-                "t": 80.5,
+                "t": 117.59999999962747,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4441,7 +4441,7 @@
                 "shellInert": false
               },
               {
-                "t": 87.69999999925494,
+                "t": 128.09999999962747,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4454,7 +4454,7 @@
                 "shellInert": false
               },
               {
-                "t": 91.90000000037253,
+                "t": 130.7999999988824,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4467,7 +4467,7 @@
                 "shellInert": false
               },
               {
-                "t": 98.40000000037253,
+                "t": 137.5,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4480,7 +4480,7 @@
                 "shellInert": false
               },
               {
-                "t": 104.90000000037253,
+                "t": 144.5,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4493,7 +4493,7 @@
                 "shellInert": false
               },
               {
-                "t": 110.30000000074506,
+                "t": 150.89999999850988,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4506,7 +4506,7 @@
                 "shellInert": false
               },
               {
-                "t": 115.19999999925494,
+                "t": 157.7999999988824,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4519,7 +4519,7 @@
                 "shellInert": false
               },
               {
-                "t": 120.69999999925494,
+                "t": 165.09999999962747,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4532,7 +4532,7 @@
                 "shellInert": false
               },
               {
-                "t": 126.90000000037253,
+                "t": 171.7999999988824,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4545,7 +4545,7 @@
                 "shellInert": false
               },
               {
-                "t": 132.19999999925494,
+                "t": 179.39999999850988,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4558,7 +4558,7 @@
                 "shellInert": false
               },
               {
-                "t": 136.90000000037253,
+                "t": 186,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4571,7 +4571,7 @@
                 "shellInert": false
               },
               {
-                "t": 143.5,
+                "t": 193,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4584,7 +4584,7 @@
                 "shellInert": false
               },
               {
-                "t": 150.69999999925494,
+                "t": 199.5,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4597,7 +4597,7 @@
                 "shellInert": false
               },
               {
-                "t": 153.09999999962747,
+                "t": 207,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4610,7 +4610,7 @@
                 "shellInert": false
               },
               {
-                "t": 159.59999999962747,
+                "t": 214,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4623,7 +4623,7 @@
                 "shellInert": false
               },
               {
-                "t": 163.90000000037253,
+                "t": 220.59999999962747,
                 "path": "/language/japanese",
                 "p07": null,
                 "shellPending": true,
@@ -4636,9 +4636,9 @@
                 "shellInert": false
               },
               {
-                "t": 169.69999999925494,
+                "t": 264,
                 "path": "/language/japanese",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -4649,9 +4649,9 @@
                 "shellInert": false
               },
               {
-                "t": 175.40000000037253,
+                "t": 269.69999999925494,
                 "path": "/language/japanese",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -4662,9 +4662,9 @@
                 "shellInert": false
               },
               {
-                "t": 181.30000000074506,
+                "t": 277.3999999985099,
                 "path": "/language/japanese",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -4675,9 +4675,9 @@
                 "shellInert": false
               },
               {
-                "t": 187,
+                "t": 285,
                 "path": "/language/japanese",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -4688,9 +4688,9 @@
                 "shellInert": false
               },
               {
-                "t": 190.19999999925494,
+                "t": 290.2999999988824,
                 "path": "/language/japanese",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -4731,84 +4731,84 @@
             "path": "/finance",
             "kind": "normal",
             "p07": "enabled",
-            "visible_ready_frames": 8,
+            "visible_ready_frames": 12,
             "visible_policy_states": [
               "enabled"
             ],
             "policy_changes": [
               {
-                "t": 147.7999999988824,
+                "t": 155.30000000074506,
                 "value": "disabled"
               },
               {
-                "t": 147.7999999988824,
+                "t": 155.40000000037253,
                 "value": "disabled"
               },
               {
-                "t": 147.7999999988824,
+                "t": 155.40000000037253,
                 "value": "disabled"
               },
               {
-                "t": 147.7999999988824,
+                "t": 155.40000000037253,
                 "value": "disabled"
               },
               {
-                "t": 147.7999999988824,
+                "t": 155.40000000037253,
                 "value": "disabled"
               },
               {
-                "t": 213.39999999850988,
+                "t": 219.09999999962747,
                 "value": "disabled"
               },
               {
-                "t": 213.39999999850988,
+                "t": 219.09999999962747,
                 "value": "disabled"
               },
               {
-                "t": 269,
+                "t": 267.40000000037253,
                 "value": "enabled"
               },
               {
-                "t": 293.3999999985099,
+                "t": 275.09999999962747,
                 "value": "enabled"
               },
               {
-                "t": 503.8999999985099,
+                "t": 493,
                 "value": "enabled"
               },
               {
-                "t": 791.5,
+                "t": 802.5999999996275,
                 "value": "enabled"
               }
             ],
             "paint_entries": [
               {
                 "name": "first-paint",
-                "startTime": 96
+                "startTime": 108
               },
               {
                 "name": "first-contentful-paint",
-                "startTime": 304
+                "startTime": 300
               }
             ],
             "app_resource_versions": [
-              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/app.js?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/js/finance/app.js?v=20261105-aeris-p07-r4a-runtime-r2"
+              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/app.js?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/js/finance/app.js?v=20261105-aeris-p07-r4a-runtime-r3"
             ],
             "cache_names": [
-              "wyj-shell-20261105-aeris-p07-r4a-runtime-r2-es-modules"
+              "wyj-shell-20261105-aeris-p07-r4a-runtime-r3-es-modules"
             ],
             "service_workers": [
               {
-                "scope": "http://127.0.0.1:18954/",
-                "active": "http://127.0.0.1:18954/sw.js?v=20261105-aeris-p07-r4a-runtime-r2"
+                "scope": "http://127.0.0.1:18958/",
+                "active": "http://127.0.0.1:18958/sw.js?v=20261105-aeris-p07-r4a-runtime-r3"
               }
             ],
             "first_frames": [
               {
-                "t": 82.79999999888241,
+                "t": 97.30000000074506,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -4821,7 +4821,7 @@
                 "shellInert": false
               },
               {
-                "t": 85.59999999962747,
+                "t": 101.09999999962747,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -4834,7 +4834,7 @@
                 "shellInert": false
               },
               {
-                "t": 87.79999999888241,
+                "t": 106.20000000111759,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -4847,7 +4847,7 @@
                 "shellInert": false
               },
               {
-                "t": 93.69999999925494,
+                "t": 113.59999999962747,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -4860,7 +4860,7 @@
                 "shellInert": false
               },
               {
-                "t": 100.19999999925494,
+                "t": 120.20000000111759,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -4873,7 +4873,7 @@
                 "shellInert": false
               },
               {
-                "t": 105.39999999850988,
+                "t": 127,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -4886,33 +4886,7 @@
                 "shellInert": false
               },
               {
-                "t": 112.19999999925494,
-                "path": "/finance",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 117.29999999888241,
-                "path": "/finance",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 166.69999999925494,
+                "t": 176.2000000011176,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4925,7 +4899,7 @@
                 "shellInert": false
               },
               {
-                "t": 173.09999999962747,
+                "t": 182.40000000037253,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4938,7 +4912,7 @@
                 "shellInert": false
               },
               {
-                "t": 179.59999999962747,
+                "t": 188.30000000074506,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4951,7 +4925,7 @@
                 "shellInert": false
               },
               {
-                "t": 183,
+                "t": 189.90000000037253,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4964,7 +4938,7 @@
                 "shellInert": false
               },
               {
-                "t": 186.59999999962747,
+                "t": 200.2000000011176,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4977,7 +4951,7 @@
                 "shellInert": false
               },
               {
-                "t": 193.5,
+                "t": 203.2000000011176,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -4990,7 +4964,7 @@
                 "shellInert": false
               },
               {
-                "t": 199.59999999962747,
+                "t": 210.59999999962747,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5003,7 +4977,7 @@
                 "shellInert": false
               },
               {
-                "t": 201.59999999962747,
+                "t": 217.5,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5016,7 +4990,7 @@
                 "shellInert": false
               },
               {
-                "t": 206.09999999962747,
+                "t": 225.80000000074506,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5029,7 +5003,7 @@
                 "shellInert": false
               },
               {
-                "t": 211.89999999850988,
+                "t": 231.5,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5042,7 +5016,7 @@
                 "shellInert": false
               },
               {
-                "t": 218.09999999962747,
+                "t": 239.30000000074506,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5055,7 +5029,7 @@
                 "shellInert": false
               },
               {
-                "t": 222.59999999962747,
+                "t": 245.7000000011176,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5068,7 +5042,7 @@
                 "shellInert": false
               },
               {
-                "t": 227.59999999962747,
+                "t": 252.5,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5081,7 +5055,7 @@
                 "shellInert": false
               },
               {
-                "t": 233.19999999925494,
+                "t": 258.90000000037253,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5094,7 +5068,7 @@
                 "shellInert": false
               },
               {
-                "t": 238.5,
+                "t": 266,
                 "path": "/finance",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5107,9 +5081,35 @@
                 "shellInert": false
               },
               {
-                "t": 241.59999999962747,
+                "t": 278.7000000011176,
                 "path": "/finance",
-                "p07": "disabled",
+                "p07": "enabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 290.09999999962747,
+                "path": "/finance",
+                "p07": "enabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 294.09999999962747,
+                "path": "/finance",
+                "p07": "enabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -5125,84 +5125,84 @@
             "path": "/finance",
             "kind": "hard",
             "p07": "enabled",
-            "visible_ready_frames": 6,
+            "visible_ready_frames": 8,
             "visible_policy_states": [
               "enabled"
             ],
             "policy_changes": [
               {
-                "t": 265.69999999925494,
+                "t": 256.5,
                 "value": "disabled"
               },
               {
-                "t": 265.69999999925494,
+                "t": 256.6000000014901,
                 "value": "disabled"
               },
               {
-                "t": 265.69999999925494,
+                "t": 256.6000000014901,
                 "value": "disabled"
               },
               {
-                "t": 265.69999999925494,
+                "t": 256.6000000014901,
                 "value": "disabled"
               },
               {
-                "t": 265.69999999925494,
+                "t": 256.6000000014901,
                 "value": "disabled"
               },
               {
-                "t": 330.40000000037253,
+                "t": 318.5,
                 "value": "disabled"
               },
               {
-                "t": 330.40000000037253,
+                "t": 318.5,
                 "value": "disabled"
               },
               {
-                "t": 380.59999999962747,
+                "t": 370.5,
                 "value": "enabled"
               },
               {
-                "t": 403.19999999925494,
+                "t": 389.40000000037253,
                 "value": "enabled"
               },
               {
-                "t": 594.0999999996275,
+                "t": 618.2000000011176,
                 "value": "enabled"
               },
               {
-                "t": 909.0999999996275,
+                "t": 914.7000000011176,
                 "value": "enabled"
               }
             ],
             "paint_entries": [
               {
                 "name": "first-paint",
-                "startTime": 100
+                "startTime": 112
               },
               {
                 "name": "first-contentful-paint",
-                "startTime": 124
+                "startTime": 128
               }
             ],
             "app_resource_versions": [
-              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/app.js?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/js/finance/app.js?v=20261105-aeris-p07-r4a-runtime-r2"
+              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/app.js?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/js/finance/app.js?v=20261105-aeris-p07-r4a-runtime-r3"
             ],
             "cache_names": [
-              "wyj-shell-20261105-aeris-p07-r4a-runtime-r2-es-modules"
+              "wyj-shell-20261105-aeris-p07-r4a-runtime-r3-es-modules"
             ],
             "service_workers": [
               {
-                "scope": "http://127.0.0.1:18954/",
-                "active": "http://127.0.0.1:18954/sw.js?v=20261105-aeris-p07-r4a-runtime-r2"
+                "scope": "http://127.0.0.1:18958/",
+                "active": "http://127.0.0.1:18958/sw.js?v=20261105-aeris-p07-r4a-runtime-r3"
               }
             ],
             "first_frames": [
               {
-                "t": 84.80000000074506,
+                "t": 98.60000000149012,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5215,7 +5215,7 @@
                 "shellInert": false
               },
               {
-                "t": 86.40000000037253,
+                "t": 101,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5228,7 +5228,7 @@
                 "shellInert": false
               },
               {
-                "t": 88.5,
+                "t": 106.70000000111759,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5241,7 +5241,7 @@
                 "shellInert": false
               },
               {
-                "t": 94.80000000074506,
+                "t": 115.80000000074506,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5254,46 +5254,7 @@
                 "shellInert": false
               },
               {
-                "t": 108.19999999925494,
-                "path": "/finance",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 111.09999999962747,
-                "path": "/finance",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 115.5,
-                "path": "/finance",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 122.59999999962747,
+                "t": 120.40000000037253,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5319,7 +5280,7 @@
                 "shellInert": false
               },
               {
-                "t": 132.40000000037253,
+                "t": 134.10000000149012,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5332,7 +5293,7 @@
                 "shellInert": false
               },
               {
-                "t": 137.80000000074506,
+                "t": 141,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5345,7 +5306,7 @@
                 "shellInert": false
               },
               {
-                "t": 142.69999999925494,
+                "t": 147.80000000074506,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5358,7 +5319,7 @@
                 "shellInert": false
               },
               {
-                "t": 149,
+                "t": 155.40000000037253,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5371,7 +5332,7 @@
                 "shellInert": false
               },
               {
-                "t": 154.09999999962747,
+                "t": 161.80000000074506,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5384,7 +5345,7 @@
                 "shellInert": false
               },
               {
-                "t": 160.90000000037253,
+                "t": 169.60000000149012,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5397,7 +5358,7 @@
                 "shellInert": false
               },
               {
-                "t": 165.90000000037253,
+                "t": 175.7000000011176,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5410,7 +5371,7 @@
                 "shellInert": false
               },
               {
-                "t": 172.40000000037253,
+                "t": 182.60000000149012,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5423,7 +5384,7 @@
                 "shellInert": false
               },
               {
-                "t": 177.5,
+                "t": 189.10000000149012,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5436,7 +5397,7 @@
                 "shellInert": false
               },
               {
-                "t": 183.40000000037253,
+                "t": 196.60000000149012,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5449,7 +5410,7 @@
                 "shellInert": false
               },
               {
-                "t": 189.30000000074506,
+                "t": 211.60000000149012,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5462,7 +5423,7 @@
                 "shellInert": false
               },
               {
-                "t": 194.69999999925494,
+                "t": 217.80000000074506,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5475,7 +5436,7 @@
                 "shellInert": false
               },
               {
-                "t": 200.69999999925494,
+                "t": 224.80000000074506,
                 "path": "/finance",
                 "p07": null,
                 "shellPending": true,
@@ -5488,9 +5449,9 @@
                 "shellInert": false
               },
               {
-                "t": 205.69999999925494,
+                "t": 275.30000000074506,
                 "path": "/finance",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -5501,9 +5462,48 @@
                 "shellInert": false
               },
               {
-                "t": 210.90000000037253,
+                "t": 287.5,
                 "path": "/finance",
-                "p07": null,
+                "p07": "disabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 295.90000000037253,
+                "path": "/finance",
+                "p07": "disabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 300.80000000074506,
+                "path": "/finance",
+                "p07": "disabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 308.1000000014901,
+                "path": "/finance",
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -5544,83 +5544,83 @@
             "path": "/recharge",
             "kind": "normal",
             "p07": "enabled",
-            "visible_ready_frames": 6,
+            "visible_ready_frames": 20,
             "visible_policy_states": [
               "enabled"
             ],
             "policy_changes": [
               {
-                "t": 199.30000000074506,
+                "t": 125.29999999888241,
                 "value": "disabled"
               },
               {
-                "t": 199.30000000074506,
+                "t": 125.29999999888241,
                 "value": "disabled"
               },
               {
-                "t": 199.30000000074506,
+                "t": 125.29999999888241,
                 "value": "disabled"
               },
               {
-                "t": 199.30000000074506,
+                "t": 125.29999999888241,
                 "value": "disabled"
               },
               {
-                "t": 199.30000000074506,
+                "t": 125.29999999888241,
                 "value": "disabled"
               },
               {
-                "t": 267.2000000011176,
+                "t": 187.2999999988824,
                 "value": "disabled"
               },
               {
-                "t": 267.2000000011176,
+                "t": 187.2999999988824,
                 "value": "disabled"
               },
               {
-                "t": 318.5,
+                "t": 240.5,
                 "value": "enabled"
               },
               {
-                "t": 338,
+                "t": 265.2999999988824,
                 "value": "enabled"
               },
               {
-                "t": 571.9000000003725,
+                "t": 483,
                 "value": "enabled"
               },
               {
-                "t": 841.4000000003725,
+                "t": 770,
                 "value": "enabled"
               }
             ],
             "paint_entries": [
               {
                 "name": "first-paint",
-                "startTime": 88
+                "startTime": 68
               },
               {
                 "name": "first-contentful-paint",
-                "startTime": 352
+                "startTime": 276
               }
             ],
             "app_resource_versions": [
-              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/app.js?v=20261105-aeris-p07-r4a-runtime-r2"
+              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/app.js?v=20261105-aeris-p07-r4a-runtime-r3"
             ],
             "cache_names": [
-              "wyj-shell-20261105-aeris-p07-r4a-runtime-r2-es-modules"
+              "wyj-shell-20261105-aeris-p07-r4a-runtime-r3-es-modules"
             ],
             "service_workers": [
               {
-                "scope": "http://127.0.0.1:18954/",
-                "active": "http://127.0.0.1:18954/sw.js?v=20261105-aeris-p07-r4a-runtime-r2"
+                "scope": "http://127.0.0.1:18958/",
+                "active": "http://127.0.0.1:18958/sw.js?v=20261105-aeris-p07-r4a-runtime-r3"
               }
             ],
             "first_frames": [
               {
-                "t": 69.80000000074506,
+                "t": 57.59999999962747,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -5633,7 +5633,7 @@
                 "shellInert": false
               },
               {
-                "t": 73.30000000074506,
+                "t": 60.5,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -5646,7 +5646,7 @@
                 "shellInert": false
               },
               {
-                "t": 118.30000000074506,
+                "t": 63.19999999925494,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -5659,7 +5659,7 @@
                 "shellInert": false
               },
               {
-                "t": 124.80000000074506,
+                "t": 67.69999999925494,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -5672,7 +5672,7 @@
                 "shellInert": false
               },
               {
-                "t": 129.2000000011176,
+                "t": 74.5,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -5685,7 +5685,7 @@
                 "shellInert": false
               },
               {
-                "t": 135.90000000037253,
+                "t": 81.79999999888241,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -5698,7 +5698,7 @@
                 "shellInert": false
               },
               {
-                "t": 145.40000000037253,
+                "t": 90.09999999962747,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -5711,7 +5711,7 @@
                 "shellInert": false
               },
               {
-                "t": 151.09999999962747,
+                "t": 95.19999999925494,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -5724,59 +5724,7 @@
                 "shellInert": false
               },
               {
-                "t": 155,
-                "path": "/recharge",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 162,
-                "path": "/recharge",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 164.09999999962747,
-                "path": "/recharge",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 170.80000000074506,
-                "path": "/recharge",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 217.80000000074506,
+                "t": 145.59999999962747,
                 "path": "/recharge",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5789,7 +5737,7 @@
                 "shellInert": false
               },
               {
-                "t": 228.59999999962747,
+                "t": 151.7999999988824,
                 "path": "/recharge",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5802,7 +5750,7 @@
                 "shellInert": false
               },
               {
-                "t": 236.80000000074506,
+                "t": 157.7999999988824,
                 "path": "/recharge",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5815,7 +5763,7 @@
                 "shellInert": false
               },
               {
-                "t": 238.80000000074506,
+                "t": 163.19999999925494,
                 "path": "/recharge",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5828,7 +5776,7 @@
                 "shellInert": false
               },
               {
-                "t": 247.40000000037253,
+                "t": 169.19999999925494,
                 "path": "/recharge",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5841,7 +5789,7 @@
                 "shellInert": false
               },
               {
-                "t": 253.7000000011176,
+                "t": 173.5,
                 "path": "/recharge",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5854,7 +5802,7 @@
                 "shellInert": false
               },
               {
-                "t": 254.80000000074506,
+                "t": 180.89999999850988,
                 "path": "/recharge",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5867,7 +5815,7 @@
                 "shellInert": false
               },
               {
-                "t": 263,
+                "t": 189.2999999988824,
                 "path": "/recharge",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5880,7 +5828,7 @@
                 "shellInert": false
               },
               {
-                "t": 269.5,
+                "t": 194.39999999850988,
                 "path": "/recharge",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5893,7 +5841,7 @@
                 "shellInert": false
               },
               {
-                "t": 276.5,
+                "t": 201,
                 "path": "/recharge",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5906,7 +5854,7 @@
                 "shellInert": false
               },
               {
-                "t": 277.90000000037253,
+                "t": 208.39999999850988,
                 "path": "/recharge",
                 "p07": "disabled",
                 "shellPending": true,
@@ -5919,9 +5867,61 @@
                 "shellInert": false
               },
               {
-                "t": 286.2000000011176,
+                "t": 214.7999999988824,
                 "path": "/recharge",
                 "p07": "disabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 222.09999999962747,
+                "path": "/recharge",
+                "p07": "disabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 229.2999999988824,
+                "path": "/recharge",
+                "p07": "disabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 235.69999999925494,
+                "path": "/recharge",
+                "p07": "disabled",
+                "shellPending": true,
+                "shellVisible": false,
+                "sidebarVisible": false,
+                "splashVisible": true,
+                "homeVisible": false,
+                "visibleSurface": [],
+                "modalOpen": false,
+                "shellInert": false
+              },
+              {
+                "t": 252.19999999925494,
+                "path": "/recharge",
+                "p07": "enabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -5937,83 +5937,83 @@
             "path": "/recharge",
             "kind": "hard",
             "p07": "enabled",
-            "visible_ready_frames": 22,
+            "visible_ready_frames": 20,
             "visible_policy_states": [
               "enabled"
             ],
             "policy_changes": [
               {
-                "t": 258.80000000074506,
+                "t": 227.80000000074506,
                 "value": "disabled"
               },
               {
-                "t": 258.80000000074506,
+                "t": 227.80000000074506,
                 "value": "disabled"
               },
               {
-                "t": 258.80000000074506,
+                "t": 227.80000000074506,
                 "value": "disabled"
               },
               {
-                "t": 258.80000000074506,
+                "t": 227.80000000074506,
                 "value": "disabled"
               },
               {
-                "t": 258.80000000074506,
+                "t": 227.80000000074506,
                 "value": "disabled"
               },
               {
-                "t": 321.90000000037253,
+                "t": 289.09999999962747,
                 "value": "disabled"
               },
               {
-                "t": 321.90000000037253,
+                "t": 289.09999999962747,
                 "value": "disabled"
               },
               {
-                "t": 376.40000000037253,
+                "t": 337,
                 "value": "enabled"
               },
               {
-                "t": 401.5,
+                "t": 355.40000000037253,
                 "value": "enabled"
               },
               {
-                "t": 593.3000000007451,
+                "t": 560.5,
                 "value": "enabled"
               },
               {
-                "t": 903.2000000011176,
+                "t": 888.3000000007451,
                 "value": "enabled"
               }
             ],
             "paint_entries": [
               {
                 "name": "first-paint",
-                "startTime": 92
+                "startTime": 72
               },
               {
                 "name": "first-contentful-paint",
-                "startTime": 100
+                "startTime": 92
               }
             ],
             "app_resource_versions": [
-              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/app.js?v=20261105-aeris-p07-r4a-runtime-r2"
+              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r3",
+              "/app.js?v=20261105-aeris-p07-r4a-runtime-r3"
             ],
             "cache_names": [
-              "wyj-shell-20261105-aeris-p07-r4a-runtime-r2-es-modules"
+              "wyj-shell-20261105-aeris-p07-r4a-runtime-r3-es-modules"
             ],
             "service_workers": [
               {
-                "scope": "http://127.0.0.1:18954/",
-                "active": "http://127.0.0.1:18954/sw.js?v=20261105-aeris-p07-r4a-runtime-r2"
+                "scope": "http://127.0.0.1:18958/",
+                "active": "http://127.0.0.1:18958/sw.js?v=20261105-aeris-p07-r4a-runtime-r3"
               }
             ],
             "first_frames": [
               {
-                "t": 75.59999999962747,
+                "t": 55.80000000074506,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6026,7 +6026,7 @@
                 "shellInert": false
               },
               {
-                "t": 78.5,
+                "t": 57.90000000037253,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6039,7 +6039,7 @@
                 "shellInert": false
               },
               {
-                "t": 86.20000000111759,
+                "t": 63.30000000074506,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6052,7 +6052,7 @@
                 "shellInert": false
               },
               {
-                "t": 95.59999999962747,
+                "t": 70.70000000111759,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6065,7 +6065,7 @@
                 "shellInert": false
               },
               {
-                "t": 97.5,
+                "t": 80.20000000111759,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6078,7 +6078,7 @@
                 "shellInert": false
               },
               {
-                "t": 102.59999999962747,
+                "t": 85.5,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6091,7 +6091,7 @@
                 "shellInert": false
               },
               {
-                "t": 109.20000000111759,
+                "t": 91.40000000037253,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6104,7 +6104,7 @@
                 "shellInert": false
               },
               {
-                "t": 111.70000000111759,
+                "t": 98.5,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6117,7 +6117,7 @@
                 "shellInert": false
               },
               {
-                "t": 117.80000000074506,
+                "t": 104.70000000111759,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6130,7 +6130,7 @@
                 "shellInert": false
               },
               {
-                "t": 123.59999999962747,
+                "t": 112.09999999962747,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6143,7 +6143,7 @@
                 "shellInert": false
               },
               {
-                "t": 129.30000000074506,
+                "t": 119.20000000111759,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6156,7 +6156,7 @@
                 "shellInert": false
               },
               {
-                "t": 135.40000000037253,
+                "t": 125.70000000111759,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6169,7 +6169,7 @@
                 "shellInert": false
               },
               {
-                "t": 140.7000000011176,
+                "t": 132.80000000074506,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6182,7 +6182,7 @@
                 "shellInert": false
               },
               {
-                "t": 146.2000000011176,
+                "t": 140.2000000011176,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6195,7 +6195,7 @@
                 "shellInert": false
               },
               {
-                "t": 151.7000000011176,
+                "t": 146.40000000037253,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6208,7 +6208,7 @@
                 "shellInert": false
               },
               {
-                "t": 158.40000000037253,
+                "t": 153.5,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6221,7 +6221,7 @@
                 "shellInert": false
               },
               {
-                "t": 164.30000000074506,
+                "t": 160.59999999962747,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6234,7 +6234,7 @@
                 "shellInert": false
               },
               {
-                "t": 169.2000000011176,
+                "t": 167.80000000074506,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6247,7 +6247,7 @@
                 "shellInert": false
               },
               {
-                "t": 174.2000000011176,
+                "t": 174.7000000011176,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6260,7 +6260,7 @@
                 "shellInert": false
               },
               {
-                "t": 180.2000000011176,
+                "t": 181.2000000011176,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6273,7 +6273,7 @@
                 "shellInert": false
               },
               {
-                "t": 185.59999999962747,
+                "t": 188.40000000037253,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6286,7 +6286,7 @@
                 "shellInert": false
               },
               {
-                "t": 190.80000000074506,
+                "t": 195.2000000011176,
                 "path": "/recharge",
                 "p07": null,
                 "shellPending": true,
@@ -6299,9 +6299,9 @@
                 "shellInert": false
               },
               {
-                "t": 197,
+                "t": 246.5,
                 "path": "/recharge",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -6312,9 +6312,9 @@
                 "shellInert": false
               },
               {
-                "t": 203.80000000074506,
+                "t": 253.40000000037253,
                 "path": "/recharge",
-                "p07": null,
+                "p07": "disabled",
                 "shellPending": true,
                 "shellVisible": false,
                 "sidebarVisible": false,
@@ -6348,824 +6348,14 @@
             },
             "p07": "enabled"
           }
-        },
-        {
-          "route": "/account",
-          "normal": {
-            "path": "/account",
-            "kind": "normal",
-            "p07": "enabled",
-            "visible_ready_frames": 18,
-            "visible_policy_states": [
-              "enabled"
-            ],
-            "policy_changes": [
-              {
-                "t": 122.5,
-                "value": "disabled"
-              },
-              {
-                "t": 122.5,
-                "value": "disabled"
-              },
-              {
-                "t": 122.5,
-                "value": "disabled"
-              },
-              {
-                "t": 122.5,
-                "value": "disabled"
-              },
-              {
-                "t": 122.5,
-                "value": "disabled"
-              },
-              {
-                "t": 186.40000000037253,
-                "value": "disabled"
-              },
-              {
-                "t": 186.40000000037253,
-                "value": "disabled"
-              },
-              {
-                "t": 244.7000000011176,
-                "value": "enabled"
-              },
-              {
-                "t": 267.90000000037253,
-                "value": "enabled"
-              },
-              {
-                "t": 445.7000000011176,
-                "value": "enabled"
-              },
-              {
-                "t": 768.9000000003725,
-                "value": "enabled"
-              }
-            ],
-            "paint_entries": [
-              {
-                "name": "first-paint",
-                "startTime": 76
-              },
-              {
-                "name": "first-contentful-paint",
-                "startTime": 276
-              }
-            ],
-            "app_resource_versions": [
-              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/app.js?v=20261105-aeris-p07-r4a-runtime-r2"
-            ],
-            "cache_names": [
-              "wyj-shell-20261105-aeris-p07-r4a-runtime-r2-es-modules"
-            ],
-            "service_workers": [
-              {
-                "scope": "http://127.0.0.1:18954/",
-                "active": "http://127.0.0.1:18954/sw.js?v=20261105-aeris-p07-r4a-runtime-r2"
-              }
-            ],
-            "first_frames": [
-              {
-                "t": 58.600000001490116,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 61.5,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 64.5,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 68.70000000111759,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 74.5,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 82.10000000149012,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 88.70000000111759,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 91.80000000074506,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 140.80000000074506,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 147.30000000074506,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 158,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 160.40000000037253,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 165.10000000149012,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 171.10000000149012,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 176,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 181.80000000074506,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 189.30000000074506,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 193.10000000149012,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 198.80000000074506,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 204.2000000011176,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 209.7000000011176,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 215.40000000037253,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 221,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 227.7000000011176,
-                "path": "/account",
-                "p07": "disabled",
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              }
-            ]
-          },
-          "hard": {
-            "path": "/account",
-            "kind": "hard",
-            "p07": "enabled",
-            "visible_ready_frames": 4,
-            "visible_policy_states": [
-              "enabled"
-            ],
-            "policy_changes": [
-              {
-                "t": 295.2999999988824,
-                "value": "disabled"
-              },
-              {
-                "t": 295.2999999988824,
-                "value": "disabled"
-              },
-              {
-                "t": 295.2999999988824,
-                "value": "disabled"
-              },
-              {
-                "t": 295.2999999988824,
-                "value": "disabled"
-              },
-              {
-                "t": 295.2999999988824,
-                "value": "disabled"
-              },
-              {
-                "t": 358.59999999962747,
-                "value": "disabled"
-              },
-              {
-                "t": 358.59999999962747,
-                "value": "disabled"
-              },
-              {
-                "t": 411.09999999962747,
-                "value": "enabled"
-              },
-              {
-                "t": 434.3999999985099,
-                "value": "enabled"
-              },
-              {
-                "t": 667.3999999985099,
-                "value": "enabled"
-              },
-              {
-                "t": 937,
-                "value": "enabled"
-              }
-            ],
-            "paint_entries": [
-              {
-                "name": "first-paint",
-                "startTime": 120
-              },
-              {
-                "name": "first-contentful-paint",
-                "startTime": 132
-              }
-            ],
-            "app_resource_versions": [
-              "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r2",
-              "/app.js?v=20261105-aeris-p07-r4a-runtime-r2"
-            ],
-            "cache_names": [
-              "wyj-shell-20261105-aeris-p07-r4a-runtime-r2-es-modules"
-            ],
-            "service_workers": [
-              {
-                "scope": "http://127.0.0.1:18954/",
-                "active": "http://127.0.0.1:18954/sw.js?v=20261105-aeris-p07-r4a-runtime-r2"
-              }
-            ],
-            "first_frames": [
-              {
-                "t": 106.69999999925494,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 109.09999999962747,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 114.5,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 119.89999999850988,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 125.5,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 130.19999999925494,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 136.59999999962747,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 142.59999999962747,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 148.39999999850988,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 153.69999999925494,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 159.69999999925494,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 164.89999999850988,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 170.59999999962747,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 175.69999999925494,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 181.89999999850988,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 186.89999999850988,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 192.5,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 198.59999999962747,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 203.59999999962747,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 209.09999999962747,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 214.7999999988824,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 221.89999999850988,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 227.2999999988824,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              },
-              {
-                "t": 232.09999999962747,
-                "path": "/account",
-                "p07": null,
-                "shellPending": true,
-                "shellVisible": false,
-                "sidebarVisible": false,
-                "splashVisible": true,
-                "homeVisible": false,
-                "visibleSurface": [],
-                "modalOpen": false,
-                "shellInert": false
-              }
-            ]
-          },
-          "final": {
-            "visible": true,
-            "inMainCanvas": true,
-            "insideModalLayer": false,
-            "role": null,
-            "ariaModal": null,
-            "ariaHidden": "false",
-            "bodyModalOpen": false,
-            "appShellInert": false,
-            "appShellPending": false,
-            "activeNav": [
-              "account"
-            ],
-            "modalLayers": [],
-            "rect": {
-              "x": 214.5,
-              "y": 63,
-              "width": 1200,
-              "height": 1000
-            },
-            "p07": "enabled"
-          }
         }
-      ]
+      ],
+      "error": "timeout waiting for boot completed /account"
     },
     {
       "id": "delayed-authoritative-policy-does-not-flash-legacy-layout",
       "status": "PASS",
-      "duration_ms": 1695,
+      "duration_ms": 1637,
       "detail": {
         "fixture": {
           "transport_delay_ms": 1200,
@@ -7198,7 +6388,7 @@
         },
         "visibleFrames": [
           {
-            "t": 1420.5999999996275,
+            "t": 1422.9000000003725,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7213,7 +6403,7 @@
             "shellInert": false
           },
           {
-            "t": 1436.300000000745,
+            "t": 1438.2000000011176,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7228,7 +6418,7 @@
             "shellInert": false
           },
           {
-            "t": 1439.800000000745,
+            "t": 1439.300000000745,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7243,7 +6433,7 @@
             "shellInert": false
           },
           {
-            "t": 1463.5999999996275,
+            "t": 1460.2000000011176,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7258,7 +6448,7 @@
             "shellInert": false
           },
           {
-            "t": 1467.2000000011176,
+            "t": 1466.800000000745,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7273,7 +6463,7 @@
             "shellInert": false
           },
           {
-            "t": 1486.4000000003725,
+            "t": 1479.2000000011176,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7288,7 +6478,7 @@
             "shellInert": false
           },
           {
-            "t": 1492.0999999996275,
+            "t": 1484.4000000003725,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7303,7 +6493,7 @@
             "shellInert": false
           },
           {
-            "t": 1496.2000000011176,
+            "t": 1487.9000000003725,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7318,7 +6508,7 @@
             "shellInert": false
           },
           {
-            "t": 1501.0999999996275,
+            "t": 1496,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7333,7 +6523,7 @@
             "shellInert": false
           },
           {
-            "t": 1506.7000000011176,
+            "t": 1502,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7348,7 +6538,7 @@
             "shellInert": false
           },
           {
-            "t": 1513,
+            "t": 1508.7000000011176,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7363,7 +6553,7 @@
             "shellInert": false
           },
           {
-            "t": 1520.2000000011176,
+            "t": 1515.2000000011176,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7378,7 +6568,7 @@
             "shellInert": false
           },
           {
-            "t": 1523.800000000745,
+            "t": 1522.800000000745,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7393,7 +6583,7 @@
             "shellInert": false
           },
           {
-            "t": 1529.800000000745,
+            "t": 1529.7000000011176,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7408,7 +6598,7 @@
             "shellInert": false
           },
           {
-            "t": 1535,
+            "t": 1537.0999999996275,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7423,7 +6613,7 @@
             "shellInert": false
           },
           {
-            "t": 1540.7000000011176,
+            "t": 1544.7000000011176,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7438,7 +6628,7 @@
             "shellInert": false
           },
           {
-            "t": 1546.4000000003725,
+            "t": 1555.7000000011176,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7453,7 +6643,7 @@
             "shellInert": false
           },
           {
-            "t": 1552.2000000011176,
+            "t": 1562.9000000003725,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7468,7 +6658,7 @@
             "shellInert": false
           },
           {
-            "t": 1558.9000000003725,
+            "t": 1569.4000000003725,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7483,7 +6673,7 @@
             "shellInert": false
           },
           {
-            "t": 1563.9000000003725,
+            "t": 1577.4000000003725,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7498,7 +6688,7 @@
             "shellInert": false
           },
           {
-            "t": 1570.5999999996275,
+            "t": 1583.800000000745,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7513,7 +6703,7 @@
             "shellInert": false
           },
           {
-            "t": 1579.7000000011176,
+            "t": 1590.800000000745,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7528,7 +6718,7 @@
             "shellInert": false
           },
           {
-            "t": 1585.300000000745,
+            "t": 1597.4000000003725,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7543,7 +6733,7 @@
             "shellInert": false
           },
           {
-            "t": 1589.9000000003725,
+            "t": 1603.4000000003725,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7558,7 +6748,7 @@
             "shellInert": false
           },
           {
-            "t": 1596.300000000745,
+            "t": 1612.2000000011176,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7573,7 +6763,7 @@
             "shellInert": false
           },
           {
-            "t": 1601.5999999996275,
+            "t": 1618.7000000011176,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,
@@ -7588,112 +6778,7 @@
             "shellInert": false
           },
           {
-            "t": 1607.5,
-            "path": "/",
-            "p07": "enabled",
-            "shellPending": false,
-            "shellVisible": true,
-            "sidebarVisible": true,
-            "splashVisible": false,
-            "homeVisible": true,
-            "visibleSurface": [
-              "publicHome"
-            ],
-            "modalOpen": false,
-            "shellInert": false
-          },
-          {
-            "t": 1613.5999999996275,
-            "path": "/",
-            "p07": "enabled",
-            "shellPending": false,
-            "shellVisible": true,
-            "sidebarVisible": true,
-            "splashVisible": false,
-            "homeVisible": true,
-            "visibleSurface": [
-              "publicHome"
-            ],
-            "modalOpen": false,
-            "shellInert": false
-          },
-          {
-            "t": 1619.2000000011176,
-            "path": "/",
-            "p07": "enabled",
-            "shellPending": false,
-            "shellVisible": true,
-            "sidebarVisible": true,
-            "splashVisible": false,
-            "homeVisible": true,
-            "visibleSurface": [
-              "publicHome"
-            ],
-            "modalOpen": false,
-            "shellInert": false
-          },
-          {
-            "t": 1623.7000000011176,
-            "path": "/",
-            "p07": "enabled",
-            "shellPending": false,
-            "shellVisible": true,
-            "sidebarVisible": true,
-            "splashVisible": false,
-            "homeVisible": true,
-            "visibleSurface": [
-              "publicHome"
-            ],
-            "modalOpen": false,
-            "shellInert": false
-          },
-          {
-            "t": 1629.5999999996275,
-            "path": "/",
-            "p07": "enabled",
-            "shellPending": false,
-            "shellVisible": true,
-            "sidebarVisible": true,
-            "splashVisible": false,
-            "homeVisible": true,
-            "visibleSurface": [
-              "publicHome"
-            ],
-            "modalOpen": false,
-            "shellInert": false
-          },
-          {
-            "t": 1637,
-            "path": "/",
-            "p07": "enabled",
-            "shellPending": false,
-            "shellVisible": true,
-            "sidebarVisible": true,
-            "splashVisible": false,
-            "homeVisible": true,
-            "visibleSurface": [
-              "publicHome"
-            ],
-            "modalOpen": false,
-            "shellInert": false
-          },
-          {
-            "t": 1642.300000000745,
-            "path": "/",
-            "p07": "enabled",
-            "shellPending": false,
-            "shellVisible": true,
-            "sidebarVisible": true,
-            "splashVisible": false,
-            "homeVisible": true,
-            "visibleSurface": [
-              "publicHome"
-            ],
-            "modalOpen": false,
-            "shellInert": false
-          },
-          {
-            "t": 1647.5,
+            "t": 1620.4000000003725,
             "path": "/",
             "p07": "enabled",
             "shellPending": false,

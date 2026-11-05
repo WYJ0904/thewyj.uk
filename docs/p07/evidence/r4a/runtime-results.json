@@ -1,5 +1,5 @@
 {
-  "source": "9c22bf1dd9118178700e4780ccc27c8958de1e81",
+  "source": "6417005f70c34a5fc9bc35493587bd016aae8575",
   "results": [
     {
       "name": "round-trip-navigation-keeps-authoritative-mode",
@@ -160,13 +160,13 @@
       "detail": {
         "changes": [
           {
-            "t": 878.0999999996275,
+            "t": 871.1999999992549,
             "p07": "enabled",
             "policy": "enabled",
             "path": "/account"
           },
           {
-            "t": 929.9000000003725,
+            "t": 919.5999999996275,
             "p07": "enabled",
             "policy": "enabled",
             "path": "/account"
@@ -181,7 +181,7 @@
       "detail": {
         "delayMs": 1200,
         "visibleLegacyFrames": 0,
-        "pendingFrames": 239
+        "pendingFrames": 180
       }
     },
     {
@@ -191,6 +191,16 @@
         "errorIsExplicit": true,
         "baseInterfaceUsable": true,
         "retryAuthoritative": true
+      }
+    },
+    {
+      "name": "supported-backend-without-task25-keeps-authenticated-home-visible",
+      "status": "PASS",
+      "detail": {
+        "successfulStatusWithoutTask25": true,
+        "authenticatedHomeVisible": true,
+        "permanentPending": false,
+        "featureAuthorityInvented": false
       }
     }
   ]

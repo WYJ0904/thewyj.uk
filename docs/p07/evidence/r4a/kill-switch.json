@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "target_sha": "9c22bf1dd9118178700e4780ccc27c8958de1e81",
+  "target_sha": "3e0a5f364aece42f07603aa5108eaf8e9353fe34",
   "flag_mode": "kill_switch",
   "runtime": "isolated local Pages Functions + local D1/R2 + independent Chrome CDP",
   "workers_ai_enabled": false,
@@ -11,7 +11,7 @@
     {
       "id": "feature-policy-kill_switch-settles-disabled",
       "status": "PASS",
-      "duration_ms": 104,
+      "duration_ms": 105,
       "detail": {
         "api_policy": {
           "schema_version": 1,
@@ -19,8 +19,8 @@
           "enabled": false,
           "revision": 1,
           "reason": "kill_switch",
-          "observed_at": "2026-11-05T10:52:24.356Z",
-          "expires_at": "2026-11-05T10:52:54.356Z",
+          "observed_at": "2026-11-05T11:01:14.049Z",
+          "expires_at": "2026-11-05T11:01:44.049Z",
           "max_age_seconds": 30
         },
         "capabilities": null,
@@ -34,41 +34,41 @@
           "appShellInert": false,
           "policy": [
             {
-              "t": 564.5999999996275,
+              "t": 696.6000000014901,
               "value": "disabled"
             },
             {
-              "t": 564.5999999996275,
+              "t": 696.6000000014901,
               "value": "disabled"
             },
             {
-              "t": 565.5,
+              "t": 696.6000000014901,
               "value": "disabled"
             },
             {
-              "t": 589.5,
+              "t": 733.4000000003725,
               "value": "disabled"
             },
             {
-              "t": 633.6999999992549,
+              "t": 796.2000000011176,
               "value": "disabled"
             },
             {
-              "t": 633.6999999992549,
+              "t": 796.2000000011176,
               "value": "disabled"
             },
             {
-              "t": 1018.0999999996275,
+              "t": 1148.7000000011176,
               "value": "disabled"
             },
             {
-              "t": 1238.9000000003725,
+              "t": 1381.7000000011176,
               "value": "disabled"
             }
           ],
           "frames": [
             {
-              "t": 382.59999999962747,
+              "t": 434.30000000074506,
               "path": "/",
               "p07": null,
               "shellPending": true,
@@ -81,7 +81,7 @@
               "shellInert": false
             },
             {
-              "t": 387.5,
+              "t": 443.80000000074506,
               "path": "/",
               "p07": null,
               "shellPending": true,
@@ -94,7 +94,7 @@
               "shellInert": false
             },
             {
-              "t": 392.90000000037253,
+              "t": 449.30000000074506,
               "path": "/",
               "p07": null,
               "shellPending": true,
@@ -107,7 +107,7 @@
               "shellInert": false
             },
             {
-              "t": 505.19999999925494,
+              "t": 454.40000000037253,
               "path": "/",
               "p07": null,
               "shellPending": true,
@@ -120,7 +120,33 @@
               "shellInert": false
             },
             {
-              "t": 580.9000000003725,
+              "t": 593.4000000003725,
+              "path": "/",
+              "p07": null,
+              "shellPending": true,
+              "shellVisible": false,
+              "sidebarVisible": false,
+              "splashVisible": true,
+              "homeVisible": false,
+              "visibleSurface": [],
+              "modalOpen": false,
+              "shellInert": false
+            },
+            {
+              "t": 602.2000000011176,
+              "path": "/",
+              "p07": null,
+              "shellPending": true,
+              "shellVisible": false,
+              "sidebarVisible": false,
+              "splashVisible": true,
+              "homeVisible": false,
+              "visibleSurface": [],
+              "modalOpen": false,
+              "shellInert": false
+            },
+            {
+              "t": 718.4000000003725,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -133,7 +159,7 @@
               "shellInert": false
             },
             {
-              "t": 587.9000000003725,
+              "t": 724.8000000007451,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -146,7 +172,7 @@
               "shellInert": false
             },
             {
-              "t": 595.2999999988824,
+              "t": 729.8000000007451,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -159,7 +185,7 @@
               "shellInert": false
             },
             {
-              "t": 598.7999999988824,
+              "t": 745.4000000003725,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -172,7 +198,7 @@
               "shellInert": false
             },
             {
-              "t": 603.2999999988824,
+              "t": 755.5,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -185,7 +211,7 @@
               "shellInert": false
             },
             {
-              "t": 608.5999999996275,
+              "t": 760.4000000003725,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -198,7 +224,7 @@
               "shellInert": false
             },
             {
-              "t": 615.1999999992549,
+              "t": 768.6000000014901,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -211,7 +237,7 @@
               "shellInert": false
             },
             {
-              "t": 621.4000000003725,
+              "t": 779.6000000014901,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -224,7 +250,7 @@
               "shellInert": false
             },
             {
-              "t": 625.2999999988824,
+              "t": 786.6000000014901,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -237,7 +263,7 @@
               "shellInert": false
             },
             {
-              "t": 631.7999999988824,
+              "t": 790.9000000003725,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -250,7 +276,7 @@
               "shellInert": false
             },
             {
-              "t": 642.0999999996275,
+              "t": 799.6000000014901,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -263,7 +289,7 @@
               "shellInert": false
             },
             {
-              "t": 646.2999999988824,
+              "t": 803.9000000003725,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -276,7 +302,7 @@
               "shellInert": false
             },
             {
-              "t": 652.0999999996275,
+              "t": 810.2000000011176,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -289,7 +315,7 @@
               "shellInert": false
             },
             {
-              "t": 658.1999999992549,
+              "t": 817.8000000007451,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -302,7 +328,7 @@
               "shellInert": false
             },
             {
-              "t": 663.5,
+              "t": 827.8000000007451,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -315,7 +341,7 @@
               "shellInert": false
             },
             {
-              "t": 668.5,
+              "t": 833.1000000014901,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -328,7 +354,7 @@
               "shellInert": false
             },
             {
-              "t": 674.5,
+              "t": 840.4000000003725,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -341,7 +367,7 @@
               "shellInert": false
             },
             {
-              "t": 679.7999999988824,
+              "t": 849.6000000014901,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -354,7 +380,7 @@
               "shellInert": false
             },
             {
-              "t": 685.9000000003725,
+              "t": 852.4000000003725,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -367,7 +393,7 @@
               "shellInert": false
             },
             {
-              "t": 691,
+              "t": 863.6000000014901,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -380,7 +406,7 @@
               "shellInert": false
             },
             {
-              "t": 696.9000000003725,
+              "t": 869.1000000014901,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -393,7 +419,7 @@
               "shellInert": false
             },
             {
-              "t": 703.2999999988824,
+              "t": 873.8000000007451,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -406,7 +432,7 @@
               "shellInert": false
             },
             {
-              "t": 707.9000000003725,
+              "t": 889.9000000003725,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -419,7 +445,7 @@
               "shellInert": false
             },
             {
-              "t": 714.5,
+              "t": 894.4000000003725,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -432,7 +458,7 @@
               "shellInert": false
             },
             {
-              "t": 719.7999999988824,
+              "t": 904,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -445,7 +471,7 @@
               "shellInert": false
             },
             {
-              "t": 725,
+              "t": 906.5,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -458,7 +484,7 @@
               "shellInert": false
             },
             {
-              "t": 731.2999999988824,
+              "t": 912.9000000003725,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -471,7 +497,7 @@
               "shellInert": false
             },
             {
-              "t": 737.1999999992549,
+              "t": 921.1000000014901,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -484,7 +510,7 @@
               "shellInert": false
             },
             {
-              "t": 742.9000000003725,
+              "t": 927.2000000011176,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -497,7 +523,7 @@
               "shellInert": false
             },
             {
-              "t": 747.4000000003725,
+              "t": 934.3000000007451,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -510,7 +536,7 @@
               "shellInert": false
             },
             {
-              "t": 753.1999999992549,
+              "t": 940.6000000014901,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -523,7 +549,7 @@
               "shellInert": false
             },
             {
-              "t": 758.5,
+              "t": 947.3000000007451,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -536,7 +562,7 @@
               "shellInert": false
             },
             {
-              "t": 764.4000000003725,
+              "t": 955.2000000011176,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -549,33 +575,7 @@
               "shellInert": false
             },
             {
-              "t": 769.4000000003725,
-              "path": "/",
-              "p07": "disabled",
-              "shellPending": true,
-              "shellVisible": false,
-              "sidebarVisible": false,
-              "splashVisible": true,
-              "homeVisible": false,
-              "visibleSurface": [],
-              "modalOpen": false,
-              "shellInert": false
-            },
-            {
-              "t": 775.9000000003725,
-              "path": "/",
-              "p07": "disabled",
-              "shellPending": true,
-              "shellVisible": false,
-              "sidebarVisible": false,
-              "splashVisible": true,
-              "homeVisible": false,
-              "visibleSurface": [],
-              "modalOpen": false,
-              "shellInert": false
-            },
-            {
-              "t": 781.9000000003725,
+              "t": 961.7000000011176,
               "path": "/",
               "p07": "disabled",
               "shellPending": true,
@@ -589,14 +589,14 @@
             }
           ]
         },
-        "readyFrames": 6,
+        "readyFrames": 5,
         "forbiddenFrames": 0
       }
     },
     {
       "id": "feature-policy-kill_switch-authenticated-safe-fallback",
       "status": "PASS",
-      "duration_ms": 5884,
+      "duration_ms": 7296,
       "detail": {
         "accountPolicy": {
           "enabled": false,
@@ -626,8 +626,8 @@
           "p07": "disabled"
         },
         "hit": {
-          "x": 270.55853271484375,
-          "y": 517.4120178222656,
+          "x": 270.60693550109863,
+          "y": 512.1528625488281,
           "visible": true,
           "disabled": false,
           "hitMatches": true,
@@ -637,10 +637,10 @@
             "className": ""
           },
           "rect": {
-            "x": 29.34417724609375,
-            "y": 495.43804931640625,
-            "width": 482.4287109375,
-            "height": 43.94793701171875
+            "x": 29.628664016723633,
+            "y": 490.20037841796875,
+            "width": 481.95654296875,
+            "height": 43.90496826171875
           },
           "hit": {
             "tag": "INPUT",
@@ -657,79 +657,79 @@
           "path": "/account",
           "kind": "hard",
           "p07": "disabled",
-          "visible_ready_frames": 3,
+          "visible_ready_frames": 5,
           "visible_policy_states": [
             "disabled"
           ],
           "policy_changes": [
             {
-              "t": 277.5,
+              "t": 469,
               "value": "disabled"
             },
             {
-              "t": 277.5,
+              "t": 469,
               "value": "disabled"
             },
             {
-              "t": 277.59999999962747,
+              "t": 469,
               "value": "disabled"
             },
             {
-              "t": 277.59999999962747,
+              "t": 469,
               "value": "disabled"
             },
             {
-              "t": 277.59999999962747,
+              "t": 469,
               "value": "disabled"
             },
             {
-              "t": 349.40000000037253,
+              "t": 651.0999999996275,
               "value": "disabled"
             },
             {
-              "t": 349.40000000037253,
+              "t": 651.0999999996275,
               "value": "disabled"
             },
             {
-              "t": 407.69999999925494,
+              "t": 787.9000000003725,
               "value": "disabled"
             },
             {
-              "t": 416.5,
+              "t": 795.9000000003725,
               "value": "disabled"
             },
             {
-              "t": 628.0999999996275,
-              "value": "disabled"
-            },
-            {
-              "t": 925.5999999996275,
+              "t": 1123.300000000745,
               "value": "disabled"
             }
           ],
           "paint_entries": [
             {
               "name": "first-paint",
-              "startTime": 108
+              "startTime": 132
+            },
+            {
+              "name": "first-contentful-paint",
+              "startTime": 1200
             }
           ],
           "app_resource_versions": [
-            "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r2",
-            "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r2",
-            "/app.js?v=20261105-aeris-p07-r4a-runtime-r2"
+            "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r3",
+            "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r3",
+            "/app.js?v=20261105-aeris-p07-r4a-runtime-r3"
           ],
           "cache_names": [
-            "wyj-shell-20261105-aeris-p07-r4a-runtime-r2-es-modules"
+            "wyj-shell-20261105-aeris-p07-r4a-runtime-r3-es-modules"
           ],
           "service_workers": [
             {
-              "scope": "http://127.0.0.1:18956/",
-              "active": "http://127.0.0.1:18956/sw.js?v=20261105-aeris-p07-r4a-runtime-r2"
+              "scope": "http://127.0.0.1:18961/",
+              "active": "http://127.0.0.1:18961/sw.js?v=20261105-aeris-p07-r4a-runtime-r3"
             }
           ],
           "first_frames": [
             {
-              "t": 94.19999999925494,
+              "t": 117.80000000074506,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -742,7 +742,7 @@
               "shellInert": false
             },
             {
-              "t": 98.5,
+              "t": 124.30000000074506,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -755,7 +755,7 @@
               "shellInert": false
             },
             {
-              "t": 104.59999999962747,
+              "t": 126.30000000074506,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -768,7 +768,7 @@
               "shellInert": false
             },
             {
-              "t": 108.5,
+              "t": 132.80000000074506,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -781,7 +781,7 @@
               "shellInert": false
             },
             {
-              "t": 115.09999999962747,
+              "t": 139.30000000074506,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -794,7 +794,7 @@
               "shellInert": false
             },
             {
-              "t": 120.40000000037253,
+              "t": 146.5,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -807,7 +807,7 @@
               "shellInert": false
             },
             {
-              "t": 125.90000000037253,
+              "t": 152.09999999962747,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -820,7 +820,7 @@
               "shellInert": false
             },
             {
-              "t": 131.09999999962747,
+              "t": 158.40000000037253,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -833,7 +833,7 @@
               "shellInert": false
             },
             {
-              "t": 136.69999999925494,
+              "t": 165.2000000011176,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -846,7 +846,7 @@
               "shellInert": false
             },
             {
-              "t": 142.5,
+              "t": 177.7000000011176,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -859,85 +859,7 @@
               "shellInert": false
             },
             {
-              "t": 148.09999999962747,
-              "path": "/account",
-              "p07": null,
-              "shellPending": true,
-              "shellVisible": false,
-              "sidebarVisible": false,
-              "splashVisible": true,
-              "homeVisible": false,
-              "visibleSurface": [],
-              "modalOpen": false,
-              "shellInert": false
-            },
-            {
-              "t": 154,
-              "path": "/account",
-              "p07": null,
-              "shellPending": true,
-              "shellVisible": false,
-              "sidebarVisible": false,
-              "splashVisible": true,
-              "homeVisible": false,
-              "visibleSurface": [],
-              "modalOpen": false,
-              "shellInert": false
-            },
-            {
-              "t": 159.5,
-              "path": "/account",
-              "p07": null,
-              "shellPending": true,
-              "shellVisible": false,
-              "sidebarVisible": false,
-              "splashVisible": true,
-              "homeVisible": false,
-              "visibleSurface": [],
-              "modalOpen": false,
-              "shellInert": false
-            },
-            {
-              "t": 165.30000000074506,
-              "path": "/account",
-              "p07": null,
-              "shellPending": true,
-              "shellVisible": false,
-              "sidebarVisible": false,
-              "splashVisible": true,
-              "homeVisible": false,
-              "visibleSurface": [],
-              "modalOpen": false,
-              "shellInert": false
-            },
-            {
-              "t": 171.59999999962747,
-              "path": "/account",
-              "p07": null,
-              "shellPending": true,
-              "shellVisible": false,
-              "sidebarVisible": false,
-              "splashVisible": true,
-              "homeVisible": false,
-              "visibleSurface": [],
-              "modalOpen": false,
-              "shellInert": false
-            },
-            {
-              "t": 177.40000000037253,
-              "path": "/account",
-              "p07": null,
-              "shellPending": true,
-              "shellVisible": false,
-              "sidebarVisible": false,
-              "splashVisible": true,
-              "homeVisible": false,
-              "visibleSurface": [],
-              "modalOpen": false,
-              "shellInert": false
-            },
-            {
-              "t": 182.59999999962747,
+              "t": 184.90000000037253,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -963,7 +885,7 @@
               "shellInert": false
             },
             {
-              "t": 194.5,
+              "t": 198,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -976,7 +898,7 @@
               "shellInert": false
             },
             {
-              "t": 200.69999999925494,
+              "t": 207.40000000037253,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -989,7 +911,7 @@
               "shellInert": false
             },
             {
-              "t": 207.59999999962747,
+              "t": 209.7000000011176,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -1002,7 +924,7 @@
               "shellInert": false
             },
             {
-              "t": 212.30000000074506,
+              "t": 220.40000000037253,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -1015,7 +937,7 @@
               "shellInert": false
             },
             {
-              "t": 217.80000000074506,
+              "t": 226.40000000037253,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -1028,7 +950,85 @@
               "shellInert": false
             },
             {
-              "t": 223.69999999925494,
+              "t": 231.30000000074506,
+              "path": "/account",
+              "p07": null,
+              "shellPending": true,
+              "shellVisible": false,
+              "sidebarVisible": false,
+              "splashVisible": true,
+              "homeVisible": false,
+              "visibleSurface": [],
+              "modalOpen": false,
+              "shellInert": false
+            },
+            {
+              "t": 236.80000000074506,
+              "path": "/account",
+              "p07": null,
+              "shellPending": true,
+              "shellVisible": false,
+              "sidebarVisible": false,
+              "splashVisible": true,
+              "homeVisible": false,
+              "visibleSurface": [],
+              "modalOpen": false,
+              "shellInert": false
+            },
+            {
+              "t": 243,
+              "path": "/account",
+              "p07": null,
+              "shellPending": true,
+              "shellVisible": false,
+              "sidebarVisible": false,
+              "splashVisible": true,
+              "homeVisible": false,
+              "visibleSurface": [],
+              "modalOpen": false,
+              "shellInert": false
+            },
+            {
+              "t": 250.59999999962747,
+              "path": "/account",
+              "p07": null,
+              "shellPending": true,
+              "shellVisible": false,
+              "sidebarVisible": false,
+              "splashVisible": true,
+              "homeVisible": false,
+              "visibleSurface": [],
+              "modalOpen": false,
+              "shellInert": false
+            },
+            {
+              "t": 258.90000000037253,
+              "path": "/account",
+              "p07": null,
+              "shellPending": true,
+              "shellVisible": false,
+              "sidebarVisible": false,
+              "splashVisible": true,
+              "homeVisible": false,
+              "visibleSurface": [],
+              "modalOpen": false,
+              "shellInert": false
+            },
+            {
+              "t": 268.09999999962747,
+              "path": "/account",
+              "p07": null,
+              "shellPending": true,
+              "shellVisible": false,
+              "sidebarVisible": false,
+              "splashVisible": true,
+              "homeVisible": false,
+              "visibleSurface": [],
+              "modalOpen": false,
+              "shellInert": false
+            },
+            {
+              "t": 271.40000000037253,
               "path": "/account",
               "p07": null,
               "shellPending": true,
@@ -1058,7 +1058,7 @@
           "modalLayers": [],
           "rect": {
             "x": 0,
-            "y": 130.375,
+            "y": 135.375,
             "width": 1425,
             "height": 928
           },
@@ -1068,79 +1068,83 @@
           "path": "/recharge",
           "kind": "normal",
           "p07": "disabled",
-          "visible_ready_frames": 4,
+          "visible_ready_frames": 14,
           "visible_policy_states": [
             "disabled"
           ],
           "policy_changes": [
             {
-              "t": 143.40000000037253,
+              "t": 334.69999999925494,
               "value": "disabled"
             },
             {
-              "t": 143.40000000037253,
+              "t": 334.7999999988824,
               "value": "disabled"
             },
             {
-              "t": 143.40000000037253,
+              "t": 334.7999999988824,
               "value": "disabled"
             },
             {
-              "t": 143.40000000037253,
+              "t": 334.7999999988824,
               "value": "disabled"
             },
             {
-              "t": 143.40000000037253,
+              "t": 334.7999999988824,
               "value": "disabled"
             },
             {
-              "t": 218.60000000149012,
+              "t": 457.3999999985099,
               "value": "disabled"
             },
             {
-              "t": 218.60000000149012,
+              "t": 457.3999999985099,
               "value": "disabled"
             },
             {
-              "t": 292.5,
+              "t": 568.8999999985099,
               "value": "disabled"
             },
             {
-              "t": 294.5,
+              "t": 577.7999999988824,
               "value": "disabled"
             },
             {
-              "t": 519.9000000003725,
+              "t": 782,
               "value": "disabled"
             },
             {
-              "t": 796.2000000011176,
+              "t": 986.1999999992549,
               "value": "disabled"
             }
           ],
           "paint_entries": [
             {
               "name": "first-paint",
-              "startTime": 76
+              "startTime": 108
+            },
+            {
+              "name": "first-contentful-paint",
+              "startTime": 1044
             }
           ],
           "app_resource_versions": [
-            "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r2",
-            "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r2",
-            "/app.js?v=20261105-aeris-p07-r4a-runtime-r2"
+            "/design-system.css?v=20261105-aeris-p07-r4a-runtime-r3",
+            "/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime-r3",
+            "/app.js?v=20261105-aeris-p07-r4a-runtime-r3"
           ],
           "cache_names": [
-            "wyj-shell-20261105-aeris-p07-r4a-runtime-r2-es-modules"
+            "wyj-shell-20261105-aeris-p07-r4a-runtime-r3-es-modules"
           ],
           "service_workers": [
             {
-              "scope": "http://127.0.0.1:18956/",
-              "active": "http://127.0.0.1:18956/sw.js?v=20261105-aeris-p07-r4a-runtime-r2"
+              "scope": "http://127.0.0.1:18961/",
+              "active": "http://127.0.0.1:18961/sw.js?v=20261105-aeris-p07-r4a-runtime-r3"
             }
           ],
           "first_frames": [
             {
-              "t": 60.30000000074506,
+              "t": 93.89999999850988,
               "path": "/recharge",
               "p07": null,
               "shellPending": true,
@@ -1153,7 +1157,7 @@
               "shellInert": false
             },
             {
-              "t": 64,
+              "t": 100.09999999962747,
               "path": "/recharge",
               "p07": null,
               "shellPending": true,
@@ -1166,7 +1170,7 @@
               "shellInert": false
             },
             {
-              "t": 71.5,
+              "t": 103.39999999850988,
               "path": "/recharge",
               "p07": null,
               "shellPending": true,
@@ -1179,7 +1183,7 @@
               "shellInert": false
             },
             {
-              "t": 74.30000000074506,
+              "t": 110.69999999925494,
               "path": "/recharge",
               "p07": null,
               "shellPending": true,
@@ -1192,7 +1196,7 @@
               "shellInert": false
             },
             {
-              "t": 79.60000000149012,
+              "t": 120.79999999888241,
               "path": "/recharge",
               "p07": null,
               "shellPending": true,
@@ -1205,7 +1209,7 @@
               "shellInert": false
             },
             {
-              "t": 85.40000000037253,
+              "t": 126.79999999888241,
               "path": "/recharge",
               "p07": null,
               "shellPending": true,
@@ -1218,7 +1222,7 @@
               "shellInert": false
             },
             {
-              "t": 96.10000000149012,
+              "t": 132.2999999988824,
               "path": "/recharge",
               "p07": null,
               "shellPending": true,
@@ -1231,7 +1235,7 @@
               "shellInert": false
             },
             {
-              "t": 98.20000000111759,
+              "t": 140,
               "path": "/recharge",
               "p07": null,
               "shellPending": true,
@@ -1244,7 +1248,7 @@
               "shellInert": false
             },
             {
-              "t": 101.60000000149012,
+              "t": 150.39999999850988,
               "path": "/recharge",
               "p07": null,
               "shellPending": true,
@@ -1257,9 +1261,9 @@
               "shellInert": false
             },
             {
-              "t": 169,
+              "t": 155,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,
@@ -1270,9 +1274,9 @@
               "shellInert": false
             },
             {
-              "t": 177.7000000011176,
+              "t": 160.89999999850988,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,
@@ -1283,9 +1287,9 @@
               "shellInert": false
             },
             {
-              "t": 189.7000000011176,
+              "t": 166.59999999962747,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,
@@ -1296,9 +1300,9 @@
               "shellInert": false
             },
             {
-              "t": 191.7000000011176,
+              "t": 178.39999999850988,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,
@@ -1309,9 +1313,9 @@
               "shellInert": false
             },
             {
-              "t": 197.90000000037253,
+              "t": 181.19999999925494,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,
@@ -1322,9 +1326,9 @@
               "shellInert": false
             },
             {
-              "t": 202.60000000149012,
+              "t": 188.09999999962747,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,
@@ -1335,9 +1339,9 @@
               "shellInert": false
             },
             {
-              "t": 208.7000000011176,
+              "t": 194.89999999850988,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,
@@ -1348,9 +1352,9 @@
               "shellInert": false
             },
             {
-              "t": 214.2000000011176,
+              "t": 203,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,
@@ -1361,9 +1365,9 @@
               "shellInert": false
             },
             {
-              "t": 221.5,
+              "t": 209,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,
@@ -1374,9 +1378,9 @@
               "shellInert": false
             },
             {
-              "t": 226.30000000074506,
+              "t": 217.2999999988824,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,
@@ -1387,9 +1391,9 @@
               "shellInert": false
             },
             {
-              "t": 231.2000000011176,
+              "t": 222.2999999988824,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,
@@ -1400,9 +1404,9 @@
               "shellInert": false
             },
             {
-              "t": 237.10000000149012,
+              "t": 231.59999999962747,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,
@@ -1413,9 +1417,9 @@
               "shellInert": false
             },
             {
-              "t": 242.7000000011176,
+              "t": 237.89999999850988,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,
@@ -1426,9 +1430,9 @@
               "shellInert": false
             },
             {
-              "t": 249.10000000149012,
+              "t": 253.5,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,
@@ -1439,9 +1443,9 @@
               "shellInert": false
             },
             {
-              "t": 254.90000000037253,
+              "t": 264.2999999988824,
               "path": "/recharge",
-              "p07": "disabled",
+              "p07": null,
               "shellPending": true,
               "shellVisible": false,
               "sidebarVisible": false,

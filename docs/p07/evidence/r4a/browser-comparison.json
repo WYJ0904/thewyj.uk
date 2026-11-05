@@ -1,8 +1,11 @@
 {
   "baseline": "f7949f8253f51ea2621c397743208971c0cec467",
-  "candidate": "9c22bf1dd9118178700e4780ccc27c8958de1e81",
+  "candidate": "6417005f70c34a5fc9bc35493587bd016aae8575",
   "qa": "882efdb9978f2608c54bc6c9c19eb8843e80945f",
   "frozen_browser_sha256": "227c4f69d473186fdbe307fa3a6da4a9a6d5a0c41d485ff51d19beed608fa61d",
+  "acceptanceGate": "FAIL",
+  "passed": 24,
+  "failed": 1,
   "matrix": [
     {
       "id": "first-paint-home-and-p07-decision",
@@ -122,7 +125,7 @@
     {
       "id": "refresh-continuity-all-required-pages",
       "baseline": "PASS",
-      "candidate": "PASS"
+      "candidate": "FAIL"
     },
     {
       "id": "delayed-authoritative-policy-does-not-flash-legacy-layout",

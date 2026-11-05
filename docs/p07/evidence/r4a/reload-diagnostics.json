@@ -1,0 +1,1141 @@
+{
+  "source": "52a07758ebeaf8633184a7d994505cdf32a84583",
+  "rows": [
+    {
+      "route": "/account",
+      "kind": "direct",
+      "durationMs": 733,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877108849.6477,
+        "frames": 97,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 78.40000000037253,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "normal",
+      "durationMs": 759,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877109604.7063,
+        "frames": 103,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 88.70000000111759,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "hard",
+      "durationMs": 851,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877110371.4172,
+        "frames": 112,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 190.2999999988824,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "direct",
+      "durationMs": 779,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877111229.7844,
+        "frames": 97,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 109.90000000037253,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "normal",
+      "durationMs": 775,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877112038.848,
+        "frames": 101,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 102.39999999850988,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "hard",
+      "durationMs": 899,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877112820.6172,
+        "frames": 110,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 223,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "direct",
+      "durationMs": 767,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877113731.7788,
+        "frames": 99,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 113.59999999962747,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "normal",
+      "durationMs": 820,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877114584.1077,
+        "frames": 100,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 149.2000000011176,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "hard",
+      "durationMs": 955,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877115420.2952,
+        "frames": 111,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 289.2000000011176,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "direct",
+      "durationMs": 757,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877116384.541,
+        "frames": 101,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 161.59999999962747,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "normal",
+      "durationMs": 757,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877117214.5823,
+        "frames": 97,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 98.90000000037253,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "hard",
+      "durationMs": 874,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877117979.9058,
+        "frames": 112,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 208.09999999962747,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "direct",
+      "durationMs": 749,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877118861.7708,
+        "frames": 100,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 95.70000000111759,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "normal",
+      "durationMs": 765,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877119631.2427,
+        "frames": 100,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 106.30000000074506,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "hard",
+      "durationMs": 888,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877120405.2253,
+        "frames": 112,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 212.7000000011176,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "direct",
+      "durationMs": 763,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877121302.4087,
+        "frames": 102,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 110.5,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "normal",
+      "durationMs": 804,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877122097.5652,
+        "frames": 101,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 128.7999999988824,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "hard",
+      "durationMs": 925,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877122908.6313,
+        "frames": 110,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 253.30000000074506,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "direct",
+      "durationMs": 761,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877123849.2463,
+        "frames": 101,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 153.39999999850988,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "normal",
+      "durationMs": 765,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877124678.3428,
+        "frames": 101,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 100.10000000149012,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "hard",
+      "durationMs": 867,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877125452.8875,
+        "frames": 112,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 205.39999999850988,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "direct",
+      "durationMs": 755,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877126329.0344,
+        "frames": 99,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 105.59999999962747,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "normal",
+      "durationMs": 787,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877127103.3691,
+        "frames": 101,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 112.90000000037253,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "hard",
+      "durationMs": 873,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877127904.5925,
+        "frames": 112,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 207.19999999925494,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "direct",
+      "durationMs": 729,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877128785.7551,
+        "frames": 97,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 112.29999999888241,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "normal",
+      "durationMs": 782,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877129549.4102,
+        "frames": 102,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 104.59999999962747,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "hard",
+      "durationMs": 952,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877130341.4036,
+        "frames": 114,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 251.2999999988824,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "direct",
+      "durationMs": 786,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877131301.2954,
+        "frames": 103,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 136.40000000037253,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "normal",
+      "durationMs": 764,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877132126.1396,
+        "frames": 99,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 101.29999999888241,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "hard",
+      "durationMs": 871,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877132898.7544,
+        "frames": 113,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 202.2999999988824,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "direct",
+      "durationMs": 759,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877133781.1519,
+        "frames": 99,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 119.40000000037253,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "normal",
+      "durationMs": 772,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877134575.2615,
+        "frames": 99,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 113.29999999888241,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "hard",
+      "durationMs": 877,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877135354.963,
+        "frames": 111,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 208.7999999988824,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "direct",
+      "durationMs": 849,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877136240.719,
+        "frames": 109,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 155.69999999925494,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "normal",
+      "durationMs": 816,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877137118.5398,
+        "frames": 101,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 160.19999999925494,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "hard",
+      "durationMs": 938,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877137953.4268,
+        "frames": 111,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 270.2999999988824,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "direct",
+      "durationMs": 760,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877138899.8323,
+        "frames": 104,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 133.59999999962747,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "normal",
+      "durationMs": 763,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877139714.0986,
+        "frames": 98,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 102.90000000037253,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "hard",
+      "durationMs": 888,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877140486.042,
+        "frames": 113,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 212.90000000037253,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "direct",
+      "durationMs": 757,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877141382.3894,
+        "frames": 99,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 107.30000000074506,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "normal",
+      "durationMs": 793,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877142161.7144,
+        "frames": 98,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 131.40000000037253,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "hard",
+      "durationMs": 878,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877142968.0117,
+        "frames": 111,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 206,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "direct",
+      "durationMs": 759,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877143854.0598,
+        "frames": 99,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 177.30000000074506,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "normal",
+      "durationMs": 784,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877144722.4883,
+        "frames": 96,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 140.30000000074506,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "hard",
+      "durationMs": 865,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877145514.8555,
+        "frames": 113,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 200.09999999962747,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "direct",
+      "durationMs": 755,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877146388.9792,
+        "frames": 101,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 157.09999999962747,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "normal",
+      "durationMs": 757,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877147220.7322,
+        "frames": 99,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 97.40000000037253,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/account",
+      "kind": "hard",
+      "durationMs": 920,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877147986.2188,
+        "frames": 120,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 186.80000000074506,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "direct",
+      "durationMs": 754,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877148913.1511,
+        "frames": 99,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 107.20000000111759,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "normal",
+      "durationMs": 770,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877149696.7725,
+        "frames": 98,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 111.10000000149012,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/recharge",
+      "kind": "hard",
+      "durationMs": 887,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877150482.5532,
+        "frames": 108,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 211.59999999962747,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "direct",
+      "durationMs": 741,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877151377.447,
+        "frames": 97,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 111,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "normal",
+      "durationMs": 750,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877152139.8552,
+        "frames": 97,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 106.5,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "route": "/finance",
+      "kind": "hard",
+      "durationMs": 868,
+      "policy": "enabled",
+      "p07": "enabled",
+      "visibility": "visible",
+      "probe": {
+        "id": 1793877152896.9597,
+        "frames": 113,
+        "timers": [],
+        "events": [
+          {
+            "event": "DOMContentLoaded",
+            "t": 199.5,
+            "visibility": "visible"
+          }
+        ],
+        "errors": []
+      }
+    }
+  ],
+  "errors": [],
+  "runtimeErrors": []
+}
