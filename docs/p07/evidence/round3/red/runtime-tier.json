@@ -1,0 +1,9 @@
+{
+  "tier": "actual-compiled-pages-on-pinned-miniflare",
+  "source_sha": "21b83316cbfdeb366c587b9e818a2c64e2199215",
+  "candidate_overlays": false,
+  "artificial_rubric": false,
+  "synthetic_silent_audio_cache": false,
+  "real_model_calls": 0,
+  "production_operations": 0
+}

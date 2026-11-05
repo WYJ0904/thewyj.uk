@@ -1,0 +1,15 @@
+{
+  "files": {
+    "qa/p07-d/run.mjs": "f67664e1135fee21ff0d9d8cbe1c9021a27c0660f0f146bb66063c626b67471b",
+    "qa/p07-d/serve.mjs": "36352591b16dd1a5c60a18778743d97d4b2cc94b99cde1453ed82ca2225b4a22",
+    "qa/p07-round3/browser.mjs": "227c4f69d473186fdbe307fa3a6da4a9a6d5a0c41d485ff51d19beed608fa61d",
+    "qa/p07-round3/preview-readonly.mjs": "983181367a1e3c307492c1f02aea8f4c7155c5bc9529708b27a2875045f4af87",
+    "qa/p07-round3/account-workspace-contract.mjs": "188fa949d5d6fcd7fd307e5fb51b373c802b355bc77c5b8025ff606f2741b13a",
+    "qa/aeris/p4-behavior-browser.mjs": "bfad35e37e16b73e3970efc3c7eab0499c5fbf5fae7375cb19f1ee36fd462045",
+    "local-backend/browser_harness.mjs": "12bc3cae18adb477ff1127e0e496d7a5f6caead428f04a331d1195cb925cee98"
+  },
+  "inherited_framework_commit": "0f2050bc8b76cfe2a6a8f2daf623d2dbafd6dd9e",
+  "source_sha": "21b83316cbfdeb366c587b9e818a2c64e2199215",
+  "flag_mode": "on",
+  "product_overlays": false
+}

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { openPage, delay } from '../../local-backend/browser_harness.mjs';
+import { assertAccountWorkspaceNavigation } from '../p07-round3/account-workspace-contract.mjs';
 
 const baseUrl=process.env.WYJ_TEST_BASE||'http://127.0.0.1:8908';
 assert.equal(new URL(baseUrl).hostname,'127.0.0.1','Synthetic rows never target Production');
@@ -76,8 +77,7 @@ for(const width of [390,1366,1920]) {
     await page.click('#closeToolWorkbenchBtn');await page.waitFor("document.querySelector('#toolWorkbench').classList.contains('hidden')");
     await page.navigate('/account');await page.waitFor("!document.getElementById('entryScreen') && !document.querySelector('#accountModal').classList.contains('hidden')");
     assert.equal(await page.evaluate("document.querySelectorAll('#accountDetails > .account-setting-row').length"),8);
-    await page.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await page.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
-    await page.waitFor("document.querySelector('#accountModal').classList.contains('hidden')");
+    const accountNavigation=await assertAccountWorkspaceNavigation(page);
     await page.navigate('/admin');await page.waitFor("!document.getElementById('entryScreen') && document.querySelectorAll('[data-user-id]').length===30");
     await page.evaluate("window.__p4AdminRows=[...document.querySelectorAll('[data-user-id]')];true");
     for(const count of [60,90,120]) {await page.click('#adminUserLoadMoreBtn');await page.waitFor(`document.querySelectorAll('[data-user-id]').length===${count}`);}
@@ -91,7 +91,7 @@ for(const width of [390,1366,1920]) {
     // Question transition and round durability are also exercised by the full
     // browser flow; this scope never injects answers into real account data.
     assert.deepEqual(page.runtimeErrors,[]);
-    results.push({width,pagination:true,rowPatch:true,foldRetainsRows:true,history:true,canonicalReviews:125,draftPreserved:true,terminalRefresh:true,errorPreservesLedger:true,toolFavoriteLocalUpdate:true,toolBack:true,accountRows:8,escape:true,adminRows:120,adminAppendRetainsRows:true,adminSearch:true,learning:fixture,summaryReads});
+    results.push({width,pagination:true,rowPatch:true,foldRetainsRows:true,history:true,canonicalReviews:125,draftPreserved:true,terminalRefresh:true,errorPreservesLedger:true,toolFavoriteLocalUpdate:true,toolBack:true,accountRows:8,accountNavigation,adminRows:120,adminAppendRetainsRows:true,adminSearch:true,learning:fixture,summaryReads});
     console.log(`P4 workspace behavior PASS ${width}`);
   }finally{await page.close();}
 }

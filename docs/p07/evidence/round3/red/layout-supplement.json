@@ -1,0 +1,222 @@
+{
+  "target_sha": "21b83316cbfdeb366c587b9e818a2c64e2199215",
+  "driver_sha256": "0cb6c092602a89957151320ef400cc0750d4823e0312ae880564d3ed22955d47",
+  "scope": "additional actual content-column measurements and screenshots; known local dictionary answers, no AI inference",
+  "rows": [
+    {
+      "language": "english",
+      "before": {
+        "width": 1440,
+        "columns": "487.188px 324.812px",
+        "card": {
+          "x": 396.5,
+          "y": 191.140625,
+          "width": 487.1875,
+          "height": 617.1875
+        },
+        "feedback": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "feedbackVisible": false,
+        "feedbackText": "",
+        "word": "world"
+      },
+      "feedback": [
+        {
+          "width": 1024,
+          "columns": "369.797px 320px",
+          "card": {
+            "x": 249.59375,
+            "y": 184.55503845214844,
+            "width": 369.796875,
+            "height": 667.1875
+          },
+          "feedback": {
+            "x": 643.390625,
+            "y": 196.55503845214844,
+            "width": 320,
+            "height": 151.59376525878906
+          },
+          "feedbackVisible": true,
+          "feedbackText": "正确\n标准释义：世界\n世间",
+          "word": "world"
+        },
+        {
+          "width": 1440,
+          "columns": "487.188px 324.812px",
+          "card": {
+            "x": 396.5,
+            "y": 183.72857666015625,
+            "width": 487.1875,
+            "height": 617.1875
+          },
+          "feedback": {
+            "x": 907.6875,
+            "y": 195.72857666015625,
+            "width": 324.8125,
+            "height": 151.59375
+          },
+          "feedbackVisible": true,
+          "feedbackText": "正确\n标准释义：世界\n世间",
+          "word": "world"
+        },
+        {
+          "width": 1920,
+          "columns": "487.188px 324.812px",
+          "card": {
+            "x": 636.5,
+            "y": 183.140625,
+            "width": 487.1875,
+            "height": 617.1875
+          },
+          "feedback": {
+            "x": 1147.6875,
+            "y": 195.140625,
+            "width": 324.8125,
+            "height": 151.59375
+          },
+          "feedbackVisible": true,
+          "feedbackText": "正确\n标准释义：世界\n世间",
+          "word": "world"
+        }
+      ]
+    },
+    {
+      "language": "japanese",
+      "before": {
+        "width": 1920,
+        "columns": "487.188px 324.812px",
+        "card": {
+          "x": 636.5,
+          "y": 148.63055419921875,
+          "width": 487.1875,
+          "height": 655.578125
+        },
+        "feedback": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "feedbackVisible": false,
+        "feedbackText": "",
+        "word": "水"
+      },
+      "feedback": [
+        {
+          "width": 1024,
+          "columns": "369.797px 320px",
+          "card": {
+            "x": 249.59375,
+            "y": 182.31787109375,
+            "width": 369.796875,
+            "height": 705.578125
+          },
+          "feedback": {
+            "x": 643.390625,
+            "y": 194.31787109375,
+            "width": 320,
+            "height": 151.59375
+          },
+          "feedbackVisible": true,
+          "feedbackText": "正确\n标准释义：水\n水分",
+          "word": "水"
+        },
+        {
+          "width": 1440,
+          "columns": "487.188px 324.812px",
+          "card": {
+            "x": 396.5,
+            "y": 182.140625,
+            "width": 487.1875,
+            "height": 655.578125
+          },
+          "feedback": {
+            "x": 907.6875,
+            "y": 194.140625,
+            "width": 324.8125,
+            "height": 151.59375
+          },
+          "feedbackVisible": true,
+          "feedbackText": "正确\n标准释义：水\n水分",
+          "word": "水"
+        },
+        {
+          "width": 1920,
+          "columns": "487.188px 324.812px",
+          "card": {
+            "x": 636.5,
+            "y": 182.140625,
+            "width": 487.1875,
+            "height": 655.578125
+          },
+          "feedback": {
+            "x": 1147.6875,
+            "y": 194.140625,
+            "width": 324.8125,
+            "height": 151.59375
+          },
+          "feedbackVisible": true,
+          "feedbackText": "正确\n标准释义：水\n水分",
+          "word": "水"
+        }
+      ]
+    }
+  ],
+  "failures": [
+    {
+      "language": "english",
+      "issue": "reserved_empty_feedback_column_before_answer",
+      "before": {
+        "width": 1440,
+        "columns": "487.188px 324.812px",
+        "card": {
+          "x": 396.5,
+          "y": 191.140625,
+          "width": 487.1875,
+          "height": 617.1875
+        },
+        "feedback": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "feedbackVisible": false,
+        "feedbackText": "",
+        "word": "world"
+      }
+    },
+    {
+      "language": "japanese",
+      "issue": "reserved_empty_feedback_column_before_answer",
+      "before": {
+        "width": 1920,
+        "columns": "487.188px 324.812px",
+        "card": {
+          "x": 636.5,
+          "y": 148.63055419921875,
+          "width": 487.1875,
+          "height": 655.578125
+        },
+        "feedback": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "feedbackVisible": false,
+        "feedbackText": "",
+        "word": "水"
+      }
+    }
+  ],
+  "screenshots": [
+    "public-feature-cards-1440.png",
+    "english-actual-answer-feedback-1440.png",
+    "japanese-actual-answer-feedback-1440.png"
+  ]
+}

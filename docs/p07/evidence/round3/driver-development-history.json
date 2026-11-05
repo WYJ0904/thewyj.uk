@@ -1,0 +1,364 @@
+{
+  "scope": "Preserved original failed runs; aggregate counts are superseded by the fixed v2 driver, not relabeled PASS",
+  "history": [
+    {
+      "labels": [
+        "round3-red-on",
+        "round3-red-on-2"
+      ],
+      "issues": [
+        "CDP maxTouchPoints=0 driver error",
+        "closed home disclosure and off-viewport coordinates",
+        "route readiness did not prove a new document",
+        "finance row hydration was incomplete"
+      ],
+      "runs": [
+        {
+          "label": "round3-red-on",
+          "source_sha": "21b83316cbfdeb366c587b9e818a2c64e2199215",
+          "pass": 6,
+          "fail": 9,
+          "failures": [
+            {
+              "id": "finance-upgrade-shortcut-selects-finance-plans",
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   'finance_monthly',\n-   'all_access_monthly',\n-   'all_access_lifetime'\n- ]\n"
+            },
+            {
+              "id": "membership-route-sidebar-cross-navigation",
+              "error": "timeout waiting for sidebar leaves membership"
+            },
+            {
+              "id": "account-is-a-main-workspace-not-a-modal",
+              "error": "Expected values to be strictly equal:\n\nfalse !== true\n"
+            },
+            {
+              "id": "account-to-learning-tools-home-sidebar-navigation",
+              "error": "timeout waiting for sidebar language"
+            },
+            {
+              "id": "browser-back-forward-and-direct-route",
+              "error": "not visible #v3Sidebar [data-v3-nav=\"language\"]"
+            },
+            {
+              "id": "homepage-core-card-coordinate-hit-matrix",
+              "error": "not visible #publicCoreCardGallery [data-core-capability=\"tools\"] .capability-trigger"
+            },
+            {
+              "id": "standalone-english-japanese-views-and-quiz-card-geometry",
+              "error": "Emulation.setTouchEmulationEnabled: Touch points must be between 1 and 16"
+            },
+            {
+              "id": "finance-real-ledger-summary-and-chart",
+              "error": "timeout waiting for saved P07 R3 income"
+            },
+            {
+              "id": "refresh-continuity-all-required-pages",
+              "error": "/ content did not render before refresh\n\nfalse !== true\n"
+            }
+          ]
+        },
+        {
+          "label": "round3-red-on-2",
+          "source_sha": "21b83316cbfdeb366c587b9e818a2c64e2199215",
+          "pass": 6,
+          "fail": 9,
+          "failures": [
+            {
+              "id": "finance-upgrade-shortcut-selects-finance-plans",
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   'finance_monthly',\n-   'all_access_monthly',\n-   'all_access_lifetime'\n- ]\n"
+            },
+            {
+              "id": "membership-route-sidebar-cross-navigation",
+              "error": "timeout waiting for sidebar leaves membership"
+            },
+            {
+              "id": "account-is-a-main-workspace-not-a-modal",
+              "error": "Expected values to be strictly equal:\n\nfalse !== true\n"
+            },
+            {
+              "id": "account-to-learning-tools-home-sidebar-navigation",
+              "error": "timeout waiting for sidebar language"
+            },
+            {
+              "id": "browser-back-forward-and-direct-route",
+              "error": "not visible #v3Sidebar [data-v3-nav=\"language\"]"
+            },
+            {
+              "id": "homepage-core-card-coordinate-hit-matrix",
+              "error": "learning left-top-blank was intercepted by null\n\nfalse !== true\n"
+            },
+            {
+              "id": "standalone-english-japanese-views-and-quiz-card-geometry",
+              "error": "english card is not centered in main canvas at 1024: {\"viewport\":1024,\"canvas\":{\"x\":204,\"width\":805,\"center\":606.5},\"card\":{\"x\":249.59375,\"y\":357.26776123046875,\"width\":369.796875,\"height\":667.1875610351562,\"center\":434.4921875},\"centerDelta\":-172.0078125,\"rightPanel\":[]}"
+            },
+            {
+              "id": "finance-real-ledger-summary-and-chart",
+              "error": "timeout waiting for saved P07 R3 income"
+            },
+            {
+              "id": "refresh-continuity-all-required-pages",
+              "error": "/ content missing after hard refresh\n\nfalse !== true\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "labels": [
+        "round3-red-on-3",
+        "round3-red-on-4",
+        "round3-flash-on-1"
+      ],
+      "issues": [
+        "balance parser rejected the valid -¥ prefix",
+        "removed splash element was dereferenced by the driver",
+        "closed finance disclosure made innerText unsuitable for row lookup",
+        "same-document readiness could match before navigation completed"
+      ],
+      "runs": [
+        {
+          "label": "round3-red-on-3",
+          "source_sha": "21b83316cbfdeb366c587b9e818a2c64e2199215",
+          "pass": 7,
+          "fail": 11,
+          "failures": [
+            {
+              "id": "finance-upgrade-shortcut-selects-finance-plans",
+              "error": "membership workspace must not be covered by a modal overlay\n\n1 !== 0\n"
+            },
+            {
+              "id": "membership-route-sidebar-cross-navigation",
+              "error": "timeout waiting for sidebar leaves membership"
+            },
+            {
+              "id": "account-is-a-main-workspace-not-a-modal",
+              "error": "Expected values to be strictly equal:\n\nfalse !== true\n"
+            },
+            {
+              "id": "account-workspace-sidebar-remains-in-keyboard-order",
+              "error": "Tab could not reach workspace navigation from account: {\"nav\":null,\"id\":\"newSecretConfirmInput\",\"tag\":\"INPUT\",\"insideInert\":false,\"rect\":{\"x\":585,\"y\":629.234375,\"width\":495,\"height\":44}}"
+            },
+            {
+              "id": "synthetic-account-secret-change-revokes-old-session",
+              "error": "not visible #changeSecretForm button[type=\"submit\"]"
+            },
+            {
+              "id": "account-to-learning-tools-home-sidebar-navigation",
+              "error": "not visible #v3Sidebar [data-v3-nav=\"language\"]"
+            },
+            {
+              "id": "browser-back-forward-and-direct-route",
+              "error": "not visible #v3Sidebar [data-v3-nav=\"language\"]"
+            },
+            {
+              "id": "homepage-core-card-coordinate-hit-matrix",
+              "error": "TypeError: Cannot read properties of null (reading 'classList')\n    at <anonymous>:1:157"
+            },
+            {
+              "id": "standalone-english-japanese-views-and-quiz-card-geometry",
+              "error": "learning-card geometry failed: [{\"language\":\"english\",\"width\":1024,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1024,\"canvas\":{\"x\":204,\"width\":805,\"center\":606.5},\"card\":{\"x\":249.59375,\"y\":187.81939697265625,\"width\":369.796875,\"height\":667.1875,\"center\":434.4921875},\"centerDelta\":-172.0078125,\"rightPanel\":[]},{\"language\":\"english\",\"width\":1440,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1440,\"canvas\":{\"x\":204,\"width\":1221,\"center\":814.5},\"card\":{\"x\":396.5,\"y\":186.25283813476562,\"width\":487.1875,\"height\":617.1875,\"center\":640.09375},\"centerDelta\":-174.40625,\"rightPanel\":[]},{\"language\":\"english\",\"width\":1920,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1920,\"canvas\":{\"x\":204,\"width\":1701,\"center\":1054.5},\"card\":{\"x\":636.5,\"y\":183.31744384765625,\"width\":487.1875,\"height\":617.1875,\"center\":880.09375},\"centerDelta\":-174.40625,\"rightPanel\":[]},{\"language\":\"japanese\",\"width\":1024,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1024,\"canvas\":{\"x\":204,\"width\":805,\"center\":606.5},\"card\":{\"x\":249.59375,\"y\":188.398681640625,\"width\":369.796875,\"height\":705.578125,\"center\":434.4921875},\"centerDelta\":-172.0078125,\"rightPanel\":[]},{\"language\":\"japanese\",\"width\":1440,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1440,\"canvas\":{\"x\":204,\"width\":1221,\"center\":814.5},\"card\":{\"x\":396.5,\"y\":186.82809448242188,\"width\":487.1875,\"height\":655.578125,\"center\":640.09375},\"centerDelta\":-174.40625,\"rightPanel\":[]},{\"language\":\"japanese\",\"width\":1920,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1920,\"canvas\":{\"x\":204,\"width\":1701,\"center\":1054.5},\"card\":{\"x\":636.5,\"y\":182.8206329345703,\"width\":487.1875,\"height\":655.578125,\"center\":880.09375},\"centerDelta\":-174.40625,\"rightPanel\":[]}]\n\n6 !== 0\n"
+            },
+            {
+              "id": "finance-real-ledger-summary-and-chart",
+              "error": "The input did not match the regular expression /-9,001,000|-9001000/. Input:\n\n'-¥9,001,000.00'\n"
+            },
+            {
+              "id": "refresh-continuity-all-required-pages",
+              "error": "/ content missing after hard refresh\n\nfalse !== true\n"
+            }
+          ]
+        },
+        {
+          "label": "round3-red-on-4",
+          "source_sha": "21b83316cbfdeb366c587b9e818a2c64e2199215",
+          "pass": 8,
+          "fail": 11,
+          "failures": [
+            {
+              "id": "finance-upgrade-shortcut-selects-finance-plans",
+              "error": "membership workspace must not be covered by a modal overlay\n\n1 !== 0\n"
+            },
+            {
+              "id": "membership-route-sidebar-cross-navigation",
+              "error": "timeout waiting for sidebar leaves membership"
+            },
+            {
+              "id": "account-is-a-main-workspace-not-a-modal",
+              "error": "Expected values to be strictly equal:\n\nfalse !== true\n"
+            },
+            {
+              "id": "account-workspace-sidebar-remains-in-keyboard-order",
+              "error": "Tab could not reach workspace navigation from account: {\"nav\":null,\"id\":\"openDeleteAccountBtn\",\"tag\":\"BUTTON\",\"insideInert\":false,\"rect\":{\"x\":585,\"y\":880.015625,\"width\":98,\"height\":44}}"
+            },
+            {
+              "id": "account-to-learning-tools-home-sidebar-navigation",
+              "error": "timeout waiting for sidebar language"
+            },
+            {
+              "id": "browser-back-forward-and-direct-route",
+              "error": "not visible #v3Sidebar [data-v3-nav=\"language\"]"
+            },
+            {
+              "id": "homepage-core-card-coordinate-hit-matrix",
+              "error": "TypeError: Cannot read properties of null (reading 'classList')\n    at <anonymous>:1:157"
+            },
+            {
+              "id": "standalone-english-japanese-views-and-quiz-card-geometry",
+              "error": "learning-card geometry failed: [{\"language\":\"english\",\"width\":1024,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1024,\"canvas\":{\"x\":204,\"width\":805,\"center\":606.5},\"card\":{\"x\":249.59375,\"y\":187.4451904296875,\"width\":369.796875,\"height\":667.1875,\"center\":434.4921875},\"centerDelta\":-172.0078125,\"rightPanel\":[]},{\"language\":\"english\",\"width\":1440,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1440,\"canvas\":{\"x\":204,\"width\":1221,\"center\":814.5},\"card\":{\"x\":396.5,\"y\":185.78347778320312,\"width\":487.1875,\"height\":617.1875,\"center\":640.09375},\"centerDelta\":-174.40625,\"rightPanel\":[]},{\"language\":\"english\",\"width\":1920,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1920,\"canvas\":{\"x\":204,\"width\":1701,\"center\":1054.5},\"card\":{\"x\":636.5,\"y\":183.140625,\"width\":487.1875,\"height\":617.1875,\"center\":880.09375},\"centerDelta\":-174.40625,\"rightPanel\":[]},{\"language\":\"japanese\",\"width\":1024,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1024,\"canvas\":{\"x\":204,\"width\":805,\"center\":606.5},\"card\":{\"x\":249.59375,\"y\":186.41424560546875,\"width\":369.796875,\"height\":667.1875,\"center\":434.4921875},\"centerDelta\":-172.0078125,\"rightPanel\":[]},{\"language\":\"japanese\",\"width\":1440,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1440,\"canvas\":{\"x\":204,\"width\":1221,\"center\":814.5},\"card\":{\"x\":396.5,\"y\":184.55299377441406,\"width\":487.1875,\"height\":617.1875,\"center\":640.09375},\"centerDelta\":-174.40625,\"rightPanel\":[]},{\"language\":\"japanese\",\"width\":1920,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1920,\"canvas\":{\"x\":204,\"width\":1701,\"center\":1054.5},\"card\":{\"x\":636.5,\"y\":183.140625,\"width\":487.1875,\"height\":617.1875,\"center\":880.09375},\"centerDelta\":-174.40625,\"rightPanel\":[]}]\n\n6 !== 0\n"
+            },
+            {
+              "id": "finance-real-ledger-summary-and-chart",
+              "error": "finance formatting issue: axisFormatted=false, axis=¥0 ¥5000500 ¥10001000 6月 7月 8月 9月 10月 11月, wraps=[{\"width\":112.4375,\"text\":\"¥1,000,000.00\",\"lines\":2,\"height\":96,\"lineHeight\":\"48px\",\"fontSize\":\"30px\"},{\"width\":112.453125,\"text\":\"¥10,001,000.00\",\"lines\":3,\"height\":144,\"lineHeight\":\"48px\",\"fontSize\":\"30px\"},{\"width\":112.453125,\"text\":\"-¥9,001,000.00\",\"lines\":3,\"height\":144,\"lineHeight\":\"48px\",\"fontSize\":\"30px\"},{\"width\":213.25,\"text\":\"¥10,001,000.00\",\"lines\":2,\"height\":96,\"lineHeight\":\"48px\",\"fontSize\":\"30px\"},{\"width\":213.25,\"text\":\"-¥9,001,000.00\",\"lines\":2,\"height\":96,\"lineHeight\":\"48px\",\"fontSize\":\"30px\"}]"
+            },
+            {
+              "id": "finance-edit-delete-chart-update-and-empty-ledger",
+              "error": "income row edit action missing"
+            },
+            {
+              "id": "refresh-continuity-all-required-pages",
+              "error": "/ content missing after hard refresh\n\nfalse !== true\n"
+            }
+          ]
+        },
+        {
+          "label": "round3-flash-on-1",
+          "source_sha": "fb936d109d0900d02d35eb3493212e4c32c39699",
+          "pass": 14,
+          "fail": 5,
+          "failures": [
+            {
+              "id": "finance-upgrade-shortcut-selects-finance-plans",
+              "error": "finance shortcut must select the finance goal in the visible UI\n+ actual - expected\n\n+ []\n- [\n-   'finance'\n- ]\n"
+            },
+            {
+              "id": "browser-back-forward-and-direct-route",
+              "error": "not visible #v3Sidebar [data-v3-nav=\"language\"]"
+            },
+            {
+              "id": "homepage-core-card-coordinate-hit-matrix",
+              "error": "TypeError: Cannot read properties of null (reading 'classList')\n    at <anonymous>:1:157"
+            },
+            {
+              "id": "finance-edit-delete-chart-update-and-empty-ledger",
+              "error": "income row edit action missing"
+            },
+            {
+              "id": "refresh-continuity-all-required-pages",
+              "error": "/ content missing after hard refresh\n\nfalse !== true\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "labels": [
+        "round3-red-final-v1",
+        "round3-flash-final-v1"
+      ],
+      "issues": [
+        "homeProductDetails was not expanded before coordinate measurement",
+        "candidate confirm-payment click occurred before QR image hydration settled; no mutation was replayed"
+      ],
+      "runs": [
+        {
+          "label": "round3-red-final-v1",
+          "source_sha": "21b83316cbfdeb366c587b9e818a2c64e2199215",
+          "pass": 13,
+          "fail": 12,
+          "failures": [
+            {
+              "id": "finance-upgrade-shortcut-selects-finance-plans",
+              "error": "membership workspace must not be covered by a modal overlay\n\n1 !== 0\n"
+            },
+            {
+              "id": "membership-is-an-independent-main-workspace",
+              "error": "Expected values to be strictly equal:\n\nfalse !== true\n"
+            },
+            {
+              "id": "membership-route-sidebar-cross-navigation",
+              "error": "timeout waiting for sidebar leaves membership"
+            },
+            {
+              "id": "account-is-a-main-workspace-not-a-modal",
+              "error": "Expected values to be strictly equal:\n\nfalse !== true\n"
+            },
+            {
+              "id": "account-workspace-sidebar-remains-in-keyboard-order",
+              "error": "Tab could not reach workspace navigation from account: {\"nav\":null,\"id\":\"refreshReleaseChannelBtn\",\"tag\":\"BUTTON\",\"insideInert\":false,\"rect\":{\"x\":837.5,\"y\":199.171875,\"width\":267.5,\"height\":44}}"
+            },
+            {
+              "id": "main-workspace-pages-do-not-announce-aria-modal",
+              "error": "standalone pages retain modal ARIA semantics: [{\"route\":\"/account\",\"inMain\":false,\"modalSemantics\":[{\"role\":\"dialog\",\"className\":\"modal-panel\"}]},{\"route\":\"/recharge\",\"inMain\":false,\"modalSemantics\":[{\"role\":\"dialog\",\"className\":\"modal-panel membership-panel\"}]}]"
+            },
+            {
+              "id": "account-to-learning-tools-home-sidebar-navigation",
+              "error": "timeout waiting for sidebar language"
+            },
+            {
+              "id": "browser-back-forward-and-direct-route",
+              "error": "timeout waiting for language after account"
+            },
+            {
+              "id": "homepage-core-card-coordinate-hit-matrix",
+              "error": "card coordinate and keyboard/touch misses: [{\"id\":\"learning\",\"point\":\"description\",\"hit\":null},{\"id\":\"learning\",\"point\":\"left-top-blank\",\"hit\":null,\"active\":true},{\"id\":\"learning\",\"point\":\"center-blank\",\"hit\":null,\"active\":true},{\"id\":\"learning\",\"point\":\"right-bottom-blank\",\"hit\":null,\"active\":true},{\"id\":\"learning\",\"point\":\"keyboard-enter\",\"active\":true,\"nativeClick\":false},{\"id\":\"learning\",\"point\":\"keyboard-space\",\"active\":true,\"nativeClick\":false},{\"id\":\"learning\",\"point\":\"internal-cta\",\"hit\":{\"x\":898.6328125,\"y\":1507.890625,\"visible\":true,\"disabled\":false,\"rect\":{\"x\":827,\"y\":1485.890625,\"width\":143.265625,\"height\":44},\"hit\":null},\"after\":{\"path\":\"/\",\"authVisible\":false,\"loginVisible\":false}},{\"id\":\"tools\",\"point\":\"title\",\"hit\":null,\"active\":false},{\"id\":\"tools\",\"point\":\"left-top-blank\",\"hit\":null,\"active\":false},{\"id\":\"tools\",\"point\":\"center-blank\",\"hit\":null,\"active\":false},{\"id\":\"tools\",\"point\":\"right-bottom-blank\",\"hit\":null,\"active\":false},{\"id\":\"tools\",\"point\":\"touch-trigger\",\"hit\":null,\"active\":false},{\"id\":\"tools\",\"point\":\"keyboard-enter\",\"active\":false,\"nativeClick\":false},{\"id\":\"tools\",\"point\":\"keyboard-space\",\"active\":false,\"nativeClick\":false},{\"id\":\"tools\",\"point\":\"internal-cta\",\"reason\":\"no visible independent action\"},{\"id\":\"finance\",\"point\":\"title\",\"hit\":null,\"active\":false},{\"id\":\"finance\",\"point\":\"left-top-blank\",\"hit\":null,\"active\":false},{\"id\":\"finance\",\"point\":\"center-blank\",\"hit\":null,\"active\":false},{\"id\":\"finance\",\"point\":\"right-bottom-blank\",\"hit\":null,\"active\":false},{\"id\":\"finance\",\"point\":\"touch-trigger\",\"hit\":null,\"active\":false},{\"id\":\"finance\",\"point\":\"keyboard-enter\",\"active\":false,\"nativeClick\":false},{\"id\":\"finance\",\"point\":\"keyboard-space\",\"active\":false,\"nativeClick\":false},{\"id\":\"finance\",\"point\":\"internal-cta\",\"reason\":\"no visible independent action\"},{\"id\":\"share\",\"point\":\"title\",\"hit\":null,\"active\":false},{\"id\":\"share\",\"point\":\"left-top-blank\",\"hit\":null,\"active\":false},{\"id\":\"share\",\"point\":\"center-blank\",\"hit\":null,\"active\":false},{\"id\":\"share\",\"point\":\"right-bottom-blank\",\"hit\":null,\"active\":false},{\"id\":\"share\",\"point\":\"touch-trigger\",\"hit\":null,\"active\":false},{\"id\":\"share\",\"point\":\"keyboard-enter\",\"active\":false,\"nativeClick\":false},{\"id\":\"share\",\"point\":\"keyboard-space\",\"active\":false,\"nativeClick\":false},{\"id\":\"share\",\"point\":\"internal-cta\",\"reason\":\"no visible independent action\"},{\"id\":\"account\",\"point\":\"title\",\"hit\":null,\"active\":false},{\"id\":\"account\",\"point\":\"left-top-blank\",\"hit\":null,\"active\":false},{\"id\":\"account\",\"point\":\"center-blank\",\"hit\":null,\"active\":false},{\"id\":\"account\",\"point\":\"right-bottom-blank\",\"hit\":null,\"active\":false},{\"id\":\"account\",\"point\":\"touch-trigger\",\"hit\":null,\"active\":false},{\"id\":\"account\",\"point\":\"keyboard-enter\",\"active\":false,\"nativeClick\":false},{\"id\":\"account\",\"point\":\"keyboard-space\",\"active\":false,\"nativeClick\":false},{\"id\":\"account\",\"point\":\"internal-cta\",\"reason\":\"no visible independent action\"}]\n\n39 !== 0\n"
+            },
+            {
+              "id": "standalone-english-japanese-views-and-quiz-card-geometry",
+              "error": "learning-card geometry failed: [{\"language\":\"english\",\"width\":1024,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1024,\"canvas\":{\"x\":204,\"width\":805,\"center\":606.5},\"card\":{\"x\":249.59375,\"y\":187.45025634765625,\"width\":369.796875,\"height\":667.1875,\"center\":434.4921875},\"centerDelta\":-172.0078125,\"rightPanel\":[]},{\"language\":\"english\",\"width\":1440,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1440,\"canvas\":{\"x\":204,\"width\":1221,\"center\":814.5},\"card\":{\"x\":396.5,\"y\":185.78775024414062,\"width\":487.1875,\"height\":617.1875,\"center\":640.09375},\"centerDelta\":-174.40625,\"rightPanel\":[]},{\"language\":\"english\",\"width\":1920,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1920,\"canvas\":{\"x\":204,\"width\":1701,\"center\":1054.5},\"card\":{\"x\":636.5,\"y\":183.140625,\"width\":487.1875,\"height\":617.1875,\"center\":880.09375},\"centerDelta\":-174.40625,\"rightPanel\":[]},{\"language\":\"japanese\",\"width\":1024,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1024,\"canvas\":{\"x\":204,\"width\":805,\"center\":606.5},\"card\":{\"x\":249.59375,\"y\":187.38282775878906,\"width\":369.796875,\"height\":705.578125,\"center\":434.4921875},\"centerDelta\":-172.0078125,\"rightPanel\":[]},{\"language\":\"japanese\",\"width\":1440,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1440,\"canvas\":{\"x\":204,\"width\":1221,\"center\":814.5},\"card\":{\"x\":396.5,\"y\":185.2554931640625,\"width\":487.1875,\"height\":655.578125,\"center\":640.09375},\"centerDelta\":-174.40625,\"rightPanel\":[]},{\"language\":\"japanese\",\"width\":1920,\"issue\":\"not_centered_in_main_canvas\",\"viewport\":1920,\"canvas\":{\"x\":204,\"width\":1701,\"center\":1054.5},\"card\":{\"x\":636.5,\"y\":182.14212036132812,\"width\":487.1875,\"height\":655.578125,\"center\":880.09375},\"centerDelta\":-174.40625,\"rightPanel\":[]}]\n\n6 !== 0\n"
+            },
+            {
+              "id": "finance-real-ledger-summary-and-chart",
+              "error": "finance formatting issue: axisFormatted=false, axis=¥0 ¥5000500 ¥10001000 6月 7月 8月 9月 10月 11月, wraps=[{\"width\":112.4375,\"text\":\"¥1,000,000.00\",\"lines\":2,\"height\":96,\"lineHeight\":\"48px\",\"fontSize\":\"30px\"},{\"width\":112.453125,\"text\":\"¥10,001,000.00\",\"lines\":3,\"height\":144,\"lineHeight\":\"48px\",\"fontSize\":\"30px\"},{\"width\":112.453125,\"text\":\"-¥9,001,000.00\",\"lines\":3,\"height\":144,\"lineHeight\":\"48px\",\"fontSize\":\"30px\"},{\"width\":213.25,\"text\":\"¥10,001,000.00\",\"lines\":2,\"height\":96,\"lineHeight\":\"48px\",\"fontSize\":\"30px\"},{\"width\":213.25,\"text\":\"-¥9,001,000.00\",\"lines\":2,\"height\":96,\"lineHeight\":\"48px\",\"fontSize\":\"30px\"}], clippedTicks=[{\"text\":\"¥5000500\",\"x\":-6.92307710647583,\"right\":40.280574321746826},{\"text\":\"¥10001000\",\"x\":-12.788461685180664,\"right\":40.27944755554199}]"
+            },
+            {
+              "id": "delayed-authoritative-policy-does-not-flash-legacy-layout",
+              "error": "actual browser painted legacy layout before P07 ON policy: 180 frames over 775ms\n\n180 !== 0\n"
+            }
+          ]
+        },
+        {
+          "label": "round3-flash-final-v1",
+          "source_sha": "fb936d109d0900d02d35eb3493212e4c32c39699",
+          "pass": 19,
+          "fail": 6,
+          "failures": [
+            {
+              "id": "finance-upgrade-shortcut-selects-finance-plans",
+              "error": "finance shortcut must select the finance goal in the visible UI\n+ actual - expected\n\n+ []\n- [\n-   'finance'\n- ]\n"
+            },
+            {
+              "id": "membership-order-and-admin-review-boundary",
+              "error": "timeout waiting for synthetic payment notice"
+            },
+            {
+              "id": "main-workspace-pages-do-not-announce-aria-modal",
+              "error": "standalone pages retain modal ARIA semantics: [{\"route\":\"/account\",\"inMain\":true,\"modalSemantics\":[{\"role\":\"dialog\",\"className\":\"modal-panel\"}]},{\"route\":\"/recharge\",\"inMain\":true,\"modalSemantics\":[{\"role\":\"dialog\",\"className\":\"modal-panel membership-panel\"}]}]"
+            },
+            {
+              "id": "homepage-core-card-coordinate-hit-matrix",
+              "error": "card coordinate and keyboard/touch misses: [{\"id\":\"learning\",\"point\":\"description\",\"hit\":null},{\"id\":\"learning\",\"point\":\"left-top-blank\",\"hit\":null,\"active\":true},{\"id\":\"learning\",\"point\":\"center-blank\",\"hit\":null,\"active\":true},{\"id\":\"learning\",\"point\":\"right-bottom-blank\",\"hit\":null,\"active\":true},{\"id\":\"learning\",\"point\":\"keyboard-enter\",\"active\":true,\"nativeClick\":false},{\"id\":\"learning\",\"point\":\"keyboard-space\",\"active\":true,\"nativeClick\":false},{\"id\":\"learning\",\"point\":\"internal-cta\",\"hit\":{\"x\":898.6328125,\"y\":1507.890625,\"visible\":true,\"disabled\":false,\"rect\":{\"x\":827,\"y\":1485.890625,\"width\":143.265625,\"height\":44},\"hit\":null},\"after\":{\"path\":\"/\",\"authVisible\":false,\"loginVisible\":false}},{\"id\":\"tools\",\"point\":\"title\",\"hit\":null,\"active\":false},{\"id\":\"tools\",\"point\":\"left-top-blank\",\"hit\":null,\"active\":false},{\"id\":\"tools\",\"point\":\"center-blank\",\"hit\":null,\"active\":false},{\"id\":\"tools\",\"point\":\"right-bottom-blank\",\"hit\":null,\"active\":false},{\"id\":\"tools\",\"point\":\"touch-trigger\",\"hit\":null,\"active\":false},{\"id\":\"tools\",\"point\":\"keyboard-enter\",\"active\":false,\"nativeClick\":false},{\"id\":\"tools\",\"point\":\"keyboard-space\",\"active\":false,\"nativeClick\":false},{\"id\":\"tools\",\"point\":\"internal-cta\",\"reason\":\"no visible independent action\"},{\"id\":\"finance\",\"point\":\"title\",\"hit\":null,\"active\":false},{\"id\":\"finance\",\"point\":\"left-top-blank\",\"hit\":null,\"active\":false},{\"id\":\"finance\",\"point\":\"center-blank\",\"hit\":null,\"active\":false},{\"id\":\"finance\",\"point\":\"right-bottom-blank\",\"hit\":null,\"active\":false},{\"id\":\"finance\",\"point\":\"touch-trigger\",\"hit\":null,\"active\":false},{\"id\":\"finance\",\"point\":\"keyboard-enter\",\"active\":false,\"nativeClick\":false},{\"id\":\"finance\",\"point\":\"keyboard-space\",\"active\":false,\"nativeClick\":false},{\"id\":\"finance\",\"point\":\"internal-cta\",\"reason\":\"no visible independent action\"},{\"id\":\"share\",\"point\":\"title\",\"hit\":null,\"active\":false},{\"id\":\"share\",\"point\":\"left-top-blank\",\"hit\":null,\"active\":false},{\"id\":\"share\",\"point\":\"center-blank\",\"hit\":null,\"active\":false},{\"id\":\"share\",\"point\":\"right-bottom-blank\",\"hit\":null,\"active\":false},{\"id\":\"share\",\"point\":\"touch-trigger\",\"hit\":null,\"active\":false},{\"id\":\"share\",\"point\":\"keyboard-enter\",\"active\":false,\"nativeClick\":false},{\"id\":\"share\",\"point\":\"keyboard-space\",\"active\":false,\"nativeClick\":false},{\"id\":\"share\",\"point\":\"internal-cta\",\"reason\":\"no visible independent action\"},{\"id\":\"account\",\"point\":\"title\",\"hit\":null,\"active\":false},{\"id\":\"account\",\"point\":\"left-top-blank\",\"hit\":null,\"active\":false},{\"id\":\"account\",\"point\":\"center-blank\",\"hit\":null,\"active\":false},{\"id\":\"account\",\"point\":\"right-bottom-blank\",\"hit\":null,\"active\":false},{\"id\":\"account\",\"point\":\"touch-trigger\",\"hit\":null,\"active\":false},{\"id\":\"account\",\"point\":\"keyboard-enter\",\"active\":false,\"nativeClick\":false},{\"id\":\"account\",\"point\":\"keyboard-space\",\"active\":false,\"nativeClick\":false},{\"id\":\"account\",\"point\":\"internal-cta\",\"reason\":\"no visible independent action\"}]\n\n39 !== 0\n"
+            },
+            {
+              "id": "admin-and-member-authorization-isolation",
+              "error": "synthetic user-paid order has no administrator approval action"
+            },
+            {
+              "id": "delayed-authoritative-policy-does-not-flash-legacy-layout",
+              "error": "actual browser painted legacy layout before P07 ON policy: 167 frames over 723ms\n\n167 !== 0\n"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "corrections": [
+    "new-document identity and actual boot completion",
+    "real native expansion of the home disclosure",
+    "wait for actual QR decode, then fresh pointer geometry and elementFromPoint",
+    "numeric parsing tolerates currency-symbol placement while formatting is asserted separately"
+  ],
+  "round3_business_expectations_weakened": false,
+  "failed_cases_skipped_in_full_v2": 0,
+  "original_CI_account_modal_assumption_replaced_with_page_navigation": true,
+  "product_code_changed": false
+}

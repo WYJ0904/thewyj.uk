@@ -1,0 +1,155 @@
+{
+  "status": "P07_ROUND3_QA_PARTIAL",
+  "date": "2026-11-05",
+  "timezone": "Asia/Hong_Kong",
+  "red_sha": "21b83316cbfdeb366c587b9e818a2c64e2199215",
+  "candidate_sha": "fb936d109d0900d02d35eb3493212e4c32c39699",
+  "counts": {
+    "red": {
+      "pass": 13,
+      "fail": 12,
+      "not_tested": 0
+    },
+    "candidate": {
+      "pass": 22,
+      "fail": 3,
+      "not_tested": 0
+    }
+  },
+  "identical_driver_hashes": true,
+  "browser_driver_sha256": "227c4f69d473186fdbe307fa3a6da4a9a6d5a0c41d485ff51d19beed608fa61d",
+  "comparison": [
+    {
+      "id": "first-paint-home-and-p07-decision",
+      "red": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "free-account-finance-guard-is-visible",
+      "red": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "finance-upgrade-shortcut-selects-finance-plans",
+      "red": "FAIL",
+      "candidate": "FAIL"
+    },
+    {
+      "id": "membership-is-an-independent-main-workspace",
+      "red": "FAIL",
+      "candidate": "PASS"
+    },
+    {
+      "id": "finance-upgrade-manual-goal-remains-usable",
+      "red": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "membership-order-and-admin-review-boundary",
+      "red": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "membership-route-sidebar-cross-navigation",
+      "red": "FAIL",
+      "candidate": "PASS"
+    },
+    {
+      "id": "account-is-a-main-workspace-not-a-modal",
+      "red": "FAIL",
+      "candidate": "PASS"
+    },
+    {
+      "id": "account-workspace-sidebar-remains-in-keyboard-order",
+      "red": "FAIL",
+      "candidate": "PASS"
+    },
+    {
+      "id": "legacy-account-escape-diagnostic-and-sidebar-exit",
+      "red": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "main-workspace-pages-do-not-announce-aria-modal",
+      "red": "FAIL",
+      "candidate": "FAIL"
+    },
+    {
+      "id": "synthetic-account-secret-change-revokes-old-session",
+      "red": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "account-to-learning-tools-home-sidebar-navigation",
+      "red": "FAIL",
+      "candidate": "PASS"
+    },
+    {
+      "id": "browser-back-forward-and-direct-route",
+      "red": "FAIL",
+      "candidate": "PASS"
+    },
+    {
+      "id": "homepage-core-card-coordinate-hit-matrix",
+      "red": "FAIL",
+      "candidate": "PASS"
+    },
+    {
+      "id": "standalone-english-japanese-views-and-quiz-card-geometry",
+      "red": "FAIL",
+      "candidate": "PASS"
+    },
+    {
+      "id": "learning-submit-next-skip-refresh-and-language-isolation",
+      "red": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "japanese-ai-off-reading-failure-leaves-meaning-ui-usable",
+      "red": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "english-local-rubric-and-ai-off-fail-closed",
+      "red": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "japanese-reading-and-meaning-services-are-distinct",
+      "red": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "finance-real-ledger-summary-and-chart",
+      "red": "FAIL",
+      "candidate": "PASS"
+    },
+    {
+      "id": "finance-edit-delete-chart-update-and-empty-ledger",
+      "red": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "admin-and-member-authorization-isolation",
+      "red": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "refresh-continuity-all-required-pages",
+      "red": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "delayed-authoritative-policy-does-not-flash-legacy-layout",
+      "red": "FAIL",
+      "candidate": "FAIL"
+    }
+  ],
+  "real_ai_quality": "NOT_TESTED",
+  "hosted_authenticated_workspaces": "NOT_TESTED",
+  "hosted_administrator": "NOT_TESTED",
+  "production_acceptance": "NOT_TESTED",
+  "physical_touch": "NOT_TESTED",
+  "owner_existing_browser_profile_sw_upgrade": "NOT_TESTED",
+  "controlled_same_origin_sw_upgrade": "FAIL"
+}

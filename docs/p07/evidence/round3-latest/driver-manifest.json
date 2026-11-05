@@ -1,0 +1,18 @@
+{
+  "files": {
+    "qa/p07-d/run.mjs": "01ba1e21bb601542fec866ecd023a388921aa35225984ea74695496b8bd64d98",
+    "qa/p07-d/serve.mjs": "36352591b16dd1a5c60a18778743d97d4b2cc94b99cde1453ed82ca2225b4a22",
+    "qa/p07-round3/browser.mjs": "227c4f69d473186fdbe307fa3a6da4a9a6d5a0c41d485ff51d19beed608fa61d",
+    "qa/p07-round3/preview-readonly.mjs": "cbb5f904c7ebb6b31358e683c0594acc3ae7a6222af04588d988fa3f6026d6e4",
+    "qa/p07-round3/layout-supplement.mjs": "0cb6c092602a89957151320ef400cc0750d4823e0312ae880564d3ed22955d47",
+    "qa/p07-round3/cache-upgrade.mjs": "1fb5d1f29d9db75275957b4468ecfb56e6dbf0f1dba2709109a8cf991859edb3",
+    "qa/p07-round3/primary-workspaces.mjs": "726e99c286ec527d0fce4fb62a0c1a44da9ad8a0675c21035b2b001bbf98a5ef",
+    "qa/p07-round3/account-workspace-contract.mjs": "188fa949d5d6fcd7fd307e5fb51b373c802b355bc77c5b8025ff606f2741b13a",
+    "qa/aeris/p4-behavior-browser.mjs": "bfad35e37e16b73e3970efc3c7eab0499c5fbf5fae7375cb19f1ee36fd462045",
+    "local-backend/browser_harness.mjs": "12bc3cae18adb477ff1127e0e496d7a5f6caead428f04a331d1195cb925cee98"
+  },
+  "inherited_framework_commit": "0f2050bc8b76cfe2a6a8f2daf623d2dbafd6dd9e",
+  "source_sha": "f7949f8253f51ea2621c397743208971c0cec467",
+  "flag_mode": "on",
+  "product_overlays": false
+}
