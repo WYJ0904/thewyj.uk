@@ -1352,6 +1352,12 @@ function renderAccountDetails() {
     ["注册时间", formatLocalDateTime(account.registered_at, "未知")],
     ["最后登录", formatLocalDateTime(account.last_login_at, "从未")],
   ];
+  const roleName = isSuperAdmin(account) ? "站点所有者" : isAdmin(account) ? "管理员" : (summary.name || "普通账户");
+  if ($("accountProfileUsername")) $("accountProfileUsername").textContent = account.username || "-";
+  if ($("accountProfileRoleBadge")) $("accountProfileRoleBadge").textContent = roleName;
+  if ($("accountProfileId")) $("accountProfileId").textContent = account.id || "-";
+  if ($("accountProfileRegistered")) $("accountProfileRegistered").textContent = formatLocalDateTime(account.registered_at, "未知");
+  if ($("accountSyncStatus")) $("accountSyncStatus").textContent = state.session ? "已连接云端同步 (Cloudflare D1)" : "离线运行模式";
   reconcileKeyedRows(details, rows, {
     key: ([label]) => label,
     render: ([label, value]) => `<div class="account-setting-row"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value ?? "")}</dd></div>`,
@@ -1588,6 +1594,14 @@ async function voteForFeature(feedbackId, voted) {
 }
 
 function openModal(id) {
+  if (id === "membershipModal") {
+    void showMembership(true);
+    return;
+  }
+  if (id === "accountModal") {
+    showAccount(true);
+    return;
+  }
   const modal = $(id);
   if (!modal) return;
   // All dialogs live outside the inert application shell, including finance.
@@ -1613,6 +1627,24 @@ function openModal(id) {
 function closeModal(id, immediate = false) {
   const modal = $(id);
   if (!modal || modal.classList.contains("hidden")) return;
+  if (id === "membershipModal" || id === "accountModal") {
+    membershipModalLoadSequence += 1;
+    membershipModalController?.abort();
+    membershipModalController = null;
+    releasePaymentQr();
+    modal.classList.add("hidden");
+    modal.setAttribute("aria-hidden", "true");
+    if (id === "accountModal") clearOwnSecretEditor();
+    if (state.membershipReturnPath === "/finance") {
+      state.membershipReturnPath = null;
+      pushRoute("/finance", true);
+      showFinance(false);
+    } else if (location.pathname === "/recharge" || location.pathname === "/account") {
+      pushRoute("/", true);
+      showModulePicker(false);
+    }
+    return;
+  }
   const pendingClose = modalCloseTimers.get(id);
   if (pendingClose) {
     window.clearTimeout(pendingClose);
@@ -2070,7 +2102,11 @@ async function openMembershipModal(options = {}) {
   renderMembershipGoals();
   renderMembershipPlans();
   $("rechargeMessage").textContent = "正在加载套餐与订单状态…";
-  openModal("membershipModal");
+  const page = $("membershipModal");
+  if (page) {
+    page.classList.remove("hidden", "is-closing");
+    page.setAttribute("aria-hidden", "false");
+  }
   let openOrder = null;
   const loadErrors = [];
   const [plansResult, ordersResult] = await Promise.allSettled([
@@ -3355,6 +3391,16 @@ function restoreProjectRuntime() {
     state.roundStartedAt = 0;
     state.roundId = "";
     state.mode = "normal";
+    if ($("wordText")) $("wordText").textContent = "-";
+    if ($("wordReading")) {
+      $("wordReading").textContent = "";
+      $("wordReading").classList.add("hidden");
+    }
+    if ($("progressLabel")) $("progressLabel").textContent = "0/0";
+    if ($("scoreLabel")) $("scoreLabel").textContent = "得分 0";
+    if ($("quizLanguageLabel")) $("quizLanguageLabel").textContent = currentProject === "japanese" ? "日语" : "英语";
+    if ($("answerInput")) $("answerInput").value = "";
+    if ($("resultPanel")) $("resultPanel").classList.add("hidden");
     setView("setupView");
     updateStats();
     return;
@@ -3375,6 +3421,17 @@ function restoreProjectRuntime() {
   if (state.roundActive) {
     showWord({ preserveTransition: Boolean(state.pendingAdvance), focus: false });
     if (state.pendingAdvance) renderQuestionFeedback(state.pendingAdvance.feedback);
+  } else {
+    if ($("wordText")) $("wordText").textContent = "-";
+    if ($("wordReading")) {
+      $("wordReading").textContent = "";
+      $("wordReading").classList.add("hidden");
+    }
+    if ($("progressLabel")) $("progressLabel").textContent = "0/0";
+    if ($("scoreLabel")) $("scoreLabel").textContent = "得分 0";
+    if ($("quizLanguageLabel")) $("quizLanguageLabel").textContent = currentProject === "japanese" ? "日语" : "英语";
+    if ($("answerInput")) $("answerInput").value = "";
+    if ($("resultPanel")) $("resultPanel").classList.add("hidden");
   }
   setView(view);
   if (state.roundActive) {
@@ -3820,7 +3877,7 @@ function showLanguageGate() {
 function hidePrimaryScreens() {
   setExperienceMode("workspace");
   const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
-  ["sessionRecovery", "publicHome", "changelogPage", "downloadPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "transferPage", "shareViewer", "adminPanel"].forEach((id) => {
+  ["sessionRecovery", "publicHome", "changelogPage", "downloadPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "transferPage", "shareViewer", "adminPanel", "membershipModal", "accountModal"].forEach((id) => {
     const element = $(id);
     if (!element) return;
     element.classList.add("hidden");
@@ -3830,6 +3887,8 @@ function hidePrimaryScreens() {
   $("topbar")?.classList.add("hidden");
   $("authPanel")?.classList.add("hidden");
   $("workspace")?.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+  if ($("appShell")) $("appShell").inert = false;
   window.WYJTools?.hide?.();
   financeController?.hide?.();
   financeCandidatesController?.hide?.();
@@ -3921,6 +3980,19 @@ function enterProject(value, pushHistory = true) {
   applyPendingScreen();
   if (pushHistory) pushRoute(`/language/${language}`);
   renderAccountUi();
+  if (!state.roundActive) {
+    if ($("wordText")) $("wordText").textContent = "-";
+    if ($("wordReading")) {
+      $("wordReading").textContent = "";
+      $("wordReading").classList.add("hidden");
+    }
+    if ($("progressLabel")) $("progressLabel").textContent = "0/0";
+    if ($("scoreLabel")) $("scoreLabel").textContent = "得分 0";
+    if ($("quizLanguageLabel")) $("quizLanguageLabel").textContent = language === "japanese" ? "日语" : "英语";
+    if ($("answerInput")) $("answerInput").value = "";
+    if ($("resultPanel")) $("resultPanel").classList.add("hidden");
+  }
+  masteryController?.update();
 }
 
 function showSessionRecovery(message = "正在打开你的页面…", options = {}) {
@@ -4039,6 +4111,48 @@ async function handleToolsAccessFailure(error, generation) {
     $("rechargeMessage").textContent = "当前会员不包含在线工具箱，请选择工具箱或全功能会员。";
     await openMembershipModal({ goal: "tools" });
   }
+}
+
+async function showMembership(pushHistory = true, options = {}) {
+  if (!state.session || !state.account) {
+    showAuth("请先登录后查看会员方案", { path: "/login" });
+    return;
+  }
+  stopProjectActivity();
+  currentProject = "";
+  state.quizLanguage = "";
+  hidePrimaryScreens();
+  const page = $("membershipModal");
+  if (page) {
+    page.classList.remove("hidden", "is-closing");
+    page.setAttribute("aria-hidden", "false");
+  }
+  document.body.classList.remove("modal-open", "project-picker-active");
+  if ($("appShell")) $("appShell").inert = false;
+  if (pushHistory) pushRoute("/recharge");
+  renderAccountUi();
+  await openMembershipModal({ ...options, insideWorkspace: true });
+}
+
+function showAccount(pushHistory = true) {
+  if (!state.session || !state.account) {
+    showAuth("请先登录后管理账户", { path: "/login" });
+    return;
+  }
+  stopProjectActivity();
+  currentProject = "";
+  state.quizLanguage = "";
+  hidePrimaryScreens();
+  const page = $("accountModal");
+  if (page) {
+    page.classList.remove("hidden", "is-closing");
+    page.setAttribute("aria-hidden", "false");
+  }
+  document.body.classList.remove("modal-open", "project-picker-active");
+  if ($("appShell")) $("appShell").inert = false;
+  if (pushHistory) pushRoute("/account");
+  renderAccountUi();
+  renderAccountDetails();
 }
 
 async function showFinance(pushHistory = true, generation = routeGeneration) {
@@ -4266,13 +4380,11 @@ async function renderCurrentRoute(path, generation = routeGeneration) {
       return;
     }
     if (path === "/account") {
-      showModulePicker(false);
-      openModal("accountModal");
+      showAccount(false);
       return;
     }
     if (path === "/recharge") {
-      showModulePicker(false);
-      await openMembershipModal();
+      await showMembership(false);
       return;
     }
     showModulePicker(false);
@@ -4705,7 +4817,13 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
     clearSession();
     showAuth("登录已失效，请重新登录", options);
   },
-  handleMembershipRequired: () => openMembershipModal({ goal: membershipGoalForCurrentContext() }),
+  handleMembershipRequired: () => {
+    if (location.pathname.startsWith("/finance")) {
+      state.membershipReturnPath = "/finance";
+      return showMembership(true, { goal: "finance" });
+    }
+    return openMembershipModal({ goal: membershipGoalForCurrentContext() });
+  },
 });
 
 installLazyTools({
@@ -4730,8 +4848,8 @@ financeController = createLazyController({
   hasEntitlement: (code, account) => hasAccountEntitlement(code, account),
   isSuperAdmin: (account) => isSuperAdmin(account),
   openRecharge: (goal) => {
-    pushRoute("/recharge");
-    return openMembershipModal({ goal });
+    state.membershipReturnPath = "/finance";
+    return showMembership(true, { goal });
   },
   navigate: (path) => {
     if (path === "/select") showModulePicker(true);
@@ -4908,6 +5026,7 @@ function setView(id) {
   if (leavingQuiz) {
     if (judgeController) judgeController.abort();
   }
+  $("workspace")?.setAttribute("data-active-view", id);
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
   document.querySelectorAll(".tabs button").forEach((tab) => tab.classList.toggle("active", tab.dataset.view === id));
   if (id === "quizView" && state.roundActive) {
@@ -5009,15 +5128,17 @@ function hideResultPanel() {
     clearTimeout(resultHideTimer);
     resultHideTimer = null;
   }
-  $("resultPanel").classList.remove("grading", "ai-review");
-  $("resultPanel").classList.add("hidden");
+  $("resultPanel")?.classList.remove("grading", "ai-review");
+  $("resultPanel")?.classList.add("hidden");
+  $("quizView")?.classList.remove("has-feedback");
 }
 
 function scheduleResultHide(delayMs = QUESTION_TRANSITION_MS) {
   if (resultHideTimer) clearTimeout(resultHideTimer);
   resultHideTimer = setTimeout(() => {
     resultHideTimer = null;
-    $("resultPanel").classList.add("hidden");
+    $("resultPanel")?.classList.add("hidden");
+    $("quizView")?.classList.remove("has-feedback");
   }, delayMs);
 }
 
@@ -5475,9 +5596,15 @@ async function ensureJapaneseQuestionForms(words) {
   });
   if (!missing.length) return true;
   if (!backendAvailable || !state.session) {
-    alert(dictation
+    const offlineMsg = dictation
       ? "这些日语词还缺少完整的汉字或假名写法，请联网后重试。"
-      : "这些日语汉字还缺少假名读音，请联网后重试。");
+      : "这些日语汉字还缺少假名读音，请联网后重试。";
+    showAchievementToast(offlineMsg);
+    const validation = $("answerValidation");
+    if (validation) {
+      validation.textContent = offlineMsg;
+      validation.classList.remove("hidden");
+    }
     return false;
   }
 
@@ -5490,7 +5617,13 @@ async function ensureJapaneseQuestionForms(words) {
     );
     rememberJapaneseVocabularyData(resolution.readings || {}, resolution.written_forms || {});
   } catch (error) {
-    alert(`${dictation ? "获取日语完整写法" : "获取日语假名读音"}失败：${error.message}。内置词库未收录的生僻词需要 Workers AI 可用。`);
+    const errorMsg = `${dictation ? "获取日语完整写法" : "获取日语假名读音"}失败：${error.message}。内置词库未收录的生僻词需要 Workers AI 可用。`;
+    showAchievementToast(errorMsg);
+    const validation = $("answerValidation");
+    if (validation) {
+      validation.textContent = errorMsg;
+      validation.classList.remove("hidden");
+    }
     return false;
   }
 
@@ -5504,11 +5637,23 @@ async function ensureJapaneseQuestionForms(words) {
   });
   if (unresolved.length) {
     const preview = unresolved.slice(0, 5).join("、");
+    const aiMessage = `AI 暂时不可用，${preview}${unresolved.length > 5 ? "等" : ""}暂不显示假名标音；释义练习仍可继续。`;
     if (!dictation && resolution?.ai_unavailable) {
-      alert(`AI 暂时不可用，${preview}${unresolved.length > 5 ? "等" : ""}暂不显示假名标音；释义练习仍可继续。`);
+      showAchievementToast(aiMessage);
+      const validation = $("answerValidation");
+      if (validation) {
+        validation.textContent = aiMessage;
+        validation.classList.remove("hidden");
+      }
       return true;
     }
-    alert(`AI 暂时未找到这些词的${dictation ? "完整写法" : "假名读音"}：${preview}${unresolved.length > 5 ? "等" : ""}。请稍后重试。`);
+    const notFoundMessage = `AI 暂时未找到这些词的${dictation ? "完整写法" : "假名读音"}：${preview}${unresolved.length > 5 ? "等" : ""}。请稍后重试。`;
+    showAchievementToast(notFoundMessage);
+    const validation = $("answerValidation");
+    if (validation) {
+      validation.textContent = notFoundMessage;
+      validation.classList.remove("hidden");
+    }
     return false;
   }
   return true;
@@ -6751,6 +6896,14 @@ function dismissTopOverlay() {
   if ($("accountMenu")?.open) { closeAccountMenu(); return true; }
   const navigation = $("siteNavToggle");
   if (navigation?.getAttribute("aria-expanded") === "true") { navigation.click(); return true; }
+  if (location.pathname === "/account" || ($("accountModal") && !$("accountModal").classList.contains("hidden"))) {
+    closeModal("accountModal", true);
+    return true;
+  }
+  if (location.pathname === "/recharge" || ($("membershipModal") && !$("membershipModal").classList.contains("hidden"))) {
+    closeModal("membershipModal", true);
+    return true;
+  }
   return false;
 }
 
@@ -6890,8 +7043,13 @@ function auditRuntimeCapabilities() {
 
 async function boot() {
   initDesignSystem();
+  try {
+    await Promise.race([
+      publicUiPolicyController?.refresh(),
+      new Promise((resolve) => setTimeout(resolve, 250)),
+    ]);
+  } catch (_) {}
   applyInterfacePolicy();
-  void publicUiPolicyController?.refresh();
   initPublicExperience();
   installLocalTestBindings();
   auditRuntimeCapabilities();
@@ -6954,12 +7112,12 @@ async function boot() {
         return;
       }
       if (target === "recharge") {
-        if (state.session && state.account) $("membershipBtn")?.click();
+        if (state.session && state.account) await showMembership(true);
         else showAuth("登录后可查看实时套餐并提交充值申请", { mode: "login", path: "/login" });
         return;
       }
       if (target === "account") {
-        if (state.session && state.account) $("accountBtn")?.click();
+        if (state.session && state.account) showAccount(true);
         else showAuth("", { mode: "login", path: "/login" });
         return;
       }
@@ -6981,6 +7139,15 @@ async function boot() {
   });
   $("changelogTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
   $("dashboardChangelogBtn")?.addEventListener("click", () => showChangelog(true));
+  document.querySelectorAll(".v3-summary-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      const target = card.dataset.v3Summary;
+      if (target === "learning") navigateFromSiteNav("language");
+      else if (target === "finance") navigateFromSiteNav("finance");
+      else if (target === "transfer") navigateFromSiteNav("transfer");
+      else if (target === "tools") navigateFromSiteNav("tools");
+    });
+  });
   // #7: the learning-sync actions talk to the cloud; the control shows the
   // pending state before the first await instead of looking dead for a round trip.
   $("learningSyncNowBtn")?.addEventListener("click", (event) =>
@@ -7011,12 +7178,11 @@ async function boot() {
   $("membershipBtn").addEventListener("click", (event) =>
     withInteractionFeedback(event.currentTarget, "membership-open", async () => {
       closeAccountMenu();
-      pushRoute("/recharge");
-      await openMembershipModal();
+      await showMembership(true);
     }));
   $("feedbackBtn").addEventListener("click", (event) =>
     withInteractionFeedback(event.currentTarget, "feedback-open", () => openFeedbackModal(event)));
-  $("accountBtn").addEventListener("click", () => { closeAccountMenu(); pushRoute("/account"); openModal("accountModal"); });
+  $("accountBtn").addEventListener("click", () => { closeAccountMenu(); showAccount(true); });
   $("homeBtn").addEventListener("click", () => { closeAccountMenu(); showModulePicker(true); });
   $("adminBtn").addEventListener("click", () => { closeAccountMenu(); showAdminPanel(true); });
   $("logoutBtn").addEventListener("click", () => { closeAccountMenu(); logoutAccount(); });
@@ -7059,20 +7225,25 @@ async function boot() {
     if (event.key !== "Escape") return;
     const openModals = [...document.querySelectorAll(".modal-layer:not(.hidden)")];
     const modal = openModals[openModals.length - 1];
-    if (!modal) {
-      closeAccountMenu();
+    if (modal) {
+      if (modal.hasAttribute("data-confirm-only")) {
+        modal.querySelector("button")?.focus();
+        return;
+      }
+      if (modal.id === "siteMessageModal") {
+        void dismissActiveSiteMessage();
+        return;
+      }
+      if (modal.id === "confirmModal") confirmAction = null;
+      closeModal(modal.id);
       return;
     }
-    if (modal.hasAttribute("data-confirm-only")) {
-      modal.querySelector("button")?.focus();
-      return;
+    closeAccountMenu();
+    if (location.pathname === "/account" || ($("accountModal") && !$("accountModal").classList.contains("hidden"))) {
+      closeModal("accountModal");
+    } else if (location.pathname === "/recharge" || ($("membershipModal") && !$("membershipModal").classList.contains("hidden"))) {
+      closeModal("membershipModal");
     }
-    if (modal.id === "siteMessageModal") {
-      void dismissActiveSiteMessage();
-      return;
-    }
-    if (modal.id === "confirmModal") confirmAction = null;
-    closeModal(modal.id);
   });
   document.addEventListener("click", (event) => {
     const menu = $("accountMenu");

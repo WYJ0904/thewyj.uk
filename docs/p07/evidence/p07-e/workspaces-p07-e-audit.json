@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-11-05T10:46:22.276Z",
+  "status": "PASS",
+  "workspaces": [
+    {
+      "workspace": "E-01",
+      "name": "File Transfer & Sharing",
+      "status": "PASS"
+    },
+    {
+      "workspace": "E-02",
+      "name": "Workflow Editor",
+      "status": "PASS"
+    },
+    {
+      "workspace": "E-03",
+      "name": "Admin Console",
+      "status": "PASS"
+    },
+    {
+      "workspace": "E-04",
+      "name": "Notifications & Candidate Verification",
+      "status": "PASS"
+    },
+    {
+      "workspace": "E-05",
+      "name": "Common Modals & Responsiveness",
+      "status": "PASS"
+    }
+  ],
+  "viewportsChecked": [
+    375,
+    390,
+    768,
+    1024,
+    1440,
+    1920
+  ],
+  "themesChecked": [
+    "light",
+    "dark"
+  ],
+  "runtimeErrorsCount": 0,
+  "dialogsCount": 0
+}
