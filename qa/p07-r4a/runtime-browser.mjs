@@ -37,7 +37,9 @@ try{
     await p.evaluate('history.back()');await sole('financePage','/finance');await p.evaluate('history.forward()');await sole('membershipModal','/recharge');
     await reload();await sole('membershipModal','/recharge');await p.waitFor("document.querySelectorAll('#membershipPlanList [data-plan]').length===3",10000,'goal restored from safe history state');
     await escape();await sole('financePage','/finance');
-    await click('#financeUpgradeBtn');await sole('membershipModal','/recharge');await p.waitFor('Boolean(window.WYJAndroidNavigation)',5000);assert.equal(await p.evaluate('window.WYJAndroidNavigation.back()'),true);await sole('financePage','/finance');
+    // The desktop test opt-in is a boot query, not a capability persisted by
+    // SPA routes. Re-enter it after the preceding ordinary refresh test.
+    await go('/finance');await sole('financePage','/finance');await click('#financeUpgradeBtn');await sole('membershipModal','/recharge');await p.waitFor('Boolean(window.WYJAndroidNavigation)',5000);assert.equal(await p.evaluate('window.WYJAndroidNavigation.back()'),true);await sole('financePage','/finance');
     return{filtersRetained:true,goalRetainedAcrossForwardAndRefresh:true,escape:true,androidWebBridgeBack:true};
   });
   await check('true-confirmation-modal-lifecycle',async()=>{
