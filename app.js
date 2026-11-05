@@ -1352,6 +1352,12 @@ function renderAccountDetails() {
     ["注册时间", formatLocalDateTime(account.registered_at, "未知")],
     ["最后登录", formatLocalDateTime(account.last_login_at, "从未")],
   ];
+  const roleName = isSuperAdmin(account) ? "站点所有者" : isAdmin(account) ? "管理员" : (summary.name || "普通账户");
+  if ($("accountProfileUsername")) $("accountProfileUsername").textContent = account.username || "-";
+  if ($("accountProfileRoleBadge")) $("accountProfileRoleBadge").textContent = roleName;
+  if ($("accountProfileId")) $("accountProfileId").textContent = account.id || "-";
+  if ($("accountProfileRegistered")) $("accountProfileRegistered").textContent = formatLocalDateTime(account.registered_at, "未知");
+  if ($("accountSyncStatus")) $("accountSyncStatus").textContent = state.session ? "已连接云端同步 (Cloudflare D1)" : "离线运行模式";
   reconcileKeyedRows(details, rows, {
     key: ([label]) => label,
     render: ([label, value]) => `<div class="account-setting-row"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value ?? "")}</dd></div>`,
@@ -4826,7 +4832,12 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
     clearSession();
     showAuth("登录已失效，请重新登录", options);
   },
-  handleMembershipRequired: () => openMembershipModal({ goal: membershipGoalForCurrentContext() }),
+  handleMembershipRequired: () => {
+    if (location.pathname.startsWith("/finance")) {
+      return showMembership(true, { goal: "finance", returnTo: "/finance" });
+    }
+    return openMembershipModal({ goal: membershipGoalForCurrentContext() });
+  },
 });
 
 installLazyTools({
@@ -5608,9 +5619,15 @@ async function ensureJapaneseQuestionForms(words) {
   });
   if (!missing.length) return true;
   if (!backendAvailable || !state.session) {
-    alert(dictation
+    const offlineMsg = dictation
       ? "这些日语词还缺少完整的汉字或假名写法，请联网后重试。"
-      : "这些日语汉字还缺少假名读音，请联网后重试。");
+      : "这些日语汉字还缺少假名读音，请联网后重试。";
+    showAchievementToast(offlineMsg);
+    const validation = $("answerValidation");
+    if (validation) {
+      validation.textContent = offlineMsg;
+      validation.classList.remove("hidden");
+    }
     return false;
   }
 
@@ -5623,7 +5640,13 @@ async function ensureJapaneseQuestionForms(words) {
     );
     rememberJapaneseVocabularyData(resolution.readings || {}, resolution.written_forms || {});
   } catch (error) {
-    alert(`${dictation ? "获取日语完整写法" : "获取日语假名读音"}失败：${error.message}。内置词库未收录的生僻词需要 Workers AI 可用。`);
+    const errorMsg = `${dictation ? "获取日语完整写法" : "获取日语假名读音"}失败：${error.message}。内置词库未收录的生僻词需要 Workers AI 可用。`;
+    showAchievementToast(errorMsg);
+    const validation = $("answerValidation");
+    if (validation) {
+      validation.textContent = errorMsg;
+      validation.classList.remove("hidden");
+    }
     return false;
   }
 
@@ -5645,12 +5668,15 @@ async function ensureJapaneseQuestionForms(words) {
         validation.textContent = aiMessage;
         validation.classList.remove("hidden");
       }
-      alert(aiMessage);
       return true;
     }
     const notFoundMessage = `AI 暂时未找到这些词的${dictation ? "完整写法" : "假名读音"}：${preview}${unresolved.length > 5 ? "等" : ""}。请稍后重试。`;
     showAchievementToast(notFoundMessage);
-    alert(notFoundMessage);
+    const validation = $("answerValidation");
+    if (validation) {
+      validation.textContent = notFoundMessage;
+      validation.classList.remove("hidden");
+    }
     return false;
   }
   return true;

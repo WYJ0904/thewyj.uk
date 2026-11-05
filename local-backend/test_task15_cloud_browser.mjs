@@ -311,9 +311,12 @@ async function main() {
         throw new Error(`${error.message}; diagnostic=${JSON.stringify(diagnostic)}; dialogs=${JSON.stringify(dialogs)}`);
       }
       assert.equal(await evaluate("localStorage.getItem('wyjAccountSession')"), originalSession);
+      const toastText = await evaluate("document.querySelector('#achievementToast')?.textContent || ''");
+      const validationText = await evaluate("document.querySelector('#answerValidation')?.textContent || ''");
       const aiUnavailable = dialogs.some(
         (message) => message.includes("AI 暂时不可用") && message.includes("释义练习仍可继续"),
-      );
+      ) || (toastText.includes("AI 暂时不可用") && toastText.includes("释义练习仍可继续"))
+        || (validationText.includes("AI 暂时不可用") && validationText.includes("释义练习仍可继续"));
       if (EXPECT_AI_MODE === "disabled") {
         assert.equal(aiUnavailable, true, "disabled Workers AI must degrade without ending the quiz");
       } else if (EXPECT_AI_MODE === "enabled") {
