@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
 const root=path.resolve(import.meta.dirname,'../..'),qa=path.resolve(process.env.P07_R4A_QA_ROOT||path.join(process.env.USERPROFILE,'.codex/worktrees/p07-round3-independent-qa/thewyj.uk'));
 const output=path.join(root,'docs/p07/evidence/r4a'),raw=path.join(root,'docs/migration-evidence/p07-r4a');
 const prefix=process.argv[2]||'r4a-accepted';assert.match(prefix,/^[a-z0-9-]+$/);
@@ -31,6 +32,21 @@ for(const [from,to] of files){const value=await json(input(from));
   await fs.writeFile(path.join(output,to),JSON.stringify(value,null,2));}
 for(const [from,to] of [['r4a-accepted-on/finance-upgrade-membership.png','finance-membership-exclusive.png'],['r4a-accepted-on/direct-account.png','account-main-workspace.png'],['r4a-accepted-upgrade/offline-upgraded-shell.png','offline-upgraded-shell.png']])
   await fs.copyFile(input(from),path.join(output,to));
+const manifest=await json(input('r4a-accepted-on/source-manifest.json'));
+const hosted=await json(path.join(output,'preview/preview-deployment-proof.json'));
+const git=(...args)=>{const r=spawnSync('git',args,{cwd:root,maxBuffer:30*1024*1024});assert.equal(r.status,0);return r.stdout;};
+const current=git('rev-parse','HEAD').toString().trim(),equivalent=[candidate.target_sha,hosted.commit,current];
+for(const sha of equivalent)for(const [file,expected] of Object.entries(manifest.files))
+  assert.equal(hash(git('show',sha+':'+file)),expected,sha+' differs from tested publish bytes: '+file);
+await fs.writeFile(path.join(output,'release-equivalence.json'),JSON.stringify({tested_sha:candidate.target_sha,hosted_sha:hosted.commit,checked_delivery_parent:current,
+  publish_files_verified:Object.keys(manifest.files).length,all_content_identical:true,publish_manifest_sha256:hash(Buffer.from(JSON.stringify(manifest.files)))},null,2));
+const transient=await json(path.join(raw,'r4a-final-isolated-on/round3-browser-results.json'));
+await fs.writeFile(path.join(output,'intermediate-admin-failure.json'),JSON.stringify({target_sha:transient.target_sha,
+  original_failure:transient.checks.find(c=>c.status==='FAIL'),frozen_script_changed:false,
+  closeout_same_contract:candidate.checks.find(c=>c.id==='admin-and-member-authorization-isolation').status,
+  observation:'One original pointer sample reported the approval control not visible. Screenshot and failure retained. The admin view has an existing 220ms opacity animation; timing is a suspected cause, not proven by that screenshot alone.'},null,2));
+await fs.copyFile(path.join(raw,'r4a-final-isolated-on/round3-screenshots/FAIL-admin-and-member-authorization-isolation.png'),path.join(output,'intermediate-admin-not-visible.png'));
+await fs.copyFile(path.join(raw,'evidence-label-guard.json'),path.join(output,'evidence-label-guard.json'));
 const history=[
   {run:'r4a-candidate-on',result:'Frozen 25/25 and primary 3/3 passed; extra 4/6. Tests incorrectly clicked a hidden legacy close button and omitted native bridge opt-in.'},
   {run:'r4a-runtime-rerun',result:'Infrastructure failure: HTTP became ready before the seed verification completed, 3 !== 1. Added READY-log handshake; seed guard unchanged.'},
