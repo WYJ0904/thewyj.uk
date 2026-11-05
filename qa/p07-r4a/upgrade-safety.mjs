@@ -51,7 +51,7 @@ export async function verifyOfflineAndData(page,{out,release,resources}){
     const state=await page.evaluate(`(async()=>{
       const local=localStorage.getItem('__r4a_synthetic_user_state'),foreign=await (await caches.open('r4a-unrelated-user-cache')).match('/__r4a_user_data');
       const ledger=await new Promise((resolve,reject)=>{const r=indexedDB.open('r4a-user-state',1);r.onerror=()=>reject(r.error);r.onsuccess=()=>{const db=r.result,q=db.transaction('records').objectStore('records').get('ledger');q.onsuccess=()=>{resolve(q.result);db.close()};q.onerror=()=>reject(q.error)}});
-      const logo=[...document.images].find(n=>new URL(n.src).pathname==='/assets/brand/aeris-lockup.png');
+      const logo=[...document.images].find(n=>new URL(n.currentSrc||n.src,location.href).pathname==='/assets/brand/aeris-lockup.png');
       return{local,foreign:foreign?await foreign.text():null,ledger,accountInsideMain:document.getElementById('v3MainCanvas').contains(document.getElementById('accountModal')),logoLoaded:Boolean(logo&&logo.complete&&logo.naturalWidth>0),policy:document.documentElement.dataset.interfacePolicy,p07:document.documentElement.dataset.p07Ui};
     })()`);
     assert.equal(state.local,'preserve');assert.equal(state.foreign,'preserve');
