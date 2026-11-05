@@ -1,0 +1,69 @@
+{
+  "candidate": "9c22bf1dd9118178700e4780ccc27c8958de1e81",
+  "files": [
+    {
+      "path": "account-main-workspace.png",
+      "sha256": "3c8ad9b496e0dc78b82baf990537fe234dfdc2abb35c7b8ee494cc47d77febb0"
+    },
+    {
+      "path": "brand-preservation.json",
+      "sha256": "dec7680e31456cc035e1a01817f7e54710e71230742bac29badb7543f7dd09fa"
+    },
+    {
+      "path": "browser-comparison.json",
+      "sha256": "ea3ef6e1409654586d94f3adf39598819129a265adb17ab764e612e51128c9d4"
+    },
+    {
+      "path": "browser-facts.json",
+      "sha256": "606785c4a8302ba3e7cc0d96a079950ee4cf19201346bc499b16bc2f5cdc4a84"
+    },
+    {
+      "path": "cache-upgrade.json",
+      "sha256": "563d385162ad9dc6279e301083b80b57e13482d32c6b1a04dc3420df7cf5419b"
+    },
+    {
+      "path": "driver-provenance.json",
+      "sha256": "045f8dad315f60d6eaa062144a3d1c934afdef1d1523461ccd2183b0b863eb0e"
+    },
+    {
+      "path": "finance-membership-exclusive.png",
+      "sha256": "b79cce793be977dd47309963f7bbef253c141d79933f9a0941ba5e84bc41166d"
+    },
+    {
+      "path": "flag-off.json",
+      "sha256": "3f4da97c74e06a7bd072b5f19eb9add3d64bbd1c055deb3b3146a813e8793faa"
+    },
+    {
+      "path": "kill-switch.json",
+      "sha256": "98cfac070d72b8a4a23f1567bdd636b6f42ce6e63139ff659c2e31fa96e90438"
+    },
+    {
+      "path": "offline-upgraded-shell.png",
+      "sha256": "a1229ca26ddeab06b8d0baf70c79d9ec185fc05499172b91838d1b22a3bce842"
+    },
+    {
+      "path": "p4-workspace-behavior.json",
+      "sha256": "ecd05a5852b51ede1eff8f4048b8d45008e258fe4ea700cf2c860bf67bd7617f"
+    },
+    {
+      "path": "primary-workspaces.json",
+      "sha256": "373920e78007be4ba62b80f9708e54971c007de8c045415a9f8cd5de98bfd387"
+    },
+    {
+      "path": "runtime-results.json",
+      "sha256": "91107596de00fe8ab37d64769ea415cfca2efde0252c91ab78dc1fe503c30b1c"
+    },
+    {
+      "path": "tested-source-manifest.json",
+      "sha256": "0b65e9ab3d4ce33d2e84f2533989b3eb28bcf29ebf5b584e2a540e732a7cba70"
+    },
+    {
+      "path": "upgrade-safety.json",
+      "sha256": "02d420038f5398b4ce3e5517b6849fdc706818ef44607d1a14df2ba8d8cfc72e"
+    },
+    {
+      "path": "verification-history.json",
+      "sha256": "e13de50642284cee597cb4e90965f2ebd0b0f9636cb86e5e70ba38721abc8a40"
+    }
+  ]
+}

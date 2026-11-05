@@ -56,5 +56,14 @@ try{
   await check('policy-failure-is-finite-safe-fallback-and-retry',async()=>{
     let fail=true;await p.intercept([{match:'/api/ui/features',respond:()=>fail?{status:503,body:{ok:false,code:'isolated_policy_failure'}}:{continue:true}}]);await p.evaluate('localStorage.clear();true');await go('/');await p.waitFor("document.documentElement.dataset.interfacePolicy==='error'&&!document.getElementById('publicHome').closest('.hidden')",15000);assert.equal(await p.evaluate('document.documentElement.dataset.p07Ui'),'disabled');assert.equal(await p.evaluate("document.getElementById('retryInterfacePolicyBtn').hidden"),false);fail=false;await click('#retryInterfacePolicyBtn');await p.waitFor("document.documentElement.dataset.interfacePolicy==='enabled'",15000);await sole('publicHome','/');return{errorIsExplicit:true,baseInterfaceUsable:true,retryAuthoritative:true};
   });
+  await check('supported-backend-without-task25-keeps-authenticated-home-visible',async()=>{
+    await p.intercept([{match:'/api/status',respond:async()=>{const r=await fetch(base+'/api/status');const body=await r.json();if(body.features)delete body.features.task25_feature_flags;return{status:r.status,body};}},
+      {match:'/api/features',respond:()=>({status:404,body:{error:'isolated older backend has no Task25 endpoint'}})}]);
+    await p.evaluate(`localStorage.clear();localStorage.setItem('wyjAccountSession',${JSON.stringify(member.session)});true`);await go('/');
+    await p.waitFor("document.documentElement.dataset.interfacePolicy==='disabled'&&document.getElementById('publicHome').checkVisibility()&&document.getElementById('publicHome').dataset.sessionMode==='authenticated'",15000,'supported safe base home after login');
+    assert.equal(await p.evaluate('document.documentElement.dataset.p07Ui'),'disabled');
+    assert.equal(await p.evaluate("document.getElementById('interfacePolicyState').checkVisibility()"),false);
+    return{successfulStatusWithoutTask25:true,authenticatedHomeVisible:true,permanentPending:false,featureAuthorityInvented:false};
+  });
 }finally{await p.close();}
 console.log(JSON.stringify({pass:results.filter(x=>x.status==='PASS').length,fail:results.filter(x=>x.status==='FAIL').length,results},null,2));if(results.some(x=>x.status==='FAIL'))process.exitCode=1;

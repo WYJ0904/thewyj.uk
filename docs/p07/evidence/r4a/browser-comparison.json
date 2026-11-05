@@ -1,0 +1,133 @@
+{
+  "baseline": "f7949f8253f51ea2621c397743208971c0cec467",
+  "candidate": "9c22bf1dd9118178700e4780ccc27c8958de1e81",
+  "qa": "882efdb9978f2608c54bc6c9c19eb8843e80945f",
+  "frozen_browser_sha256": "227c4f69d473186fdbe307fa3a6da4a9a6d5a0c41d485ff51d19beed608fa61d",
+  "matrix": [
+    {
+      "id": "first-paint-home-and-p07-decision",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "free-account-finance-guard-is-visible",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "finance-upgrade-shortcut-selects-finance-plans",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "membership-is-an-independent-main-workspace",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "finance-upgrade-manual-goal-remains-usable",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "membership-order-and-admin-review-boundary",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "membership-route-sidebar-cross-navigation",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "account-is-a-main-workspace-not-a-modal",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "account-workspace-sidebar-remains-in-keyboard-order",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "legacy-account-escape-diagnostic-and-sidebar-exit",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "main-workspace-pages-do-not-announce-aria-modal",
+      "baseline": "FAIL",
+      "candidate": "PASS"
+    },
+    {
+      "id": "synthetic-account-secret-change-revokes-old-session",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "account-to-learning-tools-home-sidebar-navigation",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "browser-back-forward-and-direct-route",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "homepage-core-card-coordinate-hit-matrix",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "standalone-english-japanese-views-and-quiz-card-geometry",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "learning-submit-next-skip-refresh-and-language-isolation",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "japanese-ai-off-reading-failure-leaves-meaning-ui-usable",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "english-local-rubric-and-ai-off-fail-closed",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "japanese-reading-and-meaning-services-are-distinct",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "finance-real-ledger-summary-and-chart",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "finance-edit-delete-chart-update-and-empty-ledger",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "admin-and-member-authorization-isolation",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "refresh-continuity-all-required-pages",
+      "baseline": "PASS",
+      "candidate": "PASS"
+    },
+    {
+      "id": "delayed-authoritative-policy-does-not-flash-legacy-layout",
+      "baseline": "FAIL",
+      "candidate": "PASS"
+    }
+  ]
+}
