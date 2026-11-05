@@ -39,9 +39,19 @@ const history=[
   {run:'integrated-preview-5b29f97',result:'Static verification failed on one HTTP 404 for unchanged source-original.png. Later read-only GET returned 200; exact final deployment is independently hash-verified.'},
   {run:'preview-intermediate',result:'Initial publisher screenshot readiness used entryScreen only and captured pending policy. Final publisher waits for explicit non-pending policy and visible home; intermediate proof is not visual acceptance.'},
   {run:'Core CI 42013739936',result:'Actual application regression: a successful supported legacy status without Task25 left authenticated presentation permanently pending. Product now explicitly settles unavailable capability; original responsive home assertions retained, with an additional real-browser status-contract regression.'},
+  {run:'r4a-r3-off',result:'Parallel drivers raced on the shared pages-output directory before browser startup. Per-run staging now materializes only committed allowlisted blobs and still uses the unchanged stagePages validation.'},
+  {run:'rejected reused r4a-final-on label',result:'Runner rejected reuse without replacing browser results or source manifest. The outer adapter had replaced historical provenance after rejection; that intermediate metadata is marked reconstructed with its original adapter hash unknown. The adapter now rejects before any writes; final closeout uses a fresh label.'},
 ];
 await fs.writeFile(path.join(output,'verification-history.json'),JSON.stringify({assertions_deleted_or_relaxed:false,frozen_assertions_changed:false,history},null,2));
 const inventory=[];
-for(const name of (await fs.readdir(output)).sort()){const file=path.join(output,name);if((await fs.stat(file)).isFile())inventory.push({path:name,sha256:hash(await fs.readFile(file))});}
+async function inventoryDirectory(directory,relative=''){
+  for(const entry of (await fs.readdir(directory,{withFileTypes:true})).sort((a,b)=>a.name.localeCompare(b.name))){
+    const name=path.posix.join(relative,entry.name),file=path.join(directory,entry.name);
+    if(name==='evidence-manifest.json')continue;
+    assert.equal(entry.isSymbolicLink(),false,'curated evidence cannot redirect outside its directory');
+    if(entry.isDirectory())await inventoryDirectory(file,name);else if(entry.isFile())inventory.push({path:name,sha256:hash(await fs.readFile(file))});
+  }
+}
+await inventoryDirectory(output);
 await fs.writeFile(path.join(output,'evidence-manifest.json'),JSON.stringify({candidate:candidate.target_sha,files:inventory},null,2));
 console.log(JSON.stringify({candidate:candidate.target_sha,frozen:25,passed:25,curatedFiles:inventory.length,productionOperations:0}));
