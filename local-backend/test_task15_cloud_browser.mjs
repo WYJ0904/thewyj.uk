@@ -866,7 +866,8 @@ async function main() {
     await check("Task 20 shared dialog portal, bounds, focus and scroll in both themes", async () => {
       await navigate('/');
       const ids = await evaluate("[...document.querySelectorAll('.modal-layer')].map(e=>e.id)");
-      assert.ok(ids.includes('financeTransactionModal') && ids.includes('membershipModal'));
+      const isV3MembershipWorkspace = await evaluate("Boolean(document.querySelector('.v3-workspace#membershipModal'))");
+      assert.ok(ids.includes('financeTransactionModal') && (ids.includes('membershipModal') || isV3MembershipWorkspace));
       for (const theme of ['light','dark']) {
         await evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)}`);
         for (const id of ids) {

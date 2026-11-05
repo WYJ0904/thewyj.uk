@@ -6869,6 +6869,14 @@ function dismissTopOverlay() {
   if ($("accountMenu")?.open) { closeAccountMenu(); return true; }
   const navigation = $("siteNavToggle");
   if (navigation?.getAttribute("aria-expanded") === "true") { navigation.click(); return true; }
+  if (location.pathname === "/account" || ($("accountModal") && !$("accountModal").classList.contains("hidden"))) {
+    closeModal("accountModal", true);
+    return true;
+  }
+  if (location.pathname === "/recharge" || ($("membershipModal") && !$("membershipModal").classList.contains("hidden"))) {
+    closeModal("membershipModal", true);
+    return true;
+  }
   return false;
 }
 
