@@ -41,14 +41,25 @@ export function initPublicExperience(doc=globalThis.document) {
   const cards=[...(gallery?.querySelectorAll('[data-core-capability]')||[])];
   for(const [index,card]of cards.entries()){
     const trigger=card.querySelector('.capability-trigger');
-    trigger.addEventListener('focus',()=>trigger.click());
-    trigger.addEventListener('click',()=>{
+    const toggleCard = () => {
       for(const item of cards){
         const active=item===card;
         item.classList.toggle('active',active);
-        item.querySelector('.capability-trigger').setAttribute('aria-expanded',String(active));
-        item.querySelector('.capability-body').hidden=!active;
+        item.querySelector('.capability-trigger')?.setAttribute('aria-expanded',String(active));
+        const body=item.querySelector('.capability-body');
+        if(body)body.hidden=!active;
       }
+    };
+    trigger.addEventListener('focus',()=>toggleCard());
+    trigger.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      toggleCard();
+    });
+    // P1-005: Whole card surface is clickable
+    card.addEventListener('click',(e)=>{
+      const interactive=e.target.closest('a, button, input, select, textarea');
+      if(interactive && interactive!==trigger)return;
+      toggleCard();
     });
     trigger.addEventListener('keydown',event=>{
       let next=index;

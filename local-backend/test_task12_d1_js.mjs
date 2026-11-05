@@ -629,6 +629,34 @@ try {
   assert.equal(owner.user_id, userId);
   completed += 1;
 
+  // The existing administrator audit view must include durable Task11 actions.
+  // Keep the same private boundary and return compact metadata, never bodies.
+  const feedbackId = feedback.payload.feedback.id;
+  const updatedFeedback = await requestHandler(handleTask11Request, db, "/api/admin/feedback/update", {
+    method: "POST", token: adminLogin.session,
+    body: { feedback_id: feedbackId, action: "update", status: "accepted", admin_note: "Isolated audit regression" },
+  });
+  assert.equal(updatedFeedback.response.status, 200);
+  const audit = await accountRequest(db, "/api/admin/audit", { token: adminLogin.session });
+  assert.equal(audit.response.status, 200);
+  const auditRow = audit.payload.logs.find((row) => row.action === "feedback_update" && row.feedback_id === feedbackId);
+  assert.ok(auditRow, "Durably stored feedback actions must reach the existing audit UI");
+  assert.equal(auditRow.target_id, feedbackId);
+  assert.equal(auditRow.before_json, undefined);
+  assert.equal(auditRow.after_json, undefined);
+  assert.equal(auditRow.content, undefined);
+  const auditOff = await accountRequest(db, "/api/admin/audit", {
+    token: adminLogin.session, env: { TASK11_CLOUD_READS_ENABLED: "false" },
+  });
+  assert.equal(auditOff.response.status, 200);
+  assert.ok(!auditOff.payload.logs.some((row) => row.feedback_id === feedbackId));
+  for (const [token, status] of [["", 401], [ownershipLogin.session, 403]]) {
+    const deniedAudit = await accountRequest(db, "/api/admin/audit", { token });
+    assert.equal(deniedAudit.response.status, status);
+    assert.equal(deniedAudit.payload.logs, undefined);
+  }
+  completed += 1;
+
   const originalFetch = globalThis.fetch;
   let upstreamRequest = null;
   try {

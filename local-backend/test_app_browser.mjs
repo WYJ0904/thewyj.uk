@@ -1215,7 +1215,7 @@ async function main() {
       const mobilePayment = await evaluate(`({
         viewport: document.documentElement.clientWidth,
         scrollWidth: document.documentElement.scrollWidth,
-        modalWidth: document.querySelector('#membershipModal .modal-panel').getBoundingClientRect().width,
+        modalWidth: (document.querySelector('#membershipModal .v3-workspace-content') || document.querySelector('#membershipModal .modal-panel') || document.querySelector('#membershipModal')).getBoundingClientRect().width,
         qrRight: document.querySelector('#paymentQrImage').getBoundingClientRect().right,
       })`);
       assert.ok(mobilePayment.scrollWidth <= mobilePayment.viewport + 1, JSON.stringify(mobilePayment));
