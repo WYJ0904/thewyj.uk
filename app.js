@@ -4818,8 +4818,11 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
     showAuth("登录已失效，请重新登录", options);
   },
   handleMembershipRequired: () => {
-    if (location.pathname.startsWith("/finance")) state.membershipReturnPath = "/finance";
-    return showMembership(true, { goal: membershipGoalForCurrentContext() || "finance" });
+    if (location.pathname.startsWith("/finance")) {
+      state.membershipReturnPath = "/finance";
+      return showMembership(true, { goal: "finance" });
+    }
+    return openMembershipModal({ goal: membershipGoalForCurrentContext() });
   },
 });
 
