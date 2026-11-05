@@ -26,6 +26,10 @@
       "sha256": "b7f0f7f0dec429c07d3d45cc397982521f4fdb737a915a6cb9bcb169da3c7037"
     },
     {
+      "path": "ci-evidence.json",
+      "sha256": "3cabccefc54f2037802b19db82a46725b1c9a6deccc80dd22f6b3666b6a447ad"
+    },
+    {
       "path": "driver-provenance.json",
       "sha256": "05c07cc337d1c74a0ee36bec926260f6961adc5f236e3883a360c5812d99e67d"
     },
@@ -66,6 +70,10 @@
       "sha256": "ecd05a5852b51ede1eff8f4048b8d45008e258fe4ea700cf2c860bf67bd7617f"
     },
     {
+      "path": "p5-pwa.json",
+      "sha256": "25d67deeac0b9db1aeda026cefe76e7d2e776b742156706eb79a20cf260a5e59"
+    },
+    {
       "path": "preview/preview-deployment-proof.json",
       "sha256": "db9173cf99b54f336d8b080a582e65d391d573b0da9ad8c158935a640e654da5"
     },
@@ -91,7 +99,7 @@
     },
     {
       "path": "release-equivalence.json",
-      "sha256": "8da169d3131781d698cd5b0dcf59e007daadd8f917b1ec6ecdb0a4055be3f285"
+      "sha256": "7bc590a2fe885a53aeee5908a2ce9b8c58e9f7c017492f41706810c194099894"
     },
     {
       "path": "reload-diagnostics.json",
@@ -115,7 +123,7 @@
     },
     {
       "path": "verification-history.json",
-      "sha256": "c13a947cbf4b22e739061c8bd35cb4eb17343d7ad511d9d67818f52710b85e33"
+      "sha256": "9b0e0503ee7897aef2b1090fda587ba405c51cacfb0986258dc5b4e8a65142e2"
     }
   ]
 }

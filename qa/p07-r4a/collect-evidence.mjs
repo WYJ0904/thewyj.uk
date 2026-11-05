@@ -55,6 +55,7 @@ await fs.writeFile(path.join(output,'unresolved-browser-gates.json'),JSON.string
 for(const failure of candidate.checks.filter(c=>c.status==='FAIL'))if(failure.screenshot)
   await fs.copyFile(input('r4a-accepted-on/round3-screenshots/'+failure.screenshot),path.join(output,failure.screenshot));
 await fs.copyFile(path.join(raw,'r4a-reload-investigation/reload-diagnostics.json'),path.join(output,'reload-diagnostics.json'));
+await fs.copyFile(path.join(raw,'r4a-pwa-contract/p5-pwa.json'),path.join(output,'p5-pwa.json'));
 const history=[
   {run:'r4a-candidate-on',result:'Frozen 25/25 and primary 3/3 passed; extra 4/6. Tests incorrectly clicked a hidden legacy close button and omitted native bridge opt-in.'},
   {run:'r4a-runtime-rerun',result:'Infrastructure failure: HTTP became ready before the seed verification completed, 3 !== 1. Added READY-log handshake; seed guard unchanged.'},
@@ -68,6 +69,7 @@ const history=[
   {run:'Core CI 42014908673',result:'Business flows passed through account deletion. Reduced-motion mobile check measured before the new explicit policy had settled. Added a bounded actual policy/form visibility wait; original width and branded splash time assertions remain.'},
   {run:'r4a-final-isolated-on',result:'24/25: one admin approval pointer sample was not visible. Preserved original failure and screenshot. The same unchanged frozen admin contract passed in closeout; no animation or pointer assertion was disabled.'},
   {run:'r4a-closeout-on',result:'24/25: account reload boot exceeded 30 seconds with the original branded startup still visible. This remains an unresolved acceptance gate; previous 25/25 runs are not substituted for this failure.'},
+  {run:'Core CI 42016094018 / P5',result:'Application succeeded; old PWA assertion rejected every non-current cache. Revised test uses the exact release SW, completed install, exact retained fixture cache set, original bytes and no-API checks; actual local compiled runtime passed. The revised CI result is not yet verified.'},
 ];
 await fs.writeFile(path.join(output,'verification-history.json'),JSON.stringify({assertions_deleted_or_relaxed:false,frozen_assertions_changed:false,history},null,2));
 const inventory=[];

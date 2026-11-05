@@ -92,6 +92,8 @@ R4-B 的临时 `state.membershipReturnPath` 合入这一 History 合同，避免
 
 新增只读诊断记录了 DOM readyState、可见性、策略、原计时器／RAF 进度、异常和未完成网络请求。账户／会员／财务的直接打开、普通与强制刷新共 **54 次通过**，全程页面可见，未强制前台、未替换计时器、未更改产品；未重现原故障。这不能关闭原失败，也没有提高 30 秒阈值或跳过账户刷新。复测命令：设置 `P07_R4A_RELOAD_DIAGNOSTIC=1` 后运行现有 gate launcher；[诊断原始数据](evidence/r4a/reload-diagnostics.json)。
 
+后续定位入口为 `boot()` 到 `runSplashSequence()` 的原始启动生命周期及故障当时的计时器／RAF 调度，需在同样失败时取得状态；目前不能把某个调度猜测直接写成根因并盲改启动时长。
+
 **R4A-G02：管理员按钮一次瞬时不可见。** 前一次冻结运行 `370dc90` 为 24/25，批准按钮的严格鼠标采样判为不可见；最新同脚本管理员项通过，包含实际审批、权益、审计与 401/403/200 权限验证。保留 [原失败](evidence/r4a/intermediate-admin-failure.json) 和 [截图](evidence/r4a/intermediate-admin-not-visible.png)。现有管理员视图有 220ms opacity 动画，时序是一个怀疑方向，截图不足以证明根因。未修改冻结 pointer 断言，也未据此修改管理员产品视觉。
 
 两个观察均保留为后续复核输入；G01 仍明确阻断集成放行。没有新一轮反复重跑直到全绿来覆盖这些记录。
@@ -116,7 +118,11 @@ Android 返回证据是既有 Web 导航入口的 Chrome 回归，不是真机�
 
 [Core CI 42013739936](https://github.com/WYJ0904/thewyj.uk/actions/runs/42013739936) 的 application 暴露真实旧后端 pending 回归；[42014908673](https://github.com/WYJ0904/thewyj.uk/actions/runs/42014908673) 在业务流程通过后暴露移动表单就绪假设。失败均保留，修复方式分别为产品能力状态处理、测试的真实可见性等待。
 
-当前 [Core CI 42016094018](https://github.com/WYJ0904/thewyj.uk/actions/runs/42016094018) 对应 `6417005`，application 已成功，Cloud-only 仍在运行；其余六项构建／静态／Python／Android debug 工作已成功，两个环境门禁为 skipped。中间提交自动取消的 run 保留 cancelled，不作为 PASS。CI 即使最终成功也不会覆盖独立 G01。
+当前 [Core CI 42016094018](https://github.com/WYJ0904/thewyj.uk/actions/runs/42016094018) 对应 `6417005`：**7 success / 1 failure / 2 skipped**。application 成功；Cloud-only 在旧 PWA 断言 `Only the current Service Worker cache should remain` 失败。中间提交自动取消的 run 保留 cancelled，不作为 PASS。
+
+旧 PWA 测试手动注册无版本 `/sw.js`，并以固定 500ms 后的任意 Cache Storage 快照要求“只有当前缓存”。这一假设不支持新合同要求保留的旧客户端和用户缓存，也没有明确等待 install 暂存完成；该次 CI 没有记录具体 cache keys，不能断言究竟是哪一个额外键触发。原错误、job 和 checkout 证据保留在 [ci-evidence.json](evidence/r4a/ci-evidence.json)。
+
+PWA 测试已改为注册与应用一致的 release-qualified SW，并有界等待当前 release 控制客户端、必要 app 字节存在且暂存结束。通过精确集合和原始字节验证当前 shell、一个旧客户端 fixture 和一个无关用户 fixture，同时保留 API 禁入缓存、离线访客、联网恢复，且新增实际首页可见性检查。没有允许任意缓存键，也没有去掉敏感数据断言。该修订在 `fb6ef9a` 的实际编译本地 Pages + Chrome 中 PASS，[结果](evidence/r4a/p5-pwa.json)。新 CI 尚待最终推送后运行，不能记为 CI PASS；即使成功也不覆盖 G01。
 
 [release-equivalence.json](evidence/r4a/release-equivalence.json) 逐一验证 147 个受允许发布文件：受测提交、Hosted 提交和交付父提交的 Git 字节相同。后续报告／QA 提交不改变这些产品资源。完整文件及截图 hash 见 [证据清单](evidence/r4a/evidence-manifest.json)。
 

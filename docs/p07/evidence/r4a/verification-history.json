@@ -49,6 +49,10 @@
     {
       "run": "r4a-closeout-on",
       "result": "24/25: account reload boot exceeded 30 seconds with the original branded startup still visible. This remains an unresolved acceptance gate; previous 25/25 runs are not substituted for this failure."
+    },
+    {
+      "run": "Core CI 42016094018 / P5",
+      "result": "Application succeeded; old PWA assertion rejected every non-current cache. Revised test uses the exact release SW, completed install, exact retained fixture cache set, original bytes and no-API checks; actual local compiled runtime passed. The revised CI result is not yet verified."
     }
   ]
 }
