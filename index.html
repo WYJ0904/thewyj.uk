@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-interface-policy="pending">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -11,28 +11,28 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Aeris" />
     <meta property="og:url" content="https://thewyj.uk/" />
-    <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?v=20261104-aeris-p07-phase1-r2" />
+    <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?v=20261105-aeris-p07-r4a-runtime" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Aeris — 学习、工具、账本与文件" />
     <meta name="twitter:description" content="继续语言学习，处理文本与文件，管理账本和传输。" />
     <meta name="application-name" content="Aeris" />
     <meta name="apple-mobile-web-app-title" content="Aeris" />
-    <link rel="icon" href="/favicon.ico?v=20261104-aeris-p07-phase1-r2" sizes="any" />
-    <link rel="icon" href="/assets/brand/favicon-32.png?v=20261104-aeris-p07-phase1-r2" type="image/png" sizes="32x32" />
-    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png?v=20261104-aeris-p07-phase1-r2" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20261104-aeris-p07-phase1-r2" />
-    <link rel="stylesheet" href="/styles.css?v=20261104-aeris-p07-phase1-r2" />
-    <link rel="stylesheet" href="/product-ui.css?v=20261104-aeris-p07-phase1-r2" />
-    <link rel="stylesheet" href="/design-system.css?v=20261104-aeris-p07-phase1-r2" />
-    <link rel="stylesheet" href="/public-experience.css?v=20261104-aeris-p07-phase1-r2" />
-    <link rel="stylesheet" href="/workspace-experience.css?v=20261104-aeris-p07-phase1-r2" />
-    <link rel="stylesheet" href="/spatial-experience.css?v=20261104-aeris-p07-phase1-r2" />
+    <link rel="icon" href="/favicon.ico?v=20261105-aeris-p07-r4a-runtime" sizes="any" />
+    <link rel="icon" href="/assets/brand/favicon-32.png?v=20261105-aeris-p07-r4a-runtime" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png?v=20261105-aeris-p07-r4a-runtime" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20261105-aeris-p07-r4a-runtime" />
+    <link rel="stylesheet" href="/styles.css?v=20261105-aeris-p07-r4a-runtime" />
+    <link rel="stylesheet" href="/product-ui.css?v=20261105-aeris-p07-r4a-runtime" />
+    <link rel="stylesheet" href="/design-system.css?v=20261105-aeris-p07-r4a-runtime" />
+    <link rel="stylesheet" href="/public-experience.css?v=20261105-aeris-p07-r4a-runtime" />
+    <link rel="stylesheet" href="/workspace-experience.css?v=20261105-aeris-p07-r4a-runtime" />
+    <link rel="stylesheet" href="/spatial-experience.css?v=20261105-aeris-p07-r4a-runtime" />
   </head>
   <body>
     <a class="skip-link" id="skipToContent" href="#pageContent">跳转到主要内容</a>
     <div class="entry-screen" id="entryScreen" role="status" aria-label="正在打开 Aeris" aria-hidden="false">
       <div class="entry-content" id="splashMedia">
-        <img class="entry-logo" id="splashImage" src="/icon-192.png?v=20261104-aeris-p07-phase1-r2" width="192" height="192" alt="" />
+        <img class="entry-logo" id="splashImage" src="/icon-192.png?v=20261105-aeris-p07-r4a-runtime" width="192" height="192" alt="" />
         <strong>Aeris</strong>
         <span class="entry-progress" aria-hidden="true"></span>
       </div>
@@ -41,7 +41,7 @@
     <main class="app-shell app-shell-pending" id="appShell" aria-hidden="true">
       <section class="session-recovery hidden" id="sessionRecovery" data-recovery-state="loading" aria-hidden="true" aria-labelledby="sessionRecoveryTitle">
         <div class="session-recovery-card">
-          <img class="session-recovery-logo" src="/icon-192.png?v=20261104-aeris-p07-phase1-r2" width="192" height="192" alt="" />
+          <img class="session-recovery-logo" src="/icon-192.png?v=20261105-aeris-p07-r4a-runtime" width="192" height="192" alt="" />
           <h1 id="sessionRecoveryTitle">Aeris</h1>
           <span class="session-recovery-bar" aria-hidden="true"></span>
           <p id="sessionRecoveryMessage" role="status">正在打开你的页面…</p>
@@ -54,7 +54,7 @@
       <nav class="site-nav" id="accountBar" aria-label="主导航">
         <div class="site-nav-bar">
           <a class="site-brand" href="/" data-site-nav="home" aria-label="Aeris 首页">
-            <img src="/icon-192.png?v=20261104-aeris-p07-phase1-r2" width="192" height="192" alt="" />
+            <img src="/icon-192.png?v=20261105-aeris-p07-r4a-runtime" width="192" height="192" alt="" />
             <span class="site-brand-copy"><strong>Aeris</strong><small id="siteVersionLabel">v2026.09.12.5</small></span>
           </a>
           <div class="home-inline-nav" aria-label="主要模块">
@@ -111,6 +111,10 @@
         </div>
       </nav>
 
+      <section id="interfacePolicyState" class="interface-policy-state" role="status" aria-live="polite">
+        <p id="interfacePolicyMessage">正在读取界面设置…</p>
+        <button id="retryInterfacePolicyBtn" type="button" hidden>重试界面设置</button>
+      </section>
       <div class="v3-app-frame" id="v3AppFrame">
         <aside class="v3-sidebar" id="v3Sidebar" aria-label="工作空间导航">
           <nav class="v3-sidebar-nav" aria-label="空间模块">
@@ -141,7 +145,7 @@
       <section class="public-home hidden" id="publicHome" aria-labelledby="publicHomeTitle" aria-hidden="true">
         <section class="public-intro public-hero" data-public-section="hero" aria-labelledby="publicHomeTitle">
           <div class="public-intro-copy">
-            <div class="home-brand"><img class="aeris-hero-logo" src="/icon-192.png?v=20261104-aeris-p07-phase1-r2" alt="Aeris" width="64" height="64" /><h1 id="publicHomeTitle">Aeris</h1></div>
+            <div class="home-brand"><img class="aeris-hero-logo" src="/icon-192.png?v=20261105-aeris-p07-r4a-runtime" alt="Aeris" width="64" height="64" /><h1 id="publicHomeTitle">Aeris</h1></div>
             <p class="home-purpose">学习 · 工具 · 账本 · 文件</p>
             <div class="v3-hero-copy">
               <p class="v3-hero-kicker">把学习、工具与生活放在同一个空间</p>
@@ -604,7 +608,7 @@
       </div>
       <section class="project-picker hidden" id="projectPicker" aria-labelledby="projectPickerTitle">
         <header class="project-brand">
-          <img src="/icon-192.png?v=20261104-aeris-p07-phase1-r2" width="192" height="192" alt="Aeris Logo" />
+          <img src="/icon-192.png?v=20261105-aeris-p07-r4a-runtime" width="192" height="192" alt="Aeris Logo" />
           <div><p class="section-kicker">语言学习</p><h1 id="projectPickerTitle">选择语言测试</h1></div>
         </header>
         <div class="project-grid" aria-label="选择项目">
@@ -623,7 +627,7 @@
       <section class="project-app hidden" id="projectApp" aria-hidden="true">
         <header class="topbar hidden" id="topbar">
           <div class="brand">
-            <img class="brand-icon" src="/icon-192.png?v=20261104-aeris-p07-phase1-r2" width="192" height="192" alt="" />
+            <img class="brand-icon" src="/icon-192.png?v=20261105-aeris-p07-r4a-runtime" width="192" height="192" alt="" />
             <div>
               <h1>语言学习</h1>
               <p id="modelLabel" aria-live="polite">检测中</p>
@@ -647,7 +651,7 @@
         </section>
 
         <section class="panel auth-panel hidden" id="authPanel">
-          <img class="auth-logo" src="/assets/brand/aeris-lockup.png?v=20261104-aeris-p07-phase1-r2" width="320" height="320" alt="Aeris" />
+          <img class="auth-logo" src="/assets/brand/aeris-lockup.png?v=20261105-aeris-p07-r4a-runtime" width="320" height="320" alt="Aeris" />
           <h2 id="authTitle">账户登录</h2>
           <p class="auth-subtitle" id="authSubtitle">使用 Aeris 账户同步词汇进度、账本记录与传输文件。</p>
           <div class="auth-tabs" role="tablist" aria-label="账户入口">
@@ -1088,7 +1092,7 @@
 
         <!-- V3 Membership Workspace -->
         <section class="v3-workspace membership-page hidden" id="membershipModal" aria-labelledby="membershipTitle" aria-hidden="true">
-      <section class="modal-panel membership-panel" role="dialog" aria-modal="true" aria-labelledby="membershipTitle">
+      <section class="modal-panel membership-panel" aria-labelledby="membershipTitle">
         <button class="modal-close" data-close-modal="membershipModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         <p class="section-kicker">会员服务</p>
         <h2 id="membershipTitle">会员充值</h2>
@@ -1144,7 +1148,7 @@
 
         <!-- V3 Account Workspace -->
         <section class="v3-workspace account-page hidden" id="accountModal" aria-labelledby="accountTitle" aria-hidden="true">
-      <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+      <section class="modal-panel" aria-labelledby="accountTitle">
         <button class="modal-close" data-close-modal="accountModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         <p class="section-kicker">账户中心</p>
         <h2 id="accountTitle">账户设置</h2>
@@ -1341,8 +1345,8 @@
     </template>
 
     <script src="/vendor/qrcode.js?v=2.0.4"></script>
-    <script src="/changelog.js?v=20261104-aeris-p07-phase1-r2"></script>
-    <script src="/learning-sync.js?v=20261104-aeris-p07-phase1-r2"></script>
-    <script type="module" src="/app.js?v=20261104-aeris-p07-phase1-r2"></script>
+    <script src="/changelog.js?v=20261105-aeris-p07-r4a-runtime"></script>
+    <script src="/learning-sync.js?v=20261105-aeris-p07-r4a-runtime"></script>
+    <script type="module" src="/app.js?v=20261105-aeris-p07-r4a-runtime"></script>
   </body>
 </html>

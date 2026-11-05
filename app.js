@@ -9,27 +9,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20261104-aeris-p07-phase1-r2";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261104-aeris-p07-phase1-r2";
+} from "./js/core/config.js?v=20261105-aeris-p07-r4a-runtime";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261105-aeris-p07-r4a-runtime";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?v=20261104-aeris-p07-phase1-r2";
+} from "./js/core/capabilities.js?v=20261105-aeris-p07-r4a-runtime";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20261104-aeris-p07-phase1-r2";
+} from "./js/core/api.js?v=20261105-aeris-p07-r4a-runtime";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20261104-aeris-p07-phase1-r2";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261104-aeris-p07-phase1-r2";
+} from "./js/core/changelog.js?v=20261105-aeris-p07-r4a-runtime";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?v=20261105-aeris-p07-r4a-runtime";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -40,27 +40,27 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20261104-aeris-p07-phase1-r2";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261104-aeris-p07-phase1-r2";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261104-aeris-p07-phase1-r2";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?v=20261104-aeris-p07-phase1-r2";
-import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?v=20261104-aeris-p07-phase1-r2";
-import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?v=20261104-aeris-p07-phase1-r2";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261104-aeris-p07-phase1-r2";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20261104-aeris-p07-phase1-r2";
-import { createFeatureController } from "./js/core/feature-flags.js?v=20261104-aeris-p07-phase1-r2";
-import { createFeatureConsole } from "./js/core/feature-console.js?v=20261104-aeris-p07-phase1-r2";
-import { createMasteryController } from "./js/language/mastery.js?v=20261104-aeris-p07-phase1-r2";
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?v=20261104-aeris-p07-phase1-r2";
-import { masteryStorageKey } from "./js/language/mastery-state.js?v=20261104-aeris-p07-phase1-r2";
-import { speakText, stopSpeech } from "./js/language/speech.js?v=20261104-aeris-p07-phase1-r2";
+} from "./js/core/session.js?v=20261105-aeris-p07-r4a-runtime";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261105-aeris-p07-r4a-runtime";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261105-aeris-p07-r4a-runtime";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?v=20261105-aeris-p07-r4a-runtime";
+import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?v=20261105-aeris-p07-r4a-runtime";
+import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?v=20261105-aeris-p07-r4a-runtime";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261105-aeris-p07-r4a-runtime";
+import { createAndroidDownloadController } from "./js/core/download.js?v=20261105-aeris-p07-r4a-runtime";
+import { createFeatureController } from "./js/core/feature-flags.js?v=20261105-aeris-p07-r4a-runtime";
+import { createFeatureConsole } from "./js/core/feature-console.js?v=20261105-aeris-p07-r4a-runtime";
+import { createMasteryController } from "./js/language/mastery.js?v=20261105-aeris-p07-r4a-runtime";
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?v=20261105-aeris-p07-r4a-runtime";
+import { masteryStorageKey } from "./js/language/mastery-state.js?v=20261105-aeris-p07-r4a-runtime";
+import { speakText, stopSpeech } from "./js/language/speech.js?v=20261105-aeris-p07-r4a-runtime";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?v=20261104-aeris-p07-phase1-r2";
-import { formatFinanceMoney } from "./js/finance/format.js?v=20261104-aeris-p07-phase1-r2";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?v=20261104-aeris-p07-phase1-r2";
-import { createDashboardView } from "./js/core/dashboard.js?v=20261104-aeris-p07-phase1-r2";
+} from "./js/language/speech-rate.js?v=20261105-aeris-p07-r4a-runtime";
+import { formatFinanceMoney } from "./js/finance/format.js?v=20261105-aeris-p07-r4a-runtime";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?v=20261105-aeris-p07-r4a-runtime";
+import { createDashboardView } from "./js/core/dashboard.js?v=20261105-aeris-p07-r4a-runtime";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -68,15 +68,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?v=20261104-aeris-p07-phase1-r2";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261104-aeris-p07-phase1-r2";
+} from "./js/core/perf.js?v=20261105-aeris-p07-r4a-runtime";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261105-aeris-p07-r4a-runtime";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20261104-aeris-p07-phase1-r2";
+} from "./js/language/history.js?v=20261105-aeris-p07-r4a-runtime";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -113,16 +113,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20261104-aeris-p07-phase1-r2";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261104-aeris-p07-phase1-r2";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20261104-aeris-p07-phase1-r2";
+} from "./js/language/quiz.js?v=20261105-aeris-p07-r4a-runtime";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261105-aeris-p07-r4a-runtime";
+import { createWrongBookPdf } from "./js/language/pdf.js?v=20261105-aeris-p07-r4a-runtime";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20261104-aeris-p07-phase1-r2";
+} from "./js/language/wrong-book.js?v=20261105-aeris-p07-r4a-runtime";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -131,7 +131,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20261104-aeris-p07-phase1-r2";
+} from "./js/membership/account.js?v=20261105-aeris-p07-r4a-runtime";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -139,19 +139,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20261104-aeris-p07-phase1-r2";
+} from "./js/membership/plans.js?v=20261105-aeris-p07-r4a-runtime";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20261104-aeris-p07-phase1-r2";
+} from "./js/membership/recharge.js?v=20261105-aeris-p07-r4a-runtime";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20261104-aeris-p07-phase1-r2";
+} from "./js/admin/formatters.js?v=20261105-aeris-p07-r4a-runtime";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -344,7 +344,7 @@ let learningSyncStatus = {
 };
 
 const restoredSession = restoreAccountSession();
-const { pushRoute } = createRouter({ onRouteChange: () => renderAccountUi() });
+const { pushRoute } = createRouter({ onRouteChange: () => { routeGeneration += 1; renderAccountUi(); } });
 const learningSyncAdapter = createLearningSyncAdapter(() => window.WYJLearningSync);
 
 function migrateProjectPreferences() {
@@ -1630,12 +1630,11 @@ function closeModal(id, immediate = false) {
     modal.setAttribute("aria-hidden", "true");
     if (id === "accountModal") clearOwnSecretEditor();
     if (location.pathname === "/recharge" || location.pathname === "/account") {
-      if (id === "membershipModal" && $("financePage") && !$("financePage").classList.contains("hidden")) {
-        pushRoute("/finance", true);
-      } else {
-        pushRoute("/", true);
-        showModulePicker(false);
-      }
+      const context = history.state?.aerisWorkspace;
+      const requested = context?.id === id ? nativeAppRoute(context.returnTo, location.origin) : null;
+      const target = requested && requested !== location.pathname ? requested : "/";
+      pushRoute(target, true);
+      void routeCurrent();
     }
     return;
   }
@@ -2078,7 +2077,13 @@ async function reloadMembershipPlans() {
   }
 }
 
-async function openMembershipModal(options = {}) {
+// Legacy business callers still use this name; visibility and routing have a
+// single owner. The loader below must never reveal a second primary page.
+function openMembershipModal(options = {}) {
+  return showMembership(true, options);
+}
+
+async function loadMembershipWorkspace(options = {}) {
   if (!state.session || !state.account) {
     showAuth("请先登录后查看会员方案", { path: "/login" });
     return;
@@ -2096,11 +2101,6 @@ async function openMembershipModal(options = {}) {
   renderMembershipGoals();
   renderMembershipPlans();
   $("rechargeMessage").textContent = "正在加载套餐与订单状态…";
-  const page = $("membershipModal");
-  if (page) {
-    page.classList.remove("hidden", "is-closing");
-    page.setAttribute("aria-hidden", "false");
-  }
   let openOrder = null;
   const loadErrors = [];
   const [plansResult, ordersResult] = await Promise.allSettled([
@@ -3881,8 +3881,13 @@ function hidePrimaryScreens() {
   $("topbar")?.classList.add("hidden");
   $("authPanel")?.classList.add("hidden");
   $("workspace")?.classList.add("hidden");
-  document.body.classList.remove("modal-open");
-  if ($("appShell")) $("appShell").inert = false;
+  membershipModalLoadSequence += 1;
+  membershipModalController?.abort(); membershipModalController = null;
+  releasePaymentQr();
+  if (!document.querySelector('.modal-layer:not(.hidden)')) {
+    document.body.classList.remove("modal-open");
+    if ($("appShell")) $("appShell").inert = false;
+  }
   window.WYJTools?.hide?.();
   financeController?.hide?.();
   financeCandidatesController?.hide?.();
@@ -4071,7 +4076,7 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
   hidePrimaryScreens();
   $("toolsPanel")?.classList.remove("hidden");
   $("toolsPanel")?.setAttribute("aria-hidden", "false");
-  if (pushHistory) pushRoute(path);
+  if (pushHistory) { pushRoute(path); generation = routeGeneration; }
   document.body.classList.remove("project-picker-active");
   renderAccountUi();
   try {
@@ -4107,12 +4112,23 @@ async function handleToolsAccessFailure(error, generation) {
   }
 }
 
+function workspaceEntry(id, route, pushHistory, options = {}) {
+  const prior = history.state?.aerisWorkspace;
+  const from = nativeAppRoute(options.returnTo || (location.pathname !== route ? location.pathname : prior?.id === id ? prior.returnTo : '/'), location.origin);
+  const context = { id, returnTo: from && from !== route ? from : '/',
+    goal: normalizedMembershipGoal(options.goal || (prior?.id === id ? prior.goal : '')) };
+  if (pushHistory && location.pathname !== route) pushRoute(route, false, { aerisWorkspace: context });
+  else history.replaceState({ ...history.state, aerisWorkspace: context }, '', location.href);
+  return context;
+}
+
 async function showMembership(pushHistory = true, options = {}) {
   if (!state.session || !state.account) {
     showAuth("请先登录后查看会员方案", { path: "/login" });
     return;
   }
   stopProjectActivity();
+  const context = workspaceEntry('membershipModal', '/recharge', pushHistory, options);
   currentProject = "";
   state.quizLanguage = "";
   hidePrimaryScreens();
@@ -4123,9 +4139,8 @@ async function showMembership(pushHistory = true, options = {}) {
   }
   document.body.classList.remove("modal-open", "project-picker-active");
   if ($("appShell")) $("appShell").inert = false;
-  if (pushHistory) pushRoute("/recharge");
   renderAccountUi();
-  await openMembershipModal({ ...options, insideWorkspace: true });
+  await loadMembershipWorkspace({ ...options, goal: context.goal });
 }
 
 function showAccount(pushHistory = true) {
@@ -4134,6 +4149,7 @@ function showAccount(pushHistory = true) {
     return;
   }
   stopProjectActivity();
+  workspaceEntry('accountModal', '/account', pushHistory);
   currentProject = "";
   state.quizLanguage = "";
   hidePrimaryScreens();
@@ -4144,7 +4160,6 @@ function showAccount(pushHistory = true) {
   }
   document.body.classList.remove("modal-open", "project-picker-active");
   if ($("appShell")) $("appShell").inert = false;
-  if (pushHistory) pushRoute("/account");
   renderAccountUi();
   renderAccountDetails();
 }
@@ -4161,7 +4176,7 @@ async function showFinance(pushHistory = true, generation = routeGeneration) {
   $("financePage")?.classList.remove("hidden");
   $("financePage")?.setAttribute("aria-hidden", "false");
   document.body.classList.remove("project-picker-active");
-  if (pushHistory) pushRoute("/finance");
+  if (pushHistory) { pushRoute("/finance"); generation = routeGeneration; }
   renderAccountUi();
   try {
     const financeVisible = await financeController?.show?.();
@@ -4186,7 +4201,7 @@ async function showTransfer(pushHistory = true, generation = routeGeneration) {
   $("transferPage")?.classList.remove("hidden");
   $("transferPage")?.setAttribute("aria-hidden", "false");
   document.body.classList.remove("project-picker-active");
-  if (pushHistory) pushRoute("/transfer");
+  if (pushHistory) { pushRoute("/transfer"); generation = routeGeneration; }
   renderAccountUi();
   try {
     await transferController?.show?.();
@@ -4815,14 +4830,14 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
 });
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?v=20261104-aeris-p07-phase1-r2", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?v=20261104-aeris-p07-phase1-r2", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?v=20261105-aeris-p07-r4a-runtime", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?v=20261105-aeris-p07-r4a-runtime", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?v=20261104-aeris-p07-phase1-r2", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?v=20261104-aeris-p07-phase1-r2", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?v=20261104-aeris-p07-phase1-r2", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?v=20261105-aeris-p07-r4a-runtime", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?v=20261105-aeris-p07-r4a-runtime", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?v=20261105-aeris-p07-r4a-runtime", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render"],
@@ -4836,8 +4851,7 @@ financeController = createLazyController({
   hasEntitlement: (code, account) => hasAccountEntitlement(code, account),
   isSuperAdmin: (account) => isSuperAdmin(account),
   openRecharge: (goal) => {
-    pushRoute("/recharge");
-    return openMembershipModal({ goal, insideWorkspace: true });
+    return showMembership(true, { goal, returnTo: '/finance' });
   },
   navigate: (path) => {
     if (path === "/select") showModulePicker(true);
@@ -4890,10 +4904,19 @@ function applyInterfacePolicy() {
   // An authenticated account's Task25 decision remains authoritative, including
   // OFF, expired and pending decisions. Public policy applies while unauthenticated.
   const hasAuthenticatedAccount = Boolean(state.session && state.account);
-  const enabled = hasAuthenticatedAccount
-    ? featureController?.enabled("p07_accessibility") === true
-    : publicUiPolicyController?.enabled() === true;
+  const decision = state.session && !state.account ? { status: 'pending' } : hasAuthenticatedAccount
+    ? featureController?.decision('p07_accessibility') || { status: 'pending' }
+    : publicUiPolicyController?.decision() || { status: 'pending' };
+  const enabled = decision.status === 'enabled';
   setInterfaceEnhancementsEnabled(enabled);
+  document.documentElement.dataset.interfacePolicy = decision.status;
+  const policyState = $('interfacePolicyState');
+  if (policyState) {
+    policyState.hidden = !['pending', 'error'].includes(decision.status);
+    $('interfacePolicyMessage').textContent = decision.status === 'pending'
+      ? '正在读取界面设置…' : '界面设置暂时无法读取，已安全使用基础界面。账户与本机数据仍然保留。';
+    $('retryInterfacePolicyBtn').hidden = decision.status !== 'error';
+  }
   const loginBtn = $("publicLoginBtn");
   if (loginBtn) {
     loginBtn.textContent = enabled ? (hasAuthenticatedAccount ? "进入空间 →" : "探索 Aeris →") : "账户";
@@ -4909,6 +4932,7 @@ featureController = createFeatureController({ api, apiGet,
 });
 publicUiPolicyController = createPublicUiPolicyController({ apiGet,
   getAccount: () => state.session ? state.account : null,
+  hasSession: () => Boolean(state.session),
   document,
   onChange: applyInterfacePolicy,
 });
@@ -7016,13 +7040,13 @@ function auditRuntimeCapabilities() {
 
 async function boot() {
   initDesignSystem();
-  try {
-    await Promise.race([
-      publicUiPolicyController?.refresh(),
-      new Promise((resolve) => setTimeout(resolve, 250)),
-    ]);
-  } catch (_) {}
   applyInterfacePolicy();
+  void publicUiPolicyController?.refresh();
+  $('retryInterfacePolicyBtn').addEventListener('click', () => {
+    if (state.session && state.account) void featureController.refresh();
+    else if (state.session) void refreshBackendState();
+    else void publicUiPolicyController.refresh();
+  });
   initPublicExperience();
   installLocalTestBindings();
   auditRuntimeCapabilities();
@@ -7405,8 +7429,8 @@ async function boot() {
     const generation = ++routeGeneration;
     void withInteractionFeedback(event.currentTarget, "workflow-open", () => showTools("/tools/workflows", true, generation)).catch(() => undefined);
   });
-  $("toolsAccountBtn").addEventListener("click", () => { pushRoute("/account"); openModal("accountModal"); });
-  $("dashboardMembershipBtn")?.addEventListener("click", () => { pushRoute("/recharge"); openMembershipModal(); });
+  $("toolsAccountBtn").addEventListener("click", () => showAccount(true));
+  $("dashboardMembershipBtn")?.addEventListener("click", () => showMembership(true));
   $("dashboardFinanceBtn")?.addEventListener("click", () => showFinance(true));
   $("shareLoginBtn").addEventListener("click", () => state.session && state.account ? showModulePicker(true) : showAuth("", { path: "/login" }));
   $("gradingModeSelect").addEventListener("change", (event) => {
