@@ -20,6 +20,15 @@ let runner=await fs.readFile(path.join(qa,'qa/p07-d/run.mjs'),'utf8');
 function replace(before,after){assert.equal(runner.split(before).length,2,'QA adapter anchor must be unique: '+before.slice(0,70));runner=runner.replace(before,after);}
 replace('const PINNED_TARGETS=new Map([',`const PINNED_TARGETS=new Map([\n  ['p07-r4a-runtime','${sha}'],`);
 replace('const EVIDENCE_DIR = path.join(ROOT, "docs/migration-evidence/p07-d", LABEL);',`const EVIDENCE_DIR = path.join(${JSON.stringify(root)}, 'docs/migration-evidence/p07-r4a', LABEL);`);
+replace('import { stagePages }', 'import { stagePages, isAllowedPagesFile }');
+replace('const { output,files } = await stagePages({root:TARGET_ROOT});', `// Keep the existing allowlist validation, with a per-run source/output.
+  const stageSource=path.join(QA_WORK_ROOT,'staging-source');await fsp.mkdir(stageSource,{recursive:true});
+  const tree=spawnSync('git',['ls-tree','-rz',TARGET_SOURCE_HEAD],{cwd:TARGET_ROOT,encoding:'utf8',maxBuffer:20*1024*1024});assert.equal(tree.status,0);
+  for(const row of tree.stdout.split('\\0')){if(!row)continue;const match=row.match(/^(\\d{6})\\s+blob\\s+([0-9a-f]{40})\\t(.+)$/);if(!match||!isAllowedPagesFile(match[3]))continue;
+    assert.ok(['100644','100755'].includes(match[1]),'staged input must be a regular Git blob');
+    const blob=spawnSync('git',['cat-file','-p',match[2]],{cwd:TARGET_ROOT,maxBuffer:30*1024*1024});assert.equal(blob.status,0);
+    const destination=path.join(stageSource,match[3]);await fsp.mkdir(path.dirname(destination),{recursive:true});await fsp.writeFile(destination,blob.stdout);}
+  const { output,files } = await stagePages({root:stageSource});`);
 const relative=path.relative(qa,work).replaceAll('\\','/');
 replace('[\'cache-upgrade\',\'qa/p07-round3/cache-upgrade.mjs\']',`['cache-upgrade','${relative}/cache-upgrade.mjs']`);
 replace('const suites = ZOOM_ONLY',`const suites = process.env.P07_R4A_EXTRA_ONLY ? [['r4a-runtime','${relative}/runtime-browser.mjs']] : ZOOM_ONLY`);
@@ -46,7 +55,7 @@ await fs.writeFile(path.join(work,'cache-upgrade.mjs'),upgrade);await fs.writeFi
 const browser=await fs.readFile(path.join(qa,'qa/p07-round3/browser.mjs'));
 const provenance={product_sha:sha,qa_sha:git(qa,'rev-parse','HEAD'),frozen_browser_sha256:createHash('sha256').update(browser).digest('hex'),
   adapter_sha256:createHash('sha256').update(await fs.readFile(import.meta.filename)).digest('hex'),assertions_weakened:false,
-  transport_changes:cache?['candidate exact-SHA allowlist text assets, including sw.js and all release-qualified modules','optional fixed f7949f8 warm source']:['new pinned product target only']};
+  transport_changes:['per-run committed allowlist staging prevents shared pages-output races',...(cache?['candidate exact-SHA allowlist text assets, including sw.js and all release-qualified modules','optional fixed f7949f8 warm source']:['new pinned product target only'])]};
 const output=path.join(root,'docs/migration-evidence/p07-r4a',label);await fs.mkdir(path.dirname(output),{recursive:true});
 const run=spawnSync(process.execPath,[path.join(work,'run.mjs'),...args.filter(a=>a!=='--warm-baseline')],{cwd:qa,env:{...process.env,P07_D_TARGET_ROOT:target,P07_D_RUN:label},stdio:'inherit',windowsHide:true});
 await fs.mkdir(output,{recursive:true});await fs.writeFile(path.join(output,'r4a-driver-provenance.json'),JSON.stringify(provenance,null,2));
