@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-p07-ui="enabled">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -1085,13 +1085,9 @@
         </section>
         <p class="error" id="adminError" aria-live="polite"></p>
       </section>
-        </div>
-      </div>
-    </main>
 
-    <div class="achievement-toast hidden" id="achievementToast" role="status" aria-live="polite"></div>
-
-    <div class="modal-layer hidden" id="membershipModal" aria-hidden="true">
+        <!-- V3 Membership Workspace -->
+        <section class="v3-workspace membership-page hidden" id="membershipModal" aria-labelledby="membershipTitle" aria-hidden="true">
       <section class="modal-panel membership-panel" role="dialog" aria-modal="true" aria-labelledby="membershipTitle">
         <button class="modal-close" data-close-modal="membershipModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         <p class="section-kicker">会员服务</p>
@@ -1144,9 +1140,10 @@
         <div class="action-row"><button class="primary" id="submitRechargeBtn" type="button" disabled>确认订单并显示二维码</button><button class="hidden" id="confirmPaymentBtn" type="button">我已付款</button><button class="hidden" id="cancelPaymentOrderBtn" type="button">取消并更换</button></div>
         <p class="meta-line" id="rechargeMessage" aria-live="polite"></p>
       </section>
-    </div>
+        </section>
 
-    <div class="modal-layer hidden" id="accountModal" aria-hidden="true">
+        <!-- V3 Account Workspace -->
+        <section class="v3-workspace account-page hidden" id="accountModal" aria-labelledby="accountTitle" aria-hidden="true">
       <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
         <button class="modal-close" data-close-modal="accountModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         <p class="section-kicker">账户中心</p>
@@ -1176,7 +1173,12 @@
         </div>
         <p class="error" id="accountMessage" aria-live="polite"></p>
       </section>
-    </div>
+        </section>
+        </div>
+      </div>
+    </main>
+
+    <div class="achievement-toast hidden" id="achievementToast" role="status" aria-live="polite"></div>
 
     <div class="modal-layer hidden" id="siteMessageModal" aria-hidden="true">
       <section class="modal-panel site-message-panel" role="dialog" aria-modal="true" aria-labelledby="siteMessageTitle" aria-describedby="siteMessageBody">

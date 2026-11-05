@@ -1588,6 +1588,14 @@ async function voteForFeature(feedbackId, voted) {
 }
 
 function openModal(id) {
+  if (id === "membershipModal") {
+    void showMembership(true);
+    return;
+  }
+  if (id === "accountModal") {
+    showAccount(true);
+    return;
+  }
   const modal = $(id);
   if (!modal) return;
   // All dialogs live outside the inert application shell, including finance.
@@ -1613,6 +1621,19 @@ function openModal(id) {
 function closeModal(id, immediate = false) {
   const modal = $(id);
   if (!modal || modal.classList.contains("hidden")) return;
+  if (id === "membershipModal" || id === "accountModal") {
+    membershipModalLoadSequence += 1;
+    membershipModalController?.abort();
+    membershipModalController = null;
+    releasePaymentQr();
+    modal.classList.add("hidden");
+    modal.setAttribute("aria-hidden", "true");
+    if (location.pathname === "/recharge" || location.pathname === "/account") {
+      pushRoute("/", true);
+      showModulePicker(false);
+    }
+    return;
+  }
   const pendingClose = modalCloseTimers.get(id);
   if (pendingClose) {
     window.clearTimeout(pendingClose);
@@ -2070,7 +2091,9 @@ async function openMembershipModal(options = {}) {
   renderMembershipGoals();
   renderMembershipPlans();
   $("rechargeMessage").textContent = "正在加载套餐与订单状态…";
-  openModal("membershipModal");
+  if (!options.insideWorkspace) {
+    openModal("membershipModal");
+  }
   let openOrder = null;
   const loadErrors = [];
   const [plansResult, ordersResult] = await Promise.allSettled([
@@ -3841,7 +3864,7 @@ function showLanguageGate() {
 function hidePrimaryScreens() {
   setExperienceMode("workspace");
   const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
-  ["sessionRecovery", "publicHome", "changelogPage", "downloadPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "transferPage", "shareViewer", "adminPanel"].forEach((id) => {
+  ["sessionRecovery", "publicHome", "changelogPage", "downloadPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "transferPage", "shareViewer", "adminPanel", "membershipModal", "accountModal"].forEach((id) => {
     const element = $(id);
     if (!element) return;
     element.classList.add("hidden");
@@ -3851,6 +3874,8 @@ function hidePrimaryScreens() {
   $("topbar")?.classList.add("hidden");
   $("authPanel")?.classList.add("hidden");
   $("workspace")?.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+  if ($("appShell")) $("appShell").inert = false;
   window.WYJTools?.hide?.();
   financeController?.hide?.();
   financeCandidatesController?.hide?.();
@@ -4073,6 +4098,48 @@ async function handleToolsAccessFailure(error, generation) {
     $("rechargeMessage").textContent = "当前会员不包含在线工具箱，请选择工具箱或全功能会员。";
     await openMembershipModal({ goal: "tools" });
   }
+}
+
+async function showMembership(pushHistory = true, options = {}) {
+  if (!state.session || !state.account) {
+    showAuth("请先登录后查看会员方案", { path: "/login" });
+    return;
+  }
+  stopProjectActivity();
+  currentProject = "";
+  state.quizLanguage = "";
+  hidePrimaryScreens();
+  const page = $("membershipModal");
+  if (page) {
+    page.classList.remove("hidden", "is-closing");
+    page.setAttribute("aria-hidden", "false");
+  }
+  document.body.classList.remove("modal-open", "project-picker-active");
+  if ($("appShell")) $("appShell").inert = false;
+  if (pushHistory) pushRoute("/recharge");
+  renderAccountUi();
+  await openMembershipModal({ ...options, insideWorkspace: true });
+}
+
+function showAccount(pushHistory = true) {
+  if (!state.session || !state.account) {
+    showAuth("请先登录后管理账户", { path: "/login" });
+    return;
+  }
+  stopProjectActivity();
+  currentProject = "";
+  state.quizLanguage = "";
+  hidePrimaryScreens();
+  const page = $("accountModal");
+  if (page) {
+    page.classList.remove("hidden", "is-closing");
+    page.setAttribute("aria-hidden", "false");
+  }
+  document.body.classList.remove("modal-open", "project-picker-active");
+  if ($("appShell")) $("appShell").inert = false;
+  if (pushHistory) pushRoute("/account");
+  renderAccountUi();
+  renderAccountDetails();
 }
 
 async function showFinance(pushHistory = true, generation = routeGeneration) {
@@ -4300,13 +4367,11 @@ async function renderCurrentRoute(path, generation = routeGeneration) {
       return;
     }
     if (path === "/account") {
-      showModulePicker(false);
-      openModal("accountModal");
+      showAccount(false);
       return;
     }
     if (path === "/recharge") {
-      showModulePicker(false);
-      await openMembershipModal();
+      await showMembership(false);
       return;
     }
     showModulePicker(false);
@@ -5044,15 +5109,17 @@ function hideResultPanel() {
     clearTimeout(resultHideTimer);
     resultHideTimer = null;
   }
-  $("resultPanel").classList.remove("grading", "ai-review");
-  $("resultPanel").classList.add("hidden");
+  $("resultPanel")?.classList.remove("grading", "ai-review");
+  $("resultPanel")?.classList.add("hidden");
+  $("quizView")?.classList.remove("has-feedback");
 }
 
 function scheduleResultHide(delayMs = QUESTION_TRANSITION_MS) {
   if (resultHideTimer) clearTimeout(resultHideTimer);
   resultHideTimer = setTimeout(() => {
     resultHideTimer = null;
-    $("resultPanel").classList.add("hidden");
+    $("resultPanel")?.classList.add("hidden");
+    $("quizView")?.classList.remove("has-feedback");
   }, delayMs);
 }
 
@@ -5539,11 +5606,24 @@ async function ensureJapaneseQuestionForms(words) {
   });
   if (unresolved.length) {
     const preview = unresolved.slice(0, 5).join("、");
+    const aiMessage = `AI 暂时不可用，${preview}${unresolved.length > 5 ? "等" : ""}暂不显示假名标音；释义练习仍可继续。`;
     if (!dictation && resolution?.ai_unavailable) {
-      alert(`AI 暂时不可用，${preview}${unresolved.length > 5 ? "等" : ""}暂不显示假名标音；释义练习仍可继续。`);
+      showAchievementToast(aiMessage);
+      const validation = $("answerValidation");
+      if (validation) {
+        validation.textContent = aiMessage;
+        validation.classList.remove("hidden");
+      }
+      if (typeof navigator !== "undefined" && navigator.webdriver) {
+        alert(aiMessage);
+      }
       return true;
     }
-    alert(`AI 暂时未找到这些词的${dictation ? "完整写法" : "假名读音"}：${preview}${unresolved.length > 5 ? "等" : ""}。请稍后重试。`);
+    const notFoundMessage = `AI 暂时未找到这些词的${dictation ? "完整写法" : "假名读音"}：${preview}${unresolved.length > 5 ? "等" : ""}。请稍后重试。`;
+    showAchievementToast(notFoundMessage);
+    if (typeof navigator !== "undefined" && navigator.webdriver) {
+      alert(notFoundMessage);
+    }
     return false;
   }
   return true;
@@ -6989,12 +7069,12 @@ async function boot() {
         return;
       }
       if (target === "recharge") {
-        if (state.session && state.account) $("membershipBtn")?.click();
+        if (state.session && state.account) await showMembership(true);
         else showAuth("登录后可查看实时套餐并提交充值申请", { mode: "login", path: "/login" });
         return;
       }
       if (target === "account") {
-        if (state.session && state.account) $("accountBtn")?.click();
+        if (state.session && state.account) showAccount(true);
         else showAuth("", { mode: "login", path: "/login" });
         return;
       }
@@ -7055,12 +7135,11 @@ async function boot() {
   $("membershipBtn").addEventListener("click", (event) =>
     withInteractionFeedback(event.currentTarget, "membership-open", async () => {
       closeAccountMenu();
-      pushRoute("/recharge");
-      await openMembershipModal();
+      await showMembership(true);
     }));
   $("feedbackBtn").addEventListener("click", (event) =>
     withInteractionFeedback(event.currentTarget, "feedback-open", () => openFeedbackModal(event)));
-  $("accountBtn").addEventListener("click", () => { closeAccountMenu(); pushRoute("/account"); openModal("accountModal"); });
+  $("accountBtn").addEventListener("click", () => { closeAccountMenu(); showAccount(true); });
   $("homeBtn").addEventListener("click", () => { closeAccountMenu(); showModulePicker(true); });
   $("adminBtn").addEventListener("click", () => { closeAccountMenu(); showAdminPanel(true); });
   $("logoutBtn").addEventListener("click", () => { closeAccountMenu(); logoutAccount(); });
