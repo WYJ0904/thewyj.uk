@@ -37,6 +37,11 @@ const files=git(root,'ls-tree','-r','--name-only',sha).split(/\r?\n/).filter(f=>
 upgrade=upgrade.replace(/^const files=\[.*\];$/m,'const files='+JSON.stringify(files)+';');
 upgrade=upgrade.replace("const bytes=generation==='candidate'&&next[file]!==undefined?Buffer.from(next[file]):Buffer.from(await original.arrayBuffer());",
   "if(generation==='candidate'&&next[file]!==undefined){headers['content-type']=file.endsWith('.js')?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':headers['content-type'];} const bytes=generation==='candidate'&&next[file]!==undefined?Buffer.from(next[file]):Buffer.from(await original.arrayBuffer());");
+upgrade=upgrade.replace('let error=null;',`const safety=await import(${JSON.stringify(new URL('./upgrade-safety.mjs',import.meta.url).href)});const observed=safety.observeRelease(page,origin,next);let resources=[];let error=null;`);
+upgrade=upgrade.replace("generation='candidate';", "await safety.seedUserState(page);generation='candidate';const resourceStart=observed.start();");
+upgrade=upgrade.replace("phases.push(await navigate('normal'));", "phases.push(await navigate('normal'));resources=await observed.verify(resourceStart);");
+upgrade=upgrade.replace("assert.ok(phases.filter(p=>p.generation==='candidate').every(p=>p.matchesCandidate),'new HTML reused old cached app.js after same-origin upgrade');",
+  "assert.ok(phases.filter(p=>p.generation==='candidate').every(p=>p.matchesCandidate),'new HTML reused old cached app.js after same-origin upgrade');await safety.verifyOfflineAndData(page,{out,release:new URL(newUrl,origin).searchParams.get('v'),resources});");
 await fs.writeFile(path.join(work,'cache-upgrade.mjs'),upgrade);await fs.writeFile(path.join(work,'run.mjs'),runner);
 const browser=await fs.readFile(path.join(qa,'qa/p07-round3/browser.mjs'));
 const provenance={product_sha:sha,qa_sha:git(qa,'rev-parse','HEAD'),frozen_browser_sha256:createHash('sha256').update(browser).digest('hex'),
