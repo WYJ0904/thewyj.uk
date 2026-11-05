@@ -1,11 +1,11 @@
 {
-  "deployedAt": "2026-11-05T03:31:28.440Z",
+  "deployedAt": "2026-11-05T03:58:34.209Z",
   "status": "P07_D_PREVIEW_DEPLOYED_AND_VERIFIED",
-  "commit": "d71e0fb67cbf9f82d7e6fc527398f5d3a8732a40",
+  "commit": "f62c8415a9d10744df4b7fc345f33eebd3f71a87",
   "project": "thewyj-p07-ui-rc",
   "branch": "v62-p07-d-workspaces",
-  "deploymentId": "59875f28-058a-452f-ba07-e48306bfb431",
-  "url": "https://59875f28.thewyj-p07-ui-rc.pages.dev",
+  "deploymentId": "a6e61c0e-ba40-49d0-a679-5b808566b5d0",
+  "url": "https://a6e61c0e.thewyj-p07-ui-rc.pages.dev",
   "aliases": [
     "https://v62-p07-d-workspaces.thewyj-p07-ui-rc.pages.dev"
   ],
@@ -25,7 +25,7 @@
   "allowlistedFileCount": 147,
   "publicStaticVerifiedCount": 86,
   "liveBrowserProof": {
-    "previewUrl": "https://59875f28.thewyj-p07-ui-rc.pages.dev",
+    "previewUrl": "https://a6e61c0e.thewyj-p07-ui-rc.pages.dev",
     "runtimeErrors": [],
     "screenshots": [
       "docs/p07/evidence/p07-d/preview/preview-live-home-1440.png",
