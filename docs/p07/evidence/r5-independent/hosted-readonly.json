@@ -1,0 +1,26 @@
+{
+  "observedAt": "2026-11-06T08:18:09.191Z",
+  "origin": "https://852fc79d.thewyj-p07-ui-rc.pages.dev",
+  "policy": {
+    "status": 200,
+    "data": {
+      "ok": true,
+      "public_ui": {
+        "schema_version": 1,
+        "flag_key": "p07_accessibility",
+        "enabled": true,
+        "revision": 17,
+        "reason": "public_stable",
+        "observed_at": "2026-11-06T08:18:06.928Z",
+        "expires_at": "2026-11-06T08:18:36.928Z",
+        "max_age_seconds": 30
+      },
+      "request_id": "9b00a2f1-620d-4d95-b02e-6c1099f9984c"
+    }
+  },
+  "appSrc": "/app.js?release=20261106-aeris-p07-r4c-rc2",
+  "appHash": "d4bc399de1136c48f78de62a2d778173ede22bed480a58e776b2f6d9ba6164cd",
+  "matchesRawR5Product": true,
+  "rawR5Hash": "d4bc399de1136c48f78de62a2d778173ede22bed480a58e776b2f6d9ba6164cd",
+  "isIntegrationPreview": false
+}

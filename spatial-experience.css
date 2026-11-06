@@ -3571,6 +3571,17 @@ html[data-p07-ui="enabled"] .workflow-sidebar {
   gap: 20px;
   position: sticky;
   top: calc(var(--site-nav-height, 62px) + 20px);
+  max-height: calc(100dvh - var(--site-nav-height, 62px) - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 900px) {
+  html[data-p07-ui="enabled"] .workflow-sidebar {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
 }
 
 html[data-p07-ui="enabled"] .workflow-sidebar-heading h3,
