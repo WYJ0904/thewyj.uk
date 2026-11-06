@@ -35,7 +35,6 @@ export function createPublicUiPolicyController({ apiGet, getAccount, hasSession 
     if (globalThis.navigator?.onLine === false) { sequence++; clear('error', '当前离线，界面体验已安全回退。'); return; }
     if (document?.hidden) { if (!valid()) clear('pending'); else onChange(); return; }
     const ticket = ++sequence;
-    if (!valid()) clear('pending');
     try {
       const result = await apiGet('/api/ui/features');
       if (disposed || ticket !== sequence || loggedIn()) return;
@@ -50,7 +49,16 @@ export function createPublicUiPolicyController({ apiGet, getAccount, hasSession 
     if (next === owner && nextSession === sessionPresent) return;
     owner = next; sessionPresent = nextSession; sequence++; clear('pending'); if (!nextSession) void refresh();
   }
-  const visibility = () => { sequence++; if (!valid()) clear('pending'); else onChange(); if (!document?.hidden) void refresh(); };
+  const visibility = () => {
+    sequence++;
+    if (document?.hidden) {
+      if (!valid()) clear('pending');
+      else onChange();
+    } else {
+      if (!valid()) void refresh();
+      else onChange();
+    }
+  };
   const offline = () => { sequence++; clear('error', '当前离线，界面体验已安全回退。'); };
   const online = () => void refresh();
   document?.addEventListener?.('visibilitychange', visibility);

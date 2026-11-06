@@ -4053,6 +4053,22 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
   hidePrimaryScreens();
   $("toolsPanel")?.classList.remove("hidden");
   $("toolsPanel")?.setAttribute("aria-hidden", "false");
+  if (path.startsWith("/tools/workflows")) {
+    $("toolsDashboard")?.classList.add("hidden");
+    $("toolWorkbench")?.classList.add("hidden");
+    $("workflowWorkspace")?.classList.remove("hidden");
+    $("workflowWorkspace")?.setAttribute("aria-hidden", "false");
+    $("toolsPanel")?.querySelector(".tools-header")?.classList.add("hidden");
+  } else if (path === "/tools") {
+    $("toolsDashboard")?.classList.remove("hidden");
+    $("workflowWorkspace")?.classList.add("hidden");
+    $("toolWorkbench")?.classList.add("hidden");
+    $("toolsPanel")?.querySelector(".tools-header")?.classList.remove("hidden");
+  } else if (path.startsWith("/tools/")) {
+    $("toolsDashboard")?.classList.add("hidden");
+    $("workflowWorkspace")?.classList.add("hidden");
+    $("toolWorkbench")?.classList.remove("hidden");
+  }
   if (pushHistory) { pushRoute(path); generation = routeGeneration; }
   document.body.classList.remove("project-picker-active");
   renderAccountUi();
@@ -4894,7 +4910,8 @@ function applyInterfacePolicy() {
   document.documentElement.dataset.interfacePolicy = decision.status;
   const policyState = $('interfacePolicyState');
   if (policyState) {
-    policyState.hidden = !['pending', 'error'].includes(decision.status);
+    const isBootReady = document.documentElement.dataset.bootState === 'ready';
+    policyState.hidden = isBootReady || !['pending', 'error'].includes(decision.status);
     $('interfacePolicyMessage').textContent = decision.status === 'pending'
       ? '正在读取界面设置…' : '界面设置暂时无法读取，已安全使用基础界面。账户与本机数据仍然保留。';
     $('retryInterfacePolicyBtn').hidden = decision.status !== 'error';
