@@ -10,7 +10,7 @@ const ROOT = path.resolve(import.meta.dirname, '../..');
 const EVIDENCE_DIR = path.join(ROOT, 'docs/p07/evidence/r5');
 await fsp.mkdir(EVIDENCE_DIR, { recursive: true });
 
-const PREVIEW_URL = process.env.AERIS_PREVIEW_URL || 'https://cab88b0d.thewyj-p07-ui-rc.pages.dev';
+const PREVIEW_URL = process.env.AERIS_PREVIEW_URL || 'https://852fc79d.thewyj-p07-ui-rc.pages.dev';
 const CHROME_EXE = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const CDP_PORT = 19358;
 const PROFILE_DIR = path.join(ROOT, '.wrangler/chrome-r5-verified-profile');
@@ -336,6 +336,48 @@ try {
   // ==========================================
   console.log('\n--- Test 4: Finance Workspace (/finance) ---');
   await setViewport(1440, 960);
+  await delay(400);
+
+  // Seed 6 months of realistic transactions so trend chart and 6 month cards render
+  await page.evaluate(`(() => {
+    const accountId = ${JSON.stringify(targetAccountId)};
+    const now = new Date();
+    const transactions = {};
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 15);
+      const incId = 'seed_inc_' + i;
+      const expId = 'seed_exp_' + i;
+      transactions[incId] = {
+        id: incId,
+        direction: 'income',
+        amount_minor: (3500 + i * 400) * 100,
+        currency: 'CNY',
+        category_id: 'salary',
+        occurred_at_ms: d.getTime(),
+        status: 'active'
+      };
+      transactions[expId] = {
+        id: expId,
+        direction: 'expense',
+        amount_minor: (1200 + i * 250) * 100,
+        currency: 'CNY',
+        category_id: 'dining',
+        occurred_at_ms: d.getTime(),
+        status: 'active'
+      };
+    }
+    const storeData = {
+      account_id: accountId,
+      device_id: 'web:qa-test-seed',
+      server_version: 1,
+      hydrated: true,
+      transactions,
+      categories: {},
+      budgets: {}
+    };
+    localStorage.setItem('wyjFinance:v1:' + encodeURIComponent(accountId), JSON.stringify(storeData));
+  })()`);
+
   await page.click('#v3Sidebar [data-v3-nav="finance"]');
   await delay(1200);
 
