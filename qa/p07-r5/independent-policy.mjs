@@ -38,7 +38,11 @@ try{
     await p.intercept([]);await p.navigate('/');await p.waitFor("document.documentElement.dataset.interfacePolicy==='enabled'",15000);let fail=true;
     await p.intercept([{match:'/api/ui/features',respond:()=>fail?{status:503,body:{error:'isolated bounded transport failure'}}:{continue:true}}]);
     await p.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await p.waitFor("document.documentElement.dataset.interfacePolicy==='error'",5000);
-    await p.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});const failed=await snapshot(p);r.note('post-boot-policy-failure-keeps-visible-retry',{failed});
+    await p.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+    // Online deliberately begins a new request. Observe its bounded error,
+    // rather than reading the legitimate intervening pending state.
+    await p.waitFor("document.documentElement.dataset.interfacePolicy==='error'",15000,'actual 503 revalidation completes');
+    const failed=await snapshot(p);r.note('post-boot-policy-failure-keeps-visible-retry',{failed});
     assert.equal(failed.p07,'disabled');assert.equal(failed.policyPanelVisible,true,'boot-ready failure hid its recovery feedback');assert.equal(failed.retryVisible,true);fail=false;await pointer(p,'#retryInterfacePolicyBtn');await p.waitFor("document.documentElement.dataset.interfacePolicy==='enabled'",15000);return{failed,recovered:await snapshot(p),fault:'local 503 fixture; no real AI'};
   });
 }finally{await p.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1}).catch(()=>{});await p.close();r.finish();}
