@@ -20,14 +20,14 @@ test('an existing old client keeps its exact cached module bytes',async()=>{
   assert.equal(await (await w.request(url)).text(),'old exact bytes');assert.equal(w.calls.length,0);
 });
 test('new HTML authorizes its future release assets without polluting the old offline shell',async()=>{
-  const w=worker(),future='20261201-aeris-next';w.network=request=>new URL(request.url).pathname==='/'?new Response(`<script type="module" src="/app.js?release=${future}"></script>`):new Response('future exact bytes');
+  const w=worker(),future='20261201-aeris-next';w.network(request=>new URL(request.url).pathname==='/'?new Response(`<script type="module" src="/app.js?release=${future}"></script>`):new Response('future exact bytes'));
   await (await w.caches.open(currentCache)).put('/index.html',new Response('current complete offline shell'));
   await w.request('/','navigate');const result=await w.request('/app.js?release='+future);assert.equal(result.status,200);assert.equal(await result.text(),'future exact bytes');
   assert.equal(w.calls.at(-1).cache,'no-store');assert.equal(await (await (await w.caches.open(currentCache)).match('/index.html')).text(),'current complete offline shell');
   assert.equal((await w.caches.keys()).length,1,'a future partially downloaded shell must not be published');
 });
 test('current navigation recognizes the canonical release query and APIs bypass Cache Storage',async()=>{
-  const w=worker(),html=`<script type="module" src="/app.js?release=${release}"></script>`;w.network=()=>new Response(html);await w.request('/','navigate');
+  const w=worker(),html=`<script type="module" src="/app.js?release=${release}"></script>`;w.network(()=>new Response(html));await w.request('/','navigate');
   assert.equal(await (await (await w.caches.open(currentCache)).match('/index.html')).text(),html);
   const before=w.calls.length;assert.equal(await w.request('/api/me'),null);assert.equal(w.calls.length,before);
 });
