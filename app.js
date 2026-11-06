@@ -9,27 +9,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?release=20261106-aeris-p07-r4c-rc2";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261106-aeris-p07-r4c-rc2";
+} from "./js/core/config.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261106-aeris-p07-r5-independent-rc1";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?release=20261106-aeris-p07-r4c-rc2";
+} from "./js/core/capabilities.js?release=20261106-aeris-p07-r5-independent-rc1";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?release=20261106-aeris-p07-r4c-rc2";
+} from "./js/core/api.js?release=20261106-aeris-p07-r5-independent-rc1";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?release=20261106-aeris-p07-r4c-rc2";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261106-aeris-p07-r4c-rc2";
+} from "./js/core/changelog.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261106-aeris-p07-r5-independent-rc1";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -40,28 +40,28 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?release=20261106-aeris-p07-r4c-rc2";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261106-aeris-p07-r4c-rc2";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261106-aeris-p07-r4c-rc2";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?release=20261106-aeris-p07-r4c-rc2";
-import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261106-aeris-p07-r4c-rc2";
-import { completeStartupSplash } from "./js/core/startup.js?release=20261106-aeris-p07-r4c-rc2";
-import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?release=20261106-aeris-p07-r4c-rc2";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261106-aeris-p07-r4c-rc2";
-import { createAndroidDownloadController } from "./js/core/download.js?release=20261106-aeris-p07-r4c-rc2";
-import { createFeatureController } from "./js/core/feature-flags.js?release=20261106-aeris-p07-r4c-rc2";
-import { createFeatureConsole } from "./js/core/feature-console.js?release=20261106-aeris-p07-r4c-rc2";
-import { createMasteryController } from "./js/language/mastery.js?release=20261106-aeris-p07-r4c-rc2";
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261106-aeris-p07-r4c-rc2";
-import { masteryStorageKey } from "./js/language/mastery-state.js?release=20261106-aeris-p07-r4c-rc2";
-import { speakText, stopSpeech } from "./js/language/speech.js?release=20261106-aeris-p07-r4c-rc2";
+} from "./js/core/session.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { completeStartupSplash } from "./js/core/startup.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { createAndroidDownloadController } from "./js/core/download.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { createFeatureController } from "./js/core/feature-flags.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { createFeatureConsole } from "./js/core/feature-console.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { createMasteryController } from "./js/language/mastery.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { masteryStorageKey } from "./js/language/mastery-state.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { speakText, stopSpeech } from "./js/language/speech.js?release=20261106-aeris-p07-r5-independent-rc1";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?release=20261106-aeris-p07-r4c-rc2";
-import { formatFinanceMoney } from "./js/finance/format.js?release=20261106-aeris-p07-r4c-rc2";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261106-aeris-p07-r4c-rc2";
-import { createDashboardView } from "./js/core/dashboard.js?release=20261106-aeris-p07-r4c-rc2";
+} from "./js/language/speech-rate.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { formatFinanceMoney } from "./js/finance/format.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { createDashboardView } from "./js/core/dashboard.js?release=20261106-aeris-p07-r5-independent-rc1";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -69,15 +69,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?release=20261106-aeris-p07-r4c-rc2";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261106-aeris-p07-r4c-rc2";
+} from "./js/core/perf.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261106-aeris-p07-r5-independent-rc1";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?release=20261106-aeris-p07-r4c-rc2";
+} from "./js/language/history.js?release=20261106-aeris-p07-r5-independent-rc1";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -114,16 +114,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?release=20261106-aeris-p07-r4c-rc2";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261106-aeris-p07-r4c-rc2";
-import { createWrongBookPdf } from "./js/language/pdf.js?release=20261106-aeris-p07-r4c-rc2";
+} from "./js/language/quiz.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261106-aeris-p07-r5-independent-rc1";
+import { createWrongBookPdf } from "./js/language/pdf.js?release=20261106-aeris-p07-r5-independent-rc1";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?release=20261106-aeris-p07-r4c-rc2";
+} from "./js/language/wrong-book.js?release=20261106-aeris-p07-r5-independent-rc1";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -132,7 +132,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?release=20261106-aeris-p07-r4c-rc2";
+} from "./js/membership/account.js?release=20261106-aeris-p07-r5-independent-rc1";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -140,19 +140,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?release=20261106-aeris-p07-r4c-rc2";
+} from "./js/membership/plans.js?release=20261106-aeris-p07-r5-independent-rc1";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?release=20261106-aeris-p07-r4c-rc2";
+} from "./js/membership/recharge.js?release=20261106-aeris-p07-r5-independent-rc1";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?release=20261106-aeris-p07-r4c-rc2";
+} from "./js/admin/formatters.js?release=20261106-aeris-p07-r5-independent-rc1";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -4828,14 +4828,14 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
 });
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?release=20261106-aeris-p07-r4c-rc2", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261106-aeris-p07-r4c-rc2", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?release=20261106-aeris-p07-r5-independent-rc1", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261106-aeris-p07-r5-independent-rc1", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261106-aeris-p07-r4c-rc2", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261106-aeris-p07-r4c-rc2", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261106-aeris-p07-r4c-rc2", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261106-aeris-p07-r5-independent-rc1", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261106-aeris-p07-r5-independent-rc1", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261106-aeris-p07-r5-independent-rc1", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render"],
@@ -4905,18 +4905,12 @@ function applyInterfacePolicy() {
   const decision = state.session && !state.account ? { status: 'pending' } : hasAuthenticatedAccount
     ? featureController?.decision('p07_accessibility') || { status: 'pending' }
     : publicUiPolicyController?.decision() || { status: 'pending' };
-  const isBootReady = document.documentElement.dataset.bootState === 'ready';
-  const currentlyEnabled = document.documentElement.dataset.p07Ui === 'enabled';
-  const effectiveStatus = (isBootReady && currentlyEnabled && decision.status === 'pending')
-    ? 'enabled'
-    : decision.status;
-  const enabled = effectiveStatus === 'enabled';
+  const enabled = decision.status === 'enabled';
   setInterfaceEnhancementsEnabled(enabled);
   document.documentElement.dataset.interfacePolicy = decision.status;
   const policyState = $('interfacePolicyState');
   if (policyState) {
-    const isBootReady = document.documentElement.dataset.bootState === 'ready';
-    policyState.hidden = isBootReady || !['pending', 'error'].includes(decision.status);
+    policyState.hidden = !['pending', 'error'].includes(decision.status);
     $('interfacePolicyMessage').textContent = decision.status === 'pending'
       ? '正在读取界面设置…' : '界面设置暂时无法读取，已安全使用基础界面。账户与本机数据仍然保留。';
     $('retryInterfacePolicyBtn').hidden = decision.status !== 'error';
@@ -6817,22 +6811,27 @@ async function login(event) {
 }
 
 async function performBackendRefresh() {
+  const owner = state.session;
   try {
     const data = await checkBackendStatus();
+    if (owner !== state.session) return;
     applyBackendStatus(data);
 
-    if (state.session) {
+    if (owner) {
       const healthResponse = await fetchWithTimeout(
         "/api/health",
         {
           method: "POST",
           cache: "no-store",
-          headers: { "Content-Type": "application/json", ...accountSessionHeaders(state.session) },
+          headers: { "Content-Type": "application/json", ...accountSessionHeaders(owner) },
           body: "{}",
         },
         STATUS_TIMEOUT_MS,
       );
       const health = await healthResponse.json().catch(() => ({}));
+      // A refresh started by another identity must never replace or expire the
+      // account now active in this tab, even when its response arrives last.
+      if (owner !== state.session) return;
       if (!healthResponse.ok) {
         if (isCanonicalSessionFailure(health)) {
           if (requestNativeSessionRefresh(health.code)) {
@@ -6862,6 +6861,7 @@ async function performBackendRefresh() {
       pendingAuthMessage = "";
     }
   } catch (error) {
+    if (owner !== state.session) return;
     backendAvailable = false;
     aiAvailable = false;
     backendFailureMessage = backendErrorMessage(error);
@@ -6876,8 +6876,12 @@ async function performBackendRefresh() {
 
 function refreshBackendState() {
   if (!backendRefreshPromise) {
+    const owner = state.session;
     backendRefreshPromise = performBackendRefresh().finally(() => {
       backendRefreshPromise = null;
+      // A storage/native session change may have joined the old in-flight
+      // refresh. Validate its own identity as soon as that request completes.
+      if (owner !== state.session && state.session) scheduleBackendRecovery(0);
     });
   }
   return backendRefreshPromise;

@@ -1,4 +1,4 @@
-import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?release=20261106-aeris-p07-r4c-rc2";
+import { limitText, normalizePracticeMode, normalizeQuizLanguage } from "./quiz.js?release=20261106-aeris-p07-r5-independent-rc1";
 
 export const MAX_STUDY_RECORDS = 500;
 
