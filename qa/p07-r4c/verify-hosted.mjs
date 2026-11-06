@@ -11,13 +11,14 @@ assert.match(sha||'',/^[0-9a-f]{40}$/);assert.ok(new URL(origin).hostname.endsWi
 const wrangler=path.join(root,'node_modules/wrangler/bin/wrangler.js');
 const auth=spawnSync(process.execPath,[wrangler,'auth','token','--json'],{cwd:root,encoding:'utf8',timeout:30000});
 assert.equal(auth.status,0,'Read-only Cloudflare metadata authentication unavailable');
-const authData=JSON.parse(auth.stdout),token=authData.token||authData.oauth_token||authData.api_token;assert.ok(token);
-async function cf(route){const r=await fetch('https://api.cloudflare.com/client/v4/accounts/97c274a981e8dd6703aa6388e11c4614'+route,{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(30000)});const v=await r.json();assert.equal(v.success,true,'Isolated project metadata lookup failed');return v.result;}
+let authData;try{authData=JSON.parse(auth.stdout);}catch{throw Error('Read-only authentication metadata was not valid JSON');}
+const token=authData.token||authData.oauth_token||authData.api_token;assert.ok(token);
+async function cf(route){const r=await fetch('https://api.cloudflare.com/client/v4/accounts/97c274a981e8dd6703aa6388e11c4614'+route,{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(30000)});const v=await r.json();assert.equal(v.success,true,'Isolated metadata HTTP '+r.status+' codes '+(v.errors||[]).map(e=>e.code).join(','));return v.result;}
 const project=await cf('/pages/projects/thewyj-p07-ui-rc'),cfg=project.deployment_configs.preview;
 assert.equal(cfg.d1_databases.WYJ_DB.id,'ee869f78-b54a-4018-bc99-871089ecb8cd','Hosted login requires proven isolated D1');
 assert.equal(Object.keys(cfg.r2_buckets||{}).length,0);assert.equal(Object.keys(cfg.ai_bindings||{}).length,0);
 assert.equal(String(cfg.env_vars.WORKERS_AI_ENABLED.value),'false');
-const deployments=await cf('/pages/projects/thewyj-p07-ui-rc/deployments?env=preview&per_page=50');
+const deployments=await cf('/pages/projects/thewyj-p07-ui-rc/deployments?env=preview&per_page=20');
 const deployed=deployments.find(d=>new URL(d.url).origin===origin);assert.ok(deployed,'Origin is not an audited isolated deployment');
 assert.equal(deployed.deployment_trigger.metadata.commit_hash,sha,'Preview is a different exact SHA');assert.equal(deployed.environment,'preview');
 const proof={origin,deployedSha:sha,deploymentId:deployed.id,isolatedD1:cfg.d1_databases.WYJ_DB.id,r2Bindings:0,aiBindings:0,cases:[],configurationMutations:0,ledgerMutations:0};
