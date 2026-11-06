@@ -1,0 +1,222 @@
+{
+  "verifiedAt": "2026-11-06T06:57:12.444Z",
+  "previewUrl": "https://852fc79d.thewyj-p07-ui-rc.pages.dev",
+  "testResults": [
+    {
+      "test": "Splash Boot Scroll Lock",
+      "status": "PASS",
+      "splashScrollState": {
+        "htmlOverflow": "hidden",
+        "htmlHeight": "960px",
+        "bodyOverflow": "hidden"
+      },
+      "readyScrollState": {
+        "htmlOverflow": "visible"
+      }
+    },
+    {
+      "test": "P0-01 Account Center",
+      "status": "PASS",
+      "account1440": {
+        "modalWidth": 1200,
+        "contentWidth": 1128,
+        "contentComputedWidth": "1128px",
+        "panelWidth": 1128,
+        "panelMaxHeight": "none",
+        "panelOverflowY": "visible",
+        "contentOverflowY": "visible",
+        "detailsColumns": 2,
+        "detailRows": 8,
+        "hasDangerCard": true,
+        "hasSecretForm": true,
+        "hasDeleteBtn": true,
+        "hasLogoutBtn": true,
+        "username": "qa_lifetime_member"
+      },
+      "account1366": {
+        "contentWidth": 1075,
+        "detailsColumns": 2
+      },
+      "account390": {
+        "detailsColumns": 1
+      }
+    },
+    {
+      "test": "P0-02 Membership Center",
+      "status": "PASS",
+      "recharge1440": {
+        "modalWidth": 1200,
+        "contentWidth": 1128,
+        "contentComputedWidth": "1128px",
+        "panelWidth": 1128,
+        "panelMaxHeight": "none",
+        "panelOverflowY": "visible",
+        "stepCount": 4,
+        "goalCount": 7,
+        "hasQrSection": true
+      },
+      "plansCheck": {
+        "planStepVisible": true,
+        "planCount": 2,
+        "plans": [
+          "all_access_monthly",
+          "all_access_lifetime"
+        ]
+      }
+    },
+    {
+      "test": "P0-03 Finance Workspace & Trend Persistence",
+      "status": "PASS",
+      "financeInitial": {
+        "wrapFlexDirection": "column",
+        "wrapWidth": 1107,
+        "wrapHeight": 393.359375,
+        "hasSvg": true,
+        "svgWidth": 1107,
+        "svgHeight": 240,
+        "monthCardCount": 6,
+        "toggleBtnText": "收起走势图",
+        "toggleAriaExpanded": "true",
+        "legendVisible": true,
+        "ledgerTop": 1146.390625
+      },
+      "financeCollapsed": {
+        "wrapCollapsedClass": true,
+        "wrapVisible": false,
+        "wrapHeight": 0,
+        "toggleBtnText": "展开走势图",
+        "toggleAriaExpanded": "false",
+        "legendVisible": false,
+        "ledgerTop": 737.03125,
+        "storageKey": "wyjFinanceFold:v1:eec3951b-03ea-49d6-9daa-fb0392d80d8c:trend:open",
+        "storageVal": "closed"
+      },
+      "financeAfterReload": {
+        "wrapCollapsedClass": true,
+        "wrapVisible": false,
+        "toggleBtnText": "展开走势图",
+        "toggleAriaExpanded": "false",
+        "legendVisible": false
+      },
+      "financeRestored": {
+        "wrapCollapsedClass": false,
+        "wrapVisible": true,
+        "toggleBtnText": "收起走势图",
+        "storageVal": "open"
+      }
+    },
+    {
+      "test": "Workflows Direct Route",
+      "status": "PASS",
+      "workflowRouteState": {
+        "dashboardHidden": true,
+        "workflowVisible": true,
+        "toolsHeaderHidden": true
+      }
+    },
+    {
+      "test": "Background Tab Recovery & SWR",
+      "status": "PASS",
+      "recoveryState": {
+        "policy": "pending",
+        "policyStateHidden": true,
+        "policyStateVisible": false,
+        "appFrameVisible": true,
+        "log": [
+          {
+            "t": 22570.199999999255,
+            "policy": "enabled"
+          },
+          {
+            "t": 22570.199999999255,
+            "policy": "enabled"
+          },
+          {
+            "t": 26724.89999999851,
+            "policy": "enabled"
+          },
+          {
+            "t": 31232.199999999255,
+            "policy": "enabled"
+          },
+          {
+            "t": 41232.199999999255,
+            "policy": "pending"
+          },
+          {
+            "t": 41232.199999999255,
+            "policy": "pending"
+          },
+          {
+            "t": 54585.39999999851,
+            "policy": "pending"
+          },
+          {
+            "t": 54585.39999999851,
+            "policy": "pending"
+          }
+        ]
+      }
+    }
+  ],
+  "measurements": {
+    "account1440": {
+      "modalWidth": 1200,
+      "contentWidth": 1128,
+      "contentComputedWidth": "1128px",
+      "panelWidth": 1128,
+      "panelMaxHeight": "none",
+      "panelOverflowY": "visible",
+      "contentOverflowY": "visible",
+      "detailsColumns": 2,
+      "detailRows": 8,
+      "hasDangerCard": true,
+      "hasSecretForm": true,
+      "hasDeleteBtn": true,
+      "hasLogoutBtn": true,
+      "username": "qa_lifetime_member"
+    },
+    "account1366": {
+      "contentWidth": 1075,
+      "detailsColumns": 2
+    },
+    "account390": {
+      "detailsColumns": 1
+    },
+    "recharge1440": {
+      "modalWidth": 1200,
+      "contentWidth": 1128,
+      "contentComputedWidth": "1128px",
+      "panelWidth": 1128,
+      "panelMaxHeight": "none",
+      "panelOverflowY": "visible",
+      "stepCount": 4,
+      "goalCount": 7,
+      "hasQrSection": true
+    },
+    "financeInitial": {
+      "wrapFlexDirection": "column",
+      "wrapWidth": 1107,
+      "wrapHeight": 393.359375,
+      "hasSvg": true,
+      "svgWidth": 1107,
+      "svgHeight": 240,
+      "monthCardCount": 6,
+      "toggleBtnText": "收起走势图",
+      "toggleAriaExpanded": "true",
+      "legendVisible": true,
+      "ledgerTop": 1146.390625
+    },
+    "financeCollapsed": {
+      "wrapCollapsedClass": true,
+      "wrapVisible": false,
+      "wrapHeight": 0,
+      "toggleBtnText": "展开走势图",
+      "toggleAriaExpanded": "false",
+      "legendVisible": false,
+      "ledgerTop": 737.03125,
+      "storageKey": "wyjFinanceFold:v1:eec3951b-03ea-49d6-9daa-fb0392d80d8c:trend:open",
+      "storageVal": "closed"
+    }
+  }
+}

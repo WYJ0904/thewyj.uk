@@ -948,6 +948,20 @@ html[data-p07-ui="enabled"] .aeris-final-cta {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* Prevent background scrolling during splash / boot loading */
+html:has(#entryScreen),
+html[data-boot-state="splash"],
+html:has(#entryScreen) body,
+html[data-boot-state="splash"] body {
+  overflow: hidden !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+}
+
+html:has(#entryScreen) #appShell.app-shell-pending {
+  display: none !important;
+}
+
 /* Enlarged root text (200% WCAG 1.4.4 reflow) */
 html[data-p07-ui="enabled"][data-large-text="true"] .home-v3-summary-grid {
   grid-template-columns: minmax(0, 1fr);
@@ -2495,17 +2509,85 @@ html[data-p07-ui="enabled"] .expense-dot {
 
 html[data-p07-ui="enabled"] .finance-trend-chart-wrap {
   width: 100%;
-  min-height: 220px;
   margin-top: 16px;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
 }
 
 html[data-p07-ui="enabled"] .finance-chart-svg {
   width: 100%;
   height: auto;
-  max-height: 260px;
+  max-height: 240px;
+  overflow: visible;
+}
+
+html[data-p07-ui="enabled"] .finance-trend-month-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+@media (max-width: 960px) {
+  html[data-p07-ui="enabled"] .finance-trend-month-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  html[data-p07-ui="enabled"] .finance-trend-month-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+html[data-p07-ui="enabled"] .trend-month-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  font-size: 0.8125rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .trend-month-card:hover {
+  border-color: var(--ds-brand-border);
+  transform: translateY(-1px);
+  box-shadow: var(--ds-shadow-raised);
+}
+
+html[data-p07-ui="enabled"] .trend-month-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ds-text);
+  margin-bottom: 2px;
+}
+
+html[data-p07-ui="enabled"] .trend-month-inc {
+  color: #10b981;
+}
+
+html[data-p07-ui="enabled"] .trend-month-exp {
+  color: #ef4444;
+}
+
+html[data-p07-ui="enabled"] .trend-month-net {
+  font-weight: 600;
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--ds-border-subtle);
+}
+
+html[data-p07-ui="enabled"] .trend-month-net.is-income {
+  color: #10b981;
+}
+
+html[data-p07-ui="enabled"] .trend-month-net.is-expense {
+  color: #ef4444;
 }
 
 html[data-p07-ui="enabled"] .finance-chart-empty {
@@ -2570,7 +2652,11 @@ html[data-p07-ui="enabled"] #membershipModal .modal-panel,
 html[data-p07-ui="enabled"] #accountModal .modal-panel,
 html[data-p07-ui="enabled"] #membershipModal .v3-workspace-content,
 html[data-p07-ui="enabled"] #accountModal .v3-workspace-content {
+  width: 100% !important;
   max-width: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  overflow-y: visible !important;
   margin: 0 !important;
   padding: 0 !important;
   background: transparent !important;
@@ -2651,6 +2737,51 @@ html[data-p07-ui="enabled"] .v3-step-num {
 html[data-p07-ui="enabled"] .v3-step-item.active .v3-step-num {
   background: var(--ds-brand);
   color: var(--ds-on-brand);
+}
+
+/* Membership Goal Options (06-会员选择用途自适应网格) */
+html[data-p07-ui="enabled"] #membershipModal .membership-goal-field {
+  border: 0;
+  margin: 0 0 24px;
+  padding: 0;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .membership-goal-field legend {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--ds-text);
+  margin-bottom: 12px;
+  padding: 0;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .membership-goal-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .membership-goal-option {
+  min-height: 84px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .membership-goal-option:hover {
+  border-color: var(--ds-brand-border);
+  transform: translateY(-1px);
+}
+
+html[data-p07-ui="enabled"] #membershipModal .membership-goal-option[aria-pressed="true"],
+html[data-p07-ui="enabled"] #membershipModal .membership-goal-option.active {
+  border-color: var(--ds-brand);
+  background: var(--ds-brand-soft);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
 /* Membership Plans Grid */
@@ -2927,21 +3058,32 @@ html[data-p07-ui="enabled"] .finance-trend-toggle-btn {
   white-space: nowrap;
 }
 
-html[data-p07-ui="enabled"] #financeTrendChartWrap.collapsed {
+html[data-p07-ui="enabled"] #financeTrendChartWrap.collapsed,
+html[data-p07-ui="enabled"] .finance-trend-chart-wrap.collapsed {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] #financeTrendSection:has(.collapsed) .finance-trend-legend {
   display: none !important;
 }
 
 /* Account Workspace Cards (07-账户及现有设置) */
 html[data-p07-ui="enabled"] #accountModal .account-details {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  padding: 22px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 24px;
+  padding: 24px;
   border: 1px solid var(--ds-border);
   border-radius: 18px;
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow-card);
   margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] #accountModal .account-details {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 html[data-p07-ui="enabled"] #accountModal #changeSecretForm {
