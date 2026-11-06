@@ -10,7 +10,9 @@ const root=path.resolve(import.meta.dirname,'../..'),qa=path.resolve(process.env
 const git=(dir,...args)=>{const r=spawnSync('git',args,{cwd:dir,encoding:'utf8',maxBuffer:20*1024*1024});assert.equal(r.status,0,r.stderr);return r.stdout.trim();};
 assert.equal(git(qa,'rev-parse','HEAD'),'882efdb9978f2608c54bc6c9c19eb8843e80945f','PR124 driver must be fixed');
 assert.equal(git(qa,'status','--porcelain','--untracked-files=no'),'','do not alter the independent QA checkout');
-const sha=git(root,'rev-parse','HEAD');assert.match(sha,/^[0-9a-f]{40}$/);
+const head=git(root,'rev-parse','HEAD'),sha=process.env.P07_R4C_SOURCE_SHA||head;assert.match(sha,/^[0-9a-f]{40}$/);
+assert.ok(sha===head||sha==='0c87169aa4b75db4d00fe76a66bd32a62ead9e4a','only the fixed R4-A baseline may override current inputs');
+if(sha!==head)assert.equal(git(root,'rev-parse',sha+':wrangler.jsonc'),git(root,'rev-parse',head+':wrangler.jsonc'),'snapshot config must match');
 assert.equal(git(root,'status','--porcelain','--untracked-files=no'),'','commit product inputs before exact-SHA validation');
 const label=process.argv[2];assert.match(label||'',/^[a-z0-9-]+$/);
 const round=process.env.P07_QA_ROUND||'p07-r4a';assert.ok(['p07-r4a','p07-r4c'].includes(round));
@@ -22,6 +24,11 @@ const work=path.join(qa,'.wrangler','p07-r4a-driver-'+label);await fs.mkdir(work
 let runner=await fs.readFile(path.join(qa,'qa/p07-d/run.mjs'),'utf8');
 function replace(before,after){assert.equal(runner.split(before).length,2,'QA adapter anchor must be unique: '+before.slice(0,70));runner=runner.replace(before,after);}
 replace('const PINNED_TARGETS=new Map([',`const PINNED_TARGETS=new Map([\n  ['p07-r4a-runtime','${sha}'],`);
+if(sha!==head){
+  const match=runner.match(/const TARGET_SOURCE_HEAD\s*=.*?;/);assert.ok(match);
+  replace(match[0],`const TARGET_SOURCE_HEAD = '${sha}';`);
+  runner=runner.replaceAll("sha:spawnSync('git',['rev-parse','HEAD'],{cwd:TARGET_ROOT,encoding:'utf8'}).stdout.trim()","sha:TARGET_SOURCE_HEAD");
+}
 replace('const EVIDENCE_DIR = path.join(ROOT, "docs/migration-evidence/p07-d", LABEL);',`const EVIDENCE_DIR = path.join(${JSON.stringify(root)}, 'docs/migration-evidence/${round}', LABEL);`);
 replace('import { stagePages }', 'import { stagePages, isAllowedPagesFile }');
 replace('const { output,files } = await stagePages({root:TARGET_ROOT});', `// Keep the existing allowlist validation, with a per-run source/output.
