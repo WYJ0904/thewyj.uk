@@ -733,13 +733,15 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=${ASSET_RELEASE}');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=${ASSET_RELEASE}');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=${ASSET_RELEASE}');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=${ASSET_RELEASE}');
-        const cachedChangelog = await caches.match('/changelog.js?v=${ASSET_RELEASE}');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=${ASSET_RELEASE}');
-        const cachedWorkflows = await caches.match('/workflows.js?v=${ASSET_RELEASE}');
+        // Match the canonical migrated resource keys; every original cache
+        // presence assertion remains strict. SW registration still uses v.
+        const cachedProductStyles = await caches.match('/product-ui.css?release=${ASSET_RELEASE}');
+        const cachedDesignStyles = await caches.match('/design-system.css?release=${ASSET_RELEASE}');
+        const cachedPublicStyles = await caches.match('/public-experience.css?release=${ASSET_RELEASE}');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?release=${ASSET_RELEASE}');
+        const cachedChangelog = await caches.match('/changelog.js?release=${ASSET_RELEASE}');
+        const cachedLearningSync = await caches.match('/learning-sync.js?release=${ASSET_RELEASE}');
+        const cachedWorkflows = await caches.match('/workflows.js?release=${ASSET_RELEASE}');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
