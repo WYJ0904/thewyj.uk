@@ -11,7 +11,9 @@ const git=(dir,...args)=>{const r=spawnSync('git',args,{cwd:dir,encoding:'utf8',
 assert.equal(git(qa,'rev-parse','HEAD'),'882efdb9978f2608c54bc6c9c19eb8843e80945f','PR124 driver must be fixed');
 assert.equal(git(qa,'status','--porcelain','--untracked-files=no'),'','do not alter the independent QA checkout');
 const head=git(root,'rev-parse','HEAD'),sha=process.env.P07_R4C_SOURCE_SHA||head;assert.match(sha,/^[0-9a-f]{40}$/);
-assert.ok(sha===head||sha==='0c87169aa4b75db4d00fe76a66bd32a62ead9e4a','only the fixed R4-A baseline may override current inputs');
+assert.ok(sha===head||sha==='0c87169aa4b75db4d00fe76a66bd32a62ead9e4a'||
+  (process.env.P07_QA_ROUND==='p07-r5'&&sha==='40842d138087de15a8c17f1ec9b310dd137e6412'),
+  'only fixed historical RED sources may override current inputs');
 if(sha!==head)assert.equal(git(root,'rev-parse',sha+':wrangler.jsonc'),git(root,'rev-parse',head+':wrangler.jsonc'),'snapshot config must match');
 assert.equal(git(root,'status','--porcelain','--untracked-files=no'),'','commit product inputs before exact-SHA validation');
 const label=process.argv[2];assert.match(label||'',/^[a-z0-9-]+$/);
