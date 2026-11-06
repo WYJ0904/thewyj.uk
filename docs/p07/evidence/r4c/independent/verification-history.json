@@ -1,0 +1,46 @@
+{
+  "frozenAssertionsChanged": false,
+  "history": [
+    {
+      "case": "r4c-runtime-red",
+      "result": "Initial G02 probe lacked a selected workflow template and reported a hidden run button. Fixture corrected to the same selected template as original CI; no product credit was taken from that failure."
+    },
+    {
+      "case": "r4c-fixed-baseline-red",
+      "source": "0c87169aa4b75db4d00fe76a66bd32a62ead9e4a",
+      "result": "Real hidden account document: timers delivered, RAF zero, splash retained. The same background completion assertion failed."
+    },
+    {
+      "case": "r4c-final-upgrade",
+      "result": "Actual R4-A to first integration candidate normal refresh failed before boot. Old worker source rejects unknown v modules; original failure log retained. RC2 canonical query bridge passed unchanged app-byte and storage assertions."
+    },
+    {
+      "case": "static query contract",
+      "result": "Three original static checks hardcoded v. Canonical query changed to release to support deployed workers; exact version and full module/cache coverage retained. 31/31 passed after contract update."
+    },
+    {
+      "case": "new worker unit fixtures",
+      "result": "Early new test syntax/network fixture wiring errors retained in ignored logs; fixed without changing the expected old-cache/future-navigation/no-API assertions. 13/13 runtime tests passed."
+    },
+    {
+      "case": "Core CI cef7db9 application",
+      "result": "Cache presence checks still requested v URLs. Updated seven checks to exact canonical release keys; every original boolean and navigation assertion retained."
+    },
+    {
+      "case": "Core CI c8ff0aa parked rows",
+      "result": "Tests imported v modules while product imports used release. Distinct ES module instances split the parked-row WeakMap. Updated current-resource test URLs, preserving every original identity, draft, removal, empty and reduced-motion assertion; targeted real Chrome contract passed."
+    },
+    {
+      "case": "P07-F shared-runtime adapter",
+      "result": "Initial external-mode probe variables were scoped inside standalone startup. Corrected loading scope without modifying audit assertions; full audit then executed, returned nonzero for 8 findings."
+    },
+    {
+      "case": "Hosted browser startup",
+      "result": "Manual PowerShell browser startup was rejected by automatic approval review with no specific reason. Switched to the existing owned QA launcher; no authorization or environment guard was bypassed."
+    },
+    {
+      "case": "Hosted metadata pagination",
+      "result": "First metadata list request failed before credential use. Reused the existing validated Pages pagination size, retaining exact SHA and isolated-binding assertions; verified snapshot c8 passed 16 cases."
+    }
+  ]
+}

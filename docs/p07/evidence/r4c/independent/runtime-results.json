@@ -1,0 +1,207 @@
+{
+  "source": "cef7db9bc4ffd3e2641df4e190ba5938a1b4ff34",
+  "results": [
+    {
+      "name": "round-trip-navigation-keeps-authoritative-mode",
+      "status": "PASS",
+      "detail": [
+        {
+          "hit": {
+            "x": 101.5,
+            "y": 151,
+            "ok": true,
+            "tag": "A",
+            "id": null
+          },
+          "path": "/language",
+          "p07": "enabled",
+          "policy": "enabled",
+          "shown": [
+            "projectPicker"
+          ],
+          "inert": false
+        },
+        {
+          "hit": {
+            "x": 101.5,
+            "y": 103,
+            "ok": true,
+            "tag": "A",
+            "id": null
+          },
+          "path": "/",
+          "p07": "enabled",
+          "policy": "enabled",
+          "shown": [
+            "publicHome"
+          ],
+          "inert": false
+        },
+        {
+          "hit": {
+            "x": 101.5,
+            "y": 439,
+            "ok": true,
+            "tag": "A",
+            "id": null
+          },
+          "path": "/recharge",
+          "p07": "enabled",
+          "policy": "enabled",
+          "shown": [
+            "membershipModal"
+          ],
+          "inert": false
+        },
+        {
+          "hit": {
+            "x": 101.5,
+            "y": 487,
+            "ok": true,
+            "tag": "A",
+            "id": null
+          },
+          "path": "/account",
+          "p07": "enabled",
+          "policy": "enabled",
+          "shown": [
+            "accountModal"
+          ],
+          "inert": false
+        },
+        {
+          "hit": {
+            "x": 101.5,
+            "y": 151,
+            "ok": true,
+            "tag": "A",
+            "id": null
+          },
+          "path": "/language",
+          "p07": "enabled",
+          "policy": "enabled",
+          "shown": [
+            "projectPicker"
+          ],
+          "inert": false
+        },
+        {
+          "hit": {
+            "x": 101.5,
+            "y": 247,
+            "ok": true,
+            "tag": "A",
+            "id": null
+          },
+          "path": "/finance",
+          "p07": "enabled",
+          "policy": "enabled",
+          "shown": [
+            "financePage"
+          ],
+          "inert": false
+        },
+        {
+          "hit": {
+            "x": 101.5,
+            "y": 151,
+            "ok": true,
+            "tag": "A",
+            "id": null
+          },
+          "path": "/language",
+          "p07": "enabled",
+          "policy": "enabled",
+          "shown": [
+            "projectPicker"
+          ],
+          "inert": false
+        },
+        {
+          "hit": {
+            "x": 101.5,
+            "y": 103,
+            "ok": true,
+            "tag": "A",
+            "id": null
+          },
+          "path": "/",
+          "p07": "enabled",
+          "policy": "enabled",
+          "shown": [
+            "publicHome"
+          ],
+          "inert": false
+        }
+      ]
+    },
+    {
+      "name": "finance-return-context-and-browser-history",
+      "status": "PASS",
+      "detail": {
+        "filtersRetained": true,
+        "goalRetainedAcrossForwardAndRefresh": true,
+        "escape": true,
+        "androidWebBridgeBack": true
+      }
+    },
+    {
+      "name": "true-confirmation-modal-lifecycle",
+      "status": "PASS",
+      "detail": {
+        "confirmationRemainsModal": true,
+        "backClosesDialogBeforePage": true,
+        "deletionSubmitted": false
+      }
+    },
+    {
+      "name": "valid-policy-renewal-does-not-reset-presentation",
+      "status": "PASS",
+      "detail": {
+        "changes": [
+          {
+            "t": 870.6000000000931,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/account"
+          },
+          {
+            "t": 918.7000000001863,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/account"
+          }
+        ],
+        "actualFeatureResponseObserved": true
+      }
+    },
+    {
+      "name": "slow-authenticated-policy-has-no-legacy-frame",
+      "status": "PASS",
+      "detail": {
+        "delayMs": 1200,
+        "visibleLegacyFrames": 0,
+        "pendingFrames": 313
+      }
+    },
+    {
+      "name": "policy-failure-is-finite-safe-fallback-and-retry",
+      "status": "PASS",
+      "detail": {
+        "errorIsExplicit": true,
+        "baseInterfaceUsable": true,
+        "retryAuthoritative": true
+      }
+    },
+    {
+      "name": "supported-backend-without-task25-keeps-authenticated-home-visible",
+      "status": "PASS",
+      "detail": {
+        "successfulStatusWithoutTask25": true,
+        "authenticatedHomeVisible": true,
+        "permanentPending": false,
+        "featureAuthorityInvented": false
+      }
+    }
+  ]
+}
