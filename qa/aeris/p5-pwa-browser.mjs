@@ -25,7 +25,7 @@ try {
  await p.waitFor(`navigator.serviceWorker.controller?.scriptURL===${JSON.stringify(expectedScript)}`,25000,'current release controls the page');
  await p.waitFor(`(async()=>{const keys=await caches.keys();return keys.includes(${JSON.stringify(expectedCacheName)})&&!keys.some(k=>k.endsWith('-installing'))&&Boolean(await (await caches.open(${JSON.stringify(expectedCacheName)})).match(${JSON.stringify(expectedApp)}))})()`,25000,'complete release shell published');
  proof.registration=await p.evaluate('navigator.serviceWorker.getRegistration().then(r=>({scope:r.scope,state:r.active.state,script:r.active.scriptURL}))');
- await p.evaluate(`Promise.all(['/js/core/lazy-controller.js?v=${ASSET_RELEASE}','/js/core/dashboard.js?v=${ASSET_RELEASE}','/js/finance/format.js?v=${ASSET_RELEASE}','/js/tools/digest-worker.js?v=${ASSET_RELEASE}'].map(u=>fetch(u).then(r=>{if(!r.ok)throw Error('release module unavailable');return r.text()}))).then(()=>true)`);
+ await p.evaluate(`Promise.all(['/js/core/lazy-controller.js?release=${ASSET_RELEASE}','/js/core/dashboard.js?release=${ASSET_RELEASE}','/js/finance/format.js?release=${ASSET_RELEASE}','/js/tools/digest-worker.js?release=${ASSET_RELEASE}'].map(u=>fetch(u).then(r=>{if(!r.ok)throw Error('release module unavailable');return r.text()}))).then(()=>true)`);
  proof.cache=await p.evaluate(`(async()=>{const keys=await caches.keys(),items=await Promise.all(keys.map(k=>caches.open(k).then(c=>c.keys())));
    const read=async(name,url)=>{const r=await (await caches.open(name)).match(url);return r?await r.text():null};
    return{keys,paths:items.flat().map(r=>new URL(r.url).pathname),sensitive:items.flat().some(r=>new URL(r.url).pathname.startsWith('/api/')),
