@@ -3015,3 +3015,1067 @@ html[data-p07-ui="enabled"] .trend-month-net {
   border-top: 1px solid var(--ds-border-subtle);
   padding-top: 3px;
 }
+
+
+/* ==========================================================================
+ * Aeris V6.2 P07-E Batch 2 Business Workspaces Closure
+ * ========================================================================== */
+
+/* --------------------------------------------------------------------------
+ * E-01: File Transfer & Sharing (05-文件传输与分享)
+ * -------------------------------------------------------------------------- */
+html[data-p07-ui="enabled"] #transferPage {
+  width: calc(100% - clamp(32px, 5vw, 64px));
+  max-width: 1240px;
+  margin: 24px auto 48px;
+  min-height: auto;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] #transferPage {
+    width: calc(100% - 24px);
+    margin: 16px auto 36px;
+  }
+}
+
+html[data-p07-ui="enabled"] #transferQuotaBar {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  border: none;
+  background: var(--ds-border-subtle);
+  margin: 0 0 24px;
+  overflow: hidden;
+}
+
+html[data-p07-ui="enabled"] #transferQuotaBar::-webkit-progress-bar {
+  background: var(--ds-border-subtle);
+  border-radius: 9999px;
+}
+
+html[data-p07-ui="enabled"] #transferQuotaBar::-webkit-progress-value {
+  background: var(--ds-brand);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+html[data-p07-ui="enabled"] #transferQuotaBar::-moz-progress-bar {
+  background: var(--ds-brand);
+  border-radius: 9999px;
+}
+
+@media (min-width: 880px) {
+  html[data-p07-ui="enabled"] #transferPage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  html[data-p07-ui="enabled"] #transferPage > :is(.transfer-header, #transferQuotaBar, .transfer-summary-line, #transferQueue, .transfer-my-shares, #transferShareCard, #transferMessage) {
+    grid-column: 1 / -1;
+  }
+  html[data-p07-ui="enabled"] #transferDropZone {
+    grid-column: 1;
+    grid-row: 3;
+    margin: 0;
+  }
+  html[data-p07-ui="enabled"] .transfer-config {
+    grid-column: 2;
+    grid-row: 3;
+    margin: 0;
+  }
+}
+
+html[data-p07-ui="enabled"] #transferDropZone {
+  border: 2px dashed rgba(37, 99, 235, 0.3);
+  border-radius: 20px;
+  padding: 48px 24px;
+  text-align: center;
+  background: rgba(37, 99, 235, 0.03);
+  transition: border-color 0.2s ease, background 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+}
+
+html[data-p07-ui="enabled"] #transferDropZone:hover,
+html[data-p07-ui="enabled"] #transferDropZone.dragover {
+  border-color: var(--ds-brand);
+  background: rgba(37, 99, 235, 0.07);
+}
+
+html[data-p07-ui="enabled"] #transferDropZone::before {
+  content: "";
+  display: block;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5M5 12l7-7 7 7'/%3E%3C/svg%3E") center / 26px no-repeat;
+}
+
+html[data-p07-ui="enabled"] #transferDropZone strong {
+  font-size: 1.25rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin-bottom: 8px;
+  display: block;
+}
+
+html[data-p07-ui="enabled"] #transferDropZone p {
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  max-width: 440px;
+  margin: 0 auto 20px;
+  line-height: 1.5;
+}
+
+html[data-p07-ui="enabled"] .transfer-drop-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+html[data-p07-ui="enabled"] .transfer-drop-actions button {
+  min-height: 44px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] .transfer-config {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--ds-shadow-card);
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+html[data-p07-ui="enabled"] .transfer-config > * {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+html[data-p07-ui="enabled"] .transfer-config::before {
+  content: "分享选项";
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin-bottom: 14px;
+  letter-spacing: -0.01em;
+}
+
+html[data-p07-ui="enabled"] .transfer-config label:not(.transfer-check) {
+  display: flex !important;
+  flex: none !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] .transfer-config label span {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .transfer-config select,
+html[data-p07-ui="enabled"] .transfer-config input[type="text"],
+html[data-p07-ui="enabled"] .transfer-config input[type="number"] {
+  width: auto;
+  min-width: 130px;
+  max-width: 180px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 0.875rem;
+  text-align: right;
+}
+
+html[data-p07-ui="enabled"] .transfer-config .transfer-check {
+  display: flex !important;
+  flex: none !important;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 0 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--ds-text-secondary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+@media (max-width: 600px) {
+  html[data-p07-ui="enabled"] .transfer-config label:not(.transfer-check) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  html[data-p07-ui="enabled"] .transfer-config select,
+  html[data-p07-ui="enabled"] .transfer-config input[type="text"],
+  html[data-p07-ui="enabled"] .transfer-config input[type="number"] {
+    width: 100%;
+    max-width: 100%;
+    text-align: left;
+  }
+}
+
+html[data-p07-ui="enabled"] .transfer-config .transfer-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ds-brand);
+  margin: 0;
+  flex-shrink: 0;
+}
+
+html[data-p07-ui="enabled"] .transfer-summary-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  font-size: 0.875rem;
+  color: var(--ds-text-secondary);
+  margin: 20px 0 16px;
+}
+
+html[data-p07-ui="enabled"] .transfer-summary-line strong {
+  color: var(--ds-text);
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] .transfer-summary-line button {
+  min-height: 40px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] .transfer-queue,
+html[data-p07-ui="enabled"] .transfer-my-shares,
+html[data-p07-ui="enabled"] .transfer-share-card {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--ds-shadow-card);
+  margin-bottom: 24px;
+}
+
+html[data-p07-ui="enabled"] .transfer-section-heading h2 {
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0 0 4px;
+}
+
+html[data-p07-ui="enabled"] .transfer-section-heading p {
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+  margin: 0 0 16px;
+}
+
+html[data-p07-ui="enabled"] .transfer-item,
+html[data-p07-ui="enabled"] .transfer-share-row,
+html[data-p07-ui="enabled"] .transfer-share-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  transition: border-color 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .transfer-item:hover,
+html[data-p07-ui="enabled"] .transfer-share-row:hover {
+  border-color: var(--ds-brand-border);
+}
+
+html[data-p07-ui="enabled"] .transfer-item-heading strong,
+html[data-p07-ui="enabled"] .transfer-share-row strong {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .transfer-item-state {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] .transfer-item progress {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  border: none;
+  background: var(--ds-border-subtle);
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+html[data-p07-ui="enabled"] .transfer-item progress::-webkit-progress-bar {
+  background: var(--ds-border-subtle);
+  border-radius: 9999px;
+}
+
+html[data-p07-ui="enabled"] .transfer-item progress::-webkit-progress-value {
+  background: var(--ds-brand);
+  border-radius: 9999px;
+}
+
+html[data-p07-ui="enabled"] .transfer-item progress::-moz-progress-bar {
+  background: var(--ds-brand);
+  border-radius: 9999px;
+}
+
+html[data-p07-ui="enabled"] .transfer-share-link-row {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+html[data-p07-ui="enabled"] .transfer-share-link-row input {
+  flex: 1;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"] .transfer-qr {
+  display: block;
+  margin: 16px auto;
+  border-radius: 12px;
+  border: 1px solid var(--ds-border);
+  padding: 8px;
+  background: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+ * E-02: Workflow Editor (10-工具工作流编辑器)
+ * -------------------------------------------------------------------------- */
+html[data-p07-ui="enabled"] #toolsPanel:has(#workflowWorkspace:not(.hidden)) > .tools-header {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace {
+  width: calc(100% - clamp(32px, 5vw, 64px));
+  max-width: 1240px;
+  margin: 24px auto 48px;
+  min-height: auto;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] #workflowWorkspace {
+    width: calc(100% - 24px);
+    margin: 16px auto 36px;
+  }
+}
+
+html[data-p07-ui="enabled"] .workflow-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  padding-top: 0;
+}
+
+@media (max-width: 900px) {
+  html[data-p07-ui="enabled"] .workflow-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-p07-ui="enabled"] .workflow-sidebar {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--ds-shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: calc(var(--site-nav-height, 62px) + 20px);
+}
+
+html[data-p07-ui="enabled"] .workflow-sidebar-heading h3,
+html[data-p07-ui="enabled"] .workflow-template-box h3 {
+  font-size: 1.0625rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] .workflow-sidebar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+html[data-p07-ui="enabled"] #createWorkflowBtn {
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] .workflow-list button,
+html[data-p07-ui="enabled"] #workflowTemplateList button {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--ds-border-subtle);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  text-align: left;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+html[data-p07-ui="enabled"] .workflow-list button:hover,
+html[data-p07-ui="enabled"] #workflowTemplateList button:hover {
+  border-color: var(--ds-brand-border);
+  background: var(--ds-brand-soft);
+}
+
+html[data-p07-ui="enabled"] .workflow-list button.active {
+  border-color: var(--ds-brand);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+html[data-p07-ui="enabled"] .workflow-list button strong,
+html[data-p07-ui="enabled"] #workflowTemplateList button strong {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] .workflow-list button small,
+html[data-p07-ui="enabled"] #workflowTemplateList button small {
+  font-size: 0.75rem;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] #importWorkflowBtn {
+  width: 100%;
+  padding: 9px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] .workflow-editor {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .workflow-editor-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .workflow-editor-empty h3 {
+  font-size: 1.25rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin-bottom: 8px;
+}
+
+html[data-p07-ui="enabled"] .workflow-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+html[data-p07-ui="enabled"] .workflow-title-row label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 240px;
+}
+
+html[data-p07-ui="enabled"] .workflow-title-row label span {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #workflowNameInput {
+  flex: 1;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ds-text);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] .workflow-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 24px 0 16px;
+}
+
+html[data-p07-ui="enabled"] .workflow-section-heading h3 {
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] #workflowStepList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+html[data-p07-ui="enabled"] .workflow-step {
+  position: relative;
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] #workflowStepList > li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  bottom: -24px;
+  left: 36px;
+  width: 2px;
+  height: 24px;
+  background: var(--ds-brand);
+  z-index: 1;
+}
+
+html[data-p07-ui="enabled"] .workflow-step-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+html[data-p07-ui="enabled"] .workflow-step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--ds-brand);
+  color: #ffffff;
+  font-weight: 750;
+  font-size: 0.8125rem;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+html[data-p07-ui="enabled"] .workflow-step-heading strong {
+  font-size: 0.9375rem;
+  font-weight: 750;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .workflow-step-heading small {
+  font-size: 0.75rem;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .workflow-step-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ds-border-subtle);
+}
+
+html[data-p07-ui="enabled"] .workflow-step-actions button {
+  padding: 5px 12px;
+  font-size: 0.8125rem;
+  border-radius: 6px;
+}
+
+html[data-p07-ui="enabled"] .workflow-runner {
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 28px;
+}
+
+html[data-p07-ui="enabled"] #runWorkflowBtn {
+  min-height: 44px;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] #workflowResultText {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 10px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-family: var(--ds-font-mono, monospace);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+ * E-03: Admin Console & Feature Flags (08-管理后台功能开关)
+ * -------------------------------------------------------------------------- */
+html[data-p07-ui="enabled"] #adminPanel {
+  width: calc(100% - clamp(32px, 5vw, 64px));
+  max-width: 1240px;
+  margin: 24px auto 48px;
+  min-height: auto;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] #adminPanel {
+    width: calc(100% - 24px);
+    margin: 16px auto 36px;
+  }
+}
+
+html[data-p07-ui="enabled"] .admin-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+html[data-p07-ui="enabled"] .admin-header h1 {
+  font-size: clamp(1.5rem, 3.5vw, 1.875rem);
+  font-weight: 800;
+  color: var(--ds-text);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] .admin-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+html[data-p07-ui="enabled"] .admin-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] .admin-tabs button {
+  min-width: auto;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--ds-text-secondary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .admin-tabs button:hover {
+  color: var(--ds-text);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+html[data-p07-ui="enabled"] .admin-tabs button.active {
+  background: var(--ds-surface);
+  color: var(--ds-brand);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] #adminFeatureFlagsView form {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: var(--ds-shadow-card);
+  margin-bottom: 24px;
+  display: grid;
+  gap: 16px;
+  max-width: 100%;
+}
+
+html[data-p07-ui="enabled"] #adminFeatureFlagsView h2 {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--ds-text);
+  margin: 0 0 8px;
+}
+
+html[data-p07-ui="enabled"] #adminFeatureFlagsView p {
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+html[data-p07-ui="enabled"] .feature-console-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+html[data-p07-ui="enabled"] .feature-console-toolbar select {
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"] #adminFeatureFlagsView fieldset {
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] #adminFeatureFlagsView fieldset legend {
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+  padding: 0 6px;
+}
+
+html[data-p07-ui="enabled"] label:has(#featureFlagKillSwitch:checked) {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: #dc2626 !important;
+  font-weight: 750;
+}
+
+html[data-p07-ui="enabled"] #featureFlagAudit,
+html[data-p07-ui="enabled"] #learningMetrics,
+html[data-p07-ui="enabled"] #featureEvaluationResult {
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border);
+  border-radius: 10px;
+  padding: 14px;
+  color: var(--ds-text);
+  font-family: var(--ds-font-mono, monospace);
+  font-size: 0.8125rem;
+  max-height: 320px;
+  overflow: auto;
+}
+
+html[data-p07-ui="enabled"] :is(.admin-user-card, .admin-login-card, .admin-log-card, .admin-message-card) {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: var(--ds-shadow-card);
+  margin-bottom: 14px;
+  display: grid;
+  gap: 12px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+html[data-p07-ui="enabled"] .admin-user-identity h3 {
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0 0 4px;
+}
+
+html[data-p07-ui="enabled"] .admin-user-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"] .admin-user-facts p {
+  margin: 0;
+  display: flex;
+  gap: 6px;
+}
+
+html[data-p07-ui="enabled"] .admin-user-facts span {
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .admin-user-facts strong {
+  color: var(--ds-text);
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] .admin-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+html[data-p07-ui="enabled"] .admin-toolbar input[type="search"] {
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 600px) {
+  html[data-p07-ui="enabled"] :is(.admin-user-card, .admin-login-card, .admin-log-card, .admin-message-card) {
+    padding: 16px;
+  }
+  html[data-p07-ui="enabled"] .admin-user-facts {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * E-04: Notifications, Messages & Candidate Verification (09-通知归档与候选核实)
+ * -------------------------------------------------------------------------- */
+html[data-p07-ui="enabled"] .finance-candidates-section {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--ds-shadow-card);
+  margin: 24px 0;
+}
+
+html[data-p07-ui="enabled"] .finance-candidates-section summary {
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  cursor: pointer;
+  padding: 4px 0;
+  user-select: none;
+}
+
+html[data-p07-ui="enabled"] article.finance-candidate {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: 16px;
+  padding: 20px 22px;
+  margin-top: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] article.finance-candidate:hover {
+  border-color: var(--ds-brand-border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-copy strong {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--ds-text);
+  display: block;
+  margin-bottom: 4px;
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-copy small {
+  color: var(--ds-text-secondary);
+  font-size: 0.8125rem;
+  display: block;
+  margin-bottom: 3px;
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ds-border-subtle);
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-actions button {
+  padding: 6px 16px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-editor {
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: 12px;
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border);
+  display: grid;
+  gap: 12px;
+}
+
+html[data-p07-ui="enabled"] #siteMessageModal.modal-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+html[data-p07-ui="enabled"] #siteMessageModal.hidden {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] .site-message-panel {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 24px;
+  padding: 32px 36px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.16);
+  width: min(540px, calc(100% - 24px));
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+html[data-p07-ui="enabled"] .site-message-panel .modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ds-border-subtle);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .site-message-panel .modal-close:hover {
+  background: var(--ds-surface-hover);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #siteMessageTitle {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--ds-text);
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+html[data-p07-ui="enabled"] .site-message-body {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--ds-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+html[data-p07-ui="enabled"] #siteMessageMeta {
+  font-size: 0.8125rem;
+  color: var(--ds-text-muted);
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * E-05: Common Modals, Feedback & States
+ * -------------------------------------------------------------------------- */
+html[data-p07-ui="enabled"] .modal-panel {
+  border-radius: 22px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.14);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-p07-ui="enabled"] * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
