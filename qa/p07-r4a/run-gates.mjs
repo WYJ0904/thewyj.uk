@@ -28,8 +28,9 @@ replace('const PINNED_TARGETS=new Map([',`const PINNED_TARGETS=new Map([\n  ['p0
 if(sourceSha!==head){
   const match=runner.match(/const TARGET_SOURCE_HEAD\s*=.*?;/);assert.ok(match);
   replace(match[0],`const TARGET_SOURCE_HEAD = '${sourceSha}';`);
-  runner=runner.replaceAll("sha:spawnSync('git',['rev-parse','HEAD'],{cwd:TARGET_ROOT,encoding:'utf8'}).stdout.trim()","sha:TARGET_SOURCE_HEAD");
 }
+runner=runner.replaceAll("sha:spawnSync('git',['rev-parse','HEAD'],{cwd:TARGET_ROOT,encoding:'utf8'}).stdout.trim()","sha:TARGET_SOURCE_HEAD");
+runner=runner.replaceAll('source_sha:spawnSync("git",["rev-parse","HEAD"],{cwd:TARGET_ROOT,encoding:"utf8"}).stdout.trim()','source_sha:TARGET_SOURCE_HEAD');
 replace('const EVIDENCE_DIR = path.join(ROOT, "docs/migration-evidence/p07-d", LABEL);',`const EVIDENCE_DIR = path.join(${JSON.stringify(root)}, 'docs/migration-evidence/${round}', LABEL);`);
 replace('import { stagePages }', 'import { stagePages, isAllowedPagesFile }');
 replace('const { output,files } = await stagePages({root:TARGET_ROOT});', `// Keep the existing allowlist validation, with a per-run source/output.
@@ -68,7 +69,7 @@ upgrade=upgrade.replace("assert.ok(phases.filter(p=>p.generation==='candidate').
   "assert.ok(phases.filter(p=>p.generation==='candidate').every(p=>p.matchesCandidate),'new HTML reused old cached app.js after same-origin upgrade');await safety.verifyOfflineAndData(page,{out,release:new URL(newUrl,origin).searchParams.get('release')||new URL(newUrl,origin).searchParams.get('v'),resources});");
 await fs.writeFile(path.join(work,'cache-upgrade.mjs'),upgrade);await fs.writeFile(path.join(work,'run.mjs'),runner);
 const browser=await fs.readFile(path.join(qa,'qa/p07-round3/browser.mjs'));
-const provenance={product_sha:sha,qa_sha:git(qa,'rev-parse','HEAD'),frozen_browser_sha256:createHash('sha256').update(browser).digest('hex'),
+const provenance={product_sha:sha,served_source_sha:sourceSha,qa_sha:git(qa,'rev-parse','HEAD'),frozen_browser_sha256:createHash('sha256').update(browser).digest('hex'),
   adapter_sha256:createHash('sha256').update(await fs.readFile(import.meta.filename)).digest('hex'),assertions_weakened:false,
   transport_changes:['per-run committed allowlist staging prevents shared pages-output races',...(cache?['candidate exact-SHA allowlist text assets, including sw.js and all release-qualified modules','optional fixed f7949f8 warm source']:['new pinned product target only'])]};
 await fs.mkdir(path.dirname(output),{recursive:true});

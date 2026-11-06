@@ -33,7 +33,15 @@
 
 ## 集成边界与定向验证
 
-资源版本：`20261106-aeris-p07-r4c-integration`，由现有 update_asset_release 脚本同步；新增 startup 模块列入必要离线 shell。R4-A 的 decision、History workspace、单一主工作区和缓存发布合同保留，P07-E 样式按其原增量合入。
+最终资源版本：`20261106-aeris-p07-r4c-rc2`，由现有 update_asset_release 脚本同步；新增 startup 模块列入必要离线 shell。R4-A 的 decision、History workspace、单一主工作区和缓存发布合同保留，P07-E 样式按其原增量合入。
+
+### 暖升级发现的兼容缺陷
+
+最初候选在 R4-A 同源普通刷新升级时真实失败：R4-A 已安装的 SW 将所有未知版本的 `?v=` JS/CSS 都返回 503，新 HTML 无法执行注册新版 SW 的 app。该红灯保留，未改成强制刷新验收。
+
+迁移后的静态资源使用相同唯一 release 值的 `?release=`，这是旧 SW 能正常透传、且缓存键不会碰撞的兼容入口；Logo 路径和文件字节未变。新 SW 同时识别 v/release，并仅允许其刚从可信导航 HTML 观察到的其他 release 去网络加载，未观察到的旧模块缺失仍拒绝；未来半成品不写入当前离线 shell。脚本保留 `--release-query` 作为一次迁移选项，后续版本更新延续现有规范。
+
+同一固定 R4-A → rc2 的普通／强制刷新字节与离线恢复验收现已 PASS，实际 app.js 及 JS/CSS 字节均核对；API 禁入、旧客户端精确缓存及当前离线 HTML 不污染由新增 SW 合同测试覆盖。静态测试原先把 v 参数名硬编码为合同，本轮仅改为新 canonical release 参数，唯一版本、资源清单及模块边断言均保留，31/31 PASS。13 项策略／启动／SW 合同单测 PASS。
 
 已完成：
 
