@@ -14,7 +14,7 @@ export async function page(){
   // The shared harness intentionally appends interceptors. R5 scenarios need
   // replacement semantics, so one dispatcher owns the current rule set.
   let rules=[];await p.intercept([{match:'/',respond:context=>{const rule=rules.find(r=>context.url.includes(r.match));return rule?rule.respond(context):{continue:true};}}]);
-  p.intercept=async next=>{rules=next;};
+  p.intercept=async next=>{rules=next;await p.send('Fetch.enable',{patterns:[{urlPattern:'*/*',requestStage:'Request'}]});};
   p.navigate=async route=>{const old=await p.evaluate('globalThis.__r5Doc||null');await p.send('Page.navigate',{url:base+route});await p.waitFor(`globalThis.__r5Doc&&globalThis.__r5Doc!==${JSON.stringify(old)}&&document.readyState==='complete'&&!document.getElementById('entryScreen')&&document.documentElement.dataset.bootState==='ready'`,30000,'new actual boot '+route);};
   return p;
 }
