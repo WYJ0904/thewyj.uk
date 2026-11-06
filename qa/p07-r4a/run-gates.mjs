@@ -65,7 +65,7 @@ upgrade=upgrade.replace('let error=null;',`const safety=await import(${JSON.stri
 upgrade=upgrade.replace("generation='candidate';", "await safety.seedUserState(page);generation='candidate';const resourceStart=observed.start();");
 upgrade=upgrade.replace("phases.push(await navigate('normal'));", "phases.push(await navigate('normal'));resources=await observed.verify(resourceStart);");
 upgrade=upgrade.replace("assert.ok(phases.filter(p=>p.generation==='candidate').every(p=>p.matchesCandidate),'new HTML reused old cached app.js after same-origin upgrade');",
-  "assert.ok(phases.filter(p=>p.generation==='candidate').every(p=>p.matchesCandidate),'new HTML reused old cached app.js after same-origin upgrade');await safety.verifyOfflineAndData(page,{out,release:new URL(newUrl,origin).searchParams.get('v'),resources});");
+  "assert.ok(phases.filter(p=>p.generation==='candidate').every(p=>p.matchesCandidate),'new HTML reused old cached app.js after same-origin upgrade');await safety.verifyOfflineAndData(page,{out,release:new URL(newUrl,origin).searchParams.get('release')||new URL(newUrl,origin).searchParams.get('v'),resources});");
 await fs.writeFile(path.join(work,'cache-upgrade.mjs'),upgrade);await fs.writeFile(path.join(work,'run.mjs'),runner);
 const browser=await fs.readFile(path.join(qa,'qa/p07-round3/browser.mjs'));
 const provenance={product_sha:sha,qa_sha:git(qa,'rev-parse','HEAD'),frozen_browser_sha256:createHash('sha256').update(browser).digest('hex'),

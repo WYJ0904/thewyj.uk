@@ -16,10 +16,11 @@ export function observeRelease(page,origin,source){
     const rows=[];
     for(const response of responses.slice(start)){
       const url=new URL(response.url),file=url.pathname.slice(1);
-      if(!/^\d{8}-aeris-/.test(url.searchParams.get('v')||''))continue;
+      const release=url.searchParams.get('release')||url.searchParams.get('v');
+      if(!/^\d{8}-aeris-/.test(release||''))continue;
       const body=await page.send('Network.getResponseBody',{requestId:response.requestId});
       const text=body.base64Encoded?Buffer.from(body.body,'base64').toString('utf8'):body.body;
-      const row={path:url.pathname,release:url.searchParams.get('v'),fromServiceWorker:response.fromServiceWorker,sha256:hash(text),matchesCommitted:hash(text)===hash(source[file])};
+      const row={path:url.pathname,release,fromServiceWorker:response.fromServiceWorker,sha256:hash(text),matchesCommitted:hash(text)===hash(source[file])};
       assert.equal(row.matchesCommitted,true,'mixed release bytes: '+file);rows.push(row);
     }
     assert.ok(rows.filter(r=>r.path.endsWith('.css')).length>=6,'actual style response evidence missing');

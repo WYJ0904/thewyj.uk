@@ -7,6 +7,7 @@ assert.ok(expectedCacheName?.startsWith('wyj-shell-'),'Service Worker must name 
 const oldCache='wyj-shell-20261001-aeris-p5-retained-fixture-es-modules',userCache='p5-user-fixture';
 const oldPath='/js/p5-old-client-fixture.js?v=20261001-aeris-p5-retained-fixture',userPath='/p5-user-fixture.txt';
 const expectedScript=new URL('/sw.js?v='+ASSET_RELEASE,baseUrl).href;
+const expectedApp=fs.readFileSync('index.html','utf8').match(/\bsrc="([^\"]*\/app\.js[^\"]*)"/)?.[1];assert.ok(expectedApp,'HTML must name its release-qualified app entry');
 const artifact=path.resolve(process.env.AERIS_P5_PWA_OUTPUT||'artifacts/aeris-p5/pwa.json');
 const proof={release:ASSET_RELEASE,cache:null,registration:null,offlineGuestShell:false,onlineRecovery:false,fixtureScope:'synthetic local retention; real same-origin release-byte upgrade tested separately'};
 const save=()=>{fs.mkdirSync(path.dirname(artifact),{recursive:true});fs.writeFileSync(artifact,JSON.stringify(proof,null,2));};
@@ -22,7 +23,7 @@ try {
  // Match the application registration; bare /sw.js starts a second update.
  await p.evaluate(`navigator.serviceWorker.register(${JSON.stringify(expectedScript)}).then(()=>true)`);
  await p.waitFor(`navigator.serviceWorker.controller?.scriptURL===${JSON.stringify(expectedScript)}`,25000,'current release controls the page');
- await p.waitFor(`(async()=>{const keys=await caches.keys();return keys.includes(${JSON.stringify(expectedCacheName)})&&!keys.some(k=>k.endsWith('-installing'))&&Boolean(await (await caches.open(${JSON.stringify(expectedCacheName)})).match('/app.js?v=${ASSET_RELEASE}'))})()`,25000,'complete release shell published');
+ await p.waitFor(`(async()=>{const keys=await caches.keys();return keys.includes(${JSON.stringify(expectedCacheName)})&&!keys.some(k=>k.endsWith('-installing'))&&Boolean(await (await caches.open(${JSON.stringify(expectedCacheName)})).match(${JSON.stringify(expectedApp)}))})()`,25000,'complete release shell published');
  proof.registration=await p.evaluate('navigator.serviceWorker.getRegistration().then(r=>({scope:r.scope,state:r.active.state,script:r.active.scriptURL}))');
  await p.evaluate(`Promise.all(['/js/core/lazy-controller.js?v=${ASSET_RELEASE}','/js/core/dashboard.js?v=${ASSET_RELEASE}','/js/finance/format.js?v=${ASSET_RELEASE}','/js/tools/digest-worker.js?v=${ASSET_RELEASE}'].map(u=>fetch(u).then(r=>{if(!r.ok)throw Error('release module unavailable');return r.text()}))).then(()=>true)`);
  proof.cache=await p.evaluate(`(async()=>{const keys=await caches.keys(),items=await Promise.all(keys.map(k=>caches.open(k).then(c=>c.keys())));
