@@ -257,13 +257,12 @@ try {
   assert.ok(readyOk, "Server + CDP not ready in 90s");
   console.log("[PASS] Server and Headless Chrome ready!");
 
-  const axeScript = await fsp.readFile(AXE_PATH, "utf8");
-  const probeScript = await fsp.readFile(PROBE_PATH, "utf8");
-
   // =========================================================================
   // Test Session Setup
   // =========================================================================
   }
+  const axeScript = await fsp.readFile(AXE_PATH, "utf8");
+  const probeScript = await fsp.readFile(PROBE_PATH, "utf8");
   assert.ok(adminSecret,"An authorized local administrator fixture is required");
   const page = await openPage({ cdpUrl: CDP_URL, baseUrl: BASE_URL, width: 1440, height: 960, mobile: false });
   await page.send("Page.bringToFront");
