@@ -13,7 +13,8 @@ assert.equal(git(qa,'status','--porcelain','--untracked-files=no'),'','do not al
 const sha=git(root,'rev-parse','HEAD');assert.match(sha,/^[0-9a-f]{40}$/);
 assert.equal(git(root,'status','--porcelain','--untracked-files=no'),'','commit product inputs before exact-SHA validation');
 const label=process.argv[2];assert.match(label||'',/^[a-z0-9-]+$/);
-const output=path.join(root,'docs/migration-evidence/p07-r4a',label);
+const round=process.env.P07_QA_ROUND||'p07-r4a';assert.ok(['p07-r4a','p07-r4c'].includes(round));
+const output=path.join(root,'docs/migration-evidence',round,label);
 assert.equal(await fs.stat(output).then(()=>true,error=>{if(error.code==='ENOENT')return false;throw error;}),false,'Evidence labels cannot be overwritten');
 const args=process.argv.slice(3),cache=args.includes('--cache-upgrade'),warmBaseline=args.includes('--warm-baseline');
 const target=cache?path.join(process.env.USERPROFILE,`.codex/worktrees/${warmBaseline?'p07-round3-final-ci-review':'p07-round3-red-baseline'}/thewyj.uk`):root;
@@ -21,7 +22,7 @@ const work=path.join(qa,'.wrangler','p07-r4a-driver-'+label);await fs.mkdir(work
 let runner=await fs.readFile(path.join(qa,'qa/p07-d/run.mjs'),'utf8');
 function replace(before,after){assert.equal(runner.split(before).length,2,'QA adapter anchor must be unique: '+before.slice(0,70));runner=runner.replace(before,after);}
 replace('const PINNED_TARGETS=new Map([',`const PINNED_TARGETS=new Map([\n  ['p07-r4a-runtime','${sha}'],`);
-replace('const EVIDENCE_DIR = path.join(ROOT, "docs/migration-evidence/p07-d", LABEL);',`const EVIDENCE_DIR = path.join(${JSON.stringify(root)}, 'docs/migration-evidence/p07-r4a', LABEL);`);
+replace('const EVIDENCE_DIR = path.join(ROOT, "docs/migration-evidence/p07-d", LABEL);',`const EVIDENCE_DIR = path.join(${JSON.stringify(root)}, 'docs/migration-evidence/${round}', LABEL);`);
 replace('import { stagePages }', 'import { stagePages, isAllowedPagesFile }');
 replace('const { output,files } = await stagePages({root:TARGET_ROOT});', `// Keep the existing allowlist validation, with a per-run source/output.
   const stageSource=path.join(QA_WORK_ROOT,'staging-source');await fsp.mkdir(stageSource,{recursive:true});
@@ -33,7 +34,7 @@ replace('const { output,files } = await stagePages({root:TARGET_ROOT});', `// Ke
   const { output,files } = await stagePages({root:stageSource});`);
 const relative=path.relative(qa,work).replaceAll('\\','/');
 replace('[\'cache-upgrade\',\'qa/p07-round3/cache-upgrade.mjs\']',`['cache-upgrade','${relative}/cache-upgrade.mjs']`);
-replace('const suites = ZOOM_ONLY',`const suites = process.env.P07_R4A_PWA_ONLY ? [['r4a-pwa','${relative}/pwa-browser.mjs']] : process.env.P07_R4A_RELOAD_DIAGNOSTIC ? [['r4a-reload','${relative}/reload-diagnostics.mjs']] : process.env.P07_R4A_EXTRA_ONLY ? [['r4a-runtime','${relative}/runtime-browser.mjs']] : ZOOM_ONLY`);
+replace('const suites = ZOOM_ONLY',`const suites = process.env.P07_R4C_PROBE ? [['r4c-probe','${relative}/r4c-probe.mjs']] : process.env.P07_R4A_PWA_ONLY ? [['r4a-pwa','${relative}/pwa-browser.mjs']] : process.env.P07_R4A_RELOAD_DIAGNOSTIC ? [['r4a-reload','${relative}/reload-diagnostics.mjs']] : process.env.P07_R4A_EXTRA_ONLY ? [['r4a-runtime','${relative}/runtime-browser.mjs']] : ZOOM_ONLY`);
 // Miniflare opens HTTP before serve.mjs finishes verifying the one-user seed.
 // Do not create browser fixture users until that existing guard has completed.
 replace('if (statusRes.ok && uiRes.ok && cdpOk) {', `if (statusRes.ok && uiRes.ok && cdpOk && (!COMPILED || (await fsp.readFile(path.join(QA_WORK_ROOT, 'pages.log'), 'utf8')).includes('READY: compiled Pages worker'))) {`);
@@ -41,6 +42,7 @@ replace('[["p07-round3-browser","qa/p07-round3/browser.mjs"],',`[["p07-round3-br
 await fs.writeFile(path.join(work,'runtime-browser.mjs'),`await import(${JSON.stringify(new URL('./runtime-browser.mjs',import.meta.url).href)});\n`);
 await fs.writeFile(path.join(work,'reload-diagnostics.mjs'),`await import(${JSON.stringify(new URL('./reload-diagnostics.mjs',import.meta.url).href)});\n`);
 await fs.writeFile(path.join(work,'pwa-browser.mjs'),`process.chdir(${JSON.stringify(root)});process.env.AERIS_P5_PWA_OUTPUT=process.env.P07_D_EVIDENCE+'/p5-pwa.json';await import(${JSON.stringify(new URL('../aeris/p5-pwa-browser.mjs',import.meta.url).href)});\n`);
+await fs.writeFile(path.join(work,'r4c-probe.mjs'),`await import(${JSON.stringify(new URL('../p07-r4c/runtime-probe.mjs',import.meta.url).href)});\n`);
 let upgrade=await fs.readFile(path.join(qa,'qa/p07-round3/cache-upgrade.mjs'),'utf8');
 upgrade=upgrade.replace("assert.equal(process.env.P07_D_TARGET_HEAD,'21b83316cbfdeb366c587b9e818a2c64e2199215','warm the exact RED source before upgrade');",
   "assert.ok(['21b83316cbfdeb366c587b9e818a2c64e2199215','f7949f8253f51ea2621c397743208971c0cec467'].includes(process.env.P07_D_TARGET_HEAD),'warm a fixed original source');");
