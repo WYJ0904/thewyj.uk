@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?v=20261105-aeris-p07-r4a-runtime-r3";
+import { fetchWithTimeout } from "./api.js?v=20261106-aeris-p07-r4c-integration";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 
