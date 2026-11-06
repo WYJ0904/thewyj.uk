@@ -4905,7 +4905,12 @@ function applyInterfacePolicy() {
   const decision = state.session && !state.account ? { status: 'pending' } : hasAuthenticatedAccount
     ? featureController?.decision('p07_accessibility') || { status: 'pending' }
     : publicUiPolicyController?.decision() || { status: 'pending' };
-  const enabled = decision.status === 'enabled';
+  const isBootReady = document.documentElement.dataset.bootState === 'ready';
+  const currentlyEnabled = document.documentElement.dataset.p07Ui === 'enabled';
+  const effectiveStatus = (isBootReady && currentlyEnabled && decision.status === 'pending')
+    ? 'enabled'
+    : decision.status;
+  const enabled = effectiveStatus === 'enabled';
   setInterfaceEnhancementsEnabled(enabled);
   document.documentElement.dataset.interfacePolicy = decision.status;
   const policyState = $('interfacePolicyState');
