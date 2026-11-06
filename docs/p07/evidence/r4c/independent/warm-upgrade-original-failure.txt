@@ -1,0 +1,25 @@
+{
+  "old_sha": "0c87169aa4b75db4d00fe76a66bd32a62ead9e4a",
+  "new_sha": "5bcb8ce1f793d21f3f8b74075b78be39517078c2",
+  "phases": [
+    {
+      "kind": "direct",
+      "generation": "red",
+      "requestId": "42592.32",
+      "url": "http://127.0.0.1:18975/app.js?v=20261105-aeris-p07-r4a-runtime-r3",
+      "fromServiceWorker": false,
+      "fromDiskCache": false,
+      "actual_app_sha256": "453b9edd0f27b1996f1535c5a54e071d7a64dc49c19bcdbb47e3fe93a572ed63",
+      "matchesRed": true,
+      "matchesCandidate": false,
+      "dom": {
+        "accountTag": "SECTION",
+        "accountInsideMain": true,
+        "p07": "enabled",
+        "controller": null
+      }
+    }
+  ],
+  "error": "timeout waiting for upgraded document boot"
+}
+

@@ -123,7 +123,7 @@
     },
     {
       "path": "release-equivalence.json",
-      "sha256": "c782f4095839850483c92e68121431af402bbcfce9c786137be689e35451641e"
+      "sha256": "60c541cc3551182011948d85b212541efbafa8c46cbf7c2561eff05ba6edefa7"
     },
     {
       "path": "runtime-green.json",
@@ -146,7 +146,7 @@
       "sha256": "a7cbb591e9034447af1fbac8de99b6380a8336fc5b7f89f8364d4979b3964c24"
     },
     {
-      "path": "warm-upgrade-original-failure.log",
+      "path": "warm-upgrade-original-failure.txt",
       "sha256": "42d3089b732616cd2ded205222d7caede6e88db6cec162913d07d28bf206f895"
     },
     {

@@ -27,7 +27,7 @@ const images=[['r4c-fixed-baseline-red/G01-background-bootstrap.png','G01-before
   ['r4c-rc2-upgrade/offline-upgraded-shell.png','offline-upgraded-shell.png'],['r4c-rc2-e/E-workflowWorkspace-390-dark.png','E-workflow-390-dark.png'],
   ['r4c-rc2-e/E-transferPage-375-light.png','E-transfer-375-light.png'],['r4c-rc2-e/E-adminPanel-1440-dark.png','E-admin-1440-dark.png'],['r4c-rc2-e/E-financePage-390-dark.png','E-candidates-390-dark.png']];
 for(const [from,to] of images)await fs.copyFile(path.join(raw,from),path.join(out,to));
-await fs.copyFile(path.join(raw,'r4c-final-upgrade/cache-upgrade.log'),path.join(out,'warm-upgrade-original-failure.log'));
+await fs.copyFile(path.join(raw,'r4c-final-upgrade/cache-upgrade.log'),path.join(out,'warm-upgrade-original-failure.txt'));
 let preflight=null;
 try{preflight=await read('r4c-f-unified-final/p07-f-preflight-report.json');await write('f-unified-preflight.json',preflight);}catch(error){if(error.code!=='ENOENT')throw error;}
 await write('acceptance-boundaries.json',{runtimeFrozen:counts.failed?'FAIL':'PASS',fTooling:preflight?{executed:true,source:preflight.baselineSha,toolArtifactStatus:preflight.status,quality:preflight.unifiedAcceptance,findings:preflight.findings.length}:{executed:false,status:'NOT_EXECUTED'},
@@ -56,7 +56,7 @@ await write('verification-history.json',{frozenAssertionsChanged:false,history:[
   {case:'Hosted metadata pagination',result:'First metadata list request failed before credential use. Reused the existing validated Pages pagination size, retaining exact SHA and isolated-binding assertions; verified snapshot c8 passed 16 cases.'}
 ]});
 const inventory=[];
-async function walk(dir,relative=''){for(const entry of await fs.readdir(dir,{withFileTypes:true})){const name=path.posix.join(relative,entry.name);if(name==='evidence-manifest.json')continue;assert.equal(entry.isSymbolicLink(),false);if(entry.isDirectory())await walk(path.join(dir,entry.name),name);else if(entry.isFile())inventory.push({path:name,sha256:hash(await fs.readFile(path.join(dir,entry.name)))});}}
+async function walk(dir,relative=''){for(const entry of await fs.readdir(dir,{withFileTypes:true})){const name=path.posix.join(relative,entry.name);if(name==='evidence-manifest.json'||name.endsWith('.log'))continue;assert.equal(entry.isSymbolicLink(),false);if(entry.isDirectory())await walk(path.join(dir,entry.name),name);else if(entry.isFile())inventory.push({path:name,sha256:hash(await fs.readFile(path.join(dir,entry.name)))});}}
 await walk(out);inventory.sort((a,b)=>a.path.localeCompare(b.path));await write('evidence-manifest.json',{testedSha:browser.target_sha,files:inventory});
 console.log(JSON.stringify({...counts,primary:(await read('r4c-rc2-on/primary-workspaces.json')).cases.map(c=>c.status),eChecks:(await read('r4c-rc2-e/e-workspaces.json')).results.length,fExecuted:Boolean(preflight),publishedFiles:Object.keys(manifest.files).length,evidenceFiles:inventory.length}));
 if(counts.failed)process.exitCode=1;
