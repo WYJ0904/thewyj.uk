@@ -1,0 +1,23 @@
+{
+  "product_head": "6417005f70c34a5fc9bc35493587bd016aae8575",
+  "run_id": 42016094018,
+  "run_url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42016094018",
+  "conclusion": "failure",
+  "counts": {"success": 7, "failure": 1, "skipped": 2},
+  "application_job": {"id": 127209093609, "conclusion": "success"},
+  "cloud_job": {
+    "id": 127209093401,
+    "conclusion": "failure",
+    "assertion": "Only the current Service Worker cache should remain",
+    "file": "qa/aeris/p5-pwa-browser.mjs",
+    "original_cache_keys": "NOT_RECORDED_BY_ORIGINAL_TEST",
+    "test_contract_change": "Use release-qualified registration, await completed shell, then require the exact current/old-client/user fixture cache set and preserved bytes; retain no-API, visible offline shell and online recovery checks."
+  },
+  "previous_job_failures": [
+    {"run_id": 42013739936, "job_id": 127201192936, "head": "9c22bf1dd9118178700e4780ccc27c8958de1e81", "kind": "product", "error": "Authenticated home geometry was zero because a supported legacy backend omitted Task25 capability and presentation stayed pending", "fix": "Successful backend status explicitly settles unavailable capability; ordinary API responses cannot reset policy"},
+    {"run_id": 42014908673, "job_id": 127204854803, "head": "0f2677aaa01f3f1f20e8ba1e76be9fb2dcf204f4", "kind": "obsolete readiness assumption", "error": "Reduced-motion mobile inputWidth was zero before pending policy settled", "fix": "Bounded actual form/policy readiness wait; original width and splash-time assertions retained"}
+  ],
+  "revised_pwa_local_test": {"sha": "fb6ef9a48c72c71fb5fafdd733ec2c9ce44a8492", "status": "PASS", "tier": "actual compiled Pages worker + local D1/R2 + isolated Chrome", "ci_status": "NOT_YET_VERIFIED"},
+  "independent_acceptance_gate": "FAIL_ACCOUNT_RELOAD_BOOT_TIMEOUT",
+  "production_operations": 0
+}

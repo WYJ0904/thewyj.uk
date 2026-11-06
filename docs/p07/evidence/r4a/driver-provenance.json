@@ -1,0 +1,11 @@
+{
+  "product_sha": "6417005f70c34a5fc9bc35493587bd016aae8575",
+  "qa_sha": "882efdb9978f2608c54bc6c9c19eb8843e80945f",
+  "frozen_browser_sha256": "227c4f69d473186fdbe307fa3a6da4a9a6d5a0c41d485ff51d19beed608fa61d",
+  "adapter_sha256": "62cd9b93915a778322c6ddab939dbf21f6fb38a45f6904c7f69c2c3af4547fb2",
+  "assertions_weakened": false,
+  "transport_changes": [
+    "per-run committed allowlist staging prevents shared pages-output races",
+    "new pinned product target only"
+  ]
+}

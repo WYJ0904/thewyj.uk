@@ -733,13 +733,15 @@ async function main() {
         ]);
         const cacheNames = await caches.keys();
         const cachedLogo = await caches.match('/assets/logo.png');
-        const cachedProductStyles = await caches.match('/product-ui.css?v=${ASSET_RELEASE}');
-        const cachedDesignStyles = await caches.match('/design-system.css?v=${ASSET_RELEASE}');
-        const cachedPublicStyles = await caches.match('/public-experience.css?v=${ASSET_RELEASE}');
-        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?v=${ASSET_RELEASE}');
-        const cachedChangelog = await caches.match('/changelog.js?v=${ASSET_RELEASE}');
-        const cachedLearningSync = await caches.match('/learning-sync.js?v=${ASSET_RELEASE}');
-        const cachedWorkflows = await caches.match('/workflows.js?v=${ASSET_RELEASE}');
+        // Match the canonical migrated resource keys; every original cache
+        // presence assertion remains strict. SW registration still uses v.
+        const cachedProductStyles = await caches.match('/product-ui.css?release=${ASSET_RELEASE}');
+        const cachedDesignStyles = await caches.match('/design-system.css?release=${ASSET_RELEASE}');
+        const cachedPublicStyles = await caches.match('/public-experience.css?release=${ASSET_RELEASE}');
+        const cachedWorkspaceStyles = await caches.match('/workspace-experience.css?release=${ASSET_RELEASE}');
+        const cachedChangelog = await caches.match('/changelog.js?release=${ASSET_RELEASE}');
+        const cachedLearningSync = await caches.match('/learning-sync.js?release=${ASSET_RELEASE}');
+        const cachedWorkflows = await caches.match('/workflows.js?release=${ASSET_RELEASE}');
         return { active: Boolean(registration.active), cacheNames, cachedLogo: Boolean(cachedLogo), cachedProductStyles: Boolean(cachedProductStyles), cachedDesignStyles: Boolean(cachedDesignStyles), cachedPublicStyles: Boolean(cachedPublicStyles), cachedWorkspaceStyles: Boolean(cachedWorkspaceStyles), cachedChangelog: Boolean(cachedChangelog), cachedLearningSync: Boolean(cachedLearningSync), cachedWorkflows: Boolean(cachedWorkflows) };
       })()`);
       assert.equal(pwa.active, true);
@@ -1145,7 +1147,10 @@ async function main() {
 
       await click('[data-module="tools"]');
       await waitFor("!document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, "membership modal");
-      assert.equal(await evaluate("location.pathname"), "/");
+      // Membership is a primary route. The old '/' assertion required a
+      // modal over the home page and conflicts with the workspace contract.
+      assert.equal(await evaluate("location.pathname"), "/recharge");
+      assert.equal(await evaluate("document.querySelector('#publicHome').classList.contains('hidden') && document.querySelector('#financePage').classList.contains('hidden')"), true);
       await waitFor("selectedMembershipGoal === 'tools' && document.querySelectorAll('#membershipPlanList [data-plan]').length === 3", 12_000, "tool membership choices");
       const expectedByGoal = {
         english: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
@@ -1234,7 +1239,7 @@ async function main() {
       // while location.href is still starting a new document/navigation.
       await waitFor("document.querySelector('#membershipModal').classList.contains('hidden')", 3_000, "membership modal fully closed before document navigation");
       await evaluate("location.href = '/tools'; true");
-      await waitFor("location.pathname === '/' && !document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, "direct tools guard");
+      await waitFor("location.pathname === '/recharge' && !document.querySelector('#membershipModal')?.classList.contains('hidden') && document.querySelector('#toolsPanel').classList.contains('hidden')", 12_000, "direct tools guard enters the sole membership workspace");
       await waitFor("!document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, "open payment order restored");
       assert.equal(await evaluate("selectedMembershipGoal"), "tools");
       assert.equal(await evaluate("document.querySelector('#paymentOrderBox').classList.contains('hidden')"), false);
@@ -2421,6 +2426,10 @@ async function main() {
       const started = Date.now();
       await waitFor("!document.querySelector('#entryScreen')", 2_500, "reduced-motion splash");
       assert.ok(Date.now() - started < 2_000);
+      // Reduced motion removes the branded splash immediately. A pending
+      // policy is a separate state; measure the real form only once it is
+      // visible. A permanently pending decision still fails this bounded wait.
+      await waitFor("document.documentElement.dataset.interfacePolicy !== 'pending' && document.querySelector('#usernameInput').checkVisibility()", 15_000, "mobile login policy settled and form visible");
       const mobile = await evaluate(`({
         viewport: document.documentElement.clientWidth,
         scrollWidth: document.documentElement.scrollWidth,

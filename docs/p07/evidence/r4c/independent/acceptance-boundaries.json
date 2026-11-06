@@ -1,0 +1,28 @@
+{
+  "runtimeFrozen": "PASS",
+  "fTooling": {
+    "executed": true,
+    "source": "ca203c95ca3f022a1f14c0a56b00d29292adbf0e",
+    "toolArtifactStatus": "P07_F_PREFLIGHT_READY",
+    "quality": {
+      "status": "REVIEW_REQUIRED",
+      "findingCount": 8,
+      "seriousOrCriticalAxeRules": 3
+    },
+    "findings": 8
+  },
+  "automaticPreview": {
+    "url": "https://eb0120ec.thewyj-uk.pages.dev",
+    "source": "owner observation",
+    "publicPolicy": {
+      "enabled": false,
+      "revision": 0,
+      "reason": "missing"
+    },
+    "classification": "environment configuration; expected fail-closed"
+  },
+  "finalFlashHostedPreview": "OLDER_C8_SNAPSHOT_INDEPENDENTLY_VERIFIED; FINAL_HEAD_REDEPLOY_REQUIRED",
+  "hostedAccountPolicy": "V3_ON_ON_VERIFIED_C8_SNAPSHOT",
+  "manualOwnerReview": "HELD",
+  "productionOperations": 0
+}

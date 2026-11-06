@@ -1,0 +1,9 @@
+{
+  "historical_runs": [
+    {"run_id":42018783175,"head":"0c87169aa4b75db4d00fe76a66bd32a62ead9e4a","failed_job":127217741420,"file":"local-backend/test_tools_browser.mjs:1456","observed":{"workspaceLeft":0,"workspaceRight":0,"runButtonHeight":0},"classification":"reconnect policy pending measured before workspace readiness","assertions_preserved":true},
+    {"run_id":42149831750,"head":"cef7db9bc4ffd3e2641df4e190ba5938a1b4ff34","failed_job":127671642122,"classification":"application cache checks used legacy v URLs after canonical query migration","fix":"seven exact cache URL keys changed; all original booleans preserved"},
+    {"run_id":42150712336,"head":"c8ff0aa55b36e96561dd083bbaf032e4a24b6cd0","application":"success","cloud_failed_job":127674835211,"file":"qa/aeris/p6-parked-rows-browser.mjs:24","classification":"v/release duplicate module instances split parked-row WeakMap","fix":"canonical QA module URLs; identity/draft/removal/empty/reduced-motion assertions unchanged","targeted_chrome_result":"PASS"}
+  ],
+  "final_exact_head_ci":"See PR128 Checks and final acceptance comment after candidate push; not replaced by deployment success",
+  "production_operations":0
+}

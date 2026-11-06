@@ -1422,6 +1422,7 @@ async function main() {
     coverWorkflow("cancel-run");
 
     await selectWorkflowTemplate("text-clean");
+    const workflowRouteBeforeRecovery = await evaluate("location.pathname");
     await send("Network.enable");
     await send("Network.emulateNetworkConditions", { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0, connectionType: "none" });
     try {
@@ -1434,6 +1435,12 @@ async function main() {
     } finally {
       await send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1, connectionType: "wifi" });
     }
+
+    // Reconnection renews authoritative UI policy. Pending intentionally hides
+    // the main canvas; it is not a measured zero-size workflow. Wait on actual
+    // policy and visibility, keeping every geometry/contrast/action assertion.
+    await waitFor("['enabled','disabled','error'].includes(document.documentElement.dataset.interfacePolicy) && document.querySelector('#workflowWorkspace').checkVisibility({checkOpacity:true,checkVisibilityCSS:true}) && document.querySelector('#runWorkflowBtn').checkVisibility()", 15_000, "workflow visible after authoritative reconnect decision");
+    assert.equal(await evaluate("location.pathname"), workflowRouteBeforeRecovery, "network recovery replaced the workflow route");
 
     for (const [width, height] of [[1366, 768], [1920, 1080], [390, 844]]) {
       await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: width === 390 ? 2 : 1, mobile: width === 390 });
