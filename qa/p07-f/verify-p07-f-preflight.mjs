@@ -12,7 +12,7 @@ import { delay, openPage } from "../../local-backend/browser_harness.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "../..");
-const EVIDENCE_DIR = path.join(ROOT, "docs/p07/evidence/p07-f");
+const EVIDENCE_DIR = path.resolve(process.env.P07_F_EVIDENCE_DIR || path.join(ROOT, "docs/p07/evidence/p07-f"));
 const QA_WORK_ROOT = path.join(ROOT, ".wrangler", `p07-f-qa-${Date.now()}`);
 const RUNTIME_DIR = path.join(QA_WORK_ROOT, "runtime");
 const STATE_DIR = path.join(QA_WORK_ROOT, "state");
@@ -22,8 +22,12 @@ const PROBE_PATH = path.join(__dirname, "preflight-probe.js");
 
 const BASE_PORT = 18950;
 const CDP_PORT = 19280;
-const BASE_URL = `http://127.0.0.1:${BASE_PORT}`;
-const CDP_URL = `http://127.0.0.1:${CDP_PORT}`;
+const EXTERNAL = Boolean(process.env.P07_F_BASE_URL);
+const BASE_URL = process.env.P07_F_BASE_URL || `http://127.0.0.1:${BASE_PORT}`;
+const CDP_URL = process.env.P07_F_CDP_URL || `http://127.0.0.1:${CDP_PORT}`;
+assert.equal(new URL(BASE_URL).hostname, "127.0.0.1", "Local preflight never targets an unverified hosted DB");
+const EXECUTED_SHA=process.env.P07_D_TARGET_HEAD||spawnSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8'}).stdout.trim();
+assert.match(EXECUTED_SHA,/^[0-9a-f]{40}$/);
 
 function cleanChildEnv(overrides = {}) {
   const env = { ...process.env, ...overrides };
@@ -62,7 +66,9 @@ let chromePid = 0;
 const preflightReport = {
   task: "P07-F Preflight Gates Preparation",
   generatedAt: new Date().toISOString(),
-  baselineSha: "22d71bd428f6d6bee71ea7140bc5e65650c9c547",
+  baselineSha: EXECUTED_SHA,
+  toolingBaselineSha: "bf07d4007599f67f3ac23038115ec7e7f299c9a9",
+  runtimeTier: EXTERNAL ? "existing isolated compiled Pages + D1/R2 + Chrome" : "standalone local Wrangler",
   status: "P07_F_PREFLIGHT_READY",
   labCoreWebVitals: null,
   axeAccessibility: {},
@@ -75,6 +81,9 @@ const preflightReport = {
 };
 
 try {
+  await fsp.mkdir(EVIDENCE_DIR, { recursive: true });
+  let adminSecret=process.env.WYJ_TEST_ADMIN_SECRET;
+  if (!EXTERNAL) {
   console.log("=== Aeris P07-F Preflight Gates Runner ===");
   console.log(`Work Root: ${QA_WORK_ROOT}`);
   await fsp.mkdir(RUNTIME_DIR, { recursive: true });
@@ -121,7 +130,7 @@ try {
   };
   await fsp.writeFile(path.join(RUNTIME_DIR, "wrangler.jsonc"), `${JSON.stringify(localConfig, null, 2)}\n`);
 
-  const adminSecret = randomBytes(24).toString("base64url");
+  adminSecret = randomBytes(24).toString("base64url");
   const secrets = {
     WYJ_TASK12_PASSWORD_PEPPER: randomBytes(32).toString("base64url"),
     WYJ_TASK14_TEMPORARY_SECRET: randomBytes(32).toString("base64url"),
@@ -254,6 +263,8 @@ try {
   // =========================================================================
   // Test Session Setup
   // =========================================================================
+  }
+  assert.ok(adminSecret,"An authorized local administrator fixture is required");
   const page = await openPage({ cdpUrl: CDP_URL, baseUrl: BASE_URL, width: 1440, height: 960, mobile: false });
   await page.send("Page.bringToFront");
   await page.send("Emulation.setFocusEmulationEnabled", { enabled: true });
@@ -273,6 +284,7 @@ try {
   }
 
   async function runAxeAudit(workspaceName) {
+    await page.waitFor("document.documentElement.dataset.interfacePolicy==='enabled'",15000,"V3 policy before accessibility scan");
     console.log(`--> Running axe-core audit on ${workspaceName}...`);
     // Inject axe if not already present
     await page.evaluate(`(() => {
@@ -319,6 +331,7 @@ try {
 
   await page.navigate("/");
   await page.waitFor("!document.getElementById('entryScreen') && !document.getElementById('publicHome').classList.contains('hidden')", 25_000, "Home ready");
+  await page.waitFor("document.documentElement.dataset.interfacePolicy==='enabled'&&document.getElementById('publicHome').checkVisibility()",15000,"actual V3 home before performance sample");
   await delay(1000); // Allow paints and observers to settle
 
   const cwvMetrics = await page.evaluate(`window.__aerisPreflightProbe.getMetrics()`);
@@ -388,6 +401,7 @@ try {
   await page.setFields({ "#usernameInput": "wyj", "#secretInput": adminSecret });
   await page.click("#loginSubmitBtn");
   await page.waitFor("location.pathname === '/' && document.getElementById('publicHome').dataset.sessionMode === 'authenticated'", 25_000, "Admin session authenticated");
+  await page.waitFor("document.documentElement.dataset.interfacePolicy==='enabled'",15000,"authenticated account V3 decision");
   console.log("[PASS] Logged in as admin!");
 
   // Audit Workspaces
@@ -849,6 +863,11 @@ try {
 
   preflightReport.findings = findings;
   preflightReport.status = hasOverflow ? "P07_F_PREFLIGHT_PARTIAL" : "P07_F_PREFLIGHT_READY";
+  // READY describes the original tooling artifact. A unified release audit
+  // with findings still requires review and must not become a quality PASS.
+  preflightReport.unifiedAcceptance={status:findings.length?'REVIEW_REQUIRED':'PASS',findingCount:findings.length,
+    seriousOrCriticalAxeRules:findings.filter(f=>f.category==='ACCESSIBILITY'&&['serious','critical'].includes(f.impact)).length};
+  if(EXTERNAL&&findings.length)process.exitCode=1;
 
   // Write Report JSON
   const reportPath = path.join(EVIDENCE_DIR, "p07-f-preflight-report.json");
