@@ -17,7 +17,7 @@ assert.ok(sha===head||sha==='0c87169aa4b75db4d00fe76a66bd32a62ead9e4a'||
 if(sha!==head)assert.equal(git(root,'rev-parse',sha+':wrangler.jsonc'),git(root,'rev-parse',head+':wrangler.jsonc'),'snapshot config must match');
 assert.equal(git(root,'status','--porcelain','--untracked-files=no'),'','commit product inputs before exact-SHA validation');
 const label=process.argv[2];assert.match(label||'',/^[a-z0-9-]+$/);
-const round=process.env.P07_QA_ROUND||'p07-r4a';assert.ok(['p07-r4a','p07-r4c','p07-r5','p07-f-closeout'].includes(round));
+const round=process.env.P07_QA_ROUND||'p07-r4a';assert.ok(['p07-r4a','p07-r4c','p07-r5','p07-f-closeout','p07-task25-d1'].includes(round));
 const output=path.join(root,'docs/migration-evidence',round,label);
 assert.equal(await fs.stat(output).then(()=>true,error=>{if(error.code==='ENOENT')return false;throw error;}),false,'Evidence labels cannot be overwritten');
 const args=process.argv.slice(3),cache=args.includes('--cache-upgrade'),warmBaseline=args.includes('--warm-baseline'),warmR4A=args.includes('--warm-r4a'),warmR4C=args.includes('--warm-r4c'),warmR5=args.includes('--warm-r5');

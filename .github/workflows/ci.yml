@@ -501,7 +501,9 @@ jobs:
       - name: Task 25 flags, rollout, migration and Web/native contracts
         run: |
           set -euo pipefail
-          npm run test:task25 2>&1 | tee artifacts/task25-contracts.log
+          TASK25_DIAGNOSTIC_OUT=artifacts/task25-d1-diagnostic.json TASK25_DIAGNOSTIC_SQL=off \
+            node --import ./qa/task25/diagnostic-register.mjs local-backend/test_task25_d1_js.mjs 2>&1 | tee artifacts/task25-contracts.log
+          node local-backend/test_task25_client_js.mjs 2>&1 | tee -a artifacts/task25-contracts.log
           npm run test:task25-release 2>&1 | tee artifacts/task25-release-validation.log
 
       - name: Task 26 deterministic engine, event recovery and client isolation
