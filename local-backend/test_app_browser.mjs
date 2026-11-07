@@ -597,9 +597,15 @@ async function main() {
         rejudgeStatus: document.querySelector('.wrong-rejudge-status')?.textContent || '',
         rejudgeModal: document.querySelector('#rejudgeResultTitle')?.textContent || '',
         rejudgeMessage: document.querySelector('#rejudgeResultMessage')?.textContent || '',
+        resultGloss: document.querySelector('#resultGloss')?.textContent || '',
         currentWrong: state?.currentWrongBook?.hello || null,
         historyWrong: state?.historyWrongBook?.hello || null,
-        syncWrong: Object.values(learningSyncManager?.state?.records || {}).filter((item) => item.record_id?.includes('hello')),
+        currentWrongNetwork: state?.currentWrongBook?.network || null,
+        historyWrongNetwork: state?.historyWrongBook?.network || null,
+        syncWrong: Object.values(learningSyncManager?.state?.records || {}).filter((item) => {
+          const parsed = window.VocabLearningSync?.parseRecordId?.(item.record_id);
+          return item.data_type === 'wrong_book' || ['hello', 'network'].includes(parsed?.components?.[2]);
+        }),
         rejudgeFetches: window.__rejudgeFetches || [],
         paymentQrMessage: document.querySelector('#paymentQrMessage')?.textContent || '',
         paymentQrSrc: document.querySelector('#paymentQrImage')?.getAttribute('src') || '',
@@ -1559,6 +1565,10 @@ async function main() {
         await evaluate("window.dispatchEvent(new Event('online')); true");
         await waitFor("backendAvailable === true", 20_000, "review transport restored");
       }
+      await evaluate("learningSyncManager.syncNow()");
+      await waitFor("learningSyncManager.dirtyRecords().length === 0", 5_000, "offline review deletion synced after reconnect");
+      assert.equal(await evaluate("Boolean(state.currentWrongBook?.network)"), false, "offline review deletion must persist after online sync");
+      assert.equal(await evaluate("state.historyWrongBook?.network?.correct_answer || ''"), "网络", "history wrong book rubric must remain intact after sync");
     });
 
     await check("mobile language question state and rejudge scenarios A-H", async () => {

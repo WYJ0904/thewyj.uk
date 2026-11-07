@@ -363,16 +363,30 @@ function mergeTextList(current, incoming, maximum) {
 }
 
 function mergeWrongPayload(current, incoming, incomingNewer) {
-  const merged = incomingNewer ? { ...current, ...incoming } : { ...incoming, ...current };
+  const preferred = incomingNewer ? incoming : current;
+  const fallback = incomingNewer ? current : incoming;
+  const merged = { ...fallback, ...preferred };
   merged.wrong_count = Math.max(Number(current.wrong_count || 0), Number(incoming.wrong_count || 0));
+  const preferredCorrect = String(preferred?.correct_answer || "").trim();
+  const fallbackCorrect = String(fallback?.correct_answer || "").trim();
+  if (preferredCorrect || fallbackCorrect) {
+    merged.correct_answer = preferredCorrect ? preferred.correct_answer : fallback.correct_answer;
+  }
   const accepted = mergeTextList(current.accepted, incoming.accepted, 50);
   if (accepted.length) merged.accepted = accepted;
   const currentRubric = safeJsonObject(current.rubric);
   const incomingRubric = safeJsonObject(incoming.rubric);
   if (Object.keys(currentRubric).length || Object.keys(incomingRubric).length) {
-    merged.rubric = incomingNewer
-      ? { ...currentRubric, ...incomingRubric }
-      : { ...incomingRubric, ...currentRubric };
+    const preferredRubric = incomingNewer ? incomingRubric : currentRubric;
+    const fallbackRubric = incomingNewer ? currentRubric : incomingRubric;
+    merged.rubric = { ...fallbackRubric, ...preferredRubric };
+    for (const field of ["language", "gloss", "notes", "reading"]) {
+      const prefVal = String(preferredRubric?.[field] || "").trim();
+      const fallVal = String(fallbackRubric?.[field] || "").trim();
+      if (prefVal || fallVal) {
+        merged.rubric[field] = prefVal ? preferredRubric[field] : fallbackRubric[field];
+      }
+    }
     const rubricAccepted = mergeTextList(currentRubric.accepted, incomingRubric.accepted, 50);
     if (rubricAccepted.length) merged.rubric.accepted = rubricAccepted;
   }
@@ -383,7 +397,7 @@ function incomingIsNewer(existing, incoming) {
   const existingTime = Date.parse(existing.updated_at || "") || 0;
   const incomingTime = Date.parse(incoming.updated_at || "") || 0;
   if (incomingTime !== existingTime) return incomingTime > existingTime;
-  return incoming.client_id > String(existing.client_id || "");
+  return incoming.client_id >= String(existing.client_id || "");
 }
 
 export function mergeLearningRecord(existing, incoming) {
@@ -391,7 +405,8 @@ export function mergeLearningRecord(existing, incoming) {
   const existingPayload = safeJsonObject(existing.payload_json);
   const existingOutput = learningRecordPayload(existing);
   const incomingNewer = incomingIsNewer(existing, incoming);
-  const baseIsCurrent = incoming.base_server_version >= Number(existing.server_version || 0);
+  const sameClientNewer = incomingNewer && incoming.client_id === String(existing.client_id || "");
+  const baseIsCurrent = incoming.base_server_version >= Number(existing.server_version || 0) || sameClientNewer;
 
   if (incoming.deleted) {
     if (!baseIsCurrent) return { canonical: existingOutput, changed: false, merged: true };
