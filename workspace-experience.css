@@ -1311,7 +1311,7 @@ body[data-experience="workspace"] .account-badge {
   content-visibility: auto;
   contain-intrinsic-size: auto 125px;
 }
-.admin-user-identity h3 { font-size: 1rem; }
+.admin-user-identity :is(h2, h3) { font-size: 1rem; }
 .admin-user-facts p, .admin-user-security p { font-size: 0.75rem; line-height: 1.5; }
 .admin-user-security .admin-last-login { display: block; }
 .admin-user-actions button { min-height: 44px; }

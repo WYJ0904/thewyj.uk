@@ -1177,7 +1177,7 @@ html[data-p07-ui="enabled"] .auth-panel .auth-logo {
   object-fit: contain;
 }
 
-html[data-p07-ui="enabled"] .auth-panel h2 {
+html[data-p07-ui="enabled"] .auth-panel :is(h1, h2) {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 750;
@@ -2679,13 +2679,14 @@ html[data-p07-ui="enabled"] #accountModal .section-kicker {
   color: var(--ds-brand);
 }
 
-html[data-p07-ui="enabled"] #membershipModal h2#membershipTitle,
-html[data-p07-ui="enabled"] #accountModal h2#accountTitle {
+html[data-p07-ui="enabled"] #membershipModal :is(h1, h2)#membershipTitle,
+html[data-p07-ui="enabled"] #accountModal :is(h1, h2)#accountTitle {
   font-size: clamp(1.8rem, 3.5vw, 2.25rem);
   font-weight: 800;
   letter-spacing: -0.025em;
   color: var(--ds-text);
   margin: 4px 0 20px;
+  line-height: 1.3;
 }
 
 /* 4-Step Process Stepper (matching 06-会员与人工审核) */
@@ -2936,9 +2937,23 @@ html[data-p07-ui="enabled"] .account-role-badge {
 }
 
 html[data-p07-ui="enabled"] .account-sync-badge {
-  background: rgba(16, 185, 129, 0.12);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
+  border: 1px solid color-mix(in srgb, var(--ds-success) 35%, transparent);
+}
+
+/* Semantic heading promotions retain the accepted account typography. */
+html[data-p07-ui="enabled"] #accountModal :is(.account-profile-name, .account-sync-title, .account-section-subtitle, .account-settings-title) {
+  line-height: 1.35;
+}
+.account-settings-title { font-size: 18px; margin: 0; }
+
+/* The existing file input remains in Tab order. Expose its focus on its
+   visible trigger instead of leaving a clipped keyboard focus indicator. */
+.workflow-import-row:focus-within {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 3px;
+  box-shadow: var(--ds-focus-ring);
 }
 
 html[data-p07-ui="enabled"] .account-profile-id,
@@ -3584,8 +3599,8 @@ html[data-p07-ui="enabled"] .workflow-sidebar {
   }
 }
 
-html[data-p07-ui="enabled"] .workflow-sidebar-heading h3,
-html[data-p07-ui="enabled"] .workflow-template-box h3 {
+html[data-p07-ui="enabled"] .workflow-sidebar-heading :is(h2, h3),
+html[data-p07-ui="enabled"] .workflow-template-box :is(h2, h3) {
   font-size: 1.0625rem;
   font-weight: 750;
   color: var(--ds-text);
@@ -3669,7 +3684,7 @@ html[data-p07-ui="enabled"] .workflow-editor-empty {
   color: var(--ds-text-secondary);
 }
 
-html[data-p07-ui="enabled"] .workflow-editor-empty h3 {
+html[data-p07-ui="enabled"] .workflow-editor-empty :is(h2, h3) {
   font-size: 1.25rem;
   font-weight: 750;
   color: var(--ds-text);
@@ -3719,7 +3734,7 @@ html[data-p07-ui="enabled"] .workflow-section-heading {
   margin: 24px 0 16px;
 }
 
-html[data-p07-ui="enabled"] .workflow-section-heading h3 {
+html[data-p07-ui="enabled"] .workflow-section-heading :is(h2, h3) {
   font-size: 1.125rem;
   font-weight: 750;
   color: var(--ds-text);
@@ -4013,7 +4028,7 @@ html[data-p07-ui="enabled"] :is(.admin-user-card, .admin-login-card, .admin-log-
   word-break: break-word;
 }
 
-html[data-p07-ui="enabled"] .admin-user-identity h3 {
+html[data-p07-ui="enabled"] .admin-user-identity :is(h2, h3) {
   font-size: 1.125rem;
   font-weight: 750;
   color: var(--ds-text);

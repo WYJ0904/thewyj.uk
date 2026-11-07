@@ -9,27 +9,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261107-aeris-p07-r5-independent-rc4";
+} from "./js/core/config.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261107-aeris-p07-f-a11y-rc1";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?release=20261107-aeris-p07-r5-independent-rc4";
+} from "./js/core/capabilities.js?release=20261107-aeris-p07-f-a11y-rc1";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?release=20261107-aeris-p07-r5-independent-rc4";
+} from "./js/core/api.js?release=20261107-aeris-p07-f-a11y-rc1";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261107-aeris-p07-r5-independent-rc4";
+} from "./js/core/changelog.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261107-aeris-p07-f-a11y-rc1";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -40,28 +40,28 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { completeStartupSplash } from "./js/core/startup.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { createAndroidDownloadController } from "./js/core/download.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { createFeatureController } from "./js/core/feature-flags.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { createFeatureConsole } from "./js/core/feature-console.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { createMasteryController } from "./js/language/mastery.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { masteryStorageKey } from "./js/language/mastery-state.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { speakText, stopSpeech } from "./js/language/speech.js?release=20261107-aeris-p07-r5-independent-rc4";
+} from "./js/core/session.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { completeStartupSplash } from "./js/core/startup.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { createAndroidDownloadController } from "./js/core/download.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { createFeatureController } from "./js/core/feature-flags.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { createFeatureConsole } from "./js/core/feature-console.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { createMasteryController } from "./js/language/mastery.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { masteryStorageKey } from "./js/language/mastery-state.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { speakText, stopSpeech } from "./js/language/speech.js?release=20261107-aeris-p07-f-a11y-rc1";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { formatFinanceMoney } from "./js/finance/format.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { createDashboardView } from "./js/core/dashboard.js?release=20261107-aeris-p07-r5-independent-rc4";
+} from "./js/language/speech-rate.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { formatFinanceMoney } from "./js/finance/format.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { createDashboardView } from "./js/core/dashboard.js?release=20261107-aeris-p07-f-a11y-rc1";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -69,15 +69,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261107-aeris-p07-r5-independent-rc4";
+} from "./js/core/perf.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261107-aeris-p07-f-a11y-rc1";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?release=20261107-aeris-p07-r5-independent-rc4";
+} from "./js/language/history.js?release=20261107-aeris-p07-f-a11y-rc1";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -114,16 +114,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261107-aeris-p07-r5-independent-rc4";
-import { createWrongBookPdf } from "./js/language/pdf.js?release=20261107-aeris-p07-r5-independent-rc4";
+} from "./js/language/quiz.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { createWrongBookPdf } from "./js/language/pdf.js?release=20261107-aeris-p07-f-a11y-rc1";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?release=20261107-aeris-p07-r5-independent-rc4";
+} from "./js/language/wrong-book.js?release=20261107-aeris-p07-f-a11y-rc1";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -132,7 +132,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?release=20261107-aeris-p07-r5-independent-rc4";
+} from "./js/membership/account.js?release=20261107-aeris-p07-f-a11y-rc1";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -140,19 +140,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?release=20261107-aeris-p07-r5-independent-rc4";
+} from "./js/membership/plans.js?release=20261107-aeris-p07-f-a11y-rc1";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?release=20261107-aeris-p07-r5-independent-rc4";
+} from "./js/membership/recharge.js?release=20261107-aeris-p07-f-a11y-rc1";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?release=20261107-aeris-p07-r5-independent-rc4";
+} from "./js/admin/formatters.js?release=20261107-aeris-p07-f-a11y-rc1";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -1694,6 +1694,8 @@ function closeModal(id, immediate = false) {
 
 function showAuthMode(mode, updateRoute = false) {
   const register = mode === "register";
+  $("loginTabPanel")?.classList.toggle("hidden", register);
+  $("registerTabPanel")?.classList.toggle("hidden", !register);
   $("loginForm").classList.toggle("hidden", register);
   $("registerForm").classList.toggle("hidden", !register);
   $("showLoginBtn").classList.toggle("active", !register);
@@ -2544,7 +2546,7 @@ function renderAdminUsers(data = null, { append = false } = {}) {
       all_features_access: "全功能",
     }[item] || item)).join("、") || "基础功能";
     return `<article class="admin-user-card" data-user-id="${escapeHtml(user.id)}">
-      <div class="admin-user-identity"><h3>${escapeHtml(user.username)}</h3><p class="admin-user-id">${escapeHtml(user.id)}</p><p><span class="status-badge">${escapeHtml(roleLabel)}</span></p><p class="${stateClass}">${user.banned ? "已永久封禁" : "正常"}</p></div>
+      <div class="admin-user-identity"><h2>${escapeHtml(user.username)}</h2><p class="admin-user-id">${escapeHtml(user.id)}</p><p><span class="status-badge">${escapeHtml(roleLabel)}</span></p><p class="${stateClass}">${user.banned ? "已永久封禁" : "正常"}</p></div>
       <div class="admin-user-facts"><p><span>最高等级</span><strong>${escapeHtml(summary.name)}</strong></p><p><span>有效会员</span><strong>${escapeHtml(memberships)}</strong></p><p><span>合并权益</span><strong>${escapeHtml(entitlements)}</strong></p></div>
       <div class="admin-user-security"><p><span class="admin-field-name">登录密钥</span><span class="secret-value">不可读取 · 可安全重置</span></p><p class="admin-last-login">最后登录：${escapeHtml(formatLocalDateTime(user.last_login_at, "从未"))}</p></div>
       <div class="action-row compact admin-user-actions"><button data-admin-edit type="button" ${protectedUser ? "disabled" : ""}>编辑</button></div>
@@ -2609,7 +2611,7 @@ function renderAdminRecharge(requests) {
       : ["pending", "pending_payment", "user_paid", "processing"].includes(request.status) ? "pending"
       : request.status === "rejected" ? "error" : "neutral";
     return `<article class="admin-user-card admin-recharge-card" data-request-id="${escapeHtml(request.id)}">
-    <div class="admin-user-identity"><h3>${escapeHtml(request.username)}</h3><p class="admin-user-id">${escapeHtml(request.order_number || request.id)}</p><p class="admin-last-login">申请：${escapeHtml(formatLocalDateTime(request.requested_at, "未知"))}</p></div>
+    <div class="admin-user-identity"><h2>${escapeHtml(request.username)}</h2><p class="admin-user-id">${escapeHtml(request.order_number || request.id)}</p><p class="admin-last-login">申请：${escapeHtml(formatLocalDateTime(request.requested_at, "未知"))}</p></div>
     <div class="admin-user-facts"><p><span>套餐</span><strong>${escapeHtml(request.plan_name || membershipLabel(request.plan_code || request.plan))}</strong></p><p><span>支付方式</span><strong>${escapeHtml(paymentMethodLabel(request.payment_method))}</strong></p><p><span>金额</span><strong>${escapeHtml(`${(Number(request.amount_cents || 0) / 100).toFixed(2)} ${request.currency || "CNY"}`)}</strong></p><p><span>付款备注</span><strong>${escapeHtml(request.payment_note || "-")}</strong></p></div>
     <div class="admin-request-status"><div class="admin-request-status-heading"><span>状态</span><strong class="admin-request-badge" data-tone="${statusTone}">${escapeHtml(rechargeStatusLabel(request.status))}</strong></div>${request.user_confirmed_at ? `<div class="admin-request-confirmed"><span>用户确认时间</span><time datetime="${escapeHtml(request.user_confirmed_at)}">${escapeHtml(formatLocalDateTime(request.user_confirmed_at))}</time></div>` : ""}</div>
     <div class="action-row compact admin-user-actions">${request.status === "user_paid" ? '<button data-recharge-approve type="button">确认付款并开通</button><button data-recharge-reject type="button">拒绝</button>' : ""}</div>
@@ -4006,6 +4008,7 @@ function showAuth(message = "", options = {}) {
   $("projectApp").setAttribute("aria-hidden", "false");
   $("topbar").classList.add("hidden");
   $("projectNameLabel").textContent = "";
+  $("projectNameLabel").setAttribute("aria-hidden", "true");
   $("authPanel").classList.remove("hidden");
   $("workspace").classList.add("hidden");
   $("loginError").textContent = message;
@@ -4408,7 +4411,10 @@ function updateLanguageUi() {
   const quizLabel = $("quizLanguageLabel");
   if (quizLabel) quizLabel.textContent = quizLanguageLabel(language);
   const projectLabel = $("projectNameLabel");
-  if (projectLabel) projectLabel.textContent = language ? `${quizLanguageLabel(language)}测试` : "";
+  if (projectLabel) {
+    projectLabel.textContent = language ? `${quizLanguageLabel(language)}测试` : "";
+    projectLabel.setAttribute("aria-hidden", String(!language));
+  }
   const input = $("wordInput");
   if (input) input.placeholder = language === "japanese"
     ? "输入日语词表，每行一个词；汉字或假名都可以"
@@ -4831,14 +4837,14 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
 });
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?release=20261107-aeris-p07-r5-independent-rc4", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261107-aeris-p07-r5-independent-rc4", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?release=20261107-aeris-p07-f-a11y-rc1", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261107-aeris-p07-f-a11y-rc1", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261107-aeris-p07-r5-independent-rc4", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261107-aeris-p07-r5-independent-rc4", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261107-aeris-p07-r5-independent-rc4", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261107-aeris-p07-f-a11y-rc1", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261107-aeris-p07-f-a11y-rc1", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261107-aeris-p07-f-a11y-rc1", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render"],
