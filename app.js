@@ -575,7 +575,7 @@ function scheduleLearningSyncRender() {
   queueMicrotask(() => {
     learningSyncRenderQueued = false;
     renderDashboard();
-    if ($("wrongView")?.classList.contains("active")) {
+    if ($("wrongList")) {
       const editingWrongAnswer = $("wrongList")?.querySelector(".wrong-rejudge-form:not(.hidden)");
       if (activeWrongRejudgeKey || editingWrongAnswer) learningSyncWrongRenderPending = true;
       else renderWrongBook();
@@ -4818,7 +4818,7 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
   getSession: () => state.session,
   backendErrorMessage,
   markBackendReachable,
-  markGetReachable: () => { backendAvailable = true; },
+  markGetReachable: () => { if (navigator.onLine !== false) backendAvailable = true; },
   markNetworkFailure: (message, source) => {
     backendAvailable = false;
     if (source !== "upload") backendFailureMessage = message;
@@ -4977,6 +4977,7 @@ dashboardView = createDashboardView({
 });
 
 function applyBackendStatus(data) {
+  if (navigator.onLine === false) return;
   markBackendReachable(data);
   // A successful status response from an older supported backend may omit
   // Task25 entirely. That is a known unavailable capability, not an endless
@@ -4992,6 +4993,7 @@ function applyBackendStatus(data) {
 }
 
 function markBackendReachable(data = {}) {
+  if (navigator.onLine === false) return;
   if (typeof data.features?.task25_feature_flags === "boolean") {
     featureInfrastructureAvailable = data.features.task25_feature_flags;
     featureController?.setAvailable(featureInfrastructureAvailable);
@@ -6630,6 +6632,7 @@ function importedWrongBooks(payload) {
 async function importWrongData(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
+  event.target.value = "";
 
   try {
     if (file.size > 1024 * 1024) throw new Error("错题数据文件不能超过 1 MB");
@@ -6713,6 +6716,7 @@ function parseImportedWords(text) {
 async function importWords(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
+  event.target.value = "";
   try {
     if (file.size > MAX_WORD_IMPORT_BYTES) throw new Error("词表文件不能超过 1 MB");
     const text = await file.text();
@@ -6909,6 +6913,8 @@ function refreshBackendState() {
 }
 
 function markBackendDisconnected(message = "设备当前没有网络连接，联网后会自动重连。") {
+  window.clearTimeout(backendRecoveryTimer);
+  backendRecoveryTimer = null;
   backendAvailable = false;
   aiAvailable = false;
   backendFailureMessage = message;
