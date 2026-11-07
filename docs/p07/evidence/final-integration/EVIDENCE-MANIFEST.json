@@ -1,0 +1,165 @@
+{
+  "scope": "Pinned RED and precheck evidence only. Final exact-SHA results are recorded after freeze in the PR receipt.",
+  "files": [
+    {
+      "source": "docs/migration-evidence/p07-final/transition-flash133-red-2/final-transitions.json",
+      "target": "PR133-BROWSER-RED.json",
+      "sha256": "43ca7e1e2e06c59538c8cfd161150aa617879ae1f73a89a3a07430b1a88e0a3f"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/transition-flash133-red-2/slow-public-dom.json",
+      "target": "PR133-SLOW-PUBLIC-DOM.json",
+      "sha256": "feca6caf635605b01f95aca633971ffde5a165c86d8a0ea3951866b262da88d1"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/transition-flash133-red-2/slow-identity-dom.json",
+      "target": "PR133-SLOW-IDENTITY-DOM.json",
+      "sha256": "3196dc4dcd36c163c449a3cdd6251d1a9bc64963904c600e0e36983b64aa3ab1"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/transition-flash133-red-2/login-3200-dom.json",
+      "target": "PR133-SLOW-LOGIN-DOM.json",
+      "sha256": "e792f204ba9af44a60f47af03fd5c37be725c0ddfa7457ea43af61855f4d9cb8"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/login-132-red/login-first-frame-axe.json",
+      "target": "PR132-LOGIN-FIRST-FRAME.json",
+      "sha256": "45b087e509a85aea12bacb687b6471d3f79780350f773289c992b5630d6d1bfe"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/transition-candidate-5/login-first-frame-axe.json",
+      "target": "INTERMEDIATE-LOGIN-OPACITY.json",
+      "sha256": "464046407b3d5f64175c578f43213c0460b6034b16ed528e230cac245777ed8e"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/integration-preflight-1/r4a-runtime-results.json",
+      "target": "INTERMEDIATE-RUNTIME-FAILURE.json",
+      "sha256": "cc469747af3ffc115254a44d917db762054c1989cfc5af4840b23aa5bc9fa78f"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/integration-preflight-1/browser-results.json",
+      "target": "INTERMEDIATE-R5-FAILURE.json",
+      "sha256": "971754ec070822c834b5be89c066679c1a10ae372a598d1ba0f701e95622fe28"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/runtime-candidate-2/r4a-runtime-results.json",
+      "target": "GREEN-RUNTIME-PRECHECK.json",
+      "sha256": "055ca8a563537491b0bc1915e15d960ff126e6ed08b0438ab376e4879ac2b002"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/runtime-candidate-2/browser-results.json",
+      "target": "GREEN-R5-PRECHECK.json",
+      "sha256": "ceed955ee469d2f4471a6a900700825cb4a334c1c89897cacc32469455444d95"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/integration-preflight-1/p07-f-preflight-report.json",
+      "target": "GREEN-FIXED-F-PRECHECK.json",
+      "sha256": "f903c05a6714acaa996bd3e496399fe134eb316d9bf922279a3008a8783186db"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/integration-preflight-1/f-full-axe.json",
+      "target": "GREEN-FULL-AXE-PRECHECK.json",
+      "sha256": "088bf0bb9453c1cf98f922229335ad572165cf597f265bf50c6aa0e4b3622516"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/integration-preflight-1/f-closeout-cases.json",
+      "target": "GREEN-F-EXTENDED-PRECHECK.json",
+      "sha256": "5b39c316d967a672298aa3eda5b0857cc8329da22ce4d8cce4c769ac31c59eb8"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/integration-preflight-1/f-workspace-lab.json",
+      "target": "LAB-PRECHECK.json",
+      "sha256": "687bfe03929fedfacfde222334e60f850334c921932e0825e2fea74d2ae3bbfe"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/transition-candidate-5/recovery-full-axe.json",
+      "target": "GREEN-RECOVERY-AXE-PRECHECK.json",
+      "sha256": "a1490ad855dd5292504594c2a41c087ef2e5cbefeff2ed3e6a45589c0138f21a"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/login-current-green/login-first-frame-axe.json",
+      "target": "GREEN-LOGIN-FIRST-FRAME.json",
+      "sha256": "41103a441c977783532d898d99f7aafcb40c6da088355b8608167111ed54e434"
+    },
+    {
+      "source": "docs/migration-evidence/p07-final/transition-candidate-4/final-transitions.json",
+      "target": "GREEN-TRANSITIONS-EARLIER-PRECHECK.json",
+      "sha256": "f4db5df99eaf9f1d5a18ded1d28c8ee9f73907b299cb240c0b1b11e5b3f89f4c"
+    },
+    {
+      "source": "docs\\migration-evidence\\p07-final\\transition-flash133-red-2\\continuous-slow-public/0059.jpg",
+      "target": "RED-blank.jpg",
+      "renderTimestamp": 1794060857.472433,
+      "domFrame": {
+        "t": 2412.4000000003725,
+        "epoch": 1794060857469.0999,
+        "path": "/",
+        "boot": "ready",
+        "policy": "pending",
+        "verification": "ready",
+        "p07": "disabled",
+        "splash": false,
+        "overlay": false,
+        "recovery": false,
+        "policyPanel": false,
+        "primary": [],
+        "privateHeader": false,
+        "focus": "",
+        "inert": false
+      },
+      "timeDeltaMs": 3.333251953125,
+      "sha256": "6d3527a314cb81b1d8e081b3271708caf1b8b1e64554ec6f473b57eab3883a71"
+    },
+    {
+      "source": "docs\\migration-evidence\\p07-final\\transition-candidate-5\\continuous-slow-public/0067.jpg",
+      "target": "GREEN-recovery.jpg",
+      "renderTimestamp": 1794061045.336731,
+      "domFrame": {
+        "t": 2941.0999999996275,
+        "epoch": 1794061045334.6,
+        "path": "/",
+        "boot": "recovering",
+        "policy": "pending",
+        "verification": "ready",
+        "p07": "disabled",
+        "splash": false,
+        "overlay": false,
+        "recovery": true,
+        "policyPanel": true,
+        "primary": [],
+        "privateHeader": false,
+        "focus": "",
+        "inert": false
+      },
+      "timeDeltaMs": 2.130859375,
+      "sha256": "56e4e3036b3368998a8c57df514becd6b9284b15809a700164aab46c0f1b9a5c"
+    },
+    {
+      "source": "docs\\migration-evidence\\p07-final\\transition-candidate-5\\continuous-slow-public/0105.jpg",
+      "target": "GREEN-last-screencast-before-home.jpg",
+      "renderTimestamp": 1794061045.715856,
+      "domFrame": {
+        "t": 3637.9000000003725,
+        "epoch": 1794061046031.4,
+        "path": "/",
+        "boot": "ready",
+        "policy": "enabled",
+        "verification": "ready",
+        "p07": "enabled",
+        "splash": false,
+        "overlay": false,
+        "recovery": false,
+        "policyPanel": false,
+        "primary": [
+          "publicHome"
+        ],
+        "privateHeader": false,
+        "focus": "",
+        "inert": false
+      },
+      "timeDeltaMs": -315.5439453125,
+      "sha256": "ee1576b6a97fb91fbad1d4b316400b18220e01885129f1c0c998fafac44547d1",
+      "caveat": "Nearest screencast frame precedes the first home DOM sample; shows recovery, not final home. Final driver now captures an explicit composite endpoint before stopping."
+    }
+  ]
+}

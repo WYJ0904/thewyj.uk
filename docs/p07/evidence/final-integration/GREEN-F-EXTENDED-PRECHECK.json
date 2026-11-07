@@ -1,0 +1,232 @@
+{
+  "source": "1c10584652ad43b5052520b448c6baf8b421e00b",
+  "selection": "all",
+  "cases": [
+    {
+      "name": "whole-document-axe-and-layout-matrix",
+      "status": "PASS",
+      "detail": {
+        "scans": 48,
+        "layoutSamples": 120
+      }
+    },
+    {
+      "name": "preview-notice-retains-a-legal-live-status-role",
+      "status": "PASS",
+      "detail": {
+        "fixture": "existing Preview notice revealed locally; no Hosted environment changes",
+        "screenshot": "preview-notice-status.png"
+      }
+    },
+    {
+      "name": "visual-typography-remains-equivalent",
+      "status": "PASS",
+      "detail": {
+        "comparedSamples": 120
+      }
+    },
+    {
+      "name": "auth-tabs-have-native-forms-in-associated-panels",
+      "status": "PASS",
+      "detail": [
+        {
+          "controls": "loginTabPanel",
+          "role": "tabpanel",
+          "labelled": "showLoginBtn",
+          "formRole": null,
+          "visible": true,
+          "selected": "true"
+        },
+        {
+          "controls": "registerTabPanel",
+          "role": "tabpanel",
+          "labelled": "showRegisterBtn",
+          "formRole": null,
+          "visible": true,
+          "selected": "true"
+        },
+        {
+          "controls": "loginTabPanel",
+          "role": "tabpanel",
+          "labelled": "showLoginBtn",
+          "formRole": null,
+          "visible": true,
+          "selected": "true"
+        }
+      ]
+    },
+    {
+      "name": "learning-live-status-and-account-feedback",
+      "status": "PASS",
+      "detail": {
+        "before": {
+          "role": "status",
+          "description": "modelLabel",
+          "live": "polite",
+          "text": "规则模式"
+        },
+        "offline": {
+          "text": "离线模式",
+          "online": false
+        },
+        "account": {
+          "badge": "正常",
+          "description": "已连接云端同步 (Cloudflare D1)"
+        }
+      }
+    },
+    {
+      "name": "account-menu-controls-reference-and-expanded-audit",
+      "status": "PASS",
+      "detail": {
+        "reference": {
+          "id": "accountMenuPopover",
+          "exists": true,
+          "role": "menu",
+          "rawAxeReviewRetained": [
+            {
+              "id": "aria-valid-attr-value",
+              "impact": "critical",
+              "tags": [
+                "cat.aria",
+                "wcag2a",
+                "wcag412",
+                "EN-301-549",
+                "EN-9.4.1.2"
+              ],
+              "description": "Ensures all ARIA attributes have valid values",
+              "help": "ARIA attributes must conform to valid values",
+              "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-valid-attr-value?application=axeAPI",
+              "nodes": [
+                {
+                  "any": [],
+                  "all": [
+                    {
+                      "id": "aria-valid-attr-value",
+                      "data": {
+                        "messageKey": "controlsWithinPopup",
+                        "needsReview": "aria-controls=\"accountMenuPopover\""
+                      },
+                      "relatedNodes": [],
+                      "impact": "critical",
+                      "message": "Unable to determine if aria-controls referenced ID exists on the page while using aria-haspopup: aria-controls=\"accountMenuPopover\""
+                    }
+                  ],
+                  "none": [],
+                  "impact": "critical",
+                  "html": "<summary aria-label=\"打开账户菜单\" aria-haspopup=\"menu\" aria-controls=\"accountMenuPopover\" aria-expanded=\"true\"><span class=\"account-badge\" id=\"accountBadge\">r5ownerA7dc3a67c · 全功能永久会员</span></summary>",
+                  "target": [
+                    "summary[aria-label=\"打开账户菜单\"]"
+                  ],
+                  "failureSummary": "Fix all of the following:\n  Unable to determine if aria-controls referenced ID exists on the page while using aria-haspopup: aria-controls=\"accountMenuPopover\""
+                }
+              ]
+            }
+          ],
+          "accessibilityTree": [
+            {
+              "ignored": false,
+              "role": "menu",
+              "name": "账户"
+            }
+          ],
+          "validation": "DOM and Chrome AX verify the existing target; axe 4.9 deliberately leaves popup IDREFs for review"
+        },
+        "screenshot": "account-menu-expanded.png"
+      }
+    },
+    {
+      "name": "keyboard-focus-and-real-workflow-import-execution",
+      "status": "PASS",
+      "detail": {
+        "focus": {
+          "id": "workflowImportInput",
+          "name": "importWorkflowBtn",
+          "outlineStyle": "solid",
+          "outlineWidth": "2px",
+          "visible": true,
+          "accessibilityTree": [
+            {
+              "ignored": false,
+              "role": "button",
+              "name": "导入 JSON"
+            }
+          ],
+          "normalMotion": true,
+          "chooserOpened": true,
+          "screenshot": "workflow-file-input-keyboard-focus.png"
+        },
+        "result": "alpha\nbeta",
+        "screenshot": "workflow-import-executed.png"
+      }
+    },
+    {
+      "name": "modal-tab-trap-focus-visible-and-restoration",
+      "status": "PASS",
+      "detail": {
+        "stops": [
+          {
+            "id": "confirmDeleteAccountBtn",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          },
+          {
+            "id": "deleteSecretInput",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          },
+          {
+            "id": "",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          },
+          {
+            "id": "confirmDeleteAccountBtn",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          },
+          {
+            "id": "deleteSecretInput",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          },
+          {
+            "id": "",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          },
+          {
+            "id": "confirmDeleteAccountBtn",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          },
+          {
+            "id": "deleteSecretInput",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          }
+        ],
+        "screenshot": "modal-keyboard-focus.png",
+        "restoredFocus": true,
+        "deletionSubmitted": false
+      }
+    }
+  ],
+  "scope": "actual isolated local APIs + Chrome; no real accounts or paid model"
+}

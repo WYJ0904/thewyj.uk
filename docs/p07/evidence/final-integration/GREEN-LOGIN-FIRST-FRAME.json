@@ -1,0 +1,2243 @@
+{
+  "source": "6b8116267458a6fb57ded0a6db8f20f21e4bab0a",
+  "scans": [
+    {
+      "motion": "no-preference",
+      "theme": "light",
+      "actualTheme": "light",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "motion": "no-preference",
+      "theme": "dark",
+      "actualTheme": "dark",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "motion": "reduce",
+      "theme": "light",
+      "actualTheme": "light",
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "motion": "reduce",
+      "theme": "dark",
+      "actualTheme": "dark",
+      "violations": [],
+      "incomplete": []
+    }
+  ],
+  "samples": [
+    {
+      "motion": "no-preference",
+      "theme": "light",
+      "frames": [
+        {
+          "t": 847.3000000007451,
+          "epoch": 1794061255076,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 851.5999999996275,
+          "epoch": 1794061255080.3,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 855.7000000011176,
+          "epoch": 1794061255084.4,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 859.8000000007451,
+          "epoch": 1794061255088.5,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 864.3000000007451,
+          "epoch": 1794061255093,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 868.2000000011176,
+          "epoch": 1794061255096.9,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 872.4000000003725,
+          "epoch": 1794061255101.0999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 876.5999999996275,
+          "epoch": 1794061255105.3,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 880.8000000007451,
+          "epoch": 1794061255109.5999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 884.9000000003725,
+          "epoch": 1794061255113.5999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 889,
+          "epoch": 1794061255117.7,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 893.3000000007451,
+          "epoch": 1794061255122,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 897.4000000003725,
+          "epoch": 1794061255126.0999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 901.5999999996275,
+          "epoch": 1794061255130.3,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 906.7000000011176,
+          "epoch": 1794061255135.4,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 909.9000000003725,
+          "epoch": 1794061255138.5999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 915.4000000003725,
+          "epoch": 1794061255144.0999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 918.0999999996275,
+          "epoch": 1794061255146.8,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 922.5,
+          "epoch": 1794061255151.2,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 926.5999999996275,
+          "epoch": 1794061255155.3,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 930.5999999996275,
+          "epoch": 1794061255159.3,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 934.8000000007451,
+          "epoch": 1794061255163.5,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 938.9000000003725,
+          "epoch": 1794061255167.5999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 943.0999999996275,
+          "epoch": 1794061255171.8,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 947.3000000007451,
+          "epoch": 1794061255176,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 951.5,
+          "epoch": 1794061255180.2,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 955.7000000011176,
+          "epoch": 1794061255184.4,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 959.9000000003725,
+          "epoch": 1794061255188.5999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1004,
+          "epoch": 1794061255232.7,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1004.2000000011176,
+          "epoch": 1794061255232.9,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1484.0999999996275,
+          "epoch": 1794061255712.8,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1488.0999999996275,
+          "epoch": 1794061255716.8,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1509.4000000003725,
+          "epoch": 1794061255738.0999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1509.5999999996275,
+          "epoch": 1794061255738.3,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        }
+      ]
+    },
+    {
+      "motion": "no-preference",
+      "theme": "dark",
+      "frames": [
+        {
+          "t": 830.9000000003725,
+          "epoch": 1794061256588.7998,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 835.1000000014901,
+          "epoch": 1794061256593,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 839.1000000014901,
+          "epoch": 1794061256597,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 843.3000000007451,
+          "epoch": 1794061256601.2,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 847.5,
+          "epoch": 1794061256605.4,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 851.7000000011176,
+          "epoch": 1794061256609.5999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 856.4000000003725,
+          "epoch": 1794061256614.2998,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 860,
+          "epoch": 1794061256617.9,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 864.1000000014901,
+          "epoch": 1794061256622,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 868.3000000007451,
+          "epoch": 1794061256626.2,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 872.6000000014901,
+          "epoch": 1794061256630.5,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 876.7000000011176,
+          "epoch": 1794061256634.5999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 880.9000000003725,
+          "epoch": 1794061256638.7998,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 885,
+          "epoch": 1794061256642.9,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 889.2000000011176,
+          "epoch": 1794061256647.0999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 896.8000000007451,
+          "epoch": 1794061256654.7,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 898.6000000014901,
+          "epoch": 1794061256656.5,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 901.5,
+          "epoch": 1794061256659.4,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 905.8000000007451,
+          "epoch": 1794061256663.7,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 909.8000000007451,
+          "epoch": 1794061256667.7,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 914,
+          "epoch": 1794061256671.9,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 918.2000000011176,
+          "epoch": 1794061256676.0999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 922.4000000003725,
+          "epoch": 1794061256680.2998,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 926.6000000014901,
+          "epoch": 1794061256684.5,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 930.8000000007451,
+          "epoch": 1794061256688.7,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 935.3000000007451,
+          "epoch": 1794061256693.2,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 939,
+          "epoch": 1794061256696.9,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 943.1000000014901,
+          "epoch": 1794061256701,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 947.4000000003725,
+          "epoch": 1794061256705.2998,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 951.7000000011176,
+          "epoch": 1794061256709.5999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 955.8000000007451,
+          "epoch": 1794061256713.7,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 960,
+          "epoch": 1794061256717.9,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 968.7000000011176,
+          "epoch": 1794061256726.5999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 969,
+          "epoch": 1794061256726.9,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1645.7000000011176,
+          "epoch": 1794061257403.5999,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1649.4000000003725,
+          "epoch": 1794061257407.2998,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1677.800000000745,
+          "epoch": 1794061257435.7,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1678.6000000014901,
+          "epoch": 1794061257436.5,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        }
+      ]
+    },
+    {
+      "motion": "reduce",
+      "theme": "light",
+      "frames": [
+        {
+          "t": 372.19999999925494,
+          "epoch": 1794061257841.5,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 382.2999999988824,
+          "epoch": 1794061257851.6,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 391.5,
+          "epoch": 1794061257860.8,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 395.19999999925494,
+          "epoch": 1794061257864.5,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 398.19999999925494,
+          "epoch": 1794061257867.5,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 402.5,
+          "epoch": 1794061257871.8,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 406.59999999962747,
+          "epoch": 1794061257875.9001,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 410.7999999988824,
+          "epoch": 1794061257880.1,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 414.8999999985099,
+          "epoch": 1794061257884.2,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 429.3999999985099,
+          "epoch": 1794061257898.7,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 429.59999999962747,
+          "epoch": 1794061257898.9001,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1085.2999999988824,
+          "epoch": 1794061258554.6,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1088.199999999255,
+          "epoch": 1794061258557.5,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1119.7999999988824,
+          "epoch": 1794061258589.1,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1120.0999999996275,
+          "epoch": 1794061258589.4001,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        }
+      ]
+    },
+    {
+      "motion": "reduce",
+      "theme": "dark",
+      "frames": [
+        {
+          "t": 651.5,
+          "epoch": 1794061259250.5,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 662.6999999992549,
+          "epoch": 1794061259261.7,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 670.5999999996275,
+          "epoch": 1794061259269.6,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 673.9000000003725,
+          "epoch": 1794061259272.9,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 676.8000000007451,
+          "epoch": 1794061259275.8,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 681.1999999992549,
+          "epoch": 1794061259280.2,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 685.1999999992549,
+          "epoch": 1794061259284.2,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 689.4000000003725,
+          "epoch": 1794061259288.4,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 693.9000000003725,
+          "epoch": 1794061259292.9,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 697.5999999996275,
+          "epoch": 1794061259296.6,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 707,
+          "epoch": 1794061259306,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 707.3000000007451,
+          "epoch": 1794061259306.3,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1349.9000000003725,
+          "epoch": 1794061259948.9,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1352.9000000003725,
+          "epoch": 1794061259951.9,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1382.300000000745,
+          "epoch": 1794061259981.3,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1385.9000000003725,
+          "epoch": 1794061259984.9,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        {
+          "t": 1386.199999999255,
+          "epoch": 1794061259985.2,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        }
+      ]
+    }
+  ]
+}

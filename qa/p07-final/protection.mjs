@@ -5,7 +5,7 @@ import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {isAllowedPagesFile} from '../../scripts/stage_pages_deploy.mjs';
 const baseline='91f0d466361ee80fbd6475facea0b9620f950661',original='7e938bdbda734d319053f1e23fe4a96703486ae6';
-const git=(...args)=>{const r=spawnSync('git',args,{encoding:'utf8',maxBuffer:30*1024*1024});assert.equal(r.status,0,r.stderr);return r.stdout.trim();};
+const git=(...args)=>{const r=spawnSync('git',args,{encoding:'utf8',maxBuffer:30*1024*1024});assert.equal(r.status,0,r.stderr);return args[0]==='show'?r.stdout:r.stdout.trim();};
 const reference=JSON.parse(fs.readFileSync(new URL('../../docs/p07/evidence/f-a11y/PROTECTION.json',import.meta.url)));
 const resources=reference.protectedResources.map(r=>{const actual=git('hash-object','--path',r.file,r.file);assert.equal(actual,r.baseline,r.file);return{file:r.file,blob:actual,unchanged:true};});
 const normalize=s=>s.replaceAll('\r\n','\n').replace(/\d{8}-aeris-[a-z0-9-]+/g,'<release>');
