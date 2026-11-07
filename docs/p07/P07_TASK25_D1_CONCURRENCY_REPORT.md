@@ -2,6 +2,8 @@
 
 状态：**P07_TASK25_D1_PARTIAL**。原 CI 的 23/30 失败尚未复现并定位；本分支不宣称已修复根因。即使新 CI 通过，也不能把一次绿色运行当作根因已关闭。
 
+首个诊断提交 `7d115fb340fd9d336a39f548ae10b8ff8aa02be8` 的 [Core CI 42373213925](https://github.com/WYJ0904/thewyj.uk/actions/runs/42373213925) 中，JavaScript 作业和原 Task25 合同通过。但我打包的原 CI 栈含 Runner 绝对路径，仓库审计失败，两个 CI 浏览器任务因依赖被跳过。原始日志保留在 ignored 目录；提交副本只将 workspace 前缀脱敏并记录原件哈希，未修改失败内容或仓库审计规则。新精确提交再次执行 CI，不能把前一次跳过写成通过。
+
 ## 固定输入与隔离
 
 - 产品基线：PR #131 `7e938bdbda734d319053f1e23fe4a96703486ae6`。
@@ -62,6 +64,8 @@
 ## 最终 CI 与不回退验证
 
 新 Draft PR 的最终评论和 `docs/migration-evidence/p07-task25-d1/` 记录最终完整 SHA、精确 CI、实际执行的 application/Cloud-only 结果，以及固定 P07-F、R5 冻结、会话/策略、OFF/Kill、离线结果。没有把原先跳过的 CI 浏览器任务当作通过。
+
+首轮本地复核中，冻结 25/25、主工作区 3/3、运行 7/7、策略 5/5、R5 13/13、P07-E 32/32、P4/PWA、OFF/Kill 通过。固定 P07-F 另观察到 LoginPage 的 color-contrast 1 类/4 节点，原件保留于 `task25-final-regression/p07-f-preflight-report.json`，**不计通过**。这些 UI 文件在本分支均未改动；不擅自断定是扫描时序还是视觉缺陷，不改前端或增加固定等待掩盖问题，交给 Flash 的独立登录/动画任务。P07-F 的代码修复完整保留不等于本次所有扫描自动通过。
 
 本地复现例子（无产品代码修改）：
 
