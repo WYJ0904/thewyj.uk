@@ -1,0 +1,965 @@
+{
+  "task": "P07-F Preflight Gates Preparation",
+  "generatedAt": "2026-11-07T01:05:30.695Z",
+  "baselineSha": "72940bede5cff2aacd3bc3c66af5b16be40b243e",
+  "toolingBaselineSha": "bf07d4007599f67f3ac23038115ec7e7f299c9a9",
+  "runtimeTier": "existing isolated compiled Pages + D1/R2 + Chrome",
+  "status": "P07_F_PREFLIGHT_READY",
+  "labCoreWebVitals": {
+    "ttfbMs": 5,
+    "fcpMs": 80,
+    "lcpMs": 904,
+    "lcpElement": {
+      "tagName": "STRONG",
+      "id": "",
+      "className": "",
+      "size": 19264,
+      "inSplash": false,
+      "workspace": "publicHome",
+      "ancestorIds": [
+        "STRONG",
+        "P",
+        "DIV",
+        "DIV",
+        "SECTION",
+        "publicHome"
+      ]
+    },
+    "cls": 0.0003,
+    "tbtMs": 40,
+    "domInteractiveMs": 69,
+    "domContentLoadedMs": 205,
+    "loadCompleteMs": 213,
+    "domNodeCount": 3750,
+    "resourceCount": 58,
+    "totalTransferKb": 370.07,
+    "totalDecodedKb": 1181.92,
+    "jsHeapUsedMb": 2.98,
+    "cdpMetrics": {
+      "LayoutDuration": 0,
+      "RecalcStyleDuration": 0,
+      "ScriptDuration": 0,
+      "JSHeapUsedSize": 2457108
+    },
+    "thresholds": {
+      "lcp": "GOOD",
+      "cls": "GOOD",
+      "tbt": "GOOD",
+      "fcp": "GOOD"
+    }
+  },
+  "axeAccessibility": {
+    "PublicHome": {
+      "violationsCount": 2,
+      "passesCount": 38,
+      "incompleteCount": 3,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "description": "Ensures role attribute has an appropriate value for the element",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-allowed-role?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#versionNotice"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  ARIA role status is not allowed for given element"
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "description": "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/landmark-unique?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#publicHome"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  The landmark must have a unique aria-label, aria-labelledby, or title to make landmarks distinguishable"
+          ]
+        }
+      ]
+    },
+    "LoginPage": {
+      "violationsCount": 2,
+      "passesCount": 42,
+      "incompleteCount": 2,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "description": "Ensures role attribute has an appropriate value for the element",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-allowed-role?application=axeAPI",
+          "nodesCount": 2,
+          "sampleTargets": [
+            "#versionNotice",
+            "#loginForm"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  ARIA role status is not allowed for given element",
+            "Fix any of the following:\n  ARIA role tabpanel is not allowed for given element"
+          ]
+        },
+        {
+          "id": "page-has-heading-one",
+          "impact": "moderate",
+          "description": "Ensure that the page, or at least one of its frames contains a level-one heading",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/page-has-heading-one?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "html"
+          ],
+          "sampleSummaries": [
+            "Fix all of the following:\n  Page must have a level-one heading"
+          ]
+        }
+      ]
+    },
+    "LanguagePicker": {
+      "violationsCount": 1,
+      "passesCount": 38,
+      "incompleteCount": 3,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "description": "Ensures role attribute has an appropriate value for the element",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-allowed-role?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#versionNotice"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  ARIA role status is not allowed for given element"
+          ]
+        }
+      ]
+    },
+    "LanguageWorkspace": {
+      "violationsCount": 3,
+      "passesCount": 45,
+      "incompleteCount": 4,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "description": "Ensures role attribute has an appropriate value for the element",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-allowed-role?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#versionNotice"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  ARIA role status is not allowed for given element"
+          ]
+        },
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "description": "Ensures ARIA attributes are not prohibited for an element's role",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-prohibited-attr?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#statusDot"
+          ],
+          "sampleSummaries": [
+            "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+          ]
+        },
+        {
+          "id": "heading-order",
+          "impact": "moderate",
+          "description": "Ensures the order of headings is semantically correct",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/heading-order?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#aiSuggestTitle"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  Heading order invalid"
+          ]
+        }
+      ]
+    },
+    "FinanceLedger": {
+      "violationsCount": 3,
+      "passesCount": 38,
+      "incompleteCount": 4,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "description": "Ensures role attribute has an appropriate value for the element",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-allowed-role?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#versionNotice"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  ARIA role status is not allowed for given element"
+          ]
+        },
+        {
+          "id": "landmark-complementary-is-top-level",
+          "impact": "moderate",
+          "description": "Ensures the complementary landmark or aside is at top level",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/landmark-complementary-is-top-level?application=axeAPI",
+          "nodesCount": 2,
+          "sampleTargets": [
+            ".finance-sync-note",
+            ".finance-side-column"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  The complementary landmark is contained in another landmark.",
+            "Fix any of the following:\n  The complementary landmark is contained in another landmark."
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "description": "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/landmark-unique?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            ".finance-sync-note"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  The landmark must have a unique aria-label, aria-labelledby, or title to make landmarks distinguishable"
+          ]
+        }
+      ]
+    },
+    "MembershipCenter": {
+      "violationsCount": 2,
+      "passesCount": 36,
+      "incompleteCount": 3,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "description": "Ensures role attribute has an appropriate value for the element",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-allowed-role?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#versionNotice"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  ARIA role status is not allowed for given element"
+          ]
+        },
+        {
+          "id": "page-has-heading-one",
+          "impact": "moderate",
+          "description": "Ensure that the page, or at least one of its frames contains a level-one heading",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/page-has-heading-one?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "html"
+          ],
+          "sampleSummaries": [
+            "Fix all of the following:\n  Page must have a level-one heading"
+          ]
+        }
+      ]
+    },
+    "AccountCenter": {
+      "violationsCount": 3,
+      "passesCount": 41,
+      "incompleteCount": 4,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "description": "Ensures role attribute has an appropriate value for the element",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-allowed-role?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#versionNotice"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  ARIA role status is not allowed for given element"
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensures the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/color-contrast?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#accountSyncBadge"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  Element has insufficient color contrast of 2.27 (foreground color: #10b981, background color: #e2f7f0, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+          ]
+        },
+        {
+          "id": "page-has-heading-one",
+          "impact": "moderate",
+          "description": "Ensure that the page, or at least one of its frames contains a level-one heading",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/page-has-heading-one?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "html"
+          ],
+          "sampleSummaries": [
+            "Fix all of the following:\n  Page must have a level-one heading"
+          ]
+        }
+      ]
+    },
+    "FileTransfer": {
+      "violationsCount": 1,
+      "passesCount": 43,
+      "incompleteCount": 3,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "description": "Ensures role attribute has an appropriate value for the element",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-allowed-role?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#versionNotice"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  ARIA role status is not allowed for given element"
+          ]
+        }
+      ]
+    },
+    "ToolWorkflows": {
+      "violationsCount": 3,
+      "passesCount": 39,
+      "incompleteCount": 3,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "description": "Ensures role attribute has an appropriate value for the element",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-allowed-role?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#versionNotice"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  ARIA role status is not allowed for given element"
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "description": "Ensures every form element has a label",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/label?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#workflowImportInput"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element has no placeholder attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+          ]
+        },
+        {
+          "id": "page-has-heading-one",
+          "impact": "moderate",
+          "description": "Ensure that the page, or at least one of its frames contains a level-one heading",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/page-has-heading-one?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "html"
+          ],
+          "sampleSummaries": [
+            "Fix all of the following:\n  Page must have a level-one heading"
+          ]
+        }
+      ]
+    },
+    "AdminConsole": {
+      "violationsCount": 2,
+      "passesCount": 45,
+      "incompleteCount": 4,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "description": "Ensures role attribute has an appropriate value for the element",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-allowed-role?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#versionNotice"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  ARIA role status is not allowed for given element"
+          ]
+        },
+        {
+          "id": "heading-order",
+          "impact": "moderate",
+          "description": "Ensures the order of headings is semantically correct",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/heading-order?application=axeAPI",
+          "nodesCount": 1,
+          "sampleTargets": [
+            "#adminUserList > .admin-user-card:nth-child(1) > .admin-user-identity > h3"
+          ],
+          "sampleSummaries": [
+            "Fix any of the following:\n  Heading order invalid"
+          ]
+        }
+      ]
+    }
+  },
+  "interactiveKeyboard": {
+    "tabSequence": [
+      {
+        "tag": "A",
+        "id": "skipToContent",
+        "className": "skip-link",
+        "outlineStyle": "solid",
+        "outlineWidth": "2px",
+        "outlineColor": "rgb(37, 99, 235)",
+        "boxShadow": "rgba(37, 99, 235, 0.22) 0px 0px 0px 3px",
+        "hasVisibleFocus": true
+      },
+      {
+        "tag": "A",
+        "id": "",
+        "className": "site-brand",
+        "outlineStyle": "solid",
+        "outlineWidth": "2px",
+        "outlineColor": "rgb(37, 99, 235)",
+        "boxShadow": "rgba(37, 99, 235, 0.22) 0px 0px 0px 3px",
+        "hasVisibleFocus": true
+      },
+      {
+        "tag": "A",
+        "id": "",
+        "className": "active",
+        "outlineStyle": "solid",
+        "outlineWidth": "2px",
+        "outlineColor": "rgb(37, 99, 235)",
+        "boxShadow": "rgba(37, 99, 235, 0.22) 0px 0px 0px 3px",
+        "hasVisibleFocus": true
+      },
+      {
+        "tag": "A",
+        "id": "",
+        "className": "",
+        "outlineStyle": "solid",
+        "outlineWidth": "2px",
+        "outlineColor": "rgb(37, 99, 235)",
+        "boxShadow": "rgba(37, 99, 235, 0.22) 0px 0px 0px 3px",
+        "hasVisibleFocus": true
+      },
+      {
+        "tag": "A",
+        "id": "",
+        "className": "",
+        "outlineStyle": "solid",
+        "outlineWidth": "2px",
+        "outlineColor": "rgb(37, 99, 235)",
+        "boxShadow": "rgba(37, 99, 235, 0.22) 0px 0px 0px 3px",
+        "hasVisibleFocus": true
+      }
+    ],
+    "modalEscape": {
+      "modalOpened": true,
+      "activeBeforeEscape": "BUTTON",
+      "modalClosed": true,
+      "activeAfterClose": "BUTTON"
+    }
+  },
+  "responsiveViewports": {
+    "375": {
+      "label": "375px (Compact Mobile)",
+      "overflow": {
+        "docW": 375,
+        "winW": 375,
+        "overflowing": false,
+        "offenders": []
+      },
+      "touchTargets": {
+        "totalInteractive": 489,
+        "smallCount": 3,
+        "below24pxCount": 0,
+        "sampleSmall": [
+          {
+            "tag": "A",
+            "id": "headerDownloadLink",
+            "className": "",
+            "text": "下载 Android",
+            "width": 164,
+            "height": 38,
+            "below24px": false
+          },
+          {
+            "tag": "A",
+            "id": "headerChangelogLink",
+            "className": "",
+            "text": "更新日志",
+            "width": 164,
+            "height": 38,
+            "below24px": false
+          },
+          {
+            "tag": "BUTTON",
+            "id": "themeToggleBtn",
+            "className": "theme-toggle",
+            "text": "系统",
+            "width": 44,
+            "height": 38,
+            "below24px": false
+          }
+        ]
+      },
+      "nestedScroll": {
+        "containerCount": 0,
+        "containers": []
+      },
+      "screenshot": "docs/p07/evidence/p07-f/p07-f-viewport-375.png"
+    },
+    "390": {
+      "label": "390px (Standard Mobile)",
+      "overflow": {
+        "docW": 390,
+        "winW": 390,
+        "overflowing": false,
+        "offenders": []
+      },
+      "touchTargets": {
+        "totalInteractive": 489,
+        "smallCount": 3,
+        "below24pxCount": 0,
+        "sampleSmall": [
+          {
+            "tag": "A",
+            "id": "headerDownloadLink",
+            "className": "",
+            "text": "下载 Android",
+            "width": 171,
+            "height": 38,
+            "below24px": false
+          },
+          {
+            "tag": "A",
+            "id": "headerChangelogLink",
+            "className": "",
+            "text": "更新日志",
+            "width": 171,
+            "height": 38,
+            "below24px": false
+          },
+          {
+            "tag": "BUTTON",
+            "id": "themeToggleBtn",
+            "className": "theme-toggle",
+            "text": "系统",
+            "width": 44,
+            "height": 38,
+            "below24px": false
+          }
+        ]
+      },
+      "nestedScroll": {
+        "containerCount": 0,
+        "containers": []
+      },
+      "screenshot": "docs/p07/evidence/p07-f/p07-f-viewport-390.png"
+    },
+    "768": {
+      "label": "768px (Tablet Portrait)",
+      "overflow": {
+        "docW": 768,
+        "winW": 768,
+        "overflowing": false,
+        "offenders": []
+      },
+      "touchTargets": {
+        "totalInteractive": 489,
+        "smallCount": 3,
+        "below24pxCount": 0,
+        "sampleSmall": [
+          {
+            "tag": "A",
+            "id": "headerDownloadLink",
+            "className": "",
+            "text": "下载 Android",
+            "width": 128,
+            "height": 38,
+            "below24px": false
+          },
+          {
+            "tag": "A",
+            "id": "headerChangelogLink",
+            "className": "",
+            "text": "更新日志",
+            "width": 100,
+            "height": 38,
+            "below24px": false
+          },
+          {
+            "tag": "BUTTON",
+            "id": "themeToggleBtn",
+            "className": "theme-toggle",
+            "text": "系统",
+            "width": 82,
+            "height": 38,
+            "below24px": false
+          }
+        ]
+      },
+      "nestedScroll": {
+        "containerCount": 0,
+        "containers": []
+      },
+      "screenshot": "docs/p07/evidence/p07-f/p07-f-viewport-768.png"
+    },
+    "1024": {
+      "label": "1024px (Tablet Landscape)",
+      "overflow": {
+        "docW": 1009,
+        "winW": 1024,
+        "overflowing": false,
+        "offenders": []
+      },
+      "touchTargets": null,
+      "nestedScroll": {
+        "containerCount": 0,
+        "containers": []
+      },
+      "screenshot": "docs/p07/evidence/p07-f/p07-f-viewport-1024.png"
+    },
+    "1366": {
+      "label": "1366px (Standard Laptop)",
+      "overflow": {
+        "docW": 1351,
+        "winW": 1366,
+        "overflowing": false,
+        "offenders": []
+      },
+      "touchTargets": null,
+      "nestedScroll": {
+        "containerCount": 0,
+        "containers": []
+      },
+      "screenshot": "docs/p07/evidence/p07-f/p07-f-viewport-1366.png"
+    },
+    "1440": {
+      "label": "1440px (Desktop Widescreen)",
+      "overflow": {
+        "docW": 1425,
+        "winW": 1440,
+        "overflowing": false,
+        "offenders": []
+      },
+      "touchTargets": null,
+      "nestedScroll": {
+        "containerCount": 0,
+        "containers": []
+      },
+      "screenshot": "docs/p07/evidence/p07-f/p07-f-viewport-1440.png"
+    },
+    "1920": {
+      "label": "1920px (Full HD Ultra-wide)",
+      "overflow": {
+        "docW": 1905,
+        "winW": 1920,
+        "overflowing": false,
+        "offenders": []
+      },
+      "touchTargets": null,
+      "nestedScroll": {
+        "containerCount": 0,
+        "containers": []
+      },
+      "screenshot": "docs/p07/evidence/p07-f/p07-f-viewport-1920.png"
+    }
+  },
+  "themesAndMotion": {
+    "lightShot": "docs/p07/evidence/p07-f/p07-f-theme-light-1440.png",
+    "darkShot": "docs/p07/evidence/p07-f/p07-f-theme-dark-1440.png",
+    "reducedMotionShot": "docs/p07/evidence/p07-f/p07-f-reduced-motion-1440.png",
+    "reducedMotionState": {
+      "mediaQueryMatches": true,
+      "cardTransition": "none"
+    }
+  },
+  "nonRegressionVerification": {
+    "cards": [
+      {
+        "id": "card-learning",
+        "exists": true,
+        "rect": {
+          "width": 207,
+          "height": 255,
+          "top": 132,
+          "left": 699
+        },
+        "hitTagName": "BUTTON",
+        "isTargetOrDescendant": true
+      },
+      {
+        "id": "card-finance",
+        "exists": true,
+        "rect": {
+          "width": 213,
+          "height": 260,
+          "top": 190,
+          "left": 923
+        },
+        "hitTagName": "BUTTON",
+        "isTargetOrDescendant": true
+      },
+      {
+        "id": "card-tools",
+        "exists": true,
+        "rect": {
+          "width": 211,
+          "height": 258,
+          "top": 110,
+          "left": 1149
+        },
+        "hitTagName": "BUTTON",
+        "isTargetOrDescendant": true
+      }
+    ],
+    "logo": {
+      "exists": true,
+      "tagName": "IMG",
+      "src": "/icon-192.png?release=20261107-aeris-p07-r5-independent-rc4",
+      "renderedWidth": 1,
+      "renderedHeight": 64,
+      "naturalWidth": 192,
+      "naturalHeight": 192
+    }
+  },
+  "bundleSizes": {
+    "index.html": {
+      "rawBytes": 143468,
+      "gzipBytes": 31646,
+      "rawKb": 140.11,
+      "gzipKb": 30.9
+    },
+    "spatial-experience.css": {
+      "rawBytes": 111772,
+      "gzipBytes": 16361,
+      "rawKb": 109.15,
+      "gzipKb": 15.98
+    },
+    "styles.css": {
+      "rawBytes": 62147,
+      "gzipBytes": 12681,
+      "rawKb": 60.69,
+      "gzipKb": 12.38
+    },
+    "design-system.css": {
+      "rawBytes": 39078,
+      "gzipBytes": 8072,
+      "rawKb": 38.16,
+      "gzipKb": 7.88
+    },
+    "product-ui.css": {
+      "rawBytes": 101314,
+      "gzipBytes": 16067,
+      "rawKb": 98.94,
+      "gzipKb": 15.69
+    },
+    "public-experience.css": {
+      "rawBytes": 59223,
+      "gzipBytes": 10749,
+      "rawKb": 57.83,
+      "gzipKb": 10.5
+    },
+    "workspace-experience.css": {
+      "rawBytes": 35410,
+      "gzipBytes": 6092,
+      "rawKb": 34.58,
+      "gzipKb": 5.95
+    },
+    "app.js": {
+      "rawBytes": 326810,
+      "gzipBytes": 79570,
+      "rawKb": 319.15,
+      "gzipKb": 77.71
+    },
+    "tools.js": {
+      "rawBytes": 97920,
+      "gzipBytes": 24494,
+      "rawKb": 95.63,
+      "gzipKb": 23.92
+    },
+    "workflows.js": {
+      "rawBytes": 57458,
+      "gzipBytes": 14870,
+      "rawKb": 56.11,
+      "gzipKb": 14.52
+    },
+    "learning-sync.js": {
+      "rawBytes": 38231,
+      "gzipBytes": 9104,
+      "rawKb": 37.33,
+      "gzipKb": 8.89
+    },
+    "changelog.js": {
+      "rawBytes": 59710,
+      "gzipBytes": 20237,
+      "rawKb": 58.31,
+      "gzipKb": 19.76
+    },
+    "sw.js": {
+      "rawBytes": 11567,
+      "gzipBytes": 2789,
+      "rawKb": 11.3,
+      "gzipKb": 2.72
+    },
+    "_summary": {
+      "totalRawCssKb": 399.36,
+      "totalGzipCssKb": 68.38,
+      "totalRawJsKb": 577.83,
+      "totalGzipJsKb": 147.52
+    }
+  },
+  "findings": [
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "aria-allowed-role",
+      "severity": "LOW",
+      "impact": "minor",
+      "description": "Ensures role attribute has an appropriate value for the element",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-allowed-role?application=axeAPI",
+      "affectedWorkspaces": [
+        "PublicHome",
+        "LoginPage",
+        "LanguagePicker",
+        "LanguageWorkspace",
+        "FinanceLedger",
+        "MembershipCenter",
+        "AccountCenter",
+        "FileTransfer",
+        "ToolWorkflows",
+        "AdminConsole"
+      ],
+      "totalNodes": 11,
+      "sampleTargets": [
+        "#versionNotice"
+      ]
+    },
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "landmark-unique",
+      "severity": "LOW",
+      "impact": "moderate",
+      "description": "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/landmark-unique?application=axeAPI",
+      "affectedWorkspaces": [
+        "PublicHome",
+        "FinanceLedger"
+      ],
+      "totalNodes": 2,
+      "sampleTargets": [
+        "#publicHome"
+      ]
+    },
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "page-has-heading-one",
+      "severity": "LOW",
+      "impact": "moderate",
+      "description": "Ensure that the page, or at least one of its frames contains a level-one heading",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/page-has-heading-one?application=axeAPI",
+      "affectedWorkspaces": [
+        "LoginPage",
+        "MembershipCenter",
+        "AccountCenter",
+        "ToolWorkflows"
+      ],
+      "totalNodes": 4,
+      "sampleTargets": [
+        "html"
+      ]
+    },
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "aria-prohibited-attr",
+      "severity": "MEDIUM",
+      "impact": "serious",
+      "description": "Ensures ARIA attributes are not prohibited for an element's role",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-prohibited-attr?application=axeAPI",
+      "affectedWorkspaces": [
+        "LanguageWorkspace"
+      ],
+      "totalNodes": 1,
+      "sampleTargets": [
+        "#statusDot"
+      ]
+    },
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "heading-order",
+      "severity": "LOW",
+      "impact": "moderate",
+      "description": "Ensures the order of headings is semantically correct",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/heading-order?application=axeAPI",
+      "affectedWorkspaces": [
+        "LanguageWorkspace",
+        "AdminConsole"
+      ],
+      "totalNodes": 2,
+      "sampleTargets": [
+        "#aiSuggestTitle"
+      ]
+    },
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "landmark-complementary-is-top-level",
+      "severity": "LOW",
+      "impact": "moderate",
+      "description": "Ensures the complementary landmark or aside is at top level",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/landmark-complementary-is-top-level?application=axeAPI",
+      "affectedWorkspaces": [
+        "FinanceLedger"
+      ],
+      "totalNodes": 2,
+      "sampleTargets": [
+        ".finance-sync-note",
+        ".finance-side-column"
+      ]
+    },
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "color-contrast",
+      "severity": "MEDIUM",
+      "impact": "serious",
+      "description": "Ensures the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/color-contrast?application=axeAPI",
+      "affectedWorkspaces": [
+        "AccountCenter"
+      ],
+      "totalNodes": 1,
+      "sampleTargets": [
+        "#accountSyncBadge"
+      ]
+    },
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "label",
+      "severity": "HIGH",
+      "impact": "critical",
+      "description": "Ensures every form element has a label",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/label?application=axeAPI",
+      "affectedWorkspaces": [
+        "ToolWorkflows"
+      ],
+      "totalNodes": 1,
+      "sampleTargets": [
+        "#workflowImportInput"
+      ]
+    }
+  ],
+  "unifiedAcceptance": {
+    "status": "REVIEW_REQUIRED",
+    "findingCount": 8,
+    "seriousOrCriticalAxeRules": 3
+  }
+}
