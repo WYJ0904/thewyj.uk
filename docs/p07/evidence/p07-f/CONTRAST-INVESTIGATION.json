@@ -1,0 +1,4121 @@
+{
+  "task": "Aeris P07 Login Contrast Investigation",
+  "timestamp": "2026-11-07T14:06:38.340Z",
+  "baselineSha": "7e938bdbda734d319053f1e23fe4a96703486ae6",
+  "exactFourNodes": [],
+  "opacityImpact": [],
+  "matrix": [
+    {
+      "viewport": 375,
+      "theme": "light",
+      "motion": "no-preference",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 273,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 189.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 273,
+            "height": 48,
+            "top": 641.5625,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 273,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(255, 255, 255, 0.416)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgba(255, 255, 255, 0.584)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 189.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 273,
+            "height": 48,
+            "top": 733.953125,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 375,
+      "theme": "dark",
+      "motion": "no-preference",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 273,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgba(25, 30, 38, 0.996)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 189.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(12, 19, 33)",
+          "backgroundColor": "rgb(109, 161, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 273,
+            "height": 48,
+            "top": 641.5625,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 273,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(23, 28, 36, 0.416)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgba(23, 28, 36, 0.584)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 189.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 273,
+            "height": 48,
+            "top": 733.953125,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 390,
+      "theme": "light",
+      "motion": "no-preference",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 288,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgba(248, 248, 249, 0.996)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 197
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(247, 247, 248)",
+          "backgroundColor": "rgb(39, 101, 236)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 288,
+            "height": 48,
+            "top": 641.5625,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 288,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(255, 255, 255, 0.24)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgba(255, 255, 255, 0.76)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 197
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 288,
+            "height": 48,
+            "top": 733.953125,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 390,
+      "theme": "dark",
+      "motion": "no-preference",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 288,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgba(25, 30, 38, 0.996)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 197
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(12, 19, 33)",
+          "backgroundColor": "rgb(109, 161, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 288,
+            "height": 48,
+            "top": 641.5625,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 288,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(23, 28, 36, 0.24)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgba(23, 28, 36, 0.76)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 197
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 288,
+            "height": 48,
+            "top": 733.953125,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 768,
+      "theme": "light",
+      "motion": "no-preference",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 185
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgba(253, 253, 253, 0.996)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 190
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 386
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(247, 247, 248)",
+          "backgroundColor": "rgb(39, 101, 236)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 647.171875,
+            "left": 185
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 185
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(255, 255, 255, 0.24)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 190
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgba(255, 255, 255, 0.76)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 386
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 739.5625,
+            "left": 185
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 768,
+      "theme": "dark",
+      "motion": "no-preference",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 185
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgba(29, 34, 42, 0.992)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 190
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 386
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(17, 25, 38)",
+          "backgroundColor": "rgb(108, 160, 254)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 647.171875,
+            "left": 185
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 185
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(23, 28, 36, 0.24)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 190
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgba(23, 28, 36, 0.76)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 386
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 739.5625,
+            "left": 185
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 1024,
+      "theme": "light",
+      "motion": "no-preference",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 407.5
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgba(253, 253, 253, 1)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 412.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 608.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(247, 247, 248)",
+          "backgroundColor": "rgb(39, 101, 236)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 647.171875,
+            "left": 407.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 407.5
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(255, 255, 255, 0.77)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 412.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgba(255, 255, 255, 0.23)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 608.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 739.5625,
+            "left": 407.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 1024,
+      "theme": "dark",
+      "motion": "no-preference",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 407.5
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgba(25, 30, 38, 0.996)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 412.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 608.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(12, 19, 33)",
+          "backgroundColor": "rgb(109, 161, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 647.171875,
+            "left": 407.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 407.5
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(23, 28, 36, 0.24)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 412.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgba(23, 28, 36, 0.76)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 608.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 739.5625,
+            "left": 407.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 1440,
+      "theme": "light",
+      "motion": "no-preference",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 300,
+            "left": 615.5
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgba(253, 253, 253, 1)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 620.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 816.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(247, 247, 248)",
+          "backgroundColor": "rgb(39, 101, 236)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 609.171875,
+            "left": 615.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 300,
+            "left": 615.5
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(255, 255, 255, 0.24)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 620.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgba(255, 255, 255, 0.76)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 816.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 701.5625,
+            "left": 615.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 1440,
+      "theme": "dark",
+      "motion": "no-preference",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 300,
+            "left": 615.5
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgba(25, 30, 38, 1)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 620.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 816.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(12, 19, 33)",
+          "backgroundColor": "rgb(109, 161, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 609.171875,
+            "left": 615.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 300,
+            "left": 615.5
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(23, 28, 36, 0.24)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 620.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgba(23, 28, 36, 0.76)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 816.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 1,
+          "panelAnimationStates": [
+            "finished"
+          ],
+          "panelAnimationCurrentTime": [
+            240
+          ],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 701.5625,
+            "left": 615.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 375,
+      "theme": "light",
+      "motion": "reduce",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 273,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 189.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 273,
+            "height": 48,
+            "top": 641.5625,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 273,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 189.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 273,
+            "height": 48,
+            "top": 733.953125,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 375,
+      "theme": "dark",
+      "motion": "reduce",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 273,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgb(23, 28, 36)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 189.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 273,
+            "height": 48,
+            "top": 641.5625,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 273,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgb(23, 28, 36)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 129.5,
+            "height": 44,
+            "top": 381.78125,
+            "left": 189.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 273,
+            "height": 48,
+            "top": 733.953125,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 390,
+      "theme": "light",
+      "motion": "reduce",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 288,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 197
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 288,
+            "height": 48,
+            "top": 641.5625,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 288,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 197
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 288,
+            "height": 48,
+            "top": 733.953125,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 390,
+      "theme": "dark",
+      "motion": "reduce",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 288,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgb(23, 28, 36)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 197
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 288,
+            "height": 48,
+            "top": 641.5625,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 288,
+            "height": 44.78125,
+            "top": 310,
+            "left": 51
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 56
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgb(23, 28, 36)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 137,
+            "height": 44,
+            "top": 381.78125,
+            "left": 197
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 288,
+            "height": 48,
+            "top": 733.953125,
+            "left": 51
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 768,
+      "theme": "light",
+      "motion": "reduce",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 185
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 190
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 386
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 647.171875,
+            "left": 185
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 185
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 190
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 386
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 739.5625,
+            "left": 185
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 768,
+      "theme": "dark",
+      "motion": "reduce",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 42
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 185
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgb(23, 28, 36)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 190
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 386
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 647.171875,
+            "left": 185
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 185
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 190
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgb(23, 28, 36)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 386
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 739.5625,
+            "left": 185
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 1024,
+      "theme": "light",
+      "motion": "reduce",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 407.5
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 412.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 608.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 647.171875,
+            "left": 407.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 407.5
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 412.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 608.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 739.5625,
+            "left": 407.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 1024,
+      "theme": "dark",
+      "motion": "reduce",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 407.5
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgb(23, 28, 36)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 412.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 608.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 647.171875,
+            "left": 407.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 338,
+            "left": 407.5
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 412.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgb(23, 28, 36)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 387.390625,
+            "left": 608.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 739.5625,
+            "left": 407.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 1440,
+      "theme": "light",
+      "motion": "reduce",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 300,
+            "left": 615.5
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 620.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 816.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 609.171875,
+            "left": 615.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 300,
+            "left": 615.5
+          },
+          "parentBg": "rgb(255, 255, 255)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(71, 85, 105)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 620.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(37, 99, 235)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 816.5
+          },
+          "parentBg": "rgb(241, 245, 249)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(37, 99, 235)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 701.5625,
+            "left": 615.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "viewport": 1440,
+      "theme": "dark",
+      "motion": "reduce",
+      "loginAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "registerAxe": {
+        "violations": 0,
+        "passes": 43
+      },
+      "loginMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "使用 Aeris 账户同步词汇进度、账本记录与传输文件。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 300,
+            "left": 615.5
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgb(23, 28, 36)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 620.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 816.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "loginSubmitBtn": {
+          "selector": "#loginSubmitBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 609.171875,
+            "left": 615.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      },
+      "registerMetrics": {
+        "authSubtitle": {
+          "selector": "#authSubtitle",
+          "text": "创建你的个人账户，统一管理词汇学习、工具与账本数据。",
+          "tagName": "P",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 22.390625,
+            "top": 300,
+            "left": 615.5
+          },
+          "parentBg": "rgb(23, 28, 36)"
+        },
+        "showLoginBtn": {
+          "selector": "#showLoginBtn",
+          "text": "登录",
+          "tagName": "BUTTON",
+          "color": "rgb(184, 196, 212)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 620.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "showRegisterBtn": {
+          "selector": "#showRegisterBtn",
+          "text": "注册",
+          "tagName": "BUTTON",
+          "color": "rgb(110, 162, 255)",
+          "backgroundColor": "rgb(23, 28, 36)",
+          "opacity": "1",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 192,
+            "height": 44,
+            "top": 349.390625,
+            "left": 816.5
+          },
+          "parentBg": "rgb(29, 36, 48)"
+        },
+        "registerSubmitBtn": {
+          "selector": "#registerSubmitBtn",
+          "text": "创建账户",
+          "tagName": "BUTTON",
+          "color": "rgb(9, 17, 31)",
+          "backgroundColor": "rgb(110, 162, 255)",
+          "opacity": "1",
+          "fontSize": "16px",
+          "fontWeight": "700",
+          "panelOpacity": "1",
+          "panelAnimationCount": 0,
+          "panelAnimationStates": [],
+          "panelAnimationCurrentTime": [],
+          "rect": {
+            "width": 398,
+            "height": 48,
+            "top": 701.5625,
+            "left": 615.5
+          },
+          "parentBg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    }
+  ],
+  "conclusions": {
+    "rootCause": "Animation accountPageIn (240ms ease-out) interpolates opacity from 0 to 1. The test runner sampled at t ~100ms when opacity was ~0.70, causing axe-core to compute blended contrast against canvas (#f4f6f9). When settled (opacity=1) or under prefers-reduced-motion, all 4 elements achieve full WCAG AA contrast (>= 4.5:1).",
+    "settledAxeViolations": 0
+  },
+  "hoverMetrics": {
+    "showRegisterBtn": {
+      "selector": "#showRegisterBtn",
+      "text": "注册",
+      "tagName": "BUTTON",
+      "color": "rgb(71, 85, 105)",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "opacity": "1",
+      "fontSize": "14px",
+      "fontWeight": "600",
+      "panelOpacity": "1",
+      "panelAnimationCount": 0,
+      "panelAnimationStates": [],
+      "panelAnimationCurrentTime": [],
+      "rect": {
+        "width": 192,
+        "height": 44,
+        "top": 349.390625,
+        "left": 816.5
+      },
+      "parentBg": "rgb(241, 245, 249)"
+    },
+    "loginSubmitBtn": {
+      "selector": "#loginSubmitBtn",
+      "text": "登录",
+      "tagName": "BUTTON",
+      "color": "rgb(255, 255, 255)",
+      "backgroundColor": "rgb(37, 99, 235)",
+      "opacity": "1",
+      "fontSize": "16px",
+      "fontWeight": "700",
+      "panelOpacity": "1",
+      "panelAnimationCount": 0,
+      "panelAnimationStates": [],
+      "panelAnimationCurrentTime": [],
+      "rect": {
+        "width": 398,
+        "height": 48,
+        "top": 609.171875,
+        "left": 615.5
+      },
+      "parentBg": "rgba(0, 0, 0, 0)"
+    }
+  },
+  "errorMetrics": {
+    "light": {
+      "selector": "#loginError",
+      "text": "用户名或登录密钥错误",
+      "tagName": "P",
+      "color": "rgb(194, 51, 51)",
+      "backgroundColor": "rgb(255, 240, 240)",
+      "opacity": "1",
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "panelOpacity": "1",
+      "panelAnimationCount": 0,
+      "panelAnimationStates": [],
+      "panelAnimationCurrentTime": [],
+      "rect": {
+        "width": 398,
+        "height": 43,
+        "top": 673.171875,
+        "left": 615.5
+      },
+      "parentBg": "rgb(255, 255, 255)"
+    },
+    "dark": {
+      "selector": "#loginError",
+      "text": "用户名或登录密钥错误",
+      "tagName": "P",
+      "color": "rgb(255, 155, 155)",
+      "backgroundColor": "rgb(76, 37, 40)",
+      "opacity": "1",
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "panelOpacity": "1",
+      "panelAnimationCount": 0,
+      "panelAnimationStates": [],
+      "panelAnimationCurrentTime": [],
+      "rect": {
+        "width": 398,
+        "height": 43,
+        "top": 673.171875,
+        "left": 615.5
+      },
+      "parentBg": "rgb(23, 28, 36)"
+    }
+  }
+}
