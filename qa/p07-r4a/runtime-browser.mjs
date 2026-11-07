@@ -24,9 +24,10 @@ async function sole(id,route){await p.waitFor(`location.pathname===${JSON.string
 async function check(name,fn){try{results.push({name,status:'PASS',detail:await fn()});}catch(e){const shot=await p.send('Page.captureScreenshot',{format:'png'});await fs.writeFile(path.join(out,'FAIL-r4a-'+name+'.png'),Buffer.from(shot.data,'base64'));results.push({name,status:'FAIL',error:e.message});}await fs.writeFile(path.join(out,'r4a-runtime-results.json'),JSON.stringify({source:process.env.P07_D_TARGET_HEAD,results},null,2));}
 try{
   await check('round-trip-navigation-keeps-authoritative-mode',async()=>{
-    await session(member.session,'/');const rows=[];
+    await session(member.session,'/');await sole('publicHome','/');const initialization=await p.evaluate('__r4aChanges');await p.evaluate('__r4aChanges=[];true');const rows=[];
     for(const [nav,route,id] of [['language','/language','projectPicker'],['home','/','publicHome'],['recharge','/recharge','membershipModal'],['account','/account','accountModal'],['language','/language','projectPicker'],['finance','/finance','financePage'],['language','/language','projectPicker'],['home','/','publicHome']]){const hit=await click(`[data-v3-nav="${nav}"]`);rows.push({hit,...await sole(id,route)});}
-    const changes=await p.evaluate('globalThis.__r4aChanges');assert.ok(changes.filter(x=>x.policy!=='pending').every(x=>x.p07==='enabled'),'navigation changed valid ON to a legacy mode');return rows;
+    // Initialization has no authority yet; after verified ON every navigation must retain it.
+    const changes=await p.evaluate('globalThis.__r4aChanges');assert.ok(changes.every(x=>x.policy==='enabled'&&x.p07==='enabled'),'navigation changed valid ON to a legacy mode: '+JSON.stringify(changes));return{initialization,rows,changes};
   });
   await check('finance-return-context-and-browser-history',async()=>{
     await session(member.session,'/finance');await sole('financePage','/finance');await p.setFields({'#financeMonthFilter':'2026-10','#financeDirectionFilter':'expense'});
