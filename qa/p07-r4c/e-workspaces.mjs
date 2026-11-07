@@ -22,6 +22,9 @@ try{
   for(const [route,id] of [['/transfer','transferPage'],['/tools/workflows','workflowWorkspace'],['/admin','adminPanel'],['/finance','financePage']]){
     await p.navigate(route);await p.waitFor(`!document.getElementById('entryScreen')&&document.documentElement.dataset.interfacePolicy==='enabled'&&document.getElementById(${JSON.stringify(id)}).checkVisibility()`,15000);
     if(route==='/tools/workflows'){
+      // R5 reveals the workflow surface before its lazy module is ready.
+      // Keep the execution/geometry assertions, but wait for the real control.
+      await p.waitFor("Boolean(document.querySelector('[data-workflow-template=\"text-clean\"]'))&&document.querySelector('[data-workflow-template=\"text-clean\"]').checkVisibility()",10000,'workflow template module ready');
       await pointer('[data-workflow-template="text-clean"]');const input=path.join(out,'workflow-input.txt');await fs.writeFile(input,'alpha\nbeta\nalpha\n');await p.setFile('#workflowFileInput',input);
       await pointer('#runWorkflowBtn');await p.waitFor("document.getElementById('workflowRunState').dataset.status==='success'",15000);assert.equal(await p.evaluate("document.getElementById('workflowResultText').value.trim()"),'alpha\nbeta');
       assert.equal(await p.evaluate("document.querySelector('#toolsPanel > .tools-header').checkVisibility()"),false,'duplicate toolbox header remains above workflow editor');

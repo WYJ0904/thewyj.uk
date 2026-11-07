@@ -96,6 +96,19 @@ try{
     }finally{await p.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await p.intercept([]);}
     return{before,after,sameDocument:true};
   });
+  await r.check('offline-imported-wrong-book-submit-without-remote-judge',async()=>{
+    await on('/language/english');await p.waitFor(visible('workspace'),10000);await pointer(p,'#wrongViewTab');
+    const input=path.join(out,'offline-wrong-fixture.json');await fs.writeFile(input,JSON.stringify({type:'vocab-wrong-book',version:1,language:'english',currentWrongBook:{network:{last_answer:'网络',original_answer:'网络',correct_answer:'网络',accepted:['网络连接'],wrong_count:1}},historyWrongBook:{}}));
+    await p.setFile('#wrongDataFileInput',input);await p.waitFor("document.querySelectorAll('#wrongList .wrong-item').length===1",10000,'real imported wrong book');
+    const remote=p.watchResponses('/api/judge'),before=remote.count();let result;
+    try{
+      await p.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await p.waitFor("document.documentElement.dataset.interfacePolicy==='error'",5000);await pointer(p,'#reviewBtn');
+      await p.waitFor("document.getElementById('quizView').classList.contains('active')&&document.getElementById('wordText').textContent.trim()==='network'&&!document.getElementById('submitBtn').disabled",8000,'offline review question ready');await p.setFields({'#answerInput':'网络'});await pointer(p,'#submitBtn');
+      await p.waitFor("document.getElementById('resultTitle').classList.contains('ok')&&!document.getElementById('nextNowBtn').disabled",5000,'offline review answer');
+      result=await p.evaluate("({title:document.getElementById('resultTitle').textContent,gloss:document.getElementById('resultGloss').textContent,validation:document.getElementById('answerValidation').textContent})");assert.equal(remote.count(),before,'offline review called a remote judge');await pointer(p,'#nextNowBtn');await p.waitFor(visible('roundSummaryModal'),5000);assert.equal(await p.evaluate("document.getElementById('roundCorrectCount').textContent"),'1');await pointer(p,'#roundSetupBtn');
+    }finally{await p.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});}
+    return{result,remoteJudgeResponses:0,scope:'saved deterministic meanings; real AI not called'};
+  });
   await r.check('actual-local-account-delete-revokes-token-and-admin-isolation',async()=>{
     await authenticate(B);
     const username='r5delete'+Date.now(),secret=A.secret;assert.equal((await api('/api/register',{username,secret,confirm_secret:secret})).status,201);const victim={...(await api('/api/login',{username,secret})).data,username,secret};await on('/account',victim);await pointer(p,'#openDeleteAccountBtn');await p.setFields({'#deleteSecretInput':secret});await pointer(p,'#confirmDeleteAccountBtn');await p.waitFor("location.pathname==='/login'&&!localStorage.getItem('wyjAccountSession')",15000);const deleted=await api('/api/health',{},victim.session);assert.equal(deleted.data.code,'account_deleted');const statuses={deleted:deleted.status,anonymous:(await api('/api/admin/users')).status,member:(await api('/api/admin/users',null,B.session)).status,admin:(await api('/api/admin/users',null,admin.session)).status};assert.deepEqual(statuses,{deleted:403,anonymous:401,member:403,admin:200});return{statuses,scope:'new disposable local account only'};
