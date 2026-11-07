@@ -2,8 +2,8 @@
 
 候选：[Draft PR #130](https://github.com/WYJ0904/thewyj.uk/pull/130)，分支 `codex/p07-r5-independent-integration`，基于最终 R4-C `5f83167d9b6a8433565775b372631c8764eb052e`。部署前读取此 PR 的最终 HEAD，并与 Codex 最终验收评论中的精确 SHA 比对；不得把下面的产品实现提交或旧 R5 Preview 当作最终封装 HEAD。
 
-- 定向产品实现：`5eac9d880b547dd6ebea7f6f054651e0fe5e29b7`。
-- 唯一资源版本：`20261106-aeris-p07-r5-independent-rc3`。
+- 定向产品实现：`1c20797f8ff41c53b786c8dc8efb5fc5ad3cb0af`。
+- 唯一资源版本：`20261107-aeris-p07-r5-independent-rc4`。
 - 保留的接口：`decision()` 权威裁决、有效 TTL 续租、History workspace、单主工作区、Android Web Back、SW release 查询参数及用户缓存保留。
 - 新恢复状态：`data-session-verification="pending"` 时私有主画布不可显示；真实 health 后重新获取功能策略。错误恢复入口不能隐藏。
 - 不要重新引入 boot ready 后全局 pending→ON 的 SWR 绕过；不要删除 GET/POST/health 的 session owner 检查。

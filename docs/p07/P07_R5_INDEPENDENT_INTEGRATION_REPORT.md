@@ -2,6 +2,12 @@
 
 状态：**P07_R5_PARTIAL**。运行候选已在独立分支准备；人工 READY 暂缓。本文不宣称 P07 COMPLETE。
 
+RC4 补充：RC3 封装 `9387340df75b8703a2fed39a7458fc2ddf8acbf7` 的同 SHA 冻结 25/25、主工作区 3/3、运行 7/7、策略 5/5、扩展浏览器 12/12、暖升级、OFF 2/2、Kill 2/2、PWA 全部通过。组合套件仍失败：E 的后台移动溢出以及 F 的 8 条发现均原样保留，见 [组合结果](evidence/r5-independent/green/runtime-938-suites.json)。新代码没有用整体 PASS 掩盖它们。
+
+E 补充复现证明，375px 时旧移动规则将 `.admin-tabs` 设为 `position:static`，动画的绝对定位指示条越出容器，布局视口变成 767px（较多夹具时约 868px）。[原始 DOM](evidence/r5-independent/red/admin-overflow.json) 与 [截图](evidence/r5-independent/red/admin-overflow.png) 保留。仅为该标签栏恢复正常文档流的相对定位并设 `top:auto`，不隐藏整个页面溢出。修复后 clientWidth / innerWidth / scrollWidth 均为 375，并实际点击用户与功能发布标签；[GREEN 记录](evidence/r5-independent/green/admin-compact.json) 含 elementFromPoint 与命中坐标。允许标签栏自身横向滚动，不要求其内部每个标签同时位于视口；E 同时加强为按 documentElement.clientWidth 断言，而非被撑大的 innerWidth。
+
+旧失败 CI `42186871114` 的离线复习超时仍为 **未定位的间歇风险**。`9387340…` 的后续 CI `42320602975` application 已通过，新独立本地离线复习也通过；这些不构成历史失败根因已关闭的证据。RC4 的最终精确 SHA 将再次执行现有 CI，不使用无依据重跑获得全绿。
+
 ## 固定输入、祖先与部署
 
 2026-11-07 恢复时再次读取 GitHub，三个 PR 均仍为 Draft：
@@ -16,8 +22,8 @@
 | R5 证据提交 | `607f3b8bb091917f8bb931fa383ca593259b3c4f`；原报告称其为“最新代码提交” |
 | R5 Preview 部署 | `852fc79d-50c5-4382-bdeb-295128ef7ae4`，部署元数据指向 `9f02ad85…` |
 | 新独立候选 | [Draft PR #130](https://github.com/WYJ0904/thewyj.uk/pull/130)，`codex/p07-r5-independent-integration` |
-| 定向产品修复 | `5eac9d880b547dd6ebea7f6f054651e0fe5e29b7`；后续为 QA、诊断及本报告封装 |
-| 本报告封装前 QA | `de25585efb86fae4a7198de94650306d7593a689` |
+| 定向产品修复 | `1c20797f8ff41c53b786c8dc8efb5fc5ad3cb0af`；后续为 QA、诊断及本报告封装 |
+| 首次报告封装前 QA | `de25585efb86fae4a7198de94650306d7593a689` |
 
 R5 **不是**最终 R4-C HEAD 的后代。逐文件核对证明，R5 改动的五个产品文件在共同祖先与最终 R4-C 中的 blob 完全相同。因此以 R4-C 建独立工作树，只导入五个经过审阅的产品增量，未重复应用 R4-B/P07-E，也未合并 PR #129 的整段历史。见 [导入清单](evidence/r5-independent/import-manifest.json)。
 
@@ -34,7 +40,7 @@ R5 **不是**最终 R4-C HEAD 的后代。逐文件核对证明，R5 改动的�
 | 启动后的错误无恢复入口 | R5 用 boot ready 永久隐藏策略状态面板 | 错误明确显示、V3 fail closed、重试实际获取权威响应后恢复；断网/503 是隔离替身，不是 AI 验收 |
 | 晚到的 A 响应污染 B | 通用 GET 重试使用实时会话，401/403/成功副作用未验证请求所有者；health 刷新也未固定身份 | 请求捕获 session owner；身份变更后返回 `AbortError/account_changed`，不回放给 B、不清除 B、不打开 B 的会员页；合并中的旧 health 完成后调度 B 自身刷新 |
 | BFCache 撤销窗口 | 真实 Chrome `pagehide.persisted=true`、`pageshow.persisted=true`、同一文档实例，撤销后第一 RAF 帧仍显示私有账户 | 离开时冻结为未验证状态；清除功能策略的旧身份权威；恢复后先验证健康状态和新策略。错误有有限恢复入口，保留本机数据。有效账户恢复原路由，撤销账户转登录 |
-| 同源缓存混用 | R5 修改静态文件但沿用 `20261106-aeris-p07-r4c-rc2`，实际暖升级报 `mixed release bytes: styles.css` | 通过既有发布脚本生成 `20261106-aeris-p07-r5-independent-rc3`；保留 R4-C SW 生命周期和 release 查询合同，逐响应比对实际 JS/CSS 字节与离线恢复 |
+| 同源缓存混用 | R5 修改静态文件但沿用 `20261106-aeris-p07-r4c-rc2`，实际暖升级报 `mixed release bytes: styles.css` | 通过既有发布脚本生成 `20261107-aeris-p07-r5-independent-rc4`；保留 R4-C SW 生命周期和 release 查询合同，逐响应比对实际 JS/CSS 字节与离线恢复 |
 | 工作流长列表模板无法命中 | 侧栏 sticky 且无高度/滚动约束，多个实际保存的工作流把模板推到视口外；`scrollIntoView` 后仍无法点击 | 桌面侧栏约束为视口可用高度并可独立滚动；单列宽度改为正常文档流。保留列布局、模板、执行及业务逻辑；375–1920px 必须实际命中模板与运行按钮 |
 
 保留 R5 已完成的账户双摘要、8 条详情、会员 7 个原有业务目标/价格/流程、财务 6 月展示和账户独立折叠偏好。没有重新设计首页、学习页、财务或会员页面。
@@ -79,6 +85,8 @@ R5 **不是**最终 R4-C HEAD 的后代。逐文件核对证明，R5 改动的�
 
 F 的总体 `P07_F_PREFLIGHT_READY` 只表示工具产物生成；本候选保留独立 `unifiedAcceptance=REVIEW_REQUIRED` 和非零退出。旧报告一次 LCP 为 `STRONG` 且没有祖先归属，不能确定是工作台。现在只补充 LCP 元素祖先、工作区和 Splash 归属取证，不调整阈值。Splash LCP、一次 lab 读数及无用户交互的样本都不能代表主工作台/field INP 性能通过。
 
+补充归属后的 [精确 9387340 记录](evidence/r5-independent/f-review-with-lcp-attribution.json)：本次 LCP 908ms 来自 publicHome 内的 STRONG，`inSplash=false`；这是公开首页的单次本地 lab 样本，不代表登录后工作台、field INP 或全站性能门禁通过。8 条 axe / 3 条 serious-critical 仍未关闭。
+
 ## Preview、Logo 与交接
 
 只读 HTTP 核验时，原 [R5 Preview](https://852fc79d.thewyj-p07-ui-rc.pages.dev) 的公开策略为 enabled / revision 17 / public_stable，app.js 字节与原 R5 一致，仍引用 R4-C RC2 的资源键。[核验记录](evidence/r5-independent/hosted-readonly.json) 明确 `isIntegrationPreview=false`。这不是 SW 故障结论，也不是本集成 HEAD 的 Hosted PASS。
@@ -98,7 +106,7 @@ $env:P07_QA_ROUND='p07-r5'
 $env:P07_R5_FINAL='1'
 $env:AERIS_PHASE1_BASE_URL='http://127.0.0.1:18964'
 $env:AERIS_PHASE1_CDP_URL='http://127.0.0.1:19364'
-node qa/p07-r4a/run-gates.mjs r5-final-runtime --compiled-runtime --round3 --primary-workspaces --p4-workspace
+node qa/p07-r4a/run-gates.mjs r5-rc4-runtime --compiled-runtime --round3 --primary-workspaces --p4-workspace
 ```
 
 同一最终 HEAD 分别运行未设置 `P07_R5_FINAL` 的 `--flag-off`、`--kill-switch`，以及 `--cache-upgrade --warm-r4c`。完整本地证据保留于 `docs/migration-evidence/p07-r5/<label>/`，含截图、实际 DOM/命中、响应字节、源清单及固定 QA 哈希。最终 SHA 和结果以 provenance 与 PR 最终验收评论为准，部署与人工验收继续独立列示。
