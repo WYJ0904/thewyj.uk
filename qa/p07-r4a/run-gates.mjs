@@ -20,9 +20,9 @@ const label=process.argv[2];assert.match(label||'',/^[a-z0-9-]+$/);
 const round=process.env.P07_QA_ROUND||'p07-r4a';assert.ok(['p07-r4a','p07-r4c','p07-r5','p07-f-closeout'].includes(round));
 const output=path.join(root,'docs/migration-evidence',round,label);
 assert.equal(await fs.stat(output).then(()=>true,error=>{if(error.code==='ENOENT')return false;throw error;}),false,'Evidence labels cannot be overwritten');
-const args=process.argv.slice(3),cache=args.includes('--cache-upgrade'),warmBaseline=args.includes('--warm-baseline'),warmR4A=args.includes('--warm-r4a'),warmR4C=args.includes('--warm-r4c');
-const target=cache&&!warmR4A&&!warmR4C?path.join(process.env.USERPROFILE,`.codex/worktrees/${warmBaseline?'p07-round3-final-ci-review':'p07-round3-red-baseline'}/thewyj.uk`):root;
-const sourceSha=cache&&warmR4C?'5f83167d9b6a8433565775b372631c8764eb052e':cache&&warmR4A?'0c87169aa4b75db4d00fe76a66bd32a62ead9e4a':sha;
+const args=process.argv.slice(3),cache=args.includes('--cache-upgrade'),warmBaseline=args.includes('--warm-baseline'),warmR4A=args.includes('--warm-r4a'),warmR4C=args.includes('--warm-r4c'),warmR5=args.includes('--warm-r5');
+const target=cache&&!warmR4A&&!warmR4C&&!warmR5?path.join(process.env.USERPROFILE,`.codex/worktrees/${warmBaseline?'p07-round3-final-ci-review':'p07-round3-red-baseline'}/thewyj.uk`):root;
+const sourceSha=cache&&warmR5?'72940bede5cff2aacd3bc3c66af5b16be40b243e':cache&&warmR4C?'5f83167d9b6a8433565775b372631c8764eb052e':cache&&warmR4A?'0c87169aa4b75db4d00fe76a66bd32a62ead9e4a':sha;
 const work=path.join(qa,'.wrangler','p07-r4a-driver-'+label);await fs.mkdir(work,{recursive:true});
 let runner=await fs.readFile(path.join(qa,'qa/p07-d/run.mjs'),'utf8');
 function replace(before,after){assert.equal(runner.split(before).length,2,'QA adapter anchor must be unique: '+before.slice(0,70));runner=runner.replace(before,after);}
@@ -65,7 +65,7 @@ await fs.writeFile(path.join(work,'f-closeout.mjs'),`await import(${JSON.stringi
 await fs.writeFile(path.join(work,'f-lab.mjs'),`await import(${JSON.stringify(new URL('../p07-f/workspace-lab.mjs',import.meta.url).href)});\n`);
 let upgrade=await fs.readFile(path.join(qa,'qa/p07-round3/cache-upgrade.mjs'),'utf8');
 upgrade=upgrade.replace("assert.equal(process.env.P07_D_TARGET_HEAD,'21b83316cbfdeb366c587b9e818a2c64e2199215','warm the exact RED source before upgrade');",
-  "assert.ok(['21b83316cbfdeb366c587b9e818a2c64e2199215','f7949f8253f51ea2621c397743208971c0cec467','0c87169aa4b75db4d00fe76a66bd32a62ead9e4a','5f83167d9b6a8433565775b372631c8764eb052e'].includes(process.env.P07_D_TARGET_HEAD),'warm a fixed original source');");
+  "assert.ok(['21b83316cbfdeb366c587b9e818a2c64e2199215','f7949f8253f51ea2621c397743208971c0cec467','0c87169aa4b75db4d00fe76a66bd32a62ead9e4a','5f83167d9b6a8433565775b372631c8764eb052e','72940bede5cff2aacd3bc3c66af5b16be40b243e'].includes(process.env.P07_D_TARGET_HEAD),'warm a fixed original source');");
 upgrade=upgrade.replace("const oldSha=process.env.P07_D_TARGET_HEAD,newSha=process.env.P07_D_UPGRADE_CANDIDATE_SHA||'fb936d109d0900d02d35eb3493212e4c32c39699';",`const oldSha=process.env.P07_D_TARGET_HEAD,newSha='${sha}';`);
 upgrade=upgrade.replace("['fb936d109d0900d02d35eb3493212e4c32c39699','f7949f8253f51ea2621c397743208971c0cec467'].includes(newSha)",`newSha==='${sha}'`);
 const files=git(root,'ls-tree','-r','--name-only',sha).split(/\r?\n/).filter(f=>isAllowedPagesFile(f)&&!f.startsWith('functions/')&&!f.startsWith('assets/')&&/\.(?:html|js|css|webmanifest|json|txt)$/.test(f));
@@ -84,6 +84,6 @@ const provenance={qa_source_sha:head,additional_test_hashes:extraHashes,product_
   adapter_sha256:createHash('sha256').update(await fs.readFile(import.meta.filename)).digest('hex'),assertions_weakened:false,
   transport_changes:['per-run committed allowlist staging prevents shared pages-output races',...(cache?['candidate exact-SHA allowlist text assets, including sw.js and all release-qualified modules','optional fixed f7949f8 warm source']:['new pinned product target only'])]};
 await fs.mkdir(path.dirname(output),{recursive:true});
-const run=spawnSync(process.execPath,[path.join(work,'run.mjs'),...args.filter(a=>!['--warm-baseline','--warm-r4a','--warm-r4c'].includes(a))],{cwd:qa,env:{...process.env,P07_D_TARGET_ROOT:target,P07_D_RUN:label},stdio:'inherit',windowsHide:true});
+const run=spawnSync(process.execPath,[path.join(work,'run.mjs'),...args.filter(a=>!['--warm-baseline','--warm-r4a','--warm-r4c','--warm-r5'].includes(a))],{cwd:qa,env:{...process.env,P07_D_TARGET_ROOT:target,P07_D_RUN:label},stdio:'inherit',windowsHide:true});
 await fs.mkdir(output,{recursive:true});await fs.writeFile(path.join(output,'r4a-driver-provenance.json'),JSON.stringify(provenance,null,2));
 process.exitCode=run.status??1;
