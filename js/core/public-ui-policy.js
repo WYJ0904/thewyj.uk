@@ -33,7 +33,7 @@ export function createPublicUiPolicyController({ apiGet, getAccount, hasSession 
     if (disposed) return;
     if (loggedIn()) { sequence++; clear('pending'); return; }
     if (globalThis.navigator?.onLine === false) { sequence++; clear('error', '当前离线，界面体验已安全回退。'); return; }
-    if (document?.hidden) { if (!valid()) clear('pending'); else onChange(); return; }
+    if (document?.hidden && !valid()) { clear('pending'); return; }
     const ticket = ++sequence;
     if (!valid()) clear('pending');
     try {

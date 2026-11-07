@@ -217,7 +217,6 @@ textarea::placeholder {
 }
 
 .entry-screen.is-exiting {
-  visibility: hidden;
   opacity: 0;
   pointer-events: none;
 }
@@ -294,7 +293,6 @@ textarea::placeholder {
   visibility: visible;
   opacity: 1;
   pointer-events: auto;
-  animation: appProductIn var(--duration-normal) ease both;
 }
 
 @keyframes appProductIn {

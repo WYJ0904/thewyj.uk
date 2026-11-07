@@ -3840,9 +3840,9 @@ function showTrial(pushHistory = true, tool = "") {
   renderAccountUi();
 }
 
-function runSplashSequence(revealContent) {
+function runSplashSequence(revealContent, whenReady) {
   return completeStartupSplash({screen:$("entryScreen"),image:$("splashImage"),
-    reveal:revealContent,reducedMotion:prefersReducedMotion(window),setTimer:window.setTimeout.bind(window)});
+    reveal:revealContent,whenReady,reducedMotion:prefersReducedMotion(window),setTimer:window.setTimeout.bind(window)});
 }
 
 function showLanguageGate() {
@@ -4921,7 +4921,7 @@ function applyInterfacePolicy() {
   document.documentElement.dataset.sessionVerification = sessionRestorePending && state.session ? 'pending' : 'ready';
   const policyState = $('interfacePolicyState');
   if (policyState) {
-    policyState.hidden = !['pending', 'error'].includes(decision.status);
+    policyState.hidden = decision.status !== 'error';
     $('interfacePolicyMessage').textContent = sessionRestorePending
       ? (decision.status === 'error' ? '登录状态暂时无法验证，请重试。账户与本机数据仍然保留。' : '正在重新验证登录状态…')
       : decision.status === 'pending'
@@ -6785,12 +6785,45 @@ function changeProfile(value, options = {}) {
   if ($("studyView").classList.contains("active")) renderStudyDashboard();
 }
 
+function showAuthTransition(message = "正在验证身份与权限…") {
+  let overlay = document.getElementById("authTransitionScreen") || document.getElementById("authTransitionOverlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "authTransitionScreen";
+    overlay.className = "entry-screen auth-transition-overlay";
+    overlay.setAttribute("role", "status");
+    overlay.setAttribute("aria-label", message);
+    overlay.setAttribute("aria-hidden", "false");
+    overlay.innerHTML = '<div class="entry-content">' +
+      '<img class="entry-logo" src="/icon-192.png?release=20261107-aeris-p07-f-a11y-rc4" width="76" height="76" alt="" />' +
+      '<strong>Aeris</strong>' +
+      '<span class="entry-progress" aria-hidden="true"></span>' +
+      '</div>';
+    document.body.appendChild(overlay);
+  }
+  overlay.classList.remove("is-exiting");
+  return overlay;
+}
+
+async function dismissAuthTransition(overlay) {
+  if (!overlay) return;
+  const reducedMotion = prefersReducedMotion(window);
+  if (reducedMotion) {
+    overlay.remove();
+    return;
+  }
+  overlay.classList.add("is-exiting");
+  await new Promise(r => setTimeout(r, 180));
+  overlay.remove();
+}
+
 async function login(event) {
   event.preventDefault();
   $("loginError").textContent = "";
   const button = $("loginSubmitBtn");
   if (button.disabled) return;
   button.disabled = true;
+  let transitionOverlay = null;
   try {
     if (!backendAvailable) {
       $("loginError").textContent = "正在重新连接服务器…";
@@ -6800,6 +6833,7 @@ async function login(event) {
       username: $("usernameInput").value.trim(),
       secret: $("secretInput").value,
     });
+    transitionOverlay = showAuthTransition("正在验证身份与权限…");
     state.session = data.session;
     const persisted = persistAccountSession(state.session);
     applyAccount(data.account);
@@ -6809,6 +6843,14 @@ async function login(event) {
     pendingAuthMessage = "";
     $("modelLabel").textContent = data.model || "Cloudflare 云端";
     showModulePicker(false);
+    if (featureController) {
+      try {
+        await Promise.race([
+          featureController.refresh(),
+          new Promise(r => setTimeout(r, 2000))
+        ]);
+      } catch (_) {}
+    }
     pushRoute("/", true);
     updateStats();
     if (!persisted) {
@@ -6819,6 +6861,9 @@ async function login(event) {
   } catch (error) {
     $("loginError").textContent = error.message;
   } finally {
+    if (transitionOverlay) {
+      await dismissAuthTransition(transitionOverlay);
+    }
     button.disabled = false;
   }
 }
@@ -6871,6 +6916,14 @@ async function performBackendRefresh() {
         $("statusDot").classList.toggle("online", true);
         pendingScreen = "workspace";
         pendingAuthMessage = "";
+        if (featureController) {
+          try {
+            await Promise.race([
+              featureController.refresh(),
+              new Promise((r) => setTimeout(r, 2000)),
+            ]);
+          } catch (_) {}
+        }
         if (restoring) void routeCurrent();
       }
     } else {
@@ -7095,7 +7148,7 @@ async function boot() {
   document.documentElement.dataset.bootState='initializing';
   initDesignSystem();
   applyInterfacePolicy();
-  void publicUiPolicyController?.refresh();
+  const publicPolicyPromise = publicUiPolicyController?.refresh();
   $('retryInterfacePolicyBtn').addEventListener('click', () => {
     if (state.session && sessionRestorePending) void refreshBackendState();
     else if (state.session && state.account) void featureController.refresh();
@@ -7604,54 +7657,35 @@ async function boot() {
   // Late insertion would push the richer public hero down after its first paint.
   maybeShowVersionNotice();
   document.documentElement.dataset.bootState='splash';
+
+  const whenContentReady = async () => {
+    try {
+      await Promise.race([
+        Promise.all([
+          backendPromise,
+          !state.session && publicPolicyPromise ? publicPolicyPromise : Promise.resolve(),
+          state.session && state.account && featureController ? featureController.refresh() : Promise.resolve(),
+        ]),
+        new Promise(r => setTimeout(r, 1800))
+      ]);
+    } catch (_) {}
+    document.documentElement.dataset.bootState='routing';
+    try {
+      await routeCurrent();
+    } catch (_) {}
+  };
+
   await runSplashSequence(() => {
     $("appShell").classList.remove("app-shell-pending");
     $("appShell").classList.add("app-shell-ready");
     $("appShell").setAttribute("aria-hidden", "false");
-    if (initialPath.startsWith("/share/")) { void showShareRoute(initialPath); return; }
-    if (initialPath === "/transfer") {
-      hidePrimaryScreens();
-      $("transferPage")?.classList.remove("hidden");
-      $("transferPage")?.setAttribute("aria-hidden", "false");
-      return;
-    }
-    if (state.session) {
-      showSessionRecovery();
-      return;
-    }
-    if (!state.session || !state.account) {
-      if (initialPath === "/") {
-        showPublicHome(false);
-        return;
-      }
-      if (initialPath === "/trial") {
-        showTrial(false);
-        return;
-      }
-      if (initialPath === "/changelog") {
-        showChangelog(false);
-        return;
-      }
-      if (initialPath === "/download") {
-        showDownload(false);
-        return;
-      }
-    }
-    showAuth("", {
-      mode: initialPath === "/register" ? "register" : "login",
-      path: initialPath,
-      skipRoute: true,
-    });
-  });
-  document.documentElement.dataset.bootState='routing';
-  await backendPromise;
-  await routeCurrent();
-  installNativeNavigation();
-  installInteractionTracing();
-  installMotionSystem();
-  installNativeThemeBridge();
-  setupResponsiveDisclosures();
-  document.documentElement.dataset.bootState='ready';
+    installNativeNavigation();
+    installInteractionTracing();
+    installMotionSystem();
+    installNativeThemeBridge();
+    setupResponsiveDisclosures();
+    document.documentElement.dataset.bootState='ready';
+  }, whenContentReady);
 }
 
 boot().catch(() => {
