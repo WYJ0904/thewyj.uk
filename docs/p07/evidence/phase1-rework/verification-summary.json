@@ -1,0 +1,222 @@
+{
+  "generatedAt": "2026-11-04T06:41:18.904Z",
+  "origin": "http://127.0.0.1:18898",
+  "passCount": 6,
+  "failCount": 0,
+  "checks": [
+    {
+      "id": "p07-01a-policy-brand-and-v3-tokens",
+      "status": "PASS",
+      "durationMs": 2347,
+      "detail": {
+        "p07Ui": "enabled",
+        "themeColor": "#f4f6f9",
+        "appName": "Aeris",
+        "ogSiteName": "Aeris",
+        "manifestName": "Aeris",
+        "bodyBg": "rgb(244, 246, 249)",
+        "bodyBgImage": "none",
+        "sidebarWidth": 204,
+        "sidebarBg": "rgb(255, 255, 255)",
+        "adminLinkHidden": true,
+        "learningCardBg": "rgb(239, 246, 255)",
+        "financeCardBg": "rgb(238, 250, 243)",
+        "toolsCardBg": "rgb(245, 240, 255)",
+        "widgetRects": [
+          {
+            "id": "learning",
+            "x": 699,
+            "y": 132,
+            "width": 207,
+            "height": 255
+          },
+          {
+            "id": "finance",
+            "x": 923,
+            "y": 190,
+            "width": 213,
+            "height": 260
+          },
+          {
+            "id": "tools",
+            "x": 1149,
+            "y": 110,
+            "width": 211,
+            "height": 258
+          }
+        ],
+        "summaryCardCount": 4,
+        "summaryCardBg": "rgb(255, 255, 255)",
+        "summaryBarBg": "rgb(37, 99, 235)",
+        "quickBg": "rgb(255, 255, 255)",
+        "recentBg": "rgb(255, 255, 255)",
+        "primaryBg": "rgb(37, 99, 235)",
+        "primaryColor": "rgb(255, 255, 255)",
+        "navBg": "rgb(255, 255, 255)",
+        "heroLogoLoaded": true,
+        "navLogoLoaded": true,
+        "previewNoticeHidden": true,
+        "demoBadgeCount": 3,
+        "domNodes": 3666,
+        "fcpMs": 1532
+      }
+    },
+    {
+      "id": "multi-viewport-and-dark-mode-screenshots",
+      "status": "PASS",
+      "durationMs": 9233,
+      "detail": {
+        "screenshotCount": 18,
+        "captured": [
+          "docs/p07/evidence/phase1-rework/after/after-home-375-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-home-mobile-390-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-home-mobile-412-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-home-420-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-home-768-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-home-1024-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-home-1366-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-home-desktop-1440-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-home-1920-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-home-desktop-1440-dark.png",
+          "docs/p07/evidence/phase1-rework/after/after-home-mobile-390-dark.png",
+          "docs/p07/evidence/phase1-rework/after/after-login-desktop-1440-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-register-desktop-1440-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-login-375-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-login-mobile-390-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-login-mobile-412-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-login-768-light.png",
+          "docs/p07/evidence/phase1-rework/after/after-login-desktop-1440-dark.png"
+        ]
+      }
+    },
+    {
+      "id": "p07-01c-spatial-layer-zorder-escape-and-30-gestures",
+      "status": "PASS",
+      "durationMs": 17558,
+      "detail": {
+        "hoverLiftVerified": true,
+        "escapeCancelVerified": true,
+        "dynamicZOrderVerified": {
+          "writes": 0,
+          "guestMsg": "演示布局仅在本次预览中生效。",
+          "learningZ": 3,
+          "toolsZ": 1
+        },
+        "thirtyGestureRoundsPass": 30,
+        "thirtyGestureDurationMs": 13496,
+        "reducedMotionVerified": true
+      }
+    },
+    {
+      "id": "p07-01a-01d-accessibility-keyboard-and-text-scaling",
+      "status": "PASS",
+      "durationMs": 5065,
+      "detail": {
+        "ariaAudit": {
+          "labels": [
+            {
+              "id": "wordInput",
+              "count": 1
+            },
+            {
+              "id": "answerInput",
+              "count": 1
+            },
+            {
+              "id": "currentSecretInput",
+              "count": 1
+            },
+            {
+              "id": "newSecretInput",
+              "count": 1
+            },
+            {
+              "id": "newSecretConfirmInput",
+              "count": 1
+            },
+            {
+              "id": "deleteSecretInput",
+              "count": 1
+            },
+            {
+              "id": "adminNewSecretInput",
+              "count": 1
+            }
+          ],
+          "brokenTabs": []
+        },
+        "contrasts": [
+          {
+            "theme": "light",
+            "primaryRatio": 5.17,
+            "dangerRatio": 5.5
+          },
+          {
+            "theme": "dark",
+            "primaryRatio": 5.17,
+            "dangerRatio": 9.43
+          }
+        ],
+        "enlargedTextReflowCombinations": 5,
+        "flagOffRollbackVerified": true
+      }
+    },
+    {
+      "id": "unified-loading-and-error-recovery-states",
+      "status": "PASS",
+      "durationMs": 2018,
+      "detail": {
+        "splashCheck": {
+          "screenBg": "rgb(244, 246, 249)",
+          "cardBg": "rgb(255, 255, 255)",
+          "barBg": "color(srgb 0.767686 0.826353 0.938039)"
+        },
+        "recoveryLoading": {
+          "bodyBg": "rgb(244, 246, 249)",
+          "cardBg": "rgb(255, 255, 255)",
+          "frameDisplay": "none"
+        },
+        "recoveryError": {
+          "retryVisible": true,
+          "exitVisible": true
+        },
+        "shots": [
+          "docs/p07/evidence/phase1-rework/after/after-loading-splash-1440.png",
+          "docs/p07/evidence/phase1-rework/after/after-loading-session-recovery-1440.png",
+          "docs/p07/evidence/phase1-rework/after/after-error-session-recovery-1440.png"
+        ]
+      }
+    },
+    {
+      "id": "authenticated-home-and-route-non-regression",
+      "status": "PASS",
+      "durationMs": 11088,
+      "detail": {
+        "authState": {
+          "sessionMode": "authenticated",
+          "demoBadgesVisible": 0,
+          "accountMenuVisible": true,
+          "personalVisible": true,
+          "sidebarAdminVisible": true
+        },
+        "visitedCount": 11
+      }
+    }
+  ],
+  "afterAssetBytes": {
+    "index.html": 137274,
+    "styles.css": 65135,
+    "design-system.css": 39078,
+    "product-ui.css": 101314,
+    "public-experience.css": 59223,
+    "workspace-experience.css": 35410,
+    "spatial-experience.css": 37177,
+    "app.js": 321147,
+    "js/core/design-system.js": 15417,
+    "js/core/motion.js": 9893,
+    "js/core/home-widgets.js": 17420,
+    "js/core/public-ui-policy.js": 3440
+  },
+  "totalAfterCssBytes": 337337,
+  "baselineAssetBytes": null
+}

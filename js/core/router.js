@@ -6,10 +6,10 @@ export const APP_ROUTE_MANIFEST = Object.freeze([
 ]);
 
 export function createRouter({ onRouteChange = () => {} } = {}) {
-  function pushRoute(path, replace = false) {
+  function pushRoute(path, replace = false, state = {}) {
     const target = String(path || "/");
     if (location.pathname === target) return;
-    history[replace ? "replaceState" : "pushState"]({}, "", target);
+    history[replace ? "replaceState" : "pushState"](state, "", target);
     onRouteChange(target);
   }
 

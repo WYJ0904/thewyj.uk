@@ -1,0 +1,13 @@
+{
+  "target_sha": "6417005f70c34a5fc9bc35493587bd016aae8575",
+  "acceptanceGate": "FAIL",
+  "unresolved": [
+    {
+      "id": "refresh-continuity-all-required-pages",
+      "status": "FAIL",
+      "error": "timeout waiting for boot completed /account",
+      "duration_ms": 45950
+    }
+  ],
+  "blockedForIntegration": true
+}

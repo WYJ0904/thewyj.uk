@@ -1,0 +1,4286 @@
+/* Aeris V6.2 P07 Phase 1 Visual Rework — V3 Desktop Workspace, Pastel Spatial Cards & Unified Shell.
+ * Governed by Task25 (p07_accessibility).
+ * Strict layer separation: .hero-scene-card owns ONLY coordinates/rotation;
+ * .home-widget-visual owns ONLY surface, border, shadow, and micro-motion.
+ */
+
+/* Default OFF state (Task25 disabled / rollback): zero visual or layout side effects */
+.v3-app-frame,
+.v3-main-canvas,
+.home-widget-visual {
+  display: contents;
+}
+
+.v3-sidebar,
+.v3-topbar-context,
+.v3-hero-copy,
+.home-widget-drag-hint,
+.home-widget-affordance,
+.home-v3-summary-grid,
+.v3-workspace-footnote,
+#publicHome .home-widget-main .home-widget-glyph,
+.auth-subtitle {
+  display: none;
+}
+
+.home-intro-note {
+  display: none;
+  max-width: 38ch;
+  margin: 16px 0 0;
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-md);
+  line-height: 1.75;
+}
+
+/* Fix mobile <= 760px legacy rule hiding guest demo label on floating cards */
+#publicHome .home-widget-demo:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+}
+#publicHome .public-hero-scene[data-editing="true"] .home-widget-demo {
+  display: none !important;
+}
+
+/* ==========================================================================
+ * Unified Top Header Bar (#accountBar) & Left Workspace Sidebar (#v3Sidebar)
+ * ========================================================================== */
+html[data-p07-ui="enabled"] body[data-experience] .site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 620;
+  min-height: calc(62px + env(safe-area-inset-top));
+  padding-inline: max(20px, env(safe-area-inset-left)) max(20px, env(safe-area-inset-right));
+  background: var(--ds-surface);
+  border-bottom: 1px solid var(--ds-border);
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] .site-nav-bar {
+  width: 100%;
+  max-width: none;
+  min-height: calc(62px + env(safe-area-inset-top));
+  gap: 10px;
+}
+
+html[data-p07-ui="enabled"] .site-brand img {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--ds-border);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+html[data-p07-ui="enabled"] .site-brand-copy strong {
+  font-size: 1.1875rem;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .v3-topbar-context {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  padding: 5px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+html[data-p07-ui="enabled"] .home-search {
+  margin-left: 0;
+}
+
+html[data-p07-ui="enabled"] .site-release-actions > a {
+  min-height: 38px;
+  padding: 0 12px;
+  border-color: var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+  color: var(--ds-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+html[data-p07-ui="enabled"] .site-release-actions > a:hover,
+html[data-p07-ui="enabled"] .site-release-actions > a[aria-current="page"] {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .theme-toggle {
+  min-height: 38px;
+  border-color: var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] .account-menu-popover {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-raised);
+}
+
+/* Desktop App-Shell Frame: Left Unified Sidebar + Right Main Workspace */
+@media (min-width: 981px) {
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) .home-inline-nav {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) .v3-app-frame {
+    display: grid;
+    grid-template-columns: 204px minmax(0, 1fr);
+    min-height: calc(100dvh - 62px);
+    align-items: stretch;
+  }
+
+  html[data-p07-ui="enabled"] #appShell:has(#sessionRecovery:not(.hidden)) :is(#accountBar, .v3-app-frame) {
+    display: none;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) .v3-sidebar {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: sticky;
+    top: 62px;
+    height: calc(100dvh - 62px);
+    padding: 18px 12px 18px;
+    background: var(--ds-surface);
+    border-right: 1px solid var(--ds-border);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) .v3-main-canvas {
+    display: block;
+    min-width: 0;
+    background: var(--ds-workspace-canvas);
+  }
+}
+
+html[data-p07-ui="enabled"] .v3-sidebar-nav {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+html[data-p07-ui="enabled"] .v3-sidebar-nav a {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  border-radius: 11px;
+  color: var(--ds-text-secondary);
+  font-size: 0.90625rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background-color 150ms cubic-bezier(0.23, 1, 0.32, 1),
+    color 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+html[data-p07-ui="enabled"] .v3-sidebar-nav a[hidden] {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] .v3-nav-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #94a3b8;
+  flex-shrink: 0;
+  transition:
+    background-color 150ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html[data-p07-ui="enabled"] .v3-sidebar-nav a:hover {
+    background: var(--ds-surface-muted);
+    color: var(--ds-text);
+  }
+}
+
+html[data-p07-ui="enabled"] .v3-sidebar-nav a[aria-current="page"],
+html[data-p07-ui="enabled"] .v3-sidebar-nav a.active {
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  font-weight: 650;
+}
+
+html[data-p07-ui="enabled"] .v3-sidebar-nav a[aria-current="page"] .v3-nav-dot,
+html[data-p07-ui="enabled"] .v3-sidebar-nav a.active .v3-nav-dot {
+  background: var(--ds-brand);
+  transform: scale(1.15);
+}
+
+html[data-p07-ui="enabled"] .v3-sidebar-footer {
+  margin-top: 16px;
+  padding: 12px 14px 0;
+  border-top: 1px solid var(--ds-divider);
+  color: var(--ds-text-muted);
+  font-size: 0.75rem;
+}
+
+/* Non-intrusive Preview chip & bottom-right floating Version Toast */
+.aeris-preview-notice:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+  width: min(calc(100% - 56px), 1320px);
+  margin: 12px auto 0;
+  padding: 6px 14px;
+  border: 1px solid var(--ds-brand-border, var(--ds-border));
+  border-radius: var(--ds-radius-pill);
+  background: color-mix(in srgb, var(--ds-brand-soft) 55%, var(--ds-surface));
+  color: var(--ds-text-secondary);
+  font-size: 0.75rem;
+}
+.aeris-preview-notice strong {
+  color: var(--ds-brand);
+  font-weight: 650;
+}
+
+html[data-p07-ui="enabled"] #versionNotice:not(.hidden) {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  left: auto;
+  top: auto;
+  z-index: 640;
+  width: min(380px, calc(100vw - 32px));
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-raised);
+  animation: none;
+}
+
+/* ==========================================================================
+ * Home V3 Workspace Hero, Typography Hierarchy & Contour Wave Stage
+ * ========================================================================== */
+html[data-p07-ui="enabled"] #publicHome {
+  background: var(--ds-workspace-canvas);
+}
+
+html[data-p07-ui="enabled"] #publicHome .public-hero::after {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] #publicHome .public-hero {
+  position: relative;
+  width: 100%;
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 28px clamp(24px, 3vw, 44px) 18px;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 420' fill='none'%3E%3Cpath d='M180 128C430 62 760 28 1190 42M240 162C490 94 800 58 1190 74M310 198C550 128 840 92 1190 108M390 232C620 164 890 128 1190 144' stroke='%232563eb' stroke-opacity='0.085' stroke-width='1.3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right top;
+  background-size: 86% auto;
+}
+
+@media (min-width: 981px) {
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome .public-hero {
+    display: grid;
+    grid-template-columns: minmax(348px, 0.72fr) minmax(508px, 1.28fr);
+    gap: clamp(18px, 2.4vw, 34px);
+    align-items: center;
+    min-height: 446px;
+  }
+}
+
+html[data-p07-ui="enabled"][data-theme="dark"] #publicHome .public-hero {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 420' fill='none'%3E%3Cpath d='M180 128C430 62 760 28 1190 42M240 162C490 94 800 58 1190 74M310 198C550 128 840 92 1190 108M390 232C620 164 890 128 1190 144' stroke='%238cb7ff' stroke-opacity='0.08' stroke-width='1.25'/%3E%3C/svg%3E");
+}
+
+/* Top bar already owns Aeris brand lockup; keep #publicHomeTitle accessible in DOM */
+html[data-p07-ui="enabled"] #publicHome .home-brand {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-purpose {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 12px;
+  padding: 4px 12px;
+  border: 1px solid var(--ds-brand-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  line-height: 1.4;
+}
+
+html[data-p07-ui="enabled"] .v3-hero-copy {
+  display: grid;
+  gap: 14px;
+}
+
+html[data-p07-ui="enabled"] .v3-hero-kicker {
+  margin: 0;
+  color: var(--ds-text);
+  font-size: clamp(1.125rem, 1.35vw, 1.375rem);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+}
+
+html[data-p07-ui="enabled"] .v3-hero-headline {
+  margin: 4px 0 0;
+  display: grid;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] .v3-hero-headline strong {
+  display: block;
+  color: var(--ds-text);
+  font-size: clamp(2.25rem, 3.1vw, 3.125rem);
+  font-weight: 800;
+  letter-spacing: -0.038em;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+html[data-p07-ui="enabled"] .v3-hero-headline span {
+  display: block;
+  color: var(--ds-text-secondary);
+  font-size: clamp(1.125rem, 1.5vw, 1.4375rem);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.38;
+}
+
+html[data-p07-ui="enabled"] .v3-hero-caption {
+  margin: 2px 0 0;
+  max-width: 38ch;
+  color: var(--ds-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+html[data-p07-ui="enabled"] .home-intro-note {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] .home-identity:not([hidden]) {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 6px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface);
+  font-size: 0.8125rem;
+}
+
+html[data-p07-ui="enabled"] #publicHome .public-actions {
+  margin-top: 22px;
+  gap: 10px;
+  align-items: center;
+}
+
+html[data-p07-ui="enabled"] #publicHome .public-actions > * {
+  min-height: 46px;
+  padding-inline: 15px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] #publicHome #publicLoginBtn {
+  min-height: 48px;
+  padding-inline: 22px;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.22);
+}
+
+html[data-p07-ui="enabled"] #publicHome .public-actions .button-secondary {
+  border-color: var(--ds-border);
+  background: color-mix(in srgb, var(--ds-surface) 88%, transparent);
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] #publicHome .public-actions .button-secondary:hover {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+}
+
+/* ==========================================================================
+ * Three-Card Spatial Interaction — V3 Staggered Fan & Pastel Business Tints
+ * ========================================================================== */
+@media (min-width: 981px) {
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome .public-hero-scene {
+    height: 392px;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome .hero-scene-card {
+    width: 196px;
+    height: 248px;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome .hero-scene-card[data-size="small"] {
+    width: 174px;
+    height: 178px;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome .hero-scene-card[data-size="large"] {
+    width: 232px;
+    height: 282px;
+  }
+}
+
+@media (min-width: 1360px) {
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome .hero-scene-card {
+    width: 198px;
+    height: 248px;
+  }
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome .hero-scene-card[data-size="large"] {
+    width: 236px;
+    height: 284px;
+  }
+}
+
+@media (min-width: 1720px) {
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome .public-hero {
+    max-width: 1560px;
+    min-height: 472px;
+  }
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome .public-hero-scene {
+    height: 416px;
+  }
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome .hero-scene-card {
+    width: 228px;
+    height: 268px;
+  }
+}
+
+html[data-p07-ui="enabled"] #publicHome .hero-scene-card {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: none !important;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-visual {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  background: var(--ds-surface);
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.045),
+    0 14px 32px rgba(15, 23, 42, 0.065);
+  transform: translateY(0) scale(1);
+  transition:
+    transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 150ms cubic-bezier(0.23, 1, 0.32, 1);
+  animation: aeris-spatial-arrive 250ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+}
+
+/* V3 Subtle Pastel Business Card Surfaces */
+html[data-p07-ui="enabled"] #publicHome .hero-scene-learning .home-widget-visual {
+  background: var(--ds-card-learning-bg);
+  background-color: var(--ds-card-learning-surface);
+  border-color: var(--ds-card-learning-border);
+}
+
+html[data-p07-ui="enabled"] #publicHome .hero-scene-finance .home-widget-visual {
+  background: var(--ds-card-finance-bg);
+  background-color: var(--ds-card-finance-surface);
+  border-color: var(--ds-card-finance-border);
+  animation-delay: 45ms;
+}
+
+html[data-p07-ui="enabled"] #publicHome .hero-scene-tools .home-widget-visual {
+  background: var(--ds-card-tools-bg);
+  background-color: var(--ds-card-tools-surface);
+  border-color: var(--ds-card-tools-border);
+  animation-delay: 90ms;
+}
+
+html[data-p07-ui="enabled"][data-theme="dark"] #publicHome .home-widget-visual {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.32),
+    0 16px 36px rgba(0, 0, 0, 0.38);
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-main {
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 16px 18px 14px;
+  border-radius: inherit;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-drag-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--ds-text-muted);
+  line-height: 1.2;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-main small {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--ds-text-secondary);
+  padding-right: 68px;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-main strong {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: break-word;
+  font-size: 1.4375rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.028em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-main span:not(.home-widget-drag-hint):not(.home-widget-affordance):not(.home-widget-glyph):not(.home-widget-extra) {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-main i {
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-affordance {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: var(--ds-radius-pill);
+  border: 1px solid color-mix(in srgb, var(--ds-border) 80%, transparent);
+  background: color-mix(in srgb, var(--ds-surface) 92%, transparent);
+  color: var(--ds-text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+html[data-p07-ui="enabled"] #publicHome [data-size="small"] .home-widget-main {
+  padding: 14px 16px;
+  justify-content: center;
+  gap: 5px;
+}
+
+html[data-p07-ui="enabled"] #publicHome [data-size="small"] :is(.home-widget-drag-hint, .home-widget-affordance, .home-widget-glyph) {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] #publicHome [data-size="large"] .home-widget-main {
+  padding: 18px 20px 16px;
+  gap: 7px;
+}
+
+html[data-p07-ui="enabled"] #publicHome [data-widget-layout="mobile"] :is(.home-widget-drag-hint, .home-widget-affordance),
+html[data-p07-ui="enabled"] #publicHome[data-widget-layout="mobile"] :is(.home-widget-drag-hint, .home-widget-affordance) {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] #publicHome[data-widget-layout="mobile"] .home-widget-main {
+  justify-content: center;
+  padding: 16px 18px;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-demo:not([hidden]) {
+  right: 46px;
+  top: 12px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--ds-border) 85%, transparent);
+  border-radius: var(--ds-radius-pill);
+  background: color-mix(in srgb, var(--ds-surface) 90%, transparent);
+  color: var(--ds-text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-edit,
+html[data-p07-ui="enabled"] #publicHome .home-widget-drag {
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-edit:hover,
+html[data-p07-ui="enabled"] #publicHome .home-widget-drag:hover {
+  background: color-mix(in srgb, var(--ds-surface) 80%, var(--ds-surface-muted));
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #publicHome .public-hero-scene[data-editing="true"] .hero-scene-card {
+  outline: none;
+}
+
+html[data-p07-ui="enabled"] #publicHome .public-hero-scene[data-editing="true"] .home-widget-visual {
+  border-style: dashed;
+  border-width: 1.5px;
+  border-color: var(--ds-brand);
+  box-shadow:
+    0 4px 14px rgba(37, 99, 235, 0.12),
+    0 14px 32px rgba(15, 23, 42, 0.08);
+  animation: none;
+}
+
+html[data-p07-ui="enabled"] #publicHome .public-hero-scene[data-editing="true"] .home-widget-affordance {
+  border-color: var(--ds-brand-border);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  font-weight: 650;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-visual:focus-within {
+  border-color: var(--ds-focus);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html[data-p07-ui="enabled"] #publicHome .hero-scene-card:hover .home-widget-visual {
+    transform: translateY(-3px);
+    box-shadow: var(--ds-shadow-raised);
+  }
+}
+
+html[data-p07-ui="enabled"] #publicHome .hero-scene-card:not([data-dragging="true"]):has(.home-widget-main:active) .home-widget-visual {
+  transform: translateY(-1px) scale(0.992);
+  animation: none;
+}
+
+html[data-p07-ui="enabled"] #publicHome .hero-scene-card[data-dragging="true"] .home-widget-drag {
+  cursor: grabbing;
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] #publicHome .hero-scene-card[data-dragging="true"] .home-widget-visual {
+  border-style: solid;
+  border-color: var(--ds-brand);
+  transform: translateY(-5px) scale(1.018);
+  box-shadow:
+    0 8px 20px rgba(37, 99, 235, 0.16),
+    0 22px 46px rgba(15, 23, 42, 0.14);
+  animation: none;
+}
+
+html[data-p07-ui="enabled"] #publicHome .hero-scene-card[data-settling="true"] .home-widget-visual {
+  transition:
+    transform 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+html[data-p07-ui="enabled"] .home-layout-controls {
+  gap: 8px;
+  margin-top: 6px;
+}
+
+html[data-p07-ui="enabled"] .home-layout-controls button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-xs);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+html[data-p07-ui="enabled"] .home-layout-controls button:hover {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #homeLayoutToggle[aria-pressed="true"] {
+  border-color: var(--ds-brand-border);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+}
+
+/* ==========================================================================
+ * V3 Bottom 4-Column Business Summary Grid (.home-v3-summary-grid)
+ * ========================================================================== */
+/* P07-D-004: Three-card CTA and affordance collision prevention */
+html[data-p07-ui="enabled"] #publicHome [data-has-continue="true"] .home-widget-affordance {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-continue {
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: var(--ds-radius-pill);
+  border: 1px solid var(--ds-brand-soft);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] #publicHome .home-widget-continue:hover {
+  background: var(--ds-brand);
+  color: var(--ds-on-brand);
+}
+
+/* P07-D-005 & P07-D-006: Compact V3 Summary Grid & Full Surface Clickability */
+html[data-p07-ui="enabled"] .home-v3-summary-grid {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 1380px;
+  margin: 10px auto 0;
+  padding: 0 clamp(24px, 3vw, 44px);
+}
+
+@media (min-width: 1720px) {
+  html[data-p07-ui="enabled"] .home-v3-summary-grid,
+  html[data-p07-ui="enabled"] .v3-workspace-footnote {
+    max-width: 1560px;
+  }
+}
+
+html[data-p07-ui="enabled"] .v3-summary-card {
+  min-height: 114px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 18px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  user-select: none;
+  transition:
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 140ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html[data-p07-ui="enabled"] .v3-summary-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--ds-brand-border);
+    box-shadow: var(--ds-shadow-raised);
+  }
+}
+
+html[data-p07-ui="enabled"] .v3-summary-card:active {
+  transform: translateY(0) scale(0.985);
+}
+
+html[data-p07-ui="enabled"] .v3-summary-title {
+  display: block;
+  color: var(--ds-text);
+  font-size: 1.0625rem;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+}
+
+html[data-p07-ui="enabled"] .v3-summary-meta {
+  display: block;
+  margin: 6px 0 12px;
+  color: var(--ds-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 450;
+  line-height: 1.4;
+}
+
+html[data-p07-ui="enabled"] .v3-summary-track {
+  display: block;
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-muted);
+}
+
+html[data-p07-ui="enabled"] .v3-summary-track > b {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ds-brand);
+  transform-origin: left center;
+  transform: scaleX(var(--v3-bar-scale, 0.5));
+  transition: transform 240ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+#v3SummaryLearningBar { --v3-bar-scale: 0.58; }
+#v3SummaryFinanceBar { --v3-bar-scale: 0.34; }
+#v3SummaryTransferBar { --v3-bar-scale: 0.72; }
+#v3SummaryToolsBar { --v3-bar-scale: 0.48; }
+
+html[data-p07-ui="enabled"] .v3-workspace-footnote {
+  display: block;
+  width: 100%;
+  max-width: 1380px;
+  margin: 18px auto 14px;
+  padding: 0 clamp(24px, 3vw, 44px);
+  color: var(--ds-text-muted);
+  font-size: 0.78125rem;
+  line-height: 1.5;
+}
+
+/* Keep legacy quick-access non-redundant in V3 while preserving computed white card tokens */
+html[data-p07-ui="enabled"] .home-quick-access,
+html[data-p07-ui="enabled"] .home-recent-activity {
+  padding: var(--ds-space-6);
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="guest"] .home-workspace-overview {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .home-workspace-overview {
+  grid-template-columns: minmax(0, 1fr);
+  width: calc(100% - clamp(48px, 6vw, 88px));
+  max-width: 1292px;
+  margin: 14px auto 18px;
+  padding: 0;
+  border-top: 0;
+}
+
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .home-quick-access {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] .home-product-details {
+  width: calc(100% - clamp(48px, 6vw, 88px));
+  max-width: 1292px;
+  margin: 8px auto 28px;
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  padding: 0 var(--ds-space-6);
+}
+
+html[data-p07-ui="enabled"] .home-product-details > summary {
+  font-weight: 650;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .home-product-details[open] {
+  padding-bottom: var(--ds-space-6);
+}
+
+html[data-p07-ui="enabled"] .aeris-final-cta {
+  max-width: 1292px;
+  width: calc(100% - clamp(48px, 6vw, 88px));
+  margin-inline: auto;
+}
+
+@keyframes aeris-spatial-arrive {
+  from { opacity: 0.76; transform: translateY(8px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Prevent background scrolling during splash / boot loading */
+html:has(#entryScreen),
+html[data-boot-state="splash"],
+html:has(#entryScreen) body,
+html[data-boot-state="splash"] body {
+  overflow: hidden !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+}
+
+html:has(#entryScreen) #appShell.app-shell-pending {
+  display: none !important;
+}
+
+/* Enlarged root text (200% WCAG 1.4.4 reflow) */
+html[data-p07-ui="enabled"][data-large-text="true"] .home-v3-summary-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+html[data-p07-ui="enabled"][data-large-text="true"] #publicHome :is(.home-widget-drag-hint, .home-widget-affordance, .v3-topbar-context) {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"][data-large-text="true"] #publicHome .home-widget-main {
+  justify-content: center;
+}
+
+/* ==========================================================================
+ * Responsive Layouts: Tablet & Mobile (Compact Header + Drawer, No Fixed Sidebar)
+ * ========================================================================== */
+@media (max-width: 1180px) {
+  html[data-p07-ui="enabled"] .home-v3-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+html[data-p07-ui="enabled"] #appShell:has(#sessionRecovery:not(.hidden)) :is(#accountBar, .v3-app-frame) {
+  display: none;
+}
+
+@media (max-width: 980px) {
+  html[data-p07-ui="enabled"] .v3-topbar-context {
+    display: none;
+  }
+
+  html[data-p07-ui="enabled"] #publicHome .public-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 24px;
+    min-height: 0;
+    padding: 24px 20px 16px;
+    background-size: 120% auto;
+  }
+
+  html[data-p07-ui="enabled"] .home-v3-summary-grid,
+  html[data-p07-ui="enabled"] .v3-workspace-footnote {
+    padding-inline: 20px;
+  }
+
+  html[data-p07-ui="enabled"] .home-product-details,
+  html[data-p07-ui="enabled"] .aeris-final-cta,
+  html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .home-workspace-overview {
+    width: calc(100% - 40px);
+  }
+}
+
+@media (max-width: 600px) {
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome .public-hero {
+    gap: 10px;
+    padding: 12px 16px 8px;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome .home-purpose {
+    margin-bottom: 6px;
+    padding: 2px 10px;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) .v3-hero-copy {
+    gap: 5px;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) .v3-hero-kicker {
+    font-size: 0.9375rem;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) .v3-hero-headline {
+    margin-top: 0;
+    gap: 3px;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) .v3-hero-headline strong {
+    font-size: 1.625rem;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) .v3-hero-headline span {
+    font-size: 0.9375rem;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) .v3-hero-caption {
+    display: none;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) .home-identity:not([hidden]) {
+    margin-top: 6px;
+    padding: 3px 10px;
+    gap: 2px 6px;
+    font-size: 0.75rem;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome .public-actions {
+    margin-top: 10px;
+    gap: 6px;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome .public-actions > * {
+    min-height: 44px;
+    padding-inline: 11px;
+    font-size: 0.8125rem;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome #publicLoginBtn {
+    min-height: 44px;
+    padding-inline: 14px;
+    font-size: 0.84375rem;
+  }
+
+  html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome[data-widget-layout="mobile"] .public-hero-scene {
+    gap: 0;
+  }
+
+  html[data-p07-ui="enabled"] .home-v3-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding-inline: 16px;
+  }
+
+  html[data-p07-ui="enabled"] .v3-summary-card {
+    min-height: 118px;
+    padding: 18px;
+  }
+
+  html[data-p07-ui="enabled"] .v3-workspace-footnote {
+    padding-inline: 16px;
+  }
+
+  html[data-p07-ui="enabled"] .home-product-details,
+  html[data-p07-ui="enabled"] .aeris-final-cta,
+  html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .home-workspace-overview {
+    width: calc(100% - 32px);
+  }
+
+  html[data-p07-ui="enabled"] .home-product-details {
+    padding: 0 var(--ds-space-4);
+  }
+
+  html[data-p07-ui="enabled"] .v3-main-canvas {
+    display: flex;
+    flex-direction: column;
+  }
+
+  html[data-p07-ui="enabled"] #versionNotice:not(.hidden) {
+    order: 99;
+    position: relative;
+    right: auto;
+    bottom: auto;
+    width: calc(100% - 32px);
+    margin: 8px auto 20px;
+    box-shadow: var(--ds-shadow-card);
+  }
+
+  .aeris-preview-notice:not([hidden]) {
+    width: calc(100% - 32px);
+    border-radius: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-p07-ui="enabled"] #publicHome .home-widget-visual,
+  html[data-p07-ui="enabled"] .v3-summary-card,
+  html[data-p07-ui="enabled"] .v3-summary-track > b {
+    animation: none !important;
+    transition: none !important;
+  }
+  html[data-p07-ui="enabled"] #publicHome .hero-scene-card:is(:hover, [data-dragging="true"], [data-settling="true"]) .home-widget-visual {
+    transform: none !important;
+  }
+}
+
+html[data-p07-ui="enabled"][data-android-reduced-motion="true"] #publicHome .home-widget-visual {
+  animation: none !important;
+  transition: none !important;
+}
+
+html[data-p07-ui="enabled"][data-android-reduced-motion="true"] #publicHome .hero-scene-card:is(:hover, [data-dragging="true"], [data-settling="true"]) .home-widget-visual {
+  transform: none !important;
+}
+
+/* ==========================================================================
+ * Login & Register V3 Workspace Card (#authPanel — Unified Token System)
+ * ========================================================================== */
+html[data-p07-ui="enabled"] #projectApp:has(#authPanel:not(.hidden)) {
+  display: grid;
+  align-content: start;
+  padding-block: 24px 40px;
+}
+
+html[data-p07-ui="enabled"] .auth-panel {
+  width: min(468px, calc(100% - 32px));
+  margin: 16px auto 24px;
+  padding: 36px 34px;
+  border: 1px solid var(--ds-border);
+  border-radius: 20px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .auth-panel .auth-logo {
+  width: 76px;
+  height: 76px;
+  padding: 6px;
+  margin: 0 0 18px;
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  object-fit: contain;
+}
+
+html[data-p07-ui="enabled"] .auth-panel :is(h1, h2) {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .auth-subtitle {
+  display: block;
+  margin: 8px 0 0;
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-sm);
+  line-height: 1.6;
+}
+
+html[data-p07-ui="enabled"] .auth-tabs {
+  margin: 22px 0 20px;
+  padding: 4px;
+  gap: 4px;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface-muted);
+}
+
+html[data-p07-ui="enabled"] .auth-tabs .ds-tab-indicator {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] .auth-tabs > button {
+  min-height: 44px;
+  border-radius: 9px;
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .auth-tabs > button.active,
+html[data-p07-ui="enabled"] .auth-tabs > button[aria-selected="true"] {
+  border-color: var(--ds-border);
+  background: var(--ds-surface);
+  color: var(--ds-brand);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+html[data-p07-ui="enabled"] .auth-panel .login-form {
+  display: grid;
+  gap: 16px;
+}
+
+html[data-p07-ui="enabled"] .auth-field {
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] .auth-field > span {
+  color: var(--ds-text);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] .auth-panel input {
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: 11px;
+  background: var(--ds-surface);
+  font-size: var(--ds-text-md);
+}
+
+html[data-p07-ui="enabled"] .auth-panel input:-webkit-autofill {
+  -webkit-text-fill-color: var(--ds-text);
+  box-shadow: 0 0 0 1000px var(--ds-surface) inset;
+}
+
+html[data-p07-ui="enabled"] .auth-panel :is(#loginSubmitBtn, #registerSubmitBtn) {
+  min-height: 48px;
+  width: 100%;
+  margin-top: 6px;
+  border-radius: 12px;
+  font-size: var(--ds-text-md);
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] #offlineReviewBtn:not(.hidden) {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  border-radius: 12px;
+}
+
+html[data-p07-ui="enabled"] #loginError:empty {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-height: 0;
+}
+
+html[data-p07-ui="enabled"] #loginError:not(:empty) {
+  margin: 16px 0 0;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--ds-error) 28%, var(--ds-border));
+  border-radius: 10px;
+  background: var(--ds-error-soft);
+  color: var(--ds-error);
+  font-size: var(--ds-text-sm);
+  line-height: 1.5;
+}
+
+@media (max-width: 560px) {
+  html[data-p07-ui="enabled"] .auth-panel {
+    margin: 12px auto 20px;
+    padding: 26px 20px;
+  }
+  html[data-p07-ui="enabled"] .auth-panel .auth-logo {
+    width: 66px;
+    height: 66px;
+    border-radius: 14px;
+    margin-bottom: 14px;
+  }
+}
+
+/* Unified Aeris brand primary buttons across public Home & Workspace (light #2563eb / dark #6ea2ff) */
+html[data-p07-ui="enabled"] :is(#publicHome .public-actions .primary, #accountBar #navRegisterBtn) {
+  border-color: var(--ds-brand);
+  background: var(--ds-brand);
+  color: var(--ds-on-brand);
+}
+
+html[data-p07-ui="enabled"] :is(#publicHome .public-actions .primary, #accountBar #navRegisterBtn):hover:not(:disabled) {
+  border-color: var(--ds-brand-hover);
+  background: var(--ds-brand-hover);
+  color: var(--ds-on-brand);
+}
+
+/* While layout editing is active, yield top-right slot cleanly to the 44px drag handle */
+html[data-p07-ui="enabled"] #publicHome .public-hero-scene[data-editing="true"] .home-widget-demo {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Leave the focused content clear when native zoom leaves a short viewport (Codex QA 91a06fc). */
+@media (max-height: 600px) {
+  html[data-p07-ui="enabled"] #accountBar {
+    position: relative;
+    top: auto;
+  }
+
+  html[data-p07-ui="enabled"] #versionNotice:not(.hidden) {
+    position: static;
+    width: min(380px, calc(100% - 32px));
+    margin: 12px auto;
+  }
+}
+
+
+/* ==========================================================================
+ * Aeris V6.2 P07-D Business Workspaces Refactoring
+ * ========================================================================== */
+/* ==========================================================================
+ * Aeris V6.2 P07-D Unified Business Workspaces (Language, Mastery, Tools, Finance)
+ * Governed strictly under html[data-p07-ui="enabled"] for zero fallback regression
+ * ========================================================================== */
+
+/* Common Workspace Container & Header System */
+html[data-p07-ui="enabled"] :is(#languagePanel, #workspace, #toolsPanel, #financePage, #transferPage) {
+  width: calc(100% - clamp(32px, 5vw, 64px));
+  max-width: 1240px;
+  margin: 24px auto 48px;
+  min-height: auto;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] :is(#languagePanel, #workspace, #toolsPanel, #financePage, #transferPage) {
+    width: calc(100% - 24px);
+    margin: 16px auto 36px;
+  }
+}
+
+html[data-p07-ui="enabled"] :is(.finance-header, .tools-header, .workflow-header, .transfer-header) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+html[data-p07-ui="enabled"] :is(.finance-header, .tools-header, .workflow-header, .transfer-header) h1,
+html[data-p07-ui="enabled"] :is(.finance-header, .tools-header, .workflow-header, .transfer-header) h2 {
+  font-size: clamp(1.5rem, 3.5vw, 1.875rem);
+  font-weight: 800;
+  color: var(--ds-text);
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.25;
+}
+
+html[data-p07-ui="enabled"] :is(.finance-header, .tools-header, .workflow-header, .transfer-header) p {
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  margin: 4px 0 0;
+}
+
+html[data-p07-ui="enabled"] .section-kicker {
+  color: var(--ds-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+/* ==========================================================================
+ * P07-03: Authenticated Personal Space (Dashboard & Identity Refinements)
+ * ========================================================================== */
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .home-identity:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 6px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+html[data-p07-ui="enabled"] #dashboardGreeting {
+  font-weight: 700;
+  color: var(--ds-text);
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"] #dashboardMembershipName:not(:empty) {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] #dashboardMembershipExpiry:not(:empty) {
+  color: var(--ds-text-muted);
+  font-size: 0.75rem;
+}
+
+html[data-p07-ui="enabled"] .home-recent-activity {
+  margin-top: 18px;
+  padding: 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .home-recent-activity h2 {
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0 0 14px;
+  letter-spacing: -0.01em;
+}
+
+html[data-p07-ui="enabled"] #homeRecentActivity {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] #homeRecentActivity li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+html[data-p07-ui="enabled"] #homeRecentActivity li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* ==========================================================================
+ * P07-04: Language Learning & Immersive Question Solving (02-语言学习-沉浸答题.png)
+ * ========================================================================== */
+/* Language Selection Picker */
+html[data-p07-ui="enabled"] #languagePanel {
+  padding: 36px 32px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] #languagePanel .language-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+html[data-p07-ui="enabled"] #languagePanel [data-language-choice] {
+  min-height: 96px;
+  padding: 22px 28px;
+  border: 1.5px solid var(--ds-border);
+  border-radius: 16px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 1.25rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+html[data-p07-ui="enabled"] #languagePanel [data-language-choice]:hover {
+  border-color: var(--ds-brand);
+  background: var(--ds-surface-subtle);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08);
+}
+
+/* Workspace Navigation Tabs */
+html[data-p07-ui="enabled"] #workspace .tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  margin-bottom: 24px;
+}
+
+html[data-p07-ui="enabled"] #workspace .tabs button {
+  min-height: 40px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ds-text-secondary);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] #workspace .tabs button:hover:not(:disabled) {
+  color: var(--ds-text);
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] #workspace .tabs button.active {
+  background: var(--ds-brand);
+  color: var(--ds-on-brand);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+html[data-p07-ui="enabled"] #workspace .tabs button:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+/* P07-D-001 & P07-D-002: Enforce strict view isolation in V3 Workspace */
+html[data-p07-ui="enabled"] .view:not(.active) {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] #quizView:not(.active) {
+  display: none !important;
+}
+
+/* Immersive Quiz View Centered Single-Column Default */
+html[data-p07-ui="enabled"] #quizView.active {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+html[data-p07-ui="enabled"] #quizView .quiz-card {
+  width: 100% !important;
+  max-width: 860px !important;
+  margin: 0 auto !important;
+}
+
+html[data-p07-ui="enabled"] #quizView .result-panel {
+  width: 100% !important;
+  max-width: 860px !important;
+  margin: 20px auto 0 !important;
+}
+
+/* Two-column layout when feedback is active on wide desktop (>= 1100px) */
+@media (min-width: 1100px) {
+  html[data-p07-ui="enabled"] #quizView.active.has-feedback {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.3fr) minmax(340px, 0.9fr) !important;
+    gap: 24px !important;
+    align-items: start !important;
+    max-width: 1200px !important;
+    margin: 0 auto !important;
+  }
+  html[data-p07-ui="enabled"] #quizView.active.has-feedback .quiz-card {
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+  html[data-p07-ui="enabled"] #quizView.active.has-feedback .result-panel {
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+}
+
+/* Mastery section is only shown in wrongView to prevent stacking over setupView */
+html[data-p07-ui="enabled"] #masterySection {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] #workspace[data-active-view="wrongView"] #masterySection:not(.hidden) {
+  display: block !important;
+}
+
+html[data-p07-ui="enabled"] #quizView .quiz-card {
+  padding: clamp(24px, 4vw, 36px);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+html[data-p07-ui="enabled"] #quizView .quiz-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] #quizView .quiz-meta span {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] #quizView #progressLabel {
+  border-color: rgba(37, 99, 235, 0.25);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] #quizView .word-display {
+  padding: 36px 24px;
+  border-radius: 18px;
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border-subtle);
+  text-align: center;
+  min-height: 130px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+html[data-p07-ui="enabled"] #quizView .word-primary {
+  font-size: clamp(2.2rem, 5vw, 3rem);
+  font-weight: 800;
+  color: var(--ds-text);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+html[data-p07-ui="enabled"] #quizView .word-reading {
+  font-size: 1.1875rem;
+  color: var(--ds-text-secondary);
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+html[data-p07-ui="enabled"] #quizView .answer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+html[data-p07-ui="enabled"] #quizView #answerInput {
+  min-height: 50px;
+  padding: 0 18px;
+  border: 1.5px solid var(--ds-border-strong);
+  border-radius: 12px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 1.0625rem;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] #quizView #answerInput:focus {
+  border-color: var(--ds-brand);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+html[data-p07-ui="enabled"] #quizView #submitBtn {
+  min-height: 48px;
+  border-radius: 12px;
+  background: var(--ds-brand);
+  border-color: var(--ds-brand);
+  color: var(--ds-on-brand);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] #quizView #submitBtn:hover:not(:disabled) {
+  background: var(--ds-brand-hover);
+  border-color: var(--ds-brand-hover);
+}
+
+html[data-p07-ui="enabled"] #quizView .action-row.compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] #quizView .action-row.compact button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: 10px;
+  background: var(--ds-surface);
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] #quizView .action-row.compact button:hover:not(:disabled) {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+}
+
+/* Feedback Panel (Right Column matching 02 reference card) */
+html[data-p07-ui="enabled"] #quizView .result-panel {
+  padding: 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] #quizView .result-title {
+  font-size: 1.125rem;
+  font-weight: 750;
+  margin-bottom: 8px;
+}
+
+html[data-p07-ui="enabled"] #quizView .result-gloss {
+  color: var(--ds-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+html[data-p07-ui="enabled"] #quizView #acceptedChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+html[data-p07-ui="enabled"] #quizView #acceptedChips span {
+  display: inline-flex;
+  padding: 3px 10px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-secondary);
+  font-size: 0.8125rem;
+}
+
+/* ==========================================================================
+ * P07-05: Mastery, Wrong Questions, Stats & Achievements (03-错题与Mastery.png)
+ * ========================================================================== */
+/* Mastery Section */
+html[data-p07-ui="enabled"] .mastery-section {
+  padding: 32px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .mastery-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+html[data-p07-ui="enabled"] .mastery-heading h3 {
+  font-size: 1.375rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+html[data-p07-ui="enabled"] .mastery-heading .eyebrow {
+  color: var(--ds-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+html[data-p07-ui="enabled"] .mastery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+html[data-p07-ui="enabled"] #masteryStartBtn {
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: 12px;
+  background: var(--ds-brand);
+  border-color: var(--ds-brand);
+  color: var(--ds-on-brand);
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+html[data-p07-ui="enabled"] #masteryStartBtn:hover:not(:disabled) {
+  background: var(--ds-brand-hover);
+  border-color: var(--ds-brand-hover);
+}
+
+html[data-p07-ui="enabled"] .mastery-actions button.secondary,
+html[data-p07-ui="enabled"] #masteryRetryBtn {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"] .mastery-actions button.secondary:hover,
+html[data-p07-ui="enabled"] #masteryRetryBtn:hover {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] .mastery-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] .mastery-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-p07-ui="enabled"] .mastery-columns details {
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface-subtle);
+  padding: 16px;
+}
+
+html[data-p07-ui="enabled"] .mastery-columns summary {
+  font-weight: 700;
+  color: var(--ds-text);
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+html[data-p07-ui="enabled"] .mastery-point {
+  padding: 10px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 10px;
+  background: var(--ds-surface);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Wrong Questions View (#wrongView) */
+html[data-p07-ui="enabled"] #wrongView .panel {
+  padding: 28px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] #wrongView .scope-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface-subtle);
+  margin-bottom: 16px;
+}
+
+html[data-p07-ui="enabled"] #wrongView .scope-tabs button {
+  min-height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ds-text-secondary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+html[data-p07-ui="enabled"] #wrongView .scope-tabs button.active {
+  background: var(--ds-surface);
+  color: var(--ds-brand);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+html[data-p07-ui="enabled"] #wrongSearchInput {
+  min-height: 46px;
+  padding: 0 16px;
+  border: 1.5px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 0.9375rem;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+html[data-p07-ui="enabled"] #wrongSearchInput:focus {
+  border-color: var(--ds-brand);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+html[data-p07-ui="enabled"] #reviewBtn {
+  min-height: 44px;
+  padding: 0 24px;
+  border-radius: 12px;
+  background: var(--ds-brand);
+  border-color: var(--ds-brand);
+  color: var(--ds-on-brand);
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+html[data-p07-ui="enabled"] #reviewBtn:hover {
+  background: var(--ds-brand-hover);
+  border-color: var(--ds-brand-hover);
+}
+
+html[data-p07-ui="enabled"] .wrong-item {
+  padding: 18px 20px;
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .wrong-item:hover {
+  border-color: var(--ds-border-strong);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .wrong-item h3 {
+  font-size: 1.1875rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] .wrong-item p {
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  margin: 4px 0 0;
+}
+
+/* Achievements View (#achievementsView) */
+html[data-p07-ui="enabled"] #achievementsView .achievement-panel {
+  padding: 28px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .achievement-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+html[data-p07-ui="enabled"] .achievement-overview div {
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface-subtle);
+  text-align: center;
+}
+
+html[data-p07-ui="enabled"] .achievement-overview strong {
+  display: block;
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] .achievement-overview span {
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+}
+
+/* Study Stats View (#studyView) */
+html[data-p07-ui="enabled"] #studyView .study-panel {
+  padding: 28px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .study-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] .study-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+html[data-p07-ui="enabled"] .study-metrics div {
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface-subtle);
+  text-align: center;
+}
+
+html[data-p07-ui="enabled"] .study-metrics strong {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .study-metrics span {
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+}
+
+/* ==========================================================================
+ * P07-08: Toolbox & Real Tool Workspaces (04-工具箱-真实工具工作区.png)
+ * ========================================================================== */
+html[data-p07-ui="enabled"] #toolsPanel .tools-dashboard {
+  padding: 0;
+}
+
+html[data-p07-ui="enabled"] #toolSearchInput {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1.5px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 1rem;
+  width: 100%;
+  margin-bottom: 20px;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] #toolSearchInput:focus {
+  border-color: var(--ds-brand);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+html[data-p07-ui="enabled"] .tool-category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+html[data-p07-ui="enabled"] .tool-category-pills button {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface);
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .tool-category-pills button:hover {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .tool-category-pills button.active {
+  background: var(--ds-brand);
+  border-color: var(--ds-brand);
+  color: var(--ds-on-brand);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+html[data-p07-ui="enabled"] .tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+html[data-p07-ui="enabled"] .tool-card {
+  padding: 22px;
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+html[data-p07-ui="enabled"] .tool-card:hover {
+  border-color: var(--ds-brand);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+html[data-p07-ui="enabled"] .tool-card h3 {
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0 0 6px;
+}
+
+html[data-p07-ui="enabled"] .tool-card p {
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Tool Workbench 2-Column Structure matching 04-工具箱-真实工具工作区.png */
+html[data-p07-ui="enabled"] #toolWorkbench {
+  padding: 28px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .tool-workbench-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+html[data-p07-ui="enabled"] #toolWorkbenchTitle {
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: var(--ds-text);
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] #toolWorkbenchCategory {
+  color: var(--ds-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+html[data-p07-ui="enabled"] #toolWorkbenchDescription {
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  margin: 4px 0 0;
+}
+
+html[data-p07-ui="enabled"] #closeWorkbenchBtn {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: 10px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"] #closeWorkbenchBtn:hover {
+  background: var(--ds-surface-subtle);
+  border-color: var(--ds-border-strong);
+}
+
+/* Privacy & Local Execution Badge */
+html[data-p07-ui="enabled"] .tool-privacy-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--ds-radius-pill);
+  background: rgba(22, 163, 74, 0.08);
+  border: 1px solid rgba(22, 163, 74, 0.22);
+  color: #16a34a;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+ * P07-06: Finance Ledger Workspace (00-全站设计索引.png Page 6)
+ * ========================================================================== */
+html[data-p07-ui="enabled"] #financePage {
+  padding: 0;
+}
+
+html[data-p07-ui="enabled"] .finance-summary-section {
+  margin-bottom: 24px;
+}
+
+html[data-p07-ui="enabled"] .finance-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 16px;
+}
+
+@media (max-width: 900px) {
+  html[data-p07-ui="enabled"] .finance-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  html[data-p07-ui="enabled"] .finance-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-p07-ui="enabled"] .finance-summary-grid article {
+  padding: 22px 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .finance-summary-grid article:hover {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+html[data-p07-ui="enabled"] .finance-summary-grid span {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .finance-summary-grid strong {
+  display: block;
+  font-size: clamp(1.5rem, 3.2vw, 1.875rem);
+  font-weight: 850;
+  margin-top: 8px;
+  letter-spacing: -0.02em;
+}
+
+html[data-p07-ui="enabled"] #financeIncomeTotal {
+  color: #16a34a;
+}
+
+html[data-p07-ui="enabled"] #financeExpenseTotal {
+  color: #e11d48;
+}
+
+html[data-p07-ui="enabled"] #financeRefundTotal {
+  color: #d97706;
+}
+
+html[data-p07-ui="enabled"] #financeBalanceTotal {
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] #financeAddTransactionBtn {
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 12px;
+  background: var(--ds-brand);
+  border-color: var(--ds-brand);
+  color: var(--ds-on-brand);
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+html[data-p07-ui="enabled"] #financeAddTransactionBtn:hover {
+  background: var(--ds-brand-hover);
+  border-color: var(--ds-brand-hover);
+}
+
+/* Finance Content Grid: Main Ledger (Left) + Side Panels (Right) */
+html[data-p07-ui="enabled"] .finance-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.85fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  html[data-p07-ui="enabled"] .finance-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-p07-ui="enabled"] .finance-ledger-panel {
+  padding: 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .finance-side-panel {
+  padding: 22px;
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  margin-bottom: 20px;
+}
+
+html[data-p07-ui="enabled"] .finance-side-panel h2 {
+  font-size: 1.0625rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] .finance-transaction-item {
+  padding: 16px 18px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: 12px;
+  background: var(--ds-surface);
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .finance-transaction-item:hover {
+  border-color: var(--ds-border);
+  background: var(--ds-surface-subtle);
+}
+
+/* ==========================================================================
+ * P07-07: Notification Archive & Candidate Verification (09-通知归档与候选核实.png)
+ * ========================================================================== */
+html[data-p07-ui="enabled"] .finance-candidates-section {
+  padding: 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  margin-bottom: 24px;
+}
+
+html[data-p07-ui="enabled"] .finance-candidates-section summary {
+  font-size: 1.1875rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  cursor: pointer;
+  letter-spacing: -0.01em;
+}
+
+html[data-p07-ui="enabled"] #financePendingCount {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-card,
+html[data-p07-ui="enabled"] .finance-candidate-item {
+  padding: 18px 20px;
+  border: 1.5px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface-subtle);
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-card:hover,
+html[data-p07-ui="enabled"] .finance-candidate-item:hover {
+  border-color: var(--ds-brand);
+  background: var(--ds-surface);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+}
+
+html[data-p07-ui="enabled"] .candidate-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--ds-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] .candidate-pill-badge.transaction {
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] .candidate-pill-badge.notice {
+  background: rgba(100, 116, 139, 0.1);
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-card button.confirm-candidate {
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  background: var(--ds-brand);
+  border-color: var(--ds-brand);
+  color: var(--ds-on-brand);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+
+/* ==========================================================================
+ * Aeris V6.2 P07-D-007 Finance Trend Chart & Layout
+ * ========================================================================== */
+html[data-p07-ui="enabled"] .finance-trend-section {
+  padding: 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  margin-top: 24px;
+}
+
+html[data-p07-ui="enabled"] .finance-trend-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+html[data-p07-ui="enabled"] .income-dot {
+  background: #10b981;
+}
+
+html[data-p07-ui="enabled"] .expense-dot {
+  background: #ef4444;
+}
+
+html[data-p07-ui="enabled"] .finance-trend-chart-wrap {
+  width: 100%;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+html[data-p07-ui="enabled"] .finance-chart-svg {
+  width: 100%;
+  height: auto;
+  max-height: 240px;
+  overflow: visible;
+}
+
+html[data-p07-ui="enabled"] .finance-trend-month-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+@media (max-width: 960px) {
+  html[data-p07-ui="enabled"] .finance-trend-month-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  html[data-p07-ui="enabled"] .finance-trend-month-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+html[data-p07-ui="enabled"] .trend-month-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  font-size: 0.8125rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .trend-month-card:hover {
+  border-color: var(--ds-brand-border);
+  transform: translateY(-1px);
+  box-shadow: var(--ds-shadow-raised);
+}
+
+html[data-p07-ui="enabled"] .trend-month-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ds-text);
+  margin-bottom: 2px;
+}
+
+html[data-p07-ui="enabled"] .trend-month-inc {
+  color: #10b981;
+}
+
+html[data-p07-ui="enabled"] .trend-month-exp {
+  color: #ef4444;
+}
+
+html[data-p07-ui="enabled"] .trend-month-net {
+  font-weight: 600;
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--ds-border-subtle);
+}
+
+html[data-p07-ui="enabled"] .trend-month-net.is-income {
+  color: #10b981;
+}
+
+html[data-p07-ui="enabled"] .trend-month-net.is-expense {
+  color: #ef4444;
+}
+
+html[data-p07-ui="enabled"] .finance-chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--ds-text-secondary);
+  border: 1.5px dashed var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface-subtle);
+  width: 100%;
+}
+
+html[data-p07-ui="enabled"] .finance-chart-empty-icon {
+  margin-bottom: 12px;
+  color: var(--ds-text-muted);
+}
+
+html[data-p07-ui="enabled"] .finance-chart-empty-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ds-text);
+  margin-bottom: 4px;
+}
+
+html[data-p07-ui="enabled"] .finance-chart-empty-hint {
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+  max-width: 420px;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+ * Aeris V6.2 P07-E Membership & Account V3 Workspaces
+ * ========================================================================== */
+html[data-p07-ui="enabled"] #membershipModal,
+html[data-p07-ui="enabled"] #accountModal {
+  position: static !important;
+  inset: auto !important;
+  width: 100% !important;
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+  padding: clamp(20px, 3.5vw, 36px) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  z-index: auto !important;
+  overflow: visible !important;
+  display: block !important;
+  box-sizing: border-box !important;
+}
+
+html[data-p07-ui="enabled"] #membershipModal.hidden,
+html[data-p07-ui="enabled"] #accountModal.hidden {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .modal-panel,
+html[data-p07-ui="enabled"] #accountModal .modal-panel,
+html[data-p07-ui="enabled"] #membershipModal .v3-workspace-content,
+html[data-p07-ui="enabled"] #accountModal .v3-workspace-content {
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  overflow-y: visible !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .modal-close,
+html[data-p07-ui="enabled"] #accountModal .modal-close {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .section-kicker,
+html[data-p07-ui="enabled"] #accountModal .section-kicker {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] #membershipModal :is(h1, h2)#membershipTitle,
+html[data-p07-ui="enabled"] #accountModal :is(h1, h2)#accountTitle {
+  font-size: clamp(1.8rem, 3.5vw, 2.25rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--ds-text);
+  margin: 4px 0 20px;
+  line-height: 1.3;
+}
+
+/* 4-Step Process Stepper (matching 06-会员与人工审核) */
+html[data-p07-ui="enabled"] .membership-v3-stepper {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] .membership-v3-stepper {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+html[data-p07-ui="enabled"] .v3-step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .v3-step-item.active {
+  border-color: var(--ds-brand);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] .v3-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ds-border);
+  color: var(--ds-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+html[data-p07-ui="enabled"] .v3-step-item.active .v3-step-num {
+  background: var(--ds-brand);
+  color: var(--ds-on-brand);
+}
+
+/* Membership Goal Options (06-会员选择用途自适应网格) */
+html[data-p07-ui="enabled"] #membershipModal .membership-goal-field {
+  border: 0;
+  margin: 0 0 24px;
+  padding: 0;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .membership-goal-field legend {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--ds-text);
+  margin-bottom: 12px;
+  padding: 0;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .membership-goal-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .membership-goal-option {
+  min-height: 84px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--ds-border);
+  border-radius: 14px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .membership-goal-option:hover {
+  border-color: var(--ds-brand-border);
+  transform: translateY(-1px);
+}
+
+html[data-p07-ui="enabled"] #membershipModal .membership-goal-option[aria-pressed="true"],
+html[data-p07-ui="enabled"] #membershipModal .membership-goal-option.active {
+  border-color: var(--ds-brand);
+  background: var(--ds-brand-soft);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* Membership Plans Grid */
+html[data-p07-ui="enabled"] #membershipModal .plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin: 18px 0 28px;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .plan-option {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px 20px;
+  border: 2px solid var(--ds-border);
+  border-radius: 18px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  text-align: left;
+  cursor: pointer;
+  min-height: 170px;
+  transition: all 0.18s ease;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .plan-option:hover {
+  transform: translateY(-2px);
+  border-color: var(--ds-brand-border);
+  box-shadow: var(--ds-shadow-raised);
+}
+
+html[data-p07-ui="enabled"] #membershipModal .plan-option.selected {
+  border-color: var(--ds-brand);
+  background: var(--ds-brand-soft);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+html[data-p07-ui="enabled"] #membershipModal .plan-option strong {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #membershipModal .plan-option span {
+  font-size: 1.4375rem;
+  font-weight: 850;
+  color: var(--ds-brand);
+  margin: 10px 0 6px;
+  letter-spacing: -0.02em;
+}
+
+html[data-p07-ui="enabled"] #membershipModal .plan-option small {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ds-text-secondary);
+}
+
+/* Membership Payment Details Section (12-扫码支付与人工审核) */
+html[data-p07-ui="enabled"] #membershipModal .payment-details {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: var(--ds-shadow-card);
+  margin: 20px 0;
+}
+
+/* Dual Profile & Sync Summary Cards (07-账户及现有设置 Layer 2) */
+html[data-p07-ui="enabled"] .account-profile-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] .account-profile-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-p07-ui="enabled"] .account-summary-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 22px 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .account-summary-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+html[data-p07-ui="enabled"] .account-summary-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  flex-shrink: 0;
+}
+
+html[data-p07-ui="enabled"] .account-summary-avatar.is-sync {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+html[data-p07-ui="enabled"] .account-summary-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+html[data-p07-ui="enabled"] .account-summary-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+html[data-p07-ui="enabled"] .account-profile-name,
+html[data-p07-ui="enabled"] .account-sync-title {
+  font-size: 1.15rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+html[data-p07-ui="enabled"] .account-role-badge,
+html[data-p07-ui="enabled"] .account-sync-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+html[data-p07-ui="enabled"] .account-role-badge {
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  border: 1px solid var(--ds-brand-border);
+}
+
+html[data-p07-ui="enabled"] .account-sync-badge {
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
+  border: 1px solid color-mix(in srgb, var(--ds-success) 35%, transparent);
+}
+
+/* Semantic heading promotions retain the accepted account typography. */
+html[data-p07-ui="enabled"] #accountModal :is(.account-profile-name, .account-sync-title, .account-section-subtitle, .account-settings-title) {
+  line-height: 1.35;
+}
+.account-settings-title { font-size: 18px; margin: 0; }
+
+#projectNameLabel { line-height: inherit; }
+.membership-step-title,
+.admin-user-identity > :is(h2, h3) { line-height: 1.35; }
+.payment-order-card-title { line-height: inherit; }
+
+/* Preserve the supported base interface's previous H2/H3 typography too. */
+html:not([data-p07-ui="enabled"]) :is(#membershipTitle, #accountTitle, #workflowTitle) {
+  font-size: var(--ds-text-xl);
+  line-height: 1.3;
+}
+html:not([data-p07-ui="enabled"]) #authTitle { line-height: 1.3; }
+html:not([data-p07-ui="enabled"]) #accountModal :is(.account-profile-name, .account-sync-title, .account-section-subtitle, .account-settings-title),
+html:not([data-p07-ui="enabled"]) #workflowEmptyState > h2 {
+  font-size: var(--ds-text-lg);
+  line-height: 1.35;
+}
+
+/* The existing file input remains in Tab order. Expose its focus on its
+   visible trigger instead of leaving a clipped keyboard focus indicator. */
+.workflow-import-row:focus-within {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 3px;
+  box-shadow: var(--ds-focus-ring);
+}
+
+/* Preserve the former H3 line boxes after the native H2 promotions. */
+html[data-p07-ui="enabled"] :is(.workflow-sidebar-heading, .workflow-template-box, .workflow-editor-empty, .workflow-section-heading) :is(h2, h3) {
+  line-height: 1.35;
+}
+
+/* These notices used a fixed light-theme foreground on the dark warning surface. */
+html[data-p07-ui="enabled"] #membershipModal :is(.membership-warning, .danger-note) {
+  color: var(--ds-warning);
+  background: var(--ds-warning-soft);
+}
+
+html[data-p07-ui="enabled"] .account-profile-id,
+html[data-p07-ui="enabled"] .account-sync-desc {
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+  margin: 4px 0 0;
+  word-break: break-all;
+}
+
+html[data-p07-ui="enabled"] .account-summary-footer {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ds-border-subtle);
+  font-size: 0.75rem;
+  color: var(--ds-text-muted);
+}
+
+html[data-p07-ui="enabled"] .account-section-subtitle {
+  font-size: 1.1rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 28px 0 14px;
+}
+
+/* Dual Card Order & Approval Layout (12-扫码支付与人工审核) */
+html[data-p07-ui="enabled"] .payment-order-dual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 8px;
+}
+
+@media (max-width: 860px) {
+  html[data-p07-ui="enabled"] .payment-order-dual-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-p07-ui="enabled"] .payment-order-info-card,
+html[data-p07-ui="enabled"] .payment-order-action-card {
+  padding: 22px;
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .payment-order-card-title {
+  font-size: 1.05rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+html[data-p07-ui="enabled"] .payment-review-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--ds-bg-subtle, rgba(0,0,0,0.02));
+}
+
+html[data-p07-ui="enabled"] .approval-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.8125rem;
+}
+
+html[data-p07-ui="enabled"] .approval-step-item .approval-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 4px;
+  background: var(--ds-border);
+  flex-shrink: 0;
+}
+
+html[data-p07-ui="enabled"] .approval-step-item.is-done .approval-dot {
+  background: #10b981;
+}
+
+html[data-p07-ui="enabled"] .approval-step-item.is-active .approval-dot {
+  background: var(--ds-brand);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+html[data-p07-ui="enabled"] .approval-step-item strong {
+  display: block;
+  font-weight: 700;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .approval-step-item p {
+  margin: 2px 0 0;
+  color: var(--ds-text-secondary);
+  font-size: 0.75rem;
+}
+
+/* Finance Trend Actions & Toggle */
+html[data-p07-ui="enabled"] .finance-trend-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+html[data-p07-ui="enabled"] .finance-trend-toggle-btn {
+  padding: 6px 14px !important;
+  font-size: 0.8125rem !important;
+  border-radius: 8px !important;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+html[data-p07-ui="enabled"] #financeTrendChartWrap.collapsed,
+html[data-p07-ui="enabled"] .finance-trend-chart-wrap.collapsed {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] #financeTrendSection:has(.collapsed) .finance-trend-legend {
+  display: none !important;
+}
+
+/* Account Workspace Cards (07-账户及现有设置) */
+html[data-p07-ui="enabled"] #accountModal .account-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 24px;
+  padding: 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] #accountModal .account-details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+html[data-p07-ui="enabled"] #accountModal #changeSecretForm {
+  padding: 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  margin-bottom: 24px;
+}
+
+html[data-p07-ui="enabled"] #accountModal .danger-zone {
+  padding: 24px;
+  border: 1.5px solid rgba(239, 68, 68, 0.35);
+  border-radius: 18px;
+  background: rgba(239, 68, 68, 0.04);
+}
+
+/* P1-005: Capability panel full-surface clickability */
+html[data-p07-ui="enabled"] .capability-panel {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+html[data-p07-ui="enabled"] .capability-panel:hover {
+  border-color: var(--ds-brand-border);
+}
+
+/* P1-009 & P1-010: Finance summary responsive and monthly trend grid */
+html[data-p07-ui="enabled"] .finance-summary-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  gap: 16px !important;
+}
+html[data-p07-ui="enabled"] .finance-summary-grid article strong {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: clamp(1.1rem, 2.2vw, 1.5rem) !important;
+}
+
+html[data-p07-ui="enabled"] .finance-trend-month-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+html[data-p07-ui="enabled"] .trend-month-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-surface);
+  font-size: 0.75rem;
+}
+html[data-p07-ui="enabled"] .trend-month-name {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ds-text);
+}
+html[data-p07-ui="enabled"] .trend-month-inc {
+  color: #10b981;
+}
+html[data-p07-ui="enabled"] .trend-month-exp {
+  color: #ef4444;
+}
+html[data-p07-ui="enabled"] .trend-month-net {
+  font-weight: 600;
+  margin-top: 2px;
+  border-top: 1px solid var(--ds-border-subtle);
+  padding-top: 3px;
+}
+
+
+/* ==========================================================================
+ * Aeris V6.2 P07-E Batch 2 Business Workspaces Closure
+ * ========================================================================== */
+
+/* --------------------------------------------------------------------------
+ * E-01: File Transfer & Sharing (05-文件传输与分享)
+ * -------------------------------------------------------------------------- */
+html[data-p07-ui="enabled"] #transferPage {
+  width: calc(100% - clamp(32px, 5vw, 64px));
+  max-width: 1240px;
+  margin: 24px auto 48px;
+  min-height: auto;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] #transferPage {
+    width: calc(100% - 24px);
+    margin: 16px auto 36px;
+  }
+}
+
+html[data-p07-ui="enabled"] #transferQuotaBar {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  border: none;
+  background: var(--ds-border-subtle);
+  margin: 0 0 24px;
+  overflow: hidden;
+}
+
+html[data-p07-ui="enabled"] #transferQuotaBar::-webkit-progress-bar {
+  background: var(--ds-border-subtle);
+  border-radius: 9999px;
+}
+
+html[data-p07-ui="enabled"] #transferQuotaBar::-webkit-progress-value {
+  background: var(--ds-brand);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+html[data-p07-ui="enabled"] #transferQuotaBar::-moz-progress-bar {
+  background: var(--ds-brand);
+  border-radius: 9999px;
+}
+
+@media (min-width: 880px) {
+  html[data-p07-ui="enabled"] #transferPage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  html[data-p07-ui="enabled"] #transferPage > :is(.transfer-header, #transferQuotaBar, .transfer-summary-line, #transferQueue, .transfer-my-shares, #transferShareCard, #transferMessage) {
+    grid-column: 1 / -1;
+  }
+  html[data-p07-ui="enabled"] #transferDropZone {
+    grid-column: 1;
+    grid-row: 3;
+    margin: 0;
+  }
+  html[data-p07-ui="enabled"] .transfer-config {
+    grid-column: 2;
+    grid-row: 3;
+    margin: 0;
+  }
+}
+
+html[data-p07-ui="enabled"] #transferDropZone {
+  border: 2px dashed rgba(37, 99, 235, 0.3);
+  border-radius: 20px;
+  padding: 48px 24px;
+  text-align: center;
+  background: rgba(37, 99, 235, 0.03);
+  transition: border-color 0.2s ease, background 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+}
+
+html[data-p07-ui="enabled"] #transferDropZone:hover,
+html[data-p07-ui="enabled"] #transferDropZone.dragover {
+  border-color: var(--ds-brand);
+  background: rgba(37, 99, 235, 0.07);
+}
+
+html[data-p07-ui="enabled"] #transferDropZone::before {
+  content: "";
+  display: block;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5M5 12l7-7 7 7'/%3E%3C/svg%3E") center / 26px no-repeat;
+}
+
+html[data-p07-ui="enabled"] #transferDropZone strong {
+  font-size: 1.25rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin-bottom: 8px;
+  display: block;
+}
+
+html[data-p07-ui="enabled"] #transferDropZone p {
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  max-width: 440px;
+  margin: 0 auto 20px;
+  line-height: 1.5;
+}
+
+html[data-p07-ui="enabled"] .transfer-drop-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+html[data-p07-ui="enabled"] .transfer-drop-actions button {
+  min-height: 44px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] .transfer-config {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--ds-shadow-card);
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+html[data-p07-ui="enabled"] .transfer-config > * {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+html[data-p07-ui="enabled"] .transfer-config::before {
+  content: "分享选项";
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin-bottom: 14px;
+  letter-spacing: -0.01em;
+}
+
+html[data-p07-ui="enabled"] .transfer-config label:not(.transfer-check) {
+  display: flex !important;
+  flex: none !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] .transfer-config label span {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .transfer-config select,
+html[data-p07-ui="enabled"] .transfer-config input[type="text"],
+html[data-p07-ui="enabled"] .transfer-config input[type="number"] {
+  width: auto;
+  min-width: 130px;
+  max-width: 180px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 0.875rem;
+  text-align: right;
+}
+
+html[data-p07-ui="enabled"] .transfer-config .transfer-check {
+  display: flex !important;
+  flex: none !important;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 0 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--ds-text-secondary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+@media (max-width: 600px) {
+  html[data-p07-ui="enabled"] .transfer-config label:not(.transfer-check) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  html[data-p07-ui="enabled"] .transfer-config select,
+  html[data-p07-ui="enabled"] .transfer-config input[type="text"],
+  html[data-p07-ui="enabled"] .transfer-config input[type="number"] {
+    width: 100%;
+    max-width: 100%;
+    text-align: left;
+  }
+}
+
+html[data-p07-ui="enabled"] .transfer-config .transfer-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ds-brand);
+  margin: 0;
+  flex-shrink: 0;
+}
+
+html[data-p07-ui="enabled"] .transfer-summary-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  font-size: 0.875rem;
+  color: var(--ds-text-secondary);
+  margin: 20px 0 16px;
+}
+
+html[data-p07-ui="enabled"] .transfer-summary-line strong {
+  color: var(--ds-text);
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] .transfer-summary-line button {
+  min-height: 40px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] .transfer-queue,
+html[data-p07-ui="enabled"] .transfer-my-shares,
+html[data-p07-ui="enabled"] .transfer-share-card {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--ds-shadow-card);
+  margin-bottom: 24px;
+}
+
+html[data-p07-ui="enabled"] .transfer-section-heading h2 {
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0 0 4px;
+}
+
+html[data-p07-ui="enabled"] .transfer-section-heading p {
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+  margin: 0 0 16px;
+}
+
+html[data-p07-ui="enabled"] .transfer-item,
+html[data-p07-ui="enabled"] .transfer-share-row,
+html[data-p07-ui="enabled"] .transfer-share-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  transition: border-color 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .transfer-item:hover,
+html[data-p07-ui="enabled"] .transfer-share-row:hover {
+  border-color: var(--ds-brand-border);
+}
+
+html[data-p07-ui="enabled"] .transfer-item-heading strong,
+html[data-p07-ui="enabled"] .transfer-share-row strong {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .transfer-item-state {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+}
+
+html[data-p07-ui="enabled"] .transfer-item progress {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  border: none;
+  background: var(--ds-border-subtle);
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+html[data-p07-ui="enabled"] .transfer-item progress::-webkit-progress-bar {
+  background: var(--ds-border-subtle);
+  border-radius: 9999px;
+}
+
+html[data-p07-ui="enabled"] .transfer-item progress::-webkit-progress-value {
+  background: var(--ds-brand);
+  border-radius: 9999px;
+}
+
+html[data-p07-ui="enabled"] .transfer-item progress::-moz-progress-bar {
+  background: var(--ds-brand);
+  border-radius: 9999px;
+}
+
+html[data-p07-ui="enabled"] .transfer-share-link-row {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+html[data-p07-ui="enabled"] .transfer-share-link-row input {
+  flex: 1;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"] .transfer-qr {
+  display: block;
+  margin: 16px auto;
+  border-radius: 12px;
+  border: 1px solid var(--ds-border);
+  padding: 8px;
+  background: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+ * E-02: Workflow Editor (10-工具工作流编辑器)
+ * -------------------------------------------------------------------------- */
+html[data-p07-ui="enabled"] #toolsPanel:has(#workflowWorkspace:not(.hidden)) > .tools-header {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace {
+  width: calc(100% - clamp(32px, 5vw, 64px));
+  max-width: 1240px;
+  margin: 24px auto 48px;
+  min-height: auto;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] #workflowWorkspace {
+    width: calc(100% - 24px);
+    margin: 16px auto 36px;
+  }
+}
+
+html[data-p07-ui="enabled"] .workflow-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  padding-top: 0;
+}
+
+@media (max-width: 900px) {
+  html[data-p07-ui="enabled"] .workflow-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-p07-ui="enabled"] .workflow-sidebar {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--ds-shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: calc(var(--site-nav-height, 62px) + 20px);
+  max-height: calc(100dvh - var(--site-nav-height, 62px) - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 900px) {
+  html[data-p07-ui="enabled"] .workflow-sidebar {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+html[data-p07-ui="enabled"] .workflow-sidebar-heading :is(h2, h3),
+html[data-p07-ui="enabled"] .workflow-template-box :is(h2, h3) {
+  font-size: 1.0625rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] .workflow-sidebar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+html[data-p07-ui="enabled"] #createWorkflowBtn {
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] .workflow-list button,
+html[data-p07-ui="enabled"] #workflowTemplateList button {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--ds-border-subtle);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  text-align: left;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+html[data-p07-ui="enabled"] .workflow-list button:hover,
+html[data-p07-ui="enabled"] #workflowTemplateList button:hover {
+  border-color: var(--ds-brand-border);
+  background: var(--ds-brand-soft);
+}
+
+html[data-p07-ui="enabled"] .workflow-list button.active {
+  border-color: var(--ds-brand);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+html[data-p07-ui="enabled"] .workflow-list button strong,
+html[data-p07-ui="enabled"] #workflowTemplateList button strong {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] .workflow-list button small,
+html[data-p07-ui="enabled"] #workflowTemplateList button small {
+  font-size: 0.75rem;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] #importWorkflowBtn {
+  width: 100%;
+  padding: 9px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] .workflow-editor {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: var(--ds-shadow-card);
+}
+
+html[data-p07-ui="enabled"] .workflow-editor-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .workflow-editor-empty :is(h2, h3) {
+  font-size: 1.25rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin-bottom: 8px;
+}
+
+html[data-p07-ui="enabled"] .workflow-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+html[data-p07-ui="enabled"] .workflow-title-row label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 240px;
+}
+
+html[data-p07-ui="enabled"] .workflow-title-row label span {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #workflowNameInput {
+  flex: 1;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ds-text);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] .workflow-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 24px 0 16px;
+}
+
+html[data-p07-ui="enabled"] .workflow-section-heading :is(h2, h3) {
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] #workflowStepList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+html[data-p07-ui="enabled"] .workflow-step {
+  position: relative;
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] #workflowStepList > li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  bottom: -24px;
+  left: 36px;
+  width: 2px;
+  height: 24px;
+  background: var(--ds-brand);
+  z-index: 1;
+}
+
+html[data-p07-ui="enabled"] .workflow-step-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+html[data-p07-ui="enabled"] .workflow-step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--ds-brand);
+  color: #ffffff;
+  font-weight: 750;
+  font-size: 0.8125rem;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+html[data-p07-ui="enabled"] .workflow-step-heading strong {
+  font-size: 0.9375rem;
+  font-weight: 750;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] .workflow-step-heading small {
+  font-size: 0.75rem;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .workflow-step-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ds-border-subtle);
+}
+
+html[data-p07-ui="enabled"] .workflow-step-actions button {
+  padding: 5px 12px;
+  font-size: 0.8125rem;
+  border-radius: 6px;
+}
+
+html[data-p07-ui="enabled"] .workflow-runner {
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 28px;
+}
+
+html[data-p07-ui="enabled"] #runWorkflowBtn {
+  min-height: 44px;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] #workflowResultText {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 10px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-family: var(--ds-font-mono, monospace);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+ * E-03: Admin Console & Feature Flags (08-管理后台功能开关)
+ * -------------------------------------------------------------------------- */
+html[data-p07-ui="enabled"] #adminPanel {
+  width: calc(100% - clamp(32px, 5vw, 64px));
+  max-width: 1240px;
+  margin: 24px auto 48px;
+  min-height: auto;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] #adminPanel {
+    width: calc(100% - 24px);
+    margin: 16px auto 36px;
+  }
+}
+
+html[data-p07-ui="enabled"] .admin-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+html[data-p07-ui="enabled"] .admin-header h1 {
+  font-size: clamp(1.5rem, 3.5vw, 1.875rem);
+  font-weight: 800;
+  color: var(--ds-text);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] .admin-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+html[data-p07-ui="enabled"] .admin-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] .admin-tabs {
+    /* The legacy compact rule sets position:static. The absolute motion
+       indicator must remain anchored inside this horizontal scrollport. */
+    position: relative;
+    top: auto;
+  }
+}
+
+html[data-p07-ui="enabled"] .admin-tabs button {
+  min-width: auto;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--ds-text-secondary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .admin-tabs button:hover {
+  color: var(--ds-text);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+html[data-p07-ui="enabled"] .admin-tabs button.active {
+  background: var(--ds-surface);
+  color: var(--ds-brand);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] #adminFeatureFlagsView form {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: var(--ds-shadow-card);
+  margin-bottom: 24px;
+  display: grid;
+  gap: 16px;
+  max-width: 100%;
+}
+
+html[data-p07-ui="enabled"] #adminFeatureFlagsView h2 {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--ds-text);
+  margin: 0 0 8px;
+}
+
+html[data-p07-ui="enabled"] #adminFeatureFlagsView p {
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+html[data-p07-ui="enabled"] .feature-console-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+html[data-p07-ui="enabled"] .feature-console-toolbar select {
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"] #adminFeatureFlagsView fieldset {
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] #adminFeatureFlagsView fieldset legend {
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+  padding: 0 6px;
+}
+
+html[data-p07-ui="enabled"] label:has(#featureFlagKillSwitch:checked) {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: #dc2626 !important;
+  font-weight: 750;
+}
+
+html[data-p07-ui="enabled"] #featureFlagAudit,
+html[data-p07-ui="enabled"] #learningMetrics,
+html[data-p07-ui="enabled"] #featureEvaluationResult {
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border);
+  border-radius: 10px;
+  padding: 14px;
+  color: var(--ds-text);
+  font-family: var(--ds-font-mono, monospace);
+  font-size: 0.8125rem;
+  max-height: 320px;
+  overflow: auto;
+}
+
+html[data-p07-ui="enabled"] :is(.admin-user-card, .admin-login-card, .admin-log-card, .admin-message-card) {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: var(--ds-shadow-card);
+  margin-bottom: 14px;
+  display: grid;
+  gap: 12px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+html[data-p07-ui="enabled"] .admin-user-identity :is(h2, h3) {
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  margin: 0 0 4px;
+}
+
+html[data-p07-ui="enabled"] .admin-user-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"] .admin-user-facts p {
+  margin: 0;
+  display: flex;
+  gap: 6px;
+}
+
+html[data-p07-ui="enabled"] .admin-user-facts span {
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] .admin-user-facts strong {
+  color: var(--ds-text);
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] .admin-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+html[data-p07-ui="enabled"] .admin-toolbar input[type="search"] {
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 600px) {
+  html[data-p07-ui="enabled"] :is(.admin-user-card, .admin-login-card, .admin-log-card, .admin-message-card) {
+    padding: 16px;
+  }
+  html[data-p07-ui="enabled"] .admin-user-facts {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * E-04: Notifications, Messages & Candidate Verification (09-通知归档与候选核实)
+ * -------------------------------------------------------------------------- */
+html[data-p07-ui="enabled"] .finance-candidates-section {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--ds-shadow-card);
+  margin: 24px 0;
+}
+
+html[data-p07-ui="enabled"] .finance-candidates-section summary {
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--ds-text);
+  cursor: pointer;
+  padding: 4px 0;
+  user-select: none;
+}
+
+html[data-p07-ui="enabled"] article.finance-candidate {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: 16px;
+  padding: 20px 22px;
+  margin-top: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] article.finance-candidate:hover {
+  border-color: var(--ds-brand-border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-copy strong {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--ds-text);
+  display: block;
+  margin-bottom: 4px;
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-copy small {
+  color: var(--ds-text-secondary);
+  font-size: 0.8125rem;
+  display: block;
+  margin-bottom: 3px;
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ds-border-subtle);
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-actions button {
+  padding: 6px 16px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+html[data-p07-ui="enabled"] .finance-candidate-editor {
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: 12px;
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border);
+  display: grid;
+  gap: 12px;
+}
+
+html[data-p07-ui="enabled"] #siteMessageModal.modal-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+html[data-p07-ui="enabled"] #siteMessageModal.hidden {
+  display: none !important;
+}
+
+html[data-p07-ui="enabled"] .site-message-panel {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 24px;
+  padding: 32px 36px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.16);
+  width: min(540px, calc(100% - 24px));
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+html[data-p07-ui="enabled"] .site-message-panel .modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ds-border-subtle);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+html[data-p07-ui="enabled"] .site-message-panel .modal-close:hover {
+  background: var(--ds-surface-hover);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #siteMessageTitle {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--ds-text);
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+html[data-p07-ui="enabled"] .site-message-body {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--ds-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+html[data-p07-ui="enabled"] #siteMessageMeta {
+  font-size: 0.8125rem;
+  color: var(--ds-text-muted);
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * E-05: Common Modals, Feedback & States
+ * -------------------------------------------------------------------------- */
+html[data-p07-ui="enabled"] .modal-panel {
+  border-radius: 22px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.14);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-p07-ui="enabled"] * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

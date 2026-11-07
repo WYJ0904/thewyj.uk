@@ -1,0 +1,245 @@
+{
+  "origin": "https://41379237.thewyj-p07-ui-rc.pages.dev",
+  "deployedSha": "c8ff0aa55b36e96561dd083bbaf032e4a24b6cd0",
+  "deploymentId": "41379237-d73f-486f-941d-283667c85327",
+  "isolatedD1": "ee869f78-b54a-4018-bc99-871089ecb8cd",
+  "r2Bindings": 0,
+  "aiBindings": 0,
+  "cases": [
+    {
+      "path": "/",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "publicHome"
+      ]
+    },
+    {
+      "path": "/",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "publicHome"
+      ]
+    },
+    {
+      "path": "/recharge",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "membershipModal"
+      ],
+      "hit": {
+        "x": 101.5,
+        "y": 439,
+        "ownsHit": true,
+        "inert": false
+      }
+    },
+    {
+      "path": "/finance",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "financePage"
+      ],
+      "hit": {
+        "x": 101.5,
+        "y": 247,
+        "ownsHit": true,
+        "inert": false
+      }
+    },
+    {
+      "path": "/account",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "accountModal"
+      ],
+      "hit": {
+        "x": 101.5,
+        "y": 487,
+        "ownsHit": true,
+        "inert": false
+      }
+    },
+    {
+      "path": "/language",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "projectPicker"
+      ],
+      "hit": {
+        "x": 101.5,
+        "y": 151,
+        "ownsHit": true,
+        "inert": false
+      }
+    },
+    {
+      "path": "/tools/workflows",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "toolsPanel"
+      ],
+      "hit": {
+        "x": 101.5,
+        "y": 343,
+        "ownsHit": true,
+        "inert": false
+      }
+    },
+    {
+      "path": "/transfer",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "transferPage"
+      ],
+      "hit": {
+        "x": 101.5,
+        "y": 391,
+        "ownsHit": true,
+        "inert": false
+      }
+    },
+    {
+      "path": "/",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "publicHome"
+      ],
+      "hit": {
+        "x": 101.5,
+        "y": 103,
+        "ownsHit": true,
+        "inert": false
+      }
+    },
+    {
+      "path": "/account",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "accountModal"
+      ]
+    },
+    {
+      "path": "/recharge",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "membershipModal"
+      ]
+    },
+    {
+      "path": "/account",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "accountModal"
+      ]
+    },
+    {
+      "path": "/recharge",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "membershipModal"
+      ]
+    },
+    {
+      "path": "/account",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "accountModal"
+      ]
+    },
+    {
+      "path": "/account",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "accountModal"
+      ]
+    },
+    {
+      "path": "/account",
+      "policy": "enabled",
+      "p07": "enabled",
+      "inert": false,
+      "modalOpen": false,
+      "shown": [
+        "accountModal"
+      ]
+    }
+  ],
+  "configurationMutations": 0,
+  "ledgerMutations": 0,
+  "currentLocalHead": "362bf4a1732b93fbdf2e44955cbd7ca4dd85fb4f",
+  "exactCurrentHeadMatch": false,
+  "appSha256": "5d9527a04eb458d06bc61fa2a64d4f7a35b6f9adeaebff82c1b826bc6f744cb6",
+  "publicPolicy": {
+    "schema_version": 1,
+    "flag_key": "p07_accessibility",
+    "enabled": true,
+    "revision": 17,
+    "reason": "public_stable",
+    "observed_at": "2026-11-06T03:03:57.925Z",
+    "expires_at": "2026-11-06T03:04:27.925Z",
+    "max_age_seconds": 30
+  },
+  "accountPolicy": {
+    "username": "qa_lifetime_member",
+    "role": "user",
+    "channel": "stable",
+    "p07": {
+      "enabled": true,
+      "reason": "percentage_rollout",
+      "revision": 17,
+      "bucket": 2600
+    }
+  },
+  "memberAdminDenied": true,
+  "normalAndHardRefresh": true,
+  "historyBackForward": true,
+  "loggedInV3": true,
+  "loggedOutV3": true,
+  "runtimeErrors": [],
+  "status": "HOSTED_SNAPSHOT_VERIFIED"
+}

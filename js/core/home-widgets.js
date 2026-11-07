@@ -1,5 +1,5 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?v=20261027-aeris-p07-ui-r1";
-import { HOME_WIDGET_VERSION, WIDGET_IDS, WIDGET_MODES, defaultHomeWidgets, sanitizeHomeWidgets, homeWidgetStorageKey, legacyHomeWidgetStorageKey, isHomeWidgetDesktop, rotatedWidgetBox, layoutHomeWidgets, layoutMobileWidgets, widgetGeometry, widgetProfile, clampWidgetValue } from "./home-widget-layout.js?v=20261027-aeris-p07-ui-r1";
+import { getSafeStorage, safeStorageSet } from "./storage.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { HOME_WIDGET_VERSION, WIDGET_IDS, WIDGET_MODES, defaultHomeWidgets, sanitizeHomeWidgets, homeWidgetStorageKey, legacyHomeWidgetStorageKey, isHomeWidgetDesktop, rotatedWidgetBox, layoutHomeWidgets, layoutMobileWidgets, widgetGeometry, widgetProfile, clampWidgetValue } from "./home-widget-layout.js?release=20261107-aeris-p07-f-a11y-rc4";
 export { HOME_WIDGET_VERSION, WIDGET_IDS, WIDGET_MODES, defaultHomeWidgets, sanitizeHomeWidgets, homeWidgetStorageKey, legacyHomeWidgetStorageKey, isHomeWidgetDesktop, rotatedWidgetBox, layoutHomeWidgets, layoutMobileWidgets, widgetGeometry, widgetProfile };
 const clamp=clampWidgetValue;
 export const homeWidgetDragMoved = (x,y) => Math.hypot(x,y) >= 6;
@@ -10,7 +10,37 @@ export function createHomeWidgets({ root, accountId, navigate, storage = getSafe
   const cards = Object.fromEntries(WIDGET_IDS.map(id => [id, stage.querySelector(`[data-home-widget=${id}]`)]));
   const slots=Object.fromEntries(WIDGET_IDS.map(id=>{const card=cards[id],slot=root.ownerDocument.createElement('div');slot.className='home-widget-slot';card.before(slot);slot.append(card);return [id,slot];}));
   const labels = { learning:"学习记录",finance:"本月账本",tools:"最近工具" };
-  let owner = null, config = defaultHomeWidgets(), draft = null, edited = "", interaction = null, frame = 0;
+  const v3DesktopPreset = {
+    learning: { size: "medium", rotation: 2, x: 0.02, y: 0.26 },
+    finance: { size: "medium", rotation: -3.5, x: 0.50, y: 0.80 },
+    tools: { size: "medium", rotation: 3, x: 0.98, y: 0.06 },
+  };
+  const isV3Ui = () => root.ownerDocument.documentElement.dataset.p07Ui === "enabled";
+  function effectiveDefaults() {
+    const base = defaultHomeWidgets();
+    if (isV3Ui()) {
+      for (const id of WIDGET_IDS) base[id].layouts.desktop = { ...v3DesktopPreset[id] };
+    }
+    return base;
+  }
+  let owner = null, hasSavedLayout = false, config = effectiveDefaults(), draft = null, edited = "", interaction = null, frame = 0;
+  let zOrder = [...WIDGET_IDS];
+  const settleTimers = new Map();
+  function syncZOrder(activeId = "") {
+    if (activeId && WIDGET_IDS.includes(activeId)) {
+      zOrder = [...zOrder.filter(x => x !== activeId), activeId];
+    }
+    zOrder.forEach((id, index) => {
+      cards[id].style.zIndex = cards[id].dataset.dragging === "true" ? "10" : String(index + 1);
+    });
+  }
+  function markSettling(id) {
+    const reduced = view.matchMedia?.("(prefers-reduced-motion: reduce)").matches || root.ownerDocument.documentElement.dataset.androidReducedMotion === "true";
+    if (reduced) return;
+    if (settleTimers.has(id)) view.clearTimeout(settleTimers.get(id));
+    cards[id].dataset.settling = "true";
+    settleTimers.set(id, view.setTimeout(() => { cards[id].removeAttribute("data-settling"); settleTimers.delete(id); }, 240));
+  }
   const desktopNow=()=>isHomeWidgetDesktop(view.innerWidth,view.innerHeight,view.matchMedia?.('(pointer: coarse)').matches||false);
   let desktop=desktopNow(),profile=desktop?'desktop':'mobile',future=false,lastSnapshot=null,suppressed=null;
   const geometry=(value,id)=>widgetGeometry(value,id,profile);
@@ -24,9 +54,9 @@ export function createHomeWidgets({ root, accountId, navigate, storage = getSafe
   }
   function setAccount() {
     const next=String(accountId() || ""); if(next===owner)return;
-    cancelGesture(); if(dialog.open)dialog.close(); draft=null; edited=""; owner=next; future=false; lastSnapshot=null; config=defaultHomeWidgets();
-    if(owner)try{const raw=storage.getItem(homeWidgetStorageKey(owner))??storage.getItem(legacyHomeWidgetStorageKey(owner));if(raw&&raw.length<=8192){const saved=JSON.parse(raw);future=Number(saved?.version)>HOME_WIDGET_VERSION;config=sanitizeHomeWidgets(saved);}}catch(_){ /* corrupt preferences never affect actual data */ }
-    notice(""); apply();
+    cancelGesture(); if(dialog.open)dialog.close(); draft=null; edited=""; owner=next; future=false; hasSavedLayout=false; lastSnapshot=null; config=effectiveDefaults();
+    if(owner)try{const raw=storage.getItem(homeWidgetStorageKey(owner))??storage.getItem(legacyHomeWidgetStorageKey(owner));if(raw&&raw.length<=8192){const saved=JSON.parse(raw);future=Number(saved?.version)>HOME_WIDGET_VERSION;config=sanitizeHomeWidgets(saved);hasSavedLayout=true;}}catch(_){ /* corrupt preferences never affect actual data */ }
+    zOrder = [...WIDGET_IDS]; syncZOrder(); notice(""); apply();
   }
   function apply(priority="") {
     const value=draft||config;let layout=null;
@@ -41,6 +71,7 @@ export function createHomeWidgets({ root, accountId, navigate, storage = getSafe
       layout=layoutMobileWidgets(widgetProfile(value,profile),stage.clientWidth);
       for(const id of WIDGET_IDS){const item=layout[id];cards[id].style.setProperty('--widget-width',`${item.width}px`);cards[id].style.setProperty('--widget-x',`${item.x}px`);cards[id].style.setProperty('--widget-y',`${item.y}px`);slots[id].style.height=`${item.slotHeight}px`;}
     }
+    syncZOrder(priority);
     if(lastSnapshot)paint(lastSnapshot);
     return layout;
   }
@@ -52,7 +83,7 @@ export function createHomeWidgets({ root, accountId, navigate, storage = getSafe
     text(form.querySelector('legend'),desktop?'桌面位置':'手机位置 · 安全边界内');
   }
   function openEditor(id) {
-    setAccount(); if(interaction)return;edited=id;draft=sanitizeHomeWidgets(config);
+    setAccount(); if(interaction)return;syncZOrder(id);edited=id;draft=sanitizeHomeWidgets(config);
     text(dialog.querySelector("h2"),`设置${labels[id]} · ${desktop?'桌面':'手机'}布局`);
     form.elements.contentMode.replaceChildren(...Object.entries(WIDGET_MODES[id]).map(([value,label])=>{const option=root.ownerDocument.createElement("option");option.value=value;option.textContent=label;return option;}));
     fillEditor();dialog.showModal();
@@ -88,7 +119,7 @@ export function createHomeWidgets({ root, accountId, navigate, storage = getSafe
     if(!handle||!desktop||!stage.dataset.editing||event.button!==0||event.isPrimary===false)return;
     event.preventDefault();setAccount();const id=handle.dataset.widgetDrag, bounds=stage.getBoundingClientRect(), card=cards[id], rect=card.getBoundingClientRect();
     interaction={id,handle,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,latestX:event.clientX,latestY:event.clientY,moved:false,bounds,rect,width:card.offsetWidth,height:card.offsetHeight,original:{...config[id].layouts.desktop}};
-    handle.setPointerCapture(event.pointerId);card.dataset.dragging="true";
+    handle.setPointerCapture(event.pointerId);card.dataset.dragging="true";syncZOrder(id);
   }
   function paintGesture() {
       if(!interaction)return;const i=interaction,dx=i.latestX-i.startX,dy=i.latestY-i.startY;
@@ -113,13 +144,13 @@ export function createHomeWidgets({ root, accountId, navigate, storage = getSafe
     if(!commit)config[i.id].layouts.desktop=i.original;
     cards[i.id].removeAttribute("data-dragging");try{i.handle.releasePointerCapture(i.pointerId);}catch(_){}
     const layout=apply(i.id);
-    if(commit){if(layout){config[i.id].layouts.desktop.x=layout[i.id].normalizedX;config[i.id].layouts.desktop.y=layout[i.id].normalizedY;}suppressed={id:i.id,until:view.performance.now()+500};persist();}
+    if(commit){hasSavedLayout=true;markSettling(i.id);if(layout){config[i.id].layouts.desktop.x=layout[i.id].normalizedX;config[i.id].layouts.desktop.y=layout[i.id].normalizedY;}suppressed={id:i.id,until:view.performance.now()+500};persist();}
   }
   root.addEventListener("click",event=>{
     const edit=event.target.closest("[data-widget-edit]");if(edit){event.stopPropagation();openEditor(edit.dataset.widgetEdit);return;}
     if(event.target.closest("[data-widget-drag]")){event.preventDefault();return;}
     if(event.target.closest("#homeLayoutToggle")){stage.dataset.editing=stage.dataset.editing?"":"true";root.querySelector("#homeLayoutToggle").setAttribute("aria-pressed",String(Boolean(stage.dataset.editing)));return;}
-    if(event.target.closest("#homeLayoutReset")){const defaults=defaultHomeWidgets();for(const id of WIDGET_IDS)config[id].layouts[profile]={...defaults[id].layouts[profile]};draft=null;apply();persist();return;}
+    if(event.target.closest("#homeLayoutReset")){const defaults=effectiveDefaults();for(const id of WIDGET_IDS)config[id].layouts[profile]={...defaults[id].layouts[profile]};hasSavedLayout=Boolean(owner);draft=null;apply();persist();return;}
     const onward=event.target.closest("[data-widget-continue]");if(onward){navigate(onward.dataset.widgetContinue);return;}
     const main=event.target.closest("[data-home-widget-open]");if(!main)return;
     const id=main.dataset.homeWidgetOpen;if(interaction||(event.detail>0&&suppressed?.id===id&&view.performance.now()<suppressed.until)){event.preventDefault();suppressed=null;return;}
@@ -127,22 +158,40 @@ export function createHomeWidgets({ root, accountId, navigate, storage = getSafe
   });
   stage.addEventListener("pointerdown",start);stage.addEventListener("pointermove",move);stage.addEventListener("pointerup",end);stage.addEventListener("pointercancel",end);
   stage.addEventListener('lostpointercapture',event=>{if(interaction&&event.pointerId===interaction.pointerId){cancelGesture();apply();}});
+  const onEscapeDrag = event => {
+    if (event.key === "Escape" && interaction) {
+      event.preventDefault();
+      cancelGesture();
+      apply();
+      notice("已取消本次移动。");
+    }
+  };
+  view.addEventListener("keydown", onEscapeDrag);
+  const onCardFocus = event => {
+    const card = event.target.closest("[data-home-widget]");
+    if (card && desktop && !interaction) syncZOrder(card.dataset.homeWidget);
+  };
+  stage.addEventListener("focusin", onCardFocus);
+  stage.addEventListener("pointerdown", event => {
+    const card = event.target.closest("[data-home-widget]");
+    if (card && desktop && !interaction) syncZOrder(card.dataset.homeWidget);
+  });
   stage.addEventListener("keydown",event=>{
     const handle=event.target.closest("[data-widget-drag]");if(!handle||!desktop||!event.key.startsWith("Arrow"))return;
     event.preventDefault();const id=handle.dataset.widgetDrag,amount=event.shiftKey?.08:.02;
     const item=config[id].layouts.desktop;
     if(event.key==='ArrowLeft'||event.key==='ArrowRight')item.x=clamp(item.x+(event.key==='ArrowLeft'?-amount:amount),0,1,0);
     else item.y=clamp(item.y+(event.key==='ArrowUp'?-amount:amount),0,1,0);
-    const layout=apply(id);if(layout){item.x=layout[id].normalizedX;item.y=layout[id].normalizedY;}persist();
+    hasSavedLayout=true;const layout=apply(id);if(layout){item.x=layout[id].normalizedX;item.y=layout[id].normalizedY;}persist();
   });
   form.addEventListener("input",()=>{
     if(!draft)return;draft[edited].layouts[profile]={size:form.elements.size.value,rotation:form.elements.rotation.value,x:Number(form.elements.x.value)/100,y:Number(form.elements.y.value)/100};draft[edited].contentMode=form.elements.contentMode.value;draft=sanitizeHomeWidgets(draft);
     text(form.querySelector("output"),`${geometry(draft,edited).rotation}°`);apply(edited);
   });
-  form.addEventListener("submit",event=>{event.preventDefault();if(!dialog.open||!draft)return;config=sanitizeHomeWidgets(draft);draft=null;persist();dialog.close();apply();});
+  form.addEventListener("submit",event=>{event.preventDefault();if(!dialog.open||!draft)return;config=sanitizeHomeWidgets(draft);hasSavedLayout=true;draft=null;persist();dialog.close();apply();});
   form.addEventListener("click",event=>{
-    if(event.target.closest("[data-widget-reset]")){draft[edited].layouts[profile]={...defaultHomeWidgets()[edited].layouts[profile]};fillEditor();apply(edited);}
-    if(event.target.closest("[data-widget-angle-reset]")){draft[edited].layouts[profile].rotation=defaultHomeWidgets()[edited].layouts[profile].rotation;fillEditor();apply(edited);}
+    if(event.target.closest("[data-widget-reset]")){draft[edited].layouts[profile]={...effectiveDefaults()[edited].layouts[profile]};fillEditor();apply(edited);}
+    if(event.target.closest("[data-widget-angle-reset]")){draft[edited].layouts[profile].rotation=effectiveDefaults()[edited].layouts[profile].rotation;fillEditor();apply(edited);}
     if(event.target.closest("[data-widget-cancel]"))dialog.close();
   });
   // close is queued: an older dialog session must not clear a newly opened draft.
@@ -151,6 +200,19 @@ export function createHomeWidgets({ root, accountId, navigate, storage = getSafe
   view.addEventListener("resize",resize);
   let observedWidth=-1,observedHeight=-1;
   const observer=new view.ResizeObserver(entries=>{const {width,height}=entries[0].contentRect;if(width===observedWidth&&height===observedHeight)return;observedWidth=width;observedHeight=height;if(frame||interaction)return;frame=view.requestAnimationFrame(()=>{frame=0;apply();});});observer.observe(stage);
+  let lastV3Mode = isV3Ui();
+  const policyObserver = typeof view.MutationObserver === "function" ? new view.MutationObserver(() => {
+    const nextV3Mode = isV3Ui();
+    if (nextV3Mode === lastV3Mode) return;
+    lastV3Mode = nextV3Mode;
+    if (!hasSavedLayout && !draft && !interaction) {
+      const defaults = effectiveDefaults();
+      for (const id of WIDGET_IDS) config[id].layouts.desktop = { ...defaults[id].layouts.desktop };
+    }
+    observedWidth = -1; observedHeight = -1;
+    apply();
+  }) : null;
+  policyObserver?.observe(root.ownerDocument.documentElement, { attributes: true, attributeFilter: ["data-p07-ui"] });
   setAccount();
-  return Object.freeze({render,setAccount,snapshot:()=>sanitizeHomeWidgets(config),hide:()=>{const active=Boolean(interaction);cancelGesture();if(active)apply();if(dialog.open)dialog.close();},dispose:()=>{cancelGesture();observer.disconnect();view.removeEventListener("resize",resize);}});
+  return Object.freeze({render,setAccount,snapshot:()=>sanitizeHomeWidgets(config),hide:()=>{const active=Boolean(interaction);cancelGesture();if(active)apply();if(dialog.open)dialog.close();},dispose:()=>{cancelGesture();for(const timer of settleTimers.values())view.clearTimeout(timer);settleTimers.clear();observer.disconnect();policyObserver?.disconnect();stage.removeEventListener("focusin",onCardFocus);view.removeEventListener("resize",resize);view.removeEventListener("keydown",onEscapeDrag);}});
 }

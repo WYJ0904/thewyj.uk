@@ -9,27 +9,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?v=20261027-aeris-p07-ui-r1";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/core/config.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261107-aeris-p07-f-a11y-rc4";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/core/capabilities.js?release=20261107-aeris-p07-f-a11y-rc4";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/core/api.js?release=20261107-aeris-p07-f-a11y-rc4";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?v=20261027-aeris-p07-ui-r1";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation } from "./js/core/router.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/core/changelog.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261107-aeris-p07-f-a11y-rc4";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -40,26 +40,28 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?v=20261027-aeris-p07-ui-r1";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?v=20261027-aeris-p07-ui-r1";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?v=20261027-aeris-p07-ui-r1";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled } from "./js/core/design-system.js?v=20261027-aeris-p07-ui-r1";
-import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?v=20261027-aeris-p07-ui-r1";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?v=20261027-aeris-p07-ui-r1";
-import { createAndroidDownloadController } from "./js/core/download.js?v=20261027-aeris-p07-ui-r1";
-import { createFeatureController } from "./js/core/feature-flags.js?v=20261027-aeris-p07-ui-r1";
-import { createFeatureConsole } from "./js/core/feature-console.js?v=20261027-aeris-p07-ui-r1";
-import { createMasteryController } from "./js/language/mastery.js?v=20261027-aeris-p07-ui-r1";
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?v=20261027-aeris-p07-ui-r1";
-import { masteryStorageKey } from "./js/language/mastery-state.js?v=20261027-aeris-p07-ui-r1";
-import { speakText, stopSpeech } from "./js/language/speech.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/core/session.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { completeStartupSplash } from "./js/core/startup.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { createAndroidDownloadController } from "./js/core/download.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { createFeatureController } from "./js/core/feature-flags.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { createFeatureConsole } from "./js/core/feature-console.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { createMasteryController } from "./js/language/mastery.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { masteryStorageKey } from "./js/language/mastery-state.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { speakText, stopSpeech } from "./js/language/speech.js?release=20261107-aeris-p07-f-a11y-rc4";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?v=20261027-aeris-p07-ui-r1";
-import { formatFinanceMoney } from "./js/finance/format.js?v=20261027-aeris-p07-ui-r1";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?v=20261027-aeris-p07-ui-r1";
-import { createDashboardView } from "./js/core/dashboard.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/language/speech-rate.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { formatFinanceMoney } from "./js/finance/format.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { createDashboardView } from "./js/core/dashboard.js?release=20261107-aeris-p07-f-a11y-rc4";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -67,15 +69,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?v=20261027-aeris-p07-ui-r1";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/core/perf.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261107-aeris-p07-f-a11y-rc4";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/language/history.js?release=20261107-aeris-p07-f-a11y-rc4";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -112,16 +114,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?v=20261027-aeris-p07-ui-r1";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?v=20261027-aeris-p07-ui-r1";
-import { createWrongBookPdf } from "./js/language/pdf.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/language/quiz.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { createWrongBookPdf } from "./js/language/pdf.js?release=20261107-aeris-p07-f-a11y-rc4";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/language/wrong-book.js?release=20261107-aeris-p07-f-a11y-rc4";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -130,7 +132,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/membership/account.js?release=20261107-aeris-p07-f-a11y-rc4";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -138,19 +140,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/membership/plans.js?release=20261107-aeris-p07-f-a11y-rc4";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/membership/recharge.js?release=20261107-aeris-p07-f-a11y-rc4";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?v=20261027-aeris-p07-ui-r1";
+} from "./js/admin/formatters.js?release=20261107-aeris-p07-f-a11y-rc4";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -273,6 +275,7 @@ let financeCandidatesController = null;
 let transferController = null;
 let dashboardView = null;
 let featureController = null;
+let publicUiPolicyController = null;
 let masteryController = null;
 let featureConsole = null;
 let featureInfrastructureAvailable = false;
@@ -307,6 +310,7 @@ let lastLimitPromptKey = "";
 let projectRuntimeNeedsRestore = false;
 let backendStatusPromise = null;
 let backendRefreshPromise = null;
+let sessionRestorePending = false;
 let backendRecoveryTimer = null;
 let achievementFilter = "all";
 let achievementToastTimer = null;
@@ -342,7 +346,7 @@ let learningSyncStatus = {
 };
 
 const restoredSession = restoreAccountSession();
-const { pushRoute } = createRouter({ onRouteChange: () => renderAccountUi() });
+const { pushRoute } = createRouter({ onRouteChange: () => { routeGeneration += 1; renderAccountUi(); } });
 const learningSyncAdapter = createLearningSyncAdapter(() => window.WYJLearningSync);
 
 function migrateProjectPreferences() {
@@ -1020,6 +1024,7 @@ function clearSession() {
   cancelVocabularySearch();
   state.session = "";
   state.account = null;
+  sessionRestorePending = false;
   financeController?.resetAccount();
   state.quizSession = "";
   pendingSiteMessages = [];
@@ -1210,9 +1215,11 @@ function accountWordLimit(language = state.quizLanguage) {
 
 function renderAccountUi() {
   featureController?.updateAccount();
+  publicUiPolicyController?.updateAccount();
+  applyInterfacePolicy();
   masteryController?.update();
   featureConsole?.setAvailable(featureInfrastructureAvailable);
-  const account = state.session && state.account ? state.account : null;
+  const account = state.session && state.account && !sessionRestorePending ? state.account : null;
   const badge = $("accountBadge");
   if (!badge) return;
   const summary = accountMembershipSummary(account);
@@ -1243,6 +1250,43 @@ function renderAccountUi() {
     if (active) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   });
+  const v3ActiveNav = location.pathname.startsWith("/tools/workflows")
+    ? "workflows"
+    : location.pathname.startsWith("/tools")
+      ? "tools"
+      : location.pathname.startsWith("/language")
+        ? "language"
+        : location.pathname === "/trial"
+          ? "trial"
+          : location.pathname.startsWith("/finance")
+            ? "finance"
+            : location.pathname.startsWith("/transfer")
+              ? "transfer"
+              : location.pathname === "/recharge"
+                ? "recharge"
+                : location.pathname === "/account"
+                  ? "account"
+                  : location.pathname === "/admin"
+                    ? "admin"
+                    : ["/", "/select"].includes(location.pathname)
+                      ? "home"
+                      : "";
+  document.querySelectorAll("#v3Sidebar [data-v3-nav]").forEach((link) => {
+    const active = link.dataset.v3Nav === v3ActiveNav;
+    link.classList.toggle("active", active);
+    if (active) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
+  if ($("v3SidebarAdminLink")) {
+    $("v3SidebarAdminLink").hidden = !Boolean(account && isAdmin(account));
+  }
+  if ($("v3TopbarContext")) {
+    $("v3TopbarContext").textContent = account
+      ? `${account.username} · 已连接空间`
+      : location.hostname.endsWith(".thewyj-p07-ui-rc.pages.dev")
+        ? "隔离预览 · 演示数据"
+        : "公开空间 · 演示数据";
+  }
   badge.textContent = account ? `${account.username} · ${summary.name}` : "未登录";
   $("membershipBtn")?.classList.toggle("hidden", !account);
   $("feedbackBtn")?.classList.toggle("hidden", !account);
@@ -1277,7 +1321,8 @@ function renderHomeSessionUi(account) {
   if (!home) return;
   home.dataset.sessionMode = account ? "authenticated" : "guest";
   home.querySelectorAll("[data-home-personal]").forEach(node => { node.hidden = !account; });
-  $("publicLoginBtn").textContent = "账户";
+  const v3UiActive = document.documentElement.dataset.p07Ui === "enabled";
+  $("publicLoginBtn").textContent = v3UiActive ? (account ? "进入空间 →" : "探索 Aeris →") : "账户";
   $("publicRegisterBtn").textContent = "继续学习";
   const labels = { learning: account ? "打开学习" : "试做最多 10 题", tools: account ? "打开工具箱" : "试用本地工具", finance: account ? "打开账本" : "登录查看账本", files: "文件与分享", account: account ? "管理账户" : "登录账户" };
   home.querySelectorAll("[data-public-capability]").forEach(node => { node.textContent = labels[node.dataset.publicCapability]; });
@@ -1310,6 +1355,12 @@ function renderAccountDetails() {
     ["注册时间", formatLocalDateTime(account.registered_at, "未知")],
     ["最后登录", formatLocalDateTime(account.last_login_at, "从未")],
   ];
+  const roleName = isSuperAdmin(account) ? "站点所有者" : isAdmin(account) ? "管理员" : (summary.name || "普通账户");
+  if ($("accountProfileUsername")) $("accountProfileUsername").textContent = account.username || "-";
+  if ($("accountProfileRoleBadge")) $("accountProfileRoleBadge").textContent = roleName;
+  if ($("accountProfileId")) $("accountProfileId").textContent = account.id || "-";
+  if ($("accountProfileRegistered")) $("accountProfileRegistered").textContent = formatLocalDateTime(account.registered_at, "未知");
+  if ($("accountSyncStatus")) $("accountSyncStatus").textContent = state.session ? "已连接云端同步 (Cloudflare D1)" : "离线运行模式";
   reconcileKeyedRows(details, rows, {
     key: ([label]) => label,
     render: ([label, value]) => `<div class="account-setting-row"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value ?? "")}</dd></div>`,
@@ -1459,6 +1510,7 @@ function showFeedbackView(viewId) {
 
 async function loadMyFeedback() {
   const sequence = ++feedbackLoadSequence;
+  $("myFeedbackList").setAttribute("aria-busy", "true");
   $("myFeedbackList").innerHTML = '<p class="dashboard-empty">正在加载你的反馈…</p>';
   try {
     const data = await apiGet("/api/feedback/mine");
@@ -1467,16 +1519,21 @@ async function loadMyFeedback() {
   } catch (error) {
     if (sequence !== feedbackLoadSequence) return;
     $("myFeedbackList").innerHTML = `<p class="dashboard-empty">${escapeHtml(error.message)}</p>`;
+  } finally {
+    if (sequence === feedbackLoadSequence) $("myFeedbackList").setAttribute("aria-busy", "false");
   }
 }
 
 async function loadFeatureVoting() {
+  $("featureVotingList").setAttribute("aria-busy", "true");
   $("featureVotingList").innerHTML = '<p class="dashboard-empty">正在加载功能建议…</p>';
   try {
     const data = await apiGet("/api/feedback/voting");
     renderFeatureVoting(data.suggestions || []);
   } catch (error) {
     $("featureVotingList").innerHTML = `<p class="dashboard-empty">${escapeHtml(error.message)}</p>`;
+  } finally {
+    $("featureVotingList").setAttribute("aria-busy", "false");
   }
 }
 
@@ -1540,6 +1597,14 @@ async function voteForFeature(feedbackId, voted) {
 }
 
 function openModal(id) {
+  if (id === "membershipModal") {
+    void showMembership(true);
+    return;
+  }
+  if (id === "accountModal") {
+    showAccount(true);
+    return;
+  }
   const modal = $(id);
   if (!modal) return;
   // All dialogs live outside the inert application shell, including finance.
@@ -1559,12 +1624,29 @@ function openModal(id) {
   document.body.classList.add("modal-open");
   if ($("appShell")) $("appShell").inert = true;
   document.querySelectorAll(".modal-layer:not(.hidden)").forEach((layer) => { layer.inert = layer !== modal; });
-  modal.querySelector("button, input, select")?.focus({ preventScroll: true });
+  focusDialog(modal);
 }
 
 function closeModal(id, immediate = false) {
   const modal = $(id);
   if (!modal || modal.classList.contains("hidden")) return;
+  if (id === "membershipModal" || id === "accountModal") {
+    membershipModalLoadSequence += 1;
+    membershipModalController?.abort();
+    membershipModalController = null;
+    releasePaymentQr();
+    modal.classList.add("hidden");
+    modal.setAttribute("aria-hidden", "true");
+    if (id === "accountModal") clearOwnSecretEditor();
+    if (location.pathname === "/recharge" || location.pathname === "/account") {
+      const context = history.state?.aerisWorkspace;
+      const requested = context?.id === id ? nativeAppRoute(context.returnTo, location.origin) : null;
+      const target = requested && requested !== location.pathname ? requested : "/";
+      pushRoute(target, true);
+      void routeCurrent();
+    }
+    return;
+  }
   const pendingClose = modalCloseTimers.get(id);
   if (pendingClose) {
     window.clearTimeout(pendingClose);
@@ -1593,7 +1675,9 @@ function closeModal(id, immediate = false) {
     }
     const returnFocus = modalReturnFocus.get(id);
     modalReturnFocus.delete(id);
-    if (returnFocus?.isConnected && !returnFocus.closest(".modal-layer.hidden")) returnFocus.focus({ preventScroll: true });
+    if (returnFocus?.isConnected && returnFocus.getClientRects().length && !returnFocus.closest("[inert], .modal-layer.hidden")) {
+      returnFocus.focus({ preventScroll: true });
+    } else if (remaining.length) focusDialog(remaining.at(-1));
     if ((id === "membershipModal" && location.pathname === "/recharge") || (id === "accountModal" && location.pathname === "/account")) {
       if (state.session && state.account) {
         showModulePicker(false);
@@ -1610,6 +1694,8 @@ function closeModal(id, immediate = false) {
 
 function showAuthMode(mode, updateRoute = false) {
   const register = mode === "register";
+  $("loginTabPanel")?.classList.toggle("hidden", register);
+  $("registerTabPanel")?.classList.toggle("hidden", !register);
   $("loginForm").classList.toggle("hidden", register);
   $("registerForm").classList.toggle("hidden", !register);
   $("showLoginBtn").classList.toggle("active", !register);
@@ -1617,6 +1703,7 @@ function showAuthMode(mode, updateRoute = false) {
   $("showLoginBtn").setAttribute("aria-selected", String(!register));
   $("showRegisterBtn").setAttribute("aria-selected", String(register));
   $("authTitle").textContent = register ? "注册账户" : "账户登录";
+  if ($("authSubtitle")) $("authSubtitle").textContent = register ? "创建你的个人账户，统一管理词汇学习、工具与账本数据。" : "使用 Aeris 账户同步词汇进度、账本记录与传输文件。";
   $("loginError").textContent = "";
   if (updateRoute) pushRoute(register ? "/register" : "/login");
 }
@@ -2001,7 +2088,13 @@ async function reloadMembershipPlans() {
   }
 }
 
-async function openMembershipModal(options = {}) {
+// Legacy business callers still use this name; visibility and routing have a
+// single owner. The loader below must never reveal a second primary page.
+function openMembershipModal(options = {}) {
+  return showMembership(true, options);
+}
+
+async function loadMembershipWorkspace(options = {}) {
   if (!state.session || !state.account) {
     showAuth("请先登录后查看会员方案", { path: "/login" });
     return;
@@ -2019,7 +2112,6 @@ async function openMembershipModal(options = {}) {
   renderMembershipGoals();
   renderMembershipPlans();
   $("rechargeMessage").textContent = "正在加载套餐与订单状态…";
-  openModal("membershipModal");
   let openOrder = null;
   const loadErrors = [];
   const [plansResult, ordersResult] = await Promise.allSettled([
@@ -2454,7 +2546,7 @@ function renderAdminUsers(data = null, { append = false } = {}) {
       all_features_access: "全功能",
     }[item] || item)).join("、") || "基础功能";
     return `<article class="admin-user-card" data-user-id="${escapeHtml(user.id)}">
-      <div class="admin-user-identity"><h3>${escapeHtml(user.username)}</h3><p class="admin-user-id">${escapeHtml(user.id)}</p><p><span class="status-badge">${escapeHtml(roleLabel)}</span></p><p class="${stateClass}">${user.banned ? "已永久封禁" : "正常"}</p></div>
+      <div class="admin-user-identity"><h2>${escapeHtml(user.username)}</h2><p class="admin-user-id">${escapeHtml(user.id)}</p><p><span class="status-badge">${escapeHtml(roleLabel)}</span></p><p class="${stateClass}">${user.banned ? "已永久封禁" : "正常"}</p></div>
       <div class="admin-user-facts"><p><span>最高等级</span><strong>${escapeHtml(summary.name)}</strong></p><p><span>有效会员</span><strong>${escapeHtml(memberships)}</strong></p><p><span>合并权益</span><strong>${escapeHtml(entitlements)}</strong></p></div>
       <div class="admin-user-security"><p><span class="admin-field-name">登录密钥</span><span class="secret-value">不可读取 · 可安全重置</span></p><p class="admin-last-login">最后登录：${escapeHtml(formatLocalDateTime(user.last_login_at, "从未"))}</p></div>
       <div class="action-row compact admin-user-actions"><button data-admin-edit type="button" ${protectedUser ? "disabled" : ""}>编辑</button></div>
@@ -2519,7 +2611,7 @@ function renderAdminRecharge(requests) {
       : ["pending", "pending_payment", "user_paid", "processing"].includes(request.status) ? "pending"
       : request.status === "rejected" ? "error" : "neutral";
     return `<article class="admin-user-card admin-recharge-card" data-request-id="${escapeHtml(request.id)}">
-    <div class="admin-user-identity"><h3>${escapeHtml(request.username)}</h3><p class="admin-user-id">${escapeHtml(request.order_number || request.id)}</p><p class="admin-last-login">申请：${escapeHtml(formatLocalDateTime(request.requested_at, "未知"))}</p></div>
+    <div class="admin-user-identity"><h2>${escapeHtml(request.username)}</h2><p class="admin-user-id">${escapeHtml(request.order_number || request.id)}</p><p class="admin-last-login">申请：${escapeHtml(formatLocalDateTime(request.requested_at, "未知"))}</p></div>
     <div class="admin-user-facts"><p><span>套餐</span><strong>${escapeHtml(request.plan_name || membershipLabel(request.plan_code || request.plan))}</strong></p><p><span>支付方式</span><strong>${escapeHtml(paymentMethodLabel(request.payment_method))}</strong></p><p><span>金额</span><strong>${escapeHtml(`${(Number(request.amount_cents || 0) / 100).toFixed(2)} ${request.currency || "CNY"}`)}</strong></p><p><span>付款备注</span><strong>${escapeHtml(request.payment_note || "-")}</strong></p></div>
     <div class="admin-request-status"><div class="admin-request-status-heading"><span>状态</span><strong class="admin-request-badge" data-tone="${statusTone}">${escapeHtml(rechargeStatusLabel(request.status))}</strong></div>${request.user_confirmed_at ? `<div class="admin-request-confirmed"><span>用户确认时间</span><time datetime="${escapeHtml(request.user_confirmed_at)}">${escapeHtml(formatLocalDateTime(request.user_confirmed_at))}</time></div>` : ""}</div>
     <div class="action-row compact admin-user-actions">${request.status === "user_paid" ? '<button data-recharge-approve type="button">确认付款并开通</button><button data-recharge-reject type="button">拒绝</button>' : ""}</div>
@@ -3304,6 +3396,16 @@ function restoreProjectRuntime() {
     state.roundStartedAt = 0;
     state.roundId = "";
     state.mode = "normal";
+    if ($("wordText")) $("wordText").textContent = "-";
+    if ($("wordReading")) {
+      $("wordReading").textContent = "";
+      $("wordReading").classList.add("hidden");
+    }
+    if ($("progressLabel")) $("progressLabel").textContent = "0/0";
+    if ($("scoreLabel")) $("scoreLabel").textContent = "得分 0";
+    if ($("quizLanguageLabel")) $("quizLanguageLabel").textContent = currentProject === "japanese" ? "日语" : "英语";
+    if ($("answerInput")) $("answerInput").value = "";
+    if ($("resultPanel")) $("resultPanel").classList.add("hidden");
     setView("setupView");
     updateStats();
     return;
@@ -3324,6 +3426,17 @@ function restoreProjectRuntime() {
   if (state.roundActive) {
     showWord({ preserveTransition: Boolean(state.pendingAdvance), focus: false });
     if (state.pendingAdvance) renderQuestionFeedback(state.pendingAdvance.feedback);
+  } else {
+    if ($("wordText")) $("wordText").textContent = "-";
+    if ($("wordReading")) {
+      $("wordReading").textContent = "";
+      $("wordReading").classList.add("hidden");
+    }
+    if ($("progressLabel")) $("progressLabel").textContent = "0/0";
+    if ($("scoreLabel")) $("scoreLabel").textContent = "得分 0";
+    if ($("quizLanguageLabel")) $("quizLanguageLabel").textContent = currentProject === "japanese" ? "日语" : "英语";
+    if ($("answerInput")) $("answerInput").value = "";
+    if ($("resultPanel")) $("resultPanel").classList.add("hidden");
   }
   setView(view);
   if (state.roundActive) {
@@ -3727,39 +3840,9 @@ function showTrial(pushHistory = true, tool = "") {
   renderAccountUi();
 }
 
-function runSplashSequence(revealContent) {
-  const screen = $("entryScreen");
-  if (!screen) {
-    revealContent?.();
-    return Promise.resolve();
-  }
-
-  const reducedMotion = prefersReducedMotion(window);
-  const visibleMs = reducedMotion ? 0 : 450;
-  const exitMs = reducedMotion ? 0 : 180;
-  const image = $("splashImage");
-  const markImageFailed = () => screen.classList.add("image-failed");
-  image?.addEventListener("error", markImageFailed, { once: true });
-  if (image?.complete && !image.naturalWidth) markImageFailed();
-
-  return new Promise((resolve) => {
-    window.setTimeout(() => {
-      revealContent?.();
-      const finish = () => {
-        screen.setAttribute("aria-hidden", "true");
-        screen.remove();
-        resolve();
-      };
-      if (reducedMotion) {
-        finish();
-        return;
-      }
-      window.requestAnimationFrame(() => {
-        screen.classList.add("is-exiting");
-        window.setTimeout(finish, exitMs);
-      });
-    }, visibleMs);
-  });
+function runSplashSequence(revealContent, whenReady) {
+  return completeStartupSplash({screen:$("entryScreen"),image:$("splashImage"),
+    reveal:revealContent,whenReady,reducedMotion:prefersReducedMotion(window),setTimer:window.setTimeout.bind(window)});
 }
 
 function showLanguageGate() {
@@ -3769,7 +3852,7 @@ function showLanguageGate() {
 function hidePrimaryScreens() {
   setExperienceMode("workspace");
   const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
-  ["sessionRecovery", "publicHome", "changelogPage", "downloadPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "transferPage", "shareViewer", "adminPanel"].forEach((id) => {
+  ["sessionRecovery", "publicHome", "changelogPage", "downloadPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "transferPage", "shareViewer", "adminPanel", "membershipModal", "accountModal"].forEach((id) => {
     const element = $(id);
     if (!element) return;
     element.classList.add("hidden");
@@ -3779,6 +3862,13 @@ function hidePrimaryScreens() {
   $("topbar")?.classList.add("hidden");
   $("authPanel")?.classList.add("hidden");
   $("workspace")?.classList.add("hidden");
+  membershipModalLoadSequence += 1;
+  membershipModalController?.abort(); membershipModalController = null;
+  releasePaymentQr();
+  if (!document.querySelector('.modal-layer:not(.hidden)')) {
+    document.body.classList.remove("modal-open");
+    if ($("appShell")) $("appShell").inert = false;
+  }
   window.WYJTools?.hide?.();
   financeController?.hide?.();
   financeCandidatesController?.hide?.();
@@ -3835,6 +3925,7 @@ function showMainShell() {
 }
 
 function applyPendingScreen() {
+  if (sessionRestorePending) return;
   if (!currentProject) return;
   // Background session refreshes, network recovery and return-to-foreground
   // events all land here. They may only restore the shell while the user is
@@ -3870,13 +3961,32 @@ function enterProject(value, pushHistory = true) {
   applyPendingScreen();
   if (pushHistory) pushRoute(`/language/${language}`);
   renderAccountUi();
+  if (!state.roundActive) {
+    if ($("wordText")) $("wordText").textContent = "-";
+    if ($("wordReading")) {
+      $("wordReading").textContent = "";
+      $("wordReading").classList.add("hidden");
+    }
+    if ($("progressLabel")) $("progressLabel").textContent = "0/0";
+    if ($("scoreLabel")) $("scoreLabel").textContent = "得分 0";
+    if ($("quizLanguageLabel")) $("quizLanguageLabel").textContent = language === "japanese" ? "日语" : "英语";
+    if ($("answerInput")) $("answerInput").value = "";
+    if ($("resultPanel")) $("resultPanel").classList.add("hidden");
+  }
+  masteryController?.update();
 }
 
-function showSessionRecovery(message = "正在打开你的页面…") {
+function showSessionRecovery(message = "正在打开你的页面…", options = {}) {
   hidePrimaryScreens();
-  $("sessionRecovery").classList.remove("hidden");
-  $("sessionRecovery").setAttribute("aria-hidden", "false");
+  const recovery = $("sessionRecovery");
+  const isError = Boolean(options.isError);
+  recovery.dataset.recoveryState = isError ? "error" : "loading";
+  recovery.classList.remove("hidden");
+  recovery.setAttribute("aria-hidden", "false");
   $("sessionRecoveryMessage").textContent = message;
+  if ($("exitSessionRecoveryBtn")) {
+    $("exitSessionRecoveryBtn").hidden = isThewyjAndroidApp();
+  }
   $("accountBar").classList.add("hidden");
 }
 
@@ -3898,6 +4008,7 @@ function showAuth(message = "", options = {}) {
   $("projectApp").setAttribute("aria-hidden", "false");
   $("topbar").classList.add("hidden");
   $("projectNameLabel").textContent = "";
+  $("projectNameLabel").setAttribute("aria-hidden", "true");
   $("authPanel").classList.remove("hidden");
   $("workspace").classList.add("hidden");
   $("loginError").textContent = message;
@@ -3948,7 +4059,23 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
   hidePrimaryScreens();
   $("toolsPanel")?.classList.remove("hidden");
   $("toolsPanel")?.setAttribute("aria-hidden", "false");
-  if (pushHistory) pushRoute(path);
+  if (path.startsWith("/tools/workflows")) {
+    $("toolsDashboard")?.classList.add("hidden");
+    $("toolWorkbench")?.classList.add("hidden");
+    $("workflowWorkspace")?.classList.remove("hidden");
+    $("workflowWorkspace")?.setAttribute("aria-hidden", "false");
+    $("toolsPanel")?.querySelector(".tools-header")?.classList.add("hidden");
+  } else if (path === "/tools") {
+    $("toolsDashboard")?.classList.remove("hidden");
+    $("workflowWorkspace")?.classList.add("hidden");
+    $("toolWorkbench")?.classList.add("hidden");
+    $("toolsPanel")?.querySelector(".tools-header")?.classList.remove("hidden");
+  } else if (path.startsWith("/tools/")) {
+    $("toolsDashboard")?.classList.add("hidden");
+    $("workflowWorkspace")?.classList.add("hidden");
+    $("toolWorkbench")?.classList.remove("hidden");
+  }
+  if (pushHistory) { pushRoute(path); generation = routeGeneration; }
   document.body.classList.remove("project-picker-active");
   renderAccountUi();
   try {
@@ -3984,6 +4111,58 @@ async function handleToolsAccessFailure(error, generation) {
   }
 }
 
+function workspaceEntry(id, route, pushHistory, options = {}) {
+  const prior = history.state?.aerisWorkspace;
+  const from = nativeAppRoute(options.returnTo || (location.pathname !== route ? location.pathname : prior?.id === id ? prior.returnTo : '/'), location.origin);
+  const context = { id, returnTo: from && from !== route ? from : '/',
+    goal: normalizedMembershipGoal(options.goal || (prior?.id === id ? prior.goal : '')) };
+  if (pushHistory && location.pathname !== route) pushRoute(route, false, { aerisWorkspace: context });
+  else history.replaceState({ ...history.state, aerisWorkspace: context }, '', location.href);
+  return context;
+}
+
+async function showMembership(pushHistory = true, options = {}) {
+  if (!state.session || !state.account) {
+    showAuth("请先登录后查看会员方案", { path: "/login" });
+    return;
+  }
+  stopProjectActivity();
+  const context = workspaceEntry('membershipModal', '/recharge', pushHistory, options);
+  currentProject = "";
+  state.quizLanguage = "";
+  hidePrimaryScreens();
+  const page = $("membershipModal");
+  if (page) {
+    page.classList.remove("hidden", "is-closing");
+    page.setAttribute("aria-hidden", "false");
+  }
+  document.body.classList.remove("modal-open", "project-picker-active");
+  if ($("appShell")) $("appShell").inert = false;
+  renderAccountUi();
+  await loadMembershipWorkspace({ ...options, goal: context.goal });
+}
+
+function showAccount(pushHistory = true) {
+  if (!state.session || !state.account) {
+    showAuth("请先登录后管理账户", { path: "/login" });
+    return;
+  }
+  stopProjectActivity();
+  workspaceEntry('accountModal', '/account', pushHistory);
+  currentProject = "";
+  state.quizLanguage = "";
+  hidePrimaryScreens();
+  const page = $("accountModal");
+  if (page) {
+    page.classList.remove("hidden", "is-closing");
+    page.setAttribute("aria-hidden", "false");
+  }
+  document.body.classList.remove("modal-open", "project-picker-active");
+  if ($("appShell")) $("appShell").inert = false;
+  renderAccountUi();
+  renderAccountDetails();
+}
+
 async function showFinance(pushHistory = true, generation = routeGeneration) {
   if (!state.session || !state.account) {
     showAuth("请先登录后使用财务账本", { replace: true });
@@ -3996,7 +4175,7 @@ async function showFinance(pushHistory = true, generation = routeGeneration) {
   $("financePage")?.classList.remove("hidden");
   $("financePage")?.setAttribute("aria-hidden", "false");
   document.body.classList.remove("project-picker-active");
-  if (pushHistory) pushRoute("/finance");
+  if (pushHistory) { pushRoute("/finance"); generation = routeGeneration; }
   renderAccountUi();
   try {
     const financeVisible = await financeController?.show?.();
@@ -4021,7 +4200,7 @@ async function showTransfer(pushHistory = true, generation = routeGeneration) {
   $("transferPage")?.classList.remove("hidden");
   $("transferPage")?.setAttribute("aria-hidden", "false");
   document.body.classList.remove("project-picker-active");
-  if (pushHistory) pushRoute("/transfer");
+  if (pushHistory) { pushRoute("/transfer"); generation = routeGeneration; }
   renderAccountUi();
   try {
     await transferController?.show?.();
@@ -4141,7 +4320,7 @@ async function renderCurrentRoute(path, generation = routeGeneration) {
         return;
       }
       if (isThewyjAndroidApp()) {
-        showSessionRecovery(pendingAuthMessage || "连接暂时不可用，设备会话已保留。请重试。");
+        showSessionRecovery(pendingAuthMessage || "连接暂时不可用，设备会话已保留。请重试。", { isError: true });
         return;
       }
       if (path === "/") {
@@ -4209,13 +4388,11 @@ async function renderCurrentRoute(path, generation = routeGeneration) {
       return;
     }
     if (path === "/account") {
-      showModulePicker(false);
-      openModal("accountModal");
+      showAccount(false);
       return;
     }
     if (path === "/recharge") {
-      showModulePicker(false);
-      await openMembershipModal();
+      await showMembership(false);
       return;
     }
     showModulePicker(false);
@@ -4234,7 +4411,10 @@ function updateLanguageUi() {
   const quizLabel = $("quizLanguageLabel");
   if (quizLabel) quizLabel.textContent = quizLanguageLabel(language);
   const projectLabel = $("projectNameLabel");
-  if (projectLabel) projectLabel.textContent = language ? `${quizLanguageLabel(language)}测试` : "";
+  if (projectLabel) {
+    projectLabel.textContent = language ? `${quizLanguageLabel(language)}测试` : "";
+    projectLabel.setAttribute("aria-hidden", String(!language));
+  }
   const input = $("wordInput");
   if (input) input.placeholder = language === "japanese"
     ? "输入日语词表，每行一个词；汉字或假名都可以"
@@ -4648,18 +4828,23 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
     clearSession();
     showAuth("登录已失效，请重新登录", options);
   },
-  handleMembershipRequired: () => openMembershipModal({ goal: membershipGoalForCurrentContext() }),
+  handleMembershipRequired: () => {
+    if (location.pathname.startsWith("/finance")) {
+      return showMembership(true, { goal: "finance", returnTo: "/finance" });
+    }
+    return openMembershipModal({ goal: membershipGoalForCurrentContext() });
+  },
 });
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?v=20261027-aeris-p07-ui-r1", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?v=20261027-aeris-p07-ui-r1", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?release=20261107-aeris-p07-f-a11y-rc4", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261107-aeris-p07-f-a11y-rc4", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?v=20261027-aeris-p07-ui-r1", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?v=20261027-aeris-p07-ui-r1", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?v=20261027-aeris-p07-ui-r1", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261107-aeris-p07-f-a11y-rc4", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261107-aeris-p07-f-a11y-rc4", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261107-aeris-p07-f-a11y-rc4", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render"],
@@ -4673,8 +4858,7 @@ financeController = createLazyController({
   hasEntitlement: (code, account) => hasAccountEntitlement(code, account),
   isSuperAdmin: (account) => isSuperAdmin(account),
   openRecharge: (goal) => {
-    pushRoute("/recharge");
-    return openMembershipModal({ goal });
+    return showMembership(true, { goal, returnTo: '/finance' });
   },
   navigate: (path) => {
     if (path === "/select") showModulePicker(true);
@@ -4723,13 +4907,46 @@ featureConsole = createFeatureConsole({ api, apiGet,
   getAccount: () => state.session ? state.account : null,
   refreshFeatures: () => featureController?.refresh(),
 });
+function applyInterfacePolicy() {
+  // An authenticated account's Task25 decision remains authoritative, including
+  // OFF, expired and pending decisions. Public policy applies while unauthenticated.
+  const hasAuthenticatedAccount = Boolean(state.session && state.account);
+  const decision = state.session && sessionRestorePending ? { status: backendAvailable ? 'pending' : 'error' }
+    : state.session && !state.account ? { status: 'pending' } : hasAuthenticatedAccount
+    ? featureController?.decision('p07_accessibility') || { status: 'pending' }
+    : publicUiPolicyController?.decision() || { status: 'pending' };
+  const enabled = decision.status === 'enabled';
+  setInterfaceEnhancementsEnabled(enabled);
+  document.documentElement.dataset.interfacePolicy = decision.status;
+  document.documentElement.dataset.sessionVerification = sessionRestorePending && state.session ? 'pending' : 'ready';
+  const policyState = $('interfacePolicyState');
+  if (policyState) {
+    policyState.hidden = decision.status !== 'error';
+    $('interfacePolicyMessage').textContent = sessionRestorePending
+      ? (decision.status === 'error' ? '登录状态暂时无法验证，请重试。账户与本机数据仍然保留。' : '正在重新验证登录状态…')
+      : decision.status === 'pending'
+      ? '正在读取界面设置…' : '界面设置暂时无法读取，已安全使用基础界面。账户与本机数据仍然保留。';
+    $('retryInterfacePolicyBtn').hidden = decision.status !== 'error';
+    $('retryInterfacePolicyBtn').classList.toggle('hidden', decision.status !== 'error');
+  }
+  const loginBtn = $("publicLoginBtn");
+  if (loginBtn) {
+    loginBtn.textContent = enabled ? (hasAuthenticatedAccount ? "进入空间 →" : "探索 Aeris →") : "账户";
+  }
+}
 featureController = createFeatureController({ api, apiGet,
-  getAccount: () => state.session ? state.account : null,
+  getAccount: () => state.session && !sessionRestorePending ? state.account : null,
   onAvailable: () => featureConsole?.setAvailable(featureInfrastructureAvailable),
   onChange: () => {
     masteryController?.update();
-    setInterfaceEnhancementsEnabled(featureController?.enabled("p07_accessibility") === true);
+    applyInterfacePolicy();
   },
+});
+publicUiPolicyController = createPublicUiPolicyController({ apiGet,
+  getAccount: () => state.session ? state.account : null,
+  hasSession: () => Boolean(state.session),
+  document,
+  onChange: applyInterfacePolicy,
 });
 window.AerisFeatures = Object.freeze({ enabled: key => featureController.enabled(key), channel: () => featureController.channel() });
 masteryController = createMasteryController({ api, apiGet, features: featureController,
@@ -4761,6 +4978,14 @@ dashboardView = createDashboardView({
 
 function applyBackendStatus(data) {
   markBackendReachable(data);
+  // A successful status response from an older supported backend may omit
+  // Task25 entirely. That is a known unavailable capability, not an endless
+  // pending policy. Ordinary API success without this field is not authority.
+  if (typeof data.features?.task25_feature_flags !== 'boolean') {
+    featureInfrastructureAvailable = false;
+    featureController?.setAvailable(false);
+    featureConsole?.setAvailable(false);
+  }
   aiAvailable = data.ai_ready !== false;
   $("modelLabel").textContent = data.model || (aiAvailable ? "Workers AI" : "规则模式");
   $("statusDot").classList.toggle("online", true);
@@ -4782,6 +5007,7 @@ function markBackendReachable(data = {}) {
 async function requestBackendStatus() {
   let lastError = new Error(BACKEND_NETWORK_MESSAGE);
   for (const baseDelay of STATUS_RETRY_BASE_DELAYS_MS) {
+    if (navigator.onLine === false) break;
     const delay = retryDelayWithJitter(baseDelay);
     if (delay) await waitForDelay(delay);
     try {
@@ -4792,6 +5018,9 @@ async function requestBackendStatus() {
       error.status = response.status;
       error.code = data.code || "status_unavailable";
       lastError = error;
+      if (data.code === "local_api_not_configured" || (response.status >= 400 && response.status < 500 && response.status !== 429)) {
+        break;
+      }
     } catch (error) {
       lastError = error;
     }
@@ -4829,6 +5058,7 @@ function setView(id) {
   if (leavingQuiz) {
     if (judgeController) judgeController.abort();
   }
+  $("workspace")?.setAttribute("data-active-view", id);
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
   document.querySelectorAll(".tabs button").forEach((tab) => tab.classList.toggle("active", tab.dataset.view === id));
   if (id === "quizView" && state.roundActive) {
@@ -4930,15 +5160,17 @@ function hideResultPanel() {
     clearTimeout(resultHideTimer);
     resultHideTimer = null;
   }
-  $("resultPanel").classList.remove("grading", "ai-review");
-  $("resultPanel").classList.add("hidden");
+  $("resultPanel")?.classList.remove("grading", "ai-review");
+  $("resultPanel")?.classList.add("hidden");
+  $("quizView")?.classList.remove("has-feedback");
 }
 
 function scheduleResultHide(delayMs = QUESTION_TRANSITION_MS) {
   if (resultHideTimer) clearTimeout(resultHideTimer);
   resultHideTimer = setTimeout(() => {
     resultHideTimer = null;
-    $("resultPanel").classList.add("hidden");
+    $("resultPanel")?.classList.add("hidden");
+    $("quizView")?.classList.remove("has-feedback");
   }, delayMs);
 }
 
@@ -5396,9 +5628,15 @@ async function ensureJapaneseQuestionForms(words) {
   });
   if (!missing.length) return true;
   if (!backendAvailable || !state.session) {
-    alert(dictation
+    const offlineMsg = dictation
       ? "这些日语词还缺少完整的汉字或假名写法，请联网后重试。"
-      : "这些日语汉字还缺少假名读音，请联网后重试。");
+      : "这些日语汉字还缺少假名读音，请联网后重试。";
+    showAchievementToast(offlineMsg);
+    const validation = $("answerValidation");
+    if (validation) {
+      validation.textContent = offlineMsg;
+      validation.classList.remove("hidden");
+    }
     return false;
   }
 
@@ -5411,7 +5649,13 @@ async function ensureJapaneseQuestionForms(words) {
     );
     rememberJapaneseVocabularyData(resolution.readings || {}, resolution.written_forms || {});
   } catch (error) {
-    alert(`${dictation ? "获取日语完整写法" : "获取日语假名读音"}失败：${error.message}。内置词库未收录的生僻词需要 Workers AI 可用。`);
+    const errorMsg = `${dictation ? "获取日语完整写法" : "获取日语假名读音"}失败：${error.message}。内置词库未收录的生僻词需要 Workers AI 可用。`;
+    showAchievementToast(errorMsg);
+    const validation = $("answerValidation");
+    if (validation) {
+      validation.textContent = errorMsg;
+      validation.classList.remove("hidden");
+    }
     return false;
   }
 
@@ -5425,11 +5669,23 @@ async function ensureJapaneseQuestionForms(words) {
   });
   if (unresolved.length) {
     const preview = unresolved.slice(0, 5).join("、");
+    const aiMessage = `AI 暂时不可用，${preview}${unresolved.length > 5 ? "等" : ""}暂不显示假名标音；释义练习仍可继续。`;
     if (!dictation && resolution?.ai_unavailable) {
-      alert(`AI 暂时不可用，${preview}${unresolved.length > 5 ? "等" : ""}暂不显示假名标音；释义练习仍可继续。`);
+      showAchievementToast(aiMessage);
+      const validation = $("answerValidation");
+      if (validation) {
+        validation.textContent = aiMessage;
+        validation.classList.remove("hidden");
+      }
       return true;
     }
-    alert(`AI 暂时未找到这些词的${dictation ? "完整写法" : "假名读音"}：${preview}${unresolved.length > 5 ? "等" : ""}。请稍后重试。`);
+    const notFoundMessage = `AI 暂时未找到这些词的${dictation ? "完整写法" : "假名读音"}：${preview}${unresolved.length > 5 ? "等" : ""}。请稍后重试。`;
+    showAchievementToast(notFoundMessage);
+    const validation = $("answerValidation");
+    if (validation) {
+      validation.textContent = notFoundMessage;
+      validation.classList.remove("hidden");
+    }
     return false;
   }
   return true;
@@ -6529,12 +6785,45 @@ function changeProfile(value, options = {}) {
   if ($("studyView").classList.contains("active")) renderStudyDashboard();
 }
 
+function showAuthTransition(message = "正在验证身份与权限…") {
+  let overlay = document.getElementById("authTransitionScreen") || document.getElementById("authTransitionOverlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "authTransitionScreen";
+    overlay.className = "entry-screen auth-transition-overlay";
+    overlay.setAttribute("role", "status");
+    overlay.setAttribute("aria-label", message);
+    overlay.setAttribute("aria-hidden", "false");
+    overlay.innerHTML = '<div class="entry-content">' +
+      '<img class="entry-logo" src="/icon-192.png?release=20261107-aeris-p07-f-a11y-rc4" width="76" height="76" alt="" />' +
+      '<strong>Aeris</strong>' +
+      '<span class="entry-progress" aria-hidden="true"></span>' +
+      '</div>';
+    document.body.appendChild(overlay);
+  }
+  overlay.classList.remove("is-exiting");
+  return overlay;
+}
+
+async function dismissAuthTransition(overlay) {
+  if (!overlay) return;
+  const reducedMotion = prefersReducedMotion(window);
+  if (reducedMotion) {
+    overlay.remove();
+    return;
+  }
+  overlay.classList.add("is-exiting");
+  await new Promise(r => setTimeout(r, 180));
+  overlay.remove();
+}
+
 async function login(event) {
   event.preventDefault();
   $("loginError").textContent = "";
   const button = $("loginSubmitBtn");
   if (button.disabled) return;
   button.disabled = true;
+  let transitionOverlay = null;
   try {
     if (!backendAvailable) {
       $("loginError").textContent = "正在重新连接服务器…";
@@ -6544,6 +6833,7 @@ async function login(event) {
       username: $("usernameInput").value.trim(),
       secret: $("secretInput").value,
     });
+    transitionOverlay = showAuthTransition("正在验证身份与权限…");
     state.session = data.session;
     const persisted = persistAccountSession(state.session);
     applyAccount(data.account);
@@ -6553,6 +6843,14 @@ async function login(event) {
     pendingAuthMessage = "";
     $("modelLabel").textContent = data.model || "Cloudflare 云端";
     showModulePicker(false);
+    if (featureController) {
+      try {
+        await Promise.race([
+          featureController.refresh(),
+          new Promise(r => setTimeout(r, 2000))
+        ]);
+      } catch (_) {}
+    }
     pushRoute("/", true);
     updateStats();
     if (!persisted) {
@@ -6563,27 +6861,35 @@ async function login(event) {
   } catch (error) {
     $("loginError").textContent = error.message;
   } finally {
+    if (transitionOverlay) {
+      await dismissAuthTransition(transitionOverlay);
+    }
     button.disabled = false;
   }
 }
 
 async function performBackendRefresh() {
+  const owner = state.session;
   try {
     const data = await checkBackendStatus();
+    if (owner !== state.session) return;
     applyBackendStatus(data);
 
-    if (state.session) {
+    if (owner) {
       const healthResponse = await fetchWithTimeout(
         "/api/health",
         {
           method: "POST",
           cache: "no-store",
-          headers: { "Content-Type": "application/json", ...accountSessionHeaders(state.session) },
+          headers: { "Content-Type": "application/json", ...accountSessionHeaders(owner) },
           body: "{}",
         },
         STATUS_TIMEOUT_MS,
       );
       const health = await healthResponse.json().catch(() => ({}));
+      // A refresh started by another identity must never replace or expire the
+      // account now active in this tab, even when its response arrives last.
+      if (owner !== state.session) return;
       if (!healthResponse.ok) {
         if (isCanonicalSessionFailure(health)) {
           if (requestNativeSessionRefresh(health.code)) {
@@ -6593,6 +6899,7 @@ async function performBackendRefresh() {
             clearSession();
             pendingScreen = "auth";
             pendingAuthMessage = health.error || "登录已失效，请重新登录";
+            showAuth(pendingAuthMessage, { path: "/login", replace: true });
           }
         } else {
           backendAvailable = false;
@@ -6601,18 +6908,30 @@ async function performBackendRefresh() {
           pendingAuthMessage = state.session && state.account ? "" : backendFailureMessage;
         }
       } else {
+        const restoring = sessionRestorePending;
+        sessionRestorePending = false;
         applyAccount(health.account);
         aiAvailable = health.ai_ready !== false;
         $("modelLabel").textContent = health.model || data.model || (aiAvailable ? "Workers AI" : "规则模式");
         $("statusDot").classList.toggle("online", true);
         pendingScreen = "workspace";
         pendingAuthMessage = "";
+        if (featureController) {
+          try {
+            await Promise.race([
+              featureController.refresh(),
+              new Promise((r) => setTimeout(r, 2000)),
+            ]);
+          } catch (_) {}
+        }
+        if (restoring) void routeCurrent();
       }
     } else {
       pendingScreen = "auth";
       pendingAuthMessage = "";
     }
   } catch (error) {
+    if (owner !== state.session) return;
     backendAvailable = false;
     aiAvailable = false;
     backendFailureMessage = backendErrorMessage(error);
@@ -6621,14 +6940,22 @@ async function performBackendRefresh() {
     $("modelLabel").textContent = "离线模式";
     $("statusDot").classList.remove("online");
   }
+  if (sessionRestorePending) {
+    showSessionRecovery(backendFailureMessage || "正在重新验证登录状态…", { isError: !backendAvailable });
+    applyInterfacePolicy();
+  }
   applyPendingScreen();
   renderDashboard();
 }
 
 function refreshBackendState() {
   if (!backendRefreshPromise) {
+    const owner = state.session;
     backendRefreshPromise = performBackendRefresh().finally(() => {
       backendRefreshPromise = null;
+      // A storage/native session change may have joined the old in-flight
+      // refresh. Validate its own identity as soon as that request completes.
+      if (owner !== state.session && state.session) scheduleBackendRecovery(0);
     });
   }
   return backendRefreshPromise;
@@ -6672,6 +6999,14 @@ function dismissTopOverlay() {
   if ($("accountMenu")?.open) { closeAccountMenu(); return true; }
   const navigation = $("siteNavToggle");
   if (navigation?.getAttribute("aria-expanded") === "true") { navigation.click(); return true; }
+  if (location.pathname === "/account" || ($("accountModal") && !$("accountModal").classList.contains("hidden"))) {
+    closeModal("accountModal", true);
+    return true;
+  }
+  if (location.pathname === "/recharge" || ($("membershipModal") && !$("membershipModal").classList.contains("hidden"))) {
+    closeModal("membershipModal", true);
+    return true;
+  }
   return false;
 }
 
@@ -6810,7 +7145,16 @@ function auditRuntimeCapabilities() {
 }
 
 async function boot() {
+  document.documentElement.dataset.bootState='initializing';
   initDesignSystem();
+  applyInterfacePolicy();
+  const publicPolicyPromise = publicUiPolicyController?.refresh();
+  $('retryInterfacePolicyBtn').addEventListener('click', () => {
+    if (state.session && sessionRestorePending) void refreshBackendState();
+    else if (state.session && state.account) void featureController.refresh();
+    else if (state.session) void refreshBackendState();
+    else void publicUiPolicyController.refresh();
+  });
   initPublicExperience();
   installLocalTestBindings();
   auditRuntimeCapabilities();
@@ -6859,6 +7203,34 @@ async function boot() {
     // keeps the pending state until the route is rendered.
     await withInteractionFeedback(link, `site-nav-${destination}`, () => navigateFromSiteNav(destination));
   }));
+  document.querySelectorAll("#v3Sidebar [data-v3-nav]").forEach((link) => link.addEventListener("click", async (event) => {
+    const target = link.dataset.v3Nav;
+    event.preventDefault();
+    await withInteractionFeedback(link, `v3-nav-${target}`, async () => {
+      if (siteNavigationDestinations.has(target)) {
+        await navigateFromSiteNav(target);
+        return;
+      }
+      if (target === "workflows") {
+        if (state.session && state.account) await showTools("/tools/workflows", true);
+        else showAuth("登录后可使用工作流编排", { mode: "login", path: "/login" });
+        return;
+      }
+      if (target === "recharge") {
+        if (state.session && state.account) await showMembership(true);
+        else showAuth("登录后可查看实时套餐并提交充值申请", { mode: "login", path: "/login" });
+        return;
+      }
+      if (target === "account") {
+        if (state.session && state.account) showAccount(true);
+        else showAuth("", { mode: "login", path: "/login" });
+        return;
+      }
+      if (target === "admin" && state.session && state.account && isAdmin(state.account)) {
+        await showAdminPanel(true);
+      }
+    });
+  }));
   $("publicTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
   // Capability anchors use the existing site-nav dispatcher in both sessions.
   $("publicRegisterBtn")?.addEventListener("click", () => navigateFromSiteNav('language'));
@@ -6872,6 +7244,15 @@ async function boot() {
   });
   $("changelogTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
   $("dashboardChangelogBtn")?.addEventListener("click", () => showChangelog(true));
+  document.querySelectorAll(".v3-summary-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      const target = card.dataset.v3Summary;
+      if (target === "learning") navigateFromSiteNav("language");
+      else if (target === "finance") navigateFromSiteNav("finance");
+      else if (target === "transfer") navigateFromSiteNav("transfer");
+      else if (target === "tools") navigateFromSiteNav("tools");
+    });
+  });
   // #7: the learning-sync actions talk to the cloud; the control shows the
   // pending state before the first await instead of looking dead for a round trip.
   $("learningSyncNowBtn")?.addEventListener("click", (event) =>
@@ -6902,12 +7283,11 @@ async function boot() {
   $("membershipBtn").addEventListener("click", (event) =>
     withInteractionFeedback(event.currentTarget, "membership-open", async () => {
       closeAccountMenu();
-      pushRoute("/recharge");
-      await openMembershipModal();
+      await showMembership(true);
     }));
   $("feedbackBtn").addEventListener("click", (event) =>
     withInteractionFeedback(event.currentTarget, "feedback-open", () => openFeedbackModal(event)));
-  $("accountBtn").addEventListener("click", () => { closeAccountMenu(); pushRoute("/account"); openModal("accountModal"); });
+  $("accountBtn").addEventListener("click", () => { closeAccountMenu(); showAccount(true); });
   $("homeBtn").addEventListener("click", () => { closeAccountMenu(); showModulePicker(true); });
   $("adminBtn").addEventListener("click", () => { closeAccountMenu(); showAdminPanel(true); });
   $("logoutBtn").addEventListener("click", () => { closeAccountMenu(); logoutAccount(); });
@@ -6936,10 +7316,12 @@ async function boot() {
     if (event.key === "Tab") {
       const modal = [...document.querySelectorAll(".modal-layer:not(.hidden)")].findLast((layer) => !layer.inert);
       if (!modal) return;
-      const targets = [...modal.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')]
-        .filter((element) => !element.disabled && element.getClientRects().length);
+      const targets = dialogFocusTargets(modal);
       const first = targets[0], last = targets[targets.length - 1];
-      if (targets.length && ((!modal.contains(document.activeElement)) || (event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last))) {
+      if (!targets.length) {
+        event.preventDefault();
+        focusDialog(modal);
+      } else if ((!targets.includes(document.activeElement)) || (event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last)) {
         event.preventDefault();
         (event.shiftKey ? last : first).focus({ preventScroll: true });
       }
@@ -6948,20 +7330,25 @@ async function boot() {
     if (event.key !== "Escape") return;
     const openModals = [...document.querySelectorAll(".modal-layer:not(.hidden)")];
     const modal = openModals[openModals.length - 1];
-    if (!modal) {
-      closeAccountMenu();
+    if (modal) {
+      if (modal.hasAttribute("data-confirm-only")) {
+        modal.querySelector("button")?.focus();
+        return;
+      }
+      if (modal.id === "siteMessageModal") {
+        void dismissActiveSiteMessage();
+        return;
+      }
+      if (modal.id === "confirmModal") confirmAction = null;
+      closeModal(modal.id);
       return;
     }
-    if (modal.hasAttribute("data-confirm-only")) {
-      modal.querySelector("button")?.focus();
-      return;
+    closeAccountMenu();
+    if (location.pathname === "/account" || ($("accountModal") && !$("accountModal").classList.contains("hidden"))) {
+      closeModal("accountModal");
+    } else if (location.pathname === "/recharge" || ($("membershipModal") && !$("membershipModal").classList.contains("hidden"))) {
+      closeModal("membershipModal");
     }
-    if (modal.id === "siteMessageModal") {
-      void dismissActiveSiteMessage();
-      return;
-    }
-    if (modal.id === "confirmModal") confirmAction = null;
-    closeModal(modal.id);
   });
   document.addEventListener("click", (event) => {
     const menu = $("accountMenu");
@@ -7150,8 +7537,8 @@ async function boot() {
     const generation = ++routeGeneration;
     void withInteractionFeedback(event.currentTarget, "workflow-open", () => showTools("/tools/workflows", true, generation)).catch(() => undefined);
   });
-  $("toolsAccountBtn").addEventListener("click", () => { pushRoute("/account"); openModal("accountModal"); });
-  $("dashboardMembershipBtn")?.addEventListener("click", () => { pushRoute("/recharge"); openMembershipModal(); });
+  $("toolsAccountBtn").addEventListener("click", () => showAccount(true));
+  $("dashboardMembershipBtn")?.addEventListener("click", () => showMembership(true));
   $("dashboardFinanceBtn")?.addEventListener("click", () => showFinance(true));
   $("shareLoginBtn").addEventListener("click", () => state.session && state.account ? showModulePicker(true) : showAuth("", { path: "/login" }));
   $("gradingModeSelect").addEventListener("change", (event) => {
@@ -7206,8 +7593,15 @@ async function boot() {
     if (shouldProbeCloudBackend()) scheduleBackendRecovery(150);
     if (state.session && state.account) void loadPendingSiteMessages({ force: true });
   });
+  window.addEventListener("pagehide", (event) => {
+    if (!event.persisted || !state.session) return;
+    // Freeze a neutral surface into BFCache. The server may revoke the token
+    // while this document is away, so a restored bitmap is not authority.
+    sessionRestorePending = true;
+    renderAccountUi();
+  });
   window.addEventListener("pageshow", (event) => {
-    if (shouldProbeCloudBackend() && (event.persisted || !backendAvailable)) scheduleBackendRecovery(200);
+    if (shouldProbeCloudBackend() && (event.persisted || !backendAvailable)) scheduleBackendRecovery(event.persisted ? 0 : 200);
     if (event.persisted && state.session && state.account) void loadPendingSiteMessages({ force: true });
   });
   navigator.connection?.addEventListener?.("change", () => {
@@ -7244,60 +7638,67 @@ async function boot() {
   void refreshCloudChangelog();
   $("retrySessionRecoveryBtn").addEventListener("click", (event) =>
     withInteractionFeedback(event.currentTarget, "session-recovery-retry", async () => {
+      $("sessionRecovery").dataset.recoveryState = "loading";
+      $("sessionRecoveryMessage").textContent = "正在重新连接服务…";
       await refreshBackendState();
       await routeCurrent();
+      if (!$("sessionRecovery").classList.contains("hidden") && !backendAvailable) {
+        $("sessionRecovery").dataset.recoveryState = "error";
+        $("sessionRecoveryMessage").textContent = backendFailureMessage || "连接暂时不可用，请稍后重试或返回公开首页。";
+      }
     }));
+  $("exitSessionRecoveryBtn")?.addEventListener("click", () => {
+    if (!state.account) clearSession();
+    showPublicHome(true);
+  });
   const backendPromise = initialPath.startsWith("/share/") || initialPath === "/transfer"
     ? Promise.resolve() : refreshBackendState();
   // Determine the existing in-flow notice before revealing the first page.
   // Late insertion would push the richer public hero down after its first paint.
   maybeShowVersionNotice();
+  document.documentElement.dataset.bootState='splash';
+
+  const whenContentReady = async () => {
+    try {
+      await Promise.race([
+        Promise.all([
+          backendPromise,
+          !state.session && publicPolicyPromise ? publicPolicyPromise : Promise.resolve(),
+          state.session && state.account && featureController ? featureController.refresh() : Promise.resolve(),
+        ]),
+        new Promise(r => setTimeout(r, 1800))
+      ]);
+    } catch (_) {}
+    document.documentElement.dataset.bootState='routing';
+    try {
+      await routeCurrent();
+    } catch (_) {}
+  };
+
   await runSplashSequence(() => {
     $("appShell").classList.remove("app-shell-pending");
     $("appShell").classList.add("app-shell-ready");
     $("appShell").setAttribute("aria-hidden", "false");
-    if (initialPath.startsWith("/share/")) { void showShareRoute(initialPath); return; }
-    if (initialPath === "/transfer") {
-      hidePrimaryScreens();
-      $("transferPage")?.classList.remove("hidden");
-      $("transferPage")?.setAttribute("aria-hidden", "false");
-      return;
-    }
-    if (state.session) {
-      showSessionRecovery();
-      return;
-    }
-    if (!state.session || !state.account) {
-      if (initialPath === "/") {
-        showPublicHome(false);
-        return;
-      }
-      if (initialPath === "/trial") {
-        showTrial(false);
-        return;
-      }
-      if (initialPath === "/changelog") {
-        showChangelog(false);
-        return;
-      }
-      if (initialPath === "/download") {
-        showDownload(false);
-        return;
-      }
-    }
-    showAuth("", {
-      mode: initialPath === "/register" ? "register" : "login",
-      path: initialPath,
-      skipRoute: true,
-    });
-  });
-  await backendPromise;
-  await routeCurrent();
-  installNativeNavigation();
-  installInteractionTracing();
-  installMotionSystem();
-  installNativeThemeBridge();
-  setupResponsiveDisclosures();
+    installNativeNavigation();
+    installInteractionTracing();
+    installMotionSystem();
+    installNativeThemeBridge();
+    setupResponsiveDisclosures();
+    document.documentElement.dataset.bootState='ready';
+  }, whenContentReady);
 }
 
-boot();
+boot().catch(() => {
+  // Use the existing recovery surface; never leave a failed cosmetic startup
+  // over the application or turn a failed boot into an authenticated page.
+  document.documentElement.dataset.bootState='error';
+  $("entryScreen")?.remove();
+  $("appShell")?.classList.remove('app-shell-pending');
+  $("appShell")?.classList.add('app-shell-ready');
+  $("appShell")?.setAttribute('aria-hidden','false');
+  showSessionRecovery('页面初始化失败，请重新连接后重试。',{isError:true});
+});
+
+// Presentation only; this notice grants no access or feature authority.
+const aerisVisualPreview = document.getElementById("aerisPreviewNotice");
+if (aerisVisualPreview) aerisVisualPreview.hidden = !location.hostname.endsWith(".thewyj-p07-ui-rc.pages.dev");

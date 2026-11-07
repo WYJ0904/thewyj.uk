@@ -1,0 +1,56 @@
+[
+  {
+    "suite": "p07-round3-browser",
+    "script": "qa/p07-round3/browser.mjs",
+    "status": "PASS",
+    "durationMs": 73207
+  },
+  {
+    "suite": "r4a-runtime",
+    "script": ".wrangler/p07-r4a-driver-r5-final-runtime/runtime-browser.mjs",
+    "status": "PASS",
+    "durationMs": 14035
+  },
+  {
+    "suite": "primary-workspaces",
+    "script": "qa/p07-round3/primary-workspaces.mjs",
+    "status": "PASS",
+    "durationMs": 4363
+  },
+  {
+    "suite": "p4-workspace-behavior",
+    "script": "qa/aeris/p4-behavior-browser.mjs",
+    "status": "PASS",
+    "durationMs": 32177
+  },
+  {
+    "suite": "r5-policy",
+    "script": ".wrangler/p07-r4a-driver-r5-final-runtime/r5-policy.mjs",
+    "status": "PASS",
+    "durationMs": 12365
+  },
+  {
+    "suite": "r5-browser",
+    "script": ".wrangler/p07-r4a-driver-r5-final-runtime/r5-browser.mjs",
+    "status": "PASS",
+    "durationMs": 56765
+  },
+  {
+    "suite": "r4c-e",
+    "script": ".wrangler/p07-r4a-driver-r5-final-runtime/r4c-e.mjs",
+    "status": "FAIL",
+    "durationMs": 7675
+  },
+  {
+    "suite": "r4a-pwa",
+    "script": ".wrangler/p07-r4a-driver-r5-final-runtime/pwa-browser.mjs",
+    "status": "PASS",
+    "durationMs": 2881
+  },
+  {
+    "suite": "r4c-f",
+    "script": ".wrangler/p07-r4a-driver-r5-final-runtime/r4c-f.mjs",
+    "status": "FAIL",
+    "durationMs": 31985
+  }
+]

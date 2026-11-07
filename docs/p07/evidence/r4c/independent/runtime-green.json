@@ -1,0 +1,236 @@
+{
+  "source": "cef7db9bc4ffd3e2641df4e190ba5938a1b4ff34",
+  "results": [
+    {
+      "name": "G02-online-policy-and-workflow-geometry",
+      "status": "PASS",
+      "detail": {
+        "before": {
+          "path": "/tools/workflows",
+          "ready": "complete",
+          "visibility": "visible",
+          "policy": "enabled",
+          "p07": "enabled",
+          "splash": false,
+          "shell": "app-shell app-shell-ready",
+          "accountVisible": false,
+          "workflowHidden": false,
+          "workflowVisible": true,
+          "workspaceLeft": 268,
+          "workspaceRight": 1361,
+          "runButtonHeight": 44,
+          "trace": {
+            "frames": 181,
+            "timers": [],
+            "events": [
+              {
+                "type": "DOMContentLoaded",
+                "t": 215.29999999981374,
+                "visibility": "visible"
+              }
+            ]
+          }
+        },
+        "offline": {
+          "path": "/tools/workflows",
+          "ready": "complete",
+          "visibility": "visible",
+          "policy": "error",
+          "p07": "disabled",
+          "splash": false,
+          "shell": "app-shell app-shell-ready",
+          "accountVisible": false,
+          "workflowHidden": false,
+          "workflowVisible": true,
+          "workspaceLeft": 20,
+          "workspaceRight": 1405,
+          "runButtonHeight": 44,
+          "trace": {
+            "frames": 183,
+            "timers": [
+              {
+                "ms": 1000,
+                "t": 1037.6000000000931,
+                "frames": 183,
+                "splash": false,
+                "shell": "app-shell app-shell-ready"
+              }
+            ],
+            "events": [
+              {
+                "type": "DOMContentLoaded",
+                "t": 215.29999999981374,
+                "visibility": "visible"
+              }
+            ]
+          }
+        },
+        "undecided": {
+          "path": "/tools/workflows",
+          "ready": "complete",
+          "visibility": "visible",
+          "policy": "pending",
+          "p07": "disabled",
+          "splash": false,
+          "shell": "app-shell app-shell-ready",
+          "accountVisible": false,
+          "workflowHidden": false,
+          "workflowVisible": false,
+          "workspaceLeft": 0,
+          "workspaceRight": 0,
+          "runButtonHeight": 0,
+          "trace": {
+            "frames": 185,
+            "timers": [
+              {
+                "ms": 1000,
+                "t": 1037.6000000000931,
+                "frames": 183,
+                "splash": false,
+                "shell": "app-shell app-shell-ready"
+              }
+            ],
+            "events": [
+              {
+                "type": "DOMContentLoaded",
+                "t": 215.29999999981374,
+                "visibility": "visible"
+              }
+            ]
+          }
+        },
+        "settled": {
+          "path": "/tools/workflows",
+          "ready": "complete",
+          "visibility": "visible",
+          "policy": "enabled",
+          "p07": "enabled",
+          "splash": false,
+          "shell": "app-shell app-shell-ready",
+          "accountVisible": false,
+          "workflowHidden": false,
+          "workflowVisible": true,
+          "workspaceLeft": 268,
+          "workspaceRight": 1361,
+          "runButtonHeight": 44,
+          "trace": {
+            "frames": 221,
+            "timers": [
+              {
+                "ms": 1000,
+                "t": 1037.6000000000931,
+                "frames": 183,
+                "splash": false,
+                "shell": "app-shell app-shell-ready"
+              }
+            ],
+            "events": [
+              {
+                "type": "DOMContentLoaded",
+                "t": 215.29999999981374,
+                "visibility": "visible"
+              }
+            ]
+          }
+        },
+        "immediateLegacyGeometryWouldFail": true
+      }
+    },
+    {
+      "name": "G01-background-account-reload",
+      "status": "PASS",
+      "detail": {
+        "background": {
+          "path": "/account",
+          "ready": "complete",
+          "visibility": "hidden",
+          "policy": "pending",
+          "p07": "disabled",
+          "splash": false,
+          "shell": "app-shell app-shell-ready",
+          "accountVisible": false,
+          "workflowHidden": true,
+          "workflowVisible": false,
+          "workspaceLeft": 0,
+          "workspaceRight": 0,
+          "runButtonHeight": 0,
+          "trace": {
+            "frames": 0,
+            "timers": [
+              {
+                "ms": 1000,
+                "t": 1927.5,
+                "frames": 0,
+                "splash": true,
+                "shell": "app-shell app-shell-ready"
+              },
+              {
+                "ms": 2500,
+                "t": 2933.399999999907,
+                "frames": 0,
+                "splash": false,
+                "shell": "app-shell app-shell-ready"
+              }
+            ],
+            "events": [
+              {
+                "type": "DOMContentLoaded",
+                "t": 150.59999999962747,
+                "visibility": "hidden"
+              }
+            ]
+          }
+        },
+        "foreground": {
+          "path": "/account",
+          "ready": "complete",
+          "visibility": "visible",
+          "policy": "enabled",
+          "p07": "enabled",
+          "splash": false,
+          "shell": "app-shell app-shell-ready",
+          "accountVisible": true,
+          "workflowHidden": true,
+          "workflowVisible": false,
+          "workspaceLeft": 0,
+          "workspaceRight": 0,
+          "runButtonHeight": 0,
+          "trace": {
+            "frames": 271,
+            "timers": [
+              {
+                "ms": 1000,
+                "t": 1927.5,
+                "frames": 0,
+                "splash": true,
+                "shell": "app-shell app-shell-ready"
+              },
+              {
+                "ms": 2500,
+                "t": 2933.399999999907,
+                "frames": 0,
+                "splash": false,
+                "shell": "app-shell app-shell-ready"
+              }
+            ],
+            "events": [
+              {
+                "type": "DOMContentLoaded",
+                "t": 150.59999999962747,
+                "visibility": "hidden"
+              },
+              {
+                "type": "visibilitychange",
+                "t": 4064.2999999998137,
+                "visibility": "visible"
+              }
+            ]
+          }
+        },
+        "backgroundWasActuallyHidden": true,
+        "splashRetainedUntilForeground": false
+      }
+    }
+  ],
+  "runtimeErrors": []
+}
