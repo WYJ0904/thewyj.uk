@@ -19,7 +19,7 @@
 - **代码仓库**：`WYJ0904/thewyj.uk`
 - **基线版本**：Draft PR #131（固定 SHA: `7e938bdbda734d319053f1e23fe4a96703486ae6`）
 - **问题来源**：Draft PR #132 的 Task25 最终回归记录（`docs/p07/P07_TASK25_D1_CONCURRENCY_REPORT.md`）
-- **独立工作树路径**：`C:\Users\78252\.codex\worktrees\gemini-p07-login-contrast-fix\thewyj.uk`
+- **独立工作树路径**：`.codex/worktrees/gemini-p07-login-contrast-fix/thewyj.uk`
 - **独立任务分支**：`gemini/p07-login-contrast-fix`
 - **目标分支**：`codex/p07-f-a11y-closeout`（不直接面向 main）
 - **分支与环境安全防护**：
@@ -69,6 +69,23 @@ PR #132 保存于 `docs/migration-evidence/p07-task25-d1/task25-final-regression
   - 次要文字混合：$71 \times 0.7 + 252 \times 0.3 = 125.3 \to \mathbf{\#7d8796}$。
   - 品牌文字混合：$37 \times 0.7 + 252 \times 0.3 = 101.5 \to \mathbf{\#6691ef}$。
 数值与 axe-core 报告中的颜色误差为 0。
+
+### 2.1 动画过渡期间短暂低对比度的物理客观性与无障碍边界界定
+
+1. **物理客观存在性（明确核实）**：
+   - 在正常动效模式（`prefers-reduced-motion: no-preference`）下，`styles.css` 中 `@keyframes accountPageIn` 为 `from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); }`，持续时长为 240ms。
+   - 在动画开始至完成的 $t \in (0, 240\text{ms})$ 区间内，面板透明度 $\alpha < 1.0$。Blink 渲染引擎将半透明前景与画布背景混合，计算对比度在 $t \approx 100\text{ms}$ 时为 2.52:1 ~ 3.54:1。
+   - **核实结论**：四个节点在正常入场动画期间的短暂低对比度**在物理渲染上客观存在**。稳态测试门禁的通过并没有消除动画过程中的渐变插值，任何基于 opacity 淡入的动效在中间帧均存在低于 4.5:1 的瞬态区间。**严禁仅因稳态 axe 扫描通过就宣称“所有动画帧对比度达标”**。
+
+2. **区分动画采样失真与实际可访问性（Accessibility）**：
+   - **自动化测试采样机制与失真原因**：axe-core / Lighthouse 等可访问性扫描器在设计上假定 DOM 与样式处于静态稳态。若在页面入场动画进行中（$t \approx 100\text{ms}$）强行进行静态快照扫描，工具会把 240ms 的瞬态中间帧误当作静态界面，从而产生假阳性违规报警。
+   - **真实可访问性标准要求（WCAG 2.1 / 2.2 SC 1.4.3 & SC 2.3.3）**：
+     - WCAG 1.4.3（对比度最低标准）约束的是用户阅读和交互的**稳态内容**，非交互性入场过渡动画并不要求 240ms 内的每个瞬态渲染微秒帧均强制达到 4.5:1。
+     - **运动减弱（prefers-reduced-motion）保障**：对于视力障碍或对动态效果敏感的用户，系统严格支持 `prefers-reduced-motion: reduce`。在此模式下，`styles.css`（第 2757 行）与 `spatial-experience.css`（第 4302 行）完全禁用动画（`animation: none`，持续时间 0ms），页面在 $t=0$ 即以 100% 不透明度呈现，彻底避免任何短暂低对比度区间。
+     - **稳态交互保障**：动画完成（$t \ge 240\text{ms}$）后，稳态实测对比度达 5.17:1 ~ 9.68:1，且新增补强了 `:hover`、`:focus-visible`、`:disabled` 等完整交互态对比度，完全达到并超越 WCAG AA 4.5:1 标准。
+
+3. **剩余风险与演进考量**：
+   - 在正常动效下，未开启系统级“减弱动态效果”的用户在加载首个 240ms 内会经历视觉渐变。若后续产品或无障碍规范要求动画全程无任何半透明阶段，可评估将入场动效调整为纯位移（仅 `transform`，固定 `opacity: 1`），但此举属于产品设计视觉变更。按当前保护原则，本次不扩大产品改动，保持既有设计并由 Draft PR 留待后续审阅。
 
 ---
 
