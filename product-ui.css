@@ -2679,6 +2679,9 @@ textarea::placeholder {
 }
 
 .auth-panel {
+  /* This form is already revealed by startup/login readiness. Fading its text
+     again reduces contrast in otherwise interactive, visible frames. */
+  animation: none;
   width: min(520px, 100%);
   margin: 36px auto 0;
   padding: 28px;
