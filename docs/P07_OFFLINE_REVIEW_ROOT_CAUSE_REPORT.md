@@ -3,7 +3,7 @@
 - **状态结论**：`P07_OFFLINE_REVIEW_ROOT_CAUSE_FIXED`
 - **仓库**：`WYJ0904/thewyj.uk`
 - **调查基线**：PR #132（分支 `codex/p07-task25-d1-concurrency`，基线提交 `91f0d466361ee80fbd6475facea0b9620f950661`）
-- **独立工作树**：`C:/Users/78252/.codex/worktrees/p07-offline-review-root-cause/thewyj.uk`
+- **独立工作树**：`%USERPROFILE%/.codex/worktrees/p07-offline-review-root-cause/thewyj.uk`
 - **任务分支**：`argon/p07-offline-review-root-cause`
 - **原始失败运行**：GitHub Actions Run [`42186871114`](https://github.com/WYJ0904/thewyj.uk/actions/runs/42186871114) / Job `Browser flow (application)`（Job ID `127790499853`）
 - **失败测试项**：`wrong search, JSON/PDF export, import and offline review`（`local-backend/test_app_browser.mjs`）
@@ -115,27 +115,27 @@
 
 ### 5.1 最小因果修复清单
 
-1. **[`local-backend/account_store.py`](file:///C:/Users/78252/.codex/worktrees/p07-offline-review-root-cause/thewyj.uk/local-backend/account_store.py)**：
+1. **[`local-backend/account_store.py`](../local-backend/account_store.py)**：
    - `_validated_learning_sync_request`：保留 `updated_at` 的毫秒精度（与 `functions/_lib/task11-model.mjs` 对齐），不再通过 `.replace(microsecond=0)` 抹除同秒内先后两次更新的时序差异；
    - `_learning_sync_incoming_is_newer`：当 `incoming_time == existing_time` 时使用 `incoming["client_id"] >= str(existing["client_id"] or "")`，使同一客户端在相同时间戳下的后续请求被判定为较新（`True`）；
    - `_merge_learning_sync_record`：当同一客户端发送更新的变更/删除（`same_client_newer`）时，即使前序在途请求因断网丢失响应导致 `base_server_version < existing.server_version`，也允许同客户端的更新删除生效，防止离线复习消除的错题在重连后被服务端复活；
    - `_merge_wrong_payload`：合并错题载荷时保留非空的 `correct_answer` 与 `rubric` 文本字段（`language`、`gloss`、`notes`、`reading`），与前端 `js/language/wrong-book.js` 的 `mergeWrongBooks` 语义保持一致。
-2. **[`functions/_lib/task11-model.mjs`](file:///C:/Users/78252/.codex/worktrees/p07-offline-review-root-cause/thewyj.uk/functions/_lib/task11-model.mjs)**：
+2. **[`functions/_lib/task11-model.mjs`](../functions/_lib/task11-model.mjs)**：
    - `incomingIsNewer`：在 `incomingTime === existingTime` 时使用 `>=` 处理同 `client_id` 顺序更新；
    - `mergeLearningRecord`：支持 `sameClientNewer` 下同客户端断网恢复后的删除落库；
    - `mergeWrongPayload`：保留非空的 `correct_answer` 与 `rubric` 文本字段，防止空字符串 `""` 抹除已有的标准释义。
-3. **[`learning-sync.js`](file:///C:/Users/78252/.codex/worktrees/p07-offline-review-root-cause/thewyj.uk/learning-sync.js)**：
+3. **[`learning-sync.js`](../learning-sync.js)**：
    - `mergeWrongPayload`：保留非空的 `correct_answer` 与 `rubric` 文本字段；
    - `upsert`：对未显式指定 `updated_at` 的本地更新保证单调递增时间戳（`Math.max(Date.now(), existingTime + 1)`）；
    - `LearningSyncManager`：监听 `offline` 事件，断网时清理防抖定时器、中止在途 `syncController` 并在存在待同步记录时立即发出 `"离线时已保存在本机，联网后自动同步"` 状态；在 `syncNow()` 的 `do...while` 循环顶部检查 `navigator.onLine === false`。
-4. **[`app.js`](file:///C:/Users/78252/.codex/worktrees/p07-offline-review-root-cause/thewyj.uk/app.js)**：
+4. **[`app.js`](../app.js)**：
    - `markGetReachable`、`applyBackendStatus`、`markBackendReachable`：当 `navigator.onLine === false` 时拒绝将在途旧响应标记为 `backendAvailable = true`；
    - `markBackendDisconnected`：清理 `backendRecoveryTimer`；
    - `importWrongData` 与 `importWords`：在读取 `event.target.files[0]` 后立即清空 `event.target.value = ""`（位于 `await file.text()` 之前），消除 CDP `DOM.setFileInputFiles` + 合成 `change` 事件导致的并发双重导入与重复弹窗；
    - `scheduleLearningSyncRender`：只要 `$("wrongList")` 存在且未处于重新判定编辑态即更新错题本 DOM 与按钮状态，避免非活动视图下的 DOM 陈旧。
 5. **回归测试与诊断增强**：
-   - [`local-backend/test_app_browser.mjs`](file:///C:/Users/78252/.codex/worktrees/p07-offline-review-root-cause/thewyj.uk/local-backend/test_app_browser.mjs)：在失败诊断中补充 `resultGloss`、`currentWrongNetwork`、`historyWrongNetwork` 及解码后的 `syncWrong`；并在离线复习恢复在线后验证 `learningSyncManager.syncNow()` 不会复活已消除的本轮错题；
-   - [`local-backend/test_learning_sync_js.mjs`](file:///C:/Users/78252/.codex/worktrees/p07-offline-review-root-cause/thewyj.uk/local-backend/test_learning_sync_js.mjs)、[`local-backend/test_task11_model_js.mjs`](file:///C:/Users/78252/.codex/worktrees/p07-offline-review-root-cause/thewyj.uk/local-backend/test_task11_model_js.mjs)、[`local-backend/test_accounts.py`](file:///C:/Users/78252/.codex/worktrees/p07-offline-review-root-cause/thewyj.uk/local-backend/test_accounts.py)：新增同秒错题同步、非空释义保留、离线中止与断网重连删除的单元回归测试。
+   - [`local-backend/test_app_browser.mjs`](../local-backend/test_app_browser.mjs)：在失败诊断中补充 `resultGloss`、`currentWrongNetwork`、`historyWrongNetwork` 及解码后的 `syncWrong`；并在离线复习恢复在线后验证 `learningSyncManager.syncNow()` 不会复活已消除的本轮错题；
+   - [`local-backend/test_learning_sync_js.mjs`](../local-backend/test_learning_sync_js.mjs)、[`local-backend/test_task11_model_js.mjs`](../local-backend/test_task11_model_js.mjs)、[`local-backend/test_accounts.py`](../local-backend/test_accounts.py)：新增同秒错题同步、非空释义保留、离线中止与断网重连删除的单元回归测试。
 
 ### 5.2 回归门禁验证结果
 
@@ -176,7 +176,9 @@
 
 - **目标基底分支**：`codex/p07-task25-d1-concurrency`（PR #132，`91f0d466361ee80fbd6475facea0b9620f950661`）
 - **修复分支**：`argon/p07-offline-review-root-cause`
-- **Draft PR / 最终 SHA / CI 链接**：待提交并推送后回填。
+- **Draft PR**：[#136](https://github.com/WYJ0904/thewyj.uk/pull/136)
+- **代码修复提交**：`75569d3ef0a8739a3c8adf40b29b89adc30c548d`
+- **原失败运行参照**：[Run 42186871114 / Job 127790499853](https://github.com/WYJ0904/thewyj.uk/actions/runs/42186871114/job/127790499853)
 
 ---
 
