@@ -37,6 +37,9 @@
             id: lastEntry.element.id || '',
             className: lastEntry.element.className || '',
             size: lastEntry.size,
+            inSplash: Boolean(lastEntry.element.closest('#entryScreen')),
+            workspace: lastEntry.element.closest('.v3-workspace, #publicHome, #projectApp')?.id || null,
+            ancestorIds: Array.from((function* (node) { for (let i=0; node && i<6; i++,node=node.parentElement) yield node.id || node.tagName; })(lastEntry.element)),
           };
         }
       }

@@ -19,6 +19,7 @@
 /* A pending policy is not an OFF decision. Keep one neutral, in-flow state
    until the bounded API request settles; never expose a provisional layout. */
 html[data-interface-policy="pending"] #v3AppFrame { display: none; }
+html[data-session-verification="pending"] #v3AppFrame { display: none; }
 .interface-policy-state { margin: 24px auto; padding: 20px; max-width: 840px; }
 .interface-policy-state[hidden] { display: none; }
 

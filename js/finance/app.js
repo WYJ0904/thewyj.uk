@@ -1,10 +1,10 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?release=20261106-aeris-p07-r4c-rc2";
-import { createFinanceDisclosure } from "./disclosure.js?release=20261106-aeris-p07-r4c-rc2";
-import { mergeLocalNotificationLedger } from "./notification-ledger.js?release=20261106-aeris-p07-r4c-rc2";
-import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261106-aeris-p07-r4c-rc2";
-import { formatFinanceMoney } from "./format.js?release=20261106-aeris-p07-r4c-rc2";
-import { createParkedRows } from "../core/parked-rows.js?release=20261106-aeris-p07-r4c-rc2";
-export { formatFinanceMoney } from "./format.js?release=20261106-aeris-p07-r4c-rc2";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?release=20261107-aeris-p07-r5-independent-rc4";
+import { createFinanceDisclosure } from "./disclosure.js?release=20261107-aeris-p07-r5-independent-rc4";
+import { mergeLocalNotificationLedger } from "./notification-ledger.js?release=20261107-aeris-p07-r5-independent-rc4";
+import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261107-aeris-p07-r5-independent-rc4";
+import { formatFinanceMoney } from "./format.js?release=20261107-aeris-p07-r5-independent-rc4";
+import { createParkedRows } from "../core/parked-rows.js?release=20261107-aeris-p07-r5-independent-rc4";
+export { formatFinanceMoney } from "./format.js?release=20261107-aeris-p07-r5-independent-rc4";
 const SCHEMA_VERSION = 1;
 const MAX_LOCAL_TRANSACTIONS = 5000;
 const MAX_PENDING_OPERATIONS = 500;
@@ -526,6 +526,40 @@ export function createFinanceController({
     renderTrendChart();
   }
 
+  function trendStorageKey() {
+    return `wyjFinanceFold:v1:${encodeURIComponent(String(account()?.id || "guest"))}:trend:open`;
+  }
+
+  function isTrendOpen() {
+    try {
+      const val = storage.getItem(trendStorageKey());
+      return val === "closed" ? false : true;
+    } catch {
+      return true;
+    }
+  }
+
+  function setTrendOpen(open) {
+    try {
+      storage.setItem(trendStorageKey(), open ? "open" : "closed");
+    } catch {}
+    applyTrendCollapse(open);
+  }
+
+  function applyTrendCollapse(open) {
+    const wrap = element("financeTrendChartWrap");
+    const button = element("toggleFinanceTrendBtn");
+    if (wrap) wrap.classList.toggle("collapsed", !open);
+    if (button) {
+      button.textContent = open ? "收起走势图" : "展开走势图";
+      button.setAttribute("aria-expanded", String(open));
+    }
+  }
+
+  function restoreTrendState() {
+    applyTrendCollapse(isTrendOpen());
+  }
+
   function renderTrendChart() {
     const wrap = element("financeTrendChartWrap");
     if (!wrap || !store) return;
@@ -537,31 +571,34 @@ export function createFinanceController({
           <p class="finance-chart-empty-title">暂无月度收支走势数据</p>
           <p class="finance-chart-empty-hint">记录你的第一笔收支或从手机同步账本后，将在此自动生成月度收支对比与走势曲线。</p>
         </div>`;
+      restoreTrendState();
       return;
     }
 
+    const primaryCurrency = allTx.find((tx) => tx.currency)?.currency || "CNY";
     const now = new Date();
     const months = [];
     for (let i = 5; i >= 0; i -= 1) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const label = `${d.getMonth() + 1}月`;
-      months.push({ key: mKey, label, income: 0, expense: 0 });
+      months.push({ key: mKey, label, income: 0, expense: 0, hasData: false });
     }
 
     for (const tx of allTx) {
       const txMonth = monthKey(tx.occurred_at_ms);
       const slot = months.find((m) => m.key === txMonth);
       if (slot) {
+        slot.hasData = true;
         if (tx.direction === "income") slot.income += Number(tx.amount_minor || 0) / 100;
         else if (tx.direction === "expense") slot.expense += Number(tx.amount_minor || 0) / 100;
       }
     }
 
     const maxVal = Math.max(...months.map((m) => Math.max(m.income, m.expense)), 100);
-    const svgWidth = 680;
+    const svgWidth = 920;
     const svgHeight = 220;
-    const padding = { top: 24, right: 32, bottom: 36, left: maxVal >= 100_000_000 ? 94 : (maxVal >= 10_000 ? 84 : 76) };
+    const padding = { top: 26, right: 36, bottom: 36, left: maxVal >= 100_000_000 ? 96 : (maxVal >= 10_000 ? 84 : 72) };
     const chartW = svgWidth - padding.left - padding.right;
     const chartH = svgHeight - padding.top - padding.bottom;
 
@@ -569,12 +606,21 @@ export function createFinanceController({
     const pointsExpense = [];
     const stepX = chartW / (months.length - 1);
 
+    // Provide minimum visible lift of 5px for non-zero values so they never clip or merge invisibly onto axis
+    const minLift = 5;
+    const calcY = (val) => {
+      if (val <= 0) return padding.top + chartH;
+      const rawH = (val / maxVal) * chartH;
+      const h = Math.max(minLift, rawH);
+      return padding.top + chartH - h;
+    };
+
     months.forEach((m, idx) => {
       const x = padding.left + idx * stepX;
-      const yInc = padding.top + chartH - (m.income / maxVal) * chartH;
-      const yExp = padding.top + chartH - (m.expense / maxVal) * chartH;
-      pointsIncome.push({ x, y: yInc, val: m.income, label: m.label, key: m.key, exp: m.expense });
-      pointsExpense.push({ x, y: yExp, val: m.expense, label: m.label, key: m.key, inc: m.income });
+      const yInc = calcY(m.income);
+      const yExp = calcY(m.expense);
+      pointsIncome.push({ x, y: yInc, val: m.income, label: m.label, key: m.key, exp: m.expense, hasData: m.hasData });
+      pointsExpense.push({ x, y: yExp, val: m.expense, label: m.label, key: m.key, inc: m.income, hasData: m.hasData });
     });
 
     const pathInc = pointsIncome.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
@@ -582,12 +628,14 @@ export function createFinanceController({
 
     const xLabels = pointsIncome.map((p) => `<text x="${p.x.toFixed(1)}" y="${svgHeight - 12}" text-anchor="middle" font-size="12" font-weight="500" fill="var(--ds-text-secondary)">${p.label}</text>`).join("");
     
-    // Formatted Y axis labels with thousands separators, compact big units, and 5 grid levels
+    // Formatted Y axis labels with currency-aware formatting
     const formatYVal = (v) => {
       const rounded = Math.round(v);
-      if (rounded >= 100_000_000) return "¥" + (rounded / 100_000_000).toFixed(1) + "亿";
-      if (rounded >= 10_000) return "¥" + (rounded / 10_000).toFixed(1) + "万";
-      return "¥" + new Intl.NumberFormat("zh-CN").format(rounded);
+      if (primaryCurrency === "CNY") {
+        if (rounded >= 100_000_000) return "¥" + (rounded / 100_000_000).toFixed(1) + "亿";
+        if (rounded >= 10_000) return "¥" + (rounded / 10_000).toFixed(1) + "万";
+      }
+      return formatFinanceMoney(rounded * 100, primaryCurrency).replace(/\.00$/, "");
     };
     const gridLines = [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
       const y = padding.top + chartH * (1 - ratio);
@@ -595,17 +643,17 @@ export function createFinanceController({
       return `<line x1="${padding.left}" y1="${y}" x2="${svgWidth - padding.right}" y2="${y}" stroke="var(--ds-border-subtle)" stroke-dasharray="3 3"/><text x="${padding.left - 10}" y="${y + 4}" text-anchor="end" font-size="11" font-weight="500" fill="var(--ds-text-muted)">${val}</text>`;
     }).join("");
 
-    const formatMoney = (v) => "¥" + new Intl.NumberFormat("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+    const formatMoney = (v) => formatFinanceMoney(Math.round(v * 100), primaryCurrency);
 
-    const circlesInc = pointsIncome.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="#10b981" tabindex="0" role="graphics-symbol" aria-label="${p.label} 收入: ${formatMoney(p.val)} 支出: ${formatMoney(p.exp)} 结余: ${formatMoney(p.val - p.exp)}"><title>${p.label} 收入: ${formatMoney(p.val)} | 支出: ${formatMoney(p.exp)} | 结余: ${formatMoney(p.val - p.exp)}</title></circle>`).join("");
-    const circlesExp = pointsExpense.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="#ef4444" tabindex="0" role="graphics-symbol" aria-label="${p.label} 支出: ${formatMoney(p.val)} 收入: ${formatMoney(p.inc)} 结余: ${formatMoney(p.inc - p.val)}"><title>${p.label} 支出: ${formatMoney(p.val)} | 收入: ${formatMoney(p.inc)} | 结余: ${formatMoney(p.inc - p.val)}</title></circle>`).join("");
+    const circlesInc = pointsIncome.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5" fill="#10b981" stroke="#ffffff" stroke-width="1.5" tabindex="0" role="graphics-symbol" aria-label="${p.label} 收入: ${formatMoney(p.val)} 支出: ${formatMoney(p.exp)} 结余: ${formatMoney(p.val - p.exp)}"><title>${p.label} · 收入: ${formatMoney(p.val)} | 支出: ${formatMoney(p.exp)} | 结余: ${formatMoney(p.val - p.exp)}</title></circle>`).join("");
+    const circlesExp = pointsExpense.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" tabindex="0" role="graphics-symbol" aria-label="${p.label} 支出: ${formatMoney(p.val)} 收入: ${formatMoney(p.inc)} 结余: ${formatMoney(p.inc - p.val)}"><title>${p.label} · 支出: ${formatMoney(p.val)} | 收入: ${formatMoney(p.inc)} | 结余: ${formatMoney(p.inc - p.val)}</title></circle>`).join("");
 
     // Monthly summary cards below chart
     const monthCards = months.map((m) => {
       const net = m.income - m.expense;
       const netSign = net > 0 ? "+" : "";
       const netClass = net >= 0 ? "is-income" : "is-expense";
-      return `<div class="trend-month-card">
+      return `<div class="trend-month-card" data-trend-month="${m.key}">
         <strong class="trend-month-name">${m.label}</strong>
         <span class="trend-month-inc">收入 ${formatMoney(m.income)}</span>
         <span class="trend-month-exp">支出 ${formatMoney(m.expense)}</span>
@@ -625,6 +673,8 @@ export function createFinanceController({
       <div class="finance-trend-month-grid" aria-label="月度收支明细">
         ${monthCards}
       </div>`;
+
+    restoreTrendState();
   }
 
   function renderTransactions() {
@@ -1267,12 +1317,7 @@ export function createFinanceController({
     else if (button.id === "financeSyncBtn") syncNow();
     else if (button.id === "financeResolveConflictBtn") resolveConflict().catch((error) => setMessage(error.message, "error"));
     else if (button.id === "toggleFinanceTrendBtn") {
-      const wrap = element("financeTrendChartWrap");
-      if (wrap) {
-        const isCollapsed = wrap.classList.toggle("collapsed");
-        button.textContent = isCollapsed ? "展开走势图" : "收起走势图";
-        button.setAttribute("aria-expanded", String(!isCollapsed));
-      }
+      setTrendOpen(!isTrendOpen());
     }
     else if (button.id === "financeUpgradeBtn") openRecharge("finance");
     else if (button.id === "financeBackBtn") navigate("/select");
@@ -1293,6 +1338,7 @@ export function createFinanceController({
     recordedDisclosure = createFinanceDisclosure({ element: element("financeRecordedSection"), storage,
       accountId: () => account()?.id, section: "recorded", defaultOpen: false });
     recordedDisclosure.restore();
+    restoreTrendState();
     element("financePage")?.addEventListener("click", handlePageClick);
     for (const id of ["financeTransactionModal", "financeCategoryModal", "financeBudgetModal"]) element(id)?.addEventListener("click", handlePageClick);
     element("financeTransactionForm")?.addEventListener("submit", submitTransaction);
