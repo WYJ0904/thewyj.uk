@@ -3109,9 +3109,9 @@ textarea::placeholder {
 
 .workflow-launcher h2,
 .workflow-launcher p,
-.workflow-header h2,
+.workflow-header :is(h1, h2),
 .workflow-header p,
-.workflow-section-heading h3,
+.workflow-section-heading :is(h2, h3),
 .workflow-section-heading p {
   margin: 0;
 }
@@ -3168,8 +3168,8 @@ textarea::placeholder {
   gap: var(--space-3);
 }
 
-.workflow-sidebar-heading h3,
-.workflow-template-box h3 {
+.workflow-sidebar-heading :is(h2, h3),
+.workflow-template-box :is(h2, h3) {
   margin: 0;
   font-size: var(--font-md);
 }
@@ -3630,7 +3630,7 @@ textarea::placeholder {
 }
 
 .admin-user-card p,
-.admin-user-card h3,
+.admin-user-card :is(h2, h3),
 .admin-log-card p,
 .admin-log-card strong,
 .admin-log-card time,

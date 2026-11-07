@@ -274,7 +274,7 @@ h1 {
   font-weight: 800;
 }
 
-.auth-panel h2 {
+.auth-panel :is(h1, h2) {
   font-size: 24px;
   margin-bottom: 18px;
 }
@@ -2404,7 +2404,7 @@ textarea {
 }
 
 .admin-user-card p,
-.admin-user-card h3 { margin: 3px 0; }
+.admin-user-card :is(h2, h3) { margin: 3px 0; }
 .admin-user-card .action-row { justify-content: flex-end; }
 .admin-user-identity,
 .admin-user-facts,
