@@ -1,7 +1,7 @@
-import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?release=20261107-aeris-p07-f-a11y-rc1";
-import { randomId } from "../core/capabilities.js?release=20261107-aeris-p07-f-a11y-rc1";
-import { createFinanceDisclosure } from "./disclosure.js?release=20261107-aeris-p07-f-a11y-rc1";
-import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?release=20261107-aeris-p07-f-a11y-rc2";
+import { randomId } from "../core/capabilities.js?release=20261107-aeris-p07-f-a11y-rc2";
+import { createFinanceDisclosure } from "./disclosure.js?release=20261107-aeris-p07-f-a11y-rc2";
+import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261107-aeris-p07-f-a11y-rc2";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -9,7 +9,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?release=20261107-aeris-p07-f-a11y-rc1";
+} from "../core/perf.js?release=20261107-aeris-p07-f-a11y-rc2";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -636,4 +636,4 @@ export function createFinanceCandidatesController({
   const dashboardSummary = () => ({ known: hasCanonicalObservation && renderedForAccount === String(account()?.id || ""), count: currentCandidates.length });
   return Object.freeze({ show, hide, reload, accountUpdated, handleClick, dashboardSummary });
 }
-import { createParkedRows, rowRenderRoot } from "../core/parked-rows.js?release=20261107-aeris-p07-f-a11y-rc1";
+import { createParkedRows, rowRenderRoot } from "../core/parked-rows.js?release=20261107-aeris-p07-f-a11y-rc2";

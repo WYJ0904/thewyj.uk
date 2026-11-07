@@ -2956,6 +2956,17 @@ html[data-p07-ui="enabled"] #accountModal :is(.account-profile-name, .account-sy
   box-shadow: var(--ds-focus-ring);
 }
 
+/* Preserve the former H3 line boxes after the native H2 promotions. */
+html[data-p07-ui="enabled"] :is(.workflow-sidebar-heading, .workflow-template-box, .workflow-editor-empty, .workflow-section-heading) :is(h2, h3) {
+  line-height: 1.35;
+}
+
+/* These notices used a fixed light-theme foreground on the dark warning surface. */
+html[data-p07-ui="enabled"] #membershipModal :is(.membership-warning, .danger-note) {
+  color: var(--ds-warning);
+  background: var(--ds-warning-soft);
+}
+
 html[data-p07-ui="enabled"] .account-profile-id,
 html[data-p07-ui="enabled"] .account-sync-desc {
   font-size: 0.8125rem;
