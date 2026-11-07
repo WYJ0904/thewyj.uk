@@ -2948,6 +2948,23 @@ html[data-p07-ui="enabled"] #accountModal :is(.account-profile-name, .account-sy
 }
 .account-settings-title { font-size: 18px; margin: 0; }
 
+#projectNameLabel { line-height: inherit; }
+.membership-step-title,
+.admin-user-identity > :is(h2, h3) { line-height: 1.35; }
+.payment-order-card-title { line-height: inherit; }
+
+/* Preserve the supported base interface's previous H2/H3 typography too. */
+html:not([data-p07-ui="enabled"]) :is(#membershipTitle, #accountTitle, #workflowTitle) {
+  font-size: var(--ds-text-xl);
+  line-height: 1.3;
+}
+html:not([data-p07-ui="enabled"]) #authTitle { line-height: 1.3; }
+html:not([data-p07-ui="enabled"]) #accountModal :is(.account-profile-name, .account-sync-title, .account-section-subtitle, .account-settings-title),
+html:not([data-p07-ui="enabled"]) #workflowEmptyState > h2 {
+  font-size: var(--ds-text-lg);
+  line-height: 1.35;
+}
+
 /* The existing file input remains in Tab order. Expose its focus on its
    visible trigger instead of leaving a clipped keyboard focus indicator. */
 .workflow-import-row:focus-within {

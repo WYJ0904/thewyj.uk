@@ -1,7 +1,7 @@
-import { $, escapeHtml } from "./ui.js?release=20261107-aeris-p07-f-a11y-rc2";
-import { reconcileKeyedRows } from "./keyed-list.js?release=20261107-aeris-p07-f-a11y-rc2";
-import { createHomeWidgets } from "./home-widgets.js?release=20261107-aeris-p07-f-a11y-rc2";
-import { projectHomeWidgets } from "./home-widget-data.js?release=20261107-aeris-p07-f-a11y-rc2";
+import { $, escapeHtml } from "./ui.js?release=20261107-aeris-p07-f-a11y-rc3";
+import { reconcileKeyedRows } from "./keyed-list.js?release=20261107-aeris-p07-f-a11y-rc3";
+import { createHomeWidgets } from "./home-widgets.js?release=20261107-aeris-p07-f-a11y-rc3";
+import { projectHomeWidgets } from "./home-widget-data.js?release=20261107-aeris-p07-f-a11y-rc3";
 const bound = new WeakSet();
 const setText = (node,value) => { if(node && node.textContent!==String(value))node.textContent=String(value); };
 
