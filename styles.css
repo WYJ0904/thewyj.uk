@@ -23,6 +23,21 @@ html[data-session-verification="pending"] #v3AppFrame { display: none; }
 .interface-policy-state { margin: 24px auto; padding: 20px; max-width: 840px; }
 .interface-policy-state[hidden] { display: none; }
 
+.auth-transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+  opacity: 1;
+  transition: opacity 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.auth-transition-overlay.is-exiting {
+  opacity: 0;
+  pointer-events: none;
+}
+
 body {
   background:
     linear-gradient(180deg, rgba(32, 58, 67, 0.10), transparent 280px),
@@ -2941,7 +2956,7 @@ body {
 }
 
 .app-shell.app-shell-ready {
-  animation: appShellIn 520ms ease-out both;
+  opacity: 1;
 }
 
 .project-picker {

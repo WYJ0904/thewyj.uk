@@ -1,0 +1,174 @@
+{
+  "source": "gemini-p07-splash-transition-fix",
+  "selection": "all",
+  "cases": [
+    {
+      "name": "account-switch-drops-previous-owner-presentation",
+      "status": "PASS",
+      "detail": {
+        "before": {
+          "path": "/account",
+          "policy": "enabled",
+          "p07": "enabled",
+          "boot": "ready",
+          "frameVisible": true,
+          "accountVisible": true,
+          "profile": "r5ownerA1a6e28b4",
+          "functionalP07": true,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "pending": {
+          "path": "/account",
+          "policy": "pending",
+          "p07": "disabled",
+          "boot": "ready",
+          "frameVisible": false,
+          "accountVisible": false,
+          "profile": "r5ownerA1a6e28b4",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "after": {
+          "path": "/account",
+          "policy": "disabled",
+          "p07": "disabled",
+          "boot": "ready",
+          "frameVisible": false,
+          "accountVisible": true,
+          "profile": "r5ownerB9e5a051a",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "serverBOff": true
+      }
+    },
+    {
+      "name": "logout-drops-account-authority-before-public-off-arrives",
+      "status": "PASS",
+      "detail": {
+        "pending": {
+          "path": "/login",
+          "policy": "pending",
+          "p07": "disabled",
+          "boot": "ready",
+          "frameVisible": false,
+          "accountVisible": false,
+          "profile": "r5ownerA1a6e28b4",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "after": {
+          "path": "/login",
+          "policy": "disabled",
+          "p07": "disabled",
+          "boot": "ready",
+          "frameVisible": false,
+          "accountVisible": false,
+          "profile": "r5ownerA1a6e28b4",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "realPublicKill": true
+      }
+    },
+    {
+      "name": "expired-background-lease-does-not-stay-enabled",
+      "status": "PASS",
+      "detail": {
+        "expired": {
+          "path": "/account",
+          "policy": "pending",
+          "p07": "disabled",
+          "boot": "ready",
+          "frameVisible": false,
+          "accountVisible": false,
+          "profile": "r5ownerA1a6e28b4",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "hidden"
+        },
+        "restored": {
+          "path": "/account",
+          "policy": "enabled",
+          "p07": "enabled",
+          "boot": "ready",
+          "frameVisible": true,
+          "accountVisible": true,
+          "profile": "r5ownerA1a6e28b4",
+          "functionalP07": true,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "ttlFixtureSeconds": 1,
+        "realVisibility": true
+      }
+    },
+    {
+      "name": "public-foreground-revalidates-real-kill-with-valid-cache",
+      "status": "PASS",
+      "detail": {
+        "after": {
+          "path": "/",
+          "policy": "disabled",
+          "p07": "disabled",
+          "boot": "ready",
+          "frameVisible": false,
+          "accountVisible": false,
+          "profile": "r5ownerA1a6e28b4",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "actualResponseObserved": true,
+        "realVisibility": true
+      }
+    },
+    {
+      "name": "post-boot-policy-failure-keeps-visible-retry",
+      "status": "PASS",
+      "detail": {
+        "failed": {
+          "path": "/",
+          "policy": "error",
+          "p07": "disabled",
+          "boot": "ready",
+          "frameVisible": false,
+          "accountVisible": false,
+          "profile": "r5ownerA1a6e28b4",
+          "functionalP07": false,
+          "policyPanelVisible": true,
+          "retryVisible": true,
+          "visibility": "visible"
+        },
+        "recovered": {
+          "path": "/",
+          "policy": "enabled",
+          "p07": "enabled",
+          "boot": "ready",
+          "frameVisible": true,
+          "accountVisible": false,
+          "profile": "r5ownerA1a6e28b4",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "fault": "local 503 fixture; no real AI"
+      }
+    }
+  ],
+  "scope": "actual isolated local APIs + Chrome; no real accounts or paid model"
+}

@@ -53,7 +53,8 @@ export function createFeatureController({ getAccount, apiGet, api, document = gl
   async function refresh() {
     if (!available || !accountId) { clear('', availabilityKnown && !available ? 'disabled' : 'pending'); return; }
     if (globalThis.navigator?.onLine === false) { clear('当前离线，预览功能已关闭', 'error'); return; }
-    if (document.hidden) { render(); return; }
+    const isStillValid = Boolean(snapshot && snapshot.accountId === accountId && snapshot.expiresAt > Date.now());
+    if (document.hidden && !isStillValid) { render(); return; }
     const ticket = ++sequence, owner = accountId;
     busy = false;
     // Clearing a still-valid decision aborts active Task26 requests through

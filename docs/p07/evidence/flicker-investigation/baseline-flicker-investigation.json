@@ -1,0 +1,152 @@
+{
+  "scenario1": {
+    "description": "首次访问 (Cold Boot) 直达首页",
+    "totalFrames": 111,
+    "blankFramesCount": 3,
+    "blankDurationMs": 100,
+    "sampleBlankFrames": [
+      {
+        "t": 1643.8,
+        "path": "/",
+        "bootState": "splash",
+        "interfacePolicy": "enabled",
+        "p07Ui": "enabled",
+        "entryVisible": false,
+        "authTransitionVisible": false,
+        "frameVisible": false,
+        "policyVisible": false,
+        "policyMsg": null,
+        "homeVisible": false,
+        "accountVisible": false,
+        "loginVisible": false,
+        "recoveryVisible": false,
+        "isBlank": true,
+        "isPolicyFlicker": false
+      },
+      {
+        "t": 1727.1,
+        "path": "/",
+        "bootState": "splash",
+        "interfacePolicy": "enabled",
+        "p07Ui": "enabled",
+        "entryVisible": false,
+        "authTransitionVisible": false,
+        "frameVisible": false,
+        "policyVisible": false,
+        "policyMsg": null,
+        "homeVisible": false,
+        "accountVisible": false,
+        "loginVisible": false,
+        "recoveryVisible": false,
+        "isBlank": true,
+        "isPolicyFlicker": false
+      },
+      {
+        "t": 1743.7,
+        "path": "/",
+        "bootState": "splash",
+        "interfacePolicy": "enabled",
+        "p07Ui": "enabled",
+        "entryVisible": false,
+        "authTransitionVisible": false,
+        "frameVisible": false,
+        "policyVisible": false,
+        "policyMsg": null,
+        "homeVisible": false,
+        "accountVisible": false,
+        "loginVisible": false,
+        "recoveryVisible": false,
+        "isBlank": true,
+        "isPolicyFlicker": false
+      }
+    ],
+    "firstReadyFrame": {
+      "t": 1760.4,
+      "path": "/",
+      "bootState": "splash",
+      "interfacePolicy": "enabled",
+      "p07Ui": "enabled",
+      "entryVisible": false,
+      "authTransitionVisible": false,
+      "frameVisible": true,
+      "policyVisible": false,
+      "policyMsg": null,
+      "homeVisible": true,
+      "accountVisible": false,
+      "loginVisible": false,
+      "recoveryVisible": false,
+      "isBlank": false,
+      "isPolicyFlicker": false
+    }
+  },
+  "scenario2": {
+    "description": "登录成功过渡到工作台",
+    "totalFrames": 57,
+    "blankFramesCount": 13,
+    "blankDurationMs": 200,
+    "sampleBlankFrames": [
+      {
+        "t": 2441.6,
+        "path": "/",
+        "bootState": "ready",
+        "interfacePolicy": "pending",
+        "p07Ui": "disabled",
+        "entryVisible": false,
+        "authTransitionVisible": false,
+        "frameVisible": false,
+        "policyVisible": true,
+        "policyMsg": "正在读取界面设置…",
+        "homeVisible": false,
+        "accountVisible": false,
+        "loginVisible": false,
+        "recoveryVisible": false,
+        "isBlank": true,
+        "isPolicyFlicker": true
+      }
+    ],
+    "firstWorkspaceFrame": {
+      "t": 2645.2,
+      "path": "/",
+      "bootState": "ready",
+      "interfacePolicy": "enabled",
+      "p07Ui": "enabled",
+      "entryVisible": false,
+      "authTransitionVisible": false,
+      "frameVisible": true,
+      "policyVisible": false,
+      "policyMsg": null,
+      "homeVisible": true,
+      "accountVisible": false,
+      "loginVisible": false,
+      "recoveryVisible": false,
+      "isBlank": false,
+      "isPolicyFlicker": false
+    }
+  },
+  "scenario3": {
+    "description": "后台标签页恢复 (切换至其他页面超过30秒后切回)",
+    "totalFrames": 60,
+    "blankFramesCount": 8,
+    "blankDurationMs": 130,
+    "sampleBlankFrames": [
+      {
+        "t": 3110.4,
+        "path": "/account",
+        "bootState": "ready",
+        "interfacePolicy": "pending",
+        "p07Ui": "disabled",
+        "entryVisible": false,
+        "authTransitionVisible": false,
+        "frameVisible": false,
+        "policyVisible": true,
+        "policyMsg": "正在读取界面设置…",
+        "homeVisible": false,
+        "accountVisible": false,
+        "loginVisible": false,
+        "recoveryVisible": false,
+        "isBlank": true,
+        "isPolicyFlicker": true
+      }
+    ]
+  }
+}
