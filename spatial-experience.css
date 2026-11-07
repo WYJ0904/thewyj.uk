@@ -3884,6 +3884,15 @@ html[data-p07-ui="enabled"] .admin-tabs::-webkit-scrollbar {
   display: none;
 }
 
+@media (max-width: 768px) {
+  html[data-p07-ui="enabled"] .admin-tabs {
+    /* The legacy compact rule sets position:static. The absolute motion
+       indicator must remain anchored inside this horizontal scrollport. */
+    position: relative;
+    top: auto;
+  }
+}
+
 html[data-p07-ui="enabled"] .admin-tabs button {
   min-width: auto;
   padding: 8px 16px;
