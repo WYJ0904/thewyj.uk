@@ -37,6 +37,7 @@ html[data-session-verification="pending"] #v3AppFrame { display: none; }
   opacity: 0;
   pointer-events: none;
 }
+body.auth-transition-active { overflow: hidden; }
 
 body {
   background:
