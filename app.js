@@ -6874,6 +6874,9 @@ async function login(event) {
       username: $("usernameInput").value.trim(),
       secret: $("secretInput").value,
     });
+    if (state.session !== owner) {
+      const error = new Error('账户已切换'); error.code = 'account_changed'; throw error;
+    }
     transition = showAuthTransition("正在验证身份与权限…");
     state.session = data.session;
     owner = state.session;
