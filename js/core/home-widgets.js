@@ -1,5 +1,5 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { HOME_WIDGET_VERSION, WIDGET_IDS, WIDGET_MODES, defaultHomeWidgets, sanitizeHomeWidgets, homeWidgetStorageKey, legacyHomeWidgetStorageKey, isHomeWidgetDesktop, rotatedWidgetBox, layoutHomeWidgets, layoutMobileWidgets, widgetGeometry, widgetProfile, clampWidgetValue } from "./home-widget-layout.js?release=20261107-aeris-p07-f-a11y-rc4";
+import { getSafeStorage, safeStorageSet } from "./storage.js?release=20261107-aeris-p07-final-rc3";
+import { HOME_WIDGET_VERSION, WIDGET_IDS, WIDGET_MODES, defaultHomeWidgets, sanitizeHomeWidgets, homeWidgetStorageKey, legacyHomeWidgetStorageKey, isHomeWidgetDesktop, rotatedWidgetBox, layoutHomeWidgets, layoutMobileWidgets, widgetGeometry, widgetProfile, clampWidgetValue } from "./home-widget-layout.js?release=20261107-aeris-p07-final-rc3";
 export { HOME_WIDGET_VERSION, WIDGET_IDS, WIDGET_MODES, defaultHomeWidgets, sanitizeHomeWidgets, homeWidgetStorageKey, legacyHomeWidgetStorageKey, isHomeWidgetDesktop, rotatedWidgetBox, layoutHomeWidgets, layoutMobileWidgets, widgetGeometry, widgetProfile };
 const clamp=clampWidgetValue;
 export const homeWidgetDragMoved = (x,y) => Math.hypot(x,y) >= 6;

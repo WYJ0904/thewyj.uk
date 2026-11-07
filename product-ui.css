@@ -217,7 +217,6 @@ textarea::placeholder {
 }
 
 .entry-screen.is-exiting {
-  visibility: hidden;
   opacity: 0;
   pointer-events: none;
 }
@@ -293,8 +292,10 @@ textarea::placeholder {
 .app-shell.app-shell-ready {
   visibility: visible;
   opacity: 1;
+  /* Removing an override revives the legacy .app-shell fade. Keep text at its
+     final contrast from the first revealed workspace frame. */
+  animation: none;
   pointer-events: auto;
-  animation: appProductIn var(--duration-normal) ease both;
 }
 
 @keyframes appProductIn {
@@ -2678,6 +2679,9 @@ textarea::placeholder {
 }
 
 .auth-panel {
+  /* This form is already revealed by startup/login readiness. Fading its text
+     again reduces contrast in otherwise interactive, visible frames. */
+  animation: none;
   width: min(520px, 100%);
   margin: 36px auto 0;
   padding: 28px;

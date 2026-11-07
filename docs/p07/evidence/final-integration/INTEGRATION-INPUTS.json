@@ -1,0 +1,84 @@
+{
+  "base": "91f0d466361ee80fbd6475facea0b9620f950661",
+  "upstream": "c19f2907f43eb636891cfadc3c9716e9573c8ef8",
+  "commonAncestor": "7e938bdbda734d319053f1e23fe4a96703486ae6",
+  "preserved": [
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-cwv-home-initial.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-cwv-home-initial.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-preflight-report.json",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-preflight-report.json"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-reduced-motion-1440.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-reduced-motion-1440.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-theme-dark-1440.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-theme-dark-1440.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-theme-light-1440.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-theme-light-1440.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-viewport-1024.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-viewport-1024.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-viewport-1366.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-viewport-1366.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-viewport-1440.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-viewport-1440.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-viewport-1920.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-viewport-1920.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-viewport-768.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-viewport-768.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-workspace-account.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-workspace-account.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-workspace-admin.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-workspace-admin.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-workspace-finance.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-workspace-finance.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-workspace-language-picker.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-workspace-language-picker.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-workspace-language-quiz.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-workspace-language-quiz.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-workspace-login.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-workspace-login.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-workspace-membership.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-workspace-membership.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-workspace-tools.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-workspace-tools.png"
+    },
+    {
+      "file": "docs/p07/evidence/p07-f/p07-f-workspace-transfer.png",
+      "upstreamArchived": "docs\\p07\\evidence\\final-integration\\flash133\\p07-f\\p07-f-workspace-transfer.png"
+    }
+  ],
+  "notes": "Upstream evidence is pinned to its own commit, not final-candidate acceptance; original baseline evidence restored in current tree."
+}

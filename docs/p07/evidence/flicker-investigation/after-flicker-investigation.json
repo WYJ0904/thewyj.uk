@@ -1,0 +1,59 @@
+{
+  "scenario1": {
+    "description": "首次访问 (Cold Boot) 直达首页",
+    "totalFrames": 143,
+    "blankFramesCount": 0,
+    "blankDurationMs": 0,
+    "sampleBlankFrames": [],
+    "firstReadyFrame": {
+      "t": 2242.5,
+      "path": "/",
+      "bootState": "ready",
+      "interfacePolicy": "enabled",
+      "p07Ui": "enabled",
+      "entryVisible": true,
+      "authTransitionVisible": false,
+      "frameVisible": true,
+      "policyVisible": false,
+      "policyMsg": null,
+      "homeVisible": true,
+      "accountVisible": false,
+      "loginVisible": false,
+      "recoveryVisible": false,
+      "isBlank": false,
+      "isPolicyFlicker": false
+    }
+  },
+  "scenario2": {
+    "description": "登录成功过渡到工作台",
+    "totalFrames": 83,
+    "blankFramesCount": 0,
+    "blankDurationMs": 0,
+    "sampleBlankFrames": [],
+    "firstWorkspaceFrame": {
+      "t": 3547.6,
+      "path": "/",
+      "bootState": "ready",
+      "interfacePolicy": "enabled",
+      "p07Ui": "enabled",
+      "entryVisible": false,
+      "authTransitionVisible": true,
+      "frameVisible": true,
+      "policyVisible": false,
+      "policyMsg": null,
+      "homeVisible": true,
+      "accountVisible": false,
+      "loginVisible": false,
+      "recoveryVisible": false,
+      "isBlank": false,
+      "isPolicyFlicker": false
+    }
+  },
+  "scenario3": {
+    "description": "后台标签页恢复 (切换至其他页面超过30秒后切回)",
+    "totalFrames": 61,
+    "blankFramesCount": 0,
+    "blankDurationMs": 0,
+    "sampleBlankFrames": []
+  }
+}

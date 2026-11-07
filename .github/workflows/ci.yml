@@ -357,7 +357,7 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_core_js.mjs 2>&1 | tee artifacts/javascript-core.log
-          node --test qa/p07-phase1/public-ui-policy.test.mjs qa/p07-r4a/policy-state.test.mjs qa/p07-r4c/startup.test.mjs qa/p07-r4c/sw-release.test.mjs qa/p07-r5/session-response.test.mjs 2>&1 | tee artifacts/p07-runtime-state.log
+          node --test qa/p07-phase1/public-ui-policy.test.mjs qa/p07-r4a/policy-state.test.mjs qa/p07-r4c/startup.test.mjs qa/p07-r4c/sw-release.test.mjs qa/p07-r5/session-response.test.mjs qa/p07-final/startup.test.mjs qa/p07-final/background-policy.test.mjs 2>&1 | tee artifacts/p07-runtime-state.log
           node local-backend/test_capabilities_js.mjs 2>&1 | tee artifacts/javascript-capabilities.log
           node local-backend/test_home_widgets_js.mjs 2>&1 | tee artifacts/home-widgets-unit.log
           node local-backend/test_aeris_p5_js.mjs 2>&1 | tee artifacts/aeris-p5-ownership-unit.log
