@@ -392,7 +392,11 @@ try {
   // Login
   console.log("--> Navigating to /login...");
   await page.navigate("/login");
-  await page.waitFor("!document.getElementById('entryScreen') && document.getElementById('authPanel').getClientRects().length > 0", 20_000, "Login panel visible");
+  await page.waitFor(
+    "!document.getElementById('entryScreen') && document.getElementById('authPanel').getClientRects().length > 0 && document.getElementById('authPanel').getAnimations().every(a => a.playState === 'finished' || a.playState === 'idle')",
+    20_000,
+    "Login panel visible and transition settled"
+  );
   await runAxeAudit("LoginPage");
   await saveShot("p07-f-workspace-login.png");
 
