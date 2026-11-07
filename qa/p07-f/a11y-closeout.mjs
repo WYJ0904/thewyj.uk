@@ -64,6 +64,9 @@ try{
       finally{await p.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});}
       await p.waitFor("document.getElementById('statusDot').classList.contains('online')",15000);await p.navigate('/account');await p.waitFor(visible('accountModal'),10000);const account=await p.evaluate("({badge:document.getElementById('accountSyncBadge').textContent,description:document.getElementById('accountSyncStatus').textContent})");assert.equal(account.badge,'正常');assert.ok(account.description.includes('Cloudflare D1'));return{before,offline,account};
     });
+    await r.check('account-menu-controls-reference-and-expanded-audit',async()=>{
+      await member('/account');const reference=await p.evaluate("(()=>{const s=document.querySelector('#accountMenu > summary'),id=s.getAttribute('aria-controls'),e=document.getElementById(id);return{id,exists:!!e,role:e?.getAttribute('role')}})()");assert.equal(reference.exists,true);assert.equal(reference.role,'menu');await pointer(p,'#accountMenu > summary');await p.waitFor("document.getElementById('accountMenu').open",5000);const result=await scan('account-menu-expanded');assert.equal(result.violations.length,0);assert.ok(!result.incomplete.some(v=>v.id==='aria-valid-attr-value'),'expanded reference still requires review');const screenshot=await shot('account-menu-expanded');await key('Escape');return{reference,screenshot};
+    });
     await r.check('keyboard-focus-and-real-workflow-import-execution',async()=>{
       await p.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
       await member('/tools/workflows');await p.waitFor("Boolean(document.querySelector('[data-workflow-template=\"text-clean\"]'))",10000);
