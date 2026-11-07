@@ -12,7 +12,7 @@ assert.equal(git(qa,'rev-parse','HEAD'),'882efdb9978f2608c54bc6c9c19eb8843e80945
 assert.equal(git(qa,'status','--porcelain','--untracked-files=no'),'','do not alter the independent QA checkout');
 const head=git(root,'rev-parse','HEAD'),sha=process.env.P07_R4C_SOURCE_SHA||head;assert.match(sha,/^[0-9a-f]{40}$/);
 assert.ok(sha===head||sha==='0c87169aa4b75db4d00fe76a66bd32a62ead9e4a'||
-  (process.env.P07_QA_ROUND==='p07-r5'&&sha==='40842d138087de15a8c17f1ec9b310dd137e6412'),
+  (process.env.P07_QA_ROUND==='p07-r5'&&['40842d138087de15a8c17f1ec9b310dd137e6412','9387340df75b8703a2fed39a7458fc2ddf8acbf7'].includes(sha)),
   'only fixed historical RED sources may override current inputs');
 if(sha!==head)assert.equal(git(root,'rev-parse',sha+':wrangler.jsonc'),git(root,'rev-parse',head+':wrangler.jsonc'),'snapshot config must match');
 assert.equal(git(root,'status','--porcelain','--untracked-files=no'),'','commit product inputs before exact-SHA validation');
