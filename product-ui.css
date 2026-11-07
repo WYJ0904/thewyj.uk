@@ -292,6 +292,9 @@ textarea::placeholder {
 .app-shell.app-shell-ready {
   visibility: visible;
   opacity: 1;
+  /* Removing an override revives the legacy .app-shell fade. Keep text at its
+     final contrast from the first revealed workspace frame. */
+  animation: none;
   pointer-events: auto;
 }
 

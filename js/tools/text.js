@@ -1,4 +1,4 @@
-import { secureInt } from "./random.js?release=20261107-aeris-p07-final-rc1";
+import { secureInt } from "./random.js?release=20261107-aeris-p07-final-rc2";
 
 const TRADITIONAL_PAIRS = [
   ["后", "後"], ["发", "發"], ["里", "裡"], ["云", "雲"], ["台", "臺"], ["万", "萬"], ["与", "與"], ["专", "專"], ["业", "業"], ["东", "東"],
