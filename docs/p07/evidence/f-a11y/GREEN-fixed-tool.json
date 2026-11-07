@@ -1,0 +1,529 @@
+{
+  "task": "P07-F Preflight Gates Preparation",
+  "generatedAt": "2026-11-07T06:31:10.776Z",
+  "baselineSha": "3760e53712a9dafbbed2290a3da56addf151b506",
+  "toolingBaselineSha": "bf07d4007599f67f3ac23038115ec7e7f299c9a9",
+  "runtimeTier": "existing isolated compiled Pages + D1/R2 + Chrome",
+  "status": "P07_F_PREFLIGHT_READY",
+  "labCoreWebVitals": {
+    "ttfbMs": 17,
+    "fcpMs": 300,
+    "lcpMs": 1048,
+    "lcpElement": {
+      "tagName": "STRONG",
+      "id": "",
+      "className": "",
+      "size": 19264,
+      "inSplash": false,
+      "workspace": "publicHome",
+      "ancestorIds": [
+        "STRONG",
+        "P",
+        "DIV",
+        "DIV",
+        "SECTION",
+        "publicHome"
+      ]
+    },
+    "cls": 0.0002,
+    "tbtMs": 67,
+    "domInteractiveMs": 99,
+    "domContentLoadedMs": 240,
+    "loadCompleteMs": 251,
+    "domNodeCount": 3752,
+    "resourceCount": 58,
+    "totalTransferKb": 370.64,
+    "totalDecodedKb": 1183.65,
+    "jsHeapUsedMb": 2.99,
+    "cdpMetrics": {
+      "LayoutDuration": 0,
+      "RecalcStyleDuration": 0,
+      "ScriptDuration": 0,
+      "JSHeapUsedSize": 2467240
+    },
+    "thresholds": {
+      "lcp": "GOOD",
+      "cls": "GOOD",
+      "tbt": "GOOD",
+      "fcp": "GOOD"
+    }
+  },
+  "axeAccessibility": {
+    "PublicHome": {
+      "violationsCount": 0,
+      "passesCount": 38,
+      "incompleteCount": 2,
+      "violations": []
+    },
+    "LoginPage": {
+      "violationsCount": 0,
+      "passesCount": 43,
+      "incompleteCount": 1,
+      "violations": []
+    },
+    "LanguagePicker": {
+      "violationsCount": 0,
+      "passesCount": 38,
+      "incompleteCount": 2,
+      "violations": []
+    },
+    "LanguageWorkspace": {
+      "violationsCount": 0,
+      "passesCount": 45,
+      "incompleteCount": 3,
+      "violations": []
+    },
+    "FinanceLedger": {
+      "violationsCount": 0,
+      "passesCount": 38,
+      "incompleteCount": 3,
+      "violations": []
+    },
+    "MembershipCenter": {
+      "violationsCount": 0,
+      "passesCount": 37,
+      "incompleteCount": 2,
+      "violations": []
+    },
+    "AccountCenter": {
+      "violationsCount": 0,
+      "passesCount": 42,
+      "incompleteCount": 3,
+      "violations": []
+    },
+    "FileTransfer": {
+      "violationsCount": 0,
+      "passesCount": 43,
+      "incompleteCount": 2,
+      "violations": []
+    },
+    "ToolWorkflows": {
+      "violationsCount": 0,
+      "passesCount": 41,
+      "incompleteCount": 2,
+      "violations": []
+    },
+    "AdminConsole": {
+      "violationsCount": 0,
+      "passesCount": 45,
+      "incompleteCount": 2,
+      "violations": []
+    }
+  },
+  "interactiveKeyboard": {
+    "tabSequence": [
+      {
+        "tag": "A",
+        "id": "skipToContent",
+        "className": "skip-link",
+        "outlineStyle": "solid",
+        "outlineWidth": "2px",
+        "outlineColor": "rgb(37, 99, 235)",
+        "boxShadow": "rgba(37, 99, 235, 0.22) 0px 0px 0px 3px",
+        "hasVisibleFocus": true
+      },
+      {
+        "tag": "A",
+        "id": "",
+        "className": "site-brand",
+        "outlineStyle": "solid",
+        "outlineWidth": "2px",
+        "outlineColor": "rgb(37, 99, 235)",
+        "boxShadow": "rgba(37, 99, 235, 0.22) 0px 0px 0px 3px",
+        "hasVisibleFocus": true
+      },
+      {
+        "tag": "A",
+        "id": "",
+        "className": "active",
+        "outlineStyle": "solid",
+        "outlineWidth": "2px",
+        "outlineColor": "rgb(37, 99, 235)",
+        "boxShadow": "rgba(37, 99, 235, 0.22) 0px 0px 0px 3px",
+        "hasVisibleFocus": true
+      },
+      {
+        "tag": "A",
+        "id": "",
+        "className": "",
+        "outlineStyle": "solid",
+        "outlineWidth": "2px",
+        "outlineColor": "rgb(37, 99, 235)",
+        "boxShadow": "rgba(37, 99, 235, 0.22) 0px 0px 0px 3px",
+        "hasVisibleFocus": true
+      },
+      {
+        "tag": "A",
+        "id": "",
+        "className": "",
+        "outlineStyle": "solid",
+        "outlineWidth": "2px",
+        "outlineColor": "rgb(37, 99, 235)",
+        "boxShadow": "rgba(37, 99, 235, 0.22) 0px 0px 0px 3px",
+        "hasVisibleFocus": true
+      }
+    ],
+    "modalEscape": {
+      "modalOpened": true,
+      "activeBeforeEscape": "BUTTON",
+      "modalClosed": true,
+      "activeAfterClose": "BUTTON"
+    }
+  },
+  "responsiveViewports": {
+    "375": {
+      "label": "375px (Compact Mobile)",
+      "overflow": {
+        "docW": 375,
+        "winW": 375,
+        "overflowing": false,
+        "offenders": []
+      },
+      "touchTargets": {
+        "totalInteractive": 489,
+        "smallCount": 3,
+        "below24pxCount": 0,
+        "sampleSmall": [
+          {
+            "tag": "A",
+            "id": "headerDownloadLink",
+            "className": "",
+            "text": "下载 Android",
+            "width": 164,
+            "height": 38,
+            "below24px": false
+          },
+          {
+            "tag": "A",
+            "id": "headerChangelogLink",
+            "className": "",
+            "text": "更新日志",
+            "width": 164,
+            "height": 38,
+            "below24px": false
+          },
+          {
+            "tag": "BUTTON",
+            "id": "themeToggleBtn",
+            "className": "theme-toggle",
+            "text": "系统",
+            "width": 44,
+            "height": 38,
+            "below24px": false
+          }
+        ]
+      },
+      "nestedScroll": {
+        "containerCount": 0,
+        "containers": []
+      },
+      "screenshot": "docs/p07/evidence/p07-f/p07-f-viewport-375.png"
+    },
+    "390": {
+      "label": "390px (Standard Mobile)",
+      "overflow": {
+        "docW": 390,
+        "winW": 390,
+        "overflowing": false,
+        "offenders": []
+      },
+      "touchTargets": {
+        "totalInteractive": 489,
+        "smallCount": 3,
+        "below24pxCount": 0,
+        "sampleSmall": [
+          {
+            "tag": "A",
+            "id": "headerDownloadLink",
+            "className": "",
+            "text": "下载 Android",
+            "width": 171,
+            "height": 38,
+            "below24px": false
+          },
+          {
+            "tag": "A",
+            "id": "headerChangelogLink",
+            "className": "",
+            "text": "更新日志",
+            "width": 171,
+            "height": 38,
+            "below24px": false
+          },
+          {
+            "tag": "BUTTON",
+            "id": "themeToggleBtn",
+            "className": "theme-toggle",
+            "text": "系统",
+            "width": 44,
+            "height": 38,
+            "below24px": false
+          }
+        ]
+      },
+      "nestedScroll": {
+        "containerCount": 0,
+        "containers": []
+      },
+      "screenshot": "docs/p07/evidence/p07-f/p07-f-viewport-390.png"
+    },
+    "768": {
+      "label": "768px (Tablet Portrait)",
+      "overflow": {
+        "docW": 768,
+        "winW": 768,
+        "overflowing": false,
+        "offenders": []
+      },
+      "touchTargets": {
+        "totalInteractive": 489,
+        "smallCount": 3,
+        "below24pxCount": 0,
+        "sampleSmall": [
+          {
+            "tag": "A",
+            "id": "headerDownloadLink",
+            "className": "",
+            "text": "下载 Android",
+            "width": 128,
+            "height": 38,
+            "below24px": false
+          },
+          {
+            "tag": "A",
+            "id": "headerChangelogLink",
+            "className": "",
+            "text": "更新日志",
+            "width": 100,
+            "height": 38,
+            "below24px": false
+          },
+          {
+            "tag": "BUTTON",
+            "id": "themeToggleBtn",
+            "className": "theme-toggle",
+            "text": "系统",
+            "width": 82,
+            "height": 38,
+            "below24px": false
+          }
+        ]
+      },
+      "nestedScroll": {
+        "containerCount": 0,
+        "containers": []
+      },
+      "screenshot": "docs/p07/evidence/p07-f/p07-f-viewport-768.png"
+    },
+    "1024": {
+      "label": "1024px (Tablet Landscape)",
+      "overflow": {
+        "docW": 1009,
+        "winW": 1024,
+        "overflowing": false,
+        "offenders": []
+      },
+      "touchTargets": null,
+      "nestedScroll": {
+        "containerCount": 0,
+        "containers": []
+      },
+      "screenshot": "docs/p07/evidence/p07-f/p07-f-viewport-1024.png"
+    },
+    "1366": {
+      "label": "1366px (Standard Laptop)",
+      "overflow": {
+        "docW": 1351,
+        "winW": 1366,
+        "overflowing": false,
+        "offenders": []
+      },
+      "touchTargets": null,
+      "nestedScroll": {
+        "containerCount": 0,
+        "containers": []
+      },
+      "screenshot": "docs/p07/evidence/p07-f/p07-f-viewport-1366.png"
+    },
+    "1440": {
+      "label": "1440px (Desktop Widescreen)",
+      "overflow": {
+        "docW": 1425,
+        "winW": 1440,
+        "overflowing": false,
+        "offenders": []
+      },
+      "touchTargets": null,
+      "nestedScroll": {
+        "containerCount": 0,
+        "containers": []
+      },
+      "screenshot": "docs/p07/evidence/p07-f/p07-f-viewport-1440.png"
+    },
+    "1920": {
+      "label": "1920px (Full HD Ultra-wide)",
+      "overflow": {
+        "docW": 1905,
+        "winW": 1920,
+        "overflowing": false,
+        "offenders": []
+      },
+      "touchTargets": null,
+      "nestedScroll": {
+        "containerCount": 0,
+        "containers": []
+      },
+      "screenshot": "docs/p07/evidence/p07-f/p07-f-viewport-1920.png"
+    }
+  },
+  "themesAndMotion": {
+    "lightShot": "docs/p07/evidence/p07-f/p07-f-theme-light-1440.png",
+    "darkShot": "docs/p07/evidence/p07-f/p07-f-theme-dark-1440.png",
+    "reducedMotionShot": "docs/p07/evidence/p07-f/p07-f-reduced-motion-1440.png",
+    "reducedMotionState": {
+      "mediaQueryMatches": true,
+      "cardTransition": "none"
+    }
+  },
+  "nonRegressionVerification": {
+    "cards": [
+      {
+        "id": "card-learning",
+        "exists": true,
+        "rect": {
+          "width": 207,
+          "height": 255,
+          "top": 132,
+          "left": 699
+        },
+        "hitTagName": "BUTTON",
+        "isTargetOrDescendant": true
+      },
+      {
+        "id": "card-finance",
+        "exists": true,
+        "rect": {
+          "width": 213,
+          "height": 260,
+          "top": 190,
+          "left": 923
+        },
+        "hitTagName": "BUTTON",
+        "isTargetOrDescendant": true
+      },
+      {
+        "id": "card-tools",
+        "exists": true,
+        "rect": {
+          "width": 211,
+          "height": 258,
+          "top": 110,
+          "left": 1149
+        },
+        "hitTagName": "BUTTON",
+        "isTargetOrDescendant": true
+      }
+    ],
+    "logo": {
+      "exists": true,
+      "tagName": "IMG",
+      "src": "/icon-192.png?release=20261107-aeris-p07-f-a11y-rc3",
+      "renderedWidth": 1,
+      "renderedHeight": 64,
+      "naturalWidth": 192,
+      "naturalHeight": 192
+    }
+  },
+  "bundleSizes": {
+    "index.html": {
+      "rawBytes": 143579,
+      "gzipBytes": 31679,
+      "rawKb": 140.21,
+      "gzipKb": 30.94
+    },
+    "spatial-experience.css": {
+      "rawBytes": 117989,
+      "gzipBytes": 17074,
+      "rawKb": 115.22,
+      "gzipKb": 16.67
+    },
+    "styles.css": {
+      "rawBytes": 65590,
+      "gzipBytes": 12848,
+      "rawKb": 64.05,
+      "gzipKb": 12.55
+    },
+    "design-system.css": {
+      "rawBytes": 39078,
+      "gzipBytes": 8072,
+      "rawKb": 38.16,
+      "gzipKb": 7.88
+    },
+    "product-ui.css": {
+      "rawBytes": 101359,
+      "gzipBytes": 16085,
+      "rawKb": 98.98,
+      "gzipKb": 15.71
+    },
+    "public-experience.css": {
+      "rawBytes": 59223,
+      "gzipBytes": 10749,
+      "rawKb": 57.83,
+      "gzipKb": 10.5
+    },
+    "workspace-experience.css": {
+      "rawBytes": 35419,
+      "gzipBytes": 6097,
+      "rawKb": 34.59,
+      "gzipKb": 5.95
+    },
+    "app.js": {
+      "rawBytes": 334406,
+      "gzipBytes": 80080,
+      "rawKb": 326.57,
+      "gzipKb": 78.2
+    },
+    "tools.js": {
+      "rawBytes": 97848,
+      "gzipBytes": 24488,
+      "rawKb": 95.55,
+      "gzipKb": 23.91
+    },
+    "workflows.js": {
+      "rawBytes": 57458,
+      "gzipBytes": 14870,
+      "rawKb": 56.11,
+      "gzipKb": 14.52
+    },
+    "learning-sync.js": {
+      "rawBytes": 38231,
+      "gzipBytes": 9104,
+      "rawKb": 37.33,
+      "gzipKb": 8.89
+    },
+    "changelog.js": {
+      "rawBytes": 59710,
+      "gzipBytes": 20237,
+      "rawKb": 58.31,
+      "gzipKb": 19.76
+    },
+    "sw.js": {
+      "rawBytes": 10959,
+      "gzipBytes": 2782,
+      "rawKb": 10.7,
+      "gzipKb": 2.72
+    },
+    "_summary": {
+      "totalRawCssKb": 408.85,
+      "totalGzipCssKb": 69.26,
+      "totalRawJsKb": 584.58,
+      "totalGzipJsKb": 148.01
+    }
+  },
+  "findings": [],
+  "unifiedAcceptance": {
+    "status": "PASS",
+    "findingCount": 0,
+    "seriousOrCriticalAxeRules": 0
+  }
+}
