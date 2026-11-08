@@ -2,15 +2,16 @@ import { currencyDigits, moneyText, SUPPORTED_CURRENCIES } from './money.js?v=20
 const moneyFormatters = new Map();
 export function formatFinanceMoney(minor, currency) {
   try {
-    if (!currency || !SUPPORTED_CURRENCIES.includes(currency)) {
-      return `${currency || '未知币种'} · 金额单位待核实`;
+    const effectiveCurrency = arguments.length < 2 ? 'CNY' : currency;
+    if (!effectiveCurrency || !SUPPORTED_CURRENCIES.includes(effectiveCurrency)) {
+      return `${effectiveCurrency || '未知币种'} · 金额单位待核实`;
     }
-    const digits = currencyDigits(currency);
-    const amount = moneyText(minor ?? 0, currency);
-    let formatter = moneyFormatters.get(currency);
+    const digits = currencyDigits(effectiveCurrency);
+    const amount = moneyText(minor ?? 0, effectiveCurrency);
+    let formatter = moneyFormatters.get(effectiveCurrency);
     if (!formatter) {
-      formatter = new Intl.NumberFormat('zh-CN', { style: 'currency', currency, minimumFractionDigits: digits, maximumFractionDigits: digits });
-      moneyFormatters.set(currency, formatter);
+      formatter = new Intl.NumberFormat('zh-CN', { style: 'currency', currency: effectiveCurrency, minimumFractionDigits: digits, maximumFractionDigits: digits });
+      moneyFormatters.set(effectiveCurrency, formatter);
     }
     return formatter.format(amount);
   } catch (_) { return `${currency || '未知币种'} · 金额单位待核实`; }
