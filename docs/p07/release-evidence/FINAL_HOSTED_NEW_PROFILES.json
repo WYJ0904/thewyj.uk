@@ -1,0 +1,58 @@
+{
+  "source_sha": "e4844a5304709263a2810332eca5d2a87b069d3d",
+  "deployment_id": "583ab281-a601-4559-8ec5-88f296672b07",
+  "origin": "https://583ab281.thewyj-uk.pages.dev",
+  "production_operations": 0,
+  "ai_model_calls": 0,
+  "scope": "three new owned Chrome profiles; unauthenticated public shell only",
+  "rounds": [
+    {
+      "round": 1,
+      "worker_errors": [],
+      "install_ms": 16206,
+      "cache": {
+        "names": [
+          "wyj-shell-20261108-aeris-p07-release-rc6-es-modules"
+        ],
+        "count": 82,
+        "html": true,
+        "app": true,
+        "api": false
+      },
+      "offline_public_shell": true,
+      "status": "PASS"
+    },
+    {
+      "round": 2,
+      "worker_errors": [],
+      "install_ms": 16742,
+      "cache": {
+        "names": [
+          "wyj-shell-20261108-aeris-p07-release-rc6-es-modules"
+        ],
+        "count": 82,
+        "html": true,
+        "app": true,
+        "api": false
+      },
+      "offline_public_shell": true,
+      "status": "PASS"
+    },
+    {
+      "round": 3,
+      "worker_errors": [],
+      "install_ms": 16571,
+      "cache": {
+        "names": [
+          "wyj-shell-20261108-aeris-p07-release-rc6-es-modules"
+        ],
+        "count": 82,
+        "html": true,
+        "app": true,
+        "api": false
+      },
+      "offline_public_shell": true,
+      "status": "PASS"
+    }
+  ]
+}

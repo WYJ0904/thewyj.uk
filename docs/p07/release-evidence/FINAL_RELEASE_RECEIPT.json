@@ -1,0 +1,440 @@
+{
+  "final_status": "PRODUCTION_RELEASE_BLOCKED",
+  "generated_at": "2026-11-08T11:56:22.262Z",
+  "main_original_sha": "3eb268b748a6e7a1aaa7369059db474810bb59d4",
+  "accepted_ui_sha": "482580b0855e14a61b3f6b51e9d91ae7855296cb",
+  "release_candidate_sha": "e4844a5304709263a2810332eca5d2a87b069d3d",
+  "asset_release": "20261108-aeris-p07-release-rc6",
+  "branch": "codex/p07-production-release-preflight",
+  "draft_pr": "https://github.com/WYJ0904/thewyj.uk/pull/137",
+  "base": "main",
+  "draft": true,
+  "merged": false,
+  "original_129_commits_inventory": "COMMIT_AND_FILE_CLASSIFICATION.md",
+  "additional_release_commits": [
+    {
+      "sha": "7795465814ab3c16a06db4f8a273ee29dd24d1b1",
+      "subject": "chore(p07): freeze RC5 release candidate for blocked production preflight"
+    },
+    {
+      "sha": "854bac6a86191d916c3c38511c2f041b24ccb639",
+      "subject": "fix(p07): bound atomic Service Worker installation downloads"
+    },
+    {
+      "sha": "e3030a57d44f4d89e3f17b89536a5b411e10d0eb",
+      "subject": "test(p07): attribute installation state to the requested worker version"
+    },
+    {
+      "sha": "63ad14ee212b7295ecea9e1003fb3c907929ab54",
+      "subject": "test(p07): freeze production preflight evidence and worker lifecycle regression"
+    },
+    {
+      "sha": "e4844a5304709263a2810332eca5d2a87b069d3d",
+      "subject": "test(p07): hold feedback quota assertions within their fixed time window"
+    }
+  ],
+  "publish_inputs": {
+    "file_count": 148,
+    "bytes": 5885126,
+    "manifest_sha256": "431e89def1f104d753e78b8422f2ee7eaf8991734af4b77b1f6544dafd290c23",
+    "equals_product_freeze_sha": "854bac6a86191d916c3c38511c2f041b24ccb639",
+    "ci_fingerprint_identical": true,
+    "output": ".wrangler/final-release-git-input/.wrangler/pages-output"
+  },
+  "core_ci": {
+    "source_sha": "e4844a5304709263a2810332eca5d2a87b069d3d",
+    "run_id": 42476551810,
+    "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42476551810",
+    "status": "completed",
+    "conclusion": "success",
+    "run_attempt": 1,
+    "created_at": "2026-11-08T11:37:15Z",
+    "completed_at": "2026-11-08T11:49:44Z",
+    "required_success": 8,
+    "conditional_skipped": 2,
+    "skipped_counted_as_pass": false,
+    "jobs": [
+      {
+        "id": 128719082544,
+        "name": "Sensitive files and static naming",
+        "status": "completed",
+        "conclusion": "success",
+        "non_executed_steps": []
+      },
+      {
+        "id": 128719082709,
+        "name": "Python syntax and unittest (ubuntu-latest)",
+        "status": "completed",
+        "conclusion": "success",
+        "non_executed_steps": []
+      },
+      {
+        "id": 128719082807,
+        "name": "Python syntax and unittest (windows-latest)",
+        "status": "completed",
+        "conclusion": "success",
+        "non_executed_steps": []
+      },
+      {
+        "id": 128719082811,
+        "name": "Pages build and publish allowlist",
+        "status": "completed",
+        "conclusion": "success",
+        "non_executed_steps": []
+      },
+      {
+        "id": 128719082837,
+        "name": "JavaScript and static site checks",
+        "status": "completed",
+        "conclusion": "success",
+        "non_executed_steps": []
+      },
+      {
+        "id": 128719082966,
+        "name": "Android unit, lint and APK",
+        "status": "completed",
+        "conclusion": "success",
+        "non_executed_steps": [
+          "Validate an unreleased higher-version candidate without advancing Stable"
+        ]
+      },
+      {
+        "id": 128719083618,
+        "name": "Task 25 Android runtime contract",
+        "status": "completed",
+        "conclusion": "skipped",
+        "non_executed_steps": []
+      },
+      {
+        "id": 128719083807,
+        "name": "Task 25 cloud credential discovery",
+        "status": "completed",
+        "conclusion": "skipped",
+        "non_executed_steps": []
+      },
+      {
+        "id": 128719769773,
+        "name": "Cloud-only browser, canonical session and toolbox",
+        "status": "completed",
+        "conclusion": "success",
+        "non_executed_steps": []
+      },
+      {
+        "id": 128719769785,
+        "name": "Browser flow (application)",
+        "status": "completed",
+        "conclusion": "success",
+        "non_executed_steps": [
+          "Install independent toolbox artifact validators"
+        ]
+      }
+    ],
+    "actual_new_profile_sw_cases": [
+      {
+        "case": "normal",
+        "status": "PASS",
+        "first": {
+          "state": "activated",
+          "duration_ms": 424
+        },
+        "max_server_active": 3
+      },
+      {
+        "case": "slow",
+        "status": "PASS",
+        "first": {
+          "state": "activated",
+          "duration_ms": 25391
+        },
+        "max_server_active": 4
+      },
+      {
+        "case": "failure-retry",
+        "status": "PASS",
+        "first": {
+          "state": "redundant",
+          "duration_ms": 261
+        },
+        "max_server_active": 3
+      },
+      {
+        "case": "body-timeout",
+        "status": "PASS",
+        "first": {
+          "state": "redundant",
+          "duration_ms": 10134
+        },
+        "max_server_active": 3
+      },
+      {
+        "case": "warm",
+        "status": "PASS",
+        "first": {
+          "state": "activated",
+          "duration_ms": 419
+        },
+        "max_server_active": 3
+      }
+    ],
+    "publish_manifest_sha256": "431e89def1f104d753e78b8422f2ee7eaf8991734af4b77b1f6544dafd290c23",
+    "build_artifact": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42476551810/artifacts/13615323516",
+    "cloud_browser_artifact": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42476551810/artifacts/13616355574",
+    "ci_merge_sha": "9d79456c6dadf8983b0886aa833656ce812d0990",
+    "ci_merge_tree": "c78427bdb7a7229fc5e90b863f1a6df84a3e17d3",
+    "candidate_tree_identical": true
+  },
+  "service_worker_blocker": {
+    "closed_for_this_candidate": true,
+    "independent_rc5_red": "sw-install-rc5-red.json",
+    "all_81_required_assets_retained": true,
+    "install_concurrency": 6,
+    "per_resource_timeout_ms": 10000,
+    "body_deadline": true,
+    "final_local_cases": [
+      {
+        "name": "normal",
+        "status": "PASS",
+        "first": {
+          "state": "activated",
+          "duration_ms": 564
+        }
+      },
+      {
+        "name": "slow",
+        "status": "PASS",
+        "first": {
+          "state": "activated",
+          "duration_ms": 25602
+        }
+      },
+      {
+        "name": "failure-retry",
+        "status": "PASS",
+        "first": {
+          "state": "redundant",
+          "duration_ms": 444
+        },
+        "retry": {
+          "state": "activated",
+          "duration_ms": 558
+        }
+      },
+      {
+        "name": "body-timeout",
+        "status": "PASS",
+        "first": {
+          "state": "redundant",
+          "duration_ms": 10094
+        }
+      },
+      {
+        "name": "warm",
+        "status": "PASS",
+        "first": {
+          "state": "activated",
+          "duration_ms": 522
+        },
+        "upgrade": {
+          "state": "activated",
+          "duration_ms": 1572
+        }
+      }
+    ],
+    "final_ci_cases": [
+      {
+        "case": "normal",
+        "status": "PASS",
+        "first": {
+          "state": "activated",
+          "duration_ms": 424
+        },
+        "max_server_active": 3
+      },
+      {
+        "case": "slow",
+        "status": "PASS",
+        "first": {
+          "state": "activated",
+          "duration_ms": 25391
+        },
+        "max_server_active": 4
+      },
+      {
+        "case": "failure-retry",
+        "status": "PASS",
+        "first": {
+          "state": "redundant",
+          "duration_ms": 261
+        },
+        "max_server_active": 3
+      },
+      {
+        "case": "body-timeout",
+        "status": "PASS",
+        "first": {
+          "state": "redundant",
+          "duration_ms": 10134
+        },
+        "max_server_active": 3
+      },
+      {
+        "case": "warm",
+        "status": "PASS",
+        "first": {
+          "state": "activated",
+          "duration_ms": 419
+        },
+        "max_server_active": 3
+      }
+    ],
+    "cache_or_user_storage_cleared_to_pass": false
+  },
+  "hosted": {
+    "url": "https://583ab281.thewyj-uk.pages.dev",
+    "deployment_id": "583ab281-a601-4559-8ec5-88f296672b07",
+    "environment": "preview",
+    "source_sha": "e4844a5304709263a2810332eca5d2a87b069d3d",
+    "d1": {
+      "WYJ_DB": {
+        "id": "a3e6253b-689f-49f3-998b-7c5828ea255a"
+      }
+    },
+    "r2": {
+      "WYJ_STORAGE": {
+        "name": "wyj-cloud-preview"
+      }
+    },
+    "static_matching": 88,
+    "static_total": 88,
+    "new_profiles": [
+      {
+        "round": 1,
+        "status": "PASS",
+        "install_ms": 16206,
+        "offline": true
+      },
+      {
+        "round": 2,
+        "status": "PASS",
+        "install_ms": 16742,
+        "offline": true
+      },
+      {
+        "round": 3,
+        "status": "PASS",
+        "install_ms": 16571,
+        "offline": true
+      }
+    ],
+    "additional_full_cache_profile": {
+      "status": "PASS",
+      "core_response_bodies": 81,
+      "matching_committed_git_bytes": 81,
+      "offline": true
+    },
+    "public_p07_policy": {
+      "schema_version": 1,
+      "flag_key": "p07_accessibility",
+      "enabled": false,
+      "revision": 0,
+      "reason": "missing",
+      "observed_at": "2026-11-08T11:39:16.510Z",
+      "expires_at": "2026-11-08T11:39:46.510Z",
+      "max_age_seconds": 30
+    },
+    "models_called": 0,
+    "bound_to_production": false,
+    "p07_on_business_acceptance": false
+  },
+  "ui_regression": {
+    "source_sha": "854bac6a86191d916c3c38511c2f041b24ccb639",
+    "exact_publish_bytes_identical_to_final": true,
+    "on_suites_passed": 12,
+    "continuous_frame_identity_mount_cases_passed": 15,
+    "off_pass": true,
+    "kill_pass": true,
+    "real_production_or_phone_acceptance": false
+  },
+  "production_end_readonly": {
+    "observed_at": "2026-11-08T11:56:20.938Z",
+    "main_ref": "3eb268b748a6e7a1aaa7369059db474810bb59d4",
+    "canonical_deployment": "0bc5e5bb-6cd3-4e02-8a65-2b8539ae80ba",
+    "canonical_sha": "3eb268b748a6e7a1aaa7369059db474810bb59d4",
+    "canonical_unchanged": true,
+    "production_auto_deploy": true,
+    "production_branch": "main",
+    "production_bindings": {
+      "d1": {
+        "WYJ_DB": {
+          "id": "11c288d8-c584-409f-bb1f-7e7af11793e5"
+        }
+      },
+      "r2": {
+        "WYJ_STORAGE": {
+          "name": "wyj-cloud-production"
+        }
+      }
+    },
+    "p07_flag_read": {
+      "sql": "SELECT flag_key, enabled, kill_switch, channels_json, rollout_basis_points, revision FROM task25_feature_flags WHERE flag_key='p07_accessibility'",
+      "success": true,
+      "result": [
+        {
+          "results": [],
+          "success": true,
+          "meta": {
+            "served_by": "v3-prod",
+            "served_by_region": "APAC",
+            "served_by_colo": "HKG",
+            "served_by_primary": true,
+            "timings": {
+              "sql_duration_ms": 0.1149
+            },
+            "duration": 0.1149,
+            "changes": 0,
+            "last_row_id": 0,
+            "changed_db": false,
+            "size_after": 4542464,
+            "rows_read": 0,
+            "rows_written": 0,
+            "total_attempts": 1
+          }
+        }
+      ]
+    },
+    "production_mutations": 0
+  },
+  "remaining_blockers": [
+    {
+      "id": "B1",
+      "finding": "Task11 same-client sync meaning loss and offline tombstone rejection; PR136 not included and needs independent compatibility proof"
+    },
+    {
+      "id": "B2",
+      "finding": "Production P07 flag absent; exact proposal and isolated ON rehearsal require approval; no production flag mutation"
+    },
+    {
+      "id": "B3",
+      "finding": "Old main worker deletes unrelated user caches on activation; direct old-deployment rollback is unsafe for this requirement; safe rollback asset not yet verified"
+    }
+  ],
+  "production_flag_proposal": "P07_PRODUCTION_FLAG_PROPOSAL.json",
+  "owner_next_actions": [
+    "Authorize the scoped independent PR136 compatibility repair review",
+    "Approve an exact isolated rehearsal and later Production P07 UI flag plan",
+    "Approve a verified safe rollback asset/strategy",
+    "Only after blockers close, explicitly approve exact-SHA main merge and the consequent Production deployment"
+  ],
+  "production_mutations": 0,
+  "production_deployments_executed": 0,
+  "main_pushes_or_merges": 0,
+  "remote_migrations": 0,
+  "real_payments": 0,
+  "signing_or_stable_or_phone_changes": 0,
+  "evidence_notes": [
+    "This final receipt and its final local evidence are companion deliverables to the already committed report and the final PR body; no source push after the tested SHA.",
+    "The original 63ad CI failure and both ineffective/effective clock experiments are retained.",
+    "Task26 owner-waived historical gates remain waived, never relabeled PASS.",
+    "Hosted public shell and SW passes do not claim P07 ON business acceptance or Production acceptance."
+  ]
+}
